@@ -149,14 +149,16 @@ class TestInvalidFrameSequences(object):
         c.receive_data(f.serialize())
         c.clear_outbound_data_buffer()
 
-        bad_frame = frame_factory.build_data_frame(data=b'hello')
+        bad_frame = frame_factory.build_data_frame(
+            data=b'some data'
+        )
         c.receive_data(bad_frame.serialize())
 
-        expected_frame = frame_factory.build_rst_stream_frame(
+        expected = frame_factory.build_rst_stream_frame(
             stream_id=1,
-            error_code=0x5,
-        )
-        assert c.data_to_send() == expected_frame.serialize()
+            error_code=h2.errors.ErrorCodes.STREAM_CLOSED,
+        ).serialize()
+        assert c.data_to_send() == expected
 
     def test_unexpected_continuation_on_closed_stream(self, frame_factory):
         """
@@ -293,15 +295,15 @@ class TestInvalidFrameSequences(object):
         c.clear_outbound_data_buffer()
 
         bad_frame = frame_factory.build_data_frame(
-            data=b'hello'
+            data=b'some data'
         )
         events = c.receive_data(bad_frame.serialize())
 
-        expected_frame = frame_factory.build_rst_stream_frame(
+        expected = frame_factory.build_rst_stream_frame(
             stream_id=1,
-            error_code=0x5,
-        )
-        assert c.data_to_send() == expected_frame.serialize()
+            error_code=h2.errors.ErrorCodes.STREAM_CLOSED,
+        ).serialize()
+        assert c.data_to_send() == expected
 
         assert len(events) == 1
         event = events[0]
@@ -327,16 +329,16 @@ class TestInvalidFrameSequences(object):
         c.clear_outbound_data_buffer()
 
         bad_frame = frame_factory.build_data_frame(
-            data=b'hello'
+            data=b'some data'
         )
         # Receive 5 frames.
         events = c.receive_data(bad_frame.serialize() * 5)
 
-        expected_frame = frame_factory.build_rst_stream_frame(
+        expected = frame_factory.build_rst_stream_frame(
             stream_id=1,
-            error_code=0x5,
-        )
-        assert c.data_to_send() == expected_frame.serialize() * 5
+            error_code=h2.errors.ErrorCodes.STREAM_CLOSED,
+        ).serialize()
+        assert c.data_to_send() == expected * 5
 
         assert len(events) == 1
         event = events[0]

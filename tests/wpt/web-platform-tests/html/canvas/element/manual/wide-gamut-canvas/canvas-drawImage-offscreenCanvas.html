@@ -88,10 +88,10 @@ function initializeOffscreenCanvasTransparent(canvasColorSpace, canvasPixelForma
     return offscreen;
 }
 
-function testPixels(testCtx, refCtx, pixelFormat, isTrnasparent)
+function testPixels(testCtx, refCtx, pixelFormat, image_setting, isTrnasparent)
 {
-    var actual = testCtx.getImageData(0, 0, 4, 4).data;
-    var expected = refCtx.getImageData(0, 0, 4, 4).data;
+    var actual = testCtx.getImageData(0, 0, 4, 4, image_setting).data;
+    var expected = refCtx.getImageData(0, 0, 4, 4, image_setting).data;
 
     var tolerance = 4;
     if (pixelFormat === 'float16')
@@ -111,8 +111,10 @@ function runDrawOffscreenCanvasTestOpaque(testScenario) {
     var offscreen_canvas_opaque = initializeOffscreenCanvas(
         testScenario.imageColorSpace, testScenario.imagePixelFormat);
     canvas_ctx_blank.drawImage(offscreen_canvas_opaque, 0, 0);
+    var image_setting = {colorSpace: testScenario.canvasColorSpace,
+        storageFormat: testScenario.storageFormat}
     testPixels(canvas_ctx_blank, canvas_ctx_opaque,
-               testScenario.canvasPixelFormat, false);
+               testScenario.canvasPixelFormat, image_setting, false);
 }
 
 function runDrawOffscreenCanvasTestTransparent(testScenario) {
@@ -124,19 +126,23 @@ function runDrawOffscreenCanvasTestTransparent(testScenario) {
     var offscreen_canvas_transparent = initializeOffscreenCanvasTransparent(
         testScenario.imageColorSpace, testScenario.imagePixelFormat);
     canvas_ctx_blank.drawImage(offscreen_canvas_transparent, 0, 0);
+    var image_setting = {colorSpace: testScenario.canvasColorSpace,
+        storageFormat: testScenario.storageFormat}
     testPixels(canvas_ctx_blank, canvas_ctx_transparent,
-               testScenario.canvasPixelFormat, true);
+               testScenario.canvasPixelFormat, image_setting, true);
 }
 
 function runAllTests() {
     var canvasColorSpaces = ['srgb'];
     var canvasPixelFormats = ['uint8', 'float16'];
+    var storageFormats = ['uint8', 'float32'];
 
     var testScenarioSet = [];
     for (var i = 0; i < canvasColorSpaces.length; i++) {
         for (var j = 0; j < canvasPixelFormats.length; j++) {
             var canvas_color_space = canvasColorSpaces[i];
             var canvas_pixel_format = canvasPixelFormats[j];
+            var image_storage_format = storageFormats[j];
             for (var k = 0; k < canvasColorSpaces.length; k++) {
                 for (var m = 0; m < canvasPixelFormats.length; m++) {
                     var image_host_color_space = canvasColorSpaces[k];
@@ -147,6 +153,7 @@ function runAllTests() {
                     testScenario.canvasPixelFormat = canvas_pixel_format;
                     testScenario.imageColorSpace = image_host_color_space;
                     testScenario.imagePixelFormat = image_host_pixel_format;
+                    testScenario.storageFormat = image_storage_format;
                     testScenarioSet.push(testScenario);
                 }
             }

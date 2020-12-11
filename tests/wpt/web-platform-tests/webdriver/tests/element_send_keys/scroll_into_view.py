@@ -1,6 +1,6 @@
 from tests.support.asserts import assert_success
 from tests.support.helpers import is_element_in_viewport
-from tests.support.inline import inline
+
 
 def element_send_keys(session, element, text):
     return session.transport.send(
@@ -10,7 +10,7 @@ def element_send_keys(session, element, text):
         {"text": text})
 
 
-def test_element_outside_of_not_scrollable_viewport(session):
+def test_element_outside_of_not_scrollable_viewport(session, inline):
     session.url = inline("<input style=\"position: relative; left: -9999px;\">")
     element = session.find.css("input", all=False)
 
@@ -20,7 +20,7 @@ def test_element_outside_of_not_scrollable_viewport(session):
     assert not is_element_in_viewport(session, element)
 
 
-def test_element_outside_of_scrollable_viewport(session):
+def test_element_outside_of_scrollable_viewport(session, inline):
     session.url = inline("<input style=\"margin-top: 102vh;\">")
     element = session.find.css("input", all=False)
 
@@ -30,7 +30,7 @@ def test_element_outside_of_scrollable_viewport(session):
     assert is_element_in_viewport(session, element)
 
 
-def test_option_select_container_outside_of_scrollable_viewport(session):
+def test_option_select_container_outside_of_scrollable_viewport(session, inline):
     session.url = inline("""
         <select style="margin-top: 102vh;">
           <option value="foo">foo</option>
@@ -47,7 +47,7 @@ def test_option_select_container_outside_of_scrollable_viewport(session):
     assert is_element_in_viewport(session, element)
 
 
-def test_option_stays_outside_of_scrollable_viewport(session):
+def test_option_stays_outside_of_scrollable_viewport(session, inline):
     session.url = inline("""
         <select multiple style="height: 105vh; margin-top: 100vh;">
           <option value="foo" id="foo" style="height: 100vh;">foo</option>
@@ -66,7 +66,7 @@ def test_option_stays_outside_of_scrollable_viewport(session):
     assert not is_element_in_viewport(session, option_bar)
 
 
-def test_contenteditable_element_outside_of_scrollable_viewport(session):
+def test_contenteditable_element_outside_of_scrollable_viewport(session, inline):
     session.url = inline("<div contenteditable style=\"margin-top: 102vh;\"></div>")
     element = session.find.css("div", all=False)
 

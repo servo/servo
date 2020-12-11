@@ -8,10 +8,6 @@ A fully-functional HTTP/2 server using asyncio. Requires Python 3.5+.
 This example demonstrates handling requests with bodies, as well as handling
 those without. In particular, it demonstrates the fact that DataReceived may
 be called multiple times, and that applications must handle that possibility.
-
-Please note that this example does not handle flow control, and so only works
-properly for relatively small requests. Please see other examples to understand
-how flow control should work.
 """
 import asyncio
 import io
@@ -23,10 +19,12 @@ from typing import List, Tuple
 from h2.config import H2Configuration
 from h2.connection import H2Connection
 from h2.events import (
-    ConnectionTerminated, DataReceived, RequestReceived, StreamEnded
+    ConnectionTerminated, DataReceived, RemoteSettingsChanged,
+    RequestReceived, StreamEnded, StreamReset, WindowUpdated
 )
 from h2.errors import ErrorCodes
-from h2.exceptions import ProtocolError
+from h2.exceptions import ProtocolError, StreamClosedError
+from h2.settings import SettingCodes
 
 
 RequestData = collections.namedtuple('RequestData', ['headers', 'data'])
@@ -38,11 +36,17 @@ class H2Protocol(asyncio.Protocol):
         self.conn = H2Connection(config=config)
         self.transport = None
         self.stream_data = {}
+        self.flow_control_futures = {}
 
     def connection_made(self, transport: asyncio.Transport):
         self.transport = transport
         self.conn.initiate_connection()
         self.transport.write(self.conn.data_to_send())
+
+    def connection_lost(self, exc):
+        for future in self.flow_control_futures.values():
+            future.cancel()
+        self.flow_control_futures = {}
 
     def data_received(self, data: bytes):
         try:
@@ -61,17 +65,19 @@ class H2Protocol(asyncio.Protocol):
                     self.stream_complete(event.stream_id)
                 elif isinstance(event, ConnectionTerminated):
                     self.transport.close()
+                elif isinstance(event, StreamReset):
+                    self.stream_reset(event.stream_id)
+                elif isinstance(event, WindowUpdated):
+                    self.window_updated(event.stream_id, event.delta)
+                elif isinstance(event, RemoteSettingsChanged):
+                    if SettingCodes.INITIAL_WINDOW_SIZE in event.changed_settings:
+                        self.window_updated(None, 0)
 
                 self.transport.write(self.conn.data_to_send())
 
     def request_received(self, headers: List[Tuple[str, str]], stream_id: int):
         headers = collections.OrderedDict(headers)
         method = headers[':method']
-
-        # We only support GET and POST.
-        if method not in ('GET', 'POST'):
-            self.return_405(headers, stream_id)
-            return
 
         # Store off the request data.
         request_data = RequestData(headers, io.BytesIO())
@@ -101,18 +107,7 @@ class H2Protocol(asyncio.Protocol):
             ('server', 'asyncio-h2'),
         )
         self.conn.send_headers(stream_id, response_headers)
-        self.conn.send_data(stream_id, data, end_stream=True)
-
-    def return_405(self, headers: List[Tuple[str, str]], stream_id: int):
-        """
-        We don't support the given method, so we want to return a 405 response.
-        """
-        response_headers = (
-            (':status', '405'),
-            ('content-length', '0'),
-            ('server', 'asyncio-h2'),
-        )
-        self.conn.send_headers(stream_id, response_headers, end_stream=True)
+        asyncio.ensure_future(self.send_data(data, stream_id))
 
     def receive_data(self, data: bytes, stream_id: int):
         """
@@ -128,12 +123,72 @@ class H2Protocol(asyncio.Protocol):
         else:
             stream_data.data.write(data)
 
+    def stream_reset(self, stream_id):
+        """
+        A stream reset was sent. Stop sending data.
+        """
+        if stream_id in self.flow_control_futures:
+            future = self.flow_control_futures.pop(stream_id)
+            future.cancel()
+
+    async def send_data(self, data, stream_id):
+        """
+        Send data according to the flow control rules.
+        """
+        while data:
+            while self.conn.local_flow_control_window(stream_id) < 1:
+                try:
+                    await self.wait_for_flow_control(stream_id)
+                except asyncio.CancelledError:
+                    return
+
+            chunk_size = min(
+                self.conn.local_flow_control_window(stream_id),
+                len(data),
+                self.conn.max_outbound_frame_size,
+            )
+
+            try:
+                self.conn.send_data(
+                    stream_id,
+                    data[:chunk_size],
+                    end_stream=(chunk_size == len(data))
+                )
+            except (StreamClosedError, ProtocolError):
+                # The stream got closed and we didn't get told. We're done
+                # here.
+                break
+
+            self.transport.write(self.conn.data_to_send())
+            data = data[chunk_size:]
+
+    async def wait_for_flow_control(self, stream_id):
+        """
+        Waits for a Future that fires when the flow control window is opened.
+        """
+        f = asyncio.Future()
+        self.flow_control_futures[stream_id] = f
+        await f
+
+    def window_updated(self, stream_id, delta):
+        """
+        A window update frame was received. Unblock some number of flow control
+        Futures.
+        """
+        if stream_id and stream_id in self.flow_control_futures:
+            f = self.flow_control_futures.pop(stream_id)
+            f.set_result(delta)
+        elif not stream_id:
+            for f in self.flow_control_futures.values():
+                f.set_result(delta)
+
+            self.flow_control_futures = {}
+
 
 ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
 ssl_context.options |= (
     ssl.OP_NO_TLSv1 | ssl.OP_NO_TLSv1_1 | ssl.OP_NO_COMPRESSION
 )
-ssl_context.set_ciphers("ECDHE+AESGCM")
 ssl_context.load_cert_chain(certfile="cert.crt", keyfile="cert.key")
 ssl_context.set_alpn_protocols(["h2"])
 

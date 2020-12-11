@@ -7,10 +7,10 @@
 <script src="../resources/sxg-util.js"></script>
 <body>
 <script>
-nel_test(async t => {
+nel_iframe_test(async t => {
   const alt_origin = get_host_info().HTTPS_NOTSAMESITE_ORIGIN;
   const test_origin = get_host_info().HTTPS_ORIGIN;
-  await fetchResourceWithBasicPolicy();
+  await loadResourceWithBasicPolicyInIframe();
   const iframe_path =
       alt_origin +
       '/signed-exchange/resources/sxg-subresource-mismatch-iframe.html';

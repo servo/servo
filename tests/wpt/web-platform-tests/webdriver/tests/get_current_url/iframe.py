@@ -1,7 +1,6 @@
 import pytest
 
 from tests.support.asserts import assert_success
-from tests.support.inline import iframe, inline
 
 
 """
@@ -15,9 +14,20 @@ also enforce process isolation based on site origin.
 This is known to sometimes cause problems for WebDriver implementations.
 """
 
-frame_doc = inline("<p>frame")
-one_frame_doc = inline("<iframe src='%s'></iframe>" % frame_doc)
-nested_frames_doc = inline("<iframe src='%s'></iframe>" % one_frame_doc)
+
+@pytest.fixture
+def frame_doc(inline):
+    return inline("<p>frame")
+
+
+@pytest.fixture
+def one_frame_doc(inline, frame_doc):
+    return inline("<iframe src='%s'></iframe>" % frame_doc)
+
+
+@pytest.fixture
+def nested_frames_doc(inline, one_frame_doc):
+    return inline("<iframe src='%s'></iframe>" % one_frame_doc)
 
 
 def get_current_url(session):
@@ -25,7 +35,7 @@ def get_current_url(session):
         "GET", "session/{session_id}/url".format(**vars(session)))
 
 
-def test_iframe(session):
+def test_iframe(session, one_frame_doc):
     top_level_doc = one_frame_doc
     session.url = top_level_doc
 
@@ -37,7 +47,7 @@ def test_iframe(session):
     assert_success(response, top_level_doc)
 
 
-def test_nested_iframe(session):
+def test_nested_iframe(session, nested_frames_doc):
     session.url = nested_frames_doc
     top_level_doc = session.url
 
@@ -53,7 +63,7 @@ def test_nested_iframe(session):
 
 
 @pytest.mark.parametrize("domain", ["", "alt"], ids=["same_origin", "cross_origin"])
-def test_origin(session, domain, url):
+def test_origin(session, inline, iframe, domain):
     top_level_doc = inline(iframe("<p>frame", domain=domain))
 
     session.url = top_level_doc

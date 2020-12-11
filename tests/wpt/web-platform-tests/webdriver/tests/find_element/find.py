@@ -3,7 +3,6 @@ import pytest
 from webdriver.transport import Response
 
 from tests.support.asserts import assert_error, assert_same_element, assert_success
-from tests.support.inline import inline
 
 
 def find_element(session, using, value):
@@ -48,7 +47,7 @@ def test_invalid_selector_argument(session, value):
                           ("partial link text", "link text"),
                           ("tag name", "a"),
                           ("xpath", "//a")])
-def test_find_element(session, using, value):
+def test_find_element(session, inline, using, value):
     # Step 8 - 9
     session.url = inline("<a href=# id=linkText>full link text</a>")
 
@@ -64,7 +63,7 @@ def test_find_element(session, using, value):
     ("<a href=#>LINK TEXT</a>", "LINK TEXT"),
     ("<a href=# style='text-transform: uppercase'>link text</a>", "LINK TEXT"),
 ])
-def test_find_element_link_text(session, document, value):
+def test_find_element_link_text(session, inline, document, value):
     # Step 8 - 9
     session.url = inline(document)
 
@@ -81,7 +80,7 @@ def test_find_element_link_text(session, document, value):
     ("<a href=#>PARTIAL LINK TEXT</a>", "LINK"),
     ("<a href=# style='text-transform: uppercase'>partial link text</a>", "LINK"),
 ])
-def test_find_element_partial_link_text(session, document, value):
+def test_find_element_partial_link_text(session, inline, document, value):
     # Step 8 - 9
     session.url = inline(document)
 
@@ -102,7 +101,7 @@ def test_no_element(session, using, value):
                           ("partial link text", "link text"),
                           ("tag name", "a"),
                           ("xpath", "//*[name()='a']")])
-def test_xhtml_namespace(session, using, value):
+def test_xhtml_namespace(session, inline, using, value):
     session.url = inline("""<a href="#" id="linkText">full link text</a>""",
                          doctype="xhtml")
     expected = session.execute_script("return document.links[0]")
@@ -116,7 +115,7 @@ def test_xhtml_namespace(session, using, value):
                          [("css selector", ":root"),
                           ("tag name", "html"),
                           ("xpath", "/html")])
-def test_htmldocument(session, using, value):
+def test_htmldocument(session, inline, using, value):
     session.url = inline("")
     response = find_element(session, using, value)
     assert_success(response)

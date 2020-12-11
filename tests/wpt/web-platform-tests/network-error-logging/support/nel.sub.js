@@ -24,6 +24,15 @@ function nel_test(callback, name, properties) {
   }, name, properties);
 }
 
+function nel_iframe_test(callback, name, properties) {
+  promise_test(async t => {
+    await obtainNELLock();
+    await clearReportingAndNELConfigurationsInIframe();
+    await callback(t);
+    await releaseNELLock();
+  }, name, properties);
+}
+
 /*
  * Helper functions for constructing domain names that contain NEL policies.
  */
@@ -66,6 +75,37 @@ function fetchResourceWithBasicPolicy(subdomain) {
 function fetchResourceWithZeroSuccessFractionPolicy(subdomain) {
   const url = _getNELResourceURL(subdomain, "pass.png?id="+reportID+"&success_fraction=0.0");
   return fetch(url, {mode: "no-cors"});
+}
+
+/*
+ * Similar to the above methods, but fetch resources in an iframe. Allows matching
+ * full context of reports sent from an iframe that's same-site relative to the domains
+ * a policy set.
+ */
+
+ function loadResourceWithBasicPolicyInIframe(subdomain) {
+  return loadResourceWithPolicyInIframe(
+      getURLForResourceWithBasicPolicy(subdomain));
+}
+
+function loadResourceWithZeroSuccessFractionPolicyInIframe(subdomain) {
+  return loadResourceWithPolicyInIframe(
+      _getNELResourceURL(subdomain, "pass.png?id="+reportID+"&success_fraction=0.0"));
+}
+
+function clearResourceWithBasicPolicyInIframe(subdomain) {
+  return loadResourceWithPolicyInIframe(
+      getURLForClearingConfiguration(subdomain));
+}
+
+function loadResourceWithPolicyInIframe(url) {
+  return new Promise((resolve, reject) => {
+    const frame = document.createElement('iframe');
+    frame.src = url;
+    frame.onload = () => resolve(frame);
+    frame.onerror = () => reject('failed to load ' + url);
+    document.body.appendChild(frame);
+  });
 }
 
 /*
@@ -166,6 +206,16 @@ async function clearReportingAndNELConfigurations(subdomain) {
     fetch(getURLForClearingConfiguration("www"), {mode: "no-cors"}),
     fetch(getURLForClearingConfiguration("www1"), {mode: "no-cors"}),
     fetch(getURLForClearingConfiguration("www2"), {mode: "no-cors"}),
+  ]);
+  return;
+}
+
+async function clearReportingAndNELConfigurationsInIframe(subdomain) {
+  await Promise.all([
+    clearResourceWithBasicPolicyInIframe(""),
+    clearResourceWithBasicPolicyInIframe("www"),
+    clearResourceWithBasicPolicyInIframe("www1"),
+    clearResourceWithBasicPolicyInIframe("www2"),
   ]);
   return;
 }

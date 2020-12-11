@@ -260,11 +260,11 @@ class TestServerUpgrade(object):
         )
         c.receive_data(f.serialize())
 
-        expected_frame = frame_factory.build_rst_stream_frame(
+        expected = frame_factory.build_rst_stream_frame(
             stream_id=1,
             error_code=h2.errors.ErrorCodes.STREAM_CLOSED,
-        )
-        assert c.data_to_send() == expected_frame.serialize()
+        ).serialize()
+        assert c.data_to_send() == expected
 
     def test_client_settings_are_applied(self, frame_factory):
         """
@@ -278,7 +278,7 @@ class TestServerUpgrade(object):
         # start of the connection, do not agree on their initial settings
         # state.
         assert (
-            client.local_settings._settings != server.remote_settings._settings
+            client.local_settings != server.remote_settings
         )
 
         # Get the client header data and pass it to the server.
@@ -297,10 +297,6 @@ class TestServerUpgrade(object):
         )
         assert server.data_to_send() == expected_frame.serialize()
 
-        # We violate abstraction layers here, but I don't think defining __eq__
-        # for this is worth it. In this case, both the client and server should
-        # agree that these settings have been ACK'd, so their underlying
-        # dictionaries should be identical.
         assert (
-            client.local_settings._settings == server.remote_settings._settings
+            client.local_settings == server.remote_settings
         )

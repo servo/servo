@@ -395,6 +395,8 @@ class SettingsFrame(Frame):
     MAX_FRAME_SIZE = 0x05
     #: The byte that signals the SETTINGS_MAX_HEADER_LIST_SIZE setting.
     MAX_HEADER_LIST_SIZE = 0x06
+    #: The byte that signals SETTINGS_ENABLE_CONNECT_PROTOCOL setting.
+    ENABLE_CONNECT_PROTOCOL = 0x08
 
     def __init__(self, stream_id=0, settings=None, **kwargs):
         super(SettingsFrame, self).__init__(stream_id, **kwargs)

@@ -3,7 +3,6 @@ import pytest
 from webdriver.error import NoSuchElementException
 
 from tests.support.asserts import assert_success
-from tests.support.inline import iframe, inline
 from tests.support.sync import Poll
 
 from . import wait_for_new_handle
@@ -16,7 +15,7 @@ def element_click(session, element):
             element_id=element.id))
 
 
-def test_numbers_link(session, server_config):
+def test_numbers_link(session, server_config, inline):
     link = "/webdriver/tests/element_click/support/input.html"
     session.url = inline("<a href={url}>123456</a>".format(url=link))
     element = session.find.css("a", all=False)
@@ -28,7 +27,7 @@ def test_numbers_link(session, server_config):
     assert session.url == "http://{host}:{port}{url}".format(host=host, port=port, url=link)
 
 
-def test_multi_line_link(session, server_config):
+def test_multi_line_link(session, server_config, inline):
     link = "/webdriver/tests/element_click/support/input.html"
     session.url = inline("""
         <p style="background-color: yellow; width: 50px;">
@@ -43,7 +42,7 @@ def test_multi_line_link(session, server_config):
     assert session.url == "http://{host}:{port}{url}".format(host=host, port=port, url=link)
 
 
-def test_link_unload_event(session, server_config):
+def test_link_unload_event(session, server_config, inline):
     link = "/webdriver/tests/element_click/support/input.html"
     session.url = inline("""
         <body onunload="checkUnload()">
@@ -74,7 +73,7 @@ def test_link_unload_event(session, server_config):
     assert response is True
 
 
-def test_link_hash(session):
+def test_link_hash(session, inline):
     id = "anchor"
     session.url = inline("""
         <a href="#{url}">aaaa</a>
@@ -106,7 +105,7 @@ def test_link_hash(session):
     "_self",
     "_top",
 ])
-def test_link_from_toplevel_context_with_target(session, target):
+def test_link_from_toplevel_context_with_target(session, inline, target):
     target_page = inline("<p id='foo'>foo</p>")
 
     session.url = inline("<a href='{}' target='{}'>click</a>".format(target_page, target))
@@ -135,7 +134,7 @@ def test_link_from_toplevel_context_with_target(session, target):
     "_self",
     "_top",
 ])
-def test_link_from_nested_context_with_target(session, target):
+def test_link_from_nested_context_with_target(session, inline, iframe, target):
     target_page = inline("<p id='foo'>foo</p>")
 
     session.url = inline(iframe("<a href='{}' target='{}'>click</a>".format(target_page, target)))
@@ -167,7 +166,7 @@ def test_link_from_nested_context_with_target(session, target):
     wait.until(lambda s: s.find.css("#foo"))
 
 
-def test_link_closes_window(session):
+def test_link_closes_window(session, inline):
     new_handle = session.new_window()
     session.window_handle = new_handle
 

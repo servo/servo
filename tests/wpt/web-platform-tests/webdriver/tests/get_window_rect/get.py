@@ -1,8 +1,4 @@
 from tests.support.asserts import assert_error, assert_success
-from tests.support.inline import inline
-
-
-alert_doc = inline("<script>window.alert()</script>")
 
 
 def get_window_rect(session):

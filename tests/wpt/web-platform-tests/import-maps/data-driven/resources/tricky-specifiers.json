@@ -8,7 +8,11 @@
       "..": "/lib/dotdot.mjs",
       "..\\": "/lib/dotdotbackslash.mjs",
       "%2E": "/lib/percent2e.mjs",
-      "%2F": "/lib/percent2f.mjs"
+      "%2F": "/lib/percent2f.mjs",
+      "https://map.example/%E3%81%8D%E3%81%A4%E3%81%AD/": "/a/",
+      "https://map.example/きつね/fox/": "/b/",
+      "%E3%81%8D%E3%81%A4%E3%81%AD/": "/c/",
+      "きつね/fox/": "/d/"
     }
   },
   "importMapBaseURL": "https://example.com/app/index.html",
@@ -37,6 +41,30 @@
     "module for which only a trailing-slash version is present should fail": {
       "expectedResults": {
         "only-slash": null
+      }
+    },
+    "URL-like specifiers are normalized": {
+      "expectedResults": {
+        "https://map.example/%E3%81%8D%E3%81%A4%E3%81%AD/": "https://example.com/a/",
+        "https://map.example/%E3%81%8D%E3%81%A4%E3%81%AD/bar": "https://example.com/a/bar",
+        "https://map.example/%E3%81%8D%E3%81%A4%E3%81%AD/fox/": "https://example.com/b/",
+        "https://map.example/%E3%81%8D%E3%81%A4%E3%81%AD/fox/bar": "https://example.com/b/bar",
+        "https://map.example/きつね/": "https://example.com/a/",
+        "https://map.example/きつね/bar": "https://example.com/a/bar",
+        "https://map.example/きつね/fox/": "https://example.com/b/",
+        "https://map.example/きつね/fox/bar": "https://example.com/b/bar"
+      }
+    },
+    "Bare specifiers are not normalized": {
+      "expectedResults": {
+        "%E3%81%8D%E3%81%A4%E3%81%AD/": "https://example.com/c/",
+        "%E3%81%8D%E3%81%A4%E3%81%AD/bar": "https://example.com/c/bar",
+        "%E3%81%8D%E3%81%A4%E3%81%AD/fox/": "https://example.com/c/fox/",
+        "%E3%81%8D%E3%81%A4%E3%81%AD/fox/bar": "https://example.com/c/fox/bar",
+        "きつね/": null,
+        "きつね/bar": null,
+        "きつね/fox/": "https://example.com/d/",
+        "きつね/fox/bar": "https://example.com/d/bar"
       }
     }
   }

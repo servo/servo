@@ -8,7 +8,9 @@
       "lodash-dotdot": "../node_modules/lodash-es/lodash.js",
       "lodash-dotdot/": "../node_modules/lodash-es/",
       "mapped/": "https://example.com/",
-      "mapped/path/": "https://github.com/WICG/import-maps/issues/207/"
+      "mapped/path/": "https://github.com/WICG/import-maps/issues/207/",
+      "mapped/non-ascii-1/": "https://example.com/%E3%81%8D%E3%81%A4%E3%81%AD/",
+      "mapped/non-ascii-2/": "https://example.com/きつね/"
     }
   },
   "importMapBaseURL": "https://example.com/app/index.html",
@@ -46,11 +48,23 @@
         "mapped/path": "https://example.com/path",
         "mapped/path/": "https://github.com/WICG/import-maps/issues/207/",
         "mapped/path/..": null,
+        "mapped/path/../path/": null,
+        "mapped/path/../207": null,
+        "mapped/path/../207/": "https://github.com/WICG/import-maps/issues/207/",
+        "mapped/path//": null,
+        "mapped/path/WICG/import-maps/issues/207/": "https://github.com/WICG/import-maps/issues/207/WICG/import-maps/issues/207/",
+        "mapped/path//WICG/import-maps/issues/207/": "https://github.com/WICG/import-maps/issues/207/",
         "mapped/path/../backtrack": null,
         "mapped/path/../../backtrack": null,
         "mapped/path/../../../backtrack": null,
         "moment/../backtrack": null,
-        "moment/..": null
+        "moment/..": null,
+        "mapped/non-ascii-1/": "https://example.com/%E3%81%8D%E3%81%A4%E3%81%AD/",
+        "mapped/non-ascii-1/../%E3%81%8D%E3%81%A4%E3%81%AD/": "https://example.com/%E3%81%8D%E3%81%A4%E3%81%AD/",
+        "mapped/non-ascii-1/../きつね/": "https://example.com/%E3%81%8D%E3%81%A4%E3%81%AD/",
+        "mapped/non-ascii-2/": "https://example.com/%E3%81%8D%E3%81%A4%E3%81%AD/",
+        "mapped/non-ascii-2/../%E3%81%8D%E3%81%A4%E3%81%AD/": "https://example.com/%E3%81%8D%E3%81%A4%E3%81%AD/",
+        "mapped/non-ascii-2/../きつね/": "https://example.com/%E3%81%8D%E3%81%A4%E3%81%AD/"
       }
     }
   }

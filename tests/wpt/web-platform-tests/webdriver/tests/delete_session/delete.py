@@ -2,7 +2,6 @@ import pytest
 from webdriver import error
 
 from tests.support.asserts import assert_success
-from tests.support.inline import inline
 
 
 def delete_session(session):
@@ -19,7 +18,7 @@ def test_null_response_value(session):
     session.end()
 
 
-def test_dismissed_beforeunload_prompt(session):
+def test_dismissed_beforeunload_prompt(session, inline):
     session.url = inline("""
       <input type="text">
       <script>

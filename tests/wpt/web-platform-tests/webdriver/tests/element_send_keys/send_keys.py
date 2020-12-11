@@ -4,7 +4,6 @@ from webdriver import Element
 from webdriver.transport import Response
 
 from tests.support.asserts import assert_error, assert_success
-from tests.support.inline import inline
 
 
 def element_send_keys(session, element, text):
@@ -15,7 +14,7 @@ def element_send_keys(session, element, text):
         {"text": text})
 
 
-def test_null_parameter_value(session, http):
+def test_null_parameter_value(session, http, inline):
     session.url = inline("<input>")
     element = session.find.css("input", all=False)
 
@@ -25,7 +24,7 @@ def test_null_parameter_value(session, http):
         assert_error(Response.from_http(response), "invalid argument")
 
 
-def test_null_response_value(session):
+def test_null_response_value(session, inline):
     session.url = inline("<input>")
     element = session.find.css("input", all=False)
 
@@ -56,7 +55,7 @@ def test_no_browsing_context(session, closed_frame):
 
 
 @pytest.mark.parametrize("value", [True, None, 1, [], {}])
-def test_invalid_text_type(session, value):
+def test_invalid_text_type(session, inline, value):
     session.url = inline("<input>")
     element = session.find.css("input", all=False)
 
@@ -64,7 +63,7 @@ def test_invalid_text_type(session, value):
     assert_error(response, "invalid argument")
 
 
-def test_stale_element(session):
+def test_stale_element(session, inline):
     session.url = inline("<input>")
     element = session.find.css("input", all=False)
 

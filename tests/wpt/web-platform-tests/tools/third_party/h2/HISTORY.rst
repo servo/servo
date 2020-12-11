@@ -1,6 +1,65 @@
 Release History
 ===============
 
+3.2.0 (2020-02-08)
+------------------
+
+Bugfixes
+~~~~~~~~
+
+- Receiving DATA frames on closed (or reset) streams now properly emit a
+  WINDOW_UPDATE to keep the connection flow window topped up.
+
+API Changes (Backward-Incompatible)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- ``h2.config.logger`` now uses a `trace(...)` function, in addition
+  to `debug(...)`. If you defined a custom logger object, you need to handle
+  these new function calls.
+
+
+3.1.1 (2019-08-02)
+------------------
+
+Bugfixes
+~~~~~~~~
+
+- Ignore WINDOW_UPDATE and RST_STREAM frames received after stream
+  closure.
+
+
+3.1.0 (2019-01-22)
+------------------
+
+API Changes (Backward-Incompatible)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- ``h2.connection.H2Connection.data_to_send`` first and only argument ``amt``
+  was renamed to ``amount``.
+- Support for Python 3.3 has been removed.
+
+API Changes (Backward-Compatible)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- ``h2.connection.H2Connection.send_data`` now supports ``data`` parameter
+  being a ``memoryview`` object.
+- Refactor ping-related events: a ``h2.events.PingReceived`` event is fired
+  when a PING frame is received and a ``h2.events.PingAckReceived`` event is
+  fired when a PING frame with an ACK flag is received.
+  ``h2.events.PingAcknowledged`` is deprecated in favour of the identical
+  ``h2.events.PingAckReceived``.
+- Added ``ENABLE_CONNECT_PROTOCOL`` to ``h2.settings.SettingCodes``.
+- Support ``CONNECT`` requests with a ``:protocol`` pseudo header
+  thereby supporting RFC 8441.
+- A limit to the number of closed streams kept in memory by the
+  connection is applied. It can be configured by
+  ``h2.connection.H2Connection.MAX_CLOSED_STREAMS``.
+
+Bugfixes
+~~~~~~~~
+
+- Debug logging when stream_id is None is now fixed and no longer errors.
+
 3.0.1 (2017-04-03)
 ------------------
 

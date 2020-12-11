@@ -609,6 +609,7 @@ def start_http2_server(host, port, paths, routes, bind_address, config, **kwargs
                                      port=port,
                                      handler_cls=wptserve.Http2WebTestRequestHandler,
                                      doc_root=paths["doc_root"],
+                                     ws_doc_root=paths["ws_doc_root"],
                                      routes=routes,
                                      rewrites=rewrites,
                                      bind_address=bind_address,

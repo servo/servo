@@ -3,7 +3,6 @@ import pytest
 import webdriver.protocol as protocol
 
 from tests.support.asserts import assert_error, assert_success
-from tests.support.inline import inline, iframe
 
 
 def switch_to_frame(session, frame):
@@ -14,14 +13,14 @@ def switch_to_frame(session, frame):
         session=session)
 
 
-def frameset(*docs):
+def frameset(inline, *docs):
     frames = list(map(lambda doc: "<frame src='{}'></frame>".format(inline(doc)), docs))
     return "<frameset rows='{}'>\n{}</frameset>".format(len(frames) * "*,", "\n".join(frames))
 
 
 @pytest.mark.parametrize("index, value", [[0, "foo"], [1, "bar"]])
-def test_frame_id_webelement_frame(session, index, value):
-    session.url = inline(frameset("<p>foo", "<p>bar"))
+def test_frame_id_webelement_frame(session, inline, index, value):
+    session.url = inline(frameset(inline, "<p>foo", "<p>bar"))
     frames = session.find.css("frame")
     assert len(frames) == 2
 
@@ -33,7 +32,7 @@ def test_frame_id_webelement_frame(session, index, value):
 
 
 @pytest.mark.parametrize("index, value", [[0, "foo"], [1, "bar"]])
-def test_frame_id_webelement_iframe(session, index, value):
+def test_frame_id_webelement_iframe(session, inline, iframe, index, value):
     session.url = inline("{}{}".format(iframe("<p>foo"), iframe("<p>bar")))
     frames = session.find.css("iframe")
     assert len(frames) == 2
@@ -45,7 +44,7 @@ def test_frame_id_webelement_iframe(session, index, value):
     assert element.text == value
 
 
-def test_frame_id_webelement_nested(session):
+def test_frame_id_webelement_nested(session, inline, iframe):
     session.url = inline(iframe("{}<p>foo".format(iframe("<p>bar"))))
 
     expected_text = ["foo", "bar"]
@@ -58,7 +57,7 @@ def test_frame_id_webelement_nested(session):
         assert element.text == expected_text[i]
 
 
-def test_frame_id_webelement_no_element_reference(session):
+def test_frame_id_webelement_no_element_reference(session, inline, iframe):
     session.url = inline(iframe("<p>foo"))
     frame = session.find.css("iframe", all=False)
     frame.id = "bar"
@@ -67,7 +66,7 @@ def test_frame_id_webelement_no_element_reference(session):
     assert_error(response, "no such element")
 
 
-def test_frame_id_webelement_stale_reference(session):
+def test_frame_id_webelement_stale_reference(session, inline, iframe):
     session.url = inline(iframe("<p>foo"))
     frame = session.find.css("iframe", all=False)
 
@@ -77,7 +76,7 @@ def test_frame_id_webelement_stale_reference(session):
     assert_error(response, "stale element reference")
 
 
-def test_frame_id_webelement_no_frame_element(session):
+def test_frame_id_webelement_no_frame_element(session, inline):
     session.url = inline("<p>foo")
     no_frame = session.find.css("p", all=False)
 

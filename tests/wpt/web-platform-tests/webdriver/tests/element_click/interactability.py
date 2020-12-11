@@ -1,7 +1,6 @@
 import pytest
 
 from tests.support.asserts import assert_error, assert_success
-from tests.support.inline import inline
 
 
 def element_click(session, element):
@@ -11,7 +10,7 @@ def element_click(session, element):
             element_id=element.id))
 
 
-def test_display_none(session):
+def test_display_none(session, inline):
     session.url = inline("""<button style="display: none">foobar</button>""")
     element = session.find.css("button", all=False)
 
@@ -19,7 +18,7 @@ def test_display_none(session):
     assert_error(response, "element not interactable")
 
 
-def test_visibility_hidden(session):
+def test_visibility_hidden(session, inline):
     session.url = inline("""<button style="visibility: hidden">foobar</button>""")
     element = session.find.css("button", all=False)
 
@@ -27,7 +26,7 @@ def test_visibility_hidden(session):
     assert_error(response, "element not interactable")
 
 
-def test_hidden(session):
+def test_hidden(session, inline):
     session.url = inline("<button hidden>foobar</button>")
     element = session.find.css("button", all=False)
 
@@ -35,7 +34,7 @@ def test_hidden(session):
     assert_error(response, "element not interactable")
 
 
-def test_disabled(session):
+def test_disabled(session, inline):
     session.url = inline("""<button disabled>foobar</button>""")
     element = session.find.css("button", all=False)
 
@@ -44,7 +43,7 @@ def test_disabled(session):
 
 
 @pytest.mark.parametrize("transform", ["translate(-100px, -100px)", "rotate(50deg)"])
-def test_element_not_interactable_css_transform(session, transform):
+def test_element_not_interactable_css_transform(session, inline, transform):
     session.url = inline("""
         <div style="width: 500px; height: 100px;
             background-color: blue; transform: {transform};">
@@ -55,7 +54,7 @@ def test_element_not_interactable_css_transform(session, transform):
     assert_error(response, "element not interactable")
 
 
-def test_element_not_interactable_out_of_view(session):
+def test_element_not_interactable_out_of_view(session, inline):
     session.url = inline("""
         <style>
         input {
@@ -73,7 +72,7 @@ def test_element_not_interactable_out_of_view(session):
 
 
 @pytest.mark.parametrize("tag_name", ["div", "span"])
-def test_zero_sized_element(session, tag_name):
+def test_zero_sized_element(session, inline, tag_name):
     session.url = inline("<{0}></{0}>".format(tag_name))
     element = session.find.css(tag_name, all=False)
 
@@ -81,7 +80,7 @@ def test_zero_sized_element(session, tag_name):
     assert_error(response, "element not interactable")
 
 
-def test_element_intercepted(session):
+def test_element_intercepted(session, inline):
     session.url = inline("""
         <style>
         div {
@@ -102,14 +101,14 @@ def test_element_intercepted(session):
     assert_error(response, "element click intercepted")
 
 
-def test_element_intercepted_no_pointer_events(session):
+def test_element_intercepted_no_pointer_events(session, inline):
     session.url = inline("""<input type=button value=Roger style="pointer-events: none">""")
     element = session.find.css("input", all=False)
     response = element_click(session, element)
     assert_error(response, "element click intercepted")
 
 
-def test_element_not_visible_overflow_hidden(session):
+def test_element_not_visible_overflow_hidden(session, inline):
     session.url = inline("""
         <style>
         div {

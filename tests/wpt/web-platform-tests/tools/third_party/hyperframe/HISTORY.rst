@@ -4,6 +4,18 @@ Release History
 6.0.0dev0
 ---------
 
+5.2.0 (2019-01-18)
+------------------
+
+**API Changes (Backward-compatible)**
+
+- Add a new ENABLE_CONNECT_PROTOCOL settings paramter.
+
+**Other Changes**
+
+- Fix collections.abc deprecation.
+- Drop support for Python 3.3 and support 3.7.
+
 5.1.0 (2017-04-24)
 ------------------
 

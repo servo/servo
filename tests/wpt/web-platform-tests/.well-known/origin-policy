@@ -35,6 +35,6 @@ def main(request, response):
     if len(matches) != 1:
         return 404, [], '{} origin policies found at a path matching "{}"'.format(len(matches), filepath_pattern)
 
-    with open(matches[0]) as f:
+    with open(matches[0], 'rb') as f:
         data = f.read()
         return return_code, [('Content-Type', content_type)], data

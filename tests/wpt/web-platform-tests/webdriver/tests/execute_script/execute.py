@@ -3,7 +3,6 @@ import pytest
 from webdriver.transport import Response
 
 from tests.support.asserts import assert_error, assert_success
-from tests.support.inline import inline
 from tests.support.sync import Poll
 
 
@@ -34,7 +33,7 @@ def test_no_browsing_context(session, closed_frame):
     assert_error(response, "no such window")
 
 
-def test_opening_new_window_keeps_current_window_handle(session):
+def test_opening_new_window_keeps_current_window_handle(session, inline):
     original_handle = session.window_handle
     original_handles = session.handles
 
@@ -57,7 +56,7 @@ def test_ending_comment(session):
     assert_success(response, 1)
 
 
-def test_override_listeners(session):
+def test_override_listeners(session, inline):
     session.url = inline("""
 <script>
 called = [];

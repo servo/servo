@@ -153,3 +153,15 @@ declare that they need access to the QUIC server:
 
 The QUIC server is not yet enabled by default, so QUIC tests will be skipped
 unless `--enable-quic` is specified to `./wpt run`.
+
+### Test Features specified as query params
+
+Alternatively to specifying [Test Features](file-names.md#test-features) in
+the test filename, they can be specified by setting the `wpt_flags` in the
+[test variant](testharness.html#variants). For example, the following variant
+will be loaded over HTTPS:
+```html
+<meta name="variant" content="?wpt_flags=https">
+```
+
+`https`, `h2` and `www` features are supported by `wpt_flags`.

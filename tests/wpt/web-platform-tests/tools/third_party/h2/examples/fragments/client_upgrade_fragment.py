@@ -38,7 +38,7 @@ def send_initial_request(connection, settings):
         b"GET / HTTP/1.1\r\n" +
         b"Host: localhost\r\n" +
         b"Upgrade: h2c\r\n" +
-        b"HTTP2-Settings: " + settings + "\r\n"
+        b"HTTP2-Settings: " + settings + b"\r\n" +
         b"\r\n"
     )
     connection.sendall(request)

@@ -221,13 +221,11 @@ shown below:
 
 .. code-block:: console
 
-    $ hyper GET http://http2bin.org/get
+    $ hyper GET https://nghttp2.org/httpbin/get
     {'args': {},
-     'headers': {'Connection': 'keep-alive',
-                 'Host': 'http2bin.org',
-                 'Via': '2 http2bin.org'},
+     'headers': {'Host': 'nghttp2.org'},
      'origin': '10.0.0.2',
-     'url': 'http://http2bin.org/get'}
+     'url': 'https://nghttp2.org/httpbin/get'}
 
 Assuming it works, you're now ready to start sending HTTP/2 data.
 
@@ -251,9 +249,11 @@ The function should look something like this:
 .. code-block:: python
 
     import h2.connection
+    import h2.config
 
     def handle(sock):
-        conn = h2.connection.H2Connection(client_side=False)
+        config = h2.config.H2Configuration(client_side=False)
+        conn = h2.connection.H2Connection(config=config)
 
         while True:
             data = sock.recv(65535)
@@ -267,9 +267,11 @@ function. Your ``h2server.py`` should end up looking a like this:
     import socket
 
     import h2.connection
+    import h2.config
 
     def handle(sock):
-        conn = h2.connection.H2Connection(client_side=False)
+        config = h2.config.H2Configuration(client_side=False)
+        conn = h2.connection.H2Connection(config=config)
 
         while True:
             data = sock.recv(65535)
@@ -331,7 +333,8 @@ function to do just that:
 .. code-block:: python
 
     def handle(sock):
-        conn = h2.connection.H2Connection(client_side=False)
+        config = h2.config.H2Configuration(client_side=False)
+        conn = h2.connection.H2Connection(config=config)
         conn.initiate_connection()
         sock.sendall(conn.data_to_send())
 
@@ -359,9 +362,11 @@ Your ``h2server.py`` script should now look like this:
     import socket
 
     import h2.connection
+    import h2.config
 
     def handle(sock):
-        conn = h2.connection.H2Connection(client_side=False)
+        config = h2.config.H2Configuration(client_side=False)
+        conn = h2.connection.H2Connection(config=config)
         conn.initiate_connection()
         sock.sendall(conn.data_to_send())
 
@@ -493,9 +498,11 @@ Let's amend our ``handle`` function again:
 .. code-block:: python
 
     import h2.events
+    import h2.config
 
     def handle(sock):
-        conn = h2.connection.H2Connection(client_side=False)
+        config = h2.config.H2Configuration(client_side=False)
+        conn = h2.connection.H2Connection(config=config)
         conn.initiate_connection()
         sock.sendall(conn.data_to_send())
 
@@ -528,6 +535,7 @@ With these changes, your ``h2server.py`` file should look like this:
 
     import h2.connection
     import h2.events
+    import h2.config
 
     def send_response(conn, event):
         stream_id = event.stream_id
@@ -545,7 +553,8 @@ With these changes, your ``h2server.py`` file should look like this:
         )
 
     def handle(sock):
-        conn = h2.connection.H2Connection(client_side=False)
+        config = h2.config.H2Configuration(client_side=False)
+        conn = h2.connection.H2Connection(config=config)
         conn.initiate_connection()
         sock.sendall(conn.data_to_send())
 
@@ -633,6 +642,7 @@ file, which should now look like this:
 
     import h2.connection
     import h2.events
+    import h2.config
 
     def send_response(conn, event):
         stream_id = event.stream_id
@@ -654,7 +664,8 @@ file, which should now look like this:
         )
 
     def handle(sock):
-        conn = h2.connection.H2Connection(client_side=False)
+        config = h2.config.H2Configuration(client_side=False)
+        conn = h2.connection.H2Connection(config=config)
         conn.initiate_connection()
         sock.sendall(conn.data_to_send())
 

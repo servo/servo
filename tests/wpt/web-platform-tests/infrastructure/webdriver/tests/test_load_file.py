@@ -1,4 +1,2 @@
-from tests.support.inline import inline
-
-def test_load(session):
+def test_load(session, inline):
     inline("PASS")

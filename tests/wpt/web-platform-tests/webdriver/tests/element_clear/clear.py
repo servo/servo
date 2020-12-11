@@ -11,7 +11,6 @@ from tests.support.asserts import (
     assert_in_events,
     assert_success,
 )
-from tests.support.inline import inline
 
 
 @pytest.fixture
@@ -37,7 +36,7 @@ def text_file(tmpdir_factory):
     return fh
 
 
-def test_null_response_value(session):
+def test_null_response_value(session, inline):
     session.url = inline("<input>")
     element = session.find.css("input", all=False)
 
@@ -67,7 +66,7 @@ def test_no_browsing_context(session, closed_frame):
     assert_error(response, "no such window")
 
 
-def test_connected_element(session):
+def test_connected_element(session, inline):
     session.url = inline("<input>")
     element = session.find.css("input", all=False)
 
@@ -76,7 +75,7 @@ def test_connected_element(session):
     assert_error(response, "stale element reference")
 
 
-def test_pointer_interactable(session):
+def test_pointer_interactable(session, inline):
     session.url = inline("<input style='margin-left: -1000px' value=foobar>")
     element = session.find.css("input", all=False)
 
@@ -84,7 +83,7 @@ def test_pointer_interactable(session):
     assert_error(response, "element not interactable")
 
 
-def test_keyboard_interactable(session):
+def test_keyboard_interactable(session, inline):
     session.url = inline("""
         <input value=foobar>
         <div></div>
@@ -121,7 +120,7 @@ def test_keyboard_interactable(session):
                           ("time", "19:48", ""),
                           ("month", "2017-11", ""),
                           ("week", "2017-W52", "")])
-def test_input(session, add_event_listeners, tracked_events, type, value, default):
+def test_input(session, inline, add_event_listeners, tracked_events, type, value, default):
     session.url = inline("<input type=%s value='%s'>" % (type, value))
     element = session.find.css("input", all=False)
     add_event_listeners(element, tracked_events)
@@ -151,7 +150,7 @@ def test_input(session, add_event_listeners, tracked_events, type, value, defaul
                           "month",
                           "week",
                           "file"])
-def test_input_disabled(session, type):
+def test_input_disabled(session, inline, type):
     session.url = inline("<input type=%s disabled>" % type)
     element = session.find.css("input", all=False)
 
@@ -176,7 +175,7 @@ def test_input_disabled(session, type):
                           "month",
                           "week",
                           "file"])
-def test_input_readonly(session, type):
+def test_input_readonly(session, inline, type):
     session.url = inline("<input type=%s readonly>" % type)
     element = session.find.css("input", all=False)
 
@@ -184,7 +183,7 @@ def test_input_readonly(session, type):
     assert_error(response, "invalid element state")
 
 
-def test_textarea(session, add_event_listeners, tracked_events):
+def test_textarea(session, inline, add_event_listeners, tracked_events):
     session.url = inline("<textarea>foobar</textarea>")
     element = session.find.css("textarea", all=False)
     add_event_listeners(element, tracked_events)
@@ -196,7 +195,7 @@ def test_textarea(session, add_event_listeners, tracked_events):
     assert_in_events(session, ["focus", "change", "blur"])
 
 
-def test_textarea_disabled(session):
+def test_textarea_disabled(session, inline):
     session.url = inline("<textarea disabled></textarea>")
     element = session.find.css("textarea", all=False)
 
@@ -204,7 +203,7 @@ def test_textarea_disabled(session):
     assert_error(response, "invalid element state")
 
 
-def test_textarea_readonly(session):
+def test_textarea_readonly(session, inline):
     session.url = inline("<textarea readonly></textarea>")
     element = session.find.css("textarea", all=False)
 
@@ -212,7 +211,7 @@ def test_textarea_readonly(session):
     assert_error(response, "invalid element state")
 
 
-def test_input_file(session, text_file):
+def test_input_file(session, text_file, inline):
     session.url = inline("<input type=file>")
     element = session.find.css("input", all=False)
     element.send_keys(str(text_file))
@@ -222,7 +221,7 @@ def test_input_file(session, text_file):
     assert element.property("value") == ""
 
 
-def test_input_file_multiple(session, text_file):
+def test_input_file_multiple(session, text_file, inline):
     session.url = inline("<input type=file multiple>")
     element = session.find.css("input", all=False)
     element.send_keys(str(text_file))
@@ -233,7 +232,7 @@ def test_input_file_multiple(session, text_file):
     assert element.property("value") == ""
 
 
-def test_select(session):
+def test_select(session, inline):
     session.url = inline("""
         <select>
           <option>foo
@@ -248,7 +247,7 @@ def test_select(session):
     assert_error(response, "invalid element state")
 
 
-def test_button(session):
+def test_button(session, inline):
     session.url = inline("<button></button>")
     button = session.find.css("button", all=False)
 
@@ -256,7 +255,7 @@ def test_button(session):
     assert_error(response, "invalid element state")
 
 
-def test_button_with_subtree(session):
+def test_button_with_subtree(session, inline):
     """
     Elements inside button elements are interactable.
     """
@@ -271,7 +270,7 @@ def test_button_with_subtree(session):
     assert_success(response)
 
 
-def test_contenteditable(session, add_event_listeners, tracked_events):
+def test_contenteditable(session, inline, add_event_listeners, tracked_events):
     session.url = inline("<p contenteditable>foobar</p>")
     element = session.find.css("p", all=False)
     add_event_listeners(element, tracked_events)
@@ -284,7 +283,7 @@ def test_contenteditable(session, add_event_listeners, tracked_events):
     assert_element_has_focus(session.execute_script("return document.body"))
 
 
-def test_designmode(session):
+def test_designmode(session, inline):
     session.url = inline("foobar")
     element = session.find.css("body", all=False)
     assert element.property("innerHTML") == "foobar"
@@ -296,7 +295,7 @@ def test_designmode(session):
     assert_element_has_focus(session.execute_script("return document.body"))
 
 
-def test_resettable_element_focus_when_empty(session, add_event_listeners, tracked_events):
+def test_resettable_element_focus_when_empty(session, inline, add_event_listeners, tracked_events):
     session.url = inline("<input>")
     element = session.find.css("input", all=False)
     add_event_listeners(element, tracked_events)
@@ -320,7 +319,7 @@ def test_resettable_element_focus_when_empty(session, add_event_listeners, track
                           ("time", "foo"),
                           ("month", "foo"),
                           ("week", "foo")])
-def test_resettable_element_does_not_satisfy_validation_constraints(session, type, invalid_value):
+def test_resettable_element_does_not_satisfy_validation_constraints(session, inline, type, invalid_value):
     """
     Some UAs allow invalid input to certain types of constrained
     form controls.  For example, Gecko allows non-valid characters
@@ -357,7 +356,7 @@ def test_resettable_element_does_not_satisfy_validation_constraints(session, typ
                           "submit",
                           "button",
                           "image"])
-def test_non_editable_inputs(session, type):
+def test_non_editable_inputs(session, inline, type):
     session.url = inline("<input type=%s>" % type)
     element = session.find.css("input", all=False)
 
@@ -365,7 +364,7 @@ def test_non_editable_inputs(session, type):
     assert_error(response, "invalid element state")
 
 
-def test_scroll_into_view(session):
+def test_scroll_into_view(session, inline):
     session.url = inline("""
         <input value=foobar>
         <div style='height: 200vh; width: 5000vh'>

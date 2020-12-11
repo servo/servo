@@ -1,5 +1,4 @@
 from tests.support.asserts import assert_error
-from tests.support.inline import inline
 
 
 def element_click(session, element):
@@ -9,7 +8,7 @@ def element_click(session, element):
             element_id=element.id))
 
 
-def test_is_stale(session):
+def test_is_stale(session, inline):
     session.url = inline("<button>foo</button>")
     button = session.find.css("button", all=False)
     session.url = inline("<button>bar</button>")

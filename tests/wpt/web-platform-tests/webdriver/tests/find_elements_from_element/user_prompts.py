@@ -8,7 +8,6 @@ from tests.support.asserts import (
     assert_success,
     assert_dialog_handled,
 )
-from tests.support.inline import inline
 
 
 def find_elements(session, element_id, using, value):
@@ -20,7 +19,7 @@ def find_elements(session, element_id, using, value):
 
 
 @pytest.fixture
-def check_user_prompt_closed_without_exception(session, create_dialog):
+def check_user_prompt_closed_without_exception(session, create_dialog, inline):
     def check_user_prompt_closed_without_exception(dialog_type, retval):
         session.url = inline("<div><p>bar</p><div>")
         outer_element = session.find.css("div", all=False)
@@ -41,7 +40,7 @@ def check_user_prompt_closed_without_exception(session, create_dialog):
 
 
 @pytest.fixture
-def check_user_prompt_closed_with_exception(session, create_dialog):
+def check_user_prompt_closed_with_exception(session, create_dialog, inline):
     def check_user_prompt_closed_with_exception(dialog_type, retval):
         session.url = inline("<div><p>bar</p><div>")
         outer_element = session.find.css("div", all=False)
@@ -57,7 +56,7 @@ def check_user_prompt_closed_with_exception(session, create_dialog):
 
 
 @pytest.fixture
-def check_user_prompt_not_closed_but_exception(session, create_dialog):
+def check_user_prompt_not_closed_but_exception(session, create_dialog, inline):
     def check_user_prompt_not_closed_but_exception(dialog_type):
         session.url = inline("<div><p>bar</p><div>")
         outer_element = session.find.css("div", all=False)

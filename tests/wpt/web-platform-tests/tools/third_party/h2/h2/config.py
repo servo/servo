@@ -29,7 +29,7 @@ class DummyLogger(object):
     """
     An Logger object that does not actual logging, hence a DummyLogger.
 
-    For the class the log operation is merely a no-op.  The intent is to avoid
+    For the class the log operation is merely a no-op. The intent is to avoid
     conditionals being sprinkled throughout the hyper-h2 code for calls to
     logging functions when no logger is passed into the corresponding object.
     """
@@ -37,6 +37,12 @@ class DummyLogger(object):
         pass
 
     def debug(self, *vargs, **kwargs):
+        """
+        No-op logging. Only level needed for now.
+        """
+        pass
+
+    def trace(self, *vargs, **kwargs):
         """
         No-op logging. Only level needed for now.
         """

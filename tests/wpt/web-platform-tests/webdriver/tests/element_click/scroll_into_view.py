@@ -2,7 +2,7 @@ import pytest
 
 from tests.support.asserts import assert_error, assert_success
 from tests.support.helpers import center_point
-from tests.support.inline import inline
+
 
 def element_click(session, element):
     return session.transport.send(
@@ -18,7 +18,7 @@ def assert_one_click(session):
     return tuple(clicks[0])
 
 
-def test_scroll_into_view(session):
+def test_scroll_into_view(session, inline):
     session.url = inline("""
         <input type=text value=Federer
         style="position: absolute; left: 0vh; top: 500vh">""")
@@ -38,7 +38,7 @@ def test_scroll_into_view(session):
 
 
 @pytest.mark.parametrize("offset", range(9, 0, -1))
-def test_partially_visible_does_not_scroll(session, offset):
+def test_partially_visible_does_not_scroll(session, offset, inline):
     session.url = inline("""
         <style>
         body {{

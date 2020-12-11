@@ -1,7 +1,6 @@
 from webdriver import Element
 
 from tests.support.asserts import assert_error, assert_success
-from tests.support.inline import inline
 
 
 def element_click(session, element):
@@ -11,7 +10,7 @@ def element_click(session, element):
             element_id=element.id))
 
 
-def test_null_response_value(session):
+def test_null_response_value(session, inline):
     session.url = inline("<p>foo")
     element = session.find.css("p", all=False)
 

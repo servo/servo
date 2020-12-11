@@ -21,7 +21,7 @@ def main(request, response):
     try:
         if b'drop' in request.GET:
             cookie = request.GET[b'drop']
-            cookie += "; max-age=0"
+            cookie += b'; max-age=0'
 
         if b'set' in request.GET:
             cookie = request.GET[b'set']

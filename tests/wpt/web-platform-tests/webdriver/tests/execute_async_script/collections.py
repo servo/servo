@@ -3,7 +3,6 @@ import os
 from six import text_type
 
 from tests.support.asserts import assert_same_element, assert_success
-from tests.support.inline import inline
 
 
 def execute_async_script(session, script, args=None):
@@ -35,7 +34,7 @@ def test_array(session):
     assert_success(response, [1, 2])
 
 
-def test_file_list(session, tmpdir):
+def test_file_list(session, tmpdir, inline):
     files = [tmpdir.join("foo.txt"), tmpdir.join("bar.txt")]
 
     session.url = inline("<input type=file multiple>")
@@ -58,7 +57,7 @@ def test_file_list(session, tmpdir):
         assert os.path.basename(str(expected)) == actual["name"]
 
 
-def test_html_all_collection(session):
+def test_html_all_collection(session, inline):
     session.url = inline("""
         <p>foo
         <p>bar
@@ -86,7 +85,7 @@ def test_html_all_collection(session):
     assert_same_element(session, ps[1], value[5])
 
 
-def test_html_collection(session):
+def test_html_collection(session, inline):
     session.url = inline("""
         <p>foo
         <p>bar
@@ -104,7 +103,7 @@ def test_html_collection(session):
         assert_same_element(session, expected, actual)
 
 
-def test_html_form_controls_collection(session):
+def test_html_form_controls_collection(session, inline):
     session.url = inline("""
         <form>
             <input>
@@ -124,7 +123,7 @@ def test_html_form_controls_collection(session):
         assert_same_element(session, expected, actual)
 
 
-def test_html_options_collection(session):
+def test_html_options_collection(session, inline):
     session.url = inline("""
         <select>
             <option>
@@ -144,7 +143,7 @@ def test_html_options_collection(session):
         assert_same_element(session, expected, actual)
 
 
-def test_node_list(session):
+def test_node_list(session, inline):
     session.url = inline("""
         <p>foo
         <p>bar

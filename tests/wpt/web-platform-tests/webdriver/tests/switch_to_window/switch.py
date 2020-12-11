@@ -4,7 +4,6 @@ from webdriver.error import NoSuchElementException
 from webdriver.transport import Response
 
 from tests.support.asserts import assert_error, assert_success
-from tests.support.inline import iframe, inline
 
 
 def switch_to_window(session, handle):
@@ -57,7 +56,7 @@ def test_no_browsing_context(session, url):
     assert session.window_handle == new_handle
 
 
-def test_switch_to_window_sets_top_level_context(session):
+def test_switch_to_window_sets_top_level_context(session, inline, iframe):
     session.url = inline(iframe("<p>foo"))
 
     frame = session.find.css("iframe", all=False)
@@ -69,7 +68,7 @@ def test_switch_to_window_sets_top_level_context(session):
 
     session.find.css("iframe", all=False)
 
-def test_element_not_found_after_tab_switch(session):
+def test_element_not_found_after_tab_switch(session, inline):
     session.url = inline("<p id='a'>foo")
     paragraph = session.find.css("p", all=False)
 

@@ -1,3 +1,4 @@
-spec: https://drafts.css-houdini.org/worklets/
+spec: https://html.spec.whatwg.org/multipage/worklets.html
 suggested_reviewers:
   - bfgeek
+  - domenic

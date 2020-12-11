@@ -1,5 +1,4 @@
 from tests.support.asserts import assert_success
-from tests.support.inline import inline
 
 from . import opener, window_name
 
@@ -32,7 +31,7 @@ def test_keeps_current_window_handle(session):
     assert session.window_handle == original_handle
 
 
-def test_opens_about_blank_in_new_window(session):
+def test_opens_about_blank_in_new_window(session, inline):
     url = inline("<p>foo")
     session.url = url
 

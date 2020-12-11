@@ -5,7 +5,6 @@ import pytest
 from six import ensure_binary
 
 from tests.support.asserts import assert_error, assert_success
-from tests.support.inline import inline
 
 
 def do_print(session, options):
@@ -31,7 +30,7 @@ def test_no_browsing_context(session, closed_frame):
     assert_pdf(pdf)
 
 
-def test_html_document(session):
+def test_html_document(session, inline):
     session.url = inline("Test")
 
     response = do_print(session, {

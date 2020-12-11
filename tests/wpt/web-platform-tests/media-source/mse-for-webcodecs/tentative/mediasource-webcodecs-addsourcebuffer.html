@@ -162,19 +162,15 @@ function runAddSourceBufferTest(argument, isValidArgument, argumentDescription, 
         assert_equals(mediaSource.readyState, 'open', 'MediaSource is open');
         let sourceBuffer;
         if (isValidArgument) {
-          // TODO(crbug.com/1144908): Update to expect success once the impl is
-          // more complete.
-          assert_throws_dom('QuotaExceededError',
-            () => { sourceBuffer = mediaSource.addSourceBuffer(argument); },
-            'addSourceBuffer(valid config) throws QuotaExceededError');
-          assert_equals(sourceBuffer, undefined,
-            'addSourceBuffer result for valid config while "open" should be exception');
+          sourceBuffer = mediaSource.addSourceBuffer(argument);
+          assert_true(sourceBuffer instanceof SourceBuffer,
+              'addSourceBuffer result for valid config while "open" should be a SourceBuffer instance');
         } else {
           assert_throws_js(TypeError,
-            () => { sourceBuffer = mediaSource.addSourceBuffer(argument); },
-            'addSourceBuffer(invalid config) throws TypeError if MediaSource is "open"');
+              () => { sourceBuffer = mediaSource.addSourceBuffer(argument); },
+              'addSourceBuffer(invalid config) throws TypeError if MediaSource is "open"');
           assert_equals(sourceBuffer, undefined,
-            'addSourceBufferResult for invalid config while "open" should be exception');
+              'addSourceBufferResult for invalid config while "open" should be exception');
         }
       }, testDescription);
       break;

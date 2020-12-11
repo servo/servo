@@ -21,7 +21,7 @@ from hpack.exceptions import HPACKError, OversizedHeaderListError
 from .config import H2Configuration
 from .errors import ErrorCodes, _error_code_from_int
 from .events import (
-    WindowUpdated, RemoteSettingsChanged, PingAcknowledged,
+    WindowUpdated, RemoteSettingsChanged, PingReceived, PingAckReceived,
     SettingsAcknowledged, ConnectionTerminated, PriorityUpdated,
     AlternativeServiceAvailable, UnknownFrameReceived
 )
@@ -33,7 +33,7 @@ from .exceptions import (
 from .frame_buffer import FrameBuffer
 from .settings import Settings, SettingCodes
 from .stream import H2Stream, StreamClosedBy
-from .utilities import guard_increment_window
+from .utilities import SizeLimitDict, guard_increment_window
 from .windows import WindowManager
 
 
@@ -281,6 +281,9 @@ class H2Connection(object):
     # The initial default value of SETTINGS_MAX_HEADER_LIST_SIZE.
     DEFAULT_MAX_HEADER_LIST_SIZE = 2**16
 
+    # Keep in memory limited amount of results for streams closes
+    MAX_CLOSED_STREAMS = 2**16
+
     def __init__(self, config=None):
         self.state_machine = H2ConnectionStateMachine()
         self.streams = {}
@@ -325,7 +328,7 @@ class H2Connection(object):
         )
         self.remote_settings = Settings(client=not self.config.client_side)
 
-        # The curent value of the connection flow control windows on the
+        # The current value of the connection flow control windows on the
         # connection.
         self.outbound_flow_control_window = (
             self.remote_settings.initial_window_size
@@ -347,7 +350,7 @@ class H2Connection(object):
         self._header_frames = []
 
         # Data that needs to be sent.
-        self._data_to_send = b''
+        self._data_to_send = bytearray()
 
         # Keeps track of how streams are closed.
         # Used to ensure that we don't blow up in the face of frames that were
@@ -355,7 +358,9 @@ class H2Connection(object):
         # Also used to determine whether we should consider a frame received
         # while a stream is closed as either a stream error or a connection
         # error.
-        self._closed_streams = {}
+        self._closed_streams = SizeLimitDict(
+            size_limit=self.MAX_CLOSED_STREAMS
+        )
 
         # The flow control window manager for the connection.
         self._inbound_flow_control_window_manager = WindowManager(
@@ -909,16 +914,21 @@ class H2Connection(object):
             frames = stream.increase_flow_control_window(
                 increment
             )
+
+            self.config.logger.debug(
+                "Increase stream ID %d flow control window by %d",
+                stream_id, increment
+            )
         else:
             self._inbound_flow_control_window_manager.window_opened(increment)
             f = WindowUpdateFrame(0)
             f.window_increment = increment
             frames = [f]
 
-        self.config.logger.debug(
-            "Increase stream ID %d flow control window by %d",
-            stream_id, increment
-        )
+            self.config.logger.debug(
+                "Increase connection flow control window by %d", increment
+            )
+
         self._prepare_for_sending(frames)
 
     def push_stream(self, stream_id, promised_stream_id, request_headers):
@@ -1327,7 +1337,7 @@ class H2Connection(object):
 
         self._prepare_for_sending(frames)
 
-    def data_to_send(self, amt=None):
+    def data_to_send(self, amount=None):
         """
         Returns some data for sending out of the internal data buffer.
 
@@ -1336,19 +1346,19 @@ class H2Connection(object):
         or less if that much data is not available. It does not perform any
         I/O, and so uses a different name.
 
-        :param amt: (optional) The maximum amount of data to return. If not
+        :param amount: (optional) The maximum amount of data to return. If not
             set, or set to ``None``, will return as much data as possible.
-        :type amt: ``int``
+        :type amount: ``int``
         :returns: A bytestring containing the data to send on the wire.
         :rtype: ``bytes``
         """
-        if amt is None:
-            data = self._data_to_send
-            self._data_to_send = b''
+        if amount is None:
+            data = bytes(self._data_to_send)
+            self._data_to_send = bytearray()
             return data
         else:
-            data = self._data_to_send[:amt]
-            self._data_to_send = self._data_to_send[amt:]
+            data = bytes(self._data_to_send[:amount])
+            self._data_to_send = self._data_to_send[amount:]
             return data
 
     def clear_outbound_data_buffer(self):
@@ -1361,7 +1371,7 @@ class H2Connection(object):
         This method should not normally be used, but is made available to avoid
         exposing implementation details.
         """
-        self._data_to_send = b''
+        self._data_to_send = bytearray()
 
     def _acknowledge_settings(self):
         """
@@ -1440,7 +1450,7 @@ class H2Connection(object):
         :returns: A list of events that the remote peer triggered by sending
             this data.
         """
-        self.config.logger.debug(
+        self.config.logger.trace(
             "Process received data on connection. Received data: %r", data
         )
 
@@ -1624,6 +1634,35 @@ class H2Connection(object):
 
         return frames, events + stream_events
 
+    def _handle_data_on_closed_stream(self, events, exc, frame):
+        # This stream is already closed - and yet we received a DATA frame.
+        # The received DATA frame counts towards the connection flow window.
+        # We need to manually to acknowledge the DATA frame to update the flow
+        # window of the connection. Otherwise the whole connection stalls due
+        # the inbound flow window being 0.
+        frames = []
+        conn_manager = self._inbound_flow_control_window_manager
+        conn_increment = conn_manager.process_bytes(
+            frame.flow_controlled_length
+        )
+        if conn_increment:
+            f = WindowUpdateFrame(0)
+            f.window_increment = conn_increment
+            frames.append(f)
+            self.config.logger.debug(
+                "Received DATA frame on closed stream %d - "
+                "auto-emitted a WINDOW_UPDATE by %d",
+                frame.stream_id, conn_increment
+            )
+        f = RstStreamFrame(exc.stream_id)
+        f.error_code = exc.error_code
+        frames.append(f)
+        self.config.logger.debug(
+            "Stream %d already CLOSED or cleaned up - "
+            "auto-emitted a RST_FRAME" % frame.stream_id
+        )
+        return frames, events + exc._events
+
     def _receive_data_frame(self, frame):
         """
         Receive a data frame on the connection.
@@ -1636,12 +1675,19 @@ class H2Connection(object):
         self._inbound_flow_control_window_manager.window_consumed(
             flow_controlled_length
         )
-        stream = self._get_stream_by_id(frame.stream_id)
-        frames, stream_events = stream.receive_data(
-            frame.data,
-            'END_STREAM' in frame.flags,
-            flow_controlled_length
-        )
+
+        try:
+            stream = self._get_stream_by_id(frame.stream_id)
+            frames, stream_events = stream.receive_data(
+                frame.data,
+                'END_STREAM' in frame.flags,
+                flow_controlled_length
+            )
+        except StreamClosedError as e:
+            # This stream is either marked as CLOSED or already gone from our
+            # internal state.
+            return self._handle_data_on_closed_stream(events, e, frame)
+
         return frames, events + stream_events
 
     def _receive_settings_frame(self, frame):
@@ -1717,14 +1763,18 @@ class H2Connection(object):
         flags = []
 
         if 'ACK' in frame.flags:
-            evt = PingAcknowledged()
-            evt.ping_data = frame.opaque_data
-            events.append(evt)
+            evt = PingAckReceived()
         else:
+            evt = PingReceived()
+
+            # automatically ACK the PING with the same 'opaque data'
             f = PingFrame(0)
             f.flags = {'ACK'}
             f.opaque_data = frame.opaque_data
             flags.append(f)
+
+        evt.ping_data = frame.opaque_data
+        events.append(evt)
 
         return flags, events
 

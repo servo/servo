@@ -78,7 +78,7 @@ function runConvertToBlobTest(testScenario) {
     var ctx = srcCanvas.getContext('2d', testScenario.canvasColorParam);
     var compositeOverBlack = (testScenario.encodeOptions.type == "image/jpeg");
     drawPatternOnCanvsa(ctx, testScenario.alpha, compositeOverBlack);
-    var refPixels = ctx.getImageData(0, 0, 2, 2).data;
+    var refPixels = ctx.getImageData(0, 0, 2, 2, testScenario.imageSetting).data;
 
     var t = async_test("Test canvas convertToBlob(): " +
         testScenarioToString(testScenario));
@@ -88,7 +88,7 @@ function runConvertToBlobTest(testScenario) {
         var dstCanvas = createCanvas(testScenario);
         var dstCtx = dstCanvas.getContext('2d', testScenario.canvasColorParam);
         dstCtx.drawImage(image, 0, 0);
-        var actualPixels = dstCtx.getImageData(0, 0, 2, 2).data;
+        var actualPixels = dstCtx.getImageData(0, 0, 2, 2, testScenario.imageSetting).data;
         testPixels(actualPixels, refPixels, testScenario);
     });
 
@@ -122,6 +122,11 @@ function runAllTests() {
         {colorSpace: 'srgb', pixelFormat: 'uint8'},
         {colorSpace: 'srgb', pixelFormat: 'float16'},
     ];
+
+    var imageSettings = [
+        {colorSpace: 'srgb', storageFormat: 'uint8'},
+        {colorSpace: 'srgb', storageFormat: 'float32'},
+    ];
     var alphaValues = [0.5, 1];
 
     // The *correct* way to test convertToBlob() is to directly examine the
@@ -137,6 +142,7 @@ function runAllTests() {
                 testScenario.encodeOptions = encodeOptionsSet[i];
                 testScenario.canvasColorParam = canvasColorParams[j];
                 testScenario.alpha = alphaValues[k];
+                testScenario.imageSetting = imageSettings[j]
                 testScenarioSet.push(testScenario);
             }
 

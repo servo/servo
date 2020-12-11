@@ -23,8 +23,8 @@ from h2.events import (
 )
 
 
-AUTHORITY = u'http2bin.org'
-PATH = '/'
+AUTHORITY = u'nghttp2.org'
+PATH = '/httpbin/'
 SIZE = 4096
 
 

@@ -56,29 +56,29 @@ class TestGeneralFrameBehaviour(object):
         assert f.stream_id == 0
 
     def test_parse_frame_header_unknown_type(self):
-        f, l = Frame.parse_frame_header(
+        frame, length = Frame.parse_frame_header(
             b'\x00\x00\x59\xFF\x00\x00\x00\x00\x01'
         )
-        assert f.type == 0xFF
-        assert l == 0x59
-        assert isinstance(f, ExtensionFrame)
-        assert f.stream_id == 1
+        assert frame.type == 0xFF
+        assert length == 0x59
+        assert isinstance(frame, ExtensionFrame)
+        assert frame.stream_id == 1
 
     def test_flags_are_persisted(self):
-        f, l = Frame.parse_frame_header(
+        frame, length = Frame.parse_frame_header(
             b'\x00\x00\x59\xFF\x09\x00\x00\x00\x01'
         )
-        assert f.type == 0xFF
-        assert l == 0x59
-        assert f.flag_byte == 0x09
+        assert frame.type == 0xFF
+        assert length == 0x59
+        assert frame.flag_byte == 0x09
 
     def test_parse_body_unknown_type(self):
-        f = decode_frame(
+        frame = decode_frame(
             b'\x00\x00\x0C\xFF\x00\x00\x00\x00\x01hello world!'
         )
-        assert f.body == b'hello world!'
-        assert f.body_len == 12
-        assert f.stream_id == 1
+        assert frame.body == b'hello world!'
+        assert frame.body_len == 12
+        assert frame.stream_id == 1
 
     def test_can_round_trip_unknown_frames(self):
         frame_data = b'\x00\x00\x0C\xFF\x00\x00\x00\x00\x01hello world!'
@@ -306,13 +306,14 @@ class TestRstStreamFrame(object):
 
 class TestSettingsFrame(object):
     serialized = (
-        b'\x00\x00\x24\x04\x01\x00\x00\x00\x00' +  # Frame header
+        b'\x00\x00\x2A\x04\x01\x00\x00\x00\x00' +  # Frame header
         b'\x00\x01\x00\x00\x10\x00' +              # HEADER_TABLE_SIZE
         b'\x00\x02\x00\x00\x00\x00' +              # ENABLE_PUSH
         b'\x00\x03\x00\x00\x00\x64' +              # MAX_CONCURRENT_STREAMS
         b'\x00\x04\x00\x00\xFF\xFF' +              # INITIAL_WINDOW_SIZE
         b'\x00\x05\x00\x00\x40\x00' +              # MAX_FRAME_SIZE
-        b'\x00\x06\x00\x00\xFF\xFF'                # MAX_HEADER_LIST_SIZE
+        b'\x00\x06\x00\x00\xFF\xFF' +              # MAX_HEADER_LIST_SIZE
+        b'\x00\x08\x00\x00\x00\x01'                # ENABLE_CONNECT_PROTOCOL
     )
 
     settings = {
@@ -322,6 +323,7 @@ class TestSettingsFrame(object):
         SettingsFrame.INITIAL_WINDOW_SIZE: 65535,
         SettingsFrame.MAX_FRAME_SIZE: 16384,
         SettingsFrame.MAX_HEADER_LIST_SIZE: 65535,
+        SettingsFrame.ENABLE_CONNECT_PROTOCOL: 1,
     }
 
     def test_settings_frame_has_only_one_flag(self):
@@ -359,7 +361,7 @@ class TestSettingsFrame(object):
         assert isinstance(f, SettingsFrame)
         assert f.flags == set(['ACK'])
         assert f.settings == self.settings
-        assert f.body_len == 36
+        assert f.body_len == 42
 
     def test_settings_frames_never_have_streams(self):
         with pytest.raises(ValueError):
@@ -518,6 +520,19 @@ class TestGoAwayFrame(object):
         assert f.flags == set()
         assert f.additional_data == b'hello'
         assert f.body_len == 13
+
+        s = (
+            b'\x00\x00\x08\x07\x00\x00\x00\x00\x00' +  # Frame header
+            b'\x00\x00\x00\x40' +                      # Last Stream ID
+            b'\x00\x00\x00\x20' +                      # Error Code
+            b''                                        # Additional data
+        )
+        f = decode_frame(s)
+
+        assert isinstance(f, GoAwayFrame)
+        assert f.flags == set()
+        assert f.additional_data == b''
+        assert f.body_len == 8
 
     def test_goaway_frame_never_has_a_stream(self):
         with pytest.raises(ValueError):

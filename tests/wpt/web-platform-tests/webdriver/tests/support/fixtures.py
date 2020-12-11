@@ -11,7 +11,7 @@ from six.moves.urllib.parse import urlunsplit
 
 from tests.support import defaults
 from tests.support.helpers import cleanup_session
-from tests.support.inline import inline
+from tests.support.inline import build_inline
 from tests.support.http_request import HTTPRequest
 from tests.support.sync import Poll
 
@@ -160,14 +160,13 @@ def current_session():
 
 @pytest.fixture
 def url(server_config):
-    def inner(path, protocol="http", domain="", subdomain="", query="", fragment=""):
+    def url(path, protocol="http", domain="", subdomain="", query="", fragment=""):
         domain = server_config["domains"][domain][subdomain]
         port = server_config["ports"][protocol][0]
         host = "{0}:{1}".format(domain, port)
         return urlunsplit((protocol, host, path, query, fragment))
 
-    inner.__name__ = "url"
-    return inner
+    return url
 
 
 @pytest.fixture
@@ -239,7 +238,7 @@ def closed_frame(session, url):
 
 
 @pytest.fixture
-def closed_window(session):
+def closed_window(session, inline):
     original_handle = session.window_handle
     new_handle = session.new_window()
 
@@ -253,3 +252,40 @@ def closed_window(session):
     yield (original_handle, element)
 
     session.window_handle = original_handle
+
+
+@pytest.fixture
+def inline(url):
+    """Takes a source extract and produces well-formed documents.
+
+    Based on the desired document type, the extract is embedded with
+    predefined boilerplate in order to produce well-formed documents.
+    The media type and character set may also be individually configured.
+
+    This helper function originally used data URLs, but since these
+    are not universally supported (or indeed standardised!) across
+    browsers, it now delegates the serving of the document to wptserve.
+    This file also acts as a wptserve handler (see the main function
+    below) which configures the HTTP response using query parameters.
+
+    This function returns a URL to the wptserve handler, which in turn
+    will serve an HTTP response with the requested source extract
+    inlined in a well-formed document, and the Content-Type header
+    optionally configured using the desired media type and character set.
+
+    Any additional keyword arguments are passed on to the build_url
+    function, which comes from the url fixture.
+    """
+    def inline(src, **kwargs):
+        return build_inline(url, src, **kwargs)
+
+    return inline
+
+
+@pytest.fixture
+def iframe(inline):
+    """Inlines document extract as the source document of an <iframe>."""
+    def iframe(src, **kwargs):
+        return "<iframe src='{}'></iframe>".format(inline(src, **kwargs))
+
+    return iframe

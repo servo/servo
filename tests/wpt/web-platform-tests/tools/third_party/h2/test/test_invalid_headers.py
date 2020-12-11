@@ -54,6 +54,7 @@ class TestInvalidFrameSequences(object):
         base_request_headers + [('name', 'value with trailing space ')],
         [header for header in base_request_headers
          if header[0] != ':authority'],
+        [(':protocol', 'websocket')] + base_request_headers,
     ]
     server_config = h2.config.H2Configuration(
         client_side=False, header_encoding='utf-8'
@@ -203,7 +204,7 @@ class TestInvalidFrameSequences(object):
         # Raise exception if pseudo header in trailer
         with pytest.raises(h2.exceptions.ProtocolError) as e:
             c.receive_data(trailer)
-        assert "pseudo-header in trailer" in str(e)
+        assert "pseudo-header in trailer" in str(e.value)
 
         # Test appropriate response frame is generated
         expected_frame = frame_factory.build_goaway_frame(

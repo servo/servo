@@ -16,6 +16,7 @@ fi
 if ! git pull --ff-only; then
     echo "Unable to update $TARGET_BRANCH"
     exit 2
+fi
 
 if ! git checkout -b "$PR_BRANCH"; then
     echo "Failed to open new branch $PR_BRANCH"
