@@ -14,7 +14,7 @@ for (let op of kOperations) {
     const res = op.prepare();
 
     const setLengthPromise = file.setLength(5);
-    op.assertRejection(testCase, file, res);
+    await op.assertRejection(testCase, file, res);
 
     await setLengthPromise;
 

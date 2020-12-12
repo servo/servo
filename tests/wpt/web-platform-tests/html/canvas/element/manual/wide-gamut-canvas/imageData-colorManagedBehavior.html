@@ -39,14 +39,12 @@ function testPixels(actualData, expectedPixels, tolerance)
   }
 }
 
-function checkImageDataColorSettings(canvasColorSettings, imageData) {
+function checkImageDataColorSettings(expectColorSetting, imageData) {
   var imageDataColorSettings = imageData.getColorSettings();
-  assert_equals(canvasColorSettings.colorSpace,
+  assert_equals(expectColorSetting.colorSpace,
                 imageDataColorSettings.colorSpace);
-  if (canvasColorSettings.pixelFormat == "uint8")
-    assert_equals("uint8", imageDataColorSettings.storageFormat);
-  else
-    assert_equals("float32", imageDataColorSettings.storageFormat);
+  assert_equals(expectColorSetting.storageFormat,
+                imageDataColorSettings.storageFormat);
 }
 
 function checkImageDataColorValues(canvasColorSettings, imageData, isBlank = '',
@@ -133,7 +131,7 @@ function runTestCreateImageDataWH(canvasColorSettings, imageSetting) {
   var canvas = initializeColorManagedCanvas(canvasColorSettings);
   var ctx = canvas.getContext('2d');
   var imageData = ctx.createImageData(xWidth, xHeight, imageSetting);
-  checkImageDataColorSettings(canvasColorSettings, imageData);
+  checkImageDataColorSettings(imageSetting, imageData);
 }
 
 var testScenariosCreateImageDataWH = [];
@@ -164,7 +162,7 @@ function runTestGetImageDataXYWH(canvasColorSettings, imageSetting) {
   var canvas = initializeColorManagedCanvas(canvasColorSettings);
   var ctx = canvas.getContext('2d');
   var imageData = ctx.getImageData(0, 0, xWidth, xHeight, imageSetting);
-  checkImageDataColorSettings(canvasColorSettings, imageData);
+  checkImageDataColorSettings(imageSetting, imageData);
   checkImageDataColorValues(canvasColorSettings, imageData);
 }
 
@@ -201,7 +199,7 @@ function runTestPutImageDataDxDy(canvasColorSettings, imageData, imageSetting) {
        pixelFormat: canvasColorSettings.pixelFormat});
   ctx.putImageData(imageData, xWidth/2, xHeight/2);
   var ctxImageData = ctx.getImageData(xWidth/2, xHeight/2, xWidth, xHeight, imageSetting);
-  checkImageDataColorSettings(canvasColorSettings, ctxImageData);
+  checkImageDataColorSettings(imageSetting, ctxImageData);
   checkImageDataColorValues(canvasColorSettings, ctxImageData, 'noBlank',
                             xWidth, xHeight, 'isWCG_U8toSRGB_U8');
 }
@@ -244,7 +242,7 @@ function runTestCreateImageDataFromImageData(canvasColorSettings, imageData) {
       {colorSpace: canvasColorSettings.colorSpace,
        pixelFormat: canvasColorSettings.pixelFormat});
   var ctxImageData = ctx.createImageData(imageData);
-  checkImageDataColorSettings(canvasColorSettings, ctxImageData);
+  checkImageDataColorSettings(imageData.getColorSettings(), ctxImageData);
   checkImageDataColorValues(canvasColorSettings, ctxImageData, 'isBlank');
 }
 

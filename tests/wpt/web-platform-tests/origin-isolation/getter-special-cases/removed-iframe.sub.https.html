@@ -20,8 +20,8 @@ promise_test(async () => {
 
   const frameWindow = iframe.contentWindow;
 
-  assert_equals(frameWindow.originIsolated, true, "before");
+  assert_equals(frameWindow.originAgentCluster, true, "before");
   iframe.remove();
-  assert_equals(frameWindow.originIsolated, true, "after");
+  assert_equals(frameWindow.originAgentCluster, true, "after");
 }, "Removing the iframe does not change originIsolated");
 </script>

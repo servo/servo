@@ -5,6 +5,13 @@ These tests are for the proposal at
 eventually move into a subdirectory of `html/` if/when that proposal merges into
 the HTML Standard.
 
+TODO: in [whatwg/html#6214](https://github.com/whatwg/html/pull/6214), the
+header was renamed from `Origin-Isolation` to `Origin-Agent-Cluster`, and the
+getter was renamed from `window.originIsolated` to `window.originAgentCluster`.
+The tests reflect this in their expectations, but all their messaging, names,
+and even the name of this folder, do not yet reflect it. That work is being
+tracked in <https://crbug.com/1157917>.
+
 ## Test filenames
 
 The tests in `2-iframes` follow the file naming pattern

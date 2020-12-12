@@ -16,6 +16,8 @@ test_computed_value("resize", "none");
 test_computed_value("resize", "both");
 test_computed_value("resize", "horizontal");
 test_computed_value("resize", "vertical");
+test_pseudo_computed_value("::before", "resize", "both");
+test_pseudo_computed_value("::after", "resize", "vertical");
 </script>
 </body>
 </html>
