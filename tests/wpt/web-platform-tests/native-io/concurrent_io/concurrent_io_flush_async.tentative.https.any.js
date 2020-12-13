@@ -15,7 +15,7 @@ for (let op of kOperations) {
     const res = op.prepare();
 
     const flushPromise = file.flush();
-    op.assertRejection(testCase, file, res);
+    await op.assertRejection(testCase, file, res);
 
     await flushPromise;
 

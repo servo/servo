@@ -23,7 +23,7 @@ export async function insertCustomIframe(src) {
 export const testSupportScript = `
   <script>
   window.onmessage = () => {
-    parent.postMessage(self.originIsolated, "*");
+    parent.postMessage(self.originAgentCluster, "*");
   };
   </script>
 `;

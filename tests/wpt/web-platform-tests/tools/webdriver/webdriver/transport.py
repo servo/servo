@@ -145,7 +145,12 @@ class HTTPWireProtocol(object):
     def close(self):
         """Closes the current HTTP connection, if there is one."""
         if self._conn:
-            self._conn.close()
+            try:
+                self._conn.close()
+            except OSError:
+                # The remote closed the connection
+                pass
+        self._conn = None
 
     @property
     def connection(self):

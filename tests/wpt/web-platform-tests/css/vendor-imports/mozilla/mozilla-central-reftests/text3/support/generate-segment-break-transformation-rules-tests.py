@@ -28,7 +28,7 @@ TEST_TEMPLATE = '''<!DOCTYPE html>
 <link rel="author" title="Mozilla" href="https://www.mozilla.org">
 <link rel="help" href="https://drafts.csswg.org/css-text-3/#line-break-transform">
 <meta name="assert" content="'segment-break-transformation-rules: with {prev}/{next} in front/back of the semgment break.">
-<link rel="stylesheet" type="text/css" href="support/ahem.css" />
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
 <link rel="match" href="segment-break-transformation-rules-{index:03}-ref.html">
 <style> p {{ font-family: ahem; }} </style>
 <div>Pass if there is {expect} white space between the two strings below.
@@ -42,7 +42,7 @@ REF_TEMPLATE_REMOVE = '''<!DOCTYPE html>
 <title>CSS Reftest Reference: Segment Break Transformation Rules</title>
 <link rel="author" title="Chun-Min (Jeremy) Chen" href="mailto:jeremychen@mozilla.com">
 <link rel="author" title="Mozilla" href="https://www.mozilla.org">
-<link rel="stylesheet" type="text/css" href="support/ahem.css" />
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
 <style> p {{ font-family: ahem; }} </style>
 <div>Pass if there is NO white space between the two strings below.
 <p>{0}{1}</p>
@@ -53,7 +53,7 @@ REF_TEMPLATE_KEEP = '''<!DOCTYPE html>
 <title>CSS Reftest Reference: Segment Break Transformation Rules</title>
 <link rel="author" title="Chun-Min (Jeremy) Chen" href="mailto:jeremychen@mozilla.com">
 <link rel="author" title="Mozilla" href="https://www.mozilla.org">
-<link rel="stylesheet" type="text/css" href="support/ahem.css" />
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
 <style> p {{ font-family: ahem; }} </style>
 <div>Pass if there is ONE white space between the two strings below.
 <p>{0}{2}{1}</p>

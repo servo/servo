@@ -71,9 +71,6 @@ AHEM COPY: fonts/Ahem.ttf
 # None of these are actually Ahem
 AHEM COPY: fonts/ahem-extra/AHEM_*.TTF
 
-# https://github.com/web-platform-tests/wpt/issues/7437
-AHEM COPY: css/vendor-imports/mozilla/mozilla-central-reftests/*/Ahem.ttf
-
 ## Test exclusions ##
 
 # Intentional use of CRLF
@@ -426,7 +423,6 @@ TRAILING WHITESPACE: css/vendor-imports/mozilla/mozilla-central-reftests/css21/p
 TRAILING WHITESPACE: css/vendor-imports/mozilla/mozilla-central-reftests/css21/pagination/moz-css21-float-page-break-inside-avoid-8-ref.html
 TRAILING WHITESPACE: css/vendor-imports/mozilla/mozilla-central-reftests/css21/pagination/moz-css21-float-page-break-inside-avoid-9.html
 TRAILING WHITESPACE: css/vendor-imports/mozilla/mozilla-central-reftests/css21/pagination/moz-css21-float-page-break-inside-avoid-9-ref.html
-TRAILING WHITESPACE: css/vendor-imports/mozilla/mozilla-central-reftests/flexbox/flexbox-mbp-horiz-001-rtl-reverse.xhtml
 
 SET TIMEOUT: css/compositing/mix-blend-mode/mix-blend-mode-parent-with-3D-transform-and-transition.html
 SET TIMEOUT: css/compositing/mix-blend-mode/mix-blend-mode-sibling-with-3D-transform-and-transition.html
@@ -498,7 +494,6 @@ CSS-COLLIDING-SUPPORT-NAME: css/css-page/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/css-transitions/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/backgrounds/support/pattern-rgr-grg-rgr.png
 CSS-COLLIDING-SUPPORT-NAME: css/css-flexbox/support/solidblue.png
-CSS-COLLIDING-SUPPORT-NAME: css/vendor-imports/mozilla/mozilla-central-reftests/flexbox/support/solidblue.png
 CSS-COLLIDING-SUPPORT-NAME: css/css-writing-modes/support/swatch-fuchsia.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/support/swatch-fuchsia.png
 
