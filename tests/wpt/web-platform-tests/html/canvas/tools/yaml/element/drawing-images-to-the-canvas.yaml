@@ -439,6 +439,15 @@
     @assert pixel 50,25 ==~ 0,255,0,255; @moz-todo
   expected: green
 
+- name: 2d.drawImage.nonexistent
+  testing:
+  - 2d.drawImage.incomplete.image
+  images:
+  - not-found-at-all.png
+  code: |
+    var img = document.getElementById('not-found-at-all.png');
+    @assert throws INVALID_STATE_ERR ctx.drawImage(img, 0, 0);
+
 - name: 2d.drawImage.zerocanvas
   desc: drawImage with zero-sized canvas as the source shoud throw exception
   testing:

@@ -3,7 +3,7 @@ import json
 from wptserve.utils import isomorphic_decode
 
 def main(request, response):
-    origin = request.GET.first(b"origin", request.headers.get(b'origin'))
+    origin = request.GET.first(b"origin", request.headers.get(b'origin') or b'none')
 
     if b"check" in request.GET:
         token = request.GET.first(b"token")

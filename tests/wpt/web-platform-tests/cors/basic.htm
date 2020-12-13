@@ -6,48 +6,40 @@
 
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
+<script src=/common/utils.js></script>
 <script src=support.js?pipe=sub></script>
 <div id=log></div>
 
 <script>
+function cors(desc, scheme, subdomain = "", port = location.port) {
+    const sameorigin = !scheme;
+    const base =
+        sameorigin ? "" : `${scheme}://${subdomain}${location.hostname}:${port}${dirname(location.pathname)}`;
 
-var counter = 0;
-
-function cors(desc, scheme, subdomain, port) {
-    if (!scheme) {
-        var url = "";
-    } else {
-        if (!port) {
-            port = location.port;
-        }
-        var url = scheme + "://" + (subdomain ? subdomain + "." : "") + location.hostname + ":" + port + dirname(location.pathname)
-    }
-    async_test(desc).step(function() {
-        var client = new XMLHttpRequest();
-        this.count = counter++;
-
-        client.open("GET", url + "resources/cors-makeheader.py?get_value=hest_er_best&origin=none&" + this.count);
-
-        client.onreadystatechange = this.step_func(function(e) {
-            // First request, test that it fails with no origin
-            if (client.readyState < 4) return;
-            if (!url)
-                assert_true(client.response.indexOf("hest_er_best") != -1, "Got response");
-            else
-                assert_false(!!client.response, "Got CORS-disallowed response");
-
-            client = new XMLHttpRequest();
-            client.open("GET", url + "resources/cors-makeheader.py?get_value=hest_er_best&" + this.count);
-            client.onreadystatechange = this.step_func(function(e) {
-                // Second request, test that it passes with the allowed-origin
-                if (client.readyState < 4) return;
-                assert_true(client.response.indexOf("hest_er_best") != -1, "Got CORS-allowed response");
-                this.done();
-            });
-            client.send();
-        });
+    async_test((t) => {
+        const client = new XMLHttpRequest();
+        client.open("GET", `${base}resources/cors-makeheader.py?get_value=hest_er_best&origin=none&${token()}`);
         client.send();
-    });
+
+        client.onload = t.step_func_done(() => {
+            assert_true(sameorigin, "Cross origin request must be rejected.");
+            assert_true(client.response.includes("hest_er_best"), "Got response");
+        });
+        client.onerror = t.step_func_done(() => {
+            assert_false(sameorigin, "Same origin request must be accepted.");
+        });
+    }, `${desc}, origin: none`);
+
+    async_test((t) => {
+        const client = new XMLHttpRequest();
+        client.open("GET", `${base}resources/cors-makeheader.py?get_value=hest_er_best&${token()}`);
+        client.send();
+
+        client.onload = t.step_func_done(() => {
+            assert_true(client.response.includes("hest_er_best"), "Got response");
+        });
+        client.onerror = t.unreached_func("Should be accepted");
+    }, `${desc}, origin: echo`);
 }
 
 cors("Same domain basic usage");

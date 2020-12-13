@@ -272,7 +272,7 @@ export function testGetter(testFrame, expected, testLabelPrefix) {
 
   promise_test(async () => {
     if (testFrame === self) {
-      assert_equals(self.originIsolated, expected);
+      assert_equals(self.originAgentCluster, expected);
     } else if (typeof testFrame === "number") {
       const frameWindow = frames[testFrame];
       const result = await accessOriginIsolated(frameWindow);

@@ -18,7 +18,7 @@ window.onmessage = async (e) => {
     document.domain = e.data.newDocumentDomain;
     e.source.postMessage("document.domain is set", "*");
   } else if (e.data.command === "get originIsolated") {
-    e.source.postMessage(self.originIsolated, "*");
+    e.source.postMessage(self.originAgentCluster, "*");
   }
 
   // These only come from the parent.
