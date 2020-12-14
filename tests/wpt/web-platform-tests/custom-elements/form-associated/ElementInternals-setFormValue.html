@@ -39,6 +39,25 @@ function submitPromise(t) {
   });
 }
 
+function testSerializedEntry({name, expectedName, value, expectedValue, description}) {
+  promise_test(async t => {
+    $('#container').innerHTML = '<form action="/common/blank.html" target="if1">' +
+        '<my-control></my-control>' +
+        '</form>' +
+        '<iframe name="if1"></iframe>';
+    if (name !== undefined) {
+      $('my-control').setAttribute("name", name);
+    }
+    if (Array.isArray(value)) {
+      $('my-control').setValues(value);
+    } else {
+      $('my-control').value = value;
+    }
+    const query = await submitPromise(t);
+    assert_equals(query, `?${expectedName}=${expectedValue}`);
+  }, description);
+}
+
 promise_test(t => {
   $('#container').innerHTML = '<form action="/common/blank.html" target="if1">' +
       '<input name=name-pd1 value="value-pd1">' +
@@ -122,4 +141,156 @@ promise_test(t => {
     assert_equals(query, '?name-pd1=value-pd1');
   });
 }, 'setFormValue with an empty FormData should submit nothing');
+
+testSerializedEntry({
+  name: 'a\nb',
+  value: 'c',
+  expectedName: 'a%0D%0Ab',
+  expectedValue: 'c',
+  description: 'Newline normalization - \\n in name'
+});
+
+testSerializedEntry({
+  name: 'a\rb',
+  value: 'c',
+  expectedName: 'a%0D%0Ab',
+  expectedValue: 'c',
+  description: 'Newline normalization - \\r in name'
+});
+
+testSerializedEntry({
+  name: 'a\r\nb',
+  value: 'c',
+  expectedName: 'a%0D%0Ab',
+  expectedValue: 'c',
+  description: 'Newline normalization - \\r\\n in name'
+});
+
+testSerializedEntry({
+  name: 'a\n\rb',
+  value: 'c',
+  expectedName: 'a%0D%0A%0D%0Ab',
+  expectedValue: 'c',
+  description: 'Newline normalization - \\n\\r in name'
+});
+
+testSerializedEntry({
+  name: 'a',
+  value: 'b\nc',
+  expectedName: 'a',
+  expectedValue: 'b%0D%0Ac',
+  description: 'Newline normalization - \\n in value'
+});
+
+testSerializedEntry({
+  name: 'a',
+  value: 'b\rc',
+  expectedName: 'a',
+  expectedValue: 'b%0D%0Ac',
+  description: 'Newline normalization - \\r in value'
+});
+
+testSerializedEntry({
+  name: 'a',
+  value: 'b\r\nc',
+  expectedName: 'a',
+  expectedValue: 'b%0D%0Ac',
+  description: 'Newline normalization - \\r\\n in value'
+});
+
+testSerializedEntry({
+  name: 'a',
+  value: 'b\n\rc',
+  expectedName: 'a',
+  expectedValue: 'b%0D%0A%0D%0Ac',
+  description: 'Newline normalization - \\n\\r in value'
+});
+
+testSerializedEntry({
+  name: 'a',
+  value: new File([], "b\nc"),
+  expectedName: 'a',
+  expectedValue: 'b%0D%0Ac',
+  description: 'Newline normalization - \\n in filename'
+});
+
+testSerializedEntry({
+  name: 'a',
+  value: new File([], "b\rc"),
+  expectedName: 'a',
+  expectedValue: 'b%0D%0Ac',
+  description: 'Newline normalization - \\r in filename'
+});
+
+testSerializedEntry({
+  name: 'a',
+  value: new File([], "b\r\nc"),
+  expectedName: 'a',
+  expectedValue: 'b%0D%0Ac',
+  description: 'Newline normalization - \\r\\n in filename'
+});
+
+testSerializedEntry({
+  name: 'a',
+  value: new File([], "b\n\rc"),
+  expectedName: 'a',
+  expectedValue: 'b%0D%0A%0D%0Ac',
+  description: 'Newline normalization - \\n\\r in filename'
+});
+
+testSerializedEntry({
+  value: [['a\nb', 'c']],
+  expectedName: 'a%0Ab',
+  expectedValue: 'c',
+  description: 'Newline normalization - \\n in FormData name'
+});
+
+testSerializedEntry({
+  value: [['a\rb', 'c']],
+  expectedName: 'a%0Db',
+  expectedValue: 'c',
+  description: 'Newline normalization - \\r in FormData name'
+});
+
+testSerializedEntry({
+  value: [['a\r\nb', 'c']],
+  expectedName: 'a%0D%0Ab',
+  expectedValue: 'c',
+  description: 'Newline normalization - \\r\\n in FormData name'
+});
+
+testSerializedEntry({
+  value: [['a\n\rb', 'c']],
+  expectedName: 'a%0A%0Db',
+  expectedValue: 'c',
+  description: 'Newline normalization - \\n\\r in FormData name'
+});
+
+testSerializedEntry({
+  value: [['a', 'b\nc']],
+  expectedName: 'a',
+  expectedValue: 'b%0Ac',
+  description: 'Newline normalization - \\n in FormData value'
+});
+
+testSerializedEntry({
+  value: [['a', 'b\rc']],
+  expectedName: 'a',
+  expectedValue: 'b%0Dc',
+  description: 'Newline normalization - \\r in FormData value'
+});
+
+testSerializedEntry({
+  value: [['a', 'b\r\nc']],
+  expectedName: 'a',
+  expectedValue: 'b%0D%0Ac',
+  description: 'Newline normalization - \\r\\n in FormData value'
+});
+
+testSerializedEntry({
+  value: [['a', 'b\n\rc']],
+  expectedName: 'a',
+  expectedValue: 'b%0A%0Dc',
+  description: 'Newline normalization - \\n\\r in FormData value'
+});
 </script>
