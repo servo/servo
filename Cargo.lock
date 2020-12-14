@@ -2,9 +2,9 @@
 # It is not intended for manual editing.
 [[package]]
 name = "accountable-refcell"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2e9a97321189341ee9b728321237b564caf993ab578297fdf7af1172c9623ca4"
+checksum = "f6e2bba6f21fcf0ae382750eb6d9387c42807761fa7329d3a05fcd1334e8c3f2"
 dependencies = [
  "backtrace",
 ]
