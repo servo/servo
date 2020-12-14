@@ -3186,6 +3186,13 @@ rooted!(in(*cx) let mut prototype_proto = ptr::null_mut::<JSObject>());
 %s;
 assert!(!prototype_proto.is_null());""" % getPrototypeProto)]
 
+        if self.descriptor.hasNamedPropertiesObject():
+            assert not self.haveUnscopables
+            code.append(CGGeneric("""\
+rooted!(in(*cx) let mut prototype_proto_proto = prototype_proto.get());
+dom::types::%s::create_named_properties_object(cx, prototype_proto_proto.handle(), prototype_proto.handle_mut());
+assert!(!prototype_proto.is_null());""" % name))
+
         properties = {
             "id": name,
             "unscopables": "unscopable_names" if self.haveUnscopables else "&[]",
@@ -5957,7 +5964,7 @@ class CGInterfaceTrait(CGThing):
                                ),
                                rettype)
 
-            if descriptor.proxy:
+            if descriptor.proxy or descriptor.isGlobal():
                 for name, operation in descriptor.operations.items():
                     if not operation or operation.isStringifier():
                         continue

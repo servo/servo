@@ -280,7 +280,8 @@ class Descriptor(DescriptorProvider):
                         continue
 
                     def addIndexedOrNamedOperation(operation, m):
-                        self.proxy = True
+                        if not self.isGlobal():
+                            self.proxy = True
                         if m.isIndexed():
                             operation = 'Indexed' + operation
                         else:
@@ -365,6 +366,12 @@ class Descriptor(DescriptorProvider):
 
     def internalNameFor(self, name):
         return self._internalNames.get(name, name)
+
+    def hasNamedPropertiesObject(self):
+        if self.interface.isExternal():
+            return False
+
+        return self.isGlobal() and self.supportsNamedProperties()
 
     def supportsNamedProperties(self):
         return self.operations['NamedGetter'] is not None
