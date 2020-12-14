@@ -109,8 +109,6 @@ ${helpers.predefined_type(
     extra_specified="${'distribute' if engine == 'gecko' else ''}"
     gecko_enum_prefix="StyleTextJustify"
     animation_value_type="discrete"
-    gecko_pref="layout.css.text-justify.enabled"
-    has_effect_on_gecko_scrollbars="False"
     spec="https://drafts.csswg.org/css-text/#propdef-text-justify"
     servo_restyle_damage="rebuild_and_reflow"
 >
@@ -385,8 +383,6 @@ ${helpers.predefined_type(
     "computed::LengthPercentageOrAuto::auto()",
     engines="gecko",
     animation_value_type="ComputedValue",
-    gecko_pref="layout.css.text-underline-offset.enabled",
-    has_effect_on_gecko_scrollbars=False,
     spec="https://drafts.csswg.org/css-text-decor-4/#underline-offset",
 )}
 
@@ -397,8 +393,6 @@ ${helpers.predefined_type(
     "computed::TextUnderlinePosition::AUTO",
     engines="gecko",
     animation_value_type="discrete",
-    gecko_pref="layout.css.text-underline-position.enabled",
-    has_effect_on_gecko_scrollbars=False,
     spec="https://drafts.csswg.org/css-text-decor-3/#text-underline-position-property",
 )}
 
@@ -410,7 +404,5 @@ ${helpers.predefined_type(
     engines="gecko",
     needs_context=False,
     animation_value_type="discrete",
-    gecko_pref="layout.css.text-decoration-skip-ink.enabled",
-    has_effect_on_gecko_scrollbars=False,
     spec="https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-ink-property",
 )}
