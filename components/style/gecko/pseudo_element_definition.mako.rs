@@ -112,11 +112,7 @@ impl PseudoElement {
             % for pseudo in PSEUDOS:
                 ${pseudo_element_variant(pseudo)} =>
                 % if pseudo.is_tree_pseudo_element():
-                    if static_prefs::pref!("layout.css.xul-tree-pseudos.content.enabled") {
-                        0
-                    } else {
-                        structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS_AND_CHROME
-                    },
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS_AND_CHROME,
                 % elif pseudo.is_anon_box():
                     structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 % else:
