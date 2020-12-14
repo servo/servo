@@ -605,7 +605,7 @@ install them, let us know by filing a bug!")
         extra_lib = []
         if "msvc" in (target or host_triple()):
             extra_path += [path.join(self.msvc_package_dir("cmake"), "bin")]
-            extra_path += [path.join(self.msvc_package_dir("llvm"), "bin")]
+            #extra_path += [path.join(self.msvc_package_dir("llvm"), "bin")]
             extra_path += [path.join(self.msvc_package_dir("ninja"), "bin")]
             extra_path += [self.msvc_package_dir("nuget")]
             extra_path += [path.join(self.msvc_package_dir("xargo"))]
@@ -639,7 +639,7 @@ install them, let us know by filing a bug!")
             # Link autoconf 2.13, used for building SpiderMonkey
             env["AUTOCONF"] = path.join(self.msvc_package_dir("moztools"), "msys", "local", "bin", "autoconf-2.13")
             # Link LLVM
-            env["LIBCLANG_PATH"] = path.join(self.msvc_package_dir("llvm"), "lib")
+            # env["LIBCLANG_PATH"] = path.join(self.msvc_package_dir("llvm"), "lib")
 
             if not os.environ.get("NATIVE_WIN32_PYTHON"):
                 env["NATIVE_WIN32_PYTHON"] = sys.executable
