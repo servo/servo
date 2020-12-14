@@ -6,6 +6,7 @@ use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState,
 };
+use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use crate::dom::bindings::codegen::Bindings::HistoryBinding::HistoryBinding::HistoryMethods;
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
     ImageBitmapOptions, ImageBitmapSource,
@@ -19,7 +20,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::{
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use crate::dom::bindings::codegen::UnionTypes::{RequestOrUSVString, StringOrFunction};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
@@ -40,6 +41,8 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::history::History;
+use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
+use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::identityhub::Identities;
 use crate::dom::location::Location;
 use crate::dom::mediaquerylist::{MediaQueryList, MediaQueryListMatchState};
@@ -71,6 +74,7 @@ use crate::task_manager::TaskManager;
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::timers::{IsInterval, TimerCallback};
 use crate::webdriver_handlers::jsval_to_webdriver;
+use crate::window_named_properties;
 use app_units::Au;
 use backtrace::Backtrace;
 use base64;
@@ -94,7 +98,9 @@ use js::jsapi::{GCReason, StackFormat, JS_GC};
 use js::jsval::UndefinedValue;
 use js::jsval::{JSVal, NullValue};
 use js::rust::wrappers::JS_DefineProperty;
-use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
+use js::rust::{
+    CustomAutoRooter, CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleObject,
+};
 use media::WindowGLContext;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
@@ -120,17 +126,20 @@ use script_traits::{
 use script_traits::{TimerSchedulerMsg, WebrenderIpcSender, WindowSizeData, WindowSizeType};
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
+use servo_atoms::Atom;
 use servo_geometry::{f32_rect_to_au_rect, MaxRect};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::borrow::Cow;
 use std::borrow::ToOwned;
 use std::cell::Cell;
+use std::cmp;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::default::Default;
 use std::env;
 use std::io::{stderr, stdout, Write};
 use std::mem;
+use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -1381,9 +1390,164 @@ impl WindowMethods for Window {
         }
         rval.get()
     }
+
+    // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
+    #[allow(unsafe_code)]
+    fn NamedGetter(&self, _cx: JSContext, name: DOMString) -> Option<NonNull<JSObject>> {
+        if name.is_empty() {
+            return None;
+        }
+        let name = Atom::from(name);
+        let document = self.Document();
+
+        // TODO: Handle the document-tree child browsing context name property set.
+
+        // Step 1.
+        let elements_with_name = document.get_elements_with_name(&name);
+        let name_iter = elements_with_name
+            .iter()
+            .filter(|elem| is_named_element_with_name_attribute(elem));
+        let elements_with_id = document.get_elements_with_id(&name);
+        let id_iter = elements_with_id
+            .iter()
+            .filter(|elem| is_named_element_with_id_attribute(elem));
+
+        // Step 2.
+        for elem in id_iter.clone() {
+            if let Some(nested_window_proxy) = elem
+                .downcast::<HTMLIFrameElement>()
+                .and_then(|iframe| iframe.GetContentWindow())
+            {
+                unsafe {
+                    return Some(NonNull::new_unchecked(
+                        nested_window_proxy.reflector().get_jsobject().get(),
+                    ));
+                }
+            }
+        }
+
+        let mut elements = name_iter.chain(id_iter);
+
+        let first = elements.next()?;
+
+        if elements.next().is_none() {
+            // Step 3.
+            unsafe {
+                return Some(NonNull::new_unchecked(
+                    first.reflector().get_jsobject().get(),
+                ));
+            }
+        }
+
+        // Step 4.
+        #[derive(JSTraceable, MallocSizeOf)]
+        struct WindowNamedGetter {
+            name: Atom,
+        }
+        impl CollectionFilter for WindowNamedGetter {
+            fn filter(&self, elem: &Element, _root: &Node) -> bool {
+                let type_ = match elem.upcast::<Node>().type_id() {
+                    NodeTypeId::Element(ElementTypeId::HTMLElement(type_)) => type_,
+                    _ => return false,
+                };
+                if elem.get_id().as_ref() == Some(&self.name) {
+                    return true;
+                }
+                match type_ {
+                    HTMLElementTypeId::HTMLEmbedElement |
+                    HTMLElementTypeId::HTMLFormElement |
+                    HTMLElementTypeId::HTMLImageElement |
+                    HTMLElementTypeId::HTMLObjectElement => {
+                        elem.get_name().as_ref() == Some(&self.name)
+                    },
+                    _ => false,
+                }
+            }
+        }
+        let collection = HTMLCollection::create(
+            self,
+            document.upcast(),
+            Box::new(WindowNamedGetter { name }),
+        );
+        unsafe {
+            Some(NonNull::new_unchecked(
+                collection.reflector().get_jsobject().get(),
+            ))
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names
+    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
+        let mut names_with_first_named_element_map: HashMap<&Atom, &Element> = HashMap::new();
+
+        let name_map = self.name_map.borrow();
+        for (name, elements) in &*name_map {
+            if name.is_empty() {
+                continue;
+            }
+            let mut name_iter = elements
+                .iter()
+                .filter(|elem| is_named_element_with_name_attribute(elem));
+            if let Some(first) = name_iter.next() {
+                names_with_first_named_element_map.insert(name, first);
+            }
+        }
+        let id_map = self.id_map.borrow();
+        for (id, elements) in &*id_map {
+            if id.is_empty() {
+                continue;
+            }
+            let mut id_iter = elements
+                .iter()
+                .filter(|elem| is_named_element_with_id_attribute(elem));
+            if let Some(first) = id_iter.next() {
+                match names_with_first_named_element_map.entry(id) {
+                    Entry::Vacant(entry) => drop(entry.insert(first)),
+                    Entry::Occupied(mut entry) => {
+                        if first.upcast::<Node>().is_before(entry.get().upcast()) {
+                            *entry.get_mut() = first;
+                        }
+                    },
+                }
+            }
+        }
+
+        let mut names_with_first_named_element_vec: Vec<(&Atom, &Element)> =
+            names_with_first_named_element_map
+                .iter()
+                .map(|(k, v)| (*k, *v))
+                .collect();
+        names_with_first_named_element_vec.sort_unstable_by(|a, b| {
+            if a.1 == b.1 {
+                // This can happen if an img has an id different from its name,
+                // spec does not say which string to put first.
+                a.0.cmp(&b.0)
+            } else if a.1.upcast::<Node>().is_before(b.1.upcast::<Node>()) {
+                cmp::Ordering::Less
+            } else {
+                cmp::Ordering::Greater
+            }
+        });
+
+        names_with_first_named_element_vec
+            .iter()
+            .map(|(k, _v)| DOMString::from(&***k))
+            .collect()
+    }
 }
 
 impl Window {
+    // https://heycam.github.io/webidl/#named-properties-object
+    // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
+    #[allow(unsafe_code)]
+    pub fn create_named_properties_object(
+        cx: JSContext,
+        proto: HandleObject,
+        object: MutableHandleObject,
+    ) {
+        window_named_properties::create(cx, proto, object)
+    }
+
     pub(crate) fn set_current_event(&self, event: Option<&Event>) -> Option<DomRoot<Event>> {
         let current = self
             .current_event
@@ -2653,4 +2817,22 @@ impl ParseErrorReporter for CSSErrorReporter {
                 error.to_string(),
             ));
     }
+}
+
+fn is_named_element_with_name_attribute(elem: &Element) -> bool {
+    let type_ = match elem.upcast::<Node>().type_id() {
+        NodeTypeId::Element(ElementTypeId::HTMLElement(type_)) => type_,
+        _ => return false,
+    };
+    match type_ {
+        HTMLElementTypeId::HTMLEmbedElement |
+        HTMLElementTypeId::HTMLFormElement |
+        HTMLElementTypeId::HTMLImageElement |
+        HTMLElementTypeId::HTMLObjectElement => true,
+        _ => false,
+    }
+}
+
+fn is_named_element_with_id_attribute(elem: &Element) -> bool {
+    elem.is_html_element()
 }

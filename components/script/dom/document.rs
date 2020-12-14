@@ -4705,7 +4705,7 @@ impl DocumentMethods for Document {
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
     fn NamedGetter(&self, _cx: JSContext, name: DOMString) -> Option<NonNull<JSObject>> {
-        if name.is_empty() {
+        if name.is_empty() {
             return None;
         }
         let name = Atom::from(name);
@@ -4746,10 +4746,10 @@ impl DocumentMethods for Document {
 
         // Step 4.
         #[derive(JSTraceable, MallocSizeOf)]
-        struct NamedElementFilter {
+        struct DocumentNamedGetter {
             name: Atom,
         }
-        impl CollectionFilter for NamedElementFilter {
+        impl CollectionFilter for DocumentNamedGetter {
             fn filter(&self, elem: &Element, _root: &Node) -> bool {
                 let type_ = match elem.upcast::<Node>().type_id() {
                     NodeTypeId::Element(ElementTypeId::HTMLElement(type_)) => type_,
@@ -4771,7 +4771,7 @@ impl DocumentMethods for Document {
         let collection = HTMLCollection::create(
             self.window(),
             self.upcast(),
-            Box::new(NamedElementFilter { name }),
+            Box::new(DocumentNamedGetter { name }),
         );
         unsafe {
             Some(NonNull::new_unchecked(
@@ -4786,6 +4786,9 @@ impl DocumentMethods for Document {
 
         let name_map = self.name_map.borrow();
         for (name, elements) in &*name_map {
+            if name.is_empty() {
+                continue;
+            }
             let mut name_iter = elements
                 .iter()
                 .filter(|elem| is_named_element_with_name_attribute(elem));
@@ -4795,6 +4798,9 @@ impl DocumentMethods for Document {
         }
         let id_map = self.id_map.borrow();
         for (id, elements) in &*id_map {
+            if id.is_empty() {
+                continue;
+            }
             let mut id_iter = elements
                 .iter()
                 .filter(|elem| is_named_element_with_id_attribute(elem));

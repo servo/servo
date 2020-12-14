@@ -111,6 +111,8 @@ mod timers;
 mod unpremultiplytable;
 #[warn(deprecated)]
 mod webdriver_handlers;
+#[warn(deprecated)]
+mod window_named_properties;
 
 pub use init::init;
 pub use script_runtime::JSEngineSetup;
