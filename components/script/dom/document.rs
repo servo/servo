@@ -5230,10 +5230,9 @@ pub fn determine_policy_for_token(token: &str) -> Option<ReferrerPolicy> {
         "origin" => Some(ReferrerPolicy::Origin),
         "same-origin" => Some(ReferrerPolicy::SameOrigin),
         "strict-origin" => Some(ReferrerPolicy::StrictOrigin),
-        "default" | "strict-origin-when-cross-origin" => Some(ReferrerPolicy::StrictOriginWhenCrossOrigin),
+        "" | "default" | "strict-origin-when-cross-origin" => Some(ReferrerPolicy::StrictOriginWhenCrossOrigin),
         "origin-when-cross-origin" => Some(ReferrerPolicy::OriginWhenCrossOrigin),
         "always" | "unsafe-url" => Some(ReferrerPolicy::UnsafeUrl),
-        "" => Some(ReferrerPolicy::NoReferrer),
         _ => None,
     }
 }

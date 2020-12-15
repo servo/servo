@@ -808,12 +808,9 @@ impl Into<RequestMode> for NetTraitsRequestMode {
     }
 }
 
-// TODO
-// When whatwg/fetch PR #346 is merged, fix this.
 impl Into<MsgReferrerPolicy> for ReferrerPolicy {
     fn into(self) -> MsgReferrerPolicy {
         match self {
-            ReferrerPolicy::_empty => MsgReferrerPolicy::NoReferrer,
             ReferrerPolicy::No_referrer => MsgReferrerPolicy::NoReferrer,
             ReferrerPolicy::No_referrer_when_downgrade => {
                 MsgReferrerPolicy::NoReferrerWhenDowngrade
@@ -823,7 +820,7 @@ impl Into<MsgReferrerPolicy> for ReferrerPolicy {
             ReferrerPolicy::Unsafe_url => MsgReferrerPolicy::UnsafeUrl,
             ReferrerPolicy::Same_origin => MsgReferrerPolicy::SameOrigin,
             ReferrerPolicy::Strict_origin => MsgReferrerPolicy::StrictOrigin,
-            ReferrerPolicy::Strict_origin_when_cross_origin => {
+            ReferrerPolicy::_empty | ReferrerPolicy::Strict_origin_when_cross_origin => {
                 MsgReferrerPolicy::StrictOriginWhenCrossOrigin
             },
         }

@@ -271,7 +271,7 @@ impl RequestBuilder {
             use_url_credentials: false,
             origin: ImmutableOrigin::new_opaque(),
             referrer: referrer,
-            referrer_policy: None,
+            referrer_policy: Some(ReferrerPolicy::StrictOriginWhenCrossOrigin),
             pipeline_id: None,
             redirect_mode: RedirectMode::Follow,
             integrity_metadata: "".to_owned(),
