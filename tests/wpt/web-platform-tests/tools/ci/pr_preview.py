@@ -12,7 +12,6 @@ import argparse
 import json
 import logging
 import os
-import subprocess
 import time
 
 import requests
@@ -65,6 +64,8 @@ def gh_request(method_name, url, body=None, media_type=None):
 
     resp.raise_for_status()
 
+    if resp.status_code == 204:
+        return None
     return resp.json()
 
 class GitHubRateLimitException(Exception):
@@ -107,35 +108,6 @@ class Project(object):
         self._github_project = github_project
 
     @guard('core')
-    def get_pull_request(self, number):
-        url = '{}/repos/{}/pulls/{}'.format(
-            self._host, self._github_project, number
-        )
-
-        logger.info('Fetching Pull Request %s', number)
-        return gh_request('GET', url)
-
-    @guard('search')
-    def get_pull_requests(self, updated_since):
-        window_start = time.strftime('%Y-%m-%dT%H:%M:%SZ', updated_since)
-        url = '{}/search/issues?q=repo:{}+is:pr+updated:>{}'.format(
-            self._host, self._github_project, window_start
-        )
-
-        logger.info(
-            'Searching for Pull Requests updated since %s', window_start
-        )
-
-        data = gh_request('GET', url)
-
-        logger.info('Found %d Pull Requests', len(data['items']))
-
-        if data['incomplete_results']:
-            raise Exception('Incomplete results')
-
-        return {pr['number']: pr for pr in data['items']}
-
-    @guard('core')
     def create_ref(self, refspec, revision):
         url = '{}/repos/{}/git/refs'.format(self._host, self._github_project)
 
@@ -147,6 +119,23 @@ class Project(object):
         })
 
     @guard('core')
+    def get_ref_revision(self, refspec):
+        url = '{}/repos/{}/git/refs/{}'.format(
+            self._host, self._github_project, refspec
+        )
+
+        logger.info('Fetching ref "%s"', refspec)
+
+        try:
+            body = gh_request('GET', url)
+            logger.info('Ref data: %s', json.dumps(body, indent=2))
+            return body['object']['sha']
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 404:
+                return None
+            raise e
+
+    @guard('core')
     def update_ref(self, refspec, revision):
         url = '{}/repos/{}/git/refs/{}'.format(
             self._host, self._github_project, refspec
@@ -155,6 +144,16 @@ class Project(object):
         logger.info('Updating ref "%s" (%s)', refspec, revision)
 
         gh_request('PATCH', url, {'sha': revision})
+
+    @guard('core')
+    def delete_ref(self, refspec):
+        url = '{}/repos/{}/git/refs/{}'.format(
+            self._host, self._github_project, refspec
+        )
+
+        logger.info('Deleting ref "%s"', refspec)
+
+        gh_request('DELETE', url)
 
     @guard('core')
     def create_deployment(self, pull_request, revision):
@@ -206,73 +205,6 @@ class Project(object):
             'environment_url': environment_url
         }, 'application/vnd.github.ant-man-preview+json')
 
-class Remote(object):
-    def __init__(self, github_project):
-        # The repository in the GitHub Actions environment is configured with
-        # a remote whose URL uses unauthenticated HTTPS, making it unsuitable
-        # for pushing changes.
-        self._token = os.environ['GITHUB_TOKEN']
-
-    def _git(self, command):
-        return subprocess.check_output([
-            'git',
-            '-c',
-            'credential.username={}'.format(self._token),
-            '-c',
-            'core.askPass=true',
-        ] + command)
-
-    def get_revision(self, refspec):
-        output = self._git([
-            'ls-remote',
-            'origin',
-            'refs/{}'.format(refspec)
-        ])
-
-        if not output:
-            return None
-
-        return output.decode('utf-8').split()[0]
-
-    def delete_ref(self, refspec):
-        full_ref = 'refs/{}'.format(refspec)
-
-        logger.info('Deleting ref "%s"', refspec)
-
-        self._git([
-            'push',
-            'origin',
-            '--delete',
-            full_ref
-        ])
-
-    def get_pull_requests_with_open_ref(self):
-        '''Returns pull requests that have an open ref.
-
-        This checks for all refs that match the pattern 'refs/prs-open/{pr}',
-        and then returns them as a list of pull request numbers. Note that this
-        method does not query github; this is only the open pull requests as
-        far as WPT knows.
-        '''
-
-        refspec = 'refs/prs-open/*'
-
-        logger.info('Fetching all ref names matching "%s"', refspec)
-
-        output = self._git([
-            'ls-remote',
-            'origin',
-            refspec,
-        ])
-
-        if not output:
-            return []
-
-        ref_names = [line.split()[1] for line in output.decode('utf-8').splitlines()]
-        logger.info('%s ref names found', len(ref_names))
-        return [int(ref_name.split('/')[2]) for ref_name in ref_names]
-
-
 def is_open(pull_request):
     return not pull_request['closed_at']
 
@@ -306,7 +238,7 @@ def is_deployed(host, deployment):
     logger.info('Response text: %s', response.text.strip())
     return response.text.strip() == deployment['sha']
 
-def update_mirror_refs(project, remote, pull_request):
+def update_mirror_refs(project, pull_request):
     '''Update the WPT refs that control mirroring of this pull request.
 
     Two sets of refs are used to control wptpr.live's mirroring of pull
@@ -327,11 +259,10 @@ def update_mirror_refs(project, remote, pull_request):
         **pull_request
     )
     refspec_open = 'prs-open/{number}'.format(**pull_request)
-    revision_latest = remote.get_revision(
-        'pull/{number}/head'.format(**pull_request)
-    )
-    revision_trusted = remote.get_revision(refspec_trusted)
-    revision_open = remote.get_revision(refspec_open)
+
+    revision_latest = pull_request['head']['sha']
+    revision_trusted = project.get_ref_revision(refspec_trusted)
+    revision_open = project.get_ref_revision(refspec_open)
 
     if should_be_mirrored(project, pull_request):
         logger.info('Pull Request should be mirrored')
@@ -351,10 +282,10 @@ def update_mirror_refs(project, remote, pull_request):
     logger.info('Pull Request should not be mirrored')
 
     if not has_mirroring_label(pull_request) and revision_trusted is not None:
-        remote.delete_ref(refspec_trusted)
+        project.delete_ref(refspec_trusted)
 
     if revision_open is not None and not is_open(pull_request):
-        remote.delete_ref(refspec_open)
+        project.delete_ref(refspec_open)
 
     # No revision to be deployed to wptpr.live
     return None
@@ -394,7 +325,6 @@ def deploy(project, target, pull_request, revision, timeout):
 
 def main(host, github_project, target, timeout):
     project = Project(host, github_project)
-    remote = Remote(github_project)
 
     with open(os.environ['GITHUB_EVENT_PATH']) as handle:
         data = json.load(handle)
@@ -405,7 +335,7 @@ def main(host, github_project, target, timeout):
 
     logger.info('Processing Pull Request #%(number)d', pull_request)
 
-    revision_to_mirror = update_mirror_refs(project, remote, pull_request)
+    revision_to_mirror = update_mirror_refs(project, pull_request)
     if revision_to_mirror:
         deploy(project, target, pull_request, revision_to_mirror, timeout)
 

@@ -1,6 +1,7 @@
 // META: title=NativeIO API: close().
 // META: global=window,worker
 // META: script=resources/support.js
+// META: timeout=long
 
 'use strict';
 

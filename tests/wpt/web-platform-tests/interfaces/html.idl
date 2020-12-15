@@ -1701,7 +1701,7 @@ interface Window : EventTarget {
 
   // the user agent
   readonly attribute Navigator navigator;
-  readonly attribute boolean originIsolated;
+  readonly attribute boolean originAgentCluster;
 
   // user prompts
   undefined alert();

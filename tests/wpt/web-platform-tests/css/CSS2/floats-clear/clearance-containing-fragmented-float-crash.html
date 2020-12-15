@@ -1,0 +1,36 @@
+<!-- quirks mode -->
+<meta charset="utf-8">
+<title>Should not crash when a clearance frame having a fragmented float is discovered</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1663232">
+
+<style>
+:not(em) {
+  border-left: 4px dashed green;
+  column-width: 0;
+}
+</style>
+<script>
+function go() {
+  b.appendChild(a)
+}
+</script>
+<m>
+<details ontoggle="go()" open>
+<f>
+<menu>U<menu>
+<table align="RIGHT">
+<caption>
+<o>
+<ul>
+<l>
+<li>
+<tr>6
+<table>
+<a>
+<details id="b" open>
+<summary>
+<i id="a">
+</summary>
+<details style="float: right">

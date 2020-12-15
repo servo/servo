@@ -2,6 +2,7 @@
 // META: global=window,worker
 // META: script=operation_helpers.js
 // META: script=../resources/support.js
+// META: timeout=long
 
 'use strict';
 
