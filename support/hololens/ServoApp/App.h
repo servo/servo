@@ -16,7 +16,7 @@ struct App : AppT<App> {
 
   void createRootFrame(Controls::Frame &, bool, IInspectable const &);
   void OnLaunched(LaunchActivatedEventArgs const &);
-  void App::OnActivated(IActivatedEventArgs const &);
+  void OnActivated(IActivatedEventArgs const &);
   void OnSuspending(IInspectable const &, SuspendingEventArgs const &);
   void OnNavigationFailed(IInspectable const &,
                           Navigation::NavigationFailedEventArgs const &);

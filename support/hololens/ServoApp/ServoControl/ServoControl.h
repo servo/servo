@@ -239,7 +239,7 @@ private:
   bool mTransient = false;
   std::optional<hstring> mInitUrl = {};
 
-  Windows::UI::Xaml::Controls::SwapChainPanel ServoControl::Panel();
+  Windows::UI::Xaml::Controls::SwapChainPanel Panel();
   void CreateNativeWindow();
   EGLNativeWindowType GetNativeWindow();
   void RecoverFromLostDevice();

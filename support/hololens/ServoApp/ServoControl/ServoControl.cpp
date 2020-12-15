@@ -671,13 +671,13 @@ Servo::PromptResult ServoControl::OnServoPromptYesNo(winrt::hstring message,
 }
 
 std::optional<hstring> ServoControl::OnServoPromptInput(winrt::hstring message,
-                                                        winrt::hstring default,
+                                                        winrt::hstring def,
                                                         bool trusted) {
   auto titlefmt =
       format(mL10NStrings->PromptTitle.c_str(), mCurrentUrl.c_str());
   hstring title{trusted ? L"" : titlefmt};
   auto [button, string] = PromptSync(title, message, mL10NStrings->PromptOk,
-                                     mL10NStrings->PromptCancel, default);
+                                     mL10NStrings->PromptCancel, def);
   return string;
 }
 

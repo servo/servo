@@ -218,7 +218,7 @@ pub struct CHostCallbacks {
     pub prompt_yes_no: extern "C" fn(message: *const c_char, trusted: bool) -> CPromptResult,
     pub prompt_input: extern "C" fn(
         message: *const c_char,
-        default: *const c_char,
+        def: *const c_char,
         trusted: bool,
     ) -> *const c_char,
     pub on_devtools_started:
