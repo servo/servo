@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self';">
+    <title>worker-importscripts</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/testharness-helper.js'></script>
+</head>
+
+<body>
+    <script>
+      assert_worker_is_loaded(
+        "./support/worker-with-script-src-none-importscripts.js",
+        "Dedicated worker inherits CSP from main document",
+        "importScripts allowed");
+
+      assert_shared_worker_is_loaded(
+        "./support/worker-with-script-src-none-importscripts.js",
+        "Shared worker delivers its own CSP",
+        "importScripts blocked");
+    </script>
+</body>
+
+</html>

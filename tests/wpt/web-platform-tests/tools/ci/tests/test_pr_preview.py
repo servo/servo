@@ -128,11 +128,23 @@ class Requests(object):
         '/repos/test-org/test-repo/git/refs',
         {'ref':'refs/prs-trusted-for-preview/45'}
     )
+    ref_get_open = (
+        'GET', '/repos/test-org/test-repo/git/refs/prs-open/45', {}
+    )
+    ref_get_trusted = (
+        'GET', '/repos/test-org/test-repo/git/refs/prs-trusted-for-preview/45', {}
+    )
     ref_update_open = (
         'PATCH', '/repos/test-org/test-repo/git/refs/prs-open/45', {}
     )
     ref_update_trusted = (
         'PATCH', '/repos/test-org/test-repo/git/refs/prs-trusted-for-preview/45', {}
+    )
+    ref_delete_open = (
+        'DELETE', '/repos/test-org/test-repo/git/refs/prs-open/45', {}
+    )
+    ref_delete_trusted = (
+        'DELETE', '/repos/test-org/test-repo/git/refs/prs-trusted-for-preview/45', {}
     )
     deployment_get = ('GET', '/repos/test-org/test-repo/deployments', {})
     deployment_create = ('POST', '/repos/test-org/test-repo/deployments', {})
@@ -170,12 +182,10 @@ class Responses(object):
 
 
 @contextlib.contextmanager
-def temp_repo(change_dir=False):
+def temp_repo():
     original_dir = os.getcwd()
     directory = tempfile.mkdtemp()
-
-    if change_dir:
-        os.chdir(directory)
+    os.chdir(directory)
 
     try:
         subprocess.check_call(['git', 'init'], cwd=directory)
@@ -199,62 +209,31 @@ def temp_repo(change_dir=False):
 
         yield directory
     finally:
-        if change_dir:
-            os.chdir(original_dir)
-
+        os.chdir(original_dir)
         shutil.rmtree(
             directory, ignore_errors=False, onerror=handle_remove_readonly
         )
 
-def update_mirror_refs(pull_request, expected_traffic, refs={}):
+def update_mirror_refs(pull_request, expected_traffic):
     os.environ['GITHUB_TOKEN'] = 'c0ffee'
 
     github_server = MockServer((TEST_HOST, 0), expected_traffic)
     github_port = github_server.server_address[1]
-    remote_refs = {}
 
     method_threw = False
-    with temp_repo(change_dir=True), temp_repo() as remote_repo, github_server:
-        subprocess.check_call(
-            ['git', 'commit', '--allow-empty', '-m', 'first'],
-            cwd=remote_repo
-        )
-        subprocess.check_call(
-            ['git', 'commit', '--allow-empty', '-m', 'second'],
-            cwd=remote_repo
-        )
-        subprocess.check_call(['git', 'remote', 'add', 'origin', remote_repo])
-
-        for name, value in refs.items():
-            subprocess.check_call(
-                ['git', 'update-ref', name, value],
-                cwd=remote_repo
-            )
-
-        subprocess.check_call(['git', 'remote', '-v'])
+    with temp_repo(), github_server:
         project = pr_preview.Project(
             'http://{}:{}'.format(TEST_HOST, github_port),
             'test-org/test-repo',
         )
-        remote = pr_preview.Remote('test-org/test-repo')
         try:
-            pr_preview.update_mirror_refs(project, remote, pull_request)
+            pr_preview.update_mirror_refs(project, pull_request)
         except pr_preview.GitHubRateLimitException:
             method_threw = True
-
-        lines = subprocess.check_output(['git', 'ls-remote', 'origin'])
-        for line in lines.decode('utf-8').strip().split('\n'):
-            revision, ref = line.split()
-
-            if not ref or ref in ('HEAD', 'refs/heads/master'):
-                continue
-
-            remote_refs[ref] = revision
 
     return (
         method_threw,
         github_server.actual_traffic,
-        remote_refs,
     )
 
 
@@ -289,6 +268,7 @@ def deploy(pr_num, revision, expected_github_traffic, expected_preview_traffic):
 def test_update_mirror_refs_fail_rate_limited():
     pull_request = {
         'number': 45,
+        'head': {'sha': 'abc123'},
         'labels': [],
         'user': {'login': 'stephenmcgruer'},
         'author_association': 'COLLABORATOR',
@@ -308,7 +288,7 @@ def test_update_mirror_refs_fail_rate_limited():
         ))
     ]
 
-    method_threw, actual_traffic, remote_refs = update_mirror_refs(
+    method_threw, actual_traffic = update_mirror_refs(
         pull_request, expected_traffic
     )
 
@@ -319,14 +299,20 @@ def test_synchronize_ignore_closed():
     # No existing refs, but a closed PR event comes in. Nothing should happen.
     pull_request = {
         'number': 45,
+        'head': {'sha': 'abc123'},
         'labels': [],
         'user': {'login': 'stephenmcgruer'},
         'author_association': 'COLLABORATOR',
         'closed_at': '2019-10-28',
     }
-    expected_traffic = []
+    expected_traffic = [
+        (Requests.get_rate, Responses.no_limit),
+        (Requests.ref_get_trusted, (404, {})),
+        (Requests.get_rate, Responses.no_limit),
+        (Requests.ref_get_open, (404, {})),
+    ]
 
-    method_threw, actual_traffic, remote_refs = update_mirror_refs(
+    method_threw, actual_traffic = update_mirror_refs(
         pull_request, expected_traffic
     )
 
@@ -336,6 +322,7 @@ def test_synchronize_ignore_closed():
 def test_update_mirror_refs_collaborator():
     pull_request = {
         'number': 45,
+        'head': {'sha': 'abc123'},
         'labels': [],
         'user': {'login': 'stephenmcgruer'},
         'author_association': 'COLLABORATOR',
@@ -343,12 +330,16 @@ def test_update_mirror_refs_collaborator():
     }
     expected_traffic = [
         (Requests.get_rate, Responses.no_limit),
+        (Requests.ref_get_trusted, (404, {})),
+        (Requests.get_rate, Responses.no_limit),
+        (Requests.ref_get_open, (404, {})),
         (Requests.get_rate, Responses.no_limit),
         (Requests.ref_create_open, (200, {})),
+        (Requests.get_rate, Responses.no_limit),
         (Requests.ref_create_trusted, (200, {})),
     ]
 
-    method_threw, actual_traffic, remote_refs = update_mirror_refs(
+    method_threw, actual_traffic, = update_mirror_refs(
         pull_request, expected_traffic
     )
 
@@ -358,14 +349,20 @@ def test_update_mirror_refs_collaborator():
 def test_update_mirror_refs_ignore_collaborator_bot():
     pull_request = {
         'number': 45,
+        'head': {'sha': 'abc123'},
         'labels': [],
         'user': {'login': 'chromium-wpt-export-bot'},
         'author_association': 'COLLABORATOR',
         'closed_at': None,
     }
-    expected_traffic = []
+    expected_traffic = [
+        (Requests.get_rate, Responses.no_limit),
+        (Requests.ref_get_trusted, (404, {})),
+        (Requests.get_rate, Responses.no_limit),
+        (Requests.ref_get_open, (404, {})),
+    ]
 
-    method_threw, actual_traffic, remote_refs = update_mirror_refs(
+    method_threw, actual_traffic = update_mirror_refs(
         pull_request, expected_traffic
     )
 
@@ -375,14 +372,20 @@ def test_update_mirror_refs_ignore_collaborator_bot():
 def test_update_mirror_refs_ignore_untrusted_contributor():
     pull_request = {
         'number': 45,
+        'head': {'sha': 'abc123'},
         'labels': [],
         'user': {'login': 'stephenmcgruer'},
         'author_association': 'CONTRIBUTOR',
         'closed_at': None,
     }
-    expected_traffic = []
+    expected_traffic = [
+        (Requests.get_rate, Responses.no_limit),
+        (Requests.ref_get_trusted, (404, {})),
+        (Requests.get_rate, Responses.no_limit),
+        (Requests.ref_get_open, (404, {})),
+    ]
 
-    method_threw, actual_traffic, remote_refs = update_mirror_refs(
+    method_threw, actual_traffic = update_mirror_refs(
         pull_request, expected_traffic
     )
 
@@ -392,6 +395,7 @@ def test_update_mirror_refs_ignore_untrusted_contributor():
 def test_update_mirror_refs_trusted_contributor():
     pull_request = {
         'number': 45,
+        'head': {'sha': 'abc123'},
         # user here is a contributor (untrusted), but the issue
         # has been labelled as safe.
         'labels': [{'name': 'safe for preview'}],
@@ -401,12 +405,16 @@ def test_update_mirror_refs_trusted_contributor():
     }
     expected_traffic = [
         (Requests.get_rate, Responses.no_limit),
+        (Requests.ref_get_trusted, (404, {})),
+        (Requests.get_rate, Responses.no_limit),
+        (Requests.ref_get_open, (404, {})),
         (Requests.get_rate, Responses.no_limit),
         (Requests.ref_create_open, (200, {})),
+        (Requests.get_rate, Responses.no_limit),
         (Requests.ref_create_trusted, (200, {})),
     ]
 
-    method_threw, actual_traffic, remote_refs = update_mirror_refs(
+    method_threw, actual_traffic = update_mirror_refs(
         pull_request, expected_traffic
     )
 
@@ -416,6 +424,7 @@ def test_update_mirror_refs_trusted_contributor():
 def test_synchronize_sync_bot_with_label():
     pull_request = {
         'number': 45,
+        'head': {'sha': 'abc123'},
         # user here is a bot which is normally not mirrored,
         # but the issue has been labelled as safe.
         'labels': [{'name': 'safe for preview'}],
@@ -425,12 +434,16 @@ def test_synchronize_sync_bot_with_label():
     }
     expected_traffic = [
         (Requests.get_rate, Responses.no_limit),
+        (Requests.ref_get_trusted, (404, {})),
+        (Requests.get_rate, Responses.no_limit),
+        (Requests.ref_get_open, (404, {})),
         (Requests.get_rate, Responses.no_limit),
         (Requests.ref_create_open, (200, {})),
+        (Requests.get_rate, Responses.no_limit),
         (Requests.ref_create_trusted, (200, {})),
     ]
 
-    method_threw, actual_traffic, remote_refs = update_mirror_refs(
+    method_threw, actual_traffic = update_mirror_refs(
         pull_request, expected_traffic
     )
 
@@ -440,6 +453,7 @@ def test_synchronize_sync_bot_with_label():
 def test_update_mirror_refs_update_collaborator():
     pull_request = {
         'number': 45,
+        'head': {'sha': 'abc123'},
         'labels': [],
         'user': {'login': 'stephenmcgruer'},
         'author_association': 'COLLABORATOR',
@@ -447,18 +461,27 @@ def test_update_mirror_refs_update_collaborator():
     }
     expected_traffic = [
         (Requests.get_rate, Responses.no_limit),
+        (Requests.ref_get_trusted, (
+            200,
+            {
+                'object': {'sha': 'def234'},
+            }
+        )),
+        (Requests.get_rate, Responses.no_limit),
+        (Requests.ref_get_open, (
+            200,
+            {
+                'object': {'sha': 'def234'},
+            }
+        )),
         (Requests.get_rate, Responses.no_limit),
         (Requests.ref_update_open, (200, {})),
+        (Requests.get_rate, Responses.no_limit),
         (Requests.ref_update_trusted, (200, {})),
     ]
-    refs = {
-        'refs/pull/45/head': 'HEAD',
-        'refs/prs-open/45': 'HEAD~',
-        'refs/prs-trusted-for-preview/45': 'HEAD~'
-    }
 
-    method_threw, actual_traffic, remote_refs = update_mirror_refs(
-        pull_request, expected_traffic, refs
+    method_threw, actual_traffic = update_mirror_refs(
+        pull_request, expected_traffic
     )
 
     assert not method_threw
@@ -467,6 +490,7 @@ def test_update_mirror_refs_update_collaborator():
 def test_synchronize_update_member():
     pull_request = {
         'number': 45,
+        'head': {'sha': 'abc123'},
         'labels': [],
         'user': {'login': 'jgraham'},
         'author_association': 'MEMBER',
@@ -474,18 +498,27 @@ def test_synchronize_update_member():
     }
     expected_traffic = [
         (Requests.get_rate, Responses.no_limit),
+        (Requests.ref_get_trusted, (
+            200,
+            {
+                'object': {'sha': 'def234'},
+            }
+        )),
+        (Requests.get_rate, Responses.no_limit),
+        (Requests.ref_get_open, (
+            200,
+            {
+                'object': {'sha': 'def234'},
+            }
+        )),
         (Requests.get_rate, Responses.no_limit),
         (Requests.ref_update_open, (200, {})),
+        (Requests.get_rate, Responses.no_limit),
         (Requests.ref_update_trusted, (200, {}))
     ]
-    refs = {
-        'refs/pull/45/head': 'HEAD',
-        'refs/prs-open/45': 'HEAD~',
-        'refs/prs-trusted-for-preview/45': 'HEAD~'
-    }
 
-    method_threw, actual_traffic, remote_refs = update_mirror_refs(
-        pull_request, expected_traffic, refs
+    method_threw, actual_traffic = update_mirror_refs(
+        pull_request, expected_traffic
     )
 
     assert not method_threw
@@ -494,25 +527,39 @@ def test_synchronize_update_member():
 def test_update_mirror_refs_delete_collaborator():
     pull_request = {
         'number': 45,
+        'head': {'sha': 'abc123'},
         'labels': [],
         'user': {'login': 'stephenmcgruer'},
         'author_association': 'COLLABORATOR',
         'closed_at': 2019-10-30,
     }
-    expected_traffic = []
-    refs = {
-        'refs/pull/45/head': 'HEAD',
-        'refs/prs-open/45': 'HEAD~',
-        'refs/prs-trusted-for-preview/45': 'HEAD~'
-    }
+    expected_traffic = [
+        (Requests.get_rate, Responses.no_limit),
+        (Requests.ref_get_trusted, (
+            200,
+            {
+                'object': {'sha': 'def234'},
+            }
+        )),
+        (Requests.get_rate, Responses.no_limit),
+        (Requests.ref_get_open, (
+            200,
+            {
+                'object': {'sha': 'def234'},
+            }
+        )),
+        (Requests.get_rate, Responses.no_limit),
+        (Requests.ref_delete_trusted, (204, None)),
+        (Requests.get_rate, Responses.no_limit),
+        (Requests.ref_delete_open, (204, None)),
+    ]
 
-    method_threw, actual_traffic, remote_refs = update_mirror_refs(
-        pull_request, expected_traffic, refs
+    method_threw, actual_traffic = update_mirror_refs(
+        pull_request, expected_traffic
     )
 
     assert not method_threw
     assert same_members(expected_traffic, actual_traffic)
-    assert list(remote_refs) == ['refs/pull/45/head']
 
 def test_deploy_fail_rate_limited():
     expected_github_traffic = [

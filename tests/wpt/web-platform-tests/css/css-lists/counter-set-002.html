@@ -10,8 +10,25 @@
   <link rel="help" href="https://drafts.csswg.org/css-lists/#propdef-counter-set">
   <link rel="match" href="counter-set-002-ref.html">
 </head>
-<body onload="document.getElementById('item').style=''">
+<body>
 <noscript>Test not run - javascript required.</noscript>
-<ol><li id="item" style="counter-increment: list-item 3"></li></ol>
+<ol>
+<li></li>
+<li id="item" style="counter-increment: list-item 3"></li>
+<li></li>
+<style>
+.f {
+  display: list-item;
+}
+</style>
+<fieldset id="item4" class="f" style="counter-set: list-item 42"></fieldset>
+<li></li>
+</ol>
+
+<script>
+document.body.offsetTop;
+document.getElementById('item').style= '';
+document.getElementById('item4').style= '';
+</script>
 </body>
 </html>

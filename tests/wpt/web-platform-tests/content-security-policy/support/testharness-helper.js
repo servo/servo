@@ -40,26 +40,26 @@ function waitUntilEvent(obj, name) {
 // Given the URL of a worker that pings its opener upon load, this
 // function builds a test that asserts that the ping is received,
 // and that no CSP event fires.
-function assert_worker_is_loaded(url, description) {
+function assert_worker_is_loaded(url, description, expected_message = "ping") {
   async_test(t => {
     assert_no_csp_event_for_url(t, url);
     var w = new Worker(url);
     assert_no_event(t, w, "error");
     waitUntilEvent(w, "message")
       .then(t.step_func_done(e => {
-        assert_equals(e.data, "ping");
+        assert_equals(e.data, expected_message);
       }));
   }, description);
 }
 
-function assert_shared_worker_is_loaded(url, description) {
+function assert_shared_worker_is_loaded(url, description, expected_message = "ping") {
   async_test(t => {
     assert_no_csp_event_for_url(t, url);
     var w = new SharedWorker(url);
     assert_no_event(t, w, "error");
     waitUntilEvent(w.port, "message")
       .then(t.step_func_done(e => {
-        assert_equals(e.data, "ping");
+        assert_equals(e.data, expected_message);
       }));
     w.port.start();
   }, description);

@@ -1,6 +1,7 @@
 // META: title=NativeIO API: Failures of rename are properly handled.
 // META: global=window,worker
 // META: script=resources/support.js
+// META: timeout=long
 
 'use strict';
 
