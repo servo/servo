@@ -1,13 +1,17 @@
-# encoding: UTF-8
-from __future__ import absolute_import, division, print_function
-import pytest
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import os
-import re
 import sys
 import types
 
-from _pytest.config import get_config, PytestPluginManager
-from _pytest.main import EXIT_NOTESTSCOLLECTED, Session
+import pytest
+from _pytest.config import PytestPluginManager
+from _pytest.config.exceptions import UsageError
+from _pytest.main import EXIT_NOTESTSCOLLECTED
+from _pytest.main import Session
 
 
 @pytest.fixture
@@ -16,8 +20,7 @@ def pytestpm():
 
 
 class TestPytestPluginInteractions(object):
-
-    def test_addhooks_conftestplugin(self, testdir):
+    def test_addhooks_conftestplugin(self, testdir, _config_for_test):
         testdir.makepyfile(
             newhooks="""
             def pytest_myhook(xyz):
@@ -26,15 +29,14 @@ class TestPytestPluginInteractions(object):
         )
         conf = testdir.makeconftest(
             """
-            import sys ; sys.path.insert(0, '.')
             import newhooks
             def pytest_addhooks(pluginmanager):
-                pluginmanager.addhooks(newhooks)
+                pluginmanager.add_hookspecs(newhooks)
             def pytest_myhook(xyz):
                 return xyz + 1
         """
         )
-        config = get_config()
+        config = _config_for_test
         pm = config.pluginmanager
         pm.hook.pytest_addhooks.call_historic(
             kwargs=dict(pluginmanager=config.pluginmanager)
@@ -49,42 +51,12 @@ class TestPytestPluginInteractions(object):
             """
             import sys
             def pytest_addhooks(pluginmanager):
-                pluginmanager.addhooks(sys)
+                pluginmanager.add_hookspecs(sys)
         """
         )
         res = testdir.runpytest()
         assert res.ret != 0
         res.stderr.fnmatch_lines(["*did not find*sys*"])
-
-    def test_namespace_early_from_import(self, testdir):
-        p = testdir.makepyfile(
-            """
-            from pytest import Item
-            from pytest import Item as Item2
-            assert Item is Item2
-        """
-        )
-        result = testdir.runpython(p)
-        assert result.ret == 0
-
-    def test_do_ext_namespace(self, testdir):
-        testdir.makeconftest(
-            """
-            def pytest_namespace():
-                return {'hello': 'world'}
-        """
-        )
-        p = testdir.makepyfile(
-            """
-            from pytest import hello
-            import pytest
-            def test_hello():
-                assert hello == "world"
-                assert 'hello' in pytest.__all__
-        """
-        )
-        reprec = testdir.inline_run(p)
-        reprec.assertoutcome(passed=1)
 
     def test_do_option_postinitialize(self, testdir):
         config = testdir.parseconfigure()
@@ -104,7 +76,6 @@ class TestPytestPluginInteractions(object):
         values = []
 
         class A(object):
-
             def pytest_configure(self, config):
                 values.append(self)
 
@@ -120,17 +91,15 @@ class TestPytestPluginInteractions(object):
         config.pluginmanager.register(A())
         assert len(values) == 2
 
-    def test_hook_tracing(self):
-        pytestpm = get_config().pluginmanager  # fully initialized with plugins
+    def test_hook_tracing(self, _config_for_test):
+        pytestpm = _config_for_test.pluginmanager  # fully initialized with plugins
         saveindent = []
 
         class api1(object):
-
             def pytest_plugin_registered(self):
                 saveindent.append(pytestpm.trace.root.indent)
 
         class api2(object):
-
             def pytest_plugin_registered(self):
                 saveindent.append(pytestpm.trace.root.indent)
                 raise ValueError()
@@ -171,36 +140,6 @@ class TestPytestPluginInteractions(object):
         ihook_b = session.gethookproxy(testdir.tmpdir.join("tests"))
         assert ihook_a is not ihook_b
 
-    def test_warn_on_deprecated_addhooks(self, pytestpm):
-        warnings = []
-
-        class get_warnings(object):
-
-            def pytest_logwarning(self, code, fslocation, message, nodeid):
-                warnings.append(message)
-
-        class Plugin(object):
-
-            def pytest_testhook():
-                pass
-
-        pytestpm.register(get_warnings())
-        before = list(warnings)
-        pytestpm.addhooks(Plugin())
-        assert len(warnings) == len(before) + 1
-        assert "deprecated" in warnings[-1]
-
-
-def test_namespace_has_default_and_env_plugins(testdir):
-    p = testdir.makepyfile(
-        """
-        import pytest
-        pytest.mark
-    """
-    )
-    result = testdir.runpython(p)
-    assert result.ret == 0
-
 
 def test_default_markers(testdir):
     result = testdir.runpytest("--markers")
@@ -216,7 +155,7 @@ def test_importplugin_error_message(testdir, pytestpm):
     testdir.syspathinsert(testdir.tmpdir)
     testdir.makepyfile(
         qwe="""
-        # encoding: UTF-8
+        # -*- coding: utf-8 -*-
         def test_traceback():
             raise ImportError(u'Not possible to import: ☺')
         test_traceback()
@@ -225,14 +164,13 @@ def test_importplugin_error_message(testdir, pytestpm):
     with pytest.raises(ImportError) as excinfo:
         pytestpm.import_plugin("qwe")
 
-    expected_message = '.*Error importing plugin "qwe": Not possible to import: .'
-    expected_traceback = ".*in test_traceback"
-    assert re.match(expected_message, str(excinfo.value))
-    assert re.match(expected_traceback, str(excinfo.traceback[-1]))
+    assert str(excinfo.value).endswith(
+        'Error importing plugin "qwe": Not possible to import: ☺'
+    )
+    assert "in test_traceback" in str(excinfo.traceback[-1])
 
 
 class TestPytestPluginManager(object):
-
     def test_register_imported_modules(self):
         pm = PytestPluginManager()
         mod = types.ModuleType("x.y.pytest_hello")
@@ -240,7 +178,7 @@ class TestPytestPluginManager(object):
         assert pm.is_registered(mod)
         values = pm.get_plugins()
         assert mod in values
-        pytest.raises(ValueError, "pm.register(mod)")
+        pytest.raises(ValueError, pm.register, mod)
         pytest.raises(ValueError, lambda: pm.register(mod))
         # assert not pm.is_registered(mod2)
         assert pm.get_plugins() == values
@@ -263,14 +201,13 @@ class TestPytestPluginManager(object):
         assert pytestpm.get_plugin("pytest_p1").__name__ == "pytest_p1"
         assert pytestpm.get_plugin("pytest_p2").__name__ == "pytest_p2"
 
-    def test_consider_module_import_module(self, testdir):
-        pytestpm = get_config().pluginmanager
+    def test_consider_module_import_module(self, testdir, _config_for_test):
+        pytestpm = _config_for_test.pluginmanager
         mod = types.ModuleType("x")
         mod.pytest_plugins = "pytest_a"
         aplugin = testdir.makepyfile(pytest_a="#")
         reprec = testdir.make_hook_recorder(pytestpm)
-        # syspath.prepend(aplugin.dirpath())
-        sys.path.insert(0, str(aplugin.dirpath()))
+        testdir.syspathinsert(aplugin.dirpath())
         pytestpm.consider_module(mod)
         call = reprec.getcall(pytestpm.hook.pytest_plugin_registered.name)
         assert call.plugin.__name__ == "pytest_a"
@@ -285,11 +222,12 @@ class TestPytestPluginManager(object):
         with pytest.raises(ImportError):
             pytestpm.consider_env()
 
+    @pytest.mark.filterwarnings("always")
     def test_plugin_skip(self, testdir, monkeypatch):
         p = testdir.makepyfile(
             skipping1="""
             import pytest
-            pytest.skip("hello")
+            pytest.skip("hello", allow_module_level=True)
         """
         )
         p.copy(p.dirpath("skipping2.py"))
@@ -329,8 +267,8 @@ class TestPytestPluginManager(object):
         result.stdout.fnmatch_lines(["*1 passed*"])
 
     def test_import_plugin_importname(self, testdir, pytestpm):
-        pytest.raises(ImportError, 'pytestpm.import_plugin("qweqwex.y")')
-        pytest.raises(ImportError, 'pytestpm.import_plugin("pytest_qweqwx.y")')
+        pytest.raises(ImportError, pytestpm.import_plugin, "qweqwex.y")
+        pytest.raises(ImportError, pytestpm.import_plugin, "pytest_qweqwx.y")
 
         testdir.syspathinsert()
         pluginname = "pytest_hello"
@@ -346,8 +284,8 @@ class TestPytestPluginManager(object):
         assert plugin2 is plugin1
 
     def test_import_plugin_dotted_name(self, testdir, pytestpm):
-        pytest.raises(ImportError, 'pytestpm.import_plugin("qweqwex.y")')
-        pytest.raises(ImportError, 'pytestpm.import_plugin("pytest_qweqwex.y")')
+        pytest.raises(ImportError, pytestpm.import_plugin, "qweqwex.y")
+        pytest.raises(ImportError, pytestpm.import_plugin, "pytest_qweqwex.y")
 
         testdir.syspathinsert()
         testdir.mkpydir("pkg").join("plug.py").write("x=3")
@@ -363,11 +301,22 @@ class TestPytestPluginManager(object):
 
 
 class TestPytestPluginManagerBootstrapming(object):
-
     def test_preparse_args(self, pytestpm):
         pytest.raises(
             ImportError, lambda: pytestpm.consider_preparse(["xyz", "-p", "hello123"])
         )
+
+        # Handles -p without space (#3532).
+        with pytest.raises(ImportError) as excinfo:
+            pytestpm.consider_preparse(["-phello123"])
+        assert '"hello123"' in excinfo.value.args[0]
+        pytestpm.consider_preparse(["-pno:hello123"])
+
+        # Handles -p without following arg (when used without argparse).
+        pytestpm.consider_preparse(["-p"])
+
+        with pytest.raises(UsageError, match="^plugin main cannot be disabled$"):
+            pytestpm.consider_preparse(["-p", "no:main"])
 
     def test_plugin_prevent_register(self, pytestpm):
         pytestpm.consider_preparse(["xyz", "-p", "no:abc"])
@@ -384,3 +333,28 @@ class TestPytestPluginManagerBootstrapming(object):
         pytestpm.consider_preparse(["xyz", "-p", "no:abc"])
         l2 = pytestpm.get_plugins()
         assert 42 not in l2
+
+    def test_plugin_prevent_register_stepwise_on_cacheprovider_unregister(
+        self, pytestpm
+    ):
+        """ From PR #4304 : The only way to unregister a module is documented at
+        the end of https://docs.pytest.org/en/latest/plugins.html.
+
+        When unregister cacheprovider, then unregister stepwise too
+        """
+        pytestpm.register(42, name="cacheprovider")
+        pytestpm.register(43, name="stepwise")
+        l1 = pytestpm.get_plugins()
+        assert 42 in l1
+        assert 43 in l1
+        pytestpm.consider_preparse(["xyz", "-p", "no:cacheprovider"])
+        l2 = pytestpm.get_plugins()
+        assert 42 not in l2
+        assert 43 not in l2
+
+    def test_blocked_plugin_can_be_used(self, pytestpm):
+        pytestpm.consider_preparse(["xyz", "-p", "no:abc", "-p", "abc"])
+
+        assert pytestpm.has_plugin("abc")
+        assert not pytestpm.is_blocked("abc")
+        assert not pytestpm.is_blocked("pytest_abc")

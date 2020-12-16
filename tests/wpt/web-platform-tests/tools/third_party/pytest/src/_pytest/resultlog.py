@@ -1,10 +1,14 @@
+# -*- coding: utf-8 -*-
 """ log machine-parseable test session result information in a plain
 text file.
 """
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+import os
 
 import py
-import os
 
 
 def pytest_addoption(parser):
@@ -31,8 +35,9 @@ def pytest_configure(config):
         config.pluginmanager.register(config._resultlog)
 
         from _pytest.deprecated import RESULT_LOG
+        from _pytest.warnings import _issue_warning_captured
 
-        config.warn("C1", RESULT_LOG)
+        _issue_warning_captured(RESULT_LOG, config.hook, stacklevel=2)
 
 
 def pytest_unconfigure(config):
@@ -43,32 +48,7 @@ def pytest_unconfigure(config):
         config.pluginmanager.unregister(resultlog)
 
 
-def generic_path(item):
-    chain = item.listchain()
-    gpath = [chain[0].name]
-    fspath = chain[0].fspath
-    fspart = False
-    for node in chain[1:]:
-        newfspath = node.fspath
-        if newfspath == fspath:
-            if fspart:
-                gpath.append(":")
-                fspart = False
-            else:
-                gpath.append(".")
-        else:
-            gpath.append("/")
-            fspart = True
-        name = node.name
-        if name[0] in "([":
-            gpath.pop()
-        gpath.append(name)
-        fspath = newfspath
-    return "".join(gpath)
-
-
 class ResultLog(object):
-
     def __init__(self, config, logfile):
         self.config = config
         self.logfile = logfile  # preferably line buffered
@@ -87,7 +67,9 @@ class ResultLog(object):
     def pytest_runtest_logreport(self, report):
         if report.when != "call" and report.passed:
             return
-        res = self.config.hook.pytest_report_teststatus(report=report)
+        res = self.config.hook.pytest_report_teststatus(
+            report=report, config=self.config
+        )
         code = res[1]
         if code == "x":
             longrepr = str(report.longrepr)

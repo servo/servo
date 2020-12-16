@@ -1,11 +1,14 @@
-# encoding: utf-8
-from __future__ import absolute_import, division, print_function
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import sys
+
 import pytest
 
 
 class TestPasteCapture(object):
-
     @pytest.fixture
     def pastebinlist(self, monkeypatch, request):
         pastebinlist = []
@@ -65,13 +68,13 @@ class TestPasteCapture(object):
         """
         testdir.makepyfile(
             test_unicode="""
-            # encoding: utf-8
+            # -*- coding: utf-8 -*-
             def test():
                 assert '☺' == 1
         """
         )
         result = testdir.runpytest("--pastebin=all")
-        if sys.version_info[0] == 3:
+        if sys.version_info[0] >= 3:
             expected_msg = "*assert '☺' == 1*"
         else:
             expected_msg = "*assert '\\xe2\\x98\\xba' == 1*"
@@ -85,7 +88,6 @@ class TestPasteCapture(object):
 
 
 class TestPaste(object):
-
     @pytest.fixture
     def pastebin(self, request):
         return request.config.pluginmanager.getplugin("pastebin")
@@ -102,7 +104,6 @@ class TestPaste(object):
             calls.append((url, data))
 
             class DummyFile(object):
-
                 def read(self):
                     # part of html of a normal response
                     return b'View <a href="/raw/3c0c6750bd">raw</a>.'
@@ -125,7 +126,7 @@ class TestPaste(object):
         assert len(mocked_urlopen) == 1
         url, data = mocked_urlopen[0]
         assert type(data) is bytes
-        lexer = "python3" if sys.version_info[0] == 3 else "python"
+        lexer = "text"
         assert url == "https://bpaste.net"
         assert "lexer=%s" % lexer in data.decode()
         assert "code=full-paste-contents" in data.decode()

@@ -1,4 +1,7 @@
-from __future__ import absolute_import, division, print_function
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 import glob
 import os
@@ -7,16 +10,16 @@ import stat
 import sys
 import textwrap
 import zipfile
+
 import py
-import pytest
+import six
 
 import _pytest._code
+import pytest
 from _pytest.assertion import util
-from _pytest.assertion.rewrite import (
-    rewrite_asserts,
-    PYTEST_TAG,
-    AssertionRewritingHook,
-)
+from _pytest.assertion.rewrite import AssertionRewritingHook
+from _pytest.assertion.rewrite import PYTEST_TAG
+from _pytest.assertion.rewrite import rewrite_asserts
 from _pytest.main import EXIT_NOTESTSCOLLECTED
 
 ast = pytest.importorskip("ast")
@@ -49,14 +52,14 @@ def getmsg(f, extra_ns=None, must_pass=False):
     ns = {}
     if extra_ns is not None:
         ns.update(extra_ns)
-    py.builtin.exec_(code, ns)
+    exec(code, ns)
     func = ns[f.__name__]
     try:
         func()
     except AssertionError:
         if must_pass:
             pytest.fail("shouldn't have raised")
-        s = str(sys.exc_info()[1])
+        s = six.text_type(sys.exc_info()[1])
         if not s.startswith("assert"):
             return "AssertionError: " + s
         return s
@@ -65,41 +68,17 @@ def getmsg(f, extra_ns=None, must_pass=False):
             pytest.fail("function didn't raise at all")
 
 
-def adjust_body_for_new_docstring_in_module_node(m):
-    """Module docstrings in 3.8 are part of Module node.
-    This was briefly in 3.7 as well but got reverted in beta 5.
-
-    It's not in the body so we remove it so the following body items have
-    the same indexes on all Python versions:
-
-    TODO:
-
-    We have a complicated sys.version_info if in here to ease testing on
-    various Python 3.7 versions, but we should remove the 3.7 check after
-    3.7 is released as stable to make this check more straightforward.
-    """
-    if (
-        sys.version_info < (3, 8)
-        and not ((3, 7) <= sys.version_info <= (3, 7, 0, "beta", 4))
-    ):
-        assert len(m.body) > 1
-        assert isinstance(m.body[0], ast.Expr)
-        assert isinstance(m.body[0].value, ast.Str)
-        del m.body[0]
-
-
 class TestAssertionRewrite(object):
-
     def test_place_initial_imports(self):
         s = """'Doc string'\nother = stuff"""
         m = rewrite(s)
-        adjust_body_for_new_docstring_in_module_node(m)
-        for imp in m.body[0:2]:
+        assert isinstance(m.body[0], ast.Expr)
+        for imp in m.body[1:3]:
             assert isinstance(imp, ast.Import)
             assert imp.lineno == 2
             assert imp.col_offset == 0
-        assert isinstance(m.body[2], ast.Assign)
-        s = """from __future__ import with_statement\nother_stuff"""
+        assert isinstance(m.body[3], ast.Assign)
+        s = """from __future__ import division\nother_stuff"""
         m = rewrite(s)
         assert isinstance(m.body[0], ast.ImportFrom)
         for imp in m.body[1:3]:
@@ -107,26 +86,26 @@ class TestAssertionRewrite(object):
             assert imp.lineno == 2
             assert imp.col_offset == 0
         assert isinstance(m.body[3], ast.Expr)
-        s = """'doc string'\nfrom __future__ import with_statement"""
+        s = """'doc string'\nfrom __future__ import division"""
         m = rewrite(s)
-        adjust_body_for_new_docstring_in_module_node(m)
-        assert isinstance(m.body[0], ast.ImportFrom)
-        for imp in m.body[1:3]:
+        assert isinstance(m.body[0], ast.Expr)
+        assert isinstance(m.body[1], ast.ImportFrom)
+        for imp in m.body[2:4]:
             assert isinstance(imp, ast.Import)
             assert imp.lineno == 2
             assert imp.col_offset == 0
-        s = """'doc string'\nfrom __future__ import with_statement\nother"""
+        s = """'doc string'\nfrom __future__ import division\nother"""
         m = rewrite(s)
-        adjust_body_for_new_docstring_in_module_node(m)
-        assert isinstance(m.body[0], ast.ImportFrom)
-        for imp in m.body[1:3]:
+        assert isinstance(m.body[0], ast.Expr)
+        assert isinstance(m.body[1], ast.ImportFrom)
+        for imp in m.body[2:4]:
             assert isinstance(imp, ast.Import)
             assert imp.lineno == 3
             assert imp.col_offset == 0
-        assert isinstance(m.body[3], ast.Expr)
+        assert isinstance(m.body[4], ast.Expr)
         s = """from . import relative\nother_stuff"""
         m = rewrite(s)
-        for imp in m.body[0:2]:
+        for imp in m.body[:2]:
             assert isinstance(imp, ast.Import)
             assert imp.lineno == 1
             assert imp.col_offset == 0
@@ -135,9 +114,8 @@ class TestAssertionRewrite(object):
     def test_dont_rewrite(self):
         s = """'PYTEST_DONT_REWRITE'\nassert 14"""
         m = rewrite(s)
-        adjust_body_for_new_docstring_in_module_node(m)
-        assert len(m.body) == 1
-        assert m.body[0].msg is None
+        assert len(m.body) == 2
+        assert m.body[1].msg is None
 
     def test_dont_rewrite_plugin(self, testdir):
         contents = {
@@ -149,8 +127,7 @@ class TestAssertionRewrite(object):
         result = testdir.runpytest_subprocess()
         assert "warnings" not in "".join(result.outlines)
 
-    def test_name(self):
-
+    def test_name(self, request):
         def f():
             assert False
 
@@ -170,18 +147,68 @@ class TestAssertionRewrite(object):
         def f():
             assert sys == 42
 
-        assert getmsg(f, {"sys": sys}) == "assert sys == 42"
+        verbose = request.config.getoption("verbose")
+        msg = getmsg(f, {"sys": sys})
+        if verbose > 0:
+            assert msg == (
+                "assert <module 'sys' (built-in)> == 42\n"
+                "  -<module 'sys' (built-in)>\n"
+                "  +42"
+            )
+        else:
+            assert msg == "assert sys == 42"
 
         def f():
-            assert cls == 42  # noqa
+            assert cls == 42  # noqa: F821
 
         class X(object):
             pass
 
-        assert getmsg(f, {"cls": X}) == "assert cls == 42"
+        msg = getmsg(f, {"cls": X}).splitlines()
+        if verbose > 0:
+            if six.PY2:
+                assert msg == [
+                    "assert <class 'test_assertrewrite.X'> == 42",
+                    "  -<class 'test_assertrewrite.X'>",
+                    "  +42",
+                ]
+            else:
+                assert msg == [
+                    "assert <class 'test_...e.<locals>.X'> == 42",
+                    "  -<class 'test_assertrewrite.TestAssertionRewrite.test_name.<locals>.X'>",
+                    "  +42",
+                ]
+        else:
+            assert msg == ["assert cls == 42"]
+
+    def test_dont_rewrite_if_hasattr_fails(self, request):
+        class Y(object):
+            """ A class whos getattr fails, but not with `AttributeError` """
+
+            def __getattr__(self, attribute_name):
+                raise KeyError()
+
+            def __repr__(self):
+                return "Y"
+
+            def __init__(self):
+                self.foo = 3
+
+        def f():
+            assert cls().foo == 2  # noqa
+
+        # XXX: looks like the "where" should also be there in verbose mode?!
+        message = getmsg(f, {"cls": Y}).splitlines()
+        if request.config.getoption("verbose") > 0:
+            assert message == ["assert 3 == 2", "  -3", "  +2"]
+        else:
+            assert message == [
+                "assert 3 == 2",
+                " +  where 3 = Y.foo",
+                " +    where Y = cls()",
+            ]
 
     def test_assert_already_has_message(self):
-
         def f():
             assert False, "something bad!"
 
@@ -250,8 +277,16 @@ class TestAssertionRewrite(object):
             ["*AssertionError: To be escaped: %", "*assert 1 == 2"]
         )
 
-    def test_boolop(self):
+    @pytest.mark.skipif(
+        sys.version_info < (3,), reason="bytes is a string type in python 2"
+    )
+    def test_assertion_messages_bytes(self, testdir):
+        testdir.makepyfile("def test_bytes_assertion():\n    assert False, b'ohai!'\n")
+        result = testdir.runpytest()
+        assert result.ret == 1
+        result.stdout.fnmatch_lines(["*AssertionError: b'ohai!'", "*assert False"])
 
+    def test_boolop(self):
         def f():
             f = g = False
             assert f and g
@@ -331,7 +366,6 @@ class TestAssertionRewrite(object):
         getmsg(f, must_pass=True)
 
     def test_short_circuit_evaluation(self):
-
         def f():
             assert True or explode  # noqa
 
@@ -344,7 +378,6 @@ class TestAssertionRewrite(object):
         getmsg(f, must_pass=True)
 
     def test_unary_op(self):
-
         def f():
             x = True
             assert not x
@@ -370,7 +403,6 @@ class TestAssertionRewrite(object):
         assert getmsg(f) == "assert (+0 + 0)"
 
     def test_binary_op(self):
-
         def f():
             x = 1
             y = -1
@@ -384,7 +416,6 @@ class TestAssertionRewrite(object):
         assert getmsg(f) == "assert not (5 % 4)"
 
     def test_boolop_percent(self):
-
         def f():
             assert 3 % 2 and False
 
@@ -410,8 +441,20 @@ class TestAssertionRewrite(object):
         )
         testdir.runpytest().assert_outcomes(passed=1)
 
-    def test_call(self):
+    @pytest.mark.skipif("sys.version_info < (3,5)")
+    def test_starred_with_side_effect(self, testdir):
+        """See #4412"""
+        testdir.makepyfile(
+            """\
+            def test():
+                f = lambda x: x
+                x = iter([1, 2, 3])
+                assert 2 * next(x) == f(*[next(x)])
+            """
+        )
+        testdir.runpytest().assert_outcomes(passed=1)
 
+    def test_call(self):
         def g(a=42, *args, **kwargs):
             return False
 
@@ -483,7 +526,6 @@ class TestAssertionRewrite(object):
         )
 
     def test_attribute(self):
-
         class X(object):
             g = 3
 
@@ -509,7 +551,6 @@ class TestAssertionRewrite(object):
         )
 
     def test_comparisons(self):
-
         def f():
             a, b = range(2)
             assert b < a
@@ -541,19 +582,18 @@ class TestAssertionRewrite(object):
 
         getmsg(f, must_pass=True)
 
-    def test_len(self):
-
+    def test_len(self, request):
         def f():
             values = list(range(10))
             assert len(values) == 11
 
-        assert getmsg(f).startswith(
-            """assert 10 == 11
- +  where 10 = len(["""
-        )
+        msg = getmsg(f)
+        if request.config.getoption("verbose") > 0:
+            assert msg == "assert 10 == 11\n  -10\n  +11"
+        else:
+            assert msg == "assert 10 == 11\n +  where 10 = len([0, 1, 2, 3, 4, 5, ...])"
 
     def test_custom_reprcompare(self, monkeypatch):
-
         def my_reprcompare(op, left, right):
             return "42"
 
@@ -565,7 +605,7 @@ class TestAssertionRewrite(object):
         assert getmsg(f) == "assert 42"
 
         def my_reprcompare(op, left, right):
-            return "%s %s %s" % (left, op, right)
+            return "{} {} {}".format(left, op, right)
 
         monkeypatch.setattr(util, "_reprcompare", my_reprcompare)
 
@@ -575,11 +615,8 @@ class TestAssertionRewrite(object):
         assert getmsg(f) == "assert 5 <= 4"
 
     def test_assert_raising_nonzero_in_comparison(self):
-
         def f():
-
             class A(object):
-
                 def __nonzero__(self):
                     raise ValueError(42)
 
@@ -597,16 +634,13 @@ class TestAssertionRewrite(object):
         assert "<MY42 object> < 0" in getmsg(f)
 
     def test_formatchar(self):
-
         def f():
             assert "%test" == "test"
 
         assert getmsg(f).startswith("assert '%test' == 'test'")
 
-    def test_custom_repr(self):
-
+    def test_custom_repr(self, request):
         def f():
-
             class Foo(object):
                 a = 1
 
@@ -616,11 +650,29 @@ class TestAssertionRewrite(object):
             f = Foo()
             assert 0 == f.a
 
-        assert r"where 1 = \n{ \n~ \n}.a" in util._format_lines([getmsg(f)])[0]
+        lines = util._format_lines([getmsg(f)])
+        if request.config.getoption("verbose") > 0:
+            assert lines == ["assert 0 == 1\n  -0\n  +1"]
+        else:
+            assert lines == ["assert 0 == 1\n +  where 1 = \\n{ \\n~ \\n}.a"]
+
+    def test_custom_repr_non_ascii(self):
+        def f():
+            class A(object):
+                name = u"ä"
+
+                def __repr__(self):
+                    return self.name.encode("UTF-8")  # only legal in python2
+
+            a = A()
+            assert not a.name
+
+        msg = getmsg(f)
+        assert "UnicodeDecodeError" not in msg
+        assert "UnicodeEncodeError" not in msg
 
 
 class TestRewriteOnImport(object):
-
     def test_pycache_is_a_file(self, testdir):
         testdir.tmpdir.join("__pycache__").write("Hello")
         testdir.makepyfile(
@@ -666,14 +718,10 @@ class TestRewriteOnImport(object):
     def test_readonly(self, testdir):
         sub = testdir.mkdir("testing")
         sub.join("test_readonly.py").write(
-            py.builtin._totext(
-                """
+            b"""
 def test_rewritten():
     assert "@py_builtins" in globals()
-            """
-            ).encode(
-                "utf-8"
-            ),
+            """,
             "wb",
         )
         old_mode = sub.stat().mode
@@ -774,16 +822,16 @@ def test_rewritten():
         testdir.makepyfile("import a_package_without_init_py.module")
         assert testdir.runpytest().ret == EXIT_NOTESTSCOLLECTED
 
-    def test_rewrite_warning(self, pytestconfig, monkeypatch):
-        hook = AssertionRewritingHook(pytestconfig)
-        warnings = []
-
-        def mywarn(code, msg):
-            warnings.append((code, msg))
-
-        monkeypatch.setattr(hook.config, "warn", mywarn)
-        hook.mark_rewrite("_pytest")
-        assert "_pytest" in warnings[0][1]
+    def test_rewrite_warning(self, testdir):
+        testdir.makeconftest(
+            """
+            import pytest
+            pytest.register_assert_rewrite("_pytest")
+        """
+        )
+        # needs to be a subprocess because pytester explicitly disables this warning
+        result = testdir.runpytest_subprocess()
+        result.stdout.fnmatch_lines(["*Module already imported*: _pytest"])
 
     def test_rewrite_module_imported_from_conftest(self, testdir):
         testdir.makeconftest(
@@ -808,7 +856,9 @@ def test_rewritten():
         testdir.makepyfile(test_remember_rewritten_modules="")
         warnings = []
         hook = AssertionRewritingHook(pytestconfig)
-        monkeypatch.setattr(hook.config, "warn", lambda code, msg: warnings.append(msg))
+        monkeypatch.setattr(
+            hook, "_warn_already_imported", lambda code, msg: warnings.append(msg)
+        )
         hook.find_module("test_remember_rewritten_modules")
         hook.load_module("test_remember_rewritten_modules")
         hook.mark_rewrite("test_remember_rewritten_modules")
@@ -870,7 +920,6 @@ def test_rewritten():
 
 
 class TestAssertionRewriteHookDetails(object):
-
     def test_loader_is_package_false_for_module(self, testdir):
         testdir.makepyfile(
             test_fun="""
@@ -965,7 +1014,7 @@ class TestAssertionRewriteHookDetails(object):
             e = IOError()
             e.errno = 10
             raise e
-            yield  # noqa
+            yield
 
         monkeypatch.setattr(atomicwrites, "atomic_write", atomic_write_failed)
         assert not _write_pyc(state, [1], source_path.stat(), pycpath)
@@ -1050,24 +1099,66 @@ class TestAssertionRewriteHookDetails(object):
         result = testdir.runpytest("-s")
         result.stdout.fnmatch_lines(["* 1 passed*"])
 
+    def test_reload_reloads(self, testdir):
+        """Reloading a module after change picks up the change."""
+        testdir.tmpdir.join("file.py").write(
+            textwrap.dedent(
+                """
+            def reloaded():
+                return False
+
+            def rewrite_self():
+                with open(__file__, 'w') as self:
+                    self.write('def reloaded(): return True')
+        """
+            )
+        )
+        testdir.tmpdir.join("pytest.ini").write(
+            textwrap.dedent(
+                """
+            [pytest]
+            python_files = *.py
+        """
+            )
+        )
+
+        testdir.makepyfile(
+            test_fun="""
+            import sys
+            try:
+                from imp import reload
+            except ImportError:
+                pass
+
+            def test_loader():
+                import file
+                assert not file.reloaded()
+                file.rewrite_self()
+                reload(file)
+                assert file.reloaded()
+            """
+        )
+        result = testdir.runpytest("-s")
+        result.stdout.fnmatch_lines(["* 1 passed*"])
+
     def test_get_data_support(self, testdir):
         """Implement optional PEP302 api (#808).
         """
         path = testdir.mkpydir("foo")
         path.join("test_foo.py").write(
-            _pytest._code.Source(
+            textwrap.dedent(
+                """\
+                class Test(object):
+                    def test_foo(self):
+                        import pkgutil
+                        data = pkgutil.get_data('foo.test_foo', 'data.txt')
+                        assert data == b'Hey'
                 """
-            class Test(object):
-                def test_foo(self):
-                    import pkgutil
-                    data = pkgutil.get_data('foo.test_foo', 'data.txt')
-                    assert data == b'Hey'
-        """
             )
         )
         path.join("data.txt").write("Hey")
         result = testdir.runpytest()
-        result.stdout.fnmatch_lines("*1 passed*")
+        result.stdout.fnmatch_lines(["*1 passed*"])
 
 
 def test_issue731(testdir):
@@ -1090,7 +1181,6 @@ def test_issue731(testdir):
 
 
 class TestIssue925(object):
-
     def test_simple_case(self, testdir):
         testdir.makepyfile(
             """
@@ -1099,7 +1189,7 @@ class TestIssue925(object):
         """
         )
         result = testdir.runpytest()
-        result.stdout.fnmatch_lines("*E*assert (False == False) == False")
+        result.stdout.fnmatch_lines(["*E*assert (False == False) == False"])
 
     def test_long_case(self, testdir):
         testdir.makepyfile(
@@ -1109,7 +1199,7 @@ class TestIssue925(object):
         """
         )
         result = testdir.runpytest()
-        result.stdout.fnmatch_lines("*E*assert (False == True) == True")
+        result.stdout.fnmatch_lines(["*E*assert (False == True) == True"])
 
     def test_many_brackets(self, testdir):
         testdir.makepyfile(
@@ -1119,26 +1209,189 @@ class TestIssue925(object):
             """
         )
         result = testdir.runpytest()
-        result.stdout.fnmatch_lines("*E*assert True == ((False == True) == True)")
+        result.stdout.fnmatch_lines(["*E*assert True == ((False == True) == True)"])
 
 
-class TestIssue2121():
-
-    def test_simple(self, testdir):
-        testdir.tmpdir.join("tests/file.py").ensure().write(
-            """
-def test_simple_failure():
-    assert 1 + 1 == 3
-"""
-        )
-        testdir.tmpdir.join("pytest.ini").write(
-            textwrap.dedent(
+class TestIssue2121:
+    def test_rewrite_python_files_contain_subdirs(self, testdir):
+        testdir.makepyfile(
+            **{
+                "tests/file.py": """
+                def test_simple_failure():
+                    assert 1 + 1 == 3
                 """
-            [pytest]
-            python_files = tests/**.py
-        """
-            )
+            }
         )
-
+        testdir.makeini(
+            """
+                [pytest]
+                python_files = tests/**.py
+            """
+        )
         result = testdir.runpytest()
-        result.stdout.fnmatch_lines("*E*assert (1 + 1) == 3")
+        result.stdout.fnmatch_lines(["*E*assert (1 + 1) == 3"])
+
+
+@pytest.mark.skipif(
+    sys.maxsize <= (2 ** 31 - 1), reason="Causes OverflowError on 32bit systems"
+)
+@pytest.mark.parametrize("offset", [-1, +1])
+def test_source_mtime_long_long(testdir, offset):
+    """Support modification dates after 2038 in rewritten files (#4903).
+
+    pytest would crash with:
+
+            fp.write(struct.pack("<ll", mtime, size))
+        E   struct.error: argument out of range
+    """
+    p = testdir.makepyfile(
+        """
+        def test(): pass
+    """
+    )
+    # use unsigned long timestamp which overflows signed long,
+    # which was the cause of the bug
+    # +1 offset also tests masking of 0xFFFFFFFF
+    timestamp = 2 ** 32 + offset
+    os.utime(str(p), (timestamp, timestamp))
+    result = testdir.runpytest()
+    assert result.ret == 0
+
+
+def test_rewrite_infinite_recursion(testdir, pytestconfig, monkeypatch):
+    """Fix infinite recursion when writing pyc files: if an import happens to be triggered when writing the pyc
+    file, this would cause another call to the hook, which would trigger another pyc writing, which could
+    trigger another import, and so on. (#3506)"""
+    from _pytest.assertion import rewrite
+
+    testdir.syspathinsert()
+    testdir.makepyfile(test_foo="def test_foo(): pass")
+    testdir.makepyfile(test_bar="def test_bar(): pass")
+
+    original_write_pyc = rewrite._write_pyc
+
+    write_pyc_called = []
+
+    def spy_write_pyc(*args, **kwargs):
+        # make a note that we have called _write_pyc
+        write_pyc_called.append(True)
+        # try to import a module at this point: we should not try to rewrite this module
+        assert hook.find_module("test_bar") is None
+        return original_write_pyc(*args, **kwargs)
+
+    monkeypatch.setattr(rewrite, "_write_pyc", spy_write_pyc)
+    monkeypatch.setattr(sys, "dont_write_bytecode", False)
+
+    hook = AssertionRewritingHook(pytestconfig)
+    assert hook.find_module("test_foo") is not None
+    assert len(write_pyc_called) == 1
+
+
+class TestEarlyRewriteBailout(object):
+    @pytest.fixture
+    def hook(self, pytestconfig, monkeypatch, testdir):
+        """Returns a patched AssertionRewritingHook instance so we can configure its initial paths and track
+        if imp.find_module has been called.
+        """
+        import imp
+
+        self.find_module_calls = []
+        self.initial_paths = set()
+
+        class StubSession(object):
+            _initialpaths = self.initial_paths
+
+            def isinitpath(self, p):
+                return p in self._initialpaths
+
+        def spy_imp_find_module(name, path):
+            self.find_module_calls.append(name)
+            return imp.find_module(name, path)
+
+        hook = AssertionRewritingHook(pytestconfig)
+        # use default patterns, otherwise we inherit pytest's testing config
+        hook.fnpats[:] = ["test_*.py", "*_test.py"]
+        monkeypatch.setattr(hook, "_imp_find_module", spy_imp_find_module)
+        hook.set_session(StubSession())
+        testdir.syspathinsert()
+        return hook
+
+    def test_basic(self, testdir, hook):
+        """
+        Ensure we avoid calling imp.find_module when we know for sure a certain module will not be rewritten
+        to optimize assertion rewriting (#3918).
+        """
+        testdir.makeconftest(
+            """
+            import pytest
+            @pytest.fixture
+            def fix(): return 1
+        """
+        )
+        testdir.makepyfile(test_foo="def test_foo(): pass")
+        testdir.makepyfile(bar="def bar(): pass")
+        foobar_path = testdir.makepyfile(foobar="def foobar(): pass")
+        self.initial_paths.add(foobar_path)
+
+        # conftest files should always be rewritten
+        assert hook.find_module("conftest") is not None
+        assert self.find_module_calls == ["conftest"]
+
+        # files matching "python_files" mask should always be rewritten
+        assert hook.find_module("test_foo") is not None
+        assert self.find_module_calls == ["conftest", "test_foo"]
+
+        # file does not match "python_files": early bailout
+        assert hook.find_module("bar") is None
+        assert self.find_module_calls == ["conftest", "test_foo"]
+
+        # file is an initial path (passed on the command-line): should be rewritten
+        assert hook.find_module("foobar") is not None
+        assert self.find_module_calls == ["conftest", "test_foo", "foobar"]
+
+    def test_pattern_contains_subdirectories(self, testdir, hook):
+        """If one of the python_files patterns contain subdirectories ("tests/**.py") we can't bailout early
+        because we need to match with the full path, which can only be found by calling imp.find_module.
+        """
+        p = testdir.makepyfile(
+            **{
+                "tests/file.py": """
+                        def test_simple_failure():
+                            assert 1 + 1 == 3
+                        """
+            }
+        )
+        testdir.syspathinsert(p.dirpath())
+        hook.fnpats[:] = ["tests/**.py"]
+        assert hook.find_module("file") is not None
+        assert self.find_module_calls == ["file"]
+
+    @pytest.mark.skipif(
+        sys.platform.startswith("win32"), reason="cannot remove cwd on Windows"
+    )
+    def test_cwd_changed(self, testdir, monkeypatch):
+        # Setup conditions for py's fspath trying to import pathlib on py34
+        # always (previously triggered via xdist only).
+        # Ref: https://github.com/pytest-dev/py/pull/207
+        monkeypatch.syspath_prepend("")
+        monkeypatch.delitem(sys.modules, "pathlib", raising=False)
+
+        testdir.makepyfile(
+            **{
+                "test_setup_nonexisting_cwd.py": """
+                import os
+                import shutil
+                import tempfile
+
+                d = tempfile.mkdtemp()
+                os.chdir(d)
+                shutil.rmtree(d)
+            """,
+                "test_test.py": """
+                def test():
+                    pass
+            """,
+            }
+        )
+        result = testdir.runpytest()
+        result.stdout.fnmatch_lines(["* 1 passed in *"])

@@ -1,0 +1,30 @@
+environment:
+
+  matrix:
+    - PYTHON: "C:\\Python27"
+
+    - PYTHON: "C:\\Python34"
+
+    - PYTHON: "C:\\Python35"
+
+    - PYTHON: "C:\\Python36"
+
+    - PYTHON: "C:\\Python37"
+
+init:
+  - "%PYTHON%/python --version"
+
+install:
+  - "powershell appveyor\\install.ps1"
+
+build: off
+
+test_script:
+  - cd tests
+  - "%PYTHON%/Scripts/py.test --cov-report=xml --cov=pathlib2 ."
+
+after_test:
+  - ps: |
+      $env:PATH = 'C:\msys64\usr\bin;' + $env:PATH
+      Invoke-WebRequest -Uri 'https://codecov.io/bash' -OutFile codecov.sh
+      bash codecov.sh -f "coverage.xml"

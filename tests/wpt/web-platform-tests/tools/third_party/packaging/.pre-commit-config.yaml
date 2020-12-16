@@ -1,0 +1,32 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v2.3.0
+    hooks:
+      - id: check-toml
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v0.790
+    hooks:
+      - id: mypy
+        exclude: '^(docs|tasks|tests)|setup\.py'
+        args: []
+      - id: mypy
+        name: mypy for Python 2
+        exclude: '^(docs|tasks|tests)|setup\.py|noxfile\.py'
+        args: ["--py2"]
+
+  - repo: https://github.com/psf/black
+    rev: 19.3b0
+    hooks:
+      - id: black
+
+  - repo: https://gitlab.com/PyCQA/flake8
+    rev: "3.7.8"
+    hooks:
+      - id: flake8
+        additional_dependencies: ["pep8-naming"]
+        # Ignore all format-related checks as Black takes care of those.
+        args: ["--ignore", "E2,W5", "--select", "E,W,F,N"]

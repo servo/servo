@@ -22,16 +22,15 @@ Almost all ``unittest`` features are supported:
 
 * ``@unittest.skip`` style decorators;
 * ``setUp/tearDown``;
-* ``setUpClass/tearDownClass()``;
+* ``setUpClass/tearDownClass``;
+* ``setUpModule/tearDownModule``;
 
 .. _`load_tests protocol`: https://docs.python.org/3/library/unittest.html#load-tests-protocol
-.. _`setUpModule/tearDownModule`: https://docs.python.org/3/library/unittest.html#setupmodule-and-teardownmodule
 .. _`subtests`: https://docs.python.org/3/library/unittest.html#distinguishing-test-iterations-using-subtests
 
 Up to this point pytest does not have support for the following features:
 
 * `load_tests protocol`_;
-* `setUpModule/tearDownModule`_;
 * `subtests`_;
 
 Benefits out of the box
@@ -123,12 +122,15 @@ fixture definition::
 The ``@pytest.mark.usefixtures("db_class")`` class-decorator makes sure that
 the pytest fixture function ``db_class`` is called once per class.
 Due to the deliberately failing assert statements, we can take a look at
-the ``self.db`` values in the traceback::
+the ``self.db`` values in the traceback:
+
+.. code-block:: pytest
 
     $ pytest test_unittest_db.py
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-3.x.y, py-1.x.y, pluggy-0.x.y
-    rootdir: $REGENDOC_TMPDIR, inifile:
+    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    cachedir: $PYTHON_PREFIX/.pytest_cache
+    rootdir: $REGENDOC_TMPDIR
     collected 2 items
 
     test_unittest_db.py FF                                               [100%]
@@ -200,7 +202,9 @@ used for all methods of the class where it is defined.  This is a
 shortcut for using a ``@pytest.mark.usefixtures("initdir")`` marker
 on the class like in the previous example.
 
-Running this test module ...::
+Running this test module ...:
+
+.. code-block:: pytest
 
     $ pytest -q test_unittest_cleandir.py
     .                                                                    [100%]

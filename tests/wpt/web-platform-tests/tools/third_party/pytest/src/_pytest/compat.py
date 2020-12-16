@@ -1,27 +1,33 @@
+# -*- coding: utf-8 -*-
 """
 python version compatibility code
 """
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 import codecs
 import functools
 import inspect
 import re
 import sys
+from contextlib import contextmanager
 
+import attr
 import py
+import six
+from six import text_type
 
 import _pytest
+from _pytest._io.saferepr import saferepr
+from _pytest.outcomes import fail
 from _pytest.outcomes import TEST_OUTCOME
-from six import text_type
-import six
 
 try:
     import enum
 except ImportError:  # pragma: no cover
     # Only available in Python 3.4+ or as a backport
     enum = None
-
 
 _PY3 = sys.version_info > (3, 0)
 _PY2 = not _PY3
@@ -32,21 +38,34 @@ if _PY3:
 else:
     from funcsigs import signature, Parameter as Parameter
 
-
-NoneType = type(None)
 NOTSET = object()
 
 PY35 = sys.version_info[:2] >= (3, 5)
 PY36 = sys.version_info[:2] >= (3, 6)
 MODULE_NOT_FOUND_ERROR = "ModuleNotFoundError" if PY36 else "ImportError"
 
+
 if _PY3:
-    from collections.abc import MutableMapping as MappingMixin  # noqa
-    from collections.abc import Mapping, Sequence  # noqa
+    from collections.abc import MutableMapping as MappingMixin
+    from collections.abc import Iterable, Mapping, Sequence, Sized
 else:
     # those raise DeprecationWarnings in Python >=3.7
     from collections import MutableMapping as MappingMixin  # noqa
-    from collections import Mapping, Sequence  # noqa
+    from collections import Iterable, Mapping, Sequence, Sized  # noqa
+
+
+if sys.version_info >= (3, 4):
+    from importlib.util import spec_from_file_location
+else:
+
+    def spec_from_file_location(*_, **__):
+        return None
+
+
+if sys.version_info >= (3, 8):
+    from importlib import metadata as importlib_metadata  # noqa
+else:
+    import importlib_metadata  # noqa
 
 
 def _format_args(func):
@@ -72,16 +91,13 @@ def iscoroutinefunction(func):
     Note: copied and modified from Python 3.5's builtin couroutines.py to avoid import asyncio directly,
     which in turns also initializes the "logging" module as side-effect (see issue #8).
     """
-    return (
-        getattr(func, "_is_coroutine", False)
-        or (
-            hasattr(inspect, "iscoroutinefunction")
-            and inspect.iscoroutinefunction(func)
-        )
+    return getattr(func, "_is_coroutine", False) or (
+        hasattr(inspect, "iscoroutinefunction") and inspect.iscoroutinefunction(func)
     )
 
 
 def getlocation(function, curdir):
+    function = get_real_func(function)
     fn = py.path.local(inspect.getfile(function))
     lineno = function.__code__.co_firstlineno
     if fn.relto(curdir):
@@ -126,9 +142,17 @@ def getfuncargnames(function, is_method=False, cls=None):
     # ordered mapping of parameter names to Parameter instances.  This
     # creates a tuple of the names of the parameters that don't have
     # defaults.
+    try:
+        parameters = signature(function).parameters
+    except (ValueError, TypeError) as e:
+        fail(
+            "Could not determine arguments of {!r}: {}".format(function, e),
+            pytrace=False,
+        )
+
     arg_names = tuple(
         p.name
-        for p in signature(function).parameters.values()
+        for p in parameters.values()
         if (
             p.kind is Parameter.POSITIONAL_OR_KEYWORD
             or p.kind is Parameter.KEYWORD_ONLY
@@ -138,18 +162,21 @@ def getfuncargnames(function, is_method=False, cls=None):
     # If this function should be treated as a bound method even though
     # it's passed as an unbound method or function, remove the first
     # parameter name.
-    if (
-        is_method
-        or (
-            cls
-            and not isinstance(cls.__dict__.get(function.__name__, None), staticmethod)
-        )
+    if is_method or (
+        cls and not isinstance(cls.__dict__.get(function.__name__, None), staticmethod)
     ):
         arg_names = arg_names[1:]
     # Remove any names that will be replaced with mocks.
     if hasattr(function, "__wrapped__"):
-        arg_names = arg_names[num_mock_patch_args(function):]
+        arg_names = arg_names[num_mock_patch_args(function) :]
     return arg_names
+
+
+@contextmanager
+def dummy_context_manager():
+    """Context manager that does nothing, useful in situations where you might need an actual context manager or not
+    depending on some condition. Using this allow to keep the same code"""
+    yield
 
 
 def get_default_arg_names(function):
@@ -161,6 +188,18 @@ def get_default_arg_names(function):
         if p.kind in (Parameter.POSITIONAL_OR_KEYWORD, Parameter.KEYWORD_ONLY)
         and p.default is not Parameter.empty
     )
+
+
+_non_printable_ascii_translate_table = {
+    i: u"\\x{:02x}".format(i) for i in range(128) if i not in range(32, 127)
+}
+_non_printable_ascii_translate_table.update(
+    {ord("\t"): u"\\t", ord("\r"): u"\\r", ord("\n"): u"\\n"}
+)
+
+
+def _translate_non_printable(s):
+    return s.translate(_non_printable_ascii_translate_table)
 
 
 if _PY3:
@@ -202,9 +241,10 @@ if _PY3:
 
         """
         if isinstance(val, bytes):
-            return _bytes_to_ascii(val)
+            ret = _bytes_to_ascii(val)
         else:
-            return val.encode("unicode_escape").decode("ascii")
+            ret = val.encode("unicode_escape").decode("ascii")
+        return _translate_non_printable(ret)
 
 
 else:
@@ -222,11 +262,24 @@ else:
         """
         if isinstance(val, bytes):
             try:
-                return val.encode("ascii")
+                ret = val.decode("ascii")
             except UnicodeDecodeError:
-                return val.encode("string-escape")
+                ret = val.encode("string-escape").decode("ascii")
         else:
-            return val.encode("unicode-escape")
+            ret = val.encode("unicode-escape").decode("ascii")
+        return _translate_non_printable(ret)
+
+
+class _PytestWrapper(object):
+    """Dummy wrapper around a function object for internal use only.
+
+    Used to correctly unwrap the underlying function object
+    when we are creating fixtures, because we wrap the function object ourselves with a decorator
+    to issue warnings when the fixture function is called directly.
+    """
+
+    def __init__(self, obj):
+        self.obj = obj
 
 
 def get_real_func(obj):
@@ -235,18 +288,40 @@ def get_real_func(obj):
     """
     start_obj = obj
     for i in range(100):
+        # __pytest_wrapped__ is set by @pytest.fixture when wrapping the fixture function
+        # to trigger a warning if it gets called directly instead of by pytest: we don't
+        # want to unwrap further than this otherwise we lose useful wrappings like @mock.patch (#3774)
+        new_obj = getattr(obj, "__pytest_wrapped__", None)
+        if isinstance(new_obj, _PytestWrapper):
+            obj = new_obj.obj
+            break
         new_obj = getattr(obj, "__wrapped__", None)
         if new_obj is None:
             break
         obj = new_obj
     else:
         raise ValueError(
-            ("could not find real function of {start}" "\nstopped at {current}").format(
-                start=py.io.saferepr(start_obj), current=py.io.saferepr(obj)
+            ("could not find real function of {start}\nstopped at {current}").format(
+                start=saferepr(start_obj), current=saferepr(obj)
             )
         )
     if isinstance(obj, functools.partial):
         obj = obj.func
+    return obj
+
+
+def get_real_method(obj, holder):
+    """
+    Attempts to obtain the real function object that might be wrapping ``obj``, while at the same time
+    returning a bound method to ``holder`` if the original object was a bound method.
+    """
+    try:
+        is_method = hasattr(obj, "__func__")
+        obj = get_real_func(obj)
+    except Exception:
+        return obj
+    if is_method and hasattr(obj, "__get__") and callable(obj.__get__):
+        obj = obj.__get__(holder)
     return obj
 
 
@@ -281,6 +356,14 @@ def safe_getattr(object, name, default):
         return default
 
 
+def safe_isclass(obj):
+    """Ignore any exception via isinstance on Python 3."""
+    try:
+        return isclass(obj)
+    except Exception:
+        return False
+
+
 def _is_unittest_unexpected_success_a_failure():
     """Return if the test suite should fail if an @expectedFailure unittest test PASSES.
 
@@ -301,7 +384,7 @@ if _PY3:
 else:
 
     def safe_str(v):
-        """returns v as string, converting to ascii if necessary"""
+        """returns v as string, converting to utf-8 if necessary"""
         try:
             return str(v)
         except UnicodeError:
@@ -314,7 +397,6 @@ else:
 COLLECT_FAKEMODULE_ATTRIBUTES = (
     "Collector",
     "Module",
-    "Generator",
     "Function",
     "Instance",
     "Session",
@@ -331,8 +413,8 @@ def _setup_collect_fakemodule():
 
     pytest.collect = ModuleType("pytest.collect")
     pytest.collect.__all__ = []  # used for setns
-    for attr in COLLECT_FAKEMODULE_ATTRIBUTES:
-        setattr(pytest.collect, attr, getattr(pytest, attr))
+    for attribute in COLLECT_FAKEMODULE_ATTRIBUTES:
+        setattr(pytest.collect, attribute, getattr(pytest, attribute))
 
 
 if _PY2:
@@ -340,7 +422,6 @@ if _PY2:
     from py.io import TextIO
 
     class CaptureIO(TextIO):
-
         @property
         def encoding(self):
             return getattr(self, "_encoding", "UTF-8")
@@ -350,7 +431,6 @@ else:
     import io
 
     class CaptureIO(io.TextIOWrapper):
-
         def __init__(self):
             super(CaptureIO, self).__init__(
                 io.BytesIO(), encoding="UTF-8", newline="", write_through=True
@@ -369,3 +449,22 @@ class FuncargnamesCompatAttr(object):
     def funcargnames(self):
         """ alias attribute for ``fixturenames`` for pre-2.3 compatibility"""
         return self.fixturenames
+
+
+if six.PY2:
+
+    def lru_cache(*_, **__):
+        def dec(fn):
+            return fn
+
+        return dec
+
+
+else:
+    from functools import lru_cache  # noqa: F401
+
+
+if getattr(attr, "__version_info__", ()) >= (19, 2):
+    ATTRS_EQ_FIELD = "eq"
+else:
+    ATTRS_EQ_FIELD = "cmp"

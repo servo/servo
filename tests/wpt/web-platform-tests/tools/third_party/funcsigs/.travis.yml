@@ -2,16 +2,17 @@ language: python
 python:
   - 2.6
   - 2.7
-  - 3.2
   - 3.3
+  - 3.4
+  - 3.5
+  - nightly
   - pypy
+#  - pypy3
 install:
-  - pip install -r requirements/development.txt -r requirements/production.txt
-  - python setup.py install
+  - pip install -U pip setuptools wheel
+  - pip install -r requirements/development.txt .
 script:
   - coverage run setup.py test
   - coverage report --show-missing
 after_success:
   - coveralls
-notifications:
-    email: aaron.iles+travis-ci@gmail.com

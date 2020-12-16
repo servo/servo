@@ -1,32 +1,21 @@
+# -*- coding: utf-8 -*-
 """ generic mechanism for marking and selecting python functions. """
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+from .legacy import matchkeyword
+from .legacy import matchmark
+from .structures import EMPTY_PARAMETERSET_OPTION
+from .structures import get_empty_parameterset_mark
+from .structures import Mark
+from .structures import MARK_GEN
+from .structures import MarkDecorator
+from .structures import MarkGenerator
+from .structures import ParameterSet
 from _pytest.config import UsageError
-from .structures import (
-    ParameterSet,
-    EMPTY_PARAMETERSET_OPTION,
-    MARK_GEN,
-    Mark,
-    MarkInfo,
-    MarkDecorator,
-    MarkGenerator,
-    transfer_markers,
-    get_empty_parameterset_mark,
-)
-from .legacy import matchkeyword, matchmark
 
-__all__ = [
-    "Mark",
-    "MarkInfo",
-    "MarkDecorator",
-    "MarkGenerator",
-    "transfer_markers",
-    "get_empty_parameterset_mark",
-]
-
-
-class MarkerError(Exception):
-
-    """Error in use of a pytest marker/attribute."""
+__all__ = ["Mark", "MarkDecorator", "MarkGenerator", "get_empty_parameterset_mark"]
 
 
 def param(*values, **kw):
@@ -64,6 +53,7 @@ def pytest_addoption(parser):
         "other' matches all test functions and classes whose name "
         "contains 'test_method' or 'test_other', while -k 'not test_method' "
         "matches those that don't contain 'test_method' in their names. "
+        "-k 'not test_method and not test_other' will eliminate the matches. "
         "Additionally keywords are matched to classes and functions "
         "containing extra names in their 'extra_keyword_matches' set, "
         "as well as functions which have names assigned directly to them.",
@@ -111,6 +101,9 @@ pytest_cmdline_main.tryfirst = True
 
 def deselect_by_keyword(items, config):
     keywordexpr = config.option.keyword.lstrip()
+    if not keywordexpr:
+        return
+
     if keywordexpr.startswith("-"):
         keywordexpr = "not " + keywordexpr[1:]
     selectuntil = False
@@ -158,14 +151,13 @@ def pytest_collection_modifyitems(items, config):
 
 def pytest_configure(config):
     config._old_mark_config = MARK_GEN._config
-    if config.option.strict:
-        MARK_GEN._config = config
+    MARK_GEN._config = config
 
     empty_parameterset = config.getini(EMPTY_PARAMETERSET_OPTION)
 
-    if empty_parameterset not in ("skip", "xfail", None, ""):
+    if empty_parameterset not in ("skip", "xfail", "fail_at_collect", None, ""):
         raise UsageError(
-            "{!s} must be one of skip and xfail,"
+            "{!s} must be one of skip, xfail or fail_at_collect"
             " but it is {!r}".format(EMPTY_PARAMETERSET_OPTION, empty_parameterset)
         )
 

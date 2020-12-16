@@ -6,20 +6,30 @@ Contributors include::
 Aaron Coleman
 Abdeali JK
 Abhijeet Kasurde
+Adam Johnson
+Adam Uhlir
 Ahn Ki-Wook
+Akiomi Kamakura
 Alan Velasco
 Alexander Johnson
 Alexei Kozlenok
+Allan Feldman
+Aly Sivji
 Anatoly Bubenkoff
 Anders Hovmöller
+Andras Mitzki
 Andras Tim
+Andrea Cimatoribus
 Andreas Zeidler
+Andrey Paramonov
 Andrzej Ostrowski
 Andy Freeland
 Anthon van der Neut
 Anthony Shaw
 Anthony Sottile
+Anton Lodder
 Antony Lee
+Arel Cordero
 Armin Rigo
 Aron Coyle
 Aron Curzon
@@ -43,10 +53,16 @@ Charles Cloud
 Charnjit SiNGH (CCSJ)
 Chris Lamb
 Christian Boelsen
+Christian Fetzer
 Christian Theunert
 Christian Tismer
 Christopher Gilling
+Christopher Dignam
+Claudio Madotto
+CrazyMerlyn
 Cyrus Maden
+Damian Skrzypczak
+Dhiren Serai
 Daniel Grana
 Daniel Hahler
 Daniel Nuri
@@ -55,6 +71,7 @@ Danielle Jenkins
 Dave Hunt
 David Díaz-Barquero
 David Mohr
+David Szotten
 David Vierra
 Daw-Ran Liou
 Denis Kirisov
@@ -71,7 +88,11 @@ Endre Galaczi
 Eric Hunsberger
 Eric Siegerman
 Erik M. Bray
+Evan Kepner
+Fabien Zarifian
+Fabio Zadrozny
 Feng Ma
+Fernando Mezzabotta Rey
 Florian Bruhin
 Floris Bruynooghe
 Gabriel Reis
@@ -89,6 +110,9 @@ Hugo van Kemenade
 Hui Wang (coldnight)
 Ian Bicking
 Ian Lesperance
+Ilya Konstantinov
+Ionuț Turturică
+Iwan Briquemont
 Jaap Broekhuizen
 Jan Balster
 Janne Vanhala
@@ -97,6 +121,7 @@ Javier Domingo Cansino
 Javier Romero
 Jeff Rackauckas
 Jeff Widman
+Jenni Rinker
 John Eddie Ayson
 John Towler
 Jon Sonesen
@@ -104,6 +129,7 @@ Jonas Obrist
 Jordan Guymon
 Jordan Moldow
 Jordan Speicher
+Joseph Hunkeler
 Joshua Bronson
 Jurko Gospodnetić
 Justyna Janczyszyn
@@ -111,8 +137,11 @@ Kale Kundert
 Katarzyna Jachim
 Katerina Koukiou
 Kevin Cox
+Kevin J. Foley
 Kodi B. Arfer
 Kostis Anagnostopoulos
+Kristoffer Nordström
+Kyle Altendorf
 Lawrence Mitchell
 Lee Kamentsky
 Lev Maximov
@@ -126,6 +155,7 @@ Maik Figura
 Mandeep Bhutani
 Manuel Krebber
 Marc Schlaich
+Marcelo Duarte Trevisani
 Marcin Bachry
 Mark Abramowitz
 Markus Unterwaditzer
@@ -146,22 +176,30 @@ Michael Droettboom
 Michael Seifert
 Michal Wajszczuk
 Mihai Capotă
+Mike Hoyle (hoylemd)
 Mike Lundy
 Miro Hrončok
 Nathaniel Waisbrot
 Ned Batchelder
 Neven Mundar
+Nicholas Devenish
+Nicholas Murphy
+Niclas Olofsson
 Nicolas Delaby
+Nikolay Kondratyev
 Oleg Pidsadnyi
 Oleg Sushchenko
 Oliver Bestwalter
 Omar Kohl
 Omer Hadari
+Ondřej Súkup
+Oscar Benjamin
 Patrick Hayes
 Paweł Adamczak
 Pedro Algarvio
 Pieter Mulder
 Piotr Banaszkiewicz
+Pulkit Goyal
 Punyashloka Biswal
 Quentin Pradet
 Ralf Schmitt
@@ -171,6 +209,7 @@ Raphael Pierzina
 Raquel Alegre
 Ravi Chandra
 Roberto Polli
+Roland Puntaier
 Romain Dorgueil
 Roman Bolshakov
 Ronny Pfannschmidt
@@ -178,8 +217,11 @@ Ross Lawley
 Russel Winder
 Ryan Wooden
 Samuel Dion-Girardeau
+Samuel Searles-Bryant
 Samuele Pedroni
+Sankt Petersbug
 Segev Finer
+Serhii Mozghovyi
 Simon Gomizelj
 Skylar Downes
 Srinivas Reddy Thatiparthy
@@ -188,6 +230,9 @@ Stefan Zimmermann
 Stefano Taschini
 Steffen Allner
 Stephan Obermann
+Sven-Hendrik Haase
+Tadek Teleżyński
+Takafumi Arakaki
 Tarcisio Fischer
 Tareq Alayan
 Ted Xiao
@@ -196,18 +241,23 @@ Thomas Hisch
 Tim Strazny
 Tom Dalton
 Tom Viner
+Tomer Keren
 Trevor Bekolay
 Tyler Goodlet
 Tzu-ping Chung
 Vasily Kuznetsov
+Victor Maryama
 Victor Uriarte
 Vidar T. Fauske
+Virgil Dupras
 Vitaly Lashmanov
 Vlad Dragos
+Volodymyr Piskun
+Wil Cooley
 William Lee
+Wim Glenn
 Wouter van Ackooy
 Xuan Luong
 Xuecong Liao
+Zac Hatfield-Dodds
 Zoltán Máté
-Roland Puntaier
-Allan Feldman

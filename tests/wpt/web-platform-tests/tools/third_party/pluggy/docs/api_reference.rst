@@ -1,3 +1,5 @@
+:orphan:
+
 Api Reference
 =============
 
@@ -6,9 +8,12 @@ Api Reference
     :undoc-members:
     :show-inheritance:
 
+.. autoclass:: pluggy.callers._Result
+.. automethod:: pluggy.callers._Result.get_result
+.. automethod:: pluggy.callers._Result.force_result
 
-.. automethod:: pluggy._Result.get_result
+.. autoclass:: pluggy.hooks._HookCaller
+.. automethod:: pluggy.hooks._HookCaller.call_extra
+.. automethod:: pluggy.hooks._HookCaller.call_historic
 
-.. automethod:: pluggy._Result.force_result
-
-.. automethod:: pluggy._HookCaller.call_extra
+.. autoclass:: pluggy.hooks._HookRelay

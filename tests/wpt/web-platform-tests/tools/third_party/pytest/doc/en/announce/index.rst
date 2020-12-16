@@ -6,6 +6,47 @@ Release announcements
    :maxdepth: 2
 
 
+   release-4.6.11
+   release-4.6.10
+   release-4.6.9
+   release-4.6.8
+   release-4.6.7
+   release-4.6.6
+   release-4.6.5
+   release-4.6.4
+   release-4.6.3
+   release-4.6.2
+   release-4.6.1
+   release-4.6.0
+   release-4.5.0
+   release-4.4.2
+   release-4.4.1
+   release-4.4.0
+   release-4.3.1
+   release-4.3.0
+   release-4.2.1
+   release-4.2.0
+   release-4.1.1
+   release-4.1.0
+   release-4.0.2
+   release-4.0.1
+   release-4.0.0
+   release-3.10.1
+   release-3.10.0
+   release-3.9.3
+   release-3.9.2
+   release-3.9.1
+   release-3.9.0
+   release-3.8.2
+   release-3.8.1
+   release-3.8.0
+   release-3.7.4
+   release-3.7.3
+   release-3.7.2
+   release-3.7.1
+   release-3.7.0
+   release-3.6.4
+   release-3.6.3
    release-3.6.2
    release-3.6.1
    release-3.6.0

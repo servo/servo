@@ -1,5 +1,7 @@
-import pytest
+# -*- coding: utf-8 -*-
 import py
+
+import pytest
 
 mydir = py.path.local(__file__).dirpath()
 
@@ -10,4 +12,4 @@ def pytest_runtest_setup(item):
             return
         mod = item.getparent(pytest.Module).obj
         if hasattr(mod, "hello"):
-            print("mod.hello %r" % (mod.hello,))
+            print("mod.hello {!r}".format(mod.hello))

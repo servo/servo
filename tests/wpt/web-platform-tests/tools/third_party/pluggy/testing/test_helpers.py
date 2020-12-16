@@ -1,4 +1,8 @@
-from pluggy import _formatdef, varnames
+from pluggy.hooks import varnames
+from pluggy.manager import _formatdef
+
+import sys
+import pytest
 
 
 def test_varnames():
@@ -14,8 +18,8 @@ def test_varnames():
             pass
 
     assert varnames(f) == (("x",), ())
-    assert varnames(A().f) == (('y',), ())
-    assert varnames(B()) == (('z',), ())
+    assert varnames(A().f) == (("y",), ())
+    assert varnames(B()) == (("z",), ())
 
 
 def test_varnames_default():
@@ -46,11 +50,29 @@ def test_varnames_class():
     assert varnames(F) == ((), ())
 
 
+@pytest.mark.skipif(
+    sys.version_info < (3,), reason="Keyword only arguments are Python 3 only"
+)
+def test_varnames_keyword_only():
+    # SyntaxError on Python 2, so we exec
+    ns = {}
+    exec(
+        "def f1(x, *, y): pass\n"
+        "def f2(x, *, y=3): pass\n"
+        "def f3(x=1, *, y=3): pass\n",
+        ns,
+    )
+
+    assert varnames(ns["f1"]) == (("x",), ())
+    assert varnames(ns["f2"]) == (("x",), ())
+    assert varnames(ns["f3"]) == ((), ("x",))
+
+
 def test_formatdef():
     def function1():
         pass
 
-    assert _formatdef(function1) == 'function1()'
+    assert _formatdef(function1) == "function1()"
 
     def function2(arg1):
         pass

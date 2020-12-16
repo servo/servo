@@ -1,83 +1,80 @@
-sudo: false
 language: python
-stages:
-- linting
-- test
-- deploy
-python:
-  - '3.6'
-install:
-  - pip install --upgrade --pre tox
+dist: xenial
+python: '3.7.4'
+cache: false
+
 env:
-  matrix:
-    # coveralls is not listed in tox's envlist, but should run in travis
-    - TOXENV=coveralls
-    # note: please use "tox --listenvs" to populate the build matrix below
-    # please remove the linting env in all cases
-    - TOXENV=py27
-    - TOXENV=py34
-    - TOXENV=py36
-    - TOXENV=py27-pexpect
-    - TOXENV=py27-xdist
-    - TOXENV=py27-trial
-    - TOXENV=py27-numpy
-    - TOXENV=py27-pluggymaster
-    - TOXENV=py36-pexpect
-    - TOXENV=py36-xdist
-    - TOXENV=py36-trial
-    - TOXENV=py36-numpy
-    - TOXENV=py36-pluggymaster
-    - TOXENV=py27-nobyte
-    - TOXENV=doctesting
-    - TOXENV=docs
+  global:
+    - PYTEST_ADDOPTS="-vv --showlocals --durations=100 --exitfirst"
+    - PYTEST_COVERAGE=1
+
+# setuptools-scm needs all tags in order to obtain a proper version
+git:
+  depth: false
+
+install:
+  - python -m pip install --upgrade --pre tox
 
 jobs:
   include:
-    - env: TOXENV=pypy
-      python: 'pypy-5.4'
-    - env: TOXENV=py35
-      python: '3.5'
-    - env: TOXENV=py35-freeze
-      python: '3.5'
-    - env: TOXENV=py37
-      python: 'nightly'
+    # Coverage for:
+    # - TestArgComplete (linux only)
+    # - numpy
+    # - verbose=0
+    - stage: baseline
+      env: TOXENV=py27-xdist
+      python: '2.7'
 
-    - stage: deploy
-      python: '3.6'
-      env:
-      install: pip install -U setuptools setuptools_scm
-      script: skip
-      deploy:
-        provider: pypi
-        user: nicoddemus
-        distributions: sdist bdist_wheel
-        skip_upload_docs: true
-        password:
-          secure: xanTgTUu6XDQVqB/0bwJQXoDMnU5tkwZc5koz6mBkkqZhKdNOi2CLoC1XhiSZ+ah24l4V1E0GAqY5kBBcy9d7NVe4WNg4tD095LsHw+CRU6/HCVIFfyk2IZ+FPAlguesCcUiJSXOrlBF+Wj68wEvLoK7EoRFbJeiZ/f91Ww1sbtDlqXABWGHrmhPJL5Wva7o7+wG7JwJowqdZg1pbQExsCc7b53w4v2RBu3D6TJaTAzHiVsW+nUSI67vKI/uf+cR/OixsTfy37wlHgSwihYmrYLFls3V0bSpahCim3bCgMaFZx8S8xrdgJ++PzBCof2HeflFKvW+VCkoYzGEG4NrTWJoNz6ni4red9GdvfjGH3YCjAKS56h9x58zp2E5rpsb/kVq5/45xzV+dq6JRuhQ1nJWjBC6fSKAc/bfwnuFK3EBxNLkvBssLHvsNjj5XG++cB8DdS9wVGUqjpoK4puaXUWFqy4q3S9F86HEsKNgExtieA9qNx+pCIZVs6JCXZNjr0I5eVNzqJIyggNgJG6RyravsU35t9Zd9doL5g4Y7UKmAGTn1Sz24HQ4sMQgXdm2SyD8gEK5je4tlhUvfGtDvMSlstq71kIn9nRpFnqB6MFlbYSEAZmo8dGbCquoUc++6Rum208wcVbrzzVtGlXB/Ow9AbFMYeAGA0+N/K1e59c=
-        on:
-          tags: true
-          repo: pytest-dev/pytest
-    - stage: linting
-      python: '3.6'
-      env:
-      install:
-      - pip install pre-commit
-      - pre-commit install-hooks
-      script:
-      - pre-commit run --all-files
+    - env: TOXENV=py38-xdist
+      python: '3.8'
 
-script: tox --recreate
+    - stage: tests
+    # - _pytest.unittest._handle_skip (via pexpect).
+      env: TOXENV=py27-pexpect,py27-twisted
+      python: '2.7'
 
-notifications:
-  irc:
-    channels:
-      - "chat.freenode.net#pytest"
-    on_success: change
-    on_failure: change
-    skip_join: true
-  email:
-    - pytest-commit@python.org
-cache:
-    directories:
-        - $HOME/.cache/pip
-        - $HOME/.cache/pre-commit
+    - env: TOXENV=py35-xdist
+      python: '3.5.9'
+
+    - env: TOXENV=py36-xdist PYTEST_REORDER_TESTS=0
+      python: '3.6.9'
+
+    - env: TOXENV=py37-numpy-pexpect-twisted
+      python: '3.7.4'
+
+    # - test_sys_breakpoint_interception (via pexpect).
+    - env: TOXENV=py37-pexpect,py37-twisted
+      python: '3.7.4'
+
+    # Run also non-verbosely, to gain coverage
+    - env: TOXENV=py38-xdist PYTEST_ADDOPTS=""
+      python: '3.8'
+
+    - env: TOXENV=linting,docs,doctesting
+      cache:
+        directories:
+          - $HOME/.cache/pre-commit
+
+before_script:
+  - |
+    # Do not (re-)upload coverage with cron runs.
+    if [[ "$TRAVIS_EVENT_TYPE" = cron ]]; then
+      PYTEST_COVERAGE=0
+    fi
+  - |
+    if [[ "$PYTEST_COVERAGE" = 1 ]]; then
+      export COVERAGE_FILE="$PWD/.coverage"
+      export COVERAGE_PROCESS_START="$PWD/.coveragerc"
+      export _PYTEST_TOX_COVERAGE_RUN="coverage run -m"
+      export _PYTEST_TOX_EXTRA_DEP=coverage-enable-subprocess
+    fi
+script: env COLUMNS=120 python -m tox
+
+after_success:
+  - |
+    if [[ "$PYTEST_COVERAGE" = 1 ]]; then
+      env CODECOV_NAME="$TOXENV-$TRAVIS_OS_NAME" scripts/report-coverage.sh
+    fi
+branches:
+  only:
+    - 4.6.x

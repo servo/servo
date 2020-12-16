@@ -1,17 +1,25 @@
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import
+
 import math
+import pprint
 import sys
+import warnings
+from decimal import Decimal
+from numbers import Number
 
-import py
-from six.moves import zip, filterfalse
 from more_itertools.more import always_iterable
+from six.moves import filterfalse
+from six.moves import zip
 
-from _pytest.compat import isclass
-
-from _pytest.compat import Mapping, Sequence
-from _pytest.compat import STRING_TYPES
-
-from _pytest.outcomes import fail
 import _pytest._code
+from _pytest import deprecated
+from _pytest.compat import isclass
+from _pytest.compat import Iterable
+from _pytest.compat import Mapping
+from _pytest.compat import Sized
+from _pytest.compat import STRING_TYPES
+from _pytest.outcomes import fail
 
 BASE_TYPE = (type, STRING_TYPES)
 
@@ -30,6 +38,15 @@ def _cmp_raises_type_error(self, other):
     )
 
 
+def _non_numeric_type_error(value, at):
+    at_str = " at {}".format(at) if at else ""
+    return TypeError(
+        "cannot make approximate comparisons to non-numeric values: {!r} {}".format(
+            value, at_str
+        )
+    )
+
+
 # builtin pytest.approx helper
 
 
@@ -39,15 +56,17 @@ class ApproxBase(object):
     or sequences of numbers.
     """
 
-    # Tell numpy to use our `__eq__` operator instead of its
+    # Tell numpy to use our `__eq__` operator instead of its.
     __array_ufunc__ = None
     __array_priority__ = 100
 
     def __init__(self, expected, rel=None, abs=None, nan_ok=False):
+        __tracebackhide__ = True
         self.expected = expected
         self.abs = abs
         self.rel = rel
         self.nan_ok = nan_ok
+        self._check_type()
 
     def __repr__(self):
         raise NotImplementedError
@@ -75,20 +94,33 @@ class ApproxBase(object):
         """
         raise NotImplementedError
 
+    def _check_type(self):
+        """
+        Raise a TypeError if the expected value is not a valid type.
+        """
+        # This is only a concern if the expected value is a sequence.  In every
+        # other case, the approx() function ensures that the expected value has
+        # a numeric type.  For this reason, the default is to do nothing.  The
+        # classes that deal with sequences should reimplement this method to
+        # raise if there are any non-numeric elements in the sequence.
+        pass
+
+
+def _recursive_list_map(f, x):
+    if isinstance(x, list):
+        return list(_recursive_list_map(f, xi) for xi in x)
+    else:
+        return f(x)
+
 
 class ApproxNumpy(ApproxBase):
     """
-    Perform approximate comparisons for numpy arrays.
+    Perform approximate comparisons where the expected value is numpy array.
     """
 
     def __repr__(self):
-        # It might be nice to rewrite this function to account for the
-        # shape of the array...
-        import numpy as np
-
-        return "approx({!r})".format(
-            list(self._approx_scalar(x) for x in np.asarray(self.expected))
-        )
+        list_scalars = _recursive_list_map(self._approx_scalar, self.expected.tolist())
+        return "approx({!r})".format(list_scalars)
 
     if sys.version_info[0] == 2:
         __cmp__ = _cmp_raises_type_error
@@ -118,16 +150,16 @@ class ApproxNumpy(ApproxBase):
 
         if np.isscalar(actual):
             for i in np.ndindex(self.expected.shape):
-                yield actual, np.asscalar(self.expected[i])
+                yield actual, self.expected[i].item()
         else:
             for i in np.ndindex(self.expected.shape):
-                yield np.asscalar(actual[i]), np.asscalar(self.expected[i])
+                yield actual[i].item(), self.expected[i].item()
 
 
 class ApproxMapping(ApproxBase):
     """
-    Perform approximate comparisons for mappings where the values are numbers
-    (the keys can be anything).
+    Perform approximate comparisons where the expected value is a mapping with
+    numeric values (the keys can be anything).
     """
 
     def __repr__(self):
@@ -145,10 +177,20 @@ class ApproxMapping(ApproxBase):
         for k in self.expected.keys():
             yield actual[k], self.expected[k]
 
+    def _check_type(self):
+        __tracebackhide__ = True
+        for key, value in self.expected.items():
+            if isinstance(value, type(self.expected)):
+                msg = "pytest.approx() does not support nested dictionaries: key={!r} value={!r}\n  full mapping={}"
+                raise TypeError(msg.format(key, value, pprint.pformat(self.expected)))
+            elif not isinstance(value, Number):
+                raise _non_numeric_type_error(self.expected, at="key={!r}".format(key))
 
-class ApproxSequence(ApproxBase):
+
+class ApproxSequencelike(ApproxBase):
     """
-    Perform approximate comparisons for sequences of numbers.
+    Perform approximate comparisons where the expected value is a sequence of
+    numbers.
     """
 
     def __repr__(self):
@@ -167,11 +209,23 @@ class ApproxSequence(ApproxBase):
     def _yield_comparisons(self, actual):
         return zip(actual, self.expected)
 
+    def _check_type(self):
+        __tracebackhide__ = True
+        for index, x in enumerate(self.expected):
+            if isinstance(x, type(self.expected)):
+                msg = "pytest.approx() does not support nested data structures: {!r} at index {}\n  full sequence: {}"
+                raise TypeError(msg.format(x, index, pprint.pformat(self.expected)))
+            elif not isinstance(x, Number):
+                raise _non_numeric_type_error(
+                    self.expected, at="index {}".format(index)
+                )
+
 
 class ApproxScalar(ApproxBase):
     """
-    Perform approximate comparisons for single numbers only.
+    Perform approximate comparisons where the expected value is a single number.
     """
+
     DEFAULT_ABSOLUTE_TOLERANCE = 1e-12
     DEFAULT_RELATIVE_TOLERANCE = 1e-6
 
@@ -208,7 +262,9 @@ class ApproxScalar(ApproxBase):
         the pre-specified tolerance.
         """
         if _is_numpy_array(actual):
-            return ApproxNumpy(actual, self.abs, self.rel, self.nan_ok) == self.expected
+            # Call ``__eq__()`` manually to prevent infinite-recursion with
+            # numpy<1.13.  See #3748.
+            return all(self.__eq__(a) for a in actual.flat)
 
         # Short-circuit exact equality.
         if actual == self.expected:
@@ -269,9 +325,7 @@ class ApproxScalar(ApproxBase):
         # we aren't even going to use it.
         relative_tolerance = set_default(
             self.rel, self.DEFAULT_RELATIVE_TOLERANCE
-        ) * abs(
-            self.expected
-        )
+        ) * abs(self.expected)
 
         if relative_tolerance < 0:
             raise ValueError(
@@ -285,7 +339,9 @@ class ApproxScalar(ApproxBase):
 
 
 class ApproxDecimal(ApproxScalar):
-    from decimal import Decimal
+    """
+    Perform approximate comparisons where the expected value is a decimal.
+    """
 
     DEFAULT_ABSOLUTE_TOLERANCE = Decimal("1e-12")
     DEFAULT_RELATIVE_TOLERANCE = Decimal("1e-6")
@@ -444,32 +500,39 @@ def approx(expected, rel=None, abs=None, nan_ok=False):
        __ https://docs.python.org/3/reference/datamodel.html#object.__ge__
     """
 
-    from decimal import Decimal
-
     # Delegate the comparison to a class that knows how to deal with the type
     # of the expected value (e.g. int, float, list, dict, numpy.array, etc).
     #
-    # This architecture is really driven by the need to support numpy arrays.
-    # The only way to override `==` for arrays without requiring that approx be
-    # the left operand is to inherit the approx object from `numpy.ndarray`.
-    # But that can't be a general solution, because it requires (1) numpy to be
-    # installed and (2) the expected value to be a numpy array.  So the general
-    # solution is to delegate each type of expected value to a different class.
+    # The primary responsibility of these classes is to implement ``__eq__()``
+    # and ``__repr__()``.  The former is used to actually check if some
+    # "actual" value is equivalent to the given expected value within the
+    # allowed tolerance.  The latter is used to show the user the expected
+    # value and tolerance, in the case that a test failed.
     #
-    # This has the advantage that it made it easy to support mapping types
-    # (i.e. dict).  The old code accepted mapping types, but would only compare
-    # their keys, which is probably not what most people would expect.
+    # The actual logic for making approximate comparisons can be found in
+    # ApproxScalar, which is used to compare individual numbers.  All of the
+    # other Approx classes eventually delegate to this class.  The ApproxBase
+    # class provides some convenient methods and overloads, but isn't really
+    # essential.
 
-    if _is_numpy_array(expected):
-        cls = ApproxNumpy
+    __tracebackhide__ = True
+
+    if isinstance(expected, Decimal):
+        cls = ApproxDecimal
+    elif isinstance(expected, Number):
+        cls = ApproxScalar
     elif isinstance(expected, Mapping):
         cls = ApproxMapping
-    elif isinstance(expected, Sequence) and not isinstance(expected, STRING_TYPES):
-        cls = ApproxSequence
-    elif isinstance(expected, Decimal):
-        cls = ApproxDecimal
+    elif _is_numpy_array(expected):
+        cls = ApproxNumpy
+    elif (
+        isinstance(expected, Iterable)
+        and isinstance(expected, Sized)
+        and not isinstance(expected, STRING_TYPES)
+    ):
+        cls = ApproxSequencelike
     else:
-        cls = ApproxScalar
+        raise _non_numeric_type_error(expected, at=None)
 
     return cls(expected, rel, abs, nan_ok)
 
@@ -479,17 +542,11 @@ def _is_numpy_array(obj):
     Return true if the given object is a numpy array.  Make a special effort to
     avoid importing numpy unless it's really necessary.
     """
-    import inspect
+    import sys
 
-    for cls in inspect.getmro(type(obj)):
-        if cls.__module__ == "numpy":
-            try:
-                import numpy as np
-
-                return isinstance(obj, np.ndarray)
-            except ImportError:
-                pass
-
+    np = sys.modules.get("numpy")
+    if np is not None:
+        return isinstance(obj, np.ndarray)
     return False
 
 
@@ -499,29 +556,54 @@ def _is_numpy_array(obj):
 def raises(expected_exception, *args, **kwargs):
     r"""
     Assert that a code block/function call raises ``expected_exception``
-    and raise a failure exception otherwise.
+    or raise a failure exception otherwise.
 
-    :arg message: if specified, provides a custom failure message if the
-        exception is not raised
-    :arg match: if specified, asserts that the exception matches a text or regex
+    :kwparam match: if specified, a string containing a regular expression,
+        or a regular expression object, that is tested against the string
+        representation of the exception using ``re.search``. To match a literal
+        string that may contain `special characters`__, the pattern can
+        first be escaped with ``re.escape``.
 
-    This helper produces a ``ExceptionInfo()`` object (see below).
+    __ https://docs.python.org/3/library/re.html#regular-expression-syntax
 
-    You may use this function as a context manager::
+    :kwparam message: **(deprecated since 4.1)** if specified, provides a custom failure message
+        if the exception is not raised. See :ref:`the deprecation docs <raises message deprecated>` for a workaround.
+
+    .. currentmodule:: _pytest._code
+
+    Use ``pytest.raises`` as a context manager, which will capture the exception of the given
+    type::
 
         >>> with raises(ZeroDivisionError):
         ...    1/0
 
-    .. versionchanged:: 2.10
+    If the code block does not raise the expected exception (``ZeroDivisionError`` in the example
+    above), or no exception at all, the check will fail instead.
 
-    In the context manager form you may use the keyword argument
-    ``message`` to specify a custom failure message::
+    You can also use the keyword argument ``match`` to assert that the
+    exception matches a text or regex::
 
-        >>> with raises(ZeroDivisionError, message="Expecting ZeroDivisionError"):
-        ...    pass
-        Traceback (most recent call last):
-          ...
-        Failed: Expecting ZeroDivisionError
+        >>> with raises(ValueError, match='must be 0 or None'):
+        ...     raise ValueError("value must be 0 or None")
+
+        >>> with raises(ValueError, match=r'must be \d+$'):
+        ...     raise ValueError("value must be 42")
+
+    The context manager produces an :class:`ExceptionInfo` object which can be used to inspect the
+    details of the captured exception::
+
+        >>> with raises(ValueError) as exc_info:
+        ...     raise ValueError("value must be 42")
+        >>> assert exc_info.type is ValueError
+        >>> assert exc_info.value.args[0] == "value must be 42"
+
+    .. deprecated:: 4.1
+
+        In the context manager form you may use the keyword argument
+        ``message`` to specify a custom failure message that will be displayed
+        in case the ``pytest.raises`` check fails. This has been deprecated as it
+        is considered error prone as users often mean to use ``match`` instead.
+        See :ref:`the deprecation docs <raises message deprecated>` for a workaround.
 
     .. note::
 
@@ -535,7 +617,7 @@ def raises(expected_exception, *args, **kwargs):
            >>> with raises(ValueError) as exc_info:
            ...     if value > 10:
            ...         raise ValueError("value must be <= 10")
-           ...     assert exc_info.type == ValueError  # this will not execute
+           ...     assert exc_info.type is ValueError  # this will not execute
 
        Instead, the following approach must be taken (note the difference in
        scope)::
@@ -544,22 +626,17 @@ def raises(expected_exception, *args, **kwargs):
            ...     if value > 10:
            ...         raise ValueError("value must be <= 10")
            ...
-           >>> assert exc_info.type == ValueError
+           >>> assert exc_info.type is ValueError
 
+    **Using with** ``pytest.mark.parametrize``
 
-    Since version ``3.1`` you can use the keyword argument ``match`` to assert that the
-    exception matches a text or regex::
+    When using :ref:`pytest.mark.parametrize ref`
+    it is possible to parametrize tests such that
+    some runs raise an exception and others do not.
 
-        >>> with raises(ValueError, match='must be 0 or None'):
-        ...     raise ValueError("value must be 0 or None")
+    See :ref:`parametrizing_conditional_raising` for an example.
 
-        >>> with raises(ValueError, match=r'must be \d+$'):
-        ...     raise ValueError("value must be 42")
-
-    **Legacy forms**
-
-    The forms below are fully supported but are discouraged for new code because the
-    context manager form is regarded as more readable and less error-prone.
+    **Legacy form**
 
     It is possible to specify a callable by passing a to-be-called lambda::
 
@@ -575,17 +652,8 @@ def raises(expected_exception, *args, **kwargs):
         >>> raises(ZeroDivisionError, f, x=0)
         <ExceptionInfo ...>
 
-    It is also possible to pass a string to be evaluated at runtime::
-
-        >>> raises(ZeroDivisionError, "f(0)")
-        <ExceptionInfo ...>
-
-    The string will be evaluated using the same ``locals()`` and ``globals()``
-    at the moment of the ``raises`` call.
-
-    .. currentmodule:: _pytest._code
-
-    Consult the API of ``excinfo`` objects: :class:`ExceptionInfo`.
+    The form above is fully supported but discouraged for new code because the
+    context manager form is regarded as more readable and less error-prone.
 
     .. note::
         Similar to caught exception objects in Python, explicitly clearing
@@ -616,33 +684,35 @@ def raises(expected_exception, *args, **kwargs):
     if not args:
         if "message" in kwargs:
             message = kwargs.pop("message")
+            warnings.warn(deprecated.RAISES_MESSAGE_PARAMETER, stacklevel=2)
         if "match" in kwargs:
             match_expr = kwargs.pop("match")
         if kwargs:
             msg = "Unexpected keyword arguments passed to pytest.raises: "
-            msg += ", ".join(kwargs.keys())
+            msg += ", ".join(sorted(kwargs))
             raise TypeError(msg)
         return RaisesContext(expected_exception, message, match_expr)
     elif isinstance(args[0], str):
-        code, = args
+        warnings.warn(deprecated.RAISES_EXEC, stacklevel=2)
+        (code,) = args
         assert isinstance(code, str)
         frame = sys._getframe(1)
         loc = frame.f_locals.copy()
         loc.update(kwargs)
         # print "raises frame scope: %r" % frame.f_locals
         try:
-            code = _pytest._code.Source(code).compile()
-            py.builtin.exec_(code, frame.f_globals, loc)
-            # XXX didn'T mean f_globals == f_locals something special?
+            code = _pytest._code.Source(code).compile(_genframe=frame)
+            exec(code, frame.f_globals, loc)
+            # XXX didn't mean f_globals == f_locals something special?
             #     this is destroyed here ...
         except expected_exception:
-            return _pytest._code.ExceptionInfo()
+            return _pytest._code.ExceptionInfo.from_current()
     else:
         func = args[0]
         try:
             func(*args[1:], **kwargs)
         except expected_exception:
-            return _pytest._code.ExceptionInfo()
+            return _pytest._code.ExceptionInfo.from_current()
     fail(message)
 
 
@@ -650,7 +720,6 @@ raises.Exception = fail.Exception
 
 
 class RaisesContext(object):
-
     def __init__(self, expected_exception, message, match_expr):
         self.expected_exception = expected_exception
         self.message = message
@@ -658,7 +727,7 @@ class RaisesContext(object):
         self.excinfo = None
 
     def __enter__(self):
-        self.excinfo = object.__new__(_pytest._code.ExceptionInfo)
+        self.excinfo = _pytest._code.ExceptionInfo.for_later()
         return self.excinfo
 
     def __exit__(self, *tp):
@@ -669,6 +738,6 @@ class RaisesContext(object):
         suppress_exception = issubclass(self.excinfo.type, self.expected_exception)
         if sys.version_info[0] == 2 and suppress_exception:
             sys.exc_clear()
-        if self.match_expr and suppress_exception:
+        if self.match_expr is not None and suppress_exception:
             self.excinfo.match(self.match_expr)
         return suppress_exception

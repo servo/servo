@@ -607,5 +607,235 @@
     "pattern": { "pathname": "/foo{/bar}*" },
     "input": { "pathname": "/foo/" },
     "expected": null
+  },
+  {
+    "pattern": { "protocol": "(café)" },
+    "error": true
+  },
+  {
+    "pattern": { "username": "(café)" },
+    "error": true
+  },
+  {
+    "pattern": { "password": "(café)" },
+    "error": true
+  },
+  {
+    "pattern": { "hostname": "(café)" },
+    "error": true
+  },
+  {
+    "pattern": { "pathname": "(café)" },
+    "error": true
+  },
+  {
+    "pattern": { "search": "(café)" },
+    "error": true
+  },
+  {
+    "pattern": { "hash": "(café)" },
+    "error": true
+  },
+  {
+    "pattern": { "protocol": "(.*)" },
+    "input": { "protocol" : "café" },
+    "expected": null
+  },
+  {
+    "pattern": { "protocol": "(.*)" },
+    "input": { "protocol": "cafe" },
+    "expected": {
+      "input": { "protocol": "cafe" },
+      "protocol": { "input": "cafe", "groups": { "0": "cafe" }}
+    }
+  },
+  {
+    "pattern": { "username": "caf%C3%A9" },
+    "input": { "username" : "café" },
+    "expected": {
+      "input": { "username" : "café" },
+      "username": { "input": "caf%C3%A9", "groups": {}}
+    }
+  },
+  {
+    "pattern": { "username": "caf%c3%a9" },
+    "input": { "username" : "café" },
+    "expected": null
+  },
+  {
+    "pattern": { "password": "caf%C3%A9" },
+    "input": { "password" : "café" },
+    "expected": {
+      "input": { "password" : "café" },
+      "password": { "input": "caf%C3%A9", "groups": {}}
+    }
+  },
+  {
+    "pattern": { "password": "caf%c3%a9" },
+    "input": { "password" : "café" },
+    "expected": null
+  },
+  {
+    "pattern": { "hostname": "xn--caf-dma.com" },
+    "input": { "hostname" : "café.com" },
+    "expected": {
+      "input": { "hostname" : "café.com" },
+      "hostname": { "input": "xn--caf-dma.com", "groups": {}}
+    }
+  },
+  {
+    "pattern": { "hostname": "cafe%7C.com" },
+    "input": { "hostname" : "cafe|.com" },
+    "expected": {
+      "input": { "hostname" : "cafe|.com" },
+      "hostname": { "input": "cafe%7C.com", "groups": {}}
+    }
+  },
+  {
+    "pattern": { "hostname": "cafe%7c.com" },
+    "input": { "hostname" : "cafe|.com" },
+    "expected": null
+  },
+  {
+    "pattern": { "hostname": "(.*)" },
+    "input": { "hostname" : "cafe^.com" },
+    "expected": null
+  },
+  {
+    "pattern": { "port": "" },
+    "input": { "protocol": "http", "port": "80" },
+    "expected": {
+      "input": { "protocol": "http", "port": "80" },
+      "protocol": { "input": "http", "groups": { "0": "http" }},
+      "port": { "input": "", "groups": {}}
+    }
+  },
+  {
+    "pattern": { "port": "80" },
+    "input": { "port": "80" },
+    "expected": {
+      "input": { "port": "80" },
+      "port": { "input": "80", "groups": {}}
+    }
+  },
+  {
+    "pattern": { "port": "(.*)" },
+    "input": { "port": "invalid80" },
+    "expected": null
+  },
+  {
+    "pattern": { "pathname": "/foo/bar" },
+    "input": { "pathname": "/foo/./bar" },
+    "expected": {
+      "input": { "pathname": "/foo/./bar" },
+      "pathname": { "input": "/foo/bar", "groups": {}}
+    }
+  },
+  {
+    "pattern": { "pathname": "/foo/baz" },
+    "input": { "pathname": "/foo/bar/../baz" },
+    "expected": {
+      "input": { "pathname": "/foo/bar/../baz" },
+      "pathname": { "input": "/foo/baz", "groups": {}}
+    }
+  },
+  {
+    "pattern": { "pathname": "/caf%C3%A9" },
+    "input": { "pathname": "/café" },
+    "expected": {
+      "input": { "pathname": "/café" },
+      "pathname": { "input": "/caf%C3%A9", "groups": {}}
+    }
+  },
+  {
+    "pattern": { "pathname": "/caf%c3%a9" },
+    "input": { "pathname": "/café" },
+    "expected": null
+  },
+  {
+    "pattern": { "pathname": "/foo/bar" },
+    "input": { "pathname": "foo/bar" },
+    "expected": null
+  },
+  {
+    "pattern": { "pathname": "/foo/bar" },
+    "input": { "pathname": "foo/bar", "baseURL": "https://example.com" },
+    "expected": {
+      "input": { "pathname": "foo/bar", "baseURL": "https://example.com" },
+      "protocol": { "input": "https", "groups": { "0": "https" }},
+      "hostname": { "input": "example.com", "groups": { "0": "example.com" }},
+      "pathname": { "input": "/foo/bar", "groups": {}}
+    }
+  },
+  {
+    "pattern": { "pathname": "foo/bar" },
+    "input": "https://example.com/foo/bar",
+    "expected": null
+  },
+  {
+    "pattern": { "pathname": "foo/bar", "baseURL": "https://example.com" },
+    "input": "https://example.com/foo/bar",
+    "expected": {
+      "input": "https://example.com/foo/bar",
+      "exactly_empty_components": [ "username", "password", "port" ],
+      "protocol": { "input": "https", "groups": {}},
+      "hostname": { "input": "example.com", "groups": {}},
+      "pathname": { "input": "/foo/bar", "groups": {}}
+    }
+  },
+  {
+    "pattern": { "pathname": ":name.html", "baseURL": "https://example.com" },
+    "input": "https://example.com/foo.html",
+    "expected": {
+      "input": "https://example.com/foo.html",
+      "exactly_empty_components": [ "username", "password", "port" ],
+      "protocol": { "input": "https", "groups": {}},
+      "hostname": { "input": "example.com", "groups": {}},
+      "pathname": { "input": "/foo.html", "groups": { "name": "foo" }}
+    }
+  },
+  {
+    "pattern": { "search": "q=caf%C3%A9" },
+    "input": { "search": "q=café" },
+    "expected": {
+      "input": { "search": "q=café" },
+      "search": { "input": "q=caf%C3%A9", "groups": {}}
+    }
+  },
+  {
+    "pattern": { "search": "q=caf%c3%a9" },
+    "input": { "search": "q=café" },
+    "expected": null
+  },
+  {
+    "pattern": { "hash": "caf%C3%A9" },
+    "input": { "hash": "café" },
+    "expected": {
+      "input": { "hash": "café" },
+      "hash": { "input": "caf%C3%A9", "groups": {}}
+    }
+  },
+  {
+    "pattern": { "hash": "caf%c3%a9" },
+    "input": { "hash": "café" },
+    "expected": null
+  },
+  {
+    "pattern": { "protocol": "about", "pathname": "(blank|sourcedoc)" },
+    "input": "about:blank",
+    "expected": {
+      "input": "about:blank",
+      "protocol": { "input": "about", "groups": {}},
+      "pathname": { "input": "blank", "groups": { "0": "blank" }}
+    }
+  },
+  {
+    "pattern": { "protocol": "data", "pathname": ":number([0-9]+)" },
+    "input": "data:8675309",
+    "expected": {
+      "input": "data:8675309",
+      "protocol": { "input": "data", "groups": {}},
+      "pathname": { "input": "8675309", "groups": { "number": "8675309" }}
+    }
   }
 ]

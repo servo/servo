@@ -1,10 +1,18 @@
-from __future__ import absolute_import, division, print_function
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import argparse
-import sys
+import distutils.spawn
 import os
+import sys
+
 import py
+
 import pytest
 from _pytest.config import argparsing as parseopt
+from _pytest.config.exceptions import UsageError
 
 
 @pytest.fixture
@@ -13,12 +21,15 @@ def parser():
 
 
 class TestParser(object):
-
-    def test_no_help_by_default(self, capsys):
+    def test_no_help_by_default(self):
         parser = parseopt.Parser(usage="xyz")
-        pytest.raises(SystemExit, lambda: parser.parse(["-h"]))
-        out, err = capsys.readouterr()
-        assert err.find("error: unrecognized arguments") != -1
+        pytest.raises(UsageError, lambda: parser.parse(["-h"]))
+
+    def test_custom_prog(self, parser):
+        """Custom prog can be set for `argparse.ArgumentParser`."""
+        assert parser._getparser().prog == os.path.basename(sys.argv[0])
+        parser.prog = "custom-prog"
+        assert parser._getparser().prog == "custom-prog"
 
     def test_argument(self):
         with pytest.raises(parseopt.ArgumentError):
@@ -34,9 +45,8 @@ class TestParser(object):
         assert argument.dest == "test"
         argument = parseopt.Argument("-t", "--test", dest="abc")
         assert argument.dest == "abc"
-        assert (
-            str(argument)
-            == ("Argument(_short_opts: ['-t'], _long_opts: ['--test'], dest: 'abc')")
+        assert str(argument) == (
+            "Argument(_short_opts: ['-t'], _long_opts: ['--test'], dest: 'abc')"
         )
 
     def test_argument_type(self):
@@ -97,12 +107,8 @@ class TestParser(object):
 
     def test_group_shortopt_lowercase(self, parser):
         group = parser.getgroup("hello")
-        pytest.raises(
-            ValueError,
-            """
+        with pytest.raises(ValueError):
             group.addoption("-x", action="store_true")
-        """,
-        )
         assert len(group.options) == 0
         group._addoption("-x", action="store_true")
         assert len(group.options) == 1
@@ -180,7 +186,6 @@ class TestParser(object):
         assert args.S is False
 
     def test_parse_defaultgetter(self):
-
         def defaultget(option):
             if not hasattr(option, "type"):
                 return
@@ -204,15 +209,11 @@ class TestParser(object):
         )
         parser.add_argument(
             "-t", "--twoword", "--duo", "--two-word", "--two", help="foo"
-        ).map_long_option = {
-            "two": "two-word"
-        }
+        ).map_long_option = {"two": "two-word"}
         # throws error on --deux only!
         parser.add_argument(
             "-d", "--deuxmots", "--deux-mots", action="store_true", help="foo"
-        ).map_long_option = {
-            "deux": "deux-mots"
-        }
+        ).map_long_option = {"deux": "deux-mots"}
         parser.add_argument("-s", action="store_true", help="single short")
         parser.add_argument("--abc", "-a", action="store_true", help="bar")
         parser.add_argument("--klm", "-k", "--kl-m", action="store_true", help="bar")
@@ -224,9 +225,7 @@ class TestParser(object):
         )
         parser.add_argument(
             "-x", "--exit-on-first", "--exitfirst", action="store_true", help="spam"
-        ).map_long_option = {
-            "exitfirst": "exit-on-first"
-        }
+        ).map_long_option = {"exitfirst": "exit-on-first"}
         parser.add_argument("files_and_dirs", nargs="*")
         args = parser.parse_args(["-k", "--duo", "hallo", "--exitfirst"])
         assert args.twoword == "hallo"
@@ -298,18 +297,15 @@ class TestParser(object):
 
 
 def test_argcomplete(testdir, monkeypatch):
-    if not py.path.local.sysfind("bash"):
+    if not distutils.spawn.find_executable("bash"):
         pytest.skip("bash not available")
     script = str(testdir.tmpdir.join("test_argcomplete"))
-    pytest_bin = sys.argv[0]
-    if "pytest" not in os.path.basename(pytest_bin):
-        pytest.skip("need to be run with pytest executable, not %s" % (pytest_bin,))
 
     with open(str(script), "w") as fp:
         # redirect output from argcomplete to stdin and stderr is not trivial
         # http://stackoverflow.com/q/12589419/1307905
         # so we use bash
-        fp.write('COMP_WORDBREAKS="$COMP_WORDBREAKS" %s 8>&1 9>&2' % pytest_bin)
+        fp.write('COMP_WORDBREAKS="$COMP_WORDBREAKS" python -m pytest 8>&1 9>&2')
     # alternative would be exteneded Testdir.{run(),_run(),popen()} to be able
     # to handle a keyword argument env that replaces os.environ in popen or
     # extends the copy, advantage: could not forget to restore
@@ -325,7 +321,11 @@ def test_argcomplete(testdir, monkeypatch):
         # argcomplete not found
         pytest.skip("argcomplete not available")
     elif not result.stdout.str():
-        pytest.skip("bash provided no output, argcomplete not available?")
+        pytest.skip(
+            "bash provided no output on stdout, argcomplete not available? (stderr={!r})".format(
+                result.stderr.str()
+            )
+        )
     else:
         result.stdout.fnmatch_lines(["--funcargs", "--fulltrace"])
     os.mkdir("test_argcomplete.d")

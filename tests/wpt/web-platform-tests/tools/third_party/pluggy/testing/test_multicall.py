@@ -1,21 +1,11 @@
 import pytest
-
-from pluggy import _multicall, _legacymulticall, HookImpl, HookCallError
-from pluggy.callers import _LegacyMultiCall
-from pluggy import HookspecMarker, HookimplMarker
+from pluggy import HookCallError, HookspecMarker, HookimplMarker
+from pluggy.hooks import HookImpl
+from pluggy.callers import _multicall, _legacymulticall
 
 
 hookspec = HookspecMarker("example")
 hookimpl = HookimplMarker("example")
-
-
-def test_uses_copy_of_methods():
-    out = [lambda: 42]
-    mc = _LegacyMultiCall(out, {})
-    repr(mc)
-    out[:] = []
-    res = mc.execute()
-    return res == 42
 
 
 def MC(methods, kwargs, firstresult=False):
@@ -24,7 +14,7 @@ def MC(methods, kwargs, firstresult=False):
     for method in methods:
         f = HookImpl(None, "<temp>", method, method.example_impl)
         hookfuncs.append(f)
-        if '__multicall__' in f.argnames:
+        if "__multicall__" in f.argnames:
             caller = _legacymulticall
     return caller(hookfuncs, kwargs, firstresult=firstresult)
 
@@ -70,6 +60,7 @@ def test_keyword_args_with_defaultargs():
     @hookimpl
     def f(x, z=1):
         return x + z
+
     reslist = MC([f], dict(x=23, y=24))
     assert reslist == [24]
 
@@ -78,6 +69,7 @@ def test_tags_call_error():
     @hookimpl
     def f(x):
         return x
+
     with pytest.raises(HookCallError):
         MC([f], {})
 
@@ -172,7 +164,7 @@ def test_hookwrapper_too_many_yield():
     with pytest.raises(RuntimeError) as ex:
         MC([m1], {})
     assert "m1" in str(ex.value)
-    assert (__file__ + ':') in str(ex.value)
+    assert (__file__ + ":") in str(ex.value)
 
 
 @pytest.mark.parametrize("exc", [ValueError, SystemExit])

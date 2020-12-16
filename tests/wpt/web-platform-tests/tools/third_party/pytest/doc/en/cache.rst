@@ -5,7 +5,7 @@
 Cache: working with cross-testrun state
 =======================================
 
-.. versionadded:: 2.8
+
 
 Usage
 ---------
@@ -43,7 +43,9 @@ First, let's create 50 test invocation of which only 2 fail::
         if i in (17, 25):
            pytest.fail("bad luck")
 
-If you run this for the first time you will see two failures::
+If you run this for the first time you will see two failures:
+
+.. code-block:: pytest
 
     $ pytest -q
     .................F.......F........................                   [100%]
@@ -72,13 +74,16 @@ If you run this for the first time you will see two failures::
     test_50.py:6: Failed
     2 failed, 48 passed in 0.12 seconds
 
-If you then run it with ``--lf``::
+If you then run it with ``--lf``:
+
+.. code-block:: pytest
 
     $ pytest --lf
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-3.x.y, py-1.x.y, pluggy-0.x.y
-    rootdir: $REGENDOC_TMPDIR, inifile:
-    collected 50 items / 48 deselected
+    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    cachedir: $PYTHON_PREFIX/.pytest_cache
+    rootdir: $REGENDOC_TMPDIR
+    collected 50 items / 48 deselected / 2 selected
     run-last-failure: rerun previous 2 failures
 
     test_50.py FF                                                        [100%]
@@ -113,12 +118,15 @@ not been run ("deselected").
 
 Now, if you run with the ``--ff`` option, all tests will be run but the first
 previous failures will be executed first (as can be seen from the series
-of ``FF`` and dots)::
+of ``FF`` and dots):
+
+.. code-block:: pytest
 
     $ pytest --ff
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-3.x.y, py-1.x.y, pluggy-0.x.y
-    rootdir: $REGENDOC_TMPDIR, inifile:
+    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    cachedir: $PYTHON_PREFIX/.pytest_cache
+    rootdir: $REGENDOC_TMPDIR
     collected 50 items
     run-last-failure: rerun previous 2 failures first
 
@@ -160,10 +168,12 @@ Behavior when no tests failed in the last run
 
 When no tests failed in the last run, or when no cached ``lastfailed`` data was
 found, ``pytest`` can be configured either to run all of the tests or no tests,
-using the ``--last-failed-no-failures`` option, which takes one of the following values::
+using the ``--last-failed-no-failures`` option, which takes one of the following values:
 
-    pytest --last-failed-no-failures all    # run all tests (default behavior)
-    pytest --last-failed-no-failures none   # run no tests and exit
+.. code-block:: bash
+
+    pytest --last-failed --last-failed-no-failures all    # run all tests (default behavior)
+    pytest --last-failed --last-failed-no-failures none   # run no tests and exit
 
 The new config.cache object
 --------------------------------
@@ -179,11 +189,14 @@ across pytest invocations::
     import pytest
     import time
 
+    def expensive_computation():
+        print("running expensive computation...")
+
     @pytest.fixture
     def mydata(request):
         val = request.config.cache.get("example/value", None)
         if val is None:
-            time.sleep(9*0.6) # expensive computation :)
+            expensive_computation()
             val = 42
             request.config.cache.set("example/value", val)
         return val
@@ -191,8 +204,9 @@ across pytest invocations::
     def test_function(mydata):
         assert mydata == 23
 
-If you run this command once, it will take a while because
-of the sleep::
+If you run this command for the first time, you can see the print statement:
+
+.. code-block:: pytest
 
     $ pytest -q
     F                                                                    [100%]
@@ -205,11 +219,15 @@ of the sleep::
     >       assert mydata == 23
     E       assert 42 == 23
 
-    test_caching.py:14: AssertionError
+    test_caching.py:17: AssertionError
+    -------------------------- Captured stdout setup ---------------------------
+    running expensive computation...
     1 failed in 0.12 seconds
 
 If you run it a second time the value will be retrieved from
-the cache and this will be quick::
+the cache and nothing will be printed:
+
+.. code-block:: pytest
 
     $ pytest -q
     F                                                                    [100%]
@@ -222,41 +240,76 @@ the cache and this will be quick::
     >       assert mydata == 23
     E       assert 42 == 23
 
-    test_caching.py:14: AssertionError
+    test_caching.py:17: AssertionError
     1 failed in 0.12 seconds
 
 See the :ref:`cache-api` for more details.
 
 
 Inspecting Cache content
--------------------------------
+------------------------
 
 You can always peek at the content of the cache using the
-``--cache-show`` command line option::
+``--cache-show`` command line option:
+
+.. code-block:: pytest
 
     $ pytest --cache-show
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-3.x.y, py-1.x.y, pluggy-0.x.y
-    rootdir: $REGENDOC_TMPDIR, inifile:
-    cachedir: $REGENDOC_TMPDIR/.pytest_cache
-    ------------------------------- cache values -------------------------------
+    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    cachedir: $PYTHON_PREFIX/.pytest_cache
+    rootdir: $REGENDOC_TMPDIR
+    cachedir: $PYTHON_PREFIX/.pytest_cache
+    --------------------------- cache values for '*' ---------------------------
     cache/lastfailed contains:
-      {'test_caching.py::test_function': True}
+      {'test_50.py::test_num[17]': True,
+       'test_50.py::test_num[25]': True,
+       'test_assert1.py::test_function': True,
+       'test_assert2.py::test_set_comparison': True,
+       'test_caching.py::test_function': True,
+       'test_foocompare.py::test_compare': True}
     cache/nodeids contains:
       ['test_caching.py::test_function']
+    cache/stepwise contains:
+      []
+    example/value contains:
+      42
+
+    ======================= no tests ran in 0.12 seconds =======================
+
+``--cache-show`` takes an optional argument to specify a glob pattern for
+filtering:
+
+.. code-block:: pytest
+
+    $ pytest --cache-show example/*
+    =========================== test session starts ============================
+    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    cachedir: $PYTHON_PREFIX/.pytest_cache
+    rootdir: $REGENDOC_TMPDIR
+    cachedir: $PYTHON_PREFIX/.pytest_cache
+    ----------------------- cache values for 'example/*' -----------------------
     example/value contains:
       42
 
     ======================= no tests ran in 0.12 seconds =======================
 
 Clearing Cache content
--------------------------------
+----------------------
 
 You can instruct pytest to clear all cache files and values
-by adding the ``--cache-clear`` option like this::
+by adding the ``--cache-clear`` option like this:
+
+.. code-block:: bash
 
     pytest --cache-clear
 
 This is recommended for invocations from Continuous Integration
 servers where isolation and correctness is more important
 than speed.
+
+
+Stepwise
+--------
+
+As an alternative to ``--lf -x``, especially for cases where you expect a large part of the test suite will fail, ``--sw``, ``--stepwise`` allows you to fix them one at a time. The test suite will run until the first failure and then stop. At the next invocation, tests will continue from the last failing test and then run until the next failing test. You may use the ``--stepwise-skip`` option to ignore one failing test and stop the test execution on the second failing test instead. This is useful if you get stuck on a failing test and just want to ignore it until later.

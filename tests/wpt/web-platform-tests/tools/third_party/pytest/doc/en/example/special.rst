@@ -13,7 +13,7 @@ calls it::
 
     @pytest.fixture(scope="session", autouse=True)
     def callattr_ahead_of_alltests(request):
-        print ("callattr_ahead_of_alltests called")
+        print("callattr_ahead_of_alltests called")
         seen = set([None])
         session = request.node
         for item in session.items:
@@ -31,20 +31,20 @@ will be called ahead of running any tests::
     class TestHello(object):
         @classmethod
         def callme(cls):
-            print ("callme called!")
+            print("callme called!")
 
         def test_method1(self):
-            print ("test_method1 called")
+            print("test_method1 called")
 
         def test_method2(self):
-            print ("test_method1 called")
+            print("test_method1 called")
 
     class TestOther(object):
         @classmethod
         def callme(cls):
-            print ("callme other called")
+            print("callme other called")
         def test_other(self):
-            print ("test other")
+            print("test other")
 
     # works with unittest as well ...
     import unittest
@@ -52,12 +52,14 @@ will be called ahead of running any tests::
     class SomeTest(unittest.TestCase):
         @classmethod
         def callme(self):
-            print ("SomeTest callme called")
+            print("SomeTest callme called")
 
         def test_unit1(self):
-            print ("test_unit1 method called")
+            print("test_unit1 method called")
 
-If you run this without output capturing::
+If you run this without output capturing:
+
+.. code-block:: pytest
 
     $ pytest -q -s test_module.py
     callattr_ahead_of_alltests called

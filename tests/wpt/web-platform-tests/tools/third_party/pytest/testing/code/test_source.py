@@ -1,18 +1,21 @@
+# -*- coding: utf-8 -*-
 # flake8: noqa
 # disable flake check on this file because some constructs are strange
 # or redundant on purpose and can't be disable on a line-by-line basis
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+import ast
 import inspect
 import sys
 
+import six
+
 import _pytest._code
-import py
 import pytest
 from _pytest._code import Source
-from _pytest._code.source import ast
 
-
-astonly = pytest.mark.nothing
 failsonjython = pytest.mark.xfail("sys.platform.startswith('java')")
 
 
@@ -26,30 +29,17 @@ def test_source_str_function():
     x = Source(
         """
         3
-    """,
-        rstrip=False,
-    )
-    assert str(x) == "\n3\n    "
-
-    x = Source(
         """
-        3
-    """,
-        rstrip=True,
     )
     assert str(x) == "\n3"
 
 
 def test_unicode():
-    try:
-        unicode
-    except NameError:
-        return
-    x = Source(unicode("4"))
+    x = Source(u"4")
     assert str(x) == "4"
-    co = _pytest._code.compile(unicode('u"\xc3\xa5"', "utf8"), mode="eval")
+    co = _pytest._code.compile(u'u"å"', mode="eval")
     val = eval(co)
-    assert isinstance(val, unicode)
+    assert isinstance(val, six.text_type)
 
 
 def test_source_from_function():
@@ -58,9 +48,7 @@ def test_source_from_function():
 
 
 def test_source_from_method():
-
     class TestClass(object):
-
         def test_method(self):
             pass
 
@@ -75,7 +63,6 @@ def test_source_from_lines():
 
 
 def test_source_from_inner_function():
-
     def f():
         pass
 
@@ -135,7 +122,7 @@ def test_source_strip_multiline():
 def test_syntaxerror_rerepresentation():
     ex = pytest.raises(SyntaxError, _pytest._code.compile, "xyz xyz")
     assert ex.value.lineno == 1
-    assert ex.value.offset in (4, 7)  # XXX pypy/jython versus cpython?
+    assert ex.value.offset in (4, 5, 7)  # XXX pypy/jython versus cpython?
     assert ex.value.text.strip(), "x x"
 
 
@@ -199,7 +186,6 @@ class TestSourceParsingAndCompiling(object):
         assert str(source) == "x=3"
 
     def test_compile_and_getsource_through_same_function(self):
-
         def gensource(source):
             return _pytest._code.compile(source)
 
@@ -240,7 +226,6 @@ class TestSourceParsingAndCompiling(object):
         s = source.getstatement(1)
         assert s == str(source)
 
-    @astonly
     def test_getstatementrange_within_constructs(self):
         source = Source(
             """\
@@ -318,8 +303,6 @@ class TestSourceParsingAndCompiling(object):
         pytest.raises(SyntaxError, lambda: source.getstatementrange(0))
 
     def test_compile_to_ast(self):
-        import ast
-
         source = Source("x = 4")
         mod = source.compile(flag=ast.PyCF_ONLY_AST)
         assert isinstance(mod, ast.Module)
@@ -327,23 +310,21 @@ class TestSourceParsingAndCompiling(object):
 
     def test_compile_and_getsource(self):
         co = self.source.compile()
-        py.builtin.exec_(co, globals())
+        exec(co, globals())
         f(7)
-        excinfo = pytest.raises(AssertionError, "f(6)")
+        excinfo = pytest.raises(AssertionError, f, 6)
         frame = excinfo.traceback[-1].frame
         stmt = frame.code.fullsource.getstatement(frame.lineno)
-        # print "block", str(block)
         assert str(stmt).strip().startswith("assert")
 
     @pytest.mark.parametrize("name", ["", None, "my"])
     def test_compilefuncs_and_path_sanity(self, name):
-
         def check(comp, name):
             co = comp(self.source, name)
             if not name:
-                expected = "codegen %s:%d>" % (mypath, mylineno + 2 + 3)
+                expected = "codegen %s:%d>" % (mypath, mylineno + 2 + 2)
             else:
-                expected = "codegen %r %s:%d>" % (name, mypath, mylineno + 2 + 3)
+                expected = "codegen %r %s:%d>" % (name, mypath, mylineno + 2 + 2)
             fn = co.co_filename
             assert fn.endswith(expected)
 
@@ -359,9 +340,7 @@ class TestSourceParsingAndCompiling(object):
 
 
 def test_getstartingblock_singleline():
-
     class A(object):
-
         def __init__(self, *args):
             frame = sys._getframe(1)
             self.source = _pytest._code.Frame(frame).statement
@@ -373,21 +352,16 @@ def test_getstartingblock_singleline():
 
 
 def test_getline_finally():
-
     def c():
         pass
 
-    excinfo = pytest.raises(
-        TypeError,
-        """
-           teardown = None
-           try:
-                c(1)
-           finally:
-                if teardown:
-                    teardown()
-    """,
-    )
+    with pytest.raises(TypeError) as excinfo:
+        teardown = None
+        try:
+            c(1)
+        finally:
+            if teardown:
+                teardown()
     source = excinfo.traceback[-1].statement
     assert str(source).strip() == "c(1)"
 
@@ -400,22 +374,24 @@ def test_getfuncsource_dynamic():
         def g(): pass
     """
     co = _pytest._code.compile(source)
-    py.builtin.exec_(co, globals())
+    exec(co, globals())
     assert str(_pytest._code.Source(f)).strip() == "def f():\n    raise ValueError"
     assert str(_pytest._code.Source(g)).strip() == "def g(): pass"
 
 
 def test_getfuncsource_with_multine_string():
-
     def f():
         c = """while True:
     pass
 """
 
-    assert (
-        str(_pytest._code.Source(f)).strip()
-        == 'def f():\n    c = """while True:\n    pass\n"""'
-    )
+    expected = '''\
+    def f():
+        c = """while True:
+    pass
+"""
+'''
+    assert str(_pytest._code.Source(f)) == expected.rstrip()
 
 
 def test_deindent():
@@ -423,24 +399,16 @@ def test_deindent():
 
     assert deindent(["\tfoo", "\tbar"]) == ["foo", "bar"]
 
-    def f():
-        c = """while True:
-    pass
-"""
-
-    lines = deindent(inspect.getsource(f).splitlines())
-    assert lines == ["def f():", '    c = """while True:', "    pass", '"""']
-
-    source = """
+    source = """\
         def f():
             def g():
                 pass
     """
     lines = deindent(source.splitlines())
-    assert lines == ["", "def f():", "    def g():", "        pass", "    "]
+    assert lines == ["def f():", "    def g():", "        pass"]
 
 
-def test_source_of_class_at_eof_without_newline(tmpdir):
+def test_source_of_class_at_eof_without_newline(tmpdir, _sys_snapshot):
     # this test fails because the implicit inspect.getsource(A) below
     # does not return the "x = 1" last line.
     source = _pytest._code.Source(
@@ -533,19 +501,17 @@ def test_getfslineno():
     class B(object):
         pass
 
-    B.__name__ = "B2"
+    B.__name__ = B.__qualname__ = "B2"
     assert getfslineno(B)[1] == -1
 
 
 def test_code_of_object_instance_with_call():
-
     class A(object):
         pass
 
     pytest.raises(TypeError, lambda: _pytest._code.Source(A()))
 
     class WithCall(object):
-
         def __call__(self):
             pass
 
@@ -553,7 +519,6 @@ def test_code_of_object_instance_with_call():
     assert "pass" in str(code.source())
 
     class Hello(object):
-
         def __call__(self):
             pass
 
@@ -592,7 +557,6 @@ def test_oneline_and_comment():
     assert str(source) == "raise ValueError"
 
 
-@pytest.mark.xfail(hasattr(sys, "pypy_version_info"), reason="does not work on pypy")
 def test_comments():
     source = '''def test():
     "comment 1"
@@ -608,9 +572,15 @@ comment 4
 '''
     for line in range(2, 6):
         assert str(getstatement(line, source)) == "    x = 1"
-    for line in range(6, 10):
+    if sys.version_info >= (3, 8) or hasattr(sys, "pypy_version_info"):
+        tqs_start = 8
+    else:
+        tqs_start = 10
+        assert str(getstatement(10, source)) == '"""'
+    for line in range(6, tqs_start):
         assert str(getstatement(line, source)) == "    assert False"
-    assert str(getstatement(10, source)) == '"""'
+    for line in range(tqs_start, 10):
+        assert str(getstatement(line, source)) == '"""\ncomment 4\n"""'
 
 
 def test_comment_in_statement():
@@ -644,7 +614,7 @@ def test_issue55():
     assert str(s) == '  round_trip("""\n""")'
 
 
-def XXXtest_multiline():
+def test_multiline():
     source = getstatement(
         0,
         """\
@@ -658,7 +628,6 @@ x = 3
 
 
 class TestTry(object):
-    pytestmark = astonly
     source = """\
 try:
     raise ValueError
@@ -703,7 +672,6 @@ finally:
 
 
 class TestIf(object):
-    pytestmark = astonly
     source = """\
 if 1:
     y = 3
@@ -756,3 +724,19 @@ something
 '''"""
     result = getstatement(1, source)
     assert str(result) == "'''\n'''"
+
+
+def test_getstartingblock_multiline():
+    class A(object):
+        def __init__(self, *args):
+            frame = sys._getframe(1)
+            self.source = _pytest._code.Frame(frame).statement
+
+    # fmt: off
+    x = A('x',
+          'y'
+          ,
+          'z')
+    # fmt: on
+    values = [i for i in x.source.lines if i.strip()]
+    assert len(values) == 4

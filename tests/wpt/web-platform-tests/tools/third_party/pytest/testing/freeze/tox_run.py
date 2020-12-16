@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Called by tox.ini: uses the generated executable to run the tests in ./tests/
 directory.

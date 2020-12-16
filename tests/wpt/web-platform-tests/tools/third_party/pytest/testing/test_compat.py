@@ -1,27 +1,35 @@
-from __future__ import absolute_import, division, print_function
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import sys
+from functools import wraps
+
+import six
 
 import pytest
-from _pytest.compat import is_generator, get_real_func, safe_getattr
+from _pytest.compat import _PytestWrapper
+from _pytest.compat import get_real_func
+from _pytest.compat import is_generator
+from _pytest.compat import safe_getattr
+from _pytest.compat import safe_isclass
 from _pytest.outcomes import OutcomeException
 
 
 def test_is_generator():
-
     def zap():
-        yield
+        yield  # pragma: no cover
 
     def foo():
-        pass
+        pass  # pragma: no cover
 
     assert is_generator(zap)
     assert not is_generator(foo)
 
 
 def test_real_func_loop_limit():
-
     class Evil(object):
-
         def __init__(self):
             self.left = 1000
 
@@ -30,15 +38,47 @@ def test_real_func_loop_limit():
 
         def __getattr__(self, attr):
             if not self.left:
-                raise RuntimeError("its over")
+                raise RuntimeError("it's over")  # pragma: no cover
             self.left -= 1
             return self
 
     evil = Evil()
 
-    with pytest.raises(ValueError):
-        res = get_real_func(evil)
-        print(res)
+    with pytest.raises(
+        ValueError,
+        match=(
+            "could not find real function of <Evil left=800>\n"
+            "stopped at <Evil left=800>"
+        ),
+    ):
+        get_real_func(evil)
+
+
+def test_get_real_func():
+    """Check that get_real_func correctly unwraps decorators until reaching the real function"""
+
+    def decorator(f):
+        @wraps(f)
+        def inner():
+            pass  # pragma: no cover
+
+        if six.PY2:
+            inner.__wrapped__ = f
+        return inner
+
+    def func():
+        pass  # pragma: no cover
+
+    wrapped_func = decorator(decorator(func))
+    assert get_real_func(wrapped_func) is func
+
+    wrapped_func2 = decorator(decorator(wrapped_func))
+    assert get_real_func(wrapped_func2) is func
+
+    # special case for __pytest_wrapped__ attribute: used to obtain the function up until the point
+    # a function was wrapped by pytest itself
+    wrapped_func2.__pytest_wrapped__ = _PytestWrapper(wrapped_func)
+    assert get_real_func(wrapped_func2) is wrapped_func
 
 
 @pytest.mark.skipif(
@@ -86,7 +126,6 @@ def test_is_generator_async_syntax(testdir):
 
 
 class ErrorsHelper(object):
-
     @property
     def raise_exception(self):
         raise Exception("exception should be catched")
@@ -108,3 +147,14 @@ def test_safe_getattr():
     helper = ErrorsHelper()
     assert safe_getattr(helper, "raise_exception", "default") == "default"
     assert safe_getattr(helper, "raise_fail", "default") == "default"
+
+
+def test_safe_isclass():
+    assert safe_isclass(type) is True
+
+    class CrappyClass(Exception):
+        @property
+        def __class__(self):
+            assert False, "Should be ignored"
+
+    assert safe_isclass(CrappyClass()) is False

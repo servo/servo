@@ -62,6 +62,12 @@ def gh_request(method_name, url, body=None, media_type=None):
 
     logger.info('Response status code: %s', resp.status_code)
 
+    # If GitHub thinks the fields are invalid, it will send a 422 back and
+    # include debugging information in the body. See
+    # https://developer.github.com/v3/#client-errors
+    if resp.status_code == 422:
+        logger.error(resp.json())
+
     resp.raise_for_status()
 
     if resp.status_code == 204:

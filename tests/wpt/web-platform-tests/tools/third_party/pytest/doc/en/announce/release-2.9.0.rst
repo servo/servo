@@ -124,7 +124,7 @@ The py.test Development Team
   Thanks `@biern`_ for the PR.
 
 * Fix `traceback style docs`_ to describe all of the available options
-  (auto/long/short/line/native/no), with `auto` being the default since v2.6.
+  (auto/long/short/line/native/no), with ``auto`` being the default since v2.6.
   Thanks `@hackebrot`_ for the PR.
 
 * Fix (`#1422`_): junit record_xml_property doesn't allow multiple records

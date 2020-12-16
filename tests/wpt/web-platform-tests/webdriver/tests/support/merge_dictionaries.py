@@ -1,9 +1,4 @@
-def iteritems(d):
-    """Create a key-value iterator for the given dict in both Python 2.x and
-    Python 3.x environments"""
-    if hasattr(d, "iteritems"):
-        return d.iteritems()
-    return d.items()
+from six import iteritems
 
 def merge_dictionaries(first, second):
     """Given two dictionaries, create a third that defines all specified

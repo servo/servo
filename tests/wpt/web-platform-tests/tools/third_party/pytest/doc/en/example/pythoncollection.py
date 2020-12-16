@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # run this with $ pytest --collect-only test_collectonly.py
 #
 
@@ -7,7 +8,6 @@ def test_function():
 
 
 class TestClass(object):
-
     def test_method(self):
         pass
 

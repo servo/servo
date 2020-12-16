@@ -12,7 +12,9 @@ Running tests written for nose
 Usage
 -------------
 
-After :ref:`installation` type::
+After :ref:`installation` type:
+
+.. code-block:: bash
 
     python setup.py develop  # make sure tests can import our package
     pytest  # instead of 'nosetests'

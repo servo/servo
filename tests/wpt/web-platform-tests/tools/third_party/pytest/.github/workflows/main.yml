@@ -1,0 +1,191 @@
+name: main
+
+on:
+  push:
+    branches:
+      - 4.6.x
+    tags:
+      - "*"
+
+  pull_request:
+    branches:
+      - 4.6.x
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        name: [
+          "windows-py27",
+          "windows-py35",
+          "windows-py36",
+          "windows-py37",
+          "windows-py37-pluggy",
+          "windows-py38",
+
+          "ubuntu-py27-pluggy",
+          "ubuntu-py27-nobyte",
+          "ubuntu-py37",
+          "ubuntu-py37-pluggy",
+          "ubuntu-py37-pexpect-py37-twisted",
+          "ubuntu-py37-freeze",
+          "ubuntu-pypy",
+          "ubuntu-pypy3",
+
+          "macos-py27",
+          "macos-py38",
+
+        ]
+
+        include:
+          # Windows jobs
+          - name: "windows-py27"
+            python: "2.7"
+            os: windows-latest
+            tox_env: "py27-xdist"
+            use_coverage: true
+          - name: "windows-py35"
+            python: "3.5"
+            os: windows-latest
+            tox_env: "py35-xdist"
+            use_coverage: true
+          - name: "windows-py36"
+            python: "3.6"
+            os: windows-latest
+            tox_env: "py36-xdist"
+            use_coverage: true
+          - name: "windows-py37"
+            python: "3.7"
+            os: windows-latest
+            tox_env: "py37-twisted-numpy"
+            use_coverage: true
+          - name: "windows-py37-pluggy"
+            python: "3.7"
+            os: windows-latest
+            tox_env: "py37-pluggymaster-xdist"
+            use_coverage: true
+          - name: "windows-py38"
+            python: "3.8"
+            os: windows-latest
+            tox_env: "py38-xdist"
+            use_coverage: true
+
+          # Ubuntu jobs – find the rest of them in .travis.yml
+          - name: "ubuntu-py27-pluggy"
+            python: "2.7"
+            os: ubuntu-latest
+            tox_env: "py27-pluggymaster-xdist"
+            use_coverage: true
+          - name: "ubuntu-py27-nobyte"
+            python: "2.7"
+            os: ubuntu-latest
+            tox_env: "py27-nobyte-numpy-xdist"
+            use_coverage: true
+          - name: "ubuntu-py37"
+            python: "3.7"
+            os: ubuntu-latest
+            tox_env: "py37-lsof-numpy-xdist"
+            use_coverage: true
+          - name: "ubuntu-py37-pluggy"
+            python: "3.7"
+            os: ubuntu-latest
+            tox_env: "py37-pluggymaster-xdist"
+            use_coverage: true
+          - name: "ubuntu-py37-pexpect-py37-twisted"
+            python: "3.7"
+            os: ubuntu-latest
+            tox_env: "py37-pexpect,py37-twisted"
+            use_coverage: true
+          - name: "ubuntu-py37-freeze"
+            python: "3.7"
+            os: ubuntu-latest
+            tox_env: "py37-freeze"
+          - name: "ubuntu-pypy"
+            python: "pypy2"
+            os: ubuntu-latest
+            tox_env: "pypy-xdist"
+            use_coverage: true
+          - name: "ubuntu-pypy3"
+            python: "pypy3"
+            os: ubuntu-latest
+            tox_env: "pypy3-xdist"
+            use_coverage: true
+
+          # MacOS jobs
+          - name: "macos-py27"
+            python: "2.7"
+            os: macos-latest
+            tox_env: "py27-xdist"
+            use_coverage: true
+          - name: "macos-py38"
+            python: "3.8"
+            os: macos-latest
+            tox_env: "py38-xdist"
+            use_coverage: true
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python ${{ matrix.python }} on ${{ matrix.os }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install tox coverage
+    - name: Test without coverage
+      if: "! matrix.use_coverage"
+      run: "tox -e ${{ matrix.tox_env }}"
+
+    - name: Test with coverage
+      if: "matrix.use_coverage"
+      env:
+        _PYTEST_TOX_COVERAGE_RUN: "coverage run -m"
+        COVERAGE_PROCESS_START: ".coveragerc"
+        _PYTEST_TOX_EXTRA_DEP: "coverage-enable-subprocess"
+      run: "tox -vv -e ${{ matrix.tox_env }}"
+
+    - name: Prepare coverage token
+      if: (matrix.use_coverage && ( github.repository == 'pytest-dev/pytest' || github.event_name == 'pull_request' ))
+      run: |
+        python scripts/append_codecov_token.py
+    - name: Report coverage
+      if: (matrix.use_coverage)
+      env:
+        CODECOV_NAME: ${{ matrix.name }}
+      run: bash scripts/report-coverage.sh -F GHA,${{ runner.os }}
+
+  deploy:
+    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && github.repository == 'pytest-dev/pytest'
+
+    runs-on: ubuntu-latest
+
+    needs: [build]
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: "3.7"
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install --upgrade wheel setuptools tox
+    - name: Build package
+      run: |
+        python setup.py sdist bdist_wheel
+    - name: Publish package to PyPI
+      uses: pypa/gh-action-pypi-publish@master
+      with:
+        user: __token__
+        password: ${{ secrets.pypi_token }}
+    - name: Publish GitHub release notes
+      env:
+        GH_RELEASE_NOTES_TOKEN: ${{ secrets.release_notes }}
+      run: |
+        sudo apt-get install pandoc
+        tox -e publish-gh-release-notes

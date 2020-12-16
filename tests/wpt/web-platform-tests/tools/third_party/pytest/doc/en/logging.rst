@@ -3,17 +3,21 @@
 Logging
 -------
 
-.. versionadded:: 3.3
-.. versionchanged:: 3.4
+
+
 
 pytest captures log messages of level ``WARNING`` or above automatically and displays them in their own section
 for each failed test in the same manner as captured stdout and stderr.
 
-Running without options::
+Running without options:
+
+.. code-block:: bash
 
     pytest
 
-Shows failed tests like so::
+Shows failed tests like so:
+
+.. code-block:: pytest
 
     ----------------------- Captured stdlog call ----------------------
     test_reporting.py    26 WARNING  text going to logger
@@ -27,12 +31,16 @@ By default each captured log message shows the module, line number, log level
 and message.
 
 If desired the log and date format can be specified to
-anything that the logging module supports by passing specific formatting options::
+anything that the logging module supports by passing specific formatting options:
+
+.. code-block:: bash
 
     pytest --log-format="%(asctime)s %(levelname)s %(message)s" \
             --log-date-format="%Y-%m-%d %H:%M:%S"
 
-Shows failed tests like so::
+Shows failed tests like so:
+
+.. code-block:: pytest
 
     ----------------------- Captured stdlog call ----------------------
     2010-04-10 14:48:44 WARNING text going to logger
@@ -51,7 +59,9 @@ These options can also be customized through ``pytest.ini`` file:
     log_date_format = %Y-%m-%d %H:%M:%S
 
 Further it is possible to disable reporting of captured content (stdout,
-stderr and logs) on failed tests completely with::
+stderr and logs) on failed tests completely with:
+
+.. code-block:: bash
 
     pytest --show-capture=no
 
@@ -133,7 +143,6 @@ the records for the ``setup`` and ``call`` stages during teardown like so:
 
 .. code-block:: python
 
-
     @pytest.fixture
     def window(caplog):
         window = create_window()
@@ -197,6 +206,9 @@ option names are:
 * ``log_file_level``
 * ``log_file_format``
 * ``log_file_date_format``
+
+You can call ``set_log_path()`` to customize the log_file path dynamically. This functionality
+is considered **experimental**.
 
 .. _log_release_notes:
 

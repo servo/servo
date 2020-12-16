@@ -1,19 +1,19 @@
-# encoding: utf-8
+# -*- coding: utf-8 -*-
+import doctest
 import operator
 import sys
-import pytest
-import doctest
-
-from pytest import approx
-from operator import eq, ne
 from decimal import Decimal
 from fractions import Fraction
+from operator import eq
+from operator import ne
+
+import pytest
+from pytest import approx
 
 inf, nan = float("inf"), float("nan")
 
 
 class MyDocTestRunner(doctest.DocTestRunner):
-
     def __init__(self):
         doctest.DocTestRunner.__init__(self)
 
@@ -26,28 +26,27 @@ class MyDocTestRunner(doctest.DocTestRunner):
 
 
 class TestApprox(object):
+    @pytest.fixture
+    def plus_minus(self):
+        return u"\u00b1" if sys.version_info[0] > 2 else u"+-"
 
-    def test_repr_string(self):
-        plus_minus = u"\u00b1" if sys.version_info[0] > 2 else u"+-"
+    def test_repr_string(self, plus_minus):
         tol1, tol2, infr = "1.0e-06", "2.0e-06", "inf"
         assert repr(approx(1.0)) == "1.0 {pm} {tol1}".format(pm=plus_minus, tol1=tol1)
-        assert (
-            repr(approx([1.0, 2.0]))
-            == "approx([1.0 {pm} {tol1}, 2.0 {pm} {tol2}])".format(
-                pm=plus_minus, tol1=tol1, tol2=tol2
-            )
+        assert repr(
+            approx([1.0, 2.0])
+        ) == "approx([1.0 {pm} {tol1}, 2.0 {pm} {tol2}])".format(
+            pm=plus_minus, tol1=tol1, tol2=tol2
         )
-        assert (
-            repr(approx((1.0, 2.0)))
-            == "approx((1.0 {pm} {tol1}, 2.0 {pm} {tol2}))".format(
-                pm=plus_minus, tol1=tol1, tol2=tol2
-            )
+        assert repr(
+            approx((1.0, 2.0))
+        ) == "approx((1.0 {pm} {tol1}, 2.0 {pm} {tol2}))".format(
+            pm=plus_minus, tol1=tol1, tol2=tol2
         )
         assert repr(approx(inf)) == "inf"
         assert repr(approx(1.0, rel=nan)) == "1.0 {pm} ???".format(pm=plus_minus)
-        assert (
-            repr(approx(1.0, rel=inf))
-            == "1.0 {pm} {infr}".format(pm=plus_minus, infr=infr)
+        assert repr(approx(1.0, rel=inf)) == "1.0 {pm} {infr}".format(
+            pm=plus_minus, infr=infr
         )
         assert repr(approx(1.0j, rel=inf)) == "1j"
 
@@ -60,6 +59,22 @@ class TestApprox(object):
                 pm=plus_minus, tol1=tol1, tol2=tol2
             ),
         )
+
+    @pytest.mark.parametrize(
+        "value, repr_string",
+        [
+            (5.0, "approx(5.0 {pm} 5.0e-06)"),
+            ([5.0], "approx([5.0 {pm} 5.0e-06])"),
+            ([[5.0]], "approx([[5.0 {pm} 5.0e-06]])"),
+            ([[5.0, 6.0]], "approx([[5.0 {pm} 5.0e-06, 6.0 {pm} 6.0e-06]])"),
+            ([[5.0], [6.0]], "approx([[5.0 {pm} 5.0e-06], [6.0 {pm} 6.0e-06]])"),
+        ],
+    )
+    def test_repr_nd_array(self, plus_minus, value, repr_string):
+        """Make sure that arrays of all different dimensions are repr'd correctly."""
+        np = pytest.importorskip("numpy")
+        np_array = np.array(value)
+        assert repr(approx(np_array)) == repr_string.format(pm=plus_minus)
 
     def test_operator_overloading(self):
         assert 1 == approx(1, rel=1e-6, abs=1e-12)
@@ -332,6 +347,68 @@ class TestApprox(object):
         assert actual == approx(list(expected), rel=5e-7, abs=0)
         assert actual != approx(list(expected), rel=5e-8, abs=0)
 
+    def test_numpy_tolerance_args(self):
+        """
+        Check that numpy rel/abs args are handled correctly
+        for comparison against an np.array
+        Check both sides of the operator, hopefully it doesn't impact things.
+        Test all permutations of where the approx and np.array() can show up
+        """
+        np = pytest.importorskip("numpy")
+        expected = 100.0
+        actual = 99.0
+        abs_diff = expected - actual
+        rel_diff = (expected - actual) / expected
+
+        tests = [
+            (eq, abs_diff, 0),
+            (eq, 0, rel_diff),
+            (ne, 0, rel_diff / 2.0),  # rel diff fail
+            (ne, abs_diff / 2.0, 0),  # abs diff fail
+        ]
+
+        for op, _abs, _rel in tests:
+            assert op(np.array(actual), approx(expected, abs=_abs, rel=_rel))  # a, b
+            assert op(approx(expected, abs=_abs, rel=_rel), np.array(actual))  # b, a
+
+            assert op(actual, approx(np.array(expected), abs=_abs, rel=_rel))  # a, b
+            assert op(approx(np.array(expected), abs=_abs, rel=_rel), actual)  # b, a
+
+            assert op(np.array(actual), approx(np.array(expected), abs=_abs, rel=_rel))
+            assert op(approx(np.array(expected), abs=_abs, rel=_rel), np.array(actual))
+
+    def test_numpy_expecting_nan(self):
+        np = pytest.importorskip("numpy")
+        examples = [
+            (eq, nan, nan),
+            (eq, -nan, -nan),
+            (eq, nan, -nan),
+            (ne, 0.0, nan),
+            (ne, inf, nan),
+        ]
+        for op, a, x in examples:
+            # Nothing is equal to NaN by default.
+            assert np.array(a) != approx(x)
+            assert a != approx(np.array(x))
+
+            # If ``nan_ok=True``, then NaN is equal to NaN.
+            assert op(np.array(a), approx(x, nan_ok=True))
+            assert op(a, approx(np.array(x), nan_ok=True))
+
+    def test_numpy_expecting_inf(self):
+        np = pytest.importorskip("numpy")
+        examples = [
+            (eq, inf, inf),
+            (eq, -inf, -inf),
+            (ne, inf, -inf),
+            (ne, 0.0, inf),
+            (ne, nan, inf),
+        ]
+        for op, a, x in examples:
+            assert op(np.array(a), approx(x))
+            assert op(a, approx(np.array(x)))
+            assert op(np.array(a), approx(np.array(x)))
+
     def test_numpy_array_wrong_shape(self):
         np = pytest.importorskip("numpy")
 
@@ -366,6 +443,21 @@ class TestApprox(object):
         result.stdout.fnmatch_lines(
             ["*At index 0 diff: 3 != 4 * {}".format(expected), "=* 1 failed in *="]
         )
+
+    @pytest.mark.parametrize(
+        "x",
+        [
+            pytest.param(None),
+            pytest.param("string"),
+            pytest.param(["string"], id="nested-str"),
+            pytest.param([[1]], id="nested-list"),
+            pytest.param({"key": "string"}, id="dict-with-string"),
+            pytest.param({"key": {"key": 1}}, id="nested-dict"),
+        ],
+    )
+    def test_expected_value_type_error(self, x):
+        with pytest.raises(TypeError):
+            approx(x)
 
     @pytest.mark.parametrize(
         "op",
@@ -404,3 +496,14 @@ class TestApprox(object):
         assert actual != approx(expected, rel=5e-8, abs=0)
         assert approx(expected, rel=5e-7, abs=0) == actual
         assert approx(expected, rel=5e-8, abs=0) != actual
+
+    def test_generic_sized_iterable_object(self):
+        class MySizedIterable(object):
+            def __iter__(self):
+                return iter([1, 2, 3, 4])
+
+            def __len__(self):
+                return 4
+
+        expected = MySizedIterable()
+        assert [1, 2, 3, 4] == approx(expected)

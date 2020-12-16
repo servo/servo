@@ -225,21 +225,6 @@ promise_test((test) => {
   let tTree = setupShadowDOM(test_slotchange, test, data);
   let [s1Promise] = monitorSlots(data);
 
-  assert_array_equals(tTree.s1.assignedNodes({ flatten: true }), [tTree.fb]);
-  let div = document.createElement("div");
-  tTree.s1.appendChild(div);
-
-  return s1Promise.then(test.step_func(() => {
-    assert_equals(data.s1EventCount, 1);
-    assert_array_equals(tTree.s1.assignedNodes({ flatten: true }), [tTree.fb, div]);
-  }));
-}, "Fire slotchange event when slot's fallback content changes.");
-
-promise_test((test) => {
-  const data = getDataCollection();
-  let tTree = setupShadowDOM(test_slotchange, test, data);
-  let [s1Promise] = monitorSlots(data);
-
   tTree.s1.assign([tTree.c1]);
 
   return s1Promise.then(test.step_func(() => {

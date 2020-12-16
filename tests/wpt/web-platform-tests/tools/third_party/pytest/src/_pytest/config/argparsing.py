@@ -1,6 +1,11 @@
-import six
-import warnings
+# -*- coding: utf-8 -*-
 import argparse
+import warnings
+
+import py
+import six
+
+from _pytest.config.exceptions import UsageError
 
 FILE_OR_DIR = "file_or_dir"
 
@@ -11,6 +16,8 @@ class Parser(object):
     :ivar extra_info: dict of generic param -> value to display in case
         there's an error processing the command line arguments.
     """
+
+    prog = None
 
     def __init__(self, usage=None, processopt=None):
         self._anonymous = OptionGroup("custom options", parser=self)
@@ -70,12 +77,13 @@ class Parser(object):
 
         self.optparser = self._getparser()
         try_argcomplete(self.optparser)
-        return self.optparser.parse_args([str(x) for x in args], namespace=namespace)
+        args = [str(x) if isinstance(x, py.path.local) else x for x in args]
+        return self.optparser.parse_args(args, namespace=namespace)
 
     def _getparser(self):
         from _pytest._argcomplete import filescompleter
 
-        optparser = MyOptionParser(self, self.extra_info)
+        optparser = MyOptionParser(self, self.extra_info, prog=self.prog)
         groups = self._groups + [self._anonymous]
         for group in groups:
             if group.options:
@@ -106,7 +114,7 @@ class Parser(object):
         the remaining arguments unknown at this point.
         """
         optparser = self._getparser()
-        args = [str(x) for x in args]
+        args = [str(x) if isinstance(x, py.path.local) else x for x in args]
         return optparser.parse_known_args(args, namespace=namespace)
 
     def addini(self, name, help, type=None, default=None):
@@ -145,10 +153,11 @@ class ArgumentError(Exception):
 class Argument(object):
     """class that mimics the necessary behaviour of optparse.Option
 
-    its currently a least effort implementation
+    it's currently a least effort implementation
     and ignoring choices and integer prefixes
     https://docs.python.org/3/library/optparse.html#optparse-standard-option-types
     """
+
     _typ_map = {"int": int, "string": str, "float": float, "complex": complex}
 
     def __init__(self, *names, **attrs):
@@ -173,23 +182,23 @@ class Argument(object):
             if isinstance(typ, six.string_types):
                 if typ == "choice":
                     warnings.warn(
-                        "type argument to addoption() is a string %r."
-                        " For parsearg this is optional and when supplied"
-                        " should be a type."
+                        "`type` argument to addoption() is the string %r."
+                        " For choices this is optional and can be omitted, "
+                        " but when supplied should be a type (for example `str` or `int`)."
                         " (options: %s)" % (typ, names),
                         DeprecationWarning,
-                        stacklevel=3,
+                        stacklevel=4,
                     )
                     # argparse expects a type here take it from
                     # the type of the first element
                     attrs["type"] = type(attrs["choices"][0])
                 else:
                     warnings.warn(
-                        "type argument to addoption() is a string %r."
-                        " For parsearg this should be a type."
+                        "`type` argument to addoption() is the string %r, "
+                        " but when supplied should be a type (for example `str` or `int`)."
                         " (options: %s)" % (typ, names),
                         DeprecationWarning,
-                        stacklevel=3,
+                        stacklevel=4,
                     )
                     attrs["type"] = Argument._typ_map[typ]
                 # used in test_parseopt -> test_parse_defaultgetter
@@ -274,7 +283,6 @@ class Argument(object):
 
 
 class OptionGroup(object):
-
     def __init__(self, name, description="", parser=None):
         self.name = name
         self.description = description
@@ -312,13 +320,13 @@ class OptionGroup(object):
 
 
 class MyOptionParser(argparse.ArgumentParser):
-
-    def __init__(self, parser, extra_info=None):
+    def __init__(self, parser, extra_info=None, prog=None):
         if not extra_info:
             extra_info = {}
         self._parser = parser
         argparse.ArgumentParser.__init__(
             self,
+            prog=prog,
             usage=parser._usage,
             add_help=False,
             formatter_class=DropShorterLongHelpFormatter,
@@ -326,6 +334,15 @@ class MyOptionParser(argparse.ArgumentParser):
         # extra_info is a dict of (param -> value) to display if there's
         # an usage error to provide more contextual information to the user
         self.extra_info = extra_info
+
+    def error(self, message):
+        """Transform argparse error message into UsageError."""
+        msg = "%s: error: %s" % (self.prog, message)
+
+        if hasattr(self._parser, "_config_source_hint"):
+            msg = "%s (%s)" % (msg, self._parser._config_source_hint)
+
+        raise UsageError(self.format_usage() + msg)
 
     def parse_args(self, args=None, namespace=None):
         """allow splitting of positional arguments"""
@@ -378,9 +395,8 @@ class DropShorterLongHelpFormatter(argparse.HelpFormatter):
             xxoption = option[2:]
             if xxoption.split()[0] not in option_map:
                 shortened = xxoption.replace("-", "")
-                if (
-                    shortened not in short_long
-                    or len(short_long[shortened]) < len(xxoption)
+                if shortened not in short_long or len(short_long[shortened]) < len(
+                    xxoption
                 ):
                     short_long[shortened] = xxoption
         # now short_long has been filled out to the longest with dashes

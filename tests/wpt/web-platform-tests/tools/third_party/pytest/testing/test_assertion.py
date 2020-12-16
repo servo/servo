@@ -1,20 +1,25 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import sys
 import textwrap
 
+import attr
+import six
+
 import _pytest.assertion as plugin
-import py
 import pytest
-from _pytest.assertion import util
+from _pytest import outcomes
 from _pytest.assertion import truncate
+from _pytest.assertion import util
+from _pytest.compat import ATTRS_EQ_FIELD
 
 PY3 = sys.version_info >= (3, 0)
 
 
-@pytest.fixture
 def mock_config():
-
     class Config(object):
         verbose = False
 
@@ -27,7 +32,6 @@ def mock_config():
 
 
 class TestImportHookInstallation(object):
-
     @pytest.mark.parametrize("initial_conftest", [True, False])
     @pytest.mark.parametrize("mode", ["plain", "rewrite"])
     def test_conftest_assertion_rewrite(self, testdir, initial_conftest, mode):
@@ -134,12 +138,12 @@ class TestImportHookInstallation(object):
     def test_pytest_plugins_rewrite_module_names_correctly(self, testdir):
         """Test that we match files correctly when they are marked for rewriting (#2939)."""
         contents = {
-            "conftest.py": """
+            "conftest.py": """\
                 pytest_plugins = "ham"
             """,
             "ham.py": "",
             "hamster.py": "",
-            "test_foo.py": """
+            "test_foo.py": """\
                 def test_foo(pytestconfig):
                     assert pytestconfig.pluginmanager.rewrite_hook.find_module('ham') is not None
                     assert pytestconfig.pluginmanager.rewrite_hook.find_module('hamster') is None
@@ -150,13 +154,13 @@ class TestImportHookInstallation(object):
         assert result.ret == 0
 
     @pytest.mark.parametrize("mode", ["plain", "rewrite"])
-    @pytest.mark.parametrize("plugin_state", ["development", "installed"])
-    def test_installed_plugin_rewrite(self, testdir, mode, plugin_state):
+    def test_installed_plugin_rewrite(self, testdir, mode, monkeypatch):
+        monkeypatch.delenv("PYTEST_DISABLE_PLUGIN_AUTOLOAD", raising=False)
         # Make sure the hook is installed early enough so that plugins
         # installed via setuptools are rewritten.
         testdir.tmpdir.join("hampkg").ensure(dir=1)
         contents = {
-            "hampkg/__init__.py": """
+            "hampkg/__init__.py": """\
                 import pytest
 
                 @pytest.fixture
@@ -165,7 +169,7 @@ class TestImportHookInstallation(object):
                         assert values.pop(0) == value
                     return check
             """,
-            "spamplugin.py": """
+            "spamplugin.py": """\
             import pytest
             from hampkg import check_first2
 
@@ -175,46 +179,32 @@ class TestImportHookInstallation(object):
                     assert values.pop(0) == value
                 return check
             """,
-            "mainwrapper.py": """
-            import pytest, pkg_resources
-
-            plugin_state = "{plugin_state}"
-
-            class DummyDistInfo(object):
-                project_name = 'spam'
-                version = '1.0'
-
-                def _get_metadata(self, name):
-                    # 'RECORD' meta-data only available in installed plugins
-                    if name == 'RECORD' and plugin_state == "installed":
-                        return ['spamplugin.py,sha256=abc,123',
-                                'hampkg/__init__.py,sha256=abc,123']
-                    # 'SOURCES.txt' meta-data only available for plugins in development mode
-                    elif name == 'SOURCES.txt' and plugin_state == "development":
-                        return ['spamplugin.py',
-                                'hampkg/__init__.py']
-                    return []
+            "mainwrapper.py": """\
+            import pytest
+            from _pytest.compat import importlib_metadata
 
             class DummyEntryPoint(object):
                 name = 'spam'
                 module_name = 'spam.py'
-                attrs = ()
-                extras = None
-                dist = DummyDistInfo()
+                group = 'pytest11'
 
-                def load(self, require=True, *args, **kwargs):
+                def load(self):
                     import spamplugin
                     return spamplugin
 
-            def iter_entry_points(name):
-                yield DummyEntryPoint()
+            class DummyDistInfo(object):
+                version = '1.0'
+                files = ('spamplugin.py', 'hampkg/__init__.py')
+                entry_points = (DummyEntryPoint(),)
+                metadata = {'name': 'foo'}
 
-            pkg_resources.iter_entry_points = iter_entry_points
+            def distributions():
+                return (DummyDistInfo(),)
+
+            importlib_metadata.distributions = distributions
             pytest.main()
-            """.format(
-                plugin_state=plugin_state
-            ),
-            "test_foo.py": """
+            """,
+            "test_foo.py": """\
             def test(check_first):
                 check_first([10, 30], 30)
 
@@ -288,7 +278,6 @@ class TestImportHookInstallation(object):
 
 
 class TestBinReprIntegration(object):
-
     def test_pytest_assertrepr_compare_called(self, testdir):
         testdir.makeconftest(
             """
@@ -321,7 +310,6 @@ def callequal(left, right, verbose=False):
 
 
 class TestAssert_reprcompare(object):
-
     def test_different_types(self):
         assert callequal([0, 1], "foo") is None
 
@@ -444,6 +432,50 @@ class TestAssert_reprcompare(object):
         assert "Omitting" not in lines[1]
         assert lines[2] == "{'b': 1}"
 
+    def test_dict_different_items(self):
+        lines = callequal({"a": 0}, {"b": 1, "c": 2}, verbose=2)
+        assert lines == [
+            "{'a': 0} == {'b': 1, 'c': 2}",
+            "Left contains 1 more item:",
+            "{'a': 0}",
+            "Right contains 2 more items:",
+            "{'b': 1, 'c': 2}",
+            "Full diff:",
+            "- {'a': 0}",
+            "+ {'b': 1, 'c': 2}",
+        ]
+        lines = callequal({"b": 1, "c": 2}, {"a": 0}, verbose=2)
+        assert lines == [
+            "{'b': 1, 'c': 2} == {'a': 0}",
+            "Left contains 2 more items:",
+            "{'b': 1, 'c': 2}",
+            "Right contains 1 more item:",
+            "{'a': 0}",
+            "Full diff:",
+            "- {'b': 1, 'c': 2}",
+            "+ {'a': 0}",
+        ]
+
+    def test_sequence_different_items(self):
+        lines = callequal((1, 2), (3, 4, 5), verbose=2)
+        assert lines == [
+            "(1, 2) == (3, 4, 5)",
+            "At index 0 diff: 1 != 3",
+            "Right contains one more item: 5",
+            "Full diff:",
+            "- (1, 2)",
+            "+ (3, 4, 5)",
+        ]
+        lines = callequal((1, 2, 3), (4,), verbose=2)
+        assert lines == [
+            "(1, 2, 3) == (4,)",
+            "At index 0 diff: 1 != 4",
+            "Left contains 2 more items, first extra item: 2",
+            "Full diff:",
+            "- (1, 2, 3)",
+            "+ (4,)",
+        ]
+
     def test_set(self):
         expl = callequal({0, 1}, {0, 2})
         assert len(expl) > 1
@@ -453,13 +485,15 @@ class TestAssert_reprcompare(object):
         assert len(expl) > 1
 
     def test_Sequence(self):
-        col = py.builtin._tryimport("collections.abc", "collections", "sys")
-        if not hasattr(col, "MutableSequence"):
+        if sys.version_info >= (3, 3):
+            import collections.abc as collections_abc
+        else:
+            import collections as collections_abc
+        if not hasattr(collections_abc, "MutableSequence"):
             pytest.skip("cannot import MutableSequence")
-        MutableSequence = col.MutableSequence
+        MutableSequence = collections_abc.MutableSequence
 
         class TestSequence(MutableSequence):  # works with a Sequence subclass
-
             def __init__(self, iterable):
                 self.elements = list(iterable)
 
@@ -487,10 +521,32 @@ class TestAssert_reprcompare(object):
         expl = callequal([(1, 2)], [])
         assert len(expl) > 1
 
+    def test_repr_verbose(self):
+        class Nums:
+            def __init__(self, nums):
+                self.nums = nums
+
+            def __repr__(self):
+                return str(self.nums)
+
+        list_x = list(range(5000))
+        list_y = list(range(5000))
+        list_y[len(list_y) // 2] = 3
+        nums_x = Nums(list_x)
+        nums_y = Nums(list_y)
+
+        assert callequal(nums_x, nums_y) is None
+
+        expl = callequal(nums_x, nums_y, verbose=1)
+        assert "-" + repr(nums_x) in expl
+        assert "+" + repr(nums_y) in expl
+
+        expl = callequal(nums_x, nums_y, verbose=2)
+        assert "-" + repr(nums_x) in expl
+        assert "+" + repr(nums_y) in expl
+
     def test_list_bad_repr(self):
-
         class A(object):
-
             def __repr__(self):
                 raise ValueError(42)
 
@@ -506,7 +562,6 @@ class TestAssert_reprcompare(object):
         """
 
         class A(str):
-
             def __repr__(self):
                 return ""
 
@@ -518,12 +573,12 @@ class TestAssert_reprcompare(object):
         assert "raised in repr()" not in expl
 
     def test_unicode(self):
-        left = py.builtin._totext("£€", "utf-8")
-        right = py.builtin._totext("£", "utf-8")
+        left = u"£€"
+        right = u"£"
         expl = callequal(left, right)
-        assert expl[0] == py.builtin._totext("'£€' == '£'", "utf-8")
-        assert expl[1] == py.builtin._totext("- £€", "utf-8")
-        assert expl[2] == py.builtin._totext("+ £", "utf-8")
+        assert expl[0] == u"'£€' == '£'"
+        assert expl[1] == u"- £€"
+        assert expl[2] == u"+ £"
 
     def test_nonascii_text(self):
         """
@@ -532,32 +587,139 @@ class TestAssert_reprcompare(object):
         """
 
         class A(str):
-
             def __repr__(self):
                 return "\xff"
 
         expl = callequal(A(), "1")
-        assert expl
+        if PY3:
+            assert expl == ["ÿ == '1'", "+ 1"]
+        else:
+            assert expl == [u"\ufffd == '1'", u"+ 1"]
 
     def test_format_nonascii_explanation(self):
         assert util.format_explanation("λ")
 
     def test_mojibake(self):
         # issue 429
-        left = "e"
-        right = "\xc3\xa9"
-        if not isinstance(left, bytes):
-            left = bytes(left, "utf-8")
-            right = bytes(right, "utf-8")
+        left = b"e"
+        right = b"\xc3\xa9"
         expl = callequal(left, right)
         for line in expl:
-            assert isinstance(line, py.builtin.text)
-        msg = py.builtin._totext("\n").join(expl)
+            assert isinstance(line, six.text_type)
+        msg = u"\n".join(expl)
         assert msg
 
 
-class TestFormatExplanation(object):
+class TestAssert_reprcompare_dataclass(object):
+    @pytest.mark.skipif(sys.version_info < (3, 7), reason="Dataclasses in Python3.7+")
+    def test_dataclasses(self, testdir):
+        p = testdir.copy_example("dataclasses/test_compare_dataclasses.py")
+        result = testdir.runpytest(p)
+        result.assert_outcomes(failed=1, passed=0)
+        result.stdout.fnmatch_lines(
+            [
+                "*Omitting 1 identical items, use -vv to show*",
+                "*Differing attributes:*",
+                "*field_b: 'b' != 'c'*",
+            ]
+        )
 
+    @pytest.mark.skipif(sys.version_info < (3, 7), reason="Dataclasses in Python3.7+")
+    def test_dataclasses_verbose(self, testdir):
+        p = testdir.copy_example("dataclasses/test_compare_dataclasses_verbose.py")
+        result = testdir.runpytest(p, "-vv")
+        result.assert_outcomes(failed=1, passed=0)
+        result.stdout.fnmatch_lines(
+            [
+                "*Matching attributes:*",
+                "*['field_a']*",
+                "*Differing attributes:*",
+                "*field_b: 'b' != 'c'*",
+            ]
+        )
+
+    @pytest.mark.skipif(sys.version_info < (3, 7), reason="Dataclasses in Python3.7+")
+    def test_dataclasses_with_attribute_comparison_off(self, testdir):
+        p = testdir.copy_example(
+            "dataclasses/test_compare_dataclasses_field_comparison_off.py"
+        )
+        result = testdir.runpytest(p, "-vv")
+        result.assert_outcomes(failed=0, passed=1)
+
+    @pytest.mark.skipif(sys.version_info < (3, 7), reason="Dataclasses in Python3.7+")
+    def test_comparing_two_different_data_classes(self, testdir):
+        p = testdir.copy_example(
+            "dataclasses/test_compare_two_different_dataclasses.py"
+        )
+        result = testdir.runpytest(p, "-vv")
+        result.assert_outcomes(failed=0, passed=1)
+
+
+class TestAssert_reprcompare_attrsclass(object):
+    def test_attrs(self):
+        @attr.s
+        class SimpleDataObject(object):
+            field_a = attr.ib()
+            field_b = attr.ib()
+
+        left = SimpleDataObject(1, "b")
+        right = SimpleDataObject(1, "c")
+
+        lines = callequal(left, right)
+        assert lines[1].startswith("Omitting 1 identical item")
+        assert "Matching attributes" not in lines
+        for line in lines[1:]:
+            assert "field_a" not in line
+
+    def test_attrs_verbose(self):
+        @attr.s
+        class SimpleDataObject(object):
+            field_a = attr.ib()
+            field_b = attr.ib()
+
+        left = SimpleDataObject(1, "b")
+        right = SimpleDataObject(1, "c")
+
+        lines = callequal(left, right, verbose=2)
+        assert lines[1].startswith("Matching attributes:")
+        assert "Omitting" not in lines[1]
+        assert lines[2] == "['field_a']"
+
+    def test_attrs_with_attribute_comparison_off(self):
+        @attr.s
+        class SimpleDataObject(object):
+            field_a = attr.ib()
+            field_b = attr.ib(**{ATTRS_EQ_FIELD: False})
+
+        left = SimpleDataObject(1, "b")
+        right = SimpleDataObject(1, "b")
+
+        lines = callequal(left, right, verbose=2)
+        assert lines[1].startswith("Matching attributes:")
+        assert "Omitting" not in lines[1]
+        assert lines[2] == "['field_a']"
+        for line in lines[2:]:
+            assert "field_b" not in line
+
+    def test_comparing_two_different_attrs_classes(self):
+        @attr.s
+        class SimpleDataObjectOne(object):
+            field_a = attr.ib()
+            field_b = attr.ib()
+
+        @attr.s
+        class SimpleDataObjectTwo(object):
+            field_a = attr.ib()
+            field_b = attr.ib()
+
+        left = SimpleDataObjectOne(1, "b")
+        right = SimpleDataObjectTwo(1, "c")
+
+        lines = callequal(left, right)
+        assert lines is None
+
+
+class TestFormatExplanation(object):
     def test_special_chars_full(self, testdir):
         # Issue 453, for the bug this would raise IndexError
         testdir.makepyfile(
@@ -778,27 +940,22 @@ def test_rewritten(testdir):
     assert testdir.runpytest().ret == 0
 
 
-def test_reprcompare_notin(mock_config):
-    detail = plugin.pytest_assertrepr_compare(
-        mock_config, "not in", "foo", "aaafoobbb"
-    )[
-        1:
-    ]
+def test_reprcompare_notin():
+    config = mock_config()
+    detail = plugin.pytest_assertrepr_compare(config, "not in", "foo", "aaafoobbb")[1:]
     assert detail == ["'foo' is contained here:", "  aaafoobbb", "?    +++"]
 
 
-def test_reprcompare_whitespaces(mock_config):
-    detail = plugin.pytest_assertrepr_compare(mock_config, "==", "\r\n", "\n")
-    assert (
-        detail
-        == [
-            r"'\r\n' == '\n'",
-            r"Strings contain only whitespace, escaping them using repr()",
-            r"- '\r\n'",
-            r"?  --",
-            r"+ '\n'",
-        ]
-    )
+def test_reprcompare_whitespaces():
+    config = mock_config()
+    detail = plugin.pytest_assertrepr_compare(config, "==", "\r\n", "\n")
+    assert detail == [
+        r"'\r\n' == '\n'",
+        r"Strings contain only whitespace, escaping them using repr()",
+        r"- '\r\n'",
+        r"?  --",
+        r"+ '\n'",
+    ]
 
 
 def test_pytest_assertrepr_compare_integration(testdir):
@@ -1036,7 +1193,6 @@ def test_AssertionError_message(testdir):
 def test_set_with_unsortable_elements():
     # issue #718
     class UnsortableKey(object):
-
         def __init__(self, name):
             self.name = name
 
@@ -1091,17 +1247,27 @@ def test_diff_newline_at_end(monkeypatch, testdir):
     )
 
 
+@pytest.mark.filterwarnings("default")
 def test_assert_tuple_warning(testdir):
+    msg = "assertion is always true"
     testdir.makepyfile(
         """
         def test_tuple():
             assert(False, 'you shall not pass')
     """
     )
-    result = testdir.runpytest("-rw")
-    result.stdout.fnmatch_lines(
-        ["*test_assert_tuple_warning.py:2", "*assertion is always true*"]
+    result = testdir.runpytest()
+    result.stdout.fnmatch_lines(["*test_assert_tuple_warning.py:2:*{}*".format(msg)])
+
+    # tuples with size != 2 should not trigger the warning
+    testdir.makepyfile(
+        """
+        def test_tuple():
+            assert ()
+    """
     )
+    result = testdir.runpytest()
+    assert msg not in result.stdout.str()
 
 
 def test_assert_indirect_tuple_no_warning(testdir):
@@ -1169,4 +1335,17 @@ def test_issue_1944(testdir):
     )
     result = testdir.runpytest()
     result.stdout.fnmatch_lines(["*1 error*"])
-    assert "AttributeError: 'Module' object has no attribute '_obj'" not in result.stdout.str()
+    assert (
+        "AttributeError: 'Module' object has no attribute '_obj'"
+        not in result.stdout.str()
+    )
+
+
+def test_exit_from_assertrepr_compare(monkeypatch):
+    def raise_exit(obj):
+        outcomes.exit("Quitting debugger")
+
+    monkeypatch.setattr(util, "istext", raise_exit)
+
+    with pytest.raises(outcomes.Exit, match="Quitting debugger"):
+        callequal(1, 1)

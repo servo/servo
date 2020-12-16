@@ -1,0 +1,75 @@
+name: Test
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/test.yml"
+      - "**.py"
+  push:
+    paths:
+      - ".github/workflows/test.yml"
+      - "**.py"
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / ${{ matrix.python_version }}
+    runs-on: ${{ matrix.os }}-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [Ubuntu, Windows, macOS]
+        # Python 3.4 is not available from actions/setup-python@v2.
+        python_version:
+          ["2.7", "3.5", "3.6", "3.7", "3.8", "3.9", "pypy2", "pypy3"]
+        exclude:
+          # This is failing due to pip not being in the virtual environment.
+          # https://github.com/pypa/packaging/runs/424785871#step:7:9
+          - os: windows
+            python_version: pypy3
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - uses: actions/setup-python@v2
+        name: Install Python ${{ matrix.python_version }}
+        with:
+          python-version: ${{ matrix.python_version }}
+
+      # Set `python` to a recent 3.x version if we're not testing Python 3.6+.
+      #    Why? Nox needs Python 3.5+ and everyone likes f-strings.
+      - uses: actions/setup-python@v2
+        name: Install Python 3.x
+        with:
+          python-version: 3.x
+        if: >
+          (
+            matrix.python_version == '2.7' ||
+            matrix.python_version == 'pypy2' ||
+            matrix.python_version == '3.5'
+          )
+
+      # Workaround https://github.com/theacodes/nox/issues/250
+      - name: Workaround for Windows Python 2.7
+        # This is in PATH, so nox resolves to it - but then subsequent steps fail.
+        run: rm C:/ProgramData/Chocolatey/bin/python2.7.exe
+        shell: bash
+        if: runner.os == 'Windows' && matrix.python_version == '2.7'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install nox
+        shell: bash
+
+      - name: Run nox
+        run: |
+          python -m nox --error-on-missing-interpreters -s tests-${{ matrix.python_version }}
+        shell: bash
+        if: matrix.python_version != 'pypy2'
+
+      # Binary is named 'pypy', but setup-python specifies it as 'pypy2'.
+      - name: Run nox for pypy2
+        run: |
+          python -m nox --error-on-missing-interpreters -s tests-pypy
+        shell: bash
+        if: matrix.python_version == 'pypy2'

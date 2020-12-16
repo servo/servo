@@ -35,7 +35,9 @@ There are two ways in which ``pytest`` can perform capturing:
 
 .. _`disable capturing`:
 
-You can influence output capturing mechanisms from the command line::
+You can influence output capturing mechanisms from the command line:
+
+.. code-block:: bash
 
     pytest -s            # disable all capturing
     pytest --capture=sys # replace sys.stdout/stderr with in-mem files
@@ -52,7 +54,7 @@ is that you can use print statements for debugging::
     # content of test_module.py
 
     def setup_function(function):
-        print ("setting up %s" % function)
+        print("setting up %s" % function)
 
     def test_func1():
         assert True
@@ -61,12 +63,15 @@ is that you can use print statements for debugging::
         assert False
 
 and running this module will show you precisely the output
-of the failing function and hide the other one::
+of the failing function and hide the other one:
+
+.. code-block:: pytest
 
     $ pytest
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-3.x.y, py-1.x.y, pluggy-0.x.y
-    rootdir: $REGENDOC_TMPDIR, inifile:
+    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    cachedir: $PYTHON_PREFIX/.pytest_cache
+    rootdir: $REGENDOC_TMPDIR
     collected 2 items
 
     test_module.py .F                                                    [100%]
@@ -116,11 +121,11 @@ same interface but allows to also capture output from
 libraries or subprocesses that directly write to operating
 system level output streams (FD1 and FD2).
 
-.. versionadded:: 3.3
+
 
 The return value from ``readouterr`` changed to a ``namedtuple`` with two attributes, ``out`` and ``err``.
 
-.. versionadded:: 3.3
+
 
 If the code under test writes non-textual data, you can capture this using
 the ``capsysbinary`` fixture which instead returns ``bytes`` from
@@ -128,7 +133,7 @@ the ``readouterr`` method.  The ``capfsysbinary`` fixture is currently only
 available in python 3.
 
 
-.. versionadded:: 3.3
+
 
 If the code under test writes non-textual data, you can capture this using
 the ``capfdbinary`` fixture which instead returns ``bytes`` from
@@ -136,7 +141,7 @@ the ``readouterr`` method.  The ``capfdbinary`` fixture operates on the
 filedescriptor level.
 
 
-.. versionadded:: 3.0
+
 
 To temporarily disable capture within a test, both ``capsys``
 and ``capfd`` have a ``disabled()`` method that can be used

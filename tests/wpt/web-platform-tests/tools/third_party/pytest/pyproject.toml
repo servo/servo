@@ -1,20 +1,28 @@
 [build-system]
 requires = [
-  "setuptools",
+  # sync with setup.py until we discard non-pep-517/518
+  "setuptools>=40.0",
   "setuptools-scm",
   "wheel",
 ]
+build-backend = "setuptools.build_meta"
 
 [tool.towncrier]
 package = "pytest"
 package_dir = "src"
 filename = "CHANGELOG.rst"
 directory = "changelog/"
+title_format = "pytest {version} ({project_date})"
 template = "changelog/_template.rst"
 
   [[tool.towncrier.type]]
   directory = "removal"
-  name = "Deprecations and Removals"
+  name = "Removals"
+  showcontent = true
+
+  [[tool.towncrier.type]]
+  directory = "deprecation"
+  name = "Deprecations"
   showcontent = true
 
   [[tool.towncrier.type]]

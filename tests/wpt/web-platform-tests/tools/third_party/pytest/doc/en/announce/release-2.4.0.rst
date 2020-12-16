@@ -23,7 +23,7 @@ a full list of details.  A few feature highlights:
   called if the corresponding setup method succeeded.
 
 - integrate tab-completion on command line options if you
-  have `argcomplete <http://pypi.python.org/pypi/argcomplete>`_
+  have `argcomplete <https://pypi.org/project/argcomplete/>`_
   configured.
 
 - allow boolean expression directly with skipif/xfail

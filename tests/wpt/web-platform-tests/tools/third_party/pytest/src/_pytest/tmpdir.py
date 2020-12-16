@@ -1,22 +1,97 @@
+# -*- coding: utf-8 -*-
 """ support for providing temporary directories to test functions.  """
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
+import os
 import re
+import tempfile
+import warnings
+
+import attr
+import py
+import six
 
 import pytest
-import py
+from .pathlib import ensure_reset_dir
+from .pathlib import LOCK_TIMEOUT
+from .pathlib import make_numbered_dir
+from .pathlib import make_numbered_dir_with_cleanup
+from .pathlib import Path
 from _pytest.monkeypatch import MonkeyPatch
 
 
-class TempdirFactory(object):
+@attr.s
+class TempPathFactory(object):
     """Factory for temporary directories under the common base temp directory.
 
-    The base directory can be configured using the ``--basetemp`` option.
+    The base directory can be configured using the ``--basetemp`` option."""
+
+    _given_basetemp = attr.ib(
+        # using os.path.abspath() to get absolute path instead of resolve() as it
+        # does not work the same in all platforms (see #4427)
+        # Path.absolute() exists, but it is not public (see https://bugs.python.org/issue25012)
+        converter=attr.converters.optional(
+            lambda p: Path(os.path.abspath(six.text_type(p)))
+        )
+    )
+    _trace = attr.ib()
+    _basetemp = attr.ib(default=None)
+
+    @classmethod
+    def from_config(cls, config):
+        """
+        :param config: a pytest configuration
+        """
+        return cls(
+            given_basetemp=config.option.basetemp, trace=config.trace.get("tmpdir")
+        )
+
+    def mktemp(self, basename, numbered=True):
+        """makes a temporary directory managed by the factory"""
+        if not numbered:
+            p = self.getbasetemp().joinpath(basename)
+            p.mkdir()
+        else:
+            p = make_numbered_dir(root=self.getbasetemp(), prefix=basename)
+            self._trace("mktemp", p)
+        return p
+
+    def getbasetemp(self):
+        """ return base temporary directory. """
+        if self._basetemp is not None:
+            return self._basetemp
+
+        if self._given_basetemp is not None:
+            basetemp = self._given_basetemp
+            ensure_reset_dir(basetemp)
+            basetemp = basetemp.resolve()
+        else:
+            from_env = os.environ.get("PYTEST_DEBUG_TEMPROOT")
+            temproot = Path(from_env or tempfile.gettempdir()).resolve()
+            user = get_user() or "unknown"
+            # use a sub-directory in the temproot to speed-up
+            # make_numbered_dir() call
+            rootdir = temproot.joinpath("pytest-of-{}".format(user))
+            rootdir.mkdir(exist_ok=True)
+            basetemp = make_numbered_dir_with_cleanup(
+                prefix="pytest-", root=rootdir, keep=3, lock_timeout=LOCK_TIMEOUT
+            )
+        assert basetemp is not None, basetemp
+        self._basetemp = t = basetemp
+        self._trace("new basetemp", t)
+        return t
+
+
+@attr.s
+class TempdirFactory(object):
+    """
+    backward comptibility wrapper that implements
+    :class:``py.path.local`` for :class:``TempPathFactory``
     """
 
-    def __init__(self, config):
-        self.config = config
-        self.trace = config.trace.get("tmpdir")
+    _tmppath_factory = attr.ib()
 
     def ensuretemp(self, string, dir=1):
         """ (deprecated) return temporary directory path with
@@ -26,6 +101,9 @@ class TempdirFactory(object):
             and is guaranteed to be empty.
         """
         # py.log._apiwarn(">1.1", "use tmpdir function argument")
+        from .deprecated import PYTEST_ENSURETEMP
+
+        warnings.warn(PYTEST_ENSURETEMP, stacklevel=2)
         return self.getbasetemp().ensure(string, dir=dir)
 
     def mktemp(self, basename, numbered=True):
@@ -33,46 +111,11 @@ class TempdirFactory(object):
         If ``numbered``, ensure the directory is unique by adding a number
         prefix greater than any existing one.
         """
-        basetemp = self.getbasetemp()
-        if not numbered:
-            p = basetemp.mkdir(basename)
-        else:
-            p = py.path.local.make_numbered_dir(
-                prefix=basename, keep=0, rootdir=basetemp, lock_timeout=None
-            )
-        self.trace("mktemp", p)
-        return p
+        return py.path.local(self._tmppath_factory.mktemp(basename, numbered).resolve())
 
     def getbasetemp(self):
-        """ return base temporary directory. """
-        try:
-            return self._basetemp
-        except AttributeError:
-            basetemp = self.config.option.basetemp
-            if basetemp:
-                basetemp = py.path.local(basetemp)
-                if basetemp.check():
-                    basetemp.remove()
-                basetemp.mkdir()
-            else:
-                temproot = py.path.local.get_temproot()
-                user = get_user()
-                if user:
-                    # use a sub-directory in the temproot to speed-up
-                    # make_numbered_dir() call
-                    rootdir = temproot.join("pytest-of-%s" % user)
-                else:
-                    rootdir = temproot
-                rootdir.ensure(dir=1)
-                basetemp = py.path.local.make_numbered_dir(
-                    prefix="pytest-", rootdir=rootdir
-                )
-            self._basetemp = t = basetemp.realpath()
-            self.trace("new basetemp", t)
-            return t
-
-    def finish(self):
-        self.trace("finish")
+        """backward compat wrapper for ``_tmppath_factory.getbasetemp``"""
+        return py.path.local(self._tmppath_factory.getbasetemp().resolve())
 
 
 def get_user():
@@ -87,10 +130,6 @@ def get_user():
         return None
 
 
-# backward compatibility
-TempdirHandler = TempdirFactory
-
-
 def pytest_configure(config):
     """Create a TempdirFactory and attach it to the config object.
 
@@ -99,21 +138,38 @@ def pytest_configure(config):
     to the tmpdir_factory session fixture.
     """
     mp = MonkeyPatch()
-    t = TempdirFactory(config)
-    config._cleanup.extend([mp.undo, t.finish])
+    tmppath_handler = TempPathFactory.from_config(config)
+    t = TempdirFactory(tmppath_handler)
+    config._cleanup.append(mp.undo)
+    mp.setattr(config, "_tmp_path_factory", tmppath_handler, raising=False)
     mp.setattr(config, "_tmpdirhandler", t, raising=False)
     mp.setattr(pytest, "ensuretemp", t.ensuretemp, raising=False)
 
 
 @pytest.fixture(scope="session")
 def tmpdir_factory(request):
-    """Return a TempdirFactory instance for the test session.
+    """Return a :class:`_pytest.tmpdir.TempdirFactory` instance for the test session.
     """
     return request.config._tmpdirhandler
 
 
+@pytest.fixture(scope="session")
+def tmp_path_factory(request):
+    """Return a :class:`_pytest.tmpdir.TempPathFactory` instance for the test session.
+    """
+    return request.config._tmp_path_factory
+
+
+def _mk_tmp(request, factory):
+    name = request.node.name
+    name = re.sub(r"[\W]", "_", name)
+    MAXVAL = 30
+    name = name[:MAXVAL]
+    return factory.mktemp(name, numbered=True)
+
+
 @pytest.fixture
-def tmpdir(request, tmpdir_factory):
+def tmpdir(tmp_path):
     """Return a temporary directory path object
     which is unique to each test function invocation,
     created as a sub directory of the base temporary
@@ -122,10 +178,20 @@ def tmpdir(request, tmpdir_factory):
 
     .. _`py.path.local`: https://py.readthedocs.io/en/latest/path.html
     """
-    name = request.node.name
-    name = re.sub(r"[\W]", "_", name)
-    MAXVAL = 30
-    if len(name) > MAXVAL:
-        name = name[:MAXVAL]
-    x = tmpdir_factory.mktemp(name, numbered=True)
-    return x
+    return py.path.local(tmp_path)
+
+
+@pytest.fixture
+def tmp_path(request, tmp_path_factory):
+    """Return a temporary directory path object
+    which is unique to each test function invocation,
+    created as a sub directory of the base temporary
+    directory.  The returned object is a :class:`pathlib.Path`
+    object.
+
+    .. note::
+
+        in python < 3.6 this is a pathlib2.Path
+    """
+
+    return _mk_tmp(request, tmp_path_factory)

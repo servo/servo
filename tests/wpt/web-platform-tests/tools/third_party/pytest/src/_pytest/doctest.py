@@ -1,14 +1,24 @@
+# -*- coding: utf-8 -*-
 """ discover and run doctests in modules and test files."""
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
-import traceback
-import sys
+import inspect
 import platform
+import sys
+import traceback
+import warnings
+from contextlib import contextmanager
 
 import pytest
-from _pytest._code.code import ExceptionInfo, ReprFileLocation, TerminalRepr
+from _pytest._code.code import ExceptionInfo
+from _pytest._code.code import ReprFileLocation
+from _pytest._code.code import TerminalRepr
+from _pytest.compat import safe_getattr
 from _pytest.fixtures import FixtureRequest
-
+from _pytest.outcomes import Skipped
+from _pytest.warning_types import PytestWarning
 
 DOCTEST_REPORT_CHOICE_NONE = "none"
 DOCTEST_REPORT_CHOICE_CDIFF = "cdiff"
@@ -105,7 +115,6 @@ def _is_doctest(config, path, parent):
 
 
 class ReprFailDoctest(TerminalRepr):
-
     def __init__(self, reprlocation_lines):
         # List of (reprlocation, lines) tuples
         self.reprlocation_lines = reprlocation_lines
@@ -118,7 +127,6 @@ class ReprFailDoctest(TerminalRepr):
 
 
 class MultipleDoctestFailures(Exception):
-
     def __init__(self, failures):
         super(MultipleDoctestFailures, self).__init__()
         self.failures = failures
@@ -149,6 +157,8 @@ def _init_runner_class():
                 raise failure
 
         def report_unexpected_exception(self, out, test, example, exc_info):
+            if isinstance(exc_info[1], Skipped):
+                raise exc_info[1]
             failure = doctest.UnexpectedException(test, example, exc_info)
             if self.continue_on_failure:
                 out.append(failure)
@@ -172,7 +182,6 @@ def _get_runner(checker=None, verbose=None, optionflags=0, continue_on_failure=T
 
 
 class DoctestItem(pytest.Item):
-
     def __init__(self, name, parent, runner=None, dtest=None):
         super(DoctestItem, self).__init__(name, parent)
         self.runner = runner
@@ -206,7 +215,8 @@ class DoctestItem(pytest.Item):
             return
         capman = self.config.pluginmanager.getplugin("capturemanager")
         if capman:
-            out, err = capman.suspend_global_capture(in_=True)
+            capman.suspend_global_capture(in_=True)
+            out, err = capman.read_global_capture()
             sys.stdout.write(out)
             sys.stderr.write(err)
 
@@ -243,7 +253,7 @@ class DoctestItem(pytest.Item):
                         for (i, x) in enumerate(lines)
                     ]
                     # trim docstring error lines to 10
-                    lines = lines[max(example.lineno - 9, 0):example.lineno + 1]
+                    lines = lines[max(example.lineno - 9, 0) : example.lineno + 1]
                 else:
                     lines = [
                         "EXAMPLE LOCATION UNKNOWN, not showing all tests of that example"
@@ -255,9 +265,7 @@ class DoctestItem(pytest.Item):
                 if isinstance(failure, doctest.DocTestFailure):
                     lines += checker.output_difference(
                         example, failure.got, report_choice
-                    ).split(
-                        "\n"
-                    )
+                    ).split("\n")
                 else:
                     inner_excinfo = ExceptionInfo(failure.exc_info)
                     lines += ["UNEXPECTED EXCEPTION: %s" % repr(inner_excinfo.value)]
@@ -346,10 +354,68 @@ def _check_all_skipped(test):
         pytest.skip("all tests skipped by +SKIP option")
 
 
-class DoctestModule(pytest.Module):
+def _is_mocked(obj):
+    """
+    returns if a object is possibly a mock object by checking the existence of a highly improbable attribute
+    """
+    return (
+        safe_getattr(obj, "pytest_mock_example_attribute_that_shouldnt_exist", None)
+        is not None
+    )
 
+
+@contextmanager
+def _patch_unwrap_mock_aware():
+    """
+    contextmanager which replaces ``inspect.unwrap`` with a version
+    that's aware of mock objects and doesn't recurse on them
+    """
+    real_unwrap = getattr(inspect, "unwrap", None)
+    if real_unwrap is None:
+        yield
+    else:
+
+        def _mock_aware_unwrap(obj, stop=None):
+            try:
+                if stop is None or stop is _is_mocked:
+                    return real_unwrap(obj, stop=_is_mocked)
+                return real_unwrap(obj, stop=lambda obj: _is_mocked(obj) or stop(obj))
+            except Exception as e:
+                warnings.warn(
+                    "Got %r when unwrapping %r.  This is usually caused "
+                    "by a violation of Python's object protocol; see e.g. "
+                    "https://github.com/pytest-dev/pytest/issues/5080" % (e, obj),
+                    PytestWarning,
+                )
+                raise
+
+        inspect.unwrap = _mock_aware_unwrap
+        try:
+            yield
+        finally:
+            inspect.unwrap = real_unwrap
+
+
+class DoctestModule(pytest.Module):
     def collect(self):
         import doctest
+
+        class MockAwareDocTestFinder(doctest.DocTestFinder):
+            """
+            a hackish doctest finder that overrides stdlib internals to fix a stdlib bug
+
+            https://github.com/pytest-dev/pytest/issues/3456
+            https://bugs.python.org/issue25532
+            """
+
+            def _find(self, tests, obj, name, module, source_lines, globs, seen):
+                if _is_mocked(obj):
+                    return
+                with _patch_unwrap_mock_aware():
+
+                    doctest.DocTestFinder._find(
+                        self, tests, obj, name, module, source_lines, globs, seen
+                    )
 
         if self.fspath.basename == "conftest.py":
             module = self.config.pluginmanager._importconftest(self.fspath)
@@ -362,7 +428,7 @@ class DoctestModule(pytest.Module):
                 else:
                     raise
         # uses internal doctest module parsing mechanism
-        finder = doctest.DocTestFinder()
+        finder = MockAwareDocTestFinder()
         optionflags = get_optionflags(self)
         runner = _get_runner(
             verbose=0,
@@ -480,9 +546,7 @@ def _get_report_choice(key):
         DOCTEST_REPORT_CHOICE_NDIFF: doctest.REPORT_NDIFF,
         DOCTEST_REPORT_CHOICE_ONLY_FIRST_FAILURE: doctest.REPORT_ONLY_FIRST_FAILURE,
         DOCTEST_REPORT_CHOICE_NONE: 0,
-    }[
-        key
-    ]
+    }[key]
 
 
 def _fix_spoof_python2(runner, encoding):
@@ -502,7 +566,6 @@ def _fix_spoof_python2(runner, encoding):
     from doctest import _SpoofOut
 
     class UnicodeSpoof(_SpoofOut):
-
         def getvalue(self):
             result = _SpoofOut.getvalue(self)
             if encoding and isinstance(result, bytes):

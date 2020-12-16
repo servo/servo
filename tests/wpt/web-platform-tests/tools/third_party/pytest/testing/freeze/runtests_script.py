@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 This is the script that is actually frozen into an executable: simply executes
 py.test main().

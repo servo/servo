@@ -1,13 +1,17 @@
-from __future__ import absolute_import, division, print_function
-import pytest
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import sys
 
-from _pytest.skipping import MarkEvaluator, folded_skips, pytest_runtest_setup
+import pytest
 from _pytest.runner import runtestprotocol
+from _pytest.skipping import MarkEvaluator
+from _pytest.skipping import pytest_runtest_setup
 
 
 class TestEvaluator(object):
-
     def test_no_marker(self, testdir):
         item = testdir.getitem("def test_func(): pass")
         evalskipif = MarkEvaluator(item, "skipif")
@@ -126,10 +130,13 @@ class TestEvaluator(object):
         )
         ev = MarkEvaluator(item, "skipif")
         exc = pytest.raises(pytest.fail.Exception, ev.istrue)
-        assert """Failed: you need to specify reason=STRING when using booleans as conditions.""" in exc.value.msg
+        assert (
+            """Failed: you need to specify reason=STRING when using booleans as conditions."""
+            in exc.value.msg
+        )
 
     def test_skipif_class(self, testdir):
-        item, = testdir.getitems(
+        (item,) = testdir.getitems(
             """
             import pytest
             class TestClass(object):
@@ -146,7 +153,6 @@ class TestEvaluator(object):
 
 
 class TestXFail(object):
-
     @pytest.mark.parametrize("strict", [True, False])
     def test_xfail_simple(self, testdir, strict):
         item = testdir.getitem(
@@ -325,7 +331,7 @@ class TestXFail(object):
         result = testdir.runpytest(p, "-rx")
         result.stdout.fnmatch_lines(["*XFAIL*test_this*", "*reason:*hello*"])
         result = testdir.runpytest(p, "--runxfail")
-        result.stdout.fnmatch_lines("*1 pass*")
+        result.stdout.fnmatch_lines(["*1 pass*"])
 
     def test_xfail_imperative_in_setup_function(self, testdir):
         p = testdir.makepyfile(
@@ -471,7 +477,7 @@ class TestXFail(object):
             % strict
         )
         result = testdir.runpytest(p, "-rxX")
-        result.stdout.fnmatch_lines("*1 passed*")
+        result.stdout.fnmatch_lines(["*1 passed*"])
         assert result.ret == 0
 
     @pytest.mark.parametrize("strict", [True, False])
@@ -487,7 +493,7 @@ class TestXFail(object):
             % strict
         )
         result = testdir.runpytest(p, "-rxX")
-        result.stdout.fnmatch_lines("*1 passed*")
+        result.stdout.fnmatch_lines(["*1 passed*"])
         assert result.ret == 0
 
     @pytest.mark.parametrize("strict_val", ["true", "false"])
@@ -509,12 +515,11 @@ class TestXFail(object):
         )
         result = testdir.runpytest(p, "-rxX")
         strict = strict_val == "true"
-        result.stdout.fnmatch_lines("*1 failed*" if strict else "*1 xpassed*")
+        result.stdout.fnmatch_lines(["*1 failed*" if strict else "*1 xpassed*"])
         assert result.ret == (1 if strict else 0)
 
 
 class TestXFailwithSetupTeardown(object):
-
     def test_failing_setup_issue9(self, testdir):
         testdir.makepyfile(
             """
@@ -547,7 +552,6 @@ class TestXFailwithSetupTeardown(object):
 
 
 class TestSkip(object):
-
     def test_skip_class(self, testdir):
         testdir.makepyfile(
             """
@@ -645,7 +649,6 @@ class TestSkip(object):
 
 
 class TestSkipif(object):
-
     def test_skipif_conditional(self, testdir):
         item = testdir.getitem(
             """
@@ -746,39 +749,6 @@ def test_skipif_class(testdir):
     result.stdout.fnmatch_lines(["*2 skipped*"])
 
 
-def test_skip_reasons_folding():
-    path = "xyz"
-    lineno = 3
-    message = "justso"
-    longrepr = (path, lineno, message)
-
-    class X(object):
-        pass
-
-    ev1 = X()
-    ev1.when = "execute"
-    ev1.skipped = True
-    ev1.longrepr = longrepr
-
-    ev2 = X()
-    ev2.when = "execute"
-    ev2.longrepr = longrepr
-    ev2.skipped = True
-
-    # ev3 might be a collection report
-    ev3 = X()
-    ev3.longrepr = longrepr
-    ev3.skipped = True
-
-    values = folded_skips([ev1, ev2, ev3])
-    assert len(values) == 1
-    num, fspath, lineno, reason = values[0]
-    assert num == 3
-    assert fspath == path
-    assert lineno == lineno
-    assert reason == message
-
-
 def test_skipped_reasons_functional(testdir):
     testdir.makepyfile(
         test_one="""
@@ -872,11 +842,22 @@ def test_reportchars_all(testdir):
             pass
         def test_4():
             pytest.skip("four")
+        @pytest.fixture
+        def fail():
+            assert 0
+        def test_5(fail):
+            pass
     """
     )
     result = testdir.runpytest("-ra")
     result.stdout.fnmatch_lines(
-        ["FAIL*test_1*", "SKIP*four*", "XFAIL*test_2*", "XPASS*test_3*"]
+        [
+            "SKIP*four*",
+            "XFAIL*test_2*",
+            "XPASS*test_3*",
+            "ERROR*test_5*",
+            "FAIL*test_1*",
+        ]
     )
 
 
@@ -895,7 +876,6 @@ def test_reportchars_all_error(testdir):
     result.stdout.fnmatch_lines(["ERROR*test_foo*"])
 
 
-@pytest.mark.xfail("hasattr(sys, 'pypy_version_info')")
 def test_errors_in_xfail_skip_expressions(testdir):
     testdir.makepyfile(
         """
@@ -916,6 +896,10 @@ def test_errors_in_xfail_skip_expressions(testdir):
     if sys.platform.startswith("java"):
         # XXX report this to java
         markline = "*" + markline[8:]
+    elif hasattr(sys, "pypy_version_info") and sys.pypy_version_info < (6,):
+        markline = markline[5:]
+    elif sys.version_info >= (3, 8) or hasattr(sys, "pypy_version_info"):
+        markline = markline[4:]
     result.stdout.fnmatch_lines(
         [
             "*ERROR*test_nameerror*",
@@ -1023,7 +1007,6 @@ def test_imperativeskip_on_xfail_test(testdir):
 
 
 class TestBooleanCondition(object):
-
     def test_skipif(self, testdir):
         testdir.makepyfile(
             """
@@ -1113,7 +1096,9 @@ def test_module_level_skip_error(testdir):
     """
     )
     result = testdir.runpytest()
-    result.stdout.fnmatch_lines("*Using pytest.skip outside of a test is not allowed*")
+    result.stdout.fnmatch_lines(
+        ["*Using pytest.skip outside of a test is not allowed*"]
+    )
 
 
 def test_module_level_skip_with_allow_module_level(testdir):
@@ -1130,7 +1115,7 @@ def test_module_level_skip_with_allow_module_level(testdir):
     """
     )
     result = testdir.runpytest("-rxs")
-    result.stdout.fnmatch_lines("*SKIP*skip_module_level")
+    result.stdout.fnmatch_lines(["*SKIP*skip_module_level"])
 
 
 def test_invalid_skip_keyword_parameter(testdir):
@@ -1147,7 +1132,7 @@ def test_invalid_skip_keyword_parameter(testdir):
     """
     )
     result = testdir.runpytest()
-    result.stdout.fnmatch_lines("*TypeError:*['unknown']*")
+    result.stdout.fnmatch_lines(["*TypeError:*['unknown']*"])
 
 
 def test_mark_xfail_item(testdir):
@@ -1189,6 +1174,14 @@ def test_summary_list_after_errors(testdir):
         [
             "=* FAILURES *=",
             "*= short test summary info =*",
-            "FAIL test_summary_list_after_errors.py::test_fail",
+            "FAILED test_summary_list_after_errors.py::test_fail - assert 0",
         ]
     )
+
+
+def test_importorskip():
+    with pytest.raises(
+        pytest.skip.Exception,
+        match="^could not import 'doesnotexist': No module named .*",
+    ):
+        pytest.importorskip("doesnotexist")

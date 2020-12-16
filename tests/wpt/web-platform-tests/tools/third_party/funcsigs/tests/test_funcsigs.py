@@ -1,9 +1,4 @@
-try:
-    # python 2.x
-    import unittest2 as unittest
-except ImportError:
-    # python 3.x
-    import unittest
+import unittest2 as unittest
 
 import doctest
 import sys
@@ -69,25 +64,28 @@ class TestFunctionSignatures(unittest.TestCase):
         self.assertTrue(inspect.__version__)
 
     def test_readme(self):
+        # XXX: This fails but doesn't fail the build.
+	# (and the syntax isn't valid on all pythons so that seems a little
+	# hard to get right.
         doctest.testfile('../README.rst')
 
     def test_unbound_method(self):
-        if sys.version_info < (3,):
-            self_kind = "positional_only"
-        else:
-            self_kind = "positional_or_keyword"
+        self_kind = "positional_or_keyword"
         class Test(object):
             def method(self):
                 pass
             def method_with_args(self, a):
                 pass
-        self.assertEqual(self.signature(Test.method),
-                (((('self', Ellipsis, Ellipsis, self_kind)),), Ellipsis))
-        self.assertEqual(self.signature(Test.method_with_args), ((
-                ('self', Ellipsis, Ellipsis, self_kind),
-                ('a', Ellipsis, Ellipsis, "positional_or_keyword"),
+            def method_with_varargs(*args):
+                pass
+        self.assertEqual(
+            self.signature(Test.method),
+            (((('self', Ellipsis, Ellipsis, self_kind)),), Ellipsis))
+        self.assertEqual(
+            self.signature(Test.method_with_args),
+            ((('self', Ellipsis, Ellipsis, self_kind),
+              ('a', Ellipsis, Ellipsis, "positional_or_keyword"),
                 ), Ellipsis))
-
-
-if __name__ == "__main__":
-    unittest.begin()
+        self.assertEqual(
+            self.signature(Test.method_with_varargs),
+            ((('args', Ellipsis, Ellipsis, "var_positional"),), Ellipsis))

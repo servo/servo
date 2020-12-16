@@ -58,9 +58,6 @@ include text3/reftest.list
 # Text Decoration Level 3
 include text-decor-3/reftest.list
 
-# User Interface Level 3
-include ui3/reftest.list
-
 # Values and Units Level 3
 include values3/reftest.list
 
