@@ -14,13 +14,10 @@ use crate::string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use crate::values::{AtomIdent, AtomString};
 use cssparser::{BasicParseError, BasicParseErrorKind, Parser};
 use cssparser::{CowRcStr, SourceLocation, ToCss, Token};
-use selectors::parser::{SelectorParseErrorKind, ParseErrorRecovery};
-use selectors::parser::{self as selector_parser, Selector};
-use selectors::visitor::SelectorVisitor;
+use selectors::parser::{ParseErrorRecovery, SelectorParseErrorKind};
 use selectors::SelectorList;
 use std::fmt;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss as ToCss_};
-use thin_slice::ThinBoxedSlice;
 
 pub use crate::gecko::pseudo_element::{
     PseudoElement, EAGER_PSEUDOS, EAGER_PSEUDO_COUNT, PSEUDO_COUNT,
@@ -54,11 +51,6 @@ macro_rules! pseudo_class_name {
             Lang(Lang),
             /// The `:dir` pseudo-class.
             Dir(Direction),
-            /// The non-standard `:-moz-any` pseudo-class.
-            ///
-            /// TODO(emilio): We disallow combinators and pseudos here, so we
-            /// should use SimpleSelector instead
-            MozAny(ThinBoxedSlice<Selector<SelectorImpl>>),
             /// The non-standard `:-moz-locale-dir` pseudo-class.
             MozLocaleDir(Direction),
         }
@@ -90,17 +82,6 @@ impl ToCss for NonTSPseudoClass {
                         dir.to_css(&mut CssWriter::new(dest))?;
                         return dest.write_char(')')
                     },
-                    NonTSPseudoClass::MozAny(ref selectors) => {
-                        dest.write_str(":-moz-any(")?;
-                        let mut iter = selectors.iter();
-                        let first = iter.next().expect(":-moz-any must have at least 1 selector");
-                        first.to_css(dest)?;
-                        for selector in iter {
-                            dest.write_str(", ")?;
-                            selector.to_css(dest)?;
-                        }
-                        return dest.write_char(')')
-                    }
                 }
             }
         }
@@ -145,8 +126,7 @@ impl NonTSPseudoClass {
                     $(NonTSPseudoClass::$name => check_flag!($flags),)*
                     NonTSPseudoClass::MozLocaleDir(_) |
                     NonTSPseudoClass::Lang(_) |
-                    NonTSPseudoClass::Dir(_) |
-                    NonTSPseudoClass::MozAny(_) => false,
+                    NonTSPseudoClass::Dir(_) => false,
                 }
             }
         }
@@ -181,8 +161,7 @@ impl NonTSPseudoClass {
                     $(NonTSPseudoClass::$name => flag!($state),)*
                     NonTSPseudoClass::Dir(..) |
                     NonTSPseudoClass::MozLocaleDir(..) |
-                    NonTSPseudoClass::Lang(..) |
-                    NonTSPseudoClass::MozAny(..) => ElementState::empty(),
+                    NonTSPseudoClass::Lang(..) => ElementState::empty(),
                 }
             }
         }
@@ -202,12 +181,7 @@ impl NonTSPseudoClass {
     /// revalidation.
     pub fn needs_cache_revalidation(&self) -> bool {
         self.state_flag().is_empty() &&
-            !matches!(
-                *self,
-                // :-moz-any is handled by the revalidation visitor walking
-                // the things inside it; it does not need to cause
-                // revalidation on its own.
-                NonTSPseudoClass::MozAny(_) |
+            !matches!(*self,
                       // :dir() depends on state only, but doesn't use state_flag
                       // because its semantics don't quite match.  Nevertheless, it
                       // doesn't need cache revalidation, because we already compare
@@ -250,21 +224,6 @@ impl ::selectors::parser::NonTSPseudoClass for NonTSPseudoClass {
             *self,
             NonTSPseudoClass::Hover | NonTSPseudoClass::Active | NonTSPseudoClass::Focus
         )
-    }
-
-    fn visit<V>(&self, visitor: &mut V) -> bool
-    where
-        V: SelectorVisitor<Impl = Self::Impl>,
-    {
-        if let NonTSPseudoClass::MozAny(ref selectors) = *self {
-            for selector in selectors.iter() {
-                if !selector.visit(visitor) {
-                    return false;
-                }
-            }
-        }
-
-        true
     }
 }
 
@@ -359,8 +318,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
 
     #[inline]
     fn is_is_alias(&self, function: &str) -> bool {
-        static_prefs::pref!("layout.css.moz-any-is-is.enabled") &&
-            function.eq_ignore_ascii_case("-moz-any")
+        function.eq_ignore_ascii_case("-moz-any")
     }
 
     fn parse_non_ts_pseudo_class(
@@ -395,14 +353,6 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
             },
             "dir" => {
                 NonTSPseudoClass::Dir(Direction::parse(parser)?)
-            },
-            "-moz-any" => {
-                NonTSPseudoClass::MozAny(
-                    selector_parser::parse_compound_selector_list(
-                        self,
-                        parser,
-                    )?.into()
-                )
             },
             _ => return Err(parser.new_custom_error(
                 SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name.clone())

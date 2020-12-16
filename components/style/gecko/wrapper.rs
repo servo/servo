@@ -2136,10 +2136,6 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                 self.document_state().contains(state_bit)
             },
             NonTSPseudoClass::MozPlaceholder => false,
-            NonTSPseudoClass::MozAny(ref sels) => context.nest(|context| {
-                sels.iter()
-                    .any(|s| matches_complex_selector(s.iter(), self, context, flags_setter))
-            }),
             NonTSPseudoClass::Lang(ref lang_arg) => self.match_element_lang(None, lang_arg),
             NonTSPseudoClass::MozLocaleDir(ref dir) => {
                 let state_bit = DocumentState::NS_DOCUMENT_STATE_RTL_LOCALE;

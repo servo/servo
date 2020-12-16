@@ -178,16 +178,6 @@ where
         // Some pseudo-classes need special handling to evaluate them against
         // the snapshot.
         match *pseudo_class {
-            #[cfg(feature = "gecko")]
-            NonTSPseudoClass::MozAny(ref selectors) => {
-                use selectors::matching::matches_complex_selector;
-                return context.nest(|context| {
-                    selectors
-                        .iter()
-                        .any(|s| matches_complex_selector(s.iter(), self, context, _setter))
-                });
-            },
-
             // :dir is implemented in terms of state flags, but which state flag
             // it maps to depends on the argument to :dir.  That means we can't
             // just add its state flags to the NonTSPseudoClass, because if we
