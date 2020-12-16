@@ -14,26 +14,22 @@ def load_version(filename='funcsigs/version.py'):
         version = match.group(1)
         return version
 
-def load_rst(filename='docs/source/guide_content.rst'):
-    "Purge refs directives from restructured text"
-    with open(filename) as source:
-        text = source.read()
-        doc = re.sub(r':\w+:`~?([a-zA-Z._()]+)`', r'*\1*', text)
-        return doc
 
 setup(
     name="funcsigs",
     version=load_version(),
     packages=['funcsigs'],
     zip_safe=False,
-    author="Aaron Iles",
-    author_email="aaron.iles@gmail.com",
+    author="Testing Cabal",
+    author_email="testing-in-python@lists.idyll.org",
     url="http://funcsigs.readthedocs.org",
     description="Python function signatures from PEP362 for Python 2.6, 2.7 and 3.2+",
     long_description=open('README.rst').read(),
-    # long_description=load_rst(),
     license="ASL",
-    install_requires = [],
+    extras_require = {
+        ':python_version<"2.7"': ['ordereddict'],
+    },
+    setup_requires = ["setuptools>=17.1"],
     classifiers = [
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
@@ -44,12 +40,13 @@ setup(
         'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.2',
         'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy',
         'Topic :: Software Development :: Libraries :: Python Modules'
     ],
-    tests_require = [] if sys.version_info[0] > 2 else ['unittest2'],
-    test_suite = "tests" if sys.version_info[0] > 2 else 'unittest2.collector'
+    tests_require = ['unittest2'],
+    test_suite = 'unittest2.collector',
 )

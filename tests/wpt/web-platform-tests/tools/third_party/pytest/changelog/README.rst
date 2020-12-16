@@ -14,7 +14,8 @@ Each file should be named like ``<ISSUE>.<TYPE>.rst``, where
 * ``feature``: new user facing features, like new command-line options and new behavior.
 * ``bugfix``: fixes a reported bug.
 * ``doc``: documentation improvement, like rewording an entire session or adding missing docs.
-* ``removal``: feature deprecation or removal.
+* ``deprecation``: feature deprecation.
+* ``removal``: feature removal.
 * ``vendor``: changes in packages vendored in pytest.
 * ``trivial``: fixing a small typo or internal change that might be noteworthy.
 
@@ -26,7 +27,7 @@ changelog using that instead.
 
 If you are not sure what issue type to use, don't hesitate to ask in your PR.
 
-Note that the ``towncrier`` tool will automatically
-reflow your text, so it will work best if you stick to a single paragraph, but multiple sentences and links are OK
-and encouraged. You can install ``towncrier`` and then run ``towncrier --draft``
+``towncrier`` preserves multiple paragraphs and formatting (code blocks, lists, and so on), but for entries
+other than ``features`` it is usually better to stick to a single paragraph to keep it concise. You can install
+``towncrier`` and then run ``towncrier --draft``
 if you want to get a preview of how your change will look in the final release notes.

@@ -1,6 +1,11 @@
 Changelog
 ---------
 
+0.5
+```
+
+* Fix binding with self as a kwarg. (Robert Collins #14)
+
 0.4 (2013-12-20)
 ````````````````
 * Fix unbound methods getting their first parameter curried

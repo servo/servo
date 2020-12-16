@@ -1,13 +1,18 @@
+# -*- coding: utf-8 -*-
 """
 support for presenting detailed information in failing assertions.
 """
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import sys
+
 import six
 
-from _pytest.assertion import util
 from _pytest.assertion import rewrite
 from _pytest.assertion import truncate
+from _pytest.assertion import util
 
 
 def pytest_addoption(parser):

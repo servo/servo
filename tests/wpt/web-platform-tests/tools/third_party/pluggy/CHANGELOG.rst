@@ -1,5 +1,180 @@
-0.6.0
------
+=========
+Changelog
+=========
+
+.. towncrier release notes start
+
+pluggy 0.13.1 (2019-11-21)
+==========================
+
+Trivial/Internal Changes
+------------------------
+
+- `#236 <https://github.com/pytest-dev/pluggy/pull/236>`_: Improved documentation, especially with regard to references.
+
+
+pluggy 0.13.0 (2019-09-10)
+==========================
+
+Trivial/Internal Changes
+------------------------
+
+- `#222 <https://github.com/pytest-dev/pluggy/issues/222>`_: Replace ``importlib_metadata`` backport with ``importlib.metadata`` from the
+  standard library on Python 3.8+.
+
+
+pluggy 0.12.0 (2019-05-27)
+==========================
+
+Features
+--------
+
+- `#215 <https://github.com/pytest-dev/pluggy/issues/215>`_: Switch from ``pkg_resources`` to ``importlib-metadata`` for entrypoint detection for improved performance and import time.  This time with ``.egg`` support.
+
+
+pluggy 0.11.0 (2019-05-07)
+==========================
+
+Bug Fixes
+---------
+
+- `#205 <https://github.com/pytest-dev/pluggy/issues/205>`_: Revert changes made in 0.10.0 release breaking ``.egg`` installs.
+
+
+pluggy 0.10.0 (2019-05-07)
+==========================
+
+Features
+--------
+
+- `#199 <https://github.com/pytest-dev/pluggy/issues/199>`_: Switch from ``pkg_resources`` to ``importlib-metadata`` for entrypoint detection for improved performance and import time.
+
+
+pluggy 0.9.0 (2019-02-21)
+=========================
+
+Features
+--------
+
+- `#189 <https://github.com/pytest-dev/pluggy/issues/189>`_: ``PluginManager.load_setuptools_entrypoints`` now accepts a ``name`` parameter that when given will
+  load only entry points with that name.
+
+  ``PluginManager.load_setuptools_entrypoints`` also now returns the number of plugins loaded by the
+  call, as opposed to the number of all plugins loaded by all calls to this method.
+
+
+
+Bug Fixes
+---------
+
+- `#187 <https://github.com/pytest-dev/pluggy/issues/187>`_: Fix internal ``varnames`` function for PyPy3.
+
+
+pluggy 0.8.1 (2018-11-09)
+=========================
+
+Trivial/Internal Changes
+------------------------
+
+- `#166 <https://github.com/pytest-dev/pluggy/issues/166>`_: Add ``stacklevel=2`` to implprefix warning so that the reported location of warning is the caller of PluginManager.
+
+
+pluggy 0.8.0 (2018-10-15)
+=========================
+
+Features
+--------
+
+- `#177 <https://github.com/pytest-dev/pluggy/issues/177>`_: Add ``get_hookimpls()`` method to hook callers.
+
+
+
+Trivial/Internal Changes
+------------------------
+
+- `#165 <https://github.com/pytest-dev/pluggy/issues/165>`_: Add changelog in long package description and documentation.
+
+
+- `#172 <https://github.com/pytest-dev/pluggy/issues/172>`_: Add a test exemplifying the opt-in nature of spec defined args.
+
+
+- `#57 <https://github.com/pytest-dev/pluggy/issues/57>`_: Encapsulate hook specifications in a type for easier introspection.
+
+
+pluggy 0.7.1 (2018-07-28)
+=========================
+
+Deprecations and Removals
+-------------------------
+
+- `#116 <https://github.com/pytest-dev/pluggy/issues/116>`_: Deprecate the ``implprefix`` kwarg to ``PluginManager`` and instead
+  expect users to start using explicit ``HookimplMarker`` everywhere.
+
+
+
+Features
+--------
+
+- `#122 <https://github.com/pytest-dev/pluggy/issues/122>`_: Add ``.plugin`` member to ``PluginValidationError`` to access failing plugin during post-mortem.
+
+
+- `#138 <https://github.com/pytest-dev/pluggy/issues/138>`_: Add per implementation warnings support for hookspecs allowing for both
+  deprecation and future warnings of legacy and (future) experimental hooks
+  respectively.
+
+
+
+Bug Fixes
+---------
+
+- `#110 <https://github.com/pytest-dev/pluggy/issues/110>`_: Fix a bug where ``_HookCaller.call_historic()`` would call the ``proc``
+  arg even when the default is ``None`` resulting in a ``TypeError``.
+
+- `#160 <https://github.com/pytest-dev/pluggy/issues/160>`_: Fix problem when handling ``VersionConflict`` errors when loading setuptools plugins.
+
+
+
+Improved Documentation
+----------------------
+
+- `#123 <https://github.com/pytest-dev/pluggy/issues/123>`_: Document how exceptions are handled and how the hook call loop
+  terminates immediately on the first error which is then delivered
+  to any surrounding wrappers.
+
+
+- `#136 <https://github.com/pytest-dev/pluggy/issues/136>`_: Docs rework including a much better introduction and comprehensive example
+  set for new users. A big thanks goes out to @obestwalter for the great work!
+
+
+
+Trivial/Internal Changes
+------------------------
+
+- `#117 <https://github.com/pytest-dev/pluggy/issues/117>`_: Break up the main monolithic package modules into separate modules by concern
+
+
+- `#131 <https://github.com/pytest-dev/pluggy/issues/131>`_: Automate ``setuptools`` wheels building and PyPi upload using TravisCI.
+
+
+- `#153 <https://github.com/pytest-dev/pluggy/issues/153>`_: Reorganize tests more appropriately by modules relating to each
+  internal component/feature. This is in an effort to avoid (future)
+  duplication and better separation of concerns in the test set.
+
+
+- `#156 <https://github.com/pytest-dev/pluggy/issues/156>`_: Add ``HookImpl.__repr__()`` for better debugging.
+
+
+- `#66 <https://github.com/pytest-dev/pluggy/issues/66>`_: Start using ``towncrier`` and a custom ``tox`` environment to prepare releases!
+
+
+pluggy 0.7.0 (Unreleased)
+=========================
+
+* `#160 <https://github.com/pytest-dev/pluggy/issues/160>`_: We discovered a deployment issue so this version was never released to PyPI, only the tag exists.
+
+pluggy 0.6.0 (2017-11-24)
+=========================
+
 - Add CI testing for the features, release, and master
   branches of ``pytest`` (PR `#79`_).
 - Document public API for ``_Result`` objects passed to wrappers
@@ -27,8 +202,9 @@
 .. _#103: https://github.com/pytest-dev/pluggy/pull/103
 
 
-0.5.2
------
+pluggy 0.5.2 (2017-09-06)
+=========================
+
 - fix bug where ``firstresult`` wrappers were being sent an incorrectly configured
   ``_Result`` (a list was set instead of a single value). Add tests to check for
   this as well as ``_Result.force_result()`` behaviour. Thanks to `@tgoodlet`_
@@ -45,18 +221,20 @@
 .. _#80: https://github.com/pytest-dev/pluggy/pull/80
 
 
-0.5.1
------
+pluggy 0.5.1 (2017-08-29)
+=========================
+
 - fix a bug and add tests for case where ``firstresult`` hooks return
   ``None`` results. Thanks to `@RonnyPfannschmidt`_ and `@tgoodlet`_
   for the issue (`#68`_) and PR (`#69`_) respectively.
 
 .. _#69: https://github.com/pytest-dev/pluggy/pull/69
-.. _#68: https://github.com/pytest-dev/pluggy/issuses/68
+.. _#68: https://github.com/pytest-dev/pluggy/issues/68
 
 
-0.5.0
------
+pluggy 0.5.0 (2017-08-28)
+=========================
+
 - fix bug where callbacks for historic hooks would not be called for
   already registered plugins.  Thanks `@vodik`_ for the PR
   and `@hpk42`_ for further fixes.
@@ -114,8 +292,9 @@
 .. _#14: https://github.com/pytest-dev/pluggy/issues/14
 
 
-0.4.0
------
+pluggy 0.4.0 (2016-09-25)
+=========================
+
 - add ``has_plugin(name)`` method to pluginmanager.  thanks `@nicoddemus`_.
 
 - fix `#11`_: make plugin parsing more resilient against exceptions
@@ -131,19 +310,21 @@
 .. _#4: https://github.com/pytest-dev/pluggy/issues/4
 
 
-0.3.1
------
+pluggy 0.3.1 (2015-09-17)
+=========================
+
 - avoid using deprecated-in-python3.5 getargspec method. Thanks
   `@mdboom`_.
 
 
-0.3.0
------
+pluggy 0.3.0 (2015-05-07)
+=========================
+
 initial release
 
 .. contributors
 .. _@hpk42: https://github.com/hpk42
-.. _@tgoodlet: https://github.com/tgoodlet
+.. _@tgoodlet: https://github.com/goodboy
 .. _@MichalTHEDUDE: https://github.com/MichalTHEDUDE
 .. _@vodik: https://github.com/vodik
 .. _@RonnyPfannschmidt: https://github.com/RonnyPfannschmidt

@@ -7,7 +7,7 @@ pytest-2.3: reasoning for fixture/funcarg evolution
 
 **Target audience**: Reading this document requires basic knowledge of
 python testing, xUnit setup methods and the (previous) basic pytest
-funcarg mechanism, see http://pytest.org/2.2.4/funcargs.html
+funcarg mechanism, see https://docs.pytest.org/en/latest/historical-notes.html#funcargs-and-pytest-funcarg.
 If you are new to pytest, then you can simply ignore this
 section and read the other sections.
 
@@ -26,9 +26,9 @@ a per-session Database object::
     # content of conftest.py
     class Database(object):
         def __init__(self):
-            print ("database instance created")
+            print("database instance created")
         def destroy(self):
-            print ("database instance destroyed")
+            print("database instance destroyed")
 
     def pytest_funcarg__db(request):
         return request.cached_setup(setup=DataBase,

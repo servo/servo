@@ -1,7 +1,11 @@
-from __future__ import absolute_import, division, print_function
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+import sys
 
 import pytest
-import sys
 
 
 def pytest_addoption(parser):
@@ -51,7 +55,8 @@ def _show_fixture_action(fixturedef, msg):
     config = fixturedef._fixturemanager.config
     capman = config.pluginmanager.getplugin("capturemanager")
     if capman:
-        out, err = capman.suspend_global_capture()
+        capman.suspend_global_capture()
+        out, err = capman.read_global_capture()
 
     tw = config.get_terminal_writer()
     tw.line()

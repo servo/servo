@@ -1,9 +1,14 @@
+# -*- coding: utf-8 -*-
 """ support for skip/xfail functions and markers. """
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 from _pytest.config import hookimpl
 from _pytest.mark.evaluate import MarkEvaluator
-from _pytest.outcomes import fail, skip, xfail
+from _pytest.outcomes import fail
+from _pytest.outcomes import skip
+from _pytest.outcomes import xfail
 
 
 def pytest_addoption(parser):
@@ -13,7 +18,7 @@ def pytest_addoption(parser):
         action="store_true",
         dest="runxfail",
         default=False,
-        help="run tests even if they are marked xfail",
+        help="report the results of xfail tests as if they were not marked",
     )
 
     parser.addini(
@@ -51,7 +56,7 @@ def pytest_configure(config):
         "results in a True value.  Evaluation happens within the "
         "module global context. Example: skipif('sys.platform == \"win32\"') "
         "skips the test if we are on the win32 platform. see "
-        "http://pytest.org/latest/skipping.html",
+        "https://docs.pytest.org/en/latest/skipping.html",
     )
     config.addinivalue_line(
         "markers",
@@ -61,7 +66,7 @@ def pytest_configure(config):
         "and run=False if you don't even want to execute the test function. "
         "If only specific exception(s) are expected, you can list them in "
         "raises, and if the test fails in other ways, it will be reported as "
-        "a true failure. See http://pytest.org/latest/skipping.html",
+        "a true failure. See https://docs.pytest.org/en/latest/skipping.html",
     )
 
 
@@ -157,9 +162,11 @@ def pytest_runtest_makereport(item, call):
             else:
                 rep.outcome = "passed"
                 rep.wasxfail = explanation
-    elif getattr(item, "_skipped_by_mark", False) and rep.skipped and type(
-        rep.longrepr
-    ) is tuple:
+    elif (
+        getattr(item, "_skipped_by_mark", False)
+        and rep.skipped
+        and type(rep.longrepr) is tuple
+    ):
         # skipped by mark.skipif; change the location of the failure
         # to point to the item definition, otherwise it will display
         # the location of where the skip exception was raised within pytest
@@ -174,120 +181,6 @@ def pytest_runtest_makereport(item, call):
 def pytest_report_teststatus(report):
     if hasattr(report, "wasxfail"):
         if report.skipped:
-            return "xfailed", "x", "xfail"
+            return "xfailed", "x", "XFAIL"
         elif report.passed:
-            return "xpassed", "X", ("XPASS", {"yellow": True})
-
-
-# called by the terminalreporter instance/plugin
-
-
-def pytest_terminal_summary(terminalreporter):
-    tr = terminalreporter
-    if not tr.reportchars:
-        # for name in "xfailed skipped failed xpassed":
-        #    if not tr.stats.get(name, 0):
-        #        tr.write_line("HINT: use '-r' option to see extra "
-        #              "summary info about tests")
-        #        break
-        return
-
-    lines = []
-    for char in tr.reportchars:
-        action = REPORTCHAR_ACTIONS.get(char, lambda tr, lines: None)
-        action(terminalreporter, lines)
-
-    if lines:
-        tr._tw.sep("=", "short test summary info")
-        for line in lines:
-            tr._tw.line(line)
-
-
-def show_simple(terminalreporter, lines, stat, format):
-    failed = terminalreporter.stats.get(stat)
-    if failed:
-        for rep in failed:
-            pos = terminalreporter.config.cwd_relative_nodeid(rep.nodeid)
-            lines.append(format % (pos,))
-
-
-def show_xfailed(terminalreporter, lines):
-    xfailed = terminalreporter.stats.get("xfailed")
-    if xfailed:
-        for rep in xfailed:
-            pos = terminalreporter.config.cwd_relative_nodeid(rep.nodeid)
-            reason = rep.wasxfail
-            lines.append("XFAIL %s" % (pos,))
-            if reason:
-                lines.append("  " + str(reason))
-
-
-def show_xpassed(terminalreporter, lines):
-    xpassed = terminalreporter.stats.get("xpassed")
-    if xpassed:
-        for rep in xpassed:
-            pos = terminalreporter.config.cwd_relative_nodeid(rep.nodeid)
-            reason = rep.wasxfail
-            lines.append("XPASS %s %s" % (pos, reason))
-
-
-def folded_skips(skipped):
-    d = {}
-    for event in skipped:
-        key = event.longrepr
-        assert len(key) == 3, (event, key)
-        keywords = getattr(event, "keywords", {})
-        # folding reports with global pytestmark variable
-        # this is workaround, because for now we cannot identify the scope of a skip marker
-        # TODO: revisit after marks scope would be fixed
-        when = getattr(event, "when", None)
-        if when == "setup" and "skip" in keywords and "pytestmark" not in keywords:
-            key = (key[0], None, key[2])
-        d.setdefault(key, []).append(event)
-    values = []
-    for key, events in d.items():
-        values.append((len(events),) + key)
-    return values
-
-
-def show_skipped(terminalreporter, lines):
-    tr = terminalreporter
-    skipped = tr.stats.get("skipped", [])
-    if skipped:
-        # if not tr.hasopt('skipped'):
-        #    tr.write_line(
-        #        "%d skipped tests, specify -rs for more info" %
-        #        len(skipped))
-        #    return
-        fskips = folded_skips(skipped)
-        if fskips:
-            # tr.write_sep("_", "skipped test summary")
-            for num, fspath, lineno, reason in fskips:
-                if reason.startswith("Skipped: "):
-                    reason = reason[9:]
-                if lineno is not None:
-                    lines.append(
-                        "SKIP [%d] %s:%d: %s" % (num, fspath, lineno + 1, reason)
-                    )
-                else:
-                    lines.append("SKIP [%d] %s: %s" % (num, fspath, reason))
-
-
-def shower(stat, format):
-
-    def show_(terminalreporter, lines):
-        return show_simple(terminalreporter, lines, stat, format)
-
-    return show_
-
-
-REPORTCHAR_ACTIONS = {
-    "x": show_xfailed,
-    "X": show_xpassed,
-    "f": shower("failed", "FAIL %s"),
-    "F": shower("failed", "FAIL %s"),
-    "s": show_skipped,
-    "S": show_skipped,
-    "p": shower("passed", "PASSED %s"),
-    "E": shower("error", "ERROR %s"),
-}
+            return "xpassed", "X", "XPASS"

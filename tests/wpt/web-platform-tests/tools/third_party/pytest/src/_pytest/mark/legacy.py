@@ -1,9 +1,11 @@
+# -*- coding: utf-8 -*-
 """
 this is a place where we put datastructures used by legacy apis
 we hope ot remove
 """
-import attr
 import keyword
+
+import attr
 
 from _pytest.config import UsageError
 
@@ -44,13 +46,14 @@ class KeywordMapping(object):
                 mapped_names.add(item.name)
 
         # Add the names added as extra keywords to current or parent items
-        for name in item.listextrakeywords():
-            mapped_names.add(name)
+        mapped_names.update(item.listextrakeywords())
 
         # Add the names attached to the current function through direct assignment
         if hasattr(item, "function"):
-            for name in item.function.__dict__:
-                mapped_names.add(name)
+            mapped_names.update(item.function.__dict__)
+
+        # add the markers to the keywords as we no longer handle them correctly
+        mapped_names.update(mark.name for mark in item.iter_markers())
 
         return cls(mapped_names)
 
@@ -66,7 +69,10 @@ python_keywords_allowed_list = ["or", "and", "not"]
 
 def matchmark(colitem, markexpr):
     """Tries to match on any marker names, attached to the given colitem."""
-    return eval(markexpr, {}, MarkMapping.from_item(colitem))
+    try:
+        return eval(markexpr, {}, MarkMapping.from_item(colitem))
+    except SyntaxError as e:
+        raise SyntaxError(str(e) + "\nMarker expression must be valid Python!")
 
 
 def matchkeyword(colitem, keywordexpr):

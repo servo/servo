@@ -1,55 +1,18 @@
-from __future__ import absolute_import, division, print_function
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+import os
+
 import pytest
+from _pytest.warning_types import PytestDeprecationWarning
+from _pytest.warnings import SHOW_PYTEST_WARNINGS_ARG
+
+pytestmark = pytest.mark.pytester_example_path("deprecated")
 
 
-def test_yield_tests_deprecation(testdir):
-    testdir.makepyfile(
-        """
-        def func1(arg, arg2):
-            assert arg == arg2
-        def test_gen():
-            yield "m1", func1, 15, 3*5
-            yield "m2", func1, 42, 6*7
-        def test_gen2():
-            for k in range(10):
-                yield func1, 1, 1
-    """
-    )
-    result = testdir.runpytest("-ra")
-    result.stdout.fnmatch_lines(
-        [
-            "*yield tests are deprecated, and scheduled to be removed in pytest 4.0*",
-            "*2 passed*",
-        ]
-    )
-    assert result.stdout.str().count("yield tests are deprecated") == 2
-
-
-def test_funcarg_prefix_deprecation(testdir):
-    testdir.makepyfile(
-        """
-        def pytest_funcarg__value():
-            return 10
-
-        def test_funcarg_prefix(value):
-            assert value == 10
-    """
-    )
-    result = testdir.runpytest("-ra")
-    result.stdout.fnmatch_lines(
-        [
-            (
-                "*pytest_funcarg__value: "
-                'declaring fixtures using "pytest_funcarg__" prefix is deprecated '
-                "and scheduled to be removed in pytest 4.0.  "
-                "Please remove the prefix and use the @pytest.fixture decorator instead."
-            ),
-            "*1 passed*",
-        ]
-    )
-
-
-def test_pytest_setup_cfg_deprecated(testdir):
+def test_pytest_setup_cfg_unsupported(testdir):
     testdir.makefile(
         ".cfg",
         setup="""
@@ -57,13 +20,11 @@ def test_pytest_setup_cfg_deprecated(testdir):
         addopts = --verbose
     """,
     )
-    result = testdir.runpytest()
-    result.stdout.fnmatch_lines(
-        ["*pytest*section in setup.cfg files is deprecated*use*tool:pytest*instead*"]
-    )
+    with pytest.raises(pytest.fail.Exception):
+        testdir.runpytest()
 
 
-def test_pytest_custom_cfg_deprecated(testdir):
+def test_pytest_custom_cfg_unsupported(testdir):
     testdir.makefile(
         ".cfg",
         custom="""
@@ -71,36 +32,15 @@ def test_pytest_custom_cfg_deprecated(testdir):
         addopts = --verbose
     """,
     )
-    result = testdir.runpytest("-c", "custom.cfg")
-    result.stdout.fnmatch_lines(
-        ["*pytest*section in custom.cfg files is deprecated*use*tool:pytest*instead*"]
-    )
-
-
-def test_str_args_deprecated(tmpdir, testdir):
-    """Deprecate passing strings to pytest.main(). Scheduled for removal in pytest-4.0."""
-    from _pytest.main import EXIT_NOTESTSCOLLECTED
-
-    warnings = []
-
-    class Collect(object):
-
-        def pytest_logwarning(self, message):
-            warnings.append(message)
-
-    ret = pytest.main("%s -x" % tmpdir, plugins=[Collect()])
-    msg = (
-        "passing a string to pytest.main() is deprecated, "
-        "pass a list of arguments instead."
-    )
-    assert msg in warnings
-    assert ret == EXIT_NOTESTSCOLLECTED
+    with pytest.raises(pytest.fail.Exception):
+        testdir.runpytest("-c", "custom.cfg")
 
 
 def test_getfuncargvalue_is_deprecated(request):
     pytest.deprecated_call(request.getfuncargvalue, "tmpdir")
 
 
+@pytest.mark.filterwarnings("default")
 def test_resultlog_is_deprecated(testdir):
     result = testdir.runpytest("--help")
     result.stdout.fnmatch_lines(["*DEPRECATED path for machine-readable result log*"])
@@ -114,27 +54,9 @@ def test_resultlog_is_deprecated(testdir):
     result = testdir.runpytest("--result-log=%s" % testdir.tmpdir.join("result.log"))
     result.stdout.fnmatch_lines(
         [
-            "*--result-log is deprecated and scheduled for removal in pytest 4.0*",
-            "*See https://docs.pytest.org/*/usage.html#creating-resultlog-format-files for more information*",
+            "*--result-log is deprecated and scheduled for removal in pytest 5.0*",
+            "*See https://docs.pytest.org/en/latest/deprecations.html#result-log-result-log for more information*",
         ]
-    )
-
-
-@pytest.mark.filterwarnings("always:Metafunc.addcall is deprecated")
-def test_metafunc_addcall_deprecated(testdir):
-    testdir.makepyfile(
-        """
-        def pytest_generate_tests(metafunc):
-            metafunc.addcall({'i': 1})
-            metafunc.addcall({'i': 2})
-        def test_func(i):
-            pass
-    """
-    )
-    res = testdir.runpytest("-s")
-    assert res.ret == 0
-    res.stdout.fnmatch_lines(
-        ["*Metafunc.addcall is deprecated*", "*2 passed, 2 warnings*"]
     )
 
 
@@ -153,6 +75,7 @@ def test_terminal_reporter_writer_attr(pytestconfig):
 
 
 @pytest.mark.parametrize("plugin", ["catchlog", "capturelog"])
+@pytest.mark.filterwarnings("default")
 def test_pytest_catchlog_deprecated(testdir, plugin):
     testdir.makepyfile(
         """
@@ -169,24 +92,21 @@ def test_pytest_catchlog_deprecated(testdir, plugin):
     )
 
 
+def test_raises_message_argument_deprecated():
+    with pytest.warns(pytest.PytestDeprecationWarning):
+        with pytest.raises(RuntimeError, message="foobar"):
+            raise RuntimeError
+
+
 def test_pytest_plugins_in_non_top_level_conftest_deprecated(testdir):
     from _pytest.deprecated import PYTEST_PLUGINS_FROM_NON_TOP_LEVEL_CONFTEST
 
-    subdirectory = testdir.tmpdir.join("subdirectory")
-    subdirectory.mkdir()
-    # create the inner conftest with makeconftest and then move it to the subdirectory
-    testdir.makeconftest(
-        """
+    testdir.makepyfile(
+        **{
+            "subdirectory/conftest.py": """
         pytest_plugins=['capture']
     """
-    )
-    testdir.tmpdir.join("conftest.py").move(subdirectory.join("conftest.py"))
-    # make the top level conftest
-    testdir.makeconftest(
-        """
-        import warnings
-        warnings.filterwarnings('always', category=DeprecationWarning)
-    """
+        }
     )
     testdir.makepyfile(
         """
@@ -194,15 +114,45 @@ def test_pytest_plugins_in_non_top_level_conftest_deprecated(testdir):
             pass
     """
     )
-    res = testdir.runpytest_subprocess()
-    assert res.ret == 0
-    res.stderr.fnmatch_lines(
-        "*" + str(PYTEST_PLUGINS_FROM_NON_TOP_LEVEL_CONFTEST).splitlines()[0]
+    res = testdir.runpytest(SHOW_PYTEST_WARNINGS_ARG)
+    assert res.ret == 2
+    msg = str(PYTEST_PLUGINS_FROM_NON_TOP_LEVEL_CONFTEST).splitlines()[0]
+    res.stdout.fnmatch_lines(
+        ["*{msg}*".format(msg=msg), "*subdirectory{sep}conftest.py*".format(sep=os.sep)]
     )
 
 
-def test_pytest_plugins_in_non_top_level_conftest_deprecated_no_top_level_conftest(
-    testdir
+@pytest.mark.parametrize("use_pyargs", [True, False])
+def test_pytest_plugins_in_non_top_level_conftest_unsupported_pyargs(
+    testdir, use_pyargs
+):
+    """When using --pyargs, do not emit the warning about non-top-level conftest warnings (#4039, #4044)"""
+    from _pytest.deprecated import PYTEST_PLUGINS_FROM_NON_TOP_LEVEL_CONFTEST
+
+    files = {
+        "src/pkg/__init__.py": "",
+        "src/pkg/conftest.py": "",
+        "src/pkg/test_root.py": "def test(): pass",
+        "src/pkg/sub/__init__.py": "",
+        "src/pkg/sub/conftest.py": "pytest_plugins=['capture']",
+        "src/pkg/sub/test_bar.py": "def test(): pass",
+    }
+    testdir.makepyfile(**files)
+    testdir.syspathinsert(testdir.tmpdir.join("src"))
+
+    args = ("--pyargs", "pkg") if use_pyargs else ()
+    args += (SHOW_PYTEST_WARNINGS_ARG,)
+    res = testdir.runpytest(*args)
+    assert res.ret == (0 if use_pyargs else 2)
+    msg = str(PYTEST_PLUGINS_FROM_NON_TOP_LEVEL_CONFTEST).splitlines()[0]
+    if use_pyargs:
+        assert msg not in res.stdout.str()
+    else:
+        res.stdout.fnmatch_lines(["*{msg}*".format(msg=msg)])
+
+
+def test_pytest_plugins_in_non_top_level_conftest_unsupported_no_top_level_conftest(
+    testdir,
 ):
     from _pytest.deprecated import PYTEST_PLUGINS_FROM_NON_TOP_LEVEL_CONFTEST
 
@@ -210,8 +160,6 @@ def test_pytest_plugins_in_non_top_level_conftest_deprecated_no_top_level_confte
     subdirectory.mkdir()
     testdir.makeconftest(
         """
-        import warnings
-        warnings.filterwarnings('always', category=DeprecationWarning)
         pytest_plugins=['capture']
     """
     )
@@ -225,14 +173,15 @@ def test_pytest_plugins_in_non_top_level_conftest_deprecated_no_top_level_confte
     )
 
     res = testdir.runpytest_subprocess()
-    assert res.ret == 0
-    res.stderr.fnmatch_lines(
-        "*" + str(PYTEST_PLUGINS_FROM_NON_TOP_LEVEL_CONFTEST).splitlines()[0]
+    assert res.ret == 2
+    msg = str(PYTEST_PLUGINS_FROM_NON_TOP_LEVEL_CONFTEST).splitlines()[0]
+    res.stdout.fnmatch_lines(
+        ["*{msg}*".format(msg=msg), "*subdirectory{sep}conftest.py*".format(sep=os.sep)]
     )
 
 
-def test_pytest_plugins_in_non_top_level_conftest_deprecated_no_false_positives(
-    testdir
+def test_pytest_plugins_in_non_top_level_conftest_unsupported_no_false_positives(
+    testdir,
 ):
     from _pytest.deprecated import PYTEST_PLUGINS_FROM_NON_TOP_LEVEL_CONFTEST
 
@@ -260,6 +209,23 @@ def test_pytest_plugins_in_non_top_level_conftest_deprecated_no_false_positives(
     )
     res = testdir.runpytest_subprocess()
     assert res.ret == 0
-    assert str(PYTEST_PLUGINS_FROM_NON_TOP_LEVEL_CONFTEST).splitlines()[
-        0
-    ] not in res.stderr.str()
+    msg = str(PYTEST_PLUGINS_FROM_NON_TOP_LEVEL_CONFTEST).splitlines()[0]
+    assert msg not in res.stdout.str()
+
+
+def test_fixture_named_request(testdir):
+    testdir.copy_example()
+    result = testdir.runpytest()
+    result.stdout.fnmatch_lines(
+        [
+            "*'request' is a reserved name for fixtures and will raise an error in future versions"
+        ]
+    )
+
+
+def test_pytest_warns_unknown_kwargs():
+    with pytest.warns(
+        PytestDeprecationWarning,
+        match=r"pytest.warns\(\) got unexpected keyword arguments: \['foo'\]",
+    ):
+        pytest.warns(UserWarning, foo="hello")

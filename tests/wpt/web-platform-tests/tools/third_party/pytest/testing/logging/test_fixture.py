@@ -45,7 +45,7 @@ def test_change_level_undo(testdir):
             assert 0
     """
     )
-    result = testdir.runpytest_subprocess()
+    result = testdir.runpytest()
     result.stdout.fnmatch_lines(["*log from test1*", "*2 failed in *"])
     assert "log from test2" not in result.stdout.str()
 
@@ -71,6 +71,27 @@ def test_log_access(caplog):
     assert caplog.records[0].levelname == "INFO"
     assert caplog.records[0].msg == "boo %s"
     assert "boo arg" in caplog.text
+
+
+def test_messages(caplog):
+    caplog.set_level(logging.INFO)
+    logger.info("boo %s", "arg")
+    logger.info("bar %s\nbaz %s", "arg1", "arg2")
+    assert "boo arg" == caplog.messages[0]
+    assert "bar arg1\nbaz arg2" == caplog.messages[1]
+    assert caplog.text.count("\n") > len(caplog.messages)
+    assert len(caplog.text.splitlines()) > len(caplog.messages)
+
+    try:
+        raise Exception("test")
+    except Exception:
+        logger.exception("oops")
+
+    assert "oops" in caplog.text
+    assert "oops" in caplog.messages[-1]
+    # Tracebacks are stored in the record and not added until the formatter or handler.
+    assert "Exception" in caplog.text
+    assert "Exception" not in caplog.messages[-1]
 
 
 def test_record_tuples(caplog):
@@ -115,5 +136,5 @@ def test_caplog_captures_for_all_stages(caplog, logging_during_setup_and_teardow
 
     assert [x.message for x in caplog.get_records("setup")] == ["a_setup_log"]
 
-    # This reachers into private API, don't use this type of thing in real tests!
+    # This reaches into private API, don't use this type of thing in real tests!
     assert set(caplog._item.catch_log_handlers.keys()) == {"setup", "call"}

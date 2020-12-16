@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 def test_upper():
     assert "foo".upper() == "FOO"
 

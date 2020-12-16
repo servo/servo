@@ -5,9 +5,9 @@
 "yield_fixture" functions
 ---------------------------------------------------------------
 
-.. deprecated:: 3.0
 
-.. versionadded:: 2.4
+
+
 
 .. important::
     Since pytest-3.0, fixtures using the normal ``fixture`` decorator can use a ``yield``

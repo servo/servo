@@ -5,7 +5,9 @@ Command line options and configuration file settings
 -----------------------------------------------------------------
 
 You can get help on command line options and values in INI-style
-configurations files by using the general help option::
+configurations files by using the general help option:
+
+.. code-block:: bash
 
     pytest -h   # prints options _and_ config file settings
 
@@ -18,7 +20,7 @@ which were registered by installed plugins.
 Initialization: determining rootdir and inifile
 -----------------------------------------------
 
-.. versionadded:: 2.7
+
 
 pytest determines a ``rootdir`` for each test run which depends on
 the command line arguments (specified test files, paths) and on
@@ -32,7 +34,7 @@ Here's a summary what ``pytest`` uses ``rootdir`` for:
   class name, function name and parametrization (if any).
 
 * Is used by plugins as a stable location to store project/test run specific information;
-  for example, the internal :ref:`cache <cache>` plugin creates a ``.cache`` subdirectory
+  for example, the internal :ref:`cache <cache>` plugin creates a ``.pytest_cache`` subdirectory
   in ``rootdir`` to store its cross-test run state.
 
 Important to emphasize that ``rootdir`` is **NOT** used to modify ``sys.path``/``PYTHONPATH`` or
@@ -88,16 +90,20 @@ The ``config`` object will subsequently carry these attributes:
 
 - ``config.inifile``: the determined ini-file, may be ``None``.
 
-The rootdir is used a reference directory for constructing test
+The rootdir is used as a reference directory for constructing test
 addresses ("nodeids") and can be used also by plugins for storing
 per-testrun information.
 
-Example::
+Example:
+
+.. code-block:: bash
 
     pytest path/to/testdir path/other/
 
 will determine the common ancestor as ``path`` and then
-check for ini-files as follows::
+check for ini-files as follows:
+
+.. code-block:: text
 
     # first look for pytest.ini files
     path/pytest.ini
@@ -127,25 +133,33 @@ progress output, you can write it into a configuration file:
 
 .. code-block:: ini
 
-    # content of pytest.ini
-    # (or tox.ini or setup.cfg)
+    # content of pytest.ini or tox.ini
+    # setup.cfg files should use [tool:pytest] section instead
     [pytest]
     addopts = -ra -q
 
 Alternatively, you can set a ``PYTEST_ADDOPTS`` environment variable to add command
-line options while the environment is in use::
+line options while the environment is in use:
+
+.. code-block:: bash
 
     export PYTEST_ADDOPTS="-v"
 
-Here's how the command-line is built in the presence of ``addopts`` or the environment variable::
+Here's how the command-line is built in the presence of ``addopts`` or the environment variable:
 
-    <pytest.ini:addopts> $PYTEST_ADDOTPS <extra command-line arguments>
+.. code-block:: text
 
-So if the user executes in the command-line::
+    <pytest.ini:addopts> $PYTEST_ADDOPTS <extra command-line arguments>
+
+So if the user executes in the command-line:
+
+.. code-block:: bash
 
     pytest -m slow
 
-The actual command line executed is::
+The actual command line executed is:
+
+.. code-block:: bash
 
     pytest -ra -q -v -m slow
 

@@ -41,6 +41,12 @@
     return el;
   }
 
+  function createClonedTextareaWithNoDirtyValueFlag(text) {
+    const textarea = document.createElement("textarea");
+    textarea.textContent = text;
+    return textarea.cloneNode(true);
+  }
+
   function createTestElements(value) {
     return [ createInputElement(value, true),
              createInputElement(value, false),
@@ -50,6 +56,7 @@
              createTextareaElement(value, false),
              createPrefocusedTextareaElement(value, true),
              createPrefocusedTextareaElement(value, false),
+             createClonedTextareaWithNoDirtyValueFlag(value)
            ];
   }
 
@@ -61,9 +68,11 @@
 
   for (let prop of ["selectionStart", "selectionEnd"]) {
     for (let el of createTestElements(testValue)) {
-      test(function() {
-        assert_equals(el[prop], testValue.length);
-      }, `Initial .value set on ${el.id} should set ${prop} to end of value`);
+      if (el.defaultValue !== el.value) {
+        test(function() {
+          assert_equals(el[prop], testValue.length);
+        }, `Initial .value set on ${el.id} should set ${prop} to end of value`);
+      }
     }
   }
 

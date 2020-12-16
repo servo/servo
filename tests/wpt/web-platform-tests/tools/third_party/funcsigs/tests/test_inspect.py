@@ -1,12 +1,10 @@
 # Copyright 2001-2013 Python Software Foundation; All Rights Reserved
 from __future__ import absolute_import, division, print_function
 import collections
+import functools
 import sys
 
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import unittest2 as unittest
 
 import funcsigs as inspect
 
@@ -23,11 +21,6 @@ class TestSignatureObject(unittest.TestCase):
                                     for param in sig.parameters.values()),
                 (Ellipsis if sig.return_annotation is sig.empty
                                             else sig.return_annotation))
-
-    def __init__(self, *args, **kwargs):
-        unittest.TestCase.__init__(self, *args, **kwargs)
-        if not hasattr(self, 'assertRaisesRegex'):
-            self.assertRaisesRegex = self.assertRaisesRegexp
 
     if sys.version_info[0] > 2:
         exec("""
@@ -656,11 +649,6 @@ def test_signature_replace_anno(self):
 
 class TestParameterObject(unittest.TestCase):
 
-    def __init__(self, *args, **kwargs):
-        unittest.TestCase.__init__(self, *args, **kwargs)
-        if not hasattr(self, 'assertRaisesRegex'):
-            self.assertRaisesRegex = self.assertRaisesRegexp
-
     def test_signature_parameter_kinds(self):
         P = inspect.Parameter
         self.assertTrue(P.POSITIONAL_ONLY < P.POSITIONAL_OR_KEYWORD < \
@@ -779,11 +767,6 @@ class TestSignatureBind(unittest.TestCase):
         sig = inspect.signature(func)
         ba = sig.bind(*args, **kwargs)
         return func(*ba.args, **ba.kwargs)
-
-    def __init__(self, *args, **kwargs):
-        unittest.TestCase.__init__(self, *args, **kwargs)
-        if not hasattr(self, 'assertRaisesRegex'):
-            self.assertRaisesRegex = self.assertRaisesRegexp
 
     def test_signature_bind_empty(self):
         def test():
@@ -982,13 +965,17 @@ def test_signature_bind_positional_only(self):
         self.call(test, a_po=1, b_po=2)
 """)
 
+    def test_bind_self(self):
+        class F:
+            def f(a, self):
+                return a, self
+        an_f = F()
+        partial_f = functools.partial(F.f, an_f)
+        ba = inspect.signature(partial_f).bind(self=10)
+        self.assertEqual((an_f, 10), partial_f(*ba.args, **ba.kwargs))
+
 
 class TestBoundArguments(unittest.TestCase):
-
-    def __init__(self, *args, **kwargs):
-        unittest.TestCase.__init__(self, *args, **kwargs)
-        if not hasattr(self, 'assertRaisesRegex'):
-            self.assertRaisesRegex = self.assertRaisesRegexp
 
     def test_signature_bound_arguments_unhashable(self):
         def foo(a): pass
@@ -1013,7 +1000,3 @@ class TestBoundArguments(unittest.TestCase):
         def bar(b): pass
         ba4 = inspect.signature(bar).bind(1)
         self.assertNotEqual(ba, ba4)
-
-
-if __name__ == "__main__":
-    unittest.begin()

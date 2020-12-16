@@ -4,6 +4,28 @@
 Good Integration Practices
 =================================================
 
+Install package with pip
+-------------------------------------------------
+
+For development, we recommend you use venv_ for virtual environments
+(or virtualenv_ for Python 2.7) and
+pip_ for installing your application and any dependencies,
+as well as the ``pytest`` package itself.
+This ensures your code and dependencies are isolated from your system Python installation.
+
+Next, place a ``setup.py`` file in the root of your package with the following minimum content::
+
+    from setuptools import setup, find_packages
+
+    setup(name="PACKAGENAME", packages=find_packages())
+
+Where ``PACKAGENAME`` is the name of your package. You can then install your package in "editable" mode by running from the same directory::
+
+     pip install -e .
+
+which lets you change your source code (both tests and application) and rerun tests at will.
+This is similar to running ``python setup.py develop`` or ``conda develop`` in that it installs
+your package using a symlink to your development code.
 
 .. _`test discovery`:
 .. _`Python test discovery`:
@@ -20,8 +42,8 @@ Conventions for Python test discovery
 * In those directories, search for ``test_*.py`` or ``*_test.py`` files, imported by their `test package name`_.
 * From those files, collect test items:
 
-  * ``test_`` prefixed test functions or methods outside of class
-  * ``test_`` prefixed test functions or methods inside ``Test`` prefixed test classes (without an ``__init__`` method)
+  * ``test`` prefixed test functions or methods outside of class
+  * ``test`` prefixed test functions or methods inside ``Test`` prefixed test classes (without an ``__init__`` method)
 
 For examples of how to customize your test discovery :doc:`example/pythoncollection`.
 
@@ -51,8 +73,18 @@ to keep tests separate from actual application code (often a good idea)::
         test_view.py
         ...
 
-This way your tests can run easily against an installed version
-of ``mypkg``.
+This has the following benefits:
+
+* Your tests can run against an installed version after executing ``pip install .``.
+* Your tests can run against the local copy with an editable install after executing ``pip install --editable .``.
+* If you don't have a ``setup.py`` file and are relying on the fact that Python by default puts the current
+  directory in ``sys.path`` to import your package, you can execute ``python -m pytest`` to execute the tests against the
+  local copy directly, without using ``pip``.
+
+.. note::
+
+    See :ref:`pythonpath` for more information about the difference between calling ``pytest`` and
+    ``python -m pytest``.
 
 Note that using this scheme your test files must have **unique names**, because
 ``pytest`` will import them as *top-level* modules since there are no packages
@@ -177,19 +209,6 @@ Note that this layout also works in conjunction with the ``src`` layout mentione
 tox
 ------
 
-For development, we recommend to use virtualenv_ environments and pip_
-for installing your application and any dependencies
-as well as the ``pytest`` package itself. This ensures your code and
-dependencies are isolated from the system Python installation.
-
-You can then install your package in "editable" mode::
-
-     pip install -e .
-
-which lets you change your source code (both tests and application) and rerun tests at will.
-This is similar to running `python setup.py develop` or `conda develop` in that it installs
-your package using a symlink to your development code.
-
 Once you are done with your work and want to make sure that your actual
 package passes all tests you may want to look into `tox`_, the
 virtualenv test automation tool and its `pytest support
@@ -282,7 +301,7 @@ your own setuptools Test command for invoking pytest.
     setup(
         # ...,
         tests_require=["pytest"],
-        cmdclass={"test": PyTest},
+        cmdclass={"pytest": PyTest},
     )
 
 Now if you run::

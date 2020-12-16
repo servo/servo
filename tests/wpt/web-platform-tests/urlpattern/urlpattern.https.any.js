@@ -3,6 +3,12 @@
 function runTests(data) {
   for (let entry of data) {
     test(function() {
+      if (entry.error) {
+        assert_throws_js(TypeError, _ => new URLPattern(entry.pattern),
+                         'URLPattern() constructor');
+        return;
+      }
+
       const pattern = new URLPattern(entry.pattern);
 
       // First, validate the test() method by converting the expected result to
@@ -50,12 +56,7 @@ function runTests(data) {
         // where the pattern has a default wildcard or empty string pattern
         // for a component and the input is essentially empty.
         if (!expected_obj) {
-          // We must treat pathname specially since it always has at least one
-          // slash.
-          if (component === 'pathname')
-            expected_obj = { input: '/', groups: {} };
-          else
-            expected_obj = { input: '', groups: {} };
+          expected_obj = { input: '', groups: {} };
 
           // Next, we must treat default wildcards differently than empty string
           // patterns.  The wildcard results in a capture group, but the empty

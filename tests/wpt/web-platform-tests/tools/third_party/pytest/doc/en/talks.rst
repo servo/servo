@@ -14,11 +14,19 @@ Talks and Tutorials
 Books
 ---------------------------------------------
 
+- `pytest Quick Start Guide, by Bruno Oliveira (2018)
+  <https://www.packtpub.com/web-development/pytest-quick-start-guide>`_.
+
 - `Python Testing with pytest, by Brian Okken (2017)
   <https://pragprog.com/book/bopytest/python-testing-with-pytest>`_.
 
 Talks and blog postings
 ---------------------------------------------
+
+- pytest: recommendations, basic packages for testing in Python and Django, Andreu Vallbona, PyconES 2017 (`slides in english <http://talks.apsl.io/testing-pycones-2017/>`_, `video in spanish <https://www.youtube.com/watch?v=K20GeR-lXDk>`_)
+
+- `pytest advanced, Andrew Svetlov (Russian, PyCon Russia, 2016)
+  <https://www.youtube.com/watch?v=7KgihdKTWY4>`_.
 
 - `Pythonic testing, Igor Starikov (Russian, PyNsk, November 2016)
   <https://www.youtube.com/watch?v=_92nfdd5nK8>`_.

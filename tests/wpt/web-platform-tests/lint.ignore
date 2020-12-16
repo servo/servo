@@ -603,7 +603,7 @@ CSS-COLLIDING-REF-NAME: css/vendor-imports/mozilla/mozilla-central-reftests/cont
 CSS-COLLIDING-SUPPORT-NAME: css/compositing/mix-blend-mode/support/red.png
 CSS-COLLIDING-SUPPORT-NAME: css/compositing/background-blending/support/red.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/normal-flow/support/replaced-min-max-3.png
-CSS-COLLIDING-SUPPORT-NAME: css/vendor-imports/mozilla/mozilla-central-reftests/ui3/support/replaced-min-max-3.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-sizing/support/replaced-min-max-3.png
 CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds/background-size/support/50x50-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds/support/50x50-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/css-grid/grid-items/support/50x50-green.png
@@ -613,7 +613,7 @@ CSS-COLLIDING-SUPPORT-NAME: css/CSS2/backgrounds/support/animated.gif
 CSS-COLLIDING-SUPPORT-NAME: css/css-shapes/shape-outside/shape-image/support/animated.gif
 CSS-COLLIDING-SUPPORT-NAME: css/css-display/support/util.js
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/normal-flow/support/replaced-min-max-1.png
-CSS-COLLIDING-SUPPORT-NAME: css/vendor-imports/mozilla/mozilla-central-reftests/ui3/support/replaced-min-max-1.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-sizing/support/replaced-min-max-1.png
 CSS-COLLIDING-REF-NAME: css/css-multicol/baseline-001-ref.html
 CSS-COLLIDING-REF-NAME: css/css-grid/subgrid/baseline-001-ref.html
 CSS-COLLIDING-REF-NAME: css/css-backgrounds/simple-bg-color-ref.html

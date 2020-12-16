@@ -1,7 +1,12 @@
-from __future__ import absolute_import, division, print_function
-from _pytest.main import EXIT_NOTESTSCOLLECTED
-import pytest
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import gc
+
+import pytest
+from _pytest.main import EXIT_NOTESTSCOLLECTED
 
 
 def test_simple_unittest(testdir):
@@ -139,6 +144,29 @@ def test_new_instances(testdir):
     reprec.assertoutcome(passed=2)
 
 
+def test_function_item_obj_is_instance(testdir):
+    """item.obj should be a bound method on unittest.TestCase function items (#5390)."""
+    testdir.makeconftest(
+        """
+        def pytest_runtest_makereport(item, call):
+            if call.when == 'call':
+                class_ = item.parent.obj
+                assert isinstance(item.obj.__self__, class_)
+    """
+    )
+    testdir.makepyfile(
+        """
+        import unittest
+
+        class Test(unittest.TestCase):
+            def test_foo(self):
+                pass
+    """
+    )
+    result = testdir.runpytest_inprocess()
+    result.stdout.fnmatch_lines(["* 1 passed in*"])
+
+
 def test_teardown(testdir):
     testpath = testdir.makepyfile(
         """
@@ -240,7 +268,7 @@ def test_setup_failure_is_shown(testdir):
             def setUp(self):
                 assert 0, "down1"
             def test_method(self):
-                print ("never42")
+                print("never42")
                 xyz
     """
     )
@@ -360,7 +388,7 @@ def test_testcase_custom_exception_info(testdir, type):
 
 
 def test_testcase_totally_incompatible_exception_info(testdir):
-    item, = testdir.getitems(
+    (item,) = testdir.getitems(
         """
         from unittest import TestCase
         class MyTestCase(TestCase):
@@ -389,7 +417,6 @@ def test_module_level_pytestmark(testdir):
 
 
 class TestTrialUnittest(object):
-
     def setup_class(cls):
         cls.ut = pytest.importorskip("twisted.trial.unittest")
         # on windows trial uses a socket for a reactor and apparently doesn't close it properly
@@ -607,14 +634,14 @@ def test_djangolike_testcase(testdir):
         class DjangoLikeTestCase(TestCase):
 
             def setUp(self):
-                print ("setUp()")
+                print("setUp()")
 
             def test_presetup_has_been_run(self):
-                print ("test_thing()")
+                print("test_thing()")
                 self.assertTrue(hasattr(self, 'was_presetup'))
 
             def tearDown(self):
-                print ("tearDown()")
+                print("tearDown()")
 
             def __call__(self, result=None):
                 try:
@@ -636,11 +663,11 @@ def test_djangolike_testcase(testdir):
                     return
 
             def _pre_setup(self):
-                print ("_pre_setup()")
+                print("_pre_setup()")
                 self.was_presetup = True
 
             def _post_teardown(self):
-                print ("_post_teardown()")
+                print("_post_teardown()")
     """
     )
     result = testdir.runpytest("-s")
@@ -791,7 +818,7 @@ def test_unittest_setup_interaction(testdir, fix_type, stmt):
         )
     )
     result = testdir.runpytest()
-    result.stdout.fnmatch_lines("*3 passed*")
+    result.stdout.fnmatch_lines(["*3 passed*"])
 
 
 def test_non_unittest_no_setupclass_support(testdir):
@@ -927,11 +954,11 @@ def test_class_method_containing_test_issue1558(testdir):
     reprec.assertoutcome(passed=1)
 
 
-@pytest.mark.issue(3498)
 @pytest.mark.parametrize(
     "base", ["six.moves.builtins.object", "unittest.TestCase", "unittest2.TestCase"]
 )
 def test_usefixtures_marker_on_unittest(base, testdir):
+    """#3498"""
     module = base.rsplit(".", 1)[0]
     pytest.importorskip(module)
     testdir.makepyfile(
@@ -990,3 +1017,51 @@ def test_usefixtures_marker_on_unittest(base, testdir):
 
     result = testdir.runpytest("-s")
     result.assert_outcomes(passed=2)
+
+
+def test_testcase_handles_init_exceptions(testdir):
+    """
+    Regression test to make sure exceptions in the __init__ method are bubbled up correctly.
+    See https://github.com/pytest-dev/pytest/issues/3788
+    """
+    testdir.makepyfile(
+        """
+        from unittest import TestCase
+        import pytest
+        class MyTestCase(TestCase):
+            def __init__(self, *args, **kwargs):
+                raise Exception("should raise this exception")
+            def test_hello(self):
+                pass
+    """
+    )
+    result = testdir.runpytest()
+    assert "should raise this exception" in result.stdout.str()
+    assert "ERROR at teardown of MyTestCase.test_hello" not in result.stdout.str()
+
+
+def test_error_message_with_parametrized_fixtures(testdir):
+    testdir.copy_example("unittest/test_parametrized_fixture_error_message.py")
+    result = testdir.runpytest()
+    result.stdout.fnmatch_lines(
+        [
+            "*test_two does not support fixtures*",
+            "*TestSomethingElse::test_two",
+            "*Function type: TestCaseFunction",
+        ]
+    )
+
+
+@pytest.mark.parametrize(
+    "test_name, expected_outcome",
+    [
+        ("test_setup_skip.py", "1 skipped"),
+        ("test_setup_skip_class.py", "1 skipped"),
+        ("test_setup_skip_module.py", "1 error"),
+    ],
+)
+def test_setup_inheritance_skipping(testdir, test_name, expected_outcome):
+    """Issue #4700"""
+    testdir.copy_example("unittest/{}".format(test_name))
+    result = testdir.runpytest()
+    result.stdout.fnmatch_lines(["* {} in *".format(expected_outcome)])

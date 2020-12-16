@@ -12,22 +12,28 @@ Asserting with the ``assert`` statement
 
 ``pytest`` allows you to use the standard python ``assert`` for verifying
 expectations and values in Python tests.  For example, you can write the
-following::
+following:
+
+.. code-block:: python
 
     # content of test_assert1.py
     def f():
         return 3
 
+
     def test_function():
         assert f() == 4
 
 to assert that your function returns a certain value. If this assertion fails
-you will see the return value of the function call::
+you will see the return value of the function call:
+
+.. code-block:: pytest
 
     $ pytest test_assert1.py
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-3.x.y, py-1.x.y, pluggy-0.x.y
-    rootdir: $REGENDOC_TMPDIR, inifile:
+    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    cachedir: $PYTHON_PREFIX/.pytest_cache
+    rootdir: $REGENDOC_TMPDIR
     collected 1 item
 
     test_assert1.py F                                                    [100%]
@@ -40,7 +46,7 @@ you will see the return value of the function call::
     E       assert 3 == 4
     E        +  where 3 = f()
 
-    test_assert1.py:5: AssertionError
+    test_assert1.py:6: AssertionError
     ========================= 1 failed in 0.12 seconds =========================
 
 ``pytest`` has support for showing the values of the most common subexpressions
@@ -49,7 +55,9 @@ operators. (See :ref:`tbreportdemo`).  This allows you to use the
 idiomatic python constructs without boilerplate code while not losing
 introspection information.
 
-However, if you specify a message with the assertion like this::
+However, if you specify a message with the assertion like this:
+
+.. code-block:: python
 
     assert a % 2 == 0, "value was odd, should be even"
 
@@ -64,50 +72,71 @@ Assertions about expected exceptions
 ------------------------------------------
 
 In order to write assertions about raised exceptions, you can use
-``pytest.raises`` as a context manager like this::
+``pytest.raises`` as a context manager like this:
+
+.. code-block:: python
 
     import pytest
+
 
     def test_zero_division():
         with pytest.raises(ZeroDivisionError):
             1 / 0
 
-and if you need to have access to the actual exception info you may use::
+and if you need to have access to the actual exception info you may use:
+
+.. code-block:: python
 
     def test_recursion_depth():
         with pytest.raises(RuntimeError) as excinfo:
+
             def f():
                 f()
+
             f()
-        assert 'maximum recursion' in str(excinfo.value)
+        assert "maximum recursion" in str(excinfo.value)
 
 ``excinfo`` is a ``ExceptionInfo`` instance, which is a wrapper around
 the actual exception raised.  The main attributes of interest are
 ``.type``, ``.value`` and ``.traceback``.
 
-.. versionchanged:: 3.0
+You can pass a ``match`` keyword parameter to the context-manager to test
+that a regular expression matches on the string representation of an exception
+(similar to the ``TestCase.assertRaisesRegexp`` method from ``unittest``):
 
-In the context manager form you may use the keyword argument
-``message`` to specify a custom failure message::
+.. code-block:: python
 
-     >>> with raises(ZeroDivisionError, message="Expecting ZeroDivisionError"):
-     ...     pass
-     ... Failed: Expecting ZeroDivisionError
+    import pytest
 
-If you want to write test code that works on Python 2.4 as well,
-you may also use two other ways to test for an expected exception::
+
+    def myfunc():
+        raise ValueError("Exception 123 raised")
+
+
+    def test_match():
+        with pytest.raises(ValueError, match=r".* 123 .*"):
+            myfunc()
+
+The regexp parameter of the ``match`` method is matched with the ``re.search``
+function, so in the above example ``match='123'`` would have worked as
+well.
+
+There's an alternate form of the ``pytest.raises`` function where you pass
+a function that will be executed with the given ``*args`` and ``**kwargs`` and
+assert that the given exception is raised:
+
+.. code-block:: python
 
     pytest.raises(ExpectedException, func, *args, **kwargs)
-    pytest.raises(ExpectedException, "func(*args, **kwargs)")
 
-both of which execute the specified function with args and kwargs and
-asserts that the given ``ExpectedException`` is raised.  The reporter will
-provide you with helpful output in case of failures such as *no
+The reporter will provide you with helpful output in case of failures such as *no
 exception* or *wrong exception*.
 
 Note that it is also possible to specify a "raises" argument to
 ``pytest.mark.xfail``, which checks that the test is failing in a more
-specific way than just having any exception raised::
+specific way than just having any exception raised:
+
+.. code-block:: python
 
     @pytest.mark.xfail(raises=IndexError)
     def test_f():
@@ -119,30 +148,13 @@ exceptions your own code is deliberately raising, whereas using
 like documenting unfixed bugs (where the test describes what "should" happen)
 or bugs in dependencies.
 
-Also, the context manager form accepts a ``match`` keyword parameter to test
-that a regular expression matches on the string representation of an exception
-(like the ``TestCase.assertRaisesRegexp`` method from ``unittest``)::
-
-    import pytest
-
-    def myfunc():
-        raise ValueError("Exception 123 raised")
-
-    def test_match():
-        with pytest.raises(ValueError, match=r'.* 123 .*'):
-            myfunc()
-
-The regexp parameter of the ``match`` method is matched with the ``re.search``
-function. So in the above example ``match='123'`` would have worked as
-well.
-
 
 .. _`assertwarns`:
 
 Assertions about expected warnings
 -----------------------------------------
 
-.. versionadded:: 2.8
+
 
 You can check that code raises a particular warning using
 :ref:`pytest.warns <warns>`.
@@ -153,24 +165,30 @@ You can check that code raises a particular warning using
 Making use of context-sensitive comparisons
 -------------------------------------------------
 
-.. versionadded:: 2.0
+
 
 ``pytest`` has rich support for providing context-sensitive information
-when it encounters comparisons.  For example::
+when it encounters comparisons.  For example:
+
+.. code-block:: python
 
     # content of test_assert2.py
+
 
     def test_set_comparison():
         set1 = set("1308")
         set2 = set("8035")
         assert set1 == set2
 
-if you run this module::
+if you run this module:
+
+.. code-block:: pytest
 
     $ pytest test_assert2.py
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-3.x.y, py-1.x.y, pluggy-0.x.y
-    rootdir: $REGENDOC_TMPDIR, inifile:
+    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    cachedir: $PYTHON_PREFIX/.pytest_cache
+    rootdir: $REGENDOC_TMPDIR
     collected 1 item
 
     test_assert2.py F                                                    [100%]
@@ -189,7 +207,7 @@ if you run this module::
     E         '5'
     E         Use -v to get the full diff
 
-    test_assert2.py:5: AssertionError
+    test_assert2.py:6: AssertionError
     ========================= 1 failed in 0.12 seconds =========================
 
 Special comparisons are done for a number of cases:
@@ -200,8 +218,8 @@ Special comparisons are done for a number of cases:
 
 See the :ref:`reporting demo <tbreportdemo>` for many more examples.
 
-Defining your own assertion comparison
-----------------------------------------------
+Defining your own explanation for failed assertions
+---------------------------------------------------
 
 It is possible to add your own detailed explanations by implementing
 the ``pytest_assertrepr_compare`` hook.
@@ -210,16 +228,21 @@ the ``pytest_assertrepr_compare`` hook.
    :noindex:
 
 As an example consider adding the following hook in a :ref:`conftest.py <conftest.py>`
-file which provides an alternative explanation for ``Foo`` objects::
+file which provides an alternative explanation for ``Foo`` objects:
+
+.. code-block:: python
 
    # content of conftest.py
    from test_foocompare import Foo
+
+
    def pytest_assertrepr_compare(op, left, right):
        if isinstance(left, Foo) and isinstance(right, Foo) and op == "==":
-           return ['Comparing Foo instances:',
-                   '   vals: %s != %s' % (left.val, right.val)]
+           return ["Comparing Foo instances:", "   vals: %s != %s" % (left.val, right.val)]
 
-now, given this test module::
+now, given this test module:
+
+.. code-block:: python
 
    # content of test_foocompare.py
    class Foo(object):
@@ -229,13 +252,16 @@ now, given this test module::
        def __eq__(self, other):
            return self.val == other.val
 
+
    def test_compare():
        f1 = Foo(1)
        f2 = Foo(2)
        assert f1 == f2
 
 you can run the test module and get the custom output defined in
-the conftest file::
+the conftest file:
+
+.. code-block:: pytest
 
    $ pytest -q test_foocompare.py
    F                                                                    [100%]
@@ -249,51 +275,73 @@ the conftest file::
    E       assert Comparing Foo instances:
    E            vals: 1 != 2
 
-   test_foocompare.py:11: AssertionError
+   test_foocompare.py:12: AssertionError
    1 failed in 0.12 seconds
 
 .. _assert-details:
 .. _`assert introspection`:
 
-Advanced assertion introspection
-----------------------------------
+Assertion introspection details
+-------------------------------
 
-.. versionadded:: 2.1
+
 
 
 Reporting details about a failing assertion is achieved by rewriting assert
 statements before they are run.  Rewritten assert statements put introspection
 information into the assertion failure message.  ``pytest`` only rewrites test
-modules directly discovered by its test collection process, so asserts in
-supporting modules which are not themselves test modules will not be rewritten.
+modules directly discovered by its test collection process, so **asserts in
+supporting modules which are not themselves test modules will not be rewritten**.
 
-.. note::
-
-   ``pytest`` rewrites test modules on import by using an import
-   hook to write new ``pyc`` files. Most of the time this works transparently.
-   However, if you are messing with import yourself, the import hook may
-   interfere.
-
-   If this is the case you have two options:
-
-   * Disable rewriting for a specific module by adding the string
-     ``PYTEST_DONT_REWRITE`` to its docstring.
-
-   * Disable rewriting for all modules by using ``--assert=plain``.
-
-   Additionally, rewriting will fail silently if it cannot write new ``.pyc`` files,
-   i.e. in a read-only filesystem or a zipfile.
-
+You can manually enable assertion rewriting for an imported module by calling
+`register_assert_rewrite <https://docs.pytest.org/en/latest/writing_plugins.html#assertion-rewriting>`_
+before you import it (a good place to do that is in your root ``conftest.py``).
 
 For further information, Benjamin Peterson wrote up `Behind the scenes of pytest's new assertion rewriting <http://pybites.blogspot.com/2011/07/behind-scenes-of-pytests-new-assertion.html>`_.
 
-.. versionadded:: 2.1
+Assertion rewriting caches files on disk
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``pytest`` will write back the rewritten modules to disk for caching. You can disable
+this behavior (for example to avoid leaving stale ``.pyc`` files around in projects that
+move files around a lot) by adding this to the top of your ``conftest.py`` file:
+
+.. code-block:: python
+
+   import sys
+
+   sys.dont_write_bytecode = True
+
+Note that you still get the benefits of assertion introspection, the only change is that
+the ``.pyc`` files won't be cached on disk.
+
+Additionally, rewriting will silently skip caching if it cannot write new ``.pyc`` files,
+i.e. in a read-only filesystem or a zipfile.
+
+
+Disabling assert rewriting
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``pytest`` rewrites test modules on import by using an import
+hook to write new ``pyc`` files. Most of the time this works transparently.
+However, if you are working with the import machinery yourself, the import hook may
+interfere.
+
+If this is the case you have two options:
+
+* Disable rewriting for a specific module by adding the string
+  ``PYTEST_DONT_REWRITE`` to its docstring.
+
+* Disable rewriting for all modules by using ``--assert=plain``.
+
+
+
    Add assert rewriting as an alternate introspection technique.
 
-.. versionchanged:: 2.1
+
    Introduce the ``--assert`` option. Deprecate ``--no-assert`` and
    ``--nomagic``.
 
-.. versionchanged:: 3.0
+
    Removes the ``--no-assert`` and ``--nomagic`` options.
    Removes the ``--assert=reinterp`` option.

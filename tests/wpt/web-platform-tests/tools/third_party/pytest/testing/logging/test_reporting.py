@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-import re
 import os
+import re
+from io import open
 
 import six
 
@@ -53,6 +54,7 @@ def test_root_logger_affected(testdir):
         """
         import logging
         logger = logging.getLogger()
+
         def test_foo():
             logger.info('info text ' + 'going to logger')
             logger.warning('warning text ' + 'going to logger')
@@ -65,15 +67,14 @@ def test_root_logger_affected(testdir):
     result = testdir.runpytest("--log-level=ERROR", "--log-file=pytest.log")
     assert result.ret == 1
 
-    # the capture log calls in the stdout section only contain the
-    # logger.error msg, because --log-level=ERROR
+    # The capture log calls in the stdout section only contain the
+    # logger.error msg, because of --log-level=ERROR.
     result.stdout.fnmatch_lines(["*error text going to logger*"])
-    with pytest.raises(pytest.fail.Exception):
-        result.stdout.fnmatch_lines(["*warning text going to logger*"])
-    with pytest.raises(pytest.fail.Exception):
-        result.stdout.fnmatch_lines(["*info text going to logger*"])
+    stdout = result.stdout.str()
+    assert "warning text going to logger" not in stdout
+    assert "info text going to logger" not in stdout
 
-    # the log file should contain the warning and the error log messages and
+    # The log file should contain the warning and the error log messages and
     # not the info one, because the default level of the root logger is
     # WARNING.
     assert os.path.isfile(log_file)
@@ -247,7 +248,7 @@ def test_log_cli_enabled_disabled(testdir, enabled):
             [
                 "test_log_cli_enabled_disabled.py::test_log_cli ",
                 "*-- live log call --*",
-                "test_log_cli_enabled_disabled.py* CRITICAL critical message logged by test",
+                "CRITICAL *test_log_cli_enabled_disabled.py* critical message logged by test",
                 "PASSED*",
             ]
         )
@@ -281,7 +282,7 @@ def test_log_cli_default_level(testdir):
     result.stdout.fnmatch_lines(
         [
             "test_log_cli_default_level.py::test_log_cli ",
-            "test_log_cli_default_level.py*WARNING message will be shown*",
+            "WARNING*test_log_cli_default_level.py* message will be shown*",
         ]
     )
     assert "INFO message won't be shown" not in result.stdout.str()
@@ -520,16 +521,22 @@ def test_sections_single_new_line_after_test_outcome(testdir, request):
             "=* 1 passed in *=",
         ]
     )
-    assert re.search(
-        r"(.+)live log teardown(.+)\n(.+)WARNING(.+)\n(.+)WARNING(.+)",
-        result.stdout.str(),
-        re.MULTILINE,
-    ) is not None
-    assert re.search(
-        r"(.+)live log finish(.+)\n(.+)WARNING(.+)\n(.+)WARNING(.+)",
-        result.stdout.str(),
-        re.MULTILINE,
-    ) is not None
+    assert (
+        re.search(
+            r"(.+)live log teardown(.+)\nWARNING(.+)\nWARNING(.+)",
+            result.stdout.str(),
+            re.MULTILINE,
+        )
+        is not None
+    )
+    assert (
+        re.search(
+            r"(.+)live log finish(.+)\nWARNING(.+)\nWARNING(.+)",
+            result.stdout.str(),
+            re.MULTILINE,
+        )
+        is not None
+    )
 
 
 def test_log_cli_level(testdir):
@@ -558,7 +565,7 @@ def test_log_cli_level(testdir):
     # fnmatch_lines does an assertion internally
     result.stdout.fnmatch_lines(
         [
-            "test_log_cli_level.py*This log message will be shown",
+            "*test_log_cli_level.py*This log message will be shown",
             "PASSED",  # 'PASSED' on its own line because the log message prints a new line
         ]
     )
@@ -572,7 +579,7 @@ def test_log_cli_level(testdir):
     # fnmatch_lines does an assertion internally
     result.stdout.fnmatch_lines(
         [
-            "test_log_cli_level.py* This log message will be shown",
+            "*test_log_cli_level.py* This log message will be shown",
             "PASSED",  # 'PASSED' on its own line because the log message prints a new line
         ]
     )
@@ -608,7 +615,7 @@ def test_log_cli_ini_level(testdir):
     # fnmatch_lines does an assertion internally
     result.stdout.fnmatch_lines(
         [
-            "test_log_cli_ini_level.py* This log message will be shown",
+            "*test_log_cli_ini_level.py* This log message will be shown",
             "PASSED",  # 'PASSED' on its own line because the log message prints a new line
         ]
     )
@@ -628,7 +635,6 @@ def test_log_cli_auto_enable(testdir, request, cli_args):
     """
     testdir.makepyfile(
         """
-        import pytest
         import logging
 
         def test_log_1():
@@ -646,6 +652,7 @@ def test_log_cli_auto_enable(testdir, request, cli_args):
     )
 
     result = testdir.runpytest(cli_args)
+    stdout = result.stdout.str()
     if cli_args == "--log-cli-level=WARNING":
         result.stdout.fnmatch_lines(
             [
@@ -656,13 +663,13 @@ def test_log_cli_auto_enable(testdir, request, cli_args):
                 "=* 1 passed in *=",
             ]
         )
-        assert "INFO" not in result.stdout.str()
+        assert "INFO" not in stdout
     else:
         result.stdout.fnmatch_lines(
             ["*test_log_cli_auto_enable*100%*", "=* 1 passed in *="]
         )
-        assert "INFO" not in result.stdout.str()
-        assert "WARNING" not in result.stdout.str()
+        assert "INFO" not in stdout
+        assert "WARNING" not in stdout
 
 
 def test_log_file_cli(testdir):
@@ -740,7 +747,7 @@ def test_log_level_not_changed_by_default(testdir):
     """
     )
     result = testdir.runpytest("-s")
-    result.stdout.fnmatch_lines("* 1 passed in *")
+    result.stdout.fnmatch_lines(["* 1 passed in *"])
 
 
 def test_log_file_ini(testdir):
@@ -821,6 +828,43 @@ def test_log_file_ini_level(testdir):
         assert "This log message won't be shown" not in contents
 
 
+def test_log_file_unicode(testdir):
+    log_file = testdir.tmpdir.join("pytest.log").strpath
+
+    testdir.makeini(
+        """
+        [pytest]
+        log_file={}
+        log_file_level = INFO
+        """.format(
+            log_file
+        )
+    )
+    testdir.makepyfile(
+        """
+        # -*- coding: utf-8 -*-
+        from __future__ import unicode_literals
+        import logging
+
+        def test_log_file():
+            logging.getLogger('catchlog').info("Normal message")
+            logging.getLogger('catchlog').info("├")
+            logging.getLogger('catchlog').info("Another normal message")
+    """
+    )
+
+    result = testdir.runpytest()
+
+    # make sure that that we get a '0' exit code for the testsuite
+    assert result.ret == 0
+    assert os.path.isfile(log_file)
+    with open(log_file, encoding="utf-8") as rfh:
+        contents = rfh.read()
+        assert "Normal message" in contents
+        assert u"├" in contents
+        assert "Another normal message" in contents
+
+
 @pytest.mark.parametrize("has_capture_manager", [True, False])
 def test_live_logging_suspends_capture(has_capture_manager, request):
     """Test that capture manager is suspended when we emitting messages for live logging.
@@ -832,25 +876,20 @@ def test_live_logging_suspends_capture(has_capture_manager, request):
     is installed.
     """
     import logging
+    import contextlib
     from functools import partial
-    from _pytest.capture import CaptureManager
     from _pytest.logging import _LiveLoggingStreamHandler
 
     class MockCaptureManager:
         calls = []
 
-        def suspend_global_capture(self):
-            self.calls.append("suspend_global_capture")
-
-        def resume_global_capture(self):
-            self.calls.append("resume_global_capture")
-
-    # sanity check
-    assert CaptureManager.suspend_capture_item
-    assert CaptureManager.resume_global_capture
+        @contextlib.contextmanager
+        def global_and_fixture_disabled(self):
+            self.calls.append("enter disabled")
+            yield
+            self.calls.append("exit disabled")
 
     class DummyTerminal(six.StringIO):
-
         def section(self, *args, **kwargs):
             pass
 
@@ -865,10 +904,259 @@ def test_live_logging_suspends_capture(has_capture_manager, request):
 
     logger.critical("some message")
     if has_capture_manager:
-        assert (
-            MockCaptureManager.calls
-            == ["suspend_global_capture", "resume_global_capture"]
-        )
+        assert MockCaptureManager.calls == ["enter disabled", "exit disabled"]
     else:
         assert MockCaptureManager.calls == []
     assert out_file.getvalue() == "\nsome message\n"
+
+
+def test_collection_live_logging(testdir):
+    testdir.makepyfile(
+        """
+        import logging
+
+        logging.getLogger().info("Normal message")
+    """
+    )
+
+    result = testdir.runpytest("--log-cli-level=INFO")
+    result.stdout.fnmatch_lines(
+        ["*--- live log collection ---*", "*Normal message*", "collected 0 items"]
+    )
+
+
+@pytest.mark.parametrize("verbose", ["", "-q", "-qq"])
+def test_collection_collect_only_live_logging(testdir, verbose):
+    testdir.makepyfile(
+        """
+        def test_simple():
+            pass
+    """
+    )
+
+    result = testdir.runpytest("--collect-only", "--log-cli-level=INFO", verbose)
+
+    expected_lines = []
+
+    if not verbose:
+        expected_lines.extend(
+            [
+                "*collected 1 item*",
+                "*<Module test_collection_collect_only_live_logging.py>*",
+                "*no tests ran*",
+            ]
+        )
+    elif verbose == "-q":
+        assert "collected 1 item*" not in result.stdout.str()
+        expected_lines.extend(
+            [
+                "*test_collection_collect_only_live_logging.py::test_simple*",
+                "no tests ran in * seconds",
+            ]
+        )
+    elif verbose == "-qq":
+        assert "collected 1 item*" not in result.stdout.str()
+        expected_lines.extend(["*test_collection_collect_only_live_logging.py: 1*"])
+
+    result.stdout.fnmatch_lines(expected_lines)
+
+
+def test_collection_logging_to_file(testdir):
+    log_file = testdir.tmpdir.join("pytest.log").strpath
+
+    testdir.makeini(
+        """
+        [pytest]
+        log_file={}
+        log_file_level = INFO
+        """.format(
+            log_file
+        )
+    )
+
+    testdir.makepyfile(
+        """
+        import logging
+
+        logging.getLogger().info("Normal message")
+
+        def test_simple():
+            logging.getLogger().debug("debug message in test_simple")
+            logging.getLogger().info("info message in test_simple")
+    """
+    )
+
+    result = testdir.runpytest()
+
+    assert "--- live log collection ---" not in result.stdout.str()
+
+    assert result.ret == 0
+    assert os.path.isfile(log_file)
+    with open(log_file, encoding="utf-8") as rfh:
+        contents = rfh.read()
+        assert "Normal message" in contents
+        assert "debug message in test_simple" not in contents
+        assert "info message in test_simple" in contents
+
+
+def test_log_in_hooks(testdir):
+    log_file = testdir.tmpdir.join("pytest.log").strpath
+
+    testdir.makeini(
+        """
+        [pytest]
+        log_file={}
+        log_file_level = INFO
+        log_cli=true
+        """.format(
+            log_file
+        )
+    )
+    testdir.makeconftest(
+        """
+        import logging
+
+        def pytest_runtestloop(session):
+            logging.info('runtestloop')
+
+        def pytest_sessionstart(session):
+            logging.info('sessionstart')
+
+        def pytest_sessionfinish(session, exitstatus):
+            logging.info('sessionfinish')
+    """
+    )
+    result = testdir.runpytest()
+    result.stdout.fnmatch_lines(["*sessionstart*", "*runtestloop*", "*sessionfinish*"])
+    with open(log_file) as rfh:
+        contents = rfh.read()
+        assert "sessionstart" in contents
+        assert "runtestloop" in contents
+        assert "sessionfinish" in contents
+
+
+def test_log_in_runtest_logreport(testdir):
+    log_file = testdir.tmpdir.join("pytest.log").strpath
+
+    testdir.makeini(
+        """
+        [pytest]
+        log_file={}
+        log_file_level = INFO
+        log_cli=true
+        """.format(
+            log_file
+        )
+    )
+    testdir.makeconftest(
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+
+        def pytest_runtest_logreport(report):
+            logger.info("logreport")
+    """
+    )
+    testdir.makepyfile(
+        """
+            def test_first():
+                assert True
+        """
+    )
+    testdir.runpytest()
+    with open(log_file) as rfh:
+        contents = rfh.read()
+        assert contents.count("logreport") == 3
+
+
+def test_log_set_path(testdir):
+    report_dir_base = testdir.tmpdir.strpath
+
+    testdir.makeini(
+        """
+        [pytest]
+        log_file_level = DEBUG
+        log_cli=true
+        """
+    )
+    testdir.makeconftest(
+        """
+            import os
+            import pytest
+            @pytest.hookimpl(hookwrapper=True, tryfirst=True)
+            def pytest_runtest_setup(item):
+                config = item.config
+                logging_plugin = config.pluginmanager.get_plugin("logging-plugin")
+                report_file = os.path.join({}, item._request.node.name)
+                logging_plugin.set_log_path(report_file)
+                yield
+        """.format(
+            repr(report_dir_base)
+        )
+    )
+    testdir.makepyfile(
+        """
+            import logging
+            logger = logging.getLogger("testcase-logger")
+            def test_first():
+                logger.info("message from test 1")
+                assert True
+
+            def test_second():
+                logger.debug("message from test 2")
+                assert True
+        """
+    )
+    testdir.runpytest()
+    with open(os.path.join(report_dir_base, "test_first"), "r") as rfh:
+        content = rfh.read()
+        assert "message from test 1" in content
+
+    with open(os.path.join(report_dir_base, "test_second"), "r") as rfh:
+        content = rfh.read()
+        assert "message from test 2" in content
+
+
+def test_colored_captured_log(testdir):
+    """
+    Test that the level names of captured log messages of a failing test are
+    colored.
+    """
+    testdir.makepyfile(
+        """
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        def test_foo():
+            logger.info('text going to logger from call')
+            assert False
+        """
+    )
+    result = testdir.runpytest("--log-level=INFO", "--color=yes")
+    assert result.ret == 1
+    result.stdout.fnmatch_lines(
+        [
+            "*-- Captured log call --*",
+            "\x1b[32mINFO    \x1b[0m*text going to logger from call",
+        ]
+    )
+
+
+def test_colored_ansi_esc_caplogtext(testdir):
+    """
+    Make sure that caplog.text does not contain ANSI escape sequences.
+    """
+    testdir.makepyfile(
+        """
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        def test_foo(caplog):
+            logger.info('text going to logger from call')
+            assert '\x1b' not in caplog.text
+        """
+    )
+    result = testdir.runpytest("--log-level=INFO", "--color=yes")
+    assert result.ret == 0

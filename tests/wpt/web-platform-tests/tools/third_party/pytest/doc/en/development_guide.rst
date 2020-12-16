@@ -39,6 +39,11 @@ avoid creating labels just for the sake of creating them.
 
 Each label should include a description in the GitHub's interface stating its purpose.
 
+Labels are managed using `labels <https://github.com/hackebrot/labels>`_. All the labels in the repository
+are kept in ``.github/labels.toml``, so any changes should be via PRs to that file.
+After a PR is accepted and merged, one of the maintainers must manually synchronize the labels file with the
+GitHub repository.
+
 Temporary labels
 ~~~~~~~~~~~~~~~~
 

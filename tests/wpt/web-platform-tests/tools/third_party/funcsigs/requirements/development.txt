@@ -1,6 +1,5 @@
 coverage
 coveralls
-pip
 flake8
 sphinx
-wheel
+unittest2

@@ -1,36 +1,71 @@
 exclude: doc/en/example/py2py3/test_py2.py
 repos:
--   repo: https://github.com/ambv/black
-    rev: 18.4a4
+-   repo: https://github.com/psf/black
+    rev: 19.10b0
     hooks:
     -   id: black
         args: [--safe, --quiet]
-        language_version: python3.6
+        language_version: python3
 -   repo: https://github.com/asottile/blacken-docs
-    rev: v0.1.1
+    rev: v0.5.0
     hooks:
     -   id: blacken-docs
-        additional_dependencies: [black==18.5b1]
-        language_version: python3.6
+        additional_dependencies: [black==19.3b0]
+        language_version: python3
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v1.2.3
+    rev: v2.2.2
     hooks:
     -   id: trailing-whitespace
     -   id: end-of-file-fixer
+    -   id: fix-encoding-pragma
     -   id: check-yaml
     -   id: debug-statements
         exclude: _pytest/debugging.py
-    -   id: flake8
--   repo: https://github.com/asottile/pyupgrade
-    rev: v1.2.0
+        language_version: python3
+-   repo: https://gitlab.com/pycqa/flake8
+    rev: 3.7.7
     hooks:
-    - id: pyupgrade
+    -   id: flake8
+        language_version: python3
+-   repo: https://github.com/asottile/reorder_python_imports
+    rev: v1.4.0
+    hooks:
+    -   id: reorder-python-imports
+        args: ['--application-directories=.:src']
+-   repo: https://github.com/asottile/pyupgrade
+    rev: v1.15.0
+    hooks:
+    -   id: pyupgrade
+        args: [--keep-percent-format]
+-   repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.3.0
+    hooks:
+    -   id: rst-backticks
 -   repo: local
     hooks:
     -   id: rst
         name: rst
         entry: rst-lint --encoding utf-8
-        files: ^(CHANGELOG.rst|HOWTORELEASE.rst|README.rst|changelog/.*)$
+        files: ^(CHANGELOG.rst|HOWTORELEASE.rst|README.rst|TIDELIFT.rst|changelog/.*)$
         language: python
         additional_dependencies: [pygments, restructuredtext_lint]
-        python_version: python3.6
+    -   id: changelogs-rst
+        name: changelog filenames
+        language: fail
+        entry: 'changelog files must be named ####.(feature|bugfix|doc|deprecation|removal|vendor|trivial).rst'
+        exclude: changelog/(\d+\.(feature|bugfix|doc|deprecation|removal|vendor|trivial).rst|README.rst|_template.rst)
+        files: ^changelog/
+    -   id: py-deprecated
+        name: py library is deprecated
+        language: pygrep
+        entry: >
+            (?x)\bpy\.(
+                _code\.|
+                builtin\.|
+                code\.|
+                io\.(BytesIO|saferepr)|
+                path\.local\.sysfind|
+                process\.|
+                std\.
+            )
+        types: [python]

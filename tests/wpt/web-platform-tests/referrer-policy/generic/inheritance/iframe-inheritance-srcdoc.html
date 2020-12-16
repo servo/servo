@@ -9,19 +9,38 @@
     <script src="resources/make-html-script.js"></script>
     <meta name="referrer" content="origin">
   </head>
-  <body onload="runTest()">
+  <body>
     <h1>Referrer Policy: iframes srcdoc correctly inherit the ancestor's referrer policy</h1>
     <script>
-      var test = async_test("iframes srcdoc correctly inherit the ancestor's referrer policy");
-      window.addEventListener("message", test.step_func_done(msg => {
-        assert_equals(msg.data.referrer, self.origin + "/");
-      }));
+      let reportedReferrer = () => {
+        return new Promise(resolve => {
+          window.addEventListener("message", msg => resolve(msg.data.referrer));
+        });
+      };
 
-      function runTest() {
-        var iframe = document.createElement("iframe");
-        iframe.srcdoc = createScriptString(get_host_info().REMOTE_ORIGIN);
+      const iframe = document.createElement("iframe");
+
+      promise_test(async t => {
+        let referrer = reportedReferrer();
+        iframe.srcdoc = createScriptString(get_host_info().REMOTE_ORIGIN,
+                                           location.origin + "/custom");
         document.body.appendChild(iframe);
-      }
+        assert_equals(await referrer, self.origin + "/");
+      }, "Srcdoc iframe inherits referrer policy from parent on creation.");
+
+      promise_test(async t => {
+        let referrer = reportedReferrer();
+
+        // We navigate the iframe to a page that will set referrer
+        // policy to 'unsafe-url' and then navigate to about:srcdoc.
+        iframe.contentWindow.location = 'resources/referrer-policy-unsafe-url-navigate-to-srcdoc.html';
+
+        // Despite the navigation was initiated by a document with
+        // referrer policy 'unsafe-url', the srcdoc iframe should
+        // still inherit the referrer policy from its parent, and
+        // not the navigation's initiator.
+        assert_equals(await referrer, self.origin + "/");
+      }, "Even after a navigation from another initiator, srcdoc iframe still inherits referrer policy from the parent.");
     </script>
     <div id="log"></div>
   </body>

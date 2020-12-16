@@ -9,48 +9,65 @@ Introducing funcsigs
 The Funcsigs Package
 --------------------
 
-*funcsigs* is a backport of the `PEP 362`_ function signature features from
+``funcsigs`` is a backport of the `PEP 362`_ function signature features from
 Python 3.3's `inspect`_ module. The backport is compatible with Python 2.6, 2.7
-as well as 3.2 and up.
+as well as 3.3 and up. 3.2 was supported by version 0.4, but with setuptools and
+pip no longer supporting 3.2, we cannot make any statement about 3.2
+compatibility.
 
-.. _PEP 362: http://www.python.org/dev/peps/pep-0362/
-.. _inspect: http://docs.python.org/3/library/inspect.html#introspecting-callables-with-the-signature-object
-
-Compatability
+Compatibility
 `````````````
 
-The *funcsigs* backport has been tested against:
+The ``funcsigs`` backport has been tested against:
 
 * CPython 2.6
 * CPython 2.7
-* CPython 3.2
-* PyPy 1.9
+* CPython 3.3
+* CPython 3.4
+* CPython 3.5
+* CPython nightlies
+* PyPy and PyPy3(currently failing CI)
 
 Continuous integration testing is provided by `Travis CI`_.
 
-Under Python 2.x there is a compatability issue when a function is assigned to
+Under Python 2.x there is a compatibility issue when a function is assigned to
 the ``__wrapped__`` property of a class after it has been constructed.
 Similiarily there under PyPy directly passing the ``__call__`` method of a
-builtin is also a compatability issues.  Otherwise the functionality is
+builtin is also a compatibility issues.  Otherwise the functionality is
 believed to be uniform between both Python2 and Python3.
-
-.. _Travis CI: http://travis-ci.org/
 
 Issues
 ``````
 
-Source code for *funcsigs* is hosted on `GitHub`_. Any bug reports or feature
-requests can be made using GitHub's `issues system`_.
+Source code for ``funcsigs`` is hosted on `GitHub`_. Any bug reports or feature
+requests can be made using GitHub's `issues system`_. |build_status| |coverage|
 
-.. _GitHub: https://github.com/aliles/funcsigs
-.. _issues system: https://github.com/alies/funcsigs/issues
+Example
+-------
+
+To obtain a `Signature` object, pass the target function to the
+``funcsigs.signature`` function.
+
+.. code-block:: python
+
+    >>> from funcsigs import signature
+    >>> def foo(a, b=None, *args, **kwargs):
+    ...     pass
+    ...
+    >>> sig = signature(foo)
+    >>> sig
+    <funcsigs.Signature object at 0x...>
+    >>> sig.parameters
+    OrderedDict([('a', <Parameter at 0x... 'a'>), ('b', <Parameter at 0x... 'b'>), ('args', <Parameter at 0x... 'args'>), ('kwargs', <Parameter at 0x... 'kwargs'>)])
+    >>> sig.return_annotation
+    <class 'funcsigs._empty'>
 
 Introspecting callables with the Signature object
 -------------------------------------------------
 
 .. note::
 
-   This section of documentation is a direct repoduction of the Python
+   This section of documentation is a direct reproduction of the Python
    standard library documentation for the inspect module.
 
 The Signature object represents the call signature of a callable object and its
@@ -61,7 +78,7 @@ function.
 
    Return a :class:`Signature` object for the given ``callable``::
 
-      >>> from inspect import signature
+      >>> from funcsigs import signature
       >>> def foo(a, *, b:int, **kwargs):
       ...     pass
 
@@ -225,7 +242,7 @@ function.
 
       ::
 
-         >>> from inspect import Parameter
+         >>> from funcsigs import Parameter
          >>> param = Parameter('foo', Parameter.KEYWORD_ONLY, default=42)
          >>> str(param)
          'foo=42'
@@ -313,3 +330,24 @@ work is distributed under the `Apache License Version 2.0`_.
 
 .. _PSF License Agreement: http://docs.python.org/3/license.html#terms-and-conditions-for-accessing-or-otherwise-using-python
 .. _Apache License Version 2.0: http://opensource.org/licenses/Apache-2.0
+.. _GitHub: https://github.com/testing-cabal/funcsigs
+.. _PSF License Agreement: http://docs.python.org/3/license.html#terms-and-conditions-for-accessing-or-otherwise-using-python
+.. _Travis CI: http://travis-ci.org/
+.. _Read The Docs: http://funcsigs.readthedocs.org/
+.. _PEP 362: http://www.python.org/dev/peps/pep-0362/
+.. _inspect: http://docs.python.org/3/library/inspect.html#introspecting-callables-with-the-signature-object
+.. _issues system: https://github.com/testing-cabal/funcsigs/issues
+
+.. |build_status| image:: https://secure.travis-ci.org/aliles/funcsigs.png?branch=master
+   :target: http://travis-ci.org/#!/aliles/funcsigs
+   :alt: Current build status
+
+.. |coverage| image:: https://coveralls.io/repos/aliles/funcsigs/badge.png?branch=master
+   :target: https://coveralls.io/r/aliles/funcsigs?branch=master
+   :alt: Coverage status
+
+.. |pypi_version| image:: https://pypip.in/v/funcsigs/badge.png
+   :target: https://crate.io/packages/funcsigs/
+   :alt: Latest PyPI version
+
+

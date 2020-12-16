@@ -93,7 +93,15 @@ Remarks:
 
 * It is possible for setup/teardown pairs to be invoked multiple times
   per testing process.
+
 * teardown functions are not called if the corresponding setup function existed
   and failed/was skipped.
+
+* Prior to pytest-4.2, xunit-style functions did not obey the scope rules of fixtures, so
+  it was possible, for example, for a ``setup_method`` to be called before a
+  session-scoped autouse fixture.
+
+  Now the xunit-style functions are integrated with the fixture mechanism and obey the proper
+  scope rules of fixtures involved in the call.
 
 .. _`unittest.py module`: http://docs.python.org/library/unittest.html

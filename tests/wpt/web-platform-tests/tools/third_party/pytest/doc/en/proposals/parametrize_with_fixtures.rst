@@ -75,7 +75,7 @@ Issues
 ------
 
 * By using ``request.getfuncargvalue()`` we rely on actual fixture function
-  execution to know what fixtures are involved, due to it's dynamic nature
+  execution to know what fixtures are involved, due to its dynamic nature
 * More importantly, ``request.getfuncargvalue()`` cannot be combined with
   parametrized fixtures, such as ``extra_context``
 * This is very inconvenient if you wish to extend an existing test suite by

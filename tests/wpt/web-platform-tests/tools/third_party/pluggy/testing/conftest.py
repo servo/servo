@@ -2,17 +2,12 @@ import pytest
 
 
 @pytest.fixture(
-    params=[
-        lambda spec: spec,
-        lambda spec: spec()
-    ],
-    ids=[
-        "spec-is-class",
-        "spec-is-instance"
-    ],
+    params=[lambda spec: spec, lambda spec: spec()],
+    ids=["spec-is-class", "spec-is-instance"],
 )
 def he_pm(request, pm):
     from pluggy import HookspecMarker
+
     hookspec = HookspecMarker("example")
 
     class Hooks(object):
@@ -27,4 +22,5 @@ def he_pm(request, pm):
 @pytest.fixture
 def pm():
     from pluggy import PluginManager
+
     return PluginManager("example")

@@ -1,13 +1,24 @@
-from __future__ import absolute_import, division, print_function
-import warnings
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import re
+import warnings
 
 import pytest
 from _pytest.recwarn import WarningsRecorder
+from _pytest.warning_types import PytestDeprecationWarning
+
+
+def test_recwarn_stacklevel(recwarn):
+    warnings.warn("hello")
+    warn = recwarn.pop()
+    assert warn.filename == __file__
 
 
 def test_recwarn_functional(testdir):
-    reprec = testdir.inline_runsource(
+    testdir.makepyfile(
         """
         import warnings
         def test_method(recwarn):
@@ -16,12 +27,11 @@ def test_recwarn_functional(testdir):
             assert isinstance(warn.message, UserWarning)
     """
     )
-    res = reprec.countoutcomes()
-    assert tuple(res) == (1, 0, 0), res
+    reprec = testdir.inline_run()
+    reprec.assertoutcome(passed=1)
 
 
 class TestWarningsRecorderChecker(object):
-
     def test_recording(self):
         rec = WarningsRecorder()
         with rec:
@@ -36,7 +46,13 @@ class TestWarningsRecorderChecker(object):
             rec.clear()
             assert len(rec.list) == 0
             assert values is rec.list
-            pytest.raises(AssertionError, "rec.pop()")
+            pytest.raises(AssertionError, rec.pop)
+
+    def test_warn_stacklevel(self):
+        """#4243"""
+        rec = WarningsRecorder()
+        with rec:
+            warnings.warn("test", DeprecationWarning, 2)
 
     def test_typechecking(self):
         from _pytest.recwarn import WarningsChecker
@@ -77,9 +93,8 @@ class TestDeprecatedCall(object):
             )
 
     def test_deprecated_call_raises(self):
-        with pytest.raises(AssertionError) as excinfo:
+        with pytest.raises(pytest.fail.Exception, match="No warnings of type"):
             pytest.deprecated_call(self.dep, 3, 5)
-        assert "Did not produce" in str(excinfo)
 
     def test_deprecated_call(self):
         pytest.deprecated_call(self.dep, 0, 5)
@@ -101,7 +116,7 @@ class TestDeprecatedCall(object):
         assert warn_explicit is warnings.warn_explicit
 
     def test_deprecated_explicit_call_raises(self):
-        with pytest.raises(AssertionError):
+        with pytest.raises(pytest.fail.Exception):
             pytest.deprecated_call(self.dep_explicit, 3)
 
     def test_deprecated_explicit_call(self):
@@ -117,8 +132,8 @@ class TestDeprecatedCall(object):
         def f():
             pass
 
-        msg = "Did not produce DeprecationWarning or PendingDeprecationWarning"
-        with pytest.raises(AssertionError, match=msg):
+        msg = "No warnings of type (.*DeprecationWarning.*, .*PendingDeprecationWarning.*)"
+        with pytest.raises(pytest.fail.Exception, match=msg):
             if mode == "call":
                 pytest.deprecated_call(f)
             else:
@@ -180,23 +195,38 @@ class TestDeprecatedCall(object):
             def f():
                 warnings.warn(warning("hi"))
 
-            with pytest.raises(AssertionError):
+            with pytest.raises(pytest.fail.Exception):
                 pytest.deprecated_call(f)
-            with pytest.raises(AssertionError):
+            with pytest.raises(pytest.fail.Exception):
                 with pytest.deprecated_call():
                     f()
 
+    def test_deprecated_call_supports_match(self):
+        with pytest.deprecated_call(match=r"must be \d+$"):
+            warnings.warn("value must be 42", DeprecationWarning)
+
+        with pytest.raises(pytest.fail.Exception):
+            with pytest.deprecated_call(match=r"must be \d+$"):
+                warnings.warn("this is not here", DeprecationWarning)
+
 
 class TestWarns(object):
-
     def test_strings(self):
         # different messages, b/c Python suppresses multiple identical warnings
         source1 = "warnings.warn('w1', RuntimeWarning)"
         source2 = "warnings.warn('w2', RuntimeWarning)"
         source3 = "warnings.warn('w3', RuntimeWarning)"
-        pytest.warns(RuntimeWarning, source1)
-        pytest.raises(pytest.fail.Exception, lambda: pytest.warns(UserWarning, source2))
-        pytest.warns(RuntimeWarning, source3)
+        with pytest.warns(PytestDeprecationWarning) as warninfo:  # yo dawg
+            pytest.warns(RuntimeWarning, source1)
+            pytest.raises(
+                pytest.fail.Exception, lambda: pytest.warns(UserWarning, source2)
+            )
+            pytest.warns(RuntimeWarning, source3)
+        assert len(warninfo) == 3
+        for w in warninfo:
+            assert w.filename == __file__
+            (msg,) = w.message.args
+            assert msg.startswith("warns(..., 'code(as_a_string)') is deprecated")
 
     def test_function(self):
         pytest.warns(
@@ -345,3 +375,13 @@ class TestWarns(object):
             with pytest.warns(UserWarning, match=r"aaa"):
                 warnings.warn("bbbbbbbbbb", UserWarning)
                 warnings.warn("cccccccccc", UserWarning)
+
+    @pytest.mark.filterwarnings("ignore")
+    def test_can_capture_previously_warned(self):
+        def f():
+            warnings.warn(UserWarning("ohai"))
+            return 10
+
+        assert f() == 10
+        assert pytest.warns(UserWarning, f) == 10
+        assert pytest.warns(UserWarning, f) == 10

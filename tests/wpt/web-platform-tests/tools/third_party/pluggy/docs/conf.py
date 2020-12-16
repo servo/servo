@@ -1,59 +1,65 @@
 # -*- coding: utf-8 -*-
-import pkg_resources
+import sys
+
+if sys.version_info >= (3, 8):
+    from importlib import metadata
+else:
+    import importlib_metadata as metadata
 
 
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.doctest',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.coverage',
-    'sphinx.ext.viewcode',
+    "sphinx.ext.autodoc",
+    "sphinx.ext.doctest",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.coverage",
+    "sphinx.ext.viewcode",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
-source_suffix = '.rst'
+source_suffix = ".rst"
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = "index"
 
 # General information about the project.
 
-dist = pkg_resources.get_distribution('pluggy')
-project = dist.project_name
-copyright = u'2016, Holger Krekel'
-author = 'Holger Krekel'
+project = "pluggy"
+copyright = u"2016, Holger Krekel"
+author = "Holger Krekel"
 
-release = dist.version
+release = metadata.version(project)
 # The short X.Y version.
-version = u'.'.join(dist.version.split('.')[:2])
+version = u".".join(release.split(".")[:2])
 
 
 language = None
 
-pygments_style = 'sphinx'
-html_logo = '_static/img/plug.png'
-html_theme = 'alabaster'
+pygments_style = "sphinx"
+# html_logo = "_static/img/plug.png"
+html_theme = "alabaster"
 html_theme_options = {
-    # 'logo': 'img/plug.png',
-    # 'logo_name': 'true',
-    'description': 'The `pytest` plugin system',
-    'github_user': 'pytest-dev',
-    'github_repo': 'pluggy',
-    'github_button': 'true',
-    'github_banner': 'true',
-    'page_width': '1080px',
-    'fixed_sidebar': 'false',
+    "logo": "img/plug.png",
+    "description": "The pytest plugin system",
+    "github_user": "pytest-dev",
+    "github_repo": "pluggy",
+    "github_button": "true",
+    "github_banner": "true",
+    "github_type": "star",
+    "travis_button": "true",
+    "badge_branch": "master",
+    "page_width": "1080px",
+    "fixed_sidebar": "false",
 }
-html_static_path = ['_static']
+html_sidebars = {
+    "**": ["about.html", "localtoc.html", "relations.html", "searchbox.html"]
+}
+html_static_path = ["_static"]
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    (master_doc, 'pluggy', u'pluggy Documentation',
-     [author], 1)
-]
+man_pages = [(master_doc, "pluggy", u"pluggy Documentation", [author], 1)]
 
 
 # -- Options for Texinfo output -------------------------------------------
@@ -62,10 +68,22 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'pluggy', u'pluggy Documentation',
-     author, 'pluggy', 'One line description of project.',
-     'Miscellaneous'),
+    (
+        master_doc,
+        "pluggy",
+        u"pluggy Documentation",
+        author,
+        "pluggy",
+        "One line description of project.",
+        "Miscellaneous",
+    )
 ]
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'https://docs.python.org/': None}
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
+    "pytest": ("https://docs.pytest.org/en/latest", None),
+    "setuptools": ("https://setuptools.readthedocs.io/en/latest", None),
+    "tox": ("https://tox.readthedocs.io/en/latest", None),
+    "devpi": ("https://devpi.net/docs/devpi/devpi/stable/+doc/", None),
+}

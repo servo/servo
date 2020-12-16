@@ -10,7 +10,7 @@ from six import string_types
 from six.moves.urllib.parse import urlunsplit
 
 from tests.support import defaults
-from tests.support.helpers import cleanup_session
+from tests.support.helpers import cleanup_session, deep_update
 from tests.support.inline import build_inline
 from tests.support.http_request import HTTPRequest
 from tests.support.sync import Poll
@@ -124,7 +124,7 @@ def session(capabilities, configuration, request):
     # Update configuration capabilities with custom ones from the
     # capabilities fixture, which can be set by tests
     caps = copy.deepcopy(configuration["capabilities"])
-    caps.update(capabilities)
+    deep_update(caps, capabilities)
     caps = {"alwaysMatch": caps}
 
     # If there is a session with different capabilities active, end it now

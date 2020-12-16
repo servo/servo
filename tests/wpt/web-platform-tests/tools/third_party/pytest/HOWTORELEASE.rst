@@ -10,10 +10,6 @@ taking a lot of time to make a new one.
     pytest releases must be prepared on **Linux** because the docs and examples expect
     to be executed in that platform.
 
-#. Install development dependencies in a virtual environment with::
-
-    pip3 install -U -r tasks/requirements.txt
-
 #. Create a branch ``release-X.Y.Z`` with the version for the release.
 
    * **patch releases**: from the latest ``master``;
@@ -22,17 +18,22 @@ taking a lot of time to make a new one.
 
    Ensure your are in a clean work tree.
 
-#. Generate docs, changelog, announcements and a **local** tag::
+#. Using ``tox``, generate docs, changelog, announcements::
 
-     invoke generate.pre-release <VERSION>
+    $ tox -e release -- <VERSION>
+
+   This will generate a commit with all the changes ready for pushing.
 
 #. Open a PR for this branch targeting ``master``.
 
 #. After all tests pass and the PR has been approved, publish to PyPI by pushing the tag::
 
+     git tag <VERSION>
      git push git@github.com:pytest-dev/pytest.git <VERSION>
 
    Wait for the deploy to complete, then make sure it is `available on PyPI <https://pypi.org/project/pytest>`_.
+
+#. Merge the PR into ``master``.
 
 #. Send an email announcement with the contents from::
 
@@ -45,5 +46,3 @@ taking a lot of time to make a new one.
    * testing-in-python@lists.idyll.org (only major/minor releases)
 
    And announce it on `Twitter <https://twitter.com/>`_ with the ``#pytest`` hashtag.
-
-#. After a minor/major release, merge ``release-X.Y.Z`` into ``master`` and push (or open a PR).

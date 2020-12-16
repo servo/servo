@@ -1,28 +1,32 @@
-from __future__ import absolute_import, division, generators, print_function
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 import ast
-from ast import PyCF_ONLY_AST as _AST_FLAG
-from bisect import bisect_right
+import inspect
 import linecache
 import sys
-import six
-import inspect
+import textwrap
 import tokenize
-import py
+import warnings
+from ast import PyCF_ONLY_AST as _AST_FLAG
+from bisect import bisect_right
 
-cpy_compile = compile
+import py
+import six
 
 
 class Source(object):
     """ an immutable object holding a source code fragment,
         possibly deindenting it.
     """
+
     _compilecounter = 0
 
     def __init__(self, *parts, **kwargs):
         self.lines = lines = []
         de = kwargs.get("deindent", True)
-        rstrip = kwargs.get("rstrip", True)
         for part in parts:
             if not part:
                 partlines = []
@@ -32,11 +36,6 @@ class Source(object):
                 partlines = [x.rstrip("\n") for x in part]
             elif isinstance(part, six.string_types):
                 partlines = part.split("\n")
-                if rstrip:
-                    while partlines:
-                        if partlines[-1].strip():
-                            break
-                        partlines.pop()
             else:
                 partlines = getsource(part, deindent=de).lines
             if de:
@@ -60,7 +59,7 @@ class Source(object):
             if key.step not in (None, 1):
                 raise IndexError("cannot slice a Source with a step")
             newsource = Source()
-            newsource.lines = self.lines[key.start:key.stop]
+            newsource.lines = self.lines[key.start : key.stop]
             return newsource
 
     def __len__(self):
@@ -114,35 +113,23 @@ class Source(object):
         ast, start, end = getstatementrange_ast(lineno, self)
         return start, end
 
-    def deindent(self, offset=None):
-        """ return a new source object deindented by offset.
-            If offset is None then guess an indentation offset from
-            the first non-blank line.  Subsequent lines which have a
-            lower indentation offset will be copied verbatim as
-            they are assumed to be part of multilines.
-        """
-        # XXX maybe use the tokenizer to properly handle multiline
-        #     strings etc.pp?
+    def deindent(self):
+        """return a new source object deindented."""
         newsource = Source()
-        newsource.lines[:] = deindent(self.lines, offset)
+        newsource.lines[:] = deindent(self.lines)
         return newsource
 
     def isparseable(self, deindent=True):
         """ return True if source is parseable, heuristically
             deindenting it by default.
         """
-        from parser import suite as syntax_checker
-
         if deindent:
             source = str(self.deindent())
         else:
             source = str(self)
         try:
-            # compile(source+'\n', "x", "exec")
-            syntax_checker(source + "\n")
-        except KeyboardInterrupt:
-            raise
-        except Exception:
+            ast.parse(source)
+        except (SyntaxError, ValueError, TypeError):
             return False
         else:
             return True
@@ -151,12 +138,7 @@ class Source(object):
         return "\n".join(self.lines)
 
     def compile(
-        self,
-        filename=None,
-        mode="exec",
-        flag=generators.compiler_flag,
-        dont_inherit=0,
-        _genframe=None,
+        self, filename=None, mode="exec", flag=0, dont_inherit=0, _genframe=None
     ):
         """ return compiled code object. if filename is None
             invent an artificial filename which displays
@@ -174,11 +156,11 @@ class Source(object):
                 filename = base + "%r %s:%d>" % (filename, fn, lineno)
         source = "\n".join(self.lines) + "\n"
         try:
-            co = cpy_compile(source, filename, mode, flag)
+            co = compile(source, filename, mode, flag)
         except SyntaxError:
             ex = sys.exc_info()[1]
             # re-represent syntax errors from parsing python strings
-            msglines = self.lines[:ex.lineno]
+            msglines = self.lines[: ex.lineno]
             if ex.offset:
                 msglines.append(" " * ex.offset + "^")
             msglines.append("(code was compiled probably from here: %s)" % filename)
@@ -200,9 +182,7 @@ class Source(object):
 #
 
 
-def compile_(
-    source, filename=None, mode="exec", flags=generators.compiler_flag, dont_inherit=0
-):
+def compile_(source, filename=None, mode="exec", flags=0, dont_inherit=0):
     """ compile the given source to a raw code object,
         and maintain an internal cache which allows later
         retrieval of the source code for the code object
@@ -210,7 +190,7 @@ def compile_(
     """
     if isinstance(source, ast.AST):
         # XXX should Source support having AST?
-        return cpy_compile(source, filename, mode, flags, dont_inherit)
+        return compile(source, filename, mode, flags, dont_inherit)
     _genframe = sys._getframe(1)  # the caller
     s = Source(source)
     co = s.compile(filename, mode, flags, _genframe=_genframe)
@@ -219,7 +199,9 @@ def compile_(
 
 def getfslineno(obj):
     """ Return source location (path, lineno) for the given object.
-    If the source cannot be determined return ("", -1)
+    If the source cannot be determined return ("", -1).
+
+    The line number is 0-based.
     """
     from .code import Code
 
@@ -253,9 +235,7 @@ def getfslineno(obj):
 def findsource(obj):
     try:
         sourcelines, lineno = inspect.findsource(obj)
-    except py.builtin._sysex:
-        raise
-    except:  # noqa
+    except Exception:
         return None, -1
     source = Source()
     source.lines = [line.rstrip() for line in sourcelines]
@@ -274,47 +254,8 @@ def getsource(obj, **kwargs):
     return Source(strsrc, **kwargs)
 
 
-def deindent(lines, offset=None):
-    if offset is None:
-        for line in lines:
-            line = line.expandtabs()
-            s = line.lstrip()
-            if s:
-                offset = len(line) - len(s)
-                break
-        else:
-            offset = 0
-    if offset == 0:
-        return list(lines)
-    newlines = []
-
-    def readline_generator(lines):
-        for line in lines:
-            yield line + "\n"
-
-    it = readline_generator(lines)
-
-    try:
-        for _, _, (sline, _), (eline, _), _ in tokenize.generate_tokens(
-            lambda: next(it)
-        ):
-            if sline > len(lines):
-                break  # End of input reached
-            if sline > len(newlines):
-                line = lines[sline - 1].expandtabs()
-                if line.lstrip() and line[:offset].isspace():
-                    line = line[offset:]  # Deindent
-                newlines.append(line)
-
-            for i in range(sline, eline):
-                # Don't deindent continuing lines of
-                # multiline tokens (i.e. multiline strings)
-                newlines.append(lines[i])
-    except (IndentationError, tokenize.TokenError):
-        pass
-    # Add any lines we didn't see. E.g. if an exception was raised.
-    newlines.extend(lines[len(newlines):])
-    return newlines
+def deindent(lines):
+    return textwrap.dedent("\n".join(lines)).splitlines()
 
 
 def get_statement_startend2(lineno, node):
@@ -344,7 +285,11 @@ def get_statement_startend2(lineno, node):
 def getstatementrange_ast(lineno, source, assertion=False, astnode=None):
     if astnode is None:
         content = str(source)
-        astnode = compile(content, "source", "exec", 1024)  # 1024 for AST
+        # See #4260:
+        # don't produce duplicate warnings when compiling source to find ast
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            astnode = compile(content, "source", "exec", _AST_FLAG)
 
     start, end = get_statement_startend2(lineno, astnode)
     # we need to correct the end:

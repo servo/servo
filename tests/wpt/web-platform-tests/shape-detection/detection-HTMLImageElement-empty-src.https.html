@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// This test verifies *Detector.detect() rejects the promise when fed with
+// an HTMLImageElement with an empty 'src'.
+const emptyInputTests = [
+  {
+    createDetector: () => { return new FaceDetector(); },
+    name: "Face - detect(empty src)"
+  },
+  {
+    createDetector: () => { return new BarcodeDetector(); },
+    name: "Barcode - detect(empty src)"
+  },
+  {
+    createDetector: () => { return new TextDetector(); },
+    name: "Text - detect(empty src)"
+  }
+];
+
+for (let emptyInputTest of emptyInputTests) {
+  promise_test(async t => {
+    const img = new Image();
+    const imgWatcher = new EventWatcher(t, img, ["load", "error"]);
+    img.src = "";
+    await imgWatcher.wait_for("error");
+
+    const detector = emptyInputTest.createDetector();
+    promise_rejects_dom(t, "InvalidStateError", detector.detect(img));
+  }, emptyInputTest.name);
+}
+</script>

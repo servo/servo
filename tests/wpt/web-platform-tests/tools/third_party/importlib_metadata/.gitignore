@@ -1,0 +1,13 @@
+build
+/coverage.xml
+/diffcov.html
+htmlcov
+importlib_metadata.egg-info
+.mypy_cache
+/.coverage
+/.DS_Store
+artifacts
+.eggs
+.doctrees
+dist
+pip-wheel-metadata

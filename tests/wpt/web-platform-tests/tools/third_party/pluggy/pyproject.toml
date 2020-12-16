@@ -1,0 +1,44 @@
+[build-system]
+requires = [
+  "setuptools",
+  "setuptools-scm",
+  "wheel",
+]
+
+[tool.towncrier]
+package = "pluggy"
+package_dir = "src/pluggy"
+filename = "CHANGELOG.rst"
+directory = "changelog/"
+title_format = "pluggy {version} ({project_date})"
+template = "changelog/_template.rst"
+
+  [[tool.towncrier.type]]
+  directory = "removal"
+  name = "Deprecations and Removals"
+  showcontent = true
+
+  [[tool.towncrier.type]]
+  directory = "feature"
+  name = "Features"
+  showcontent = true
+
+  [[tool.towncrier.type]]
+  directory = "bugfix"
+  name = "Bug Fixes"
+  showcontent = true
+
+  [[tool.towncrier.type]]
+  directory = "vendor"
+  name = "Vendored Libraries"
+  showcontent = true
+
+  [[tool.towncrier.type]]
+  directory = "doc"
+  name = "Improved Documentation"
+  showcontent = true
+
+  [[tool.towncrier.type]]
+  directory = "trivial"
+  name = "Trivial/Internal Changes"
+  showcontent = true

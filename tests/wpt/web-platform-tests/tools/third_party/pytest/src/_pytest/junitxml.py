@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
     report test results in JUnit-XML format,
     for use with Jenkins and build integration servers.
@@ -8,14 +9,21 @@ Based on initial code from Ross Lawley.
 Output conforms to https://github.com/jenkinsci/xunit-plugin/blob/master/
 src/main/resources/org/jenkinsci/plugins/xunit/types/model/xsd/junit-10.xsd
 """
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 import functools
-import py
 import os
+import platform
 import re
 import sys
 import time
+from datetime import datetime
+
+import py
+import six
+
 import pytest
 from _pytest import nodes
 from _pytest.config import filename_arg
@@ -23,10 +31,6 @@ from _pytest.config import filename_arg
 # Python 2.X and 3.X compatibility
 if sys.version_info[0] < 3:
     from codecs import open
-else:
-    unichr = chr
-    unicode = str
-    long = int
 
 
 class Junit(py.xml.Namespace):
@@ -38,15 +42,15 @@ class Junit(py.xml.Namespace):
 # this dynamically instead of hardcoding it.  The spec range of valid
 # chars is: Char ::= #x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD]
 #                    | [#x10000-#x10FFFF]
-_legal_chars = (0x09, 0x0A, 0x0d)
+_legal_chars = (0x09, 0x0A, 0x0D)
 _legal_ranges = ((0x20, 0x7E), (0x80, 0xD7FF), (0xE000, 0xFFFD), (0x10000, 0x10FFFF))
 _legal_xml_re = [
-    unicode("%s-%s") % (unichr(low), unichr(high))
+    u"%s-%s" % (six.unichr(low), six.unichr(high))
     for (low, high) in _legal_ranges
     if low < sys.maxunicode
 ]
-_legal_xml_re = [unichr(x) for x in _legal_chars] + _legal_xml_re
-illegal_xml_re = re.compile(unicode("[^%s]") % unicode("").join(_legal_xml_re))
+_legal_xml_re = [six.unichr(x) for x in _legal_chars] + _legal_xml_re
+illegal_xml_re = re.compile(u"[^%s]" % u"".join(_legal_xml_re))
 del _legal_chars
 del _legal_ranges
 del _legal_xml_re
@@ -55,24 +59,44 @@ _py_ext_re = re.compile(r"\.py$")
 
 
 def bin_xml_escape(arg):
-
     def repl(matchobj):
         i = ord(matchobj.group())
         if i <= 0xFF:
-            return unicode("#x%02X") % i
+            return u"#x%02X" % i
         else:
-            return unicode("#x%04X") % i
+            return u"#x%04X" % i
 
     return py.xml.raw(illegal_xml_re.sub(repl, py.xml.escape(arg)))
 
 
+def merge_family(left, right):
+    result = {}
+    for kl, vl in left.items():
+        for kr, vr in right.items():
+            if not isinstance(vl, list):
+                raise TypeError(type(vl))
+            result[kl] = vl + vr
+    left.update(result)
+
+
+families = {}
+families["_base"] = {"testcase": ["classname", "name"]}
+families["_base_legacy"] = {"testcase": ["file", "line", "url"]}
+
+# xUnit 1.x inherits legacy attributes
+families["xunit1"] = families["_base"].copy()
+merge_family(families["xunit1"], families["_base_legacy"])
+
+# xUnit 2.x uses strict base attributes
+families["xunit2"] = families["_base"]
+
+
 class _NodeReporter(object):
-
     def __init__(self, nodeid, xml):
-
         self.id = nodeid
         self.xml = xml
         self.add_stats = self.xml.add_stats
+        self.family = self.xml.family
         self.duration = 0
         self.properties = []
         self.nodes = []
@@ -120,8 +144,20 @@ class _NodeReporter(object):
         self.attrs = attrs
         self.attrs.update(existing_attrs)  # restore any user-defined attributes
 
+        # Preserve legacy testcase behavior
+        if self.family == "xunit1":
+            return
+
+        # Filter out attributes not permitted by this test family.
+        # Including custom attributes because they are not valid here.
+        temp_attrs = {}
+        for key in self.attrs.keys():
+            if key in families[self.family]["testcase"]:
+                temp_attrs[key] = self.attrs[key]
+        self.attrs = temp_attrs
+
     def to_xml(self):
-        testcase = Junit.testcase(time=self.duration, **self.attrs)
+        testcase = Junit.testcase(time="%.3f" % self.duration, **self.attrs)
         testcase.append(self.make_properties_node())
         for node in self.nodes:
             testcase.append(node)
@@ -133,6 +169,9 @@ class _NodeReporter(object):
         self.append(node)
 
     def write_captured_output(self, report):
+        if not self.xml.log_passing_tests and report.passed:
+            return
+
         content_out = report.capstdout
         content_log = report.caplog
         content_err = report.capstderr
@@ -192,7 +231,7 @@ class _NodeReporter(object):
         else:
             if hasattr(report.longrepr, "reprcrash"):
                 message = report.longrepr.reprcrash.message
-            elif isinstance(report.longrepr, (unicode, str)):
+            elif isinstance(report.longrepr, six.string_types):
                 message = report.longrepr
             else:
                 message = str(report.longrepr)
@@ -211,7 +250,7 @@ class _NodeReporter(object):
         self._add_simple(Junit.skipped, "collection skipped", report.longrepr)
 
     def append_error(self, report):
-        if getattr(report, "when", None) == "teardown":
+        if report.when == "teardown":
             msg = "test teardown failure"
         else:
             msg = "test setup failure"
@@ -219,16 +258,25 @@ class _NodeReporter(object):
 
     def append_skipped(self, report):
         if hasattr(report, "wasxfail"):
-            self._add_simple(Junit.skipped, "expected test failure", report.wasxfail)
+            xfailreason = report.wasxfail
+            if xfailreason.startswith("reason: "):
+                xfailreason = xfailreason[8:]
+            self.append(
+                Junit.skipped(
+                    "", type="pytest.xfail", message=bin_xml_escape(xfailreason)
+                )
+            )
         else:
             filename, lineno, skipreason = report.longrepr
             if skipreason.startswith("Skipped: "):
-                skipreason = bin_xml_escape(skipreason[9:])
+                skipreason = skipreason[9:]
+            details = "%s:%s: %s" % (filename, lineno, skipreason)
+
             self.append(
                 Junit.skipped(
-                    "%s:%s: %s" % (filename, lineno, skipreason),
+                    bin_xml_escape(details),
                     type="pytest.skip",
-                    message=skipreason,
+                    message=bin_xml_escape(skipreason),
                 )
             )
             self.write_captured_output(report)
@@ -237,6 +285,21 @@ class _NodeReporter(object):
         data = self.to_xml().unicode(indent=0)
         self.__dict__.clear()
         self.to_xml = lambda: py.xml.raw(data)
+
+
+def _warn_incompatibility_with_xunit2(request, fixture_name):
+    """Emits a PytestWarning about the given fixture being incompatible with newer xunit revisions"""
+    from _pytest.warning_types import PytestWarning
+
+    xml = getattr(request.config, "_xml", None)
+    if xml is not None and xml.family not in ("xunit1", "legacy"):
+        request.node.warn(
+            PytestWarning(
+                "{fixture_name} is incompatible with junit_family '{family}' (use 'legacy' or 'xunit1')".format(
+                    fixture_name=fixture_name, family=xml.family
+                )
+            )
+        )
 
 
 @pytest.fixture
@@ -252,6 +315,7 @@ def record_property(request):
         def test_function(record_property):
             record_property("example_key", 1)
     """
+    _warn_incompatibility_with_xunit2(request, "record_property")
 
     def append_property(name, value):
         request.node.user_properties.append((name, value))
@@ -260,35 +324,70 @@ def record_property(request):
 
 
 @pytest.fixture
-def record_xml_property(record_property):
-    """(Deprecated) use record_property."""
-    import warnings
-    from _pytest import deprecated
-
-    warnings.warn(deprecated.RECORD_XML_PROPERTY, DeprecationWarning, stacklevel=2)
-
-    return record_property
-
-
-@pytest.fixture
 def record_xml_attribute(request):
     """Add extra xml attributes to the tag for the calling test.
     The fixture is callable with ``(name, value)``, with value being
     automatically xml-encoded
     """
+    from _pytest.warning_types import PytestExperimentalApiWarning
+
     request.node.warn(
-        code="C3", message="record_xml_attribute is an experimental feature"
+        PytestExperimentalApiWarning("record_xml_attribute is an experimental feature")
     )
+
+    _warn_incompatibility_with_xunit2(request, "record_xml_attribute")
+
+    # Declare noop
+    def add_attr_noop(name, value):
+        pass
+
+    attr_func = add_attr_noop
+
     xml = getattr(request.config, "_xml", None)
     if xml is not None:
         node_reporter = xml.node_reporter(request.node.nodeid)
-        return node_reporter.add_attribute
-    else:
+        attr_func = node_reporter.add_attribute
 
-        def add_attr_noop(name, value):
-            pass
+    return attr_func
 
-        return add_attr_noop
+
+def _check_record_param_type(param, v):
+    """Used by record_testsuite_property to check that the given parameter name is of the proper
+    type"""
+    __tracebackhide__ = True
+    if not isinstance(v, six.string_types):
+        msg = "{param} parameter needs to be a string, but {g} given"
+        raise TypeError(msg.format(param=param, g=type(v).__name__))
+
+
+@pytest.fixture(scope="session")
+def record_testsuite_property(request):
+    """
+    Records a new ``<property>`` tag as child of the root ``<testsuite>``. This is suitable to
+    writing global information regarding the entire test suite, and is compatible with ``xunit2`` JUnit family.
+
+    This is a ``session``-scoped fixture which is called with ``(name, value)``. Example:
+
+    .. code-block:: python
+
+        def test_foo(record_testsuite_property):
+            record_testsuite_property("ARCH", "PPC")
+            record_testsuite_property("STORAGE_TYPE", "CEPH")
+
+    ``name`` must be a string, ``value`` will be converted to a string and properly xml-escaped.
+    """
+
+    __tracebackhide__ = True
+
+    def record_func(name, value):
+        """noop function in case --junitxml was not passed in the command-line"""
+        __tracebackhide__ = True
+        _check_record_param_type("name", name)
+
+    xml = getattr(request.config, "_xml", None)
+    if xml is not None:
+        record_func = xml.add_global_property  # noqa
+    return record_func
 
 
 def pytest_addoption(parser):
@@ -320,6 +419,22 @@ def pytest_addoption(parser):
         "one of no|system-out|system-err",
         default="no",
     )  # choices=['no', 'stdout', 'stderr'])
+    parser.addini(
+        "junit_log_passing_tests",
+        "Capture log information for passing tests to JUnit report: ",
+        type="bool",
+        default=True,
+    )
+    parser.addini(
+        "junit_duration_report",
+        "Duration time to report: one of total|call",
+        default="total",
+    )  # choices=['total', 'call'])
+    parser.addini(
+        "junit_family",
+        "Emit XML for schema: one of legacy|xunit1|xunit2",
+        default="xunit1",
+    )
 
 
 def pytest_configure(config):
@@ -331,6 +446,9 @@ def pytest_configure(config):
             config.option.junitprefix,
             config.getini("junit_suite_name"),
             config.getini("junit_logging"),
+            config.getini("junit_duration_report"),
+            config.getini("junit_family"),
+            config.getini("junit_log_passing_tests"),
         )
         config.pluginmanager.register(config._xml)
 
@@ -358,20 +476,36 @@ def mangle_test_address(address):
 
 
 class LogXML(object):
-
-    def __init__(self, logfile, prefix, suite_name="pytest", logging="no"):
+    def __init__(
+        self,
+        logfile,
+        prefix,
+        suite_name="pytest",
+        logging="no",
+        report_duration="total",
+        family="xunit1",
+        log_passing_tests=True,
+    ):
         logfile = os.path.expanduser(os.path.expandvars(logfile))
         self.logfile = os.path.normpath(os.path.abspath(logfile))
         self.prefix = prefix
         self.suite_name = suite_name
         self.logging = logging
+        self.log_passing_tests = log_passing_tests
+        self.report_duration = report_duration
+        self.family = family
         self.stats = dict.fromkeys(["error", "passed", "failure", "skipped"], 0)
         self.node_reporters = {}  # nodeid -> _NodeReporter
         self.node_reporters_ordered = []
         self.global_properties = []
+
         # List of reports that failed on call but teardown is pending.
         self.open_reports = []
         self.cnt_double_fail_tests = 0
+
+        # Replaces convenience family with real family
+        if self.family == "legacy":
+            self.family = "xunit1"
 
     def finalize(self, report):
         nodeid = getattr(report, "nodeid", report)
@@ -463,6 +597,8 @@ class LogXML(object):
             if report.when == "call":
                 reporter.append_failure(report)
                 self.open_reports.append(report)
+                if not self.log_passing_tests:
+                    reporter.write_captured_output(report)
             else:
                 reporter.append_error(report)
         elif report.skipped:
@@ -498,8 +634,9 @@ class LogXML(object):
         """accumulates total duration for nodeid from given report and updates
         the Junit.testcase with the new total if already created.
         """
-        reporter = self.node_reporter(report)
-        reporter.duration += getattr(report, "duration", 0.0)
+        if self.report_duration == "total" or report.when == self.report_duration:
+            reporter = self.node_reporter(report)
+            reporter.duration += getattr(report, "duration", 0.0)
 
     def pytest_collectreport(self, report):
         if not report.passed:
@@ -534,27 +671,28 @@ class LogXML(object):
         )
         logfile.write('<?xml version="1.0" encoding="utf-8"?>')
 
-        logfile.write(
-            Junit.testsuite(
-                self._get_global_properties_node(),
-                [x.to_xml() for x in self.node_reporters_ordered],
-                name=self.suite_name,
-                errors=self.stats["error"],
-                failures=self.stats["failure"],
-                skips=self.stats["skipped"],
-                tests=numtests,
-                time="%.3f" % suite_time_delta,
-            ).unicode(
-                indent=0
-            )
+        suite_node = Junit.testsuite(
+            self._get_global_properties_node(),
+            [x.to_xml() for x in self.node_reporters_ordered],
+            name=self.suite_name,
+            errors=self.stats["error"],
+            failures=self.stats["failure"],
+            skipped=self.stats["skipped"],
+            tests=numtests,
+            time="%.3f" % suite_time_delta,
+            timestamp=datetime.fromtimestamp(self.suite_start_time).isoformat(),
+            hostname=platform.node(),
         )
+        logfile.write(Junit.testsuites([suite_node]).unicode(indent=0))
         logfile.close()
 
     def pytest_terminal_summary(self, terminalreporter):
         terminalreporter.write_sep("-", "generated xml file: %s" % (self.logfile))
 
     def add_global_property(self, name, value):
-        self.global_properties.append((str(name), bin_xml_escape(value)))
+        __tracebackhide__ = True
+        _check_record_param_type("name", name)
+        self.global_properties.append((name, bin_xml_escape(value)))
 
     def _get_global_properties_node(self):
         """Return a Junit node containing custom properties, if any.

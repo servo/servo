@@ -9,7 +9,6 @@ try:
     import Queue as queue  # noqa: N813
 except ImportError:
     import queue
-import sys
 import tempfile
 import threading
 
@@ -46,8 +45,6 @@ def tempfile_name():
     os.remove(name)
 
 
-@pytest.mark.skipif(sys.version_info >= (3, 8) and sys.platform == 'darwin',
-                    reason="multiprocessing test hangs in Python 3.8 on macOS (#24880)")
 def test_subprocess_exit(server_subprocesses, tempfile_name):
     timeout = 30
 

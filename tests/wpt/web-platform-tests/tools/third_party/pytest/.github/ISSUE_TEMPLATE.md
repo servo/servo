@@ -1,8 +1,10 @@
+<!--
 Thanks for submitting an issue!
 
-Here's a quick checklist in what to include:
+Here's a quick checklist for what to provide:
+-->
 
-- [ ] Include a detailed description of the bug or suggestion
-- [ ] `pip list` of the virtual environment you are using
+- [ ] a detailed description of the bug or suggestion
+- [ ] output of `pip list` from the virtual environment you are using
 - [ ] pytest and operating system versions
-- [ ] Minimal example if possible
+- [ ] minimal example if possible

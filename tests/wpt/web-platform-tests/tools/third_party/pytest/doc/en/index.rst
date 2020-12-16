@@ -22,12 +22,15 @@ An example of a simple test:
         assert inc(3) == 5
 
 
-To execute it::
+To execute it:
+
+.. code-block:: pytest
 
     $ pytest
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-3.x.y, py-1.x.y, pluggy-0.x.y
-    rootdir: $REGENDOC_TMPDIR, inifile:
+    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    cachedir: $PYTHON_PREFIX/.pytest_cache
+    rootdir: $REGENDOC_TMPDIR
     collected 1 item
 
     test_sample.py F                                                     [100%]
@@ -84,7 +87,7 @@ Consult the :ref:`Changelog <changelog>` page for fixes and enhancements of each
 License
 -------
 
-Copyright Holger Krekel and others, 2004-2017.
+Copyright Holger Krekel and others, 2004-2020.
 
 Distributed under the terms of the `MIT`_ license, pytest is free and open source software.
 

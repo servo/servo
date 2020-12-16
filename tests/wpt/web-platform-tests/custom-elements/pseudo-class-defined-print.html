@@ -1,0 +1,17 @@
+<!doctype html>
+<link rel="match" href="pseudo-class-defined-print-ref.html">
+<style>
+  custom-element {
+    display: block;
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+  custom-element:not(:defined) {
+    background: red;
+  }
+</style>
+<custom-element></custom-element>
+<script>
+  customElements.define("custom-element", class extends HTMLElement { });
+</script>

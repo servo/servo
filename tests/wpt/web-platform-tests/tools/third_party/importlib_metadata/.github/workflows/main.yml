@@ -1,0 +1,126 @@
+name: Automated Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        python: [2.7, 3.5, 3.6, 3.7, 3.8, 3.9]
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install tox
+        run: |
+          python -m pip install tox
+      - name: Run tests
+        run: tox
+        env:
+          TOXENV: python
+
+  qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - name: Install tox
+        run: |
+          python -m pip install tox
+      - name: Run checks
+        run: tox
+        env:
+          TOXENV: qa
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - name: Install tox
+        run: |
+          python -m pip install tox
+      - name: Evaluate coverage
+        run: tox
+        env:
+          TOXENV: cov
+
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - name: Install tox
+        run: |
+          python -m pip install tox
+      - name: Run benchmarks
+        run: tox
+        env:
+          TOXENV: perf
+
+  diffcov:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - name: Install tox
+        run: |
+          python -m pip install tox
+      - name: Evaluate coverage
+        run: tox
+        env:
+          TOXENV: diffcov
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - name: Install tox
+        run: |
+          python -m pip install tox
+      - name: Build docs
+        run: tox
+        env:
+          TOXENV: docs
+
+  release:
+    needs: test
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - name: Install tox
+        run: |
+          python -m pip install tox
+      - name: Release
+        run: tox -e release
+        env:
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
