@@ -152,10 +152,9 @@ Servo::PromptResult prompt_yes_no(const char *message, bool trusted) {
   return sServo->Delegate().OnServoPromptYesNo(char2hstring(message), trusted);
 }
 
-const char *prompt_input(const char *message, const char *default,
-                         bool trusted) {
+const char *prompt_input(const char *message, const char *def, bool trusted) {
   auto input = sServo->Delegate().OnServoPromptInput(
-      char2hstring(message), char2hstring(default), trusted);
+      char2hstring(message), char2hstring(def), trusted);
   if (input.has_value()) {
     return *hstring2char(*input);
   } else {
