@@ -84,86 +84,80 @@
         }, prefix + leastPositiveDoubleFloat).notThrow();
       }
 
-      audit.define('min-distance', (task, should) => {
+      audit.define('min-distance', async (task, should) => {
         // Test clamping of panner distance to refDistance for all of the
         // distance models.  The actual distance is arbitrary as long as it's
         // less than refDistance.  We test default and non-default values for
         // the panner's refDistance and maxDistance.
         // correctly.
-        Promise
-            .all([
-              runTest(should, {
-                distance: 0.01,
-                distanceModel: 'linear',
-              }),
-              runTest(should, {
-                distance: 0.01,
-                distanceModel: 'exponential',
-              }),
-              runTest(should, {
-                distance: 0.01,
-                distanceModel: 'inverse',
-              }),
-              runTest(should, {
-                distance: 2,
-                distanceModel: 'linear',
-                maxDistance: 1000,
-                refDistance: 10,
-              }),
-              runTest(should, {
-                distance: 2,
-                distanceModel: 'exponential',
-                maxDistance: 1000,
-                refDistance: 10,
-              }),
-              runTest(should, {
-                distance: 2,
-                distanceModel: 'inverse',
-                maxDistance: 1000,
-                refDistance: 10,
-              }),
-            ])
-            .then(() => task.done());
+        await runTest(should, {
+          distance: 0.01,
+          distanceModel: 'linear',
+        });
+        await runTest(should, {
+          distance: 0.01,
+          distanceModel: 'exponential',
+        });
+        await runTest(should, {
+          distance: 0.01,
+          distanceModel: 'inverse',
+        });
+        await runTest(should, {
+          distance: 2,
+          distanceModel: 'linear',
+          maxDistance: 1000,
+          refDistance: 10,
+        });
+        await runTest(should, {
+          distance: 2,
+          distanceModel: 'exponential',
+          maxDistance: 1000,
+          refDistance: 10,
+        });
+        await runTest(should, {
+          distance: 2,
+          distanceModel: 'inverse',
+          maxDistance: 1000,
+          refDistance: 10,
+        });
+        task.done();
       });
 
-      audit.define('max-distance', (task, should) => {
+      audit.define('max-distance', async (task, should) => {
         // Like the "min-distance" task, but for clamping to the max
         // distance. The actual distance is again arbitrary as long as it is
         // greater than maxDistance.
-        Promise
-            .all([
-              runTest(should, {
-                distance: 20000,
-                distanceModel: 'linear',
-              }),
-              runTest(should, {
-                distance: 21000,
-                distanceModel: 'exponential',
-              }),
-              runTest(should, {
-                distance: 23000,
-                distanceModel: 'inverse',
-              }),
-              runTest(should, {
-                distance: 5000,
-                distanceModel: 'linear',
-                maxDistance: 1000,
-                refDistance: 10,
-              }),
-              runTest(should, {
-                distance: 5000,
-                distanceModel: 'exponential',
-                maxDistance: 1000,
-                refDistance: 10,
-              }),
-              runTest(should, {
-                distance: 5000,
-                distanceModel: 'inverse',
-                maxDistance: 1000,
-                refDistance: 10,
-              }),
-            ])
-            .then(() => task.done());
+        await runTest(should, {
+          distance: 20000,
+          distanceModel: 'linear',
+        });
+        await runTest(should, {
+          distance: 21000,
+          distanceModel: 'exponential',
+        });
+        await runTest(should, {
+          distance: 23000,
+          distanceModel: 'inverse',
+        });
+        await runTest(should, {
+          distance: 5000,
+          distanceModel: 'linear',
+          maxDistance: 1000,
+          refDistance: 10,
+        });
+        await runTest(should, {
+          distance: 5000,
+          distanceModel: 'exponential',
+          maxDistance: 1000,
+          refDistance: 10,
+        });
+        await runTest(should, {
+          distance: 5000,
+          distanceModel: 'inverse',
+          maxDistance: 1000,
+          refDistance: 10,
+        });
+        task.done();
       });
 
       function runTest(should, options) {

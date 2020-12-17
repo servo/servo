@@ -7,7 +7,7 @@
     <meta name="timeout" content="long">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <script src="/cookies/resources/cookie-helper.sub.js"></script>
+    <script src="/cookies/resources/cookie-test.js"></script>
   </head>
   <body>
     <div id=log></div>
@@ -20,37 +20,44 @@
       {
         cookie: "test=1; lol; Path=/",
         expected: "test=1",
-        name: "Set cookie with invalid attribute"
+        name: "Set cookie with invalid attribute",
+        defaultPath: false
       },
       {
         cookie: "test=2; Path=/; lol",
         expected: "test=2",
-        name: "Set cookie ending with invalid attribute."
+        name: "Set cookie ending with invalid attribute.",
+        defaultPath: false
       },
       {
         cookie: "test=3; Path=/; 'lol'",
         expected: "test=3",
-        name: "Set cookie ending with quoted invalid attribute."
+        name: "Set cookie ending with quoted invalid attribute.",
+        defaultPath: false
       },
       {
         cookie: 'test=4; Path=/; "lol"',
         expected: "test=4",
-        name: "Set cookie ending with double-quoted invalid attribute."
+        name: "Set cookie ending with double-quoted invalid attribute.",
+        defaultPath: false
       },
       {
         cookie: "test=5; Path=/; lol=",
         expected: "test=5",
-        name: "Set cookie ending with invalid attribute equals."
+        name: "Set cookie ending with invalid attribute equals.",
+        defaultPath: false
       },
       {
         cookie: 'test=6; lol="aaa;bbb"; Path=/',
         expected: "test=6",
-        name: "Set cookie with two invalid attributes (lol=\"aaa and bbb)."
+        name: "Set cookie with two invalid attributes (lol=\"aaa and bbb).",
+        defaultPath: false
       },
       {
         cookie: 'test=7; Path=/; lol="aaa;bbb"',
         expected: "test=7",
-        name: "Set cookie ending with two invalid attributes (lol=\"aaa and bbb)."
+        name: "Set cookie ending with two invalid attributes (lol=\"aaa and bbb).",
+        defaultPath: false
       },
       {
         cookie: 'test=8; "Secure"',
@@ -58,7 +65,6 @@
         // This gets parsed as an unrecognized \"Secure\" attribute, not a valid
         // Secure attribute. That's why it gets set on an non-secure origin.
         name: "Set cookie for quoted Secure attribute",
-        defaultPath: true
       },
       {
         cookie: "test=9; Secure qux",
@@ -66,15 +72,32 @@
         // This should be parsed as an unrecognized "Secure qux" attribute
         // and ignored. That is, the cookie will not be Secure.
         name: "Set cookie for Secure qux",
-        defaultPath: true
       },
+      {
+        cookie: "test=10; b,az=qux",
+        expected: "test=10",
+        name: "Ignore invalid attribute name with comma",
+      },
+      {
+        cookie: "test=11; baz=q,ux",
+        expected: "test=11",
+        name: "Ignore invalid attribute value with comma",
+      },
+      {
+        cookie: "  test  = 12  ;foo;;;   bar",
+        expected: "test=12",
+        name: "Set cookie ignoring multiple invalid attributes, whitespace, and semicolons",
+      },
+      {
+        cookie: "  test=== 13  ;foo;;;   bar",
+        expected: "test=== 13",
+        name: "Set cookie with multiple '='s in its value, ignoring multiple invalid attributes, whitespace, and semicolons",
+      }
     ];
 
-      for (const test of invalidAttributeTests) {
-        promise_test(async testCase => {
-          await runCookieTest(test.cookie, test.expected, test.defaultPath);
-        }, test.name);
-      }
+    for (const test of invalidAttributeTests) {
+      httpCookieTest(test.cookie, test.expected, test.name, test.defaultPath);
+    }
     </script>
   </body>
 </html>

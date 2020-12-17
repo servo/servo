@@ -6,7 +6,7 @@
     <meta name=help href="https://tools.ietf.org/html/rfc6265#section-5.2.5">
     <meta name="timeout" content="long">
     <script src="/resources/testharness.js"></script>
-    <script src="/cookies/resources/cookie-helper.sub.js"></script>
+    <script src="/cookies/resources/cookie-test.js"></script>
   </head>
   <body>
     <script>
@@ -19,56 +19,46 @@
         cookie: "test=1; Secure",
         expected: "",
         name: "(non-secure) Ignore cookie for Secure attribute",
-        defaultPath: true
       },
       {
         cookie: "test=2; seCURe",
         expected: "",
         name: "(non-secure) Ignore cookie for seCURe attribute",
-        defaultPath: true
       },
       {
         cookie: "test=3; Secure=",
         expected: "",
         name: "(non-secure) Ignore cookie for for Secure= attribute",
-        defaultPath: true
       },
       {
         cookie: "test=4; Secure=aaaa",
         expected: "",
         name: "(non-secure) Ignore cookie for Secure=aaaa",
-        defaultPath: true
       },
       {
         cookie: "test=5; Secure =aaaaa",
         expected: "",
         name: "(non-secure) Ignore cookie for Secure space equals",
-        defaultPath: true
       },
       {
         cookie: "test=6; Secure= aaaaa",
         expected: "",
         name: "(non-secure) Ignore cookie for Secure equals space",
-        defaultPath: true
       },
       {
         cookie: "test=7;                Secure",
         expected: "",
         name: "(non-secure) Ignore cookie for spaced Secure",
-        defaultPath: true
       },
       {
         cookie: "test=8;       Secure     ;",
         expected: "",
         name: "(non-secure) Ignore cookie for space Secure with ;",
-        defaultPath: true
       }
     ];
 
     for (const test of secureNonSecureTests) {
-      promise_test(async testCase => {
-        await runCookieTest(test.cookie, test.expected, test.defaultPath);
-      }, test.name);
+      httpCookieTest(test.cookie, test.expected, test.name, test.defaultPath);
     }
     </script>
   </body>

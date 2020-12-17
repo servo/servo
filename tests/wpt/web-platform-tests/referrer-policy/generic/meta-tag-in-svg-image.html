@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Referrer Policy: Meta tag in svg image loaded via img should not change referrer policy</title>
+    <meta name="referrer" content="origin"/>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <!-- Common global functions for referrer-policy tests. -->
+    <script src="/common/security-features/resources/common.sub.js"></script>
+  </head>
+  <body>
+    <script>
+      async_test(function(t) {
+        var img = document.createElement("img");
+        img.onload = function() {
+          var urlPath = '/common/security-features/subresource/image.py?cache_destroyer=' + (new Date()).getTime();
+          return requestViaImage(urlPath, null, 'always')
+            .then(t.step_func(function(message) {
+              assert_equals(message.referrer, self.origin + '/');
+            }))
+            .finally(function() { t.done(); });
+        };
+        img.onerror = t.step_func_done(function() {
+          assert_unreached("img should load");
+        });
+        img.src = "./resources/img-with-referrer-policy.svg";
+        document.body.appendChild(img);
+      }, "Meta tag in SVG image loaded via img should be ignored");
+    </script>
+  </body>
+</html>

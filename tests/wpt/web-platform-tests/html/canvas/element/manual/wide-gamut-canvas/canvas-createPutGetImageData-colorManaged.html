@@ -7,7 +7,7 @@
 var xWidth = xHeight = 10;
 
 function checkImageData(expectedColorSettings, imageData) {
-  var imageDataColorSettings = imageData.getColorSettings();
+  var imageDataColorSettings = imageData.getSettings();
   assert_equals(expectedColorSettings.colorSpace, imageDataColorSettings.colorSpace);
   assert_equals(expectedColorSettings.storageFormat, imageDataColorSettings.storageFormat);
   assert_equals(imageData.data.length, 4 * xWidth * xHeight);
@@ -24,7 +24,7 @@ function runTestCreateImageData(canvasColorSettings, imageSetting) {
   checkImageData(imageSetting, imageData);
 
   imageData = ctx.createImageData(helperImageData);
-  checkImageData(imageData.getColorSettings(), imageData);
+  checkImageData(imageData.getSettings(), imageData);
 }
 
 var testScenariosCreateImageData = [

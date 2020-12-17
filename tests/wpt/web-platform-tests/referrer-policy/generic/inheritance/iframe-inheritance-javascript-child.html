@@ -45,8 +45,11 @@
 [
   {
     srcDocPolicy: ``,
-    expected: undefined  // Because the URL of <iframe src="javascript:..."> is about:blank,
-                         // the referrer should be no referrer.
+    expected: location.href  // Executing javascript does not commit a new document
+                             // and does not change the document url.
+                             // Since the algorithm for computing the referrer in a srcdoc
+                             // iframe defers recursively to the parent, the expected
+                             // referrer should be the full url of the main document.
   },
   {
     srcDocPolicy: `<meta name="referrer" content="no-referrer">`,
