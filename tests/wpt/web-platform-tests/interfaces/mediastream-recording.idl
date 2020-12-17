@@ -33,12 +33,12 @@ dictionary MediaRecorderOptions {
   unsigned long audioBitsPerSecond;
   unsigned long videoBitsPerSecond;
   unsigned long bitsPerSecond;
-  BitrateMode audioBitrateMode = "vbr";
+  BitrateMode audioBitrateMode = "variable";
 };
 
 enum BitrateMode {
-  "cbr",
-  "vbr"
+  "constant",
+  "variable"
 };
 
 enum RecordingState {

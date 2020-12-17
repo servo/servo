@@ -7,7 +7,7 @@
     <meta name="timeout" content="long">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <script src="/cookies/resources/cookie-helper.sub.js"></script>
+    <script src="/cookies/resources/cookie-test.js"></script>
   </head>
   <body>
     <script>
@@ -16,38 +16,41 @@
           cookie: "test=1; Path",
           expected: "test=1",
           name: "Set cookie for bare Path",
-          defaultPath: true
         },
         {
           cookie: "test=2; Path=",
           expected: "test=2",
           name: "Set cookie for Path=",
-          defaultPath: true
         },
         {
           cookie: "test=3; Path=/",
           expected: "test=3",
-          name: "Set cookie for Path=/"
+          name: "Set cookie for Path=/",
+          defaultPath: false
         },
         {
           cookie: "test=4; Path=/qux",
           expected: "",
-          name: "No cookie returned for mismatched path"
+          name: "No cookie returned for mismatched path",
+          defaultPath: false
         },
         {
           cookie: "test=5; Path    =/qux",
           expected: "",
-          name: "No cookie returned for path space equals mismatched path"
+          name: "No cookie returned for path space equals mismatched path",
+          defaultPath: false
         },
         {
           cookie: "test=6; Path=    /qux",
           expected: "",
-          name: "No cookie returned for path equals space mismatched path"
+          name: "No cookie returned for path equals space mismatched path",
+          defaultPath: false
         },
         {
           cookie: "test=7; Path=/qux      ; taz",
           expected: "",
-          name: "No cookie returned for mismatched path and attribute"
+          name: "No cookie returned for mismatched path and attribute",
+          defaultPath: false
         },
         {
           cookie: "test=8; Path=/qux; Path=/",
@@ -57,19 +60,19 @@
         {
           cookie: "test=9; Path=/; Path=/qux",
           expected: "",
-          name: "No cookie returned for root and mismatched path"
+          name: "No cookie returned for root and mismatched path",
+          defaultPath: false
         },
         {
           cookie: "test=10; Path=/lol; Path=/qux",
           expected: "",
-          name: "No cookie returned for multiple mismatched paths"
+          name: "No cookie returned for multiple mismatched paths",
+          defaultPath: false
         },
       ];
 
       for (const test of pathTests) {
-        promise_test(async testCase => {
-          await runCookieTest(test.cookie, test.expected, test.defaultPath);
-        }, test.name);
+        httpCookieTest(test.cookie, test.expected, test.name, test.defaultPath);
       }
     </script>
   </body>

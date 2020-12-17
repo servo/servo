@@ -22,7 +22,6 @@ var unexpected = [
   // https://streams.spec.whatwg.org/
   "ReadableStreamDefaultReader",
   "ReadableStreamBYOBReader",
-  "ReadableStreamDefaultController",
   "ReadableByteStreamController",
   "WritableStreamDefaultWriter",
   "WritableStreamDefaultController",

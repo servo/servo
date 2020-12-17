@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Test cookie name parsing</title>
+    <meta name=help href="https://tools.ietf.org/html/rfc6265#section-5.2">
+    <meta name="timeout" content="long">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/cookies/resources/cookie-test.js"></script>
+  </head>
+  <body>
+    <div id=log></div>
+    <script>
+      // TODO: there is more to test here, these tests capture the old
+      // ported http-state tests. Feel free to delete this comment when more
+      // are added.
+      const nameTests = [
+        {
+          cookie: "test1=;  path = /",
+          expected: "test1=",
+          name: "Set valueless cookie to its name with empty value",
+          defaultValue: false,
+        },
+        {
+          cookie: "",
+          expected: "",
+          name: "Ignore cookie with no name or value",
+        },
+
+      ];
+
+      for (const test of nameTests) {
+        httpCookieTest(test.cookie, test.expected, test.name);
+      }
+    </script>
+  </body>
+</html>

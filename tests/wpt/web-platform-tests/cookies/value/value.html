@@ -1,0 +1,101 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Test cookie value parsing</title>
+    <meta name=help href="https://tools.ietf.org/html/rfc6265#section-5.2">
+    <meta name="timeout" content="long">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/cookies/resources/cookie-test.js"></script>
+  </head>
+  <body>
+    <div id=log></div>
+    <script>
+      // TODO: there is more to test here, these tests capture the old
+      // ported http-state tests. Feel free to delete this comment when more
+      // are added, or these are split up into logical groups.
+      const valueTests = [
+        {
+          cookie: "test=1, baz=qux",
+          expected: "test=1, baz=qux",
+          name: "Set value containing a comma",
+        },
+        {
+          cookie: 'test="2, baz=qux"',
+          expected: 'test="2, baz=qux"',
+          name: "Set quoted value containing a comma",
+        },
+        {
+          cookie: 'test="3zz;pp" ; ;',
+          expected: 'test="3zz',
+          name: "Ignore values after semicolon",
+        },
+        {
+          cookie: 'test="4zz ;',
+          expected: 'test="4zz',
+          name: "Ingore whitespace at the end of value",
+        },
+        {
+          cookie: 'test="5zzz "   "ppp"  ;',
+          expected: 'test="5zzz "   "ppp"',
+          name: "Set value including quotes and whitespace up until semicolon",
+        },
+        {
+          cookie: 'test=6A"B ;',
+          expected: 'test=6A"B',
+          name: "Set value with a single quote excluding whitespace"
+        },
+        {
+          cookie: "test7",
+          expected: "test7",
+          name: "Set nameless cookie to its value",
+        },
+        {
+          cookie: '"test8\"HHH"',
+          expected: '"test8\"HHH"',
+          name: "Set nameless cookie to its value with an escaped quote",
+        },
+        {
+          cookie: 'test="9',
+          expected: 'test="9',
+          name: "Set value with unbalanced leading quote",
+        },
+        {
+          cookie: "=test10",
+          expected: "test10",
+          name: "Set nameless cookie followed by '=' to its value",
+        },
+        {
+          // 7 + 4089 = 4096
+          cookie: `test=11${"a".repeat(4089)}`,
+          expected: `test=11${"a".repeat(4089)}`,
+          name: "Set cookie with large value ( = 4kb)",
+        },
+        {
+          // 7 + 4091 = 4098
+          // Note: Chrome includes = in its length, Firefox does not
+          // For now, make this 4098 until the spec clarifies:
+          // https://github.com/httpwg/http-extensions/issues/1340
+          cookie: `test=12${"a".repeat(4091)}`,
+          expected: "",
+          name: "Ignore cookie with large value ( > 4kb)",
+        },
+        {
+          cookie: `test=13\nZYX`,
+          expected: "test=13",
+          name: "Set cookie but ignore value after LF",
+        },
+        {
+          cookie: 'test="14 "   ;',
+          expected: 'test="14 "',
+          name: "Set cookie ignoring whitespace after value endquote",
+        },
+      ];
+
+      for (const test of valueTests) {
+        httpCookieTest(test.cookie, test.expected, test.name, test.defaultPath);
+      }
+    </script>
+  </body>
+</html>
