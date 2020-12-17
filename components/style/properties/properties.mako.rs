@@ -46,7 +46,7 @@ use crate::values::computed::NonNegativeLength;
 use crate::values::serialize_atom_name;
 use crate::rule_tree::StrongRuleNode;
 use crate::Zero;
-use crate::str::{CssString, CssStringBorrow, CssStringWriter};
+use crate::str::{CssString, CssStringWriter};
 use std::cell::Cell;
 
 pub use self::declaration_block::*;
@@ -1529,10 +1529,7 @@ impl ShorthandId {
         // https://drafts.csswg.org/css-variables/#variables-in-shorthands
         if let Some(css) = first_declaration.with_variables_from_shorthand(self) {
             if declarations2.all(|d| d.with_variables_from_shorthand(self) == Some(css)) {
-               return Some(AppendableValue::Css {
-                   css: CssStringBorrow::from(css),
-                   with_variables: true,
-               });
+               return Some(AppendableValue::Css { css, with_variables: true });
             }
             return None;
         }
@@ -1541,7 +1538,7 @@ impl ShorthandId {
         if let Some(keyword) = first_declaration.get_css_wide_keyword() {
             if declarations2.all(|d| d.get_css_wide_keyword() == Some(keyword)) {
                 return Some(AppendableValue::Css {
-                    css: CssStringBorrow::from(keyword.to_str()),
+                    css: keyword.to_str(),
                     with_variables: false,
                 });
             }

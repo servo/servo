@@ -14,7 +14,7 @@ use crate::parser::ParserContext;
 use crate::properties::animated_properties::{AnimationValue, AnimationValueMap};
 use crate::selector_parser::SelectorImpl;
 use crate::shared_lock::Locked;
-use crate::str::{CssString, CssStringBorrow, CssStringWriter};
+use crate::str::{CssString, CssStringWriter};
 use crate::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use crate::values::computed::Context;
 use cssparser::{parse_important, CowRcStr, DeclarationListParser, ParserInput};
@@ -1093,7 +1093,11 @@ impl PropertyDeclarationBlock {
                         }
 
                         AppendableValue::Css {
-                            css: CssStringBorrow::from(&v),
+                            // Safety: serialization only generates valid utf-8.
+                            #[cfg(feature = "gecko")]
+                            css: unsafe { v.as_str_unchecked() },
+                            #[cfg(feature = "servo")]
+                            css: &v,
                             with_variables: false,
                         }
                     },
@@ -1179,7 +1183,7 @@ where
     /// or when storing a serialized shorthand value before appending directly.
     Css {
         /// The raw CSS string.
-        css: CssStringBorrow<'a>,
+        css: &'a str,
         /// Whether the original serialization contained variables or not.
         with_variables: bool,
     },
@@ -1207,7 +1211,7 @@ where
     I: Iterator<Item = &'a PropertyDeclaration>,
 {
     match appendable_value {
-        AppendableValue::Css { css, .. } => css.append_to(dest),
+        AppendableValue::Css { css, .. } => dest.write_str(css),
         AppendableValue::Declaration(decl) => decl.to_css(dest),
         AppendableValue::DeclarationsForShorthand(shorthand, decls) => {
             shorthand.longhands_to_css(decls, &mut CssWriter::new(dest))
