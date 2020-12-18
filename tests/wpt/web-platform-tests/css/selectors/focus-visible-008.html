@@ -7,6 +7,9 @@
   <link rel="help" href="https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo" />
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
   <style>
     :focus-visible {
       outline: darkgreen auto 5px;
@@ -44,6 +47,12 @@
       el.focus();
     });
   }
+
+  const tab_key = '\ue004';
+  const enter_key = '\uE007';
+  test_driver.send_keys(el, tab_key).then(() => {
+    test_driver.send_keys(el, enter_key);
+  });
   </script>
 </body>
 </html>

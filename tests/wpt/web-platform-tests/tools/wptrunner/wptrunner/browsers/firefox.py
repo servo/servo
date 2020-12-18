@@ -76,7 +76,7 @@ def check_args(**kwargs):
     require_arg(kwargs, "binary")
 
 
-def browser_kwargs(test_type, run_info_data, config, **kwargs):
+def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
     return {"binary": kwargs["binary"],
             "prefs_root": kwargs["prefs_root"],
             "extra_prefs": kwargs["extra_prefs"],
@@ -105,7 +105,7 @@ def browser_kwargs(test_type, run_info_data, config, **kwargs):
             "specialpowers_path": kwargs["specialpowers_path"]}
 
 
-def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
+def executor_kwargs(logger, test_type, server_config, cache_manager, run_info_data,
                     **kwargs):
     executor_kwargs = base_executor_kwargs(test_type, server_config,
                                            cache_manager, run_info_data,
@@ -138,6 +138,16 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
         for pref, value in kwargs["extra_prefs"]:
             options["prefs"].update({pref: Preferences.cast(value)})
         capabilities["moz:firefoxOptions"] = options
+
+        environ = get_environ(logger,
+                              kwargs["binary"],
+                              kwargs["debug_info"],
+                              kwargs["stylo_threads"],
+                              kwargs["headless"],
+                              kwargs["enable_webrender"],
+                              kwargs["chaos_mode_flags"])
+
+        executor_kwargs["environ"] = environ
     if kwargs["certutil_binary"] is None:
         capabilities["acceptInsecureCerts"] = True
     if capabilities:
@@ -179,7 +189,10 @@ def run_info_extras(**kwargs):
           "verify": kwargs["verify"],
           "headless": kwargs.get("headless", False) or "MOZ_HEADLESS" in os.environ,
           "sw-e10s": True,
-          "fission": kwargs.get("enable_fission") or get_bool_pref("fission.autostart")}
+          "fission": kwargs.get("enable_fission") or get_bool_pref("fission.autostart"),
+          "sessionHistoryInParent": (kwargs.get("enable_fission") or
+                                     get_bool_pref("fission.autostart") or
+                                     get_bool_pref("fission.sessionHistoryInParent"))}
 
     # The value of `sw-e10s` defaults to whether the "parent_intercept"
     # implementation is enabled for the current build. This value, however,
@@ -211,6 +224,26 @@ def run_info_browser_version(**kwargs):
 def update_properties():
     return (["os", "debug", "webrender", "fission", "e10s", "sw-e10s", "processor"],
             {"os": ["version"], "processor": ["bits"]})
+
+
+def get_environ(logger, binary, debug_info, stylo_threads, headless, enable_webrender,
+                chaos_mode_flags=None):
+    env = test_environment(xrePath=os.path.abspath(os.path.dirname(binary)),
+                           debugger=debug_info is not None,
+                           useLSan=True,
+                           log=logger)
+
+    env["STYLO_THREADS"] = str(stylo_threads)
+    if chaos_mode_flags is not None:
+        env["MOZ_CHAOSMODE"] = str(chaos_mode_flags)
+    if headless:
+        env["MOZ_HEADLESS"] = "1"
+    if enable_webrender:
+        env["MOZ_WEBRENDER"] = "1"
+        env["MOZ_ACCELERATED"] = "1"
+    else:
+        env["MOZ_WEBRENDER"] = "0"
+    return env
 
 
 class FirefoxInstanceManager(object):
@@ -268,20 +301,8 @@ class FirefoxInstanceManager(object):
         marionette_port = get_free_port()
         profile.set_preferences({"marionette.port": marionette_port})
 
-        env = test_environment(xrePath=os.path.abspath(os.path.dirname(self.binary)),
-                               debugger=self.debug_info is not None,
-                               useLSan=True, log=self.logger)
-
-        env["STYLO_THREADS"] = str(self.stylo_threads)
-        if self.chaos_mode_flags is not None:
-            env["MOZ_CHAOSMODE"] = str(self.chaos_mode_flags)
-        if self.headless:
-            env["MOZ_HEADLESS"] = "1"
-        if self.enable_webrender:
-            env["MOZ_WEBRENDER"] = "1"
-            env["MOZ_ACCELERATED"] = "1"
-        else:
-            env["MOZ_WEBRENDER"] = "0"
+        env = get_environ(self.logger, self.binary, self.debug_info, self.stylo_threads,
+                          self.headless, self.enable_webrender, self.chaos_mode_flags)
 
         args = self.binary_args[:] if self.binary_args else []
         args += [cmd_arg("marionette"), "about:blank"]

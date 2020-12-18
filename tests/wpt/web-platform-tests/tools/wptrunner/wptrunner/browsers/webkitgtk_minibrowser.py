@@ -25,7 +25,7 @@ def check_args(**kwargs):
     pass
 
 
-def browser_kwargs(test_type, run_info_data, config, **kwargs):
+def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
     # Workaround for https://gitlab.gnome.org/GNOME/libsoup/issues/172
     webdriver_required_args = ["--host=127.0.0.1"]
     webdriver_args = maybe_add_args(webdriver_required_args, kwargs.get("webdriver_args"))
@@ -53,7 +53,7 @@ def capabilities(server_config, **kwargs):
             "certificates": certificate_domain_list(server_config.domains_set, kwargs["host_cert_path"])}}
 
 
-def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
+def executor_kwargs(logger, test_type, server_config, cache_manager, run_info_data,
                     **kwargs):
     executor_kwargs = base_executor_kwargs(test_type, server_config,
                                            cache_manager, run_info_data, **kwargs)

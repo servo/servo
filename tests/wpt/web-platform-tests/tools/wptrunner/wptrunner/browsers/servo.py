@@ -33,7 +33,7 @@ def check_args(**kwargs):
     require_arg(kwargs, "binary")
 
 
-def browser_kwargs(test_type, run_info_data, config, **kwargs):
+def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
     return {
         "binary": kwargs["binary"],
         "debug_info": kwargs["debug_info"],
@@ -43,7 +43,7 @@ def browser_kwargs(test_type, run_info_data, config, **kwargs):
     }
 
 
-def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
+def executor_kwargs(logger, test_type, server_config, cache_manager, run_info_data,
                     **kwargs):
     rv = base_executor_kwargs(test_type, server_config,
                               cache_manager, run_info_data, **kwargs)
