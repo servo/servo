@@ -275,13 +275,15 @@ def run_tests(config, test_paths, product, **kwargs):
                     else:
                         browser_cls = product.browser_cls
 
-                    browser_kwargs = product.get_browser_kwargs(test_type,
+                    browser_kwargs = product.get_browser_kwargs(logger,
+                                                                test_type,
                                                                 run_info,
                                                                 config=test_environment.config,
                                                                 **kwargs)
 
                     executor_cls = product.executor_classes.get(test_type)
-                    executor_kwargs = product.get_executor_kwargs(test_type,
+                    executor_kwargs = product.get_executor_kwargs(logger,
+                                                                  test_type,
                                                                   test_environment.config,
                                                                   test_environment.cache_manager,
                                                                   run_info,

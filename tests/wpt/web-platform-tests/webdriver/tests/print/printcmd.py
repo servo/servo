@@ -2,10 +2,14 @@ import base64
 
 import pytest
 
-from six import ensure_binary
+import six
 
 from tests.support.asserts import assert_error, assert_success
 
+def decodebytes(s):
+    if six.PY3:
+        return base64.decodebytes(six.ensure_binary(s))
+    return base64.decodestring(s)
 
 def do_print(session, options):
     return session.transport.send(
@@ -26,7 +30,7 @@ def test_no_top_browsing_context(session, closed_window):
 def test_no_browsing_context(session, closed_frame):
     response = do_print(session, {})
     value = assert_success(response)
-    pdf = base64.decodestring(ensure_binary(value))
+    pdf = decodebytes(six.ensure_binary(value))
     assert_pdf(pdf)
 
 
@@ -39,7 +43,7 @@ def test_html_document(session, inline):
         "shrinkToFit": False
     })
     value = assert_success(response)
-    pdf = base64.decodestring(ensure_binary(value))
+    pdf = decodebytes(six.ensure_binary(value))
     # TODO: Test that the output is reasonable
     assert_pdf(pdf)
 

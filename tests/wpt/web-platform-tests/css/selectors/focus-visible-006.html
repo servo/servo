@@ -7,6 +7,9 @@
   <link rel="help" href="https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo" />
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
   <style>
     span[contenteditable] {
         border: 1px solid black;
@@ -42,6 +45,8 @@
         assert_equals(getComputedStyle(el).outlineColor, "rgb(0, 100, 0)");
         t.done();
       }));
+
+      test_driver.click(el);
     }, "Focus should always match :focus-visible on content editable divs");
   </script>
 </body>

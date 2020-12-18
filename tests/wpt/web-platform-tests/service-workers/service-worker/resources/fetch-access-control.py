@@ -2,7 +2,14 @@ import base64
 import json
 import os
 
+import six
+
 from wptserve.utils import isomorphic_decode, isomorphic_encode
+
+def decodebytes(s):
+    if six.PY3:
+        return base64.decodebytes(six.ensure_binary(s))
+    return base64.decodestring(s)
 
 def main(request, response):
     headers = []
@@ -29,9 +36,9 @@ def main(request, response):
 
     if b"PNGIMAGE" in request.GET:
         headers.append((b"Content-Type", b"image/png"))
-        body = base64.decodestring(b"iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1B"
-                                   b"AACxjwv8YQUAAAAJcEhZcwAADsQAAA7EAZUrDhsAAAAhSURBVDhPY3wro/KfgQLABKXJBqMG"
-                                   b"jBoAAqMGDLwBDAwAEsoCTFWunmQAAAAASUVORK5CYII=")
+        body = decodebytes(b"iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1B"
+                           b"AACxjwv8YQUAAAAJcEhZcwAADsQAAA7EAZUrDhsAAAAhSURBVDhPY3wro/KfgQLABKXJBqMG"
+                           b"jBoAAqMGDLwBDAwAEsoCTFWunmQAAAAASUVORK5CYII=")
         return headers, body
 
     if b"VIDEO" in request.GET:

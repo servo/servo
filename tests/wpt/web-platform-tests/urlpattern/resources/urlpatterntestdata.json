@@ -650,6 +650,14 @@
     }
   },
   {
+    "pattern": { "protocol": "foo-bar" },
+    "input": { "protocol": "foo-bar" },
+    "expected": {
+      "input": { "protocol": "foo-bar" },
+      "protocol": { "input": "foo-bar", "groups": {} }
+    }
+  },
+  {
     "pattern": { "username": "caf%C3%A9" },
     "input": { "username" : "café" },
     "expected": {
@@ -682,24 +690,6 @@
       "input": { "hostname" : "café.com" },
       "hostname": { "input": "xn--caf-dma.com", "groups": {}}
     }
-  },
-  {
-    "pattern": { "hostname": "cafe%7C.com" },
-    "input": { "hostname" : "cafe|.com" },
-    "expected": {
-      "input": { "hostname" : "cafe|.com" },
-      "hostname": { "input": "cafe%7C.com", "groups": {}}
-    }
-  },
-  {
-    "pattern": { "hostname": "cafe%7c.com" },
-    "input": { "hostname" : "cafe|.com" },
-    "expected": null
-  },
-  {
-    "pattern": { "hostname": "(.*)" },
-    "input": { "hostname" : "cafe^.com" },
-    "expected": null
   },
   {
     "pattern": { "port": "" },

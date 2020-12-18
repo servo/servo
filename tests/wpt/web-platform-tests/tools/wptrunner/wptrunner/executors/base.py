@@ -598,7 +598,7 @@ class WdspecExecutor(TestExecutor):
 
     def __init__(self, logger, browser, server_config, webdriver_binary,
                  webdriver_args, timeout_multiplier=1, capabilities=None,
-                 debug_info=None, **kwargs):
+                 debug_info=None, environ=None, **kwargs):
         self.do_delayed_imports()
         TestExecutor.__init__(self, logger, browser, server_config,
                               timeout_multiplier=timeout_multiplier,
@@ -607,6 +607,7 @@ class WdspecExecutor(TestExecutor):
         self.webdriver_args = webdriver_args
         self.timeout_multiplier = timeout_multiplier
         self.capabilities = capabilities
+        self.environ = environ if environ is not None else {}
         self.protocol = self.protocol_cls(self, browser)
 
     def is_alive(self):
@@ -632,7 +633,8 @@ class WdspecExecutor(TestExecutor):
         return pytestrunner.run(path,
                                 self.server_config,
                                 session_config,
-                                timeout=timeout)
+                                timeout=timeout,
+                                environ=self.environ)
 
     def do_delayed_imports(self):
         global pytestrunner

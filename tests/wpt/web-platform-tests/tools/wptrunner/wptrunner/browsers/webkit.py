@@ -29,7 +29,7 @@ def check_args(**kwargs):
     require_arg(kwargs, "webkit_port")
 
 
-def browser_kwargs(test_type, run_info_data, config, **kwargs):
+def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
     return {"binary": kwargs["binary"],
             "webdriver_binary": kwargs["webdriver_binary"],
             "webdriver_args": kwargs.get("webdriver_args")}
@@ -54,7 +54,7 @@ def capabilities_for_port(server_config, **kwargs):
     return {}
 
 
-def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
+def executor_kwargs(logger, test_type, server_config, cache_manager, run_info_data,
                     **kwargs):
     executor_kwargs = base_executor_kwargs(test_type, server_config,
                                            cache_manager, run_info_data, **kwargs)

@@ -3,11 +3,16 @@ import base64
 
 import pytest
 
-from six import ensure_binary
+import six
 
 from tests.support.asserts import assert_dialog_handled, assert_error, assert_success
 from .printcmd import do_print, assert_pdf
 
+
+def decodebytes(s):
+    if six.PY3:
+        return base64.decodebytes(six.ensure_binary(s))
+    return base64.decodestring(s)
 
 @pytest.fixture
 def check_user_prompt_closed_without_exception(session, create_dialog, inline):
@@ -19,7 +24,7 @@ def check_user_prompt_closed_without_exception(session, create_dialog, inline):
         response = do_print(session, {})
         value = assert_success(response)
 
-        pdf = base64.decodestring(ensure_binary(value))
+        pdf = decodebytes(six.ensure_binary(value))
         assert_dialog_handled(session, expected_text=dialog_type, expected_retval=retval)
 
         assert_pdf(pdf)

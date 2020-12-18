@@ -46,7 +46,7 @@ def test_webkitgtk_certificate_domain_list(product):
                        subdomains={"a", "b"},
                        not_subdomains={"x", "y"}) as env_config:
 
-        executor_args = get_executor_kwargs(None, env_config, None, None, **kwargs)
+        executor_args = get_executor_kwargs(None, None, env_config, None, None, **kwargs)
         assert('capabilities' in executor_args)
         assert('webkitgtk:browserOptions' in executor_args['capabilities'])
         assert('certificates' in executor_args['capabilities']['webkitgtk:browserOptions'])
