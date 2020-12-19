@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>mask with only an empty container with a filter</title>
+  <h:link rel="help" href="https://drafts.fxtf.org/css-masking-1/#svg-masks"/>
+  <h:link rel="match" href="reference/mask-green-square-001-ref.svg"/>
+
+  <filter id="double" x="0" y="0" width="200" height="200" filterUnits="userSpaceOnUse">
+    <feOffset dy="100"/>
+    <feMerge>
+      <feMergeNode/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+  <filter id="f" x="0" y="0" width="200" height="200" filterUnits="userSpaceOnUse">
+    <feFlood flood-color="#fff"/>
+  </filter>
+  <mask id="m" x="50" y="50" width="100" height="100" maskUnits="userSpaceOnUse">
+    <g filter="url(#f)"/>
+  </mask>
+
+  <rect width="100" height="200" fill="green" mask="url(#m)"/>
+  <rect width="100" height="100" x="100" fill="green" mask="url(#m)"
+	filter="url(#double)"/>
+</svg>
