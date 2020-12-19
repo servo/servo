@@ -3,7 +3,6 @@
 <link rel="match" href="../reference/ref-filled-green-100px-square.xht">
 <!-- Tests that a positioned element without a top or bottom property uses the static position -
      even though it's treated as an OOF element. -->
-<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
 <style>
   #multicol {
     column-count: 2;
@@ -25,9 +24,10 @@
     background: green;
   }
 </style>
- <div id="multicol">
-   <div class="rel">
-     <div style="height: 100px; width: 50px;"></div>
-     <div class="abs"></div>
-   </div>
- </div>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="multicol">
+  <div class="rel">
+    <div style="height: 100px; width: 50px;"></div>
+    <div class="abs"></div>
+  </div>
+</div>
