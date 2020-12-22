@@ -5,12 +5,12 @@ from six.moves.urllib.parse import urlsplit
 from abc import ABCMeta, abstractmethod
 from six.moves.queue import Empty
 from collections import defaultdict, deque
-from multiprocessing import Queue
 from six import ensure_binary, iteritems
 from six.moves import range
 
 from . import manifestinclude
 from . import manifestexpected
+from . import mpcontext
 from . import wpttest
 from mozlog import structured
 
@@ -390,7 +390,8 @@ class GroupedSource(TestSource):
 
     @classmethod
     def make_queue(cls, tests, **kwargs):
-        test_queue = Queue()
+        mp = mpcontext.get_context()
+        test_queue = mp.Queue()
         groups = []
 
         state = {}
@@ -423,7 +424,8 @@ class GroupedSource(TestSource):
 class SingleTestSource(TestSource):
     @classmethod
     def make_queue(cls, tests, **kwargs):
-        test_queue = Queue()
+        mp = mpcontext.get_context()
+        test_queue = mp.Queue()
         processes = kwargs["processes"]
         queues = [deque([]) for _ in range(processes)]
         metadatas = [cls.group_metadata(None) for _ in range(processes)]
@@ -467,7 +469,8 @@ class GroupFileTestSource(TestSource):
 
         ids_to_tests = {test.id: test for test in tests}
 
-        test_queue = Queue()
+        mp = mpcontext.get_context()
+        test_queue = mp.Queue()
 
         for group_name, test_ids in iteritems(tests_by_group):
             group_metadata = {"scope": group_name}

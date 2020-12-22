@@ -1,6 +1,6 @@
 import json
 import os
-import multiprocessing
+
 import signal
 import socket
 import sys
@@ -9,6 +9,7 @@ from six import iteritems
 
 from mozlog import get_default_logger, handlers, proxy
 
+from . import mpcontext
 from .wptlogging import LogLevelRewriter
 
 here = os.path.dirname(__file__)
@@ -66,8 +67,9 @@ class TestEnvironment(object):
         self.debug_info = debug_info
         self.options = options if options is not None else {}
 
-        self.cache_manager = multiprocessing.Manager()
-        self.stash = serve.stash.StashServer()
+        mp_context = mpcontext.get_context()
+        self.cache_manager = mp_context.Manager()
+        self.stash = serve.stash.StashServer(mp_context=mp_context)
         self.env_extras = env_extras
         self.env_extras_cms = None
         self.ssl_config = ssl_config
@@ -95,7 +97,8 @@ class TestEnvironment(object):
             self.env_extras_cms.append(cm)
 
         self.servers = serve.start(self.config,
-                                   self.get_routes())
+                                   self.get_routes(),
+                                   mp_context=mpcontext.get_context())
 
         if self.options.get("supports_debugger") and self.debug_info and self.debug_info.interactive:
             self.ignore_interrupts()
@@ -168,7 +171,8 @@ class TestEnvironment(object):
         log_filter = LogLevelRewriter(log_filter, ["error"], "warning")
         server_logger.component_filter = log_filter
 
-        server_logger = proxy.QueuedProxyLogger(server_logger)
+        server_logger = proxy.QueuedProxyLogger(server_logger,
+                                                mpcontext.get_context())
 
         try:
             # Set as the default logger for wptserve

@@ -27,7 +27,6 @@ from .protocol import (BaseProtocolPart,
                        GenerateTestReportProtocolPart,
                        SetPermissionProtocolPart,
                        VirtualAuthenticatorProtocolPart)
-from ..testrunner import Stop
 
 import webdriver as client
 from webdriver import error
@@ -355,8 +354,9 @@ class WebDriverRun(TimedRunner):
         try:
             self.protocol.base.set_timeout(self.timeout + self.extra_timeout)
         except client.UnknownErrorException:
-            self.logger.error("Lost WebDriver connection")
-            return Stop
+            msg = "Lost WebDriver connection"
+            self.logger.error(msg)
+            return ("INTERNAL-ERROR", msg)
 
     def run_func(self):
         try:

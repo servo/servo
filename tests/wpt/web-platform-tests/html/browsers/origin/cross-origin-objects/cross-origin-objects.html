@@ -379,7 +379,11 @@ addTest(function(win) {
                    "preventExtensions on cross-origin Window should throw");
   assert_throws_js(TypeError, function() { Object.preventExtensions(win.location) },
                    "preventExtensions on cross-origin Location should throw");
-}, "[[PreventExtensions]] should throw for cross-origin objects");
+  assert_false(Reflect.preventExtensions(win),
+              "Reflect.preventExtensions on cross-origin Window");
+  assert_false(Reflect.preventExtensions(win.location),
+              "Reflect.preventExtensions on cross-origin Location");
+}, "[[PreventExtensions]] should return false cross-origin objects");
 
 /*
  * [[GetOwnProperty]]

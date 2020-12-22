@@ -29,7 +29,9 @@ document.body.onblur = function() {
     log += "bodyblur,"
 }
 window.onload = function() {
+    log += "willfocusinput,"
     input.focus();
+    log += "didfocusinput,"
     parent.postMessage("start", "*");
 }
 </script>

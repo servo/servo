@@ -19,7 +19,6 @@ from six.moves import urllib
 import uuid
 from collections import defaultdict, OrderedDict
 from itertools import chain, product
-from multiprocessing import Process, Event
 
 from localpaths import repo_root
 from six.moves import reload_module
@@ -407,18 +406,19 @@ def get_route_builder(aliases, config=None):
 
 
 class ServerProc(object):
-    def __init__(self, scheme=None):
+    def __init__(self, mp_context, scheme=None):
         self.proc = None
         self.daemon = None
-        self.stop = Event()
+        self.mp_context = mp_context
+        self.stop = mp_context.Event()
         self.scheme = scheme
 
     def start(self, init_func, host, port, paths, routes, bind_address, config, **kwargs):
-        self.proc = Process(target=self.create_daemon,
-                            args=(init_func, host, port, paths, routes, bind_address,
-                                  config),
-                            name='%s on port %s' % (self.scheme, port),
-                            kwargs=kwargs)
+        self.proc = self.mp_context.Process(target=self.create_daemon,
+                                            args=(init_func, host, port, paths, routes, bind_address,
+                                                  config),
+                                            name='%s on port %s' % (self.scheme, port),
+                                            kwargs=kwargs)
         self.proc.daemon = True
         self.proc.start()
 
@@ -470,7 +470,7 @@ class ServerProc(object):
         return self.proc.is_alive()
 
 
-def check_subdomains(config, routes):
+def check_subdomains(config, routes, mp_context):
     paths = config.paths
     bind_address = config.bind_address
 
@@ -478,7 +478,7 @@ def check_subdomains(config, routes):
     port = get_port()
     logger.debug("Going to use port %d to check subdomains" % port)
 
-    wrapper = ServerProc()
+    wrapper = ServerProc(mp_context)
     wrapper.start(start_http_server, host, port, paths, routes,
                   bind_address, config)
 
@@ -530,7 +530,8 @@ def make_hosts_file(config, host):
     return "".join(rv)
 
 
-def start_servers(host, ports, paths, routes, bind_address, config, **kwargs):
+def start_servers(host, ports, paths, routes, bind_address, config,
+                  mp_context, **kwargs):
     servers = defaultdict(list)
     for scheme, ports in ports.items():
         assert len(ports) == {"http": 2, "https": 2}.get(scheme, 1)
@@ -551,7 +552,7 @@ def start_servers(host, ports, paths, routes, bind_address, config, **kwargs):
                          "wss": start_wss_server,
                          "quic-transport": start_quic_transport_server}[scheme]
 
-            server_proc = ServerProc(scheme=scheme)
+            server_proc = ServerProc(mp_context, scheme=scheme)
             server_proc.start(init_func, host, port, paths, routes, bind_address,
                               config, **kwargs)
             servers[scheme].append((port, server_proc))
@@ -781,7 +782,7 @@ def start_quic_transport_server(host, port, paths, routes, bind_address, config,
         startup_failed(log=False)
 
 
-def start(config, routes, **kwargs):
+def start(config, routes, mp_context, **kwargs):
     host = config["server_host"]
     ports = config.ports
     paths = config.paths
@@ -789,7 +790,7 @@ def start(config, routes, **kwargs):
 
     logger.debug("Using ports: %r" % ports)
 
-    servers = start_servers(host, ports, paths, routes, bind_address, config, **kwargs)
+    servers = start_servers(host, ports, paths, routes, bind_address, config, mp_context, **kwargs)
 
     return servers
 
@@ -966,8 +967,11 @@ def get_parser():
     return parser
 
 
-def run(config_cls=ConfigBuilder, route_builder=None, **kwargs):
+def run(config_cls=ConfigBuilder, route_builder=None, mp_context=None, **kwargs):
     received_signal = threading.Event()
+
+    if mp_context is None:
+        import multiprocessing as mp_context
 
     with build_config(os.path.join(repo_root, "config.json"),
                       config_cls=config_cls,
@@ -998,7 +1002,7 @@ def run(config_cls=ConfigBuilder, route_builder=None, **kwargs):
         routes = route_builder(config.aliases, config).get_routes()
 
         if config["check_subdomains"]:
-            check_subdomains(config, routes)
+            check_subdomains(config, routes, mp_context)
 
         stash_address = None
         if bind_address:
@@ -1006,7 +1010,7 @@ def run(config_cls=ConfigBuilder, route_builder=None, **kwargs):
             logger.debug("Going to use port %d for stash" % stash_address[1])
 
         with stash.StashServer(stash_address, authkey=str(uuid.uuid4())):
-            servers = start(config, routes, **kwargs)
+            servers = start(config, routes, mp_context, **kwargs)
             signal.signal(signal.SIGTERM, handle_signal)
             signal.signal(signal.SIGINT, handle_signal)
 

@@ -139,15 +139,18 @@ def executor_kwargs(logger, test_type, server_config, cache_manager, run_info_da
             options["prefs"].update({pref: Preferences.cast(value)})
         capabilities["moz:firefoxOptions"] = options
 
-        environ = get_environ(logger,
-                              kwargs["binary"],
-                              kwargs["debug_info"],
-                              kwargs["stylo_threads"],
-                              kwargs["headless"],
-                              kwargs["enable_webrender"],
-                              kwargs["chaos_mode_flags"])
+        # This gets reused for firefox_android, but the environment setup
+        # isn't required in that case
+        if kwargs["binary"]:
+            environ = get_environ(logger,
+                                  kwargs["binary"],
+                                  kwargs["debug_info"],
+                                  kwargs["stylo_threads"],
+                                  kwargs["headless"],
+                                  kwargs["enable_webrender"],
+                                  kwargs["chaos_mode_flags"])
 
-        executor_kwargs["environ"] = environ
+            executor_kwargs["environ"] = environ
     if kwargs["certutil_binary"] is None:
         capabilities["acceptInsecureCerts"] = True
     if capabilities:

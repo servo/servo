@@ -12,11 +12,11 @@ from six import text_type
 from six.moves.http_client import HTTPConnection
 from six.moves.urllib.parse import urljoin, urlsplit, urlunsplit
 
-from ..testrunner import Stop
 from .actions import actions
 from .protocol import Protocol, BaseProtocolPart
 
 here = os.path.dirname(__file__)
+
 
 
 def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
@@ -180,11 +180,11 @@ class TimedRunner(object):
         self.result_flag = threading.Event()
 
     def run(self):
-        if self.set_timeout() is Stop:
-            return Stop
-
-        if self.before_run() is Stop:
-            return Stop
+        for setup_fn in [self.set_timeout, self.before_run]:
+            err = setup_fn()
+            if err:
+                self.result = (False, err)
+                return self.result
 
         executor = threading.Thread(target=self.run_func)
         executor.start()
@@ -295,9 +295,6 @@ class TestExecutor(object):
             exception_string = traceback.format_exc()
             self.logger.warning(exception_string)
             result = self.result_from_exception(test, e, exception_string)
-
-        if result is Stop:
-            return result
 
         # log result of parent test
         if result[0].status == "ERROR":
