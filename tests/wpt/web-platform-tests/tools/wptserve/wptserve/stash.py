@@ -1,8 +1,10 @@
 import base64
 import json
 import os
-import uuid
+import six
 import threading
+import uuid
+
 from multiprocessing.managers import AcquirerProxy, BaseManager, DictProxy
 from six import text_type, binary_type
 
@@ -32,13 +34,16 @@ ClientDictManager.register("Lock")
 
 
 class StashServer(object):
-    def __init__(self, address=None, authkey=None):
+    def __init__(self, address=None, authkey=None, mp_context=None):
         self.address = address
         self.authkey = authkey
         self.manager = None
+        self.mp_context = mp_context
 
     def __enter__(self):
-        self.manager, self.address, self.authkey = start_server(self.address, self.authkey)
+        self.manager, self.address, self.authkey = start_server(self.address,
+                                                                self.authkey,
+                                                                self.mp_context)
         store_env_config(self.address, self.authkey)
 
     def __exit__(self, *args, **kwargs):
@@ -61,10 +66,13 @@ def store_env_config(address, authkey):
     os.environ["WPT_STASH_CONFIG"] = json.dumps((address, authkey.decode("ascii")))
 
 
-def start_server(address=None, authkey=None):
+def start_server(address=None, authkey=None, mp_context=None):
     if isinstance(authkey, text_type):
         authkey = authkey.encode("ascii")
-    manager = ServerDictManager(address, authkey)
+    kwargs = {}
+    if six.PY3 and mp_context is not None:
+        kwargs["ctx"] = mp_context
+    manager = ServerDictManager(address, authkey, **kwargs)
     manager.start()
 
     return (manager, manager._address, manager._authkey)

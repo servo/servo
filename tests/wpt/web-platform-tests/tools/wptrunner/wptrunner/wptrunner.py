@@ -3,6 +3,7 @@ from __future__ import print_function, unicode_literals
 import json
 import os
 import sys
+
 from six import iteritems, itervalues
 
 import wptserve
@@ -10,6 +11,7 @@ from wptserve import sslutils
 
 from . import environment as env
 from . import instruments
+from . import mpcontext
 from . import products
 from . import testloader
 from . import wptcommandline
@@ -151,11 +153,14 @@ def get_pause_after_test(test_loader, **kwargs):
 def run_tests(config, test_paths, product, **kwargs):
     """Set up the test environment, load the list of tests to be executed, and
     invoke the remainder of the code to execute tests"""
+    mp = mpcontext.get_context()
     if kwargs["instrument_to_file"] is None:
         recorder = instruments.NullInstrument()
     else:
         recorder = instruments.Instrument(kwargs["instrument_to_file"])
-    with recorder as recording, capture.CaptureIO(logger, not kwargs["no_capture_stdio"]):
+    with recorder as recording, capture.CaptureIO(logger,
+                                                  not kwargs["no_capture_stdio"],
+                                                  mp_context=mp):
         recording.set(["startup"])
         env.do_delayed_imports(logger, test_paths)
 

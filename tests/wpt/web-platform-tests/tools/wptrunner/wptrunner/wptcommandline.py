@@ -196,6 +196,8 @@ scheme host and port.""")
     config_group.add_argument('--webdriver-arg',
                               default=[], action="append", dest="webdriver_args",
                               help="Extra argument for the WebDriver binary")
+    config_group.add_argument("--adb-binary", action="store",
+                              help="Path to adb binary to use")
     config_group.add_argument("--package-name", action="store",
                               help="Android package name to run tests against")
     config_group.add_argument("--device-serial", action="store",

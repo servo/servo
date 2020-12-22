@@ -14,7 +14,7 @@ remote_url=https://${DEPLOY_TOKEN}@github.com/web-platform-tests/wpt.git
 
 function json_property {
   cat ${1} | \
-    python -c "import json, sys; print json.load(sys.stdin).get(\"${2}\", \"\")"
+    python -c "import json, sys; print(json.load(sys.stdin).get(\"${2}\", \"\"))"
 }
 
 function is_pull_request {

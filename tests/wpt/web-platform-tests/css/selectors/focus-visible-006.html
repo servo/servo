@@ -40,13 +40,15 @@
     <span id="el" contenteditable>Focus me</span>
   </div>
   <script>
+    var actions_promise;
     async_test(function(t) {
       el.addEventListener("focus", t.step_func(function() {
         assert_equals(getComputedStyle(el).outlineColor, "rgb(0, 100, 0)");
-        t.done();
+        // Make sure the test finishes after all the input actions are completed.
+        actions_promise.then( () => t.done() );
       }));
 
-      test_driver.click(el);
+      actions_promise = test_driver.click(el);
     }, "Focus should always match :focus-visible on content editable divs");
   </script>
 </body>

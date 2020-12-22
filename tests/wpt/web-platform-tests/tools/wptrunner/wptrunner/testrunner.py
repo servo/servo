@@ -1,13 +1,13 @@
 from __future__ import unicode_literals
 
-import multiprocessing
 import threading
 import traceback
 from six.moves.queue import Empty
 from collections import namedtuple
-from multiprocessing import Process, current_process, Queue
 
 from mozlog import structuredlog, capture
+
+from . import mpcontext
 
 # Special value used as a sentinal in various commands
 Stop = object()
@@ -68,7 +68,7 @@ class TestRunner(object):
         self.result_queue = result_queue
 
         self.executor = executor
-        self.name = current_process().name
+        self.name = mpcontext.get_context().current_process().name
         self.logger = logger
 
     def __enter__(self):
@@ -311,9 +311,11 @@ class TestRunnerManager(threading.Thread):
         self.executor_cls = executor_cls
         self.executor_kwargs = executor_kwargs
 
+        mp = mpcontext.get_context()
+
         # Flags used to shut down this thread if we get a sigint
         self.parent_stop_flag = stop_flag
-        self.child_stop_flag = multiprocessing.Event()
+        self.child_stop_flag = mp.Event()
 
         self.rerun = rerun
         self.run_count = 0
@@ -326,8 +328,8 @@ class TestRunnerManager(threading.Thread):
         assert recording is not None
         self.recording = recording
 
-        self.command_queue = Queue()
-        self.remote_queue = Queue()
+        self.command_queue = mp.Queue()
+        self.remote_queue = mp.Queue()
 
         self.test_runner_proc = None
 
@@ -519,9 +521,11 @@ class TestRunnerManager(threading.Thread):
                 executor_browser_kwargs,
                 self.capture_stdio,
                 self.child_stop_flag)
-        self.test_runner_proc = Process(target=start_runner,
-                                        args=args,
-                                        name="TestRunner-%i" % self.manager_number)
+
+        mp = mpcontext.get_context()
+        self.test_runner_proc = mp.Process(target=start_runner,
+                                           args=args,
+                                           name="TestRunner-%i" % self.manager_number)
         self.test_runner_proc.start()
         self.logger.debug("Test runner started")
         # Now we wait for either an init_succeeded event or an init_failed event
@@ -766,6 +770,7 @@ class TestRunnerManager(threading.Thread):
         self.logger.debug("waiting for runner process to end")
         self.test_runner_proc.join(10)
         self.logger.debug("After join")
+        mp = mpcontext.get_context()
         if self.test_runner_proc.is_alive():
             # This might leak a file handle from the queue
             self.logger.warning("Forcibly terminating runner process")
@@ -777,9 +782,9 @@ class TestRunnerManager(threading.Thread):
             # (subsequent attempts to retrieve items may block indefinitely).
             # Discard the potentially-corrupted queue and create a new one.
             self.command_queue.close()
-            self.command_queue = Queue()
+            self.command_queue = mp.Queue()
             self.remote_queue.close()
-            self.remote_queue = Queue()
+            self.remote_queue = mp.Queue()
         else:
             self.logger.debug("Runner process exited with code %i" % self.test_runner_proc.exitcode)
 
