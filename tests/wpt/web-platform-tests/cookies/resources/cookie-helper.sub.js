@@ -299,6 +299,28 @@ function resetSameSiteNoneCookies(origin, value) {
     })
 }
 
+// Reset test cookies with multiple SameSite attributes on |origin|.
+// If |origin| matches `self.origin`, assert (via `document.cookie`)
+// that they were properly removed.
+function resetSameSiteMultiAttributeCookies(origin, value) {
+  return credFetch(origin + "/cookies/resources/dropSameSiteMultiAttribute.py")
+    .then(_ => {
+      if (origin == self.origin) {
+        assert_dom_cookie("samesite_unsupported", value, false);
+        assert_dom_cookie("samesite_unsupported_none", value, false);
+        assert_dom_cookie("samesite_unsupported_lax", value, false);
+        assert_dom_cookie("samesite_unsupported_strict", value, false);
+        assert_dom_cookie("samesite_none_unsupported", value, false);
+        assert_dom_cookie("samesite_lax_unsupported", value, false);
+        assert_dom_cookie("samesite_strict_unsupported", value, false);
+        assert_dom_cookie("samesite_lax_none", value, false);
+      }
+    })
+    .then(_ => {
+      return credFetch(origin + "/cookies/resources/setSameSiteMultiAttribute.py?" + value);
+    })
+}
+
 //
 // DOM based cookie manipulation APIs
 //

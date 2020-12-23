@@ -9,12 +9,13 @@
   <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
   <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#fixed-table-layout" title="17.5.2.1 Fixed table layout" />
   <link rel="match" href="fixed-table-layout-021-ref.xht" />
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 
   <meta content="" name="flags" />
   <meta content="A column with a percentage width in a 'table-layout: fixed' table can be calculated, predicted, rendered." name="assert" />
 
   <style type="text/css"><![CDATA[
-  table, div {font: 1.25em/1 serif;}
+  table, div {font: 1.25em/1 Ahem;}
 
   table
   {
@@ -150,19 +151,19 @@
     <col></col>
 
     <tr>
-      <td id="first-cell">1st</td>
-      <td id="second-cell">2nd</td>
-      <td id="third-cell">3rd</td>
+      <td id="first-cell">1</td>
+      <td id="second-cell">2</td>
+      <td id="third-cell">3</td>
       <td></td>
     </tr>
 
   </table>
 
-  <div id="reference1st">ref</div>
+  <div id="reference1st">r</div>
 
-  <div id="reference2nd">ref</div>
+  <div id="reference2nd">r</div>
 
-  <div id="reference3rd">ref</div>
+  <div id="reference3rd">r</div>
 
  </body>
 </html>

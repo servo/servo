@@ -1,0 +1,24 @@
+<svg width="340" height="140"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Circle coordinates and radius specified by properties</title>
+  <html:link rel="help" href="https://svgwg.org/svg2-draft/geometry.html"/>
+  <html:link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1683652"/>
+  <html:link rel="match"  href="circle-ref.svg"/>
+  <style>
+    circle {
+      cx: 204px;
+      cy: 56px;
+      r: 5px;
+      fill: blue;
+    }
+  </style>
+  <circle />
+  <script><![CDATA[
+    let circle = document.querySelector("circle");
+    circle.parentNode.style.display = "none";
+    circle.getTotalLength();
+    circle.parentNode.style.display = "";
+    circle.style.r = "65px";
+  ]]></script>
+</svg>
