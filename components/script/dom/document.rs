@@ -2863,6 +2863,14 @@ impl Document {
             .drain()
             .for_each(|(_, context)| context.send_swap_chain_present());
     }
+
+    pub fn id_map(&self) -> Ref<HashMap<Atom, Vec<Dom<Element>>>> {
+        self.id_map.borrow()
+    }
+
+    pub fn name_map(&self) -> Ref<HashMap<Atom, Vec<Dom<Element>>>> {
+        self.name_map.borrow()
+    }
 }
 
 fn is_character_value_key(key: &Key) -> bool {

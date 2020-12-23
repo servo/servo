@@ -1485,7 +1485,8 @@ impl WindowMethods for Window {
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
         let mut names_with_first_named_element_map: HashMap<&Atom, &Element> = HashMap::new();
 
-        let name_map = self.name_map.borrow();
+        let document = self.document.get().unwrap();
+        let name_map = document.name_map();
         for (name, elements) in &*name_map {
             if name.is_empty() {
                 continue;
@@ -1497,7 +1498,7 @@ impl WindowMethods for Window {
                 names_with_first_named_element_map.insert(name, first);
             }
         }
-        let id_map = self.id_map.borrow();
+        let id_map = document.id_map();
         for (id, elements) in &*id_map {
             if id.is_empty() {
                 continue;
