@@ -188,22 +188,18 @@ pub trait TNode: Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
             return Some(c);
         }
 
-        if Some(*self) == scoped_to {
-            return None;
-        }
-
-        let mut current = *self;
+        let mut current = Some(*self);
         loop {
-            if let Some(s) = current.next_sibling() {
-                return Some(s);
-            }
-
-            let parent = current.parent_node();
-            if parent == scoped_to {
+            if current == scoped_to {
                 return None;
             }
 
-            current = parent.expect("Not a descendant of the scope?");
+            debug_assert!(current.is_some(), "not a descendant of the scope?");
+            if let Some(s) = current?.next_sibling() {
+                return Some(s);
+            }
+
+            current = current?.parent_node();
         }
     }
 
