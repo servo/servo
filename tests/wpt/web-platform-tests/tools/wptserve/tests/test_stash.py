@@ -1,8 +1,11 @@
 import multiprocessing
 import threading
+import sys
+
 from multiprocessing.managers import BaseManager
 
 import pytest
+from six import PY3
 
 Stash = pytest.importorskip("wptserve.stash").Stash
 
@@ -63,6 +66,9 @@ class SlowLock(BaseManager):
     pass
 
 
+@pytest.mark.xfail(sys.platform == "win32" or
+                   PY3 and multiprocessing.get_start_method() == "spawn",
+                   reason="https://github.com/web-platform-tests/wpt/issues/16938")
 def test_delayed_lock(add_cleanup):
     """Ensure that delays in proxied Lock retrieval do not interfere with
     initialization in parallel threads."""
@@ -103,6 +109,9 @@ class SlowDict(BaseManager):
     pass
 
 
+@pytest.mark.xfail(sys.platform == "win32" or
+                   PY3 and multiprocessing.get_start_method() == "spawn",
+                   reason="https://github.com/web-platform-tests/wpt/issues/16938")
 def test_delayed_dict(add_cleanup):
     """Ensure that delays in proxied `dict` retrieval do not interfere with
     initialization in parallel threads."""

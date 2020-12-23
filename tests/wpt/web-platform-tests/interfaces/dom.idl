@@ -43,7 +43,7 @@ dictionary EventInit {
 };
 
 partial interface Window {
-  [Replaceable] readonly attribute any event; // legacy
+  [Replaceable] readonly attribute (Event or undefined) event; // legacy
 };
 
 [Exposed=(Window,Worker)]
