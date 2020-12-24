@@ -1,0 +1,24 @@
+environment:
+
+  APPVEYOR: true
+
+  matrix:
+    - PYTHON: "C:\\Python36-x64"
+    - PYTHON: "C:\\Python27-x64"
+
+install:
+  # symlink python from a directory with a space
+  - "mklink /d \"C:\\Program Files\\Python\" %PYTHON%"
+  - "SET PYTHON=\"C:\\Program Files\\Python\""
+  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+
+build: off
+
+cache:
+  - '%LOCALAPPDATA%\pip\Cache'
+
+test_script:
+  - "python -m pip install -U tox tox-venv virtualenv"
+  - "tox"
+
+version: '{build}'

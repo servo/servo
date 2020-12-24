@@ -1,6 +1,6 @@
 self.addEventListener('fetch', function(event) {
     var url = event.request.url;
-    if (url.indexOf('dummy?test') == -1) {
+    if (url.indexOf('sample?test') == -1) {
       return;
     }
 

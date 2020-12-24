@@ -145,7 +145,7 @@
         }
 
         // Wait for all registration related tasks on |frame| to complete.
-        await wait_for_activation_on_dummy_scope(t, frame.contentWindow);
+        await wait_for_activation_on_sample_scope(t, frame.contentWindow);
         // The updateViaCache change should have been propagated to all
         // corresponding JS registration objects.
         assert_equals(reg_in_frame.updateViaCache, expected_updateViaCache, "reg_in_frame.updateViaCache updated");

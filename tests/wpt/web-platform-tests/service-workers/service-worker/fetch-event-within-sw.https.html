@@ -28,12 +28,12 @@ promise_test(async t => {
 
   const iframe = await registerSwAndOpenFrame(t);
   const fetchText =
-      await iframe.contentWindow.fetch('dummy.txt').then(r => r.text());
+      await iframe.contentWindow.fetch('sample.txt').then(r => r.text());
 
   const cache = await iframe.contentWindow.caches.open('test');
-  await cache.add('dummy.txt');
+  await cache.add('sample.txt');
 
-  const response = await cache.match('dummy.txt');
+  const response = await cache.match('sample.txt');
   const cacheText = await (response ? response.text() : 'cache match failed');
   assert_equals(fetchText, 'intercepted', 'fetch intercepted');
   assert_equals(cacheText, 'intercepted', 'cache.add intercepted');
@@ -42,8 +42,8 @@ promise_test(async t => {
 promise_test(async t => {
   const iframe = await registerSwAndOpenFrame(t);
   const [fetchText, cacheText] = await Promise.all([
-    iframe.contentWindow.fetch('dummy.txt-inner-fetch').then(r => r.text()),
-    iframe.contentWindow.fetch('dummy.txt-inner-cache').then(r => r.text())
+    iframe.contentWindow.fetch('sample.txt-inner-fetch').then(r => r.text()),
+    iframe.contentWindow.fetch('sample.txt-inner-cache').then(r => r.text())
   ]);
   assert_equals(fetchText, 'Hello world\n', 'fetch within SW not intercepted');
   assert_equals(cacheText, 'Hello world\n',

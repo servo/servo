@@ -137,14 +137,16 @@ test(() => {
 }, 'insertAdjacentHTML on element - not supported');
 
 test(() => {
-  document.write(`<div id=doc-write-1 style="display:none">${content}</div>`);
-  assert_dsd(document.getElementById('doc-write-1'),true);
+  const id = 'doc-write-1';
+  document.write(`<div id=${id} style="display:none">${content}</div>`);
+  assert_dsd(document.getElementById(id),true);
 }, 'document.write allowed from synchronous script loaded from main document');
 
 test(() => {
+  const id = 'doc-write-2';
   const doc = document.implementation.createHTMLDocument('');
-  doc.write(`<div id=doc-write-1>${content}</div>`);
-  assert_dsd(doc.getElementById('doc-write-1'),false);
+  doc.write(`<div id=${id}>${content}</div>`);
+  assert_dsd(doc.getElementById(id),false);
 }, 'document.write disallowed on fresh document');
 
 

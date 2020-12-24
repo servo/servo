@@ -284,13 +284,13 @@ function with_sandboxed_iframe(url, sandbox) {
     });
 }
 
-// Registers, waits for activation, then unregisters on a dummy scope.
+// Registers, waits for activation, then unregisters on a sample scope.
 //
 // This can be used to wait for a period of time needed to register,
 // activate, and then unregister a service worker.  When checking that
 // certain behavior does *NOT* happen, this is preferable to using an
 // arbitrary delay.
-async function wait_for_activation_on_dummy_scope(t, window_or_workerglobalscope) {
+async function wait_for_activation_on_sample_scope(t, window_or_workerglobalscope) {
   const script = '/service-workers/service-worker/resources/empty-worker.js';
   const scope = 'resources/there/is/no/there/there?' + Date.now();
   let registration = await window_or_workerglobalscope.navigator.serviceWorker.register(script, { scope });

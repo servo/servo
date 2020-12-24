@@ -12,7 +12,7 @@ service_worker_test(
 // is included in the Performance API's timing information.
 promise_test(t => {
   let script = 'resources/empty-but-slow-worker.js';
-  let scope = 'resources/dummy.txt?slow-sw-timing';
+  let scope = 'resources/sample.txt?slow-sw-timing';
   let url = new URL(scope, window.location).href;
   let slowURL = url + '&slow';
   let frame;

@@ -74,7 +74,7 @@ promise_test(async (t) => {
   const performance = frame.contentWindow.performance;
   verify({
     performance: performance,
-    resource: 'resources/dummy.js',
+    resource: 'resources/sample.js',
     mode: 'same-origin',
     description: 'Generated response',
   });
@@ -127,7 +127,7 @@ promise_test(async (t) => {
   });
   verify({
     performance: performance,
-    resource: 'resources/dummy.txt?SWFetched',
+    resource: 'resources/sample.txt?SWFetched',
     mode: 'same-origin',
     description: 'Resource fetched as response from missing.jpg?SWRespondsWithFetch.',
     should_no_performance_entry: true,

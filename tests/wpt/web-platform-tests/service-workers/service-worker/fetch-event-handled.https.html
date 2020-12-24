@@ -40,7 +40,7 @@ promise_test(async (t) => {
     ' navigation request');
 
 promise_test(async (t) => {
-  frame.contentWindow.fetch('dummy.txt?respondWith-not-called');
+  frame.contentWindow.fetch('sample.txt?respondWith-not-called');
   const message = await wait_for_message_from_worker();
   assert_equals(message, 'RESOLVED');
 }, 'FetchEvent.handled should resolve when respondWith() is not called for a' +
@@ -48,7 +48,7 @@ promise_test(async (t) => {
 
 promise_test(async (t) => {
   frame.contentWindow.fetch(
-      'dummy.txt?respondWith-not-called-and-event-canceled').catch((e) => {});
+      'sample.txt?respondWith-not-called-and-event-canceled').catch((e) => {});
   const message = await wait_for_message_from_worker();
   assert_equals(message, 'REJECTED');
 }, 'FetchEvent.handled should reject when respondWith() is not called and the' +
@@ -56,7 +56,7 @@ promise_test(async (t) => {
 
 promise_test(async (t) => {
   frame.contentWindow.fetch(
-      'dummy.txt?respondWith-called-and-promise-resolved');
+      'sample.txt?respondWith-called-and-promise-resolved');
   const message = await wait_for_message_from_worker();
   assert_equals(message, 'RESOLVED');
 }, 'FetchEvent.handled should resolve when the promise provided' +
@@ -64,7 +64,7 @@ promise_test(async (t) => {
 
 promise_test(async (t) => {
   frame.contentWindow.fetch(
-      'dummy.txt?respondWith-called-and-promise-resolved-to-invalid-response')
+      'sample.txt?respondWith-called-and-promise-resolved-to-invalid-response')
       .catch((e) => {});
   const message = await wait_for_message_from_worker();
   assert_equals(message, 'REJECTED');
@@ -73,7 +73,7 @@ promise_test(async (t) => {
 
 promise_test(async (t) => {
   frame.contentWindow.fetch(
-      'dummy.txt?respondWith-called-and-promise-rejected').catch((e) => {});
+      'sample.txt?respondWith-called-and-promise-rejected').catch((e) => {});
   const message = await wait_for_message_from_worker();
   assert_equals(message, 'REJECTED');
 }, 'FetchEvent.handled should reject when the promise provided to' +

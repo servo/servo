@@ -40,7 +40,7 @@ promise_test(function(t) {
         })
       .then(function() {
           // Trigger a non-navigation fetch event
-          frame.contentWindow.load_image(normalizeURL('resources/update/dummy'));
+          frame.contentWindow.load_image(normalizeURL('resources/update/sample'));
           return wait_for_update(t, registration);
        })
        .then(function() {

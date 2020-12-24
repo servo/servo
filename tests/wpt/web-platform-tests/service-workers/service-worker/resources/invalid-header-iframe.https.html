@@ -11,7 +11,7 @@ function xhr_send(method, data) {
         resolve();
       };
       xhr.responseType = 'text';
-      xhr.open(method, './dummy?test', true);
+      xhr.open(method, './sample?test', true);
       xhr.send(data);
     });
 }

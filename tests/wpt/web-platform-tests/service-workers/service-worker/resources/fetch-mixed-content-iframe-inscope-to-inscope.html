@@ -15,7 +15,7 @@ function test1() {
     results += 'FAIL(1)';
     test2();
   };
-  img.src = './dummy?url=' +
+  img.src = './sample?url=' +
             encodeURIComponent(host_info['HTTPS_ORIGIN'] + image_path);
 }
 
@@ -29,7 +29,7 @@ function test2() {
     results += 'FAIL(2)';
     test3();
   };
-  img.src = './dummy?mode=no-cors&url=' +
+  img.src = './sample?mode=no-cors&url=' +
             encodeURIComponent(host_info['HTTPS_REMOTE_ORIGIN'] + image_path);
 }
 
@@ -43,7 +43,7 @@ function test3() {
   img.onerror = function() {
     test4();
   };
-  img.src = './dummy?mode=no-cors&url=' +
+  img.src = './sample?mode=no-cors&url=' +
             encodeURIComponent(host_info['HTTP_ORIGIN'] + image_path);
 }
 
@@ -57,7 +57,7 @@ function test4() {
   img.onerror = function() {
     finish();
   };
-  img.src = './dummy?mode=no-cors&url=' +
+  img.src = './sample?mode=no-cors&url=' +
             encodeURIComponent(host_info['HTTP_REMOTE_ORIGIN'] + image_path);
 }
 
