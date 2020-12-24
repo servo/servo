@@ -267,7 +267,7 @@ promise_test(t => setup_and_clean()
 promise_test(t => setup_and_clean()
     .then(() => {
       const url = host_info['HTTPS_ORIGIN'] + base_path() +
-                  'dummy?url=' + encodeURIComponent(TARGET_URL) +
+                  'sample?url=' + encodeURIComponent(TARGET_URL) +
                   '&original-redirect-mode=follow&sw=gen';
       return redirected_test({url: url,
                               fetch_option: {redirect: 'follow'},
@@ -281,7 +281,7 @@ promise_test(t => setup_and_clean()
 promise_test(t => setup_and_clean()
     .then(() => {
       const url = host_info['HTTPS_ORIGIN'] + base_path() +
-                  'dummy?url=' + encodeURIComponent(TARGET_URL) +
+                  'sample?url=' + encodeURIComponent(TARGET_URL) +
                   '&original-redirect-mode=error&sw=gen';
       return promise_rejects_js(
           t, frame.contentWindow.TypeError,
@@ -296,7 +296,7 @@ promise_test(t => setup_and_clean()
 promise_test(t => setup_and_clean()
     .then(() => {
       const url = host_info['HTTPS_ORIGIN'] + base_path() +
-                  'dummy?url=' + encodeURIComponent(TARGET_URL) +
+                  'sample?url=' + encodeURIComponent(TARGET_URL) +
                   '&original-redirect-mode=follow&sw=gen';
       return redirected_test({url: url,
                               fetch_option: {redirect: 'manual'},
@@ -319,7 +319,7 @@ promise_test(t => setup_and_clean()
       // So fetch can follow the redirect response 20 times.
       let urls = [TARGET_URL];
       for (let i = 0; i < 20; ++i) {
-        urls.unshift(host_info['HTTPS_ORIGIN'] + '/dummy?sw=gen&url=' +
+        urls.unshift(host_info['HTTPS_ORIGIN'] + '/sample?sw=gen&url=' +
                     encodeURIComponent(urls[0]));
 
       }
@@ -339,7 +339,7 @@ promise_test(t => setup_and_clean()
       // network error." https://fetch.spec.whatwg.org/#http-redirect-fetch
       // So fetch can't follow the redirect response 21 times.
       for (let i = 0; i < 21; ++i) {
-        urls.unshift(host_info['HTTPS_ORIGIN'] + '/dummy?sw=gen&url=' +
+        urls.unshift(host_info['HTTPS_ORIGIN'] + '/sample?sw=gen&url=' +
                     encodeURIComponent(urls[0]));
 
       }
@@ -360,7 +360,7 @@ promise_test(t => setup_and_clean()
 // =======================================================
 promise_test(t => setup_and_clean()
     .then(() => {
-      const url = host_info['HTTPS_ORIGIN'] + base_path() + 'dummy?url=' +
+      const url = host_info['HTTPS_ORIGIN'] + base_path() + 'sample?url=' +
                   encodeURIComponent(TARGET_URL) +'&sw=fetch-url';
       return redirected_test({url: url,
                               fetch_option: {},

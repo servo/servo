@@ -5,20 +5,20 @@ addEventListener('fetch', event => {
 
   if (url.origin != location.origin) return;
 
-  if (url.pathname.endsWith('/dummy.txt')) {
+  if (url.pathname.endsWith('/sample.txt')) {
     event.respondWith(new Response('intercepted'));
     return;
   }
 
-  if (url.pathname.endsWith('/dummy.txt-inner-fetch')) {
-    event.respondWith(fetch('dummy.txt'));
+  if (url.pathname.endsWith('/sample.txt-inner-fetch')) {
+    event.respondWith(fetch('sample.txt'));
     return;
   }
 
-  if (url.pathname.endsWith('/dummy.txt-inner-cache')) {
+  if (url.pathname.endsWith('/sample.txt-inner-cache')) {
     event.respondWith(
       caches.open('test-inner-cache').then(cache =>
-        cache.add('dummy.txt').then(() => cache.match('dummy.txt'))
+        cache.add('sample.txt').then(() => cache.match('sample.txt'))
       )
     );
     return;

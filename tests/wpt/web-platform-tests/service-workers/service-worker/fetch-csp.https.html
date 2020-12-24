@@ -59,7 +59,7 @@ promise_test(function(t) {
           return assert_resolves(
               frame.contentWindow.load_image(
                   // The request for IMAGE_URL will be fetched in SW.
-                  './dummy?url=' + encodeURIComponent(IMAGE_URL)),
+                  './sample?url=' + encodeURIComponent(IMAGE_URL)),
               'Allowed scope image resource which was fetched via SW should ' +
               'be loaded.');
         })
@@ -67,7 +67,7 @@ promise_test(function(t) {
           return assert_rejects(
               frame.contentWindow.load_image(
                   // The request for REMOTE_IMAGE_URL will be fetched in SW.
-                  './dummy?mode=no-cors&url=' +
+                  './sample?mode=no-cors&url=' +
                   encodeURIComponent(REMOTE_IMAGE_URL)),
               'Disallowed scope image resource which was fetched via SW ' +
               'should not be loaded.');

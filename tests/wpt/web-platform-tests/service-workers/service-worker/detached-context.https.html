@@ -47,14 +47,14 @@ promise_test(t => {
           // resolve on a detached registration.  We can't check for
           // an explicit rejection, though, because not all browsers
           // fire rejection callbacks on detached promises.  Instead
-          // we wait for a dummy scope to install, activate, and
+          // we wait for a sample scope to install, activate, and
           // unregister before declaring that the promises did not
           // resolve.
           r.unregister().then(() => resolvedCount += 1,
                               () => {});
           r.update().then(() => resolvedCount += 1,
                           () => {});
-          return wait_for_activation_on_dummy_scope(t, window);
+          return wait_for_activation_on_sample_scope(t, window);
         })
       .then(() => {
           assert_equals(resolvedCount, 0,

@@ -11,7 +11,7 @@ self.onmessage = e => {
 
 self.addEventListener('fetch', e => {
   const url = e.request.url;
-  if (!url.includes('dummy?test')) {
+  if (!url.includes('sample?test')) {
     return;
   }
   port.postMessage({

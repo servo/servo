@@ -17,8 +17,8 @@ async function setup_service_worker(t, service_worker_url, scope) {
 }
 
 promise_test(async t => {
-  const worker_url = 'resources/dummy-synthesized-worker.js?dedicated';
-  const service_worker_url = 'resources/dummy-worker-interceptor.js';
+  const worker_url = 'resources/sample-synthesized-worker.js?dedicated';
+  const service_worker_url = 'resources/sample-worker-interceptor.js';
   const scope = worker_url;
 
   await setup_service_worker(t, service_worker_url, scope);
@@ -32,8 +32,8 @@ promise_test(async t => {
    `document is intercepted by worker's own service worker.`);
 
 promise_test(async t => {
-  const worker_url = 'resources/dummy-synthesized-worker.js?shared';
-  const service_worker_url = 'resources/dummy-worker-interceptor.js';
+  const worker_url = 'resources/sample-synthesized-worker.js?shared';
+  const service_worker_url = 'resources/sample-worker-interceptor.js';
   const scope = worker_url;
 
   await setup_service_worker(t, service_worker_url, scope);
@@ -47,8 +47,8 @@ promise_test(async t => {
    `document is intercepted by worker's own service worker.`);
 
 promise_test(async t => {
-  const worker_url = 'resources/dummy-same-origin-worker.js?dedicated';
-  const service_worker_url = 'resources/dummy-worker-interceptor.js';
+  const worker_url = 'resources/sample-same-origin-worker.js?dedicated';
+  const service_worker_url = 'resources/sample-worker-interceptor.js';
   const scope = worker_url;
 
   await setup_service_worker(t, service_worker_url, scope);
@@ -62,8 +62,8 @@ promise_test(async t => {
    'in starting a dedicated worker.');
 
 promise_test(async t => {
-  const worker_url = 'resources/dummy-same-origin-worker.js?shared';
-  const service_worker_url = 'resources/dummy-worker-interceptor.js';
+  const worker_url = 'resources/sample-same-origin-worker.js?shared';
+  const service_worker_url = 'resources/sample-worker-interceptor.js';
   const scope = worker_url;
 
   await setup_service_worker(t, service_worker_url, scope);
@@ -77,8 +77,8 @@ promise_test(async t => {
    'in starting a shared worker.');
 
 promise_test(async t => {
-  const worker_url = 'resources/dummy-cors-worker.js?dedicated';
-  const service_worker_url = 'resources/dummy-worker-interceptor.js';
+  const worker_url = 'resources/sample-cors-worker.js?dedicated';
+  const service_worker_url = 'resources/sample-worker-interceptor.js';
   const scope = worker_url;
 
   await setup_service_worker(t, service_worker_url, scope);
@@ -89,8 +89,8 @@ promise_test(async t => {
    'worker start.');
 
 promise_test(async t => {
-  const worker_url = 'resources/dummy-cors-worker.js?shared';
-  const service_worker_url = 'resources/dummy-worker-interceptor.js';
+  const worker_url = 'resources/sample-cors-worker.js?shared';
+  const service_worker_url = 'resources/sample-worker-interceptor.js';
   const scope = worker_url;
 
   await setup_service_worker(t, service_worker_url, scope);
@@ -101,8 +101,8 @@ promise_test(async t => {
    'worker start.');
 
 promise_test(async t => {
-  const worker_url = 'resources/dummy-no-cors-worker.js?dedicated';
-  const service_worker_url = 'resources/dummy-worker-interceptor.js';
+  const worker_url = 'resources/sample-no-cors-worker.js?dedicated';
+  const service_worker_url = 'resources/sample-worker-interceptor.js';
   const scope = worker_url;
 
   await setup_service_worker(t, service_worker_url, scope);
@@ -113,8 +113,8 @@ promise_test(async t => {
    'fails dedicated worker start.');
 
 promise_test(async t => {
-  const worker_url = 'resources/dummy-no-cors-worker.js?shared';
-  const service_worker_url = 'resources/dummy-worker-interceptor.js';
+  const worker_url = 'resources/sample-no-cors-worker.js?shared';
+  const service_worker_url = 'resources/sample-worker-interceptor.js';
   const scope = worker_url;
 
   await setup_service_worker(t, service_worker_url, scope);

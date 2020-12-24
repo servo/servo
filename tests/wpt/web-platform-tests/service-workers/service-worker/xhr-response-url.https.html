@@ -30,7 +30,7 @@ promise_test(async (t) => {
 // worker.
 promise_test(async (t) => {
   // Build a URL that tells the service worker to respondWith(fetch(|target|)).
-  const target = new URL('resources/dummy.txt', window.location);
+  const target = new URL('resources/sample.txt', window.location);
   const url = build_url({
     respondWith: 'fetch',
     url: target

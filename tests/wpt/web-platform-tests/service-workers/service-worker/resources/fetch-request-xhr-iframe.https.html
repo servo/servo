@@ -32,7 +32,7 @@ function xhr_send(url_base, method, data, with_credentials) {
       if (with_credentials) {
         xhr.withCredentials = true;
       }
-      xhr.open(method, url_base + '/dummy?test', true);
+      xhr.open(method, url_base + '/sample?test', true);
       xhr.send(data);
     });
 }

@@ -30,12 +30,12 @@ promise_test(function(test) {
   }, 'User Timing');
 
 promise_test(function(test) {
-    return fetch('dummy.txt')
+    return fetch('sample.txt')
       .then(function(resp) {
           return resp.text();
         })
       .then(function(text) {
-          var expectedResources = ['testharness.js', 'dummy.txt'];
+          var expectedResources = ['testharness.js', 'sample.txt'];
           assert_equals(performance.getEntriesByType('resource').length, expectedResources.length);
           for (var i = 0; i < expectedResources.length; i++) {
               var entry = performance.getEntriesByType('resource')[i];
@@ -49,7 +49,7 @@ promise_test(function(test) {
                 resolve('bufferfull');
               }
               performance.setResourceTimingBufferSize(expectedResources.length);
-              fetch('dummy.txt');
+              fetch('sample.txt');
           });
         })
       .then(function(result) {

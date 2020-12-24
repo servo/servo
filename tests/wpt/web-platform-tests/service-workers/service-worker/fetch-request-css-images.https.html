@@ -9,9 +9,9 @@ var SCOPE = 'resources/fetch-request-resources-iframe.https.html';
 var SCRIPT = 'resources/fetch-request-resources-worker.js';
 var host_info = get_host_info();
 var LOCAL_URL =
-  host_info['HTTPS_ORIGIN'] + base_path() + 'resources/dummy?test';
+  host_info['HTTPS_ORIGIN'] + base_path() + 'resources/sample?test';
 var REMOTE_URL =
-  host_info['HTTPS_REMOTE_ORIGIN'] + base_path() + 'resources/dummy?test';
+  host_info['HTTPS_REMOTE_ORIGIN'] + base_path() + 'resources/sample?test';
 
 function css_image_test(expected_results, frame, url, type,
                         expected_mode, expected_credentials) {
