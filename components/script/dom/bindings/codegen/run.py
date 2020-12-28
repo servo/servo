@@ -52,7 +52,7 @@ def main():
         module = CGBindingRoot(config, prefix, filename).define()
         if module:
             with open(os.path.join(out_dir, prefix + ".rs"), "wb") as f:
-                f.write(module)
+                f.write(module.encode("utf-8"))
 
 
 def make_dir(path):
@@ -66,7 +66,7 @@ def generate(config, name, filename):
     root = getattr(GlobalGenRoots, name)(config)
     code = root.define()
     with open(filename, "wb") as f:
-        f.write(code)
+        f.write(code.encode("utf-8"))
 
 
 def add_css_properties_attributes(css_properties_json, parser):
