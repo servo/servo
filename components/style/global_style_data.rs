@@ -26,8 +26,8 @@ pub struct GlobalStyleData {
 
 /// Global thread pool.
 pub struct StyleThreadPool {
-    /// How many threads parallel styling can use.
-    pub num_threads: usize,
+    /// How many threads parallel styling can use. If not using a thread pool, this is set to `None`.
+    pub num_threads: Option<usize>,
 
     /// The parallel styling thread pool.
     ///
@@ -160,7 +160,11 @@ lazy_static! {
         };
 
         StyleThreadPool {
-            num_threads,
+            num_threads: if num_threads > 0 {
+                Some(num_threads)
+            } else {
+                None
+            },
             style_thread_pool: RwLock::new(pool),
         }
     };

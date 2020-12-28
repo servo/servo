@@ -1404,7 +1404,7 @@ impl LayoutThread {
         let pool;
         let (thread_pool, num_threads) = if self.parallel_flag {
             pool = STYLE_THREAD_POOL.pool();
-            (pool.as_ref(), STYLE_THREAD_POOL.num_threads)
+            (pool.as_ref(), STYLE_THREAD_POOL.num_threads.unwrap_or(1))
         } else {
             (None, 1)
         };
