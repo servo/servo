@@ -333,7 +333,7 @@ def get_linux_distribution():
     distrib = six.ensure_str(distrib)
     version = six.ensure_str(version)
 
-    if distrib == 'LinuxMint' or distrib == 'Linux Mint':
+    if distrib in ['LinuxMint', 'Linux Mint', 'KDE neon']:
         if '.' in version:
             major, _ = version.split('.', 1)
         else:
