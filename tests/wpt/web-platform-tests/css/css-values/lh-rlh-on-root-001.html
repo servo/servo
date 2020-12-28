@@ -77,7 +77,7 @@
   test(function() {
     window.document.documentElement.style="font-size: 2rlh; line-height: 142px;";
     f_s = get_root_font_size();
-    assert_approx_equals( f_s, initial_f_s * 2, 1, "the rlh unit on the root element's font-size property actually works as a unit and doesn't merely cause a fallback that doesn't take the number of units into account");
+    assert_approx_equals( f_s, initial_l_h * 2, 1, "the rlh unit on the root element's font-size property actually works as a unit and doesn't merely cause a fallback that doesn't take the number of units into account");
 
   }, "2rlh in font-size on root");
 
