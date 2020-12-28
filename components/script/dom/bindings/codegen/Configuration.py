@@ -73,7 +73,7 @@ class Configuration:
     def getDescriptors(self, **filters):
         """Gets the descriptors that match the given filters."""
         curr = self.descriptors
-        for key, val in filters.iteritems():
+        for key, val in filters.items():
             if key == 'webIDLFile':
                 def getter(x):
                     return x.interface.filename()
@@ -104,14 +104,14 @@ class Configuration:
             else:
                 def getter(x):
                     return getattr(x, key)
-            curr = filter(lambda x: getter(x) == val, curr)
+            curr = [x for x in curr if getter(x) == val]
         return curr
 
     def getEnums(self, webIDLFile):
-        return filter(lambda e: e.filename() == webIDLFile, self.enums)
+        return [e for e in self.enums if e.filename() == webIDLFile]
 
     def getTypedefs(self, webIDLFile):
-        return filter(lambda e: e.filename() == webIDLFile, self.typedefs)
+        return [e for e in self.typedefs if e.filename() == webIDLFile]
 
     @staticmethod
     def _filterForFile(items, webIDLFile=""):
@@ -119,7 +119,7 @@ class Configuration:
         if not webIDLFile:
             return items
 
-        return filter(lambda x: x.filename() == webIDLFile, items)
+        return [x for x in items if x.filename() == webIDLFile]
 
     def getDictionaries(self, webIDLFile=""):
         return self._filterForFile(self.dictionaries, webIDLFile=webIDLFile)
@@ -327,7 +327,7 @@ class Descriptor(DescriptorProvider):
                 if config == '*':
                     iface = self.interface
                     while iface:
-                        add('all', map(lambda m: m.name, iface.members), attribute)
+                        add('all', [m.name for m in iface.members], attribute)
                         iface = iface.parent
                 else:
                     add('all', [config], attribute)

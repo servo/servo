@@ -749,7 +749,7 @@ install them, let us know by filing a bug!")
                 # Shorten hash
                 # NOTE: Partially verifies the hash, but it will still pass if it's, e.g., a tree
                 git_sha = subprocess.check_output([
-                    'git', 'rev-parse', '--short', git_sha
+                    'git', 'rev-parse', '--short', git_sha.decode('ascii')
                 ])
             else:
                 # This is a regular commit
@@ -999,7 +999,7 @@ install them, let us know by filing a bug!")
             toolchain = self.rust_toolchain()
 
             status = subprocess.call(
-                ["rustup", "run", toolchain.encode("utf-8"), "rustc", "--version"],
+                ["rustup", "run", toolchain, "rustc", "--version"],
                 stdout=open(os.devnull, "wb"),
                 stderr=subprocess.STDOUT,
             )
