@@ -512,6 +512,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "bytes"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ad1f8e949d755f9d79112b5bb46938e0ef9d3804a0b16dfab13aafcaa5f0fa72"
+
+[[package]]
 name = "bzip2"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -816,13 +822,12 @@ checksum = "0dbbb57365263e881e805dc77d94697c9118fd94d8da011240555aa7b23445bd"
 
 [[package]]
 name = "combine"
-version = "4.4.0"
+version = "4.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9417a0c314565e2abffaece67e95a8cb51f9238cd39f3764d9dfdf09e72b20c"
+checksum = "01199925a18b00193570e3d70cfe57dcb647eb167c29851983e76fc39e2fee39"
 dependencies = [
- "bytes 0.5.5",
+ "bytes 1.0.0",
  "memchr",
- "pin-project-lite",
 ]
 
 [[package]]
