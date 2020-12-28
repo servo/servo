@@ -165,16 +165,17 @@ unsafe extern "C" fn class_name(_cx: *mut JSContext, _proxy: HandleObject) -> *c
 }
 
 // Maybe this should be a DOMJSClass. See https://bugzilla.mozilla.org/show_bug.cgi?id=787070
+#[allow(unsafe_code)]
 static CLASS: JSClass = JSClass {
     name: b"WindowProperties\0" as *const u8 as *const libc::c_char,
     flags: JSClass_NON_NATIVE |
         JSCLASS_IS_PROXY |
         JSCLASS_DELAY_METADATA_BUILDER |
         ((1 & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT), /* JSCLASS_HAS_RESERVED_SLOTS(1) */
-    cOps: &ProxyClassOps,
+    cOps: unsafe { &ProxyClassOps },
     spec: ptr::null(),
-    ext: &ProxyClassExtension,
-    oOps: &ProxyObjectOps,
+    ext: unsafe { &ProxyClassExtension },
+    oOps: unsafe { &ProxyObjectOps },
 };
 
 #[allow(unsafe_code)]
