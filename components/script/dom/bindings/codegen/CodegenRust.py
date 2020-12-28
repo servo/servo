@@ -344,7 +344,7 @@ class CGMethodCall(CGThing):
             distinguishingArg = "HandleValue::from_raw(args.get(%d))" % distinguishingIndex
 
             def pickFirstSignature(condition, filterLambda):
-                sigs = filter(filterLambda, possibleSignatures)
+                sigs = list(filter(filterLambda, possibleSignatures))
                 assert len(sigs) < 2
                 if len(sigs) > 0:
                     call = getPerSignatureCall(sigs[0], distinguishingIndex)
@@ -2073,7 +2073,7 @@ class CGImports(CGWrapper):
                 members += [constructor]
 
             if d.proxy:
-                members += [o for o in d.operations.values() if o]
+                members += [o for o in list(d.operations.values()) if o]
 
             for m in members:
                 if m.isMethod():
@@ -2513,7 +2513,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
             ])
 
     # Sort unionStructs by key, retrieve value
-    unionStructs = (i[1] for i in sorted(unionStructs.items(), key=operator.itemgetter(0)))
+    unionStructs = (i[1] for i in sorted(list(unionStructs.items()), key=operator.itemgetter(0)))
 
     return CGImports(CGList(unionStructs, "\n\n"),
                      descriptors=[],
@@ -4412,9 +4412,10 @@ class CGEnum(CGThing):
 pub enum %s {
     %s
 }
-""" % (ident, ",\n    ".join(map(getEnumValueName, enum.values())))
+""" % (ident, ",\n    ".join(map(getEnumValueName, list(enum.values()))))
 
-        pairs = ",\n    ".join(['("%s", super::%s::%s)' % (val, ident, getEnumValueName(val)) for val in enum.values()])
+        pairs = ",\n    ".join(['("%s", super::%s::%s)' % (val, ident, getEnumValueName(val))
+                                for val in list(enum.values())])
 
         inner = string.Template("""\
 use crate::dom::bindings::conversions::ConversionResult;
@@ -4597,9 +4598,8 @@ class CGUnionStruct(CGThing):
                 return "Rc"
             return ""
 
-        templateVars = map(lambda t: (getUnionTypeTemplateVars(t, self.descriptorProvider),
-                                      getTypeWrapper(t)),
-                           self.type.flatMemberTypes)
+        templateVars = [(getUnionTypeTemplateVars(t, self.descriptorProvider),
+                         getTypeWrapper(t)) for t in self.type.flatMemberTypes]
         enumValues = [
             "    %s(%s)," % (v["name"], "%s<%s>" % (wrapper, v["typeName"]) if wrapper else v["typeName"])
             for (v, wrapper) in templateVars
@@ -4658,7 +4658,7 @@ class CGUnionConversionStruct(CGThing):
                 "    Ok(None) => (),\n"
                 "}\n") % (self.type, name, self.type, name)
 
-        interfaceMemberTypes = filter(lambda t: t.isNonCallbackInterface(), memberTypes)
+        interfaceMemberTypes = [t for t in memberTypes if t.isNonCallbackInterface()]
         if len(interfaceMemberTypes) > 0:
             typeNames = [get_name(memberType) for memberType in interfaceMemberTypes]
             interfaceObject = CGList(CGGeneric(get_match(typeName)) for typeName in typeNames)
@@ -4666,7 +4666,7 @@ class CGUnionConversionStruct(CGThing):
         else:
             interfaceObject = None
 
-        arrayObjectMemberTypes = filter(lambda t: t.isSequence(), memberTypes)
+        arrayObjectMemberTypes = [t for t in memberTypes if t.isSequence()]
         if len(arrayObjectMemberTypes) > 0:
             assert len(arrayObjectMemberTypes) == 1
             typeName = arrayObjectMemberTypes[0].name
@@ -4675,7 +4675,7 @@ class CGUnionConversionStruct(CGThing):
         else:
             arrayObject = None
 
-        callbackMemberTypes = filter(lambda t: t.isCallback() or t.isCallbackInterface(), memberTypes)
+        callbackMemberTypes = [t for t in memberTypes if t.isCallback() or t.isCallbackInterface()]
         if len(callbackMemberTypes) > 0:
             assert len(callbackMemberTypes) == 1
             typeName = callbackMemberTypes[0].name
@@ -4683,7 +4683,7 @@ class CGUnionConversionStruct(CGThing):
         else:
             callbackObject = None
 
-        dictionaryMemberTypes = filter(lambda t: t.isDictionary(), memberTypes)
+        dictionaryMemberTypes = [t for t in memberTypes if t.isDictionary()]
         if len(dictionaryMemberTypes) > 0:
             assert len(dictionaryMemberTypes) == 1
             typeName = dictionaryMemberTypes[0].name
@@ -4692,7 +4692,7 @@ class CGUnionConversionStruct(CGThing):
         else:
             dictionaryObject = None
 
-        objectMemberTypes = filter(lambda t: t.isObject(), memberTypes)
+        objectMemberTypes = [t for t in memberTypes if t.isObject()]
         if len(objectMemberTypes) > 0:
             assert len(objectMemberTypes) == 1
             typeName = objectMemberTypes[0].name
@@ -4701,7 +4701,7 @@ class CGUnionConversionStruct(CGThing):
         else:
             object = None
 
-        mozMapMemberTypes = filter(lambda t: t.isRecord(), memberTypes)
+        mozMapMemberTypes = [t for t in memberTypes if t.isRecord()]
         if len(mozMapMemberTypes) > 0:
             assert len(mozMapMemberTypes) == 1
             typeName = mozMapMemberTypes[0].name
@@ -4747,9 +4747,9 @@ class CGUnionConversionStruct(CGThing):
                 typename = get_name(memberType)
                 return CGGeneric(get_match(typename))
             other = []
-            stringConversion = map(getStringOrPrimitiveConversion, stringTypes)
-            numericConversion = map(getStringOrPrimitiveConversion, numericTypes)
-            booleanConversion = map(getStringOrPrimitiveConversion, booleanTypes)
+            stringConversion = list(map(getStringOrPrimitiveConversion, stringTypes))
+            numericConversion = list(map(getStringOrPrimitiveConversion, numericTypes))
+            booleanConversion = list(map(getStringOrPrimitiveConversion, booleanTypes))
             if stringConversion:
                 if booleanConversion:
                     other.append(CGIfWrapper("value.get().is_boolean()", booleanConversion[0]))
@@ -5915,7 +5915,7 @@ class CGInterfaceTrait(CGThing):
                                rettype)
 
             if descriptor.proxy:
-                for name, operation in descriptor.operations.iteritems():
+                for name, operation in descriptor.operations.items():
                     if not operation or operation.isStringifier():
                         continue
 
@@ -6442,7 +6442,7 @@ class CGDescriptor(CGThing):
                              post='\n')
 
         if reexports:
-            reexports = ', '.join(map(lambda name: reexportedName(name), reexports))
+            reexports = ', '.join([reexportedName(name) for name in reexports])
             cgThings = CGList([CGGeneric('pub use self::%s::{%s};' % (toBindingNamespace(descriptor.name), reexports)),
                                cgThings], '\n')
 
@@ -7778,7 +7778,7 @@ impl Clone for TopTypeId {
             # TypeId enum.
             return "%s(%sTypeId)" % (name, name) if name in hierarchy else name
 
-        for base, derived in hierarchy.iteritems():
+        for base, derived in hierarchy.items():
             variants = []
             if config.getDescriptor(base).concrete:
                 variants.append(CGGeneric(base))

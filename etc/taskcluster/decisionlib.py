@@ -640,6 +640,25 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
         """) \
         .with_path_from_homedir("python2", "python2\\Scripts")
 
+    def with_python3(self):
+        """
+        For Python 3, use `with_directory_mount` and the "embeddable zip file" distribution
+        from python.org.
+        You may need to remove `python37._pth` from the ZIP in order to work around
+        <https://bugs.python.org/issue34841>.
+        """
+        return self \
+            .with_directory_mount(
+            "https://www.python.org/ftp/python/3.7.3/python-3.7.3-embed-amd64.zip",
+            sha256="6de14c9223226cf0cd8c965ecb08c51d62c770171a256991b4fddc25188cfa8e",
+            path="python3",
+        ) \
+        .with_path_from_homedir("python3", "python3\\Scripts") \
+        .with_early_script("""
+            python3 -m ensurepip
+            pip3 install virtualenv==20.2.1
+        """)
+
 
 class UnixTaskMixin(Task):
     def with_repo(self, alternate_object_dir=""):
