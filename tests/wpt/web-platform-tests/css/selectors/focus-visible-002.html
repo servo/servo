@@ -12,9 +12,14 @@
   <script src="/resources/testdriver-actions.js"></script>
   <script src="/resources/testdriver-vendor.js"></script>
   <style>
+    @supports not (selector(:focus-visible)) {
+      :focus {
+        background-color: tomato;
+      }
+    }
+
     :focus-visible {
-      outline: darkgreen dotted 1px; /* fallback for Edge */
-      outline: darkgreen auto 5px;
+      outline: darkgreen solid 5px;
     }
 
     :focus:not(:focus-visible) {

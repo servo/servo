@@ -10,9 +10,10 @@
   <script src="/resources/testdriver.js"></script>
   <script src="/resources/testdriver-vendor.js"></script>
   <style>
-    :focus-visible {
-      outline: red dotted 1px; /* fallback for Edge */
-      outline: red auto 5px;
+    @supports not (selector(:focus-visible)) {
+      :focus {
+        outline: red solid 5px;
+      }
     }
 
     :focus:not(:focus-visible) {

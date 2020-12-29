@@ -17,9 +17,14 @@
         padding: 2px 5px;
     }
 
+    @supports not (selector(:focus-visible)) {
+      :focus {
+        background-color: tomato;
+      }
+    }
+
     :focus-visible {
-      outline: darkgreen dotted 1px; /* fallback for Edge */
-      outline: darkgreen auto 5px;
+      outline: darkgreen solid 5px;
     }
 
     :focus:not(:focus-visible) {
@@ -33,7 +38,7 @@
   <ol id="instructions">
     <li>If the user-agent does not claim to support the <code>:focus-visible</code> pseudo-class then SKIP this test.</li>
     <li><strong>Click</strong> the content editable span below to focus it.</li>
-    <li>If the element has a red background, then the test result is FAILURE. If the element has a blue outline, then the test result is SUCCESS.</li>
+    <li>If the element has a red background, then the test result is FAILURE. If the element has a green outline, then the test result is SUCCESS.</li>
   </ol>
   <br />
   <div>

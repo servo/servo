@@ -19,6 +19,20 @@
         }, "A CSS Module should load");
 
         async_test(function (test) {
+            // This tests potential streaming compilation of modules in
+            // Chromium that is triggered only for large (32>KiB) files in older
+            // versions.
+            const iframe = document.createElement("iframe");
+            iframe.src = "resources/css-module-basic-large-iframe.html";
+            iframe.onload = test.step_func_done(function () {
+                assert_equals(getComputedStyle(iframe.contentDocument.querySelector('#test'))
+                    .backgroundColor, "rgb(255, 0, 0)",
+                    "CSS module import should succeed");
+            });
+            document.body.appendChild(iframe);
+        }, "A large CSS Module should load");
+
+        async_test(function (test) {
             const iframe = document.createElement("iframe");
             iframe.src = "resources/css-module-at-import-iframe.html";
             iframe.onload = test.step_func_done(function () {
