@@ -10,12 +10,18 @@
   <script src="/resources/testdriver.js"></script>
   <script src="/resources/testdriver-vendor.js"></script>
   <style>
+    @supports not (selector(:focus-visible)) {
+      #next:focus {
+        background-color: tomato;
+      }
+    }
+
     button {
       border: 0;
     }
 
     #next:focus-visible {
-      outline: darkgreen auto 5px;
+      outline: darkgreen solid 5px;
     }
 
     #next:focus:not(:focus-visible) {

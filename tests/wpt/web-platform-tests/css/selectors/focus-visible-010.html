@@ -8,8 +8,14 @@
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <style>
+    @supports not (selector(:focus-visible)) {
+      :focus {
+        background-color: tomato;
+      }
+    }
+
     :focus-visible {
-      outline: darkgreen auto 5px;
+      outline: darkgreen solid 5px;
     }
 
     :focus:not(:focus-visible) {

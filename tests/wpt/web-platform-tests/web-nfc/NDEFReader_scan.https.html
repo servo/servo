@@ -298,6 +298,7 @@ nfc_test(async (t, mockNFC) => {
   const promise2 = promise_rejects_dom(t, 'InvalidStateError', ndef.scan());
   await promise1;
   await promise2;
+  await promise_rejects_dom(t, 'InvalidStateError', ndef.scan());
 }, "Test that NDEFReader.scan rejects if there is already an ongoing scan.");
 
 nfc_test(async (t, mockNFC) => {
