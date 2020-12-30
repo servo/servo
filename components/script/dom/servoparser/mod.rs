@@ -83,6 +83,12 @@ pub struct ServoParser {
     reflector: Reflector,
     /// The document associated with this parser.
     document: Dom<Document>,
+    /// The BOM sniffing state.
+    ///
+    /// `None` means we've found the BOM, we've found there isn't one, or
+    /// we're not parsing from a byte stream. `Some` contains the BOM bytes
+    /// found so far.
+    bom_sniff: DomRefCell<Option<Vec<u8>>>,
     /// The decoder used for the network input.
     network_decoder: DomRefCell<Option<NetworkDecoder>>,
     /// Input received from network.
@@ -142,7 +148,7 @@ impl ServoParser {
         self.can_write() || self.tokenizer.try_borrow_mut().is_ok()
     }
 
-    pub fn parse_html_document(document: &Document, input: DOMString, url: ServoUrl) {
+    pub fn parse_html_document(document: &Document, input: Option<DOMString>, url: ServoUrl) {
         let parser = if pref!(dom.servoparser.async_html_tokenizer.enabled) {
             ServoParser::new(
                 document,
@@ -163,7 +169,13 @@ impl ServoParser {
                 ParserKind::Normal,
             )
         };
-        parser.parse_string_chunk(String::from(input));
+
+        // Set as the document's current parser and initialize with `input`, if given.
+        if let Some(input) = input {
+            parser.parse_string_chunk(String::from(input));
+        } else {
+            parser.document.set_current_parser(Some(&parser));
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#parsing-html-fragments
@@ -242,17 +254,24 @@ impl ServoParser {
             LastChunkState::NotReceived,
             ParserKind::ScriptCreated,
         );
+        *parser.bom_sniff.borrow_mut() = None;
         document.set_current_parser(Some(&parser));
     }
 
-    pub fn parse_xml_document(document: &Document, input: DOMString, url: ServoUrl) {
+    pub fn parse_xml_document(document: &Document, input: Option<DOMString>, url: ServoUrl) {
         let parser = ServoParser::new(
             document,
             Tokenizer::Xml(self::xml::Tokenizer::new(document, url)),
             LastChunkState::NotReceived,
             ParserKind::Normal,
         );
-        parser.parse_string_chunk(String::from(input));
+
+        // Set as the document's current parser and initialize with `input`, if given.
+        if let Some(input) = input {
+            parser.parse_string_chunk(String::from(input));
+        } else {
+            parser.document.set_current_parser(Some(&parser));
+        }
     }
 
     pub fn script_nesting_level(&self) -> usize {
@@ -402,6 +421,7 @@ impl ServoParser {
         ServoParser {
             reflector: Reflector::new(),
             document: Dom::from_ref(document),
+            bom_sniff: DomRefCell::new(Some(Vec::with_capacity(3))),
             network_decoder: DomRefCell::new(Some(NetworkDecoder::new(document.encoding()))),
             network_input: DomRefCell::new(BufferQueue::new()),
             script_input: DomRefCell::new(BufferQueue::new()),
@@ -463,6 +483,35 @@ impl ServoParser {
     }
 
     fn push_bytes_input_chunk(&self, chunk: Vec<u8>) {
+        // BOM sniff. This is needed because NetworkDecoder will switch the
+        // encoding based on the BOM, but it won't change
+        // `self.document.encoding` in the process.
+        {
+            let set_bom_to_none = if let Some(partial_bom) = self.bom_sniff.borrow_mut().as_mut() {
+                if partial_bom.len() + chunk.len() >= 3 {
+                    partial_bom.extend(chunk.iter().take(3 - partial_bom.len()).copied());
+                    //println!("Full BOM: {:?}", partial_bom);
+                    if let Some((encoding, _)) = Encoding::for_bom(&partial_bom) {
+                        //println!("Encoding: {}", encoding.name());
+                        self.document.set_encoding(encoding);
+                    } else {
+                        //println!("Bytes are not a BOM.");
+                    };
+                    true
+                } else {
+                    partial_bom.extend(chunk.iter().copied());
+                    //println!("Partial BOM: {:?}", partial_bom);
+                    false
+                }
+            } else {
+                //println!("partial_bom is None");
+                false
+            };
+            if set_bom_to_none {
+                *self.bom_sniff.borrow_mut() = None;
+            }
+        }
+
         // For byte input, we convert it to text using the network decoder.
         let chunk = self
             .network_decoder
@@ -474,6 +523,11 @@ impl ServoParser {
     }
 
     fn push_string_input_chunk(&self, chunk: String) {
+        // If the input is a string, we don't have a BOM.
+        if self.bom_sniff.borrow().is_some() {
+            *self.bom_sniff.borrow_mut() = None;
+        }
+
         // The input has already been decoded as a string, so doesn't need
         // to be decoded by the network decoder again.
         let chunk = StrTendril::from(chunk);

@@ -3415,15 +3415,13 @@ impl ScriptThread {
             (incomplete.browsing_context_id, incomplete.pipeline_id, None),
         );
 
-        let parse_input = DOMString::new();
-
         document.set_https_state(metadata.https_state);
         document.set_navigation_start(incomplete.navigation_start_precise);
 
         if is_html_document == IsHTMLDocument::NonHTMLDocument {
-            ServoParser::parse_xml_document(&document, parse_input, final_url);
+            ServoParser::parse_xml_document(&document, None, final_url);
         } else {
-            ServoParser::parse_html_document(&document, parse_input, final_url);
+            ServoParser::parse_html_document(&document, None, final_url);
         }
 
         if incomplete.activity == DocumentActivity::FullyActive {
