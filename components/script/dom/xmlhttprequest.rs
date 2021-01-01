@@ -1488,7 +1488,7 @@ impl XMLHttpRequest {
         let (decoded, _, _) = charset.decode(&response);
         let document = self.new_doc(IsHTMLDocument::HTMLDocument);
         // TODO: Disable scripting while parsing
-        ServoParser::parse_html_document(&document, DOMString::from(decoded), wr.get_url());
+        ServoParser::parse_html_document(&document, Some(DOMString::from(decoded)), wr.get_url());
         document
     }
 
@@ -1499,7 +1499,7 @@ impl XMLHttpRequest {
         let (decoded, _, _) = charset.decode(&response);
         let document = self.new_doc(IsHTMLDocument::NonHTMLDocument);
         // TODO: Disable scripting while parsing
-        ServoParser::parse_xml_document(&document, DOMString::from(decoded), wr.get_url());
+        ServoParser::parse_xml_document(&document, Some(DOMString::from(decoded)), wr.get_url());
         document
     }
 
