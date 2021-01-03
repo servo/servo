@@ -12,9 +12,9 @@
   current.search = "";
   if (navigateTo) {
     let next = new URL(navigateTo, current);
-    setTimeout(() => {
-      window.location = next.href;
-    }, 50);
+    window.addEventListener("load", () => {
+      window.location.href = next.href;
+    });
   }
 
   if (channelName) {

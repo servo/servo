@@ -6,13 +6,19 @@
   current.search = "";
   if (navigateTo) {
     let next = new URL(navigateTo, current);
-    setTimeout(() => {
-      window.location = next.href;
-    }, 50);
+    window.addEventListener("load", () => {
+      window.location.href = next.href;
+    });
   }
 
   if (channelName) {
     let bc = new BroadcastChannel(channelName);
     bc.postMessage("loaded");
+
+    // The page can also be restored from the back-forward cache:
+    window.addEventListener('pageshow', function(event) {
+      if (event.persisted)
+        bc.postMessage("loaded");
+    });
   }
 </script>
