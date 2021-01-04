@@ -66,13 +66,6 @@ macro_rules! apply_non_ts_list {
 
                 ("-moz-autofill-preview", MozAutofillPreview, IN_AUTOFILL_PREVIEW_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
 
-                ("-moz-handler-clicktoplay", MozHandlerClickToPlay, IN_HANDLER_CLICK_TO_PLAY_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
-                ("-moz-handler-vulnerable-updatable", MozHandlerVulnerableUpdatable, IN_HANDLER_VULNERABLE_UPDATABLE_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
-                ("-moz-handler-vulnerable-no-update", MozHandlerVulnerableNoUpdate, IN_HANDLER_VULNERABLE_NO_UPDATE_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
-
-                ("-moz-handler-disabled", MozHandlerDisabled, IN_HANDLER_DISABLED_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
-                ("-moz-handler-blocked", MozHandlerBlocked, IN_HANDLER_BLOCKED_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
-                ("-moz-handler-crashed", MozHandlerCrashed, IN_HANDLER_CRASHED_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
                 ("-moz-handler-noplugins", MozHandlerNoPlugins, IN_HANDLER_NOPLUGINS, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
 
                 ("-moz-math-increment-script-level", MozMathIncrementScriptLevel, IN_INCREMENT_SCRIPT_LEVEL_STATE, _),

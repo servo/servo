@@ -55,12 +55,6 @@ bitflags! {
         const IN_BROKEN_STATE = 1 << 14;
         /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-loading
         const IN_LOADING_STATE = 1 << 17;
-        /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-handler-blocked
-        const IN_HANDLER_BLOCKED_STATE = 1 << 18;
-        /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-handler-disabled
-        const IN_HANDLER_DISABLED_STATE = 1 << 19;
-        /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-handler-crashed
-        const IN_HANDLER_CRASHED_STATE = 1 << 20;
         /// <https://html.spec.whatwg.org/multipage/#selector-required>
         const IN_REQUIRED_STATE = 1 << 21;
         /// <https://html.spec.whatwg.org/multipage/#selector-optional>
@@ -106,12 +100,6 @@ bitflags! {
         ///
         /// But also https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo
         const IN_FOCUSRING_STATE = 1 << 39;
-        /// Non-standard & undocumented.
-        const IN_HANDLER_CLICK_TO_PLAY_STATE = 1 << 40;
-        /// Non-standard & undocumented.
-        const IN_HANDLER_VULNERABLE_UPDATABLE_STATE = 1 << 41;
-        /// Non-standard & undocumented.
-        const IN_HANDLER_VULNERABLE_NO_UPDATE_STATE = 1 << 42;
         /// <https://drafts.csswg.org/selectors-4/#the-focus-within-pseudo>
         const IN_FOCUS_WITHIN_STATE = 1 << 43;
         /// :dir matching; the states are used for dynamic change detection.

@@ -2033,9 +2033,6 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozUIValid |
             NonTSPseudoClass::MozBroken |
             NonTSPseudoClass::MozLoading |
-            NonTSPseudoClass::MozHandlerBlocked |
-            NonTSPseudoClass::MozHandlerDisabled |
-            NonTSPseudoClass::MozHandlerCrashed |
             NonTSPseudoClass::Required |
             NonTSPseudoClass::Optional |
             NonTSPseudoClass::ReadOnly |
@@ -2046,9 +2043,6 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozDevtoolsHighlighted |
             NonTSPseudoClass::MozStyleeditorTransitioning |
             NonTSPseudoClass::MozFocusRing |
-            NonTSPseudoClass::MozHandlerClickToPlay |
-            NonTSPseudoClass::MozHandlerVulnerableUpdatable |
-            NonTSPseudoClass::MozHandlerVulnerableNoUpdate |
             NonTSPseudoClass::MozHandlerNoPlugins |
             NonTSPseudoClass::MozMathIncrementScriptLevel |
             NonTSPseudoClass::InRange |
