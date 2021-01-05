@@ -12,7 +12,7 @@
   <style>
     @supports not (selector(:focus-visible)) {
       #next:focus {
-        background-color: tomato;
+        background-color: red;
       }
     }
 
@@ -21,11 +21,11 @@
     }
 
     #next:focus-visible {
-      outline: darkgreen solid 5px;
+      outline: green solid 5px;
     }
 
     #next:focus:not(:focus-visible) {
-      background-color: tomato;
+      background-color: red;
       outline: 0;
     }
   </style>
@@ -49,7 +49,8 @@
 
     async_test(function(t) {
       next.addEventListener("focus", t.step_func(() => {
-        assert_equals(getComputedStyle(next).outlineColor, "rgb(0, 100, 0)");
+        assert_equals(getComputedStyle(next).outlineColor, "rgb(0, 128, 0)", `outlineColor for ${next.tagName}#${next.id} should be green`);
+        assert_not_equals(getComputedStyle(next).backgroundColor, "rgb(255, 0, 0)", `backgroundColor for ${next.tagName}#${next.id} should NOT be red`);
         t.done()
       }));
 

@@ -13,18 +13,18 @@
   <style>
     @supports not (selector(:focus-visible)) {
       :focus {
-        background-color: tomato;
+        background-color: red;
       }
     }
 
     :focus-visible {
       outline: 0;
-      outline-color: tomato;
-      background-color: tomato;
+      outline-color: red;
+      background-color: red;
     }
 
     :focus:not(:focus-visible) {
-      outline: darkgreen solid 5px;
+      outline: green solid 5px;
     }
   </style>
 </head>
@@ -43,22 +43,20 @@
         var t = async_test( "Keyboard focus should match :focus-visible");
 
         el.addEventListener("click", t.step_func(function(e) {
-          assert_equals(getComputedStyle(el).outlineColor, "rgb(0, 100, 0)", "after focus()");
+          assert_equals(getComputedStyle(el).outlineColor, "rgb(0, 128, 0)", `outlineColor for ${el.tagName}#${el.id} should be green`);
+          assert_not_equals(getComputedStyle(el).backgroundColor, "rgb(255, 0, 0)", `backgroundColor for ${el.tagName}#${el.id} should NOT be red`);
         }), true);
 
         el.addEventListener("keydown", t.step_func(function(e) {
           if (e.altKey || e.ctrlKey || e.metaKey) {
-            assert_equals(getComputedStyle(el).outlineColor, "rgb(0, 100, 0)", "after kb event");
+            assert_equals(getComputedStyle(el).outlineColor, "rgb(0, 128, 0)", `outlineColor for ${el.tagName}#${el.id} should be green`);
+            assert_not_equals(getComputedStyle(el).backgroundColor, "rgb(255, 0, 0)", `backgroundColor for ${el.tagName}#${el.id} should NOT be red`);
             t.done();
             return;
           }
           assert_true(false, "No modifier key");
           t.done();
         }));
-
-        t.step_timeout(() => {
-          assert_true(false, "timeout");
-        }, 1000);
 
         const ctrl_key = '\uE009';
         test_driver.click(el).then(() => {
