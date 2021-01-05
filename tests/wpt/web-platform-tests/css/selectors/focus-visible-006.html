@@ -8,7 +8,6 @@
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <script src="/resources/testdriver.js"></script>
-  <script src="/resources/testdriver-actions.js"></script>
   <script src="/resources/testdriver-vendor.js"></script>
   <style>
     span[contenteditable] {
@@ -17,19 +16,13 @@
         padding: 2px 5px;
     }
 
-    @supports not (selector(:focus-visible)) {
-      :focus {
-        background-color: tomato;
-      }
-    }
-
     :focus-visible {
-      outline: darkgreen solid 5px;
+      outline: green solid 5px;
     }
 
     :focus:not(:focus-visible) {
       outline: 0;
-      background-color: tomato;
+      background-color: red;
     }
   </style>
 </head>
@@ -48,7 +41,8 @@
     var actions_promise;
     async_test(function(t) {
       el.addEventListener("focus", t.step_func(function() {
-        assert_equals(getComputedStyle(el).outlineColor, "rgb(0, 100, 0)");
+        assert_equals(getComputedStyle(el).outlineColor, "rgb(0, 128, 0)", `outlineColor for ${el.tagName}#${el.id} should be green`);
+        assert_not_equals(getComputedStyle(el).backgroundColor, "rgb(255, 0, 0)", `backgroundColor for ${el.tagName}#${el.id} should NOT be red`);
         // Make sure the test finishes after all the input actions are completed.
         actions_promise.then( () => t.done() );
       }));

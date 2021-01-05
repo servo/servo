@@ -8,21 +8,20 @@
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <script src="/resources/testdriver.js"></script>
-  <script src="/resources/testdriver-actions.js"></script>
   <script src="/resources/testdriver-vendor.js"></script>
   <style>
     @supports not (selector(:focus-visible)) {
       #el:focus {
-        background-color: tomato;
+        background-color: red;
       }
     }
 
     :focus-visible {
-      outline: darkgreen solid 5px;
+      outline: green solid 5px;
     }
 
     #el:focus:not(:focus-visible) {
-      background-color: tomato;
+      background-color: red;
       outline: 0;
     }
   </style>
@@ -44,9 +43,11 @@
         el.focus();
       }));
       el.addEventListener("focus", t.step_func(function() {
-        assert_equals(getComputedStyle(el).outlineColor, "rgb(0, 100, 0)");
+        assert_equals(getComputedStyle(el).outlineColor, "rgb(0, 128, 0)", `outlineColor for ${el.tagName}#${el.id} should be green`);
+        assert_not_equals(getComputedStyle(el).backgroundColor, "rgb(255, 0, 0)", `backgroundColor for ${el.tagName}#${el.id} should NOT be red`);
         t.done();
       }));
+      test_driver.send_keys(el, "\ue004\ue007"); // TAB and ENTER
     }, "Programmatic focus after keypress should match :focus-visible");
   } else {
     button.addEventListener("click", () => {

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Selectors Level 4: :focus in focus event</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#focus-pseudo">
+<link rel="help" href="https://w3c.github.io/uievents/#event-type-focus">
+<link rel="help" href="https://crbug.com/523126">
+<meta name='author' title='Takayoshi Kochi' href='mailto:kochi@chromium.org'>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<input type="text">
+<script>
+var input = document.querySelector('input');
+input.addEventListener('focus', function(e) {
+  var focused = document.querySelector(':focus');
+  test(() => {
+    assert_equals(e.target, focused, "':focus' matches event.target");
+  }, "Checks that ':focus' pseudo-class matches inside 'focus' evente handler");
+}, false);
+input.focus();
+</script>

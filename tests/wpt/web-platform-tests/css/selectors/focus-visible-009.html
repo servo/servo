@@ -10,16 +10,16 @@
   <style>
     @supports not (selector(:focus-visible)) {
       #buton:focus {
-        background-color: tomato;
+        background-color: red;
       }
     }
 
     :focus-visible {
-      outline: darkgreen solid 5px;
+      outline: green solid 5px;
     }
 
     #button:focus:not(:focus-visible) {
-      background-color: tomato;
+      background-color: red;
       outline: 0;
     }
   </style>
@@ -34,13 +34,15 @@
   <script>
     async_test(function(t) {
       button.addEventListener("focus", t.step_func(function() {
-        assert_equals(getComputedStyle(button).outlineColor, "rgb(0, 100, 0)");
+        assert_equals(getComputedStyle(button).outlineColor, "rgb(0, 128, 0)", `outlineColor for ${button.tagName}#${button.id} should be green`);
+        assert_not_equals(getComputedStyle(button).backgroundColor, "rgb(255, 0, 0)", `backgroundColor for ${button.tagName}#${button.id} should NOT be red`);
         t.done();
       }));
 
       // Handle the case where the button is focused before the test runs.
      if (document.activeElement === button) {
-        assert_equals(getComputedStyle(button).outlineColor, "rgb(0, 100, 0)");
+        assert_equals(getComputedStyle(button).outlineColor, "rgb(0, 128, 0)", `outlineColor for ${button.tagName}#${button.id} should be green`);
+        assert_not_equals(getComputedStyle(button).backgroundColor, "rgb(255, 0, 0)", `backgroundColor for ${button.tagName}#${button.id} should NOT be red`);
         t.done();
      }
 

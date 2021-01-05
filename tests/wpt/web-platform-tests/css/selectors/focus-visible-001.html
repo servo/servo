@@ -13,17 +13,17 @@
   <style>
     @supports not (selector(:focus-visible)) {
       :focus {
-        background-color: tomato;
+        background-color: red;
       }
     }
 
     :focus-visible {
-      outline: darkgreen solid 5px;
+      outline: green solid 5px;
     }
 
     :focus:not(:focus-visible) {
       outline: 0;
-      background-color: tomato;
+      background-color: red;
     }
   </style>
 </head>
@@ -39,7 +39,8 @@
   <script>
     async_test(function(t) {
       el.addEventListener("focus", t.step_func(function() {
-        assert_equals(getComputedStyle(el).outlineColor, "rgb(0, 100, 0)");
+        assert_equals(getComputedStyle(el).outlineColor, "rgb(0, 128, 0)", `outlineColor for ${el.tagName}#${el.id} should be green`);
+        assert_not_equals(getComputedStyle(el).backgroundColor, "rgb(255, 0, 0)", `backgroundColor for ${el.tagName}#${el.id} should NOT be red`);
         t.done();
       }));
       const tab_key = '\ue004';
