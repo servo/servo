@@ -103,6 +103,15 @@
     promise_test(async () => {
       await data.initialize();
 
+      target.setRangeText("newmiddle", 2, 3, "select");
+
+      await data.assert_empty_spin();
+      assert_equals(collector.events.length, 1);
+    }, `Calling setRangeText() on ${name}`);
+
+    promise_test(async () => {
+      await data.initialize();
+
       target.selectionStart = 0;
 
       await data.assert_empty_spin();

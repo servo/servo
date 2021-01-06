@@ -44,15 +44,13 @@ explicitly-managed secret.
 - (unknown registrar): http://testthewebforward.org
   - web-human@w3.org
 - [Google Domains](https://domains.google/): https://wpt.fyi
+  - smcgruer@google.com
   - foolip@google.com
-  - robertma@google.com
-  - mike@bocoup.com
 - (Google internal): https://wpt.live https://wptpr.live
+  - smcgruer@google.com
   - foolip@google.com
-  - robertma@google.com
 - [GitHub](https://github.com/): web-platform-tests
   - [@foolip](https://github.com/foolip)
-  - [@Hexcles](https://github.com/Hexcles)
   - [@jgraham](https://github.com/jgraham)
   - [@plehegar](https://github.com/plehegar)
   - [@thejohnjansen](https://github.com/thejohnjansen)
@@ -62,15 +60,12 @@ explicitly-managed secret.
   - [@plehegar](https://github.com/plehegar)
   - [@sideshowbarker](https://github.com/sideshowbarker)
 - [Google Cloud Platform](https://cloud.google.com/): wptdashboard{-staging}
-  - robertma@google.com
   - smcgruer@google.com
   - foolip@google.com
 - [Google Cloud Platform](https://cloud.google.com/): wpt-live
   - smcgruer@google.com
-  - robertma@google.com
 - [Google Cloud Platform](https://cloud.google.com/): wpt-pr-bot
   - smcgruer@google.com
-  - robertma@google.com
 - E-mail address: wpt.pr.bot@gmail.com
   - smcgruer@google.com
   - boaz@bocoup.com

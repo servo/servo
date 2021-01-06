@@ -12,7 +12,7 @@ $ python tools/format_json.py resources/*.json
 
 def main():
     for filename in sys.argv[1:]:
-        print filename
+        print(filename)
         try:
             spec = json.load(
                 open(filename, u'r'), object_pairs_hook=collections.OrderedDict)

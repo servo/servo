@@ -14,7 +14,7 @@ input.addEventListener('focus', function(e) {
   var focused = document.querySelector(':focus');
   test(() => {
     assert_equals(e.target, focused, "':focus' matches event.target");
-  }, "Checks that ':focus' pseudo-class matches inside 'focus' evente handler");
+  }, "Checks that ':focus' pseudo-class matches inside 'focus' event handler");
 }, false);
 input.focus();
 </script>
