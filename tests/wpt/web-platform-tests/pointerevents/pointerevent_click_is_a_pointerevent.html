@@ -31,7 +31,7 @@ function testFunction(test){
 
 function run_test(pointerType){
   promise_test((test) => new Promise((resolve, reject) => {
-    const testPointer = "TestPointer";
+    const testPointer = pointerType + "TestPointer";
     let clickFunc = testFunction(test);
     test.add_cleanup(() => {
       target.removeEventListener("click", clickFunc);

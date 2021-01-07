@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+  <title>CSS aspect-ratio: Test flex item's resolved height/min-height with border-box box-sizing in a column flex container</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+  <link rel="match" href="../../reference/ref-filled-green-200px-square.html" />
+  <style>
+  .flexContainer {
+    display: flex;
+    flex-direction: column;
+    float: left;
+    height: 1px;
+  }
+  .item {
+    background: green;
+    padding-left: 15px;
+    box-sizing: border-box;
+  }
+  .item > div {
+    height: 500px; /* Set a large content size suggestion for flex item. */
+  }
+  </style>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <!-- In the following four flex containers, the aspect-ratio works with border-box. -->
+  <div class="flexContainer" style="height: auto;">
+    <!-- The border-box width 25px is transferred to the main axis,
+         yielding a resolved flex base size of 200px. -->
+    <div class="item" style="min-height:0; width: 25px; aspect-ratio: 1/8;"><div></div></div>
+  </div>
+
+  <div class="flexContainer">
+    <!-- The border-box width 25px is transferred to the main axis,
+         yielding a resolved min-height:auto of 200px. -->
+    <div class="item" style="width: 25px; aspect-ratio: 1/8;"><div></div></div>
+  </div>
+
+  <div class="flexContainer">
+    <!-- The border-box min-width 25px is transferred to the main axis,
+         yielding a resolved min-height:auto of 200px. -->
+    <div class="item" style="min-width: 25px; aspect-ratio: 1/8;"><div></div></div>
+  </div>
+
+  <div class="flexContainer">
+    <!-- The border-box width 25px (clamped by max-width) is transferred to the main axis,
+         yielding a resolved min-height:auto of 200px. -->
+    <div class="item" style="max-width: 25px; width: 100px; aspect-ratio: 1/8;"><div></div></div>
+  </div>
+
+  <!-- In the following four flex containers, the aspect-ratio works with content-box
+       because its value contains 'auto'. -->
+  <div class="flexContainer" style="height: auto;">
+    <!-- The content-box width 10px is transferred to the main axis,
+         yielding a resolved flex base size of 200px. -->
+    <div class="item" style="min-height:0; width: 25px; aspect-ratio: auto 1/20;"><div></div></div>
+  </div>
+
+  <div class="flexContainer">
+    <!-- The content-box width 10px is transferred to the main axis,
+         yielding a resolved min-height:auto of 200px. -->
+    <div class="item" style="width: 25px; aspect-ratio: auto 1/20;"><div></div></div>
+  </div>
+
+  <div class="flexContainer">
+    <!-- The content-box min-width 10px is transferred to the main axis,
+         yielding a resolved min-height:auto of 200px. -->
+    <div class="item" style="min-width: 25px; aspect-ratio: auto 1/20;"><div></div></div>
+  </div>
+
+  <div class="flexContainer">
+    <!-- The content-box width 10px (clamped by max-width) is transferred to the main axis,
+         yielding a resolved min-height:auto of 200px. -->
+    <div class="item" style="max-width: 25px; width: 100px; aspect-ratio: auto 1/20;"><div></div></div>
+  </div>
+</html>

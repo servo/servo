@@ -4,7 +4,7 @@ import os
 
 from . import manifest
 from . import vcs
-from .log import get_logger
+from .log import get_logger, enable_debug_logging
 from .download import download_from_github
 
 here = os.path.dirname(__file__)
@@ -65,6 +65,9 @@ def create_parser():
     # type: () -> argparse.ArgumentParser
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        "-v", "--verbose", dest="verbose", action="store_true", default=False,
+        help="Turn on verbose logging")
+    parser.add_argument(
         "-p", "--path", type=abs_path, help="Path to manifest file.")
     parser.add_argument(
         "--tests-root", type=abs_path, default=wpt_root, help="Path to root of tests.")
@@ -90,6 +93,8 @@ def run(*args, **kwargs):
     # type: (*Any, **Any) -> None
     if kwargs["path"] is None:
         kwargs["path"] = os.path.join(kwargs["tests_root"], "MANIFEST.json")
+    if kwargs["verbose"]:
+        enable_debug_logging()
     update_from_cli(**kwargs)
 
 

@@ -5,7 +5,7 @@ const gridChildHelperRow = "row";
 const gridChildHelperCol = "col";
 
 // Helper for building testcases for grid-template-* with a child div in
-// multiple positions. Prop is expected ot be one of gridChildHelperRow or
+// multiple positions. Prop is expected to be one of gridChildHelperRow or
 // gridChildHelperCol, to select testing grid rows or grid columns,
 // respectively.
 // The child div is found by the id of 'child'.
