@@ -54,10 +54,10 @@ ${helpers.single_keyword(
 
 ${helpers.predefined_type(
     "list-style-image",
-    "url::ImageUrlOrNone",
+    "Image",
     engines="gecko servo-2013 servo-2020",
-    initial_value="computed::url::ImageUrlOrNone::none()",
-    initial_specified_value="specified::url::ImageUrlOrNone::none()",
+    initial_value="computed::Image::None",
+    initial_specified_value="specified::Image::None",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-lists/#propdef-list-style-image",
     servo_restyle_damage="rebuild_and_reflow",
