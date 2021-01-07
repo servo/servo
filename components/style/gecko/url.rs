@@ -285,14 +285,15 @@ impl SpecifiedImageUrl {
 
     /// Provides an alternate method for parsing that associates the URL
     /// with anonymous CORS headers.
-    pub fn parse_with_cors_anonymous<'i, 't>(
+    pub fn parse_with_cors_mode<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
+        cors_mode: CorsMode,
     ) -> Result<Self, ParseError<'i>> {
         Ok(SpecifiedImageUrl(SpecifiedUrl::parse_with_cors_mode(
             context,
             input,
-            CorsMode::Anonymous,
+            cors_mode,
         )?))
     }
 }
