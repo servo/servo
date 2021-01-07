@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>Handling of unsupported assertion</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    window.log = [];
+
+    window.addEventListener("error", ev => log.push(ev.error));
+
+    const test_load = async_test(
+        "Test that no error occurs when an unsupported import assertion is provided.");
+    window.addEventListener("load", test_load.step_func_done(ev => {
+      assert_array_equals(window.log, ["hello", "unsupported-assertion"]);
+    }));
+
+    function unreachable() { log.push("unexpected"); }
+</script>
+<script type="module" src="./unsupported-assertion.js" onerror="unreachable()"></script>

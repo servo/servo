@@ -14,5 +14,5 @@ test.step(function () {
   client.send(null);
   test.step_timeout(() => {
     assert_unreached("ontimeout not called.");
-  }, 10);
+  }, 1000);
 });

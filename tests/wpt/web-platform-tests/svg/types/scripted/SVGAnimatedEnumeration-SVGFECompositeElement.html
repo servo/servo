@@ -34,13 +34,18 @@ test(function() {
   assert_equals(feCompositeElement.operator.baseVal, SVGFECompositeElement.SVG_FECOMPOSITE_OPERATOR_XOR);
   assert_equals(feCompositeElement.getAttribute('operator'), "xor");
 
+  // Switch to 'lighter'.
+  feCompositeElement.operator.baseVal = SVGFECompositeElement.SVG_FECOMPOSITE_OPERATOR_LIGHTER;
+  assert_equals(feCompositeElement.operator.baseVal, SVGFECompositeElement.SVG_FECOMPOSITE_OPERATOR_LIGHTER);
+  assert_equals(feCompositeElement.getAttribute('operator'), "lighter");
+
   // Switch to 'arithmetic'.
   feCompositeElement.operator.baseVal = SVGFECompositeElement.SVG_FECOMPOSITE_OPERATOR_ARITHMETIC;
   assert_equals(feCompositeElement.operator.baseVal, SVGFECompositeElement.SVG_FECOMPOSITE_OPERATOR_ARITHMETIC);
   assert_equals(feCompositeElement.getAttribute('operator'), "arithmetic");
 
   // Try setting invalid values.
-  assert_throws_js(TypeError, function() { feCompositeElement.operator.baseVal = 7; });
+  assert_throws_js(TypeError, function() { feCompositeElement.operator.baseVal = 8; });
   assert_equals(feCompositeElement.operator.baseVal, SVGFECompositeElement.SVG_FECOMPOSITE_OPERATOR_ARITHMETIC);
   assert_equals(feCompositeElement.getAttribute('operator'), "arithmetic");
 
@@ -56,10 +61,5 @@ test(function() {
   feCompositeElement.operator.baseVal = SVGFECompositeElement.SVG_FECOMPOSITE_OPERATOR_OVER;
   assert_equals(feCompositeElement.operator.baseVal, SVGFECompositeElement.SVG_FECOMPOSITE_OPERATOR_OVER);
   assert_equals(feCompositeElement.getAttribute('operator'), "over");
-
-  // Switch to 'lighter'.
-  assert_equals(SVGFECompositeElement.SVG_FECOMPOSITE_OPERATOR_LIGHTER, undefined);
-  feCompositeElement.setAttribute("operator", "lighter");
-  assert_equals(feCompositeElement.operator.baseVal, SVGFECompositeElement.SVG_FECOMPOSITE_OPERATOR_UNKNOWN);
 });
 </script>

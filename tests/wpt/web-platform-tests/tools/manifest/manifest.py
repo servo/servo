@@ -1,6 +1,7 @@
 import io
 import itertools
 import os
+import sys
 from atomicwrites import atomic_write
 from copy import deepcopy
 from multiprocessing import Pool, cpu_count
@@ -173,6 +174,8 @@ class Manifest(object):
         constructed in the case we are not updating a path, but the absence of an item from
         the iterator may be used to remove defunct entries from the manifest."""
 
+        logger = get_logger()
+
         changed = False
 
         # Create local variable references to these dicts so we avoid the
@@ -221,20 +224,33 @@ class Manifest(object):
                     to_update.append(source_file)
 
         if to_update:
+            logger.debug("Computing manifest update for %s items" % len(to_update))
             changed = True
 
+
+        # 25 items was derived experimentally (2020-01) to be approximately the
+        # point at which it is quicker to create a Pool and parallelize update.
         if parallel and len(to_update) > 25 and cpu_count() > 1:
-            # 25 derived experimentally (2020-01) to be approximately
-            # the point at which it is quicker to create Pool and
-            # parallelize this
-            pool = Pool()
+            # On Python 3 on Windows, using >= MAXIMUM_WAIT_OBJECTS processes
+            # causes a crash in the multiprocessing module. Whilst this enum
+            # can technically have any value, it is usually 64. For safety,
+            # restrict manifest regeneration to 48 processes on Windows.
+            #
+            # See https://bugs.python.org/issue26903 and https://bugs.python.org/issue40263
+            processes = cpu_count()
+            if sys.platform == "win32" and processes > 48:
+                processes = 48
+            pool = Pool(processes)
 
             # chunksize set > 1 when more than 10000 tests, because
             # chunking is a net-gain once we get to very large numbers
             # of items (again, experimentally, 2020-01)
+            chunksize = max(1, len(to_update) // 10000)
+            logger.debug("Doing a multiprocessed update. CPU count: %s, "
+                "processes: %s, chunksize: %s" % (cpu_count(), processes, chunksize))
             results = pool.imap_unordered(compute_manifest_items,
                                           to_update,
-                                          chunksize=max(1, len(to_update) // 10000)
+                                          chunksize=chunksize
                                           )  # type: Iterator[Tuple[Tuple[Text, ...], Text, Set[ManifestItem], Text]]
         elif PY3:
             results = map(compute_manifest_items, to_update)
@@ -444,6 +460,7 @@ def _load_and_update(tests_root,  # type: Text
         update = True
 
     if rebuild or update:
+        logger.info("Updating manifest")
         for retry in range(2):
             try:
                 tree = vcs.get_tree(tests_root, manifest, manifest_path, cache_root,
