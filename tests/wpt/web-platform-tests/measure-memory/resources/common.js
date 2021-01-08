@@ -39,6 +39,11 @@ function checkBreakdown(breakdown, expected) {
   }
 }
 
+function isEmptyBreakdownEntry(entry) {
+  return entry.bytes === 0 && entry.attribution.length === 0 &&
+         entry.userAgentSpecificTypes.length === 0;
+}
+
 function checkMeasureMemory(result, expected) {
   assert_own_property(result, 'bytes');
   assert_own_property(result, 'breakdown');
@@ -54,6 +59,8 @@ function checkMeasureMemory(result, expected) {
           JSON.stringify(e) + ' did not appear in the result.');
     }
   }
+  assert_true(result.breakdown.some(isEmptyBreakdownEntry),
+      'The result must include an empty breakdown entry.');
 }
 
 function url(params) {

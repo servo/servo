@@ -12,9 +12,6 @@
   <body>
     <div id=log></div>
     <script>
-      // TODO: there is more to test here, these tests capture the old
-      // ported http-state tests. Feel free to delete this comment when more
-      // are added.
       const nameTests = [
         {
           cookie: "test1=;  path = /",
@@ -23,15 +20,87 @@
           defaultValue: false,
         },
         {
+          cookie: "=test=2",
+          expected: "test=2",
+          name: "Set a nameless cookie (that has an = in its value)",
+        },
+        {
+          cookie: "===test=2b",
+          expected: "==test=2b",
+          name: "Set a nameless cookie (that has multiple ='s in its value)",
+        },
+        {
+          cookie: "=test2c",
+          expected: "test2c",
+          name: "Set a nameless cookie",
+        },
+        {
+          cookie: "test =3",
+          expected: "test=3",
+          name: "Remove trailing WSP characters from the name string",
+        },
+        {
+          cookie: "   test=4",
+          expected: "test=4",
+          name: "Remove leading WSP characters from the name string",
+        },
+        {
+          cookie: ['"test=5"=test', '"test=5'],
+          expected: '"test=5',
+          name: "Only return the new cookie (with the same name)",
+        },
+        {
+          cookie: "test6;cool=dude",
+          expected: "test6",
+          name: "Ignore invalid attributes after nameless cookie",
+        },
+        {
+          cookie: "$Version=1; test=7",
+          expected: "$Version=1",
+          name: "Ignore invalid attributes after valid name (that looks like Cookie2 Version attribute)",
+        },
+        {
+          cookie: "test test=8",
+          expected: "test test=8",
+          name: "Set a cookie that has whitespace in its name",
+        },
+        {
+          cookie: '"test9;test"=9',
+          expected: '"test9',
+          name: "Set a nameless cookie ignoring characters after first ;",
+        },
+        {
+          cookie: '"test\"10;baz"=qux',
+          expected: '"test\"10',
+          name: "Set a nameless cookie ignoring characters after first ; (2)",
+        },
+        {
+          cookie: ["=test=11", "test11"],
+          expected: "test11",
+          name: "Return the most recent nameless cookie",
+        },
+        {
+          cookie: "=",
+          expected: "",
+          name: "Ignore cookie with empty name and empty value",
+        },
+        {
           cookie: "",
           expected: "",
           name: "Ignore cookie with no name or value",
         },
-
       ];
 
       for (const test of nameTests) {
         httpCookieTest(test.cookie, test.expected, test.name);
+      }
+
+      for (const name of ["a", "1", "$", "!a", "@a", "#a", "$a", "%a",
+                          "^a", "&a", "*a", "(a", ")a", "-a", "_a", "+",
+                          '"a', '"a=b"'
+                        ]) {
+        const cookie = `${name}=test`;
+        httpCookieTest(cookie, cookie, `Name is set as expected for ${name}=test`);
       }
     </script>
   </body>

@@ -91,6 +91,41 @@
           expected: 'test="14 "',
           name: "Set cookie ignoring whitespace after value endquote",
         },
+        {
+          cookie: "test=15    ;",
+          expected: "test=15",
+          name: "Ignore whitespace and ; after value",
+        },
+        {
+          cookie: "test=  16",
+          expected: "test=16",
+          name: "Ignore whitespace preceding value",
+        },
+        {
+          cookie: 'test="17"',
+          expected: 'test="17"',
+          name: "Set cookie with quotes in value",
+        },
+        {
+          cookie: 'test="  18 "',
+          expected: 'test="  18 "',
+          name: "Set cookie keeping whitespace inside quoted value",
+        },
+        {
+          cookie: 'test="19;wow"',
+          expected: 'test="19',
+          name: "Set cookie value ignoring characters after semicolon",
+        },
+        {
+          cookie: 'test="20=20"',
+          expected: 'test="20=20"',
+          name: "Set cookie with another = inside quoted value",
+        },
+        {
+          cookie: "test	=	21	 	;	ttt",
+          expected: "test=21",
+          name: "Set cookie ignoring whitespace surrounding value and characters after first semicolon",
+        },
       ];
 
       for (const test of valueTests) {

@@ -27,6 +27,7 @@
         test_equals(entry.secureConnectionStart, 0, 'secureConnectionStart should be 0 in cross-origin redirect.');
         test_greater_than(entry.fetchStart, 0, 'fetchStart should be greater than 0 in cross-origin redirect.');
         test_greater_than(entry.responseEnd, 0, 'responseEnd should be greater than 0 in cross-origin redirect.');
+        test_greater_than(entry.responseEnd, entry.fetchStart, 'responseEnd should be greater than fetchStart in cross-origin redirect.');
         done();
     }
 </script>

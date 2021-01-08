@@ -18,13 +18,17 @@ async_test(t => {
   window.addEventListener("load", t.step_func_done(() => {
     const images = document.getElementsByTagName("img");
     for (let img of images) {
-      assert_greater_than(performance.getEntriesByName(img.src).length, 0, img.src);
+      const entries = performance.getEntriesByName(img.src);
+      assert_greater_than(entries.length, 0, img.src);
+      assert_greater_than(entries[0].duration, 0, img.src);
     }
     const scripts = document.getElementsByTagName("script");
     let noSrcScriptFound = false;
     for (let script of scripts) {
       if (script.src) {
-        assert_greater_than(performance.getEntriesByName(script.src).length, 0, script.src);
+        const entries = performance.getEntriesByName(script.src);
+        assert_greater_than(entries.length, 0, script.src);
+        assert_greater_than(entries[0].duration, 0, script.src);
       } else {
         // Ignore this script, which has no src value. There should only be one such script.
         assert_false(noSrcScriptFound);

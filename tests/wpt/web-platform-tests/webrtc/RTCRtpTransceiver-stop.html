@@ -23,6 +23,18 @@ promise_test(async (t)=> {
 
 promise_test(async (t)=> {
     const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+
+    pc1.addTransceiver("audio", { direction: "sendonly" });
+    pc1.addTransceiver("video");
+    assert_equals(null, pc1.getTransceivers()[1].receiver.transport);
+
+    pc1.getTransceivers()[1].stop();
+    assert_equals(pc1.getTransceivers()[1].receiver.transport, null);
+}, "A transceiver added and stopped should not crash when getting receiver's transport");
+
+promise_test(async (t)=> {
+    const pc1 = new RTCPeerConnection();
     const pc2 = new RTCPeerConnection();
     t.add_cleanup(() => pc1.close());
     t.add_cleanup(() => pc2.close());
