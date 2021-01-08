@@ -53,7 +53,7 @@ pub enum GenericImage<G, MozImageRect, ImageUrl, Color, Percentage, Resolution> 
     CrossFade(Box<GenericCrossFade<Self, Color, Percentage>>),
 
     /// An `image-set()` function.
-    ImageSet(Box<GenericImageSet<Self, Resolution>>),
+    ImageSet(#[compute(field_bound)] Box<GenericImageSet<Self, Resolution>>),
 }
 
 pub use self::GenericImage as Image;
@@ -141,10 +141,14 @@ pub use self::GenericCrossFadeImage as CrossFadeImage;
 /// https://drafts.csswg.org/css-images-4/#image-set-notation
 #[css(comma, function = "image-set")]
 #[derive(
-    Clone, Debug, MallocSizeOf, PartialEq, ToResolvedValue, ToShmem, ToCss, ToComputedValue,
+    Clone, Debug, MallocSizeOf, PartialEq, ToResolvedValue, ToShmem, ToCss,
 )]
 #[repr(C)]
 pub struct GenericImageSet<Image, Resolution> {
+    /// The index of the selected candidate. Zero for specified values.
+    #[css(skip)]
+    pub selected_index: usize,
+
     /// All of the image and resolution pairs.
     #[css(iterable)]
     pub items: crate::OwnedSlice<GenericImageSetItem<Image, Resolution>>,

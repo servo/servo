@@ -324,6 +324,7 @@ impl ImageSet {
             input.parse_comma_separated(|input| ImageSetItem::parse(context, input, cors_mode))
         })?;
         Ok(Self {
+            selected_index: 0,
             items: items.into()
         })
     }
