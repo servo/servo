@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Web NFC: prompt closes when page reloads</title>
+<link rel="help" href="https://w3c.github.io/web-nfc/"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<p>
+  This manual test checks that Web NFC prompt closes when page reloads.
+</p>
+<ol>
+  <li>Make sure NFC is disabled at system level</li>
+  <li>Click button to open Web NFC prompt</li>
+  <li>Accept first Web NFC prompt if needed</li>
+  <li>Wait 3 seconds when prompted about turning on the NFC adapter on the system level</li>
+  <li>Page reloads, click button if Web NFC prompt closed</li>
+</ol>
+<script>
+
+promise_test(async (t) => {
+  if (window.location.search === "?didPromptClose") {
+    const button = document.createElement("button");
+    button.textContent = "Did Web NFC prompt close?";
+
+    await new Promise((resolve) => {
+      button.onclick = () => {
+        document.body.removeChild(button);
+        resolve();
+      };
+      document.body.appendChild(button);
+    });
+    return;
+  }
+
+  const button = document.createElement("button");
+  button.textContent = "Click to open Web NFC prompt";
+
+  await new Promise((resolve) => {
+    button.onclick = () => {
+      document.body.removeChild(button);
+      resolve();
+    };
+    document.body.appendChild(button);
+  });
+
+  // Web NFC prompt shows up.
+  const ndef = new NDEFReader();
+  ndef.scan();
+
+  // Wait 3 seconds to give time to user to accept first Web NFC prompt.
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+
+  // Reload page and manually check that Web NFC prompt closes.
+  window.location.search = "?didPromptClose";
+}, "Web NFC prompt should close when page reloads.");
+
+</script>

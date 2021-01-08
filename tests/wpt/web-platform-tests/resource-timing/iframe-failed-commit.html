@@ -29,6 +29,7 @@ const run_test = async (t, url, csp) => {
   assert_equals(typeof(list), "object", "No iframe entry was fired");
   const entries = list.getEntriesByName(url);
   assert_equals(entries.length, 1);
+  assert_greater_than(entries[0].duration, 0, "Duration greater than 0");
 }
 
 const {REMOTE_ORIGIN, ORIGINAL_HOST, HTTPS_PORT} = get_host_info();

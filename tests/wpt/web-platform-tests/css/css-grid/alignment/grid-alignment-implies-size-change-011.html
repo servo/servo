@@ -31,14 +31,24 @@
 <script>
 setup({ explicit_done: true });
 function runTest() {
-  evaluateStyleChange(item, "before", "data-expected-height", 200);
-  grid.style.alignItems = "start";
-  evaluateStyleChange(item, "after", "data-expected-height", 100);
+  evaluateStyleChangeMultiple('before', {
+    item: {
+      'data-expected-width': 200,
+      'data-expected-height': 200,
+    },
+  });
+  grid.style.alignItems = 'start';
+  evaluateStyleChangeMultiple('after', {
+    item: {
+      'data-expected-width': 100,
+      'data-expected-height': 100,
+    },
+  });
   done();
 }
 </script>
 <body onload="document.fonts.ready.then(() => { runTest(); })">
 <div class="grid" id="grid">
-  <img data-expected-width="100" id="item" src="support/100x100-green.png"></img>
+  <img id="item" src="support/100x100-green.png"></img>
 </div>
 </body>
