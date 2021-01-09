@@ -487,28 +487,18 @@ impl ServoParser {
         // encoding based on the BOM, but it won't change
         // `self.document.encoding` in the process.
         {
-            let set_bom_to_none = if let Some(partial_bom) = self.bom_sniff.borrow_mut().as_mut() {
+            let mut bom_sniff = self.bom_sniff.borrow_mut();
+            if let Some(partial_bom) = bom_sniff.as_mut() {
                 if partial_bom.len() + chunk.len() >= 3 {
                     partial_bom.extend(chunk.iter().take(3 - partial_bom.len()).copied());
-                    //println!("Full BOM: {:?}", partial_bom);
                     if let Some((encoding, _)) = Encoding::for_bom(&partial_bom) {
-                        //println!("Encoding: {}", encoding.name());
                         self.document.set_encoding(encoding);
-                    } else {
-                        //println!("Bytes are not a BOM.");
-                    };
-                    true
+                    }
+                    drop(bom_sniff);
+                    *self.bom_sniff.borrow_mut() = None;
                 } else {
                     partial_bom.extend(chunk.iter().copied());
-                    //println!("Partial BOM: {:?}", partial_bom);
-                    false
                 }
-            } else {
-                //println!("partial_bom is None");
-                false
-            };
-            if set_bom_to_none {
-                *self.bom_sniff.borrow_mut() = None;
             }
         }
 
