@@ -4,7 +4,7 @@
     function handleMessage(e) {
       if (e.data == "focus") {
         let button = document.querySelector("button");
-        button.onfocus = () => e.source.postMessage({focused: true}, "*");
+        button.onfocus = () => e.source.postMessage({focused: true}, {targetOrigin: "*"});
         button.focus();
       }
     }
@@ -22,7 +22,7 @@
 
     window.onfocus = () => {
       if (window.portalHost)
-        window.portalHost.postMessage("window focused", "*");
+        window.portalHost.postMessage("window focused");
     };
   </script>
   <button>A</button>

@@ -274,7 +274,7 @@ GENERATE_TESTS: html/syntax/parsing/template/clearing-the-stack-back-to-a-given-
 GENERATE_TESTS: html/syntax/parsing/template/clearing-the-stack-back-to-a-given-context/clearing-stack-back-to-a-table-row-context.html
 GENERATE_TESTS: html/syntax/parsing/template/creating-an-element-for-the-token/template-owner-document.html
 GENERATE_TESTS: html/syntax/serializing-html-fragments/serializing.html
-GENERATE_TESTS: html/webappapis/atob/base64.html
+GENERATE_TESTS: html/webappapis/atob/base64.any.js
 GENERATE_TESTS: mediacapture-fromelement/capture.html
 GENERATE_TESTS: mediacapture-fromelement/creation.html
 GENERATE_TESTS: mediacapture-fromelement/ended.html
@@ -723,12 +723,12 @@ MISSING DEPENDENCY: generic-sensor/resources/generic-sensor-helpers.js
 MISSING DEPENDENCY: idle-detection/resources/idle-detection-helper.js
 MISSING DEPENDENCY: mediacapture-image/resources/imagecapture-helpers.js
 MISSING DEPENDENCY: orientation-event/resources/orientation-event-helpers.js
+MISSING DEPENDENCY: resources/chromium/webusb-test.js
 MISSING DEPENDENCY: resources/test-only-api.js
 MISSING DEPENDENCY: screen_enumeration/resources/screenenumeration-helpers.js
 MISSING DEPENDENCY: serial/resources/automation.js
 MISSING DEPENDENCY: shape-detection/resources/shapedetection-helpers.js
 MISSING DEPENDENCY: web-nfc/resources/nfc-helpers.js
-MISSING DEPENDENCY: webusb/resources/usb-helpers.js
 MISSING DEPENDENCY: webxr/resources/webxr_util.js
 
 # Tests that are false positives for using Ahem as a system font

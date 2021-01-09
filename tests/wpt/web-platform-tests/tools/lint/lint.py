@@ -655,6 +655,16 @@ def check_parsed(repo_root, path, f):
         if incorrect_path("testdriver-vendor.js", src):
             errors.append(rules.TestdriverVendorPath.error(path))
 
+        script_path = None
+        try:
+            script_path = urlsplit(urljoin(source_file.url, src)).path
+        except ValueError:
+            # This happens if the contents of src isn't something that looks like a URL to Python
+            pass
+        if (script_path == "/common/reftest-wait.js" and
+            "reftest-wait" not in source_file.root.attrib.get("class", "").split()):
+            errors.append(rules.MissingReftestWait.error(path))
+
     return errors
 
 class ASTCheck(with_metaclass(abc.ABCMeta)):

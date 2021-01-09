@@ -77,16 +77,18 @@
     <label><input class="check" id="el-11" type="color"></input> Focus me.</label>
   </div>
   <script>
-    function mouseClickInTarget(selector) {
-       let target = document.querySelector(selector);
-       return test_driver.click(target);
-    }
+    setup({ explicit_done: true });
 
-    for (const target of document.querySelectorAll(".check")) {
+    const elements = document.querySelectorAll(".check");
+    for (let i = 0; i < elements.length; i++) {
+      const target = elements[i];
       promise_test(() => {
         return new Promise(resolve => {
           target.addEventListener("focus", resolve);
-          test_driver.click(target);
+          test_driver.click(target).then(() => {
+            if (i == (elements.length - 1))
+              done();
+          });
         }).then(() => {
           assert_equals(getComputedStyle(target).backgroundColor, "rgb(0, 255, 0)", `backgroundColor for ${target.tagName}#${target.id} should be lime`);
           assert_not_equals(getComputedStyle(target).outlineColor, "rgb(255, 0, 0)", `outlineColor for ${target.tagName}#${target.id} should NOT be red`);
