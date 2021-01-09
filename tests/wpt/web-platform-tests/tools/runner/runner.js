@@ -893,18 +893,17 @@ function setup() {
     new ManualUI(document.getElementById("manualUI"), runner);
     new VisualOutput(document.getElementById("output"), runner);
 
+    window.addEventListener("message", function(e) {
+        if (e.data.type === "complete")
+            runner.on_complete(e.data.tests, e.data.status);
+    });
+
     if (options.autorun === "1") {
         runner.start(test_control.get_path(),
                      test_control.get_test_types(),
                      test_control.get_testharness_settings(),
                      test_control.get_use_regex());
-        return;
     }
-
-    window.addEventListener("message", function(e) {
-      if (e.data.type === "complete")
-        runner.on_complete(e.data.tests, e.data.status);
-    });
 }
 
 window.addEventListener("DOMContentLoaded", setup, false);

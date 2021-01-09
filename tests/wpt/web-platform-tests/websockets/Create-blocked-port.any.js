@@ -58,7 +58,6 @@ async_test(t => {
   532,  // netnews
   540,  // uucp
   548,  // afp
-  554,  // rtsp
   556,  // remotefs
   563,  // nntp+ssl
   587,  // smtp (outgoing)

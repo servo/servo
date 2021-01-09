@@ -66,8 +66,14 @@ enum HIDUnitSystem {
 dictionary HIDReportItem {
     boolean isAbsolute;
     boolean isArray;
+    boolean isBufferedBytes;
+    boolean isConstant;
+    boolean isLinear;
     boolean isRange;
+    boolean isVolatile;
     boolean hasNull;
+    boolean hasPreferredState;
+    boolean wrap;
     sequence<unsigned long> usages;
     unsigned long usageMinimum;
     unsigned long usageMaximum;
@@ -96,6 +102,7 @@ dictionary HIDReportInfo {
 dictionary HIDCollectionInfo {
     unsigned short usagePage;
     unsigned short usage;
+    octet type;
     sequence<HIDCollectionInfo> children;
     sequence<HIDReportInfo> inputReports;
     sequence<HIDReportInfo> outputReports;

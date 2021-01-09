@@ -19,9 +19,9 @@
 
     window.onmessage = e => {
       if (window.portalHost)
-        window.portalHost.postMessage(e.data, "*");
+        window.portalHost.postMessage(e.data);
       else
-        document.querySelector("portal").postMessage(e.data, "*");
+        document.querySelector("portal").postMessage(e.data);
     }
   </script>
   <iframe src="http://{{hosts[alt][www]}}:{{ports[http][0]}}/portals/resources/focus-page-with-button.html"></iframe>

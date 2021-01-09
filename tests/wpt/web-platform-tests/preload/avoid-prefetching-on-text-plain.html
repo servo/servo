@@ -23,8 +23,16 @@
                     urls.push(entry.name);
                 }
                 // If preloading is working correctly, should only see the text document
-                // represented in the performance information.
-                assert_array_equals(resource_types, ['navigation']);
+                // represented in the performance information. A 'resource' type indicates
+                // that we've prefetched something.
+                let resource_found = false;
+                for (const t of resource_types) {
+                    if (t == "resource") {
+                        resource_found = true;
+                        break;
+                    }
+                }
+                assert_false(resource_found, "no resources should be present");
                 assert_equals(urls.length, 1);
                 assert_equals(urls[0].endsWith("avoid-prefetching-on-text-plain-inner.html"), true);
                 done();

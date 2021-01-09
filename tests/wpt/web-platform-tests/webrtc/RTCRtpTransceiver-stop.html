@@ -148,8 +148,8 @@ promise_test(async (t) => {
   pc2Transceiver = pc2.getTransceivers()[0];
   pc1.getTransceivers()[0].stop();
   await exchangeOfferAnswer(pc1, pc2);
-  assert_equals('stopped', pc1Transceiver.direction);
-  assert_equals('stopped', pc2Transceiver.direction);
+  assert_equals(pc1Transceiver.direction, 'stopped');
+  assert_equals(pc2Transceiver.direction, 'stopped');
 }, 'If a transceiver is stopped, transceivers should end up in state stopped');
 
 </script>

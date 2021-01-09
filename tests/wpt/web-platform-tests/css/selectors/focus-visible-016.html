@@ -37,6 +37,8 @@
 <input id="target" />
 
 <script>
+  setup({ explicit_done: true });
+
   async_test(function(t) {
     initial.addEventListener("focus", t.step_func(function() {
       assert_equals(getComputedStyle(initial).backgroundColor, "rgb(0, 255, 0)", `backgroundColor for ${initial.tagName}#${initial.id} should be lime`);
@@ -48,7 +50,7 @@
       t.done();
     }));
 
-    test_driver.click(initial);
+    test_driver.click(initial).then(() => done());
   }, ":focus-visible always match on text inputs");
 </script>
 

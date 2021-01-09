@@ -167,27 +167,27 @@ def global_variant_url(url, suffix):
 
 
 def _parse_html(f):
-    # type: (BinaryIO) -> ElementTree.ElementTree
+    # type: (BinaryIO) -> ElementTree.Element
     doc = html5lib.parse(f, treebuilder="etree", useChardet=False)
     if MYPY:
-        return cast(ElementTree.ElementTree, doc)
+        return cast(ElementTree.Element, doc)
     return doc
 
 def _parse_xml(f):
-    # type: (BinaryIO) -> ElementTree.ElementTree
+    # type: (BinaryIO) -> ElementTree.Element
     try:
         # raises ValueError with an unsupported encoding,
         # ParseError when there's an undefined entity
-        return ElementTree.parse(f)
+        return ElementTree.parse(f).getroot()
     except (ValueError, ElementTree.ParseError):
         f.seek(0)
-        return ElementTree.parse(f, XMLParser.XMLParser())  # type: ignore
+        return ElementTree.parse(f, XMLParser.XMLParser()).getroot()  # type: ignore
 
 
 class SourceFile(object):
     parsers = {u"html":_parse_html,
                u"xhtml":_parse_xml,
-               u"svg":_parse_xml}  # type: Dict[Text, Callable[[BinaryIO], ElementTree.ElementTree]]
+               u"svg":_parse_xml}  # type: Dict[Text, Callable[[BinaryIO], ElementTree.Element]]
 
     root_dir_non_test = {u"common"}
 
@@ -447,7 +447,7 @@ class SourceFile(object):
 
     @cached_property
     def root(self):
-        # type: () -> Optional[Union[ElementTree.Element, ElementTree.ElementTree]]
+        # type: () -> Optional[ElementTree.Element]
         """Return an ElementTree Element for the root node of the file if it contains
         markup, or None if it does not"""
         if not self.markup_type:
@@ -461,12 +461,7 @@ class SourceFile(object):
             except Exception:
                 return None
 
-        if hasattr(tree, "getroot"):
-            root = tree.getroot()  # type: Union[ElementTree.Element, ElementTree.ElementTree]
-        else:
-            root = tree
-
-        return root
+        return tree
 
     @cached_property
     def timeout_nodes(self):

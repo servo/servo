@@ -76,7 +76,7 @@ function sample3() {
     assert_approx_equals(marker.orientAngle.animVal.value, 0, epsilon);
     assert_equals(marker.orientAngle.baseVal.value, 0);
 
-    assert_equals(marker.orientType.animVal, SVGMarkerElement.SVG_MARKER_ORIENT_UNKNOWN);
+    assert_equals(marker.orientType.animVal, SVGMarkerElement.SVG_MARKER_ORIENT_AUTO_START_REVERSE);
     assert_equals(marker.orientType.baseVal, SVGMarkerElement.SVG_MARKER_ORIENT_ANGLE);
 }
 

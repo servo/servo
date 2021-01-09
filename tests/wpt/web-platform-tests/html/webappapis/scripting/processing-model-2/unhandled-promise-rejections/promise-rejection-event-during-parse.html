@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Promise rejection during initial parsing of document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://html.spec.whatwg.org/#unhandled-promise-rejections">
+<body>
+<p>The script in this test is executed immediately while parsing is ongoing, and
+<a
+href="https://html.spec.whatwg.org/multipage/webappapis.html#clean-up-after-running-script">cleaning
+up after running script</a> involves queueing a task on the DOM manipulation
+task source to fire the <code>unhandledrejection</code> event. Parsing then
+completes, immediately transitioning the document's readiness state to
+"interactive," and queuing another task on the DOM manipulation task source to
+transition the state to "complete."
+</p>
+<script>
+'use strict';
+setup({ allow_uncaught_exception: true });
+
+async_test(function(t) {
+  const events = [];
+  document.addEventListener('readystatechange', t.step_func(function() {
+    events.push('readystatechange:' + document.readyState);
+  }));
+  addEventListener('unhandledrejection', t.step_func(function() {
+    events.push('unhandledrejection');
+  }));
+
+  Promise.reject(new Error('this error is intentional'));
+
+  addEventListener('load', t.step_func(function() {
+    assert_array_equals(
+      events,
+      [
+        'readystatechange:interactive',
+        'unhandledrejection',
+        'readystatechange:complete'
+      ]
+    );
+    t.done();
+  }));
+});
+</script>
