@@ -452,11 +452,11 @@ dependencies = [
 
 [[package]]
 name = "build-parallel"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4b5f8b148c1884e660514fb1205f36b595e96df4daac5ad526a23db44937de77"
+checksum = "b8e3ff9db740167616e528c509b3618046fc05d337f8f3182d300f4aa977d2bb"
 dependencies = [
- "crossbeam-utils 0.7.2",
+ "crossbeam-utils 0.8.1",
  "jobserver",
  "num_cpus",
 ]
