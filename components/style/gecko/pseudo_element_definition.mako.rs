@@ -205,12 +205,10 @@ impl PseudoElement {
                 if starts_with_ignore_ascii_case(name, "-moz-tree-") {
                     return PseudoElement::tree_pseudo_element(name, Box::new([]))
                 }
-                if static_prefs::pref!("layout.css.unknown-webkit-pseudo-element") {
-                    const WEBKIT_PREFIX: &str = "-webkit-";
-                    if starts_with_ignore_ascii_case(name, WEBKIT_PREFIX) {
-                        let part = string_as_ascii_lowercase(&name[WEBKIT_PREFIX.len()..]);
-                        return Some(PseudoElement::UnknownWebkit(part.into()));
-                    }
+                const WEBKIT_PREFIX: &str = "-webkit-";
+                if starts_with_ignore_ascii_case(name, WEBKIT_PREFIX) {
+                    let part = string_as_ascii_lowercase(&name[WEBKIT_PREFIX.len()..]);
+                    return Some(PseudoElement::UnknownWebkit(part.into()));
                 }
             }
         }
