@@ -160,12 +160,7 @@ impl PseudoElement {
 
     /// Whether this pseudo-element is enabled for all content.
     pub fn enabled_in_content(&self) -> bool {
-        match *self {
-            PseudoElement::FileSelectorButton => {
-                static_prefs::pref!("layout.css.file-selector-button.enabled")
-            },
-            _ => (self.flags() & structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS_AND_CHROME) == 0,
-        }
+        self.flags() & structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS_AND_CHROME == 0
     }
 
     /// Whether this pseudo is enabled explicitly in UA sheets.
