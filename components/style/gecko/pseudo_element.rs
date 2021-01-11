@@ -161,9 +161,6 @@ impl PseudoElement {
     /// Whether this pseudo-element is enabled for all content.
     pub fn enabled_in_content(&self) -> bool {
         match *self {
-            PseudoElement::MozFocusOuter => {
-                static_prefs::pref!("layout.css.moz-focus-outer.enabled")
-            },
             PseudoElement::FileSelectorButton => {
                 static_prefs::pref!("layout.css.file-selector-button.enabled")
             },
