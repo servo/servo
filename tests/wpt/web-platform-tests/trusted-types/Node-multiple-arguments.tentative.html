@@ -8,6 +8,7 @@
 <body>
 <div id="container"></div>
 <script>
+  'use strict';
   const container = document.querySelector("#container");
   const policy = window.trustedTypes.createPolicy("policy", {
     createScript: t => t,
@@ -18,11 +19,11 @@
 
   // This test case mirrors the block-Node-multiple-arguments case except
   // that, because Trusted Types is not enabled, no exceptions should be
-  // thrown anyhwere.
+  // thrown anywhere.
   const targets = ["div", "script"];
   const all_args = [
     [ policy.createScript("'createScript';") ],
-    [ policy.createScript("'cresteScript #1';"), policy.createScript("'#2;'") ],
+    [ policy.createScript("'createScript #1';"), policy.createScript("'#2;'") ],
     [ "'plain text';" ],
     [ "'plain text #1';", "'plain text #2';" ],
     [ document.createTextNode("'node';") ],
@@ -34,10 +35,10 @@
       policy.createScript("'script';") ],
   ];
 
-  for (target of targets) {
-    for (args of all_args) {
+  for (const target of targets) {
+    for (const args of all_args) {
 
-      for (setter of [container.replaceWith, container.after, container.before]) {
+      for (const setter of [container.replaceWith, container.after, container.before]) {
         test(t => {
           var outer = document.createElement(target);
           container.appendChild(outer);
@@ -49,7 +50,7 @@
         }, `${setter.name}(${args.toString()}) on <${target}> should pass`);
       }
 
-      for (setter of [container.append, container.prepend]) {
+      for (const setter of [container.append, container.prepend]) {
         test(t => {
           let outer = document.createElement(target);
           container.appendChild(outer);

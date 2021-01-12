@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const log = [];
+</script>
+<script type="importmap" onerror="log.push('onerror 1')">
+{
+  "imports": {
+    "../resources/log.js?pipe=sub&name=A1": "../resources/log.js?pipe=sub&name=B1",
+    "../resources/log.js?pipe=sub&name=A2": "../resources/log.js?pipe=sub&name=B2"
+  }
+}
+</script>
+<script type="importmap" onerror="log.push('onerror 2')">
+{
+  "imports": {
+    "../resources/log.js?pipe=sub&name=A1": "../resources/log.js?pipe=sub&name=C1",
+    "../resources/log.js?pipe=sub&name=A3": "../resources/log.js?pipe=sub&name=C3"
+  }
+}
+</script>
+<script>
+// Currently the spec doesn't allow multiple import maps, by setting acquiring
+// import maps to false on preparing the first import map.
+promise_test(() => {
+  return import("../resources/log.js?pipe=sub&name=A1")
+    .then(() => import("../resources/log.js?pipe=sub&name=A2"))
+    .then(() => import("../resources/log.js?pipe=sub&name=A3"))
+    .then(() => assert_array_equals(
+                    log,
+                    ["onerror 2", "log:B1", "log:B2", "log:A3"]))
+  },
+  "Second import map should be rejected");
+</script>

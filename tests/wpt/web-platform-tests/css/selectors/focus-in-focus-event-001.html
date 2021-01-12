@@ -14,17 +14,29 @@
 <script>
 var input = document.querySelector('input');
 input.addEventListener('focus', function(e) {
-  var focusPseudo = document.querySelector(':focus');
-  var focusVisiblePseudo = document.querySelector(':focus-visible');
-  var focusWithinPseudo = document.querySelector(':focus-within');
   test(() => {
-    assert_equals(e.target, focusPseudo, "':focus' matches event.target");
+    try {
+      var focusPseudo = document.querySelector(':focus');
+      assert_equals(e.target, focusPseudo, "':focus' matches event.target");
+    } catch (error) {
+      assert_unreached("':focus'  is an invalid selector. SyntaxError: " + error);
+    }
   }, "Checks that ':focus' pseudo-class matches inside 'focus' event handler");
   test(() => {
-    assert_equals(e.target, focusVisiblePseudo, "':focus-visible' matches event.target");
+    try {
+      var focusVisiblePseudo = document.querySelector(':focus-visible');
+      assert_equals(e.target, focusVisiblePseudo, "':focus-visible' matches event.target");
+    } catch (error) {
+      assert_unreached("':focus-visible'  is an invalid selector. SyntaxError: " + error);
+    }
   }, "Checks that ':focus-visible' pseudo-class matches inside 'focus' event handler");
   test(() => {
-    assert_equals(document.documentElement, focusWithinPseudo, "':focus-within' matches document.documentElement");
+    try {
+      var focusWithinPseudo = document.querySelector(':focus-within');
+      assert_equals(document.documentElement, focusWithinPseudo, "':focus-within' matches document.documentElement");
+    } catch (error) {
+      assert_unreached("':focus-within'  is an invalid selector. SyntaxError: " + error);
+    }
   }, "Checks that ':focus-within' pseudo-class matches inside 'focus' event handler");
 }, false);
 input.focus();
