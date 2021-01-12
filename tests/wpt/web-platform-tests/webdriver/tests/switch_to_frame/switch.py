@@ -2,7 +2,7 @@ import pytest
 
 import webdriver.protocol as protocol
 
-from webdriver import StaleElementReferenceException
+from webdriver import NoSuchElementException
 from webdriver.transport import Response
 
 from tests.support.asserts import assert_error, assert_same_element, assert_success
@@ -90,9 +90,9 @@ def test_frame_id_null(session, inline, iframe):
     response = switch_to_frame(session, None)
     assert_success(response)
 
-    with pytest.raises(StaleElementReferenceException):
+    with pytest.raises(NoSuchElementException):
         element2.text
-    with pytest.raises(StaleElementReferenceException):
+    with pytest.raises(NoSuchElementException):
         element1.text
 
     frame = session.find.css("iframe", all=False)
