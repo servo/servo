@@ -16,11 +16,9 @@
             window.addEventListener("message", function(msg) {
                 // Parse the Performance API data passed from the plain text iframe.
                 const entries = JSON.parse(msg.data);
-                const urls = [];
                 const resource_types = [];
                 for (const entry of entries) {
                     resource_types.push(entry.entryType);
-                    urls.push(entry.name);
                 }
                 // If preloading is working correctly, should only see the text document
                 // represented in the performance information. A 'resource' type indicates
@@ -33,8 +31,6 @@
                     }
                 }
                 assert_false(resource_found, "no resources should be present");
-                assert_equals(urls.length, 1);
-                assert_equals(urls[0].endsWith("avoid-prefetching-on-text-plain-inner.html"), true);
                 done();
             });
             prefetchingIframe.addEventListener('load', function() {

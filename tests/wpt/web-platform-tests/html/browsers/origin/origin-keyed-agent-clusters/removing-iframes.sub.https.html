@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>A site-keyed child at a given origin causes future children to also be site-keyed even after the iframe is removed</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<script type="module">
+import {
+  insertIframe,
+  testSameAgentCluster,
+  testDifferentAgentClusters,
+  testGetter
+} from "./resources/helpers.mjs";
+
+let frame1;
+promise_setup(async () => {
+  frame1 = await insertIframe("{{hosts[][www]}}");
+});
+
+// Since they're different-origin, the parent's origin-keying request is
+// respected, as is the child's non-request. So the parent ends up in the
+// origin-keyed agent cluster and the child ends up in the site-keyed one.
+testDifferentAgentClusters([self, 0], "Before");
+testGetter(self, true, "parent");
+testGetter(0, false, "child1");
+
+promise_test(async () => {
+  frame1.remove();
+
+  await insertIframe("{{hosts[][www]}}", "?1");
+  await insertIframe("{{hosts[][www1]}}");
+}, "Remove the iframe and insert new ones");
+
+// Because of the historical presence of a site-keyed {{hosts[][www]}} iframe,
+// the origin-keying request for child 2 will be ignored. So,
+// child 2 and child 3 both end up in the site-keyed agent cluster.
+testDifferentAgentClusters([self, 0], "Parent to child2");
+testDifferentAgentClusters([self, 1], "Parent to child3");
+testSameAgentCluster([0, 1], "child2 to child3");
+testSameAgentCluster([1, 0], "child3 to child2");
+
+testGetter(0, false, "child2");
+testGetter(1, false, "child3");
+</script>

@@ -9,6 +9,7 @@
 <body>
 <div id="container"></div>
 <script>
+  'use strict';
   const container = document.querySelector("#container");
   const policy = window.trustedTypes.createPolicy("policy", {
     createScript: t => t,
@@ -28,7 +29,7 @@
   const targets = ["div", "script"];
   const pass_args = [
     [ policy.createScript("'createScript';") ],
-    [ policy.createScript("'cresteScript #1';"), policy.createScript("'#2;'") ],
+    [ policy.createScript("'createScript #1';"), policy.createScript("'#2;'") ],
   ];
   const fail_args = [
     [ "'plain text';" ],
@@ -43,12 +44,12 @@
   ];
   const all_args = [].concat(pass_args).concat(fail_args);
 
-  for (target of targets) {
-    for (args of all_args) {
+  for (const target of targets) {
+    for (const args of all_args) {
       var should_fail = target == "script" && fail_args.indexOf(args) != -1;
       var fail_string = should_fail ? "fail" : "pass";
 
-      for (setter of [container.replaceWith, container.after, container.before]) {
+      for (const setter of [container.replaceWith, container.after, container.before]) {
         test(t => {
           var outer = document.createElement(target);
           container.appendChild(outer);
@@ -67,7 +68,7 @@
         }, `${setter.name}(${args.toString()}) on <${target}> should ${fail_string}`);
       }
 
-      for (setter of [container.append, container.prepend]) {
+      for (const setter of [container.append, container.prepend]) {
         test(t => {
           let outer = document.createElement(target);
           container.appendChild(outer);

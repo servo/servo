@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Opener is origin-keyed, openee is origin-keyed, openee is different-origin to the opener because of a port mismatch</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<script type="module">
+import {
+  openWindow,
+  testOpenedWindowIsInADifferentAgentCluster,
+  testGetter
+} from "../resources/helpers.mjs";
+
+let openee;
+promise_setup(async () => {
+  openee = await openWindow("{{hosts[][]}}:{{ports[https][1]}}", "?1");
+});
+
+// Both request origin-keying, so the opener ends up in one origin-keyed agent
+// cluster (the default port's origin), and the openee ends up in a different
+// origin-keyed agent cluster (the other port's origin).
+testOpenedWindowIsInADifferentAgentCluster(() => openee);
+
+testGetter(self, true, "opener");
+testGetter(() => openee, true, "openee");
+</script>

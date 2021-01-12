@@ -1,0 +1,16 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>Animate a symbol in a display: none subtree</title>
+<link rel="match" href="../struct/reftests/reference/green-100x100.html">
+<script src="/common/reftest-wait.js"></script>
+<svg>
+  <use href="#hidden"/>
+</svg>
+<svg style="display: none">
+  <symbol id="hidden">
+    <rect width="100" height="100" fill="red">
+      <animate attributeName="fill" values="red; green" calcMode="discrete"
+               dur="1ms" fill="freeze" onend="takeScreenshot()"/>
+    </rect>
+  </symbol>
+</svg>
