@@ -1,8 +1,6 @@
-# Tentative tests for performance.measureMemory API
+# Tests for performance.measureMemory API
 
-Tests in this directory are for the proposed performance.measureMemory API.
-This is not yet standardised and browsers should not be expected to pass
-these tests.
+Tests in this directory are for the performance.measureMemory API:
 
-See the explainer at https://github.com/WICG/performance-measure-memory
-for more information about the API.
+- Specification: https://wicg.github.io/performance-measure-memory
+- Explainer: https://github.com/WICG/performance-measure-memory

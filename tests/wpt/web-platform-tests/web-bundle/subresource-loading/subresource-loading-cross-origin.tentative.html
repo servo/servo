@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<title>Cross-origin WebBundle subresource loading</title>
+<link
+  rel="help"
+  href="https://github.com/WICG/webpackage/blob/master/explainers/subresource-loading.md"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <!--
+       This wpt should run on an origin which is different than https://web-platform.test:8444/,
+       from where cross-orign WebBundles are served.
+
+       This test uses the two cross-origin WebBundles:
+
+       1. https://web-platform.test:8444/web-bundle/resources/wbn/cors/cross-origin.wbn,
+          which is served with an Access-Control-Allow-Origin response header.
+       2. http://web-platform.test:8444/web-bundle/resources/wbn/subreource.wbn,
+          which is served *without* an Access-Control-Allow-Origin response header.
+
+      `cross-origin.wbn` includes two subresources:
+       a. `resource.cors.json`, which includes an Access-Control-Allow-Origin response header.
+       b. `resource.no-cors.json`, which doesn't include an Access-Control-Allow-Origin response header.
+  -->
+  <link
+    rel="webbundle"
+    href="https://web-platform.test:8444/web-bundle/resources/wbn/cors/cross-origin.wbn"
+    resources="https://web-platform.test:8444/web-bundle/resources/wbn/cors/resource.cors.json
+         https://web-platform.test:8444/web-bundle/resources/wbn/cors/resource.no-cors.json"
+  />
+  <script>
+    promise_test(async () => {
+      const response = await fetch(
+        "https://web-platform.test:8444/web-bundle/resources/wbn/cors/resource.cors.json"
+      );
+      assert_true(response.ok);
+    }, "A subresource which includes an Access-Control-Allow-Origin response header can be fetched");
+
+    promise_test(async (t) => {
+      return promise_rejects_js(
+        t,
+        TypeError,
+        fetch(
+          "https://web-platform.test:8444/web-bundle/resources/wbn/cors/resource.no-cors.json"
+        )
+      );
+    }, "A subresource which does not include an Access-Control-Allow-Origin response header can not be fetched");
+
+    promise_test(async () => {
+      return addLinkAndWaitForError(
+        "http://web-platform.test:8444/web-bundle/resources/wbn/subreource.wbn"
+      );
+    }, "A cross-origin WebBundle which does not include an Access-Control-Allow-Origin response header should fire an error event on load");
+
+    function addLinkAndWaitForError(url) {
+      return new Promise((resolve, reject) => {
+        const link = document.createElement("link");
+        link.rel = "webbundle";
+        link.href = url;
+        link.onload = reject;
+        link.onerror = () => resolve(link);
+        document.body.appendChild(link);
+      });
+    }
+  </script>
+</body>

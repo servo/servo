@@ -45,6 +45,7 @@
   <button id="next" tabindex="-1">Focus moves here.</button>
   <script>
     start.addEventListener('keydown', (e) => {
+      e.preventDefault();
       next.focus();
     });
 
