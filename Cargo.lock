@@ -242,6 +242,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "base-x"
+version = "0.2.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4521f3e3d031370679b3b140beb36dfe4801b09ac77e30c61941f97df3ef28b"
+
+[[package]]
 name = "base64"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -562,7 +568,7 @@ dependencies = [
  "surfman",
  "surfman-chains",
  "surfman-chains-api",
- "time",
+ "time 0.1.44",
  "webrender",
  "webrender_api",
  "webrender_surfman",
@@ -588,7 +594,7 @@ dependencies = [
  "servo_config",
  "sparkle",
  "style",
- "time",
+ "time 0.1.44",
  "webrender_api",
  "webxr-api",
 ]
@@ -670,7 +676,7 @@ checksum = "80094f509cf8b5ae86a4966a39b3ff66cd7e2a3e594accec3743ff3fabeab5b2"
 dependencies = [
  "num-integer",
  "num-traits",
- "time",
+ "time 0.1.44",
 ]
 
 [[package]]
@@ -850,7 +856,7 @@ dependencies = [
  "servo_geometry",
  "servo_url",
  "style_traits",
- "time",
+ "time 0.1.44",
  "toml",
  "webrender",
  "webrender_api",
@@ -932,7 +938,7 @@ version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d9fac5e7bdefb6160fb181ee0eaa6f96704b625c70e6d61c465cb35750a4ea12"
 dependencies = [
- "time",
+ "time 0.1.44",
 ]
 
 [[package]]
@@ -1357,7 +1363,7 @@ dependencies = [
  "servo_config",
  "servo_rand",
  "servo_url",
- "time",
+ "time 0.1.44",
  "uuid",
 ]
 
@@ -1373,7 +1379,7 @@ dependencies = [
  "msg",
  "serde",
  "servo_url",
- "time",
+ "time 0.1.44",
  "uuid",
 ]
 
@@ -1416,6 +1422,12 @@ dependencies = [
  "redox_users",
  "winapi",
 ]
+
+[[package]]
+name = "discard"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "212d0f5754cb6769937f4501cc0e67f4f4483c8d2c3e1e922ee9edbe4ab4c7c0"
 
 [[package]]
 name = "display-link"
@@ -1946,7 +1958,7 @@ checksum = "7abc8dd8451921606d809ba32e95b6111925cd2906060d2dcc29c070220503eb"
 dependencies = [
  "cfg-if 0.1.10",
  "libc",
- "wasi",
+ "wasi 0.9.0+wasi-snapshot-preview1",
 ]
 
 [[package]]
@@ -1981,7 +1993,7 @@ dependencies = [
  "servo_url",
  "smallvec 0.6.13",
  "style",
- "time",
+ "time 0.1.44",
  "truetype",
  "ucd",
  "unicode-bidi",
@@ -2626,7 +2638,7 @@ dependencies = [
  "http 0.1.21",
  "mime",
  "sha-1 0.8.2",
- "time",
+ "time 0.1.44",
 ]
 
 [[package]]
@@ -2756,7 +2768,7 @@ dependencies = [
  "log",
  "net2",
  "rustc_version",
- "time",
+ "time 0.1.44",
  "tokio 0.1.22",
  "tokio-buf",
  "tokio-executor",
@@ -2799,7 +2811,7 @@ dependencies = [
  "mime",
  "serde",
  "serde_bytes",
- "time",
+ "time 0.1.44",
 ]
 
 [[package]]
@@ -3147,7 +3159,7 @@ dependencies = [
  "servo_url",
  "style",
  "style_traits",
- "time",
+ "time 0.1.44",
  "webrender_api",
 ]
 
@@ -3500,7 +3512,7 @@ dependencies = [
  "smallvec 1.6.1",
  "string_cache",
  "thin-slice",
- "time",
+ "time 0.1.44",
  "url",
  "uuid",
  "void",
@@ -3649,7 +3661,7 @@ dependencies = [
  "script_traits",
  "servo_config",
  "servo_url",
- "time",
+ "time 0.1.44",
 ]
 
 [[package]]
@@ -3662,7 +3674,7 @@ dependencies = [
  "msg",
  "profile_traits",
  "servo_url",
- "time",
+ "time 0.2.24",
 ]
 
 [[package]]
@@ -3816,7 +3828,7 @@ version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aad9dfe950c057b1bfe9c1f2aa51583a8468ef2a5baba2ebbe06d775efeb7729"
 dependencies = [
- "time",
+ "time 0.1.44",
  "winapi",
 ]
 
@@ -3918,7 +3930,7 @@ dependencies = [
  "servo_config",
  "servo_url",
  "std_test_override",
- "time",
+ "time 0.1.44",
  "tokio 0.1.22",
  "tokio 0.2.21",
  "tokio-openssl 0.3.0",
@@ -3966,7 +3978,7 @@ dependencies = [
  "servo_rand",
  "servo_url",
  "std_test_override",
- "time",
+ "time 0.1.44",
  "url",
  "uuid",
  "webrender_api",
@@ -4635,7 +4647,7 @@ dependencies = [
  "serde",
  "servo_config",
  "signpost",
- "time",
+ "time 0.1.44",
 ]
 
 [[package]]
@@ -5075,7 +5087,7 @@ dependencies = [
  "swapper",
  "tempfile",
  "tendril",
- "time",
+ "time 0.1.44",
  "unicode-bidi",
  "unicode-segmentation",
  "url",
@@ -5173,7 +5185,7 @@ dependencies = [
  "servo_url",
  "smallvec 0.6.13",
  "style_traits",
- "time",
+ "time 0.1.44",
  "uuid",
  "webdriver",
  "webgpu",
@@ -5665,6 +5677,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "sha1"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2579985fda508104f7587689507983eadd6a6e84dd35d6d115361f530916fa0d"
+
+[[package]]
 name = "sha2"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5870,6 +5888,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dba1a27d3efae4351c8051072d619e3ade2820635c3958d826bfea39d59b54c8"
 
 [[package]]
+name = "standback"
+version = "0.2.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c66a8cff4fa24853fdf6b51f75c6d7f8206d7c75cab4e467bcd7f25c2b1febe0"
+dependencies = [
+ "version_check",
+]
+
+[[package]]
 name = "stb_truetype"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5884,6 +5911,55 @@ version = "0.0.1"
 dependencies = [
  "embedder_traits",
 ]
+
+[[package]]
+name = "stdweb"
+version = "0.4.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d022496b16281348b52d0e30ae99e01a73d737b2f45d38fed4edf79f9325a1d5"
+dependencies = [
+ "discard",
+ "rustc_version",
+ "stdweb-derive",
+ "stdweb-internal-macros",
+ "stdweb-internal-runtime",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "stdweb-derive"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c87a60a40fccc84bef0652345bbbbbe20a605bf5d0ce81719fc476f5c03b50ef"
+dependencies = [
+ "proc-macro2 1.0.24",
+ "quote 1.0.2",
+ "serde",
+ "serde_derive",
+ "syn",
+]
+
+[[package]]
+name = "stdweb-internal-macros"
+version = "0.2.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "58fa5ff6ad0d98d1ffa8cb115892b6e69d67799f6763e162a1c9db421dc22e11"
+dependencies = [
+ "base-x",
+ "proc-macro2 1.0.24",
+ "quote 1.0.2",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "sha1",
+ "syn",
+]
+
+[[package]]
+name = "stdweb-internal-runtime"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "213701ba3370744dcd1a12960caa4843b3d68b4d1c0a5d575e0d65b2ee9d16c0"
 
 [[package]]
 name = "storage-map"
@@ -5981,7 +6057,7 @@ dependencies = [
  "style_derive",
  "style_traits",
  "thin-slice",
- "time",
+ "time 0.1.44",
  "to_shmem",
  "to_shmem_derive",
  "toml",
@@ -6259,13 +6335,51 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.1.42"
+version = "0.1.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db8dcfca086c1143c9270ac42a2bbd8a7ee477b78ac8e45b19abfb0cbede4b6f"
+checksum = "6db9e6914ab8b1ae1c260a4ae7a49b6c5611b40328a735b21862567685e73255"
 dependencies = [
  "libc",
- "redox_syscall",
+ "wasi 0.10.0+wasi-snapshot-preview1",
  "winapi",
+]
+
+[[package]]
+name = "time"
+version = "0.2.24"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "273d3ed44dca264b0d6b3665e8d48fb515042d42466fad93d2a45b90ec4058f7"
+dependencies = [
+ "const_fn",
+ "libc",
+ "standback",
+ "stdweb",
+ "time-macros",
+ "version_check",
+ "winapi",
+]
+
+[[package]]
+name = "time-macros"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "957e9c6e26f12cb6d0dd7fc776bb67a706312e7299aed74c8dd5b17ebb27e2f1"
+dependencies = [
+ "proc-macro-hack",
+ "time-macros-impl",
+]
+
+[[package]]
+name = "time-macros-impl"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e5c3be1edfad6027c69f5491cf4cb310d1a71ecd6af742788c6ff8bced86b8fa"
+dependencies = [
+ "proc-macro-hack",
+ "proc-macro2 1.0.24",
+ "quote 1.0.2",
+ "standback",
+ "syn",
 ]
 
 [[package]]
@@ -6837,6 +6951,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cccddf32554fecc6acb585f82a32a72e28b48f8c4c1883ddfeeeaa96f7d8e519"
 
 [[package]]
+name = "wasi"
+version = "0.10.0+wasi-snapshot-preview1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a143597ca7c7793eff794def352d41792a93c481eb1042423ff7ff72ba2c31f"
+
+[[package]]
 name = "wasm-bindgen"
 version = "0.2.62"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6973,7 +7093,7 @@ dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
- "time",
+ "time 0.1.44",
  "tokio 0.1.22",
  "unicode-segmentation",
  "url",
@@ -7062,7 +7182,7 @@ dependencies = [
  "sig",
  "smallvec 1.6.1",
  "svg_fmt",
- "time",
+ "time 0.1.44",
  "tracy-rs",
  "webrender_api",
  "webrender_build",
@@ -7087,7 +7207,7 @@ dependencies = [
  "serde",
  "serde_bytes",
  "serde_derive",
- "time",
+ "time 0.1.44",
  "wr_malloc_size_of",
 ]
 
@@ -7134,7 +7254,7 @@ dependencies = [
  "sparkle",
  "surfman",
  "surfman-chains",
- "time",
+ "time 0.1.44",
  "webxr-api",
  "winapi",
  "wio",
@@ -7149,7 +7269,7 @@ dependencies = [
  "ipc-channel",
  "log",
  "serde",
- "time",
+ "time 0.1.44",
 ]
 
 [[package]]
@@ -7372,7 +7492,7 @@ dependencies = [
  "log",
  "mac",
  "markup5ever",
- "time",
+ "time 0.1.44",
 ]
 
 [[package]]
@@ -7385,5 +7505,5 @@ dependencies = [
  "flate2",
  "msdos_time",
  "podio",
- "time",
+ "time 0.1.44",
 ]
