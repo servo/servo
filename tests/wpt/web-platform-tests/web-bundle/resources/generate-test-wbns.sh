@@ -70,3 +70,9 @@ gen-bundle \
   -har urn-uuid.har \
   -primaryURL urn:uuid:020111b3-437a-4c5c-ae07-adb6bbffb720 \
   -o wbn/urn-uuid.wbn
+
+gen-bundle \
+  -version b1 \
+  -har cross-origin.har \
+  -primaryURL $wpt_test_https_origin/web-bundle/resources/wbn/cors/resource.json \
+  -o wbn/cors/cross-origin.wbn

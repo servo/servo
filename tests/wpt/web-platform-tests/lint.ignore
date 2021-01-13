@@ -708,6 +708,7 @@ WEB-PLATFORM.TEST:signed-exchange/appcache/resources/*.sxg
 WEB-PLATFORM.TEST:signed-exchange/resources/generate-test-sxgs.sh
 
 # Web Bundle files have hard-coded URLs
+WEB-PLATFORM.TEST:web-bundle/resources/*.har
 WEB-PLATFORM.TEST:web-bundle/resources/generate-test-wbns.sh
 WEB-PLATFORM.TEST:web-bundle/resources/nested/*.wbn
 WEB-PLATFORM.TEST:web-bundle/resources/wbn/*.wbn
@@ -716,13 +717,13 @@ WEB-PLATFORM.TEST:web-bundle/subresource-loading/*.html
 # Tests that depend on resources in /gen/ in Chromium:
 # https://github.com/web-platform-tests/wpt/issues/16455
 # Please consult with ecosystem-infra@chromium.org before adding more.
-MISSING DEPENDENCY: bluetooth/resources/bluetooth-test.js
 MISSING DEPENDENCY: contacts/resources/helpers.js
 MISSING DEPENDENCY: credential-management/support/otpcredential-helper.js
 MISSING DEPENDENCY: generic-sensor/resources/generic-sensor-helpers.js
 MISSING DEPENDENCY: idle-detection/resources/idle-detection-helper.js
 MISSING DEPENDENCY: mediacapture-image/resources/imagecapture-helpers.js
 MISSING DEPENDENCY: orientation-event/resources/orientation-event-helpers.js
+MISSING DEPENDENCY: resources/chromium/web-bluetooth-test.js
 MISSING DEPENDENCY: resources/chromium/webusb-test.js
 MISSING DEPENDENCY: resources/test-only-api.js
 MISSING DEPENDENCY: screen_enumeration/resources/screenenumeration-helpers.js
