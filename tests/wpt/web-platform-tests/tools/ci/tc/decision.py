@@ -138,7 +138,7 @@ def get_fetch_rev(event):
                 if not output:
                     logger.error("Failed to get commit for %s" % ref)
                 else:
-                    sha = output.split()[0]
+                    sha = output.decode("utf-8").split()[0]
             rv.append(sha)
         rv = tuple(rv)
     else:

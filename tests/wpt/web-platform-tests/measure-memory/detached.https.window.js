@@ -191,6 +191,6 @@ promise_test(async testCase => {
     scope: 'Window',
     container: null,
   });
-  const result = await performance.measureMemory();
+  const result = await performance.measureUserAgentSpecificMemory();
   checkMeasureMemory(result, expected);
-}, 'performance.measureMemory URLs within a cross-site iframe.');
+}, 'performance.measureUserAgentSpecificMemory URLs within a cross-site iframe.');

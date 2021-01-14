@@ -72,7 +72,7 @@ promise_test(async testCase => {
       ]
     },
   ]);
-  const result = await performance.measureMemory();
+  const result = await performance.measureUserAgentSpecificMemory();
   checkMeasureMemory(result, [
     {
       url: window.location.href,
@@ -132,4 +132,4 @@ promise_test(async testCase => {
       },
     },
   ]);
-}, 'performance.measureMemory does not leak URLs in cross-origin iframes and windows.');
+}, 'performance.measureUserAgentSpecificMemory does not leak URLs in cross-origin iframes and windows.');

@@ -5,6 +5,6 @@ steps:
 - powershell: |
     $hostFile = "$env:systemroot\System32\drivers\etc\hosts"
     Copy-Item -Path $hostFile -Destination "$hostFile.back" -Force
-    python wpt make-hosts-file | Out-File $env:systemroot\System32\drivers\etc\hosts -Encoding ascii -Append
+    python wpt --py2 make-hosts-file | Out-File $env:systemroot\System32\drivers\etc\hosts -Encoding ascii -Append
   displayName: 'Update hosts (Windows)'
   condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))

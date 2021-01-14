@@ -20,7 +20,7 @@ if __name__ == "__main__":
                 sys.exit(1)
             else:
                 raise
-    elif (args.py3 or py3only) and sys.version_info.major < 3:
+    elif (not args.py2) and sys.version_info.major < 3:
         from subprocess import call
         try:
             sys.exit(call(['python3'] + sys.argv))

@@ -9,10 +9,10 @@ function indexOfEmptyEntry(result) {
 
 assert_true(self.crossOriginIsolated);
 promise_test(async testCase => {
-  const initial = await performance.measureMemory();
+  const initial = await performance.measureUserAgentSpecificMemory();
   let observed_different_order = false;
   for (let i = 0; i < 100; ++i) {
-    const current = await performance.measureMemory();
+    const current = await performance.measureUserAgentSpecificMemory();
     if (indexOfEmptyEntry(initial) != indexOfEmptyEntry(current)) {
       observed_different_order = true;
     }
@@ -22,4 +22,4 @@ promise_test(async testCase => {
   // the probability of at most 2^-100 since there are at least two
   // entries in the breakdown.
   assert_true(observed_different_order);
-}, 'Well-formed result of performance.measureMemory.');
+}, 'Well-formed result of performance.measureUserAgentSpecificMemory.');
