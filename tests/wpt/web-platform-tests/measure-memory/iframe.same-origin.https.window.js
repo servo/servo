@@ -16,7 +16,7 @@ promise_test(async testCase => {
       ],
     },
   ]);
-  const result = await performance.measureMemory();
+  const result = await performance.measureUserAgentSpecificMemory();
   checkMeasureMemory(result, [
     {
       url: window.location.href,
@@ -40,4 +40,4 @@ promise_test(async testCase => {
       },
     },
   ]);
-}, 'Well-formed result of performance.measureMemory with same-origin iframes.');
+}, 'Well-formed result of performance.measureUserAgentSpecificMemory with same-origin iframes.');

@@ -74,5 +74,5 @@ gen-bundle \
 gen-bundle \
   -version b1 \
   -har cross-origin.har \
-  -primaryURL $wpt_test_https_origin/web-bundle/resources/wbn/cors/resource.json \
+  -primaryURL $wpt_test_https_origin/web-bundle/resources/wbn/cors/resource.cors.json \
   -o wbn/cors/cross-origin.wbn

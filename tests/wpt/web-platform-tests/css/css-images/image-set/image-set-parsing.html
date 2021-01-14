@@ -23,6 +23,8 @@
                     { property: 'content', imageSet: "linear-gradient(black, white) 1x, 'example.png' 4x", valid: true },
                     { property: 'content', imageSet: "url('example.png') 192dpi, linear-gradient(black, white) 1x", valid: true },
 
+                    { property: 'background-image', imageSet: "none, url(example.png) 1x", valid: false },
+                    { property: 'background-image', imageSet: "", valid: false },
                     { property: 'background-image', imageSet: "url(example.png) 0x", valid: false },
                     { property: 'background-image', imageSet: "url(example.png) -20x", valid: false },
                     { property: 'background-image', imageSet: "'example.jpeg' 92pid url(example.png) 1x", valid: false },

@@ -44,7 +44,10 @@ function load_css_image(url, type) {
 function load_css_image_set(url, type) {
   const div = document.createElement('div');
   document.body.appendChild(div);
-  div.style[type] = '-webkit-image-set(url(' + url + ') 1x)';
+  div.style[type] = 'image-set(url(' + url + ') 1x)';
+  if (!div.style[type]) {
+    div.style[type] = '-webkit-image-set(url(' + url + ') 1x)';
+  }
 }
 
 function load_script_with_integrity(url, integrity) {
