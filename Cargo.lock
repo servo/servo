@@ -1830,9 +1830,9 @@ dependencies = [
 
 [[package]]
 name = "futures-io"
-version = "0.3.8"
+version = "0.3.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "611834ce18aaa1bd13c4b374f5d653e1027cf99b6b502584ff8c9a64413b30bb"
+checksum = "d41234e71d5e8ca73d01563974ef6f50e516d71e18f1a2f1184742e31f5d469f"
 
 [[package]]
 name = "futures-macro"
