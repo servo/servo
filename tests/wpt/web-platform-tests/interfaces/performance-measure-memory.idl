@@ -11,7 +11,7 @@ dictionary MemoryMeasurement {
 dictionary MemoryBreakdownEntry {
   unsigned long long bytes;
   sequence<MemoryAttribution> attribution;
-  sequence<DOMString> userAgentSpecificTypes;
+  sequence<DOMString> types;
 };
 
 dictionary MemoryAttribution {
@@ -26,5 +26,5 @@ dictionary MemoryAttributionContainer {
 };
 
 partial interface Performance {
-  [CrossOriginIsolated] Promise<MemoryMeasurement> measureMemory();
+  [CrossOriginIsolated] Promise<MemoryMeasurement> measureUserAgentSpecificMemory();
 };

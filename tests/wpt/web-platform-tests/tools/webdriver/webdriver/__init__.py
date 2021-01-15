@@ -6,6 +6,7 @@ from .client import (
     Find,
     Frame,
     Session,
+    ShadowRoot,
     Timeouts,
     Window)
 from .error import (

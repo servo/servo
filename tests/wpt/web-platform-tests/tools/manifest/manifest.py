@@ -230,6 +230,7 @@ class Manifest(object):
 
         # 25 items was derived experimentally (2020-01) to be approximately the
         # point at which it is quicker to create a Pool and parallelize update.
+        pool = None
         if parallel and len(to_update) > 25 and cpu_count() > 1:
             # On Python 3 on Windows, using >= MAXIMUM_WAIT_OBJECTS processes
             # causes a crash in the multiprocessing module. Whilst this enum
@@ -261,6 +262,11 @@ class Manifest(object):
             rel_path_parts, new_type, manifest_items, file_hash = result
             data[new_type][rel_path_parts] = manifest_items
             data[new_type].hashes[rel_path_parts] = file_hash
+
+        # Make sure to terminate the Pool, to avoid hangs on Python 3.
+        # https://docs.python.org/3/library/multiprocessing.html#multiprocessing.pool.Pool
+        if pool is not None:
+            pool.terminate()
 
         if remaining_manifest_paths:
             changed = True
