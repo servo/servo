@@ -1848,9 +1848,9 @@ dependencies = [
 
 [[package]]
 name = "futures-sink"
-version = "0.3.8"
+version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f878195a49cee50e006b02b93cf7e0a95a38ac7b776b4c4d9cc1207cd20fcb3d"
+checksum = "d4e0f6be0ec0357772fd58fb751958dd600bd0b3edfd429e77793e4282831360"
 
 [[package]]
 name = "futures-task"
