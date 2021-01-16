@@ -7,9 +7,6 @@
 
 ## CSS Snapshot 2007
 
-# CSS Box Alignment Level 3
-include align3/reftest.list
-
 # CSS2.1
 include css21/reftest.list
 

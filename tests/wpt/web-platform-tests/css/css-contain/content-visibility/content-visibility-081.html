@@ -1,0 +1,54 @@
+<!doctype HTML>
+<html id=html>
+<meta charset="utf8">
+<title>Content Visibility: scroll position restoration</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="if an scroller is hidden via content-visibility and then shown again, its scroll offset should be restored">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.js"></script>
+
+<style>
+.scroller {
+  width: 100px;
+  height: 500px;
+  overflow-y: scroll;
+}
+.spacer { height: 3000px; }
+.hidden { content-visibility: hidden; }
+</style>
+
+<div id=target class=scroller>
+  <div class=spacer></div>
+</div>
+</style>
+
+<script>
+function removeHiddenAndScheduleTest(t) {
+  target.classList.remove("hidden");
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      testScrollTop(t);
+    });
+  });
+}
+
+function testScrollTop(t) {
+  t.step(() => assert_equals(target.scrollTop, 2000));
+  t.done();
+}
+
+async_test((t) => {
+  target.scrollTop = 2000;
+  target.classList.add("hidden");
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      removeHiddenAndScheduleTest(t);
+    });
+  });
+}, "Scroll offset is restored when content-visibility hidden is removed");
+</script>
+</html>

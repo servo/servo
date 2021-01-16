@@ -34,6 +34,11 @@ class WebDriverException(Exception):
         return message
 
 
+class DetachedShadowRootException(WebDriverException):
+    http_status = 404
+    status_code = "detached shadow root"
+
+
 class ElementClickInterceptedException(WebDriverException):
     http_status = 400
     status_code = "element click intercepted"
@@ -112,6 +117,11 @@ class NoSuchElementException(WebDriverException):
 class NoSuchFrameException(WebDriverException):
     http_status = 404
     status_code = "no such frame"
+
+
+class NoSuchShadowRootException(WebDriverException):
+    http_status = 404
+    status_code = "no such shadow root"
 
 
 class NoSuchWindowException(WebDriverException):
