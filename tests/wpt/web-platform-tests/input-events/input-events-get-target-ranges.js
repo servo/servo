@@ -1,5 +1,7 @@
 "use strict";
 
+// TODO: extend `EditorTestUtils` in editing/include/edit-test-utils.mjs
+
 const kBackspaceKey = "\uE003";
 const kDeleteKey = "\uE017";
 const kArrowRight = "\uE014";
@@ -323,7 +325,7 @@ function setupEditor(innerHTMLWithRangeMarkers) {
         return {
           marker: scanResult[0],
           container: textNode,
-          offset: scanResult.index + offset,
+          offset: scanResult.index + offset
         };
       }
       if (startContainer.nodeType === Node.TEXT_NODE) {
@@ -359,7 +361,7 @@ function setupEditor(innerHTMLWithRangeMarkers) {
         return {
           marker: scanResult[0],
           container: textNode,
-          offset: scanResult.index + offset,
+          offset: scanResult.index + offset
         };
       }
       if (startContainer.nodeType === Node.TEXT_NODE) {

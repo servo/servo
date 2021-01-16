@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
- <html lang="en">
+ <html>
 
   <meta charset="UTF-8">
 
@@ -70,19 +70,7 @@
     }
   </style>
 
-  <script>
-  function startTest()
-  {
-  var targetRange = document.createRange();
-  /* We first create an empty range */
-  targetRange.selectNodeContents(document.getElementById("test"));
-  /* Then we set the range boundaries to the children of div#test */
-  window.getSelection().addRange(targetRange);
-  /* Finally, we now select such range of content */
-  }
-  </script>
-
-  <body onload="startTest();">
+  <script src="support/selections.js"></script>
 
   <p>PREREQUISITE: User agent needs to have an enabled and capable spelling error module. If it does not, then this test does not apply to such user agent.
 
@@ -96,7 +84,17 @@
   </ul>
 
   <!--
-  The bad spelling of Txet is intentional and part of this test
-  -->
+    The bad spelling of Txet is intentional and part of this test.
 
-  <div id="test">Txet sample</div>
+    https://html.spec.whatwg.org/multipage/interaction.html#spelling-and-grammar-checking
+    • contenteditable makes the text “checkable for the purposes of [spelling and grammar checking]”
+    • spellcheck tries to enable spelling and grammar checking (subject to user preferences)
+    • lang tries to guide the UA towards checking the text in English (but the UA may ignore this)
+  -->
+  <div id="test" contenteditable="true" spellcheck="true" lang="en">Txet sample</div>
+
+  <script>
+  const test = document.querySelector("#test");
+  selectNodeContents(test);
+  trySpellcheck(test);
+  </script>

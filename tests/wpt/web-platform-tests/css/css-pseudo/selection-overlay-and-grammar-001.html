@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
- <html lang="en">
+ <html>
 
   <meta charset="UTF-8">
 
@@ -53,28 +53,7 @@
     }
   </style>
 
-  <script>
-  function startTest()
-  {
-  var targetRange = document.createRange();
-  /* We first create an empty range */
-  targetRange.selectNodeContents(document.getElementById("test"));
-  /* Then we set the range boundaries to the children of div#test */
-  window.getSelection().addRange(targetRange);
-  /* Finally, we now select such range of content */
-  document.getElementById("test").blur();
-  /*
-  Some browsers, like Chromium 80+, will
-  transfer focus to a selected element
-  like a contenteditable div and
-  therefore style the border of
-  such element. We remove such
-  focus with the blur() method.
-  */
-  }
-  </script>
-
-  <body onload="startTest();">
+  <script src="support/selections.js"></script>
 
   <p>PREREQUISITE: User agent needs to have an enabled and capable grammar error module. If it does not, then this test does not apply to such user agent.
 
@@ -87,4 +66,18 @@
     <li>if there is no red.
   </ul>
 
-  <div contenteditable="true" id="test">Many thing can happen.</div>
+  <!--
+    The grammar mistakes in the text below are intentional and part of this test.
+
+    https://html.spec.whatwg.org/multipage/interaction.html#spelling-and-grammar-checking
+    • contenteditable makes the text “checkable for the purposes of [spelling and grammar checking]”
+    • spellcheck tries to enable spelling and grammar checking (subject to user preferences)
+    • lang tries to guide the UA towards checking the text in English (but the UA may ignore this)
+  -->
+  <div id="test" contenteditable="true" spellcheck="true" lang="en">The fox jumps over the dog.the fox jumps over the dog.</div>
+
+  <script>
+  const test = document.querySelector("#test");
+  selectNodeContents(test);
+  trySpellcheck(test);
+  </script>

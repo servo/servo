@@ -127,6 +127,134 @@ const instanceTestFactory = [
   ],
 
   [
+    "imports with empty module names",
+    function() {
+      const builder = new WasmModuleBuilder();
+
+      builder.addImport("", "fn", kSig_v_v);
+      builder.addImportedGlobal("", "global", kWasmI32);
+      builder.addImportedMemory("", "memory", 0, 128);
+      builder.addImportedTable("", "table", 0, 128);
+
+      const buffer = builder.toBuffer();
+      const imports = {
+        "": {
+          "fn": function() {},
+          "global": 0,
+          "memory": new WebAssembly.Memory({ "initial": 64, maximum: 128 }),
+          "table": new WebAssembly.Table({ "element": "anyfunc", "initial": 64, maximum: 128 }),
+        },
+      };
+
+      return {
+        buffer,
+        args: [imports],
+        exports: {},
+        verify: () => {},
+      };
+    }
+  ],
+
+  [
+    "imports with empty names",
+    function() {
+      const builder = new WasmModuleBuilder();
+
+      builder.addImport("a", "", kSig_v_v);
+      builder.addImportedGlobal("b", "", kWasmI32);
+      builder.addImportedMemory("c", "", 0, 128);
+      builder.addImportedTable("d", "", 0, 128);
+
+      const buffer = builder.toBuffer();
+      const imports = {
+        "a": { "": function() {} },
+        "b": { "": 0 },
+        "c": { "": new WebAssembly.Memory({ "initial": 64, maximum: 128 }) },
+        "d": { "": new WebAssembly.Table({ "element": "anyfunc", "initial": 64, maximum: 128 }) },
+      };
+
+      return {
+        buffer,
+        args: [imports],
+        exports: {},
+        verify: () => {},
+      };
+    }
+  ],
+
+  [
+    "exports with empty name: function",
+    function() {
+      const builder = new WasmModuleBuilder();
+
+      builder
+        .addFunction("", kSig_v_d)
+        .addBody([])
+        .exportFunc();
+
+      const buffer = builder.toBuffer();
+
+      const exports = {
+        "": { "kind": "function", "name": "0", "length": 1 },
+      };
+
+      return {
+        buffer,
+        args: [],
+        exports,
+        verify: () => {},
+      };
+    }
+  ],
+
+  [
+    "exports with empty name: table",
+    function() {
+      const builder = new WasmModuleBuilder();
+
+      builder.setTableBounds(1);
+      builder.addExportOfKind("", kExternalTable, 0);
+
+      const buffer = builder.toBuffer();
+
+      const exports = {
+        "": { "kind": "table", "length": 1 },
+      };
+
+      return {
+        buffer,
+        args: [],
+        exports,
+        verify: () => {},
+      };
+    }
+  ],
+
+  [
+    "exports with empty name: global",
+    function() {
+      const builder = new WasmModuleBuilder();
+
+      builder.addGlobal(kWasmI32, true)
+        .exportAs("")
+        .init = 7;
+
+      const buffer = builder.toBuffer();
+
+      const exports = {
+        "": { "kind": "global", "value": 7 },
+      };
+
+      return {
+        buffer,
+        args: [],
+        exports,
+        verify: () => {},
+      };
+    }
+  ],
+
+  [
     "No imports",
     function() {
       const builder = new WasmModuleBuilder();

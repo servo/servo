@@ -372,6 +372,42 @@ class Frame(object):
         return cls(uuid, session)
 
 
+class ShadowRoot(object):
+    identifier = "shadow-075b-4da1-b6ba-e579c2d3230a"
+
+    def __init__(self, session, id):
+        """
+        Construct a new shadow root representation.
+
+        :param id: Shadow root UUID which must be unique across
+            all browsing contexts.
+        :param session: Current ``webdriver.Session``.
+        """
+        self.id = id
+        self.session = session
+
+    @classmethod
+    def from_json(cls, json, session):
+        uuid = json[ShadowRoot.identifier]
+        return cls(uuid, session)
+
+    def send_shadow_command(self, method, uri, body=None):
+        url = "shadow/{}/{}".format(self.id, uri)
+        return self.session.send_session_command(method, url, body)
+
+    @command
+    def find_element(self, strategy, selector):
+        body = {"using": strategy,
+                "value": selector}
+        return self.send_shadow_command("POST", "element", body)
+
+    @command
+    def find_elements(self, strategy, selector):
+        body = {"using": strategy,
+                "value": selector}
+        return self.send_shadow_command("POST", "elements", body)
+
+
 class Find(object):
     def __init__(self, session):
         self.session = session
@@ -803,6 +839,11 @@ class Element(object):
     @command
     def screenshot(self):
         return self.send_element_command("GET", "screenshot")
+
+    @property
+    @command
+    def shadow_root(self):
+        return self.send_element_command("GET", "shadow")
 
     @command
     def attribute(self, name):

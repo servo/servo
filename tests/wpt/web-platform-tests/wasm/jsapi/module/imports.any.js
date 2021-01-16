@@ -119,6 +119,66 @@ test(() => {
 }, "imports");
 
 test(() => {
+  const builder = new WasmModuleBuilder();
+
+  builder.addImport("", "fn", kSig_v_v);
+  builder.addImportedGlobal("", "global", kWasmI32);
+  builder.addImportedMemory("", "memory", 0, 128);
+  builder.addImportedTable("", "table", 0, 128);
+
+  const buffer = builder.toBuffer()
+  const module = new WebAssembly.Module(buffer);
+  const imports = WebAssembly.Module.imports(module);
+  const expected = [
+    { "module": "", "kind": "function", "name": "fn" },
+    { "module": "", "kind": "global", "name": "global" },
+    { "module": "", "kind": "memory", "name": "memory" },
+    { "module": "", "kind": "table", "name": "table" },
+  ];
+  assert_imports(imports, expected);
+}, "imports with empty module name");
+
+test(() => {
+  const builder = new WasmModuleBuilder();
+
+  builder.addImport("a", "", kSig_v_v);
+  builder.addImportedGlobal("b", "", kWasmI32);
+  builder.addImportedMemory("c", "", 0, 128);
+  builder.addImportedTable("d", "", 0, 128);
+
+  const buffer = builder.toBuffer()
+  const module = new WebAssembly.Module(buffer);
+  const imports = WebAssembly.Module.imports(module);
+  const expected = [
+    { "module": "a", "kind": "function", "name": "" },
+    { "module": "b", "kind": "global", "name": "" },
+    { "module": "c", "kind": "memory", "name": "" },
+    { "module": "d", "kind": "table", "name": "" },
+  ];
+  assert_imports(imports, expected);
+}, "imports with empty names");
+
+test(() => {
+  const builder = new WasmModuleBuilder();
+
+  builder.addImport("", "", kSig_v_v);
+  builder.addImportedGlobal("", "", kWasmI32);
+  builder.addImportedMemory("", "", 0, 128);
+  builder.addImportedTable("", "", 0, 128);
+
+  const buffer = builder.toBuffer()
+  const module = new WebAssembly.Module(buffer);
+  const imports = WebAssembly.Module.imports(module);
+  const expected = [
+    { "module": "", "kind": "function", "name": "" },
+    { "module": "", "kind": "global", "name": "" },
+    { "module": "", "kind": "memory", "name": "" },
+    { "module": "", "kind": "table", "name": "" },
+  ];
+  assert_imports(imports, expected);
+}, "imports with empty module names and names");
+
+test(() => {
   const module = new WebAssembly.Module(emptyModuleBinary);
   const imports = WebAssembly.Module.imports(module, {});
   assert_imports(imports, []);

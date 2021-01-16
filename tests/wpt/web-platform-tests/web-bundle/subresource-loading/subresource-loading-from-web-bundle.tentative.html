@@ -80,7 +80,42 @@
       assert_equals(
         await loadScriptAndWaitReport(classic_script_url),
         'classic script from network');
-    }, 'Dynamically loading classic script from web bundle');
+    }, 'Dynamically loading classic script from web bundle with link.resources');
+
+    promise_test(async () => {
+      const classic_script_url = 'http://web-platform.test:8001/web-bundle/resources/wbn/dynamic/classic_script.js';
+      const scope = 'http://web-platform.test:8001/web-bundle/resources/wbn/dynamic/';
+      const link = document.createElement("link");
+      link.rel = "webbundle";
+      link.href = "../resources/wbn/dynamic1.wbn";
+      link.scopes.add(scope);
+      document.body.appendChild(link);
+      assert_equals(
+        await loadScriptAndWaitReport(classic_script_url),
+        'classic script from dynamic1.wbn');
+      link.href = "../resources/wbn/dynamic2.wbn";
+      // Loading the classic script should not reuse the previously loaded
+      // script. So in this case, the script must be loaded from dynamic2.wbn.
+      assert_equals(
+        await loadScriptAndWaitReport(classic_script_url),
+        'classic script from dynamic2.wbn');
+      // Changes the scope not to hit the classic_script.js.
+      link.scopes = scope + 'dummy';
+      // And in this case, the script must be loaded from network.
+      assert_equals(
+        await loadScriptAndWaitReport(classic_script_url),
+        'classic script from network');
+      // Adds the scope to hit the classic_script.js.
+      link.scopes.add(scope + 'classic_');
+      assert_equals(
+        await loadScriptAndWaitReport(classic_script_url),
+        'classic script from dynamic2.wbn');
+      document.body.removeChild(link);
+      // And in this case, the script must be loaded from network.
+      assert_equals(
+        await loadScriptAndWaitReport(classic_script_url),
+        'classic script from network');
+    }, 'Dynamically loading classic script from web bundle with link.scopes');
 
     promise_test(() => {
       return addLinkAndWaitForLoad("../resources/wbn/dynamic1.wbn?test-event");
@@ -108,7 +143,19 @@
       link.resources = url;
       document.body.appendChild(link);
       assert_equals(await loadScriptAndWaitReport(url), 'OK');
-    }, 'Subresource loading with urn:uuid: URL');
+      document.body.removeChild(link);
+    }, 'Subresource loading with urn:uuid: URL with link.resources');
+
+    promise_test(async () => {
+      const url = 'urn:uuid:020111b3-437a-4c5c-ae07-adb6bbffb720';
+      const link = document.createElement('link');
+      link.rel = 'webbundle';
+      link.href = '../resources/wbn/urn-uuid.wbn';
+      link.scopes = 'urn:uuid:';
+      document.body.appendChild(link);
+      assert_equals(await loadScriptAndWaitReport(url), 'OK');
+      document.body.removeChild(link);
+    }, 'Subresource loading with urn:uuid: URL with link.scopes');
 
     promise_test(async () => {
       const wbn_url = 'http://web-platform.test:8001/web-bundle/resources/wbn/subresource.wbn?test-resources-update';

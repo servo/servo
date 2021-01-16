@@ -222,14 +222,14 @@ promise_test(async t => {
 
   encoder.encode(frame);
 
-  // |frame| is not longer valid since it has been destroyed.
+  // |frame| is not longer valid since it has been closed.
   assert_not_equals(frame.timestamp, timestamp);
   assert_throws_dom("InvalidStateError", () => frame.clone());
 
   encoder.close();
 
   return endAfterEventLoopTurn();
-}, 'Test encoder consumes (destroys) frames.');
+}, 'Test encoder consumes (closes) frames.');
 
 promise_test(async t => {
   let encoder = new VideoEncoder(getDefaultCodecInit(t));
@@ -251,12 +251,11 @@ promise_test(async t => {
   let encoder = new VideoEncoder(getDefaultCodecInit(t));
 
   let frame = await createVideoFrame(640, 480, 0);
-  frame.destroy();
+  frame.close();
 
   encoder.configure(defaultConfig);
 
-  frame.destroy();
   assert_throws_dom("OperationError", () => {
     encoder.encode(frame)
   });
-}, 'Verify encoding destroyed frames throws.');
+}, 'Verify encoding closed frames throws.');

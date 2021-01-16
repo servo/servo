@@ -12,7 +12,7 @@ test(t => {
   assert_equals(frame.cropWidth, 32, "displayWidth");
   assert_equals(frame.cropHeight, 16, "displayHeight");
 
-  frame.destroy();
+  frame.close();
 }, 'Test we can construct a VideoFrame.');
 
 test(t => {
@@ -24,7 +24,7 @@ test(t => {
   assert_equals(frame.cropWidth, 1, "displayWidth");
   assert_equals(frame.cropHeight, 1, "displayHeight");
 
-  frame.destroy();
+  frame.close();
 }, 'Test we can construct an odd-sized VideoFrame.');
 
 test(t => {
@@ -63,7 +63,7 @@ test(t => {
   // guarantees about the color space.
   assert_equals(view[0], 94, "Y value at (0, 0)");
 
-  frame.destroy();
+  frame.close();
 }, 'Test we can read planar data from a VideoFrame.');
 
 test(t => {
@@ -78,15 +78,15 @@ test(t => {
 
   assert_equals(frame.planes.length, 3, "number of planes");
 
-  // Attempt to read Y plane data, but destroy the frame first.
+  // Attempt to read Y plane data, but close the frame first.
   let yPlane = frame.planes[0];
   let yLength = yPlane.length;
-  frame.destroy();
+  frame.close();
 
   let buffer = new ArrayBuffer(yLength);
   let view = new Uint8Array(buffer);
   assert_throws_dom("InvalidStateError", () => yPlane.readInto(view));
-}, 'Test we cannot read planar data from a destroyed VideoFrame.');
+}, 'Test we cannot read planar data from a closed VideoFrame.');
 
 test(t => {
   let image = makeImageBitmap(32, 16);

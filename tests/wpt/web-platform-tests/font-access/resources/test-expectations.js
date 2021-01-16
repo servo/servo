@@ -351,6 +351,24 @@ function assert_fonts_exist(availableFonts, expectedFonts) {
               `Missing Families: ${setToString(familySet)}.`);
 }
 
+function assert_postscript_name_exists(
+    availableFonts, postscriptNameSelection) {
+  const postscriptNameSet = new Set(postscriptNameSelection);
+
+  const foundFonts = [];
+  for (const f of availableFonts) {
+    if (postscriptNameSet.has(f.postscriptName)) {
+      foundFonts.push(f.postscriptName);
+    }
+  }
+
+  assert_equals(
+      foundFonts.length, postscriptNameSelection.length,
+      `Expected to only find selected fonts ${
+          JSON.stringify(postscriptNameSelection)}. Instead found: ${
+          JSON.stringify(foundFonts)}`);
+}
+
 function assert_font_has_tables(name, tables, expectedTables) {
   for (const t of expectedTables) {
     assert_equals(t.length, 4,
