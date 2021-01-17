@@ -40,6 +40,42 @@ async function proceedTest() {
       break;
     }
 
+    if (step === "closeOpener") {
+      if (window.opener) {
+        window.opener.close();
+      }
+      continue;
+    }
+
+    if (step.startsWith("navOpener=")) {
+      if (!window.opener) {
+        continue;
+      }
+
+      let url = step.split("=")[1];
+      window.opener.location.href = url;
+
+      continue;
+    }
+
+    if (step === "open") {
+      const url = new URL(window.location);
+      url.host = "{{host}}:{{ports[https][0]}}";
+      url.search = "?" + steps.join("|");
+      window.open(url);
+      break;
+    }
+
+    if (step.startsWith("reportOpener=")) {
+      const id = step.split("=")[1];
+      const stashURL = new URL("window-name-stash.py", location);
+      stashURL.searchParams.set('id', id);
+      stashURL.searchParams.set('value', window.opener.name);
+
+      await fetch(stashURL, { method: "POST" });
+      continue;
+    }
+
     if (step.startsWith("set=")) {
       window.name = step.split("=")[1];
       continue;

@@ -199,7 +199,7 @@ promise_test(async t => {
         assert_equals(frame.cropWidth, 320, "cropWidth");
         assert_equals(frame.cropHeight, 240, "cropHeight");
         assert_equals(frame.timestamp, 0, "timestamp");
-        frame.destroy();
+        frame.close();
       });
     },
     error(e) {

@@ -10,6 +10,7 @@
   <link id="link_empty" />
   <link id="link_web_bundle_1" rel="webbundle" />
   <link id="link_web_bundle_2" rel="webbundle" resources="foo" />
+  <link id="link_web_bundle_3" rel="webbundle" scopes="bar" />
   <script>
     test(() => {
       assert_false(
@@ -21,6 +22,17 @@
         "resources must be defined on HTMLLinkElement prototype"
       );
     }, "resources must be defined on HTMLLinkElement prototype");
+
+    test(() => {
+      assert_false(
+        "scopes" in Element.prototype,
+        "scopes must not be defined on Element prototype"
+      );
+      assert_true(
+        "scopes" in HTMLLinkElement.prototype,
+        "scopes must be defined on HTMLLinkElement prototype"
+      );
+    }, "scopes must be defined on HTMLLinkElement prototype");
 
     test(() => {
       const link = document.createElement("link");
@@ -55,6 +67,16 @@
         "foo",
         "resources attribute must return the specified value"
       );
+      assert_equals(
+        document.querySelector("#link_web_bundle_2").getAttribute("scopes"),
+        null,
+        "scopes attribute must return null when the attribute is not given"
+      );
+      assert_equals(
+        document.querySelector("#link_web_bundle_3").getAttribute("scopes"),
+        "bar",
+        "scopes attribute must return the specified value"
+      );
       // TODO: Test more variant of resoruces attribute values.
     }, "resoruces attribute must return null or specified value");
 
@@ -75,5 +97,23 @@
         "https://test2.example.com"
       ]);
     }, "resources must be DOMTokenList");
+
+    test(() => {
+      const link = document.createElement("link");
+      assert_class_string(link.scopes, "DOMTokenList");
+      assert_equals(
+        String(link.scopes.value),
+        "",
+        "scopes.value should return the empty list for an undefined scopes attribute"
+      );
+      link.setAttribute(
+        "scopes",
+        "https://test1.example.com https://test2.example.com "
+      );
+      assert_array_equals(link.scopes, [
+        "https://test1.example.com",
+        "https://test2.example.com"
+      ]);
+    }, "scopes must be DOMTokenList");
   </script>
 </body>
