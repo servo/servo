@@ -100,6 +100,13 @@ promise_test(async t => {
   await pollResultAndCheck(t, id, "");
 }, "Window.name is reset at the first cross-origin navigation");
 
+promise_test(async t => {
+  const id = token();
+
+  window.open(`resources/window-name.sub.html?open|navOpener=about:blank|reportOpener=${id}|closeOpener|close`, id, "noopener");
+  await pollResultAndCheck(t, id, id);
+}, "window.name is not reset after navigating to an about:blank page from a non-about:blank page");
+
   </script>
 </body>
 </html>

@@ -38,7 +38,7 @@ promise_test(async function(t) {
       assert_equals(frame.codedWidth, testVideo.width);
       assert_equals(frame.codedHeight, testVideo.height);
       assert_not_equals(frame.timestamp, null);
-      frame.destroy();
+      frame.close();
 
       if (++numberFrames == 5) {
         vtr.stop();
