@@ -110,6 +110,13 @@ pub enum DocumentMatchingFunction {
     /// Matching function for a media document.
     #[css(function)]
     MediaDocument(MediaDocumentKind),
+    /// Matching function for a plain-text document.
+    #[css(function)]
+    PlainTextDocument(()),
+    /// Matching function for a document that can be observed by other content
+    /// documents.
+    #[css(function)]
+    UnobservableDocument(()),
 }
 
 macro_rules! parse_quoted_or_unquoted_string {
@@ -161,6 +168,21 @@ impl DocumentMatchingFunction {
                     Ok(DocumentMatchingFunction::MediaDocument(kind))
                 })
             },
+
+            "plain-text-document" => {
+                input.parse_nested_block(|input| {
+                    input.expect_exhausted()?;
+                    Ok(DocumentMatchingFunction::PlainTextDocument(()))
+                })
+            },
+
+            "unobservable-document" => {
+                input.parse_nested_block(|input| {
+                    input.expect_exhausted()?;
+                    Ok(DocumentMatchingFunction::UnobservableDocument(()))
+                })
+            },
+
             _ => {
                 Err(location.new_custom_error(
                     StyleParseErrorKind::UnexpectedFunction(function.clone())
@@ -184,6 +206,8 @@ impl DocumentMatchingFunction {
             DocumentMatchingFunction::MediaDocument(_) => {
                 GeckoDocumentMatchingFunction::MediaDocument
             },
+            DocumentMatchingFunction::PlainTextDocument(..) => GeckoDocumentMatchingFunction::PlainTextDocument,
+            DocumentMatchingFunction::UnobservableDocument(..) => GeckoDocumentMatchingFunction::UnobservableDocument,
         };
 
         let pattern = nsCStr::from(match *self {
@@ -197,6 +221,8 @@ impl DocumentMatchingFunction {
                 MediaDocumentKind::Plugin => "plugin",
                 MediaDocumentKind::Video => "video",
             },
+            DocumentMatchingFunction::PlainTextDocument(()) |
+            DocumentMatchingFunction::UnobservableDocument(()) => "",
         });
         unsafe { Gecko_DocumentRule_UseForPresentation(device.document(), &*pattern, func) }
     }
@@ -253,10 +279,9 @@ impl DocumentCondition {
 
     #[cfg(feature = "gecko")]
     fn allowed_in(&self, context: &ParserContext) -> bool {
-        use crate::stylesheets::Origin;
         use static_prefs::pref;
 
-        if context.stylesheet_origin != Origin::Author {
+        if context.in_ua_or_chrome_sheet() {
             return true;
         }
 
