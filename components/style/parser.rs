@@ -140,7 +140,7 @@ impl<'a> ParserContext<'a> {
     /// Returns whether chrome-only rules should be parsed.
     #[inline]
     pub fn chrome_rules_enabled(&self) -> bool {
-        self.url_data.is_chrome() || self.stylesheet_origin == Origin::User
+        self.url_data.chrome_rules_enabled() || self.stylesheet_origin == Origin::User
     }
 
     /// Whether we're in a user-agent stylesheet or chrome rules are enabled.

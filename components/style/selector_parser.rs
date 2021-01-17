@@ -75,7 +75,7 @@ impl<'a> SelectorParser<'a> {
     /// Whether we're parsing selectors in a stylesheet that has chrome
     /// privilege.
     pub fn chrome_rules_enabled(&self) -> bool {
-        self.url_data.map_or(false, |d| d.is_chrome()) || self.stylesheet_origin == Origin::User
+        self.url_data.map_or(false, |d| d.chrome_rules_enabled()) || self.stylesheet_origin == Origin::User
     }
 }
 

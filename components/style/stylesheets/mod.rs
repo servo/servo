@@ -154,8 +154,8 @@ impl UrlExtraData {
 
     /// True if this URL scheme is chrome.
     #[inline]
-    pub fn is_chrome(&self) -> bool {
-        self.as_ref().mIsChrome
+    pub fn chrome_rules_enabled(&self) -> bool {
+        self.as_ref().mChromeRulesEnabled
     }
 
     /// Create a reference to this `UrlExtraData` from a reference to pointer.
@@ -213,7 +213,7 @@ impl fmt::Debug for UrlExtraData {
 
         formatter
             .debug_struct("URLExtraData")
-            .field("is_chrome", &self.is_chrome())
+            .field("chrome_rules_enabled", &self.chrome_rules_enabled())
             .field(
                 "base",
                 &DebugURI(self.as_ref().mBaseURI.raw::<structs::nsIURI>()),
