@@ -573,7 +573,6 @@ ${helpers.single_keyword(
     "border-box fill-box view-box",
     engines="gecko",
     gecko_enum_prefix="StyleGeometryBox",
-    gecko_pref="svg.transform-box.enabled",
     spec="https://drafts.csswg.org/css-transforms/#transform-box",
     gecko_inexhaustive="True",
     animation_value_type="discrete",
