@@ -238,3 +238,11 @@ def available_screen_size(session):
             screen.availHeight - screen.availTop,
         ];
         """))
+
+def filter_dict(source, d):
+    """Filter `source` dict to only contain same keys as `d` dict.
+
+    :param source: dictionary to filter.
+    :param d: dictionary whose keys determine the filtering.
+    """
+    return {k: source[k] for k in d.keys()}

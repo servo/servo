@@ -1,0 +1,37 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>iframe.contentWindow.focus() with same-as-top intermediate frame middle</title>
+<iframe src="http://{{hosts[alt][www]}}:{{ports[http][0]}}/focus/support/iframe-contentwindow-focus-with-same-as-top-intermediate-frame-inner.html"></iframe>
+<script>
+let iframe = document.getElementsByTagName("iframe")[0];
+let log = "";
+function getLog() {
+    return log;
+}
+window.onmessage = function(e) {
+    log += e.data;
+    if (e.data == "starttest;") {
+        log += "middleactivelement:" + document.activeElement.localName + ";";
+        log += "callfocus;";
+        iframe.contentWindow.focus();
+        log += "middleactivelement:" + document.activeElement.localName + ";";
+        parent.opener.step_timeout(function() {
+            log += "middletimer;middleactivelement:" + document.activeElement.localName + ";";
+            parent.postMessage(getLog(), "*");
+        }, 1500);
+    }
+};
+/*
+ * TODO: Get browsers to agree on this one.
+ *
+ * Does not fire in Firefox without Fission
+ * https://bugzilla.mozilla.org/show_bug.cgi?id=1675484
+ *
+ * Fires in Blink in the iframe.focus() case but not in
+ * the iframe.contentWindow.focus() case.
+ */
+// iframe.onfocus = function() {
+//     log += "middlefocus;";
+// }
+
+</script>

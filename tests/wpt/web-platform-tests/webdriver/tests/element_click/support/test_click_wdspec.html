@@ -1,0 +1,100 @@
+<!doctype html>
+<meta charset=utf-8>
+<html>
+<head>
+    <title>Test Element Click</title>
+    <style>
+      div { padding:0px; margin: 0px; }
+      #trackPointer { position: fixed; }
+      #resultContainer { width: 600px; height: 60px; }
+      .area { width: 100px; height: 50px; background-color: #ccc; }
+      .block { width: 5px; height: 5px; border: solid 1px red; }
+    </style>
+    <script>
+        "use strict";
+        var els = {};
+        var allEvents = { events: [] };
+        function displayMessage(message) {
+            document.getElementById("events").innerHTML = "<p>" + message + "</p>";
+        }
+
+        function appendMessage(message) {
+            document.getElementById("events").innerHTML += "<p>" + message + "</p>";
+        }
+
+        function recordPointerEvent(event) {
+          if (event.type === "contextmenu") {
+            event.preventDefault();
+          }
+          allEvents.events.push({
+            "type": event.type,
+            "button": event.button,
+            "buttons": event.buttons,
+            "pageX": event.pageX,
+            "pageY": event.pageY,
+            "ctrlKey": event.ctrlKey,
+            "metaKey": event.metaKey,
+            "altKey": event.altKey,
+            "shiftKey": event.shiftKey,
+            "target": event.target.id
+          });
+          appendMessage(event.type + " " +
+              "button: " + event.button + ", " +
+              "pageX: " + event.pageX + ", " +
+              "pageY: " + event.pageY + ", " +
+              "button: " + event.button + ", " +
+              "buttons: " + event.buttons + ", " +
+              "ctrlKey: " + event.ctrlKey + ", " +
+              "altKey: " + event.altKey + ", " +
+              "metaKey: " + event.metaKey + ", " +
+              "shiftKey: " + event.shiftKey + ", " +
+              "target id: " + event.target.id);
+        }
+
+        function recordFirstPointerMove(event) {
+          recordPointerEvent(event);
+          window.removeEventListener("mousemove", recordFirstPointerMove);
+        }
+
+        function resetEvents() {
+          allEvents.events.length = 0;
+          displayMessage("");
+        }
+
+        function move(el, offsetX, offsetY, timeout) {
+          return function(event) {
+            setTimeout(function() {
+              el.style.top = event.clientY + offsetY + "px";
+              el.style.left = event.clientX + offsetX + "px";
+            }, timeout);
+          };
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+          var outer = document.getElementById("outer");
+          window.addEventListener("mousemove", recordFirstPointerMove);
+          outer.addEventListener("click", recordPointerEvent);
+          outer.addEventListener("dblclick", recordPointerEvent);
+          outer.addEventListener("mousedown", recordPointerEvent);
+          outer.addEventListener("mouseup", recordPointerEvent);
+          outer.addEventListener("contextmenu", recordPointerEvent);
+
+          //visual cue for mousemove
+          var pointer = document.getElementById("trackPointer");
+          window.addEventListener("mousemove", move(pointer, 15, 15, 30));
+        });
+    </script>
+</head>
+<body>
+  <div id="trackPointer" class="block"></div>
+  <div>
+    <h2>ClickReporter</h2>
+    <div id="outer" class="area">
+    </div>
+  </div>
+  <div id="resultContainer">
+    <h2>Events</h2>
+    <div id="events"></div>
+  </div>
+</body>
+</html>

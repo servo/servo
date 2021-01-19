@@ -4,5 +4,11 @@
 // Source: Custom State Pseudo Class (https://wicg.github.io/custom-state-pseudo-class/)
 
 partial interface ElementInternals {
-  [SameObject, PutForwards=value] readonly attribute DOMTokenList states;
+  readonly attribute CustomStateSet states;
+};
+
+[Exposed=Window]
+interface CustomStateSet {
+  setlike<DOMString>;
+  undefined add(DOMString value);
 };
