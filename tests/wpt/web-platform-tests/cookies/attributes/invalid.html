@@ -92,7 +92,68 @@
         cookie: "  test=== 13  ;foo;;;   bar",
         expected: "test=== 13",
         name: "Set cookie with multiple '='s in its value, ignoring multiple invalid attributes, whitespace, and semicolons",
-      }
+      },
+      {
+        cookie: "test=14; version=1;",
+        expected: "test=14",
+        name: "Set cookie with (invalid) version=1 attribute",
+      },
+      {
+        cookie: "test=15; version=1000;",
+        expected: "test=15",
+        name: "Set cookie with (invalid) version=1000 attribute",
+      },
+      {
+        cookie: "test=16; customvalue='1000 or more';",
+        expected: "test=16",
+        name: "Set cookie ignoring anything after ; (which looks like an invalid attribute)",
+      },
+      {
+        cookie: "test=17; customvalue='1000 or more'",
+        expected: "test=17",
+        name: "Set cookie ignoring anything after ; (which looks like an invalid attribute, with no trailing semicolon)",
+      },
+      {
+        cookie: "test=18; foo=bar, a=b",
+        expected: "test=18",
+        name: "Ignore keys after semicolon",
+      },
+      {
+        cookie: "test=19;max-age=3600, c=d;path=/",
+        expected: "test=19",
+        name: "Ignore attributes after semicolon",
+        defaultPath: false,
+      },
+      {
+        cookie: ["testA=20", "=", "testb=20"],
+        expected: "testA=20; testb=20",
+        name: "Ignore `Set-Cookie: =`",
+      },
+      {
+        cookie: ["test=21", ""],
+        expected: "test=21",
+        name: "Ignore empty cookie string",
+      },
+      {
+        cookie: ["test22", "="],
+        expected: "test22",
+        name: "Ignore `Set-Cookie: =` with other `Set-Cookie` headers",
+      },
+      {
+        cookie: ["testA23", "; testB23"],
+        expected: "testA23",
+        name: "Ignore name- and value-less `Set-Cookie: ; bar`",
+      },
+      {
+        cookie: ["test24", "   "],
+        expected: "test24",
+        name: "Ignore name- and value-less `Set-Cookie:    `",
+      },
+      {
+        cookie: ["test25", "\t"],
+        expected: "test25",
+        name: "Ignore name- and value-less `Set-Cookie: \\t`",
+      },
     ];
 
     for (const test of invalidAttributeTests) {

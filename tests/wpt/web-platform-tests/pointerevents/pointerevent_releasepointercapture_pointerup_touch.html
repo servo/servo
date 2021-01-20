@@ -1,0 +1,102 @@
+<!doctype html>
+<html>
+    <head>
+        <title>releasePointerCapture on pointerup</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <script src="pointerevent_support.js"></script>
+    </head>
+    <body class="scrollable">
+        <h1>Pointer Events Capture Test - releasePointerCapture on pointerup</h1>
+        <h4>
+            Test Description: This test checks if releaseCapture works properly on pointer up. Complete the following actions:
+            <ol>
+                <li> Touch black rectangle and do not release your touch
+                <li> Move and release your touch anywhere over the document
+            </ol>
+        </h4>
+        Test passes if the proper behavior of the events is observed.
+        <div id="target0" style="background:black; color:white"></div>
+
+        <script type='text/javascript'>
+            var pointerupGot = false;
+            var count=0;
+            var event_log = [];
+            var detected_pointertypes = {};
+            var test_pointerEvent = async_test("releasePointerCapture on pointerup");
+
+            var target0 = document.getElementById('target0');
+            var actions_promise;
+
+            add_completion_callback(end_of_test);
+            function end_of_test() {
+                showLoggedEvents();
+                showPointerTypes();
+            }
+
+            window.onload = function() {
+                on_event(target0, 'pointerdown', function(e) {
+                    detected_pointertypes[e.pointerType] = true;
+                    test_pointerEvent.step(function () {
+                        assert_equals(e.pointerType, "touch", "Test should be run using a touch as input");
+                    });
+                    sPointerCapture(e);
+                    pointerupGot = false;
+                });
+
+                on_event(target0, 'gotpointercapture', function(e) {
+                    event_log.push('gotpointercapture@target0');
+                });
+
+                on_event(target0, 'lostpointercapture', function(e) {
+                    event_log.push('lostpointercapture@target0');
+                    test_pointerEvent.step(function () {
+                        assert_true(pointerupGot, "pointerup was received before lostpointercapture");
+                    });
+                    // Make sure the test finishes after all the input actions are completed.
+                    actions_promise.then( () => {
+                        test_pointerEvent.done();
+                    });
+                });
+
+                on_event(target0, 'pointerup', function(e) {
+                    event_log.push('pointerup@target0');
+                    try {
+                        target0.releasePointerCapture(e.pointerId);
+                    } catch(error) {
+                        test_pointerEvent.step(function () {
+                            assert_unreached("target0.releasePointerCapture should not throw");
+                        });
+                    }
+                    pointerupGot = true;
+                });
+
+                on_event(target0, 'touchmove', function(e) {
+                    // To prevent pointercancel firing.
+                    e.preventDefault();
+                });
+
+                on_event(target0, 'pointercancel', function(e) {
+                    test_pointerEvent.step(function () {
+                        assert_unreached("target0 shouldn't receive pointercancel");
+                    });
+                });
+
+                // Inject touch inputs.
+                actions_promise = touchScrollInTarget(target0, 'down');
+            }
+        </script>
+        <h1>Pointer Events Capture Test</h1>
+        <div id="complete-notice">
+            <p>Test complete: Scroll to Summary to view Pass/Fail Results.</p>
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+            <p>The following events were logged: <span id="event-log"></span>.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

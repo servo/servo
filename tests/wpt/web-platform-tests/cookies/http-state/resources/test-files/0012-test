@@ -1,1 +1,0 @@
-Set-Cookie: foo=bar; customvalue="no trailing semicolon"

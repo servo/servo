@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>iframe focuses parent different site inner</title>
+</head>
+<body>
+<script>
+window.onmessage = function() {
+    parent.focus();
+    setTimeout(function() {
+        parent.postMessage("finished", "*");
+    }, 500);
+}
+</script>
+</body>
+</html>

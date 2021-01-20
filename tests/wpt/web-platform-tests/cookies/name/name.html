@@ -80,6 +80,56 @@
           name: "Return the most recent nameless cookie",
         },
         {
+          cookie: ["test11", "test11a"],
+          expected: "test11a",
+          name: "Return the most recent nameless cookie, without leading =",
+        },
+        {
+          cookie: ["test11", "test11a", "=test11b"],
+          expected: "test11b",
+          name: "Return the most recent nameless cookie, even if preceded by =",
+        },
+        {
+          cookie: ["test11", "test11a", "=test11b", "test=11c"],
+          expected: "test11b; test=11c",
+          name: "Return the most recent nameless cookie, even if preceded by =, in addition to other valid cookie",
+        },
+        {
+          cookie: ["test12=11", "test12=12"],
+          expected: "test12=12",
+          name: "Use last value for cookies with identical names",
+        },
+        {
+          cookie: ["testA=13", "testB=13"],
+          expected: "testA=13; testB=13",
+          name: "Keep first-in, first-out name order",
+        },
+        {
+          cookie: ["a=test14", "z=test14"],
+          expected: "a=test14; z=test14",
+          name: "Keep first-in, first-out single-char name order",
+        },
+        {
+          cookie: ["z=test15", "a=test15"],
+          expected: "z=test15; a=test15",
+          name: "Keep non-alphabetic first-in, first-out name order",
+        },
+        {
+          cookie: "z=test16, a=test16",
+          expected: "z=test16, a=test16",
+          name: "Keep first-in, first-out order if comma-separated",
+        },
+        {
+          cookie: ["testA=16", "=test16", "testB=16"],
+          expected: "testA=16; test16; testB=16",
+          name: "Set nameless cookie, given `Set-Cookie: =test16`",
+        },
+        {
+          cookie: ["test17a", "test17b"],
+          expected: "test17b",
+          name: "Overwrite nameless cookie",
+        },
+        {
           cookie: "=",
           expected: "",
           name: "Ignore cookie with empty name and empty value",

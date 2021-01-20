@@ -24,8 +24,23 @@
         {
           cookie: "test=2; Expires=Fri 01 Jan 2038 00:00:00 GMT, baz=qux",
           expected: "test=2",
-          name: "Set cookie with expires value followed by comma"
-        }
+          name: "Set cookie with expires value followed by comma",
+        },
+        {
+          cookie: "test=3; Expires=Fri, 01 Jan 2038 00:00:00 GMT",
+          expected: "test=3",
+          name: "Set cookie with future expiration",
+        },
+        {
+          cookie: ["test=expired; Expires=Fri, 07 Aug 2007 08:04:19 GMT", "test=4; Expires=Fri, 07 Aug 2027 08:04:19 GMT"],
+          expected: "test=4",
+          name: "Set expired cookie along with valid cookie",
+        },
+        {
+          cookie: "test=5; expires=Thu, 10 Apr 1980 16:33:12 GMT",
+          expected: "",
+          name: "Don't set cookie with expires set to the past",
+        },
       ];
 
       for (const test of expiresTests) {

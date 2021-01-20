@@ -27,12 +27,12 @@
           'processingStart',
           'processingEnd',
           'cancelable',
-          'target',
         ];
         for (const key of keys) {
           assert_equals(json[key], entry[key],
             'PerformanceEventTiming ${key} entry does not match its toJSON value');
         }
+        assert_equals(json['target'], undefined, 'toJSON should not include target');
       })
     );
     observer.observe({type: 'event'});

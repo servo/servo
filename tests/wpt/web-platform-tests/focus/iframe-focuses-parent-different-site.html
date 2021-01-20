@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>iframe focuses parent</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+setup({explicit_done:true});
+var w = null;
+window.onload = function() {
+  window.onmessage = function(e) {
+      test(function() {
+          assert_equals(e.data, "PASS", 'Check result');
+      }, "Check result");
+      w.close();
+      w = null;
+      done();
+  };
+  w = window.open("support/iframe-focuses-parent-different-site-outer.sub.html");
+}
+</script>

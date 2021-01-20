@@ -218,6 +218,8 @@ SET TIMEOUT: focus/support/iframe-focus-with-different-site-intermediate-frame-o
 SET TIMEOUT: focus/support/iframe-focus-with-different-site-intermediate-frame-middle.sub.html
 SET TIMEOUT: focus/support/iframe-contentwindow-focus-with-different-site-intermediate-frame-outer.sub.html
 SET TIMEOUT: focus/support/iframe-contentwindow-focus-with-different-site-intermediate-frame-middle.sub.html
+SET TIMEOUT: focus/support/iframe-focuses-parent-different-site-inner.html
+SET TIMEOUT: focus/support/iframe-focuses-parent-same-site-inner.html
 
 # generate_tests implementation and sample usage
 GENERATE_TESTS: resources/test/tests/functional/generate-callback.html
