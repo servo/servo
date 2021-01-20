@@ -21,6 +21,51 @@
           expected: "test=1",
           name: "Ignore max-age attribute with invalid non-zero-digit (containing a comma)",
         },
+        {
+          cookie: "test=2; max-age=10000",
+          expected: "test=2",
+          name: "Set cookie with age",
+        },
+        {
+          cookie: "test=3; max-age=0",
+          expected: "",
+          name: "Set no cookie with max-age=0",
+        },
+        {
+          cookie: "test=4; max-age=-1",
+          expected: "",
+          name: "Set no cookie with max-age=-1",
+        },
+        {
+          cookie: "test=5; max-age=-20",
+          expected: "",
+          name: "Set no cookie with max-age=-20",
+        },
+        {
+          cookie: ["testA=6; max-age=60", "testB=6; max-age=60"],
+          expected: "testA=6; testB=6",
+          name: "Set multiple cookies with max-age attribute",
+        },
+        {
+          cookie: ["testA=7; max-age=60", "testB=7; max-age=60", "testA=differentvalue; max-age=0"],
+          expected: "testB=7",
+          name: "Expire later cookie with same name and max-age=0",
+        },
+        {
+          cookie: ["testA=8; max-age=60", "testB=8; max-age=60", "testA=differentvalue; max-age=0", "testC=8; max-age=0"],
+          expected: "testB=8",
+          name: "Expire later cookie with same name and max-age=0, and don't set cookie with max-age=0",
+        },
+        {
+          cookie: ['test="9! = foo;bar\";" parser; max-age=6', "test9; max-age=2.63,"],
+          expected: 'test="9! = foo; test9',
+          name: "Set mulitiple cookies with valid max-age values",
+        },
+        {
+          cookie: ["test=10; max-age=0", "test10; max-age=0"],
+          expected: "",
+          name: "Don't set multiple cookies with max-age=0",
+        },
       ];
 
       for (const test of maxAgeTests) {

@@ -126,6 +126,11 @@
           expected: "test=21",
           name: "Set cookie ignoring whitespace surrounding value and characters after first semicolon",
         },
+        {
+          cookie: ["testA=22", "test22=", "testB=22"],
+          expected: "testA=22; test22=; testB=22",
+          name: "Set valueless cookie, given `Set-Cookie: test22=`",
+        },
       ];
 
       for (const test of valueTests) {

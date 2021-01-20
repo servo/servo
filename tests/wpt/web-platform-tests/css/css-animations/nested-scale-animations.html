@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Nested scale animations</title>
+<link rel="author" title="Xianzhu Wang" href="mailto:wangxianzhu@chromium.org">
+<link rel="help" href="https://crbug.com/1165408">
+<link rel="match" href="nested-scale-animations-ref.html">
+<!-- Allow blurry pixels in 2 rows. -->
+<meta name="fuzzy" content="0-255;0-400">
+<meta name="assert" content="Contents under nested scale animations should not be too blurry">
+<script src="/common/reftest-wait.js"></script>
+<style>
+@keyframes scale {
+  0% {transform: scale(1);}
+  1% {transform: scale(10);}
+  100% {transform: scale(20);}
+}
+.animate {
+  animation: scale 1s infinite;
+  position: relative;
+  top: 45%;
+  left: 45%;
+  width: 10%;
+  height: 10%;
+}
+</style>
+<div style="width: 200px; height: 200px; overflow: hidden; position: relative">
+  <div class="animate">
+    <div class="animate">
+      <div style="width: 2px; height: 1px; background: blue"></div>
+      <div style="width: 2px; height: 1px; background: green"></div>
+    </div>
+  </div>
+</div>
+<script>
+takeScreenshotDelayed(200);
+</script>

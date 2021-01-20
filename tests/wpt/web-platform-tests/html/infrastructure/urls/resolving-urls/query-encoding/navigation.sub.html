@@ -81,9 +81,41 @@ function test_follow_link(tag) {
   }, 'follow hyperlink <'+tag+' href>');
 }
 
-'a, area, link'.split(', ').forEach(function(str) {
+'a, area'.split(', ').forEach(function(str) {
   test_follow_link(str);
 });
+
+async_test(function() {
+  const iframe = document.createElement('iframe');
+  iframe.name = 'test_dont_follow_link';
+  document.body.appendChild(iframe);
+
+  const link = document.createElement('link');
+  link.target = iframe.name;
+  link.setAttribute('href', input_url_html);
+  document.body.appendChild(link);
+
+  const anchor = document.createElement('a');
+  anchor.target = iframe.name;
+  anchor.setAttribute('href', blank);
+  document.body.appendChild(anchor);
+
+  this.add_cleanup(function() {
+    iframe.remove();
+    link.remove();
+    anchor.remove();
+  });
+
+  iframe.onload = this.step_func_done(() => {
+    assert_equals(
+      iframe.contentDocument.location.pathname,
+      '/html/infrastructure/urls/resolving-urls/query-encoding/resources/blank.py',
+      'The <a> navigation should occur instead of the <link> navigation.');
+  });
+
+  anchor.click();
+  link.click();
+}, `don't follow hyperlink <link href>`);
 
 // follow hyperlink with ping attribute
 function test_follow_link_ping(tag) {
