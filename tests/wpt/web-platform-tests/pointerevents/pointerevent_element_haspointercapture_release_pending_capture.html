@@ -6,8 +6,12 @@
         <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
         <script type="text/javascript" src="pointerevent_support.js"></script>
         <script>
+            var actions_promise;
             var detected_pointertypes = {};
             add_completion_callback(showPointerTypes);
             var test_pointerEvent = async_test("hasPointerCapture test after the pending pointer capture element releases pointer capture");
@@ -47,8 +51,19 @@
                 });
 
                 on_event(target0, "lostpointercapture", function (e) {
-                    test_pointerEvent.done();
+                    // Make sure the test finishes after all the input actions are completed.
+                    actions_promise.then( () => {
+                        test_pointerEvent.done();
+                    });
                 });
+
+                // Inject mouse inputs.
+                actions_promise = new test_driver.Actions()
+                    .pointerMove(10, 10, {origin: target0})
+                    .pointerDown()
+                    .pointerMove(10, 10, {origin: target1})
+                    .pointerUp()
+                    .send();
             }
         </script>
     </head>

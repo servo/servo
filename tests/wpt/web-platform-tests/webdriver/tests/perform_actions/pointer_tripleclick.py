@@ -1,5 +1,6 @@
-from tests.perform_actions.support.refine import filter_dict, get_events
+from tests.perform_actions.support.refine import get_events
 from tests.support.asserts import assert_move_to_coordinates
+from tests.support.helpers import filter_dict
 
 lots_of_text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor "\
                "incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud "\

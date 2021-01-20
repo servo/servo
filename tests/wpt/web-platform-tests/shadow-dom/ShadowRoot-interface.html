@@ -96,12 +96,19 @@ function testStyleSheets(mode) {
 
         shadowRoot.innerHTML = '<span></span><style> a.rule {} </style><style> b.rule {} </style>';
         assert_equals(shadowRoot.styleSheets.length, 0, 'shadowRoot.styleSheets must be empty when the shadow root is not connected');
+        var styles = shadowRoot.querySelectorAll('style');
+        assert_equals(styles[0].sheet, null, "Sheet should be null in a disconnected tree");
+        assert_equals(styles[1].sheet, null, "Sheet should be null in a disconnected tree");
 
         document.body.appendChild(host);
         assert_equals(shadowRoot.styleSheets.length, 2, 'shadowRoot.styleSheets must contain two items when the shadow root has two style elements');
-        var styles = shadowRoot.querySelectorAll('style');
         assert_equals(shadowRoot.styleSheets[0], styles[0].sheet, 'shadowRoot.styleSheets[0] must be the first style element in the shadow root');
         assert_equals(shadowRoot.styleSheets[1], styles[1].sheet, 'shadowRoot.styleSheets[1] must be the second style element in the shadow root');
+
+        host.remove();
+        assert_equals(shadowRoot.styleSheets.length, 0, 'shadowRoot.styleSheets must be empty when the shadow root is not connected');
+        assert_equals(styles[0].sheet, null, "Sheet should be null in a disconnected tree");
+        assert_equals(styles[1].sheet, null, "Sheet should be null in a disconnected tree");
     }, 'ShadowRoot.styleSheets must return a StyleSheetList sequence containing the shadow root style sheets when shadow root is ' + mode + '.');
 }
 

@@ -1,7 +1,8 @@
 import pytest
 
-from tests.perform_actions.support.refine import filter_dict, get_events
+from tests.perform_actions.support.refine import get_events
 from tests.support.asserts import assert_move_to_coordinates
+from tests.support.helpers import filter_dict
 
 
 @pytest.mark.parametrize("click_pause", [0, 200])

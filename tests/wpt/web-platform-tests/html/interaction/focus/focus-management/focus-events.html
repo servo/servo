@@ -25,6 +25,7 @@
     assert_true(e.isTrusted, "blur event is trusted");
     assert_false(e.bubbles, "blur event doesn't bubble");
     assert_false(e.cancelable, "blur event is not cancelable");
+    assert_equals(document.activeElement, document.body);
   });
 
   i1.focus();

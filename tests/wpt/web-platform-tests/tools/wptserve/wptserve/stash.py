@@ -75,7 +75,10 @@ def start_server(address=None, authkey=None, mp_context=None):
     manager = ServerDictManager(address, authkey, **kwargs)
     manager.start()
 
-    return (manager, manager._address, manager._authkey)
+    address = manager._address
+    if isinstance(address, bytes):
+        address = address.decode("ascii")
+    return (manager, address, manager._authkey)
 
 
 class LockWrapper(object):

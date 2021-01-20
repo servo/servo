@@ -3,12 +3,18 @@
 
 'use strict';
 
+class MyElement extends HTMLElement {};
+customElements.define('my-element', MyElement);
+
 idl_test(
   ['custom-state-pseudo-class'],
   ['html', 'wai-aria'],
   idl_array => {
     idl_array.add_objects({
-      // Nothing to add; spec only defined a partial interface.
+      CustomStateSet: [ 'customStateSet' ],
     });
+
+    const myElement = document.createElement('my-element');
+    self.customStateSet = myElement.attachInternals().states;
   }
 );
