@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Images Module Level 3: image-orientation: from-image</title>
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#propdef-image-orientation">
+<style>
+    body {
+        overflow: hidden;
+        image-orientation: from-image;
+    }
+    img {
+        position: absolute;
+        vertical-align: top;
+    }
+    .cover {
+        object-fit: cover;
+        top: 10px;
+    }
+    .contain {
+        object-fit: contain;
+        top: 150px;
+    }
+    .wide {
+        width: 100px;
+        height: 50px;
+        left: 10px;
+    }
+    .tall {
+        width: 50px;
+        height: 100px;
+        left: 150px;
+    }
+</style>
+</head>
+<body>
+  <img class="cover wide" src="../support/exif-orientation-5-lu-pre-rotated.jpg"/>
+  <img class="cover tall" src="../support/exif-orientation-5-lu-pre-rotated.jpg"/>
+  <img class="contain wide" src="../support/exif-orientation-5-lu-pre-rotated.jpg"/>
+  <img class="contain tall" src="../support/exif-orientation-5-lu-pre-rotated.jpg"/>
+</body>
+</html>

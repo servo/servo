@@ -122,7 +122,7 @@ for (const test of non_ascii_input) {
       fonts.push(f);
     }
     assert_equals(
-      fonts.length, 0,
-      `There should be no results. Instead got: ${JSON.stringify(fonts)}`);
+        fonts.length, 0,
+        `There should be no results. Instead got: ${JSON.stringify(fonts)}`);
   }, `query(): No match for input: ${JSON.stringify(test)}`);
 }

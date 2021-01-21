@@ -8,17 +8,17 @@
 <script src="/resources/testharnessreport.js"></script>
 <body>
   <!--
-       This wpt should run on an origin which is different than https://web-platform.test:8444/,
+       This wpt should run on an origin different from https://web-platform.test:8444/,
        from where cross-orign WebBundles are served.
 
        This test uses the two cross-origin WebBundles:
 
        1. https://web-platform.test:8444/web-bundle/resources/wbn/cors/cross-origin.wbn,
           which is served with an Access-Control-Allow-Origin response header.
-       2. http://web-platform.test:8444/web-bundle/resources/wbn/subreource.wbn,
+       2. http://web-platform.test:8444/web-bundle/resources/wbn/no-cors/cross-origin.wbn,
           which is served *without* an Access-Control-Allow-Origin response header.
 
-      `cross-origin.wbn` includes two subresources:
+       Each `cross-origin.wbn` includes two subresources:
        a. `resource.cors.json`, which includes an Access-Control-Allow-Origin response header.
        b. `resource.no-cors.json`, which doesn't include an Access-Control-Allow-Origin response header.
   -->
@@ -34,6 +34,8 @@
         "https://web-platform.test:8444/web-bundle/resources/wbn/cors/resource.cors.json"
       );
       assert_true(response.ok);
+      const text = await response.text();
+      assert_equals(text, "{ cors: 1 }");
     }, "A subresource which includes an Access-Control-Allow-Origin response header can be fetched");
 
     promise_test(async (t) => {
@@ -46,21 +48,46 @@
       );
     }, "A subresource which does not include an Access-Control-Allow-Origin response header can not be fetched");
 
-    promise_test(async () => {
-      return addLinkAndWaitForError(
-        "http://web-platform.test:8444/web-bundle/resources/wbn/subreource.wbn"
-      );
-    }, "A cross-origin WebBundle which does not include an Access-Control-Allow-Origin response header should fire an error event on load");
+    promise_test(async (t) => {
+      const prefix =
+        "http://web-platform.test:8444/web-bundle/resources/wbn/no-cors/";
+      const resources = [
+        prefix + "resource.cors.json",
+        prefix + "resource.no-cors.json",
+      ]
+      // Should fire an error event on loading webbundle.
+      await addLinkAndWaitForError(prefix + "cross-origin.wbn", resources);
+      // A fetch should fail for any subresource specified in resources attribute.
+      for (const url of resources) {
+        await fetchAndWaitForReject(url);
+      }
+    }, "A cross-origin WebBundle which does not include an Access-Control-Allow-Origin response header should fire an error event on load, and a fetch should fail for any subresource");
 
-    function addLinkAndWaitForError(url) {
+    function addLinkAndWaitForError(url, resources) {
       return new Promise((resolve, reject) => {
         const link = document.createElement("link");
         link.rel = "webbundle";
         link.href = url;
+        for (const resource of resources) {
+          link.resources.add(resource);
+        }
         link.onload = reject;
         link.onerror = () => resolve(link);
         document.body.appendChild(link);
       });
     }
+
+    function fetchAndWaitForReject(url) {
+      return new Promise((resolve, reject) => {
+        fetch(url)
+          .then(() => {
+            reject();
+          })
+          .catch(() => {
+           resolve();
+          });
+      });
+    }
+
   </script>
 </body>

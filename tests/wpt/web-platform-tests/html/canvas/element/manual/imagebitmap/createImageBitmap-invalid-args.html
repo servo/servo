@@ -83,6 +83,50 @@ testCases = [
           });
       }
   },
+  {
+    description: 'createImageBitmap with <sourceType> source and ' +
+        'a value of 0 int resizeWidth',
+    promiseTestFunction:
+      (source, t) => {
+        return createImageBitmap(source, {resizeWidth:0, resizeHeight:10})
+          .catch(e => {
+            assert_throws_dom("InvalidStateError", () => { throw e });
+          });
+      }
+  },
+  {
+    description: 'createImageBitmap with <sourceType> source and ' +
+        'a value of 0 in resizeHeight',
+    promiseTestFunction:
+      (source, t) => {
+        return createImageBitmap(source, {resizeWidth:10, resizeHeight:0})
+          .catch(e => {
+            assert_throws_dom("InvalidStateError", () => { throw e });
+          });
+      }
+  },
+  {
+    description: 'createImageBitmap with <sourceType> source and ' +
+        'a value between 0 and 1 in resizeWidth',
+    promiseTestFunction:
+      (source, t) => {
+        return createImageBitmap(source, {resizeWidth:0.5, resizeHeight:10})
+          .catch(e => {
+            assert_throws_dom("InvalidStateError", () => { throw e });
+          });
+      }
+  },
+  {
+    description: 'createImageBitmap with <sourceType> source and ' +
+        'a value between 0 and 1 in resizeHeight',
+    promiseTestFunction:
+      (source, t) => {
+        return createImageBitmap(source, {resizeWidth:10, resizeHeight:0.5})
+          .catch(e => {
+            assert_throws_dom("InvalidStateError", () => { throw e });
+          });
+      }
+  },
 ];
 
 // Generate the test matrix for each sourceType + testCase combo.
