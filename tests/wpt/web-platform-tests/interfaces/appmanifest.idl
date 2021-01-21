@@ -8,11 +8,7 @@ dictionary WebAppManifest {
    DOMString lang;
    USVString name;
    USVString short_name;
-   USVString description;
    sequence<ManifestImageResource> icons;
-   sequence<ManifestImageResource> screenshots;
-   sequence<USVString> categories;
-   DOMString iarc_rating_id;
    USVString start_url;
    DisplayModeType display = "browser";
    OrientationLockType orientation;

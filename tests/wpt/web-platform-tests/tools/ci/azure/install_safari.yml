@@ -8,7 +8,7 @@ steps:
   condition: eq(variables['safaridriver_diagnose'], true)
 - ${{ if eq(parameters.channel, 'preview') }}:
   - script: |
-      HOMEBREW_NO_AUTO_UPDATE=1 brew cask install tools/ci/azure/safari-technology-preview.rb
+      HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask tools/ci/azure/safari-technology-preview.rb
       # Workaround for `sudo safardriver --enable` not working on Catalina:
       # https://github.com/web-platform-tests/wpt/issues/21751
       mkdir -p ~/Library/WebDriver/

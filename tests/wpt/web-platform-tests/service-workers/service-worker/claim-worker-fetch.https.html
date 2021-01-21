@@ -19,6 +19,18 @@ promise_test((t) => {
   return runTest(t, 'resources/claim-blob-url-worker-fetch-iframe.html');
 }, 'fetch() in blob URL Worker should be intercepted after the client is claimed.');
 
+promise_test((t) => {
+  return runTest(t, 'resources/nested-blob-url-workers.html');
+}, 'fetch() in nested blob URL Worker created from a blob URL Worker should be intercepted after the client is claimed.');
+
+promise_test((t) => {
+  return runTest(t, 'resources/nested-worker-created-from-blob-url-worker.html');
+}, 'fetch() in nested Worker created from a blob URL Worker should be intercepted after the client is claimed.');
+
+promise_test((t) => {
+  return runTest(t, 'resources/nested-blob-url-worker-created-from-worker.html');
+}, 'fetch() in nested blob URL Worker created from a Worker should be intercepted after the client is claimed.');
+
 async function runTest(t, iframe_url) {
   const resource = 'simple.txt';
   const scope = 'resources/';
