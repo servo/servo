@@ -1,0 +1,20 @@
+[
+    {
+        "type": "archive",
+            "url": "https://github.com/khaledhosny/ots/archive/77bcc681fdd2288d5deed87772c365c01ca3be7d.tar.gz",
+        "sha256": "8b1b1d55ccc0487f74700723799c07a2b984c5dbed995b8fda15277a20b9b18a",
+        "dest": "cargo/vendor/fontsan/src/ots"
+    },
+    {
+            "type": "archive",
+            "url": "https://github.com/google/brotli/archive/5b4769990dc14a2bd466d2599c946c5652cba4b2.tar.gz",
+        "sha256": "3a3c53b56a961ba24d331a5b7882b0bec7f2e3c7be7cf77b9db18271c28151ce",
+        "dest": "cargo/vendor/fontsan/src/ots/third_party/brotli"
+    },
+    {
+            "type": "archive",
+            "url": "https://github.com/google/woff2/archive/b677a07ffdda0ecb5fd18c3816c5930c7a883b7d.tar.gz",
+        "sha256": "1b31324ef6fae2600d823234c0349e1bf1eebb0ee5e951a028fce99028dd5ff6",
+        "dest": "cargo/vendor/fontsan/src/ots/third_party/woff2"
+    }
+]
