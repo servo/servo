@@ -17,49 +17,36 @@ customElements.define("test-element", TestElement);
 test(() => {
   let i = (new TestElement()).internals;
 
-  assert_true(i.states instanceof DOMTokenList);
-  assert_equals(i.states.length, 0);
-  assert_false(i.states.contains('foo'));
-  assert_equals(i.states.value, '');
-  assert_equals(i.states.toString(), '');
-}, 'DOMTokenList behavior of ElementInternals.states: Initial state');
+  assert_true(i.states instanceof CustomStateSet);
+  assert_equals(i.states.size, 0);
+  assert_false(i.states.has('foo'));
+  assert_false(i.states.has('--foo'));
+  assert_equals(i.states.toString(), '[object CustomStateSet]');
+}, 'CustomStateSet behavior of ElementInternals.states: Initial state');
 
 test(() => {
   let i = (new TestElement()).internals;
   assert_throws_js(TypeError, () => { i.states.supports('foo'); });
   assert_throws_dom('SyntaxError', () => { i.states.add(''); });
-  assert_throws_dom('InvalidCharacterError', () => { i.states.add('a\tb'); });
-}, 'DOMTokenList behavior of ElementInternals.states: Exceptions');
+  assert_throws_dom('SyntaxError', () => { i.states.add('--a\tb'); });
+}, 'CustomStateSet behavior of ElementInternals.states: Exceptions');
 
 test(() => {
   let i = (new TestElement()).internals;
-  i.states.add('foo', 'bar', 'foo');
-  assert_equals(i.states.length, 2);
-  assert_true(i.states.contains('foo'));
-  assert_true(i.states.contains('bar'));
-  assert_equals(i.states.item(0), 'foo');
-  assert_equals(i.states.item(1), 'bar');
-  assert_equals(i.states[0], 'foo');
-  assert_equals(i.states[1], 'bar');
-  assert_equals(i.states.value, 'foo bar');
-  i.states.remove('foo');
-  assert_array_equals(i.states, ['bar']);
-  assert_equals(i.states.value, 'bar');
-  i.states.toggle('foo');
-  assert_array_equals(i.states, ['bar', 'foo']);
-  assert_equals(i.states.value, 'bar foo');
-  i.states.replace('bar', 'baz');
-  assert_array_equals(i.states, ['baz', 'foo']);
-  assert_equals(i.states.value, 'baz foo');
-
-  i.states.value = '  c u s t o o o o  m';
-  assert_equals(i.states.length, 6);
-  assert_array_equals(i.states, ['c', 'u', 's', 't', 'o', 'm']);
-
-  i.states.value = '';
-  // No throw for a token which can't be a CSS <ident>.
-  i.states.add('foo)');
-  assert_array_equals(i.states, ['foo)']);
-}, 'DOMTokenList behavior of ElementInternals.states: Modifications');
+  i.states.add('--foo');
+  i.states.add('--bar');
+  i.states.add('--foo');
+  assert_equals(i.states.size, 2);
+  assert_true(i.states.has('--foo'));
+  assert_true(i.states.has('--bar'));
+  assert_array_equals([...i.states], ['--foo', '--bar']);
+  i.states.delete('--foo');
+  assert_array_equals([...i.states], ['--bar']);
+  i.states.add('--foo');
+  assert_array_equals([...i.states], ['--bar', '--foo']);
+  i.states.delete('--bar');
+  i.states.add('--baz');
+  assert_array_equals([...i.states], ['--foo', '--baz']);
+}, 'CustomStateSet behavior of ElementInternals.states: Modifications');
 </script>
 

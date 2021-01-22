@@ -39,7 +39,11 @@ def pytest_collect_file(path, parent):
         return
     test_type = test_type.split(os.path.sep)[1]
 
-    return HTMLItem(str(path), test_type, parent)
+    # Handle the deprecation of Node construction in pytest6
+    # https://docs.pytest.org/en/stable/deprecations.html#node-construction-changed-to-node-from-parent
+    if hasattr(HTMLItem, "from_parent"):
+        return HTMLItem.from_parent(parent, filename=str(path), test_type=test_type)
+    return HTMLItem(parent, str(path), test_type)
 
 
 def pytest_configure(config):
@@ -83,7 +87,7 @@ def resolve_uri(context, uri):
 
 
 class HTMLItem(pytest.Item, pytest.Collector):
-    def __init__(self, filename, test_type, parent):
+    def __init__(self, parent, filename, test_type):
         self.url = parent.session.config.server.url(filename)
         self.type = test_type
         self.variants = []

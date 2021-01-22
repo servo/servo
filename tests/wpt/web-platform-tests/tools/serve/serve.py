@@ -849,7 +849,7 @@ class ConfigBuilder(config.ConfigBuilder):
             "wss": ["auto"],
         },
         "check_subdomains": True,
-        "log_level": "debug",
+        "log_level": "info",
         "bind_address": True,
         "ssl": {
             "type": "pregenerated",
@@ -931,6 +931,9 @@ def build_config(override_path=None, config_cls=ConfigBuilder, **kwargs):
         else:
             raise ValueError("Config path %s does not exist" % other_path)
 
+    if kwargs.get("verbose"):
+        rv.log_level = "debug"
+
     overriding_path_args = [("doc_root", "Document root"),
                             ("ws_doc_root", "WebSockets document root")]
     for key, title in overriding_path_args:
@@ -963,6 +966,7 @@ def get_parser():
                         help="Disable the HTTP/2.0 server")
     parser.add_argument("--quic-transport", action="store_true", help="Enable QUIC server for WebTransport")
     parser.add_argument("--exit-after-start", action="store_true", help="Exit after starting servers")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
     parser.set_defaults(report=False)
     parser.set_defaults(is_wave=False)
     return parser

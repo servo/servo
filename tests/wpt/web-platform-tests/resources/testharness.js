@@ -500,11 +500,7 @@ policies and contribution forms [3].
             return new DedicatedWorkerTestEnvironment();
         }
 
-        if (!('location' in global_scope)) {
-            return new ShellTestEnvironment();
-        }
-
-        throw new Error("Unsupported test environment");
+        return new ShellTestEnvironment();
     }
 
     var test_environment = create_test_environment();
