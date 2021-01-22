@@ -1,0 +1,230 @@
+{
+    "name": "python3-requirements",
+    "buildsystem": "simple",
+    "build-commands": [],
+    "modules": [
+        {
+            "name": "python3-blessings",
+            "buildsystem": "simple",
+            "build-commands": [
+                "pip3 install --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"blessings==1.6\""
+            ],
+            "sources": [
+                {
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/af/4a/61acd1c6c29662d3fcbcaee5ba95c20b1d315c5a33534732b6d81e0dc8e8/blessings-1.6.tar.gz",
+                    "sha256": "edc5713061f10966048bf6b40d9a514b381e0ba849c64e034c4ef6c1847d3007"
+                }
+            ]
+        },
+        {
+            "name": "python3-distro",
+            "buildsystem": "simple",
+            "build-commands": [
+                "pip3 install --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"distro==1.4\""
+            ],
+            "sources": [
+                {
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/ca/e3/78443d739d7efeea86cbbe0216511d29b2f5ca8dbf51a6f2898432738987/distro-1.4.0.tar.gz",
+                    "sha256": "362dde65d846d23baee4b5c058c8586f219b5a54be1cf5fc6ff55c4578392f57"
+                }
+            ]
+        },
+        {
+            "name": "python3-mach",
+            "buildsystem": "simple",
+            "build-commands": [
+                "pip3 install --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"mach==1.0.0\""
+            ],
+            "sources": [
+                {
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/ab/64/60b282b167a923aa8f3bdc819816592a55260dd71d72c45cc6a49fc67798/mozfile-2.1.0.tar.gz",
+                    "sha256": "e5dc835582ea150e35ecd57e9d86cb707d3aa3b2505679db7332326dd49fd6b8"
+                },
+                {
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/26/af/dde5913e553be10468faf885bfd25e2a79f8b08e1f8157d7f254950e56cd/mozinfo-1.1.0.tar.gz",
+                    "sha256": "4525c26350fb85c26b38c5f853a19f47b17b49a74de363d285d54258972a4cbc"
+                },
+                {
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/ca/e3/78443d739d7efeea86cbbe0216511d29b2f5ca8dbf51a6f2898432738987/distro-1.4.0.tar.gz",
+                    "sha256": "362dde65d846d23baee4b5c058c8586f219b5a54be1cf5fc6ff55c4578392f57"
+                },
+                {
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/af/4a/61acd1c6c29662d3fcbcaee5ba95c20b1d315c5a33534732b6d81e0dc8e8/blessings-1.6.tar.gz",
+                    "sha256": "edc5713061f10966048bf6b40d9a514b381e0ba849c64e034c4ef6c1847d3007"
+                },
+                {
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/bf/3f/2faf594078ec016b8cac5e2c3c4aa6aa7ea95a7606e96c917f346dc6819d/mozprocess-1.2.1.tar.gz",
+                    "sha256": "54dc59e7f5a9c2c2930bffb7935f36dddd1d94c9fc6ed179e893d2dff353995a"
+                },
+                {
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/4b/88/d4def370b1ba6127ab936d4cb368ef3f00b500309ae90fb31132861fb872/mach-1.0.0.tar.gz",
+                    "sha256": "33af96af89a24bce59954cf30c92ef790d215b235a2ed5d14cd2531716f0c7df"
+                }
+            ]
+        },
+        {
+            "name": "python3-mozdebug",
+            "buildsystem": "simple",
+            "build-commands": [
+                "pip3 install --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"mozdebug==0.2\""
+            ],
+            "sources": [
+                {
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/ab/64/60b282b167a923aa8f3bdc819816592a55260dd71d72c45cc6a49fc67798/mozfile-2.1.0.tar.gz",
+                    "sha256": "e5dc835582ea150e35ecd57e9d86cb707d3aa3b2505679db7332326dd49fd6b8"
+                },
+                {
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/26/af/dde5913e553be10468faf885bfd25e2a79f8b08e1f8157d7f254950e56cd/mozinfo-1.1.0.tar.gz",
+                    "sha256": "4525c26350fb85c26b38c5f853a19f47b17b49a74de363d285d54258972a4cbc"
+                },
+                {
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/ca/e3/78443d739d7efeea86cbbe0216511d29b2f5ca8dbf51a6f2898432738987/distro-1.4.0.tar.gz",
+                    "sha256": "362dde65d846d23baee4b5c058c8586f219b5a54be1cf5fc6ff55c4578392f57"
+                },
+                {
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/08/9f/8a19de56d3c0473754d96ab6ff4a0406565b084e7db098bcadb46fe89413/mozdebug-0.2.0.tar.gz",
+                    "sha256": "2d905a7fd0f61cd7baadbf727b6d942703c39c72f5351645dca38474e64cd63e"
+                }
+            ]
+        },
+        {
+            "name": "python3-mozinfo",
+            "buildsystem": "simple",
+            "build-commands": [
+                "pip3 install --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"mozinfo==1.1.0\""
+            ],
+            "sources": [
+                {
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/ab/64/60b282b167a923aa8f3bdc819816592a55260dd71d72c45cc6a49fc67798/mozfile-2.1.0.tar.gz",
+                    "sha256": "e5dc835582ea150e35ecd57e9d86cb707d3aa3b2505679db7332326dd49fd6b8"
+                },
+                {
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/26/af/dde5913e553be10468faf885bfd25e2a79f8b08e1f8157d7f254950e56cd/mozinfo-1.1.0.tar.gz",
+                    "sha256": "4525c26350fb85c26b38c5f853a19f47b17b49a74de363d285d54258972a4cbc"
+                }
+            ]
+        },
+        {
+            "name": "python3-mozlog",
+            "buildsystem": "simple",
+            "build-commands": [
+                "pip3 install --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"mozlog==5.0\""
+            ],
+            "sources": [
+                {
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/6b/7d/30d52c3b2cc022280c41f47f0499afc6d87116b23051bf69c683aaa1cdcb/mozlog-5.0.tar.gz",
+                    "sha256": "5c8f366f397491fee69148f819223d070050cf88001060fee6800736827e3040"
+                },
+                {
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/af/4a/61acd1c6c29662d3fcbcaee5ba95c20b1d315c5a33534732b6d81e0dc8e8/blessings-1.6.tar.gz",
+                    "sha256": "edc5713061f10966048bf6b40d9a514b381e0ba849c64e034c4ef6c1847d3007"
+                },
+                {
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/a0/69/5ff6001df98cf1894e6fb4aa74eda1504f830515e52fc6b0a3acc8c1a788/mozterm-1.0.0.tar.gz",
+                    "sha256": "b1e91acec188de07c704dbb7b0100a7be5c1e06567b3beb67f6ea11d00a483a4"
+                }
+            ]
+        },
+        {
+            "name": "python3-toml",
+            "buildsystem": "simple",
+            "build-commands": [
+                "pip3 install --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"toml==0.9.2\""
+            ],
+            "sources": [
+                {
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/5c/b2/8a18ced00a43f2cc5261f9ac9f1c94621251400a80db1567177719355177/toml-0.9.2.tar.gz",
+                    "sha256": "b3953bffe848ad9a6d554114d82f2dcb3e23945e90b4d9addc9956f37f336594"
+                }
+            ]
+        },
+        {
+            "name": "python3-pep8",
+            "buildsystem": "simple",
+            "build-commands": [
+                "pip3 install --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"pep8==1.5.7\""
+            ],
+            "sources": [
+                {
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/8b/de/259f5e735897ada1683489dd514b2a1c91aaa74e5e6b68f80acf128a6368/pep8-1.5.7.tar.gz",
+                    "sha256": "15b42131b25f376165d195fe4e17b0a28311182aaf9330d5eb575bbeda5a6989"
+                }
+            ]
+        },
+        {
+            "name": "python3-pyflakes",
+            "buildsystem": "simple",
+            "build-commands": [
+                "pip3 install --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"pyflakes==2.2.0\""
+            ],
+            "sources": [
+                {
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/f1/e2/e02fc89959619590eec0c35f366902535ade2728479fc3082c8af8840013/pyflakes-2.2.0.tar.gz",
+                    "sha256": "35b2d75ee967ea93b55750aa9edbbf72813e06a66ba54438df2cfac9e3c27fc8"
+                }
+            ]
+        },
+        {
+            "name": "python3-ply",
+            "buildsystem": "simple",
+            "build-commands": [
+                "pip3 install --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"ply==3.8\""
+            ],
+            "sources": [
+                {
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/96/e0/430fcdb6b3ef1ae534d231397bee7e9304be14a47a267e82ebcb3323d0b5/ply-3.8.tar.gz",
+                    "sha256": "e7d1bdff026beb159c9942f7a17e102c375638d9478a7ecd4cc0c76afd8de0b8"
+                }
+            ]
+        },
+        {
+            "name": "python3-colorama",
+            "buildsystem": "simple",
+            "build-commands": [
+                "pip3 install --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"colorama==0.3.7\""
+            ],
+            "sources": [
+                {
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/f0/d0/21c6449df0ca9da74859edc40208b3a57df9aca7323118c913e58d442030/colorama-0.3.7.tar.gz",
+                    "sha256": "e043c8d32527607223652021ff648fbb394d5e19cba9f1a698670b338c9d782b"
+                }
+            ]
+        },
+        {
+            "name": "python3-certifi",
+            "buildsystem": "simple",
+            "build-commands": [
+                "pip3 install --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"certifi\""
+            ],
+            "sources": [
+                {
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/06/a9/cd1fd8ee13f73a4d4f491ee219deeeae20afefa914dfb4c130cfc9dc397a/certifi-2020.12.5.tar.gz",
+                    "sha256": "1a4995114262bffbc2413b159f2a1a480c969de6e6eb13ee966d470af86af59c"
+                }
+            ]
+        }
+    ]
+}

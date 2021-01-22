@@ -1,0 +1,14 @@
+{
+    "name": "python3-voluptuous",
+    "buildsystem": "simple",
+    "build-commands": [
+        "pip3 install --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"voluptuous\""
+    ],
+    "sources": [
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/17/0d/6e1e3ab6653720903efd7f644cc5be839d59ceb396143c08c1bebeab080b/voluptuous-0.12.1.tar.gz",
+            "sha256": "663572419281ddfaf4b4197fd4942d181630120fb39b333e3adad70aeb56444b"
+        }
+    ]
+}
