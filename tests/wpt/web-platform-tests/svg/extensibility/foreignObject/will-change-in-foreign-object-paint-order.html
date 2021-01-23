@@ -1,0 +1,11 @@
+<!doctype html>
+<title>A foreignObject element containing will-change content is painted in correct order</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/single-page.html#embedded-ForeignObjectElement"/>
+<link rel="author" title="Xianzhu Wang" href="mailto:wangxianzhu@chromium.org">
+<link rel="match" href="will-change-in-foreign-object-paint-order-ref.html">
+<svg style="width: 100px; height: 100px;">
+  <foreignObject width="100" height="100">
+    <div style="will-change: transform; width: 100px; height: 100px; background: red"></div>
+  </foreignObject>
+  <rect width="100" height="100" fill="green"></rect>
+</svg>

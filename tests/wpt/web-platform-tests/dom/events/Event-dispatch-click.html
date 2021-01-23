@@ -289,6 +289,23 @@ test(t => {
   assert_false(input.checked);
 }, `disabled radio should get legacy-canceled-activation behavior 2`);
 
+for (const type of ["checkbox", "radio"]) {
+  for (const handler of ["oninput", "onchange"]) {
+    async_test(t => {
+      const input = document.createElement("input");
+      input.type = type;
+      input.onclick = t.step_func(ev => {
+        input.disabled = true;
+      });
+      input[handler] = t.step_func(ev => {
+        assert_equals(input.checked, true);
+        t.done();
+      });
+      input.click();
+    }, `disabling ${type} in onclick listener shouldn't suppress ${handler}`);
+  }
+}
+
 async_test(function(t) {
   var form = document.createElement("form")
   var didSubmit = false

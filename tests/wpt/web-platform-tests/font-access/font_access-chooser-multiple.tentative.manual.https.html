@@ -17,8 +17,8 @@
     await new Promise(resolve => step_timeout(resolve, 100));
 
     await window.test_driver.bless('show a font chooser.<br>Please select at least one font.');
-    const promise = navigator.fonts.showFontChooser()
-    promise_rejects_dom(t, 'SecurityError', navigator.fonts.showFontChooser());
+    const promise = navigator.fonts.query()
+    promise_rejects_dom(t, 'SecurityError', navigator.fonts.query());
     const fonts = await promise;
-  }, 'showFontChooser multiple choosers');
+  }, 'query() multiple choosers');
 </script>

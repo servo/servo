@@ -53,11 +53,11 @@ def get_timeout_multiplier(test_type, run_info_data, **kwargs):
     if kwargs["timeout_multiplier"] is not None:
         return kwargs["timeout_multiplier"]
     if test_type == "reftest":
-        if run_info_data["debug"] or run_info_data.get("asan"):
+        if run_info_data["debug"] or run_info_data.get("asan") or run_info_data.get("tsan"):
             return 4
         else:
             return 2
-    elif run_info_data["debug"] or run_info_data.get("asan"):
+    elif run_info_data["debug"] or run_info_data.get("asan") or run_info_data.get("tsan"):
         if run_info_data.get("ccov"):
             return 4
         else:

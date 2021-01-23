@@ -35,7 +35,7 @@ test(function () {
 
   expectedTimes[0] = self.performance.now();
 
-  entries = self.performance.getEntriesByName("mark");
+  const entries = self.performance.getEntriesByName("mark");
   assert_equals(entries.length, 1);
 }, "Entry 0 is properly created");
 
@@ -45,67 +45,67 @@ test(function () {
 
     expectedTimes[1] = self.performance.now();
 
-    entries = self.performance.getEntriesByName("mark");
+    const entries = self.performance.getEntriesByName("mark");
     assert_equals(entries.length, 2);
 
 }, "Entry 1 is properly created");
 
 function test_mark(index) {
    test(function () {
-       entries = self.performance.getEntriesByName("mark");
+       const entries = self.performance.getEntriesByName("mark");
        assert_equals(entries[index].name, "mark", "Entry has the proper name");
    }, "Entry " + index + " has the proper name");
 
    test(function () {
-       entries = self.performance.getEntriesByName("mark");
+       const entries = self.performance.getEntriesByName("mark");
        assert_approx_equals(entries[index].startTime, expectedTimes[index], testThreshold);
    }, "Entry " + index + " startTime is approximately correct (up to " + testThreshold +
               "ms difference allowed)");
 
    test(function () {
-       entries = self.performance.getEntriesByName("mark");
+       const entries = self.performance.getEntriesByName("mark");
        assert_equals(entries[index].entryType, "mark");
    }, "Entry " + index + " has the proper entryType");
 
    test(function () {
-       entries = self.performance.getEntriesByName("mark");
+       const entries = self.performance.getEntriesByName("mark");
        assert_equals(entries[index].duration, 0);
    }, "Entry " + index +  " duration == 0");
 
    test(function () {
-    entries = self.performance.getEntriesByName("mark", "mark");
+    const entries = self.performance.getEntriesByName("mark", "mark");
     assert_equals(entries[index].name, "mark");
    }, "getEntriesByName(\"mark\", \"mark\")[" + index + "] returns an " +
                 "object containing a \"mark\" mark");
 
    test(function () {
-    entries = self.performance.getEntriesByName("mark", "mark");
+    const entries = self.performance.getEntriesByName("mark", "mark");
     match_entries(entries, index);
    }, "The mark returned by getEntriesByName(\"mark\", \"mark\")[" + index
       + "] matches the mark returned by " +
               "getEntriesByName(\"mark\")[" + index + "]");
 
    test(function () {
-    entries = filter_entries_by_type(self.performance.getEntries(), "mark");
+    const entries = filter_entries_by_type(self.performance.getEntries(), "mark");
     assert_equals(entries[index].name, "mark");
    }, "getEntries()[" + index + "] returns an " +
                 "object containing a \"mark\" mark");
 
    test(function () {
-    entries = filter_entries_by_type(self.performance.getEntries(), "mark");
+    const entries = filter_entries_by_type(self.performance.getEntries(), "mark");
     match_entries(entries, index);
    }, "The mark returned by getEntries()[" + index
       + "] matches the mark returned by " +
               "getEntriesByName(\"mark\")[" + index + "]");
 
    test(function () {
-    entries = self.performance.getEntriesByType("mark");
+    const entries = self.performance.getEntriesByType("mark");
     assert_equals(entries[index].name, "mark");
    }, "getEntriesByType(\"mark\")[" + index + "] returns an " +
                 "object containing a \"mark\" mark");
 
    test(function () {
-    entries = self.performance.getEntriesByType("mark");
+    const entries = self.performance.getEntriesByType("mark");
     match_entries(entries, index);
    }, "The mark returned by getEntriesByType(\"mark\")[" + index
       + "] matches the mark returned by " +

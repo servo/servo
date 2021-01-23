@@ -96,7 +96,7 @@ test(() => {
   }
   // Now, let's add an abusive amount of methods.
   while (evilMethods.length < ABUSIVE_AMOUNT) {
-    evilMethods = evilMethods.concat(evilMethods);
+    evilMethods.push({supportedMethods: "evil-method" + evilMethods.length});
   }
   try {
     new PaymentRequest(evilMethods, defaultDetails);

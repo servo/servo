@@ -94,7 +94,7 @@ test(() => {
   element.focus();
   let states = element.i.states;
 
-  states.value = '--foo';
+  states.add('--foo');
   assert_true(element.matches(':focus:--foo'));
   assert_true(element.matches(':--foo:focus'));
 }, ':--foo and other pseudo classes');
@@ -109,10 +109,11 @@ test(() => {
   innerStates.add('--innerFoo');
   assert_equals(getComputedStyle(inner).opacity, '0.5',
       '::part() followed by :--foo');
-  innerStates.replace('--innerFoo', '--innerfoo');
+  innerStates.delete('--innerFoo');
+  innerStates.add('--innerfoo');
   assert_equals(getComputedStyle(inner).opacity, '0',
       ':--foo matching should be case-sensitive');
-  innerStates.remove('--innerfoo');
+  innerStates.delete('--innerfoo');
 
   outer.i.states.add('--outerFoo');
   assert_equals(getComputedStyle(inner).opacity, '0.25',
@@ -124,7 +125,7 @@ test(() => {
   document.body.appendChild(outer);
 
   assert_equals(getComputedStyle(outer).borderStyle, 'solid');
-  outer.i.states.toggle('--dotted');
+  outer.i.states.add('--dotted');
   assert_equals(getComputedStyle(outer).borderStyle, 'dotted');
 }, ':--foo and :host()');
 </script>

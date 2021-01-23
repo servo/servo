@@ -7,10 +7,14 @@
 
 idl_test(
   ['dom-overlays'],
-  ['webxr', 'html', 'dom'],
+  ['webxr', 'html', 'dom', 'SVG'],
   async idl_array => {
+    self.svgElement = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     idl_array.add_objects({
-      // TODO: Add object instances
+      Document: ['document'],
+      HTMLElement: ['document.body'],
+      SVGElement: ['svgElement'],
+      Window: ['window']
     });
   }
 );

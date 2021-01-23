@@ -9,31 +9,47 @@
 // Check sandbox flags are properly defined when its parent requires them and
 // the child allows it.
 
-const same_origin = get_host_info().HTTPS_ORIGIN;
-const cross_origin = get_host_info().HTTPS_REMOTE_ORIGIN;
+const same_origin = get_host_info().HTTP_ORIGIN;
+const cross_origin = get_host_info().HTTP_REMOTE_ORIGIN;
 const check_sandbox_url =
   "/html/browsers/sandboxing/resources/check-sandbox-flags.html?pipe=";
 const allow_csp_from_star = "|header(Allow-CSP-From,*)";
 
 // Return a promise, resolving when |element| triggers |event_name| event.
-const future = (element, event_name) => {
+const future = (element, event_name, source) => {
   return new Promise(resolve => {
-    element.addEventListener(event_name, event => resolve(event))
+    element.addEventListener(event_name, event => {
+      if (!source || source.contentWindow == event.source)
+        resolve(event)
+    })
   });
 };
 
 const check_sandbox_script = `
+<script>
   try {
     document.domain = document.domain;
     parent.postMessage("document-domain-is-allowed", "*");
   } catch (exception) {
     parent.postMessage("document-domain-is-disallowed", "*");
   }
+</scr`+`ipt>
 `;
 
 const sandbox_policy = "sandbox allow-scripts allow-same-origin";
 
-promise_test(async test => {
+// Test using the modern async/await primitives are easier to read/write.
+// However they run sequentially, contrary to async_test. This is the parallel
+// version, to avoid timing out.
+let promise_test_parallel = (promise, description) => {
+  async_test(test => {
+    promise(test)
+    .then(() => {test.done();})
+    .catch(test.step_func(error => { throw error; }));
+  }, description);
+};
+
+promise_test_parallel(async test => {
   const iframe = document.createElement("iframe");
   iframe.csp = sandbox_policy;
 
@@ -43,16 +59,15 @@ promise_test(async test => {
   iframe.src = "/fetch/api/resources/infinite-slow-response.py";
   document.body.appendChild(iframe);
 
-  const iframe_reply = future(window, "message");
-  iframe.contentWindow.location =
-    `javascript:${encodeURI(check_sandbox_script)}`;
+  const iframe_reply = future(window, "message", iframe);
+  iframe.contentDocument.write(check_sandbox_script);
   const result = await iframe_reply;
   iframe.remove();
 
-  assert_equals(result.data, "document-domain-is-not-allowed");
+  assert_equals(result.data, "document-domain-is-disallowed");
 }, "initial empty document");
 
-promise_test(async test => {
+promise_test_parallel(async test => {
   const iframe = document.createElement("iframe");
   iframe.src = "data:text/html,dummy";
 
@@ -65,73 +80,71 @@ promise_test(async test => {
   iframe.src = "about:blank";
   await iframe_load_2;
 
-  const iframe_reply = future(window, "message");
-  iframe.contentWindow.location =
-    `javascript:${encodeURI(check_sandbox_script)}`;
+  const iframe_reply = future(window, "message", iframe);
+  iframe.contentDocument.write(check_sandbox_script);
   const result = await iframe_reply;
 
-  assert_equals(result.data, "document-domain-is-not-allowed");
+  assert_equals(result.data, "document-domain-is-disallowed");
 }, "about:blank");
 
-promise_test(async test => {
+promise_test_parallel(async test => {
   const iframe = document.createElement("iframe");
   iframe.csp = sandbox_policy;
   iframe.src =
-    `data:text/html,<script>${encodeURI(check_sandbox_script)}</scr`+`ipt>`;
+    `data:text/html,${encodeURI(check_sandbox_script)}`;
 
-  const iframe_reply = future(window, "message");
+  const iframe_reply = future(window, "message", iframe);
   document.body.appendChild(iframe);
   const result = await iframe_reply;
 
   assert_equals(result.data, "document-domain-is-disallowed");
 }, "data-url");
 
-promise_test(async test => {
+promise_test_parallel(async test => {
   const iframe = document.createElement("iframe");
   iframe.csp = sandbox_policy;
-  iframe.srcdoc = `<script>${check_sandbox_script}</scr`+`ipt>`;
+  iframe.srcdoc = check_sandbox_script;
 
-  const iframe_reply = future(window, "message");
+  const iframe_reply = future(window, "message", iframe);
   document.body.appendChild(iframe);
   const result = await iframe_reply;
 
-  assert_equals(result.data, "document-domain-is-not-allowed");
+  assert_equals(result.data, "document-domain-is-disallowed");
 }, "srcdoc");
 
-promise_test(async test => {
+promise_test_parallel(async test => {
   const iframe = document.createElement("iframe");
   iframe.csp = sandbox_policy;
 
-  const blob = new Blob(
-    [ `<script>${check_sandbox_script}</scr`+`ipt>` ], { type: "text/html" });
+  const blob = new Blob([check_sandbox_script], { type: "text/html" });
 
   iframe.src = URL.createObjectURL(blob);
 
-  const iframe_reply = future(window, "message");
+  const iframe_reply = future(window, "message", iframe);
   document.body.appendChild(iframe);
   const result = await iframe_reply;
 
   assert_equals(result.data, "document-domain-is-disallowed");
 }, "blob URL");
 
-promise_test(async test => {
+promise_test_parallel(async test => {
   const iframe = document.createElement("iframe");
   iframe.csp = sandbox_policy;
   iframe.src = same_origin + check_sandbox_url + allow_csp_from_star;
 
-  const iframe_reply = future(window, "message");
+  const iframe_reply = future(window, "message", iframe);
   document.body.appendChild(iframe);
   const result = await iframe_reply;
 
   assert_equals(result.data, "document-domain-is-disallowed");
 }, "same-origin");
 
-promise_test(async test => {
+promise_test_parallel(async test => {
   const iframe = document.createElement("iframe");
   iframe.csp = sandbox_policy;
   iframe.src = cross_origin + check_sandbox_url + allow_csp_from_star;
 
-  const iframe_reply = future(window, "message");
+  const iframe_reply = future(window, "message", iframe);
   document.body.appendChild(iframe);
   const result = await iframe_reply;
 
