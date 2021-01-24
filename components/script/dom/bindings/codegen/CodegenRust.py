@@ -1884,7 +1884,7 @@ class AttrDefiner(PropertyDefiner):
             array, name,
             '    JSPropertySpec {\n'
             '        name: JSPropertySpec_Name { string_: %s as *const u8 as *const libc::c_char },\n'
-            '        flags: (%s) as u8,\n'
+            '        flags_: (%s) as u8,\n'
             '        u: JSPropertySpec_AccessorsOrValue {\n'
             '            accessors: JSPropertySpec_AccessorsOrValue_Accessors {\n'
             '                getter: JSPropertySpec_Accessor {\n'
@@ -2741,7 +2741,7 @@ ensure_expando_object(*cx, obj.handle().into(), expando.handle_mut());
     # unforgeable holder for those with the right JSClass. Luckily, there
     # aren't too many globals being created.
     if descriptor.isGlobal():
-        copyFunc = "JS_CopyPropertiesFrom"
+        copyFunc = "JS_CopyOwnPropertiesAndPrivateFields"
     else:
         copyFunc = "JS_InitializePropertiesFromCompatibleNativeObject"
     copyCode += """\
@@ -2783,7 +2783,6 @@ rooted!(in(*cx) let obj = NewProxyObject(
     Handle::from_raw(UndefinedHandleValue),
     proto.get(),
     ptr::null(),
-    false,
 ));
 assert!(!obj.is_null());
 SetProxyReservedSlot(
@@ -6059,7 +6058,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::JSValueType',
         'js::jsapi::JS_AtomizeAndPinString',
         'js::rust::wrappers::JS_CallFunctionValue',
-        'js::rust::wrappers::JS_CopyPropertiesFrom',
+        'js::rust::wrappers::JS_CopyOwnPropertiesAndPrivateFields',
         'js::rust::wrappers::JS_DefineProperty',
         'js::rust::wrappers::JS_DefinePropertyById2',
         'js::jsapi::JS_ForwardGetPropertyTo',

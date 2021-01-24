@@ -5042,6 +5042,7 @@ fn array_buffer_type_to_sized_type(type_: Type) -> Option<SizedDataType> {
         Type::BigInt64 |
         Type::BigUint64 |
         Type::MaxTypedArrayViewType |
-        Type::Int64 => None,
+        Type::Int64 |
+        Type::Simd128 => None,
     }
 }

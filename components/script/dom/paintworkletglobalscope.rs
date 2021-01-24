@@ -36,7 +36,7 @@ use js::jsapi::JSAutoRealm;
 use js::jsapi::JSObject;
 use js::jsapi::JS_ClearPendingException;
 use js::jsapi::JS_IsExceptionPending;
-use js::jsapi::JS_NewArrayObject;
+use js::jsapi::NewArrayObject;
 use js::jsval::JSVal;
 use js::jsval::ObjectValue;
 use js::jsval::UndefinedValue;
@@ -333,7 +333,7 @@ impl PaintWorkletGlobalScope {
             .collect();
         let arguments_value_array =
             unsafe { HandleValueArray::from_rooted_slice(&*arguments_value_vec) };
-        rooted!(in(*cx) let argument_object = unsafe { JS_NewArrayObject(*cx, &arguments_value_array) });
+        rooted!(in(*cx) let argument_object = unsafe { NewArrayObject(*cx, &arguments_value_array) });
 
         let args_slice = [
             ObjectValue(rendering_context.reflector().get_jsobject().get()),
