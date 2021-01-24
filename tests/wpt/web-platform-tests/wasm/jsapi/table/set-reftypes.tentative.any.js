@@ -1,6 +1,5 @@
 // META: global=window,dedicatedworker,jsshell
 // META: script=assertions.js
-// META: script=/wasm/jsapi/wasm-constants.js
 // META: script=/wasm/jsapi/wasm-module-builder.js
 
 // Test cases for changes to the WebAssembly.Table.prototype.set() API that

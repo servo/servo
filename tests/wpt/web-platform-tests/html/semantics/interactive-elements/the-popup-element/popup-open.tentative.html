@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Mason Freed" href="mailto:masonfreed@chromium.org">
+<link rel=help href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/Popup/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<popup id=p1>This is a closed popup</popup>
+<popup id=p2 open>This is an open popup</popup>
+
+<script>
+  var popup1 = document.getElementById('p1');
+  var popup2 = document.getElementById('p2');
+
+  test(function(){
+    assert_false(popup1.open);
+    assert_true(popup2.open);
+  }, "The IDL open attribute must return true if the content open attribute is set, and false if it is absent.");
+
+  test(function(){
+    assert_false(popup1.hasAttribute("open"));
+    popup1.open = true;
+    assert_true(popup1.hasAttribute("open"));
+    popup1.open = false;
+    assert_true(popup2.hasAttribute("open"));
+    popup2.open = false;
+    assert_false(popup2.hasAttribute("open"));
+  }, "On setting, the content open attribute must be removed if the IDL open attribute is set to false, and must be present if the IDL open attribute is set to true.");
+</script>

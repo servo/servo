@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Mason Freed" href="mailto:masonfreed@chromium.org">
+<link rel=help href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/Popup/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<popup id=popup>This is a popup</popup>
+
+<script>
+  test(function() {
+    assert_true(document.createElement('popup') instanceof HTMLPopupElement);
+  }, "popup element exists")
+
+  test(function() {
+    const popup = document.getElementById('popup');
+    assert_equals(window.getComputedStyle(popup).getPropertyValue('display'),'none');
+    assert_equals(popup.getAttribute('open'),null);
+    popup.show();
+    assert_equals(popup.getAttribute('open'),"");
+    assert_equals(window.getComputedStyle(popup).getPropertyValue('display'),'block');
+    popup.hide();
+    assert_equals(popup.getAttribute('open'),null);
+    assert_equals(window.getComputedStyle(popup).getPropertyValue('display'),'none');
+  }, "popup element basic show/hide behavior")
+</script>
