@@ -621,7 +621,7 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
             if run_webgpu:
                 webgpu_script = """
                     time ./mach test-wpt _webgpu --release --processes $PROCESSES \
-                        --headless --log-raw test-webgpu.log \
+                        --headless --log-raw test-webgpu.log --always-succeed \
                         --log-errorsummary webgpu-errorsummary.log \
                         | cat
                     ./mach filter-intermittents \
