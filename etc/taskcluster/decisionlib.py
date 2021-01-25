@@ -387,7 +387,10 @@ class GenericWorkerTask(Task):
 
         Paths are relative to the task’s home directory.
         """
-        self.artifacts.extend((type, path) for path in paths)
+        for path in paths:
+            if (type, path) in self.artifacts:
+                raise ValueError("Duplicate artifact: " + path)  # pragma: no cover
+            self.artifacts.append(tuple((type, path)))
         return self
 
     def with_features(self, *names):
@@ -736,12 +739,18 @@ class DockerWorkerTask(UnixTaskMixin, Task):
 
     with_docker_image = chaining(setattr, "docker_image")
     with_max_run_time_minutes = chaining(setattr, "max_run_time_minutes")
-    with_artifacts = chaining(append_to_attr, "artifacts")
     with_script = chaining(append_to_attr, "scripts")
     with_early_script = chaining(prepend_to_attr, "scripts")
     with_caches = chaining(update_attr, "caches")
     with_env = chaining(update_attr, "env")
     with_capabilities = chaining(update_attr, "capabilities")
+
+    def with_artifacts(self, *paths):
+        for path in paths:
+            if path in self.artifacts:
+                raise ValueError("Duplicate artifact: " + path)  # pragma: no cover
+            self.artifacts.append(path)
+        return self
 
     def build_worker_payload(self):
         """

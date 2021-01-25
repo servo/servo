@@ -698,12 +698,13 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                     --tracker-api default \
                     --reporter-api default
             """)
-        task.with_artifacts(*[
+        all_artifacts = set([
             "%s/%s" % (repo_dir, word)
             for script in task.scripts
             for word in script.split()
             if word.endswith(".log")
         ])
+        task.with_artifacts(*all_artifacts)
         task.find_or_create("%s_%swpt_%s.%s" % (
             platform.replace(" ", "_").lower(),
             job_id_prefix.replace("-", "_"),
