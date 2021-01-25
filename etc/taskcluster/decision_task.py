@@ -630,7 +630,7 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                         --log-filteredsummary filtered-webgpu-errorsummary.log \
                         --tracker-api default \
                         --reporter-api default
-                """
+                """  # pragma: no cover
             else:
                 webgpu_script = ""
 
