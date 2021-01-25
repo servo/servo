@@ -1,5 +1,5 @@
 <!doctype html>
-<title>Local Font Access: Chooser</title>
+<title>Local Font Access: Chooser, Selection Options</title>
 <meta charset=utf-8>
 
 <script src="/resources/testharness.js"></script>
@@ -21,24 +21,24 @@
       promise_test(async t => {
         await window.test_driver.bless('show a font chooser.<br />Please select all the fonts that shows up.');
         // Arial is considered to be web-safe.
-        const fonts = await navigator.fonts.showFontChooser({select: ['ArialMT']});
+        const fonts = await navigator.fonts.query({select: ['ArialMT']});
         assert_true(Array.isArray(fonts));
         assert_equals(fonts.length, 1);
 
         const postscriptName = fonts[0].postscriptName;
         assert_equals(typeof postscriptName, "string");
         assert_greater_than(postscriptName.length, 0);
-      }, 'showFontChooser with selection works');
+      }, 'query() with selection works');
 
       promise_test(async t => {
         await window.test_driver.bless('show a font chooser.<br />Please select all the fonts that shows up.');
-        const fonts = await navigator.fonts.showFontChooser({select: []});
+        const fonts = await navigator.fonts.query({select: []});
         assert_true(Array.isArray(fonts));
         assert_greater_than_equal(fonts.length, 1);
 
         const postscriptName = fonts[0].postscriptName;
         assert_equals(typeof postscriptName, "string");
         assert_greater_than(postscriptName.length, 0);
-      }, 'showFontChooser with empty selection bag works');
+      }, 'query() with empty selection bag works');
     })();
 </script>

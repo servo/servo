@@ -39,7 +39,11 @@ def pytest_collect_file(path, parent):
         return
     test_type = test_type.split(os.path.sep)[1]
 
-    return HTMLItem(str(path), test_type, parent)
+    # Handle the deprecation of Node construction in pytest6
+    # https://docs.pytest.org/en/stable/deprecations.html#node-construction-changed-to-node-from-parent
+    if hasattr(HTMLItem, "from_parent"):
+        return HTMLItem.from_parent(parent, filename=str(path), test_type=test_type)
+    return HTMLItem(parent, str(path), test_type)
 
 
 def pytest_configure(config):
@@ -83,7 +87,7 @@ def resolve_uri(context, uri):
 
 
 class HTMLItem(pytest.Item, pytest.Collector):
-    def __init__(self, filename, test_type, parent):
+    def __init__(self, parent, filename, test_type):
         self.url = parent.session.config.server.url(filename)
         self.type = test_type
         self.variants = []
@@ -114,7 +118,11 @@ class HTMLItem(pytest.Item, pytest.Collector):
                 continue
             if element.tag == 'script':
                 if element.attrib.get('id') == 'expected':
-                    self.expected = json.loads(text_type(element.text))
+                    try:
+                        self.expected = json.loads(text_type(element.text))
+                    except ValueError:
+                        print("Failed parsing JSON in %s" % filename)
+                        raise
 
                 src = element.attrib.get('src', '')
 
@@ -192,6 +200,8 @@ class HTMLItem(pytest.Item, pytest.Collector):
         test_url = self.url + variant
         actual = driver.execute_async_script('runTest("%s", "foo", arguments[0])' % test_url)
 
+        print(json.dumps(actual, indent=2))
+
         summarized = self._summarize(copy.deepcopy(actual))
 
         print(json.dumps(summarized, indent=2))
@@ -203,6 +213,17 @@ class HTMLItem(pytest.Item, pytest.Collector):
 
         self.expected[u'summarized_tests'].sort(key=lambda test_obj: test_obj.get('name'))
 
+        # Make asserts opt-in for now
+        if "summarized_asserts" not in self.expected:
+            del summarized["summarized_asserts"]
+        else:
+            # We can't be sure of the order of asserts even within the same test
+            # although we could also check for the failing assert being the final
+            # one
+            for obj in [summarized, self.expected]:
+                obj["summarized_asserts"].sort(
+                    key=lambda x: (x["test"], x["status"], x["assert_name"], tuple(x["args"])))
+
         assert summarized == self.expected
 
     def _summarize(self, actual):
@@ -212,6 +233,11 @@ class HTMLItem(pytest.Item, pytest.Collector):
         summarized[u'summarized_tests'] = [
             self._summarize_test(test) for test in actual['tests']]
         summarized[u'summarized_tests'].sort(key=lambda test_obj: test_obj.get('name'))
+        summarized[u'summarized_asserts'] = [
+            {"assert_name": assert_item["assert_name"],
+            "test": assert_item["test"]["name"] if assert_item["test"] else None,
+            "args": assert_item["args"],
+            "status": assert_item["status"]} for assert_item in actual["asserts"]]
         summarized[u'type'] = actual['type']
 
         return summarized

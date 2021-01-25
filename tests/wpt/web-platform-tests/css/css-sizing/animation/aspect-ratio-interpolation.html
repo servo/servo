@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>aspect-ratio interpolation</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<meta name="assert" content="aspect-ratio supports animation">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<style>
+.target {
+  font-size: 16px;
+  background-color: black;
+  width: 10px;
+  aspect-ratio: 0.5;
+}
+</style>
+
+<body>
+  <template id="target-template">
+    <div class="container">
+      <div class="target"></div>
+    </div>
+  </template>
+</body>
+
+<script>
+test_interpolation({
+  property: 'aspect-ratio',
+  from: '0.5',
+  to: '2',
+}, [
+  {at: -0.5, expect: '0.25 / 1'},
+  {at: 0, expect: '0.5 / 1'},
+  {at: 0.5, expect: '1 / 1'},
+  {at: 1, expect: '2 / 1'},
+  {at: 1.5, expect: '4 / 1'}
+]);
+
+test_interpolation({
+  property: 'aspect-ratio',
+  from: '1 / 2',
+  to: '2 / 1',
+}, [
+  {at: -0.5, expect: '0.25 / 1'},
+  {at: 0, expect: '0.5 / 1'},
+  {at: 0.5, expect: '1 / 1'},
+  {at: 1, expect: '2 / 1'},
+  {at: 1.5, expect: '4 / 1'}
+]);
+
+// Test neutral keyframe
+test_interpolation({
+  property: 'aspect-ratio',
+  from: '',
+  to: '2 / 1',
+}, [
+  {at: -0.5, expect: '0.25 / 1'},
+  {at: 0, expect: '0.5 / 1'},
+  {at: 0.5, expect: '1 / 1'},
+  {at: 1, expect: '2 / 1'},
+  {at: 1.5, expect: '4 / 1'}
+]);
+
+test_interpolation({
+  property: 'aspect-ratio',
+  from: 'auto 1 / 2',
+  to: 'auto 2 / 1',
+}, [
+  {at: -0.5, expect: 'auto 0.25 / 1'},
+  {at: 0, expect: 'auto 0.5 / 1'},
+  {at: 0.5, expect: 'auto 1 / 1'},
+  {at: 1, expect: 'auto 2 / 1'},
+  {at: 1.5, expect: 'auto 4 / 1'}
+]);
+
+test_no_interpolation({
+  property: 'aspect-ratio',
+  from: 'auto',
+  to: '2 / 1',
+});
+
+test_no_interpolation({
+  property: 'aspect-ratio',
+  from: 'auto 1 / 1',
+  to: '2 / 1',
+});
+
+// If either number in the ratio is 0 or infinite, it represents a degenerate
+// ratio and will not be interpolated:
+// https://drafts.csswg.org/css-values-4/#combine-ratio
+test_no_interpolation({
+  property: 'aspect-ratio',
+  from: '1 / 0',
+  to: '1 / 1',
+});
+test_no_interpolation({
+  property: 'aspect-ratio',
+  from: '1 / 1',
+  to: '0 / 1',
+});
+
+test_composition({
+  property: 'aspect-ratio',
+  underlying: '0.5 / 1',
+  replaceFrom: '1 / 1',
+  addTo: '2 / 1',
+}, [
+  {at: 0, expect: '1 / 1'},
+  {at: 0.5, expect: '1 / 1'},
+  {at: 1, expect: '1 / 1'}
+]);
+
+</script>
+</body>

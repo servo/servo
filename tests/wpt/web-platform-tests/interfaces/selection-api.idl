@@ -27,7 +27,7 @@ interface Selection {
   [CEReactions]
   undefined deleteFromDocument();
   boolean containsNode(Node node, optional boolean allowPartialContainment = false);
-  stringifier DOMString ();
+  stringifier;
 };
 
 partial interface Document {
