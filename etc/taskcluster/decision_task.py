@@ -548,7 +548,7 @@ def macos_wpt():
         repo_dir="repo",
         total_chunks=20,
         processes=8,
-        run_webgpu=True,
+        run_webgpu=False,
     )
 
 
