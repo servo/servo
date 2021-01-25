@@ -11,7 +11,7 @@
   <script src="/resources/testdriver-vendor.js"></script>
   <style>
     [data-hadkeydown] :focus-visible {
-      outline: darkgreen solid 5px;
+      outline: green solid 5px;
     }
 
     [data-hadmousedown] :focus-visible {
@@ -20,12 +20,12 @@
 
     [data-hadkeydown] :focus:not(:focus-visible) {
       outline: 0;
-      background-color: tomato;
+      background-color: red;
     }
 
     [data-hadmousedown] :focus:not(:focus-visible) {
       outline: 0;
-      background-color: darkseagreen;
+      background-color: lime;
     }
 
   </style>
@@ -34,16 +34,13 @@
   This test checks that using the keyboard in a way that does not move focus still causes <code>:focus-visible</code> matching to trigger.
   <ol id="instructions">
     <li>If the user-agent does not claim to support the <code>:focus-visible</code> pseudo-class then SKIP this test.</li>
-    <li>Use the mouse to focus the element below that says "Click me first."</li>
+    <li>Use the mouse to focus the element below that says "Click me."</li>
     <li>If the element has a red outline, then the test result is FAILURE.</li>
     <li>Press the SHIFT key.</li>
-    <li>If the element now has a red background, then the test result is FAILURE.</li>
-    <li>Use the mouse to click the element below that says "Click me second."</li>
-    <li>If the element has a green background, the test result is SUCCESS.</li>
+    <li>If the element now has a green outline and not red background, then the test result is SUCCESS.</li>
   </ol>
 
-  <div id="one" tabindex="0">Click me first.</div>
-  <div id="two" tabindex="0">Click me second.</div>
+  <div id="one" tabindex="0">Click me.</div>
   <script>
     document.body.addEventListener("keydown", (e) => {
       delete document.body.dataset.hadmousedown;
@@ -56,51 +53,29 @@
     }, true);
 
     async_test(function(t) {
-      let tested_modality_change = false;
-      let tested_modality_unchanged_by_mouse_click = false;
-      let tested_mouse_focus_after_modality_change = false;
+      let tested_initial_focus = false;
 
-      // TODO(crbug.com/828858): Remove this check once bug is resolved.
-      test_driver.send_keys(document.body, "\uE050").then(t.step_func(() => {
-        const handle_initial_focus = t.step_func(() => {
-          one.addEventListener("keyup", t.step_func(test_modality_change));
-          one.removeEventListener("focus", handle_initial_focus);
+      const handle_initial_focus = t.step_func(() => {
+        tested_initial_focus = true;
+        assert_equals(getComputedStyle(one).backgroundColor, "rgb(0, 255, 0)");
+        assert_not_equals(getComputedStyle(one).outlineColor, "rgb(255, 0, 0)");
 
-          test_driver.send_keys(one, "\uE050");
-        });
+        one.addEventListener("keyup", t.step_func(test_modality_change));
+        one.removeEventListener("focus", handle_initial_focus);
 
-        const test_modality_change = t.step_func(() => {
-          assert_equals(getComputedStyle(one).outlineColor, "rgb(59, 153, 252)");
-          tested_modality_change = true;
-          one.removeEventListener("keyup", test_modality_change);
-          one.addEventListener("click", test_modality_unchanged_by_mouse_click);
-          test_driver.click(one);
-        });
+        test_driver.send_keys(one, "\uE050");
+      });
 
-        const test_modality_unchanged_by_mouse_click = t.step_func(() => {
-          assert_true(tested_modality_change);
-          assert_equals(getComputedStyle(one).outlineColor, "rgb(59, 153, 252)");
-          tested_modality_unchanged_by_mouse_click = true;
-          one.removeEventListener("click", test_modality_unchanged_by_mouse_click);
-          two.addEventListener("focus", test_mouse_focus_after_modality_change);
-          test_driver.click(two);
-        });
-
-        const test_mouse_focus_after_modality_change = t.step_func(() => {
-          assert_true(tested_modality_unchanged_by_mouse_click);
-          assert_false("hadkeydown" in document.body.dataset);
-          assert_equals(getComputedStyle(two).outlineColor, "rgb(59, 153, 252)");
-          tested_mouse_focus_after_modality_change = true;
-          t.done();
-        });
-
-        one.addEventListener("focus", handle_initial_focus);
-        test_driver.click(one);
-      })).catch(t.step_func((e) => {
-        // TODO(crbug.com/828858): Remove this check once bug is resolved.
-        assert_true(false, "send_keys not implemented yet");
+      const test_modality_change = t.step_func(() => {
+        assert_true(tested_initial_focus);
+        one.removeEventListener("keyup", test_modality_change);
+        assert_equals(getComputedStyle(one).outlineColor, "rgb(0, 128, 0)");
+        assert_not_equals(getComputedStyle(one).backgroundColor, "rgb(255, 0, 0)");
         t.done();
-      }));
+      });
+
+      one.addEventListener("focus", handle_initial_focus);
+      test_driver.click(one);
     }, "Using keyboard while element is focused should trigger :focus-visible; using mouse without moving focus should not cancel it; moving focus using mouse should cancel it.");
   </script>
 </body>
