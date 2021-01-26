@@ -548,7 +548,7 @@ def macos_wpt():
         repo_dir="repo",
         total_chunks=20,
         processes=8,
-        run_webgpu=True,
+        run_webgpu=False,
     )
 
 
@@ -621,7 +621,7 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
             if run_webgpu:
                 webgpu_script = """
                     time ./mach test-wpt _webgpu --release --processes $PROCESSES \
-                        --headless --log-raw test-webgpu.log \
+                        --headless --log-raw test-webgpu.log --always-succeed \
                         --log-errorsummary webgpu-errorsummary.log \
                         | cat
                     ./mach filter-intermittents \
@@ -630,7 +630,7 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                         --log-filteredsummary filtered-webgpu-errorsummary.log \
                         --tracker-api default \
                         --reporter-api default
-                """
+                """  # pragma: no cover
             else:
                 webgpu_script = ""
 
