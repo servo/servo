@@ -515,3 +515,15 @@ class PrintProtocolPart(ProtocolPart):
     def render_as_pdf(self, width, height):
         """Output document as PDF"""
         pass
+
+
+class DebugProtocolPart(ProtocolPart):
+    """Protocol part for debugging test failures."""
+    __metaclass__ = ABCMeta
+
+    name = "debug"
+
+    @abstractmethod
+    def load_devtools(self):
+        """Load devtools in the current window"""
+        pass

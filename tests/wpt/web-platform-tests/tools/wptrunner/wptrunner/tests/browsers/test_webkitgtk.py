@@ -41,6 +41,7 @@ def test_webkitgtk_certificate_domain_list(product):
     kwargs["webdriver_binary"] = None
     kwargs["pause_after_test"] = False
     kwargs["pause_on_unexpected"] = False
+    kwargs["debug_test"] = False
     with ConfigBuilder(browser_host="example.net",
                        alternate_hosts={"alt": "example.org"},
                        subdomains={"a", "b"},

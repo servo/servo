@@ -1,4 +1,4 @@
-var props = {output:%(output)d};
+var props = {output:%(output)d, debug: %(debug)s};
 var start_loc = document.createElement('a');
 start_loc.href = location.href;
 setup(props);

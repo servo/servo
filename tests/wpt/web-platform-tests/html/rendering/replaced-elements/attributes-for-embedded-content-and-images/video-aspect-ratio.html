@@ -11,17 +11,25 @@
   }
 </style>
 <body>
+<video width="250" height="100" id="contained" style="contain: size;"></video>
 <script>
 let t = async_test("Video width and height attributes are not used to infer aspect-ratio");
 function assert_ratio(img, expected) {
   let epsilon = 0.001;
   assert_approx_equals(parseInt(getComputedStyle(img).width, 10) / parseInt(getComputedStyle(img).height, 10), expected, epsilon);
 }
+
+t.step(function() {
+  var video = document.getElementById("contained");
+  video.src = getVideoURI('/media/2x2-green');
+  assert_ratio(video, 2.5);
+}, "contain:size aspect ratio");
+
 // Create and append a new video and immediately check the ratio.
 // This is not racy because the spec requires the user agent to queue a task:
 // https://html.spec.whatwg.org/multipage/media.html#concept-media-load-algorithm
 t.step(function() {
-  var video = document.createElement("video");
+  video = document.createElement("video");
   video.setAttribute("width", "250");
   video.setAttribute("height", "100");
   video.src = getVideoURI('/media/2x2-green');
@@ -35,5 +43,5 @@ t.step(function() {
     // When loaded this video is square.
     assert_ratio(video, 1);
   });
-});
+}, "aspect ratio for regular video");
 </script>

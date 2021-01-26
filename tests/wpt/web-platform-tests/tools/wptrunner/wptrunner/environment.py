@@ -55,7 +55,7 @@ class TestEnvironment(object):
     """Context manager that owns the test environment i.e. the http and
     websockets servers"""
     def __init__(self, test_paths, testharness_timeout_multipler,
-                 pause_after_test, debug_info, options, ssl_config, env_extras,
+                 pause_after_test, debug_test, debug_info, options, ssl_config, env_extras,
                  enable_quic=False, mojojs_path=None):
         self.test_paths = test_paths
         self.server = None
@@ -63,6 +63,7 @@ class TestEnvironment(object):
         self.config = None
         self.testharness_timeout_multipler = testharness_timeout_multipler
         self.pause_after_test = pause_after_test
+        self.debug_test = debug_test
         self.test_server_port = options.pop("test_server_port", True)
         self.debug_info = debug_info
         self.options = options if options is not None else {}
@@ -195,7 +196,8 @@ class TestEnvironment(object):
                 (self.options.get("testharnessreport", "testharnessreport.js"),
                  {"output": self.pause_after_test,
                   "timeout_multiplier": self.testharness_timeout_multipler,
-                  "explicit_timeout": "true" if self.debug_info is not None else "false"},
+                  "explicit_timeout": "true" if self.debug_info is not None else "false",
+                  "debug": "true" if self.debug_test else "false"},
                  "text/javascript;charset=utf8",
                  "/resources/testharnessreport.js")]:
             path = os.path.normpath(os.path.join(here, path))

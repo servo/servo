@@ -30,6 +30,13 @@ gen-bundle \
 
 gen-bundle \
   -version b1 \
+  -baseURL $wpt_test_http_origin/web-bundle/resources/wbn/static-element/ \
+  -primaryURL $wpt_test_http_origin/web-bundle/resources/wbn/static-element/resources/style.css \
+  -dir static-element/ \
+  -o wbn/static-element.wbn
+
+gen-bundle \
+  -version b1 \
   -baseURL $wpt_test_http_origin/web-bundle/resources/wbn/dynamic/ \
   -primaryURL $wpt_test_http_origin/web-bundle/resources/wbn/dynamic/resource1.js \
   -dir dynamic1/ \

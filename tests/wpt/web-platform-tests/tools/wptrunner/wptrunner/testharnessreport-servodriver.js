@@ -1,4 +1,4 @@
-setup({output:%(output)d});
+setup({output:%(output)d, debug: %(debug)s});
 
 add_completion_callback(function() {
     add_completion_callback(function (tests, status) {

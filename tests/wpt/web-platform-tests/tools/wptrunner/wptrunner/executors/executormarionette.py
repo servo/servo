@@ -40,7 +40,8 @@ from .protocol import (ActionSequenceProtocolPart,
                        GenerateTestReportProtocolPart,
                        VirtualAuthenticatorProtocolPart,
                        SetPermissionProtocolPart,
-                       PrintProtocolPart)
+                       PrintProtocolPart,
+                       DebugProtocolPart)
 from ..webdriver_server import GeckoDriverServer
 
 
@@ -625,6 +626,30 @@ render('%s').then(result => callback(result))""" % pdf_base64, new_sandbox=False
         finally:
             _switch_to_window(self.marionette, handle)
 
+
+class MarionetteDebugProtocolPart(DebugProtocolPart):
+    def setup(self):
+        self.marionette = self.parent.marionette
+
+    def load_devtools(self):
+        with self.marionette.using_context(self.marionette.CONTEXT_CHROME):
+            self.parent.base.execute_script("""
+const { require } = ChromeUtils.import("resource://devtools/shared/Loader.jsm");
+const { TargetFactory } = require("devtools/client/framework/target");
+const { gDevTools } = require("devtools/client/framework/devtools");
+
+const callback = arguments[arguments.length - 1];
+
+async function loadDevTools() {
+    const target = await TargetFactory.forTab(window.gBrowser.selectedTab);
+    await gDevTools.showToolbox(target, "webconsole", "window");
+}
+
+loadDevTools().catch(() => dump("Devtools failed to load"))
+              .then(callback);
+""", asynchronous=True)
+
+
 class MarionetteProtocol(Protocol):
     implements = [MarionetteBaseProtocolPart,
                   MarionetteTestharnessProtocolPart,
@@ -641,7 +666,8 @@ class MarionetteProtocol(Protocol):
                   MarionetteGenerateTestReportProtocolPart,
                   MarionetteVirtualAuthenticatorProtocolPart,
                   MarionetteSetPermissionProtocolPart,
-                  MarionettePrintProtocolPart]
+                  MarionettePrintProtocolPart,
+                  MarionetteDebugProtocolPart]
 
     def __init__(self, executor, browser, capabilities=None, timeout_multiplier=1, e10s=True, ccov=False):
         do_delayed_imports()
@@ -770,7 +796,7 @@ class MarionetteTestharnessExecutor(TestharnessExecutor):
 
     def __init__(self, logger, browser, server_config, timeout_multiplier=1,
                  close_after_done=True, debug_info=None, capabilities=None,
-                 debug=False, ccov=False, **kwargs):
+                 debug=False, ccov=False, debug_test=False, **kwargs):
         """Marionette-based executor for testharness.js tests"""
         TestharnessExecutor.__init__(self, logger, browser, server_config,
                                      timeout_multiplier=timeout_multiplier,
@@ -786,6 +812,7 @@ class MarionetteTestharnessExecutor(TestharnessExecutor):
         self.close_after_done = close_after_done
         self.window_id = str(uuid.uuid4())
         self.debug = debug
+        self.debug_test = debug_test
 
         self.install_extensions = browser.extensions
 
@@ -853,6 +880,9 @@ class MarionetteTestharnessExecutor(TestharnessExecutor):
                                                            timeout=10 * self.timeout_multiplier)
         self.protocol.base.set_window(test_window)
         protocol.testharness.test_window_loaded()
+
+        if self.debug_test:
+            self.protocol.debug.load_devtools()
 
         handler = CallbackHandler(self.logger, protocol, test_window)
         protocol.marionette.navigate(url)

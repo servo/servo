@@ -107,6 +107,7 @@ CONSOLE: console/*
 CONSOLE: js/builtins/weakrefs/resources/maybe-garbage-collect.js
 CONSOLE: resources/check-layout-th.js
 CONSOLE: resources/chromium/*
+CONSOLE: resources/testharness.js
 CONSOLE: streams/resources/test-utils.js
 CONSOLE: service-workers/service-worker/resources/navigation-redirect-other-origin.html
 CONSOLE: service-workers/service-worker/navigation-redirect.https.html
