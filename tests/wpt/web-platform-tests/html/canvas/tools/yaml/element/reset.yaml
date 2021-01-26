@@ -1,0 +1,13 @@
+- name: 2d.reset.basic
+  desc: reset clears to transparent black
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.reset();
+    @assert pixel 0,0 == 0,0,0,0;
+    @assert pixel 50,25 == 0,0,0,0;
+    @assert pixel 25,50 == 0,0,0,0;
+    @assert pixel 100,50 == 0,0,0,0;
+    @assert pixel 0,50 == 0,0,0,0;
+    @assert pixel 100,0 == 0,0,0,0;
+    t.done();

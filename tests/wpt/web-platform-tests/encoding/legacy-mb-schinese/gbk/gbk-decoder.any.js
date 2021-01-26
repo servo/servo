@@ -1,7 +1,3 @@
-<!doctype html>
-<script src=/resources/testharness.js></script>
-<script src=/resources/testharnessreport.js></script>
-<script>
 const gbkPointers = [
     6432, 7533, 7536, 7672, 7673, 7674, 7675, 7676, 7677, 7678, 7679, 7680, 7681, 7682, 7683, 7684,
     23766, 23770, 23771, 23772, 23773, 23774, 23776, 23777, 23778, 23779, 23780, 23781, 23782, 23784, 23785, 23786,
@@ -30,4 +26,3 @@ for (let i = 0; i < gbkPointers.length; i++) {
         assert_equals(decoded, codePoints[i]);
     }, "gbk pointer: " + pointer)
 }
-</script>

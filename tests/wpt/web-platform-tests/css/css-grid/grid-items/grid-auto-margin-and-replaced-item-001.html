@@ -41,7 +41,7 @@
 
 <script>
 function loadImage() {
-  var replaced = document.getElementById("replaced");
-  replaced.src = "./support/100x100-green.png";
+  // Use svg for a 100x100 green square so we don't have to wait for replaced.onload.
+  replaced.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' width='100' height='100'%3E%3Crect width='100%25' height='100%25' fill='green'/%3E%3C/svg%3E";
 }
 </script>

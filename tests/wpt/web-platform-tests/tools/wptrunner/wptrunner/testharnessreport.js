@@ -73,6 +73,7 @@ window.__wptrunner_process_next_event = function() {
   var props = {output: %(output)d,
                timeout_multiplier: %(timeout_multiplier)s,
                explicit_timeout: %(explicit_timeout)s,
+               debug: %(debug)s,
                message_events: ["completion"]};
 
   add_completion_callback(function(tests, harness_status) {

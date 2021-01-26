@@ -141,6 +141,8 @@ def get_pause_after_test(test_loader, **kwargs):
             return False
         if kwargs["headless"]:
             return False
+        if kwargs["debug_test"]:
+            return True
         tests = test_loader.tests
         is_single_testharness = (sum(len(item) for item in itervalues(tests)) == 1 and
                                  len(tests.get("testharness", [])) == 1)
@@ -224,6 +226,7 @@ def run_tests(config, test_paths, product, **kwargs):
         with env.TestEnvironment(test_paths,
                                  testharness_timeout_multipler,
                                  kwargs["pause_after_test"],
+                                 kwargs["debug_test"],
                                  kwargs["debug_info"],
                                  product.env_options,
                                  ssl_config,
@@ -284,6 +287,7 @@ def run_tests(config, test_paths, product, **kwargs):
                                                                 test_type,
                                                                 run_info,
                                                                 config=test_environment.config,
+                                                                num_test_groups=len(test_groups),
                                                                 **kwargs)
 
                     executor_cls = product.executor_classes.get(test_type)

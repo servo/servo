@@ -42,6 +42,7 @@ def test_server_start_config(product):
         with environment.TestEnvironment(test_paths,
                                          1,
                                          False,
+                                         False,
                                          None,
                                          env_options,
                                          {"type": "none"},

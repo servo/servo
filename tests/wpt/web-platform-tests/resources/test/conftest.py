@@ -222,7 +222,7 @@ class HTMLItem(pytest.Item, pytest.Collector):
             # one
             for obj in [summarized, self.expected]:
                 obj["summarized_asserts"].sort(
-                    key=lambda x: (x["test"], x["status"], x["assert_name"], tuple(x["args"])))
+                    key=lambda x: (x["test"] or "", x["status"], x["assert_name"], tuple(x["args"])))
 
         assert summarized == self.expected
 
