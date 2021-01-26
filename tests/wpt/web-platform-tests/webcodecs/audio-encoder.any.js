@@ -25,7 +25,9 @@ function make_audio_frame(timestamp, channels, sampleRate, length) {
 }
 
 promise_test(async t => {
-  let frame_count = 100;
+  let sample_rate = 48000;
+  let total_duration_s = 2;
+  let frame_count = 20;
   let outputs = [];
   let init = {
     error: e => {
@@ -41,27 +43,28 @@ promise_test(async t => {
   assert_equals(encoder.state, "unconfigured");
   let config = {
     codec: 'opus',
-    sampleRate: 48000,
+    sampleRate: sample_rate,
     numberOfChannels: 2,
     bitrate: 256000 //256kbit
   };
 
   encoder.configure(config);
 
-  let timestamp = 0;
+  let timestamp_us = 0;
   for (let i = 0; i < frame_count; i++) {
-    // one tenth of a seconds per frame
-    let length = config.sampleRate / 10;
-    timestamp += 100_000;
-    let frame = make_audio_frame(timestamp, config.numberOfChannels,
+    let frame_duration_s = total_duration_s / frame_count;
+    let length = frame_duration_s * config.sampleRate;
+    let frame = make_audio_frame(timestamp_us, config.numberOfChannels,
                                  config.sampleRate, length);
     encoder.encode(frame);
+    timestamp_us += frame_duration_s * 1_000_000;
   }
   await encoder.flush();
   encoder.close();
   assert_greater_than_equal(outputs.length, frame_count);
+  assert_equals(outputs[0].timestamp, 0, "first chunk timestamp");
   for (chunk of outputs) {
     assert_greater_than(chunk.data.byteLength, 0);
-    assert_greater_than(timestamp, chunk.timestamp);
+    assert_greater_than(timestamp_us, chunk.timestamp);
   }
 }, 'Simple audio encoding');
