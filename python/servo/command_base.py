@@ -1028,7 +1028,12 @@ install them, let us know by filing a bug!")
 
     def ensure_rustup_version(self):
         try:
-            version_line = subprocess.check_output(["rustup" + BIN_SUFFIX, "--version"])
+            version_line = subprocess.check_output(
+                ["rustup" + BIN_SUFFIX, "--version"],
+                # Silence "info: This is the version for the rustup toolchain manager,
+                # not the rustc compiler."
+                stderr=open(os.devnull, "wb")
+            )
         except OSError as e:
             if e.errno == NO_SUCH_FILE_OR_DIRECTORY:
                 print("It looks like rustup is not installed. See instructions at "
