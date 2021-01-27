@@ -42,6 +42,8 @@
 
   <div id="one" tabindex="0">Click me.</div>
   <script>
+    setup({ explicit_done: true });
+
     document.body.addEventListener("keydown", (e) => {
       delete document.body.dataset.hadmousedown;
       document.body.dataset.hadkeydown = "";
@@ -75,7 +77,7 @@
       });
 
       one.addEventListener("focus", handle_initial_focus);
-      test_driver.click(one);
+      test_driver.click(one).then(() => done());
     }, "Using keyboard while element is focused should trigger :focus-visible; using mouse without moving focus should not cancel it; moving focus using mouse should cancel it.");
   </script>
 </body>

@@ -527,3 +527,20 @@ class DebugProtocolPart(ProtocolPart):
     def load_devtools(self):
         """Load devtools in the current window"""
         pass
+
+    def load_reftest_analyzer(self, test, result):
+        import io
+        import mozlog
+        from six.moves.urllib.parse import quote, urljoin
+
+        debug_test_logger = mozlog.structuredlog.StructuredLogger("debug_test")
+        output = io.StringIO()
+        debug_test_logger.suite_start([])
+        debug_test_logger.add_handler(mozlog.handlers.StreamHandler(output, formatter=mozlog.formatters.TbplFormatter()))
+        debug_test_logger.test_start(test.id)
+        # Always use PASS as the expected value so we get output even for expected failures
+        debug_test_logger.test_end(test.id, result["status"], "PASS", extra=result.get("extra"))
+
+        self.parent.base.load(urljoin(self.parent.executor.server_url("https"),
+                              "/common/third_party/reftest-analyzer.xhtml#log=%s" %
+                               quote(output.getvalue())))

@@ -1,3 +1,5 @@
+// META: timeout=long
+
 function bURL(url, base) {
   return new URL(url, base || "about:blank")
 }

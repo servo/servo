@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<script>
+  window.addEventListener('load', () => {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    const clip = document.createElementNS('http://www.w3.org/2000/svg', 'clipPath')
+    const use = document.createElementNS('http://www.w3.org/2000/svg', 'use')
+    const style = document.createElementNS('http://www.w3.org/2000/svg', 'style')
+    document.documentElement.appendChild(svg)
+    svg.setAttribute('id', 'id_0')
+    clip.appendChild(use)
+    svg.appendChild(clip)
+    document.documentElement.appendChild(style)
+    style.textContent = `
+      @import url(dom--23104-J7UdNQ5SQ5Rv-.css);
+      @namespace url(http://www.w3.org/1999/xhtml);
+      @namespace svg url(http://www.w3.org/2000/svg);
+      * {
+        filter: url(#id_0);
+      }
+      svg|* {
+        transition: 352ms ! important;
+        y: 29%;
+      }`
+  })
+</script>

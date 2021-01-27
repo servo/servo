@@ -181,10 +181,8 @@
     deletionParent.ariaActiveDescendantElement = idlAttrElement;
     assert_equals(deletionParent.getAttribute("aria-activedescendant"), "idlAttrElement");
 
-    // The element is still retrieved because it was explicitly set, and was at that point
-    // in a valid scope.
     deletionParent.removeChild(idlAttrElement);
-    assert_equals(deletionParent.ariaActiveDescendantElement, idlAttrElement);
+    assert_equals(deletionParent.ariaActiveDescendantElement, null);
 
     // The content attribute will still reflect the id.
     assert_equals(deletionParent.getAttribute("aria-activedescendant"), "idlAttrElement");
@@ -221,8 +219,9 @@
   }, "Changing the ID of an element causes the content attribute to become out of sync.");
   </script>
 
+  <!-- TODO(chrishall): change naming scheme to inner/outer -->
   <div id="lightParent" role="listbox">
-    <div role="option" id="lightElement">Hello world!</div>
+    <div id="lightElement" role="option">Hello world!</div>
   </div>
   <div id="shadowHostElement"></div>
 
@@ -231,23 +230,104 @@
     const lightElement = document.getElementById("lightElement");
     const shadowRoot = shadowHostElement.attachShadow({mode: "open"});
 
+    assert_equals(lightParent.ariaActiveDescendantElement, null, 'null before');
+    assert_equals(lightParent.getAttribute('aria-activedescendant'), null, 'null before');
+
     lightParent.ariaActiveDescendantElement = lightElement;
     assert_equals(lightParent.ariaActiveDescendantElement, lightElement);
+    assert_equals(lightParent.getAttribute('aria-activedescendant'), "lightElement");
 
-    // Move the referenced element into shadow DOM. As it was explicitly set,
-    // it is still able to be gotten even though it is in a different scope.
+    // Move the referenced element into shadow DOM.
+    // This will cause the computed attr-associated element to be null as the
+    // referenced element will no longer be in a valid scope.
+    // The underlying reference is kept intact, so if the referenced element is
+    // later restored to a valid scope the computed attr-associated element will
+    // then reflect
     shadowRoot.appendChild(lightElement);
-    assert_equals(lightParent.ariaActiveDescendantElement, lightElement);
+    assert_equals(lightParent.ariaActiveDescendantElement, null, "computed attr-assoc element should be null as referenced element is in an invalid scope");
     assert_equals(lightParent.getAttribute("aria-activedescendant"), "lightElement");
 
     // Move the referenced element back into light DOM.
+    // Since the underlying reference was kept intact, after moving the
+    // referenced element back to a valid scope should be reflected in the
+    // computed attr-associated element.
     lightParent.appendChild(lightElement);
-    assert_equals(lightParent.ariaActiveDescendantElement, lightElement);
+    assert_equals(lightParent.ariaActiveDescendantElement, lightElement, "computed attr-assoc element should be restored as referenced element is back in a valid scope");
     assert_equals(lightParent.getAttribute("aria-activedescendant"), "lightElement");
-  }, "Reparenting an element into a descendant shadow scope nullifies the element reference.");
+  }, "Reparenting an element into a descendant shadow scope hides the element reference.");
   </script>
 
-  <div id="billingElement">Billing</div>
+  <div id='fruitbowl' role='listbox'>
+    <div id='apple' role='option'>I am an apple</div>
+    <div id='pear' role='option'>I am a pear</div>
+    <div id='banana' role='option'>I am a banana</div>
+  </div>
+  <div id='shadowFridge'></div>
+
+  <script>
+  test(function(t) {
+    const shadowRoot = shadowFridge.attachShadow({mode: "open"});
+    const banana = document.getElementById("banana");
+
+    fruitbowl.ariaActiveDescendantElement = apple;
+    assert_equals(fruitbowl.ariaActiveDescendantElement, apple);
+    assert_equals(fruitbowl.getAttribute("aria-activedescendant"), "apple");
+
+    // Move the referenced element into shadow DOM.
+    shadowRoot.appendChild(apple);
+    assert_equals(fruitbowl.ariaActiveDescendantElement, null, "computed attr-assoc element should be null as referenced element is in an invalid scope");
+    // Note that the content attribute is NOT cleared.
+    assert_equals(fruitbowl.getAttribute("aria-activedescendant"), "apple");
+
+    // let us rename our banana to an apple
+    banana.setAttribute("id", "apple");
+    const lyingBanana = document.getElementById("apple");
+    assert_equals(lyingBanana, banana);
+
+    // our ariaActiveDescendantElement thankfully isn't tricked.
+    // this is thanks to the underlying reference being kept intact, it is
+    // checked and found to be in an invalid scope and therefore the content
+    // attribute fallback isn't used.
+    assert_equals(fruitbowl.ariaActiveDescendantElement, null);
+    // our content attribute still returns "apple",
+    // even though fetching that by id would give us our lying banana.
+    assert_equals(fruitbowl.getAttribute("aria-activedescendant"), "apple");
+
+    // when we remove our IDL attribute, the content attribute is also thankfully cleared.
+    fruitbowl.ariaActiveDescendantElement = null;
+    assert_equals(fruitbowl.ariaActiveDescendantElement, null);
+    assert_equals(fruitbowl.getAttribute("aria-activedescendant"), null);
+  }, "Reparenting referenced element cannot cause retargeting of reference.");
+  </script>
+
+  <div id='toaster' role='listbox'></div>
+  <div id='shadowPantry'></div>
+
+  <script>
+  test(function(t) {
+    const shadowRoot = shadowPantry.attachShadow({mode: "open"});
+
+    // Our toast starts in the shadowPantry.
+    const toast = document.createElement("div");
+    toast.setAttribute("id", "toast");
+    shadowRoot.appendChild(toast);
+
+    // Prepare my toast for toasting
+    toaster.ariaActiveDescendantElement = toast;
+    assert_equals(toaster.ariaActiveDescendantElement, null);
+    assert_equals(toaster.getAttribute("aria-activedescendant"), "");
+
+    // Time to make some toast
+    toaster.appendChild(toast);
+    assert_equals(toaster.ariaActiveDescendantElement, toast);
+    // Current spec behaviour:
+    assert_equals(toaster.getAttribute("aria-activedescendant"), "");
+  }, "Element reference set in invalid scope remains intact throughout move to valid scope.");
+  </script>
+
+  <div id="billingElementContainer">
+      <div id="billingElement">Billing</div>
+  </div>
   <div>
       <div id="nameElement">Name</div>
       <input type="text" id="input1" aria-labelledby="billingElement nameElement"/>
@@ -267,9 +347,15 @@
     assert_array_equals(input2.ariaLabelledByElements, [billingElement, addressElement], "Testing IDL setter/getter.");
     assert_equals(input2.getAttribute("aria-labelledby"), "billingElement addressElement");
 
-    // Remove the element from the DOM, but as it was explicitly set whilst in a valid scope
-    // it can still be retrieved.
+    // Remove the billingElement from the DOM.
+    // As it was explicitly set the underlying association will remain intact,
+    // but it will be hidden until the element is moved back into a valid scope.
     billingElement.remove();
+    assert_array_equals(input2.ariaLabelledByElements, [addressElement]);
+
+    // Insert the billingElement back into the DOM and check that it is visible
+    // again, as the underlying association should have been kept intact.
+    billingElementContainer.appendChild(billingElement);
     assert_array_equals(input2.ariaLabelledByElements, [billingElement, addressElement]);
 
     input2.ariaLabelledByElements = [];
@@ -445,8 +531,8 @@
     // Elements that cross into shadow DOM are dropped, only reflect the valid
     // elements in IDL and in the content attribute.
     lightDomHeading.ariaFlowToElements = [shadowChild1, shadowChild2, lightDomText1, lightDomText2];
-    assert_array_equals(lightDomHeading.ariaFlowToElements, [lightDomText1, lightDomText2]);
-    assert_equals(lightDomHeading.getAttribute("aria-flowto"), "lightDomText1 lightDomText2", "empty content attribute if any given elements cross shadow boundaries");
+    assert_array_equals(lightDomHeading.ariaFlowToElements, [lightDomText1, lightDomText2], "IDL should only include valid elements");
+    assert_equals(lightDomHeading.getAttribute("aria-flowto"), "", "empty content attribute if any given elements cross shadow boundaries");
 
     // Using a mixture of elements in the same scope and in a shadow including
     // ancestor should set the IDL attribute, but should reflect the empty
@@ -479,29 +565,28 @@
     describedElement.ariaDescribedByElements = [description1, description2];
 
     // All elements were in the same scope, so elements are gettable and the content attribute reflects the ids.
-    assert_array_equals(describedElement.ariaDescribedByElements, [description1, description2]);
+    assert_array_equals(describedElement.ariaDescribedByElements, [description1, description2], "same scope reference");
     assert_equals(describedElement.getAttribute("aria-describedby"), "buttonDescription1 buttonDescription2");
 
     outerShadowRoot.appendChild(describedElement);
 
     // Explicitly set attr-associated-elements should still be gettable because we are referencing elements in a lighter scope.
     // The content attr still reflects the ids from the explicit elements because they were in a valid scope at the time of setting.
-    assert_array_equals(describedElement.ariaDescribedByElements, [description1, description2]);
+    assert_array_equals(describedElement.ariaDescribedByElements, [description1, description2], "lighter scope reference");
     assert_equals(describedElement.getAttribute("aria-describedby"), "buttonDescription1 buttonDescription2");
 
     // Move the explicitly set elements into a deeper shadow DOM to test the relationship should not be gettable.
     innerShadowRoot.appendChild(description1);
     innerShadowRoot.appendChild(description2);
 
-    // Explicitly set elements are still retrieved, because they were in a valid scope when they were set.
-    // The content attribute still reflects the ids.
-    assert_array_equals(describedElement.ariaDescribedByElements, [description1, description2]);
+    // Explicitly set elements are no longer retrievable, because they are no longer in a valid scope.
+    assert_array_equals(describedElement.ariaDescribedByElements, [], "invalid scope reference");
     assert_equals(describedElement.getAttribute("aria-describedby"), "buttonDescription1 buttonDescription2");
 
     // Move into the same shadow scope as the explicitly set elements to test that the elements are gettable
     // and reflect the correct IDs onto the content attribute.
     innerShadowRoot.appendChild(describedElement);
-    assert_array_equals(describedElement.ariaDescribedByElements, [description1, description2]);
+    assert_array_equals(describedElement.ariaDescribedByElements, [description1, description2], "restored valid scope reference");
     assert_equals(describedElement.getAttribute("aria-describedby"), "buttonDescription1 buttonDescription2");
   }, "Moving explicitly set elements across shadow DOM boundaries.");
   </script>
@@ -539,20 +624,21 @@
       headingElement.ariaLabelledByElements = [headingLabel1, headingLabel2];
       assert_equals(headingElement.getAttribute("aria-labelledby"), "headingLabel1 headingLabel2", "Elements are set again, so the content attribute is updated.");
 
-      // Remove the referring element from the DOM, elements are gettable.
+      // Remove the referring element from the DOM, elements are no longer longer exposed,
+      // underlying internal reference is still kept intact.
       headingElement.remove();
-      assert_array_equals(headingElement.ariaLabelledByElements, [headingLabel1, headingLabel2], "Element is no longer in the document, but references should be gettable.");
+      assert_array_equals(headingElement.ariaLabelledByElements, [], "Element is no longer in the document, so references should no longer be exposed.");
       assert_equals(headingElement.getAttribute("aria-labelledby"), "headingLabel1 headingLabel2");
 
       // Insert it back in.
       sameScopeContainer.appendChild(headingElement);
-      assert_array_equals(headingElement.ariaLabelledByElements, [headingLabel1, headingLabel2]);
+      assert_array_equals(headingElement.ariaLabelledByElements, [headingLabel1, headingLabel2], "Element is restored to valid scope, so should be gettable.");
       assert_equals(headingElement.getAttribute("aria-labelledby"), "headingLabel1 headingLabel2");
 
-      // Remove everything from the DOM, everything is still gettable.
+      // Remove everything from the DOM, nothing is exposed again.
       headingLabel1.remove();
       headingLabel2.remove();
-      assert_array_equals(headingElement.ariaLabelledByElements, [headingLabel1, headingLabel2]);
+      assert_array_equals(headingElement.ariaLabelledByElements, []);
       assert_equals(headingElement.getAttribute("aria-labelledby"), "headingLabel1 headingLabel2");
       assert_equals(document.getElementById("headingLabel1"), null);
       assert_equals(document.getElementById("headingLabel2"), null);
@@ -579,4 +665,47 @@
       // See: https://github.com/whatwg/html/pull/3917#issuecomment-527263562
       assert_equals(input.ariaActiveDescendantElement, first);
     }, "Reparenting.");
+  </script>
+
+  <div id='fromDiv'></div>
+
+  <script>
+    test(function(t) {
+      const toSpan = document.createElement('span');
+      toSpan.setAttribute("id", "toSpan");
+      fromDiv.ariaActiveDescendantElement = toSpan;
+
+      assert_equals(fromDiv.ariaActiveDescendantElement, null, "Referenced element not inserted into document, so is in an invalid scope.");
+      assert_equals(fromDiv.getAttribute("aria-activedescendant"), "", "Invalid scope, so content attribute not set.");
+
+      fromDiv.appendChild(toSpan);
+      assert_equals(fromDiv.ariaActiveDescendantElement, toSpan, "Referenced element now inserted into the document.");
+      assert_equals(fromDiv.getAttribute("aria-activedescendant"), "", "Content attribute remains empty, as it is only updated at set time.");
+
+    }, "Attaching element reference before it's inserted into the DOM.");
+  </script>
+
+  <div id='originalDocumentDiv'></div>
+
+  <script>
+    test(function(t) {
+      const newDoc = document.implementation.createHTMLDocument('new document');
+      const newDocSpan = newDoc.createElement('span');
+      newDoc.body.appendChild(newDocSpan);
+
+      // Create a reference across documents.
+      originalDocumentDiv.ariaActiveDescendantElement = newDocSpan;
+
+      assert_equals(originalDocumentDiv.ariaActiveDescendantElement, null, "Cross-document is an invalid scope, so reference will not be visible.");
+      assert_equals(fromDiv.getAttribute("aria-activedescendant"), "", "Invalid scope when set, so content attribute not set.");
+
+      // "Move" span to first document.
+      originalDocumentDiv.appendChild(newDocSpan);
+
+      // Implementation defined: moving object into same document from other document may cause reference to become visible.
+      assert_equals(originalDocumentDiv.ariaActiveDescendantElement, newDocSpan, "Implementation defined: moving object back *may* make reference visible.");
+      assert_equals(fromDiv.getAttribute("aria-activedescendant"), "", "Invalid scope when set, so content attribute not set.");
+    }, "Cross-document references and moves.");
+  </script>
+
 </html>

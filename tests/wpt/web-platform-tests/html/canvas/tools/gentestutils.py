@@ -403,6 +403,8 @@ def genTestUtils(TESTOUTPUTDIR, IMAGEOUTPUTDIR, TEMPLATEFILE, NAME2DIRFILE, ISOF
             f = codecs.open('%s/%s%s.html' % (TESTOUTPUTDIR, mapped_name, name_variant), 'w', 'utf-8')
             f.write(templates['w3c'] % template_params)
             if ISOFFSCREENCANVAS:
+                timeout = '// META: timeout=%s\n' % test['timeout'] if 'timeout' in test else ''
+                template_params['timeout'] = timeout
                 f = codecs.open('%s/%s%s.worker.js' % (TESTOUTPUTDIR, mapped_name, name_variant), 'w', 'utf-8')
                 f.write(templates['w3cworker'] % template_params)
 
