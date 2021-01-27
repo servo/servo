@@ -31,6 +31,7 @@ pub mod grid;
 pub mod image;
 pub mod length;
 pub mod motion;
+pub mod page;
 pub mod position;
 pub mod rect;
 pub mod size;
@@ -292,3 +293,5 @@ impl<L> ClipRectOrAuto<L> {
         matches!(*self, ClipRectOrAuto::Auto)
     }
 }
+
+pub use page::PageSize;
