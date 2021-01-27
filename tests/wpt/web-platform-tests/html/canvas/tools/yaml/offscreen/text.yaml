@@ -311,6 +311,7 @@
     _assertGreen(ctx, 100, 50);
     t.done();
   expected: green
+  timeout: long
 
 - name: 2d.text.draw.fill.maxWidth.negative
   desc: fillText handles maxWidth correctly

@@ -11,13 +11,13 @@
   // headers are set in the .headers file:
   //
   //   Content-Security-Policy: script-src 'unsafe-inline'; report-uri ...
-  //   Content-Security-Policy: plugin-types bla/blubb
+  //   Content-Security-Policy: object-src 'none'
   //   Content-Security-Policy: require-trusted-types-for 'script'
   //
-  // The last rule is there so we can provoke a CSP violation report at will.
+  // The second rule is there so we can provoke a CSP violation report at will.
   // The intent is that in order to test that a violation has *not* been thrown
   // (and without resorting to abominations like timeouts), we force a *another*
-  // CSP violation (by violating the img-src rule) and when that event is
+  // CSP violation (by violating the object-src rule) and when that event is
   // processed we can we sure that an earlier event - if it indeed occurred -
   // must have already been processed.
 
@@ -62,7 +62,7 @@
   // Provoke/wait for a CSP violation, in order to be sure that all previous
   // CSP violations have been delivered.
   function promise_flush() {
-    return promise_violation("plugin-types bla/blubb");
+    return promise_violation("object-src 'none'");
   }
   function flush() {
    expect_throws(_ => {

@@ -44,10 +44,12 @@
 <div id="target" tabindex="0">Target</div>
 
 <script>
+  setup({ explicit_done: true });
+
   async_test(function(t) {
     initial.addEventListener("focus", t.step_func(function() {
       assert_equals(getComputedStyle(initial).outlineColor, "rgb(0, 128, 0)", `outlineColor for ${initial.tagName}#${initial.id} should be green`);
-      test_driver.click(target);
+      test_driver.click(target).then(() => done());
     }));
 
     target.addEventListener("focus", t.step_func_done(function() {

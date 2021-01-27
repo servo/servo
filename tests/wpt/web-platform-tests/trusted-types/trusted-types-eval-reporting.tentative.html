@@ -10,7 +10,7 @@
   // headers are set in the .headers file:
   //
   //   Content-Security-Policy: script-src 'unsafe-inline' 'unsafe-eval'; report-uri ...
-  //   Content-Security-Policy: plugin-types bla/blubb
+  //   Content-Security-Policy: object-src 'none'
   //   Content-Security-Policy: require-trusted-types-for 'script'
   //
   // The last rule is there so we can provoke a CSP violation report at will.
@@ -55,7 +55,7 @@
   // Provoke/wait for a CSP violation, in order to be sure that all previous
   // CSP violations have been delivered.
   function promise_flush() {
-    return promise_violation("plugin-types bla/blubb");
+    return promise_violation("object-src 'none'");
   }
   function flush() {
    expect_throws(_ => {

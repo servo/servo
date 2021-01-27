@@ -594,7 +594,7 @@ def check_args(kwargs):
         kwargs["reftest_internal"] = True
 
     if kwargs["reftest_screenshot"] is None:
-        kwargs["reftest_screenshot"] = "unexpected"
+        kwargs["reftest_screenshot"] = "unexpected" if not kwargs["debug_test"] else "always"
 
     if kwargs["enable_webrender"] is None:
         kwargs["enable_webrender"] = False

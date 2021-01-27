@@ -83,7 +83,7 @@ interface FormData {
   iterable<USVString, FormDataEntryValue>;
 };
 
-[Exposed=(Window,DedicatedWorker,SharedWorker)]
+[Exposed=(Window,Worker)]
 interface ProgressEvent : Event {
   constructor(DOMString type, optional ProgressEventInit eventInitDict = {});
 

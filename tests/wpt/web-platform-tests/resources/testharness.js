@@ -1192,7 +1192,7 @@ policies and contribution forms [3].
                 if (tests.output) {
                     tests.set_assert(name, ...args);
                 }
-                rv = f(...args);
+                const rv = f(...args);
                 status = Test.statuses.PASS;
                 return rv;
             } catch(e) {
@@ -3765,7 +3765,7 @@ policies and contribution forms [3].
 
     AssertionError.prototype = Object.create(Error.prototype);
 
-    get_stack = function() {
+    const get_stack = function() {
         var stack = new Error().stack;
         // IE11 does not initialize 'Error.stack' until the object is thrown.
         if (!stack) {

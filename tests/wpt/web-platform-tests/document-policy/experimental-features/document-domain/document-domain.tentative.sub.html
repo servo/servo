@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+
+<body>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+
+  <script>
+    document.domain = "{{host}}";
+
+    async_test(t => {
+      const iframe = document.createElement('iframe');
+      iframe.src = "//{{domains[www1]}}:{{location[port]}}/document-policy/experimental-features/document-domain/resources/document-domain-enabled.html";
+      iframe.onload = () => {
+        iframe.contentWindow.postMessage({
+          type: "set document.domain",
+          newValue: "{{host}}"
+        }, "*");
+      };
+
+      window.addEventListener('message', t.step_func(e => {
+        if (e.source == iframe.contentWindow) {
+          assert_equals(e.data.oldDomain, "{{domains[www1]}}");
+          assert_equals(e.data.newDomain, "{{host}}");
+          t.done();
+        }
+      }));
+
+      document.body.appendChild(iframe);
+    }, 'document.domain should be enabled in subframe.');
+
+    async_test(t => {
+      const iframe = document.createElement('iframe');
+      iframe.src = "//{{domains[www1]}}:{{location[port]}}/document-policy/experimental-features/document-domain/resources/document-domain-disabled.html";
+      iframe.onload = () => {
+        iframe.contentWindow.postMessage({
+          type: "set document.domain",
+          newValue: "{{host}}"
+        }, "*");
+      };
+
+      window.addEventListener('message', t.step_func(e => {
+        if (e.source == iframe.contentWindow) {
+          assert_equals(e.data.oldDomain, "{{domains[www1]}}");
+          assert_equals(e.data.newDomain, "{{domains[www1]}}");
+          t.done();
+        }
+      }));
+
+      document.body.appendChild(iframe);
+    }, 'document.domain should be disabled in subframe.');
+  </script>
+</body>

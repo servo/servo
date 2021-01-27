@@ -910,7 +910,7 @@ class MarionetteRefTestExecutor(RefTestExecutor):
                  debug_info=None, reftest_internal=False,
                  reftest_screenshot="unexpected", ccov=False,
                  group_metadata=None, capabilities=None, debug=False,
-                 browser_version=None, **kwargs):
+                 browser_version=None, debug_test=False, **kwargs):
         """Marionette-based executor for reftests"""
         RefTestExecutor.__init__(self,
                                  logger,
@@ -933,6 +933,7 @@ class MarionetteRefTestExecutor(RefTestExecutor):
         self.original_pref_values = {}
         self.group_metadata = group_metadata
         self.debug = debug
+        self.debug_test = debug_test
 
         with open(os.path.join(here, "reftest.js")) as f:
             self.script = f.read()
@@ -997,6 +998,10 @@ class MarionetteRefTestExecutor(RefTestExecutor):
                 result["extra"] = {}
             if assertion_count is not None:
                 result["extra"]["assertion_count"] = assertion_count
+
+        if self.debug_test and result["status"] in ["PASS", "FAIL", "ERROR"] and "extra" in result:
+            self.parent.base.set_window(self.parent.base.window_handles()[0])
+            self.protocol.debug.load_reftest_analyzer(test, result)
 
         return self.convert_result(test, result)
 

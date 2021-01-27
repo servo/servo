@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<body>
+  <script>
+    window.onmessage = e => {
+      if (e.data.type === "set document.domain") {
+        oldDomain = document.domain;
+        document.domain = e.data.newValue;
+        e.source.postMessage({
+          oldDomain,
+          newDomain: document.domain
+        }, "*");
+      }
+    };
+  </script>
+</body>
+

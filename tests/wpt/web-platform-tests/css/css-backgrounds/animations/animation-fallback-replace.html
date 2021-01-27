@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#background-color">
+<link rel="match" href="animation-fallback-replace-ref.html">
+<style>
+.container {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+  /* Use a long animation that start at 50% progress where the slope of the
+     selected timing function is zero. By setting up the animation in this way,
+     we accommodate lengthy delays in running the test without a potential drift
+     in the animated property value. This is important for avoiding flakes,
+     especially on debug builds. The screenshots are taken as soon as the
+     animation is ready, thus the long animation duration has no bearing on
+     the actual duration of the test. */
+  animation: red 1000000s cubic-bezier(0,1,1,0) -500000s, green 1000000s cubic-bezier(0,1,1,0) -500000s, blue 1000000s cubic-bezier(0,1,1,0) -500000s;
+}
+@keyframes red {
+  0% { background-color: rgb(0, 0, 0); }
+  100% { background-color: rgb(200, 0, 0); }
+}
+@keyframes green {
+  0% { background-color: rgb(0, 0, 0); }
+  100% { background-color: rgb(0, 200, 0); }
+}
+@keyframes blue {
+  0% { background-color: rgb(0, 0, 0); }
+  100% { background-color: rgb(0, 0, 200); }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<body>
+<div class="container"></div>
+
+<script>
+document.getAnimations()[0].ready.then(() => {
+  takeScreenshot();
+});
+</script>
+</body>
+</html>
