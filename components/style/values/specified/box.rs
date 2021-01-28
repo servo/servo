@@ -1834,10 +1834,6 @@ pub enum Appearance {
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozMacVibrantTitlebarLight,
 
-    /// A non-disappearing scrollbar.
-    #[css(skip)]
-    ScrollbarNonDisappearing,
-
     /// A themed focus outline (for outline:auto).
     ///
     /// This isn't exposed to CSS at all, just here for convenience.
