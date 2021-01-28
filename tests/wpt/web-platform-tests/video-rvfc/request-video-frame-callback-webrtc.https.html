@@ -54,11 +54,25 @@
     }
   }
 
+  var verify_local_metadata = (now, metadata) => {
+    assert_greater_than(metadata.expectedDisplayTime, 0);
+    assert_greater_than(metadata.presentedFrames, 0);
+    assert_greater_than(metadata.width, 0);
+    assert_greater_than(metadata.height, 0);
+    assert_true("captureTime" in metadata, "captureTime should always be present for local sources.");
+    assert_greater_than(metadata.captureTime, 0);
+  }
+
   // If the remote video gets video data that implies the negotiation
   // as well as the ICE and DTLS connection are up.
   document.getElementById('remote-view')
       .addEventListener('loadedmetadata', function() {
     document.getElementById('remote-view').requestVideoFrameCallback(test.step_func(verify_params));
+  });
+
+  document.getElementById('local-view')
+      .addEventListener('loadmetadata', function() {
+    document.getElementById('local-view').requestVideoFrameCallback(test.step_func_done(verify_local_metadata));
   });
 
 

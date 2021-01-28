@@ -14,37 +14,54 @@ const MAC_FONTS = [
     postscriptName: 'Monaco',
     fullName: 'Monaco',
     family: 'Monaco',
+    style: 'Regular',
     label: TEST_SIZE_CATEGORY.small,
     expectedTables: [
       // Tables related to TrueType.
-      'cvt ', 'glyf', 'loca', 'prep', 'gasp',
+      'cvt ',
+      'glyf',
+      'loca',
+      'prep',
+      'gasp',
     ],
   },
   {
     postscriptName: 'Menlo-Regular',
     fullName: 'Menlo Regular',
     family: 'Menlo',
+    style: 'Regular',
     label: TEST_SIZE_CATEGORY.medium,
     expectedTables: [
-      'cvt ', 'glyf', 'loca', 'prep',
+      'cvt ',
+      'glyf',
+      'loca',
+      'prep',
     ],
   },
   {
     postscriptName: 'Menlo-Bold',
     fullName: 'Menlo Bold',
     family: 'Menlo',
+    style: 'Bold',
     label: TEST_SIZE_CATEGORY.medium,
     expectedTables: [
-      'cvt ', 'glyf', 'loca', 'prep',
+      'cvt ',
+      'glyf',
+      'loca',
+      'prep',
     ],
   },
   {
     postscriptName: 'Menlo-BoldItalic',
     fullName: 'Menlo Bold Italic',
     family: 'Menlo',
+    style: 'Bold Italic',
     label: TEST_SIZE_CATEGORY.medium,
     expectedTables: [
-      'cvt ', 'glyf', 'loca', 'prep',
+      'cvt ',
+      'glyf',
+      'loca',
+      'prep',
     ],
   },
   // Indic.
@@ -52,36 +69,52 @@ const MAC_FONTS = [
     postscriptName: 'GujaratiMT',
     fullName: 'Gujarati MT',
     family: 'Gujarati MT',
+    style: 'Regular',
     label: TEST_SIZE_CATEGORY.small,
     expectedTables: [
-      'cvt ', 'glyf', 'loca', 'prep',
+      'cvt ',
+      'glyf',
+      'loca',
+      'prep',
     ],
   },
   {
     postscriptName: 'GujaratiMT-Bold',
     fullName: 'Gujarati MT Bold',
     family: 'Gujarati MT',
+    style: 'Bold',
     label: TEST_SIZE_CATEGORY.small,
     expectedTables: [
-      'cvt ', 'glyf', 'loca', 'prep',
+      'cvt ',
+      'glyf',
+      'loca',
+      'prep',
     ],
   },
   {
     postscriptName: 'DevanagariMT',
     fullName: 'Devanagari MT',
     family: 'Devanagari MT',
+    style: 'Regular',
     label: TEST_SIZE_CATEGORY.small,
     expectedTables: [
-      'cvt ', 'glyf', 'loca', 'prep',
+      'cvt ',
+      'glyf',
+      'loca',
+      'prep',
     ],
   },
   {
     postscriptName: 'DevanagariMT-Bold',
     fullName: 'Devanagari MT Bold',
     family: 'Devanagari MT',
+    style: 'Bold',
     label: TEST_SIZE_CATEGORY.small,
     expectedTables: [
-      'cvt ', 'glyf', 'loca', 'prep',
+      'cvt ',
+      'glyf',
+      'loca',
+      'prep',
     ],
   },
   // Japanese.
@@ -89,18 +122,22 @@ const MAC_FONTS = [
     postscriptName: 'HiraMinProN-W3',
     fullName: 'Hiragino Mincho ProN W3',
     family: 'Hiragino Mincho ProN',
+    style: 'Regular',
     label: TEST_SIZE_CATEGORY.medium,
     expectedTables: [
-      'CFF ', 'VORG',
+      'CFF ',
+      'VORG',
     ],
   },
   {
     postscriptName: 'HiraMinProN-W6',
     fullName: 'Hiragino Mincho ProN W6',
     family: 'Hiragino Mincho ProN',
+    style: 'Regular',
     label: TEST_SIZE_CATEGORY.medium,
     expectedTables: [
-      'CFF ', 'VORG',
+      'CFF ',
+      'VORG',
     ],
   },
   // Korean.
@@ -108,18 +145,24 @@ const MAC_FONTS = [
     postscriptName: 'AppleGothic',
     fullName: 'AppleGothic Regular',
     family: 'AppleGothic',
+    style: 'Regular',
     label: TEST_SIZE_CATEGORY.medium,
     expectedTables: [
-      'cvt ', 'glyf', 'loca',
+      'cvt ',
+      'glyf',
+      'loca',
     ],
   },
   {
     postscriptName: 'AppleMyungjo',
     fullName: 'AppleMyungjo Regular',
     family: 'AppleMyungjo',
+    style: 'Regular',
     label: TEST_SIZE_CATEGORY.medium,
     expectedTables: [
-      'cvt ', 'glyf', 'loca',
+      'cvt ',
+      'glyf',
+      'loca',
     ],
   },
   // Chinese.
@@ -127,18 +170,26 @@ const MAC_FONTS = [
     postscriptName: 'STHeitiTC-Light',
     fullName: 'Heiti TC Light',
     family: 'Heiti TC',
+    style: 'Light',
     label: TEST_SIZE_CATEGORY.large,
     expectedTables: [
-      'cvt ', 'glyf', 'loca', 'prep',
+      'cvt ',
+      'glyf',
+      'loca',
+      'prep',
     ],
   },
   {
-   postscriptName: 'STHeitiTC-Medium',
+    postscriptName: 'STHeitiTC-Medium',
     fullName: 'Heiti TC Medium',
     family: 'Heiti TC',
+    style: 'Medium',
     label: TEST_SIZE_CATEGORY.large,
     expectedTables: [
-      'cvt ', 'glyf', 'loca', 'prep',
+      'cvt ',
+      'glyf',
+      'loca',
+      'prep',
     ],
   },
   // Bitmap.
@@ -146,9 +197,11 @@ const MAC_FONTS = [
     postscriptName: 'AppleColorEmoji',
     fullName: 'Apple Color Emoji',
     family: 'Apple Color Emoji',
+    style: 'Regular',
     label: TEST_SIZE_CATEGORY.large,
     expectedTables: [
-      'glyf', 'loca',
+      'glyf',
+      'loca',
       // Tables related to Bitmap Glyphs.
       'sbix',
     ],
@@ -160,6 +213,7 @@ const WIN_FONTS = [
     postscriptName: 'Verdana',
     fullName: 'Verdana',
     family: 'Verdana',
+    style: 'Regular',
     label: TEST_SIZE_CATEGORY.small,
     expectedTables: [
       // Tables related to TrueType.
@@ -174,6 +228,7 @@ const WIN_FONTS = [
     postscriptName: 'Verdana-Bold',
     fullName: 'Verdana Bold',
     family: 'Verdana',
+    style: 'Bold',
     label: TEST_SIZE_CATEGORY.small,
     expectedTables: [
       // Tables related to TrueType.
@@ -188,6 +243,7 @@ const WIN_FONTS = [
     postscriptName: 'Verdana-Italic',
     fullName: 'Verdana Italic',
     family: 'Verdana',
+    style: 'Italic',
     label: TEST_SIZE_CATEGORY.small,
     expectedTables: [
       // Tables related to TrueType.
@@ -203,6 +259,7 @@ const WIN_FONTS = [
     postscriptName: 'MalgunGothicBold',
     fullName: 'Malgun Gothic Bold',
     family: 'Malgun Gothic',
+    style: 'Bold',
     label: TEST_SIZE_CATEGORY.medium,
     expectedTables: [
       // Tables related to TrueType.
@@ -218,12 +275,14 @@ const WIN_FONTS = [
     postscriptName: 'MicrosoftYaHei',
     fullName: 'Microsoft YaHei',
     family: 'Microsoft YaHei',
+    style: 'Regular',
     label: TEST_SIZE_CATEGORY.medium,
   },
   {
     postscriptName: 'MicrosoftYaHei-Bold',
     fullName: 'Microsoft YaHei Bold',
     family: 'Microsoft YaHei',
+    style: 'Bold',
     label: TEST_SIZE_CATEGORY.medium,
   },
 ];
@@ -233,6 +292,7 @@ const LINUX_FONTS = [
     postscriptName: 'Ahem',
     fullName: 'Ahem',
     family: 'Ahem',
+    style: 'Regular',
     label: TEST_SIZE_CATEGORY.small,
     expectedTables: [
       // Tables related to TrueType.
@@ -330,17 +390,20 @@ function assert_fonts_exist(availableFonts, expectedFonts) {
   const postscriptNameSet = new Set();
   const fullNameSet = new Set();
   const familySet = new Set();
+  const styleSet = new Set();
 
   for (const f of expectedFonts) {
     postscriptNameSet.add(f.postscriptName);
     fullNameSet.add(f.fullName);
     familySet.add(f.family);
+    styleSet.add(f.style);
   }
 
   for (const f of availableFonts) {
     postscriptNameSet.delete(f.postscriptName);
     fullNameSet.delete(f.fullName);
     familySet.delete(f.family);
+    styleSet.delete(f.style);
   }
 
   assert_equals(postscriptNameSet.size, 0,
@@ -349,6 +412,7 @@ function assert_fonts_exist(availableFonts, expectedFonts) {
               `Missing Full names: ${setToString(fullNameSet)}.`);
   assert_equals(familySet.size, 0,
               `Missing Families: ${setToString(familySet)}.`);
+  assert_equals(styleSet.size, 0, `Missing Styles: ${setToString(styleSet)}.`);
 }
 
 function assert_postscript_name_exists(

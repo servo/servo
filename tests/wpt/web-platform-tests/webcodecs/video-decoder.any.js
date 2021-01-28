@@ -165,6 +165,54 @@ promise_test(t => {
 }, 'Test VideoDecoder.isConfigSupported() with valid expanded config');
 
 promise_test(t => {
+  // Define a valid config that includes a hypothetical 'futureConfigFeature',
+  // which is not yet recognized by the User Agent.
+  const validConfig = {
+    codec: h264.codec,
+    codedWidth: 1920,
+    codedHeight: 1088,
+    cropLeft: 0,
+    cropTop: 0,
+    cropWidth: 1920,
+    cropHeight: 1080,
+    displayWidth: 1920,
+    displayHeight: 1080,
+    description: new Uint8Array([1, 2, 3]),
+    futureConfigFeature: 'foo',
+  };
+
+  // The UA will evaluate validConfig as being "valid", ignoring the
+  // `futureConfigFeature` it  doesn't recognize.
+  return VideoDecoder.isConfigSupported(validConfig).then((decoderSupport) => {
+    // VideoDecoderSupport must contain the following properites.
+    assert_true(decoderSupport.hasOwnProperty('supported'));
+    assert_true(decoderSupport.hasOwnProperty('config'));
+
+    // VideoDecoderSupport.config must not contain unrecognized properties.
+    assert_false(decoderSupport.config.hasOwnProperty('futureConfigFeature'));
+
+    // VideoDecoderSupport.config must contiain the recognized properties.
+    assert_equals(decoderSupport.config.codec, validConfig.codec);
+    assert_equals(decoderSupport.config.codedWidth, validConfig.codedWidth);
+    assert_equals(decoderSupport.config.codedHeight, validConfig.codedHeight);
+    assert_equals(decoderSupport.config.cropLeft, validConfig.cropLeft);
+    assert_equals(decoderSupport.config.cropTop, validConfig.cropTop);
+    assert_equals(decoderSupport.config.cropWidth, validConfig.cropWidth);
+    assert_equals(decoderSupport.config.displayWidth, validConfig.displayWidth);
+    assert_equals(decoderSupport.config.displayHeight, validConfig.displayHeight);
+
+    // The description BufferSource must copy the input config description.
+    assert_not_equals(decoderSupport.config.description, validConfig.description);
+    let parsedDescription = new Uint8Array(decoderSupport.config.description);
+    assert_equals(parsedDescription.length, validConfig.description.length);
+    for (let i = 0; i < parsedDescription.length; ++i) {
+      assert_equals(parsedDescription[i], validConfig.description[i]);
+    }
+  });
+}, 'Test that VideoDecoder.isConfigSupported() returns a parsed configuration');
+
+
+promise_test(t => {
   // VideoDecoderInit lacks required fields.
   assert_throws_js(TypeError, () => { new VideoDecoder({}); });
 
