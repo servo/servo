@@ -2780,7 +2780,15 @@ policies and contribution forms [3].
 
         this.current_test = null;
         this.asserts_run = [];
-        this.output = settings.output;
+
+        // Track whether output is enabled, and thus whether or not we should
+        // track asserts.
+        //
+        // On workers we don't get properties set from testharnessreport.js, so
+        // we don't know whether or not to track asserts. To avoid the
+        // resulting performance hit, we assume we are not meant to. This means
+        // that assert tracking does not function on workers.
+        this.output = settings.output && 'document' in global_scope;
 
         this.status = new TestsStatus();
 

@@ -65,6 +65,44 @@ promise_test(t => {
 }, 'Test AudioDecoder.isConfigSupported() with a valid config');
 
 promise_test(t => {
+  // Define a valid config that includes a hypothetical 'futureConfigFeature',
+  // which is not yet recognized by the User Agent.
+  const validConfig = {
+    codec: 'opus',
+    sampleRate: 48000,
+    numberOfChannels: 2,
+    // Opus header extradata.
+    description: new Uint8Array([0x4f, 0x70, 0x75, 0x73, 0x48, 0x65, 0x61, 0x64,
+        0x01, 0x02, 0x38, 0x01, 0x80, 0xbb, 0x00, 0x00, 0x00, 0x00, 0x00]),
+    futureConfigFeature: 'foo',
+  };
+
+  // The UA will evaluate validConfig as being "valid", ignoring the
+  // `futureConfigFeature` it  doesn't recognize.
+  return AudioDecoder.isConfigSupported(validConfig).then((decoderSupport) => {
+    // AudioDecoderSupport must contain the following properites.
+    assert_true(decoderSupport.hasOwnProperty('supported'));
+    assert_true(decoderSupport.hasOwnProperty('config'));
+
+    // AudioDecoderSupport.config must not contain unrecognized properties.
+    assert_false(decoderSupport.config.hasOwnProperty('futureConfigFeature'));
+
+    // AudioDecoderSupport.config must contiain the recognized properties.
+    assert_equals(decoderSupport.config.codec, validConfig.codec);
+    assert_equals(decoderSupport.config.sampleRate, validConfig.sampleRate);
+    assert_equals(decoderSupport.config.numberOfChannels, validConfig.numberOfChannels);
+
+    // The description BufferSource must copy the input config description.
+    assert_not_equals(decoderSupport.config.description, validConfig.description);
+    let parsedDescription = new Uint8Array(decoderSupport.config.description);
+    assert_equals(parsedDescription.length, validConfig.description.length);
+    for (let i = 0; i < parsedDescription.length; ++i) {
+      assert_equals(parsedDescription[i], validConfig.description[i]);
+    }
+  });
+}, 'Test that AudioDecoder.isConfigSupported() returns a parsed configuration');
+
+promise_test(t => {
   // AudioDecoderInit lacks required fields.
   assert_throws_js(TypeError, () => { new AudioDecoder({}); });
 
