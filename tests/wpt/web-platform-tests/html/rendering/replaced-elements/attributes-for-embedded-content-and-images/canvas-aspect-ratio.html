@@ -10,11 +10,18 @@
   }
 </style>
 <body>
+<canvas id="contained" width="250" height="100" style="contain: size;"></canvas>
 <script>
 function assert_ratio(img, expected) {
   let epsilon = 0.001;
   assert_approx_equals(parseInt(getComputedStyle(img).width, 10) / parseInt(getComputedStyle(img).height, 10), expected, epsilon);
 }
+
+test(function() {
+  canvas = document.getElementById("contained");
+  assert_ratio(canvas, 2.5);
+}, "Canvas width and height attributes are used as the surface size with contain:size");
+
 // Create and append a new canvas and immediately check the ratio.
 test(function() {
   var canvas = document.createElement("canvas");

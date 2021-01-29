@@ -1,6 +1,10 @@
 <!doctype html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/css/css-scroll-snap/support/common.js"></script>
 <link rel="help" href="https://drafts.csswg.org/css-overscroll-behavior">
 
 <style>
@@ -57,11 +61,22 @@ setup({explicit_timeout: true});
 const container = document.getElementById('container');
 const non_scrollable = document.getElementById('non_scrollable');
 const root = document.getElementById('root');
+const btnDone = document.getElementById('btnDone');
 var test = async_test("overscroll-behavior prevents scroll-propagation in the area and direction as specified");
 var instruction1 = document.getElementById("i1");
 var instruction2 = document.getElementById("i2");
 var instruction3 = document.getElementById("i3");
 var instruction4 = document.getElementById("i4");
+var actions_promise;
+
+scrollTop = () => container.scrollTop;
+scrollLeft = () => container.scrollLeft;
+
+function smoothScrollByXY(xPosition, yPosition, xScrollOffset, yScrollOffset) {
+  return new test_driver.Actions()
+      .scroll(xPosition, yPosition, xScrollOffset, yScrollOffset)
+      .send();
+}
 
 function setUpForRoot(offset) {
   root.scrollTop = offset;
@@ -137,7 +152,9 @@ function verify_non_scrollable_allows_propagation() {
     assert_equals(root.scrollLeft, 0);
     assert_equals(root.scrollTop, 0);
   }, "overscroll-behavior on non-scrollable area should not affect scroll propagation.");
-  test.done();
+  actions_promise.then( () => {
+    test.done();
+  });
 }
 
 var verifyAndSetupForNext = [
@@ -147,12 +164,35 @@ var verifyAndSetupForNext = [
     verify_inner_allowed_and_set_nonscrollable_allows_propagation,
     verify_non_scrollable_allows_propagation];
 
-on_event(document.getElementById("btnDone"), "click", function() {
+on_event(btnDone, "click", function() {
   if (current_test < verifyAndSetupForNext.length)
     verifyAndSetupForNext[current_test++]();
 });
 
 var current_test = 0;
 verifyAndSetupForNext[current_test++]();
+
+// Inject scroll actions.
+const test_cases = [
+  { x: 200, y: 500, dx: -200, dy: -200 },
+  { x: 200, y: 500, dx: -200, dy: -200 },
+  { x: 200, y: 500, dx: -200, dy: -200 },
+  { x: 200, y: 100, dx: -200, dy: -200 },
+];
+
+actions_promise = new Promise( (resolve) => {resolve();} );
+for (let action of test_cases) {
+  actions_promise = actions_promise.then(() => {
+    return smoothScrollByXY(action.x, action.y, 0, action.dy);
+  }).then(() => {
+    return waitForAnimationEnd(scrollTop);
+  }).then(() => {
+    return smoothScrollByXY(action.x, action.y, action.dx, 0);
+  }).then(() => {
+    return waitForAnimationEnd(scrollLeft);
+  }).then(() => {
+    return test_driver.click(btnDone);
+  });
+}
 
 </script>

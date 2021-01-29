@@ -30,8 +30,8 @@
 
     <hr/>
     <p>This should be a 100px-wide blue square:</p>
-    <p>Table-layout:fixed does not apply to width:min-content/fit-content tables</p>
-    <x-table style="table-layout: auto; width: fit-content; border-spacing: 0px">
+    <p>Table-layout:fixed does apply to width:min-content/fit-content tables</p>
+    <x-table style="table-layout: fixed; width: fit-content; border-spacing: 0px">
         <x-tr>
             <x-td style="padding: 0; background: blue; height: 50px;"><div style="width: 100px"></div></x-td>
             <x-td style="padding: 0"></x-td>
@@ -39,8 +39,8 @@
     </x-table>
     <x-table style="table-layout: fixed; width: min-content; border-spacing: 0px">
         <x-tr>
-            <x-td style="padding: 0; background: blue; height: 50px;"><div style="width: 100px"></div></x-td>
-            <x-td style="padding: 0"></x-td>
+            <x-td style="padding: 0; background: blue; height: 50px;width:100px;"><div style="width: 100px"></div></x-td>
+            <x-td style="padding: 0;height:50px"><div style="width: 100px"></div></x-td>
         </x-tr>
     </x-table>
 
@@ -75,10 +75,10 @@
             'fixed'
         ],
         [
-            "Table-layout:fixed is not applied when width is min-content",
+            "Table-layout:fixed is applied when width is min-content",
             document.querySelector("x-table:nth-of-type(3) > x-tr:first-child > x-td:first-child").offsetWidth,
             document.querySelector("x-table:nth-of-type(4) > x-tr:first-child > x-td:first-child").offsetWidth
-        ],
+        ]
     ])
 
 </script>

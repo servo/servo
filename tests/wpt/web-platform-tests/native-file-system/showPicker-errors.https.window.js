@@ -84,7 +84,7 @@ function define_file_picker_error_tests(showPickerMethod) {
     await promise_rejects_js(t, TypeError, self[showPickerMethod]({
       startIn: 'secrets',
     }));
-  }, showPickerMethod + ': unknown common starting directory.');
+  }, showPickerMethod + ': unknown well-known starting directory.');
 
   const invalid_extensions = {
     '.extensiontoolong': 'extension length more than 16.',

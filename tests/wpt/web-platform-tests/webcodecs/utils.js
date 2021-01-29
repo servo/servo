@@ -124,3 +124,19 @@ function testUnconfiguredCodec(test, codec, codecInput) {
 
   return promise_rejects_dom(test, 'InvalidStateError', codec.flush(), 'flush');
 }
+
+// Verifies a PlaneInit structure matches the actual constructed plane.
+function verifyPlane(expected, actual) {
+  assert_less_than_equal(expected.stride, actual.stride, 'plane strides');
+  assert_equals(expected.rows, actual.rows, 'plane rows');
+  assert_less_than_equal(
+      expected.stride * expected.rows, actual.length, 'plane size');
+
+  var testBuffer = new Uint8Array(actual.length);
+  actual.readInto(testBuffer);
+  for (var h = 0; h < actual.rows; ++h) {
+    assert_array_equals(
+        expected.src.slice(h * expected.stride, expected.stride),
+        testBuffer.slice(h * actual.stride, expected.stride), 'plane data');
+  }
+}

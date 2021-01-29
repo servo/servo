@@ -95,8 +95,14 @@
         };
         should(() => {
           node = new OscillatorNode(context, options);
-        }, 'new OscillatorNode(, ' + JSON.stringify(options) + ')').notThrow();
+        }, 'new OscillatorNode(c, ' + JSON.stringify(options) + ')').notThrow();
 
+        should(
+            () => {
+              node = new OscillatorNode(context, {periodicWave: null});
+            },
+            'new OscillatorNode(c, {periodicWave: null}')
+            .throw(DOMException, 'TypeError');
         task.done();
       });
 
