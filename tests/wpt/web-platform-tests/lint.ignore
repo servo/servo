@@ -613,6 +613,9 @@ CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds/support/50x50-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/css-grid/grid-items/support/50x50-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/support/50x50-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/ui/support/animated.gif
+CSS-COLLIDING-SUPPORT-NAME: css/css-grid/alignment/support/50x50-green.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-grid/alignment/support/25x50-green.png
+CSS-COLLIDING-SUPPORT-NAME: css/css-grid/grid-items/support/25x50-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/backgrounds/support/animated.gif
 CSS-COLLIDING-SUPPORT-NAME: css/css-shapes/shape-outside/shape-image/support/animated.gif
 CSS-COLLIDING-SUPPORT-NAME: css/css-display/support/util.js
