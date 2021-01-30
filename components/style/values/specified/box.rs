@@ -266,6 +266,12 @@ impl Display {
         .unwrap()
     }
 
+    /// Returns the raw underlying u16 value.
+    #[inline]
+    pub const fn to_u16(&self) -> u16 {
+        self.0
+    }
+
     /// Whether this is `display: inline` (or `inline list-item`).
     #[inline]
     pub fn is_inline_flow(&self) -> bool {
