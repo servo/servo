@@ -14,7 +14,7 @@ def main(request, response):
     # null, fail unless it's an opaque origin
         response.headers.set(b'Timing-Allow-Origin', b'null')
     elif tao == b'Null':
-    # case-insentive null, fail
+    # case-insensitive null, fail
         response.headers.set(b'Timing-Allow-Origin', b'Null')
     elif tao == b'origin':
     # case-sensitive match for origin, pass

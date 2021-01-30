@@ -3483,6 +3483,22 @@ IdlNamespace.prototype.test_self = function ()
     subsetTestByKey(this.name, test, () => {
         assert_equals(typeof namespaceObject, "object");
     }, `${this.name} namespace: typeof is "object"`);
+
+    subsetTestByKey(this.name, test, () => {
+        assert_equals(
+            Object.getOwnPropertyDescriptor(namespaceObject, "length"),
+            undefined,
+            "length property must be undefined"
+        );
+    }, `${this.name} namespace: has no length property`);
+
+    subsetTestByKey(this.name, test, () => {
+        assert_equals(
+            Object.getOwnPropertyDescriptor(namespaceObject, "name"),
+            undefined,
+            "name property must be undefined"
+        );
+    }, `${this.name} namespace: has no name property`);
 };
 
 IdlNamespace.prototype.test = function ()

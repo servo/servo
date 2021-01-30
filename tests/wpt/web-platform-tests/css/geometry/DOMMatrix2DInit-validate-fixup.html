@@ -74,20 +74,6 @@ test(() => {
 }, `addPath (Sanity check without second parameter)`);
 
 [
-  // Input dict that would throw if ignore3D was false
-  [{m13: 1, is2D: true},           matrix2D({})],
-  [{m14: 1, is2D: true},           matrix2D({})],
-  [{m23: 1, is2D: true},           matrix2D({})],
-  [{m24: 1, is2D: true},           matrix2D({})],
-  [{m31: 1, is2D: true},           matrix2D({})],
-  [{m32: 1, is2D: true},           matrix2D({})],
-  [{m33: 0, is2D: true},           matrix2D({})],
-  [{m33: -0, is2D: true},          matrix2D({})],
-  [{m33: -1, is2D: true},          matrix2D({})],
-  [{m34: 1, is2D: true},           matrix2D({})],
-  [{m43: 1, is2D: true},           matrix2D({})],
-  [{m44: 0, is2D: true},           matrix2D({})],
-
   // Input dict that are 2D
   [{},                             matrix2D({})],
   [{is2D: undefined},              matrix2D({})],
@@ -142,32 +128,6 @@ test(() => {
   [{m43: -0, is2D: true},          matrix2D({})],
   [{m44: 1, is2D: true},           matrix2D({})],
   [{is2D: true},                   matrix2D({})],
-
-  // Input dict that are 3D, but 3D members are ignored
-  [{m13: 1, is2D: false},          matrix2D({})],
-  [{m14: 1, is2D: false},          matrix2D({})],
-  [{m23: 1, is2D: false},          matrix2D({})],
-  [{m24: 1, is2D: false},          matrix2D({})],
-  [{m31: 1, is2D: false},          matrix2D({})],
-  [{m32: 1, is2D: false},          matrix2D({})],
-  [{m33: 0, is2D: false},          matrix2D({})],
-  [{m33: -0, is2D: false},         matrix2D({})],
-  [{m33: -1, is2D: false},         matrix2D({})],
-  [{m34: 1, is2D: false},          matrix2D({})],
-  [{m43: 1, is2D: false},          matrix2D({})],
-  [{m44: 0, is2D: false},          matrix2D({})],
-  [{m13: 1},                       matrix2D({})],
-  [{m14: 1},                       matrix2D({})],
-  [{m23: 1},                       matrix2D({})],
-  [{m24: 1},                       matrix2D({})],
-  [{m31: 1},                       matrix2D({})],
-  [{m32: 1},                       matrix2D({})],
-  [{m33: 0},                       matrix2D({})],
-  [{m34: 1},                       matrix2D({})],
-  [{m43: 1},                       matrix2D({})],
-  [{m44: 0},                       matrix2D({})],
-  [{is2D: false},                  matrix2D({})],
-  [{is2D: null},                   matrix2D({})],
 ].forEach(([dict, expected]) => {
   test(() => {
     ctx.resetTransform();

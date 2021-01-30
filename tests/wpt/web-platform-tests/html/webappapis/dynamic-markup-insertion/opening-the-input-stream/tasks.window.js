@@ -104,10 +104,3 @@ taskTest("Promise rejection", (t, frame, open) => {
   frame.contentWindow.onunhandledrejection = listener;
   window.onunhandledrejection = listener;
 });
-
-taskTest("marquee start", (t, frame, open) => {
-  const doc = frame.contentDocument;
-  const marquee = doc.body.appendChild(doc.createElement("marquee"));
-  open(frame.contentDocument);
-  marquee.addEventListener("start", t.step_func_done());
-});
