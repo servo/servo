@@ -1,0 +1,33 @@
+<!doctype html>
+<title>The copy event</title>
+<link rel="help" href="https://w3c.github.io/clipboard-apis/#clipboard-event-copy">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<div id=log></div>
+<button id="copy">Trigger copy</button>
+<input id="copyTarget" value="this text should be copied">
+<script>
+async_test(t => {
+  let button = document.getElementById("copy");
+
+  button.addEventListener("click", function(e) {
+    let input = document.getElementById("copyTarget");
+    input.focus();
+    input.select();
+    document.execCommand("copy");
+  });
+
+  document.oncopy = t.step_func_done(event => {
+    // Nothing can be asserted about the event target until
+    // https://github.com/w3c/clipboard-apis/issues/70 is resolved.
+    // assert_equals(event.target, document.body, 'event.target');
+    assert_true(event.isTrusted, 'event.isTrusted');
+    assert_true(event.composed, 'event.composed');
+  });
+
+  test_driver.click(button);
+});
+</script>
