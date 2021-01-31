@@ -47,6 +47,7 @@ class ServoFormatter(base.BaseFormatter):
             'TIMEOUT': 0,
             'SKIP': 0,
             'CRASH': 0,
+            'PRECONDITION_FAILED': 0,
         }
 
         self.unexpected_tests = {
@@ -56,6 +57,7 @@ class ServoFormatter(base.BaseFormatter):
             'ERROR': [],
             'TIMEOUT': [],
             'CRASH': [],
+            'PRECONDITION_FAILED': [],
         }
 
     def get_move_up_and_clear_eol_codes(self):
@@ -264,6 +266,7 @@ class ServoFormatter(base.BaseFormatter):
         output += text_for_unexpected_list(u"crashed unexpectedly", 'CRASH')
         output += text_for_unexpected_list(u"had errors unexpectedly", 'ERROR')
         output += text_for_unexpected_list(u"failed unexpectedly", 'FAIL')
+        output += text_for_unexpected_list(u"precondition failed unexpectedly", 'PRECONDITION_FAILED')
         output += text_for_unexpected_list(u"timed out unexpectedly", 'TIMEOUT')
         output += text_for_unexpected_list(u"passed unexpectedly", 'PASS')
         output += text_for_unexpected_list(u"unexpectedly okay", 'OK')
