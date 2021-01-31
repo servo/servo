@@ -1185,7 +1185,7 @@ impl Document {
     }
 
     #[allow(unsafe_code)]
-    pub fn handle_mouse_event(
+    pub unsafe fn handle_mouse_event(
         &self,
         js_runtime: *mut JSRuntime,
         button: MouseButton,
@@ -1389,7 +1389,7 @@ impl Document {
     }
 
     #[allow(unsafe_code)]
-    pub fn handle_mouse_move_event(
+    pub unsafe fn handle_mouse_move_event(
         &self,
         js_runtime: *mut JSRuntime,
         client_point: Point2D<f32>,
@@ -1562,7 +1562,7 @@ impl Document {
     }
 
     #[allow(unsafe_code)]
-    pub fn handle_wheel_event(
+    pub unsafe fn handle_wheel_event(
         &self,
         js_runtime: *mut JSRuntime,
         delta: WheelDelta,
@@ -1609,7 +1609,7 @@ impl Document {
     }
 
     #[allow(unsafe_code)]
-    pub fn handle_touch_event(
+    pub unsafe fn handle_touch_event(
         &self,
         js_runtime: *mut JSRuntime,
         event_type: TouchEventType,
