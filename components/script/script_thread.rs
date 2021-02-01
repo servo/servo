@@ -3525,13 +3525,15 @@ impl ScriptThread {
                 // Get the previous target temporarily
                 let prev_mouse_over_target = self.topmost_mouse_over_target.get();
 
-                document.handle_mouse_move_event(
-                    self.js_runtime.rt(),
-                    point,
-                    &self.topmost_mouse_over_target,
-                    node_address,
-                    pressed_mouse_buttons,
-                );
+                unsafe {
+                    document.handle_mouse_move_event(
+                        self.js_runtime.rt(),
+                        point,
+                        &self.topmost_mouse_over_target,
+                        node_address,
+                        pressed_mouse_buttons,
+                    )
+                }
 
                 // Short-circuit if nothing changed
                 if self.topmost_mouse_over_target.get() == prev_mouse_over_target {
@@ -3650,15 +3652,17 @@ impl ScriptThread {
             Some(document) => document,
             None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
         };
-        document.handle_mouse_event(
-            self.js_runtime.rt(),
-            button,
-            point,
-            mouse_event_type,
-            node_address,
-            point_in_node,
-            pressed_mouse_buttons,
-        );
+        unsafe {
+            document.handle_mouse_event(
+                self.js_runtime.rt(),
+                button,
+                point,
+                mouse_event_type,
+                node_address,
+                point_in_node,
+                pressed_mouse_buttons,
+            )
+        }
     }
 
     fn handle_touch_event(
@@ -3676,13 +3680,15 @@ impl ScriptThread {
                 return TouchEventResult::Processed(true);
             },
         };
-        document.handle_touch_event(
-            self.js_runtime.rt(),
-            event_type,
-            identifier,
-            point,
-            node_address,
-        )
+        unsafe {
+            document.handle_touch_event(
+                self.js_runtime.rt(),
+                event_type,
+                identifier,
+                point,
+                node_address,
+            )
+        }
     }
 
     fn handle_wheel_event(
@@ -3696,7 +3702,9 @@ impl ScriptThread {
             Some(document) => document,
             None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
         };
-        document.handle_wheel_event(self.js_runtime.rt(), wheel_delta, point, node_address);
+        unsafe {
+            document.handle_wheel_event(self.js_runtime.rt(), wheel_delta, point, node_address)
+        };
     }
 
     /// Handle a "navigate an iframe" message from the constellation.

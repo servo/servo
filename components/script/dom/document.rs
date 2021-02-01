@@ -1203,7 +1203,7 @@ impl Document {
         debug!("{}: at {:?}", mouse_event_type_string, client_point);
 
         let el = node_address.and_then(|address| {
-            let node = unsafe { node::from_untrusted_node_address(js_runtime, address) };
+            let node = node::from_untrusted_node_address(js_runtime, address);
             node.inclusive_ancestors(ShadowIncluding::No)
                 .filter_map(DomRoot::downcast::<Element>)
                 .next()
@@ -1398,7 +1398,7 @@ impl Document {
         pressed_mouse_buttons: u16,
     ) {
         let maybe_new_target = node_address.and_then(|address| {
-            let node = unsafe { node::from_untrusted_node_address(js_runtime, address) };
+            let node = node::from_untrusted_node_address(js_runtime, address);
             node.inclusive_ancestors(ShadowIncluding::No)
                 .filter_map(DomRoot::downcast::<Element>)
                 .next()
@@ -1573,7 +1573,7 @@ impl Document {
         debug!("{}: at {:?}", wheel_event_type_string, client_point);
 
         let el = node_address.and_then(|address| {
-            let node = unsafe { node::from_untrusted_node_address(js_runtime, address) };
+            let node = node::from_untrusted_node_address(js_runtime, address);
             node.inclusive_ancestors(ShadowIncluding::No)
                 .filter_map(DomRoot::downcast::<Element>)
                 .next()
@@ -1627,7 +1627,7 @@ impl Document {
         };
 
         let el = node_address.and_then(|address| {
-            let node = unsafe { node::from_untrusted_node_address(js_runtime, address) };
+            let node = node::from_untrusted_node_address(js_runtime, address);
             node.inclusive_ancestors(ShadowIncluding::No)
                 .filter_map(DomRoot::downcast::<Element>)
                 .next()
