@@ -1616,9 +1616,12 @@ class PropertyDefiner:
         specs = []
         prefableSpecs = []
         prefableTemplate = '    Guard::new(%s, %s[%d])'
+        origTemplate = specTemplate
+        if isinstance(specTemplate, str):
+            specTemplate = lambda _: origTemplate  # noqa
 
         for cond, members in groupby(array, lambda m: getCondition(m, self.descriptor)):
-            currentSpecs = [specTemplate % getDataTuple(m) for m in members]
+            currentSpecs = [specTemplate(m) % getDataTuple(m) for m in members]
             if specTerminator:
                 currentSpecs.append(specTerminator)
             specs.append("&[\n" + ",\n".join(currentSpecs) + "]\n")
@@ -1826,7 +1829,11 @@ class AttrDefiner(PropertyDefiner):
         self.name = name
         self.descriptor = descriptor
         self.regular = [
-            m
+            {
+                "name": m.identifier.name,
+                "attr": m,
+                "flags": "JSPROP_ENUMERATE",
+            }
             for m in descriptor.interface.members if
             m.isAttr() and m.isStatic() == static
             and MemberIsUnforgeable(m, descriptor) == unforgeable
@@ -1834,15 +1841,21 @@ class AttrDefiner(PropertyDefiner):
         self.static = static
         self.unforgeable = unforgeable
 
+        if not static and not unforgeable and not (
+                descriptor.interface.isNamespace() or descriptor.interface.isCallback()
+        ):
+            self.regular.append({
+                "name": "@@toStringTag",
+                "attr": None,
+                "flags": "JSPROP_READONLY | JSPROP_INTERNAL_USE_BIT"
+            })
+
     def generateArray(self, array, name):
         if len(array) == 0:
             return ""
 
-        flags = "JSPROP_ENUMERATE"
-        if self.unforgeable:
-            flags += " | JSPROP_PERMANENT"
-
         def getter(attr):
+            attr = attr['attr']
             if self.static:
                 accessor = 'get_' + self.descriptor.internalNameFor(attr.identifier.name)
                 jitinfo = "0 as *const JSJitInfo"
@@ -1858,6 +1871,7 @@ class AttrDefiner(PropertyDefiner):
                        "native": accessor})
 
         def setter(attr):
+            attr = attr['attr']
             if (attr.readonly and not attr.getExtendedAttribute("PutForwards")
                     and not attr.getExtendedAttribute("Replaceable")):
                 return "JSNativeWrapper { op: None, info: 0 as *const JSJitInfo }"
@@ -1876,29 +1890,59 @@ class AttrDefiner(PropertyDefiner):
                     % {"info": jitinfo,
                        "native": accessor})
 
+        def condition(m, d):
+            if m["name"] == "@@toStringTag":
+                return MemberCondition(pref=None, func=None, exposed=None, secure=None)
+            return PropertyDefiner.getControllingCondition(m["attr"], d)
+
         def specData(attr):
-            return (str_to_const_array(attr.identifier.name), flags, getter(attr),
+            if attr["name"] == "@@toStringTag":
+                return (attr["name"][2:], attr["flags"],
+                        str_to_const_array(self.descriptor.interface.getClassName()))
+
+            flags = attr["flags"]
+            if self.unforgeable:
+                flags += " | JSPROP_PERMANENT"
+            return (str_to_const_array(attr["attr"].identifier.name), flags, getter(attr),
                     setter(attr))
+
+        def template(m):
+            if m["name"] == "@@toStringTag":
+                return """    JSPropertySpec {
+                    name: JSPropertySpec_Name { symbol_: SymbolCode::%s as usize + 1 },
+                    flags_: (%s) as u8,
+                    u: JSPropertySpec_AccessorsOrValue {
+                        value: JSPropertySpec_ValueWrapper {
+                            type_: JSValueType::JSVAL_TYPE_STRING as _,
+                            __bindgen_anon_1: JSPropertySpec_ValueWrapper__bindgen_ty_1 {
+                                string: %s as *const u8 as *const libc::c_char,
+                            }
+                        }
+                    }
+                }
+"""
+            return """    JSPropertySpec {
+                    name: JSPropertySpec_Name { string_: %s as *const u8 as *const libc::c_char },
+                    flags_: (%s) as u8,
+                    u: JSPropertySpec_AccessorsOrValue {
+                        accessors: JSPropertySpec_AccessorsOrValue_Accessors {
+                            getter: JSPropertySpec_Accessor {
+                                native: %s,
+                            },
+                            setter: JSPropertySpec_Accessor {
+                                native: %s,
+                            }
+                        }
+                    }
+                }
+"""
 
         return self.generateGuardedArray(
             array, name,
-            '    JSPropertySpec {\n'
-            '        name: JSPropertySpec_Name { string_: %s as *const u8 as *const libc::c_char },\n'
-            '        flags_: (%s) as u8,\n'
-            '        u: JSPropertySpec_AccessorsOrValue {\n'
-            '            accessors: JSPropertySpec_AccessorsOrValue_Accessors {\n'
-            '                getter: JSPropertySpec_Accessor {\n'
-            '                    native: %s,\n'
-            '                },\n'
-            '                setter: JSPropertySpec_Accessor {\n'
-            '                    native: %s,\n'
-            '                }\n'
-            '            }\n'
-            '        }\n'
-            '    }',
+            template,
             '    JSPropertySpec::ZERO',
             'JSPropertySpec',
-            PropertyDefiner.getControllingCondition, specData)
+            condition, specData)
 
 
 class ConstDefiner(PropertyDefiner):
@@ -6046,11 +6090,14 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::JSPROP_ENUMERATE',
         'js::jsapi::JSPROP_PERMANENT',
         'js::jsapi::JSPROP_READONLY',
+        'js::jsapi::JSPROP_INTERNAL_USE_BIT',
         'js::jsapi::JSPropertySpec',
         'js::jsapi::JSPropertySpec_Accessor',
         'js::jsapi::JSPropertySpec_AccessorsOrValue',
         'js::jsapi::JSPropertySpec_AccessorsOrValue_Accessors',
         'js::jsapi::JSPropertySpec_Name',
+        'js::jsapi::JSPropertySpec_ValueWrapper',
+        'js::jsapi::JSPropertySpec_ValueWrapper__bindgen_ty_1',
         'js::jsapi::JSString',
         'js::jsapi::JSTracer',
         'js::jsapi::JSType',
