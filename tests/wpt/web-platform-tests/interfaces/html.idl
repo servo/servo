@@ -2396,10 +2396,6 @@ interface HTMLMarqueeElement : HTMLElement {
   [CEReactions] attribute unsigned long vspace;
   [CEReactions] attribute DOMString width;
 
-  attribute EventHandler onbounce;
-  attribute EventHandler onfinish;
-  attribute EventHandler onstart;
-
   undefined start();
   undefined stop();
 };

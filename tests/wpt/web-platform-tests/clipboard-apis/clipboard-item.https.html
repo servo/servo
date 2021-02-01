@@ -89,4 +89,24 @@ promise_test(async t => {
   promise_rejects_dom(t, "NotFoundError", item.getType('type not in item'));
   promise_rejects_dom(t, "NotFoundError", item.getType('text/plain:subtype'));
 }, "getType(DOMString type) rejects correctly when querying for missing type");
+
+promise_test(async () => {
+  const item =
+      new ClipboardItem({'text/plain': 'abc', 'not a/real type': 'xxx'});
+  const blob = await item.getType('text/plain');
+  assert_equals(blob.type, 'text/plain');
+
+  const text = await (new Response(blob)).text();
+  assert_equals(text, 'abc');
+}, "getType(DOMString valid type) converts DOMString to Blob");
+
+promise_test(async () => {
+  const item =
+      new ClipboardItem({'text/plain': 'abc', 'not a/real type': 'xxx'});
+  const blob = await item.getType('not a/real type');
+  assert_equals(blob.type, 'not a/real type');
+
+  const text = await (new Response(blob)).text();
+  assert_equals(text, 'xxx');
+}, "getType(DOMString invalid type) converts DOMString to Blob");
 </script>
