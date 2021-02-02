@@ -215,6 +215,8 @@ var GenericSensorTest = (() => {
         ['Accelerometer', device.mojom.SensorType.ACCELEROMETER],
         ['LinearAccelerationSensor',
             device.mojom.SensorType.LINEAR_ACCELERATION],
+        ['GravitySensor',
+            device.mojom.SensorType.GRAVITY],
         ['AmbientLightSensor', device.mojom.SensorType.AMBIENT_LIGHT],
         ['Gyroscope', device.mojom.SensorType.GYROSCOPE],
         ['Magnetometer', device.mojom.SensorType.MAGNETOMETER],

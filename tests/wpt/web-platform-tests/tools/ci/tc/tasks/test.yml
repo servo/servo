@@ -105,11 +105,6 @@ components:
 
   browser-servo: {}
 
-  tox-python2:
-    env:
-      TOXENV: py27
-      PY_COLORS: 0
-
   tox-python3:
     env:
       TOXENV: py36
@@ -402,20 +397,6 @@ tasks:
           - update_built
       command: "./tools/ci/ci_built_diff.sh"
 
-  - tools/ unittests (Python 2):
-      use:
-        - wpt-base
-        - trigger-pr
-        - tox-python2
-      description: >-
-        Unit tests for tools running under Python 2.7, excluding wptrunner
-      command: ./tools/ci/ci_tools_unittest.sh
-      env:
-        HYPOTHESIS_PROFILE: ci
-      schedule-if:
-        run-job:
-          - tools_unittest
-
   - tools/ unittests (Python 3.6):
       description: >-
         Unit tests for tools running under Python 3.6, excluding wptrunner
@@ -446,28 +427,6 @@ tasks:
       schedule-if:
         run-job:
           - tools_unittest
-
-  - tools/ integration tests (Python 2):
-      description: >-
-        Integration tests for tools running under Python 2.7
-      use:
-        - wpt-base
-        - trigger-pr
-        - tox-python2
-      command: ./tools/ci/ci_tools_integration_test.sh
-      install:
-        - libnss3-tools
-      options:
-        oom-killer: true
-        browser:
-          - firefox
-          - chrome
-        channel: experimental
-        xvfb: true
-        hosts: true
-      schedule-if:
-        run-job:
-          - wpt_integration
 
   - tools/ integration tests (Python 3.6):
       description: >-
@@ -515,23 +474,6 @@ tasks:
         run-job:
           - wpt_integration
 
-  - resources/ tests (Python 2):
-      description: >-
-        Tests for testharness.js and other files in resources/ under Python 2.7
-      use:
-        - wpt-base
-        - trigger-pr
-        - tox-python2
-      command: ./tools/ci/ci_resources_unittest.sh
-      options:
-        browser:
-          - firefox
-        xvfb: true
-        hosts: true
-      schedule-if:
-        run-job:
-          - resources_unittest
-  
   - resources/ tests (Python 3.6):
       description: >-
         Tests for testharness.js and other files in resources/ under Python 3.6
@@ -571,32 +513,6 @@ tasks:
       schedule-if:
         run-job:
           - resources_unittest
-
-  - infrastructure/ tests:
-      description: >-
-        Smoketests for wptrunner
-      vars:
-        channel: nightly
-      use:
-        - wpt-base
-        - trigger-pr
-        - browser-firefox
-      command: ./tools/ci/ci_wptrunner_infrastructure.sh --py2
-      install:
-        - libnss3-tools
-        - libappindicator1
-        - fonts-liberation
-      options:
-        oom-killer: true
-        browser:
-          - firefox
-          - chrome
-        channel: experimental
-        xvfb: true
-        hosts: false
-      schedule-if:
-        run-job:
-          - wptrunner_infrastructure
 
   - infrastructure/ tests (Python 3):
       description: >-

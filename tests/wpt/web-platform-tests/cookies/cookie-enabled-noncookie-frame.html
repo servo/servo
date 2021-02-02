@@ -6,16 +6,15 @@
 <body>
   <script>
     var t = async_test("navigator.cookieEnabled behavior on frames without cookie access");
-    window.onmessage = function(ev) {
+    window.onmessage = t.step_func_done(ev => {
       // Surprisingly, the legacy behavior here is to return true; this actually
       // does match the spec definition since false is supposed to be returned
       // when a document.cookie write is ignored --- and here it would throw
       // a security exception, not be ignored.
-      assert_equals(ev.data, true);
-      t.done();
-    }
+      assert_true(ev.data);
+    });
 
-    t.step(function() {
+    t.step(() => {
       var iframe = document.createElement("iframe");
       iframe.sandbox = "allow-scripts";
       iframe.srcdoc = "<scr" + "ipt>" +

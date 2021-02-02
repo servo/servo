@@ -427,10 +427,12 @@ class ChromeiOS(BrowserSetup):
 class AndroidWeblayer(BrowserSetup):
     name = "android_weblayer"
     browser_cls = browser.AndroidWeblayer
+    experimental_channels = ("dev", "canary")
 
     def setup_kwargs(self, kwargs):
         if kwargs.get("device_serial"):
             self.browser.device_serial = kwargs["device_serial"]
+        browser_channel = kwargs["browser_channel"]
         if kwargs["webdriver_binary"] is None:
             webdriver_binary = None
             if not kwargs["install_webdriver"]:
@@ -443,7 +445,7 @@ class AndroidWeblayer(BrowserSetup):
                     logger.info("Downloading chromedriver")
                     webdriver_binary = self.browser.install_webdriver(
                         dest=self.venv.bin_path,
-                        channel=kwargs["browser_channel"])
+                        channel=browser_channel)
             else:
                 logger.info("Using webdriver binary %s" % webdriver_binary)
 
@@ -451,6 +453,9 @@ class AndroidWeblayer(BrowserSetup):
                 kwargs["webdriver_binary"] = webdriver_binary
             else:
                 raise WptrunError("Unable to locate or install chromedriver binary")
+        if browser_channel in self.experimental_channels:
+            logger.info("Automatically turning on experimental features for WebLayer Dev/Canary")
+            kwargs["binary_args"].append("--enable-experimental-web-platform-features")
 
 
 class AndroidWebview(BrowserSetup):

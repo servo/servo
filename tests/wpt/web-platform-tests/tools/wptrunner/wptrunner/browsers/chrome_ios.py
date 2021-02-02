@@ -51,7 +51,7 @@ class ChromeiOSBrowser(Browser):
 
     init_timeout = 120
 
-    def __init__(self, logger, webdriver_binary, webdriver_args=None):
+    def __init__(self, logger, webdriver_binary, webdriver_args=None, **kwargs):
         """Creates a new representation of Chrome."""
         Browser.__init__(self, logger)
         self.server = CWTChromeDriverServer(self.logger,

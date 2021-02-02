@@ -81,21 +81,6 @@ css/css-align/resources/__init__.py
 This requirement will be removed once we move to Python 3, due to
 [PEP 420](https://www.python.org/dev/peps/pep-0420/).
 
-### Python3 compatibility
-
-Even though Python3 is not fully supported at this point, some work is being
-done to add compatibility for it. This is why you can see in multiple places
-the use of the `six` python module which is meant to provide a set of simple
-utilities that work for both generation of python (see
-[docs](https://six.readthedocs.io/)). The module is vendored in
-tools/third_party/six/six.py.
-
-When an handler is added, it should be at least syntax-compatible with Python3.
-You can check that by running:
-```
-python3 -m py_compile <path/to/handler.py>
-```
-
 ## Example: Dynamic HTTP headers
 
 The following code defines a Python handler that allows the requester to

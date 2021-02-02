@@ -113,7 +113,7 @@ class ChromeBrowser(Browser):
     """
 
     def __init__(self, logger, binary, webdriver_binary="chromedriver",
-                 webdriver_args=None):
+                 webdriver_args=None, **kwargs):
         """Creates a new representation of Chrome.  The `binary` argument gives
         the browser binary to use for testing."""
         Browser.__init__(self, logger)
