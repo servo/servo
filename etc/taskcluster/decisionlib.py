@@ -656,7 +656,7 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
         .with_path_from_homedir("python3") \
         .with_early_script("""
             python -m ensurepip
-            pip install virtualenv==20.2.1
+            python -m pip install virtualenv==20.2.1
         """)
 
 
