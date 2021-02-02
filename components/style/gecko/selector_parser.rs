@@ -102,6 +102,7 @@ impl NonTSPseudoClass {
                     "-moz-full-screen" => Some(NonTSPseudoClass::Fullscreen),
                     "-moz-read-only" => Some(NonTSPseudoClass::ReadOnly),
                     "-moz-read-write" => Some(NonTSPseudoClass::ReadWrite),
+                    "-moz-focusring" => Some(NonTSPseudoClass::FocusVisible),
                     "-webkit-autofill" => Some(NonTSPseudoClass::Autofill),
                     _ => None,
                 }
@@ -136,9 +137,6 @@ impl NonTSPseudoClass {
     /// Returns whether the pseudo-class is enabled in content sheets.
     #[inline]
     fn is_enabled_in_content(&self) -> bool {
-        if let NonTSPseudoClass::FocusVisible = *self {
-            return static_prefs::pref!("layout.css.focus-visible.enabled");
-        }
         if let NonTSPseudoClass::Autofill = *self {
             return static_prefs::pref!("layout.css.autofill.enabled");
         }

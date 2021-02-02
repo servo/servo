@@ -55,8 +55,6 @@ macro_rules! apply_non_ts_list {
                 ("fullscreen", Fullscreen, IN_FULLSCREEN_STATE, _),
                 ("-moz-modal-dialog", MozModalDialog, IN_MODAL_DIALOG_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
                 ("-moz-topmost-modal-dialog", MozTopmostModalDialog, IN_TOPMOST_MODAL_DIALOG_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
-                // TODO(emilio): This is inconsistently named (the capital R).
-                ("-moz-focusring", MozFocusRing, IN_FOCUSRING_STATE, _),
                 ("-moz-broken", MozBroken, IN_BROKEN_STATE, _),
                 ("-moz-loading", MozLoading, IN_LOADING_STATE, _),
                 ("-moz-has-dir-attr", MozHasDirAttr, IN_HAS_DIR_ATTR_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
