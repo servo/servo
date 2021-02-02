@@ -47,6 +47,11 @@ promise_test(async t => {
 }, 'navigator.clipboard.writeText() fails (expect DOMString)');
 
 promise_test(async () => {
+  const item = new ClipboardItem({'text/plain': 'test'});
+  await navigator.clipboard.write([item]);
+}, 'navigator.clipboard.write({string : DOMString}) succeeds');
+
+promise_test(async () => {
   const fetched = await fetch('/clipboard-apis/resources/greenbox.png');
   const image = await fetched.blob();
   const item = new ClipboardItem({'image/png': image});
@@ -63,6 +68,11 @@ promise_test(async() => {
 
   await navigator.clipboard.write([item]);
 }, 'navigator.clipboard.write([text + png] succeeds');
+
+promise_test(async t => {
+  const item = new ClipboardItem({'image/png': 'not an image'});
+  await promise_rejects_js(t, TypeError, navigator.clipboard.write([item]));
+}, 'navigator.clipboard.write(image/png DOMString) fails');
 
 promise_test(async () => {
   const result = await navigator.clipboard.read();

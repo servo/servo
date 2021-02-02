@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>Subframe loading from Web Bundles</title>
+<link
+  rel="help"
+  href="https://github.com/WICG/webpackage/blob/master/explainers/subresource-loading.md"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+
+promise_test(async () => {
+  const frame_url = 'urn:uuid:429fcc4e-0696-4bad-b099-ee9175f023ae';
+  const link = document.createElement('link');
+  link.rel = 'webbundle';
+  link.href = '../resources/wbn/urn-uuid.wbn';
+  link.resources = frame_url;
+  document.body.appendChild(link);
+  const message_promisse = new Promise((resolve) => {
+      window.addEventListener('message', (e) => {
+          resolve(e.data);
+      });
+    });
+  const iframe = document.createElement('iframe');
+  iframe.src = frame_url;
+  document.body.appendChild(iframe);
+  assert_equals(
+      await message_promisse,
+      'subframe loaded from WBN: location = ' + frame_url);
+  document.body.removeChild(link);
+  document.body.removeChild(iframe);
+}, "Subframe load from Web Bundle");
+
+</script>
+</body>
