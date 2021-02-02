@@ -653,6 +653,7 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
             sha256="6de14c9223226cf0cd8c965ecb08c51d62c770171a256991b4fddc25188cfa8e",
             path="python3",
         ) \
+        .with_path_from_homedir("python3") \
         .with_early_script("""
             python -m ensurepip
             pip install virtualenv==20.2.1
