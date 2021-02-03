@@ -14,7 +14,7 @@
     createScript: t => t,
   });
   function stringify(arg) {
-    return "textContent" in arg.__proto__ ? arg.textContent : arg.toString()
+    return "textContent" in Object.getPrototypeOf(arg) ? arg.textContent : arg.toString()
   }
 
   // This test case mirrors the block-Node-multiple-arguments case except

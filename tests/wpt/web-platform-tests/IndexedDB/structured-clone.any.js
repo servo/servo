@@ -15,7 +15,7 @@
 function describe(value) {
   let type, str;
   if (typeof value === 'object' && value) {
-    type = value.__proto__.constructor.name;
+    type = Object.getPrototypeOf(value).constructor.name;
     // Handle Number(-0), etc.
     str = Object.is(value.valueOf(), -0) ? '-0' : String(value);
   } else {
@@ -54,7 +54,7 @@ function cloneObjectTest(value, verifyFunc) {
   cloneTest(value, async (orig, clone) => {
     assert_not_equals(orig, clone);
     assert_equals(typeof clone, 'object');
-    assert_equals(orig.__proto__, clone.__proto__);
+    assert_equals(Object.getPrototypeOf(orig), Object.getPrototypeOf(clone));
     await verifyFunc(orig, clone);
   });
 }
@@ -141,7 +141,7 @@ const strings = [
 ].forEach(value => cloneTest(value, (orig, clone) => {
     assert_not_equals(orig, clone);
     assert_equals(typeof clone, 'object');
-    assert_equals(orig.__proto__, clone.__proto__);
+    assert_equals(Object.getPrototypeOf(orig), Object.getPrototypeOf(clone));
     assert_equals(orig.valueOf(), clone.valueOf());
   }));
 
@@ -261,7 +261,7 @@ cloneObjectTest({foo: true, bar: false}, (orig, clone) => {
   new DOMRect,
   new DOMRectReadOnly(),
 ].forEach(value => cloneObjectTest(value, (orig, clone) => {
-  Object.keys(orig.__proto__).forEach(key => {
+  Object.keys(Object.getPrototypeOf(orig)).forEach(key => {
     assert_equals(orig[key], clone[key], `Property ${key}`);
   });
 }));

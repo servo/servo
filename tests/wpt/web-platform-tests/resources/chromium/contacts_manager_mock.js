@@ -2,17 +2,17 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-'use strict';
+import {ContactsManager, ContactsManagerReceiver} from '/gen/third_party/blink/public/mojom/contacts/contacts_manager.mojom.m.js';
 
-const WebContactsTest = (() => {
+self.WebContactsTest = (() => {
   class MockContacts {
     constructor() {
-      this.bindingSet_ = new mojo.BindingSet(blink.mojom.ContactsManager);
+      this.receiver_ = new ContactsManagerReceiver(this);
 
       this.interceptor_ =
-          new MojoInterfaceInterceptor(blink.mojom.ContactsManager.name);
+          new MojoInterfaceInterceptor(ContactsManager.$interfaceName);
       this.interceptor_.oninterfacerequest =
-          e => this.bindingSet_.addBinding(this, e.handle);
+          e => this.receiver_.$.bindHandle(e.handle);
       this.interceptor_.start();
 
       this.selectedContacts_ = [];
@@ -39,7 +39,7 @@ const WebContactsTest = (() => {
         return {contacts: null};
 
       const contactInfos = await Promise.all(this.selectedContacts_.map(async contact => {
-        const contactInfo = new blink.mojom.ContactInfo();
+        const contactInfo = {};
         if (includeNames)
           contactInfo.name = contact.name || [];
         if (includeEmails)
@@ -69,7 +69,7 @@ const WebContactsTest = (() => {
     }
 
     reset() {
-      this.bindingSet_.closeAllBindings();
+      this.receiver_.$.close();
       this.interceptor_.stop();
     }
   }

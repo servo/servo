@@ -151,7 +151,11 @@ if (kChildTag[0] === "") {
     innerHTML: `<p>${kParentTag[0]}[abc]${kParentTag[1]}</p>`,
     run: async (utils) => {
       utils.document.execCommand("createLink", false, "about:blank");
-      await utils.sendEndKey();
+      if (!navigator.platform.includes("Mac")) {
+        await utils.sendEndKey();
+      } else {
+        await utils.sendArrowRightKey(utils.kMetaKey);
+      }
       await utils.sendKey("X", utils.kShiftKey);
       await utils.sendKey("Y", utils.kShiftKey);
     },
@@ -196,7 +200,11 @@ if (kChildTag[0] === "") {
     innerHTML: `<p>${kParentTag[0]}[abc]${kParentTag[1]}</p>`,
     run: async (utils) => {
       utils.document.execCommand("createLink", false, "about:blank");
-      await utils.sendHomeKey();
+      if (!navigator.platform.includes("Mac")) {
+        await utils.sendHomeKey();
+      } else {
+        await utils.sendArrowLeftKey(utils.kMetaKey);
+      }
       await utils.sendKey("X", utils.kShiftKey);
       await utils.sendKey("Y", utils.kShiftKey);
     },

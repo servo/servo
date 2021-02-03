@@ -1,3 +1,5 @@
+import {IdleManager, IdleManagerReceiver, ScreenIdleState as MojoScreenIdleState, UserIdleState as MojoUserIdleState} from '/gen/third_party/blink/public/mojom/idle/idle_manager.mojom.m.js';
+
 /**
  * This is a testing framework that enables us to test the user idle detection
  * by intercepting the connection between the renderer and the browser and
@@ -35,14 +37,14 @@ class FakeIdleMonitor {
     return this;
   }
   close() {
-    this.binding.close();
+    this.binding.$.close();
   }
 }
 
-const UserIdleState = {};
-const ScreenIdleState = {};
+self.UserIdleState = {};
+self.ScreenIdleState = {};
 
-function addMonitor(threshold, monitorPtr, callback) {
+self.addMonitor = function addMonitor(threshold, monitorPtr, callback) {
   throw new Error("expected to be overriden by tests");
 }
 
@@ -50,31 +52,28 @@ async function close() {
   interceptor.close();
 }
 
-function expect(call) {
+self.expect = function(call) {
   return {
     andReturn(callback) {
       let handler = {};
       handler[call.name] = callback;
       interceptor.setHandler(handler);
     }
-  }
-}
+  };
+};
 
 function intercept() {
   let result = new FakeIdleMonitor();
 
-  let binding = new mojo.Binding(blink.mojom.IdleManager, result);
-  let interceptor = new MojoInterfaceInterceptor(blink.mojom.IdleManager.name);
-  interceptor.oninterfacerequest = (e) => {
-    binding.bind(e.handle);
-  }
-
+  let binding = new IdleManagerReceiver(result);
+  let interceptor = new MojoInterfaceInterceptor(IdleManager.$interfaceName);
+  interceptor.oninterfacerequest = e => binding.$.bindHandle(e.handle);
   interceptor.start();
 
-  UserIdleState.ACTIVE = blink.mojom.UserIdleState.kActive;
-  UserIdleState.IDLE = blink.mojom.UserIdleState.kIdle;
-  ScreenIdleState.LOCKED = blink.mojom.ScreenIdleState.kLocked;
-  ScreenIdleState.UNLOCKED = blink.mojom.ScreenIdleState.kUnlocked;
+  self.UserIdleState.ACTIVE = MojoUserIdleState.kActive;
+  self.UserIdleState.IDLE = MojoUserIdleState.kIdle;
+  self.ScreenIdleState.LOCKED = MojoScreenIdleState.kLocked;
+  self.ScreenIdleState.UNLOCKED = MojoScreenIdleState.kUnlocked;
 
   result.setBinding(binding);
   return result;

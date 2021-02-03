@@ -1,14 +1,27 @@
-'use strict'
+import {MultipleDisplays, ScreenEnumeration, ScreenEnumerationReceiver} from '/gen/third_party/blink/public/mojom/screen_enumeration/screen_enumeration.mojom.m.js';
+import {BufferFormat} from '/gen/ui/gfx/mojom/buffer_types.mojom.m.js';
+import {ColorSpaceMatrixID, ColorSpacePrimaryID, ColorSpaceRangeID, ColorSpaceTransferID} from '/gen/ui/gfx/mojom/color_space.mojom.m.js';
+import {AccelerometerSupport, Rotation, TouchSupport} from '/gen/ui/display/mojom/display.mojom.m.js';
 
-var ScreenEnumerationTest = (() => {
+export const HelperTypes = {
+  AccelerometerSupport,
+  BufferFormat,
+  ColorSpaceMatrixID,
+  ColorSpacePrimaryID,
+  ColorSpaceRangeID,
+  ColorSpaceTransferID,
+  Rotation,
+  TouchSupport,
+};
 
+self.ScreenEnumerationTest = (() => {
   class MockScreenEnumeration {
     constructor() {
-      this.bindingSet_ = new mojo.BindingSet(blink.mojom.ScreenEnumeration);
-      this.interceptor_ = new MojoInterfaceInterceptor(blink.mojom.ScreenEnumeration.name);
-      this.interceptor_.oninterfacerequest = e => {
-        this.bindingSet_.addBinding(this, e.handle);
-      }
+      this.receiver_ = new ScreenEnumerationReceiver(this);
+      this.interceptor_ =
+          new MojoInterfaceInterceptor(ScreenEnumeration.$interfaceName);
+      this.interceptor_.oninterfacerequest =
+          e => this.receiver_.$.bindHandle(e.handle);
       this.reset();
       this.interceptor_.start();
     }
@@ -45,22 +58,22 @@ var ScreenEnumerationTest = (() => {
 
     async getDisplays() {
       if (!this.success_)
-        return Promise.resolve({ result: undefined, });
-      let value = new blink.mojom.Displays();
-      value.displays = this.displays_;
-      value.internalId = this.internalId_;
-      value.primaryId = this.primaryId_;
-      return Promise.resolve({ result: value, });
+        return {result: undefined};
+      const result = {
+        displays: this.displays_,
+        internalId: this.internalId_,
+        primaryId: this.primaryId_,
+      };
+      return {result};
     }
 
-    async hasMultipleDisplays() {
+    hasMultipleDisplays() {
       if (!this.success_)
-        return Promise.resolve({ result: blink.mojom.MultipleDisplays.kError });
-      return Promise.resolve({
+        return {result: MultipleDisplays.kError};
+      return {
         result: this.displays_.length > 1
-            ? blink.mojom.MultipleDisplays.kTrue
-            : blink.mojom.MultipleDisplays.kFalse,
-      });
+            ? MultipleDisplays.kTrue : MultipleDisplays.kFalse,
+      };
     }
   }
 

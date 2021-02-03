@@ -14,7 +14,7 @@
     assert_equals(window.SVGAnimatedPathData, undefined);
 
     var track = document.getElementById('track');
-    assert_equals(track.__proto__, SVGPathElement.prototype);
+    assert_equals(Object.getPrototypeOf(track), SVGPathElement.prototype);
     assert_equals(track.pathSegList, undefined);
     assert_equals(track.normalizedPathSegList, undefined);
     assert_equals(track.animatedPathSegList, undefined);

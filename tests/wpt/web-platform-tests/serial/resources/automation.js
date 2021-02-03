@@ -11,14 +11,7 @@
 //
 //   --enable-blink-features=MojoJS,MojoJSTest
 
-async function loadChromiumResources() {
-  const chromiumResources = [
-    '/gen/mojo/public/mojom/base/unguessable_token.mojom.js',
-    '/gen/services/device/public/mojom/serial.mojom.js',
-    '/gen/third_party/blink/public/mojom/serial/serial.mojom.js',
-  ];
-  await loadMojoResources(chromiumResources);
-}
+let fakeSerialService = undefined;
 
 // Returns a SerialPort instance and associated FakeSerialPort instance.
 async function getFakeSerialPort(fake) {
@@ -34,16 +27,14 @@ async function getFakeSerialPort(fake) {
   return { port, fakePort };
 }
 
-let fakeSerialService = undefined;
-
 function serial_test(func, name, properties) {
   promise_test(async (test) => {
     assert_implements(navigator.serial, 'missing navigator.serial');
     if (fakeSerialService === undefined) {
       // Try loading a polyfill for the fake serial service.
       if (isChromiumBased) {
-        await loadChromiumResources();
-        await loadScript('/resources/chromium/fake-serial.js');
+        const fakes = await import('/resources/chromium/fake-serial.js');
+        fakeSerialService = fakes.fakeSerialService;
       }
     }
     assert_implements(fakeSerialService, 'missing fakeSerialService after initialization');

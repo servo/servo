@@ -154,6 +154,11 @@
         expected: "test25",
         name: "Ignore name- and value-less `Set-Cookie: \\t`",
       },
+      {
+        cookie: "test=26; domain=.parser.test; ;; ;=; ,,, ===,abc,=; abracadabra! max-age=20;=;;",
+        expected: "",
+        name: "Ignore cookie with domain that won't domain match (along with other invalid noise)",
+      },
     ];
 
     for (const test of invalidAttributeTests) {

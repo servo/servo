@@ -204,42 +204,19 @@ function forEachWebxrObject(callback) {
 
 // Code for loading test API in Chromium.
 async function loadChromiumResources() {
-  const chromiumResources = [
-    '/gen/mojo/public/mojom/base/time.mojom.js',
-    '/gen/mojo/public/mojom/base/shared_memory.mojom.js',
-    '/gen/mojo/public/mojom/base/unguessable_token.mojom.js',
-    '/gen/gpu/ipc/common/sync_token.mojom.js',
-    '/gen/gpu/ipc/common/mailbox.mojom.js',
-    '/gen/gpu/ipc/common/mailbox_holder.mojom.js',
-    '/gen/ui/gfx/geometry/mojom/geometry.mojom.js',
-    '/gen/ui/gfx/mojom/native_handle_types.mojom.js',
-    '/gen/ui/gfx/mojom/buffer_types.mojom.js',
-    '/gen/ui/gfx/mojom/color_space.mojom.js',
-    '/gen/ui/gfx/mojom/display_color_spaces.mojom.js',
-    '/gen/ui/gfx/mojom/gpu_fence_handle.mojom.js',
-    '/gen/ui/gfx/mojom/transform.mojom.js',
-    '/gen/ui/display/mojom/display.mojom.js',
-    '/gen/device/gamepad/public/mojom/gamepad.mojom.js',
-    '/gen/device/vr/public/mojom/vr_service.mojom.js',
-  ];
+  await loadScript('/resources/chromium/webxr-test-math-helper.js');
+  await import('/resources/chromium/webxr-test.js');
+  await loadScript('/resources/testdriver.js');
+  await loadScript('/resources/testdriver-vendor.js');
 
-  let extraResources = [
-    '/resources/chromium/webxr-test-math-helper.js',
-    '/resources/chromium/webxr-test.js',
-    '/resources/testdriver.js',
-    '/resources/testdriver-vendor.js',
-  ];
   // This infrastructure is also used by Chromium-specific internal tests that
   // may need additional resources (e.g. internal API extensions), this allows
   // those tests to rely on this infrastructure while ensuring that no tests
   // make it into public WPTs that rely on APIs outside of the webxr test API.
   if (typeof(additionalChromiumResources) !== 'undefined') {
-    extraResources = extraResources.concat(additionalChromiumResources);
-  }
-
-  await loadMojoResources(chromiumResources);
-  for (const path of extraResources) {
-    await loadScript(path);
+    for (const path of additionalChromiumResources) {
+      await loadScript(path);
+    }
   }
 
   xr_debug = navigator.xr.test.Debug;

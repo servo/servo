@@ -727,20 +727,20 @@ WEB-PLATFORM.TEST:web-bundle/subresource-loading/*.html
 # Tests that depend on resources in /gen/ in Chromium:
 # https://github.com/web-platform-tests/wpt/issues/16455
 # Please consult with ecosystem-infra@chromium.org before adding more.
-MISSING DEPENDENCY: contacts/resources/helpers.js
 MISSING DEPENDENCY: credential-management/support/otpcredential-helper.js
-MISSING DEPENDENCY: generic-sensor/resources/generic-sensor-helpers.js
-MISSING DEPENDENCY: idle-detection/resources/idle-detection-helper.js
-MISSING DEPENDENCY: mediacapture-image/resources/imagecapture-helpers.js
-MISSING DEPENDENCY: orientation-event/resources/orientation-event-helpers.js
+MISSING DEPENDENCY: resources/chromium/contacts_manager_mock.js
 MISSING DEPENDENCY: resources/chromium/web-bluetooth-test.js
 MISSING DEPENDENCY: resources/chromium/webusb-test.js
-MISSING DEPENDENCY: resources/test-only-api.js
-MISSING DEPENDENCY: screen_enumeration/resources/screenenumeration-helpers.js
-MISSING DEPENDENCY: serial/resources/automation.js
-MISSING DEPENDENCY: shape-detection/resources/shapedetection-helpers.js
-MISSING DEPENDENCY: web-nfc/resources/nfc-helpers.js
-MISSING DEPENDENCY: webxr/resources/webxr_util.js
+MISSING DEPENDENCY: resources/chromium/fake-serial.js
+MISSING DEPENDENCY: resources/chromium/generic_sensor_mocks.js
+MISSING DEPENDENCY: resources/chromium/mock-barcodedetection.js
+MISSING DEPENDENCY: resources/chromium/mock-facedetection.js
+MISSING DEPENDENCY: resources/chromium/mock-idle-detection.js
+MISSING DEPENDENCY: resources/chromium/mock-imagecapture.js
+MISSING DEPENDENCY: resources/chromium/mock-screenenumeration.js
+MISSING DEPENDENCY: resources/chromium/mock-textdetection.js
+MISSING DEPENDENCY: resources/chromium/nfc-mock.js
+MISSING DEPENDENCY: resources/chromium/webxr-test.js
 
 # Tests that are false positives for using Ahem as a system font
 AHEM SYSTEM FONT: acid/acid3/test.html

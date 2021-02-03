@@ -9,15 +9,9 @@
 //
 //   --enable-blink-features=MojoJS,MojoJSTest
 async function loadChromiumResources() {
-  const chromiumResources = [
-    '/gen/mojo/public/mojom/base/string16.mojom.js',
-    '/gen/services/device/public/mojom/sensor.mojom.js',
-    '/gen/services/device/public/mojom/sensor_provider.mojom.js',
-  ];
-  await loadMojoResources(chromiumResources);
   await loadScript('/resources/testdriver.js');
   await loadScript('/resources/testdriver-vendor.js');
-  await loadScript('/resources/chromium/generic_sensor_mocks.js');
+  await import('/resources/chromium/generic_sensor_mocks.js');
 }
 
 async function initialize_generic_sensor_tests() {

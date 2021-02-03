@@ -39,7 +39,7 @@
       function runTest(name, value){
         test(function(){
           if (name == "all") {
-            assert_equals(client.responseXML[name].__proto__, value.prototype)
+            assert_equals(Object.getPrototypeOf(client.responseXML[name]), value.prototype)
           } else {
             assert_equals(client.responseXML[name], value)
           }

@@ -19,8 +19,8 @@
 var t = async_test("checks CanvasRenderingContext2D prototype");
 _addTest(function(canvas, ctx) {
 
-_assertSame(CanvasRenderingContext2D.prototype.__proto__, Object.prototype, "CanvasRenderingContext2D.prototype.__proto__", "Object.prototype");
-_assertSame(ctx.__proto__, CanvasRenderingContext2D.prototype, "ctx.__proto__", "CanvasRenderingContext2D.prototype");
+_assertSame(Object.getPrototypeOf(CanvasRenderingContext2D.prototype), Object.prototype, "Object.getPrototypeOf(CanvasRenderingContext2D.prototype)", "Object.prototype");
+_assertSame(Object.getPrototypeOf(ctx), CanvasRenderingContext2D.prototype, "Object.getPrototypeOf(ctx)", "CanvasRenderingContext2D.prototype");
 t.done();
 
 

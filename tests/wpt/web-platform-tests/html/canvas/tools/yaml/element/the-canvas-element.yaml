@@ -151,7 +151,7 @@
   testing:
   - 2d.path.contexttypexxx.basic
   code: |
-    @assert CanvasRenderingContext2D.prototype.__proto__ === Object.prototype;
-    @assert ctx.__proto__ === CanvasRenderingContext2D.prototype;
+    @assert Object.getPrototypeOf(CanvasRenderingContext2D.prototype) === Object.prototype;
+    @assert Object.getPrototypeOf(ctx) === CanvasRenderingContext2D.prototype;
     t.done();
 

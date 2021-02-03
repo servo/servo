@@ -25,7 +25,7 @@
           assert_equals(iframe.contentDocument, null,
             "New document in sandboxed iframe should have opaque origin");
 
-          assert_equals(iframeAboutBlankDocument.__proto__.changeFromSandboxedIframe, undefined,
+          assert_equals(Object.getPrototypeOf(iframeAboutBlankDocument).changeFromSandboxedIframe, undefined,
             "Sandboxed iframe contents should not have been able to mess with type system of about:blank document");
 
           let iframeAboutBlankContents = iframeAboutBlankDocument.querySelectorAll('body');

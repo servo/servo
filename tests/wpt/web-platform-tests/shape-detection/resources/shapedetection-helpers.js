@@ -10,23 +10,9 @@
 //   --enable-blink-features=MojoJS,MojoJSTest
 
 async function loadChromiumResources() {
-  const prefix = '/gen/services/shape_detection/public/mojom';
-  const chromiumResources = [
-    '/gen/mojo/public/mojom/base/big_buffer.mojom.js',
-    '/gen/skia/public/mojom/image_info.mojom.js',
-    '/gen/skia/public/mojom/bitmap.mojom.js',
-    '/gen/ui/gfx/geometry/mojom/geometry.mojom.js',
-    `${prefix}/barcodedetection.mojom.js`,
-    `${prefix}/barcodedetection_provider.mojom.js`,
-    `${prefix}/facedetection.mojom.js`,
-    `${prefix}/facedetection_provider.mojom.js`,
-    `${prefix}/textdetection.mojom.js`,
-  ];
-
-  await loadMojoResources(chromiumResources);
-  await loadScript('/resources/chromium/mock-barcodedetection.js');
-  await loadScript('/resources/chromium/mock-facedetection.js');
-  await loadScript('/resources/chromium/mock-textdetection.js');
+  await import('/resources/chromium/mock-barcodedetection.js');
+  await import('/resources/chromium/mock-facedetection.js');
+  await import('/resources/chromium/mock-textdetection.js');
 }
 
 /**
@@ -81,7 +67,7 @@ function detection_test(detectionTestName, func, name, properties) {
 }
 
 function getArrayBufferFromBigBuffer(bigBuffer) {
-  if (bigBuffer.$tag == mojoBase.mojom.BigBuffer.Tags.bytes) {
+  if (bigBuffer.bytes !== undefined) {
     return new Uint8Array(bigBuffer.bytes).buffer;
   }
   return bigBuffer.sharedMemory.bufferHandle.mapBuffer(0,

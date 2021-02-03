@@ -13,7 +13,7 @@
 <h:script><![CDATA[
 test(function() {
     var e = document.getElementById("target");
-    assert_equals(e.__proto__, SVGUnknownElement.prototype);
+    assert_equals(Object.getPrototypeOf(e), SVGUnknownElement.prototype);
 });
 ]]></h:script>
 </svg>

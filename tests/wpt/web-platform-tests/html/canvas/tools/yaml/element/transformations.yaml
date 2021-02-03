@@ -411,4 +411,35 @@
     const canvasTransform = ctx.getTransform();
     @assert transform.toLocaleString() == canvasTransform.toLocaleString();
 
+- name: 2d.transformation.transform.3d
+  desc: transform() with 4x4 matrix concatenates properly
+  testing:
+  - 2d.transformation.transform.3d
+  code: |
+    const transform = new DOMMatrix([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]);
+    ctx.transform(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
+    let canvasTransform = ctx.getTransform();
+    @assert transform.toLocaleString() == canvasTransform.toLocaleString();
+    ctx.transform(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
+    canvasTransform = ctx.getTransform();
+    transform.multiplySelf(transform);
+    @assert transform.toLocaleString() == canvasTransform.toLocaleString();
 
+- name: 2d.transformation.translate3d
+  desc: translate3d() function modifies the underlying matrix appropriately
+  testing:
+  - 2d.transformation.translate3d
+  code: |
+    const dx = 2;
+    const dy = 3;
+    const dz = 4;
+    ctx.translate3d(dx, dy, dz);
+    let canvasTransform = ctx.getTransform();
+    @assert canvasTransform.m41 = dx;
+    @assert canvasTransform.m42 = dy;
+    @assert canvasTransform.m43 = dz;
+    ctx.translate3d(dx, dy, dz);
+    canvasTransform = ctx.getTransform();
+    @assert canvasTransform.m41 = 2 * dx;
+    @assert canvasTransform.m42 = 2 * dy;
+    @assert canvasTransform.m43 = 2 * dz;
