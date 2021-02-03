@@ -2,6 +2,8 @@ import argparse
 from . import browser
 
 latest_channels = {
+    'android_weblayer': 'dev',
+    'android_webview': 'dev',
     'firefox': 'nightly',
     'chrome': 'nightly',
     'chrome_android': 'dev',

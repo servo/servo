@@ -61,7 +61,7 @@ TRAILING WHITESPACE:example/*
 
 Similarly, you can also
 use
-[shell-style wildcards](https://docs.python.org/2/library/fnmatch.html) to
+[shell-style wildcards](https://docs.python.org/library/fnmatch.html) to
 express other filename patterns or directory-name patterns.
 
 Finally, to ignore just one line in a file, use the following format:

@@ -58,7 +58,7 @@ class SafariBrowser(Browser):
     ``wptrunner.webdriver.SafariDriverServer``.
     """
 
-    def __init__(self, logger, webdriver_binary, webdriver_args=None):
+    def __init__(self, logger, webdriver_binary, webdriver_args=None, **kwargs):
         """Creates a new representation of Safari.  The `webdriver_binary`
         argument gives the WebDriver binary to use for testing. (The browser
         binary location cannot be specified, as Safari and SafariDriver are

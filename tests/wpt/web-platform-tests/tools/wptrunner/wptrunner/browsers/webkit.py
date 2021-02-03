@@ -82,7 +82,7 @@ class WebKitBrowser(Browser):
     """
 
     def __init__(self, logger, binary, webdriver_binary=None,
-                 webdriver_args=None):
+                 webdriver_args=None, **kwargs):
         Browser.__init__(self, logger)
         self.binary = binary
         self.server = WebKitDriverServer(self.logger, binary=webdriver_binary,

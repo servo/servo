@@ -85,7 +85,7 @@ class EdgeChromiumBrowser(Browser):
     """
 
     def __init__(self, logger, binary, webdriver_binary="msedgedriver",
-                 webdriver_args=None):
+                 webdriver_args=None, **kwargs):
         """Creates a new representation of MicrosoftEdge.  The `binary` argument gives
         the browser binary to use for testing."""
         Browser.__init__(self, logger)

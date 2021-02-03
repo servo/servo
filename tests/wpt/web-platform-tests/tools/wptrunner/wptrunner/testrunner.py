@@ -361,7 +361,8 @@ class TestRunnerManager(threading.Thread):
         spins."""
         self.recording.set(["testrunner", "startup"])
         self.logger = structuredlog.StructuredLogger(self.suite_name)
-        with self.browser_cls(self.logger, **self.browser_kwargs) as browser:
+        with self.browser_cls(self.logger, remote_queue=self.command_queue,
+                              **self.browser_kwargs) as browser:
             self.browser = BrowserManager(self.logger,
                                           browser,
                                           self.command_queue,

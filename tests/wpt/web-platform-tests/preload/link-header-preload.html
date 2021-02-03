@@ -1,5 +1,12 @@
 <!DOCTYPE html>
 <title>Makes sure that Link headers preload resources</title>
+<!--
+  This and the line below ensure that the trailing crossorigin in the link
+  header is honored, otherwise we'd load this resource twice and the test would
+  fail.
+-->
+<link rel="preload" as="style" crossorigin href="resources/dummy.css?link-header-crossorigin-preload2">
+<link rel="stylesheet" crossorigin href="resources/dummy.css?link-header-crossorigin-preload2">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/preload/resources/preload_helper.js"></script>
@@ -12,7 +19,9 @@
     function check_finished() {
         if (numberOfResourceTimingEntries("resources/square.png?link-header-preload") == 1 &&
             numberOfResourceTimingEntries("resources/dummy.js?link-header-preload") == 1 &&
-            numberOfResourceTimingEntries("resources/dummy.css?link-header-preload") == 1) {
+            numberOfResourceTimingEntries("resources/dummy.css?link-header-preload") == 1 &&
+            numberOfResourceTimingEntries("resources/dummy.css?link-header-crossorigin-preload1") == 1 &&
+            numberOfResourceTimingEntries("resources/dummy.css?link-header-crossorigin-preload2") == 1) {
             done();
         }
         iterations++;
@@ -21,6 +30,8 @@
             verifyNumberOfResourceTimingEntries("resources/square.png?link-header-preload", 1);
             verifyNumberOfResourceTimingEntries("resources/dummy.js?link-header-preload", 1);
             verifyNumberOfResourceTimingEntries("resources/dummy.css?link-header-preload", 1);
+            verifyNumberOfResourceTimingEntries("resources/dummy.css?link-header-crossorigin-preload1", 1);
+            verifyNumberOfResourceTimingEntries("resources/dummy.css?link-header-crossorigin-preload2", 1);
             done();
         } else {
             step_timeout(check_finished, 500);

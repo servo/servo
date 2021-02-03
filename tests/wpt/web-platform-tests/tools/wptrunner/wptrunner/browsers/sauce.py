@@ -228,7 +228,7 @@ class SauceException(Exception):
 class SauceBrowser(Browser):
     init_timeout = 300
 
-    def __init__(self, logger, sauce_config):
+    def __init__(self, logger, sauce_config, **kwargs):
         Browser.__init__(self, logger)
         self.sauce_config = sauce_config
 

@@ -1,3 +1,4 @@
+import mozprocess
 import subprocess
 
 from .base import Browser, ExecutorBrowser, require_arg
@@ -68,21 +69,75 @@ def env_options():
     # allow the use of host-resolver-rules in lieu of modifying /etc/hosts file
     return {"server_host": "127.0.0.1"}
 
+class LogcatRunner(object):
+    def __init__(self, logger, browser, remote_queue):
+        self.logger = logger
+        self.browser = browser
+        self.remote_queue = remote_queue
 
-class ChromeAndroidBrowser(Browser):
-    """Chrome is backed by chromedriver, which is supplied through
-    ``wptrunner.webdriver.ChromeDriverServer``.
-    """
+    def start(self):
+        try:
+            self._run()
+        except KeyboardInterrupt:
+            self.stop()
 
-    def __init__(self, logger, package_name, webdriver_binary="chromedriver",
+    def _run(self):
+        try:
+            # TODO: adb logcat -c fail randomly with message
+            # "failed to clear the 'main' log"
+            self.browser.clear_log()
+        except subprocess.CalledProcessError:
+            self.logger.error("Failed to clear logcat buffer")
+
+        self._cmd = self.browser.logcat_cmd()
+        self._proc = mozprocess.ProcessHandler(
+            self._cmd,
+            processOutputLine=self.on_output,
+            storeOutput=False)
+        self._proc.run()
+
+    def _send_message(self, command, *args):
+        try:
+            self.remote_queue.put((command, args))
+        except AssertionError:
+            self.logger.warning("Error when send to remote queue")
+
+    def stop(self, force=False):
+        if self.is_alive():
+            kill_result = self._proc.kill()
+            if force and kill_result != 0:
+                self._proc.kill(9)
+
+    def is_alive(self):
+        return hasattr(self._proc, "proc") and self._proc.poll() is None
+
+    def on_output(self, line):
+        data = {
+            "process": "LOGCAT",
+            "command": "logcat",
+            "data": line
+        }
+        self._send_message("log", "process_output", data)
+
+class ChromeAndroidBrowserBase(Browser):
+    def __init__(self, logger,
+                 webdriver_binary="chromedriver",
+                 remote_queue = None,
                  device_serial=None, webdriver_args=None):
-        Browser.__init__(self, logger)
-        self.package_name = package_name
+        super(ChromeAndroidBrowserBase, self).__init__(logger)
         self.device_serial = device_serial
+        self.remote_queue = remote_queue
         self.server = ChromeDriverServer(self.logger,
                                          binary=webdriver_binary,
                                          args=webdriver_args)
+        if self.remote_queue is not None:
+            self.logcat_runner = LogcatRunner(self.logger,
+                                          self, self.remote_queue)
+
+    def setup(self):
         self.setup_adb_reverse()
+        if self.remote_queue is not None:
+            self.logcat_runner.start()
 
     def _adb_run(self, args):
         cmd = ['adb']
@@ -91,14 +146,6 @@ class ChromeAndroidBrowser(Browser):
         cmd.extend(args)
         self.logger.info(' '.join(cmd))
         subprocess.check_call(cmd)
-
-    def setup_adb_reverse(self):
-        self._adb_run(['wait-for-device'])
-        self._adb_run(['forward', '--remove-all'])
-        self._adb_run(['reverse', '--remove-all'])
-        # "adb reverse" forwards network connection from device to host.
-        for port in _wptserve_ports:
-            self._adb_run(['reverse', 'tcp:%d' % port, 'tcp:%d' % port])
 
     def start(self, **kwargs):
         self.server.start(block=False)
@@ -119,6 +166,40 @@ class ChromeAndroidBrowser(Browser):
         self.stop()
         self._adb_run(['forward', '--remove-all'])
         self._adb_run(['reverse', '--remove-all'])
+        if self.remote_queue is not None:
+            self.logcat_runner.stop(force=True)
 
     def executor_browser(self):
         return ExecutorBrowser, {"webdriver_url": self.server.url}
+
+    def clear_log(self):
+        self._adb_run(['logcat', '-c'])
+
+    def logcat_cmd(self):
+        cmd = ['adb']
+        if self.device_serial:
+            cmd.extend(['-s', self.device_serial])
+        cmd.extend(['logcat', '*:D'])
+        return cmd
+
+    def setup_adb_reverse(self):
+        self._adb_run(['wait-for-device'])
+        self._adb_run(['forward', '--remove-all'])
+        self._adb_run(['reverse', '--remove-all'])
+        # "adb reverse" forwards network connection from device to host.
+        for port in self.wptserver_ports:
+            self._adb_run(['reverse', 'tcp:%d' % port, 'tcp:%d' % port])
+
+class ChromeAndroidBrowser(ChromeAndroidBrowserBase):
+    """Chrome is backed by chromedriver, which is supplied through
+    ``wptrunner.webdriver.ChromeDriverServer``.
+    """
+
+    def __init__(self, logger, package_name,
+                 webdriver_binary="chromedriver",
+                 remote_queue = None,
+                 device_serial=None, webdriver_args=None):
+        super(ChromeAndroidBrowser, self).__init__(logger,
+                webdriver_binary, remote_queue, device_serial, webdriver_args)
+        self.package_name = package_name
+        self.wptserver_ports = _wptserve_ports

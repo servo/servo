@@ -1,6 +1,3 @@
-parameters:
-  pyflag: --py3
-
 steps:
 - script: ./wpt make-hosts-file | sudo tee -a /etc/hosts
   displayName: 'Update hosts (macOS)'
@@ -8,6 +5,6 @@ steps:
 - powershell: |
     $hostFile = "$env:systemroot\System32\drivers\etc\hosts"
     Copy-Item -Path $hostFile -Destination "$hostFile.back" -Force
-    python wpt ${{ parameters.pyflag }} make-hosts-file | Out-File $env:systemroot\System32\drivers\etc\hosts -Encoding ascii -Append
+    python wpt make-hosts-file | Out-File $env:systemroot\System32\drivers\etc\hosts -Encoding ascii -Append
   displayName: 'Update hosts (Windows)'
   condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))

@@ -1,7 +1,4 @@
-parameters:
-  pyflag: --py3
-
 steps:
 # `python wpt` instead of `./wpt` is to make this work on Windows:
-- script: python wpt ${{ parameters.pyflag }} manifest
+- script: python wpt manifest
   displayName: 'Update manifest'
