@@ -647,22 +647,16 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
         You may need to remove `python37._pth` from the ZIP in order to work around
         <https://bugs.python.org/issue34841>.
         """
-        return self \
-            .with_directory_mount(
-            "https://www.python.org/ftp/python/3.7.3/python-3.7.3-embed-amd64.zip",
-            sha256="6de14c9223226cf0cd8c965ecb08c51d62c770171a256991b4fddc25188cfa8e",
-            path="python3",
-        ) \
-        .with_path_from_homedir("python3", "python3\\Scripts") \
-        .with_curl_script("https://bootstrap.pypa.io/get-pip.py", "get-pip.py") \
-        .with_script("""
-            echo import site>>%HOMEDRIVE%%HOMEPATH%%\\python3\\python37._pth
-            echo import sys>%HOMEDRIVE%%HOMEPATH%%\\python3\\sitecustomize.py
-            echo sys.path.insert(0, '')>>%HOMEDRIVE%%HOMEPATH%%\\python3\\sitecustomize.py
-
-            python get-pip.py
-            python -m pip install virtualenv==20.2.1
-        """)
+        return (
+            self
+            .with_curl_script(
+                "https://www.python.org/ftp/python/3.7.3/python-3.7.3-amd64.exe",
+                "python-installer.exe"
+            )
+            .with_script("python-installer.exe /quiet TargetDir=%HOMEDRIVE%%HOMEPATH%\\python3")
+            .with_path_from_homedir("python3", "python3\\Scripts") \
+            .with_script("pip install virtualenv==20.2.1")
+        )
 
 
 class UnixTaskMixin(Task):

@@ -130,8 +130,8 @@ windows_build_env = {
     },
     "all": {
         "PYTHON3": "%HOMEDRIVE%%HOMEPATH%\\python3\\python.exe",
-        "PYTHONPATH": "%HOMEDRIVE%%HOMEPATH%\\python3",
-        "PYTHONHOME": "%HOMEDRIVE%%HOMEPATH%\\python3",
+        #"PYTHONPATH": "%HOMEDRIVE%%HOMEPATH%\\python3",
+        #"PYTHONHOME": "%HOMEDRIVE%%HOMEPATH%\\python3",
         "LINKER": "lld-link.exe",
         "MOZTOOLS_PATH_PREPEND": "%HOMEDRIVE%%HOMEPATH%\\git\\cmd",
     },
@@ -802,11 +802,11 @@ def windows_build_task(name, package=True, arch="x86_64", rdp=False):
         .with_python3()
         # mozjs's virtualenv expects a DLLs folder that contains dynamic libraries.
         # The embedded python distribution does not come with this.
-        .with_script("""
-            mkdir %HOMEDRIVE%%HOMEPATH%\\python3\\DLLs
-            copy %HOMEDRIVE%%HOMEPATH%\\python3\\*.pyd %HOMEDRIVE%%HOMEPATH%\\python3\\DLLs
-            copy %HOMEDRIVE%%HOMEPATH%\\python3\\*.dll %HOMEDRIVE%%HOMEPATH%\\python3\\DLLs
-        """)
+        #.with_script("""
+        #    mkdir %HOMEDRIVE%%HOMEPATH%\\python3\\DLLs
+        #    copy %HOMEDRIVE%%HOMEPATH%\\python3\\*.pyd %HOMEDRIVE%%HOMEPATH%\\python3\\DLLs
+        #    copy %HOMEDRIVE%%HOMEPATH%\\python3\\*.dll %HOMEDRIVE%%HOMEPATH%\\python3\\DLLs
+        #""")
         .with_rustup()
     )
     if arch in hashes["non-devel"] and arch in hashes["devel"]:
