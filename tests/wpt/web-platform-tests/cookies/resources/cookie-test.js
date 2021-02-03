@@ -29,13 +29,28 @@ async function getRedirectedCookies(location, cookie) {
     try {
       const iframe = document.createElement('iframe');
       iframe.style = 'display: none';
-      iframe.src = `${location}`;
+      iframe.src = location;
 
       iframe.addEventListener('load', (e) => {
         const win = e.target.contentWindow;
-        const iframeCookies = win.getCookies();
-        win.expireCookie(cookie);
-        resolve(iframeCookies);
+        let iframeCookie;
+        // go ask for the cookie
+        win.postMessage('getCookies', '*');
+
+        // once we get it, send a message to delete on the other
+        // side, then resolve the cookie back to httpRedirectCookieTest
+        window.addEventListener('message', (e) => {
+          if (typeof e.data == 'object' && 'cookies' in e.data) {
+            iframeCookie = e.data.cookies;
+            e.source.postMessage({'expireCookie': cookie}, '*');
+          }
+
+          // wait on the iframe to tell us it deleted the cookies before
+          // resolving, to avoid any state race conditions.
+          if (e.data == 'expired') {
+            resolve(iframeCookie);
+          }
+        });
       }, {once: true});
 
       document.documentElement.appendChild(iframe);

@@ -1,16 +1,15 @@
-"use strict";
-var TextDetectionTest = (() => {
+import {TextDetection, TextDetectionReceiver} from '/gen/services/shape_detection/public/mojom/textdetection.mojom.m.js';
+
+self.TextDetectionTest = (() => {
   // Class that mocks TextDetection interface defined in
   // https://cs.chromium.org/chromium/src/services/shape_detection/public/mojom/textdetection.mojom
   class MockTextDetection {
     constructor() {
-      this.bindingSet_ =
-          new mojo.BindingSet(shapeDetection.mojom.TextDetection);
-
+      this.receiver_ = new TextDetectionReceiver(this);
       this.interceptor_ =
-          new MojoInterfaceInterceptor(shapeDetection.mojom.TextDetection.name);
+          new MojoInterfaceInterceptor(TextDetection.$interfaceName);
       this.interceptor_.oninterfacerequest =
-          e => this.bindingSet_.addBinding(this, e.handle);
+          e => this.receiver_.$.bindHandle(e.handle);
       this.interceptor_.start();
     }
 
@@ -48,7 +47,7 @@ var TextDetectionTest = (() => {
     }
 
     reset() {
-      this.bindingSet_.closeAllBindings();
+      this.receiver_.$.close();
       this.interceptor_.stop();
     }
 

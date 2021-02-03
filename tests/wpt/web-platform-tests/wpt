@@ -1,34 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 if __name__ == "__main__":
     import sys
-    from tools.wpt import wpt
-    args, extra = wpt.parse_args(sys.argv[1:])
-    commands = wpt.load_commands()
-    py3only = commands[args.command]["py3only"]
+    if (sys.version_info.major < 3 or
+            (sys.version_info.major == 3 and sys.version_info.minor < 6)):
+        sys.stderr.write("wpt requires Python 3.6 or higher\n")
+        sys.exit(1)
 
-    if (args.py2) and sys.version_info.major > 2:
-        if py3only:
-            sys.stderr.write("This command only works with Python 3\n")
-            sys.exit(1)
-        from subprocess import call
-        try:
-            sys.exit(call(['python2'] + sys.argv))
-        except OSError as e:
-            if e.errno == 2:
-                sys.stderr.write("python2 is needed to run this command\n")
-                sys.exit(1)
-            else:
-                raise
-    elif (not args.py2) and sys.version_info.major < 3:
-        from subprocess import call
-        try:
-            sys.exit(call(['python3'] + sys.argv))
-        except OSError as e:
-            if e.errno == 2:
-                sys.stderr.write("python3 is needed to run this command\n")
-                sys.exit(1)
-            else:
-                raise
-    else:
-        wpt.main()
+    from tools.wpt import wpt
+    wpt.main()

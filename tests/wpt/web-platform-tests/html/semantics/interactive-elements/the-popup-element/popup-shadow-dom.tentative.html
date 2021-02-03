@@ -36,9 +36,7 @@
     return findPopups(testRoot);
   }
   function popupVisible(popup) {
-    const style = getComputedStyle(popup);
-    return !!(style.display !== "none" && style.visibility !== "hidden" &&
-      (popup.offsetWidth || popup.offsetHeight || popup.getClientRects().length));
+    return !!(popup.offsetWidth || popup.offsetHeight || popup.getClientRects().length);
   }
   function showPopup(testId,popupNum) {
     getPopupReferences(testId)[popupNum].show();

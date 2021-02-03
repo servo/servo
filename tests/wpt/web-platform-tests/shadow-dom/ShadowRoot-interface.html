@@ -17,7 +17,7 @@ test(function () {
 }, 'Check the existence of ShadowRoot interface');
 
 test(function () {
-    assert_equals(ShadowRoot.prototype.__proto__, DocumentFragment.prototype, 'ShadowRoot must inherit from DocumentFragment');
+    assert_equals(Object.getPrototypeOf(ShadowRoot.prototype), DocumentFragment.prototype, 'ShadowRoot must inherit from DocumentFragment');
 }, 'ShadowRoot must inherit from DocumentFragment');
 
 test(function () {

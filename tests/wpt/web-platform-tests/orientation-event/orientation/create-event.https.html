@@ -15,7 +15,7 @@ test(test => {
   });
 
   assert_equals(typeof event, 'object');
-  assert_equals(event.__proto__, DeviceOrientationEvent.prototype);
+  assert_equals(Object.getPrototypeOf(event), DeviceOrientationEvent.prototype);
 
   assert_true('type' in event);
   assert_true('bubbles' in event);

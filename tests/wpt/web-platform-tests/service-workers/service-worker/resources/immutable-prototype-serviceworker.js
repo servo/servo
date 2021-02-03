@@ -2,9 +2,9 @@ function prototypeChain(global) {
   let result = [];
   while (global !== null) {
     let thrown = false;
-    let next = global.__proto__;
+    let next = Object.getPrototypeOf(global);
     try {
-      global.__proto__ = {};
+      Object.setPrototypeOf(global, {});
       result.push('mutable');
     } catch (e) {
       result.push('immutable');

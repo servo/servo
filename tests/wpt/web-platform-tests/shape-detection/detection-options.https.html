@@ -36,8 +36,7 @@ detection_test("BarcodeDetectionTest", async (t, detectionTest) => {
   barcodeDetectionResult = await detectorWithOptions.detect(img);
   assert_array_equals(
       mock.getFormats(),
-      [shapeDetection.mojom.BarcodeFormat.CODE_128,
-       shapeDetection.mojom.BarcodeFormat.QR_CODE],
+      [BarcodeFormat.CODE_128, BarcodeFormat.QR_CODE],
       "formats");
 
   const invalidFormats = [

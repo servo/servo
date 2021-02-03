@@ -1,17 +1,17 @@
-"use strict";
+import {FaceDetectionReceiver, LandmarkType} from '/gen/services/shape_detection/public/mojom/facedetection.mojom.m.js';
+import {FaceDetectionProvider, FaceDetectionProviderReceiver} from '/gen/services/shape_detection/public/mojom/facedetection_provider.mojom.m.js';
 
-var FaceDetectionTest = (() => {
+self.FaceDetectionTest = (() => {
   // Class that mocks FaceDetectionProvider interface defined in
   // https://cs.chromium.org/chromium/src/services/shape_detection/public/mojom/facedetection_provider.mojom
   class MockFaceDetectionProvider {
     constructor() {
-      this.bindingSet_ = new mojo.BindingSet(
-        shapeDetection.mojom.FaceDetectionProvider);
+      this.receiver_ = new FaceDetectionProviderReceiver(this);
 
       this.interceptor_ = new MojoInterfaceInterceptor(
-          shapeDetection.mojom.FaceDetectionProvider.name);
+          FaceDetectionProvider.$interfaceName);
       this.interceptor_.oninterfacerequest =
-         e => this.bindingSet_.addBinding(this, e.handle);
+         e => this.receiver_.$.bindHandle(e.handle);
       this.interceptor_.start();
     }
 
@@ -33,7 +33,7 @@ var FaceDetectionTest = (() => {
 
     reset() {
       this.mockService_ = null;
-      this.bindingSet_.closeAllBindings();
+      this.receiver_.$.close();
       this.interceptor_.stop();
     }
   }
@@ -44,9 +44,8 @@ var FaceDetectionTest = (() => {
     constructor(request, options) {
       this.maxDetectedFaces_ = options.maxDetectedFaces;
       this.fastMode_ = options.fastMode;
-      this.binding_ =
-          new mojo.Binding(shapeDetection.mojom.FaceDetection,
-                           this, request);
+      this.receiver_ = new FaceDetectionReceiver(this);
+      this.receiver_.$.bindHandle(request.handle);
     }
 
     detect(bitmapData) {
@@ -57,11 +56,11 @@ var FaceDetectionTest = (() => {
           {
             boundingBox: {x: 1.0, y: 1.0, width: 100.0, height: 100.0},
             landmarks: [{
-              type: shapeDetection.mojom.LandmarkType.EYE,
+              type: LandmarkType.EYE,
               locations: [{x: 4.0, y: 5.0}]
             },
             {
-              type: shapeDetection.mojom.LandmarkType.EYE,
+              type: LandmarkType.EYE,
               locations: [
                 {x: 4.0, y: 5.0}, {x: 5.0, y: 4.0}, {x: 6.0, y: 3.0},
                 {x: 7.0, y: 4.0}, {x: 8.0, y: 5.0}, {x: 7.0, y: 6.0},
@@ -72,11 +71,11 @@ var FaceDetectionTest = (() => {
           {
             boundingBox: {x: 2.0, y: 2.0, width: 200.0, height: 200.0},
             landmarks: [{
-              type: shapeDetection.mojom.LandmarkType.NOSE,
+              type: LandmarkType.NOSE,
               locations: [{x: 100.0, y: 50.0}]
             },
             {
-              type: shapeDetection.mojom.LandmarkType.NOSE,
+              type: LandmarkType.NOSE,
               locations: [
                 {x: 80.0, y: 50.0}, {x: 70.0, y: 60.0}, {x: 60.0, y: 70.0},
                 {x: 70.0, y: 60.0}, {x: 80.0, y: 70.0}, {x: 90.0, y: 80.0},

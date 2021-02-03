@@ -42,7 +42,7 @@
         s.document.close();
         [q, a, s].forEach(function(win) {
             ['style', 'test'].forEach(function(id) {
-                win.__proto__.__defineGetter__(id, function() { return win.document.getElementById(id); });
+                Object.getPrototypeOf(win).__defineGetter__(id, function() { return win.document.getElementById(id); });
             });
         });
 

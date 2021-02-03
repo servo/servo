@@ -16,31 +16,35 @@
   const popup1 = document.getElementById('p1');
   const popup2 = document.getElementById('p2');
 
+  function popupVisible(popup) {
+    return !!(popup.offsetWidth || popup.offsetHeight || popup.getClientRects().length);
+  }
+
   test(function(){
     assert_false(popup1.open);
     assert_false(popup2.open);
-    assert_equals(getComputedStyle(popup2).display,"none");
   }, 'The IDL "open" content attribute must have no effect, and must not be reflected to the WebIDL.');
 
   test(function(){
     assert_false(popup1.open);
     assert_false(popup1.hasAttribute("open"));
-    assert_equals(getComputedStyle(popup1).display,"none");
+    assert_false(popupVisible(popup1));
     popup1.open = true; // Should have no effect
     assert_false(popup1.open);
+    assert_false(popupVisible(popup1));
     popup1.show();
     assert_true(popup1.open);
     assert_false(popup1.hasAttribute("open"));
-    assert_not_equals(getComputedStyle(popup1).display,"none");
+    assert_true(popupVisible(popup1));
     popup1.open = false; // Should have no effect
     assert_true(popup1.open);
     popup1.hide();
     assert_false(popup1.open);
     assert_false(popup1.hasAttribute("open"));
-    assert_equals(getComputedStyle(popup1).display,"none");
+    assert_false(popupVisible(popup1));
     popup1.setAttribute("open","");
     assert_false(popup1.open,'Setting open attribute should not reflect to the WebIDL');
     assert_true(popup1.hasAttribute("open"));
-    assert_equals(getComputedStyle(popup1).display,"none");
+    assert_false(popupVisible(popup1));
   }, "The only visibility control for <popup> is through .show() and .hide().");
 </script>

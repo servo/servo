@@ -34,7 +34,7 @@ Object.defineProperty(window.Foo.prototype, "constructor", {
     configurable: true,
     value: window.Foo
   });
-Foo.__proto__ = FooParent;
+Object.setPrototypeOf(Foo, FooParent);
 Foo.prototype[Symbol.toStringTag] = "Foo";
 
 var idlArray = new IdlArray();

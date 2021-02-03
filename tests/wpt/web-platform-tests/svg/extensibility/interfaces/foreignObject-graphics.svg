@@ -12,7 +12,7 @@
   <h:script><![CDATA[
   test(function() {
     var target = document.getElementById('target');
-    assert_equals(target.__proto__.__proto__, SVGGraphicsElement.prototype);
+    assert_equals(Object.getPrototypeOf(Object.getPrototypeOf(target)), SVGGraphicsElement.prototype);
   });
   ]]></h:script>
 </svg>
