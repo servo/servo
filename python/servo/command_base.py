@@ -999,7 +999,7 @@ install them, let us know by filing a bug!")
             toolchain = self.rust_toolchain()
 
             status = subprocess.call(
-                ["rustup", "run", toolchain.encode("utf-8"), "rustc", "--version"],
+                ["rustup", "run", toolchain, "rustc", "--version"],
                 stdout=open(os.devnull, "wb"),
                 stderr=subprocess.STDOUT,
             )
