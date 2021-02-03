@@ -749,7 +749,7 @@ install them, let us know by filing a bug!")
                 # Shorten hash
                 # NOTE: Partially verifies the hash, but it will still pass if it's, e.g., a tree
                 git_sha = subprocess.check_output([
-                    'git', 'rev-parse', '--short', git_sha
+                    'git', 'rev-parse', '--short', git_sha.decode('ascii')
                 ])
             else:
                 # This is a regular commit
