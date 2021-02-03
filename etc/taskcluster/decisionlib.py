@@ -651,9 +651,9 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
             self
             .with_curl_script(
                 "https://www.python.org/ftp/python/3.7.3/python-3.7.3-amd64.exe",
-                "python-installer.exe"
+                "do-the-python.exe"
             )
-            .with_script("python-installer.exe /quiet TargetDir=%HOMEDRIVE%%HOMEPATH%\\python3")
+            .with_script("do-the-python.exe /quiet TargetDir=%HOMEDRIVE%%HOMEPATH%\\python3")
             .with_path_from_homedir("python3", "python3\\Scripts")
             .with_script("pip install virtualenv==20.2.1")
         )
