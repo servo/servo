@@ -656,9 +656,9 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
         .with_path_from_homedir("python3", "python3\\Scripts") \
         .with_curl_script("https://bootstrap.pypa.io/get-pip.py", "get-pip.py") \
         .with_script("""
-            echo import site >>%HOMEDRIVE%%HOMEPATH%%\\python3\\python37._pth
-            echo import sys >%HOMEDRIVE%%HOMEPATH%%\\python3\\sitecustomize.py
-            echo sys.path.insert(0, '') >>%HOMEDRIVE%%HOMEPATH%%\\python3\\sitecustomize.py
+            echo import site>>%HOMEDRIVE%%HOMEPATH%%\\python3\\python37._pth
+            echo import sys>%HOMEDRIVE%%HOMEPATH%%\\python3\\sitecustomize.py
+            echo sys.path.insert(0, '')>>%HOMEDRIVE%%HOMEPATH%%\\python3\\sitecustomize.py
 
             python get-pip.py
             python -m pip install virtualenv==20.2.1
