@@ -57,7 +57,7 @@ def tasks(task_for):
 
             "try-mac": [macos_unit],
             "try-linux": [linux_tidy_unit, linux_docs_check, linux_release],
-            "try-windows": [windows_arm64, windows_uwp_x64],
+            "try-windows": [windows_unit, windows_arm64, windows_uwp_x64],
             "try-arm": [windows_arm64],
             "try-wpt": [linux_wpt],
             "try-wpt-2020": [linux_wpt_layout_2020],
@@ -130,8 +130,6 @@ windows_build_env = {
     },
     "all": {
         "PYTHON3": "%HOMEDRIVE%%HOMEPATH%\\python3\\python.exe",
-        "PYTHONPATH": "%HOMEDRIVE%%HOMEPATH%\\python3",
-        "PYTHONHOME": "%HOMEDRIVE%%HOMEPATH%\\python3",
         "LINKER": "lld-link.exe",
         "MOZTOOLS_PATH_PREPEND": "%HOMEDRIVE%%HOMEPATH%\\git\\cmd",
     },
@@ -378,6 +376,9 @@ def windows_unit(cached=True, rdp=False):
             "python mach build --dev",
 
             "python mach test-unit",
+            # Running the TC task with administrator privileges breaks the
+            # smoketest for unknown reasons.
+            #"python mach smoketest --angle",
 
             "python mach package --dev",
             "python mach build --dev --libsimpleservo",
@@ -799,13 +800,6 @@ def windows_build_task(name, package=True, arch="x86_64", rdp=False):
         )
         .with_repo_bundle(sparse_checkout=windows_sparse_checkout)
         .with_python3()
-        # mozjs's virtualenv expects a DLLs folder that contains dynamic libraries.
-        # The embedded python distribution does not come with this.
-        .with_script("""
-            mkdir %HOMEDRIVE%%HOMEPATH%\\python3\\DLLs
-            copy %HOMEDRIVE%%HOMEPATH%\\python3\\*.pyd %HOMEDRIVE%%HOMEPATH%\\python3\\DLLs
-            copy %HOMEDRIVE%%HOMEPATH%\\python3\\*.dll %HOMEDRIVE%%HOMEPATH%\\python3\\DLLs
-        """)
         .with_rustup()
     )
     if arch in hashes["non-devel"] and arch in hashes["devel"]:
