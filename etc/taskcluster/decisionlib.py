@@ -654,7 +654,7 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
                 "python-installer.exe"
             )
             .with_script("python-installer.exe /quiet TargetDir=%HOMEDRIVE%%HOMEPATH%\\python3")
-            .with_path_from_homedir("python3", "python3\\Scripts") \
+            .with_path_from_homedir("python3", "python3\\Scripts")
             .with_script("pip install virtualenv==20.2.1")
         )
 
