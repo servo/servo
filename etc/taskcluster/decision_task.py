@@ -121,7 +121,7 @@ linux_build_env = {
     "SCCACHE_MAX_FRAME_LENGTH": str(100 * 1024 * 1024),  # 100 MiB
 }
 macos_build_env = {
-    "PYTHON": "$HOME/Library/Python/2.7/bin"
+    "PYTHON": "${HOME}/Library/Python/2.7/bin"
 }
 windows_build_env = {
     "x86_64": {
@@ -132,9 +132,6 @@ windows_build_env = {
     },
     "all": {
         "PYTHON": "%HOMEDRIVE%%HOMEPATH%\\python2\\python.exe",
-        "PYTHON3": "%HOMEDRIVE%%HOMEPATH%\\python3\\python.exe",
-        #"PYTHONPATH": "%HOMEDRIVE%%HOMEPATH%\\python3",
-        #"PYTHONHOME": "%HOMEDRIVE%%HOMEPATH%\\python3",
         "LINKER": "lld-link.exe",
         "MOZTOOLS_PATH_PREPEND": "%HOMEDRIVE%%HOMEPATH%\\git\\cmd",
     },
