@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset=utf-8>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/test-helpers.js"></script>
+
+<script>
+
+  promise_test(async t => {
+    await window.test_driver.bless(
+      'show a file picker.<br />Please make a copy of file-system-access/resources/data/testfile.txt in a writable directory and pick that file');
+    const file = await self.showSaveFilePicker({
+      multiple: false, types: [
+        { description: 'Text files', accept: { 'text/plain': ['.txt'] } },
+      ],
+    });
+    assert_true(file instanceof FileSystemHandle);
+    assert_true(file instanceof FileSystemFileHandle);
+    assert_equals(file.kind, "file");
+    assert_equals(file.name, 'testfile.txt');
+    assert_equals(await (await file.getFile()).text(), '',
+      'showSaveFilePicker should clear contents of file');
+
+    promise_test(async t => {
+      assert_equals(await file.queryPermission(), 'granted');
+      assert_equals(await file.queryPermission({ mode: 'readwrite' }), 'granted');
+    }, 'showSaveFilePicker returns correct permissions');
+  }, 'showSaveFilePicker works');
+
+</script>
