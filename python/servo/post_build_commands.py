@@ -244,7 +244,7 @@ class PostBuildCommands(CommandBase):
         self.ensure_bootstrapped(rustup_components=["rust-docs"])
         rustc_path = check_output(
             ["rustup" + BIN_SUFFIX, "which", "--toolchain", self.rust_toolchain(), "rustc"])
-        assert path.basename(path.dirname(rustc_path)) == "bin"
+        assert path.basename(path.dirname(rustc_path)) == b"bin"
         toolchain_path = path.dirname(path.dirname(rustc_path))
         rust_docs = path.join(toolchain_path, "share", "doc", "rust", "html")
 

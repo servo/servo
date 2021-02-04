@@ -5,7 +5,7 @@
 
 def main(request, response):
     headers = []
-    if 'Content-Type' in request.GET:
-        headers += [('Content-Type', request.GET['Content-Type'])]
-    with open('./resources/ahem/AHEM____.TTF') as f:
+    if b'Content-Type' in request.GET:
+        headers += [(b'Content-Type', request.GET[b'Content-Type'])]
+    with open('./resources/ahem/AHEM____.TTF', 'rb') as f:
         return 200, headers, f.read()
