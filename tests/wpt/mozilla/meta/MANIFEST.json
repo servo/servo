@@ -10905,7 +10905,7 @@
      ],
      "resource": {
       "file-submission.py": [
-       "79e72fb99a95c186e4916b40627ee762d694b8ea",
+       "5f65cebd05ce89b3a51c2382a39b6a6438133b43",
        []
       ],
       "upload.txt": [
@@ -11050,7 +11050,7 @@
       []
      ],
      "brotli.py": [
-      "a24b4771e31ab4983b5ceee9d3a25daaebb4048e",
+      "cb0d6c8b0447959e6bc0b757444e9a80bfd57390",
       []
      ],
      "external.js": [
@@ -11078,7 +11078,7 @@
       []
      ],
      "no_mime_type.py": [
-      "ba42a7f24fed3960bce2318ed987ce1b8be32c76",
+      "860005a42c237735287031133786352d7c732402",
       []
      ],
      "origin_helpers.js": [
