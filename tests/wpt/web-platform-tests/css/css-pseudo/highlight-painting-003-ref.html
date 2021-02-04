@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+    p {
+        font-size: 7em;
+        width: min-content;
+        height: 0.25em;
+        background: #C0C000C0;
+        position: relative;
+        color: transparent;
+
+        /*
+            https://drafts.csswg.org/css-pseudo-4/#highlight-bounds
+            For text, the corresponding overlay must cover at least
+            the entire em box and may extend further above/below the
+            em box to the line box edges.
+        */
+        line-height: 1;
+    }
+    p > span {
+        position: absolute;
+    }
+    p > span:nth-child(1) {
+        color: #E03838C0;
+        text-decoration: #C0C000C0 solid line-through;
+    }
+    p > span:nth-child(1) > span {
+        visibility: hidden;
+    }
+    p > span:nth-child(2) {
+        color: transparent;
+    }
+    p > span:nth-child(2) > span {
+        color: #707070C0;
+        background: #38E038C0;
+        text-decoration: #3838E0C0 wavy line-through;
+    }
+</style>
+<p><span>q<span>uic</span>k</span><span>q<span>uic</span>k</span>quick
