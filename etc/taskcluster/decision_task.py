@@ -120,7 +120,9 @@ linux_build_env = {
     # https://github.com/servo/servo/issues/24714#issuecomment-552951519
     "SCCACHE_MAX_FRAME_LENGTH": str(100 * 1024 * 1024),  # 100 MiB
 }
-macos_build_env = {}
+macos_build_env = {
+    "PYTHON": "$HOME/Library/Python/2.7/bin"
+}
 windows_build_env = {
     "x86_64": {
         "GSTREAMER_1_0_ROOT_X86_64": "%HOMEDRIVE%%HOMEPATH%\\gst\\gstreamer\\1.0\\x86_64\\",
@@ -129,6 +131,7 @@ windows_build_env = {
         "PKG_CONFIG_ALLOW_CROSS": "1",
     },
     "all": {
+        "PYTHON": "%HOMEDRIVE%%HOMEPATH%\\python2\\python.exe",
         "PYTHON3": "%HOMEDRIVE%%HOMEPATH%\\python3\\python.exe",
         #"PYTHONPATH": "%HOMEDRIVE%%HOMEPATH%\\python3",
         #"PYTHONHOME": "%HOMEDRIVE%%HOMEPATH%\\python3",
@@ -799,6 +802,11 @@ def windows_build_task(name, package=True, arch="x86_64", rdp=False):
             **windows_build_env["all"]
         )
         .with_repo_bundle(sparse_checkout=windows_sparse_checkout)
+        .with_repacked_msi(
+            "https://www.python.org/ftp/python/2.7.15/python-2.7.15.amd64.msi",
+            sha256="5e85f3c4c209de98480acbf2ba2e71a907fd5567a838ad4b6748c76deb286ad7",
+            path="python2"
+        )
         .with_python3()
         # mozjs's virtualenv expects a DLLs folder that contains dynamic libraries.
         # The embedded python distribution does not come with this.
