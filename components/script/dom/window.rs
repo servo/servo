@@ -1755,9 +1755,7 @@ impl Window {
 
         for image in complete.pending_images {
             let id = image.id;
-            let js_runtime = self.js_runtime.borrow();
-            let js_runtime = js_runtime.as_ref().unwrap();
-            let node = unsafe { from_untrusted_node_address(js_runtime.rt(), image.node) };
+            let node = unsafe { from_untrusted_node_address(image.node) };
 
             if let PendingImageState::Unrequested(ref url) = image.state {
                 fetch_image_for_layout(url.clone(), &*node, id, self.image_cache.clone());
@@ -1988,10 +1986,8 @@ impl Window {
         // FIXME(nox): Layout can reply with a garbage value which doesn't
         // actually correspond to an element, that's unsound.
         let response = self.layout_rpc.offset_parent();
-        let js_runtime = self.js_runtime.borrow();
-        let js_runtime = js_runtime.as_ref().unwrap();
         let element = response.node_address.and_then(|parent_node_address| {
-            let node = unsafe { from_untrusted_node_address(js_runtime.rt(), parent_node_address) };
+            let node = unsafe { from_untrusted_node_address(parent_node_address) };
             DomRoot::downcast(node)
         });
         (element, response.rect)

@@ -125,7 +125,7 @@ impl Animations {
     pub(crate) fn do_post_reflow_update(&self, window: &Window, now: f64) {
         let pipeline_id = window.pipeline_id();
         let mut sets = self.sets.sets.write();
-        self.root_newly_animating_dom_nodes(&sets, window);
+        self.root_newly_animating_dom_nodes(&sets);
 
         for (key, set) in sets.iter_mut() {
             self.handle_canceled_animations(key, set, now, pipeline_id);
@@ -305,9 +305,7 @@ impl Animations {
     fn root_newly_animating_dom_nodes(
         &self,
         sets: &FxHashMap<AnimationSetKey, ElementAnimationSet>,
-        window: &Window,
     ) {
-        let js_runtime = window.get_js_runtime().as_ref().unwrap().rt();
         let mut rooted_nodes = self.rooted_nodes.borrow_mut();
         for (key, set) in sets.iter() {
             let opaque_node = key.node;
@@ -322,7 +320,7 @@ impl Animations {
                 unsafe {
                     rooted_nodes.insert(
                         opaque_node,
-                        Dom::from_ref(&*from_untrusted_node_address(js_runtime, address)),
+                        Dom::from_ref(&*from_untrusted_node_address(address)),
                     )
                 };
             }

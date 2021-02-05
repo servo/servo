@@ -69,7 +69,7 @@ use devtools_traits::NodeInfo;
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D, Vector2D};
 use html5ever::{Namespace, Prefix, QualName};
-use js::jsapi::{JSObject, JSRuntime};
+use js::jsapi::JSObject;
 use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
@@ -1321,10 +1321,7 @@ where
 /// If the given untrusted node address represents a valid DOM node in the given runtime,
 /// returns it.
 #[allow(unsafe_code)]
-pub unsafe fn from_untrusted_node_address(
-    _runtime: *mut JSRuntime,
-    candidate: UntrustedNodeAddress,
-) -> DomRoot<Node> {
+pub unsafe fn from_untrusted_node_address(candidate: UntrustedNodeAddress) -> DomRoot<Node> {
     // https://github.com/servo/servo/issues/6383
     let candidate: uintptr_t = mem::transmute(candidate.0);
     //        let object: *mut JSObject = jsfriendapi::bindgen::JS_GetAddressableObject(runtime,

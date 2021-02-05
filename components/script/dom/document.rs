@@ -122,7 +122,7 @@ use euclid::default::{Point2D, Rect, Size2D};
 use html5ever::{LocalName, Namespace, QualName};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::{JSObject, JSRuntime};
+use js::jsapi::JSObject;
 use keyboard_types::{Code, Key, KeyState};
 use metrics::{
     InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory,
@@ -1185,9 +1185,8 @@ impl Document {
     }
 
     #[allow(unsafe_code)]
-    pub fn handle_mouse_event(
+    pub unsafe fn handle_mouse_event(
         &self,
-        js_runtime: *mut JSRuntime,
         button: MouseButton,
         client_point: Point2D<f32>,
         mouse_event_type: MouseEventType,
@@ -1203,7 +1202,7 @@ impl Document {
         debug!("{}: at {:?}", mouse_event_type_string, client_point);
 
         let el = node_address.and_then(|address| {
-            let node = unsafe { node::from_untrusted_node_address(js_runtime, address) };
+            let node = node::from_untrusted_node_address(address);
             node.inclusive_ancestors(ShadowIncluding::No)
                 .filter_map(DomRoot::downcast::<Element>)
                 .next()
@@ -1389,16 +1388,15 @@ impl Document {
     }
 
     #[allow(unsafe_code)]
-    pub fn handle_mouse_move_event(
+    pub unsafe fn handle_mouse_move_event(
         &self,
-        js_runtime: *mut JSRuntime,
         client_point: Point2D<f32>,
         prev_mouse_over_target: &MutNullableDom<Element>,
         node_address: Option<UntrustedNodeAddress>,
         pressed_mouse_buttons: u16,
     ) {
         let maybe_new_target = node_address.and_then(|address| {
-            let node = unsafe { node::from_untrusted_node_address(js_runtime, address) };
+            let node = node::from_untrusted_node_address(address);
             node.inclusive_ancestors(ShadowIncluding::No)
                 .filter_map(DomRoot::downcast::<Element>)
                 .next()
@@ -1562,9 +1560,8 @@ impl Document {
     }
 
     #[allow(unsafe_code)]
-    pub fn handle_wheel_event(
+    pub unsafe fn handle_wheel_event(
         &self,
-        js_runtime: *mut JSRuntime,
         delta: WheelDelta,
         client_point: Point2D<f32>,
         node_address: Option<UntrustedNodeAddress>,
@@ -1573,7 +1570,7 @@ impl Document {
         debug!("{}: at {:?}", wheel_event_type_string, client_point);
 
         let el = node_address.and_then(|address| {
-            let node = unsafe { node::from_untrusted_node_address(js_runtime, address) };
+            let node = node::from_untrusted_node_address(address);
             node.inclusive_ancestors(ShadowIncluding::No)
                 .filter_map(DomRoot::downcast::<Element>)
                 .next()
@@ -1609,9 +1606,8 @@ impl Document {
     }
 
     #[allow(unsafe_code)]
-    pub fn handle_touch_event(
+    pub unsafe fn handle_touch_event(
         &self,
-        js_runtime: *mut JSRuntime,
         event_type: TouchEventType,
         touch_id: TouchId,
         point: Point2D<f32>,
@@ -1627,7 +1623,7 @@ impl Document {
         };
 
         let el = node_address.and_then(|address| {
-            let node = unsafe { node::from_untrusted_node_address(js_runtime, address) };
+            let node = node::from_untrusted_node_address(address);
             node.inclusive_ancestors(ShadowIncluding::No)
                 .filter_map(DomRoot::downcast::<Element>)
                 .next()
