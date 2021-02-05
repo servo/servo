@@ -122,7 +122,7 @@ use euclid::default::{Point2D, Rect, Size2D};
 use html5ever::{LocalName, Namespace, QualName};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::{JSObject};
+use js::jsapi::JSObject;
 use keyboard_types::{Code, Key, KeyState};
 use metrics::{
     InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory,

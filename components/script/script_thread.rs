@@ -3678,14 +3678,7 @@ impl ScriptThread {
                 return TouchEventResult::Processed(true);
             },
         };
-        unsafe {
-            document.handle_touch_event(
-                event_type,
-                identifier,
-                point,
-                node_address,
-            )
-        }
+        unsafe { document.handle_touch_event(event_type, identifier, point, node_address) }
     }
 
     fn handle_wheel_event(
@@ -3699,9 +3692,7 @@ impl ScriptThread {
             Some(document) => document,
             None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
         };
-        unsafe {
-            document.handle_wheel_event(wheel_delta, point, node_address)
-        };
+        unsafe { document.handle_wheel_event(wheel_delta, point, node_address) };
     }
 
     /// Handle a "navigate an iframe" message from the constellation.

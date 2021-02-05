@@ -170,9 +170,7 @@ impl DocumentOrShadowRoot {
         let mut elements: Vec<DomRoot<Element>> = nodes
             .iter()
             .flat_map(|&untrusted_node_address| {
-                let node = unsafe {
-                    node::from_untrusted_node_address(untrusted_node_address)
-                };
+                let node = unsafe { node::from_untrusted_node_address(untrusted_node_address) };
                 DomRoot::downcast::<Element>(node)
             })
             .collect();
