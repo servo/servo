@@ -14,7 +14,6 @@ use crate::dom::node::{self, Node, VecPreOrderInsertionHelper};
 use crate::dom::window::Window;
 use crate::stylesheet_set::StylesheetSetRef;
 use euclid::default::Point2D;
-use js::jsapi::JS_GetRuntime;
 use script_layout_interface::message::{NodesFromPointQueryType, QueryMsg};
 use script_traits::UntrustedNodeAddress;
 use servo_arc::Arc;
@@ -131,8 +130,7 @@ impl DocumentOrShadowRoot {
             .first()
         {
             Some(address) => {
-                let js_runtime = unsafe { JS_GetRuntime(*self.window.get_cx()) };
-                let node = unsafe { node::from_untrusted_node_address(js_runtime, *address) };
+                let node = unsafe { node::from_untrusted_node_address(*address) };
                 let parent_node = node.GetParentNode().unwrap();
                 let element_ref = node
                     .downcast::<Element>()
@@ -167,15 +165,13 @@ impl DocumentOrShadowRoot {
             return vec![];
         }
 
-        let js_runtime = unsafe { JS_GetRuntime(*self.window.get_cx()) };
-
         // Step 1 and Step 3
         let nodes = self.nodes_from_point(point, NodesFromPointQueryType::All);
         let mut elements: Vec<DomRoot<Element>> = nodes
             .iter()
             .flat_map(|&untrusted_node_address| {
                 let node = unsafe {
-                    node::from_untrusted_node_address(js_runtime, untrusted_node_address)
+                    node::from_untrusted_node_address(untrusted_node_address)
                 };
                 DomRoot::downcast::<Element>(node)
             })

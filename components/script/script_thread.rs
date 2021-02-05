@@ -3527,7 +3527,6 @@ impl ScriptThread {
 
                 unsafe {
                     document.handle_mouse_move_event(
-                        self.js_runtime.rt(),
                         point,
                         &self.topmost_mouse_over_target,
                         node_address,
@@ -3654,7 +3653,6 @@ impl ScriptThread {
         };
         unsafe {
             document.handle_mouse_event(
-                self.js_runtime.rt(),
                 button,
                 point,
                 mouse_event_type,
@@ -3682,7 +3680,6 @@ impl ScriptThread {
         };
         unsafe {
             document.handle_touch_event(
-                self.js_runtime.rt(),
                 event_type,
                 identifier,
                 point,
@@ -3703,7 +3700,7 @@ impl ScriptThread {
             None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
         };
         unsafe {
-            document.handle_wheel_event(self.js_runtime.rt(), wheel_delta, point, node_address)
+            document.handle_wheel_event(wheel_delta, point, node_address)
         };
     }
 
