@@ -474,9 +474,13 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
         if self.rdp_info_artifact_name:
             rdp_scope = "generic-worker:allow-rdp:%s/%s" % (self.provisioner_id, self.worker_type)
             self.scopes.append(rdp_scope)
+        self.scopes.append("generic-worker:os-group:proj-servo/win2016/Administrators")
+        self.scopes.append("generic-worker:run-as-administrator:proj-servo/win2016")
+        self.with_features("runAsAdministrator")
         return dict_update_if_truthy(
             super().build_worker_payload(),
             rdpInfo=self.rdp_info_artifact_name,
+            osGroups=["Administrators"]
         )
 
     def with_rdp_info(self, *, artifact_name):
