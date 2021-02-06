@@ -372,14 +372,14 @@ def windows_unit(cached=True, rdp=False):
         .with_script(
             # Not necessary as this would be done at the start of `build`,
             # but this allows timing it separately.
-            "mach fetch",
+            "python mach fetch",
 
-            "mach build --dev",
+            "python mach build --dev",
 
-            "mach smoketest --angle",
+            "python mach smoketest --angle",
 
-            "mach package --dev",
-            "mach build --dev --libsimpleservo",
+            "python mach package --dev",
+            "python mach build --dev --libsimpleservo",
             # The GStreamer plugin currently doesn't support Windows
             # https://github.com/servo/servo/issues/25353
             # "mach build --dev -p servo-gst-plugin",
