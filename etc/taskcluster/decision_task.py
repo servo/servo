@@ -356,8 +356,8 @@ def uwp_nightly(rdp=False):
         .with_script(
             "python mach build --release --target=x86_64-uwp-windows-msvc",
             "python mach build --release --target=aarch64-uwp-windows-msvc",
-            "mach package --release --target=x86_64-uwp-windows-msvc --uwp=x64 --uwp=arm64",
-            "mach upload-nightly uwp --secret-from-taskcluster",
+            "python mach package --release --target=x86_64-uwp-windows-msvc --uwp=x64 --uwp=arm64",
+            "python mach upload-nightly uwp --secret-from-taskcluster",
         )
         .with_artifacts(appx_artifact)
         .with_max_run_time_minutes(3 * 60)
@@ -372,15 +372,14 @@ def windows_unit(cached=True, rdp=False):
         .with_script(
             # Not necessary as this would be done at the start of `build`,
             # but this allows timing it separately.
-            "mach fetch",
+            "python mach fetch",
 
-            "mach build --dev",
+            "python mach build --dev",
 
-            "mach test-unit",
-            "mach smoketest --angle",
+            "python mach test-unit",
 
-            "mach package --dev",
-            "mach build --dev --libsimpleservo",
+            "python mach package --dev",
+            "python mach build --dev --libsimpleservo",
             # The GStreamer plugin currently doesn't support Windows
             # https://github.com/servo/servo/issues/25353
             # "mach build --dev -p servo-gst-plugin",
@@ -401,10 +400,10 @@ def windows_nightly(rdp=False):
         .with_treeherder("Windows x64", "Nightly")
         .with_features("taskclusterProxy")
         .with_scopes("secrets:get:project/servo/s3-upload-credentials")
-        .with_script("mach fetch",
-                     "mach build --release",
-                     "mach package --release",
-                     "mach upload-nightly windows-msvc --secret-from-taskcluster")
+        .with_script("python mach fetch",
+                     "python mach build --release",
+                     "python mach package --release",
+                     "python mach upload-nightly windows-msvc --secret-from-taskcluster")
         .with_artifacts("repo/target/release/msi/Servo.exe",
                         "repo/target/release/msi/Servo.zip")
         .find_or_create("build.windows_x64_nightly." + CONFIG.tree_hash())
