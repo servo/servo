@@ -17,11 +17,6 @@ RUN \
         git \
         ca-certificates \
         #
-        # Running mach with Python 2
-        python2 \
-        python2-dev \
-        python-is-python2 \
-        #
         # Running mach with Python 3
         python3 \
         python3-pip \
@@ -35,12 +30,4 @@ RUN \
         curl \
         # Setting the default locale
         locales \
-        locales-all \
-    && \
-    #
-    # Python 2 bits that have been removed from Ubuntu packages
-    curl https://bootstrap.pypa.io/2.7/get-pip.py -sSf -o get-pip.py && \
-    python2 get-pip.py && \
-    python2 -m pip install virtualenv && \
-    # Ensure modern pip is present.
-    python3 -m pip install -U pip
+        locales-all

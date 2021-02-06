@@ -623,27 +623,6 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
         .with_dependencies(repack_task) \
         .with_directory_mount("public/repacked.zip", task_id=repack_task, path=path)
 
-    def with_python2(self):
-        """
-        Make Python 2, pip, and virtualenv accessible to the task’s commands.
-
-        For Python 3, use `with_directory_mount` and the "embeddable zip file" distribution
-        from python.org.
-        You may need to remove `python37._pth` from the ZIP in order to work around
-        <https://bugs.python.org/issue34841>.
-        """
-        return self \
-        .with_repacked_msi(
-            "https://www.python.org/ftp/python/2.7.15/python-2.7.15.amd64.msi",
-            sha256="5e85f3c4c209de98480acbf2ba2e71a907fd5567a838ad4b6748c76deb286ad7",
-            path="python2"
-        ) \
-        .with_early_script("""
-            python -m ensurepip
-            pip install virtualenv==16.0.0
-        """) \
-        .with_path_from_homedir("python2", "python2\\Scripts")
-
     def with_python3(self):
         """
         For Python 3, use `with_directory_mount` and the "embeddable zip file" distribution
@@ -718,13 +697,6 @@ class MacOsGenericWorkerTask(UnixTaskMixin, GenericWorkerTask):
                 deindent("\n".join(self.scripts))
             ]
         ]
-
-    def with_python2(self):
-        return self.with_early_script("""
-            export PATH="$HOME/Library/Python/2.7/bin:$PATH"
-            python -m ensurepip --user
-            pip install --user virtualenv
-        """)
 
     def with_python3(self):
         return self.with_early_script("""
