@@ -26,12 +26,12 @@ ${helpers.single_keyword(
     servo_restyle_damage="rebuild_and_reflow",
 )}
 
-${helpers.single_keyword(
+${helpers.predefined_type(
     "caption-side",
-    "top bottom",
+    "table::CaptionSide",
+    "computed::table::CaptionSide::Top",
+    needs_context=False,
     engines="gecko servo-2013",
-    extra_gecko_values="right left top-outside bottom-outside",
-    needs_conversion="True",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-tables/#propdef-caption-side",
     servo_restyle_damage="rebuild_and_reflow",
@@ -46,5 +46,5 @@ ${helpers.predefined_type(
     animation_value_type="BorderSpacing",
     boxed=True,
     spec="https://drafts.csswg.org/css-tables/#propdef-border-spacing",
-    servo_restyle_damage = "reflow",
+    servo_restyle_damage="reflow",
 )}

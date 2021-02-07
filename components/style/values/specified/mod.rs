@@ -129,6 +129,7 @@ pub mod resolution;
 pub mod source_size_list;
 pub mod svg;
 pub mod svg_path;
+pub mod table;
 pub mod text;
 pub mod time;
 pub mod transform;
