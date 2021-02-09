@@ -41,6 +41,6 @@ RUN \
     # Python 2 bits that have been removed from Ubuntu packages
     curl https://bootstrap.pypa.io/2.7/get-pip.py -sSf -o get-pip.py && \
     python2 get-pip.py && \
-    python2 -m pip install virtualenv \
+    python2 -m pip install virtualenv && \
     # Ensure modern pip is present.
     python3 -m pip install -U pip
