@@ -8,10 +8,8 @@ ${helpers.two_properties_shorthand(
     "overflow",
     "overflow-x",
     "overflow-y",
-    "specified::Overflow::parse",
     engines="gecko servo-2013 servo-2020",
     flags="SHORTHAND_IN_GETCS",
-    needs_context=False,
     spec="https://drafts.csswg.org/css-overflow/#propdef-overflow",
 )}
 
@@ -19,10 +17,8 @@ ${helpers.two_properties_shorthand(
     "overflow-clip-box",
     "overflow-clip-box-block",
     "overflow-clip-box-inline",
-    "specified::OverflowClipBox::parse",
     engines="gecko",
     enabled_in="ua",
-    needs_context=False,
     gecko_pref="layout.css.overflow-clip-box.enabled",
     spec="Internal, may be standardized in the future "
          "(https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box)",
@@ -310,9 +306,7 @@ ${helpers.two_properties_shorthand(
     "overscroll-behavior",
     "overscroll-behavior-x",
     "overscroll-behavior-y",
-    "specified::OverscrollBehavior::parse",
     engines="gecko",
-    needs_context=False,
     gecko_pref="layout.css.overscroll-behavior.enabled",
     spec="https://wicg.github.io/overscroll-behavior/#overscroll-behavior-properties",
 )}

@@ -30,7 +30,6 @@ ${helpers.predefined_type(
     "caption-side",
     "table::CaptionSide",
     "computed::table::CaptionSide::Top",
-    needs_context=False,
     engines="gecko servo-2013",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-tables/#propdef-caption-side",

@@ -17,9 +17,7 @@ ${helpers.four_sides_shorthand(
 ${helpers.four_sides_shorthand(
     "border-style",
     "border-%s-style",
-    "specified::BorderStyle::parse",
     engines="gecko servo-2013 servo-2020",
-    needs_context=False,
     spec="https://drafts.csswg.org/css-backgrounds/#border-style",
 )}
 

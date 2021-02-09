@@ -91,7 +91,6 @@ ${helpers.predefined_type(
     engines="gecko",
     animation_value_type="discrete",
     enabled_in="ua",
-    needs_context=False,
     spec="Internal implementation detail for <ol reversed>",
     servo_restyle_damage="rebuild_and_reflow",
 )}
