@@ -135,7 +135,7 @@ impl FontRelativeLength {
         base_size: FontBaseSize,
     ) -> computed::Length {
         let (reference_size, length) = self.reference_font_size_and_length(context, base_size);
-        reference_size * length
+        (reference_size * length).normalized()
     }
 
     /// Return reference font size.
