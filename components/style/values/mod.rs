@@ -35,6 +35,17 @@ pub mod specified;
 /// A CSS float value.
 pub type CSSFloat = f32;
 
+/// Normalizes a float value to zero after a set of operations that might turn
+/// it into NaN.
+#[inline]
+pub fn normalize(v: CSSFloat) -> CSSFloat {
+    if v.is_nan() {
+        0.0
+    } else {
+        v
+    }
+}
+
 /// A CSS integer value.
 pub type CSSInteger = i32;
 

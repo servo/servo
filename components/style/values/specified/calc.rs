@@ -482,7 +482,7 @@ impl CalcNode {
             Leaf::Time(ref t) => Ok(t.seconds()),
             _ => Err(()),
         })?;
-        Ok(Time::from_calc(seconds))
+        Ok(Time::from_calc(crate::values::normalize(seconds)))
     }
 
     /// Tries to simplify this expression into an `Angle` value.
@@ -491,7 +491,7 @@ impl CalcNode {
             Leaf::Angle(ref angle) => Ok(angle.degrees()),
             _ => Err(()),
         })?;
-        Ok(Angle::from_calc(degrees))
+        Ok(Angle::from_calc(crate::values::normalize(degrees)))
     }
 
     /// Tries to simplify this expression into a `<number>` value.
@@ -555,6 +555,7 @@ impl CalcNode {
     ) -> Result<CSSFloat, ParseError<'i>> {
         Self::parse(context, input, function, CalcUnit::Percentage)?
             .to_percentage()
+            .map(crate::values::normalize)
             .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 
@@ -578,6 +579,7 @@ impl CalcNode {
     ) -> Result<CSSFloat, ParseError<'i>> {
         Self::parse(context, input, function, CalcUnit::Number)?
             .to_number()
+            .map(crate::values::normalize)
             .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 

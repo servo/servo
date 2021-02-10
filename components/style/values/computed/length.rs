@@ -224,6 +224,12 @@ impl CSSPixelLength {
         CSSPixelLength(px)
     }
 
+    /// Returns a normalized (NaN turned to zero) version of this length.
+    #[inline]
+    pub fn normalized(self) -> Self {
+        Self::new(crate::values::normalize(self.0))
+    }
+
     /// Scale the length by a given amount.
     #[inline]
     pub fn scale_by(self, scale: CSSFloat) -> Self {

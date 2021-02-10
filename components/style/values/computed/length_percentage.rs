@@ -263,10 +263,10 @@ impl LengthPercentage {
             CalcNode::Leaf(l) => {
                 return match l {
                     CalcLengthPercentageLeaf::Length(l) => {
-                        Self::new_length(Length::new(clamping_mode.clamp(l.px())))
+                        Self::new_length(Length::new(clamping_mode.clamp(l.px())).normalized())
                     },
                     CalcLengthPercentageLeaf::Percentage(p) => {
-                        Self::new_percent(Percentage(clamping_mode.clamp(p.0)))
+                        Self::new_percent(Percentage(clamping_mode.clamp(crate::values::normalize(p.0))))
                     },
                 }
             },
@@ -378,7 +378,7 @@ impl LengthPercentage {
     pub fn resolve(&self, basis: Length) -> Length {
         match self.unpack() {
             Unpacked::Length(l) => l,
-            Unpacked::Percentage(p) => Length::new(basis.px() * p.0),
+            Unpacked::Percentage(p) => (basis * p.0).normalized(),
             Unpacked::Calc(ref c) => c.resolve(basis),
         }
     }
@@ -707,7 +707,7 @@ impl CalcLengthPercentage {
                 })
             })
             .unwrap();
-        Length::new(self.clamping_mode.clamp(px))
+        Length::new(self.clamping_mode.clamp(px)).normalized()
     }
 }
 
