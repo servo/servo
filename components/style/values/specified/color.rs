@@ -227,6 +227,14 @@ pub enum SystemColor {
     MozMacActiveSourceListSelection,
     MozMacTooltip,
 
+    /// Theme accent color.
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
+    MozAccentColor,
+
+    /// Foreground for the accent color.
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
+    MozAccentColorForeground,
+
     /// Accent color for title bar.
     MozWinAccentcolor,
     /// Color from drawing text over the accent color.
