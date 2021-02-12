@@ -1576,9 +1576,9 @@ dependencies = [
 
 [[package]]
 name = "env_logger"
-version = "0.8.2"
+version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f26ecb66b4bdca6c1409b40fb255eefc2bd4f6d135dab3c3124f80ffa2a9661e"
+checksum = "17392a012ea30ef05a610aa97dfb49496e71c9f676b27879922ea5bdf60d9d3f"
 dependencies = [
  "atty",
  "humantime 2.0.1",
@@ -3309,7 +3309,7 @@ dependencies = [
  "devtools",
  "devtools_traits",
  "embedder_traits",
- "env_logger 0.8.2",
+ "env_logger 0.8.3",
  "euclid",
  "gaol",
  "gfx",
@@ -5731,7 +5731,7 @@ version = "0.0.1"
 dependencies = [
  "backtrace",
  "cbindgen",
- "env_logger 0.8.2",
+ "env_logger 0.8.3",
  "keyboard-types",
  "lazy_static",
  "libc",
