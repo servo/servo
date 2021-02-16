@@ -37,6 +37,32 @@ SYSTEM_FONT_LONGHANDS = """font_family font_size font_style
                            font_feature_settings font_variation_settings
                            font_optical_sizing""".split()
 
+# Bitfield values for all rule types which can have property declarations.
+STYLE_RULE = 1 << 0
+PAGE_RULE = 1 << 1
+KEYFRAME_RULE = 1 << 2
+
+ALL_RULES = STYLE_RULE | PAGE_RULE | KEYFRAME_RULE
+DEFAULT_RULES = STYLE_RULE | KEYFRAME_RULE
+DEFAULT_RULES_AND_PAGE = DEFAULT_RULES | PAGE_RULE
+DEFAULT_RULES_EXCEPT_KEYFRAME = STYLE_RULE
+
+# Rule name to value dict
+RULE_VALUES = {
+    "Style": STYLE_RULE,
+    "Page": PAGE_RULE,
+    "Keyframe": KEYFRAME_RULE,
+}
+
+
+def rule_values_from_arg(that):
+    if isinstance(that, int):
+        return that
+    mask = 0
+    for rule in that.split():
+        mask |= RULE_VALUES[rule]
+    return mask
+
 
 def maybe_moz_logical_alias(engine, side, prop):
     if engine == "gecko" and side[1]:
@@ -214,7 +240,7 @@ class Longhand(object):
         need_index=False,
         gecko_ffi_name=None,
         has_effect_on_gecko_scrollbars=None,
-        allowed_in_keyframe_block=True,
+        rule_types_allowed=DEFAULT_RULES,
         cast_type="u8",
         logical=False,
         logical_group=None,
@@ -222,7 +248,6 @@ class Longhand(object):
         extra_prefixes=None,
         boxed=False,
         flags=None,
-        allowed_in_page_rule=False,
         allow_quirks="No",
         ignored_when_colors_disabled=False,
         simple_vector_bindings=False,
@@ -270,19 +295,10 @@ class Longhand(object):
         self.extra_prefixes = parse_property_aliases(extra_prefixes)
         self.boxed = arg_to_bool(boxed)
         self.flags = flags.split() if flags else []
-        self.allowed_in_page_rule = arg_to_bool(allowed_in_page_rule)
         self.allow_quirks = allow_quirks
         self.ignored_when_colors_disabled = ignored_when_colors_disabled
         self.is_vector = vector
         self.simple_vector_bindings = simple_vector_bindings
-
-        # https://drafts.csswg.org/css-animations/#keyframes
-        # > The <declaration-list> inside of <keyframe-block> accepts any CSS property
-        # > except those defined in this specification,
-        # > but does accept the `animation-play-state` property and interprets it specially.
-        self.allowed_in_keyframe_block = (
-            allowed_in_keyframe_block and allowed_in_keyframe_block != "False"
-        )
 
         # This is done like this since just a plain bool argument seemed like
         # really random.
@@ -487,10 +503,9 @@ class Shorthand(object):
         servo_2020_pref=None,
         gecko_pref=None,
         enabled_in="content",
-        allowed_in_keyframe_block=True,
+        rule_types_allowed=DEFAULT_RULES,
         alias=None,
         extra_prefixes=None,
-        allowed_in_page_rule=False,
         flags=None,
     ):
         self.name = name
@@ -507,16 +522,8 @@ class Shorthand(object):
         self.enabled_in = enabled_in
         self.alias = parse_property_aliases(alias)
         self.extra_prefixes = parse_property_aliases(extra_prefixes)
-        self.allowed_in_page_rule = arg_to_bool(allowed_in_page_rule)
+        self.rule_types_allowed = rule_values_from_arg(rule_types_allowed)
         self.flags = flags.split() if flags else []
-
-        # https://drafts.csswg.org/css-animations/#keyframes
-        # > The <declaration-list> inside of <keyframe-block> accepts any CSS property
-        # > except those defined in this specification,
-        # > but does accept the `animation-play-state` property and interprets it specially.
-        self.allowed_in_keyframe_block = (
-            allowed_in_keyframe_block and allowed_in_keyframe_block != "False"
-        )
 
     def get_animatable(self):
         for sub in self.sub_properties:
@@ -575,8 +582,7 @@ class Alias(object):
         self.servo_2020_pref = original.servo_2020_pref
         self.gecko_pref = gecko_pref
         self.transitionable = original.transitionable
-        self.allowed_in_page_rule = original.allowed_in_page_rule
-        self.allowed_in_keyframe_block = original.allowed_in_keyframe_block
+        self.rule_types_allowed = original.rule_types_allowed
 
     @staticmethod
     def type():

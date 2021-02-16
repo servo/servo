@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
-<% from data import ALL_SIDES, maybe_moz_logical_alias %>
+<% from data import ALL_SIDES, DEFAULT_RULES_AND_PAGE, maybe_moz_logical_alias %>
 <% data.new_style_struct("Margin", inherited=False) %>
 
 % for side in ALL_SIDES:
@@ -23,7 +23,7 @@
         logical=side[1],
         logical_group="margin",
         spec=spec,
-        allowed_in_page_rule=True,
+        rule_types_allowed=DEFAULT_RULES_AND_PAGE,
         servo_restyle_damage="reflow"
     )}
 % endfor

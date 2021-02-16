@@ -190,7 +190,7 @@ macro_rules! try_parse_one {
                                     animation-timing-function animation-delay
                                     animation-iteration-count animation-direction
                                     animation-fill-mode animation-play-state"
-                    allowed_in_keyframe_block="False"
+                    rule_types_allowed="Style"
                     spec="https://drafts.csswg.org/css-animations/#propdef-animation">
     <%
         props = "name duration timing_function delay iteration_count \

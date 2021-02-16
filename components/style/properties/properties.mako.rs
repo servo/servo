@@ -54,7 +54,7 @@ pub use self::cascade::*;
 
 <%!
     from collections import defaultdict
-    from data import Method, PropertyRestrictions, Keyword, to_rust_ident, to_camel_case, SYSTEM_FONT_LONGHANDS
+    from data import Method, PropertyRestrictions, Keyword, to_rust_ident, to_camel_case, RULE_VALUES, SYSTEM_FONT_LONGHANDS
     import os.path
 %>
 
@@ -553,17 +553,15 @@ impl NonCustomPropertyId {
             "Declarations are only expected inside a keyframe, page, or style rule."
         );
 
-        ${static_non_custom_property_id_set(
-            "DISALLOWED_IN_KEYFRAME_BLOCK",
-            lambda p: not p.allowed_in_keyframe_block
-        )}
-        ${static_non_custom_property_id_set(
-            "DISALLOWED_IN_PAGE_RULE",
-            lambda p: not p.allowed_in_page_rule
-        )}
+        static MAP: [u8; NON_CUSTOM_PROPERTY_ID_COUNT] = [
+            % for property in data.longhands + data.shorthands + data.all_aliases():
+            ${property.rule_types_allowed},
+            % endfor
+        ];
         match rule_type {
-            CssRuleType::Keyframe => !DISALLOWED_IN_KEYFRAME_BLOCK.contains(self),
-            CssRuleType::Page => !DISALLOWED_IN_PAGE_RULE.contains(self),
+            % for name in RULE_VALUES:
+                CssRuleType::${name} => MAP[self.0] & ${RULE_VALUES[name]} != 0,
+            % endfor
             _ => true
         }
     }

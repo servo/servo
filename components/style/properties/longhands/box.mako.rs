@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
-<% from data import ALL_AXES, Keyword, Method, to_rust_ident, to_camel_case%>
+<% from data import ALL_AXES, DEFAULT_RULES_EXCEPT_KEYFRAME, Keyword, Method, to_rust_ident, to_camel_case%>
 
 <% data.new_style_struct("Box",
                          inherited=False,
@@ -217,7 +217,7 @@ ${helpers.predefined_type(
     need_index=True,
     animation_value_type="none",
     extra_prefixes=animation_extra_prefixes,
-    allowed_in_keyframe_block=False,
+    rule_types_allowed=DEFAULT_RULES_EXCEPT_KEYFRAME,
     spec="https://drafts.csswg.org/css-animations/#propdef-animation-name",
 )}
 
@@ -247,7 +247,6 @@ ${helpers.predefined_type(
     need_index=True,
     animation_value_type="none",
     extra_prefixes=animation_extra_prefixes,
-    allowed_in_keyframe_block=True,
     spec="https://drafts.csswg.org/css-transitions/#propdef-animation-timing-function",
 )}
 
@@ -261,7 +260,7 @@ ${helpers.predefined_type(
     need_index=True,
     animation_value_type="none",
     extra_prefixes=animation_extra_prefixes,
-    allowed_in_keyframe_block=False,
+    rule_types_allowed=DEFAULT_RULES_EXCEPT_KEYFRAME,
     spec="https://drafts.csswg.org/css-animations/#propdef-animation-iteration-count",
 )}
 
@@ -278,7 +277,7 @@ ${helpers.single_keyword(
     extra_prefixes=animation_extra_prefixes,
     gecko_inexhaustive=True,
     spec="https://drafts.csswg.org/css-animations/#propdef-animation-direction",
-    allowed_in_keyframe_block=False,
+    rule_types_allowed=DEFAULT_RULES_EXCEPT_KEYFRAME,
 )}
 
 ${helpers.single_keyword(
@@ -291,7 +290,7 @@ ${helpers.single_keyword(
     extra_prefixes=animation_extra_prefixes,
     gecko_enum_prefix="StyleAnimationPlayState",
     spec="https://drafts.csswg.org/css-animations/#propdef-animation-play-state",
-    allowed_in_keyframe_block=False,
+    rule_types_allowed=DEFAULT_RULES_EXCEPT_KEYFRAME,
 )}
 
 ${helpers.single_keyword(
@@ -305,7 +304,7 @@ ${helpers.single_keyword(
     extra_prefixes=animation_extra_prefixes,
     gecko_inexhaustive=True,
     spec="https://drafts.csswg.org/css-animations/#propdef-animation-fill-mode",
-    allowed_in_keyframe_block=False,
+    rule_types_allowed=DEFAULT_RULES_EXCEPT_KEYFRAME,
 )}
 
 ${helpers.predefined_type(
@@ -319,7 +318,7 @@ ${helpers.predefined_type(
     animation_value_type="none",
     extra_prefixes=animation_extra_prefixes,
     spec="https://drafts.csswg.org/css-animations/#propdef-animation-delay",
-    allowed_in_keyframe_block=False,
+    rule_types_allowed=DEFAULT_RULES_EXCEPT_KEYFRAME,
 )}
 
 <% transform_extra_prefixes = "moz:layout.css.prefixes.transforms webkit" %>

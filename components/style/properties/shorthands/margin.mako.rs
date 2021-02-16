@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
+<% from data import DEFAULT_RULES_AND_PAGE %>
 
 ${helpers.four_sides_shorthand(
     "margin",
@@ -10,7 +11,7 @@ ${helpers.four_sides_shorthand(
     "specified::LengthPercentageOrAuto::parse",
     engines="gecko servo-2013 servo-2020",
     spec="https://drafts.csswg.org/css-box/#propdef-margin",
-    allowed_in_page_rule=True,
+    rule_types_allowed=DEFAULT_RULES_AND_PAGE,
     allow_quirks="Yes",
 )}
 
