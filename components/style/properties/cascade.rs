@@ -547,6 +547,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
 
         declaration.value.substitute_variables(
             declaration.id,
+            self.context.builder.writing_mode,
             self.context.builder.custom_properties.as_ref(),
             self.context.quirks_mode,
             self.context.device(),

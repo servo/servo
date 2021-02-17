@@ -948,7 +948,7 @@
             input.parse_entirely(|input| parse_value(context, input)).map(|longhands| {
                 % for sub_property in shorthand.sub_properties:
                 % if sub_property.may_be_disabled_in(shorthand, engine):
-                if NonCustomPropertyId::from(LonghandId::${sub_property.camel_case}).allowed_in(context) {
+                if NonCustomPropertyId::from(LonghandId::${sub_property.camel_case}).allowed_in_ignoring_rule_type(context) {
                 % endif
                     declarations.push(PropertyDeclaration::${sub_property.camel_case}(
                         longhands.${sub_property.ident}
@@ -980,7 +980,7 @@
     #[allow(unused_imports)]
     use crate::values::specified;
 
-    pub fn parse_value<'i, 't>(
+    fn parse_value<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Longhands, ParseError<'i>> {
@@ -1024,7 +1024,7 @@
         #[allow(unused_imports)]
         use crate::values::specified;
 
-        pub fn parse_value<'i, 't>(
+        fn parse_value<'i, 't>(
             context: &ParserContext,
             input: &mut Parser<'i, 't>,
         ) -> Result<Longhands, ParseError<'i>> {

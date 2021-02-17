@@ -829,11 +829,12 @@ impl PropertyDeclarationBlock {
             // getKeyframes() implementation for CSS animations, if
             // |computed_values| is supplied, we use it to expand such variable
             // declarations. This will be fixed properly in Gecko bug 1391537.
-            (&PropertyDeclaration::WithVariables(ref declaration), Some(ref _computed_values)) => {
+            (&PropertyDeclaration::WithVariables(ref declaration), Some(ref computed_values)) => {
                 declaration
                     .value
                     .substitute_variables(
                         declaration.id,
+                        computed_values.writing_mode,
                         custom_properties.as_ref(),
                         QuirksMode::NoQuirks,
                         device,

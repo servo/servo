@@ -248,7 +248,7 @@ impl AnimationValue {
         decl: &PropertyDeclaration,
         context: &mut Context,
         extra_custom_properties: Option<<&Arc<crate::custom_properties::CustomPropertiesMap>>,
-        initial: &ComputedValues
+        initial: &ComputedValues,
     ) -> Option<Self> {
         use super::PropertyDeclarationVariantRepr;
 
@@ -374,6 +374,7 @@ impl AnimationValue {
 
                     declaration.value.substitute_variables(
                         declaration.id,
+                        context.builder.writing_mode,
                         custom_properties,
                         context.quirks_mode,
                         context.device(),
