@@ -13,6 +13,7 @@ extern crate sig;
 mod app;
 mod backtrace;
 mod browser;
+mod crash_handler;
 mod embedder;
 mod events_loop;
 mod headed_window;
@@ -44,41 +45,8 @@ pub mod platform {
     pub fn deinit(_clean_shutdown: bool) {}
 }
 
-#[cfg(not(any(target_os = "macos", target_os = "linux")))]
-fn install_crash_handler() {}
-
-#[cfg(any(target_os = "macos", target_os = "linux"))]
-fn install_crash_handler() {
-    use libc::_exit;
-    use sig::ffi::Sig;
-    use std::thread;
-
-    extern "C" fn handler(sig: i32) {
-        use std::sync::atomic;
-        static BEEN_HERE_BEFORE: atomic::AtomicBool = atomic::AtomicBool::new(false);
-        if !BEEN_HERE_BEFORE.swap(true, atomic::Ordering::SeqCst) {
-            let stdout = std::io::stdout();
-            let mut stdout = stdout.lock();
-            let _ = write!(&mut stdout, "Stack trace");
-            if let Some(name) = thread::current().name() {
-                let _ = write!(&mut stdout, " for thread \"{}\"", name);
-            }
-            let _ = write!(&mut stdout, "\n");
-            let _ = backtrace::print(&mut stdout);
-        }
-        unsafe {
-            _exit(sig);
-        }
-    }
-
-    signal!(Sig::SEGV, handler); // handle segfaults
-    signal!(Sig::ILL, handler); // handle stack overflow and unsupported CPUs
-    signal!(Sig::IOT, handler); // handle double panics
-    signal!(Sig::BUS, handler); // handle invalid memory access
-}
-
 pub fn main() {
-    install_crash_handler();
+    crash_handler::install();
 
     resources::init();
 
