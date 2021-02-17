@@ -10,11 +10,10 @@ use crate::dom::TElement;
 use crate::font_metrics::FontMetricsProvider;
 use crate::logical_geometry::WritingMode;
 use crate::media_queries::Device;
-use crate::properties::{CSSWideKeyword, LonghandId, LonghandIdSet, PropertyFlags};
-use crate::properties::{ComputedValueFlags, CASCADE_PROPERTY};
-use crate::properties::{ComputedValues, Importance, StyleBuilder};
 use crate::properties::{
-    DeclarationImportanceIterator, PropertyDeclaration, PropertyDeclarationId,
+    CSSWideKeyword, ComputedValueFlags, ComputedValues, DeclarationImportanceIterator, Importance,
+    LonghandId, LonghandIdSet, PropertyDeclaration, PropertyDeclarationId, PropertyFlags,
+    ShorthandsWithPropertyReferencesCache, StyleBuilder, CASCADE_PROPERTY,
 };
 use crate::rule_cache::{RuleCache, RuleCacheConditions};
 use crate::rule_tree::StrongRuleNode;
@@ -325,10 +324,12 @@ where
 
     let using_cached_reset_properties = {
         let mut cascade = Cascade::new(&mut context, cascade_mode);
+        let mut shorthand_cache = ShorthandsWithPropertyReferencesCache::default();
 
         cascade.apply_properties::<EarlyProperties, _>(
             ApplyResetProperties::Yes,
             declarations.iter().cloned(),
+            &mut shorthand_cache,
         );
 
         cascade.compute_visited_style_if_needed(
@@ -348,7 +349,11 @@ where
             ApplyResetProperties::Yes
         };
 
-        cascade.apply_properties::<LateProperties, _>(apply_reset, declarations.iter().cloned());
+        cascade.apply_properties::<LateProperties, _>(
+            apply_reset,
+            declarations.iter().cloned(),
+            &mut shorthand_cache,
+        );
 
         using_cached_reset_properties
     };
@@ -501,10 +506,14 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
         }
     }
 
-    fn substitute_variables_if_needed<'decl>(
+    fn substitute_variables_if_needed<'decl, 'cache>(
         &mut self,
         declaration: &'decl PropertyDeclaration,
-    ) -> Cow<'decl, PropertyDeclaration> {
+        cache: &'cache mut ShorthandsWithPropertyReferencesCache,
+    ) -> Cow<'decl, PropertyDeclaration>
+    where
+        'cache: 'decl,
+    {
         let declaration = match *declaration {
             PropertyDeclaration::WithVariables(ref declaration) => declaration,
             ref d => return Cow::Borrowed(d),
@@ -536,12 +545,13 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             }
         }
 
-        Cow::Owned(declaration.value.substitute_variables(
+        declaration.value.substitute_variables(
             declaration.id,
             self.context.builder.custom_properties.as_ref(),
             self.context.quirks_mode,
             self.context.device(),
-        ))
+            cache,
+        )
     }
 
     #[inline(always)]
@@ -559,6 +569,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
         &mut self,
         apply_reset: ApplyResetProperties,
         declarations: I,
+        mut shorthand_cache: &mut ShorthandsWithPropertyReferencesCache,
     ) where
         Phase: CascadePhase,
         I: Iterator<Item = (&'decls PropertyDeclaration, Origin)>,
@@ -619,7 +630,8 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                 continue;
             }
 
-            let mut declaration = self.substitute_variables_if_needed(declaration);
+            let mut declaration =
+                self.substitute_variables_if_needed(declaration, &mut shorthand_cache);
 
             // When document colors are disabled, do special handling of
             // properties that are marked as ignored in that mode.
