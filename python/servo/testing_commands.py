@@ -585,7 +585,10 @@ class MachCommands(CommandBase):
 
         def format(outputs, description, file=sys.stdout):
             formatted = "%s %s:\n%s" % (len(outputs), description, "\n".join(outputs))
-            file.write(formatted.encode("utf-8"))
+            if file == sys.stdout:
+                file.write(formatted)
+            else:
+                file.write(formatted.encode("utf-8"))
 
         if log_intermittents:
             with open(log_intermittents, "wb") as file:

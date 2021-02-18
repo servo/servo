@@ -4,7 +4,7 @@
 
 """ A WebIDL parser. """
 
-from __future__ import print_function
+
 from ply import lex, yacc
 import re
 import os
@@ -57,7 +57,7 @@ def enum(*names, **kw):
 
     if "base" not in kw:
         return Foo(names)
-    return Foo(chain(kw["base"].attrs.keys(), names))
+    return Foo(chain(list(kw["base"].attrs.keys()), names))
 
 
 class WebIDLError(Exception):
@@ -123,6 +123,9 @@ class BuiltinLocation(object):
     def __eq__(self, other):
         return (isinstance(other, BuiltinLocation) and
                 self.msg == other.msg)
+
+    def __hash__(self):
+        return hash(self.msg)
 
     def filename(self):
         return '<builtin>'
@@ -2360,6 +2363,9 @@ class IDLNullableType(IDLParametrizedType):
     def __eq__(self, other):
         return isinstance(other, IDLNullableType) and self.inner == other.inner
 
+    def __hash__(self):
+        return hash(self.inner)
+
     def __str__(self):
         return self.inner.__str__() + "OrNull"
 
@@ -2521,6 +2527,9 @@ class IDLSequenceType(IDLParametrizedType):
 
     def __eq__(self, other):
         return isinstance(other, IDLSequenceType) and self.inner == other.inner
+
+    def __hash__(self):
+        return hash(self.inner)
 
     def __str__(self):
         return self.inner.__str__() + "Sequence"
@@ -2933,6 +2942,9 @@ class IDLWrapperType(IDLType):
                 self._identifier == other._identifier and
                 self.builtin == other.builtin)
 
+    def __hash__(self):
+        return hash((self._identifier, self.builtin))
+
     def __str__(self):
         return str(self.name) + " (Wrapper)"
 
@@ -3301,6 +3313,12 @@ class IDLBuiltinType(IDLType):
             return "MaybeShared" + str(self.name)
         return str(self.name)
 
+    def __eq__(self, other):
+        return other and self.location == other.location and self.name == other.name and self._typeTag == other._typeTag
+
+    def __hash__(self):
+        return hash((self.location, self.name, self._typeTag))
+
     def prettyName(self):
         return IDLBuiltinType.PrettyNames[self._typeTag]
 
@@ -3628,7 +3646,7 @@ integerTypeSizes = {
 
 
 def matchIntegerValueToType(value):
-    for type, extremes in integerTypeSizes.items():
+    for type, extremes in list(integerTypeSizes.items()):
         (min, max) = extremes
         if value <= max and value >= min:
             return BuiltinTypes[type]
@@ -3707,7 +3725,7 @@ class IDLValue(IDLObject):
         elif self.type.isString() and type.isEnum():
             # Just keep our string, but make sure it's a valid value for this enum
             enum = type.unroll().inner
-            if self.value not in enum.values():
+            if self.value not in list(enum.values()):
                 raise WebIDLError("'%s' is not a valid default value for enum %s"
                                   % (self.value, enum.identifier.name),
                                   [location, enum.location])
@@ -4789,7 +4807,7 @@ class IDLAttribute(IDLInterfaceMember):
             "CrossOriginWritable",
             "SetterThrows",
         ]
-        for (key, value) in self._extendedAttrDict.items():
+        for (key, value) in list(self._extendedAttrDict.items()):
             if key in allowedExtAttrs:
                 if value is not True:
                     raise WebIDLError("[%s] with a value is currently "
@@ -5479,7 +5497,7 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
                                   [attr.location])
             if identifier == "CrossOriginCallable" and self.isStatic():
                 raise WebIDLError("[CrossOriginCallable] is only allowed on non-static "
-                                  "attributes"
+                                  "attributes",
                                   [attr.location, self.location])
         elif identifier == "Pure":
             if not attr.noArguments():
@@ -5721,6 +5739,7 @@ class Tokenizer(object):
         "FLOATLITERAL",
         "IDENTIFIER",
         "STRING",
+        "COMMENTS",
         "WHITESPACE",
         "OTHER"
         ]
@@ -5753,8 +5772,12 @@ class Tokenizer(object):
         t.value = t.value[1:-1]
         return t
 
+    def t_COMMENTS(self, t):
+        r'(\/\*(.|\n)*?\*\/)|(\/\/.*)'
+        pass
+
     def t_WHITESPACE(self, t):
-        r'[\t\n\r ]+|[\t\n\r ]*((//[^\n]*|/\*.*?\*/)[\t\n\r ]*)+'
+        r'[\t\n\r ]+'
         pass
 
     def t_ELLIPSIS(self, t):
@@ -5840,7 +5863,7 @@ class Tokenizer(object):
         "async": "ASYNC",
         }
 
-    tokens.extend(keywords.values())
+    tokens.extend(list(keywords.values()))
 
     def t_error(self, t):
         raise WebIDLError("Unrecognized Input",
@@ -5849,23 +5872,21 @@ class Tokenizer(object):
                                     lexpos=self.lexer.lexpos,
                                     filename=self.filename)])
 
-    def __init__(self, outputdir, lexer=None):
+    def __init__(self, lexer=None):
         if lexer:
             self.lexer = lexer
         else:
-            self.lexer = lex.lex(object=self,
-                                 outputdir=outputdir,
-                                 lextab='webidllex',
-                                 reflags=re.DOTALL)
+            self.lexer = lex.lex(object=self)
 
 
 class SqueakyCleanLogger(object):
     errorWhitelist = [
-        # Web IDL defines the WHITESPACE token, but doesn't actually
+        # Web IDL defines the WHITESPACE and COMMENTS token, but doesn't actually
         # use it ... so far.
         "Token 'WHITESPACE' defined, but not used",
-        # And that means we have an unused token
-        "There is 1 unused token",
+        "Token 'COMMENTS' defined, but not used",
+        # And that means we have unused tokens
+        "There are 2 unused tokens",
         # Web IDL defines a OtherOrComma rule that's only used in
         # ExtendedAttributeInner, which we don't use yet.
         "Rule 'OtherOrComma' defined, but not used",
@@ -7506,22 +7527,11 @@ class Parser(Tokenizer):
             raise WebIDLError("invalid syntax", [Location(self.lexer, p.lineno, p.lexpos, self._filename)])
 
     def __init__(self, outputdir='', lexer=None):
-        Tokenizer.__init__(self, outputdir, lexer)
+        Tokenizer.__init__(self, lexer)
 
         logger = SqueakyCleanLogger()
         try:
-            self.parser = yacc.yacc(module=self,
-                                    outputdir=outputdir,
-                                    tabmodule='webidlyacc',
-                                    errorlog=logger,
-                                    debug=False
-                                    # Pickling the grammar is a speedup in
-                                    # some cases (older Python?) but a
-                                    # significant slowdown in others.
-                                    # We're not pickling for now, until it
-                                    # becomes a speedup again.
-                                    # , picklefile='WebIDLGrammar.pkl'
-            )
+            self.parser = yacc.yacc(module=self, errorlog=logger, debug=False)
         finally:
             logger.reportGrammarErrors()
 
@@ -7553,12 +7563,12 @@ class Parser(Tokenizer):
         return type
 
     def parse(self, t, filename=None):
-        self.lexer.input(t)
+        self._filename = filename
+        self.lexer.input(t.decode(encoding = 'utf-8'))
 
         # for tok in iter(self.lexer.token, None):
         #    print tok
 
-        self._filename = filename
         self._productions.extend(self.parser.parse(lexer=self.lexer, tracking=True))
         self._filename = None
 

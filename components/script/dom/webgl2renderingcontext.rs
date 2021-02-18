@@ -112,7 +112,7 @@ fn typedarray_elem_size(typeid: Type) -> usize {
         Type::Int32 | Type::Uint32 | Type::Float32 => 4,
         Type::Int64 | Type::Float64 => 8,
         Type::BigInt64 | Type::BigUint64 => 8,
-        Type::MaxTypedArrayViewType => unreachable!(),
+        Type::Simd128 | Type::MaxTypedArrayViewType => unreachable!(),
     }
 }
 

@@ -56,12 +56,12 @@ use js::glue::{IsWrapper, UnwrapObjectDynamic};
 use js::glue::{RUST_JSID_IS_INT, RUST_JSID_TO_INT};
 use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_STRING};
 use js::jsapi::{Heap, JSContext, JSObject, JSString};
-use js::jsapi::{IsWindowProxy, JS_NewStringCopyN, JS_StringHasLatin1Chars};
+use js::jsapi::{IsWindowProxy, JS_DeprecatedStringHasLatin1Chars, JS_NewStringCopyN};
 use js::jsapi::{
     JS_GetLatin1StringCharsAndLength, JS_GetTwoByteStringCharsAndLength, JS_IsExceptionPending,
 };
 use js::jsval::{ObjectValue, StringValue, UndefinedValue};
-use js::rust::wrappers::{JS_GetProperty, JS_HasProperty, JS_IsArrayObject};
+use js::rust::wrappers::{IsArrayObject, JS_GetProperty, JS_HasProperty};
 use js::rust::{get_object_class, is_dom_class, is_dom_object, maybe_wrap_value, ToString};
 use js::rust::{HandleId, HandleObject, HandleValue, MutableHandleValue};
 use num_traits::Float;
@@ -220,7 +220,7 @@ impl FromJSValConvertible for DOMString {
 /// Convert the given `JSString` to a `DOMString`. Fails if the string does not
 /// contain valid UTF-16.
 pub unsafe fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString {
-    let latin1 = JS_StringHasLatin1Chars(s);
+    let latin1 = JS_DeprecatedStringHasLatin1Chars(s);
     DOMString::from_string(if latin1 {
         latin1_to_string(cx, s)
     } else {
@@ -271,7 +271,7 @@ impl FromJSValConvertible for USVString {
             debug!("ToString failed");
             return Err(());
         }
-        let latin1 = JS_StringHasLatin1Chars(jsstr);
+        let latin1 = JS_DeprecatedStringHasLatin1Chars(jsstr);
         if latin1 {
             // FIXME(ajeffrey): Convert directly from DOMString to USVString
             return Ok(ConversionResult::Success(USVString(String::from(
@@ -317,7 +317,7 @@ impl FromJSValConvertible for ByteString {
             return Err(());
         }
 
-        let latin1 = JS_StringHasLatin1Chars(string);
+        let latin1 = JS_DeprecatedStringHasLatin1Chars(string);
         if latin1 {
             let mut length = 0;
             let chars = JS_GetLatin1StringCharsAndLength(cx, ptr::null(), string, &mut length);
@@ -564,7 +564,7 @@ impl<T: DomObject> ToJSValConvertible for DomRoot<T> {
 /// NodeList).
 pub unsafe fn is_array_like(cx: *mut JSContext, value: HandleValue) -> bool {
     let mut is_array = false;
-    assert!(JS_IsArrayObject(cx, value, &mut is_array));
+    assert!(IsArrayObject(cx, value, &mut is_array));
     if is_array {
         return true;
     }

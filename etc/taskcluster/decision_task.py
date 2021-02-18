@@ -132,6 +132,8 @@ windows_build_env = {
         "PYTHON3": "%HOMEDRIVE%%HOMEPATH%\\python3\\python.exe",
         "LINKER": "lld-link.exe",
         "MOZTOOLS_PATH_PREPEND": "%HOMEDRIVE%%HOMEPATH%\\git\\cmd",
+        "CC": "clang-cl.exe",
+        "CXX": "clang-cl.exe",
     },
 }
 
@@ -155,11 +157,11 @@ def linux_tidy_unit_untrusted():
         .with_env(**build_env, **unix_build_env, **linux_build_env)
         .with_repo_bundle()
         .with_script("""
-            ./mach test-tidy --no-progress --all
-            ./mach test-tidy --no-progress --self-test
-            ./mach bootstrap-gstreamer
-            ./mach build --dev
-            ./mach test-unit
+            python3 ./mach test-tidy --no-progress --all
+            python3 ./mach test-tidy --no-progress --self-test
+            python3 ./mach bootstrap-gstreamer
+            python3 ./mach build --dev
+            python3 ./mach test-unit
 
             ./etc/ci/lockfile_changed.sh
             ./etc/memory_reports_over_time.py --test
@@ -175,8 +177,7 @@ def linux_tidy_unit():
         .with_treeherder("Linux x64", "Tidy+Unit")
         .with_max_run_time_minutes(75)
         .with_script("""
-            ./mach test-tidy --no-progress --all
-            python3 ./mach test-tidy --no-progress --all --no-wpt
+            python3 ./mach test-tidy --no-progress --all
             python3 ./mach build --dev
             python3 ./mach test-unit
             python3 ./mach package --dev
@@ -201,7 +202,7 @@ def linux_docs_check():
         linux_build_task("Docs + check")
         .with_treeherder("Linux x64", "Doc+Check")
         .with_script("""
-            RUSTDOCFLAGS="--disable-minification" ./mach doc
+            RUSTDOCFLAGS="--disable-minification" python3 ./mach doc
             (
                 cd target/doc
                 git init
@@ -219,7 +220,7 @@ def linux_docs_check():
         # The reverse order would not increase the total amount of work to do,
         # but would reduce the amount of parallelism available.
         """
-            ./mach check
+            python3 ./mach check
         """)
         .with_artifacts("/repo/target/doc/docs.bundle")
         .find_or_create("docs." + CONFIG.tree_hash())
@@ -243,7 +244,7 @@ def upload_docs():
             open("/root/.git-credentials", "w").write("https://git:%s@github.com/" % token)
         """)
         .with_script("""
-            python -c "$PY"
+            python3 -c "$PY"
             git init --bare
             git config credential.helper store
             git fetch --quiet docs.bundle
@@ -274,9 +275,9 @@ def macos_unit():
         macos_build_task("Dev build + unit tests")
         .with_treeherder("macOS x64", "Unit")
         .with_script("""
-            ./mach build --dev --verbose
-            ./mach test-unit
-            ./mach package --dev
+            python3 ./mach build --dev --verbose
+            python3 ./mach test-unit
+            python3 ./mach package --dev
             ./etc/ci/macos_package_smoketest.sh target/debug/servo-tech-demo.dmg
             ./etc/ci/lockfile_changed.sh
         """)
@@ -296,8 +297,8 @@ def with_rust_nightly():
         .with_treeherder("Linux x64", "RustNightly")
         .with_script("""
             echo "nightly" > rust-toolchain
-            ./mach build --dev
-            ./mach test-unit
+            python3 ./mach build --dev
+            python3 ./mach test-unit
         """)
         .create()
     )
@@ -354,10 +355,10 @@ def uwp_nightly(rdp=False):
             "secrets:get:project/servo/windows-codesign-cert/latest",
         )
         .with_script(
-            "python mach build --release --target=x86_64-uwp-windows-msvc",
-            "python mach build --release --target=aarch64-uwp-windows-msvc",
-            "python mach package --release --target=x86_64-uwp-windows-msvc --uwp=x64 --uwp=arm64",
-            "python mach upload-nightly uwp --secret-from-taskcluster",
+            "python3 mach build --release --target=x86_64-uwp-windows-msvc",
+            "python3 mach build --release --target=aarch64-uwp-windows-msvc",
+            "python3 mach package --release --target=x86_64-uwp-windows-msvc --uwp=x64 --uwp=arm64",
+            "python3 mach upload-nightly uwp --secret-from-taskcluster",
         )
         .with_artifacts(appx_artifact)
         .with_max_run_time_minutes(3 * 60)
@@ -377,6 +378,9 @@ def windows_unit(cached=True, rdp=False):
             "python mach build --dev",
 
             "python mach test-unit",
+            # Running the TC task with administrator privileges breaks the
+            # smoketest for unknown reasons.
+            #"python mach smoketest --angle",
 
             "python mach package --dev",
             "python mach build --dev --libsimpleservo",
@@ -418,9 +422,9 @@ def linux_nightly():
         .with_scopes("secrets:get:project/servo/s3-upload-credentials")
         # Not reusing the build made for WPT because it has debug assertions
         .with_script(
-            "./mach build --release",
-            "./mach package --release",
-            "./mach upload-nightly linux --secret-from-taskcluster",
+            "python3 ./mach build --release",
+            "python3 ./mach package --release",
+            "python3 ./mach upload-nightly linux --secret-from-taskcluster",
         )
         .with_artifacts("/repo/target/release/servo-tech-demo.tar.gz")
         .find_or_create("build.linux_x64_nightly" + CONFIG.tree_hash())
@@ -432,8 +436,8 @@ def linux_release():
         linux_build_task("Release build")
         .with_treeherder("Linux x64", "Release")
         .with_script(
-            "./mach build --release",
-            "./mach package --release",
+            "python3 ./mach build --release",
+            "python3 ./mach package --release",
         )
         .find_or_create("build.linux_x64_release" + CONFIG.tree_hash())
     )
@@ -449,10 +453,10 @@ def macos_nightly():
             "secrets:get:project/servo/github-homebrew-token",
         )
         .with_script(
-            "./mach build --release",
-            "./mach package --release",
+            "python3 ./mach build --release",
+            "python3 ./mach package --release",
             "./etc/ci/macos_package_smoketest.sh target/release/servo-tech-demo.dmg",
-            "./mach upload-nightly mac --secret-from-taskcluster",
+            "python3 ./mach upload-nightly mac --secret-from-taskcluster",
         )
         .with_artifacts("repo/target/release/servo-tech-demo.dmg")
         .find_or_create("build.mac_x64_nightly." + CONFIG.tree_hash())
@@ -489,7 +493,7 @@ def macos_release_build_with_debug_assertions(priority=None):
         .with_treeherder("macOS x64", "Release+A")
         .with_priority(priority)
         .with_script("\n".join([
-            "./mach build --release --verbose --with-debug-assertions",
+            "python3 ./mach build --release --verbose --with-debug-assertions",
             "./etc/ci/lockfile_changed.sh",
             "tar -czf target.tar.gz" +
             " target/release/servo" +
@@ -516,9 +520,9 @@ def linux_release_build_with_debug_assertions(layout_2020):
         linux_build_task(name_prefix + "Release build, with debug assertions")
         .with_treeherder("Linux x64", treeherder_prefix + "Release+A")
         .with_script("""
-            time ./mach rustc -V
-            time ./mach fetch
-            ./mach build --release --with-debug-assertions %s -p servo
+            time python3 ./mach rustc -V
+            time python3 ./mach fetch
+            python3 ./mach build --release --with-debug-assertions %s -p servo
             ./etc/ci/lockfile_changed.sh
             tar -czf /target.tar.gz \
                 target/release/servo \
@@ -537,7 +541,7 @@ def macos_wpt():
     priority = "high" if CONFIG.git_ref == "refs/heads/auto" else None
     build_task = macos_release_build_with_debug_assertions(priority=priority)
     def macos_run_task(name):
-        task = macos_task(name).with_python2().with_python3() \
+        task = macos_task(name).with_python3() \
             .with_repo_bundle(alternate_object_dir="/var/cache/servo.git/objects")
         return with_homebrew(task, ["etc/taskcluster/macos/Brewfile"])
     wpt_chunks(
@@ -619,11 +623,11 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
         if this_chunk == 0:
             if run_webgpu:
                 webgpu_script = """
-                    time ./mach test-wpt _webgpu --release --processes $PROCESSES \
+                    time python3 ./mach test-wpt _webgpu --release --processes $PROCESSES \
                         --headless --log-raw test-webgpu.log --always-succeed \
                         --log-errorsummary webgpu-errorsummary.log \
                         | cat
-                    ./mach filter-intermittents \
+                    python3 ./mach filter-intermittents \
                         webgpu-errorsummary.log \
                         --log-intermittents webgpu-intermittents.log \
                         --log-filteredsummary filtered-webgpu-errorsummary.log \
@@ -634,7 +638,7 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                 webgpu_script = ""
 
             task.with_script("""
-                time python ./mach test-wpt --release --binary-arg=--multiprocess \
+                time python3 ./mach test-wpt --release --binary-arg=--multiprocess \
                     --processes $PROCESSES \
                     --log-raw test-wpt-mp.log \
                     --log-errorsummary wpt-mp-errorsummary.log \
@@ -647,30 +651,30 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                     --always-succeed \
                     url \
                     | cat
-                ./mach filter-intermittents \
+                python3 ./mach filter-intermittents \
                     wpt-py3-errorsummary.log \
                     --log-intermittents wpt-py3-intermittents.log \
                     --log-filteredsummary filtered-py3-errorsummary.log \
                     --tracker-api default \
                     --reporter-api default
-                time ./mach test-wpt --release --product=servodriver --headless  \
+                time python3 ./mach test-wpt --release --product=servodriver --headless  \
                     tests/wpt/mozilla/tests/mozilla/DOMParser.html \
                     tests/wpt/mozilla/tests/css/per_glyph_font_fallback_a.html \
                     tests/wpt/mozilla/tests/css/img_simple.html \
                     tests/wpt/mozilla/tests/mozilla/secure.https.html \
                     | cat
-                time ./mach test-wpt --release --processes $PROCESSES --product=servodriver \
+                time python3 ./mach test-wpt --release --processes $PROCESSES --product=servodriver \
                     --headless --log-raw test-bluetooth.log \
                     --log-errorsummary bluetooth-errorsummary.log \
                     bluetooth \
                     | cat
-                time ./mach test-wpt --release --processes $PROCESSES --timeout-multiplier=4 \
+                time python3 ./mach test-wpt --release --processes $PROCESSES --timeout-multiplier=4 \
                     --headless --log-raw test-wdspec.log \
                     --log-servojson wdspec-jsonsummary.log \
                     --always-succeed \
                     webdriver \
                     | cat
-                ./mach filter-intermittents \
+                python3 ./mach filter-intermittents \
                     wdspec-jsonsummary.log \
                     --log-intermittents intermittents.log \
                     --log-filteredsummary filtered-wdspec-errorsummary.log \
@@ -680,7 +684,7 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
             )
         else:
             task.with_script("""
-                ./mach test-wpt \
+                python3 ./mach test-wpt \
                     --release \
                     $WPT_ARGS \
                     --processes $PROCESSES \
@@ -690,7 +694,7 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                     --log-servojson wpt-jsonsummary.log \
                     --always-succeed \
                     | cat
-                ./mach filter-intermittents \
+                python3 ./mach filter-intermittents \
                     wpt-jsonsummary.log \
                     --log-intermittents intermittents.log \
                     --log-filteredsummary filtered-wpt-errorsummary.log \
@@ -770,7 +774,7 @@ def linux_build_task(name, *, build_env=build_env):
         .with_dockerfile(dockerfile_path("build"))
         .with_env(**build_env, **unix_build_env, **linux_build_env)
         .with_repo_bundle()
-        .with_script("./mach bootstrap-gstreamer")
+        .with_script("python3 ./mach bootstrap-gstreamer")
     )
     return task
 
@@ -797,12 +801,7 @@ def windows_build_task(name, package=True, arch="x86_64", rdp=False):
             **windows_build_env["all"]
         )
         .with_repo_bundle(sparse_checkout=windows_sparse_checkout)
-        .with_python2()
-        .with_directory_mount(
-            "https://www.python.org/ftp/python/3.7.3/python-3.7.3-embed-amd64.zip",
-            sha256="6de14c9223226cf0cd8c965ecb08c51d62c770171a256991b4fddc25188cfa8e",
-            path="python3",
-        )
+        .with_python3()
         .with_rustup()
     )
     if arch in hashes["non-devel"] and arch in hashes["devel"]:
@@ -844,7 +843,7 @@ def macos_build_task(name):
         .with_max_run_time_minutes(60 * 2)
         .with_env(**build_env, **unix_build_env, **macos_build_env)
         .with_repo_bundle(alternate_object_dir="/var/cache/servo.git/objects")
-        .with_python2()
+        .with_python3()
         .with_rustup()
         .with_index_and_artifacts_expire_in(build_artifacts_expire_in)
         # Debugging for surprising generic-worker behaviour

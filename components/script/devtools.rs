@@ -23,9 +23,8 @@ use devtools_traits::{AutoMargins, ComputedNodeLayout, TimelineMarkerType};
 use devtools_traits::{EvaluateJSReply, Modification, NodeInfo, TimelineMarker};
 use ipc_channel::ipc::IpcSender;
 use js::jsval::UndefinedValue;
-use js::rust::wrappers::ObjectClassName;
+use js::rust::ToString;
 use msg::constellation_msg::PipelineId;
-use std::ffi::CStr;
 use std::rc::Rc;
 use std::str;
 use uuid::Uuid;
@@ -65,12 +64,11 @@ pub fn handle_evaluate_js(global: &GlobalScope, eval: String, reply: IpcSender<E
         } else {
             assert!(rval.is_object());
 
-            rooted!(in(*cx) let obj = rval.to_object());
-            let class_name = CStr::from_ptr(ObjectClassName(*cx, obj.handle()));
-            let class_name = str::from_utf8(class_name.to_bytes()).unwrap();
+            let jsstr = ToString(*cx, rval.handle());
+            let class_name = jsstring_to_str(*cx, jsstr);
 
             EvaluateJSReply::ActorValue {
-                class: class_name.to_owned(),
+                class: class_name.to_string(),
                 uuid: Uuid::new_v4().to_string(),
             }
         }

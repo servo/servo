@@ -50,17 +50,17 @@ use js::jsapi::PromiseUserInputEventHandlingState;
 use js::jsapi::StreamConsumer as JSStreamConsumer;
 use js::jsapi::{BuildIdCharVector, DisableIncrementalGC, GCDescription, GCProgress};
 use js::jsapi::{Dispatchable as JSRunnable, Dispatchable_MaybeShuttingDown};
+use js::jsapi::{
+    GCReason, JSGCInvocationKind, JSGCStatus, JS_AddExtraGCRootsTracer,
+    JS_RequestInterruptCallback, JS_SetGCCallback,
+};
 use js::jsapi::{HandleObject, Heap, JobQueue};
 use js::jsapi::{JSContext as RawJSContext, JSTracer, SetDOMCallbacks, SetGCSliceCallback};
-use js::jsapi::{
-    JSGCInvocationKind, JSGCStatus, JS_AddExtraGCRootsTracer, JS_RequestInterruptCallback,
-    JS_SetGCCallback,
-};
 use js::jsapi::{JSGCMode, JSGCParamKey, JS_SetGCParameter, JS_SetGlobalJitCompilerOption};
 use js::jsapi::{
     JSJitCompilerOption, JS_SetOffthreadIonCompilationEnabled, JS_SetParallelParsingEnabled,
 };
-use js::jsapi::{JSObject, PromiseRejectionHandlingState, SetPreserveWrapperCallback};
+use js::jsapi::{JSObject, PromiseRejectionHandlingState, SetPreserveWrapperCallbacks};
 use js::jsapi::{SetJobQueue, SetProcessBuildIdOp, SetPromiseRejectionTrackerCallback};
 use js::jsval::UndefinedValue;
 use js::panic::wrap_panic;
@@ -478,8 +478,16 @@ unsafe fn new_rt_and_cx_with_parent(
     unsafe extern "C" fn empty_wrapper_callback(_: *mut RawJSContext, _: HandleObject) -> bool {
         true
     }
+    unsafe extern "C" fn empty_has_released_callback(_: HandleObject) -> bool {
+        // fixme: return true when the Drop impl for a DOM object has been invoked
+        false
+    }
     SetDOMCallbacks(cx, &DOM_CALLBACKS);
-    SetPreserveWrapperCallback(cx, Some(empty_wrapper_callback));
+    SetPreserveWrapperCallbacks(
+        cx,
+        Some(empty_wrapper_callback),
+        Some(empty_has_released_callback),
+    );
     // Pre barriers aren't working correctly at the moment
     DisableIncrementalGC(cx);
 
@@ -542,7 +550,7 @@ unsafe fn new_rt_and_cx_with_parent(
     }
     cx_opts.set_wasmBaseline_(pref!(js.wasm.baseline.enabled));
     cx_opts.set_wasmIon_(pref!(js.wasm.ion.enabled));
-    cx_opts.set_extraWarnings_(pref!(js.strict.enabled));
+    cx_opts.set_strictMode_(pref!(js.strict.enabled));
     // TODO: handle js.strict.debug.enabled
     // TODO: handle js.throw_on_asmjs_validation_failure (needs new Spidermonkey)
     JS_SetGlobalJitCompilerOption(
@@ -574,7 +582,6 @@ unsafe fn new_rt_and_cx_with_parent(
     // TODO: handle js.asyncstack.enabled (needs new Spidermonkey)
     // TODO: handle js.throw_on_debugee_would_run (needs new Spidermonkey)
     // TODO: handle js.dump_stack_on_debugee_would_run (needs new Spidermonkey)
-    cx_opts.set_werror_(pref!(js.werror.enabled));
     // TODO: handle js.shared_memory.enabled
     JS_SetGCParameter(
         cx,
@@ -604,49 +611,39 @@ unsafe fn new_rt_and_cx_with_parent(
     if let Some(val) = in_range(pref!(js.mem.gc.high_frequency_time_limit_ms), 0, 10_000) {
         JS_SetGCParameter(cx, JSGCParamKey::JSGC_HIGH_FREQUENCY_TIME_LIMIT, val as u32);
     }
-    JS_SetGCParameter(
-        cx,
-        JSGCParamKey::JSGC_DYNAMIC_MARK_SLICE,
-        pref!(js.mem.gc.dynamic_mark_slice.enabled) as u32,
-    );
-    JS_SetGCParameter(
-        cx,
-        JSGCParamKey::JSGC_DYNAMIC_HEAP_GROWTH,
-        pref!(js.mem.gc.dynamic_heap_growth.enabled) as u32,
-    );
     if let Some(val) = in_range(pref!(js.mem.gc.low_frequency_heap_growth), 0, 10_000) {
         JS_SetGCParameter(cx, JSGCParamKey::JSGC_LOW_FREQUENCY_HEAP_GROWTH, val as u32);
     }
     if let Some(val) = in_range(pref!(js.mem.gc.high_frequency_heap_growth_min), 0, 10_000) {
         JS_SetGCParameter(
             cx,
-            JSGCParamKey::JSGC_HIGH_FREQUENCY_HEAP_GROWTH_MIN,
+            JSGCParamKey::JSGC_HIGH_FREQUENCY_LARGE_HEAP_GROWTH,
             val as u32,
         );
     }
     if let Some(val) = in_range(pref!(js.mem.gc.high_frequency_heap_growth_max), 0, 10_000) {
         JS_SetGCParameter(
             cx,
-            JSGCParamKey::JSGC_HIGH_FREQUENCY_HEAP_GROWTH_MAX,
+            JSGCParamKey::JSGC_HIGH_FREQUENCY_SMALL_HEAP_GROWTH,
             val as u32,
         );
     }
     if let Some(val) = in_range(pref!(js.mem.gc.high_frequency_low_limit_mb), 0, 10_000) {
-        JS_SetGCParameter(cx, JSGCParamKey::JSGC_HIGH_FREQUENCY_LOW_LIMIT, val as u32);
+        JS_SetGCParameter(cx, JSGCParamKey::JSGC_SMALL_HEAP_SIZE_MAX, val as u32);
     }
     if let Some(val) = in_range(pref!(js.mem.gc.high_frequency_high_limit_mb), 0, 10_000) {
-        JS_SetGCParameter(cx, JSGCParamKey::JSGC_HIGH_FREQUENCY_HIGH_LIMIT, val as u32);
+        JS_SetGCParameter(cx, JSGCParamKey::JSGC_LARGE_HEAP_SIZE_MIN, val as u32);
     }
-    if let Some(val) = in_range(pref!(js.mem.gc.allocation_threshold_factor), 0, 10_000) {
+    /*if let Some(val) = in_range(pref!(js.mem.gc.allocation_threshold_factor), 0, 10_000) {
         JS_SetGCParameter(cx, JSGCParamKey::JSGC_NON_INCREMENTAL_FACTOR, val as u32);
-    }
-    if let Some(val) = in_range(
-        pref!(js.mem.gc.allocation_threshold_avoid_interrupt_factor),
-        0,
-        10_000,
-    ) {
-        JS_SetGCParameter(cx, JSGCParamKey::JSGC_AVOID_INTERRUPT_FACTOR, val as u32);
-    }
+    }*/
+    /*
+        // JSGC_SMALL_HEAP_INCREMENTAL_LIMIT
+        pref("javascript.options.mem.gc_small_heap_incremental_limit", 140);
+
+        // JSGC_LARGE_HEAP_INCREMENTAL_LIMIT
+        pref("javascript.options.mem.gc_large_heap_incremental_limit", 110);
+    */
     if let Some(val) = in_range(pref!(js.mem.gc.empty_chunk_count_min), 0, 10_000) {
         JS_SetGCParameter(cx, JSGCParamKey::JSGC_MIN_EMPTY_CHUNK_COUNT, val as u32);
     }
@@ -796,6 +793,7 @@ unsafe extern "C" fn gc_slice_callback(
 unsafe extern "C" fn debug_gc_callback(
     _cx: *mut RawJSContext,
     status: JSGCStatus,
+    _reason: GCReason,
     _data: *mut os::raw::c_void,
 ) {
     match status {

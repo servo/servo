@@ -3,6 +3,7 @@ function test_interfaces(interfaceNamesInGlobalScope) {
     // This is a list of interfaces that are exposed to every webpage by SpiderMonkey.
     // IMPORTANT: Do not change this list without review from a JavaScript Engine peer!
     var ecmaGlobals = [
+      "AggregateError",
       "Array",
       "ArrayBuffer",
       "BigInt",

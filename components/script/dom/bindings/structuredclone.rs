@@ -116,6 +116,7 @@ unsafe fn write_blob(
 unsafe extern "C" fn read_callback(
     cx: *mut JSContext,
     r: *mut JSStructuredCloneReader,
+    _policy: *const CloneDataPolicy,
     tag: u32,
     _data: u32,
     closure: *mut raw::c_void,
@@ -143,6 +144,7 @@ unsafe extern "C" fn write_callback(
     cx: *mut JSContext,
     w: *mut JSStructuredCloneWriter,
     obj: RawHandleObject,
+    _same_process_scope_required: *mut bool,
     closure: *mut raw::c_void,
 ) -> bool {
     if let Ok(blob) = root_from_object::<Blob>(*obj, cx) {
@@ -216,6 +218,7 @@ unsafe extern "C" fn free_transfer_callback(
 unsafe extern "C" fn can_transfer_callback(
     cx: *mut JSContext,
     obj: RawHandleObject,
+    _same_process_scope_required: *mut bool,
     _closure: *mut raw::c_void,
 ) -> bool {
     if let Ok(_port) = root_from_object::<MessagePort>(*obj, cx) {
@@ -224,7 +227,21 @@ unsafe extern "C" fn can_transfer_callback(
     false
 }
 
-unsafe extern "C" fn report_error_callback(_cx: *mut JSContext, _errorid: u32) {}
+unsafe extern "C" fn report_error_callback(
+    _cx: *mut JSContext,
+    _errorid: u32,
+    _closure: *mut ::std::os::raw::c_void,
+    _error_message: *const ::std::os::raw::c_char,
+) {
+}
+
+unsafe extern "C" fn sab_cloned_callback(
+    _cx: *mut JSContext,
+    _receiving: bool,
+    _closure: *mut ::std::os::raw::c_void,
+) -> bool {
+    false
+}
 
 static STRUCTURED_CLONE_CALLBACKS: JSStructuredCloneCallbacks = JSStructuredCloneCallbacks {
     read: Some(read_callback),
@@ -234,6 +251,7 @@ static STRUCTURED_CLONE_CALLBACKS: JSStructuredCloneCallbacks = JSStructuredClon
     writeTransfer: Some(write_transfer_callback),
     freeTransfer: Some(free_transfer_callback),
     canTransfer: Some(can_transfer_callback),
+    sabCloned: Some(sab_cloned_callback),
 };
 
 /// A data holder for results from, and inputs to, structured-data read/write operations.
@@ -286,15 +304,15 @@ pub fn write(
         );
         let scdata = &mut ((*scbuf).data_);
         let policy = CloneDataPolicy {
-            // TODO: SAB?
-            sharedArrayBuffer_: false,
+            allowIntraClusterClonableSharedObjects_: false,
+            allowSharedMemoryObjects_: false,
         };
         let result = JS_WriteStructuredClone(
             *cx,
             message,
             scdata,
             StructuredCloneScope::DifferentProcess,
-            policy,
+            &policy,
             &STRUCTURED_CLONE_CALLBACKS,
             sc_holder_ptr as *mut raw::c_void,
             val.handle(),
@@ -361,8 +379,9 @@ pub fn read(
             JS_STRUCTURED_CLONE_VERSION,
             StructuredCloneScope::DifferentProcess,
             rval,
-            CloneDataPolicy {
-                sharedArrayBuffer_: false,
+            &CloneDataPolicy {
+                allowIntraClusterClonableSharedObjects_: false,
+                allowSharedMemoryObjects_: false,
             },
             &STRUCTURED_CLONE_CALLBACKS,
             sc_holder_ptr as *mut raw::c_void,

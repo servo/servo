@@ -45,17 +45,17 @@ use js::jsapi::Handle as RawHandle;
 use js::jsapi::HandleObject;
 use js::jsapi::HandleValue as RawHandleValue;
 use js::jsapi::Value;
-use js::jsapi::{CompileModuleDontInflate, ExceptionStackBehavior, FinishDynamicModuleImport};
+use js::jsapi::{CompileModule1, ExceptionStackBehavior, FinishDynamicModuleImport};
+use js::jsapi::{DynamicImportStatus, SetModuleDynamicImportHook, SetScriptPrivateReferenceHooks};
 use js::jsapi::{GetModuleResolveHook, JSRuntime, SetModuleResolveHook};
 use js::jsapi::{GetRequestedModules, SetModuleMetadataHook};
 use js::jsapi::{Heap, JSContext, JS_ClearPendingException, SetModulePrivate};
 use js::jsapi::{JSAutoRealm, JSObject, JSString};
 use js::jsapi::{JS_DefineProperty4, JS_IsExceptionPending, JS_NewStringCopyN, JSPROP_ENUMERATE};
 use js::jsapi::{ModuleEvaluate, ModuleInstantiate};
-use js::jsapi::{SetModuleDynamicImportHook, SetScriptPrivateReferenceHooks};
 use js::jsval::{JSVal, PrivateValue, UndefinedValue};
+use js::rust::jsapi_wrapped::{GetArrayLength, JS_GetElement};
 use js::rust::jsapi_wrapped::{GetRequestedModuleSpecifier, JS_GetPendingException};
-use js::rust::jsapi_wrapped::{JS_GetArrayLength, JS_GetElement};
 use js::rust::transform_str_to_source_text;
 use js::rust::wrappers::JS_SetPendingException;
 use js::rust::CompileOptionsWrapper;
@@ -425,7 +425,7 @@ impl ModuleTree {
             unsafe { CompileOptionsWrapper::new(*global.get_cx(), url.as_str(), 1) };
 
         unsafe {
-            rooted!(in(*global.get_cx()) let mut module_script = CompileModuleDontInflate(
+            rooted!(in(*global.get_cx()) let mut module_script = CompileModule1(
                 *global.get_cx(),
                 compile_options.ptr,
                 &mut transform_str_to_source_text(&module_script_text),
@@ -558,7 +558,7 @@ impl ModuleTree {
 
             let mut length = 0;
 
-            if !JS_GetArrayLength(*global.get_cx(), requested_modules.handle(), &mut length) {
+            if !GetArrayLength(*global.get_cx(), requested_modules.handle(), &mut length) {
                 let module_length_error =
                     gen_type_error(&global, "Wrong length of requested modules".to_owned());
 
@@ -995,26 +995,38 @@ impl ModuleOwner {
         };
 
         // Ensure any failures related to importing this dynamic module are immediately reported.
-        match (network_error, existing_rethrow_error, execution_err) {
+        let status = match (network_error, existing_rethrow_error, execution_err) {
             (Some(_), _, _) => unsafe {
                 let err = gen_type_error(&global, "Dynamic import failed".to_owned());
-                JS_SetPendingException(*cx, err.handle(), ExceptionStackBehavior::Capture)
+                JS_SetPendingException(*cx, err.handle(), ExceptionStackBehavior::Capture);
+                DynamicImportStatus::Failed
             },
             (None, _, Some(execution_err)) => unsafe {
-                JS_SetPendingException(*cx, execution_err.handle(), ExceptionStackBehavior::Capture)
+                JS_SetPendingException(
+                    *cx,
+                    execution_err.handle(),
+                    ExceptionStackBehavior::Capture,
+                );
+                DynamicImportStatus::Failed
             },
             (None, Some(rethrow_error), _) => unsafe {
-                JS_SetPendingException(*cx, rethrow_error.handle(), ExceptionStackBehavior::Capture)
+                JS_SetPendingException(
+                    *cx,
+                    rethrow_error.handle(),
+                    ExceptionStackBehavior::Capture,
+                );
+                DynamicImportStatus::Failed
             },
             // do nothing if there's no errors
-            (None, None, None) => {},
-        }
+            (None, None, None) => DynamicImportStatus::Ok,
+        };
 
         debug!("Finishing dynamic import for {:?}", module_identity);
 
         unsafe {
             FinishDynamicModuleImport(
                 *cx,
+                status,
                 module.referencing_private.handle(),
                 module.specifier.handle(),
                 module.promise.reflector().get_jsobject().into_handle(),

@@ -474,9 +474,13 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
         if self.rdp_info_artifact_name:
             rdp_scope = "generic-worker:allow-rdp:%s/%s" % (self.provisioner_id, self.worker_type)
             self.scopes.append(rdp_scope)
+        self.scopes.append("generic-worker:os-group:proj-servo/win2016/Administrators")
+        self.scopes.append("generic-worker:run-as-administrator:proj-servo/win2016")
+        self.with_features("runAsAdministrator")
         return dict_update_if_truthy(
             super().build_worker_payload(),
             rdpInfo=self.rdp_info_artifact_name,
+            osGroups=["Administrators"]
         )
 
     def with_rdp_info(self, *, artifact_name):
@@ -619,26 +623,23 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
         .with_dependencies(repack_task) \
         .with_directory_mount("public/repacked.zip", task_id=repack_task, path=path)
 
-    def with_python2(self):
+    def with_python3(self):
         """
-        Make Python 2, pip, and virtualenv accessible to the task’s commands.
-
         For Python 3, use `with_directory_mount` and the "embeddable zip file" distribution
         from python.org.
         You may need to remove `python37._pth` from the ZIP in order to work around
         <https://bugs.python.org/issue34841>.
         """
-        return self \
-        .with_repacked_msi(
-            "https://www.python.org/ftp/python/2.7.15/python-2.7.15.amd64.msi",
-            sha256="5e85f3c4c209de98480acbf2ba2e71a907fd5567a838ad4b6748c76deb286ad7",
-            path="python2"
-        ) \
-        .with_early_script("""
-            python -m ensurepip
-            pip install virtualenv==16.0.0
-        """) \
-        .with_path_from_homedir("python2", "python2\\Scripts")
+        return (
+            self
+            .with_curl_script(
+                "https://www.python.org/ftp/python/3.7.3/python-3.7.3-amd64.exe",
+                "do-the-python.exe"
+            )
+            .with_script("do-the-python.exe /quiet TargetDir=%HOMEDRIVE%%HOMEPATH%\\python3")
+            .with_path_from_homedir("python3", "python3\\Scripts")
+            .with_script("pip install virtualenv==20.2.1")
+        )
 
 
 class UnixTaskMixin(Task):
@@ -696,13 +697,6 @@ class MacOsGenericWorkerTask(UnixTaskMixin, GenericWorkerTask):
                 deindent("\n".join(self.scripts))
             ]
         ]
-
-    def with_python2(self):
-        return self.with_early_script("""
-            export PATH="$HOME/Library/Python/2.7/bin:$PATH"
-            python -m ensurepip --user
-            pip install --user virtualenv
-        """)
 
     def with_python3(self):
         return self.with_early_script("""

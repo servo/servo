@@ -344,7 +344,7 @@ class CGMethodCall(CGThing):
             distinguishingArg = "HandleValue::from_raw(args.get(%d))" % distinguishingIndex
 
             def pickFirstSignature(condition, filterLambda):
-                sigs = filter(filterLambda, possibleSignatures)
+                sigs = list(filter(filterLambda, possibleSignatures))
                 assert len(sigs) < 2
                 if len(sigs) > 0:
                     call = getPerSignatureCall(sigs[0], distinguishingIndex)
@@ -1616,9 +1616,12 @@ class PropertyDefiner:
         specs = []
         prefableSpecs = []
         prefableTemplate = '    Guard::new(%s, %s[%d])'
+        origTemplate = specTemplate
+        if isinstance(specTemplate, str):
+            specTemplate = lambda _: origTemplate  # noqa
 
         for cond, members in groupby(array, lambda m: getCondition(m, self.descriptor)):
-            currentSpecs = [specTemplate % getDataTuple(m) for m in members]
+            currentSpecs = [specTemplate(m) % getDataTuple(m) for m in members]
             if specTerminator:
                 currentSpecs.append(specTerminator)
             specs.append("&[\n" + ",\n".join(currentSpecs) + "]\n")
@@ -1826,7 +1829,11 @@ class AttrDefiner(PropertyDefiner):
         self.name = name
         self.descriptor = descriptor
         self.regular = [
-            m
+            {
+                "name": m.identifier.name,
+                "attr": m,
+                "flags": "JSPROP_ENUMERATE",
+            }
             for m in descriptor.interface.members if
             m.isAttr() and m.isStatic() == static
             and MemberIsUnforgeable(m, descriptor) == unforgeable
@@ -1834,15 +1841,21 @@ class AttrDefiner(PropertyDefiner):
         self.static = static
         self.unforgeable = unforgeable
 
+        if not static and not unforgeable and not (
+                descriptor.interface.isNamespace() or descriptor.interface.isCallback()
+        ):
+            self.regular.append({
+                "name": "@@toStringTag",
+                "attr": None,
+                "flags": "JSPROP_READONLY | JSPROP_INTERNAL_USE_BIT"
+            })
+
     def generateArray(self, array, name):
         if len(array) == 0:
             return ""
 
-        flags = "JSPROP_ENUMERATE"
-        if self.unforgeable:
-            flags += " | JSPROP_PERMANENT"
-
         def getter(attr):
+            attr = attr['attr']
             if self.static:
                 accessor = 'get_' + self.descriptor.internalNameFor(attr.identifier.name)
                 jitinfo = "0 as *const JSJitInfo"
@@ -1858,6 +1871,7 @@ class AttrDefiner(PropertyDefiner):
                        "native": accessor})
 
         def setter(attr):
+            attr = attr['attr']
             if (attr.readonly and not attr.getExtendedAttribute("PutForwards")
                     and not attr.getExtendedAttribute("Replaceable")):
                 return "JSNativeWrapper { op: None, info: 0 as *const JSJitInfo }"
@@ -1876,29 +1890,59 @@ class AttrDefiner(PropertyDefiner):
                     % {"info": jitinfo,
                        "native": accessor})
 
+        def condition(m, d):
+            if m["name"] == "@@toStringTag":
+                return MemberCondition(pref=None, func=None, exposed=None, secure=None)
+            return PropertyDefiner.getControllingCondition(m["attr"], d)
+
         def specData(attr):
-            return (str_to_const_array(attr.identifier.name), flags, getter(attr),
+            if attr["name"] == "@@toStringTag":
+                return (attr["name"][2:], attr["flags"],
+                        str_to_const_array(self.descriptor.interface.getClassName()))
+
+            flags = attr["flags"]
+            if self.unforgeable:
+                flags += " | JSPROP_PERMANENT"
+            return (str_to_const_array(attr["attr"].identifier.name), flags, getter(attr),
                     setter(attr))
+
+        def template(m):
+            if m["name"] == "@@toStringTag":
+                return """    JSPropertySpec {
+                    name: JSPropertySpec_Name { symbol_: SymbolCode::%s as usize + 1 },
+                    flags_: (%s) as u8,
+                    u: JSPropertySpec_AccessorsOrValue {
+                        value: JSPropertySpec_ValueWrapper {
+                            type_: JSValueType::JSVAL_TYPE_STRING as _,
+                            __bindgen_anon_1: JSPropertySpec_ValueWrapper__bindgen_ty_1 {
+                                string: %s as *const u8 as *const libc::c_char,
+                            }
+                        }
+                    }
+                }
+"""
+            return """    JSPropertySpec {
+                    name: JSPropertySpec_Name { string_: %s as *const u8 as *const libc::c_char },
+                    flags_: (%s) as u8,
+                    u: JSPropertySpec_AccessorsOrValue {
+                        accessors: JSPropertySpec_AccessorsOrValue_Accessors {
+                            getter: JSPropertySpec_Accessor {
+                                native: %s,
+                            },
+                            setter: JSPropertySpec_Accessor {
+                                native: %s,
+                            }
+                        }
+                    }
+                }
+"""
 
         return self.generateGuardedArray(
             array, name,
-            '    JSPropertySpec {\n'
-            '        name: JSPropertySpec_Name { string_: %s as *const u8 as *const libc::c_char },\n'
-            '        flags: (%s) as u8,\n'
-            '        u: JSPropertySpec_AccessorsOrValue {\n'
-            '            accessors: JSPropertySpec_AccessorsOrValue_Accessors {\n'
-            '                getter: JSPropertySpec_Accessor {\n'
-            '                    native: %s,\n'
-            '                },\n'
-            '                setter: JSPropertySpec_Accessor {\n'
-            '                    native: %s,\n'
-            '                }\n'
-            '            }\n'
-            '        }\n'
-            '    }',
+            template,
             '    JSPropertySpec::ZERO',
             'JSPropertySpec',
-            PropertyDefiner.getControllingCondition, specData)
+            condition, specData)
 
 
 class ConstDefiner(PropertyDefiner):
@@ -2073,7 +2117,7 @@ class CGImports(CGWrapper):
                 members += [constructor]
 
             if d.proxy:
-                members += [o for o in d.operations.values() if o]
+                members += [o for o in list(d.operations.values()) if o]
 
             for m in members:
                 if m.isMethod():
@@ -2513,7 +2557,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
             ])
 
     # Sort unionStructs by key, retrieve value
-    unionStructs = (i[1] for i in sorted(unionStructs.items(), key=operator.itemgetter(0)))
+    unionStructs = (i[1] for i in sorted(list(unionStructs.items()), key=operator.itemgetter(0)))
 
     return CGImports(CGList(unionStructs, "\n\n"),
                      descriptors=[],
@@ -2741,7 +2785,7 @@ ensure_expando_object(*cx, obj.handle().into(), expando.handle_mut());
     # unforgeable holder for those with the right JSClass. Luckily, there
     # aren't too many globals being created.
     if descriptor.isGlobal():
-        copyFunc = "JS_CopyPropertiesFrom"
+        copyFunc = "JS_CopyOwnPropertiesAndPrivateFields"
     else:
         copyFunc = "JS_InitializePropertiesFromCompatibleNativeObject"
     copyCode += """\
@@ -2783,7 +2827,6 @@ rooted!(in(*cx) let obj = NewProxyObject(
     Handle::from_raw(UndefinedHandleValue),
     proto.get(),
     ptr::null(),
-    false,
 ));
 assert!(!obj.is_null());
 SetProxyReservedSlot(
@@ -4412,9 +4455,10 @@ class CGEnum(CGThing):
 pub enum %s {
     %s
 }
-""" % (ident, ",\n    ".join(map(getEnumValueName, enum.values())))
+""" % (ident, ",\n    ".join(map(getEnumValueName, list(enum.values()))))
 
-        pairs = ",\n    ".join(['("%s", super::%s::%s)' % (val, ident, getEnumValueName(val)) for val in enum.values()])
+        pairs = ",\n    ".join(['("%s", super::%s::%s)' % (val, ident, getEnumValueName(val))
+                                for val in list(enum.values())])
 
         inner = string.Template("""\
 use crate::dom::bindings::conversions::ConversionResult;
@@ -4597,9 +4641,8 @@ class CGUnionStruct(CGThing):
                 return "Rc"
             return ""
 
-        templateVars = map(lambda t: (getUnionTypeTemplateVars(t, self.descriptorProvider),
-                                      getTypeWrapper(t)),
-                           self.type.flatMemberTypes)
+        templateVars = [(getUnionTypeTemplateVars(t, self.descriptorProvider),
+                         getTypeWrapper(t)) for t in self.type.flatMemberTypes]
         enumValues = [
             "    %s(%s)," % (v["name"], "%s<%s>" % (wrapper, v["typeName"]) if wrapper else v["typeName"])
             for (v, wrapper) in templateVars
@@ -4658,7 +4701,7 @@ class CGUnionConversionStruct(CGThing):
                 "    Ok(None) => (),\n"
                 "}\n") % (self.type, name, self.type, name)
 
-        interfaceMemberTypes = filter(lambda t: t.isNonCallbackInterface(), memberTypes)
+        interfaceMemberTypes = [t for t in memberTypes if t.isNonCallbackInterface()]
         if len(interfaceMemberTypes) > 0:
             typeNames = [get_name(memberType) for memberType in interfaceMemberTypes]
             interfaceObject = CGList(CGGeneric(get_match(typeName)) for typeName in typeNames)
@@ -4666,7 +4709,7 @@ class CGUnionConversionStruct(CGThing):
         else:
             interfaceObject = None
 
-        arrayObjectMemberTypes = filter(lambda t: t.isSequence(), memberTypes)
+        arrayObjectMemberTypes = [t for t in memberTypes if t.isSequence()]
         if len(arrayObjectMemberTypes) > 0:
             assert len(arrayObjectMemberTypes) == 1
             typeName = arrayObjectMemberTypes[0].name
@@ -4675,7 +4718,7 @@ class CGUnionConversionStruct(CGThing):
         else:
             arrayObject = None
 
-        callbackMemberTypes = filter(lambda t: t.isCallback() or t.isCallbackInterface(), memberTypes)
+        callbackMemberTypes = [t for t in memberTypes if t.isCallback() or t.isCallbackInterface()]
         if len(callbackMemberTypes) > 0:
             assert len(callbackMemberTypes) == 1
             typeName = callbackMemberTypes[0].name
@@ -4683,7 +4726,7 @@ class CGUnionConversionStruct(CGThing):
         else:
             callbackObject = None
 
-        dictionaryMemberTypes = filter(lambda t: t.isDictionary(), memberTypes)
+        dictionaryMemberTypes = [t for t in memberTypes if t.isDictionary()]
         if len(dictionaryMemberTypes) > 0:
             assert len(dictionaryMemberTypes) == 1
             typeName = dictionaryMemberTypes[0].name
@@ -4692,7 +4735,7 @@ class CGUnionConversionStruct(CGThing):
         else:
             dictionaryObject = None
 
-        objectMemberTypes = filter(lambda t: t.isObject(), memberTypes)
+        objectMemberTypes = [t for t in memberTypes if t.isObject()]
         if len(objectMemberTypes) > 0:
             assert len(objectMemberTypes) == 1
             typeName = objectMemberTypes[0].name
@@ -4701,7 +4744,7 @@ class CGUnionConversionStruct(CGThing):
         else:
             object = None
 
-        mozMapMemberTypes = filter(lambda t: t.isRecord(), memberTypes)
+        mozMapMemberTypes = [t for t in memberTypes if t.isRecord()]
         if len(mozMapMemberTypes) > 0:
             assert len(mozMapMemberTypes) == 1
             typeName = mozMapMemberTypes[0].name
@@ -4747,9 +4790,9 @@ class CGUnionConversionStruct(CGThing):
                 typename = get_name(memberType)
                 return CGGeneric(get_match(typename))
             other = []
-            stringConversion = map(getStringOrPrimitiveConversion, stringTypes)
-            numericConversion = map(getStringOrPrimitiveConversion, numericTypes)
-            booleanConversion = map(getStringOrPrimitiveConversion, booleanTypes)
+            stringConversion = list(map(getStringOrPrimitiveConversion, stringTypes))
+            numericConversion = list(map(getStringOrPrimitiveConversion, numericTypes))
+            booleanConversion = list(map(getStringOrPrimitiveConversion, booleanTypes))
             if stringConversion:
                 if booleanConversion:
                     other.append(CGIfWrapper("value.get().is_boolean()", booleanConversion[0]))
@@ -5915,7 +5958,7 @@ class CGInterfaceTrait(CGThing):
                                rettype)
 
             if descriptor.proxy:
-                for name, operation in descriptor.operations.iteritems():
+                for name, operation in descriptor.operations.items():
                     if not operation or operation.isStringifier():
                         continue
 
@@ -6047,11 +6090,14 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::JSPROP_ENUMERATE',
         'js::jsapi::JSPROP_PERMANENT',
         'js::jsapi::JSPROP_READONLY',
+        'js::jsapi::JSPROP_INTERNAL_USE_BIT',
         'js::jsapi::JSPropertySpec',
         'js::jsapi::JSPropertySpec_Accessor',
         'js::jsapi::JSPropertySpec_AccessorsOrValue',
         'js::jsapi::JSPropertySpec_AccessorsOrValue_Accessors',
         'js::jsapi::JSPropertySpec_Name',
+        'js::jsapi::JSPropertySpec_ValueWrapper',
+        'js::jsapi::JSPropertySpec_ValueWrapper__bindgen_ty_1',
         'js::jsapi::JSString',
         'js::jsapi::JSTracer',
         'js::jsapi::JSType',
@@ -6059,7 +6105,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::JSValueType',
         'js::jsapi::JS_AtomizeAndPinString',
         'js::rust::wrappers::JS_CallFunctionValue',
-        'js::rust::wrappers::JS_CopyPropertiesFrom',
+        'js::rust::wrappers::JS_CopyOwnPropertiesAndPrivateFields',
         'js::rust::wrappers::JS_DefineProperty',
         'js::rust::wrappers::JS_DefinePropertyById2',
         'js::jsapi::JS_ForwardGetPropertyTo',
@@ -6442,7 +6488,7 @@ class CGDescriptor(CGThing):
                              post='\n')
 
         if reexports:
-            reexports = ', '.join(map(lambda name: reexportedName(name), reexports))
+            reexports = ', '.join([reexportedName(name) for name in reexports])
             cgThings = CGList([CGGeneric('pub use self::%s::{%s};' % (toBindingNamespace(descriptor.name), reexports)),
                                cgThings], '\n')
 
@@ -7778,7 +7824,7 @@ impl Clone for TopTypeId {
             # TypeId enum.
             return "%s(%sTypeId)" % (name, name) if name in hierarchy else name
 
-        for base, derived in hierarchy.iteritems():
+        for base, derived in hierarchy.items():
             variants = []
             if config.getDescriptor(base).concrete:
                 variants.append(CGGeneric(base))
