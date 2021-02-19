@@ -193,7 +193,9 @@ class MachCommands(CommandBase):
         if not uwp:
             uwp = target and 'uwp' in target
 
-        features += self.pick_media_stack(media_stack, target)
+        media_stack = self.pick_media_stack(media_stack, target)
+        features += media_stack
+        has_media_stack = media_stack[0] == "media-gstreamer"
 
         target_path = base_path = self.get_target_dir()
         if android:
@@ -726,9 +728,10 @@ class MachCommands(CommandBase):
                         status = 1
 
                 # copy needed gstreamer DLLs in to servo.exe dir
-                print("Packaging gstreamer DLLs")
-                if not package_gstreamer_dlls(env, servo_exe_dir, target_triple, uwp):
-                    status = 1
+                if has_media_stack:
+                    print("Packaging gstreamer DLLs")
+                    if not package_gstreamer_dlls(env, servo_exe_dir, target_triple, uwp):
+                        status = 1
 
                 # UWP app packaging already bundles all required DLLs for us.
                 print("Packaging MSVC DLLs")
@@ -741,7 +744,7 @@ class MachCommands(CommandBase):
                 )
                 assert os.path.exists(servo_exe_dir)
 
-                if not package_gstreamer_dylibs(servo_exe_dir):
+                if has_media_stack and not package_gstreamer_dylibs(servo_exe_dir):
                     return 1
 
                 # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
