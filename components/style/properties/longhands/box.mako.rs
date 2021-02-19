@@ -505,7 +505,7 @@ ${helpers.predefined_type(
     "BreakWithin",
     "computed::BreakWithin::Auto",
     engines="gecko",
-    alias="page-break-inside",
+    aliases="page-break-inside",
     spec="https://drafts.csswg.org/css-break/#propdef-break-inside",
     animation_value_type="discrete",
 )}
@@ -607,7 +607,7 @@ ${helpers.predefined_type(
     "Appearance",
     "computed::Appearance::None",
     engines="gecko",
-    alias="-moz-appearance -webkit-appearance",
+    aliases="-moz-appearance -webkit-appearance",
     spec="https://drafts.csswg.org/css-ui-4/#propdef-appearance",
     animation_value_type="discrete",
     gecko_ffi_name="mAppearance",

@@ -1948,7 +1948,7 @@ impl PropertyId {
                 % for (kind, properties) in [("Longhand", data.longhands), ("Shorthand", data.shorthands)]:
                 % for property in properties:
                 "${property.name}" => StaticId::${kind}(${kind}Id::${property.camel_case}),
-                % for alias in property.alias:
+                % for alias in property.aliases:
                 "${alias.name}" => {
                     StaticId::${kind}Alias(
                         ${kind}Id::${property.camel_case},
@@ -4089,7 +4089,7 @@ macro_rules! css_properties_accessors {
             % for kind, props in [("Longhand", data.longhands), ("Shorthand", data.shorthands)]:
                 % for property in props:
                     % if property.enabled_in_content():
-                        % for prop in [property] + property.alias:
+                        % for prop in [property] + property.aliases:
                             % if '-' in prop.name:
                                 [${prop.ident.capitalize()}, Set${prop.ident.capitalize()},
                                  PropertyId::${kind}(${kind}Id::${property.camel_case})],

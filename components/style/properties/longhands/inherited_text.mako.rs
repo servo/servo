@@ -57,7 +57,7 @@ ${helpers.single_keyword(
     gecko_ffi_name="mTextSizeAdjust",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-size-adjust/#adjustment-control",
-    alias="-webkit-text-size-adjust",
+    aliases="-webkit-text-size-adjust",
 )}
 
 ${helpers.predefined_type(
@@ -82,7 +82,7 @@ ${helpers.predefined_type(
     servo_2020_pref="layout.2020.unimplemented",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-text/#propdef-overflow-wrap",
-    alias="word-wrap",
+    aliases="word-wrap",
     servo_restyle_damage="rebuild_and_reflow",
 )}
 

@@ -112,7 +112,7 @@ pub fn parse_border<'i, 't>(
             'border-%s-%s' % (side, prop)
             for prop in ['color', 'style', 'width']
         )}"
-        alias="${maybe_moz_logical_alias(engine, (side, logical), '-moz-border-%s')}"
+        aliases="${maybe_moz_logical_alias(engine, (side, logical), '-moz-border-%s')}"
         spec="${spec}">
 
     pub fn parse_value<'i, 't>(

@@ -234,7 +234,7 @@ class Property(object):
         gecko_pref,
         enabled_in,
         rule_types_allowed,
-        alias,
+        aliases,
         extra_prefixes,
         flags,
     ):
@@ -257,7 +257,7 @@ class Property(object):
         #    modulo a pref, set via servo_pref / gecko_pref.
         assert enabled_in in ("", "ua", "chrome", "content")
         self.enabled_in = enabled_in
-        self.alias = parse_property_aliases(alias)
+        self.aliases = parse_property_aliases(aliases)
         self.extra_prefixes = parse_property_aliases(extra_prefixes)
         self.flags = flags.split() if flags else []
 
@@ -304,7 +304,7 @@ class Longhand(Property):
         cast_type="u8",
         logical=False,
         logical_group=None,
-        alias=None,
+        aliases=None,
         extra_prefixes=None,
         boxed=False,
         flags=None,
@@ -323,7 +323,7 @@ class Longhand(Property):
             gecko_pref=gecko_pref,
             enabled_in=enabled_in,
             rule_types_allowed=rule_types_allowed,
-            alias=alias,
+            aliases=aliases,
             extra_prefixes=extra_prefixes,
             flags=flags,
         )
@@ -543,7 +543,7 @@ class Shorthand(Property):
         gecko_pref=None,
         enabled_in="content",
         rule_types_allowed=DEFAULT_RULES,
-        alias=None,
+        aliases=None,
         extra_prefixes=None,
         flags=None,
     ):
@@ -556,7 +556,7 @@ class Shorthand(Property):
             gecko_pref=gecko_pref,
             enabled_in=enabled_in,
             rule_types_allowed=rule_types_allowed,
-            alias=alias,
+            aliases=aliases,
             extra_prefixes=extra_prefixes,
             flags=flags,
         )
@@ -692,7 +692,7 @@ class PropertiesData(object):
         #       See servo/servo#14941.
         if self.engine == "gecko":
             for (prefix, pref) in property.extra_prefixes:
-                property.alias.append(("-%s-%s" % (prefix, property.name), pref))
+                property.aliases.append(("-%s-%s" % (prefix, property.name), pref))
 
     def declare_longhand(self, name, engines=None, **kwargs):
         engines = engines.split()
@@ -701,8 +701,8 @@ class PropertiesData(object):
 
         longhand = Longhand(self.current_style_struct, name, **kwargs)
         self.add_prefixed_aliases(longhand)
-        longhand.alias = [Alias(xp[0], longhand, xp[1]) for xp in longhand.alias]
-        self.longhand_aliases += longhand.alias
+        longhand.aliases = [Alias(xp[0], longhand, xp[1]) for xp in longhand.aliases]
+        self.longhand_aliases += longhand.aliases
         self.current_style_struct.longhands.append(longhand)
         self.longhands.append(longhand)
         self.longhands_by_name[name] = longhand
@@ -721,8 +721,8 @@ class PropertiesData(object):
         sub_properties = [self.longhands_by_name[s] for s in sub_properties]
         shorthand = Shorthand(name, sub_properties, *args, **kwargs)
         self.add_prefixed_aliases(shorthand)
-        shorthand.alias = [Alias(xp[0], shorthand, xp[1]) for xp in shorthand.alias]
-        self.shorthand_aliases += shorthand.alias
+        shorthand.aliases = [Alias(xp[0], shorthand, xp[1]) for xp in shorthand.aliases]
+        self.shorthand_aliases += shorthand.aliases
         self.shorthands.append(shorthand)
         self.shorthands_by_name[name] = shorthand
         return shorthand
