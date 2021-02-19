@@ -67,7 +67,7 @@ class UpdateCheckout(Step):
                          state.local_branch)
         sync_path = os.path.abspath(sync_tree.root)
         if sync_path not in sys.path:
-            from update import setup_paths
+            from .update import setup_paths
             setup_paths(sync_path)
 
     def restore(self, state):
