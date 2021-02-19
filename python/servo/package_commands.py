@@ -644,7 +644,7 @@ class PackageCommands(CommandBase):
                         break
                     sha256_digest.update(data)
             package_hash = sha256_digest.hexdigest()
-            package_hash_fileobj = io.BytesIO(package_hash)
+            package_hash_fileobj = io.BytesIO(package_hash).encode('utf-8')
             latest_hash_upload_key = '{}/servo-latest.{}.sha256'.format(nightly_dir, extension)
 
             s3.upload_file(package, BUCKET, package_upload_key)
