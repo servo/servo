@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>cjk-earthly-branch, 0-12</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#simple-numeric'>
+<meta name='flags' content='font'>
+<meta name="assert" content="list-style-type:cjk-earthly-branch produces numbers up to 12 per the spec.">
+<style type='text/css'>
+ol li { list-style-type: cjk-earthly-branch;  }
+/* the following CSS is not part of the test */
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, IGNORING the suffix.</p>
+<div class="test">
+<ol>
+<div><bdi dir=ltr>子、</bdi>子</div>
+<div><bdi dir=ltr>丑、</bdi>丑</div>
+<div><bdi dir=ltr>寅、</bdi>寅</div>
+<div><bdi dir=ltr>卯、</bdi>卯</div>
+<div><bdi dir=ltr>辰、</bdi>辰</div>
+<div><bdi dir=ltr>巳、</bdi>巳</div>
+<div><bdi dir=ltr>午、</bdi>午</div>
+<div><bdi dir=ltr>未、</bdi>未</div>
+<div><bdi dir=ltr>申、</bdi>申</div>
+<div><bdi dir=ltr>酉、</bdi>酉</div>
+<div><bdi dir=ltr>戌、</bdi>戌</div>
+<div><bdi dir=ltr>亥、</bdi>亥</div>
+</ol></div>
+<!--Notes:
+You will need an appropriate font to run this test.
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+</body>
+</html>

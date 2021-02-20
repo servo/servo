@@ -31,7 +31,7 @@ you will see the return value of the function call:
 
     $ pytest test_assert1.py
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
     cachedir: $PYTHON_PREFIX/.pytest_cache
     rootdir: $REGENDOC_TMPDIR
     collected 1 item
@@ -47,7 +47,9 @@ you will see the return value of the function call:
     E        +  where 3 = f()
 
     test_assert1.py:6: AssertionError
-    ========================= 1 failed in 0.12 seconds =========================
+    ========================= short test summary info ==========================
+    FAILED test_assert1.py::test_function - assert 3 == 4
+    ============================ 1 failed in 0.12s =============================
 
 ``pytest`` has support for showing the values of the most common subexpressions
 including calls, attributes, comparisons, and binary and unary
@@ -96,7 +98,7 @@ and if you need to have access to the actual exception info you may use:
             f()
         assert "maximum recursion" in str(excinfo.value)
 
-``excinfo`` is a ``ExceptionInfo`` instance, which is a wrapper around
+``excinfo`` is an ``ExceptionInfo`` instance, which is a wrapper around
 the actual exception raised.  The main attributes of interest are
 ``.type``, ``.value`` and ``.traceback``.
 
@@ -186,7 +188,7 @@ if you run this module:
 
     $ pytest test_assert2.py
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
     cachedir: $PYTHON_PREFIX/.pytest_cache
     rootdir: $REGENDOC_TMPDIR
     collected 1 item
@@ -208,7 +210,9 @@ if you run this module:
     E         Use -v to get the full diff
 
     test_assert2.py:6: AssertionError
-    ========================= 1 failed in 0.12 seconds =========================
+    ========================= short test summary info ==========================
+    FAILED test_assert2.py::test_set_comparison - AssertionError: assert {'0'...
+    ============================ 1 failed in 0.12s =============================
 
 Special comparisons are done for a number of cases:
 
@@ -238,14 +242,17 @@ file which provides an alternative explanation for ``Foo`` objects:
 
    def pytest_assertrepr_compare(op, left, right):
        if isinstance(left, Foo) and isinstance(right, Foo) and op == "==":
-           return ["Comparing Foo instances:", "   vals: %s != %s" % (left.val, right.val)]
+           return [
+               "Comparing Foo instances:",
+               "   vals: {} != {}".format(left.val, right.val),
+           ]
 
 now, given this test module:
 
 .. code-block:: python
 
    # content of test_foocompare.py
-   class Foo(object):
+   class Foo:
        def __init__(self, val):
            self.val = val
 
@@ -276,15 +283,15 @@ the conftest file:
    E            vals: 1 != 2
 
    test_foocompare.py:12: AssertionError
-   1 failed in 0.12 seconds
+   ========================= short test summary info ==========================
+   FAILED test_foocompare.py::test_compare - assert Comparing Foo instances:
+   1 failed in 0.12s
 
 .. _assert-details:
 .. _`assert introspection`:
 
 Assertion introspection details
 -------------------------------
-
-
 
 
 Reporting details about a failing assertion is achieved by rewriting assert
@@ -294,7 +301,7 @@ modules directly discovered by its test collection process, so **asserts in
 supporting modules which are not themselves test modules will not be rewritten**.
 
 You can manually enable assertion rewriting for an imported module by calling
-`register_assert_rewrite <https://docs.pytest.org/en/latest/writing_plugins.html#assertion-rewriting>`_
+`register_assert_rewrite <https://docs.pytest.org/en/stable/writing_plugins.html#assertion-rewriting>`_
 before you import it (a good place to do that is in your root ``conftest.py``).
 
 For further information, Benjamin Peterson wrote up `Behind the scenes of pytest's new assertion rewriting <http://pybites.blogspot.com/2011/07/behind-scenes-of-pytests-new-assertion.html>`_.
@@ -333,15 +340,3 @@ If this is the case you have two options:
   ``PYTEST_DONT_REWRITE`` to its docstring.
 
 * Disable rewriting for all modules by using ``--assert=plain``.
-
-
-
-   Add assert rewriting as an alternate introspection technique.
-
-
-   Introduce the ``--assert`` option. Deprecate ``--no-assert`` and
-   ``--nomagic``.
-
-
-   Removes the ``--no-assert`` and ``--nomagic`` options.
-   Removes the ``--assert=reinterp`` option.

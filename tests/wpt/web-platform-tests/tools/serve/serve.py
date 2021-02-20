@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import abc
 import argparse
+import importlib
 import json
 import logging
 import multiprocessing
@@ -16,13 +17,12 @@ import sys
 import threading
 import time
 import traceback
-from six.moves import urllib
+import urllib
 import uuid
 from collections import defaultdict, OrderedDict
 from itertools import chain, product
 
 from localpaths import repo_root
-from six.moves import reload_module
 
 from manifest.sourcefile import read_script_metadata, js_meta_re, parse_variants
 from wptserve import server as wptserve, handlers
@@ -697,7 +697,7 @@ def release_mozlog_lock():
 def start_ws_server(host, port, paths, routes, bind_address, config, **kwargs):
     # Ensure that when we start this in a new process we have the global lock
     # in the logging module unlocked
-    reload_module(logging)
+    importlib.reload(logging)
     release_mozlog_lock()
     try:
         return WebSocketDaemon(host,
@@ -713,7 +713,7 @@ def start_ws_server(host, port, paths, routes, bind_address, config, **kwargs):
 def start_wss_server(host, port, paths, routes, bind_address, config, **kwargs):
     # Ensure that when we start this in a new process we have the global lock
     # in the logging module unlocked
-    reload_module(logging)
+    importlib.reload(logging)
     release_mozlog_lock()
     try:
         return WebSocketDaemon(host,
@@ -771,7 +771,7 @@ class QuicTransportDaemon(object):
 def start_quic_transport_server(host, port, paths, routes, bind_address, config, **kwargs):
     # Ensure that when we start this in a new process we have the global lock
     # in the logging module unlocked
-    reload_module(logging)
+    importlib.reload(logging)
     release_mozlog_lock()
     try:
         return QuicTransportDaemon(host,

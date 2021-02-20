@@ -1,17 +1,13 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-import sys
+from typing import List
+from typing import Union
 
 import pytest
 
 
-class TestPasteCapture(object):
+class TestPasteCapture:
     @pytest.fixture
-    def pastebinlist(self, monkeypatch, request):
-        pastebinlist = []
+    def pastebinlist(self, monkeypatch, request) -> List[Union[str, bytes]]:
+        pastebinlist = []  # type: List[Union[str, bytes]]
         plugin = request.config.pluginmanager.getplugin("pastebin")
         monkeypatch.setattr(plugin, "create_new_paste", pastebinlist.append)
         return pastebinlist
@@ -28,7 +24,7 @@ class TestPasteCapture(object):
                 pytest.skip("")
         """
         )
-        reprec = testdir.inline_run(testpath, "--paste=failed")
+        reprec = testdir.inline_run(testpath, "--pastebin=failed")
         assert len(pastebinlist) == 1
         s = pastebinlist[0]
         assert s.find("def test_fail") != -1
@@ -62,22 +58,18 @@ class TestPasteCapture(object):
             ]
         )
 
-    def test_non_ascii_paste_text(self, testdir):
+    def test_non_ascii_paste_text(self, testdir, pastebinlist):
         """Make sure that text which contains non-ascii characters is pasted
         correctly. See #1219.
         """
         testdir.makepyfile(
-            test_unicode="""
-            # -*- coding: utf-8 -*-
+            test_unicode="""\
             def test():
                 assert '☺' == 1
-        """
+            """
         )
         result = testdir.runpytest("--pastebin=all")
-        if sys.version_info[0] >= 3:
-            expected_msg = "*assert '☺' == 1*"
-        else:
-            expected_msg = "*assert '\\xe2\\x98\\xba' == 1*"
+        expected_msg = "*assert '☺' == 1*"
         result.stdout.fnmatch_lines(
             [
                 expected_msg,
@@ -85,40 +77,84 @@ class TestPasteCapture(object):
                 "*Sending information to Paste Service*",
             ]
         )
+        assert len(pastebinlist) == 1
 
 
-class TestPaste(object):
+class TestPaste:
     @pytest.fixture
     def pastebin(self, request):
         return request.config.pluginmanager.getplugin("pastebin")
 
     @pytest.fixture
-    def mocked_urlopen(self, monkeypatch):
-        """
-        monkeypatch the actual urlopen calls done by the internal plugin
-        function that connects to bpaste service.
-        """
+    def mocked_urlopen_fail(self, monkeypatch):
+        """Monkeypatch the actual urlopen call to emulate a HTTP Error 400."""
+        calls = []
+
+        import urllib.error
+        import urllib.request
+
+        def mocked(url, data):
+            calls.append((url, data))
+            raise urllib.error.HTTPError(url, 400, "Bad request", None, None)
+
+        monkeypatch.setattr(urllib.request, "urlopen", mocked)
+        return calls
+
+    @pytest.fixture
+    def mocked_urlopen_invalid(self, monkeypatch):
+        """Monkeypatch the actual urlopen calls done by the internal plugin
+        function that connects to bpaste service, but return a url in an
+        unexpected format."""
         calls = []
 
         def mocked(url, data):
             calls.append((url, data))
 
-            class DummyFile(object):
+            class DummyFile:
+                def read(self):
+                    # part of html of a normal response
+                    return b'View <a href="/invalid/3c0c6750bd">raw</a>.'
+
+            return DummyFile()
+
+        import urllib.request
+
+        monkeypatch.setattr(urllib.request, "urlopen", mocked)
+        return calls
+
+    @pytest.fixture
+    def mocked_urlopen(self, monkeypatch):
+        """Monkeypatch the actual urlopen calls done by the internal plugin
+        function that connects to bpaste service."""
+        calls = []
+
+        def mocked(url, data):
+            calls.append((url, data))
+
+            class DummyFile:
                 def read(self):
                     # part of html of a normal response
                     return b'View <a href="/raw/3c0c6750bd">raw</a>.'
 
             return DummyFile()
 
-        if sys.version_info < (3, 0):
-            import urllib
+        import urllib.request
 
-            monkeypatch.setattr(urllib, "urlopen", mocked)
-        else:
-            import urllib.request
-
-            monkeypatch.setattr(urllib.request, "urlopen", mocked)
+        monkeypatch.setattr(urllib.request, "urlopen", mocked)
         return calls
+
+    def test_pastebin_invalid_url(self, pastebin, mocked_urlopen_invalid):
+        result = pastebin.create_new_paste(b"full-paste-contents")
+        assert (
+            result
+            == "bad response: invalid format ('View <a href=\"/invalid/3c0c6750bd\">raw</a>.')"
+        )
+        assert len(mocked_urlopen_invalid) == 1
+
+    def test_pastebin_http_error(self, pastebin, mocked_urlopen_fail):
+        result = pastebin.create_new_paste(b"full-paste-contents")
+        assert result == "bad response: HTTP Error 400: Bad request"
+        assert len(mocked_urlopen_fail) == 1
 
     def test_create_new_paste(self, pastebin, mocked_urlopen):
         result = pastebin.create_new_paste(b"full-paste-contents")
@@ -131,3 +167,15 @@ class TestPaste(object):
         assert "lexer=%s" % lexer in data.decode()
         assert "code=full-paste-contents" in data.decode()
         assert "expiry=1week" in data.decode()
+
+    def test_create_new_paste_failure(self, pastebin, monkeypatch):
+        import io
+        import urllib.request
+
+        def response(url, data):
+            stream = io.BytesIO(b"something bad occurred")
+            return stream
+
+        monkeypatch.setattr(urllib.request, "urlopen", response)
+        result = pastebin.create_new_paste(b"full-paste-contents")
+        assert result == "bad response: invalid format ('something bad occurred')"

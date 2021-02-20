@@ -28,7 +28,7 @@ Flaky tests sometimes appear when a test suite is run in parallel (such as use o
 Overly strict assertion
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Overly strict assertions can cause problems with floating point comparison as well as timing issues. `pytest.approx <https://docs.pytest.org/en/latest/reference.html#pytest-approx>`_ is useful here.
+Overly strict assertions can cause problems with floating point comparison as well as timing issues. `pytest.approx <https://docs.pytest.org/en/stable/reference.html#pytest-approx>`_ is useful here.
 
 
 Pytest features
@@ -43,7 +43,8 @@ Xfail strict
 PYTEST_CURRENT_TEST
 ~~~~~~~~~~~~~~~~~~~
 
-:ref:`pytest current test env` may be useful for figuring out "which test got stuck".
+:envvar:`PYTEST_CURRENT_TEST` may be useful for figuring out "which test got stuck".
+See :ref:`pytest current test env` for more details.
 
 
 Plugins
@@ -122,4 +123,4 @@ Resources
 * Google:
 
   * `Flaky Tests at Google and How We Mitigate Them <https://testing.googleblog.com/2016/05/flaky-tests-at-google-and-how-we.html>`_ by John Micco, 2016
-  * `Where do Google's flaky tests come from? <https://docs.google.com/document/d/1mZ0-Kc97DI_F3tf_GBW_NB_aqka-P1jVOsFfufxqUUM/edit#heading=h.ec0r4fypsleh>`_  by Jeff Listfield, 2017
+  * `Where do Google's flaky tests come from? <https://testing.googleblog.com/2017/04/where-do-our-flaky-tests-come-from.html>`_  by Jeff Listfield, 2017

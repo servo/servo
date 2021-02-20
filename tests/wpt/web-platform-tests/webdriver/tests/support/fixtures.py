@@ -2,6 +2,7 @@ import copy
 import json
 import os
 
+import asyncio
 import pytest
 import webdriver
 
@@ -24,6 +25,8 @@ def pytest_configure(config):
     # register the capabilities marker
     config.addinivalue_line("markers",
         "capabilities: mark test to use capabilities")
+    config.addinivalue_line("markers",
+        "bidi: mark test to use bidi")
 
 
 @pytest.fixture
@@ -38,6 +41,20 @@ def pytest_generate_tests(metafunc):
         if marker:
             metafunc.parametrize("capabilities", marker.args, ids=None)
 
+    if "bidi" in metafunc.fixturenames:
+        marker = metafunc.definition.get_closest_marker(name="bidi")
+        if marker:
+            metafunc.parametrize("bidi", marker.args, ids=None)
+
+# Ensure that the event loop is restarted once per session rather than the default  of once per test
+# if we don't do this, tests will try to reuse a closed event loop and fail with an error that the "future
+# belongs to a different loop"
+@pytest.fixture(scope="session")
+def event_loop():
+    """Change event_loop fixture to session level."""
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    yield loop
+    loop.close()
 
 @pytest.fixture
 def add_event_listeners(session):
@@ -110,9 +127,12 @@ def configuration():
         "capabilities": capabilities
     }
 
+@pytest.fixture(scope="session")
+def bidi():
+    return False
 
 @pytest.fixture(scope="function")
-def session(capabilities, configuration, request):
+async def session(capabilities, configuration, request, bidi):
     """Create and start a session for a test that does not itself test session creation.
 
     By default the session will stay open after each test, but we always try to start a
@@ -127,19 +147,35 @@ def session(capabilities, configuration, request):
     deep_update(caps, capabilities)
     caps = {"alwaysMatch": caps}
 
-    # If there is a session with different capabilities active, end it now
+    is_cur_bidi = isinstance(_current_session, webdriver.BidiSession)
+    # If there is a session with different capabilities active or the current session
+    # is of different type than the one we would like to create, end it now.
     if _current_session is not None and (
-            caps != _current_session.requested_capabilities):
-        _current_session.end()
+            (not _current_session.match(caps)) or
+            (is_cur_bidi != bidi)):
+        if is_cur_bidi:
+            await _current_session.end()
+        else:
+            _current_session.end()
         _current_session = None
 
     if _current_session is None:
-        _current_session = webdriver.Session(
-            configuration["host"],
-            configuration["port"],
-            capabilities=caps)
+        if bidi:
+            _current_session = webdriver.BidiSession(
+                configuration["host"],
+                configuration["port"],
+                capabilities=caps)
+        else:
+            _current_session = webdriver.Session(
+                configuration["host"],
+                configuration["port"],
+                capabilities=caps)
     try:
-        _current_session.start()
+        if type(_current_session) == webdriver.BidiSession:
+            await _current_session.start()
+        else:
+            _current_session.start()
+
     except webdriver.error.SessionNotCreatedException:
         if not _current_session.session_id:
             raise

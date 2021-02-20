@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#auto-repeat">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="Checks that a dynamic change in containing block width changes the number of auto repeat columns.">
+<p>Test passes if there is a filled green square.</p>
+<div id="target" style="width: 0px; height: 100px;">
+  <div style="display: inline-grid; background: green; height: 100px; min-width: 60%; grid-template-columns: repeat(auto-fill, 50px);"></div>
+</div>
+<script>
+document.body.offsetTop;
+document.getElementById('target').style.width = '100px';
+</script>

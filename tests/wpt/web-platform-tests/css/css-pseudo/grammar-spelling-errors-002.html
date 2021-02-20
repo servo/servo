@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+
+ <html lang="en">
+
+  <meta charset="UTF-8">
+
+  <title>CSS Pseudo-Elements Test: ::spelling-error overlay drawn over the ::grammar-error overlay</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-painting">
+  <link rel="match" href="reference/grammar-spelling-errors-002-ref.html">
+
+  <meta content="" name="flags">
+  <meta name="assert" content="In this test, we postulate that the word 'wolks' represents both a grammar error and a spelling error. In such such editorial scenario, then the pseudo-element ::spelling-error's 'color' (green) is supposed to be drawn over the pseudo-element ::grammar-error's 'color' (red). The background color should remain yellow as ::spelling-error's 'background-color' is unspecified, therefore defaulting to 'transparent'.">
+
+  <style>
+  div
+    {
+      font-size: 300%;
+    }
+
+  div::spelling-error
+    {
+      color: green;
+    }
+
+  div::grammar-error
+    {
+      background-color: yellow;
+      color: red;
+    }
+  </style>
+
+  <script type="text/javascript">
+  function startTest()
+  {
+  document.getElementById("target").focus();
+  }
+  </script>
+
+  <body onload="startTest();">
+
+  <p>PREREQUISITE: User agent needs to have an enabled and capable grammar error module and an enabled and capable spelling error module. If it does not, then this test does not apply to such user agent.
+
+  <p>This test also requires that the targeted editable text element must receive system focus.
+
+  <p>Test passes if each glyph of "wolks" is green and if the background of "wolks" is yellow.
+
+  <div contenteditable="true" id="target">I wolks on the sidewalk.</div>

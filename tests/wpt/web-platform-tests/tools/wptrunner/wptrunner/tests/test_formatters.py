@@ -1,6 +1,6 @@
 import json
 import time
-from six.moves import cStringIO as StringIO
+from io import StringIO
 
 import mock
 

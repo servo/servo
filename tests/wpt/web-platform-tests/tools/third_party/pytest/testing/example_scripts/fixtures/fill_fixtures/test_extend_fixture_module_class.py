@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import pytest
 
 
@@ -7,7 +6,7 @@ def spam():
     return "spam"
 
 
-class TestSpam(object):
+class TestSpam:
     @pytest.fixture
     def spam(self, spam):
         return spam * 2

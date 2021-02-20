@@ -15,7 +15,7 @@ test(() => {
   let tTree = createTestTree(test_basic);
   assert_not_equals(tTree.host1.attachShadow({ mode: 'open', slotAssignment: 'manual'}),
                     null, 'slot assignment manual should work');
-  assert_not_equals(tTree.host2.attachShadow({ mode: 'open', slotAssignment: 'auto'}),
+  assert_not_equals(tTree.host2.attachShadow({ mode: 'open', slotAssignment: 'name'}),
                     null, 'slot assignment auto should work');
   assert_throws_js(TypeError, () => {
     tTree.host3.attachShadow({ mode: 'open', slotAssignment: 'exceptional' })},
@@ -25,7 +25,7 @@ test(() => {
 
 <div id="test_errors">
   <div id="host1">
-    <template data-mode="open" data-slot-assignment="auto">
+    <template data-mode="open" data-slot-assignment="name">
       <slot id="s1"></slot>
     </template>
     <div id="c1"></div>

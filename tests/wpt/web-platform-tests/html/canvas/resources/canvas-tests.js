@@ -50,6 +50,24 @@ function _assertPixelApprox(canvas, x,y, r,g,b,a, pos, colour, tolerance)
     assert_approx_equals(c[3], a, tolerance, 'Alpha channel of the pixel at (' + x + ', ' + y + ')');
 }
 
+function _assertMatricesApproxEqual(matA, matB)
+{
+  A = matA.toFloat32Array();
+  B = matB.toFloat32Array();
+  assert_equals(A.length, B.length);
+  for (var i = 0; i < A.length; i++) {
+    assert_approx_equals(A[i], B[i], 10e-6);
+  }
+}
+
+function rad2deg(angle_in_radians) {
+  return angle_in_radians / Math.PI * 180;
+}
+
+function deg2rad(angle_in_degrees) {
+  return angle_in_degrees / 180 * Math.PI;
+}
+
 let _deferred = false;
 
 function deferTest() {

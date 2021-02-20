@@ -26,15 +26,11 @@ const ids = [
   "external-quoted"
 ];
 
-const inline_url = location.href;
-const external_url = new URL(document.querySelector("link[rel=stylesheet]").href, location.href).href;
-
 for (let id of ids) {
     test(function() {
         const el = document.getElementById(id);
-        const expected = id.startsWith("inline-") ? inline_url : external_url;
         const style = window.getComputedStyle(el);
-        assert_equals(style["background-image"], 'url("' + expected + '")');
+        assert_equals(style["background-image"], 'url("about:invalid")');
     }, "empty URL: " + id);
 }
 </script>

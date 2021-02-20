@@ -8,7 +8,7 @@ can change the pattern by issuing:
 
 .. code-block:: bash
 
-    pytest --doctest-glob='*.rst'
+    pytest --doctest-glob="*.rst"
 
 on the command line. ``--doctest-glob`` can be given multiple times in the command-line.
 
@@ -29,14 +29,14 @@ then you can just invoke ``pytest`` directly:
 
     $ pytest
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
     cachedir: $PYTHON_PREFIX/.pytest_cache
     rootdir: $REGENDOC_TMPDIR
     collected 1 item
 
     test_example.txt .                                                   [100%]
 
-    ========================= 1 passed in 0.12 seconds =========================
+    ============================ 1 passed in 0.12s =============================
 
 By default, pytest will collect ``test*.txt`` files looking for doctest directives, but you
 can pass additional globs using the ``--doctest-glob`` option (multi-allowed).
@@ -58,7 +58,7 @@ and functions, including from test modules:
 
     $ pytest --doctest-modules
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
     cachedir: $PYTHON_PREFIX/.pytest_cache
     rootdir: $REGENDOC_TMPDIR
     collected 2 items
@@ -66,7 +66,7 @@ and functions, including from test modules:
     mymodule.py .                                                        [ 50%]
     test_example.txt .                                                   [100%]
 
-    ========================= 2 passed in 0.12 seconds =========================
+    ============================ 2 passed in 0.12s =============================
 
 You can make these changes permanent in your project by
 putting them into a pytest.ini file like this:
@@ -103,7 +103,7 @@ that will be used for those doctest files using the
 Using 'doctest' options
 -----------------------
 
-The standard ``doctest`` module provides some `options <https://docs.python.org/3/library/doctest.html#option-flags>`__
+Python's standard ``doctest`` module provides some `options <https://docs.python.org/3/library/doctest.html#option-flags>`__
 to configure the strictness of doctest tests. In pytest, you can enable those flags using the
 configuration file.
 
@@ -115,23 +115,52 @@ lengthy exception stack traces you can just write:
     [pytest]
     doctest_optionflags= NORMALIZE_WHITESPACE IGNORE_EXCEPTION_DETAIL
 
-pytest also introduces new options to allow doctests to run in Python 2 and
-Python 3 unchanged:
-
-* ``ALLOW_UNICODE``: when enabled, the ``u`` prefix is stripped from unicode
-  strings in expected doctest output.
-
-* ``ALLOW_BYTES``: when enabled, the ``b`` prefix is stripped from byte strings
-  in expected doctest output.
-
 Alternatively, options can be enabled by an inline comment in the doc test
 itself:
 
 .. code-block:: rst
 
-    # content of example.rst
-    >>> get_unicode_greeting()  # doctest: +ALLOW_UNICODE
-    'Hello'
+    >>> something_that_raises()  # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    ValueError: ...
+
+pytest also introduces new options:
+
+* ``ALLOW_UNICODE``: when enabled, the ``u`` prefix is stripped from unicode
+  strings in expected doctest output. This allows doctests to run in Python 2
+  and Python 3 unchanged.
+
+* ``ALLOW_BYTES``: similarly, the ``b`` prefix is stripped from byte strings
+  in expected doctest output.
+
+* ``NUMBER``: when enabled, floating-point numbers only need to match as far as
+  the precision you have written in the expected doctest output. For example,
+  the following output would only need to match to 2 decimal places::
+
+      >>> math.pi
+      3.14
+
+  If you wrote ``3.1416`` then the actual output would need to match to 4
+  decimal places; and so on.
+
+  This avoids false positives caused by limited floating-point precision, like
+  this::
+
+      Expected:
+          0.233
+      Got:
+          0.23300000000000001
+
+  ``NUMBER`` also supports lists of floating-point numbers -- in fact, it
+  matches floating-point numbers appearing anywhere in the output, even inside
+  a string! This means that it may not be appropriate to enable globally in
+  ``doctest_optionflags`` in your configuration file.
+
+  .. versionadded:: 5.1
+
+
+Continue on failure
+-------------------
 
 By default, pytest would report only the first failure for a given doctest. If
 you want to continue the test even when you have failures, do:
@@ -177,7 +206,11 @@ It is possible to use fixtures using the ``getfixture`` helper:
     >>> ...
     >>>
 
-Also, :ref:`usefixtures` and :ref:`autouse` fixtures are supported
+Note that the fixture needs to be defined in a place visible by pytest, for example a `conftest.py`
+file or plugin; normal python files containing docstrings are not normally scanned for fixtures
+unless explicitly configured by :confval:`python_files`.
+
+Also, the :ref:`usefixtures <usefixtures>` mark and fixtures marked as :ref:`autouse <autouse>` are supported
 when executing text doctest files.
 
 
@@ -191,15 +224,21 @@ namespace in which your doctests run. It is intended to be used within
 your own fixtures to provide the tests that use them with context.
 
 ``doctest_namespace`` is a standard ``dict`` object into which you
-place the objects you want to appear in the doctest namespace::
+place the objects you want to appear in the doctest namespace:
+
+.. code-block:: python
 
     # content of conftest.py
     import numpy
+
+
     @pytest.fixture(autouse=True)
     def add_np(doctest_namespace):
-        doctest_namespace['np'] = numpy
+        doctest_namespace["np"] = numpy
 
-which can then be used in your doctests directly::
+which can then be used in your doctests directly:
+
+.. code-block:: python
 
     # content of numpy.py
     def arange():
@@ -219,7 +258,9 @@ Skipping tests dynamically
 
 .. versionadded:: 4.4
 
-You can use ``pytest.skip`` to dynamically skip doctests. For example::
+You can use ``pytest.skip`` to dynamically skip doctests. For example:
+
+.. code-block:: text
 
     >>> import sys, pytest
     >>> if sys.platform.startswith('win'):

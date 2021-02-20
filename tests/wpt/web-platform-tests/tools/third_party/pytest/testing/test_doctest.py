@@ -1,22 +1,20 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import inspect
-import sys
 import textwrap
+from typing import Callable
+from typing import Optional
 
 import pytest
 from _pytest.compat import MODULE_NOT_FOUND_ERROR
+from _pytest.doctest import _get_checker
 from _pytest.doctest import _is_mocked
+from _pytest.doctest import _is_setup_py
 from _pytest.doctest import _patch_unwrap_mock_aware
 from _pytest.doctest import DoctestItem
 from _pytest.doctest import DoctestModule
 from _pytest.doctest import DoctestTextfile
 
 
-class TestDoctests(object):
+class TestDoctests:
     def test_collect_testtextfile(self, testdir):
         w = testdir.maketxtfile(whatever="")
         checkfile = testdir.maketxtfile(
@@ -117,8 +115,7 @@ class TestDoctests(object):
         reprec.assertoutcome(failed=1)
 
     def test_multiple_patterns(self, testdir):
-        """Test support for multiple --doctest-glob arguments (#1255).
-        """
+        """Test support for multiple --doctest-glob arguments (#1255)."""
         testdir.maketxtfile(
             xdoc="""
             >>> 1
@@ -148,11 +145,10 @@ class TestDoctests(object):
 
     @pytest.mark.parametrize(
         "   test_string,    encoding",
-        [(u"foo", "ascii"), (u"öäü", "latin1"), (u"öäü", "utf-8")],
+        [("foo", "ascii"), ("öäü", "latin1"), ("öäü", "utf-8")],
     )
     def test_encoding(self, testdir, test_string, encoding):
-        """Test support for doctest_encoding ini option.
-        """
+        """Test support for doctest_encoding ini option."""
         testdir.makeini(
             """
             [pytest]
@@ -161,8 +157,8 @@ class TestDoctests(object):
                 encoding
             )
         )
-        doctest = u"""
-            >>> u"{}"
+        doctest = """
+            >>> "{}"
             {}
         """.format(
             test_string, repr(test_string)
@@ -184,24 +180,58 @@ class TestDoctests(object):
         result = testdir.runpytest("--doctest-modules")
         result.stdout.fnmatch_lines(
             [
-                "*unexpected_exception*",
-                "*>>> i = 0*",
-                "*>>> 0 / i*",
-                "*UNEXPECTED*ZeroDivision*",
-            ]
+                "test_doctest_unexpected_exception.txt F *",
+                "",
+                "*= FAILURES =*",
+                "*_ [[]doctest[]] test_doctest_unexpected_exception.txt _*",
+                "001 >>> i = 0",
+                "002 >>> 0 / i",
+                "UNEXPECTED EXCEPTION: ZeroDivisionError*",
+                "Traceback (most recent call last):",
+                '  File "*/doctest.py", line *, in __run',
+                "    *",
+                '  File "<doctest test_doctest_unexpected_exception.txt[1]>", line 1, in <module>',
+                "ZeroDivisionError: division by zero",
+                "*/test_doctest_unexpected_exception.txt:2: UnexpectedException",
+            ],
+            consecutive=True,
         )
 
-    def test_doctest_skip(self, testdir):
+    def test_doctest_outcomes(self, testdir):
         testdir.maketxtfile(
-            """
+            test_skip="""
             >>> 1
             1
             >>> import pytest
             >>> pytest.skip("")
-        """
+            >>> 2
+            3
+            """,
+            test_xfail="""
+            >>> import pytest
+            >>> pytest.xfail("xfail_reason")
+            >>> foo
+            bar
+            """,
+            test_importorskip="""
+            >>> import pytest
+            >>> pytest.importorskip("doesnotexist")
+            >>> foo
+            bar
+            """,
         )
         result = testdir.runpytest("--doctest-modules")
-        result.stdout.fnmatch_lines(["*1 skipped*"])
+        result.stdout.fnmatch_lines(
+            [
+                "collected 3 items",
+                "",
+                "test_importorskip.txt s *",
+                "test_skip.txt s *",
+                "test_xfail.txt x *",
+                "",
+                "*= 2 skipped, 1 xfailed in *",
+            ]
+        )
 
     def test_docstring_partial_context_around_error(self, testdir):
         """Test that we show some context before the actual line of a failing
@@ -244,8 +274,8 @@ class TestDoctests(object):
             ]
         )
         # lines below should be trimmed out
-        assert "text-line-2" not in result.stdout.str()
-        assert "text-line-after" not in result.stdout.str()
+        result.stdout.no_fnmatch_line("*text-line-2*")
+        result.stdout.no_fnmatch_line("*text-line-after*")
 
     def test_docstring_full_context_around_error(self, testdir):
         """Test that we show the whole context before the actual line of a failing
@@ -293,12 +323,67 @@ class TestDoctests(object):
         )
         result = testdir.runpytest("--doctest-modules")
         result.stdout.fnmatch_lines(
+            ["*hello*", "006*>>> 1/0*", "*UNEXPECTED*ZeroDivision*", "*1 failed*"]
+        )
+
+    def test_doctest_linedata_on_property(self, testdir):
+        testdir.makepyfile(
+            """
+            class Sample(object):
+                @property
+                def some_property(self):
+                    '''
+                    >>> Sample().some_property
+                    'another thing'
+                    '''
+                    return 'something'
+            """
+        )
+        result = testdir.runpytest("--doctest-modules")
+        result.stdout.fnmatch_lines(
             [
-                "*hello*",
-                "*EXAMPLE LOCATION UNKNOWN, not showing all tests of that example*",
-                "*1/0*",
-                "*UNEXPECTED*ZeroDivision*",
-                "*1 failed*",
+                "*= FAILURES =*",
+                "*_ [[]doctest[]] test_doctest_linedata_on_property.Sample.some_property _*",
+                "004 ",
+                "005         >>> Sample().some_property",
+                "Expected:",
+                "    'another thing'",
+                "Got:",
+                "    'something'",
+                "",
+                "*/test_doctest_linedata_on_property.py:5: DocTestFailure",
+                "*= 1 failed in *",
+            ]
+        )
+
+    def test_doctest_no_linedata_on_overriden_property(self, testdir):
+        testdir.makepyfile(
+            """
+            class Sample(object):
+                @property
+                def some_property(self):
+                    '''
+                    >>> Sample().some_property
+                    'another thing'
+                    '''
+                    return 'something'
+                some_property = property(some_property.__get__, None, None, some_property.__doc__)
+            """
+        )
+        result = testdir.runpytest("--doctest-modules")
+        result.stdout.fnmatch_lines(
+            [
+                "*= FAILURES =*",
+                "*_ [[]doctest[]] test_doctest_no_linedata_on_overriden_property.Sample.some_property _*",
+                "EXAMPLE LOCATION UNKNOWN, not showing all tests of that example",
+                "[?][?][?] >>> Sample().some_property",
+                "Expected:",
+                "    'another thing'",
+                "Got:",
+                "    'something'",
+                "",
+                "*/test_doctest_no_linedata_on_overriden_property.py:None: DocTestFailure",
+                "*= 1 failed in *",
             ]
         )
 
@@ -339,7 +424,7 @@ class TestDoctests(object):
             [
                 "*ERROR collecting hello.py*",
                 "*{e}: No module named *asdals*".format(e=MODULE_NOT_FOUND_ERROR),
-                "*Interrupted: 1 errors during collection*",
+                "*Interrupted: 1 error during collection*",
             ]
         )
 
@@ -580,17 +665,15 @@ class TestDoctests(object):
         reprec.assertoutcome(failed=1, passed=0)
 
     def test_contains_unicode(self, testdir):
-        """Fix internal error with docstrings containing non-ascii characters.
-        """
+        """Fix internal error with docstrings containing non-ascii characters."""
         testdir.makepyfile(
-            u'''
-            # -*- coding: utf-8 -*-
+            '''\
             def foo():
                 """
                 >>> name = 'с' # not letter 'c' but instead Cyrillic 's'.
                 'anything'
                 """
-        '''
+            '''
         )
         result = testdir.runpytest("--doctest-modules")
         result.stdout.fnmatch_lines(["Got nothing", "* 1 failed in*"])
@@ -615,9 +698,7 @@ class TestDoctests(object):
         reprec.assertoutcome(skipped=1, failed=1, passed=0)
 
     def test_junit_report_for_doctest(self, testdir):
-        """
-        #713: Fix --junit-xml option when used with --doctest-modules.
-        """
+        """#713: Fix --junit-xml option when used with --doctest-modules."""
         p = testdir.makepyfile(
             """
             def foo():
@@ -661,9 +742,6 @@ class TestDoctests(object):
         """
         p = testdir.makepyfile(
             test_unicode_doctest_module="""
-            # -*- coding: utf-8 -*-
-            from __future__ import unicode_literals
-
             def fix_bad_unicode(text):
                 '''
                     >>> print(fix_bad_unicode('Ãºnico'))
@@ -684,7 +762,7 @@ class TestDoctests(object):
             test_print_unicode_value=r"""
             Here is a doctest::
 
-                >>> print(u'\xE5\xE9\xEE\xF8\xFC')
+                >>> print('\xE5\xE9\xEE\xF8\xFC')
                 åéîøü
         """
         )
@@ -692,9 +770,7 @@ class TestDoctests(object):
         result.stdout.fnmatch_lines(["* 1 passed *"])
 
     def test_reportinfo(self, testdir):
-        """
-        Test case to make sure that DoctestItem.reportinfo() returns lineno.
-        """
+        """Make sure that DoctestItem.reportinfo() returns lineno."""
         p = testdir.makepyfile(
             test_reportinfo="""
             def foo(x):
@@ -742,7 +818,7 @@ class TestDoctests(object):
         result.stdout.fnmatch_lines(["*collected 1 item*"])
 
 
-class TestLiterals(object):
+class TestLiterals:
     @pytest.mark.parametrize("config_mode", ["ini", "comment"])
     def test_allow_unicode(self, testdir, config_mode):
         """Test that doctests which output unicode work in all python versions
@@ -833,13 +909,11 @@ class TestLiterals(object):
         """
         )
         reprec = testdir.inline_run()
-        passed = int(sys.version_info[0] >= 3)
-        reprec.assertoutcome(passed=passed, failed=int(not passed))
+        reprec.assertoutcome(passed=1)
 
     def test_bytes_literal(self, testdir):
         """Test that doctests which output bytes fail in Python 3 when
-        the ALLOW_BYTES option is not used. The same test should pass
-        in Python 2 (#1287).
+        the ALLOW_BYTES option is not used. (#1287).
         """
         testdir.maketxtfile(
             test_doc="""
@@ -848,11 +922,159 @@ class TestLiterals(object):
         """
         )
         reprec = testdir.inline_run()
-        passed = int(sys.version_info[0] == 2)
-        reprec.assertoutcome(passed=passed, failed=int(not passed))
+        reprec.assertoutcome(failed=1)
+
+    def test_number_re(self) -> None:
+        _number_re = _get_checker()._number_re  # type: ignore
+        for s in [
+            "1.",
+            "+1.",
+            "-1.",
+            ".1",
+            "+.1",
+            "-.1",
+            "0.1",
+            "+0.1",
+            "-0.1",
+            "1e5",
+            "+1e5",
+            "1e+5",
+            "+1e+5",
+            "1e-5",
+            "+1e-5",
+            "-1e-5",
+            "1.2e3",
+            "-1.2e-3",
+        ]:
+            print(s)
+            m = _number_re.match(s)
+            assert m is not None
+            assert float(m.group()) == pytest.approx(float(s))
+        for s in ["1", "abc"]:
+            print(s)
+            assert _number_re.match(s) is None
+
+    @pytest.mark.parametrize("config_mode", ["ini", "comment"])
+    def test_number_precision(self, testdir, config_mode):
+        """Test the NUMBER option."""
+        if config_mode == "ini":
+            testdir.makeini(
+                """
+                [pytest]
+                doctest_optionflags = NUMBER
+                """
+            )
+            comment = ""
+        else:
+            comment = "#doctest: +NUMBER"
+
+        testdir.maketxtfile(
+            test_doc="""
+
+            Scalars:
+
+            >>> import math
+            >>> math.pi {comment}
+            3.141592653589793
+            >>> math.pi {comment}
+            3.1416
+            >>> math.pi {comment}
+            3.14
+            >>> -math.pi {comment}
+            -3.14
+            >>> math.pi {comment}
+            3.
+            >>> 3. {comment}
+            3.0
+            >>> 3. {comment}
+            3.
+            >>> 3. {comment}
+            3.01
+            >>> 3. {comment}
+            2.99
+            >>> .299 {comment}
+            .3
+            >>> .301 {comment}
+            .3
+            >>> 951. {comment}
+            1e3
+            >>> 1049. {comment}
+            1e3
+            >>> -1049. {comment}
+            -1e3
+            >>> 1e3 {comment}
+            1e3
+            >>> 1e3 {comment}
+            1000.
+
+            Lists:
+
+            >>> [3.1415, 0.097, 13.1, 7, 8.22222e5, 0.598e-2] {comment}
+            [3.14, 0.1, 13., 7, 8.22e5, 6.0e-3]
+            >>> [[0.333, 0.667], [0.999, 1.333]] {comment}
+            [[0.33, 0.667], [0.999, 1.333]]
+            >>> [[[0.101]]] {comment}
+            [[[0.1]]]
+
+            Doesn't barf on non-numbers:
+
+            >>> 'abc' {comment}
+            'abc'
+            >>> None {comment}
+            """.format(
+                comment=comment
+            )
+        )
+        reprec = testdir.inline_run()
+        reprec.assertoutcome(passed=1)
+
+    @pytest.mark.parametrize(
+        "expression,output",
+        [
+            # ints shouldn't match floats:
+            ("3.0", "3"),
+            ("3e0", "3"),
+            ("1e3", "1000"),
+            ("3", "3.0"),
+            # Rounding:
+            ("3.1", "3.0"),
+            ("3.1", "3.2"),
+            ("3.1", "4.0"),
+            ("8.22e5", "810000.0"),
+            # Only the actual output is rounded up, not the expected output:
+            ("3.0", "2.98"),
+            ("1e3", "999"),
+            # The current implementation doesn't understand that numbers inside
+            # strings shouldn't be treated as numbers:
+            pytest.param("'3.1416'", "'3.14'", marks=pytest.mark.xfail),  # type: ignore
+        ],
+    )
+    def test_number_non_matches(self, testdir, expression, output):
+        testdir.maketxtfile(
+            test_doc="""
+            >>> {expression} #doctest: +NUMBER
+            {output}
+            """.format(
+                expression=expression, output=output
+            )
+        )
+        reprec = testdir.inline_run()
+        reprec.assertoutcome(passed=0, failed=1)
+
+    def test_number_and_allow_unicode(self, testdir):
+        testdir.maketxtfile(
+            test_doc="""
+            >>> from collections import namedtuple
+            >>> T = namedtuple('T', 'a b c')
+            >>> T(a=0.2330000001, b=u'str', c=b'bytes') # doctest: +ALLOW_UNICODE, +ALLOW_BYTES, +NUMBER
+            T(a=0.233, b=u'str', c='bytes')
+            """
+        )
+        reprec = testdir.inline_run()
+        reprec.assertoutcome(passed=1)
 
 
-class TestDoctestSkips(object):
+class TestDoctestSkips:
     """
     If all examples in a doctest are skipped due to the SKIP option, then
     the tests should be SKIPPED rather than PASSED. (#957)
@@ -933,13 +1155,12 @@ class TestDoctestSkips(object):
         )
 
 
-class TestDoctestAutoUseFixtures(object):
+class TestDoctestAutoUseFixtures:
 
     SCOPES = ["module", "session", "class", "function"]
 
     def test_doctest_module_session_fixture(self, testdir):
-        """Test that session fixtures are initialized for doctest modules (#768)
-        """
+        """Test that session fixtures are initialized for doctest modules (#768)."""
         # session fixture which changes some global data, which will
         # be accessed by doctests in a module
         testdir.makeconftest(
@@ -947,7 +1168,7 @@ class TestDoctestAutoUseFixtures(object):
             import pytest
             import sys
 
-            @pytest.yield_fixture(autouse=True, scope='session')
+            @pytest.fixture(autouse=True, scope='session')
             def myfixture():
                 assert not hasattr(sys, 'pytest_session_data')
                 sys.pytest_session_data = 1
@@ -1041,7 +1262,7 @@ class TestDoctestAutoUseFixtures(object):
             """
             )
         result = testdir.runpytest("--doctest-modules")
-        assert "FAILURES" not in str(result.stdout.str())
+        result.stdout.no_fnmatch_line("*FAILURES*")
         result.stdout.fnmatch_lines(["*=== 1 passed in *"])
 
     @pytest.mark.parametrize("scope", SCOPES)
@@ -1073,11 +1294,11 @@ class TestDoctestAutoUseFixtures(object):
         """
         )
         result = testdir.runpytest("--doctest-modules")
-        assert "FAILURES" not in str(result.stdout.str())
+        str(result.stdout.no_fnmatch_line("*FAILURES*"))
         result.stdout.fnmatch_lines(["*=== 1 passed in *"])
 
 
-class TestDoctestNamespaceFixture(object):
+class TestDoctestNamespaceFixture:
 
     SCOPES = ["module", "session", "class", "function"]
 
@@ -1139,7 +1360,7 @@ class TestDoctestNamespaceFixture(object):
         reprec.assertoutcome(passed=1)
 
 
-class TestDoctestReportingOption(object):
+class TestDoctestReportingOption:
     def _run_doctest_report(self, testdir, format):
         testdir.makepyfile(
             """
@@ -1247,11 +1468,12 @@ class Broken:
         raise KeyError("This should be an AttributeError")
 
 
-@pytest.mark.skipif(not hasattr(inspect, "unwrap"), reason="nothing to patch")
 @pytest.mark.parametrize(  # pragma: no branch (lambdas are not called)
     "stop", [None, _is_mocked, lambda f: None, lambda f: False, lambda f: True]
 )
-def test_warning_on_unwrap_of_broken_object(stop):
+def test_warning_on_unwrap_of_broken_object(
+    stop: Optional[Callable[[object], object]]
+) -> None:
     bad_instance = Broken()
     assert inspect.unwrap.__module__ == "inspect"
     with _patch_unwrap_mock_aware():
@@ -1260,5 +1482,29 @@ def test_warning_on_unwrap_of_broken_object(stop):
             pytest.PytestWarning, match="^Got KeyError.* when unwrapping"
         ):
             with pytest.raises(KeyError):
-                inspect.unwrap(bad_instance, stop=stop)
+                inspect.unwrap(bad_instance, stop=stop)  # type: ignore[arg-type]
     assert inspect.unwrap.__module__ == "inspect"
+
+
+def test_is_setup_py_not_named_setup_py(tmpdir):
+    not_setup_py = tmpdir.join("not_setup.py")
+    not_setup_py.write('from setuptools import setup; setup(name="foo")')
+    assert not _is_setup_py(not_setup_py)
+
+
+@pytest.mark.parametrize("mod", ("setuptools", "distutils.core"))
+def test_is_setup_py_is_a_setup_py(tmpdir, mod):
+    setup_py = tmpdir.join("setup.py")
+    setup_py.write('from {} import setup; setup(name="foo")'.format(mod))
+    assert _is_setup_py(setup_py)
+
+
+@pytest.mark.parametrize("mod", ("setuptools", "distutils.core"))
+def test_is_setup_py_different_encoding(tmpdir, mod):
+    setup_py = tmpdir.join("setup.py")
+    contents = (
+        "# -*- coding: cp1252 -*-\n"
+        'from {} import setup; setup(name="foo", description="€")\n'.format(mod)
+    )
+    setup_py.write_binary(contents.encode("cp1252"))
+    assert _is_setup_py(setup_py)

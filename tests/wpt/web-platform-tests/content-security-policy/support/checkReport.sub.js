@@ -48,7 +48,7 @@
   // received to conclude that no report has been generated. These timeouts must
   // not exceed the test timeouts set by vendors otherwise the test would fail.
   var timeout = document.querySelector("meta[name=timeout][content=long]") ? 20 : 3;
-  var reportLocation = location.protocol + "//" + location.host + "/content-security-policy/support/report.py?op=retrieve_report&timeout=" + timeout + "&reportID=" + reportID;
+  var reportLocation = location.protocol + "//" + location.host + "/reporting/resources/report.py?op=retrieve_report&timeout=" + timeout + "&reportID=" + reportID;
 
   if (testName == "") testName = "Violation report status OK.";
   var reportTest = async_test(testName);
@@ -107,7 +107,7 @@
         }
         cookieTest.done();
       });
-      var cReportLocation = location.protocol + "//" + location.host + "/content-security-policy/support/report.py?op=retrieve_cookies&timeout=" + timeout + "&reportID=" + reportID;
+      var cReportLocation = location.protocol + "//" + location.host + "/reporting/resources/report.py?op=retrieve_cookies&timeout=" + timeout + "&reportID=" + reportID;
       cookieReport.open("GET", cReportLocation, true);
       cookieReport.send();
   }
@@ -122,7 +122,7 @@
 
         reportCountTest.done();
       });
-      var cReportLocation = location.protocol + "//" + location.host + "/content-security-policy/support/report.py?op=retrieve_count&timeout=" + timeout + "&reportID=" + reportID;
+      var cReportLocation = location.protocol + "//" + location.host + "/reporting/resources/report.py?op=retrieve_count&timeout=" + timeout + "&reportID=" + reportID;
       reportCountReport.open("GET", cReportLocation, true);
       reportCountReport.send();
   }

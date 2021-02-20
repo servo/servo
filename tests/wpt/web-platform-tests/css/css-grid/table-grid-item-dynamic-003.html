@@ -1,0 +1,50 @@
+<!doctype html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<meta charset="utf-8">
+<title>Table grid items with padding-top, percentage height, and box-sizing:content-box, don't grow on incremental relayout</title>
+<link rel="author" href="mailto:mats@mozilla.com">
+<link rel="author" href="mailto:emilio@crisal.io">
+<link rel="author" href="mailto:tlin@mozilla.com">
+<link rel="author" href="https://mozilla.org">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1521088">
+<link rel="match" href="table-grid-item-dynamic-003-ref.html">
+<style>
+html,body {
+  color:black; background-color:white; font:16px/1 monospace; padding:0; margin:0;
+}
+
+div {
+  display: grid;
+  height: 100px;
+  background-color: lime;
+}
+
+table {
+  padding-top: 100px;
+  height: 100%;
+  box-sizing: content-box;
+  background-color: yellow;
+}
+</style>
+
+<div>
+  <table>
+    <thead>
+      <tr>
+        <th>Relayout shouldn't grow this table</th>
+      </tr>
+    </thead>
+  </table>
+</div>
+<script>
+onload = function() {
+  let grid = document.querySelector("div");
+  grid.getBoundingClientRect();
+  document.body.style.width = "50vw";
+  grid.getBoundingClientRect();
+  document.body.style.width = "";
+}
+</script>

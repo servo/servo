@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Subresources and fragment preservation</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/html/canvas/resources/canvas-tests.js></script>
+<div id=log></div>
+<!--
+  The source image is 50h x 100w and its color depends on the fragment.
+
+  This image is then drawn on a 50h x 100w transparent black canvas.
+-->
+<img data-desc="Control"
+     src="/images/colors.svg#green">
+<img data-desc="Redirect with the original URL containing a fragment"
+     src="../api/resources/redirect.py?simple&location=/images/colors.svg#green">
+<img data-desc="Redirect with the response Location header containing a fragment"
+     src="../api/resources/redirect.py?simple&location=/images/colors.svg%23green">
+<img data-desc="Redirect with both the original URL and response Location header containing a fragment"
+     src="../api/resources/redirect.py?simple&location=/images/colors.svg%23green#red">
+<canvas width=100 height=50></canvas>
+<script>
+setup({ explicit_done:true });
+onload = () => {
+  const canvas = document.querySelector("canvas");
+  const ctx = canvas.getContext("2d");
+  document.querySelectorAll("img").forEach(img => {
+    test(t => {
+      t.add_cleanup(() => {
+        ctx.clearRect(0, 0, 100, 50);
+      });
+      ctx.drawImage(img, 0, 0);
+      // canvas, pixelX, pixelY, r, g, b, alpha, ?, ?, tolerance
+      _assertPixelApprox(canvas, 40, 40, 0, 255, 0, 255, undefined, undefined, 4);
+    }, img.dataset.desc);
+  });
+  done();
+};
+</script>

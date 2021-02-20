@@ -247,12 +247,14 @@ function _isSubsetOf(obj1, obj2) {
  * expected.
  */
 
-async function reportExists(expected) {
+async function reportExists(expected, retain_reports) {
   var timeout =
     document.querySelector("meta[name=timeout][content=long]") ? 50 : 1;
   var reportLocation =
-    "/network-error-logging/support/report.py?op=retrieve_report&timeout=" +
+    "/reporting/resources/report.py?op=retrieve_report&timeout=" +
     timeout + "&reportID=" + reportID;
+  if (retain_reports)
+    reportLocation += "&retain=1";
   const response = await fetch(reportLocation);
   const json = await response.json();
   for (const report of json) {
@@ -268,11 +270,13 @@ async function reportExists(expected) {
  * expected.
  */
 
-async function reportsExist(expected_reports) {
+async function reportsExist(expected_reports, retain_reports) {
   const timeout = 10;
   let reportLocation =
-    "/network-error-logging/support/report.py?op=retrieve_report&timeout=" +
+    "/reporting/resources/report.py?op=retrieve_report&timeout=" +
     timeout + "&reportID=" + reportID;
+  if (retain_reports)
+    reportLocation += "&retain";
   // There must be the report of pass.png, so adding 1.
   const min_count = expected_reports.length + 1;
   reportLocation += "&min_count=" + min_count;

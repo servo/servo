@@ -1,10 +1,11 @@
-# -*- coding: utf-8 -*-
+from _pytest.compat import final
+
+
+@final
 class UsageError(Exception):
-    """ error in pytest usage or invocation"""
+    """Error in pytest usage or invocation."""
 
 
 class PrintHelp(Exception):
-    """Raised when pytest should print it's help to skip the rest of the
+    """Raised when pytest should print its help to skip the rest of the
     argument parsing and validation."""
-
-    pass

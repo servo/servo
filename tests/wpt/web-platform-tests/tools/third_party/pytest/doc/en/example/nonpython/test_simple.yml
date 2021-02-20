@@ -1,7 +1,0 @@
-# test_simple.yml
-ok:
-    sub1: sub1
-
-hello:
-    world: world
-    some: other

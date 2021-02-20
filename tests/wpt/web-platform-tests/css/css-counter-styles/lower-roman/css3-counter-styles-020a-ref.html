@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>lower-roman, 3000-3999</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='author' title='Chris Lilley' href='mailto:chris@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#simple-numeric'>
+<link rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+<meta name='flags' content='font'>
+<meta name="assert" content="Setting list-style-type to lower-roman will produce list of up to 9 items in the range range: 1 to 3999.">
+<style type='text/css'>
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+ol li { list-style-type: lower-roman;  }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, ignoring the suffix.</p>
+
+
+<div class="test"><ol start='3000'><div><bdi>mmm. </bdi>mmm.</div></ol>
+<ol start='3555'><div><bdi>mmmdlv. </bdi>mmmdlv.</div></ol>
+<ol start='3998'><div><bdi>mmmcmxcviii. </bdi>mmmcmxcviii.</div></ol>
+<ol start='3999'><div><bdi>mmmcmxcix. </bdi>mmmcmxcix.</div></ol>
+</div>
+
+
+<!--Notes:
+You will need an appropriate font to run this test.
+
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+
+
+</body>
+</html>

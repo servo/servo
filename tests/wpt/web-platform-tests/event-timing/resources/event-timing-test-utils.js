@@ -70,6 +70,13 @@ function clickAndBlockMain(id) {
   });
 }
 
+function waitForTick() {
+  return new Promise(resolve => {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(resolve);
+    });
+  });
+}
   // Add a PerformanceObserver and observe with a durationThreshold of |dur|. This test will
   // attempt to check that the duration is appropriately checked by:
   // * Asserting that entries received have a duration which is the smallest multiple of 8
@@ -150,11 +157,12 @@ function applyAction(eventType, target) {
     // Reset by clicking outside of the target.
     .pointerMove(0, 0)
     .pointerDown()
-    .pointerUp();
   } else if (eventType === 'mouseenter' || eventType === 'mouseover'
       || eventType === 'pointerenter' || eventType === 'pointerover') {
     // Move outside of the target and then back inside.
-    actions.pointerMove(0, 0)
+    // Moving it to 0, 1 because 0, 0 doesn't cause the pointer to
+    // move in Firefox. See https://github.com/w3c/webdriver/issues/1545
+    actions.pointerMove(0, 1)
     .pointerMove(0, 0, {origin: target});
   } else if (eventType === 'mouseleave' || eventType === 'mouseout'
       || eventType === 'pointerleave' || eventType === 'pointerout') {
@@ -219,6 +227,7 @@ async function testEventType(t, eventType, looseCount=false) {
   // Trigger two 'fast' events of the type.
   await applyAction(eventType, target);
   await applyAction(eventType, target);
+  await waitForTick();
   await new Promise(t.step_func(resolve => {
     testCounts(t, resolve, looseCount, eventType, initialCount + 2);
   }));
@@ -260,6 +269,9 @@ async function testEventType(t, eventType, looseCount=false) {
     })).observe({type: 'event', durationThreshold: durationThreshold});
   });
   // Cause a slow event.
-  let actionPromise = applyAction(eventType, target);
-  return Promise.all([actionPromise, observerPromise]);
+  await applyAction(eventType, target);
+
+  await waitForTick();
+
+  await observerPromise;
 }

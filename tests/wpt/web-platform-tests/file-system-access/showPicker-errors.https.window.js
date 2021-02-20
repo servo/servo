@@ -86,6 +86,18 @@ function define_file_picker_error_tests(showPickerMethod) {
     }));
   }, showPickerMethod + ': unknown well-known starting directory.');
 
+  promise_test(async t => {
+    await promise_rejects_js(t, TypeError, self[showPickerMethod]({
+      id: "inv*l:d\\ chara<ters",
+    }));
+  }, showPickerMethod + ': starting directory ID contains invalid characters.');
+
+  promise_test(async t => {
+    await promise_rejects_js(t, TypeError, self[showPickerMethod]({
+      id: "id-length-cannot-exceed-32-characters",
+    }));
+  }, showPickerMethod + ': starting directory ID cannot exceed 32 characters.');
+
   const invalid_extensions = {
     '.extensiontoolong': 'extension length more than 16.',
     '.txt.': 'extenstion ends with "."',

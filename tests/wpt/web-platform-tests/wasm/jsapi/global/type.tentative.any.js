@@ -3,9 +3,10 @@
 
 function assert_type(argument) {
     const myglobal = new WebAssembly.Global(argument);
+    const globaltype = myglobal.type();
 
-    assert_equals(myglobal.type.value, argument.value);
-    assert_equals(myglobal.type.mutable, argument.mutable);
+    assert_equals(globaltype.value, argument.value);
+    assert_equals(globaltype.mutable, argument.mutable);
 }
 
 test(() => {
@@ -58,7 +59,7 @@ test(() => {
 
 test(() => {
     const myglobal = new WebAssembly.Global({"value": "i32", "mutable": true});
-    const propertyNames = Object.getOwnPropertyNames(myglobal.type);
+    const propertyNames = Object.getOwnPropertyNames(myglobal.type());
     assert_equals(propertyNames[0], "mutable");
     assert_equals(propertyNames[1], "value");
 }, "key ordering");

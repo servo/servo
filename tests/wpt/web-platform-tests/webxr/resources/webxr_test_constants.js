@@ -125,6 +125,7 @@ const ALL_FEATURES = [
   'dom-overlay',
   'light-estimation',
   'anchors',
+  'depth-sensing',
 ];
 
 const TRACKED_IMMERSIVE_DEVICE = {

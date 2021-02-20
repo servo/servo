@@ -91,7 +91,7 @@ holger krekel
   it might be the cause for other finalizers to fail.
 
 - fix ordering when mock.patch or other standard decorator-wrappings
-  are used with test methods.  This fixues issue346 and should
+  are used with test methods.  This fixes issue346 and should
   help with random "xdist" collection failures.  Thanks to
   Ronny Pfannschmidt and Donald Stufft for helping to isolate it.
 

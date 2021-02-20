@@ -1,8 +1,6 @@
 import os
 from collections import deque
-from six import string_types, text_type
-from six.moves.urllib.parse import urljoin
-
+from urllib.parse import urljoin
 
 from .wptmanifest.backends import static
 from .wptmanifest.backends.base import ManifestItem
@@ -49,7 +47,7 @@ def list_prop(name, node):
     """List property"""
     try:
         list_prop = node.get(name)
-        if isinstance(list_prop, string_types):
+        if isinstance(list_prop, str):
             return [list_prop]
         return list(list_prop)
     except KeyError:
@@ -59,7 +57,7 @@ def list_prop(name, node):
 def str_prop(name, node):
     try:
         prop = node.get(name)
-        if not isinstance(prop, string_types):
+        if not isinstance(prop, str):
             raise ValueError
         return prop
     except KeyError:
@@ -70,7 +68,7 @@ def tags(node):
     """Set of tags that have been applied to the test"""
     try:
         value = node.get("tags")
-        if isinstance(value, text_type):
+        if isinstance(value, str):
             return {value}
         return set(value)
     except KeyError:
@@ -79,7 +77,7 @@ def tags(node):
 
 def prefs(node):
     def value(ini_value):
-        if isinstance(ini_value, text_type):
+        if isinstance(ini_value, str):
             return tuple(pref_piece.strip() for pref_piece in ini_value.split(':', 1))
         else:
             # this should be things like @Reset, which are apparently type 'object'
@@ -87,7 +85,7 @@ def prefs(node):
 
     try:
         node_prefs = node.get("prefs")
-        if isinstance(node_prefs, text_type):
+        if isinstance(node_prefs, str):
             rv = dict(value(node_prefs))
         else:
             rv = dict(value(item) for item in node_prefs)
@@ -99,7 +97,7 @@ def prefs(node):
 def set_prop(name, node):
     try:
         node_items = node.get(name)
-        if isinstance(node_items, text_type):
+        if isinstance(node_items, str):
             rv = {node_items}
         else:
             rv = set(node_items)
@@ -112,7 +110,7 @@ def leak_threshold(node):
     rv = {}
     try:
         node_items = node.get("leak-threshold")
-        if isinstance(node_items, text_type):
+        if isinstance(node_items, str):
             node_items = [node_items]
         for item in node_items:
             process, value = item.rsplit(":", 1)
@@ -169,7 +167,7 @@ def fuzzy_prop(node):
     if not isinstance(value, list):
         value = [value]
     for item in value:
-        if not isinstance(item, text_type):
+        if not isinstance(item, str):
             rv.append(item)
             continue
         parts = item.rsplit(":", 1)

@@ -7,7 +7,7 @@ from a few supposedly very minor incompatibilities.  See below for
 a full list of details.  A few feature highlights:
 
 - new yield-style fixtures `pytest.yield_fixture
-  <http://pytest.org/latest/yieldfixture.html>`_, allowing to use
+  <http://pytest.org/en/stable/yieldfixture.html>`_, allowing to use
   existing with-style context managers in fixture functions.
 
 - improved pdb support: ``import pdb ; pdb.set_trace()`` now works

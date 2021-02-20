@@ -5,30 +5,36 @@ A session-scoped fixture effectively has access to all
 collected test items.  Here is an example of a fixture
 function which walks all collected tests and looks
 if their test class defines a ``callme`` method and
-calls it::
+calls it:
+
+.. code-block:: python
 
     # content of conftest.py
 
     import pytest
 
+
     @pytest.fixture(scope="session", autouse=True)
     def callattr_ahead_of_alltests(request):
         print("callattr_ahead_of_alltests called")
-        seen = set([None])
+        seen = {None}
         session = request.node
         for item in session.items:
             cls = item.getparent(pytest.Class)
             if cls not in seen:
                 if hasattr(cls.obj, "callme"):
-                   cls.obj.callme()
+                    cls.obj.callme()
                 seen.add(cls)
 
 test classes may now define a ``callme`` method which
-will be called ahead of running any tests::
+will be called ahead of running any tests:
+
+.. code-block:: python
 
     # content of test_module.py
 
-    class TestHello(object):
+
+    class TestHello:
         @classmethod
         def callme(cls):
             print("callme called!")
@@ -39,15 +45,19 @@ will be called ahead of running any tests::
         def test_method2(self):
             print("test_method1 called")
 
-    class TestOther(object):
+
+    class TestOther:
         @classmethod
         def callme(cls):
             print("callme other called")
+
         def test_other(self):
             print("test other")
 
+
     # works with unittest as well ...
     import unittest
+
 
     class SomeTest(unittest.TestCase):
         @classmethod
@@ -71,4 +81,4 @@ If you run this without output capturing:
     .test other
     .test_unit1 method called
     .
-    4 passed in 0.12 seconds
+    4 passed in 0.12s

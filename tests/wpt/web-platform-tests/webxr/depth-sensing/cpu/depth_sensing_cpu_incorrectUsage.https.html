@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../resources/webxr_util.js"></script>
+<script src="../../resources/webxr_test_asserts.js"></script>
+<script src="../../resources/webxr_test_constants.js"></script>
+<script src="../../resources/webxr_test_constants_fake_depth.js"></script>
+<script src="../incorrectUsageTests.js"></script>
+
+<script>
+
+const fakeDeviceInitParams = {
+  supportedModes: ["immersive-ar"],
+  views: VALID_VIEWS,
+  supportedFeatures: ALL_FEATURES,
+};
+
+const incorrectUsagetestFunctionTryGetWebGLOnCpu = function (session, controller, t, sessionObjects) {
+  return session.requestReferenceSpace('viewer').then((viewerSpace) => {
+    let done = false;
+
+    const glBinding = new XRWebGLBinding(session, sessionObjects.gl);
+
+    session.requestAnimationFrame((time, frame) => {
+      const pose = frame.getViewerPose(viewerSpace);
+      for(const view of pose.views) {
+        t.step(() => {
+          assert_throws_dom("InvalidStateError", () => glBinding.getDepthInformation(view),
+                            "XRWebGLBinding.getDepthInformation() should throw when depth sensing is in `cpu-optimized` usage mode");
+        });
+      }
+
+      done = true;
+    });
+
+    return t.step_wait(() => done);
+  });
+};
+
+xr_session_promise_test("Ensures XRWebGLDepthInformation is not obtainable in `cpu-optimized` usage mode",
+  incorrectUsagetestFunctionTryGetWebGLOnCpu,
+  fakeDeviceInitParams,
+  'immersive-ar', {
+    requiredFeatures: ['depth-sensing'],
+    depthSensing: VALID_DEPTH_CONFIG_CPU_USAGE,
+  });
+
+</script>

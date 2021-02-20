@@ -11,9 +11,6 @@ def main(request, response):
     header = request.headers.get(b"Sec-Required-CSP");
     message[u'required_csp'] = isomorphic_decode(header) if header else None
 
-    header = request.headers.get(b"Sec-Required-CSP");
-    message[u'required_csp'] = isomorphic_decode(header) if header else None
-
     second_level_iframe_code = u""
     if b"include_second_level_iframe" in request.GET:
        if b"second_level_iframe_csp" in request.GET and request.GET[b"second_level_iframe_csp"] != b"":

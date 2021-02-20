@@ -9,7 +9,7 @@
          Content-Security-Policy: script-src 'unsafe-inline' 'self'
          -->
     <!-- since we try to set the report-uri in the meta tag, we have to set the cookie with the reportID in here instead of in the headers file -->
-    <meta http-equiv="Content-Security-Policy-Report-Only" content="img-src 'none'; report-uri ../support/report.py?op=put&reportID={{$id:uuid()}}">
+    <meta http-equiv="Content-Security-Policy-Report-Only" content="img-src 'none'; report-uri /reporting/resources/report.py?op=put&reportID={{$id:uuid()}}">
 </head>
 <body>
   <script>

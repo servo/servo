@@ -1,10 +1,8 @@
-from __future__ import unicode_literals
-
 from ..lint import check_file_contents
 from .base import check_errors
+import io
 import os
 import pytest
-import six
 
 INTERESTING_FILE_NAMES = {
     "python": [
@@ -26,7 +24,7 @@ INTERESTING_FILE_NAMES = {
 
 def check_with_files(input_bytes):
     return {
-        filename: (check_file_contents("", filename, six.BytesIO(input_bytes)), kind)
+        filename: (check_file_contents("", filename, io.BytesIO(input_bytes)), kind)
         for (filename, kind) in
         (
             (os.path.join("html", filename), kind)
@@ -660,28 +658,6 @@ def test_late_timeout():
             ]
 
 
-# Note: This test checks the print *statement* (which doesn't exist in python 3).
-#       The print *function* is checked in test_print_function below.
-@pytest.mark.skipif(six.PY3, reason="Cannot parse print statements from python 3")
-def test_print_statement():
-    error_map = check_with_files(b"def foo():\n  print 'statement'\n  print\n")
-
-    for (filename, (errors, kind)) in error_map.items():
-        check_errors(errors)
-
-        if kind == "python":
-            assert errors == [
-                ("PRINT STATEMENT", "A server-side python support file contains a `print` statement", filename, 2),
-                ("PRINT STATEMENT", "A server-side python support file contains a `print` statement", filename, 3),
-            ]
-        elif kind == "web-strict":
-            assert errors == [
-                ("PARSE-FAILED", "Unable to parse file", filename, None),
-            ]
-        else:
-            assert errors == []
-
-
 def test_print_function():
     error_map = check_with_files(b"def foo():\n  print('function')\n")
 
@@ -760,7 +736,7 @@ def fifth():
 def test_open_mode():
     for method in ["open", "file"]:
         code = open_mode_code.format(method).encode("utf-8")
-        errors = check_file_contents("", "test.py", six.BytesIO(code))
+        errors = check_file_contents("", "test.py", io.BytesIO(code))
         check_errors(errors)
 
         message = ("File opened without providing an explicit mode (note: " +
@@ -779,7 +755,7 @@ def test_open_mode():
         ("css/bar.html", True),
     ])
 def test_css_support_file(filename, expect_error):
-    errors = check_file_contents("", filename, six.BytesIO(b""))
+    errors = check_file_contents("", filename, io.BytesIO(b""))
     check_errors(errors)
 
     if expect_error:
@@ -800,7 +776,7 @@ def test_css_missing_file_in_css():
 <script src="/resources/testharnessreport.js"></script>
 </html>
 """
-    errors = check_file_contents("", "css/foo/bar.html", six.BytesIO(code))
+    errors = check_file_contents("", "css/foo/bar.html", io.BytesIO(code))
     check_errors(errors)
 
     assert errors == [
@@ -812,7 +788,7 @@ def test_css_missing_file_in_css():
 
 
 def test_css_missing_file_manual():
-    errors = check_file_contents("", "css/foo/bar-manual.html", six.BytesIO(b""))
+    errors = check_file_contents("", "css/foo/bar-manual.html", io.BytesIO(b""))
     check_errors(errors)
 
     assert errors == [
@@ -833,7 +809,7 @@ def test_css_missing_file_tentative():
 
     # The tentative flag covers tests that make assertions 'not yet required by
     # any specification', so they need not have a specification link.
-    errors = check_file_contents("", "css/foo/bar.tentative.html", six.BytesIO(code))
+    errors = check_file_contents("", "css/foo/bar.tentative.html", io.BytesIO(code))
     assert not errors
 
 
@@ -861,7 +837,7 @@ def test_css_missing_file_tentative():
     (b"""// META: timeout=bar\n""", (1, "UNKNOWN-TIMEOUT-METADATA")),
 ])
 def test_script_metadata(filename, input, error):
-    errors = check_file_contents("", filename, six.BytesIO(input))
+    errors = check_file_contents("", filename, io.BytesIO(input))
     check_errors(errors)
 
     if error is not None:
@@ -902,7 +878,7 @@ def test_script_metadata(filename, input, error):
 def test_script_globals_metadata(globals, error):
     filename = "foo.any.js"
     input = b"""// META: global=%s\n""" % globals
-    errors = check_file_contents("", filename, six.BytesIO(input))
+    errors = check_file_contents("", filename, io.BytesIO(input))
     check_errors(errors)
 
     if error is not None:
@@ -933,7 +909,7 @@ def test_script_globals_metadata(globals, error):
 ])
 def test_python_metadata(input, error):
     filename = "test.py"
-    errors = check_file_contents("", filename, six.BytesIO(input))
+    errors = check_file_contents("", filename, io.BytesIO(input))
     check_errors(errors)
 
     if error is not None:

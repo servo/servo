@@ -7,12 +7,12 @@
 <link rel='author' title='Chris Lilley' href='mailto:chris@w3.org'>
 <link rel="reviewer" title="Tab Atkins" href="mailto:jackalmage@gmail.com" />
 <link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#descdef-counter-style-range'>
-<meta name='flags' content='font'>
+<link rel='match' href='css3-counter-styles-020b-ref.html'>
 <meta name="assert" content="	If a counter style is used to represent a counter value outside of its ranges, the counter style instead drops down to its fallback counter style.">
 <style type='text/css'>
 .test { font-size: 25px; }
 ol { margin: 0; padding-left: 8em; }
-ol li { list-style-type: lower-roman;  }
+ol li { list-style-type: lower-roman; list-style-position: inside; }
 </style>
 </head>
 <body>

@@ -337,6 +337,7 @@ class MockRuntime {
     'dom-overlay': vrMojom.XRSessionFeature.DOM_OVERLAY,
     'light-estimation': vrMojom.XRSessionFeature.LIGHT_ESTIMATION,
     'anchors': vrMojom.XRSessionFeature.ANCHORS,
+    'depth-sensing': vrMojom.XRSessionFeature.DEPTH,
   };
 
   static sessionModeToMojoMap = {
@@ -387,6 +388,9 @@ class MockRuntime {
     // Anchor creation callback (initially null, can be set by tests).
     this.anchor_creation_callback_ = null;
 
+    this.depthSensingData_ = null;
+    this.depthSensingDataDirty_ = false;
+
     let supportedModes = [];
     if (fakeDeviceInit.supportedModes) {
       supportedModes = fakeDeviceInit.supportedModes.slice();
@@ -431,6 +435,10 @@ class MockRuntime {
 
     if (fakeDeviceInit.world) {
       this.world_ = fakeDeviceInit.world;
+    }
+
+    if (fakeDeviceInit.depthSensingData) {
+      this.setDepthSensingData(fakeDeviceInit.depthSensingData);
     }
 
     this.defaultFramebufferScale_ = default_framebuffer_scale;
@@ -613,6 +621,94 @@ class MockRuntime {
     this.hit_test_source_creation_callback_ = callback;
   }
 
+  setLightEstimate(fakeXrLightEstimateInit) {
+    if (!fakeXrLightEstimateInit.sphericalHarmonicsCoefficients) {
+      throw new TypeError("sphericalHarmonicsCoefficients must be set");
+    }
+
+    if (fakeXrLightEstimateInit.sphericalHarmonicsCoefficients.length != 27) {
+      throw new TypeError("Must supply all 27 sphericalHarmonicsCoefficients");
+    }
+
+    if (fakeXrLightEstimateInit.primaryLightDirection && fakeXrLightEstimateInit.primaryLightDirection.w != 0) {
+      throw new TypeError("W component of primaryLightDirection must be 0");
+    }
+
+    if (fakeXrLightEstimateInit.primaryLightIntensity && fakeXrLightEstimateInit.primaryLightIntensity.w != 1) {
+      throw new TypeError("W component of primaryLightIntensity must be 1");
+    }
+
+    // If the primaryLightDirection or primaryLightIntensity aren't set, we need to set them
+    // to the defaults that the spec expects. ArCore will either give us everything or nothing,
+    // so these aren't nullable on the mojom.
+    if (!fakeXrLightEstimateInit.primaryLightDirection) {
+      fakeXrLightEstimateInit.primaryLightDirection = { x: 0.0, y: 1.0, z: 0.0, w: 0.0 };
+    }
+
+    if (!fakeXrLightEstimateInit.primaryLightIntensity) {
+      fakeXrLightEstimateInit.primaryLightIntensity = { x: 0.0, y: 0.0, z: 0.0, w: 1.0 };
+    }
+
+    let c = fakeXrLightEstimateInit.sphericalHarmonicsCoefficients;
+
+    this.light_estimate_ = {
+      lightProbe: {
+        // XRSphereicalHarmonics
+        sphericalHarmonics: {
+          coefficients: [
+            { red: c[0],  green: c[1],  blue: c[2] },
+            { red: c[3],  green: c[4],  blue: c[5] },
+            { red: c[6],  green: c[7],  blue: c[8] },
+            { red: c[9],  green: c[10], blue: c[11] },
+            { red: c[12], green: c[13], blue: c[14] },
+            { red: c[15], green: c[16], blue: c[17] },
+            { red: c[18], green: c[19], blue: c[20] },
+            { red: c[21], green: c[22], blue: c[23] },
+            { red: c[24], green: c[25], blue: c[26] }
+          ]
+        },
+        // Vector3dF
+        mainLightDirection: {
+          x: fakeXrLightEstimateInit.primaryLightDirection.x,
+          y: fakeXrLightEstimateInit.primaryLightDirection.y,
+          z: fakeXrLightEstimateInit.primaryLightDirection.z
+        },
+        // RgbTupleF32
+        mainLightIntensity: {
+          red:   fakeXrLightEstimateInit.primaryLightIntensity.x,
+          green: fakeXrLightEstimateInit.primaryLightIntensity.y,
+          blue:  fakeXrLightEstimateInit.primaryLightIntensity.z
+        }
+      }
+    }
+  }
+
+  setDepthSensingData(depthSensingData) {
+    for(const key of ["depthData", "normDepthBufferFromNormView", "rawValueToMeters", "width", "height"]) {
+      if(!(key in depthSensingData)) {
+        throw new TypeError("Required key not present. Key: " + key);
+      }
+    }
+
+    if(depthSensingData.depthData != null) {
+      // Create new object w/ properties based on the depthSensingData, but
+      // convert the FakeXRRigidTransformInit into a transformation matrix object.
+      this.depthSensingData_ = Object.assign({},
+        depthSensingData, {
+          normDepthBufferFromNormView: composeGFXTransform(depthSensingData.normDepthBufferFromNormView),
+        });
+    } else {
+      throw new TypeError("`depthData` is not set");
+    }
+
+    this.depthSensingDataDirty_ = true;
+  }
+
+  clearDepthSensingData() {
+    this.depthSensingData_ = null;
+    this.depthSensingDataDirty_ = true;
+  }
+
   // Helper methods
   getNonImmersiveDisplayInfo() {
     const displayInfo = this.getImmersiveDisplayInfo();
@@ -786,6 +882,7 @@ class MockRuntime {
           renderingTimeRatio: 0,
           stageParameters: this.stageParameters_,
           stageParametersId: this.stageParametersId_,
+          lightEstimationData: this.light_estimate_
         };
 
         this.next_frame_id_++;
@@ -793,6 +890,8 @@ class MockRuntime {
         this._calculateHitTestResults(frameData);
 
         this._calculateAnchorInformation(frameData);
+
+        this._calculateDepthInformation(frameData);
 
         this._injectAdditionalFrameData(options, frameData);
 
@@ -1056,6 +1155,8 @@ class MockRuntime {
           }
         }
 
+        this.enabledFeatures_ = enabled_features;
+
         return Promise.resolve({
           session: {
             submitFrameSink: submit_frame_sink,
@@ -1066,7 +1167,12 @@ class MockRuntime {
             deviceConfig: {
               usesInputEventing: false,
               defaultFramebufferScale: this.defaultFramebufferScale_,
-              supportsViewportScaling: true
+              supportsViewportScaling: true,
+              depthConfiguration:
+                enabled_features.includes(vrMojom.XRSessionFeature.DEPTH) ? {
+                  depthUsage: vrMojom.XRDepthUsage.kCPUOptimized,
+                  depthDataFormat: vrMojom.XRDepthDataFormat.kLuminanceAlpha,
+                } : null,
             },
             enviromentBlendMode: this.enviromentBlendMode_,
             interactionMode: this.interactionMode_
@@ -1079,8 +1185,16 @@ class MockRuntime {
   }
 
   runtimeSupportsSession(options) {
+    let result = this.supportedModes_.includes(options.mode);
+
+    if (options.requiredFeatures.includes(vrMojom.XRSessionFeature.DEPTH)
+    || options.optionalFeatures.includes(vrMojom.XRSessionFeature.DEPTH)) {
+      result &= options.depthOptions.usagePreferences.includes(vrMojom.XRDepthUsage.kCPUOptimized);
+      result &= options.depthOptions.dataFormatPreferences.includes(vrMojom.XRDepthDataFormat.kLuminanceAlpha);
+    }
+
     return Promise.resolve({
-      supportsSession: this.supportedModes_.includes(options.mode)
+      supportsSession: result,
     });
   }
 
@@ -1134,6 +1248,43 @@ class MockRuntime {
         frameData.anchorsData.updatedAnchorsData.push(anchorData);
       }
     }
+  }
+
+  // Private functions - depth sensing implementation:
+
+  // Modifies passed in frameData to add anchor information.
+  _calculateDepthInformation(frameData) {
+    if (!this.supportedModes_.includes(vrMojom.XRSessionMode.kImmersiveAr)) {
+      return;
+    }
+
+    if (!this.enabledFeatures_.includes(vrMojom.XRSessionFeature.DEPTH)) {
+      return;
+    }
+
+    // If we don't have a current depth data, we'll return null
+    // (i.e. no data is not a valid data, so it cannot be "StillValid").
+    if (this.depthSensingData_ == null) {
+      frameData.depthData = null;
+      return;
+    }
+
+    if(!this.depthSensingDataDirty_) {
+      frameData.depthData = { dataStillValid: {}};
+      return;
+    }
+
+    frameData.depthData = {
+      updatedDepthData: {
+        timeDelta: frameData.timeDelta,
+        normTextureFromNormView: this.depthSensingData_.normDepthBufferFromNormView,
+        rawValueToMeters: this.depthSensingData_.rawValueToMeters,
+        size: { width: this.depthSensingData_.width, height: this.depthSensingData_.height },
+        pixelData: { bytes: this.depthSensingData_.depthData }
+      }
+    };
+
+    this.depthSensingDataDirty_ = false;
   }
 
   // Private functions - hit test implementation:
@@ -1243,7 +1394,10 @@ class MockRuntime {
       result = result.concat(partial_result);
     }
 
-    return result.sort((lhs, rhs) => lhs.distance - rhs.distance);
+    return result.sort((lhs, rhs) => lhs.distance - rhs.distance).map((hitTest) => {
+      delete hitTest.distance;
+      return hitTest;
+    });
   }
 
   // Hit tests the passed in ray (expressed as origin and direction) against world region.
@@ -1337,6 +1491,7 @@ class MockRuntime {
           z_axis = neg(sub(direction, mul(cos_direction_and_y_axis, y_axis))); // Z should point towards the ray origin, not away.
         }
 
+        z_axis = normalize(z_axis);
         const x_axis = normalize(cross(y_axis, z_axis));
 
         // Filter out the points not in polygon.

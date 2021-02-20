@@ -210,14 +210,14 @@ promise_test(() => {
       assert_unreached('closed should be rejected');
     }, e => {
       closed = true;
-      assert_true(read);
+      assert_false(read);
       assert_equals(e, error, 'closed should be rejected with the thrown error');
     }),
     reader.read().then(() => {
       assert_unreached('read() should be rejected');
     }, e => {
       read = true;
-      assert_false(closed);
+      assert_true(closed);
       assert_equals(e, error, 'read() should be rejected with the thrown error');
     })
   ]);

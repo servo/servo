@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>korean-hanja-informal, 10-9999</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#complex-cjk'>
+<link rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+<meta name='flags' content='font'>
+<meta name="assert" content="Setting list-style-type to korean-hanja-informal will produce list numbering after 9 as described in the CSS3 Counter Styles module.">
+<style type='text/css'>
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+ol li { list-style-type: korean-hanja-informal;  }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, ignoring the suffix.</p>
+
+
+<div class="test"><ol start='10'><div><bdi>十, </bdi>十,</div></ol>
+<ol start='11'><div><bdi>十一, </bdi>十一,</div></ol>
+<ol start='12'><div><bdi>十二, </bdi>十二,</div></ol>
+<ol start='43'><div><bdi>四十三, </bdi>四十三,</div></ol>
+<ol start='77'><div><bdi>七十七, </bdi>七十七,</div></ol>
+<ol start='80'><div><bdi>八十, </bdi>八十,</div></ol>
+<ol start='99'><div><bdi>九十九, </bdi>九十九,</div></ol>
+<ol start='100'><div><bdi>百, </bdi>百,</div></ol>
+<ol start='101'><div><bdi>百一, </bdi>百一,</div></ol>
+<ol start='222'><div><bdi>二百二十二, </bdi>二百二十二,</div></ol>
+<ol start='540'><div><bdi>五百四十, </bdi>五百四十,</div></ol>
+<ol start='999'><div><bdi>九百九十九, </bdi>九百九十九,</div></ol>
+<ol start='1000'><div><bdi>千, </bdi>千,</div></ol>
+<ol start='1005'><div><bdi>千五, </bdi>千五,</div></ol>
+<ol start='1060'><div><bdi>千六十, </bdi>千六十,</div></ol>
+<ol start='1065'><div><bdi>千六十五, </bdi>千六十五,</div></ol>
+<ol start='1800'><div><bdi>千八百, </bdi>千八百,</div></ol>
+<ol start='1860'><div><bdi>千八百六十, </bdi>千八百六十,</div></ol>
+<ol start='1865'><div><bdi>千八百六十五, </bdi>千八百六十五,</div></ol>
+<ol start='5865'><div><bdi>五千八百六十五, </bdi>五千八百六十五,</div></ol>
+<ol start='7005'><div><bdi>七千五, </bdi>七千五,</div></ol>
+<ol start='7800'><div><bdi>七千八百, </bdi>七千八百,</div></ol>
+<ol start='7865'><div><bdi>七千八百六十五, </bdi>七千八百六十五,</div></ol>
+<ol start='9999'><div><bdi>九千九百九十九, </bdi>九千九百九十九,</div></ol>
+</div>
+
+
+<!--Notes:
+You will need an appropriate font to run this test.
+
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+
+
+</body>
+</html>

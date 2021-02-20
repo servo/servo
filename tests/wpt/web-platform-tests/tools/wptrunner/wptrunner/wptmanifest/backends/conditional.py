@@ -1,5 +1,5 @@
 import operator
-from six import ensure_text, iteritems, iterkeys, text_type
+from six import ensure_text
 
 from ..node import NodeVisitor, DataNode, ConditionalNode, KeyValueNode, ListNode, ValueNode, BinaryExpressionNode, VariableNode
 from ..parser import parse
@@ -300,9 +300,9 @@ class ManifestItem(object):
         if isinstance(value, list):
             value_node = ListNode()
             for item in value:
-                value_node.append(ValueNode(text_type(item)))
+                value_node.append(ValueNode(str(item)))
         else:
-            value_node = ValueNode(text_type(value))
+            value_node = ValueNode(str(value))
         if condition is not None:
             if not isinstance(condition, ConditionalNode):
                 conditional_node = ConditionalNode()
@@ -368,17 +368,17 @@ class ManifestItem(object):
     def _flatten(self):
         rv = {}
         for node in [self, self.root]:
-            for name, value in iteritems(node._data):
+            for name, value in node._data.items():
                 if name not in rv:
                     rv[name] = value
         return rv
 
     def iteritems(self):
-        for item in iteritems(self._flatten()):
+        for item in self._flatten().items():
             yield item
 
     def iterkeys(self):
-        for item in iterkeys(self._flatten()):
+        for item in self._flatten().keys():
             yield item
 
     def iter_properties(self):

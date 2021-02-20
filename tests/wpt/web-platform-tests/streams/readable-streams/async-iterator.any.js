@@ -625,3 +625,26 @@ for (const preventCancel of [false, true]) {
     rs.getReader();
   }, `return() should unlock the stream synchronously when preventCancel = ${preventCancel}`);
 }
+
+promise_test(async () => {
+  const rs = new ReadableStream({
+    async start(c) {
+      c.enqueue('a');
+      c.enqueue('b');
+      c.enqueue('c');
+      await flushAsyncEvents();
+      // At this point, the async iterator has a read request in the stream's queue for its pending next() promise.
+      // Closing the stream now causes two things to happen *synchronously*:
+      //  1. ReadableStreamClose resolves reader.[[closedPromise]] with undefined.
+      //  2. ReadableStreamClose calls the read request's close steps, which calls ReadableStreamReaderGenericRelease,
+      //     which replaces reader.[[closedPromise]] with a rejected promise.
+      c.close();
+    }
+  });
+
+  const chunks = [];
+  for await (const chunk of rs) {
+    chunks.push(chunk);
+  }
+  assert_array_equals(chunks, ['a', 'b', 'c']);
+}, 'close() while next() is pending');

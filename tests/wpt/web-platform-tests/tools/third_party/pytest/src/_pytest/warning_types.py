@@ -1,65 +1,69 @@
-# -*- coding: utf-8 -*-
+from typing import Any
+from typing import Generic
+from typing import TypeVar
+
 import attr
+
+from _pytest.compat import final
+from _pytest.compat import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import Type  # noqa: F401 (used in type string)
 
 
 class PytestWarning(UserWarning):
-    """
-    Bases: :class:`UserWarning`.
+    """Base class for all warnings emitted by pytest."""
 
-    Base class for all warnings emitted by pytest.
-    """
+    __module__ = "pytest"
 
 
+@final
 class PytestAssertRewriteWarning(PytestWarning):
-    """
-    Bases: :class:`PytestWarning`.
+    """Warning emitted by the pytest assert rewrite module."""
 
-    Warning emitted by the pytest assert rewrite module.
-    """
+    __module__ = "pytest"
 
 
+@final
 class PytestCacheWarning(PytestWarning):
-    """
-    Bases: :class:`PytestWarning`.
+    """Warning emitted by the cache plugin in various situations."""
 
-    Warning emitted by the cache plugin in various situations.
-    """
+    __module__ = "pytest"
 
 
+@final
 class PytestConfigWarning(PytestWarning):
-    """
-    Bases: :class:`PytestWarning`.
+    """Warning emitted for configuration issues."""
 
-    Warning emitted for configuration issues.
-    """
+    __module__ = "pytest"
 
 
+@final
 class PytestCollectionWarning(PytestWarning):
-    """
-    Bases: :class:`PytestWarning`.
+    """Warning emitted when pytest is not able to collect a file or symbol in a module."""
 
-    Warning emitted when pytest is not able to collect a file or symbol in a module.
-    """
+    __module__ = "pytest"
 
 
+@final
 class PytestDeprecationWarning(PytestWarning, DeprecationWarning):
-    """
-    Bases: :class:`pytest.PytestWarning`, :class:`DeprecationWarning`.
+    """Warning class for features that will be removed in a future version."""
 
-    Warning class for features that will be removed in a future version.
-    """
+    __module__ = "pytest"
 
 
+@final
 class PytestExperimentalApiWarning(PytestWarning, FutureWarning):
-    """
-    Bases: :class:`pytest.PytestWarning`, :class:`FutureWarning`.
+    """Warning category used to denote experiments in pytest.
 
-    Warning category used to denote experiments in pytest. Use sparingly as the API might change or even be
-    removed completely in future version
+    Use sparingly as the API might change or even be removed completely in a
+    future version.
     """
+
+    __module__ = "pytest"
 
     @classmethod
-    def simple(cls, apiname):
+    def simple(cls, apiname: str) -> "PytestExperimentalApiWarning":
         return cls(
             "{apiname} is an experimental api that may change over time".format(
                 apiname=apiname
@@ -67,45 +71,45 @@ class PytestExperimentalApiWarning(PytestWarning, FutureWarning):
         )
 
 
+@final
 class PytestUnhandledCoroutineWarning(PytestWarning):
+    """Warning emitted for an unhandled coroutine.
+
+    A coroutine was encountered when collecting test functions, but was not
+    handled by any async-aware plugin.
+    Coroutine test functions are not natively supported.
     """
-    Bases: :class:`PytestWarning`.
 
-    Warning emitted when pytest encounters a test function which is a coroutine,
-    but it was not handled by any async-aware plugin. Coroutine test functions
-    are not natively supported.
-    """
+    __module__ = "pytest"
 
 
+@final
 class PytestUnknownMarkWarning(PytestWarning):
-    """
-    Bases: :class:`PytestWarning`.
+    """Warning emitted on use of unknown markers.
 
-    Warning emitted on use of unknown markers.
-    See https://docs.pytest.org/en/latest/mark.html for details.
+    See :ref:`mark` for details.
     """
 
-
-class RemovedInPytest4Warning(PytestDeprecationWarning):
-    """
-    Bases: :class:`pytest.PytestDeprecationWarning`.
-
-    Warning class for features scheduled to be removed in pytest 4.0.
-    """
+    __module__ = "pytest"
 
 
+_W = TypeVar("_W", bound=PytestWarning)
+
+
+@final
 @attr.s
-class UnformattedWarning(object):
-    """Used to hold warnings that need to format their message at runtime, as opposed to a direct message.
+class UnformattedWarning(Generic[_W]):
+    """A warning meant to be formatted during runtime.
 
-    Using this class avoids to keep all the warning types and messages in this module, avoiding misuse.
+    This is used to hold warnings that need to format their message at runtime,
+    as opposed to a direct message.
     """
 
-    category = attr.ib()
-    template = attr.ib()
+    category = attr.ib(type="Type[_W]")
+    template = attr.ib(type=str)
 
-    def format(self, **kwargs):
-        """Returns an instance of the warning category, formatted with given kwargs"""
+    def format(self, **kwargs: Any) -> _W:
+        """Return an instance of the warning category, formatted with given kwargs."""
         return self.category(self.template.format(**kwargs))
 
 

@@ -1,8 +1,6 @@
 import re
 import json
 
-from six import PY3
-
 
 MYPY = False
 if MYPY:
@@ -49,10 +47,8 @@ _ujson_dump_local_kwargs = {
     'ensure_ascii': False,
     'escape_forward_slashes': False,
     'indent': 1,
+    'reject_bytes': True,
 }  # type: Dict[str, Any]
-
-if PY3:
-    _ujson_dump_local_kwargs['reject_bytes'] = True
 
 
 _json_dump_local_kwargs = {
@@ -99,10 +95,9 @@ else:
 _ujson_dump_dist_kwargs = {
     'sort_keys': True,
     'indent': 1,
+    'reject_bytes': True,
 }  # type: Dict[str, Any]
 
-if PY3:
-    _ujson_dump_dist_kwargs['reject_bytes'] = True
 
 _json_dump_dist_kwargs = {
     'sort_keys': True,

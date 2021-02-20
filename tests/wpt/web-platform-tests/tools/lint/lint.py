@@ -14,6 +14,7 @@ import sys
 import tempfile
 
 from collections import defaultdict
+from urllib.parse import urlsplit, urljoin
 
 from . import fnmatch
 from . import rules
@@ -24,9 +25,7 @@ from ..wpt import testfiles
 from ..manifest.vcs import walk
 
 from ..manifest.sourcefile import SourceFile, js_meta_re, python_meta_re, space_chars, get_any_variants
-from six import binary_type, ensure_binary, ensure_text, iteritems, itervalues, with_metaclass
-from six.moves import range
-from six.moves.urllib.parse import urlsplit, urljoin
+from six import ensure_binary, ensure_text
 
 MYPY = False
 if MYPY:
@@ -325,7 +324,7 @@ def check_css_globally_unique(repo_root, paths):
 
     errors = []
 
-    for name, colliding in iteritems(test_files):
+    for name, colliding in test_files.items():
         if len(colliding) > 1:
             if not _all_files_equal([os.path.join(repo_root, x) for x in colliding]):
                 # Only compute by_spec if there are prima-facie collisions because of cost
@@ -342,7 +341,7 @@ def check_css_globally_unique(repo_root, paths):
                             continue
                         by_spec[spec].add(path)
 
-                for spec, spec_paths in iteritems(by_spec):
+                for spec, spec_paths in by_spec.items():
                     if not _all_files_equal([os.path.join(repo_root, x) for x in spec_paths]):
                         for x in spec_paths:
                             context1 = (name, spec, ", ".join(sorted(spec_paths)))
@@ -351,7 +350,7 @@ def check_css_globally_unique(repo_root, paths):
 
     for rule_class, d in [(rules.CSSCollidingRefName, ref_files),
                           (rules.CSSCollidingSupportName, support_files)]:
-        for name, colliding in iteritems(d):
+        for name, colliding in d.items():
             if len(colliding) > 1:
                 if not _all_files_equal([os.path.join(repo_root, x) for x in colliding]):
                     context2 = (name, ", ".join(sorted(colliding)))
@@ -451,7 +450,7 @@ def filter_ignorelist_errors(data, errors):
         # which explains how to fix it correctly and shouldn't be skipped.
         if error_type in data and error_type != "IGNORED PATH":
             wl_files = data[error_type]
-            for file_match, allowed_lines in iteritems(wl_files):
+            for file_match, allowed_lines in wl_files.items():
                 if None in allowed_lines or line in allowed_lines:
                     if fnmatch.fnmatchcase(normpath, file_match):
                         skipped[i] = True
@@ -507,6 +506,7 @@ def check_parsed(repo_root, path, f):
         if (source_file.type != "support" and
             not source_file.name_is_reference and
             not source_file.name_is_tentative and
+            not source_file.name_is_crashtest and
             not source_file.spec_links):
             return [rules.MissingLink.error(path)]
 
@@ -667,7 +667,7 @@ def check_parsed(repo_root, path, f):
 
     return errors
 
-class ASTCheck(with_metaclass(abc.ABCMeta)):
+class ASTCheck(metaclass=abc.ABCMeta):
     @abc.abstractproperty
     def rule(self):
         # type: () -> Type[rules.Rule]
@@ -740,7 +740,7 @@ def check_script_metadata(repo_root, path, f):
     done = False
     errors = []
     for idx, line in enumerate(f):
-        assert isinstance(line, binary_type), line
+        assert isinstance(line, bytes), line
 
         m = meta_re.match(line)
         if m:
@@ -974,7 +974,7 @@ def create_parser():
 
 def main(**kwargs_str):
     # type: (**Any) -> int
-    kwargs = {ensure_text(key): value for key, value in iteritems(kwargs_str)}
+    kwargs = {ensure_text(key): value for key, value in kwargs_str.items()}
 
     assert logger is not None
     if kwargs.get("json") and kwargs.get("markdown"):
@@ -1102,7 +1102,7 @@ def lint(repo_root, paths, output_format, ignore_glob=None, github_checks_output
     if error_count and github_checks_outputter:
         github_checks_outputter.output("```")
 
-    return sum(itervalues(error_count))
+    return sum(error_count.values())
 
 
 path_lints = [check_file_type, check_path_length, check_worker_collision, check_ahem_copy,

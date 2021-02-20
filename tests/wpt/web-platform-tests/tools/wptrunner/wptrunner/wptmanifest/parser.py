@@ -14,8 +14,7 @@
 
 from __future__ import unicode_literals
 
-from six import binary_type, text_type, BytesIO, unichr
-from six.moves import range
+from io import BytesIO
 
 from .node import (Node, AtomNode, BinaryExpressionNode, BinaryOperatorNode,
                    ConditionalNode, DataNode, IndexNode, KeyValueNode, ListNode,
@@ -50,7 +49,7 @@ atoms = {"True": True,
          "Reset": object()}
 
 def decode(s):
-    assert isinstance(s, text_type)
+    assert isinstance(s, str)
     return s
 
 
@@ -79,7 +78,7 @@ class Tokenizer(object):
 
     def tokenize(self, stream):
         self.reset()
-        assert not isinstance(stream, text_type)
+        assert not isinstance(stream, str)
         if isinstance(stream, bytes):
             stream = BytesIO(stream)
         if not hasattr(stream, "name"):
@@ -89,7 +88,7 @@ class Tokenizer(object):
 
         self.next_line_state = self.line_start_state
         for i, line in enumerate(stream):
-            assert isinstance(line, binary_type)
+            assert isinstance(line, bytes)
             self.state = self.next_line_state
             assert self.state is not None
             states = []
@@ -97,7 +96,7 @@ class Tokenizer(object):
             self.line_number = i + 1
             self.index = 0
             self.line = line.decode('utf-8').rstrip()
-            assert isinstance(self.line, text_type)
+            assert isinstance(self.line, str)
             while self.state != self.eol_state:
                 states.append(self.state)
                 tokens = self.state()
@@ -505,7 +504,7 @@ class Tokenizer(object):
             value += self.escape_value(c)
             self.consume()
 
-        return unichr(value)
+        return chr(value)
 
     def escape_value(self, c):
         if '0' <= c <= '9':

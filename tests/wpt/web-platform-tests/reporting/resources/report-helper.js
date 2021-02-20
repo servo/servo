@@ -3,7 +3,7 @@ function wait(ms) {
 }
 
 async function pollReports(endpoint, id) {
-  const res = await fetch(`${endpoint}?id=${id}`, {cache: 'no-store'});
+  const res = await fetch(`${endpoint}?reportID=${id}`, {cache: 'no-store'});
   const reports = [];
   if (res.status === 200) {
     for (const report of await res.json()) {

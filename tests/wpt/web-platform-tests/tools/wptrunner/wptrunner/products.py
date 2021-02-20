@@ -1,6 +1,5 @@
 import importlib
 import imp
-from six import iteritems
 
 from .browsers import product_list
 
@@ -45,7 +44,7 @@ class Product(object):
         self.get_timeout_multiplier = getattr(module, data["timeout_multiplier"])
 
         self.executor_classes = {}
-        for test_type, cls_name in iteritems(data["executor"]):
+        for test_type, cls_name in data["executor"].items():
             cls = getattr(module, cls_name)
             self.executor_classes[test_type] = cls
 

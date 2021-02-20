@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Add background-attachment:fixed during smooth scroll</title>
+<style>
+#container {
+  width: 200px;
+  height: 200px;
+  overflow: scroll;
+  background: linear-gradient(green, blue);
+  background-attachment: fixed;
+}
+#content {
+  width: 7500px;
+  height: 7500px;
+}
+</style>
+<div id="container">
+  <div id="content">Content</div>
+</div>
+<script>
+container.scrollTop = 6000;
+</script>

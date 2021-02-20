@@ -1,0 +1,24 @@
+<html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+  setup({ single_test: true });
+  function handleEvent(e) {
+    assert_equals(e.data, 'pass');
+    done();
+  }
+  function on_iframe_load() {
+    var frameWin = document.getElementById('confirmFrame').contentWindow;
+    frameWin.postMessage('Confirm', '*');
+  }
+  window.addEventListener('message', handleEvent);
+</script>
+
+<body>
+  <iframe id='confirmFrame'
+    src='http://{{hosts[alt][www]}}:{{ports[http][0]}}/html/webappapis/user-prompts/cannot-show-simple-dialogs/support/confirm.html'
+    onload='on_iframe_load()'></iframe>
+</body>
+
+</html>

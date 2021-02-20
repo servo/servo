@@ -1,7 +1,7 @@
 pytest-2.6.2: few fixes and cx_freeze support
 ===========================================================================
 
-pytest is a mature Python testing tool with more than a 1100 tests
+pytest is a mature Python testing tool with more than 1100 tests
 against itself, passing on many different interpreters and platforms.
 This release is drop-in compatible to 2.5.2 and 2.6.X.  It also
 brings support for including pytest with cx_freeze or similar

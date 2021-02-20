@@ -12,6 +12,9 @@ Tidelift aims to make Open Source sustainable by offering subscriptions to compa
 on Open Source packages. This subscription allows it to pay maintainers of those Open Source
 packages to aid sustainability of the work.
 
+It is the perfect platform for companies that want to support Open Source packages and at the same
+time obtain assurances regarding maintenance, quality and security.
+
 Funds
 =====
 
@@ -21,7 +24,6 @@ members of the `contributors team`_ interested in receiving funding.
 The current list of contributors receiving funding are:
 
 * `@asottile`_
-* `@blueyed`_
 * `@nicoddemus`_
 
 Contributors interested in receiving a part of the funds just need to submit a PR adding their
@@ -53,5 +55,4 @@ funds. Just drop a line to one of the `@pytest-dev/tidelift-admins`_ or use the 
 .. _`agreement`: https://tidelift.com/docs/lifting/agreement
 
 .. _`@asottile`: https://github.com/asottile
-.. _`@blueyed`: https://github.com/blueyed
 .. _`@nicoddemus`: https://github.com/nicoddemus

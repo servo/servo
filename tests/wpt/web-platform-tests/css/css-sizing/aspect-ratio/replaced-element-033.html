@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: img block size with box-sizing (vertical writing mode)</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+<style>
+img {
+  writing-mode: vertical-rl;
+  border-top: 40px solid green;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<!--
+  1st: A green rect 60x100.
+       border-top is 60x40 and the content box is 60x60.
+       We use 'aspect-ratio: auto && <ratio>', so the aspect-ratio works with
+       content-box dimensions always. The inline size of the content box is
+       (100px - 40px) = 60px, so the block size is 60px * 1/1 = 60px.
+
+  2nd: A green rect 20x100.
+       border-top is 20x40 and the content box is 20x60.
+
+  3rd: A green rect 20x100.
+       border-top is 20x40 and the content box is 20x60 because we compute
+       the block size by aspect-ratio which works with border-box and so the
+       block size is 100px / 5 = 20px.
+-->
+<img src="support/1x1-green.png" style="height: 100px; aspect-ratio: auto 1/10; box-sizing: border-box;"
+><img src="support/1x1-green.png" style="height: 60px; aspect-ratio: 1/3; box-sizing: content-box;"
+><img src="support/1x1-green.png" style="height: 100px; aspect-ratio: 1/5; box-sizing: border-box;">

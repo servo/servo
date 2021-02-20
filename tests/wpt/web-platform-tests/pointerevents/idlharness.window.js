@@ -12,7 +12,7 @@ idl_test(
   idl_array => {
     idl_array.add_objects({
       Document: ['document'],
-      Element: ['document'],
+      Element: ['document.body'],
       Window: ['window'],
       Navigator: ['navigator'],
       PointerEvent: ['new PointerEvent("type")']

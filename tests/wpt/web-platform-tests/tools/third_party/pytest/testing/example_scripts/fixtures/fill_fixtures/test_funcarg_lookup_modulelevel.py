@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import pytest
 
 
@@ -7,7 +6,7 @@ def something(request):
     return request.function.__name__
 
 
-class TestClass(object):
+class TestClass:
     def test_method(self, something):
         assert something == "test_method"
 

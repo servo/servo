@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from six import BytesIO
+from io import BytesIO
 from ...lint.lint import check_global_metadata
 from ..sourcefile import SourceFile, read_script_metadata, js_meta_re, python_meta_re
 

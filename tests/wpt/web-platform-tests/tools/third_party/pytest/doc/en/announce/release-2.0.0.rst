@@ -7,7 +7,7 @@ see below for summary and detailed lists.  A lot of long-deprecated code
 has been removed, resulting in a much smaller and cleaner
 implementation.  See the new docs with examples here:
 
-    http://pytest.org/2.0.0/index.html
+    http://pytest.org/en/stable/index.html
 
 A note on packaging: pytest used to part of the "py" distribution up
 until version py-1.3.4 but this has changed now:  pytest-2.0.0 only
@@ -36,12 +36,12 @@ New Features
 
     import pytest ; pytest.main(arglist, pluginlist)
 
-  see http://pytest.org/2.0.0/usage.html for details.
+  see http://pytest.org/en/stable/usage.html for details.
 
 - new and better reporting information in assert expressions
   if comparing lists, sequences or strings.
 
-  see http://pytest.org/2.0.0/assert.html#newreport
+  see http://pytest.org/en/stable/assert.html#newreport
 
 - new configuration through ini-files (setup.cfg or tox.ini recognized),
   for example::
@@ -50,7 +50,7 @@ New Features
     norecursedirs = .hg data*  # don't ever recurse in such dirs
     addopts = -x --pyargs      # add these command line options by default
 
-  see http://pytest.org/2.0.0/customize.html
+  see http://pytest.org/en/stable/customize.html
 
 - improved standard unittest support.  In general py.test should now
   better be able to run custom unittest.TestCases like twisted trial

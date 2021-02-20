@@ -1187,7 +1187,7 @@ policies and contribution forms [3].
             let stack = null;
             try {
                 if (settings.debug) {
-                    console.debug("ASSERT", name, tests.current_test.name, args);
+                    console.debug("ASSERT", name, tests.current_test && tests.current_test.name, args);
                 }
                 if (tests.output) {
                     tests.set_assert(name, ...args);
@@ -2839,6 +2839,8 @@ policies and contribution forms [3].
                     this.hide_test_state = value;
                 } else if (p == "output") {
                     this.output = value;
+                } else if (p === "debug") {
+                    settings.debug = value;
                 }
             }
         }
@@ -2863,7 +2865,7 @@ policies and contribution forms [3].
         this.wait_for_finish = true;
         this.file_is_test = true;
         // Create the test, which will add it to the list of tests
-        async_test();
+        tests.current_test = async_test();
     };
 
     Tests.prototype.set_status = function(status, message, stack)

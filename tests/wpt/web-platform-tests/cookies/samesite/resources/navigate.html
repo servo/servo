@@ -3,15 +3,13 @@
 <script src="/cookies/resources/cookie-helper.sub.js"></script>
 <script>
   window.addEventListener('load', function() {
-    window.opener.postMessage({ type: 'READY' }, '*');
+    if (window.opener)
+      window.opener.postMessage({ type: 'READY' }, '*');
+    if (window.parent !== window)
+      window.parent.postMessage({ type: 'FRAME_READY' }, '*');
   });
 
   window.addEventListener('message', function(e) {
-    if (SECURE_ORIGIN !== window.location.origin)
-      return;
-    if (window.location.origin !== e.origin)
-      return;
-
     if (e.data.type === "navigate") {
       window.location = e.data.url;
     }

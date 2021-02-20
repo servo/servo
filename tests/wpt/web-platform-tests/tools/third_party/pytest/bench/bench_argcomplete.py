@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # 10000 iterations, just for relative comparison
 #                      2.7.5     3.3.2
 # FilesCompleter       75.1109   69.2116
