@@ -1,75 +1,70 @@
-# -*- coding: utf-8 -*-
-"""
-    report test results in JUnit-XML format,
-    for use with Jenkins and build integration servers.
-
+"""Report test results in JUnit-XML format, for use with Jenkins and build
+integration servers.
 
 Based on initial code from Ross Lawley.
 
-Output conforms to https://github.com/jenkinsci/xunit-plugin/blob/master/
-src/main/resources/org/jenkinsci/plugins/xunit/types/model/xsd/junit-10.xsd
+Output conforms to
+https://github.com/jenkinsci/xunit-plugin/blob/master/src/main/resources/org/jenkinsci/plugins/xunit/types/model/xsd/junit-10.xsd
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import functools
 import os
 import platform
 import re
-import sys
-import time
+import xml.etree.ElementTree as ET
 from datetime import datetime
-
-import py
-import six
+from typing import Callable
+from typing import Dict
+from typing import List
+from typing import Match
+from typing import Optional
+from typing import Tuple
+from typing import Union
 
 import pytest
 from _pytest import nodes
+from _pytest import timing
+from _pytest._code.code import ExceptionRepr
+from _pytest._code.code import ReprFileLocation
+from _pytest.config import Config
 from _pytest.config import filename_arg
-
-# Python 2.X and 3.X compatibility
-if sys.version_info[0] < 3:
-    from codecs import open
-
-
-class Junit(py.xml.Namespace):
-    pass
+from _pytest.config.argparsing import Parser
+from _pytest.fixtures import FixtureRequest
+from _pytest.reports import TestReport
+from _pytest.store import StoreKey
+from _pytest.terminal import TerminalReporter
 
 
-# We need to get the subset of the invalid unicode ranges according to
-# XML 1.0 which are valid in this python build.  Hence we calculate
-# this dynamically instead of hardcoding it.  The spec range of valid
-# chars is: Char ::= #x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD]
-#                    | [#x10000-#x10FFFF]
-_legal_chars = (0x09, 0x0A, 0x0D)
-_legal_ranges = ((0x20, 0x7E), (0x80, 0xD7FF), (0xE000, 0xFFFD), (0x10000, 0x10FFFF))
-_legal_xml_re = [
-    u"%s-%s" % (six.unichr(low), six.unichr(high))
-    for (low, high) in _legal_ranges
-    if low < sys.maxunicode
-]
-_legal_xml_re = [six.unichr(x) for x in _legal_chars] + _legal_xml_re
-illegal_xml_re = re.compile(u"[^%s]" % u"".join(_legal_xml_re))
-del _legal_chars
-del _legal_ranges
-del _legal_xml_re
-
-_py_ext_re = re.compile(r"\.py$")
+xml_key = StoreKey["LogXML"]()
 
 
-def bin_xml_escape(arg):
-    def repl(matchobj):
+def bin_xml_escape(arg: object) -> str:
+    r"""Visually escape invalid XML characters.
+
+    For example, transforms
+        'hello\aworld\b'
+    into
+        'hello#x07world#x08'
+    Note that the #xABs are *not* XML escapes - missing the ampersand &#xAB.
+    The idea is to escape visually for the user rather than for XML itself.
+    """
+
+    def repl(matchobj: Match[str]) -> str:
         i = ord(matchobj.group())
         if i <= 0xFF:
-            return u"#x%02X" % i
+            return "#x%02X" % i
         else:
-            return u"#x%04X" % i
+            return "#x%04X" % i
 
-    return py.xml.raw(illegal_xml_re.sub(repl, py.xml.escape(arg)))
+    # The spec range of valid chars is:
+    # Char ::= #x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD] | [#x10000-#x10FFFF]
+    # For an unknown(?) reason, we disallow #x7F (DEL) as well.
+    illegal_xml_re = (
+        "[^\u0009\u000A\u000D\u0020-\u007E\u0080-\uD7FF\uE000-\uFFFD\u10000-\u10FFFF]"
+    )
+    return re.sub(illegal_xml_re, repl, str(arg))
 
 
-def merge_family(left, right):
+def merge_family(left, right) -> None:
     result = {}
     for kl, vl in left.items():
         for kr, vr in right.items():
@@ -83,50 +78,45 @@ families = {}
 families["_base"] = {"testcase": ["classname", "name"]}
 families["_base_legacy"] = {"testcase": ["file", "line", "url"]}
 
-# xUnit 1.x inherits legacy attributes
+# xUnit 1.x inherits legacy attributes.
 families["xunit1"] = families["_base"].copy()
 merge_family(families["xunit1"], families["_base_legacy"])
 
-# xUnit 2.x uses strict base attributes
+# xUnit 2.x uses strict base attributes.
 families["xunit2"] = families["_base"]
 
 
-class _NodeReporter(object):
-    def __init__(self, nodeid, xml):
+class _NodeReporter:
+    def __init__(self, nodeid: Union[str, TestReport], xml: "LogXML") -> None:
         self.id = nodeid
         self.xml = xml
         self.add_stats = self.xml.add_stats
         self.family = self.xml.family
         self.duration = 0
-        self.properties = []
-        self.nodes = []
-        self.testcase = None
-        self.attrs = {}
+        self.properties = []  # type: List[Tuple[str, str]]
+        self.nodes = []  # type: List[ET.Element]
+        self.attrs = {}  # type: Dict[str, str]
 
-    def append(self, node):
-        self.xml.add_stats(type(node).__name__)
+    def append(self, node: ET.Element) -> None:
+        self.xml.add_stats(node.tag)
         self.nodes.append(node)
 
-    def add_property(self, name, value):
+    def add_property(self, name: str, value: object) -> None:
         self.properties.append((str(name), bin_xml_escape(value)))
 
-    def add_attribute(self, name, value):
+    def add_attribute(self, name: str, value: object) -> None:
         self.attrs[str(name)] = bin_xml_escape(value)
 
-    def make_properties_node(self):
-        """Return a Junit node containing custom properties, if any.
-        """
+    def make_properties_node(self) -> Optional[ET.Element]:
+        """Return a Junit node containing custom properties, if any."""
         if self.properties:
-            return Junit.properties(
-                [
-                    Junit.property(name=name, value=value)
-                    for name, value in self.properties
-                ]
-            )
-        return ""
+            properties = ET.Element("properties")
+            for name, value in self.properties:
+                properties.append(ET.Element("property", name=name, value=value))
+            return properties
+        return None
 
-    def record_testreport(self, testreport):
-        assert not self.testcase
+    def record_testreport(self, testreport: TestReport) -> None:
         names = mangle_test_address(testreport.nodeid)
         existing_attrs = self.attrs
         classnames = names[:-1]
@@ -136,15 +126,15 @@ class _NodeReporter(object):
             "classname": ".".join(classnames),
             "name": bin_xml_escape(names[-1]),
             "file": testreport.location[0],
-        }
+        }  # type: Dict[str, str]
         if testreport.location[1] is not None:
-            attrs["line"] = testreport.location[1]
+            attrs["line"] = str(testreport.location[1])
         if hasattr(testreport, "url"):
             attrs["url"] = testreport.url
         self.attrs = attrs
-        self.attrs.update(existing_attrs)  # restore any user-defined attributes
+        self.attrs.update(existing_attrs)  # Restore any user-defined attributes.
 
-        # Preserve legacy testcase behavior
+        # Preserve legacy testcase behavior.
         if self.family == "xunit1":
             return
 
@@ -156,142 +146,128 @@ class _NodeReporter(object):
                 temp_attrs[key] = self.attrs[key]
         self.attrs = temp_attrs
 
-    def to_xml(self):
-        testcase = Junit.testcase(time="%.3f" % self.duration, **self.attrs)
-        testcase.append(self.make_properties_node())
-        for node in self.nodes:
-            testcase.append(node)
+    def to_xml(self) -> ET.Element:
+        testcase = ET.Element("testcase", self.attrs, time="%.3f" % self.duration)
+        properties = self.make_properties_node()
+        if properties is not None:
+            testcase.append(properties)
+        testcase.extend(self.nodes)
         return testcase
 
-    def _add_simple(self, kind, message, data=None):
-        data = bin_xml_escape(data)
-        node = kind(data, message=message)
+    def _add_simple(self, tag: str, message: str, data: Optional[str] = None) -> None:
+        node = ET.Element(tag, message=message)
+        node.text = bin_xml_escape(data)
         self.append(node)
 
-    def write_captured_output(self, report):
+    def write_captured_output(self, report: TestReport) -> None:
         if not self.xml.log_passing_tests and report.passed:
             return
 
         content_out = report.capstdout
         content_log = report.caplog
         content_err = report.capstderr
+        if self.xml.logging == "no":
+            return
+        content_all = ""
+        if self.xml.logging in ["log", "all"]:
+            content_all = self._prepare_content(content_log, " Captured Log ")
+        if self.xml.logging in ["system-out", "out-err", "all"]:
+            content_all += self._prepare_content(content_out, " Captured Out ")
+            self._write_content(report, content_all, "system-out")
+            content_all = ""
+        if self.xml.logging in ["system-err", "out-err", "all"]:
+            content_all += self._prepare_content(content_err, " Captured Err ")
+            self._write_content(report, content_all, "system-err")
+            content_all = ""
+        if content_all:
+            self._write_content(report, content_all, "system-out")
 
-        if content_log or content_out:
-            if content_log and self.xml.logging == "system-out":
-                if content_out:
-                    # syncing stdout and the log-output is not done yet. It's
-                    # probably not worth the effort. Therefore, first the captured
-                    # stdout is shown and then the captured logs.
-                    content = "\n".join(
-                        [
-                            " Captured Stdout ".center(80, "-"),
-                            content_out,
-                            "",
-                            " Captured Log ".center(80, "-"),
-                            content_log,
-                        ]
-                    )
-                else:
-                    content = content_log
-            else:
-                content = content_out
+    def _prepare_content(self, content: str, header: str) -> str:
+        return "\n".join([header.center(80, "-"), content, ""])
 
-            if content:
-                tag = getattr(Junit, "system-out")
-                self.append(tag(bin_xml_escape(content)))
+    def _write_content(self, report: TestReport, content: str, jheader: str) -> None:
+        tag = ET.Element(jheader)
+        tag.text = bin_xml_escape(content)
+        self.append(tag)
 
-        if content_log or content_err:
-            if content_log and self.xml.logging == "system-err":
-                if content_err:
-                    content = "\n".join(
-                        [
-                            " Captured Stderr ".center(80, "-"),
-                            content_err,
-                            "",
-                            " Captured Log ".center(80, "-"),
-                            content_log,
-                        ]
-                    )
-                else:
-                    content = content_log
-            else:
-                content = content_err
-
-            if content:
-                tag = getattr(Junit, "system-err")
-                self.append(tag(bin_xml_escape(content)))
-
-    def append_pass(self, report):
+    def append_pass(self, report: TestReport) -> None:
         self.add_stats("passed")
 
-    def append_failure(self, report):
+    def append_failure(self, report: TestReport) -> None:
         # msg = str(report.longrepr.reprtraceback.extraline)
         if hasattr(report, "wasxfail"):
-            self._add_simple(Junit.skipped, "xfail-marked test passes unexpectedly")
+            self._add_simple("skipped", "xfail-marked test passes unexpectedly")
         else:
-            if hasattr(report.longrepr, "reprcrash"):
-                message = report.longrepr.reprcrash.message
-            elif isinstance(report.longrepr, six.string_types):
-                message = report.longrepr
+            assert report.longrepr is not None
+            reprcrash = getattr(
+                report.longrepr, "reprcrash", None
+            )  # type: Optional[ReprFileLocation]
+            if reprcrash is not None:
+                message = reprcrash.message
             else:
                 message = str(report.longrepr)
             message = bin_xml_escape(message)
-            fail = Junit.failure(message=message)
-            fail.append(bin_xml_escape(report.longrepr))
-            self.append(fail)
+            self._add_simple("failure", message, str(report.longrepr))
 
-    def append_collect_error(self, report):
+    def append_collect_error(self, report: TestReport) -> None:
         # msg = str(report.longrepr.reprtraceback.extraline)
-        self.append(
-            Junit.error(bin_xml_escape(report.longrepr), message="collection failure")
-        )
+        assert report.longrepr is not None
+        self._add_simple("error", "collection failure", str(report.longrepr))
 
-    def append_collect_skipped(self, report):
-        self._add_simple(Junit.skipped, "collection skipped", report.longrepr)
+    def append_collect_skipped(self, report: TestReport) -> None:
+        self._add_simple("skipped", "collection skipped", str(report.longrepr))
 
-    def append_error(self, report):
-        if report.when == "teardown":
-            msg = "test teardown failure"
+    def append_error(self, report: TestReport) -> None:
+        assert report.longrepr is not None
+        reprcrash = getattr(
+            report.longrepr, "reprcrash", None
+        )  # type: Optional[ReprFileLocation]
+        if reprcrash is not None:
+            reason = reprcrash.message
         else:
-            msg = "test setup failure"
-        self._add_simple(Junit.error, msg, report.longrepr)
+            reason = str(report.longrepr)
 
-    def append_skipped(self, report):
+        if report.when == "teardown":
+            msg = 'failed on teardown with "{}"'.format(reason)
+        else:
+            msg = 'failed on setup with "{}"'.format(reason)
+        self._add_simple("error", msg, str(report.longrepr))
+
+    def append_skipped(self, report: TestReport) -> None:
         if hasattr(report, "wasxfail"):
             xfailreason = report.wasxfail
             if xfailreason.startswith("reason: "):
                 xfailreason = xfailreason[8:]
-            self.append(
-                Junit.skipped(
-                    "", type="pytest.xfail", message=bin_xml_escape(xfailreason)
-                )
-            )
+            xfailreason = bin_xml_escape(xfailreason)
+            skipped = ET.Element("skipped", type="pytest.xfail", message=xfailreason)
+            self.append(skipped)
         else:
+            assert isinstance(report.longrepr, tuple)
             filename, lineno, skipreason = report.longrepr
             if skipreason.startswith("Skipped: "):
                 skipreason = skipreason[9:]
-            details = "%s:%s: %s" % (filename, lineno, skipreason)
+            details = "{}:{}: {}".format(filename, lineno, skipreason)
 
-            self.append(
-                Junit.skipped(
-                    bin_xml_escape(details),
-                    type="pytest.skip",
-                    message=bin_xml_escape(skipreason),
-                )
-            )
+            skipped = ET.Element("skipped", type="pytest.skip", message=skipreason)
+            skipped.text = bin_xml_escape(details)
+            self.append(skipped)
             self.write_captured_output(report)
 
-    def finalize(self):
-        data = self.to_xml().unicode(indent=0)
+    def finalize(self) -> None:
+        data = self.to_xml()
         self.__dict__.clear()
-        self.to_xml = lambda: py.xml.raw(data)
+        # Type ignored becuase mypy doesn't like overriding a method.
+        # Also the return value doesn't match...
+        self.to_xml = lambda: data  # type: ignore[assignment]
 
 
-def _warn_incompatibility_with_xunit2(request, fixture_name):
-    """Emits a PytestWarning about the given fixture being incompatible with newer xunit revisions"""
+def _warn_incompatibility_with_xunit2(
+    request: FixtureRequest, fixture_name: str
+) -> None:
+    """Emit a PytestWarning about the given fixture being incompatible with newer xunit revisions."""
     from _pytest.warning_types import PytestWarning
 
-    xml = getattr(request.config, "_xml", None)
+    xml = request.config._store.get(xml_key, None)
     if xml is not None and xml.family not in ("xunit1", "legacy"):
         request.node.warn(
             PytestWarning(
@@ -303,12 +279,14 @@ def _warn_incompatibility_with_xunit2(request, fixture_name):
 
 
 @pytest.fixture
-def record_property(request):
-    """Add an extra properties the calling test.
+def record_property(request: FixtureRequest) -> Callable[[str, object], None]:
+    """Add extra properties to the calling test.
+
     User properties become part of the test report and are available to the
     configured reporters, like JUnit XML.
-    The fixture is callable with ``(name, value)``, with value being automatically
-    xml-encoded.
+
+    The fixture is callable with ``name, value``. The value is automatically
+    XML-encoded.
 
     Example::
 
@@ -317,17 +295,18 @@ def record_property(request):
     """
     _warn_incompatibility_with_xunit2(request, "record_property")
 
-    def append_property(name, value):
+    def append_property(name: str, value: object) -> None:
         request.node.user_properties.append((name, value))
 
     return append_property
 
 
 @pytest.fixture
-def record_xml_attribute(request):
+def record_xml_attribute(request: FixtureRequest) -> Callable[[str, object], None]:
     """Add extra xml attributes to the tag for the calling test.
-    The fixture is callable with ``(name, value)``, with value being
-    automatically xml-encoded
+
+    The fixture is callable with ``name, value``. The value is
+    automatically XML-encoded.
     """
     from _pytest.warning_types import PytestExperimentalApiWarning
 
@@ -338,12 +317,12 @@ def record_xml_attribute(request):
     _warn_incompatibility_with_xunit2(request, "record_xml_attribute")
 
     # Declare noop
-    def add_attr_noop(name, value):
+    def add_attr_noop(name: str, value: object) -> None:
         pass
 
     attr_func = add_attr_noop
 
-    xml = getattr(request.config, "_xml", None)
+    xml = request.config._store.get(xml_key, None)
     if xml is not None:
         node_reporter = xml.node_reporter(request.node.nodeid)
         attr_func = node_reporter.add_attribute
@@ -351,20 +330,21 @@ def record_xml_attribute(request):
     return attr_func
 
 
-def _check_record_param_type(param, v):
+def _check_record_param_type(param: str, v: str) -> None:
     """Used by record_testsuite_property to check that the given parameter name is of the proper
-    type"""
+    type."""
     __tracebackhide__ = True
-    if not isinstance(v, six.string_types):
-        msg = "{param} parameter needs to be a string, but {g} given"
+    if not isinstance(v, str):
+        msg = "{param} parameter needs to be a string, but {g} given"  # type: ignore[unreachable]
         raise TypeError(msg.format(param=param, g=type(v).__name__))
 
 
 @pytest.fixture(scope="session")
-def record_testsuite_property(request):
-    """
-    Records a new ``<property>`` tag as child of the root ``<testsuite>``. This is suitable to
-    writing global information regarding the entire test suite, and is compatible with ``xunit2`` JUnit family.
+def record_testsuite_property(request: FixtureRequest) -> Callable[[str, object], None]:
+    """Record a new ``<property>`` tag as child of the root ``<testsuite>``.
+
+    This is suitable to writing global information regarding the entire test
+    suite, and is compatible with ``xunit2`` JUnit family.
 
     This is a ``session``-scoped fixture which is called with ``(name, value)``. Example:
 
@@ -375,22 +355,28 @@ def record_testsuite_property(request):
             record_testsuite_property("STORAGE_TYPE", "CEPH")
 
     ``name`` must be a string, ``value`` will be converted to a string and properly xml-escaped.
+
+    .. warning::
+
+        Currently this fixture **does not work** with the
+        `pytest-xdist <https://github.com/pytest-dev/pytest-xdist>`__ plugin. See issue
+        `#7767 <https://github.com/pytest-dev/pytest/issues/7767>`__ for details.
     """
 
     __tracebackhide__ = True
 
-    def record_func(name, value):
-        """noop function in case --junitxml was not passed in the command-line"""
+    def record_func(name: str, value: object) -> None:
+        """No-op function in case --junitxml was not passed in the command-line."""
         __tracebackhide__ = True
         _check_record_param_type("name", name)
 
-    xml = getattr(request.config, "_xml", None)
+    xml = request.config._store.get(xml_key, None)
     if xml is not None:
         record_func = xml.add_global_property  # noqa
     return record_func
 
 
-def pytest_addoption(parser):
+def pytest_addoption(parser: Parser) -> None:
     group = parser.getgroup("terminal reporting")
     group.addoption(
         "--junitxml",
@@ -416,9 +402,9 @@ def pytest_addoption(parser):
     parser.addini(
         "junit_logging",
         "Write captured log messages to JUnit report: "
-        "one of no|system-out|system-err",
+        "one of no|log|system-out|system-err|out-err|all",
         default="no",
-    )  # choices=['no', 'stdout', 'stderr'])
+    )
     parser.addini(
         "junit_log_passing_tests",
         "Capture log information for passing tests to JUnit report: ",
@@ -433,59 +419,60 @@ def pytest_addoption(parser):
     parser.addini(
         "junit_family",
         "Emit XML for schema: one of legacy|xunit1|xunit2",
-        default="xunit1",
+        default="xunit2",
     )
 
 
-def pytest_configure(config):
+def pytest_configure(config: Config) -> None:
     xmlpath = config.option.xmlpath
-    # prevent opening xmllog on slave nodes (xdist)
-    if xmlpath and not hasattr(config, "slaveinput"):
-        config._xml = LogXML(
+    # Prevent opening xmllog on worker nodes (xdist).
+    if xmlpath and not hasattr(config, "workerinput"):
+        junit_family = config.getini("junit_family")
+        config._store[xml_key] = LogXML(
             xmlpath,
             config.option.junitprefix,
             config.getini("junit_suite_name"),
             config.getini("junit_logging"),
             config.getini("junit_duration_report"),
-            config.getini("junit_family"),
+            junit_family,
             config.getini("junit_log_passing_tests"),
         )
-        config.pluginmanager.register(config._xml)
+        config.pluginmanager.register(config._store[xml_key])
 
 
-def pytest_unconfigure(config):
-    xml = getattr(config, "_xml", None)
+def pytest_unconfigure(config: Config) -> None:
+    xml = config._store.get(xml_key, None)
     if xml:
-        del config._xml
+        del config._store[xml_key]
         config.pluginmanager.unregister(xml)
 
 
-def mangle_test_address(address):
+def mangle_test_address(address: str) -> List[str]:
     path, possible_open_bracket, params = address.partition("[")
     names = path.split("::")
     try:
         names.remove("()")
     except ValueError:
         pass
-    # convert file path to dotted path
+    # Convert file path to dotted path.
     names[0] = names[0].replace(nodes.SEP, ".")
-    names[0] = _py_ext_re.sub("", names[0])
-    # put any params back
+    names[0] = re.sub(r"\.py$", "", names[0])
+    # Put any params back.
     names[-1] += possible_open_bracket + params
     return names
 
 
-class LogXML(object):
+class LogXML:
     def __init__(
         self,
         logfile,
-        prefix,
-        suite_name="pytest",
-        logging="no",
-        report_duration="total",
+        prefix: Optional[str],
+        suite_name: str = "pytest",
+        logging: str = "no",
+        report_duration: str = "total",
         family="xunit1",
-        log_passing_tests=True,
-    ):
+        log_passing_tests: bool = True,
+    ) -> None:
         logfile = os.path.expanduser(os.path.expandvars(logfile))
         self.logfile = os.path.normpath(os.path.abspath(logfile))
         self.prefix = prefix
@@ -494,36 +481,40 @@ class LogXML(object):
         self.log_passing_tests = log_passing_tests
         self.report_duration = report_duration
         self.family = family
-        self.stats = dict.fromkeys(["error", "passed", "failure", "skipped"], 0)
-        self.node_reporters = {}  # nodeid -> _NodeReporter
-        self.node_reporters_ordered = []
-        self.global_properties = []
+        self.stats = dict.fromkeys(
+            ["error", "passed", "failure", "skipped"], 0
+        )  # type: Dict[str, int]
+        self.node_reporters = (
+            {}
+        )  # type: Dict[Tuple[Union[str, TestReport], object], _NodeReporter]
+        self.node_reporters_ordered = []  # type: List[_NodeReporter]
+        self.global_properties = []  # type: List[Tuple[str, str]]
 
         # List of reports that failed on call but teardown is pending.
-        self.open_reports = []
+        self.open_reports = []  # type: List[TestReport]
         self.cnt_double_fail_tests = 0
 
-        # Replaces convenience family with real family
+        # Replaces convenience family with real family.
         if self.family == "legacy":
             self.family = "xunit1"
 
-    def finalize(self, report):
+    def finalize(self, report: TestReport) -> None:
         nodeid = getattr(report, "nodeid", report)
-        # local hack to handle xdist report order
-        slavenode = getattr(report, "node", None)
-        reporter = self.node_reporters.pop((nodeid, slavenode))
+        # Local hack to handle xdist report order.
+        workernode = getattr(report, "node", None)
+        reporter = self.node_reporters.pop((nodeid, workernode))
         if reporter is not None:
             reporter.finalize()
 
-    def node_reporter(self, report):
-        nodeid = getattr(report, "nodeid", report)
-        # local hack to handle xdist report order
-        slavenode = getattr(report, "node", None)
+    def node_reporter(self, report: Union[TestReport, str]) -> _NodeReporter:
+        nodeid = getattr(report, "nodeid", report)  # type: Union[str, TestReport]
+        # Local hack to handle xdist report order.
+        workernode = getattr(report, "node", None)
 
-        key = nodeid, slavenode
+        key = nodeid, workernode
 
         if key in self.node_reporters:
-            # TODO: breasks for --dist=each
+            # TODO: breaks for --dist=each
             return self.node_reporters[key]
 
         reporter = _NodeReporter(nodeid, self)
@@ -533,23 +524,23 @@ class LogXML(object):
 
         return reporter
 
-    def add_stats(self, key):
+    def add_stats(self, key: str) -> None:
         if key in self.stats:
             self.stats[key] += 1
 
-    def _opentestcase(self, report):
+    def _opentestcase(self, report: TestReport) -> _NodeReporter:
         reporter = self.node_reporter(report)
         reporter.record_testreport(report)
         return reporter
 
-    def pytest_runtest_logreport(self, report):
-        """handle a setup/call/teardown report, generating the appropriate
-        xml tags as necessary.
+    def pytest_runtest_logreport(self, report: TestReport) -> None:
+        """Handle a setup/call/teardown report, generating the appropriate
+        XML tags as necessary.
 
-        note: due to plugins like xdist, this hook may be called in interlaced
-        order with reports from other nodes. for example:
+        Note: due to plugins like xdist, this hook may be called in interlaced
+        order with reports from other nodes. For example:
 
-        usual call order:
+        Usual call order:
             -> setup node1
             -> call node1
             -> teardown node1
@@ -557,7 +548,7 @@ class LogXML(object):
             -> call node2
             -> teardown node2
 
-        possible call order in xdist:
+        Possible call order in xdist:
             -> setup node1
             -> call node1
             -> setup node2
@@ -572,7 +563,7 @@ class LogXML(object):
                 reporter.append_pass(report)
         elif report.failed:
             if report.when == "teardown":
-                # The following vars are needed when xdist plugin is used
+                # The following vars are needed when xdist plugin is used.
                 report_wid = getattr(report, "worker_id", None)
                 report_ii = getattr(report, "item_index", None)
                 close_report = next(
@@ -590,7 +581,7 @@ class LogXML(object):
                 if close_report:
                     # We need to open new testcase in case we have failure in
                     # call and error in teardown in order to follow junit
-                    # schema
+                    # schema.
                     self.finalize(close_report)
                     self.cnt_double_fail_tests += 1
             reporter = self._opentestcase(report)
@@ -610,7 +601,7 @@ class LogXML(object):
             reporter.write_captured_output(report)
 
             for propname, propvalue in report.user_properties:
-                reporter.add_property(propname, propvalue)
+                reporter.add_property(propname, str(propvalue))
 
             self.finalize(report)
             report_wid = getattr(report, "worker_id", None)
@@ -630,15 +621,14 @@ class LogXML(object):
             if close_report:
                 self.open_reports.remove(close_report)
 
-    def update_testcase_duration(self, report):
-        """accumulates total duration for nodeid from given report and updates
-        the Junit.testcase with the new total if already created.
-        """
+    def update_testcase_duration(self, report: TestReport) -> None:
+        """Accumulate total duration for nodeid from given report and update
+        the Junit.testcase with the new total if already created."""
         if self.report_duration == "total" or report.when == self.report_duration:
             reporter = self.node_reporter(report)
             reporter.duration += getattr(report, "duration", 0.0)
 
-    def pytest_collectreport(self, report):
+    def pytest_collectreport(self, report: TestReport) -> None:
         if not report.passed:
             reporter = self._opentestcase(report)
             if report.failed:
@@ -646,20 +636,20 @@ class LogXML(object):
             else:
                 reporter.append_collect_skipped(report)
 
-    def pytest_internalerror(self, excrepr):
+    def pytest_internalerror(self, excrepr: ExceptionRepr) -> None:
         reporter = self.node_reporter("internal")
         reporter.attrs.update(classname="pytest", name="internal")
-        reporter._add_simple(Junit.error, "internal error", excrepr)
+        reporter._add_simple("error", "internal error", str(excrepr))
 
-    def pytest_sessionstart(self):
-        self.suite_start_time = time.time()
+    def pytest_sessionstart(self) -> None:
+        self.suite_start_time = timing.time()
 
-    def pytest_sessionfinish(self):
+    def pytest_sessionfinish(self) -> None:
         dirname = os.path.dirname(os.path.abspath(self.logfile))
         if not os.path.isdir(dirname):
             os.makedirs(dirname)
         logfile = open(self.logfile, "w", encoding="utf-8")
-        suite_stop_time = time.time()
+        suite_stop_time = timing.time()
         suite_time_delta = suite_stop_time - self.suite_start_time
 
         numtests = (
@@ -671,37 +661,40 @@ class LogXML(object):
         )
         logfile.write('<?xml version="1.0" encoding="utf-8"?>')
 
-        suite_node = Junit.testsuite(
-            self._get_global_properties_node(),
-            [x.to_xml() for x in self.node_reporters_ordered],
+        suite_node = ET.Element(
+            "testsuite",
             name=self.suite_name,
-            errors=self.stats["error"],
-            failures=self.stats["failure"],
-            skipped=self.stats["skipped"],
-            tests=numtests,
+            errors=str(self.stats["error"]),
+            failures=str(self.stats["failure"]),
+            skipped=str(self.stats["skipped"]),
+            tests=str(numtests),
             time="%.3f" % suite_time_delta,
             timestamp=datetime.fromtimestamp(self.suite_start_time).isoformat(),
             hostname=platform.node(),
         )
-        logfile.write(Junit.testsuites([suite_node]).unicode(indent=0))
+        global_properties = self._get_global_properties_node()
+        if global_properties is not None:
+            suite_node.append(global_properties)
+        for node_reporter in self.node_reporters_ordered:
+            suite_node.append(node_reporter.to_xml())
+        testsuites = ET.Element("testsuites")
+        testsuites.append(suite_node)
+        logfile.write(ET.tostring(testsuites, encoding="unicode"))
         logfile.close()
 
-    def pytest_terminal_summary(self, terminalreporter):
-        terminalreporter.write_sep("-", "generated xml file: %s" % (self.logfile))
+    def pytest_terminal_summary(self, terminalreporter: TerminalReporter) -> None:
+        terminalreporter.write_sep("-", "generated xml file: {}".format(self.logfile))
 
-    def add_global_property(self, name, value):
+    def add_global_property(self, name: str, value: object) -> None:
         __tracebackhide__ = True
         _check_record_param_type("name", name)
         self.global_properties.append((name, bin_xml_escape(value)))
 
-    def _get_global_properties_node(self):
-        """Return a Junit node containing custom properties, if any.
-        """
+    def _get_global_properties_node(self) -> Optional[ET.Element]:
+        """Return a Junit node containing custom properties, if any."""
         if self.global_properties:
-            return Junit.properties(
-                [
-                    Junit.property(name=name, value=value)
-                    for name, value in self.global_properties
-                ]
-            )
-        return ""
+            properties = ET.Element("properties")
+            for name, value in self.global_properties:
+                properties.append(ET.Element("property", name=name, value=value))
+            return properties
+        return None

@@ -1,9 +1,6 @@
-# -*- coding: utf-8 -*-
-
-
 def test_no_items_should_not_show_output(testdir):
     result = testdir.runpytest("--fixtures-per-test")
-    assert "fixtures used by" not in result.stdout.str()
+    result.stdout.no_fnmatch_line("*fixtures used by*")
     assert result.ret == 0
 
 
@@ -33,7 +30,7 @@ def test_fixtures_in_module(testdir):
             "    arg1 docstring",
         ]
     )
-    assert "_arg0" not in result.stdout.str()
+    result.stdout.no_fnmatch_line("*_arg0*")
 
 
 def test_fixtures_in_conftest(testdir):

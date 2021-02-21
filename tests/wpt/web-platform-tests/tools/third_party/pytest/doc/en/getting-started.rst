@@ -1,9 +1,9 @@
 Installation and Getting Started
 ===================================
 
-**Pythons**: Python 2.7, 3.4, 3.5, 3.6, 3.7, Jython, PyPy-2.3
+**Pythons**: Python 3.5, 3.6, 3.7, 3.8, 3.9, PyPy3
 
-**Platforms**: Unix/Posix and Windows
+**Platforms**: Linux and Windows
 
 **PyPI package name**: `pytest <https://pypi.org/project/pytest/>`_
 
@@ -28,18 +28,21 @@ Install ``pytest``
 .. code-block:: bash
 
     $ pytest --version
-    This is pytest version 4.x.y, imported from $PYTHON_PREFIX/lib/python3.7/site-packages/pytest.py
+    pytest 6.1.1
 
 .. _`simpletest`:
 
 Create your first test
 ----------------------------------------------------------
 
-Create a simple test function with just four lines of code::
+Create a simple test function with just four lines of code:
+
+.. code-block:: python
 
     # content of test_sample.py
     def func(x):
         return x + 1
+
 
     def test_answer():
         assert func(3) == 5
@@ -50,7 +53,7 @@ That’s it. You can now execute the test function:
 
     $ pytest
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
     cachedir: $PYTHON_PREFIX/.pytest_cache
     rootdir: $REGENDOC_TMPDIR
     collected 1 item
@@ -65,10 +68,12 @@ That’s it. You can now execute the test function:
     E       assert 4 == 5
     E        +  where 4 = func(3)
 
-    test_sample.py:5: AssertionError
-    ========================= 1 failed in 0.12 seconds =========================
+    test_sample.py:6: AssertionError
+    ========================= short test summary info ==========================
+    FAILED test_sample.py::test_answer - assert 4 == 5
+    ============================ 1 failed in 0.12s =============================
 
-This test returns a failure report because ``func(3)`` does not return ``5``.
+The ``[100%]`` refers to the overall progress of running all test cases. After it finishes, pytest then shows a failure report because ``func(3)`` does not return ``5``.
 
 .. note::
 
@@ -83,12 +88,17 @@ Run multiple tests
 Assert that a certain exception is raised
 --------------------------------------------------------------
 
-Use the :ref:`raises <assertraises>` helper to assert that some code raises an exception::
+Use the :ref:`raises <assertraises>` helper to assert that some code raises an exception:
+
+.. code-block:: python
 
     # content of test_sysexit.py
     import pytest
+
+
     def f():
         raise SystemExit(1)
+
 
     def test_mytest():
         with pytest.raises(SystemExit):
@@ -100,24 +110,32 @@ Execute the test function with “quiet” reporting mode:
 
     $ pytest -q test_sysexit.py
     .                                                                    [100%]
-    1 passed in 0.12 seconds
+    1 passed in 0.12s
+
+.. note::
+
+    The ``-q/--quiet`` flag keeps the output brief in this and following examples.
 
 Group multiple tests in a class
 --------------------------------------------------------------
 
-Once you develop multiple tests, you may want to group them into a class. pytest makes it easy to create a class containing more than one test::
+.. regendoc:wipe
+
+Once you develop multiple tests, you may want to group them into a class. pytest makes it easy to create a class containing more than one test:
+
+.. code-block:: python
 
     # content of test_class.py
-    class TestClass(object):
+    class TestClass:
         def test_one(self):
             x = "this"
-            assert 'h' in x
+            assert "h" in x
 
         def test_two(self):
             x = "hello"
-            assert hasattr(x, 'check')
+            assert hasattr(x, "check")
 
-``pytest`` discovers all tests following its :ref:`Conventions for Python test discovery <test discovery>`, so it finds both ``test_`` prefixed functions. There is no need to subclass anything. We can simply run the module by passing its filename:
+``pytest`` discovers all tests following its :ref:`Conventions for Python test discovery <test discovery>`, so it finds both ``test_`` prefixed functions. There is no need to subclass anything, but make sure to prefix your class with ``Test`` otherwise the class will be skipped. We can simply run the module by passing its filename:
 
 .. code-block:: pytest
 
@@ -130,19 +148,74 @@ Once you develop multiple tests, you may want to group them into a class. pytest
 
         def test_two(self):
             x = "hello"
-    >       assert hasattr(x, 'check')
+    >       assert hasattr(x, "check")
     E       AssertionError: assert False
     E        +  where False = hasattr('hello', 'check')
 
     test_class.py:8: AssertionError
-    1 failed, 1 passed in 0.12 seconds
+    ========================= short test summary info ==========================
+    FAILED test_class.py::TestClass::test_two - AssertionError: assert False
+    1 failed, 1 passed in 0.12s
 
 The first test passed and the second failed. You can easily see the intermediate values in the assertion to help you understand the reason for the failure.
+
+Grouping tests in classes can be beneficial for the following reasons:
+
+ * Test organization
+ * Sharing fixtures for tests only in that particular class
+ * Applying marks at the class level and having them implicitly apply to all tests
+
+Something to be aware of when grouping tests inside classes is that each test has a unique instance of the class.
+Having each test share the same class instance would be very detrimental to test isolation and would promote poor test practices.
+This is outlined below:
+
+.. regendoc:wipe
+
+.. code-block:: python
+
+    # content of test_class_demo.py
+    class TestClassDemoInstance:
+        def test_one(self):
+            assert 0
+
+        def test_two(self):
+            assert 0
+
+
+.. code-block:: pytest
+
+    $ pytest -k TestClassDemoInstance -q
+    FF                                                                   [100%]
+    ================================= FAILURES =================================
+    ______________________ TestClassDemoInstance.test_one ______________________
+
+    self = <test_class_demo.TestClassDemoInstance object at 0xdeadbeef>
+
+        def test_one(self):
+    >       assert 0
+    E       assert 0
+
+    test_class_demo.py:3: AssertionError
+    ______________________ TestClassDemoInstance.test_two ______________________
+
+    self = <test_class_demo.TestClassDemoInstance object at 0xdeadbeef>
+
+        def test_two(self):
+    >       assert 0
+    E       assert 0
+
+    test_class_demo.py:6: AssertionError
+    ========================= short test summary info ==========================
+    FAILED test_class_demo.py::TestClassDemoInstance::test_one - assert 0
+    FAILED test_class_demo.py::TestClassDemoInstance::test_two - assert 0
+    2 failed in 0.12s
 
 Request a unique temporary directory for functional tests
 --------------------------------------------------------------
 
-``pytest`` provides `Builtin fixtures/function arguments <https://docs.pytest.org/en/latest/builtin.html#builtinfixtures>`_ to request arbitrary resources, like a unique temporary directory::
+``pytest`` provides `Builtin fixtures/function arguments <https://docs.pytest.org/en/stable/builtin.html>`_ to request arbitrary resources, like a unique temporary directory:
+
+.. code-block:: python
 
     # content of test_tmpdir.py
     def test_needsfiles(tmpdir):
@@ -168,7 +241,9 @@ List the name ``tmpdir`` in the test function signature and ``pytest`` will look
     test_tmpdir.py:3: AssertionError
     --------------------------- Captured stdout call ---------------------------
     PYTEST_TMPDIR/test_needsfiles0
-    1 failed in 0.12 seconds
+    ========================= short test summary info ==========================
+    FAILED test_tmpdir.py::test_needsfiles - assert 0
+    1 failed in 0.12s
 
 More info on tmpdir handling is available at :ref:`Temporary directories and files <tmpdir handling>`.
 
@@ -191,5 +266,3 @@ Check out additional pytest resources to help you customize tests for your uniqu
 * ":ref:`fixtures`" for providing a functional baseline to your tests
 * ":ref:`plugins`" for managing and writing plugins
 * ":ref:`goodpractices`" for virtualenv and test layouts
-
-.. include:: links.inc

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="../resources/webxr_util.js"></script>
+  <script src="../resources/webxr_test_constants.js"></script>
+
+  <script>
+    let fakeDeviceInitParams = IMMERSIVE_AR_DEVICE;
+
+    xr_session_promise_test(
+      "getLightProbe rejects if not enabled on session",
+      (session, controller, t) => promise_rejects_dom(t, "NotSupportedError", session.requestLightProbe()),
+      IMMERSIVE_AR_DEVICE,
+      'immersive-ar');
+
+  </script>
+</body>

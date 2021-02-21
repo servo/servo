@@ -7,6 +7,12 @@
         button.onfocus = () => e.source.postMessage({focused: true}, {targetOrigin: "*"});
         button.focus();
       }
+
+      if (e.data == "focus-update-active-element") {
+        let button = document.querySelector("button");
+        button.focus();
+        e.source.postMessage({activeElementUpdated: document.activeElement === button}, {targetOrigin: "*"});
+      }
     }
 
     if (window.portalHost)

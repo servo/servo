@@ -32,8 +32,7 @@ function createScrollTimelineWithOffsets(test, startOffset, endOffset) {
   return createScrollTimeline(test, {
     scrollSource: createScroller(test),
     orientation: "vertical",
-    startScrollOffset: startOffset,
-    endScrollOffset: endOffset,
+    scrollOffsets: [startOffset, endOffset],
     timeRange: 1000
   });
 }

@@ -70,7 +70,9 @@ caplog fixture
 ^^^^^^^^^^^^^^
 
 Inside tests it is possible to change the log level for the captured log
-messages.  This is supported by the ``caplog`` fixture::
+messages.  This is supported by the ``caplog`` fixture:
+
+.. code-block:: python
 
     def test_foo(caplog):
         caplog.set_level(logging.INFO)
@@ -78,59 +80,69 @@ messages.  This is supported by the ``caplog`` fixture::
 
 By default the level is set on the root logger,
 however as a convenience it is also possible to set the log level of any
-logger::
+logger:
+
+.. code-block:: python
 
     def test_foo(caplog):
-        caplog.set_level(logging.CRITICAL, logger='root.baz')
+        caplog.set_level(logging.CRITICAL, logger="root.baz")
         pass
 
 The log levels set are restored automatically at the end of the test.
 
 It is also possible to use a context manager to temporarily change the log
-level inside a ``with`` block::
+level inside a ``with`` block:
+
+.. code-block:: python
 
     def test_bar(caplog):
         with caplog.at_level(logging.INFO):
             pass
 
 Again, by default the level of the root logger is affected but the level of any
-logger can be changed instead with::
+logger can be changed instead with:
+
+.. code-block:: python
 
     def test_bar(caplog):
-        with caplog.at_level(logging.CRITICAL, logger='root.baz'):
+        with caplog.at_level(logging.CRITICAL, logger="root.baz"):
             pass
 
 Lastly all the logs sent to the logger during the test run are made available on
 the fixture in the form of both the ``logging.LogRecord`` instances and the final log text.
-This is useful for when you want to assert on the contents of a message::
+This is useful for when you want to assert on the contents of a message:
+
+.. code-block:: python
 
     def test_baz(caplog):
         func_under_test()
         for record in caplog.records:
-            assert record.levelname != 'CRITICAL'
-        assert 'wally' not in caplog.text
+            assert record.levelname != "CRITICAL"
+        assert "wally" not in caplog.text
 
 For all the available attributes of the log records see the
 ``logging.LogRecord`` class.
 
 You can also resort to ``record_tuples`` if all you want to do is to ensure,
 that certain messages have been logged under a given logger name with a given
-severity and message::
+severity and message:
+
+.. code-block:: python
 
     def test_foo(caplog):
-        logging.getLogger().info('boo %s', 'arg')
+        logging.getLogger().info("boo %s", "arg")
 
-        assert caplog.record_tuples == [
-            ('root', logging.INFO, 'boo arg'),
-        ]
+        assert caplog.record_tuples == [("root", logging.INFO, "boo arg")]
 
-You can call ``caplog.clear()`` to reset the captured log records in a test::
+You can call ``caplog.clear()`` to reset the captured log records in a test:
+
+.. code-block:: python
 
     def test_something_with_clearing_records(caplog):
         some_method_that_creates_log_records()
         caplog.clear()
         your_test_method()
-        assert ['Foo'] == [rec.message for rec in caplog.records]
+        assert ["Foo"] == [rec.message for rec in caplog.records]
 
 
 The ``caplog.records`` attribute contains records from the current stage only, so
@@ -149,7 +161,7 @@ the records for the ``setup`` and ``call`` stages during teardown like so:
         yield window
         for when in ("setup", "call"):
             messages = [
-                x.message for x in caplog.get_records(when) if x.level == logging.WARNING
+                x.message for x in caplog.get_records(when) if x.levelno == logging.WARNING
             ]
             if messages:
                 pytest.fail(
@@ -238,6 +250,9 @@ made in ``3.4`` after community feedback:
 
 * Log levels are no longer changed unless explicitly requested by the :confval:`log_level` configuration
   or ``--log-level`` command-line options. This allows users to configure logger objects themselves.
+  Setting :confval:`log_level` will set the level that is captured globally so if a specific test requires
+  a lower level than this, use the ``caplog.set_level()`` functionality otherwise that test will be prone to
+  failure.
 * :ref:`Live Logs <live_logs>` is now disabled by default and can be enabled setting the
   :confval:`log_cli` configuration option to ``true``. When enabled, the verbosity is increased so logging for each
   test is visible.

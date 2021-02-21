@@ -6,8 +6,6 @@ from collections import OrderedDict
 from xml.parsers import expat
 import xml.etree.ElementTree as etree  # noqa: N813
 
-from six import text_type
-
 MYPY = False
 if MYPY:
     # MYPY is set to True when run under Mypy.
@@ -83,7 +81,7 @@ class XMLParser(object):
 
     def _start(self, tag, attrib_in):
         # type: (Text, List[str]) -> etree.Element
-        assert isinstance(tag, text_type)
+        assert isinstance(tag, str)
         self._fed_data = None
         tag = _fixname(tag)
         attrib = OrderedDict()  # type: Dict[Union[bytes, Text], Union[bytes, Text]]

@@ -1,8 +1,15 @@
-# -*- coding: utf-8 -*-
+from typing import List
+from typing import Optional
+
 import pytest
+from _pytest import nodes
+from _pytest.config import Config
+from _pytest.config.argparsing import Parser
+from _pytest.main import Session
+from _pytest.reports import TestReport
 
 
-def pytest_addoption(parser):
+def pytest_addoption(parser: Parser) -> None:
     group = parser.getgroup("general")
     group.addoption(
         "--sw",
@@ -20,25 +27,28 @@ def pytest_addoption(parser):
 
 
 @pytest.hookimpl
-def pytest_configure(config):
+def pytest_configure(config: Config) -> None:
     config.pluginmanager.register(StepwisePlugin(config), "stepwiseplugin")
 
 
 class StepwisePlugin:
-    def __init__(self, config):
+    def __init__(self, config: Config) -> None:
         self.config = config
         self.active = config.getvalue("stepwise")
-        self.session = None
+        self.session = None  # type: Optional[Session]
         self.report_status = ""
 
         if self.active:
+            assert config.cache is not None
             self.lastfailed = config.cache.get("cache/stepwise", None)
             self.skip = config.getvalue("stepwise_skip")
 
-    def pytest_sessionstart(self, session):
+    def pytest_sessionstart(self, session: Session) -> None:
         self.session = session
 
-    def pytest_collection_modifyitems(self, session, config, items):
+    def pytest_collection_modifyitems(
+        self, session: Session, config: Config, items: List[nodes.Item]
+    ) -> None:
         if not self.active:
             return
         if not self.lastfailed:
@@ -71,7 +81,7 @@ class StepwisePlugin:
 
         config.hook.pytest_deselected(items=already_passed)
 
-    def pytest_runtest_logreport(self, report):
+    def pytest_runtest_logreport(self, report: TestReport) -> None:
         if not self.active:
             return
 
@@ -86,6 +96,7 @@ class StepwisePlugin:
             else:
                 # Mark test as the last failing and interrupt the test session.
                 self.lastfailed = report.nodeid
+                assert self.session is not None
                 self.session.shouldstop = (
                     "Test failed, continuing from this test next run."
                 )
@@ -97,11 +108,13 @@ class StepwisePlugin:
                 if report.nodeid == self.lastfailed:
                     self.lastfailed = None
 
-    def pytest_report_collectionfinish(self):
+    def pytest_report_collectionfinish(self) -> Optional[str]:
         if self.active and self.config.getoption("verbose") >= 0 and self.report_status:
             return "stepwise: %s" % self.report_status
+        return None
 
-    def pytest_sessionfinish(self, session):
+    def pytest_sessionfinish(self, session: Session) -> None:
+        assert self.config.cache is not None
         if self.active:
             self.config.cache.set("cache/stepwise", self.lastfailed)
         else:

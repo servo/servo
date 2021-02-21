@@ -1,44 +1,33 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-
 import math
 import pprint
-import sys
-import warnings
+from collections.abc import Iterable
+from collections.abc import Mapping
+from collections.abc import Sized
 from decimal import Decimal
 from numbers import Number
-
-from more_itertools.more import always_iterable
-from six.moves import filterfalse
-from six.moves import zip
+from types import TracebackType
+from typing import Any
+from typing import Callable
+from typing import cast
+from typing import Generic
+from typing import Optional
+from typing import Pattern
+from typing import Tuple
+from typing import TypeVar
+from typing import Union
 
 import _pytest._code
-from _pytest import deprecated
-from _pytest.compat import isclass
-from _pytest.compat import Iterable
-from _pytest.compat import Mapping
-from _pytest.compat import Sized
+from _pytest.compat import final
+from _pytest.compat import overload
 from _pytest.compat import STRING_TYPES
+from _pytest.compat import TYPE_CHECKING
 from _pytest.outcomes import fail
 
-BASE_TYPE = (type, STRING_TYPES)
+if TYPE_CHECKING:
+    from typing import Type
 
 
-def _cmp_raises_type_error(self, other):
-    """__cmp__ implementation which raises TypeError. Used
-    by Approx base classes to implement only == and != and raise a
-    TypeError for other comparisons.
-
-    Needed in Python 2 only, Python 3 all it takes is not implementing the
-    other operators at all.
-    """
-    __tracebackhide__ = True
-    raise TypeError(
-        "Comparison operators other than == and != not supported by approx objects"
-    )
-
-
-def _non_numeric_type_error(value, at):
+def _non_numeric_type_error(value, at: Optional[str]) -> TypeError:
     at_str = " at {}".format(at) if at else ""
     return TypeError(
         "cannot make approximate comparisons to non-numeric values: {!r} {}".format(
@@ -50,17 +39,15 @@ def _non_numeric_type_error(value, at):
 # builtin pytest.approx helper
 
 
-class ApproxBase(object):
-    """
-    Provide shared utilities for making approximate comparisons between numbers
-    or sequences of numbers.
-    """
+class ApproxBase:
+    """Provide shared utilities for making approximate comparisons between
+    numbers or sequences of numbers."""
 
     # Tell numpy to use our `__eq__` operator instead of its.
     __array_ufunc__ = None
     __array_priority__ = 100
 
-    def __init__(self, expected, rel=None, abs=None, nan_ok=False):
+    def __init__(self, expected, rel=None, abs=None, nan_ok: bool = False) -> None:
         __tracebackhide__ = True
         self.expected = expected
         self.abs = abs
@@ -68,36 +55,32 @@ class ApproxBase(object):
         self.nan_ok = nan_ok
         self._check_type()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         raise NotImplementedError
 
-    def __eq__(self, actual):
+    def __eq__(self, actual) -> bool:
         return all(
             a == self._approx_scalar(x) for a, x in self._yield_comparisons(actual)
         )
 
-    __hash__ = None
+    # Ignore type because of https://github.com/python/mypy/issues/4266.
+    __hash__ = None  # type: ignore
 
-    def __ne__(self, actual):
+    def __ne__(self, actual) -> bool:
         return not (actual == self)
 
-    if sys.version_info[0] == 2:
-        __cmp__ = _cmp_raises_type_error
-
-    def _approx_scalar(self, x):
+    def _approx_scalar(self, x) -> "ApproxScalar":
         return ApproxScalar(x, rel=self.rel, abs=self.abs, nan_ok=self.nan_ok)
 
     def _yield_comparisons(self, actual):
-        """
-        Yield all the pairs of numbers to be compared.  This is used to
-        implement the `__eq__` method.
+        """Yield all the pairs of numbers to be compared.
+
+        This is used to implement the `__eq__` method.
         """
         raise NotImplementedError
 
-    def _check_type(self):
-        """
-        Raise a TypeError if the expected value is not a valid type.
-        """
+    def _check_type(self) -> None:
+        """Raise a TypeError if the expected value is not a valid type."""
         # This is only a concern if the expected value is a sequence.  In every
         # other case, the approx() function ensures that the expected value has
         # a numeric type.  For this reason, the default is to do nothing.  The
@@ -114,27 +97,24 @@ def _recursive_list_map(f, x):
 
 
 class ApproxNumpy(ApproxBase):
-    """
-    Perform approximate comparisons where the expected value is numpy array.
-    """
+    """Perform approximate comparisons where the expected value is numpy array."""
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         list_scalars = _recursive_list_map(self._approx_scalar, self.expected.tolist())
         return "approx({!r})".format(list_scalars)
 
-    if sys.version_info[0] == 2:
-        __cmp__ = _cmp_raises_type_error
-
-    def __eq__(self, actual):
+    def __eq__(self, actual) -> bool:
         import numpy as np
 
-        # self.expected is supposed to always be an array here
+        # self.expected is supposed to always be an array here.
 
         if not np.isscalar(actual):
             try:
                 actual = np.asarray(actual)
-            except:  # noqa
-                raise TypeError("cannot compare '{}' to numpy.ndarray".format(actual))
+            except Exception as e:
+                raise TypeError(
+                    "cannot compare '{}' to numpy.ndarray".format(actual)
+                ) from e
 
         if not np.isscalar(actual) and actual.shape != self.expected.shape:
             return False
@@ -157,17 +137,15 @@ class ApproxNumpy(ApproxBase):
 
 
 class ApproxMapping(ApproxBase):
-    """
-    Perform approximate comparisons where the expected value is a mapping with
-    numeric values (the keys can be anything).
-    """
+    """Perform approximate comparisons where the expected value is a mapping
+    with numeric values (the keys can be anything)."""
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "approx({!r})".format(
             {k: self._approx_scalar(v) for k, v in self.expected.items()}
         )
 
-    def __eq__(self, actual):
+    def __eq__(self, actual) -> bool:
         if set(actual.keys()) != set(self.expected.keys()):
             return False
 
@@ -177,7 +155,7 @@ class ApproxMapping(ApproxBase):
         for k in self.expected.keys():
             yield actual[k], self.expected[k]
 
-    def _check_type(self):
+    def _check_type(self) -> None:
         __tracebackhide__ = True
         for key, value in self.expected.items():
             if isinstance(value, type(self.expected)):
@@ -188,12 +166,9 @@ class ApproxMapping(ApproxBase):
 
 
 class ApproxSequencelike(ApproxBase):
-    """
-    Perform approximate comparisons where the expected value is a sequence of
-    numbers.
-    """
+    """Perform approximate comparisons where the expected value is a sequence of numbers."""
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         seq_type = type(self.expected)
         if seq_type not in (tuple, list, set):
             seq_type = list
@@ -201,7 +176,7 @@ class ApproxSequencelike(ApproxBase):
             seq_type(self._approx_scalar(x) for x in self.expected)
         )
 
-    def __eq__(self, actual):
+    def __eq__(self, actual) -> bool:
         if len(actual) != len(self.expected):
             return False
         return ApproxBase.__eq__(self, actual)
@@ -209,7 +184,7 @@ class ApproxSequencelike(ApproxBase):
     def _yield_comparisons(self, actual):
         return zip(actual, self.expected)
 
-    def _check_type(self):
+    def _check_type(self) -> None:
         __tracebackhide__ = True
         for index, x in enumerate(self.expected):
             if isinstance(x, type(self.expected)):
@@ -222,45 +197,39 @@ class ApproxSequencelike(ApproxBase):
 
 
 class ApproxScalar(ApproxBase):
-    """
-    Perform approximate comparisons where the expected value is a single number.
-    """
+    """Perform approximate comparisons where the expected value is a single number."""
 
-    DEFAULT_ABSOLUTE_TOLERANCE = 1e-12
-    DEFAULT_RELATIVE_TOLERANCE = 1e-6
+    # Using Real should be better than this Union, but not possible yet:
+    # https://github.com/python/typeshed/pull/3108
+    DEFAULT_ABSOLUTE_TOLERANCE = 1e-12  # type: Union[float, Decimal]
+    DEFAULT_RELATIVE_TOLERANCE = 1e-6  # type: Union[float, Decimal]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
+        """Return a string communicating both the expected value and the
+        tolerance for the comparison being made.
+
+        For example, ``1.0 ± 1e-6``, ``(3+4j) ± 5e-6 ∠ ±180°``.
         """
-        Return a string communicating both the expected value and the tolerance
-        for the comparison being made, e.g. '1.0 +- 1e-6'.  Use the unicode
-        plus/minus symbol if this is python3 (it's too hard to get right for
-        python2).
-        """
-        if isinstance(self.expected, complex):
-            return str(self.expected)
 
         # Infinities aren't compared using tolerances, so don't show a
-        # tolerance.
-        if math.isinf(self.expected):
+        # tolerance. Need to call abs to handle complex numbers, e.g. (inf + 1j).
+        if math.isinf(abs(self.expected)):
             return str(self.expected)
 
         # If a sensible tolerance can't be calculated, self.tolerance will
         # raise a ValueError.  In this case, display '???'.
         try:
             vetted_tolerance = "{:.1e}".format(self.tolerance)
+            if isinstance(self.expected, complex) and not math.isinf(self.tolerance):
+                vetted_tolerance += " ∠ ±180°"
         except ValueError:
             vetted_tolerance = "???"
 
-        if sys.version_info[0] == 2:
-            return "{} +- {}".format(self.expected, vetted_tolerance)
-        else:
-            return u"{} \u00b1 {}".format(self.expected, vetted_tolerance)
+        return "{} ± {}".format(self.expected, vetted_tolerance)
 
-    def __eq__(self, actual):
-        """
-        Return true if the given value is equal to the expected value within
-        the pre-specified tolerance.
-        """
+    def __eq__(self, actual) -> bool:
+        """Return whether the given value is equal to the expected value
+        within the pre-specified tolerance."""
         if _is_numpy_array(actual):
             # Call ``__eq__()`` manually to prevent infinite-recursion with
             # numpy<1.13.  See #3748.
@@ -286,16 +255,18 @@ class ApproxScalar(ApproxBase):
             return False
 
         # Return true if the two numbers are within the tolerance.
-        return abs(self.expected - actual) <= self.tolerance
+        result = abs(self.expected - actual) <= self.tolerance  # type: bool
+        return result
 
-    __hash__ = None
+    # Ignore type because of https://github.com/python/mypy/issues/4266.
+    __hash__ = None  # type: ignore
 
     @property
     def tolerance(self):
-        """
-        Return the tolerance for the comparison.  This could be either an
-        absolute tolerance or a relative tolerance, depending on what the user
-        specified or which would be larger.
+        """Return the tolerance for the comparison.
+
+        This could be either an absolute tolerance or a relative tolerance,
+        depending on what the user specified or which would be larger.
         """
 
         def set_default(x, default):
@@ -339,17 +310,14 @@ class ApproxScalar(ApproxBase):
 
 
 class ApproxDecimal(ApproxScalar):
-    """
-    Perform approximate comparisons where the expected value is a decimal.
-    """
+    """Perform approximate comparisons where the expected value is a Decimal."""
 
     DEFAULT_ABSOLUTE_TOLERANCE = Decimal("1e-12")
     DEFAULT_RELATIVE_TOLERANCE = Decimal("1e-6")
 
 
-def approx(expected, rel=None, abs=None, nan_ok=False):
-    """
-    Assert that two numbers (or two sets of numbers) are equal to each other
+def approx(expected, rel=None, abs=None, nan_ok: bool = False) -> ApproxBase:
+    """Assert that two numbers (or two sets of numbers) are equal to each other
     within some tolerance.
 
     Due to the `intricacies of floating-point arithmetic`__, numbers that we
@@ -518,7 +486,7 @@ def approx(expected, rel=None, abs=None, nan_ok=False):
     __tracebackhide__ = True
 
     if isinstance(expected, Decimal):
-        cls = ApproxDecimal
+        cls = ApproxDecimal  # type: Type[ApproxBase]
     elif isinstance(expected, Number):
         cls = ApproxScalar
     elif isinstance(expected, Mapping):
@@ -528,7 +496,8 @@ def approx(expected, rel=None, abs=None, nan_ok=False):
     elif (
         isinstance(expected, Iterable)
         and isinstance(expected, Sized)
-        and not isinstance(expected, STRING_TYPES)
+        # Type ignored because the error is wrong -- not unreachable.
+        and not isinstance(expected, STRING_TYPES)  # type: ignore[unreachable]
     ):
         cls = ApproxSequencelike
     else:
@@ -537,14 +506,14 @@ def approx(expected, rel=None, abs=None, nan_ok=False):
     return cls(expected, rel, abs, nan_ok)
 
 
-def _is_numpy_array(obj):
-    """
-    Return true if the given object is a numpy array.  Make a special effort to
-    avoid importing numpy unless it's really necessary.
+def _is_numpy_array(obj: object) -> bool:
+    """Return true if the given object is a numpy array.
+
+    A special effort is made to avoid importing numpy unless it's really necessary.
     """
     import sys
 
-    np = sys.modules.get("numpy")
+    np = sys.modules.get("numpy")  # type: Any
     if np is not None:
         return isinstance(obj, np.ndarray)
     return False
@@ -552,22 +521,49 @@ def _is_numpy_array(obj):
 
 # builtin pytest.raises helper
 
+_E = TypeVar("_E", bound=BaseException)
 
-def raises(expected_exception, *args, **kwargs):
-    r"""
-    Assert that a code block/function call raises ``expected_exception``
+
+@overload
+def raises(
+    expected_exception: Union["Type[_E]", Tuple["Type[_E]", ...]],
+    *,
+    match: "Optional[Union[str, Pattern[str]]]" = ...
+) -> "RaisesContext[_E]":
+    ...
+
+
+@overload  # noqa: F811
+def raises(  # noqa: F811
+    expected_exception: Union["Type[_E]", Tuple["Type[_E]", ...]],
+    func: Callable[..., Any],
+    *args: Any,
+    **kwargs: Any
+) -> _pytest._code.ExceptionInfo[_E]:
+    ...
+
+
+def raises(  # noqa: F811
+    expected_exception: Union["Type[_E]", Tuple["Type[_E]", ...]],
+    *args: Any,
+    **kwargs: Any
+) -> Union["RaisesContext[_E]", _pytest._code.ExceptionInfo[_E]]:
+    r"""Assert that a code block/function call raises ``expected_exception``
     or raise a failure exception otherwise.
 
-    :kwparam match: if specified, a string containing a regular expression,
+    :kwparam match:
+        If specified, a string containing a regular expression,
         or a regular expression object, that is tested against the string
         representation of the exception using ``re.search``. To match a literal
         string that may contain `special characters`__, the pattern can
         first be escaped with ``re.escape``.
 
-    __ https://docs.python.org/3/library/re.html#regular-expression-syntax
+        (This is only used when ``pytest.raises`` is used as a context manager,
+        and passed through to the function otherwise.
+        When using ``pytest.raises`` as a function, you can use:
+        ``pytest.raises(Exc, func, match="passed on").match("my pattern")``.)
 
-    :kwparam message: **(deprecated since 4.1)** if specified, provides a custom failure message
-        if the exception is not raised. See :ref:`the deprecation docs <raises message deprecated>` for a workaround.
+        __ https://docs.python.org/3/library/re.html#regular-expression-syntax
 
     .. currentmodule:: _pytest._code
 
@@ -596,14 +592,6 @@ def raises(expected_exception, *args, **kwargs):
         ...     raise ValueError("value must be 42")
         >>> assert exc_info.type is ValueError
         >>> assert exc_info.value.args[0] == "value must be 42"
-
-    .. deprecated:: 4.1
-
-        In the context manager form you may use the keyword argument
-        ``message`` to specify a custom failure message that will be displayed
-        in case the ``pytest.raises`` check fails. This has been deprecated as it
-        is considered error prone as users often mean to use ``match`` instead.
-        See :ref:`the deprecation docs <raises message deprecated>` for a workaround.
 
     .. note::
 
@@ -665,79 +653,87 @@ def raises(expected_exception, *args, **kwargs):
         the exception --> current frame stack --> local variables -->
         ``ExceptionInfo``) which makes Python keep all objects referenced
         from that cycle (including all local variables in the current
-        frame) alive until the next cyclic garbage collection run. See the
-        official Python ``try`` statement documentation for more detailed
-        information.
-
+        frame) alive until the next cyclic garbage collection run.
+        More detailed information can be found in the official Python
+        documentation for :ref:`the try statement <python:try>`.
     """
     __tracebackhide__ = True
-    for exc in filterfalse(isclass, always_iterable(expected_exception, BASE_TYPE)):
-        msg = (
-            "exceptions must be old-style classes or"
-            " derived from BaseException, not %s"
-        )
-        raise TypeError(msg % type(exc))
+
+    if isinstance(expected_exception, type):
+        excepted_exceptions = (expected_exception,)  # type: Tuple[Type[_E], ...]
+    else:
+        excepted_exceptions = expected_exception
+    for exc in excepted_exceptions:
+        if not isinstance(exc, type) or not issubclass(exc, BaseException):  # type: ignore[unreachable]
+            msg = "expected exception must be a BaseException type, not {}"  # type: ignore[unreachable]
+            not_a = exc.__name__ if isinstance(exc, type) else type(exc).__name__
+            raise TypeError(msg.format(not_a))
 
     message = "DID NOT RAISE {}".format(expected_exception)
-    match_expr = None
 
     if not args:
-        if "message" in kwargs:
-            message = kwargs.pop("message")
-            warnings.warn(deprecated.RAISES_MESSAGE_PARAMETER, stacklevel=2)
-        if "match" in kwargs:
-            match_expr = kwargs.pop("match")
+        match = kwargs.pop("match", None)  # type: Optional[Union[str, Pattern[str]]]
         if kwargs:
             msg = "Unexpected keyword arguments passed to pytest.raises: "
             msg += ", ".join(sorted(kwargs))
+            msg += "\nUse context-manager form instead?"
             raise TypeError(msg)
-        return RaisesContext(expected_exception, message, match_expr)
-    elif isinstance(args[0], str):
-        warnings.warn(deprecated.RAISES_EXEC, stacklevel=2)
-        (code,) = args
-        assert isinstance(code, str)
-        frame = sys._getframe(1)
-        loc = frame.f_locals.copy()
-        loc.update(kwargs)
-        # print "raises frame scope: %r" % frame.f_locals
-        try:
-            code = _pytest._code.Source(code).compile(_genframe=frame)
-            exec(code, frame.f_globals, loc)
-            # XXX didn't mean f_globals == f_locals something special?
-            #     this is destroyed here ...
-        except expected_exception:
-            return _pytest._code.ExceptionInfo.from_current()
+        return RaisesContext(expected_exception, message, match)
     else:
         func = args[0]
+        if not callable(func):
+            raise TypeError(
+                "{!r} object (type: {}) must be callable".format(func, type(func))
+            )
         try:
             func(*args[1:], **kwargs)
-        except expected_exception:
-            return _pytest._code.ExceptionInfo.from_current()
+        except expected_exception as e:
+            # We just caught the exception - there is a traceback.
+            assert e.__traceback__ is not None
+            return _pytest._code.ExceptionInfo.from_exc_info(
+                (type(e), e, e.__traceback__)
+            )
     fail(message)
 
 
-raises.Exception = fail.Exception
+# This doesn't work with mypy for now. Use fail.Exception instead.
+raises.Exception = fail.Exception  # type: ignore
 
 
-class RaisesContext(object):
-    def __init__(self, expected_exception, message, match_expr):
+@final
+class RaisesContext(Generic[_E]):
+    def __init__(
+        self,
+        expected_exception: Union["Type[_E]", Tuple["Type[_E]", ...]],
+        message: str,
+        match_expr: Optional[Union[str, "Pattern[str]"]] = None,
+    ) -> None:
         self.expected_exception = expected_exception
         self.message = message
         self.match_expr = match_expr
-        self.excinfo = None
+        self.excinfo = None  # type: Optional[_pytest._code.ExceptionInfo[_E]]
 
-    def __enter__(self):
+    def __enter__(self) -> _pytest._code.ExceptionInfo[_E]:
         self.excinfo = _pytest._code.ExceptionInfo.for_later()
         return self.excinfo
 
-    def __exit__(self, *tp):
+    def __exit__(
+        self,
+        exc_type: Optional["Type[BaseException]"],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> bool:
         __tracebackhide__ = True
-        if tp[0] is None:
+        if exc_type is None:
             fail(self.message)
-        self.excinfo.__init__(tp)
-        suppress_exception = issubclass(self.excinfo.type, self.expected_exception)
-        if sys.version_info[0] == 2 and suppress_exception:
-            sys.exc_clear()
-        if self.match_expr is not None and suppress_exception:
+        assert self.excinfo is not None
+        if not issubclass(exc_type, self.expected_exception):
+            return False
+        # Cast to narrow the exception type now that it's verified.
+        exc_info = cast(
+            Tuple["Type[_E]", _E, TracebackType], (exc_type, exc_val, exc_tb)
+        )
+        self.excinfo.fill_unfilled(exc_info)
+        if self.match_expr is not None:
             self.excinfo.match(self.match_expr)
-        return suppress_exception
+        return True

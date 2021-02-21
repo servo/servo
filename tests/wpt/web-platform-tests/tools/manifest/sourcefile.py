@@ -3,8 +3,7 @@ import re
 import os
 from collections import deque
 from io import BytesIO
-from six import binary_type, iteritems, text_type
-from six.moves.urllib.parse import urljoin
+from urllib.parse import urljoin
 from fnmatch import fnmatch
 
 MYPY = False
@@ -74,7 +73,7 @@ def read_script_metadata(f, regexp):
                value.
     """
     for line in f:
-        assert isinstance(line, binary_type), line
+        assert isinstance(line, bytes), line
         m = regexp.match(line)
         if not m:
             break
@@ -97,7 +96,7 @@ def get_any_variants(item):
     """
     Returns a set of variants (strings) defined by the given keyword.
     """
-    assert isinstance(item, text_type), item
+    assert isinstance(item, str), item
 
     variant = _any_variants.get(item, None)
     if variant is None:
@@ -119,7 +118,7 @@ def parse_variants(value):
     """
     Returns a set of variants (strings) defined by a comma-separated value.
     """
-    assert isinstance(value, text_type), value
+    assert isinstance(value, str), value
 
     if value == "":
         return get_default_any_variants()
@@ -138,7 +137,7 @@ def global_suffixes(value):
     variant is intended to run in a JS shell, for the variants defined by the
     given comma-separated value.
     """
-    assert isinstance(value, text_type), value
+    assert isinstance(value, str), value
 
     rv = set()
 
@@ -243,7 +242,7 @@ class SourceFile(object):
 
         if "__cached_properties__" in rv:
             cached_properties = rv["__cached_properties__"]
-            rv = {key:value for key, value in iteritems(rv) if key not in cached_properties}
+            rv = {key:value for key, value in rv.items() if key not in cached_properties}
             del rv["__cached_properties__"]
         return rv
 
@@ -304,7 +303,7 @@ class SourceFile(object):
                 content = f.read()
 
             data = b"".join((b"blob ", b"%d" % len(content), b"\0", content))
-            self._hash = text_type(hashlib.sha1(data).hexdigest())
+            self._hash = str(hashlib.sha1(data).hexdigest())
 
         return self._hash
 

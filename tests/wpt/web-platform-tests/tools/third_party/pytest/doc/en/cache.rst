@@ -33,15 +33,18 @@ Other plugins may access the `config.cache`_ object to set/get
 Rerunning only failures or failures first
 -----------------------------------------------
 
-First, let's create 50 test invocation of which only 2 fail::
+First, let's create 50 test invocation of which only 2 fail:
+
+.. code-block:: python
 
     # content of test_50.py
     import pytest
 
+
     @pytest.mark.parametrize("i", range(50))
     def test_num(i):
         if i in (17, 25):
-           pytest.fail("bad luck")
+            pytest.fail("bad luck")
 
 If you run this for the first time you will see two failures:
 
@@ -57,10 +60,10 @@ If you run this for the first time you will see two failures:
         @pytest.mark.parametrize("i", range(50))
         def test_num(i):
             if i in (17, 25):
-    >          pytest.fail("bad luck")
-    E          Failed: bad luck
+    >           pytest.fail("bad luck")
+    E           Failed: bad luck
 
-    test_50.py:6: Failed
+    test_50.py:7: Failed
     _______________________________ test_num[25] _______________________________
 
     i = 25
@@ -68,11 +71,14 @@ If you run this for the first time you will see two failures:
         @pytest.mark.parametrize("i", range(50))
         def test_num(i):
             if i in (17, 25):
-    >          pytest.fail("bad luck")
-    E          Failed: bad luck
+    >           pytest.fail("bad luck")
+    E           Failed: bad luck
 
-    test_50.py:6: Failed
-    2 failed, 48 passed in 0.12 seconds
+    test_50.py:7: Failed
+    ========================= short test summary info ==========================
+    FAILED test_50.py::test_num[17] - Failed: bad luck
+    FAILED test_50.py::test_num[25] - Failed: bad luck
+    2 failed, 48 passed in 0.12s
 
 If you then run it with ``--lf``:
 
@@ -80,10 +86,10 @@ If you then run it with ``--lf``:
 
     $ pytest --lf
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
     cachedir: $PYTHON_PREFIX/.pytest_cache
     rootdir: $REGENDOC_TMPDIR
-    collected 50 items / 48 deselected / 2 selected
+    collected 2 items
     run-last-failure: rerun previous 2 failures
 
     test_50.py FF                                                        [100%]
@@ -96,10 +102,10 @@ If you then run it with ``--lf``:
         @pytest.mark.parametrize("i", range(50))
         def test_num(i):
             if i in (17, 25):
-    >          pytest.fail("bad luck")
-    E          Failed: bad luck
+    >           pytest.fail("bad luck")
+    E           Failed: bad luck
 
-    test_50.py:6: Failed
+    test_50.py:7: Failed
     _______________________________ test_num[25] _______________________________
 
     i = 25
@@ -107,14 +113,17 @@ If you then run it with ``--lf``:
         @pytest.mark.parametrize("i", range(50))
         def test_num(i):
             if i in (17, 25):
-    >          pytest.fail("bad luck")
-    E          Failed: bad luck
+    >           pytest.fail("bad luck")
+    E           Failed: bad luck
 
-    test_50.py:6: Failed
-    ================= 2 failed, 48 deselected in 0.12 seconds ==================
+    test_50.py:7: Failed
+    ========================= short test summary info ==========================
+    FAILED test_50.py::test_num[17] - Failed: bad luck
+    FAILED test_50.py::test_num[25] - Failed: bad luck
+    ============================ 2 failed in 0.12s =============================
 
-You have run only the two failing test from the last run, while 48 tests have
-not been run ("deselected").
+You have run only the two failing tests from the last run, while the 48 passing
+tests have not been run ("deselected").
 
 Now, if you run with the ``--ff`` option, all tests will be run but the first
 previous failures will be executed first (as can be seen from the series
@@ -124,7 +133,7 @@ of ``FF`` and dots):
 
     $ pytest --ff
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
     cachedir: $PYTHON_PREFIX/.pytest_cache
     rootdir: $REGENDOC_TMPDIR
     collected 50 items
@@ -140,10 +149,10 @@ of ``FF`` and dots):
         @pytest.mark.parametrize("i", range(50))
         def test_num(i):
             if i in (17, 25):
-    >          pytest.fail("bad luck")
-    E          Failed: bad luck
+    >           pytest.fail("bad luck")
+    E           Failed: bad luck
 
-    test_50.py:6: Failed
+    test_50.py:7: Failed
     _______________________________ test_num[25] _______________________________
 
     i = 25
@@ -151,11 +160,14 @@ of ``FF`` and dots):
         @pytest.mark.parametrize("i", range(50))
         def test_num(i):
             if i in (17, 25):
-    >          pytest.fail("bad luck")
-    E          Failed: bad luck
+    >           pytest.fail("bad luck")
+    E           Failed: bad luck
 
-    test_50.py:6: Failed
-    =================== 2 failed, 48 passed in 0.12 seconds ====================
+    test_50.py:7: Failed
+    ========================= short test summary info ==========================
+    FAILED test_50.py::test_num[17] - Failed: bad luck
+    FAILED test_50.py::test_num[25] - Failed: bad luck
+    ======================= 2 failed, 48 passed in 0.12s =======================
 
 .. _`config.cache`:
 
@@ -182,15 +194,19 @@ The new config.cache object
 
 Plugins or conftest.py support code can get a cached value using the
 pytest ``config`` object.  Here is a basic example plugin which
-implements a :ref:`fixture` which re-uses previously created state
-across pytest invocations::
+implements a :ref:`fixture <fixture>` which re-uses previously created state
+across pytest invocations:
+
+.. code-block:: python
 
     # content of test_caching.py
     import pytest
     import time
 
+
     def expensive_computation():
         print("running expensive computation...")
+
 
     @pytest.fixture
     def mydata(request):
@@ -200,6 +216,7 @@ across pytest invocations::
             val = 42
             request.config.cache.set("example/value", val)
         return val
+
 
     def test_function(mydata):
         assert mydata == 23
@@ -219,12 +236,14 @@ If you run this command for the first time, you can see the print statement:
     >       assert mydata == 23
     E       assert 42 == 23
 
-    test_caching.py:17: AssertionError
+    test_caching.py:20: AssertionError
     -------------------------- Captured stdout setup ---------------------------
     running expensive computation...
-    1 failed in 0.12 seconds
+    ========================= short test summary info ==========================
+    FAILED test_caching.py::test_function - assert 42 == 23
+    1 failed in 0.12s
 
-If you run it a second time the value will be retrieved from
+If you run it a second time, the value will be retrieved from
 the cache and nothing will be printed:
 
 .. code-block:: pytest
@@ -240,10 +259,12 @@ the cache and nothing will be printed:
     >       assert mydata == 23
     E       assert 42 == 23
 
-    test_caching.py:17: AssertionError
-    1 failed in 0.12 seconds
+    test_caching.py:20: AssertionError
+    ========================= short test summary info ==========================
+    FAILED test_caching.py::test_function - assert 42 == 23
+    1 failed in 0.12s
 
-See the :ref:`cache-api` for more details.
+See the :fixture:`config.cache fixture <cache>` for more details.
 
 
 Inspecting Cache content
@@ -256,7 +277,7 @@ You can always peek at the content of the cache using the
 
     $ pytest --cache-show
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
     cachedir: $PYTHON_PREFIX/.pytest_cache
     rootdir: $REGENDOC_TMPDIR
     cachedir: $PYTHON_PREFIX/.pytest_cache
@@ -269,13 +290,66 @@ You can always peek at the content of the cache using the
        'test_caching.py::test_function': True,
        'test_foocompare.py::test_compare': True}
     cache/nodeids contains:
-      ['test_caching.py::test_function']
+      ['test_50.py::test_num[0]',
+       'test_50.py::test_num[10]',
+       'test_50.py::test_num[11]',
+       'test_50.py::test_num[12]',
+       'test_50.py::test_num[13]',
+       'test_50.py::test_num[14]',
+       'test_50.py::test_num[15]',
+       'test_50.py::test_num[16]',
+       'test_50.py::test_num[17]',
+       'test_50.py::test_num[18]',
+       'test_50.py::test_num[19]',
+       'test_50.py::test_num[1]',
+       'test_50.py::test_num[20]',
+       'test_50.py::test_num[21]',
+       'test_50.py::test_num[22]',
+       'test_50.py::test_num[23]',
+       'test_50.py::test_num[24]',
+       'test_50.py::test_num[25]',
+       'test_50.py::test_num[26]',
+       'test_50.py::test_num[27]',
+       'test_50.py::test_num[28]',
+       'test_50.py::test_num[29]',
+       'test_50.py::test_num[2]',
+       'test_50.py::test_num[30]',
+       'test_50.py::test_num[31]',
+       'test_50.py::test_num[32]',
+       'test_50.py::test_num[33]',
+       'test_50.py::test_num[34]',
+       'test_50.py::test_num[35]',
+       'test_50.py::test_num[36]',
+       'test_50.py::test_num[37]',
+       'test_50.py::test_num[38]',
+       'test_50.py::test_num[39]',
+       'test_50.py::test_num[3]',
+       'test_50.py::test_num[40]',
+       'test_50.py::test_num[41]',
+       'test_50.py::test_num[42]',
+       'test_50.py::test_num[43]',
+       'test_50.py::test_num[44]',
+       'test_50.py::test_num[45]',
+       'test_50.py::test_num[46]',
+       'test_50.py::test_num[47]',
+       'test_50.py::test_num[48]',
+       'test_50.py::test_num[49]',
+       'test_50.py::test_num[4]',
+       'test_50.py::test_num[5]',
+       'test_50.py::test_num[6]',
+       'test_50.py::test_num[7]',
+       'test_50.py::test_num[8]',
+       'test_50.py::test_num[9]',
+       'test_assert1.py::test_function',
+       'test_assert2.py::test_set_comparison',
+       'test_caching.py::test_function',
+       'test_foocompare.py::test_compare']
     cache/stepwise contains:
       []
     example/value contains:
       42
 
-    ======================= no tests ran in 0.12 seconds =======================
+    ========================== no tests ran in 0.12s ===========================
 
 ``--cache-show`` takes an optional argument to specify a glob pattern for
 filtering:
@@ -284,7 +358,7 @@ filtering:
 
     $ pytest --cache-show example/*
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
     cachedir: $PYTHON_PREFIX/.pytest_cache
     rootdir: $REGENDOC_TMPDIR
     cachedir: $PYTHON_PREFIX/.pytest_cache
@@ -292,7 +366,7 @@ filtering:
     example/value contains:
       42
 
-    ======================= no tests ran in 0.12 seconds =======================
+    ========================== no tests ran in 0.12s ===========================
 
 Clearing Cache content
 ----------------------

@@ -6,7 +6,7 @@ import subprocess
 import sys
 
 from collections import OrderedDict
-from six import ensure_text, ensure_str, iteritems
+from six import ensure_text, ensure_str
 
 try:
     from ..manifest import manifest
@@ -98,7 +98,7 @@ def branch_point():
         branch_point = None
 
         # if there are any commits, take the first parent that is not in commits
-        for commit, parents in iteritems(commit_parents):
+        for commit, parents in commit_parents.items():
             for parent in parents:
                 if parent not in commit_parents:
                     branch_point = parent
@@ -251,7 +251,7 @@ def affected_testfiles(files_changed,  # type: Iterable[Text]
     nontests_changed = set(files_changed)
     wpt_manifest = load_manifest(manifest_path, manifest_update)
 
-    test_types = ["crashtest", "testharness", "reftest", "wdspec"]
+    test_types = ["crashtest", "print-reftest", "reftest", "testharness", "wdspec"]
     support_files = {os.path.join(wpt_root, path)
                      for _, path, _ in wpt_manifest.itertypes("support")}
     wdspec_test_files = {os.path.join(wpt_root, path)

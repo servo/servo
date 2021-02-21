@@ -20,11 +20,12 @@ dictionary MediaEncodingConfiguration : MediaConfiguration {
 enum MediaDecodingType {
   "file",
   "media-source",
+  "webrtc"
 };
 
 enum MediaEncodingType {
   "record",
-  "transmission"
+  "webrtc"
 };
 
 dictionary VideoConfiguration {
@@ -37,6 +38,7 @@ dictionary VideoConfiguration {
   HdrMetadataType hdrMetadataType;
   ColorGamut colorGamut;
   TransferFunction transferFunction;
+  DOMString scalabilityMode;
 };
 
 enum HdrMetadataType {

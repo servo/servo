@@ -12,7 +12,9 @@
 <div id='target'>Target</div>
 <script>
   promise_test(async t => {
-    return testEventType(t, 'pointerenter');
+    // A looseCount because the first move of pointerenter causes a
+    // `pointerenter` on body
+    return testEventType(t, 'pointerenter', true);
   })
 </script>
 </html>

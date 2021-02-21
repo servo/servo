@@ -1,11 +1,4 @@
-var inWorker = false;
 var RESOURCES_DIR = "../resources/";
-
-try {
-  inWorker = !(self instanceof Window);
-} catch (e) {
-  inWorker = true;
-}
 
 function dirname(path) {
     return path.replace(/\/[^\/]*$/, '/')

@@ -105,13 +105,7 @@ async function testMouseUpAndClickEvent() {
   await waitForLoad;
   let bounds = buttonElement.getBoundingClientRect();
   test(() => { assert_true(true); }, `Synthesizing click on button...`);
-  new test_driver.Actions()
-      .pointerMove(Math.floor(bounds.width / 5),
-                   Math.floor(bounds.height / 2),
-                   {origin: buttonElement})
-      .pointerDown({button: test_driver.Actions.prototype.ButtonType.LEFT})
-      .pointerUp({button: test_driver.Actions.prototype.ButtonType.LEFT})
-      .send()
+  new test_driver.click(buttonElement)
       .then(() => {
         test_mouseup_redispatching.step(() => {
           assert_not_equals(clickEvent, undefined, "mouseup and click events should've been fired");

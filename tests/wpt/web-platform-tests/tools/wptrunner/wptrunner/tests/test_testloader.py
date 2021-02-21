@@ -8,6 +8,7 @@ import pytest
 
 from mozlog import structured
 from ..testloader import TestFilter as Filter, TestLoader as Loader
+from ..testloader import read_include_from_file
 from .test_wpttest import make_mock_manifest
 
 here = os.path.dirname(__file__)
@@ -58,6 +59,28 @@ def test_loader_h2_tests():
     assert len(loader.disabled_tests["testharness"]) == 1
     assert loader.disabled_tests["testharness"][0].url == "/a/bar.h2.html"
 
+@pytest.mark.xfail(sys.platform == "win32",
+                   reason="NamedTemporaryFile cannot be reopened on Win32")
+def test_include_file():
+    test_cases = """
+# This is a comment
+/foo/bar-error.https.html
+/foo/bar-success.https.html
+/foo/idlharness.https.any.html
+/foo/idlharness.https.any.worker.html
+    """
+
+    with tempfile.NamedTemporaryFile(mode="wt") as f:
+        f.write(test_cases)
+        f.flush()
+
+        include = read_include_from_file(f.name)
+
+        assert len(include) == 4
+        assert "/foo/bar-error.https.html" in include
+        assert "/foo/bar-success.https.html" in include
+        assert "/foo/idlharness.https.any.html" in include
+        assert "/foo/idlharness.https.any.worker.html" in include
 
 @pytest.mark.xfail(sys.platform == "win32",
                    reason="NamedTemporaryFile cannot be reopened on Win32")

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>gujarati, 0-9</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#simple-numeric'>
+<meta name='flags' content='font'>
+<meta name="assert" content="list-style-type:gujarati produces numbers up to 9 per the spec.">
+<style type='text/css'>
+ol li { list-style-type: gujarati;  }
+/* the following CSS is not part of the test */
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, IGNORING the suffix.</p>
+<div class="test">
+<ol>
+<div><bdi>૧. </bdi>૧</div>
+<div><bdi>૨. </bdi>૨</div>
+<div><bdi>૩. </bdi>૩</div>
+<div><bdi>૪. </bdi>૪</div>
+<div><bdi>૫. </bdi>૫</div>
+<div><bdi>૬. </bdi>૬</div>
+<div><bdi>૭. </bdi>૭</div>
+<div><bdi>૮. </bdi>૮</div>
+<div><bdi>૯. </bdi>૯</div>
+</ol>
+</div>
+<!--Notes:
+You will need an appropriate font to run this test.
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+</body>
+</html>

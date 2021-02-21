@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <body>
   <script>
-    function handleMessage(e) {
-      if (e.data == "focus") {
+    async function handleMessage(e) {
+      if (e.data == "focus" || e.data == "focus-update-active-element") {
         let iframe = document.querySelector("iframe");
-        iframe.contentWindow.postMessage("focus", "*");
+        iframe.contentWindow.postMessage(e.data, "*");
       }
     }
 

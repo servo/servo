@@ -7,7 +7,7 @@ import tempfile
 import threading
 import traceback
 import uuid
-from six import ensure_str, iteritems
+from six import ensure_str
 
 from mozprocess import ProcessHandler
 
@@ -48,7 +48,7 @@ def build_servo_command(test, test_url_func, browser, binary, pause_after_test, 
         args += ["-Z", debug_opts]
     for stylesheet in browser.user_stylesheets:
         args += ["--user-stylesheet", stylesheet]
-    for pref, value in iteritems(test.environment.get('prefs', {})):
+    for pref, value in test.environment.get('prefs', {}).items():
         args += ["--pref", "%s=%s" % (pref, value)]
     if browser.ca_certificate_path:
         args += ["--certificate-path", browser.ca_certificate_path]

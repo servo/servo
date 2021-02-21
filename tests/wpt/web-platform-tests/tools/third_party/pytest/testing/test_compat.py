@@ -1,20 +1,22 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
+import enum
 import sys
+from functools import partial
 from functools import wraps
-
-import six
+from typing import Union
 
 import pytest
 from _pytest.compat import _PytestWrapper
+from _pytest.compat import assert_never
+from _pytest.compat import cached_property
 from _pytest.compat import get_real_func
 from _pytest.compat import is_generator
 from _pytest.compat import safe_getattr
 from _pytest.compat import safe_isclass
+from _pytest.compat import TYPE_CHECKING
 from _pytest.outcomes import OutcomeException
+
+if TYPE_CHECKING:
+    from typing_extensions import Literal
 
 
 def test_is_generator():
@@ -29,7 +31,7 @@ def test_is_generator():
 
 
 def test_real_func_loop_limit():
-    class Evil(object):
+    class Evil:
         def __init__(self):
             self.left = 1000
 
@@ -62,8 +64,6 @@ def test_get_real_func():
         def inner():
             pass  # pragma: no cover
 
-        if six.PY2:
-            inner.__wrapped__ = f
         return inner
 
     def func():
@@ -81,9 +81,16 @@ def test_get_real_func():
     assert get_real_func(wrapped_func2) is wrapped_func
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 4), reason="asyncio available in Python 3.4+"
-)
+def test_get_real_func_partial():
+    """Test get_real_func handles partial instances correctly"""
+
+    def foo(x):
+        return x
+
+    assert get_real_func(foo) is foo
+    assert get_real_func(partial(foo)) is foo
+
+
 def test_is_generator_asyncio(testdir):
     testdir.makepyfile(
         """
@@ -103,9 +110,6 @@ def test_is_generator_asyncio(testdir):
     result.stdout.fnmatch_lines(["*1 passed*"])
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 5), reason="async syntax available in Python 3.5+"
-)
 def test_is_generator_async_syntax(testdir):
     testdir.makepyfile(
         """
@@ -125,13 +129,40 @@ def test_is_generator_async_syntax(testdir):
     result.stdout.fnmatch_lines(["*1 passed*"])
 
 
-class ErrorsHelper(object):
+@pytest.mark.skipif(
+    sys.version_info < (3, 6), reason="async gen syntax available in Python 3.6+"
+)
+def test_is_generator_async_gen_syntax(testdir):
+    testdir.makepyfile(
+        """
+        from _pytest.compat import is_generator
+        def test_is_generator_py36():
+            async def foo():
+                yield
+                await foo()
+
+            async def bar():
+                yield
+
+            assert not is_generator(foo)
+            assert not is_generator(bar)
+    """
+    )
+    result = testdir.runpytest()
+    result.stdout.fnmatch_lines(["*1 passed*"])
+
+
+class ErrorsHelper:
+    @property
+    def raise_baseexception(self):
+        raise BaseException("base exception should be raised")
+
     @property
     def raise_exception(self):
         raise Exception("exception should be catched")
 
     @property
-    def raise_fail(self):
+    def raise_fail_outcome(self):
         pytest.fail("fail should be catched")
 
 
@@ -140,21 +171,96 @@ def test_helper_failures():
     with pytest.raises(Exception):
         helper.raise_exception
     with pytest.raises(OutcomeException):
-        helper.raise_fail
+        helper.raise_fail_outcome
 
 
 def test_safe_getattr():
     helper = ErrorsHelper()
     assert safe_getattr(helper, "raise_exception", "default") == "default"
-    assert safe_getattr(helper, "raise_fail", "default") == "default"
+    assert safe_getattr(helper, "raise_fail_outcome", "default") == "default"
+    with pytest.raises(BaseException):
+        assert safe_getattr(helper, "raise_baseexception", "default")
 
 
 def test_safe_isclass():
     assert safe_isclass(type) is True
 
     class CrappyClass(Exception):
-        @property
+        # Type ignored because it's bypassed intentionally.
+        @property  # type: ignore
         def __class__(self):
             assert False, "Should be ignored"
 
     assert safe_isclass(CrappyClass()) is False
+
+
+def test_cached_property() -> None:
+    ncalls = 0
+
+    class Class:
+        @cached_property
+        def prop(self) -> int:
+            nonlocal ncalls
+            ncalls += 1
+            return ncalls
+
+    c1 = Class()
+    assert ncalls == 0
+    assert c1.prop == 1
+    assert c1.prop == 1
+    c2 = Class()
+    assert ncalls == 1
+    assert c2.prop == 2
+    assert c1.prop == 1
+
+
+def test_assert_never_union() -> None:
+    x = 10  # type: Union[int, str]
+
+    if isinstance(x, int):
+        pass
+    else:
+        with pytest.raises(AssertionError):
+            assert_never(x)  # type: ignore[arg-type]
+
+    if isinstance(x, int):
+        pass
+    elif isinstance(x, str):
+        pass
+    else:
+        assert_never(x)
+
+
+def test_assert_never_enum() -> None:
+    E = enum.Enum("E", "a b")
+    x = E.a  # type: E
+
+    if x is E.a:
+        pass
+    else:
+        with pytest.raises(AssertionError):
+            assert_never(x)  # type: ignore[arg-type]
+
+    if x is E.a:
+        pass
+    elif x is E.b:
+        pass
+    else:
+        assert_never(x)
+
+
+def test_assert_never_literal() -> None:
+    x = "a"  # type: Literal["a", "b"]
+
+    if x == "a":
+        pass
+    else:
+        with pytest.raises(AssertionError):
+            assert_never(x)  # type: ignore[arg-type]
+
+    if x == "a":
+        pass
+    elif x == "b":
+        pass
+    else:
+        assert_never(x)

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-import _pytest._code
 import pytest
 from pytest import raises
 
@@ -21,7 +19,7 @@ def test_generative(param1, param2):
     assert param1 * 2 < param2
 
 
-class TestFailing(object):
+class TestFailing:
     def test_simple(self):
         def f():
             return 42
@@ -41,7 +39,7 @@ class TestFailing(object):
         assert not f()
 
 
-class TestSpecialisedExplanations(object):
+class TestSpecialisedExplanations:
     def test_eq_text(self):
         assert "spam" == "eggs"
 
@@ -101,7 +99,7 @@ class TestSpecialisedExplanations(object):
         from dataclasses import dataclass
 
         @dataclass
-        class Foo(object):
+        class Foo:
             a: int
             b: str
 
@@ -113,7 +111,7 @@ class TestSpecialisedExplanations(object):
         import attr
 
         @attr.s
-        class Foo(object):
+        class Foo:
             a = attr.ib()
             b = attr.ib()
 
@@ -123,7 +121,7 @@ class TestSpecialisedExplanations(object):
 
 
 def test_attribute():
-    class Foo(object):
+    class Foo:
         b = 1
 
     i = Foo()
@@ -131,14 +129,14 @@ def test_attribute():
 
 
 def test_attribute_instance():
-    class Foo(object):
+    class Foo:
         b = 1
 
     assert Foo().b == 2
 
 
 def test_attribute_failure():
-    class Foo(object):
+    class Foo:
         def _get_b(self):
             raise Exception("Failed to get attrib")
 
@@ -149,10 +147,10 @@ def test_attribute_failure():
 
 
 def test_attribute_multiple():
-    class Foo(object):
+    class Foo:
         b = 1
 
-    class Bar(object):
+    class Bar:
         b = 2
 
     assert Foo().b == Bar().b
@@ -162,13 +160,13 @@ def globf(x):
     return x + 1
 
 
-class TestRaises(object):
+class TestRaises:
     def test_raises(self):
         s = "qwe"
         raises(TypeError, int, s)
 
     def test_raises_doesnt(self):
-        raises(IOError, int, "3")
+        raises(OSError, int, "3")
 
     def test_raise(self):
         raise ValueError("demo error")
@@ -178,7 +176,7 @@ class TestRaises(object):
 
     def test_reinterpret_fails_with_print_for_the_fun_of_it(self):
         items = [1, 2, 3]
-        print("items is %r" % items)
+        print("items is {!r}".format(items))
         a, b = items.pop()
 
     def test_some_error(self):
@@ -191,19 +189,20 @@ class TestRaises(object):
 
 # thanks to Matthew Scott for this test
 def test_dynamic_compile_shows_nicely():
-    import imp
+    import importlib.util
     import sys
 
     src = "def foo():\n assert 1 == 0\n"
     name = "abc-123"
-    module = imp.new_module(name)
-    code = _pytest._code.compile(src, name, "exec")
+    spec = importlib.util.spec_from_loader(name, loader=None)
+    module = importlib.util.module_from_spec(spec)
+    code = compile(src, name, "exec")
     exec(code, module.__dict__)
     sys.modules[name] = module
     module.foo()
 
 
-class TestMoreErrors(object):
+class TestMoreErrors:
     def test_complex_error(self):
         def f():
             return 44
@@ -253,16 +252,16 @@ class TestMoreErrors(object):
             x = 0
 
 
-class TestCustomAssertMsg(object):
+class TestCustomAssertMsg:
     def test_single_line(self):
-        class A(object):
+        class A:
             a = 1
 
         b = 2
         assert A.a == b, "A.a appears not to be b"
 
     def test_multiline(self):
-        class A(object):
+        class A:
             a = 1
 
         b = 2
@@ -271,7 +270,7 @@ class TestCustomAssertMsg(object):
         ), "A.a appears not to be b\nor does not appear to be b\none of those"
 
     def test_custom_repr(self):
-        class JSON(object):
+        class JSON:
             a = 1
 
             def __repr__(self):

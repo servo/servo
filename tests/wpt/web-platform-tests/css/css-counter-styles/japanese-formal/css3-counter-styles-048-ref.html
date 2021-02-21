@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>japanese-formal, 10-9999</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#complex-cjk'>
+<link rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+<meta name='flags' content='font'>
+<meta name="assert" content="Setting list-style-type to japanese-formal will produce list numbering after 9 as described in the CSS3 Counter Styles module.">
+<style type='text/css'>
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+ol li { list-style-type: japanese-formal;  }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, ignoring the suffix.</p>
+
+
+<div class="test"><ol start='10'><div><bdi>壱拾、</bdi>壱拾、</div></ol>
+<ol start='11'><div><bdi>壱拾壱、</bdi>壱拾壱、</div></ol>
+<ol start='12'><div><bdi>壱拾弐、</bdi>壱拾弐、</div></ol>
+<ol start='43'><div><bdi>四拾参、</bdi>四拾参、</div></ol>
+<ol start='77'><div><bdi>七拾七、</bdi>七拾七、</div></ol>
+<ol start='80'><div><bdi>八拾、</bdi>八拾、</div></ol>
+<ol start='99'><div><bdi>九拾九、</bdi>九拾九、</div></ol>
+<ol start='100'><div><bdi>壱百、</bdi>壱百、</div></ol>
+<ol start='101'><div><bdi>壱百壱、</bdi>壱百壱、</div></ol>
+<ol start='222'><div><bdi>弐百弐拾弐、</bdi>弐百弐拾弐、</div></ol>
+<ol start='540'><div><bdi>伍百四拾、</bdi>伍百四拾、</div></ol>
+<ol start='999'><div><bdi>九百九拾九、</bdi>九百九拾九、</div></ol>
+<ol start='1000'><div><bdi>壱阡、</bdi>壱阡、</div></ol>
+<ol start='1005'><div><bdi>壱阡伍、</bdi>壱阡伍、</div></ol>
+<ol start='1060'><div><bdi>壱阡六拾、</bdi>壱阡六拾、</div></ol>
+<ol start='1065'><div><bdi>壱阡六拾伍、</bdi>壱阡六拾伍、</div></ol>
+<ol start='1800'><div><bdi>壱阡八百、</bdi>壱阡八百、</div></ol>
+<ol start='1860'><div><bdi>壱阡八百六拾、</bdi>壱阡八百六拾、</div></ol>
+<ol start='1865'><div><bdi>壱阡八百六拾伍、</bdi>壱阡八百六拾伍、</div></ol>
+<ol start='5865'><div><bdi>伍阡八百六拾伍、</bdi>伍阡八百六拾伍、</div></ol>
+<ol start='7005'><div><bdi>七阡伍、</bdi>七阡伍、</div></ol>
+<ol start='7800'><div><bdi>七阡八百、</bdi>七阡八百、</div></ol>
+<ol start='7865'><div><bdi>七阡八百六拾伍、</bdi>七阡八百六拾伍、</div></ol>
+<ol start='9999'><div><bdi>九阡九百九拾九、</bdi>九阡九百九拾九、</div></ol>
+</div>
+
+
+<!--Notes:
+You will need an appropriate font to run this test.
+
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+
+
+</body>
+</html>

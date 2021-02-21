@@ -1,20 +1,26 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-import errno
 import os
 import stat
 import sys
+from typing import Callable
+from typing import cast
+from typing import List
 
 import attr
-import six
 
 import pytest
 from _pytest import pathlib
+from _pytest.config import Config
+from _pytest.pathlib import cleanup_numbered_dir
+from _pytest.pathlib import create_cleanup_lock
+from _pytest.pathlib import make_numbered_dir
+from _pytest.pathlib import maybe_delete_a_numbered_dir
+from _pytest.pathlib import on_rm_rf_error
 from _pytest.pathlib import Path
-from _pytest.warnings import SHOW_PYTEST_WARNINGS_ARG
+from _pytest.pathlib import register_cleanup_lock_removal
+from _pytest.pathlib import rm_rf
+from _pytest.tmpdir import get_user
+from _pytest.tmpdir import TempdirFactory
+from _pytest.tmpdir import TempPathFactory
 
 
 def test_tmpdir_fixture(testdir):
@@ -23,17 +29,9 @@ def test_tmpdir_fixture(testdir):
     results.stdout.fnmatch_lines(["*1 passed*"])
 
 
-def test_ensuretemp(recwarn):
-    d1 = pytest.ensuretemp("hello")
-    d2 = pytest.ensuretemp("hello")
-    assert d1 == d2
-    assert d1.check(dir=1)
-
-
 @attr.s
-class FakeConfig(object):
+class FakeConfig:
     basetemp = attr.ib()
-    trace = attr.ib(default=None)
 
     @property
     def trace(self):
@@ -47,12 +45,9 @@ class FakeConfig(object):
         return self
 
 
-class TestTempdirHandler(object):
+class TestTempdirHandler:
     def test_mktemp(self, tmp_path):
-
-        from _pytest.tmpdir import TempdirFactory, TempPathFactory
-
-        config = FakeConfig(tmp_path)
+        config = cast(Config, FakeConfig(tmp_path))
         t = TempdirFactory(TempPathFactory.from_config(config))
         tmp = t.mktemp("world")
         assert tmp.relto(t.getbasetemp()) == "world0"
@@ -64,15 +59,13 @@ class TestTempdirHandler(object):
 
     def test_tmppath_relative_basetemp_absolute(self, tmp_path, monkeypatch):
         """#4425"""
-        from _pytest.tmpdir import TempPathFactory
-
         monkeypatch.chdir(tmp_path)
-        config = FakeConfig("hello")
+        config = cast(Config, FakeConfig("hello"))
         t = TempPathFactory.from_config(config)
         assert t.getbasetemp().resolve() == (tmp_path / "hello").resolve()
 
 
-class TestConfigTmpdir(object):
+class TestConfigTmpdir:
     def test_getbasetemp_custom_removes_old(self, testdir):
         mytemp = testdir.tmpdir.join("xyz")
         p = testdir.makepyfile(
@@ -90,18 +83,37 @@ class TestConfigTmpdir(object):
         assert not mytemp.join("hello").check()
 
 
-def test_basetemp(testdir):
+testdata = [
+    ("mypath", True),
+    ("/mypath1", False),
+    ("./mypath1", True),
+    ("../mypath3", False),
+    ("../../mypath4", False),
+    ("mypath5/..", False),
+    ("mypath6/../mypath6", True),
+    ("mypath7/../mypath7/..", False),
+]
+
+
+@pytest.mark.parametrize("basename, is_ok", testdata)
+def test_mktemp(testdir, basename, is_ok):
     mytemp = testdir.tmpdir.mkdir("mytemp")
     p = testdir.makepyfile(
         """
-        import pytest
-        def test_1():
-            pytest.ensuretemp("hello")
-    """
+        def test_abs_path(tmpdir_factory):
+            tmpdir_factory.mktemp('{}', numbered=False)
+        """.format(
+            basename
+        )
     )
-    result = testdir.runpytest(p, "--basetemp=%s" % mytemp, SHOW_PYTEST_WARNINGS_ARG)
-    assert result.ret == 0
-    assert mytemp.join("hello").check()
+
+    result = testdir.runpytest(p, "--basetemp=%s" % mytemp)
+    if is_ok:
+        assert result.ret == 0
+        assert mytemp.join(basename).check()
+    else:
+        assert result.ret == 1
+        result.stdout.fnmatch_lines("*ValueError*")
 
 
 def test_tmpdir_always_is_realpath(testdir):
@@ -177,7 +189,6 @@ def test_tmpdir_fallback_tox_env(testdir, monkeypatch):
     monkeypatch.delenv("USERNAME", raising=False)
     testdir.makepyfile(
         """
-        import pytest
         def test_some(tmpdir):
             assert tmpdir.isdir()
     """
@@ -203,7 +214,6 @@ def test_tmpdir_fallback_uid_not_found(testdir):
 
     testdir.makepyfile(
         """
-        import pytest
         def test_some(tmpdir):
             assert tmpdir.isdir()
     """
@@ -219,8 +229,6 @@ def test_get_user_uid_not_found():
     user id does not correspond to a valid user (e.g. running pytest in a
     Docker container with 'docker run -u'.
     """
-    from _pytest.tmpdir import get_user
-
     assert get_user() is None
 
 
@@ -230,19 +238,15 @@ def test_get_user(monkeypatch):
     required by getpass module are missing from the environment on Windows
     (#1010).
     """
-    from _pytest.tmpdir import get_user
-
     monkeypatch.delenv("USER", raising=False)
     monkeypatch.delenv("USERNAME", raising=False)
     assert get_user() is None
 
 
-class TestNumberedDir(object):
+class TestNumberedDir:
     PREFIX = "fun-"
 
     def test_make(self, tmp_path):
-        from _pytest.pathlib import make_numbered_dir
-
         for i in range(10):
             d = make_numbered_dir(root=tmp_path, prefix=self.PREFIX)
             assert d.name.startswith(self.PREFIX)
@@ -257,20 +261,16 @@ class TestNumberedDir(object):
     def test_cleanup_lock_create(self, tmp_path):
         d = tmp_path.joinpath("test")
         d.mkdir()
-        from _pytest.pathlib import create_cleanup_lock
-
         lockfile = create_cleanup_lock(d)
-        with pytest.raises(EnvironmentError, match="cannot create lockfile in .*"):
+        with pytest.raises(OSError, match="cannot create lockfile in .*"):
             create_cleanup_lock(d)
 
         lockfile.unlink()
 
-    def test_lock_register_cleanup_removal(self, tmp_path):
-        from _pytest.pathlib import create_cleanup_lock, register_cleanup_lock_removal
-
+    def test_lock_register_cleanup_removal(self, tmp_path: Path) -> None:
         lock = create_cleanup_lock(tmp_path)
 
-        registry = []
+        registry = []  # type: List[Callable[..., None]]
         register_cleanup_lock_removal(lock, register=registry.append)
 
         (cleanup_func,) = registry
@@ -289,10 +289,8 @@ class TestNumberedDir(object):
 
         assert not lock.exists()
 
-    def _do_cleanup(self, tmp_path):
+    def _do_cleanup(self, tmp_path: Path) -> None:
         self.test_make(tmp_path)
-        from _pytest.pathlib import cleanup_numbered_dir
-
         cleanup_numbered_dir(
             root=tmp_path,
             prefix=self.PREFIX,
@@ -306,12 +304,9 @@ class TestNumberedDir(object):
         print(a, b)
 
     def test_cleanup_locked(self, tmp_path):
+        p = make_numbered_dir(root=tmp_path, prefix=self.PREFIX)
 
-        from _pytest import pathlib
-
-        p = pathlib.make_numbered_dir(root=tmp_path, prefix=self.PREFIX)
-
-        pathlib.create_cleanup_lock(p)
+        create_cleanup_lock(p)
 
         assert not pathlib.ensure_deletable(
             p, consider_lock_dead_if_created_before=p.stat().st_mtime - 1
@@ -326,16 +321,14 @@ class TestNumberedDir(object):
         self._do_cleanup(tmp_path)
 
     def test_removal_accepts_lock(self, tmp_path):
-        folder = pathlib.make_numbered_dir(root=tmp_path, prefix=self.PREFIX)
-        pathlib.create_cleanup_lock(folder)
-        pathlib.maybe_delete_a_numbered_dir(folder)
+        folder = make_numbered_dir(root=tmp_path, prefix=self.PREFIX)
+        create_cleanup_lock(folder)
+        maybe_delete_a_numbered_dir(folder)
         assert folder.is_dir()
 
 
 class TestRmRf:
     def test_rm_rf(self, tmp_path):
-        from _pytest.pathlib import rm_rf
-
         adir = tmp_path / "adir"
         adir.mkdir()
         rm_rf(adir)
@@ -351,8 +344,6 @@ class TestRmRf:
 
     def test_rm_rf_with_read_only_file(self, tmp_path):
         """Ensure rm_rf can remove directories with read-only files in them (#5524)"""
-        from _pytest.pathlib import rm_rf
-
         fn = tmp_path / "dir/foo.txt"
         fn.parent.mkdir()
 
@@ -370,8 +361,6 @@ class TestRmRf:
 
     def test_rm_rf_with_read_only_directory(self, tmp_path):
         """Ensure rm_rf can remove read-only directories (#5524)"""
-        from _pytest.pathlib import rm_rf
-
         adir = tmp_path / "dir"
         adir.mkdir()
 
@@ -382,9 +371,7 @@ class TestRmRf:
 
         assert not adir.is_dir()
 
-    def test_on_rm_rf_error(self, tmp_path):
-        from _pytest.pathlib import on_rm_rf_error
-
+    def test_on_rm_rf_error(self, tmp_path: Path) -> None:
         adir = tmp_path / "dir"
         adir.mkdir()
 
@@ -394,34 +381,38 @@ class TestRmRf:
 
         # unknown exception
         with pytest.warns(pytest.PytestWarning):
-            exc_info = (None, RuntimeError(), None)
-            on_rm_rf_error(os.unlink, str(fn), exc_info, start_path=tmp_path)
+            exc_info1 = (None, RuntimeError(), None)
+            on_rm_rf_error(os.unlink, str(fn), exc_info1, start_path=tmp_path)
             assert fn.is_file()
 
         # we ignore FileNotFoundError
-        file_not_found = OSError()
-        file_not_found.errno = errno.ENOENT
-        exc_info = (None, file_not_found, None)
-        assert not on_rm_rf_error(None, str(fn), exc_info, start_path=tmp_path)
+        exc_info2 = (None, FileNotFoundError(), None)
+        assert not on_rm_rf_error(None, str(fn), exc_info2, start_path=tmp_path)
 
-        permission_error = OSError()
-        permission_error.errno = errno.EACCES
         # unknown function
-        with pytest.warns(pytest.PytestWarning):
-            exc_info = (None, permission_error, None)
-            on_rm_rf_error(None, str(fn), exc_info, start_path=tmp_path)
+        with pytest.warns(
+            pytest.PytestWarning,
+            match=r"^\(rm_rf\) unknown function None when removing .*foo.txt:\nNone: ",
+        ):
+            exc_info3 = (None, PermissionError(), None)
+            on_rm_rf_error(None, str(fn), exc_info3, start_path=tmp_path)
             assert fn.is_file()
 
-        exc_info = (None, permission_error, None)
-        on_rm_rf_error(os.unlink, str(fn), exc_info, start_path=tmp_path)
+        # ignored function
+        with pytest.warns(None) as warninfo:
+            exc_info4 = (None, PermissionError(), None)
+            on_rm_rf_error(os.open, str(fn), exc_info4, start_path=tmp_path)
+            assert fn.is_file()
+        assert not [x.message for x in warninfo]
+
+        exc_info5 = (None, PermissionError(), None)
+        on_rm_rf_error(os.unlink, str(fn), exc_info5, start_path=tmp_path)
         assert not fn.is_file()
 
 
 def attempt_symlink_to(path, to_path):
     """Try to make a symlink from "path" to "to_path", skipping in case this platform
     does not support it or we don't have sufficient privileges (common on Windows)."""
-    if sys.platform.startswith("win") and six.PY2:
-        pytest.skip("pathlib for some reason cannot make symlinks on Python 2")
     try:
         Path(path).symlink_to(Path(to_path))
     except OSError:
@@ -441,7 +432,7 @@ def test_basetemp_with_read_only_files(testdir):
 
         def test(tmp_path):
             fn = tmp_path / 'foo.txt'
-            fn.write_text(u'hello')
+            fn.write_text('hello')
             mode = os.stat(str(fn)).st_mode
             os.chmod(str(fn), mode & ~stat.S_IREAD)
     """

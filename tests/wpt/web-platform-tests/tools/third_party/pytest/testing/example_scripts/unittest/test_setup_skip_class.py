@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Skipping an entire subclass with unittest.skip() should *not* call setUpClass from a base class."""
 import unittest
 

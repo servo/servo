@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
-import doctest
 import operator
-import sys
 from decimal import Decimal
 from fractions import Fraction
 from operator import eq
 from operator import ne
+from typing import Optional
 
 import pytest
 from pytest import approx
@@ -13,68 +11,81 @@ from pytest import approx
 inf, nan = float("inf"), float("nan")
 
 
-class MyDocTestRunner(doctest.DocTestRunner):
-    def __init__(self):
-        doctest.DocTestRunner.__init__(self)
+@pytest.fixture
+def mocked_doctest_runner(monkeypatch):
+    import doctest
 
-    def report_failure(self, out, test, example, got):
-        raise AssertionError(
-            "'{}' evaluates to '{}', not '{}'".format(
-                example.source.strip(), got.strip(), example.want.strip()
+    class MockedPdb:
+        def __init__(self, out):
+            pass
+
+        def set_trace(self):
+            raise NotImplementedError("not used")
+
+        def reset(self):
+            pass
+
+        def set_continue(self):
+            pass
+
+    monkeypatch.setattr("doctest._OutputRedirectingPdb", MockedPdb)
+
+    class MyDocTestRunner(doctest.DocTestRunner):
+        def report_failure(self, out, test, example, got):
+            raise AssertionError(
+                "'{}' evaluates to '{}', not '{}'".format(
+                    example.source.strip(), got.strip(), example.want.strip()
+                )
             )
-        )
+
+    return MyDocTestRunner()
 
 
-class TestApprox(object):
-    @pytest.fixture
-    def plus_minus(self):
-        return u"\u00b1" if sys.version_info[0] > 2 else u"+-"
-
-    def test_repr_string(self, plus_minus):
-        tol1, tol2, infr = "1.0e-06", "2.0e-06", "inf"
-        assert repr(approx(1.0)) == "1.0 {pm} {tol1}".format(pm=plus_minus, tol1=tol1)
-        assert repr(
-            approx([1.0, 2.0])
-        ) == "approx([1.0 {pm} {tol1}, 2.0 {pm} {tol2}])".format(
-            pm=plus_minus, tol1=tol1, tol2=tol2
-        )
-        assert repr(
-            approx((1.0, 2.0))
-        ) == "approx((1.0 {pm} {tol1}, 2.0 {pm} {tol2}))".format(
-            pm=plus_minus, tol1=tol1, tol2=tol2
-        )
+class TestApprox:
+    def test_repr_string(self):
+        assert repr(approx(1.0)) == "1.0 ± 1.0e-06"
+        assert repr(approx([1.0, 2.0])) == "approx([1.0 ± 1.0e-06, 2.0 ± 2.0e-06])"
+        assert repr(approx((1.0, 2.0))) == "approx((1.0 ± 1.0e-06, 2.0 ± 2.0e-06))"
         assert repr(approx(inf)) == "inf"
-        assert repr(approx(1.0, rel=nan)) == "1.0 {pm} ???".format(pm=plus_minus)
-        assert repr(approx(1.0, rel=inf)) == "1.0 {pm} {infr}".format(
-            pm=plus_minus, infr=infr
-        )
-        assert repr(approx(1.0j, rel=inf)) == "1j"
+        assert repr(approx(1.0, rel=nan)) == "1.0 ± ???"
+        assert repr(approx(1.0, rel=inf)) == "1.0 ± inf"
 
         # Dictionaries aren't ordered, so we need to check both orders.
         assert repr(approx({"a": 1.0, "b": 2.0})) in (
-            "approx({{'a': 1.0 {pm} {tol1}, 'b': 2.0 {pm} {tol2}}})".format(
-                pm=plus_minus, tol1=tol1, tol2=tol2
-            ),
-            "approx({{'b': 2.0 {pm} {tol2}, 'a': 1.0 {pm} {tol1}}})".format(
-                pm=plus_minus, tol1=tol1, tol2=tol2
-            ),
+            "approx({'a': 1.0 ± 1.0e-06, 'b': 2.0 ± 2.0e-06})",
+            "approx({'b': 2.0 ± 2.0e-06, 'a': 1.0 ± 1.0e-06})",
         )
 
+    def test_repr_complex_numbers(self):
+        assert repr(approx(inf + 1j)) == "(inf+1j)"
+        assert repr(approx(1.0j, rel=inf)) == "1j ± inf"
+
+        # can't compute a sensible tolerance
+        assert repr(approx(nan + 1j)) == "(nan+1j) ± ???"
+
+        assert repr(approx(1.0j)) == "1j ± 1.0e-06 ∠ ±180°"
+
+        # relative tolerance is scaled to |3+4j| = 5
+        assert repr(approx(3 + 4 * 1j)) == "(3+4j) ± 5.0e-06 ∠ ±180°"
+
+        # absolute tolerance is not scaled
+        assert repr(approx(3.3 + 4.4 * 1j, abs=0.02)) == "(3.3+4.4j) ± 2.0e-02 ∠ ±180°"
+
     @pytest.mark.parametrize(
-        "value, repr_string",
+        "value, expected_repr_string",
         [
-            (5.0, "approx(5.0 {pm} 5.0e-06)"),
-            ([5.0], "approx([5.0 {pm} 5.0e-06])"),
-            ([[5.0]], "approx([[5.0 {pm} 5.0e-06]])"),
-            ([[5.0, 6.0]], "approx([[5.0 {pm} 5.0e-06, 6.0 {pm} 6.0e-06]])"),
-            ([[5.0], [6.0]], "approx([[5.0 {pm} 5.0e-06], [6.0 {pm} 6.0e-06]])"),
+            (5.0, "approx(5.0 ± 5.0e-06)"),
+            ([5.0], "approx([5.0 ± 5.0e-06])"),
+            ([[5.0]], "approx([[5.0 ± 5.0e-06]])"),
+            ([[5.0, 6.0]], "approx([[5.0 ± 5.0e-06, 6.0 ± 6.0e-06]])"),
+            ([[5.0], [6.0]], "approx([[5.0 ± 5.0e-06], [6.0 ± 6.0e-06]])"),
         ],
     )
-    def test_repr_nd_array(self, plus_minus, value, repr_string):
+    def test_repr_nd_array(self, value, expected_repr_string):
         """Make sure that arrays of all different dimensions are repr'd correctly."""
         np = pytest.importorskip("numpy")
         np_array = np.array(value)
-        assert repr(approx(np_array)) == repr_string.format(pm=plus_minus)
+        assert repr(approx(np_array)) == expected_repr_string
 
     def test_operator_overloading(self):
         assert 1 == approx(1, rel=1e-6, abs=1e-12)
@@ -111,18 +122,22 @@ class TestApprox(object):
             assert a == approx(x, rel=5e-1, abs=0.0)
             assert a != approx(x, rel=5e-2, abs=0.0)
 
-    def test_negative_tolerance(self):
+    @pytest.mark.parametrize(
+        ("rel", "abs"),
+        [
+            (-1e100, None),
+            (None, -1e100),
+            (1e100, -1e100),
+            (-1e100, 1e100),
+            (-1e100, -1e100),
+        ],
+    )
+    def test_negative_tolerance(
+        self, rel: Optional[float], abs: Optional[float]
+    ) -> None:
         # Negative tolerances are not allowed.
-        illegal_kwargs = [
-            dict(rel=-1e100),
-            dict(abs=-1e100),
-            dict(rel=1e100, abs=-1e100),
-            dict(rel=-1e100, abs=1e100),
-            dict(rel=-1e100, abs=-1e100),
-        ]
-        for kwargs in illegal_kwargs:
-            with pytest.raises(ValueError):
-                1.1 == approx(1, **kwargs)
+        with pytest.raises(ValueError):
+            1.1 == approx(1, rel, abs)
 
     def test_inf_tolerance(self):
         # Everything should be equal if the tolerance is infinite.
@@ -133,19 +148,21 @@ class TestApprox(object):
             assert a == approx(x, rel=0.0, abs=inf)
             assert a == approx(x, rel=inf, abs=inf)
 
-    def test_inf_tolerance_expecting_zero(self):
+    def test_inf_tolerance_expecting_zero(self) -> None:
         # If the relative tolerance is zero but the expected value is infinite,
         # the actual tolerance is a NaN, which should be an error.
-        illegal_kwargs = [dict(rel=inf, abs=0.0), dict(rel=inf, abs=inf)]
-        for kwargs in illegal_kwargs:
-            with pytest.raises(ValueError):
-                1 == approx(0, **kwargs)
+        with pytest.raises(ValueError):
+            1 == approx(0, rel=inf, abs=0.0)
+        with pytest.raises(ValueError):
+            1 == approx(0, rel=inf, abs=inf)
 
-    def test_nan_tolerance(self):
-        illegal_kwargs = [dict(rel=nan), dict(abs=nan), dict(rel=nan, abs=nan)]
-        for kwargs in illegal_kwargs:
-            with pytest.raises(ValueError):
-                1.1 == approx(1, **kwargs)
+    def test_nan_tolerance(self) -> None:
+        with pytest.raises(ValueError):
+            1.1 == approx(1, rel=nan)
+        with pytest.raises(ValueError):
+            1.1 == approx(1, abs=nan)
+        with pytest.raises(ValueError):
+            1.1 == approx(1, rel=nan, abs=nan)
 
     def test_reasonable_defaults(self):
         # Whatever the defaults are, they should work for numbers close to 1
@@ -418,13 +435,15 @@ class TestApprox(object):
         assert a12 != approx(a21)
         assert a21 != approx(a12)
 
-    def test_doctests(self):
+    def test_doctests(self, mocked_doctest_runner) -> None:
+        import doctest
+
         parser = doctest.DocTestParser()
+        assert approx.__doc__ is not None
         test = parser.get_doctest(
             approx.__doc__, {"approx": approx}, approx.__name__, None, None
         )
-        runner = MyDocTestRunner()
-        runner.run(test)
+        mocked_doctest_runner.run(test)
 
     def test_unicode_plus_minus(self, testdir):
         """
@@ -441,7 +460,7 @@ class TestApprox(object):
         expected = "4.0e-06"
         result = testdir.runpytest()
         result.stdout.fnmatch_lines(
-            ["*At index 0 diff: 3 != 4 * {}".format(expected), "=* 1 failed in *="]
+            ["*At index 0 diff: 3 != 4 ± {}".format(expected), "=* 1 failed in *="]
         )
 
     @pytest.mark.parametrize(
@@ -469,9 +488,7 @@ class TestApprox(object):
         ],
     )
     def test_comparison_operator_type_error(self, op):
-        """
-        pytest.approx should raise TypeError for operators other than == and != (#2003).
-        """
+        """pytest.approx should raise TypeError for operators other than == and != (#2003)."""
         with pytest.raises(TypeError):
             op(1, approx(1, rel=1e-6, abs=1e-12))
 
@@ -498,7 +515,7 @@ class TestApprox(object):
         assert approx(expected, rel=5e-8, abs=0) != actual
 
     def test_generic_sized_iterable_object(self):
-        class MySizedIterable(object):
+        class MySizedIterable:
             def __iter__(self):
                 return iter([1, 2, 3, 4])
 

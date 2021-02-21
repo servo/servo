@@ -2,15 +2,6 @@
 Talks and Tutorials
 ==========================
 
-..
-   .. sidebar:: Next Open Trainings
-
-      `Professional Testing with Python
-      <http://www.python-academy.com/courses/specialtopics/python_course_testing.html>`_,
-      26-28 April 2017, Leipzig, Germany.
-
-.. _`funcargs`: funcargs.html
-
 Books
 ---------------------------------------------
 
@@ -22,6 +13,18 @@ Books
 
 Talks and blog postings
 ---------------------------------------------
+
+- Webinar: `pytest: Test Driven Development für Python (German) <https://bruhin.software/ins-pytest/>`_, Florian Bruhin, via mylearning.ch, 2020
+
+- Webinar: `Simplify Your Tests with Fixtures <https://blog.jetbrains.com/pycharm/2020/08/webinar-recording-simplify-your-tests-with-fixtures-with-oliver-bestwalter/>`_, Oliver Bestwalter, via JetBrains, 2020
+
+- Training: `Introduction to pytest - simple, rapid and fun testing with Python <https://www.youtube.com/watch?v=CMuSn9cofbI>`_, Florian Bruhin, PyConDE 2019
+
+- Abridged metaprogramming classics - this episode: pytest, Oliver Bestwalter, PyConDE 2019 (`repository <https://github.com/obestwalter/abridged-meta-programming-classics>`__, `recording <https://www.youtube.com/watch?v=zHpeMTJsBRk&feature=youtu.be>`__)
+
+- Testing PySide/PyQt code easily using the pytest framework, Florian Bruhin, Qt World Summit 2019 (`slides <https://bruhin.software/talks/qtws19.pdf>`__, `recording <https://www.youtube.com/watch?v=zdsBS5BXGqQ>`__)
+
+- `pytest: recommendations, basic packages for testing in Python and Django, Andreu Vallbona, PyBCN June 2019 <https://www.slideshare.net/AndreuVallbonaPlazas/pybcn-pytest-recomendaciones-paquetes-bsicos-para-testing-en-python-y-django>`_.
 
 - pytest: recommendations, basic packages for testing in Python and Django, Andreu Vallbona, PyconES 2017 (`slides in english <http://talks.apsl.io/testing-pycones-2017/>`_, `video in spanish <https://www.youtube.com/watch?v=K20GeR-lXDk>`_)
 
@@ -47,12 +50,10 @@ Talks and blog postings
   <https://www.youtube.com/watch?v=P-AhpukDIik>`_
 
 - `3-part blog series about pytest from @pydanny alias Daniel Greenfeld (January
-  2014) <http://pydanny.com/pytest-no-boilerplate-testing.html>`_
+  2014) <https://daniel.roygreenfeld.com/pytest-no-boilerplate-testing.html>`_
 
 - `pytest: helps you write better Django apps, Andreas Pelme, DjangoCon
   Europe 2014 <https://www.youtube.com/watch?v=aaArYVh6XSM>`_.
-
-- :ref:`fixtures`
 
 - `Testing Django Applications with pytest, Andreas Pelme, EuroPython
   2013 <https://www.youtube.com/watch?v=aUf8Fkb7TaY>`_.
@@ -69,7 +70,7 @@ Talks and blog postings
 - `pytest introduction from Brian Okken (January 2013)
   <http://pythontesting.net/framework/pytest-introduction/>`_
 
-- pycon australia 2012 pytest talk from Brianna Laugher (`video <http://www.youtube.com/watch?v=DTNejE9EraI>`_, `slides <http://www.slideshare.net/pfctdayelise/funcargs-other-fun-with-pytest>`_, `code <https://gist.github.com/3386951>`_)
+- pycon australia 2012 pytest talk from Brianna Laugher (`video <http://www.youtube.com/watch?v=DTNejE9EraI>`_, `slides <https://www.slideshare.net/pfctdayelise/funcargs-other-fun-with-pytest>`_, `code <https://gist.github.com/3386951>`_)
 - `pycon 2012 US talk video from Holger Krekel <http://www.youtube.com/watch?v=9LVqBQcFmyw>`_
 
 - `monkey patching done right`_ (blog post, consult `monkeypatch plugin`_ for up-to-date API)

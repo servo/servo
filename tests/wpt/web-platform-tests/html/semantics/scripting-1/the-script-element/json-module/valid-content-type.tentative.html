@@ -19,18 +19,18 @@ const t3 = async_test("text/html+json");
 const t4 = async_test("image/svg+json");
 </script>
 <script type="module" onerror="t1.step(() => assert_unreached(event))">
-import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=text/json";
+import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=text/json" assert { type: "json"};
 check(t1, v);
 </script>
 <script type="module" onerror="t2.step(() => assert_unreached(event))">
-import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=application/json";
+import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=application/json" assert { type: "json"};
 check(t2, v);
 </script>
 <script type="module" onerror="t3.step(() => assert_unreached(event))">
-import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=text/html+json";
+import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=text/html+json" assert { type: "json"};
 check(t3, v);
 </script>
 <script type="module" onerror="t4.step(() => assert_unreached(event))">
-import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=image/svg+json";
+import v from "../serve-with-content-type.py?fn=json-module/module.json&ct=image/svg+json" assert { type: "json"};
 check(t4, v);
 </script>

@@ -77,8 +77,7 @@ runTest("One pending navigation", async (test, popup_name) => {
 // is canceled. As a result, the frame will be left with the initial empty
 // document and NO pending navigation.
 runTest("No pending navigation", async (test, popup_name) => {
-  const no_content_path =
-    "/html/browsers/sandboxing/resources/204-no-content.asis";
+  const no_content_path = "/common/blank.html?pipe=status(204)"
   const popup = window.open(same_origin + no_content_path, popup_name);
 
   // Unfortunately, there are no web API to detect a navigation has been

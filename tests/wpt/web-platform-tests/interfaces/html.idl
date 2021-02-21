@@ -2027,48 +2027,6 @@ interface mixin NavigatorCookies {
   readonly attribute boolean cookieEnabled;
 };
 
-interface mixin NavigatorPlugins {
-  [SameObject] readonly attribute PluginArray plugins;
-  [SameObject] readonly attribute MimeTypeArray mimeTypes;
-  boolean javaEnabled();
-};
-
-[Exposed=Window,
- LegacyUnenumerableNamedProperties]
-interface PluginArray {
-  undefined refresh(optional boolean reload = false);
-  readonly attribute unsigned long length;
-  getter Plugin? item(unsigned long index);
-  getter Plugin? namedItem(DOMString name);
-};
-
-[Exposed=Window,
- LegacyUnenumerableNamedProperties]
-interface MimeTypeArray {
-  readonly attribute unsigned long length;
-  getter MimeType? item(unsigned long index);
-  getter MimeType? namedItem(DOMString name);
-};
-
-[Exposed=Window,
- LegacyUnenumerableNamedProperties]
-interface Plugin {
-  readonly attribute DOMString name;
-  readonly attribute DOMString description;
-  readonly attribute DOMString filename;
-  readonly attribute unsigned long length;
-  getter MimeType? item(unsigned long index);
-  getter MimeType? namedItem(DOMString name);
-};
-
-[Exposed=Window]
-interface MimeType {
-  readonly attribute DOMString type;
-  readonly attribute DOMString description;
-  readonly attribute DOMString suffixes; // comma-separated
-  readonly attribute Plugin enabledPlugin;
-};
-
 [Exposed=(Window,Worker), Serializable, Transferable]
 interface ImageBitmap {
   readonly attribute unsigned long width;
@@ -2673,4 +2631,43 @@ partial interface Window {
 interface External {
   undefined AddSearchProvider();
   undefined IsSearchProviderInstalled();
+};
+
+interface mixin NavigatorPlugins {
+  [SameObject] readonly attribute PluginArray plugins;
+  [SameObject] readonly attribute MimeTypeArray mimeTypes;
+  boolean javaEnabled();
+};
+
+[Exposed=Window]
+interface PluginArray {
+  undefined refresh();
+  readonly attribute unsigned long length;
+  getter object? item(unsigned long index);
+  object? namedItem(DOMString name);
+};
+
+[Exposed=Window]
+interface MimeTypeArray {
+  readonly attribute unsigned long length;
+  getter object? item(unsigned long index);
+  object? namedItem(DOMString name);
+};
+
+[Exposed=Window]
+interface Plugin {
+  readonly attribute undefined name;
+  readonly attribute undefined description;
+  readonly attribute undefined filename;
+  readonly attribute undefined length;
+  getter undefined item(unsigned long index);
+  undefined namedItem(DOMString name);
+};
+
+[Exposed=Window]
+interface MimeType {
+  readonly attribute undefined type;
+  readonly attribute undefined description;
+  readonly attribute undefined suffixes;
+  readonly attribute undefined enabledPlugin;
 };

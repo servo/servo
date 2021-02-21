@@ -480,6 +480,137 @@ promise_test(t => {
         });
   }, 'FetchEvent#body is a string and is passed to network fallback');
 
+// Test that the request body is sent to network upon network fallback,
+// for a ReadableStream body.
+promise_test(async t => {
+    const rs = new ReadableStream({start(c) {
+      c.enqueue('i a');
+      c.enqueue('m the request');
+      t.step_timeout(t.step_func(() => {
+        c.enqueue(' body');
+        c.close();
+      }, 10));
+    }});
+    // Set page_url to "?ignore" so the service worker falls back to network
+    // for the main resource request, and add a suffix to avoid colliding
+    // with other tests.
+    const page_url = 'resources/?ignore-for-request-body-fallback-string';
+    const frame = await with_iframe(page_url);
+    t.add_cleanup(() => { frame.remove(); });
+    // Add "?ignore" so the service worker falls back to echo-content.py.
+    const echo_url = '/fetch/api/resources/echo-content.py?ignore';
+    const response = await frame.contentWindow.fetch(echo_url, {
+        method: 'POST',
+        body: rs
+    });
+    const text = await response.text();
+    assert_equals(text,
+        'i am the request body',
+        'the network fallback request should include the request body');
+  }, 'FetchEvent#body is a ReadableStream and is passed to network fallback');
+
+// Test that the request body is sent to network upon network fallback even when
+// the request body is used in the service worker, for a string body.
+promise_test(async t => {
+    // Set page_url to "?ignore" so the service worker falls back to network
+    // for the main resource request, and add a suffix to avoid colliding
+    // with other tests.
+    const page_url = 'resources/?ignore-for-request-body-fallback-string';
+
+    const frame = await with_iframe(page_url);
+    t.add_cleanup(() => { frame.remove(); });
+    // Add "?use-and-ignore" so the service worker falls back to echo-content.py.
+    const echo_url = '/fetch/api/resources/echo-content.py?use-and-ignore';
+    const response = await frame.contentWindow.fetch(echo_url, {
+        method: 'POST',
+        body: 'i am the request body'
+    });
+    const text = await response.text();
+    assert_equals(
+        text,
+        'i am the request body',
+        'the network fallback request should include the request body');
+  }, 'FetchEvent#body is a string, used and passed to network fallback');
+
+// When the streaming body is used in the service worker, network fallback
+// fails.
+promise_test(async t => {
+    const rs = new ReadableStream({start(c) {
+      c.enqueue('i a');
+      c.enqueue('m the request');
+      t.step_timeout(t.step_func(() => {
+        c.enqueue(' body');
+        c.close();
+      }, 10));
+    }});
+    // Set page_url to "?ignore" so the service worker falls back to network
+    // for the main resource request, and add a suffix to avoid colliding
+    // with other tests.
+    const page_url = 'resources/?ignore-for-request-body-fallback-string';
+    const frame = await with_iframe(page_url);
+    t.add_cleanup(() => { frame.remove(); });
+    const echo_url = '/fetch/api/resources/echo-content.py?use-and-ignore';
+    await promise_rejects_js(t, TypeError, frame.contentWindow.fetch(echo_url, {
+        method: 'POST',
+        body: rs
+    }));
+  }, 'FetchEvent#body is a ReadableStream, used and passed to network fallback');
+
+// Test that the request body is sent to network upon network fallback even when
+// the request body is used by clone() in the service worker, for a string body.
+promise_test(async t => {
+    // Set page_url to "?ignore" so the service worker falls back to network
+    // for the main resource request, and add a suffix to avoid colliding
+    // with other tests.
+    const page_url = 'resources/?ignore-for-request-body-fallback-string';
+
+    const frame = await with_iframe(page_url);
+    t.add_cleanup(() => { frame.remove(); });
+    // Add "?clone-and-ignore" so the service worker falls back to
+    // echo-content.py.
+    const echo_url = '/fetch/api/resources/echo-content.py?clone-and-ignore';
+    const response = await frame.contentWindow.fetch(echo_url, {
+        method: 'POST',
+        body: 'i am the request body'
+    });
+    const text = await response.text();
+    assert_equals(
+        text,
+        'i am the request body',
+        'the network fallback request should include the request body');
+  }, 'FetchEvent#body is a string, cloned and passed to network fallback');
+
+// When the streaming body is used by clone() in the service worker, network
+// fallback fails.
+promise_test(async t => {
+    const rs = new ReadableStream({start(c) {
+      c.enqueue('i a');
+      c.enqueue('m the request');
+      t.step_timeout(t.step_func(() => {
+        c.enqueue(' body');
+        c.close();
+      }, 10));
+    }});
+    // Set page_url to "?ignore" so the service worker falls back to network
+    // for the main resource request, and add a suffix to avoid colliding
+    // with other tests.
+    const page_url = 'resources/?ignore-for-request-body-fallback-string';
+    const frame = await with_iframe(page_url);
+    t.add_cleanup(() => { frame.remove(); });
+    // Add "?clone-and-ignore" so the service worker falls back to
+    // echo-content.py.
+    const echo_url = '/fetch/api/resources/echo-content.py?clone-and-ignore';
+    const response = await frame.contentWindow.fetch(echo_url, {
+        method: 'POST',
+        body: 'i am the request body'
+    });
+    const text = await response.text();
+    assert_equals(
+        text,
+        'i am the request body',
+        'the network fallback request should include the request body');
+  }, 'FetchEvent#body is a ReadableStream, cloned and passed to network fallback');
+
 // Test that the service worker can read FetchEvent#body when it is a blob.
 // It responds with request body it read.
 promise_test(t => {
@@ -851,5 +982,52 @@ promise_test(async (t) => {
     assert_equals(frame.contentDocument.body.textContent,
                   'method = POST, isHistoryNavigation = true');
   }, 'FetchEvent#request.isHistoryNavigation is true (POST + history.go(-1))');
+
+// When service worker responds with a Response, no XHR upload progress
+// events are delivered.
+promise_test(async t => {
+    const page_url = 'resources/simple.html?ignore-for-request-body-string';
+    const frame = await with_iframe(page_url);
+    t.add_cleanup(() => { frame.remove(); });
+
+    const xhr = new frame.contentWindow.XMLHttpRequest();
+    xhr.open('POST', 'simple.html?request-body');
+    xhr.upload.addEventListener('progress', t.unreached_func('progress'));
+    xhr.upload.addEventListener('error', t.unreached_func('error'));
+    xhr.upload.addEventListener('abort', t.unreached_func('abort'));
+    xhr.upload.addEventListener('timeout', t.unreached_func('timeout'));
+    xhr.upload.addEventListener('load', t.unreached_func('load'));
+    xhr.upload.addEventListener('loadend', t.unreached_func('loadend'));
+    xhr.send('i am the request body');
+
+    await new Promise((resolve) => xhr.addEventListener('load', resolve));
+  }, 'XHR upload progress events for response coming from SW');
+
+// Upload progress events should be delivered for the network fallback case.
+promise_test(async t => {
+    const page_url = 'resources/simple.html?ignore-for-request-body-string';
+    const frame = await with_iframe(page_url);
+    t.add_cleanup(() => { frame.remove(); });
+
+    let progress = false;
+    let load = false;
+    let loadend = false;
+
+    const xhr = new frame.contentWindow.XMLHttpRequest();
+    xhr.open('POST', '/fetch/api/resources/echo-content.py?ignore');
+    xhr.upload.addEventListener('progress', () => progress = true);
+    xhr.upload.addEventListener('error', t.unreached_func('error'));
+    xhr.upload.addEventListener('abort', t.unreached_func('abort'));
+    xhr.upload.addEventListener('timeout', t.unreached_func('timeout'));
+    xhr.upload.addEventListener('load', () => load = true);
+    xhr.upload.addEventListener('loadend', () => loadend = true);
+    xhr.send('i am the request body');
+
+    await new Promise((resolve) => xhr.addEventListener('load', resolve));
+    assert_true(progress, 'progress');
+    assert_true(load, 'load');
+    assert_true(loadend, 'loadend');
+  }, 'XHR upload progress events for network fallback');
+
 </script>
 </body>

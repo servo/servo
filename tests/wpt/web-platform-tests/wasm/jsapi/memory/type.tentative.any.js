@@ -3,11 +3,12 @@
 
 function assert_type(argument) {
     const memory = new WebAssembly.Memory(argument);
+    const memorytype = memory.type()
 
-    assert_equals(memory.type.minimum, argument.minimum);
-    assert_equals(memory.type.maximum, argument.maximum);
+    assert_equals(memorytype.minimum, argument.minimum);
+    assert_equals(memorytype.maximum, argument.maximum);
     if (argument.shared !== undefined) {
-        assert_equals(memory.type.shared, argument.shared);
+        assert_equals(memorytype.shared, argument.shared);
     }
 }
 

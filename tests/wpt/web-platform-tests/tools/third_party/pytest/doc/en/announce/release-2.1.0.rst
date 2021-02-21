@@ -12,7 +12,7 @@ courtesy of Benjamin Peterson.  You can now safely use ``assert``
 statements in test modules without having to worry about side effects
 or python optimization ("-OO") options.  This is achieved by rewriting
 assert statements in test modules upon import, using a PEP302 hook.
-See http://pytest.org/assert.html#advanced-assertion-introspection for
+See https://docs.pytest.org/en/stable/assert.html for
 detailed information.  The work has been partly sponsored by my company,
 merlinux GmbH.
 

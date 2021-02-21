@@ -117,6 +117,13 @@ self.addEventListener('fetch', function(event) {
     event.respondWith(waitUntilPromise.then(async () => {
       if (params['sw'] == 'gen') {
         return Response.redirect(params['url']);
+      } else if (params['sw'] == 'gen-manual') {
+        // Note this differs from Response.redirect() in that relative URLs are
+        // preserved.
+        return new Response("", {
+          status: 301,
+          headers: {location: params['url']},
+        });
       } else if (params['sw'] == 'fetch') {
         return fetch(event.request);
       } else if (params['sw'] == 'fetch-url') {

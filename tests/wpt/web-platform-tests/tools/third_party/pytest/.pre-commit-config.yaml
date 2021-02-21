@@ -1,59 +1,68 @@
-exclude: doc/en/example/py2py3/test_py2.py
 repos:
 -   repo: https://github.com/psf/black
     rev: 19.10b0
     hooks:
     -   id: black
         args: [--safe, --quiet]
-        language_version: python3
 -   repo: https://github.com/asottile/blacken-docs
-    rev: v0.5.0
+    rev: v1.7.0
     hooks:
     -   id: blacken-docs
-        additional_dependencies: [black==19.3b0]
-        language_version: python3
+        additional_dependencies: [black==19.10b0]
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.2.2
+    rev: v3.1.0
     hooks:
     -   id: trailing-whitespace
     -   id: end-of-file-fixer
     -   id: fix-encoding-pragma
+        args: [--remove]
     -   id: check-yaml
     -   id: debug-statements
-        exclude: _pytest/debugging.py
+        exclude: _pytest/(debugging|hookspec).py
         language_version: python3
 -   repo: https://gitlab.com/pycqa/flake8
-    rev: 3.7.7
+    rev: 3.8.2
     hooks:
     -   id: flake8
         language_version: python3
+        additional_dependencies:
+          - flake8-typing-imports==1.9.0
+          - flake8-docstrings==1.5.0
 -   repo: https://github.com/asottile/reorder_python_imports
-    rev: v1.4.0
+    rev: v2.3.0
     hooks:
     -   id: reorder-python-imports
-        args: ['--application-directories=.:src']
+        args: ['--application-directories=.:src', --py3-plus]
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v1.15.0
+    rev: v2.4.4
     hooks:
     -   id: pyupgrade
-        args: [--keep-percent-format]
--   repo: https://github.com/pre-commit/pygrep-hooks
-    rev: v1.3.0
+        args: [--py3-plus]
+-   repo: https://github.com/asottile/setup-cfg-fmt
+    rev: v1.9.0
     hooks:
-    -   id: rst-backticks
+    -   id: setup-cfg-fmt
+        # TODO: when upgrading setup-cfg-fmt this can be removed
+        args: [--max-py-version=3.9]
+-   repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v0.780  # NOTE: keep this in sync with setup.cfg.
+    hooks:
+    -   id: mypy
+        files: ^(src/|testing/)
+        args: []
 -   repo: local
     hooks:
     -   id: rst
         name: rst
         entry: rst-lint --encoding utf-8
-        files: ^(CHANGELOG.rst|HOWTORELEASE.rst|README.rst|TIDELIFT.rst|changelog/.*)$
+        files: ^(RELEASING.rst|README.rst|TIDELIFT.rst)$
         language: python
         additional_dependencies: [pygments, restructuredtext_lint]
     -   id: changelogs-rst
         name: changelog filenames
         language: fail
-        entry: 'changelog files must be named ####.(feature|bugfix|doc|deprecation|removal|vendor|trivial).rst'
-        exclude: changelog/(\d+\.(feature|bugfix|doc|deprecation|removal|vendor|trivial).rst|README.rst|_template.rst)
+        entry: 'changelog files must be named ####.(breaking|bugfix|deprecation|doc|feature|improvement|trivial|vendor).rst'
+        exclude: changelog/(\d+\.(breaking|bugfix|deprecation|doc|feature|improvement|trivial|vendor).rst|README.rst|_template.rst)
         files: ^changelog/
     -   id: py-deprecated
         name: py library is deprecated
@@ -63,9 +72,11 @@ repos:
                 _code\.|
                 builtin\.|
                 code\.|
-                io\.(BytesIO|saferepr)|
+                io\.|
                 path\.local\.sysfind|
                 process\.|
-                std\.
+                std\.|
+                error\.|
+                xml\.
             )
         types: [python]

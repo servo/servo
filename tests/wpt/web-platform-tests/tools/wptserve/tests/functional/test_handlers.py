@@ -5,7 +5,7 @@ import unittest
 import uuid
 
 import pytest
-from six.moves.urllib.error import HTTPError
+from urllib.error import HTTPError
 
 wptserve = pytest.importorskip("wptserve")
 from .base import TestUsingServer, TestUsingH2Server, doc_root

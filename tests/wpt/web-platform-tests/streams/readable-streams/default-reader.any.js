@@ -154,6 +154,57 @@ promise_test(t => {
 
 }, 'closed should be rejected after reader releases its lock (multiple stream locks)');
 
+promise_test(t => {
+
+  let controller;
+  const rs = new ReadableStream({
+    start(c) {
+      controller = c;
+    }
+  });
+
+  const reader = rs.getReader();
+  const promise1 = reader.closed;
+
+  controller.close();
+
+  reader.releaseLock();
+  const promise2 = reader.closed;
+
+  assert_not_equals(promise1, promise2, '.closed should be replaced');
+  return Promise.all([
+    promise1,
+    promise_rejects_js(t, TypeError, promise2, '.closed after releasing lock'),
+  ]);
+
+}, 'closed is replaced when stream closes and reader releases its lock');
+
+promise_test(t => {
+
+  const theError = { name: 'unique error' };
+  let controller;
+  const rs = new ReadableStream({
+    start(c) {
+      controller = c;
+    }
+  });
+
+  const reader = rs.getReader();
+  const promise1 = reader.closed;
+
+  controller.error(theError);
+
+  reader.releaseLock();
+  const promise2 = reader.closed;
+
+  assert_not_equals(promise1, promise2, '.closed should be replaced');
+  return Promise.all([
+    promise_rejects_exactly(t, theError, promise1, '.closed before releasing lock'),
+    promise_rejects_js(t, TypeError, promise2, '.closed after releasing lock')
+  ]);
+
+}, 'closed is replaced when stream errors and reader releases its lock');
+
 promise_test(() => {
 
   const rs = new ReadableStream({

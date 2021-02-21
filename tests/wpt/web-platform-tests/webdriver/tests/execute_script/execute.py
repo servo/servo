@@ -1,5 +1,6 @@
 import pytest
 
+from webdriver.error import NoSuchAlertException
 from webdriver.transport import Response
 
 from tests.support.asserts import assert_error, assert_success
@@ -87,9 +88,16 @@ def test_abort_by_user_prompt_twice(session, dialog_type):
 
     session.alert.accept()
 
-    # The first alert has been accepted by the user prompt handler, the second one remains.
-    # FIXME: this is how browsers currently work, but the spec should clarify if this is the
-    #        expected behavior, see https://github.com/w3c/webdriver/issues/1153.
-    assert session.alert.text == "Bye"
+    # The first alert has been accepted by the user prompt handler, the second
+    # alert will still be opened because the current step isn't aborted.
+    wait = Poll(
+        session,
+        timeout=5,
+        message="Second alert has not been opened",
+        ignored_exceptions=NoSuchAlertException
+    )
+    text = wait.until(lambda s: s.alert.text)
+
+    assert text == "Bye"
 
     session.alert.accept()

@@ -1,10 +1,9 @@
 import json
 import select
 
-from six import text_type, PY3
-from six.moves.collections_abc import Mapping
-from six.moves.http_client import HTTPConnection
-from six.moves.urllib import parse as urlparse
+from collections.abc import Mapping
+from http.client import HTTPConnection
+from urllib import parse as urlparse
 
 from . import error
 
@@ -157,8 +156,6 @@ class HTTPWireProtocol(object):
         """Gets the current HTTP connection, or lazily creates one."""
         if not self._conn:
             conn_kwargs = {}
-            if not PY3:
-                conn_kwargs["strict"] = True
             # We are not setting an HTTP timeout other than the default when the
             # connection its created. The send method has a timeout value if needed.
             self._conn = HTTPConnection(self.host, self.port, **conn_kwargs)
@@ -240,7 +237,7 @@ class HTTPWireProtocol(object):
         return Response.from_http(response, decoder=decoder, **codec_kwargs)
 
     def _request(self, method, uri, payload, headers=None, timeout=None):
-        if isinstance(payload, text_type):
+        if isinstance(payload, str):
             payload = payload.encode("utf-8")
 
         if headers is None:

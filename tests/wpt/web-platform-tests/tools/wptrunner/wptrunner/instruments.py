@@ -1,6 +1,6 @@
 import time
 import threading
-from six.moves.queue import Queue
+from queue import Queue
 
 """Instrumentation for measuring high-level time spent on various tasks inside the runner.
 

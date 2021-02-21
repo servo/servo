@@ -21,11 +21,11 @@
       border: 0;
     }
 
-    #next:focus-visible {
+    :focus-visible {
       outline: green solid 5px;
     }
 
-    #next:focus:not(:focus-visible) {
+    :focus:not(:focus-visible) {
       background-color: red;
       outline: 0;
     }
@@ -37,30 +37,33 @@
   <ul id="instructions">
     <li>Click "Click here and press right arrow.".</li>
     <li>Press the right arrow key.</li>
-    <li>If "Focus moves here." has a red background, then the test result is FAILURE.
+    <li>If the element has a red background, then the test result is FAILURE.
         If it has a green outline, then the test result is SUCCESS.</li>
   </ul>
   <br />
-  <button id="start" tabindex="0">Click here and press right arrow.</button>
-  <button id="next" tabindex="-1">Focus moves here.</button>
+  <div id="target" tabindex="0">Click here and press right arrow.</div>
   <script>
-    start.addEventListener('keydown', (e) => {
+    target.addEventListener("keydown", (e) => {
       e.preventDefault();
-      next.focus();
     });
-
+    target.addEventListener("keyup", (e) => {
+      e.preventDefault();
+    });
+    target.addEventListener("keypress", (e) => {
+      e.preventDefault();
+    });
     async_test(function(t) {
-      next.addEventListener("focus", t.step_func(() => {
-        assert_equals(getComputedStyle(next).outlineColor, "rgb(0, 128, 0)", `outlineColor for ${next.tagName}#${next.id} should be green`);
-        assert_not_equals(getComputedStyle(next).backgroundColor, "rgb(255, 0, 0)", `backgroundColor for ${next.tagName}#${next.id} should NOT be red`);
-        t.done()
+      target.addEventListener("focus", () => {
+        const arrow_right = "\ue014";
+        test_driver.send_keys(target, arrow_right);
+      });
+
+      target.addEventListener("keyup", t.step_func_done((e) => {
+        assert_equals(getComputedStyle(target).outlineColor, "rgb(0, 128, 0)", `outlineColor for ${target.tagName}#${target.id} should be green`);
+        assert_not_equals(getComputedStyle(target).backgroundColor, "rgb(255, 0, 0)", `backgroundColor for ${target.tagName}#${target.id} should NOT be red`);
       }));
 
-      // \ue014 -> ARROW_RIGHT
-      test_driver.send_keys(start, "\ue014").catch(t.step_func(() => {
-        assert_true(false, "send_keys not implemented yet");
-        t.done();
-      }));
+      test_driver.click(target);
     }, ":focus-visible matches even if preventDefault() is called");
   </script>
 </body>

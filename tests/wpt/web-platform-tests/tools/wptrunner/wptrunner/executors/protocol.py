@@ -531,7 +531,7 @@ class DebugProtocolPart(ProtocolPart):
     def load_reftest_analyzer(self, test, result):
         import io
         import mozlog
-        from six.moves.urllib.parse import quote, urljoin
+        from urllib.parse import quote, urljoin
 
         debug_test_logger = mozlog.structuredlog.StructuredLogger("debug_test")
         output = io.StringIO()

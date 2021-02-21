@@ -1,0 +1,55 @@
+version: 2
+
+jobs:
+  main:
+    docker:
+      - image: circleci/python:3.7
+    steps:
+      # Remove IPv6 entry for localhost in Circle CI containers because it doesn't work anyway.
+      - run: sudo cp /etc/hosts /tmp; sudo sed -i '/::1/d' /tmp/hosts; sudo cp /tmp/hosts /etc
+      - checkout
+      - run: sudo pip install tox codecov
+      - run: tox -e coverage,black,flake8,isort,mypy
+      - run: codecov
+  py36:
+    docker:
+      - image: circleci/python:3.6
+    steps:
+      # Remove IPv6 entry for localhost in Circle CI containers because it doesn't work anyway.
+      - run: sudo cp /etc/hosts /tmp; sudo sed -i '/::1/d' /tmp/hosts; sudo cp /tmp/hosts /etc
+      - checkout
+      - run: sudo pip install tox
+      - run: tox -e py36
+  py37:
+    docker:
+      - image: circleci/python:3.7
+    steps:
+      # Remove IPv6 entry for localhost in Circle CI containers because it doesn't work anyway.
+      - run: sudo cp /etc/hosts /tmp; sudo sed -i '/::1/d' /tmp/hosts; sudo cp /tmp/hosts /etc
+      - checkout
+      - run: sudo pip install tox
+      - run: tox -e py37
+  py38:
+    docker:
+      - image: circleci/python:3.8.0rc1
+    steps:
+      # Remove IPv6 entry for localhost in Circle CI containers because it doesn't work anyway.
+      - run: sudo cp /etc/hosts /tmp; sudo sed -i '/::1/d' /tmp/hosts; sudo cp /tmp/hosts /etc
+      - checkout
+      - run: sudo pip install tox
+      - run: tox -e py38
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - main
+      - py36:
+          requires:
+            - main
+      - py37:
+          requires:
+            - main
+      - py38:
+          requires:
+            - main

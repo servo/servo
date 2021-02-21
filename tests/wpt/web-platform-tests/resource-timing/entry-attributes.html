@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Resource Timing: PerformanceResourceTiming attributes</title>
+<link rel="help" href="https://www.w3.org/TR/resource-timing-2/#sec-performanceresourcetiming"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+// Returns a promise that settles once the given path has been fetched.
+function load_image(path) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = img.onerror = resolve;
+    img.src = path;
+  });
+}
+
+promise_test(async () => {
+  // Clean up entries from scripts includes.
+  performance.clearResourceTimings();
+  await load_image("resources/fake_responses.py#hash=1");
+  const entry_list = performance.getEntriesByType("resource");
+  if (entry_list.length != 1) {
+    throw new Error("There should be one entry for one resource");
+  }
+  assert_true(entry_list[0].name.includes('#hash=1'),
+      "There should be a hash in the resource name");
+}, "URL fragments should be present in the 'name' attribute");
+
+</script>
+</head>
+<body>
+<h1>Description</h1>
+<p>This test validates that PerformanceResourceTiming entries' attributes are
+populated with the correct values.</p>
+</body>
+</html>

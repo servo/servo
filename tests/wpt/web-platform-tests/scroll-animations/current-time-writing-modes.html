@@ -190,19 +190,19 @@ promise_test(async t => {
     scrollSource: scroller,
     timeRange: scrollerSize,
     orientation: 'horizontal',
-    startScrollOffset: CSS.px(20)
+    scrollOffsets: [CSS.px(20), 'auto']
   });
   const percentageScrollTimeline = new ScrollTimeline({
     scrollSource: scroller,
     timeRange: scrollerSize,
     orientation: 'horizontal',
-    startScrollOffset: CSS.percent(20)
+    scrollOffsets: [CSS.percent(20), 'auto']
   });
   const calcScrollTimeline = new ScrollTimeline({
     scrollSource: scroller,
     timeRange: scrollerSize,
     orientation: 'horizontal',
-    startScrollOffset: CSS.percent(20).sub(CSS.px(5))
+    scrollOffsets: [CSS.percent(20).sub(CSS.px(5)), 'auto']
   });
 
   // Unscrolled, all timelines should read a current time of 0, since
@@ -293,19 +293,19 @@ promise_test(async t => {
     scrollSource: scroller,
     timeRange: scrollerSize,
     orientation: 'horizontal',
-    endScrollOffset: CSS.px(scrollerSize - 20)
+    scrollOffsets: [CSS.px(scrollerSize - 20)]
   });
   const percentageScrollTimeline = new ScrollTimeline({
     scrollSource: scroller,
     timeRange: scrollerSize,
     orientation: 'horizontal',
-    endScrollOffset: CSS.percent(80)
+    scrollOffsets: [CSS.percent(80)]
   });
   const calcScrollTimeline = new ScrollTimeline({
     scrollSource: scroller,
     timeRange: scrollerSize,
     orientation: 'horizontal',
-    endScrollOffset: CSS.percent(80).add(CSS.px(5))
+    scrollOffsets: [CSS.percent(80).add(CSS.px(5))]
   });
 
   // With direction rtl offsets are inverted, such that scrollLeft == 0
@@ -387,25 +387,24 @@ promise_test(async t => {
     scrollSource: scroller,
     timeRange: scrollerSize,
     orientation: 'block',
-    endScrollOffset: 'auto'
   });
   const inclusiveLengthScrollTimeline = new ScrollTimeline({
     scrollSource: scroller,
     timeRange: scrollerSize,
     orientation: 'block',
-    endScrollOffset: CSS.px(scrollerSize)
+    scrollOffsets: [CSS.px(scrollerSize)]
   });
   const inclusivePercentageScrollTimeline = new ScrollTimeline({
     scrollSource: scroller,
     timeRange: scrollerSize,
     orientation: 'block',
-    endScrollOffset: CSS.percent(100)
+    scrollOffsets: [CSS.percent(100)]
   });
   const inclusiveCalcScrollTimeline = new ScrollTimeline({
     scrollSource: scroller,
     timeRange: scrollerSize,
     orientation: 'block',
-    endScrollOffset: CSS.percent(80).sub(CSS.px(0.2 * scrollerSize))
+    scrollOffsets: [CSS.percent(80).sub(CSS.px(0.2 * scrollerSize))]
   });
 
   // With direction rtl offsets are inverted, such that scrollLeft ==

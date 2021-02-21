@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>lower-roman, 10-3999</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#simple-numeric'>
+<link rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+<meta name='flags' content='font'>
+<meta name="assert" content="list-style: lower-roman produces numbers after 9 items per the spec.">
+<style type='text/css'>
+ol li { list-style-type: lower-roman;  }
+/* the following CSS is not part of the test */
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, IGNORING the suffix.</p>
+<div class="test">
+<ol start='10'><div><bdi>x. </bdi>x</div></ol>
+<ol start='11'><div><bdi>xi. </bdi>xi</div></ol>
+<ol start='12'><div><bdi>xii. </bdi>xii</div></ol>
+<ol start='43'><div><bdi>xliii. </bdi>xliii</div></ol>
+<ol start='77'><div><bdi>lxxvii. </bdi>lxxvii</div></ol>
+<ol start='80'><div><bdi>lxxx. </bdi>lxxx</div></ol>
+<ol start='99'><div><bdi>xcix. </bdi>xcix</div></ol>
+<ol start='100'><div><bdi>c. </bdi>c</div></ol>
+<ol start='101'><div><bdi>ci. </bdi>ci</div></ol>
+<ol start='222'><div><bdi>ccxxii. </bdi>ccxxii</div></ol>
+<ol start='540'><div><bdi>dxl. </bdi>dxl</div></ol>
+<ol start='999'><div><bdi>cmxcix. </bdi>cmxcix</div></ol>
+<ol start='1000'><div><bdi>m. </bdi>m</div></ol>
+<ol start='1005'><div><bdi>mv. </bdi>mv</div></ol>
+<ol start='1060'><div><bdi>mlx. </bdi>mlx</div></ol>
+<ol start='1065'><div><bdi>mlxv. </bdi>mlxv</div></ol>
+<ol start='1800'><div><bdi>mdccc. </bdi>mdccc</div></ol>
+<ol start='1860'><div><bdi>mdccclx. </bdi>mdccclx</div></ol>
+<ol start='1865'><div><bdi>mdccclxv. </bdi>mdccclxv</div></ol>
+<ol start='2555'><div><bdi>mmdlv. </bdi>mmdlv</div></ol>
+<ol start='3000'><div><bdi>mmm. </bdi>mmm</div></ol>
+<ol start='3999'><div><bdi>mmmcmxcix. </bdi>mmmcmxcix</div></ol>
+</div>
+<!--Notes:
+You will need an appropriate font to run this test.
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+</body>
+</html>

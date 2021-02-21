@@ -17,6 +17,12 @@ let normalize_quaternion = function(input) {
   return {x : input.x / length, y : input.y / length, z : input.z / length, w : input.w / length};
 }
 
+// Returns negated quaternion.
+// |input| - point-like dict (must have x, y, z, w)
+let flip_quaternion = function(input) {
+  return {x : -input.x, y : -input.y, z : -input.z, w : -input.w};
+}
+
 // |input| - point-like dict (must have x, y, z, w)
 let conjugate_quaternion = function(input) {
   return {x : -input.x, y : -input.y, z : -input.z, w : input.w};

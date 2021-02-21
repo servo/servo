@@ -15,7 +15,7 @@ For basic examples, see
 
 - :doc:`../getting-started` for basic introductory examples
 - :ref:`assert` for basic assertion examples
-- :ref:`fixtures` for basic fixture/setup examples
+- :ref:`Fixtures <fixtures>` for basic fixture/setup examples
 - :ref:`parametrize` for basic test function parametrization
 - :doc:`../unittest` for basic unittest integration
 - :doc:`../nose` for basic nosetests integration

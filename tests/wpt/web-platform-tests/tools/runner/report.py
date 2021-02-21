@@ -9,7 +9,6 @@ import types
 
 from cgi import escape
 from collections import defaultdict
-from six import iteritems
 
 
 def html_escape(item, escape_quote=False):
@@ -45,7 +44,7 @@ class Node(object):
             attrs_unicode = " " + " ".join("%s=\"%s\"" % (html_escape(key),
                                                           html_escape(value,
                                                                       escape_quote=True))
-                                           for key, value in iteritems(self.attrs))
+                                           for key, value in self.attrs.items())
         else:
             attrs_unicode = ""
         return "<%s%s>%s</%s>\n" % (self.name,

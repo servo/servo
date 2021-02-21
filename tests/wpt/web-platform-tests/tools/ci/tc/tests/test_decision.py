@@ -1,13 +1,5 @@
 import mock
 import pytest
-import os
-import sys
-
-from six import iteritems
-
-here = os.path.dirname(__file__)
-root = os.path.abspath(os.path.join(here, "..", "..", "..", ".."))
-sys.path.insert(0, root)
 
 from tools.ci.tc import decision
 
@@ -49,7 +41,7 @@ def test_extra_jobs_pr(msg, expected, event):
         """Copy obj, except if it's a string with the value <message>
         replace it with the value of the msg argument"""
         if isinstance(obj, dict):
-            return {key: sub(value) for (key, value) in iteritems(obj)}
+            return {key: sub(value) for (key, value) in obj.items()}
         elif isinstance(obj, list):
             return [sub(value) for value in obj]
         elif obj == "<message>":

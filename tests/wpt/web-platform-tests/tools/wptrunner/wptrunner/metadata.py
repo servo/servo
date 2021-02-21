@@ -5,8 +5,8 @@ import sys
 from collections import defaultdict, namedtuple
 
 from mozlog import structuredlog
-from six import ensure_str, ensure_text, iteritems, iterkeys, itervalues, text_type
-from six.moves import intern, range
+from six import ensure_str, ensure_text
+from sys import intern
 
 from . import manifestupdate
 from . import testloader
@@ -45,11 +45,11 @@ class RunInfo(object):
         return self.canonical_repr == other.canonical_repr
 
     def iteritems(self):
-        for key, value in iteritems(self.data):
+        for key, value in self.data.items():
             yield key, value
 
     def items(self):
-        return list(iteritems(self))
+        return list(self.items())
 
 
 def update_expected(test_paths, serve_root, log_file_names,
@@ -129,7 +129,7 @@ def unexpected_changes(manifests, change_data, files_changed):
     files_changed = set(files_changed)
 
     root_manifest = None
-    for manifest, paths in iteritems(manifests):
+    for manifest, paths in manifests.items():
         if paths["url_base"] == "/":
             root_manifest = manifest
             break
@@ -240,7 +240,7 @@ def pack_result(data):
 def unpack_result(data):
     if isinstance(data, int):
         return (status_intern.get(data), None)
-    if isinstance(data, text_type):
+    if isinstance(data, str):
         return (data, None)
     # Unpack multiple statuses into a tuple to be used in the Results named tuple below,
     # separating `status` and `known_intermittent`.
@@ -259,7 +259,7 @@ def load_test_data(test_paths):
     manifests = manifest_loader.load()
 
     id_test_map = {}
-    for test_manifest, paths in iteritems(manifests):
+    for test_manifest, paths in manifests.items():
         id_test_map.update(create_test_tree(paths["metadata_path"],
                                             test_manifest))
     return id_test_map
@@ -287,10 +287,10 @@ def update_results(id_test_map,
                    disable_intermittent,
                    update_intermittent,
                    remove_intermittent):
-    test_file_items = set(itervalues(id_test_map))
+    test_file_items = set(id_test_map.values())
 
     default_expected_by_type = {}
-    for test_type, test_cls in iteritems(wpttest.manifest_test_cls):
+    for test_type, test_cls in wpttest.manifest_test_cls.items():
         if test_cls.result_cls:
             default_expected_by_type[(test_type, False)] = test_cls.result_cls.default_expected
         if test_cls.subtest_result_cls:
@@ -431,7 +431,7 @@ class ExpectedUpdater(object):
             action_map["lsan_leak"](item)
 
         mozleak_data = data.get("mozleak", {})
-        for scope, scope_data in iteritems(mozleak_data):
+        for scope, scope_data in mozleak_data.items():
             for key, action in [("objects", "mozleak_object"),
                                 ("total", "mozleak_total")]:
                 for item in scope_data.get(key, []):
@@ -668,11 +668,11 @@ class TestFileData(object):
         # Return subtest nodes present in the expected file, but missing from the data
         rv = []
 
-        for test_id, subtests in iteritems(self.data):
+        for test_id, subtests in self.data.items():
             test = expected.get_test(ensure_text(test_id))
             if not test:
                 continue
-            seen_subtests = set(ensure_text(item) for item in iterkeys(subtests) if item is not None)
+            seen_subtests = set(ensure_text(item) for item in subtests.keys() if item is not None)
             missing_subtests = set(test.subtests.keys()) - seen_subtests
             for item in missing_subtests:
                 expected_subtest = test.get_subtest(item)
@@ -691,7 +691,7 @@ class TestFileData(object):
         # since removing these may be inappropriate
         top_level_props, dependent_props = update_properties
         all_properties = set(top_level_props)
-        for item in itervalues(dependent_props):
+        for item in dependent_props.values():
             all_properties |= set(item)
 
         filtered = []
@@ -741,9 +741,9 @@ class TestFileData(object):
             test_expected = expected.get_test(test_id)
             expected_by_test[test_id] = test_expected
 
-        for test_id, test_data in iteritems(self.data):
+        for test_id, test_data in self.data.items():
             test_id = ensure_str(test_id)
-            for subtest_id, results_list in iteritems(test_data):
+            for subtest_id, results_list in test_data.items():
                 for prop, run_info, value in results_list:
                     # Special case directory metadata
                     if subtest_id is None and test_id.endswith("__dir__"):

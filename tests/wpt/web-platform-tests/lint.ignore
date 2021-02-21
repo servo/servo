@@ -56,6 +56,7 @@ W3C-TEST.ORG: .gitignore
 W3C-TEST.ORG: README.md
 W3C-TEST.ORG: */README.md
 W3C-TEST.ORG: docs/*
+WEB-PLATFORM.TEST:*/README.md
 WEB-PLATFORM.TEST:docs/*
 CR AT EOL, INDENT TABS:docs/make.bat
 INDENT TABS:docs/Makefile
@@ -94,7 +95,6 @@ TRAILING WHITESPACE: server-timing/resources/parsing/*
 TRAILING WHITESPACE: webvtt/parsing/file-parsing/support/*.vtt
 TRAILING WHITESPACE: webvtt/parsing/file-parsing/tests/support/*.vtt
 TRAILING WHITESPACE: xhr/resources/headers-some-are-empty.asis
-TRAILING WHITESPACE: cookies/http-state/resources/test-files/*
 
 # Intentional use of print statements
 PRINT STATEMENT: dom/nodes/Document-createElement-namespace-tests/generate.py
@@ -159,6 +159,7 @@ SET TIMEOUT: html/browsers/history/the-location-interface/*
 SET TIMEOUT: html/browsers/history/the-session-history-of-browsing-contexts/*
 SET TIMEOUT: html/browsers/offline/*
 SET TIMEOUT: html/browsers/the-window-object/*
+SET TIMEOUT: html/cross-origin-embedder-policy/credentialless/resources/dispatcher.js
 SET TIMEOUT: html/editing/dnd/*
 SET TIMEOUT: html/semantics/embedded-content/the-iframe-element/*
 SET TIMEOUT: html/semantics/embedded-content/the-img-element/*
@@ -595,15 +596,7 @@ CSS-COLLIDING-REF-NAME: css/CSS2/visuren/inline-formatting-context-001-ref.xht
 CSS-COLLIDING-REF-NAME: css/CSS2/linebox/inline-formatting-context-001-ref.xht
 CSS-COLLIDING-REF-NAME: css/css-flexbox/reference/percentage-size-subitems-001-ref.html
 CSS-COLLIDING-REF-NAME: css/css-grid/grid-items/percentage-size-subitems-001-ref.html
-CSS-COLLIDING-REF-NAME: css/css-contain/reference/contain-size-button-001-ref.html
-CSS-COLLIDING-REF-NAME: css/vendor-imports/mozilla/mozilla-central-reftests/contain/contain-size-button-001-ref.html
-CSS-COLLIDING-REF-NAME: css/css-contain/reference/contain-size-grid-001-ref.html
-CSS-COLLIDING-REF-NAME: css/vendor-imports/mozilla/mozilla-central-reftests/contain/contain-size-grid-001-ref.html
 CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds/support/red.png
-CSS-COLLIDING-REF-NAME: css/css-contain/reference/contain-size-fieldset-001-ref.html
-CSS-COLLIDING-REF-NAME: css/vendor-imports/mozilla/mozilla-central-reftests/contain/contain-size-fieldset-001-ref.html
-CSS-COLLIDING-REF-NAME: css/css-contain/reference/contain-size-fieldset-002-ref.html
-CSS-COLLIDING-REF-NAME: css/vendor-imports/mozilla/mozilla-central-reftests/contain/contain-size-fieldset-002-ref.html
 CSS-COLLIDING-SUPPORT-NAME: css/compositing/mix-blend-mode/support/red.png
 CSS-COLLIDING-SUPPORT-NAME: css/compositing/background-blending/support/red.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/normal-flow/support/replaced-min-max-3.png

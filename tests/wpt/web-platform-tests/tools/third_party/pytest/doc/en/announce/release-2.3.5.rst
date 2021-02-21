@@ -46,7 +46,7 @@ Changes between 2.3.4 and 2.3.5
 - Issue 265 - integrate nose setup/teardown with setupstate
   so it doesn't try to teardown if it did not setup
 
-- issue 271 - don't write junitxml on slave nodes
+- issue 271 - don't write junitxml on worker nodes
 
 - Issue 274 - don't try to show full doctest example
   when doctest does not know the example location

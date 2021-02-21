@@ -2,3 +2,4 @@
 # * https://help.github.com/en/articles/displaying-a-sponsor-button-in-your-repository
 # * https://tidelift.com/subscription/how-to-connect-tidelift-with-github
 tidelift: pypi/pytest
+open_collective: pytest

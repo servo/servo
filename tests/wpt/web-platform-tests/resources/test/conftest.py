@@ -19,6 +19,9 @@ HARNESS = os.path.join(HERE, 'harness.html')
 TEST_TYPES = ('functional', 'unit')
 DEFAULT_VARIANTS = ["?default"]
 
+sys.path.insert(0, os.path.normpath(os.path.join(WPT_ROOT, "tools")))
+import localpaths
+
 sys.path.insert(0, os.path.normpath(os.path.join(WPT_ROOT, "tools", "webdriver")))
 import webdriver
 

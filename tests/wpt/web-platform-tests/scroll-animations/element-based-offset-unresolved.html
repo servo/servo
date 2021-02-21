@@ -57,8 +57,7 @@ promise_test(async t => {
         scrollSource: scroller,
         orientation: 'block',
         timeRange: 1000,
-        startScrollOffset: { target: not_a_descendant },
-        endScrollOffset: { target: end }
+        scrollOffsets: [{ target: not_a_descendant }, { target: end }]
     });
 
     await waitForNextFrame();
@@ -77,8 +76,7 @@ promise_test(async t => {
         scrollSource: scroller,
         orientation: 'block',
         timeRange: 1000,
-        startScrollOffset: { target: start },
-        endScrollOffset: { target: end }
+        scrollOffsets: [{ target: start }, { target: end }]
     });
 
     start.style.display = "none";

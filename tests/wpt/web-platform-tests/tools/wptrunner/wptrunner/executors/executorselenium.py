@@ -6,7 +6,7 @@ import threading
 import time
 import traceback
 import uuid
-from six.moves.urllib.parse import urljoin
+from urllib.parse import urljoin
 
 from .base import (CallbackHandler,
                    RefTestExecutor,

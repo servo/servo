@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """setUpModule is always called, even if all tests in the module are skipped"""
 import unittest
 

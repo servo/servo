@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <body>
     <script type="module">
-        import v from "./malformed.css";
+        import v from "./malformed.css" assert { type: "css" };
         document.adoptedStyleSheets = [v];
     </script>
 

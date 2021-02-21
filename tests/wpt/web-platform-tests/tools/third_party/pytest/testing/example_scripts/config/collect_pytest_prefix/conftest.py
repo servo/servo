@@ -1,3 +1,2 @@
-# -*- coding: utf-8 -*-
-class pytest_something(object):
+class pytest_something:
     pass

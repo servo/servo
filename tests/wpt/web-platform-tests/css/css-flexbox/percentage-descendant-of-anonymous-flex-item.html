@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox Test: percentage heights in descendants of anonymous flex items</title>
+<link href="resources/flexbox.css" rel="stylesheet">
+<link rel="author" title="Sergio Villar Senin" href="mailto:svillar@igalia.com">
+<link rel="match" href="reference/percentage-descendant-of-anonymous-flex-item-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#flex-items">
+<style>
+.flexbox {
+    width: 200px;
+    height: 200px;
+}
+</style>
+<!--
+    Both Blink and WebKit implement buttons as flexboxes, which in this case, wrap the child in an anonymous box.
+    Anonymous boxes are skipped when computing percentage heights but we need to ensure that their children with
+    percentage heights are properly sized.
+-->
+<p>The test PASS if you see a 200x100 green rectangle inside a button.</p>
+<div class="flexbox column">
+    <div style="height: 50%;">
+        <button style="width: 200px; height: 100%;">
+            <div style="width: 200px; height: 100%; background-color: green;"></div>
+        </button>
+    </div>
+</div>

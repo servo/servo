@@ -54,5 +54,18 @@
             });
             document.body.appendChild(iframe);
         }, "Malformed CSS should not load");
+
+        async_test(function (test) {
+            const iframe = document.createElement("iframe");
+            iframe.src = "resources/css-module-without-assertion-iframe.html";
+            iframe.onload = test.step_func_done(function () {
+                assert_equals(iframe.contentDocument.window_onerror, undefined);
+                assert_equals(iframe.contentDocument.script_onerror.type, "error");
+                assert_not_equals(getComputedStyle(iframe.contentDocument.querySelector('#test'))
+                    .backgroundColor, "rgb(255, 0, 0)",
+                    "CSS module without type assertion should result in a fetch error");
+            });
+            document.body.appendChild(iframe);
+        }, "CSS module without type assertion should result in a fetch error");
     </script>
 </body>

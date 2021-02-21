@@ -4,14 +4,19 @@ Marking test functions with attributes
 ======================================
 
 By using the ``pytest.mark`` helper you can easily set
-metadata on your test functions. There are
-some builtin markers, for example:
+metadata on your test functions. You can find the full list of builtin markers
+in the :ref:`API Reference<marks ref>`. Or you can list all the markers, including
+builtin and custom, using the CLI - :code:`pytest --markers`.
 
+Here are some of the builtin markers:
+
+* :ref:`usefixtures <usefixtures>` - use fixtures on a test function or class
+* :ref:`filterwarnings <filterwarnings>` - filter certain warnings of a test function
 * :ref:`skip <skip>` - always skip a test function
 * :ref:`skipif <skipif>` - skip a test function if a certain condition is met
 * :ref:`xfail <xfail>` - produce an "expected failure" outcome if a certain
   condition is met
-* :ref:`parametrize <parametrizemark>` to perform multiple calls
+* :ref:`parametrize <parametrizemark>` - perform multiple calls
   to the same test function.
 
 It's easy to create custom markers or to apply markers
@@ -38,9 +43,19 @@ You can register custom marks in your ``pytest.ini`` file like this:
         slow: marks tests as slow (deselect with '-m "not slow"')
         serial
 
-Note that everything after the ``:`` is an optional description.
+or in your ``pyproject.toml`` file like this:
 
-Alternatively, you can register new markers programatically in a
+.. code-block:: toml
+
+    [tool.pytest.ini_options]
+    markers = [
+        "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+        "serial",
+    ]
+
+Note that everything past the ``:`` after the mark name is an optional description.
+
+Alternatively, you can register new markers programmatically in a
 :ref:`pytest_configure <initialization-hooks>` hook:
 
 .. code-block:: python
@@ -61,7 +76,7 @@ Raising errors on unknown marks
 
 Unregistered marks applied with the ``@pytest.mark.name_of_the_mark`` decorator
 will always emit a warning in order to avoid silently doing something
-surprising due to mis-typed names. As described in the previous section, you can disable
+surprising due to mistyped names. As described in the previous section, you can disable
 the warning for custom marks by registering them in your ``pytest.ini`` file or
 using a custom ``pytest_configure`` hook.
 

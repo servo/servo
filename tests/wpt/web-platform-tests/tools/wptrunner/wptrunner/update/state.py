@@ -1,5 +1,5 @@
 import os
-from six.moves import cPickle as pickle  # noqa: N813
+import pickle
 
 here = os.path.abspath(os.path.dirname(__file__))
 

@@ -1,13 +1,11 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
+import collections.abc
 import sys
 import textwrap
+from typing import Any
+from typing import List
+from typing import Optional
 
 import attr
-import six
 
 import _pytest.assertion as plugin
 import pytest
@@ -16,28 +14,22 @@ from _pytest.assertion import truncate
 from _pytest.assertion import util
 from _pytest.compat import ATTRS_EQ_FIELD
 
-PY3 = sys.version_info >= (3, 0)
 
-
-def mock_config():
-    class Config(object):
-        verbose = False
-
+def mock_config(verbose=0):
+    class Config:
         def getoption(self, name):
             if name == "verbose":
-                return self.verbose
+                return verbose
             raise KeyError("Not mocked out: %s" % name)
 
     return Config()
 
 
-class TestImportHookInstallation(object):
+class TestImportHookInstallation:
     @pytest.mark.parametrize("initial_conftest", [True, False])
     @pytest.mark.parametrize("mode", ["plain", "rewrite"])
     def test_conftest_assertion_rewrite(self, testdir, initial_conftest, mode):
-        """Test that conftest files are using assertion rewrite on import.
-        (#1619)
-        """
+        """Test that conftest files are using assertion rewrite on import (#1619)."""
         testdir.tmpdir.join("foo/tests").ensure(dir=1)
         conftest_path = "conftest.py" if initial_conftest else "foo/conftest.py"
         contents = {
@@ -79,7 +71,23 @@ class TestImportHookInstallation(object):
         """
         )
         result = testdir.runpytest_subprocess()
-        result.stdout.fnmatch_lines(["*assert 1 == 0*"])
+        result.stdout.fnmatch_lines(
+            [
+                ">       r.assertoutcome(passed=1)",
+                "E       AssertionError: ([[][]], [[][]], [[]<TestReport *>[]])*",
+                "E       assert {'failed': 1,... 'skipped': 0} == {'failed': 0,... 'skipped': 0}",
+                "E         Omitting 1 identical items, use -vv to show",
+                "E         Differing items:",
+                "E         Use -v to get the full diff",
+            ]
+        )
+        # XXX: unstable output.
+        result.stdout.fnmatch_lines_random(
+            [
+                "E         {'failed': 1} != {'failed': 0}",
+                "E         {'passed': 0} != {'passed': 1}",
+            ]
+        )
 
     @pytest.mark.parametrize("mode", ["plain", "rewrite"])
     def test_pytest_plugins_rewrite(self, testdir, mode):
@@ -145,8 +153,8 @@ class TestImportHookInstallation(object):
             "hamster.py": "",
             "test_foo.py": """\
                 def test_foo(pytestconfig):
-                    assert pytestconfig.pluginmanager.rewrite_hook.find_module('ham') is not None
-                    assert pytestconfig.pluginmanager.rewrite_hook.find_module('hamster') is None
+                    assert pytestconfig.pluginmanager.rewrite_hook.find_spec('ham') is not None
+                    assert pytestconfig.pluginmanager.rewrite_hook.find_spec('hamster') is None
             """,
         }
         testdir.makepyfile(**contents)
@@ -269,15 +277,15 @@ class TestImportHookInstallation(object):
             ]
         )
 
-    def test_register_assert_rewrite_checks_types(self):
+    def test_register_assert_rewrite_checks_types(self) -> None:
         with pytest.raises(TypeError):
-            pytest.register_assert_rewrite(["pytest_tests_internal_non_existing"])
+            pytest.register_assert_rewrite(["pytest_tests_internal_non_existing"])  # type: ignore
         pytest.register_assert_rewrite(
             "pytest_tests_internal_non_existing", "pytest_tests_internal_non_existing2"
         )
 
 
-class TestBinReprIntegration(object):
+class TestBinReprIntegration:
     def test_pytest_assertrepr_compare_called(self, testdir):
         testdir.makeconftest(
             """
@@ -303,131 +311,273 @@ class TestBinReprIntegration(object):
         result.stdout.fnmatch_lines(["*test_hello*FAIL*", "*test_check*PASS*"])
 
 
-def callequal(left, right, verbose=False):
-    config = mock_config()
-    config.verbose = verbose
-    return plugin.pytest_assertrepr_compare(config, "==", left, right)
+def callop(op: str, left: Any, right: Any, verbose: int = 0) -> Optional[List[str]]:
+    config = mock_config(verbose=verbose)
+    return plugin.pytest_assertrepr_compare(config, op, left, right)
 
 
-class TestAssert_reprcompare(object):
+def callequal(left: Any, right: Any, verbose: int = 0) -> Optional[List[str]]:
+    return callop("==", left, right, verbose)
+
+
+class TestAssert_reprcompare:
     def test_different_types(self):
         assert callequal([0, 1], "foo") is None
 
-    def test_summary(self):
-        summary = callequal([0, 1], [0, 2])[0]
+    def test_summary(self) -> None:
+        lines = callequal([0, 1], [0, 2])
+        assert lines is not None
+        summary = lines[0]
         assert len(summary) < 65
 
     def test_text_diff(self):
-        diff = callequal("spam", "eggs")[1:]
-        assert "- spam" in diff
-        assert "+ eggs" in diff
+        assert callequal("spam", "eggs") == [
+            "'spam' == 'eggs'",
+            "- eggs",
+            "+ spam",
+        ]
 
-    def test_text_skipping(self):
+    def test_text_skipping(self) -> None:
         lines = callequal("a" * 50 + "spam", "a" * 50 + "eggs")
+        assert lines is not None
         assert "Skipping" in lines[1]
         for line in lines:
             assert "a" * 50 not in line
 
-    def test_text_skipping_verbose(self):
-        lines = callequal("a" * 50 + "spam", "a" * 50 + "eggs", verbose=True)
-        assert "- " + "a" * 50 + "spam" in lines
-        assert "+ " + "a" * 50 + "eggs" in lines
+    def test_text_skipping_verbose(self) -> None:
+        lines = callequal("a" * 50 + "spam", "a" * 50 + "eggs", verbose=1)
+        assert lines is not None
+        assert "- " + "a" * 50 + "eggs" in lines
+        assert "+ " + "a" * 50 + "spam" in lines
 
-    def test_multiline_text_diff(self):
+    def test_multiline_text_diff(self) -> None:
         left = "foo\nspam\nbar"
         right = "foo\neggs\nbar"
         diff = callequal(left, right)
-        assert "- spam" in diff
-        assert "+ eggs" in diff
+        assert diff is not None
+        assert "- eggs" in diff
+        assert "+ spam" in diff
 
-    def test_list(self):
+    def test_bytes_diff_normal(self):
+        """Check special handling for bytes diff (#5260)"""
+        diff = callequal(b"spam", b"eggs")
+
+        assert diff == [
+            "b'spam' == b'eggs'",
+            "At index 0 diff: b's' != b'e'",
+            "Use -v to get the full diff",
+        ]
+
+    def test_bytes_diff_verbose(self):
+        """Check special handling for bytes diff (#5260)"""
+        diff = callequal(b"spam", b"eggs", verbose=1)
+        assert diff == [
+            "b'spam' == b'eggs'",
+            "At index 0 diff: b's' != b'e'",
+            "Full diff:",
+            "- b'eggs'",
+            "+ b'spam'",
+        ]
+
+    def test_list(self) -> None:
         expl = callequal([0, 1], [0, 2])
+        assert expl is not None
         assert len(expl) > 1
 
     @pytest.mark.parametrize(
         ["left", "right", "expected"],
         [
-            (
+            pytest.param(
                 [0, 1],
                 [0, 2],
                 """
                 Full diff:
-                - [0, 1]
+                - [0, 2]
                 ?     ^
-                + [0, 2]
+                + [0, 1]
                 ?     ^
             """,
+                id="lists",
             ),
-            (
+            pytest.param(
                 {0: 1},
                 {0: 2},
                 """
                 Full diff:
-                - {0: 1}
+                - {0: 2}
                 ?     ^
-                + {0: 2}
+                + {0: 1}
                 ?     ^
             """,
+                id="dicts",
             ),
-            (
+            pytest.param(
                 {0, 1},
                 {0, 2},
                 """
                 Full diff:
-                - set([0, 1])
-                ?         ^
-                + set([0, 2])
-                ?         ^
-            """
-                if not PY3
-                else """
-                Full diff:
-                - {0, 1}
+                - {0, 2}
                 ?     ^
-                + {0, 2}
+                + {0, 1}
                 ?     ^
             """,
+                id="sets",
             ),
         ],
     )
-    def test_iterable_full_diff(self, left, right, expected):
+    def test_iterable_full_diff(self, left, right, expected) -> None:
         """Test the full diff assertion failure explanation.
 
         When verbose is False, then just a -v notice to get the diff is rendered,
         when verbose is True, then ndiff of the pprint is returned.
         """
-        expl = callequal(left, right, verbose=False)
+        expl = callequal(left, right, verbose=0)
+        assert expl is not None
         assert expl[-1] == "Use -v to get the full diff"
-        expl = "\n".join(callequal(left, right, verbose=True))
-        assert expl.endswith(textwrap.dedent(expected).strip())
+        verbose_expl = callequal(left, right, verbose=1)
+        assert verbose_expl is not None
+        assert "\n".join(verbose_expl).endswith(textwrap.dedent(expected).strip())
 
-    def test_list_different_lengths(self):
+    def test_list_different_lengths(self) -> None:
         expl = callequal([0, 1], [0, 1, 2])
+        assert expl is not None
         assert len(expl) > 1
         expl = callequal([0, 1, 2], [0, 1])
+        assert expl is not None
         assert len(expl) > 1
 
-    def test_dict(self):
+    def test_list_wrap_for_multiple_lines(self):
+        long_d = "d" * 80
+        l1 = ["a", "b", "c"]
+        l2 = ["a", "b", "c", long_d]
+        diff = callequal(l1, l2, verbose=True)
+        assert diff == [
+            "['a', 'b', 'c'] == ['a', 'b', 'c...dddddddddddd']",
+            "Right contains one more item: '" + long_d + "'",
+            "Full diff:",
+            "  [",
+            "   'a',",
+            "   'b',",
+            "   'c',",
+            "-  '" + long_d + "',",
+            "  ]",
+        ]
+
+        diff = callequal(l2, l1, verbose=True)
+        assert diff == [
+            "['a', 'b', 'c...dddddddddddd'] == ['a', 'b', 'c']",
+            "Left contains one more item: '" + long_d + "'",
+            "Full diff:",
+            "  [",
+            "   'a',",
+            "   'b',",
+            "   'c',",
+            "+  '" + long_d + "',",
+            "  ]",
+        ]
+
+    def test_list_wrap_for_width_rewrap_same_length(self):
+        long_a = "a" * 30
+        long_b = "b" * 30
+        long_c = "c" * 30
+        l1 = [long_a, long_b, long_c]
+        l2 = [long_b, long_c, long_a]
+        diff = callequal(l1, l2, verbose=True)
+        assert diff == [
+            "['aaaaaaaaaaa...cccccccccccc'] == ['bbbbbbbbbbb...aaaaaaaaaaaa']",
+            "At index 0 diff: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' != 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'",
+            "Full diff:",
+            "  [",
+            "+  'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',",
+            "   'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',",
+            "   'cccccccccccccccccccccccccccccc',",
+            "-  'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',",
+            "  ]",
+        ]
+
+    def test_list_dont_wrap_strings(self):
+        long_a = "a" * 10
+        l1 = ["a"] + [long_a for _ in range(0, 7)]
+        l2 = ["should not get wrapped"]
+        diff = callequal(l1, l2, verbose=True)
+        assert diff == [
+            "['a', 'aaaaaa...aaaaaaa', ...] == ['should not get wrapped']",
+            "At index 0 diff: 'a' != 'should not get wrapped'",
+            "Left contains 7 more items, first extra item: 'aaaaaaaaaa'",
+            "Full diff:",
+            "  [",
+            "-  'should not get wrapped',",
+            "+  'a',",
+            "+  'aaaaaaaaaa',",
+            "+  'aaaaaaaaaa',",
+            "+  'aaaaaaaaaa',",
+            "+  'aaaaaaaaaa',",
+            "+  'aaaaaaaaaa',",
+            "+  'aaaaaaaaaa',",
+            "+  'aaaaaaaaaa',",
+            "  ]",
+        ]
+
+    def test_dict_wrap(self):
+        d1 = {"common": 1, "env": {"env1": 1, "env2": 2}}
+        d2 = {"common": 1, "env": {"env1": 1}}
+
+        diff = callequal(d1, d2, verbose=True)
+        assert diff == [
+            "{'common': 1,...1, 'env2': 2}} == {'common': 1,...: {'env1': 1}}",
+            "Omitting 1 identical items, use -vv to show",
+            "Differing items:",
+            "{'env': {'env1': 1, 'env2': 2}} != {'env': {'env1': 1}}",
+            "Full diff:",
+            "- {'common': 1, 'env': {'env1': 1}}",
+            "+ {'common': 1, 'env': {'env1': 1, 'env2': 2}}",
+            "?                                +++++++++++",
+        ]
+
+        long_a = "a" * 80
+        sub = {"long_a": long_a, "sub1": {"long_a": "substring that gets wrapped " * 2}}
+        d1 = {"env": {"sub": sub}}
+        d2 = {"env": {"sub": sub}, "new": 1}
+        diff = callequal(d1, d2, verbose=True)
+        assert diff == [
+            "{'env': {'sub... wrapped '}}}} == {'env': {'sub...}}}, 'new': 1}",
+            "Omitting 1 identical items, use -vv to show",
+            "Right contains 1 more item:",
+            "{'new': 1}",
+            "Full diff:",
+            "  {",
+            "   'env': {'sub': {'long_a': '" + long_a + "',",
+            "                   'sub1': {'long_a': 'substring that gets wrapped substring '",
+            "                                      'that gets wrapped '}}},",
+            "-  'new': 1,",
+            "  }",
+        ]
+
+    def test_dict(self) -> None:
         expl = callequal({"a": 0}, {"a": 1})
+        assert expl is not None
         assert len(expl) > 1
 
-    def test_dict_omitting(self):
+    def test_dict_omitting(self) -> None:
         lines = callequal({"a": 0, "b": 1}, {"a": 1, "b": 1})
+        assert lines is not None
         assert lines[1].startswith("Omitting 1 identical item")
         assert "Common items" not in lines
         for line in lines[1:]:
             assert "b" not in line
 
-    def test_dict_omitting_with_verbosity_1(self):
-        """ Ensure differing items are visible for verbosity=1 (#1512) """
+    def test_dict_omitting_with_verbosity_1(self) -> None:
+        """Ensure differing items are visible for verbosity=1 (#1512)."""
         lines = callequal({"a": 0, "b": 1}, {"a": 1, "b": 1}, verbose=1)
+        assert lines is not None
         assert lines[1].startswith("Omitting 1 identical item")
         assert lines[2].startswith("Differing items")
         assert lines[3] == "{'a': 0} != {'a': 1}"
         assert "Common items" not in lines
 
-    def test_dict_omitting_with_verbosity_2(self):
+    def test_dict_omitting_with_verbosity_2(self) -> None:
         lines = callequal({"a": 0, "b": 1}, {"a": 1, "b": 1}, verbose=2)
+        assert lines is not None
         assert lines[1].startswith("Common items:")
         assert "Omitting" not in lines[1]
         assert lines[2] == "{'b': 1}"
@@ -441,8 +591,8 @@ class TestAssert_reprcompare(object):
             "Right contains 2 more items:",
             "{'b': 1, 'c': 2}",
             "Full diff:",
-            "- {'a': 0}",
-            "+ {'b': 1, 'c': 2}",
+            "- {'b': 1, 'c': 2}",
+            "+ {'a': 0}",
         ]
         lines = callequal({"b": 1, "c": 2}, {"a": 0}, verbose=2)
         assert lines == [
@@ -452,8 +602,8 @@ class TestAssert_reprcompare(object):
             "Right contains 1 more item:",
             "{'a': 0}",
             "Full diff:",
-            "- {'b': 1, 'c': 2}",
-            "+ {'a': 0}",
+            "- {'a': 0}",
+            "+ {'b': 1, 'c': 2}",
         ]
 
     def test_sequence_different_items(self):
@@ -463,8 +613,8 @@ class TestAssert_reprcompare(object):
             "At index 0 diff: 1 != 3",
             "Right contains one more item: 5",
             "Full diff:",
-            "- (1, 2)",
-            "+ (3, 4, 5)",
+            "- (3, 4, 5)",
+            "+ (1, 2)",
         ]
         lines = callequal((1, 2, 3), (4,), verbose=2)
         assert lines == [
@@ -472,28 +622,24 @@ class TestAssert_reprcompare(object):
             "At index 0 diff: 1 != 4",
             "Left contains 2 more items, first extra item: 2",
             "Full diff:",
-            "- (1, 2, 3)",
-            "+ (4,)",
+            "- (4,)",
+            "+ (1, 2, 3)",
         ]
 
-    def test_set(self):
+    def test_set(self) -> None:
         expl = callequal({0, 1}, {0, 2})
+        assert expl is not None
         assert len(expl) > 1
 
-    def test_frozenzet(self):
+    def test_frozenzet(self) -> None:
         expl = callequal(frozenset([0, 1]), {0, 2})
+        assert expl is not None
         assert len(expl) > 1
 
-    def test_Sequence(self):
-        if sys.version_info >= (3, 3):
-            import collections.abc as collections_abc
-        else:
-            import collections as collections_abc
-        if not hasattr(collections_abc, "MutableSequence"):
-            pytest.skip("cannot import MutableSequence")
-        MutableSequence = collections_abc.MutableSequence
-
-        class TestSequence(MutableSequence):  # works with a Sequence subclass
+    def test_Sequence(self) -> None:
+        # Test comparing with a Sequence subclass.
+        # TODO(py36): Inherit from typing.MutableSequence[int].
+        class TestSequence(collections.abc.MutableSequence):  # type: ignore[type-arg]
             def __init__(self, iterable):
                 self.elements = list(iterable)
 
@@ -513,15 +659,18 @@ class TestAssert_reprcompare(object):
                 pass
 
         expl = callequal(TestSequence([0, 1]), list([0, 2]))
+        assert expl is not None
         assert len(expl) > 1
 
-    def test_list_tuples(self):
+    def test_list_tuples(self) -> None:
         expl = callequal([], [(1, 2)])
+        assert expl is not None
         assert len(expl) > 1
         expl = callequal([(1, 2)], [])
+        assert expl is not None
         assert len(expl) > 1
 
-    def test_repr_verbose(self):
+    def test_repr_verbose(self) -> None:
         class Nums:
             def __init__(self, nums):
                 self.nums = nums
@@ -538,28 +687,37 @@ class TestAssert_reprcompare(object):
         assert callequal(nums_x, nums_y) is None
 
         expl = callequal(nums_x, nums_y, verbose=1)
-        assert "-" + repr(nums_x) in expl
-        assert "+" + repr(nums_y) in expl
+        assert expl is not None
+        assert "+" + repr(nums_x) in expl
+        assert "-" + repr(nums_y) in expl
 
         expl = callequal(nums_x, nums_y, verbose=2)
-        assert "-" + repr(nums_x) in expl
-        assert "+" + repr(nums_y) in expl
+        assert expl is not None
+        assert "+" + repr(nums_x) in expl
+        assert "-" + repr(nums_y) in expl
 
-    def test_list_bad_repr(self):
-        class A(object):
+    def test_list_bad_repr(self) -> None:
+        class A:
             def __repr__(self):
                 raise ValueError(42)
 
         expl = callequal([], [A()])
+        assert expl is not None
         assert "ValueError" in "".join(expl)
-        expl = callequal({}, {"1": A()})
-        assert "faulty" in "".join(expl)
+        expl = callequal({}, {"1": A()}, verbose=2)
+        assert expl is not None
+        assert expl[0].startswith("{} == <[ValueError")
+        assert "raised in repr" in expl[0]
+        assert expl[1:] == [
+            "(pytest_assertion plugin: representation of details failed:"
+            " {}:{}: ValueError: 42.".format(
+                __file__, A.__repr__.__code__.co_firstlineno + 1
+            ),
+            " Probably an object has a faulty __repr__.)",
+        ]
 
     def test_one_repr_empty(self):
-        """
-        the faulty empty string repr did trigger
-        an unbound local error in _diff_text
-        """
+        """The faulty empty string repr did trigger an unbound local error in _diff_text."""
 
         class A(str):
             def __repr__(self):
@@ -568,17 +726,17 @@ class TestAssert_reprcompare(object):
         expl = callequal(A(), "")
         assert not expl
 
-    def test_repr_no_exc(self):
-        expl = " ".join(callequal("foo", "bar"))
-        assert "raised in repr()" not in expl
+    def test_repr_no_exc(self) -> None:
+        expl = callequal("foo", "bar")
+        assert expl is not None
+        assert "raised in repr()" not in " ".join(expl)
 
     def test_unicode(self):
-        left = u"£€"
-        right = u"£"
-        expl = callequal(left, right)
-        assert expl[0] == u"'£€' == '£'"
-        assert expl[1] == u"- £€"
-        assert expl[2] == u"+ £"
+        assert callequal("£€", "£") == [
+            "'£€' == '£'",
+            "- £",
+            "+ £€",
+        ]
 
     def test_nonascii_text(self):
         """
@@ -591,26 +749,24 @@ class TestAssert_reprcompare(object):
                 return "\xff"
 
         expl = callequal(A(), "1")
-        if PY3:
-            assert expl == ["ÿ == '1'", "+ 1"]
-        else:
-            assert expl == [u"\ufffd == '1'", u"+ 1"]
+        assert expl == ["ÿ == '1'", "- 1"]
 
     def test_format_nonascii_explanation(self):
         assert util.format_explanation("λ")
 
-    def test_mojibake(self):
+    def test_mojibake(self) -> None:
         # issue 429
         left = b"e"
         right = b"\xc3\xa9"
         expl = callequal(left, right)
+        assert expl is not None
         for line in expl:
-            assert isinstance(line, six.text_type)
-        msg = u"\n".join(expl)
+            assert isinstance(line, str)
+        msg = "\n".join(expl)
         assert msg
 
 
-class TestAssert_reprcompare_dataclass(object):
+class TestAssert_reprcompare_dataclass:
     @pytest.mark.skipif(sys.version_info < (3, 7), reason="Dataclasses in Python3.7+")
     def test_dataclasses(self, testdir):
         p = testdir.copy_example("dataclasses/test_compare_dataclasses.py")
@@ -618,10 +774,68 @@ class TestAssert_reprcompare_dataclass(object):
         result.assert_outcomes(failed=1, passed=0)
         result.stdout.fnmatch_lines(
             [
-                "*Omitting 1 identical items, use -vv to show*",
-                "*Differing attributes:*",
-                "*field_b: 'b' != 'c'*",
-            ]
+                "E         Omitting 1 identical items, use -vv to show",
+                "E         Differing attributes:",
+                "E         ['field_b']",
+                "E         ",
+                "E         Drill down into differing attribute field_b:",
+                "E           field_b: 'b' != 'c'...",
+                "E         ",
+                "E         ...Full output truncated (3 lines hidden), use '-vv' to show",
+            ],
+            consecutive=True,
+        )
+
+    @pytest.mark.skipif(sys.version_info < (3, 7), reason="Dataclasses in Python3.7+")
+    def test_recursive_dataclasses(self, testdir):
+        p = testdir.copy_example("dataclasses/test_compare_recursive_dataclasses.py")
+        result = testdir.runpytest(p)
+        result.assert_outcomes(failed=1, passed=0)
+        result.stdout.fnmatch_lines(
+            [
+                "E         Omitting 1 identical items, use -vv to show",
+                "E         Differing attributes:",
+                "E         ['g', 'h', 'j']",
+                "E         ",
+                "E         Drill down into differing attribute g:",
+                "E           g: S(a=10, b='ten') != S(a=20, b='xxx')...",
+                "E         ",
+                "E         ...Full output truncated (52 lines hidden), use '-vv' to show",
+            ],
+            consecutive=True,
+        )
+
+    @pytest.mark.skipif(sys.version_info < (3, 7), reason="Dataclasses in Python3.7+")
+    def test_recursive_dataclasses_verbose(self, testdir):
+        p = testdir.copy_example("dataclasses/test_compare_recursive_dataclasses.py")
+        result = testdir.runpytest(p, "-vv")
+        result.assert_outcomes(failed=1, passed=0)
+        result.stdout.fnmatch_lines(
+            [
+                "E         Matching attributes:",
+                "E         ['i']",
+                "E         Differing attributes:",
+                "E         ['g', 'h', 'j']",
+                "E         ",
+                "E         Drill down into differing attribute g:",
+                "E           g: S(a=10, b='ten') != S(a=20, b='xxx')",
+                "E           ",
+                "E           Differing attributes:",
+                "E           ['a', 'b']",
+                "E           ",
+                "E           Drill down into differing attribute a:",
+                "E             a: 10 != 20",
+                "E             +10",
+                "E             -20",
+                "E           ",
+                "E           Drill down into differing attribute b:",
+                "E             b: 'ten' != 'xxx'",
+                "E             - xxx",
+                "E             + ten",
+                "E         ",
+                "E         Drill down into differing attribute h:",
+            ],
+            consecutive=True,
         )
 
     @pytest.mark.skipif(sys.version_info < (3, 7), reason="Dataclasses in Python3.7+")
@@ -655,10 +869,10 @@ class TestAssert_reprcompare_dataclass(object):
         result.assert_outcomes(failed=0, passed=1)
 
 
-class TestAssert_reprcompare_attrsclass(object):
-    def test_attrs(self):
+class TestAssert_reprcompare_attrsclass:
+    def test_attrs(self) -> None:
         @attr.s
-        class SimpleDataObject(object):
+        class SimpleDataObject:
             field_a = attr.ib()
             field_b = attr.ib()
 
@@ -666,14 +880,55 @@ class TestAssert_reprcompare_attrsclass(object):
         right = SimpleDataObject(1, "c")
 
         lines = callequal(left, right)
-        assert lines[1].startswith("Omitting 1 identical item")
+        assert lines is not None
+        assert lines[2].startswith("Omitting 1 identical item")
         assert "Matching attributes" not in lines
-        for line in lines[1:]:
+        for line in lines[2:]:
             assert "field_a" not in line
 
-    def test_attrs_verbose(self):
+    def test_attrs_recursive(self) -> None:
         @attr.s
-        class SimpleDataObject(object):
+        class OtherDataObject:
+            field_c = attr.ib()
+            field_d = attr.ib()
+
+        @attr.s
+        class SimpleDataObject:
+            field_a = attr.ib()
+            field_b = attr.ib()
+
+        left = SimpleDataObject(OtherDataObject(1, "a"), "b")
+        right = SimpleDataObject(OtherDataObject(1, "b"), "b")
+
+        lines = callequal(left, right)
+        assert lines is not None
+        assert "Matching attributes" not in lines
+        for line in lines[1:]:
+            assert "field_b:" not in line
+            assert "field_c:" not in line
+
+    def test_attrs_recursive_verbose(self) -> None:
+        @attr.s
+        class OtherDataObject:
+            field_c = attr.ib()
+            field_d = attr.ib()
+
+        @attr.s
+        class SimpleDataObject:
+            field_a = attr.ib()
+            field_b = attr.ib()
+
+        left = SimpleDataObject(OtherDataObject(1, "a"), "b")
+        right = SimpleDataObject(OtherDataObject(1, "b"), "b")
+
+        lines = callequal(left, right)
+        assert lines is not None
+        # indentation in output because of nested object structure
+        assert "    field_d: 'a' != 'b'" in lines
+
+    def test_attrs_verbose(self) -> None:
+        @attr.s
+        class SimpleDataObject:
             field_a = attr.ib()
             field_b = attr.ib()
 
@@ -681,34 +936,37 @@ class TestAssert_reprcompare_attrsclass(object):
         right = SimpleDataObject(1, "c")
 
         lines = callequal(left, right, verbose=2)
-        assert lines[1].startswith("Matching attributes:")
-        assert "Omitting" not in lines[1]
-        assert lines[2] == "['field_a']"
+        assert lines is not None
+        assert lines[2].startswith("Matching attributes:")
+        assert "Omitting" not in lines[2]
+        assert lines[3] == "['field_a']"
 
     def test_attrs_with_attribute_comparison_off(self):
         @attr.s
-        class SimpleDataObject(object):
+        class SimpleDataObject:
             field_a = attr.ib()
-            field_b = attr.ib(**{ATTRS_EQ_FIELD: False})
+            field_b = attr.ib(**{ATTRS_EQ_FIELD: False})  # type: ignore
 
         left = SimpleDataObject(1, "b")
         right = SimpleDataObject(1, "b")
 
         lines = callequal(left, right, verbose=2)
-        assert lines[1].startswith("Matching attributes:")
+        print(lines)
+        assert lines is not None
+        assert lines[2].startswith("Matching attributes:")
         assert "Omitting" not in lines[1]
-        assert lines[2] == "['field_a']"
-        for line in lines[2:]:
+        assert lines[3] == "['field_a']"
+        for line in lines[3:]:
             assert "field_b" not in line
 
     def test_comparing_two_different_attrs_classes(self):
         @attr.s
-        class SimpleDataObjectOne(object):
+        class SimpleDataObjectOne:
             field_a = attr.ib()
             field_b = attr.ib()
 
         @attr.s
-        class SimpleDataObjectTwo(object):
+        class SimpleDataObjectTwo:
             field_a = attr.ib()
             field_b = attr.ib()
 
@@ -719,7 +977,7 @@ class TestAssert_reprcompare_attrsclass(object):
         assert lines is None
 
 
-class TestFormatExplanation(object):
+class TestFormatExplanation:
     def test_special_chars_full(self, testdir):
         # Issue 453, for the bug this would raise IndexError
         testdir.makepyfile(
@@ -806,16 +1064,13 @@ class TestFormatExplanation(object):
         assert util.format_explanation(expl) == res
 
 
-class TestTruncateExplanation(object):
-
-    """ Confirm assertion output is truncated as expected """
-
+class TestTruncateExplanation:
     # The number of lines in the truncation explanation message. Used
     # to calculate that results have the expected length.
     LINES_IN_TRUNCATION_MSG = 2
 
-    def test_doesnt_truncate_when_input_is_empty_list(self):
-        expl = []
+    def test_doesnt_truncate_when_input_is_empty_list(self) -> None:
+        expl = []  # type: List[str]
         result = truncate._truncate_explanation(expl, max_lines=8, max_chars=100)
         assert result == expl
 
@@ -875,7 +1130,7 @@ class TestTruncateExplanation(object):
         assert last_line_before_trunc_msg.endswith("...")
 
     def test_full_output_truncated(self, monkeypatch, testdir):
-        """ Test against full runpytest() output. """
+        """Test against full runpytest() output."""
 
         line_count = 7
         line_len = 100
@@ -897,9 +1152,9 @@ class TestTruncateExplanation(object):
         # without -vv, truncate the message showing a few diff lines only
         result.stdout.fnmatch_lines(
             [
-                "*- 1*",
-                "*- 3*",
-                "*- 5*",
+                "*+ 1*",
+                "*+ 3*",
+                "*+ 5*",
                 "*truncated (%d lines hidden)*use*-vv*" % expected_truncated_lines,
             ]
         )
@@ -940,21 +1195,22 @@ def test_rewritten(testdir):
     assert testdir.runpytest().ret == 0
 
 
-def test_reprcompare_notin():
-    config = mock_config()
-    detail = plugin.pytest_assertrepr_compare(config, "not in", "foo", "aaafoobbb")[1:]
-    assert detail == ["'foo' is contained here:", "  aaafoobbb", "?    +++"]
+def test_reprcompare_notin() -> None:
+    assert callop("not in", "foo", "aaafoobbb") == [
+        "'foo' not in 'aaafoobbb'",
+        "'foo' is contained here:",
+        "  aaafoobbb",
+        "?    +++",
+    ]
 
 
 def test_reprcompare_whitespaces():
-    config = mock_config()
-    detail = plugin.pytest_assertrepr_compare(config, "==", "\r\n", "\n")
-    assert detail == [
+    assert callequal("\r\n", "\n") == [
         r"'\r\n' == '\n'",
         r"Strings contain only whitespace, escaping them using repr()",
-        r"- '\r\n'",
-        r"?  --",
-        r"+ '\n'",
+        r"- '\n'",
+        r"+ '\r\n'",
+        r"?  ++",
     ]
 
 
@@ -970,7 +1226,13 @@ def test_pytest_assertrepr_compare_integration(testdir):
     )
     result = testdir.runpytest()
     result.stdout.fnmatch_lines(
-        ["*def test_hello():*", "*assert x == y*", "*E*Extra items*left*", "*E*50*"]
+        [
+            "*def test_hello():*",
+            "*assert x == y*",
+            "*E*Extra items*left*",
+            "*E*50*",
+            "*= 1 failed in*",
+        ]
     )
 
 
@@ -1032,7 +1294,7 @@ def test_assertion_options(testdir):
     result = testdir.runpytest()
     assert "3 == 4" in result.stdout.str()
     result = testdir.runpytest_subprocess("--assert=plain")
-    assert "3 == 4" not in result.stdout.str()
+    result.stdout.no_fnmatch_line("*3 == 4*")
 
 
 def test_triple_quoted_string_issue113(testdir):
@@ -1044,7 +1306,7 @@ def test_triple_quoted_string_issue113(testdir):
     )
     result = testdir.runpytest("--fulltrace")
     result.stdout.fnmatch_lines(["*1 failed*"])
-    assert "SyntaxError" not in result.stdout.str()
+    result.stdout.no_fnmatch_line("*SyntaxError*")
 
 
 def test_traceback_failure(testdir):
@@ -1102,14 +1364,8 @@ def test_traceback_failure(testdir):
     )
 
 
-@pytest.mark.skipif(
-    sys.version_info[:2] <= (3, 3),
-    reason="Python 3.4+ shows chained exceptions on multiprocess",
-)
 def test_exception_handling_no_traceback(testdir):
-    """
-    Handle chain exceptions in tasks submitted by the multiprocess module (#1984).
-    """
+    """Handle chain exceptions in tasks submitted by the multiprocess module (#1984)."""
     p1 = testdir.makepyfile(
         """
         from multiprocessing import Pool
@@ -1126,6 +1382,7 @@ def test_exception_handling_no_traceback(testdir):
             multitask_job()
     """
     )
+    testdir.syspathinsert()
     result = testdir.runpytest(p1, "--tb=long")
     result.stdout.fnmatch_lines(
         [
@@ -1139,15 +1396,36 @@ def test_exception_handling_no_traceback(testdir):
     )
 
 
-@pytest.mark.skipif(
-    "'__pypy__' in sys.builtin_module_names or sys.platform.startswith('java')"
+@pytest.mark.skipif("'__pypy__' in sys.builtin_module_names")
+@pytest.mark.parametrize(
+    "cmdline_args, warning_output",
+    [
+        (
+            ["-OO", "-m", "pytest", "-h"],
+            ["warning :*PytestConfigWarning:*assert statements are not executed*"],
+        ),
+        (
+            ["-OO", "-m", "pytest"],
+            [
+                "=*= warnings summary =*=",
+                "*PytestConfigWarning:*assert statements are not executed*",
+            ],
+        ),
+        (
+            ["-OO", "-m", "pytest", "--assert=plain"],
+            [
+                "=*= warnings summary =*=",
+                "*PytestConfigWarning: ASSERTIONS ARE NOT EXECUTED and FAILING TESTS WILL PASS.  "
+                "Are you using python -O?",
+            ],
+        ),
+    ],
 )
-def test_warn_missing(testdir):
+def test_warn_missing(testdir, cmdline_args, warning_output):
     testdir.makepyfile("")
-    result = testdir.run(sys.executable, "-OO", "-m", "pytest", "-h")
-    result.stderr.fnmatch_lines(["*WARNING*assert statements are not executed*"])
-    result = testdir.run(sys.executable, "-OO", "-m", "pytest")
-    result.stderr.fnmatch_lines(["*WARNING*assert statements are not executed*"])
+
+    result = testdir.run(sys.executable, *cmdline_args)
+    result.stdout.fnmatch_lines(warning_output)
 
 
 def test_recursion_source_decode(testdir):
@@ -1189,46 +1467,7 @@ def test_AssertionError_message(testdir):
     )
 
 
-@pytest.mark.skipif(PY3, reason="This bug does not exist on PY3")
-def test_set_with_unsortable_elements():
-    # issue #718
-    class UnsortableKey(object):
-        def __init__(self, name):
-            self.name = name
-
-        def __lt__(self, other):
-            raise RuntimeError()
-
-        def __repr__(self):
-            return "repr({})".format(self.name)
-
-        def __eq__(self, other):
-            return self.name == other.name
-
-        def __hash__(self):
-            return hash(self.name)
-
-    left_set = {UnsortableKey(str(i)) for i in range(1, 3)}
-    right_set = {UnsortableKey(str(i)) for i in range(2, 4)}
-    expl = callequal(left_set, right_set, verbose=True)
-    # skip first line because it contains the "construction" of the set, which does not have a guaranteed order
-    expl = expl[1:]
-    dedent = textwrap.dedent(
-        """
-        Extra items in the left set:
-        repr(1)
-        Extra items in the right set:
-        repr(3)
-        Full diff (fallback to calling repr on each item):
-        - repr(1)
-        repr(2)
-        + repr(3)
-    """
-    ).strip()
-    assert "\n".join(expl) == dedent
-
-
-def test_diff_newline_at_end(monkeypatch, testdir):
+def test_diff_newline_at_end(testdir):
     testdir.makepyfile(
         r"""
         def test_diff():
@@ -1241,8 +1480,8 @@ def test_diff_newline_at_end(monkeypatch, testdir):
         r"""
         *assert 'asdf' == 'asdf\n'
         *  - asdf
+        *  ?     -
         *  + asdf
-        *  ?     +
     """
     )
 
@@ -1278,18 +1517,17 @@ def test_assert_indirect_tuple_no_warning(testdir):
             assert tpl
     """
     )
-    result = testdir.runpytest("-rw")
+    result = testdir.runpytest()
     output = "\n".join(result.stdout.lines)
     assert "WR1" not in output
 
 
-def test_assert_with_unicode(monkeypatch, testdir):
+def test_assert_with_unicode(testdir):
     testdir.makepyfile(
-        u"""
-        # -*- coding: utf-8 -*-
+        """\
         def test_unicode():
-            assert u'유니코드' == u'Unicode'
-    """
+            assert '유니코드' == 'Unicode'
+        """
     )
     result = testdir.runpytest()
     result.stdout.fnmatch_lines(["*AssertionError*"])
@@ -1310,7 +1548,7 @@ def test_raise_unprintable_assertion_error(testdir):
 
 def test_raise_assertion_error_raisin_repr(testdir):
     testdir.makepyfile(
-        u"""
+        """
         class RaisingRepr(object):
             def __repr__(self):
                 raise Exception()
@@ -1349,3 +1587,23 @@ def test_exit_from_assertrepr_compare(monkeypatch):
 
     with pytest.raises(outcomes.Exit, match="Quitting debugger"):
         callequal(1, 1)
+
+
+def test_assertion_location_with_coverage(testdir):
+    """This used to report the wrong location when run with coverage (#5754)."""
+    p = testdir.makepyfile(
+        """
+        def test():
+            assert False, 1
+            assert False, 2
+        """
+    )
+    result = testdir.runpytest(str(p))
+    result.stdout.fnmatch_lines(
+        [
+            ">       assert False, 1",
+            "E       AssertionError: 1",
+            "E       assert False",
+            "*= 1 failed in*",
+        ]
+    )

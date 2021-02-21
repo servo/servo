@@ -1,0 +1,108 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: 'contain: size' on buttons should cause them to be sized as if they had no contents.</title>
+  <link rel="author" title="Morgan Rae Reschenberg" href="mailto:mreschenberg@berkeley.edu">
+  <link rel="help" href="https://drafts.csswg.org/css-contain/#containment-size">
+  <link rel="match" href="contain-size-button-002-ref.html">
+  <style>
+  button {
+    contain: size;
+    border: 1em solid green;
+    /* In case the testcase's 'inner' text is taller than the button, don't let
+       it influence its line-box's size.  This lets us more-easily compare
+       sizing between empty buttons vs. contained nonempty buttons. */
+    vertical-align: top;
+  }
+  .vaBaseline {
+    vertical-align: baseline;
+  }
+  .innerContents {
+    color: transparent;
+    height: 100px;
+    width: 100px;
+  }
+  .minWidth {
+    min-width: 50px;
+  }
+  .width {
+    width: 50px;
+  }
+  .minHeight {
+    min-height: 50px;
+    background: lightblue;
+  }
+  .height {
+    height: 50px;
+    background: lightblue;
+  }
+  .floatLBasic {
+    float: left;
+  }
+  .floatLWidth {
+    float: left;
+    width: 50px;
+  }
+  br { clear: both }
+  .iFlexBasic {
+    display: inline-flex;
+  }
+  .iFlexWidth {
+    display: inline-flex;
+    width: 50px;
+  }
+  .orthog {
+    writing-mode: vertical-lr;
+  }
+  </style>
+</head>
+<body>
+  <!--CSS Test: A size-contained button with no specified size should render at 0 height regardless of content.-->
+  <button><div class="innerContents">inner</div></button>
+  <br>
+
+  <!--CSS Test: A size-contained floated button with no specified size should render at 0px by 0px regardless of content.-->
+  <button class="floatLBasic"><div class="innerContents">inner</div></button>
+  <br>
+
+  <!--CSS Test: A size-contained floated button with specified width and no specified height should render at given width and 0 height regardless of content.-->
+  <button class="floatLWidth"><div class="innerContents">inner</div></button>
+  <br>
+
+  <!--CSS Test: A size-contained inline-flex button with no specified size should render at 0px by 0px regardless of content.-->
+  <button class="iFlexBasic"><div class="innerContents">inner</div></button>
+  <br>
+
+  <!--CSS Test: A size-contained inline-flex button with specified width and no specified height should render at given width and 0 height regardless of content.-->
+  <button class="iFlexWidth"><div class="innerContents">inner</div></button>
+  <br>
+
+  <!--CSS Test: A size-contained button should perform baseline alignment regularly.-->
+  outside before<button class="vaBaseline"><div class="innerContents">inner</div></button>outside after
+  <br>
+
+  <!--CSS Test: A size-contained button with specified min-width should render at given min-width and zero height regardless of content.-->
+  <button class="minWidth"><div class="innerContents">inner</div></button>
+  <br>
+
+  <!--CSS Test: A size-contained button with specified width should render at given width and zero height regardless of content.-->
+  <button class="width"><div class="innerContents">inner</div></button>
+  <br>
+
+  <!--CSS Test: A size-contained button with specified min-height should render at given min-height regardless of content.-->
+  <button class="minHeight"><div class="innerContents">inner</div></button>
+  <br>
+
+  <!--CSS Test: A size-contained button with specified height should render at given height regardless of content.-->
+  <button class="height"><div class="innerContents">inner</div></button>
+  <br>
+
+  <!--CSS Test: A size-contained button with vertical text should perform baseline alignment regularly.-->
+  s<button class="orthog vaBaseline"><div class="innerContents">inner</div></button>endtext
+  <br>
+
+  <!--CSS Test: A size-contained button with inner text should layout the text in the same manner as a container of the same type with identical contents.-->
+  <button class="height width">inside</button>
+</body>
+</html>

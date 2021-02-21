@@ -7,7 +7,6 @@ import subprocess
 from collections import OrderedDict
 
 import taskcluster
-from six import iteritems, itervalues
 
 from . import taskgraph
 
@@ -48,7 +47,7 @@ def fetch_event_data(queue):
 def filter_triggers(event, all_tasks):
     is_pr, branch = get_triggers(event)
     triggered = OrderedDict()
-    for name, task in iteritems(all_tasks):
+    for name, task in all_tasks.items():
         if "trigger" in task:
             if is_pr and "pull-request" in task["trigger"]:
                 triggered[name] = task
@@ -104,7 +103,7 @@ def get_extra_jobs(event):
 def filter_schedule_if(event, tasks):
     scheduled = OrderedDict()
     run_jobs = None
-    for name, task in iteritems(tasks):
+    for name, task in tasks.items():
         if "schedule-if" in task:
             if "run-job" in task["schedule-if"]:
                 if run_jobs is None:
@@ -283,7 +282,7 @@ def build_task_graph(event, all_tasks, tasks):
                                             env_extra=env_extra)
         task_id_map[task_name] = (task_id, task_data)
 
-    for task_name, task in iteritems(tasks):
+    for task_name, task in tasks.items():
         if task_name == "sink-task":
             # sink-task will be created below at the end of the ordered dict,
             # so that it can depend on all other tasks.
@@ -309,7 +308,7 @@ def build_task_graph(event, all_tasks, tasks):
 
 
 def create_tasks(queue, task_id_map):
-    for (task_id, task_data) in itervalues(task_id_map):
+    for (task_id, task_data) in task_id_map.values():
         queue.createTask(task_id, task_data)
 
 

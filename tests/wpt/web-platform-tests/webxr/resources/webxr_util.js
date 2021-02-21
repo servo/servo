@@ -18,7 +18,7 @@ function xr_promise_test(name, func, properties, glContextType, glContextPropert
     // Perform any required test setup:
     xr_debug(name, 'setup');
 
-    assert_implements(navigator.xr, 'missing navigator.xr');
+    assert_implements(navigator.xr, 'missing navigator.xr - ensure test is run in a secure context.');
 
     // Only set up once.
     if (!navigator.xr.test) {
@@ -88,7 +88,8 @@ function requestSkipAnimationFrame(session, callback) {
 // Calls the passed in test function with the session, the controller for the
 // device, and the test object.
 function xr_session_promise_test(
-    name, func, fakeDeviceInit, sessionMode, sessionInit, properties, glcontextPropertiesParam, gllayerPropertiesParam) {
+    name, func, fakeDeviceInit, sessionMode, sessionInit, properties,
+    glcontextPropertiesParam, gllayerPropertiesParam) {
   const glcontextProperties = (glcontextPropertiesParam) ? glcontextPropertiesParam : {};
   const gllayerProperties = (gllayerPropertiesParam) ? gllayerPropertiesParam : {};
 
@@ -133,7 +134,11 @@ function xr_session_promise_test(
                         });
                         sessionObjects.glLayer = glLayer;
                         xr_debug(name, 'session.visibilityState=' + session.visibilityState);
-                        resolve(func(session, testDeviceController, t, sessionObjects));
+                        try {
+                          resolve(func(session, testDeviceController, t, sessionObjects));
+                        } catch(err) {
+                          reject("Test function failed with: " + err);
+                        }
                       })
                       .catch((err) => {
                         xr_debug(name, 'error: ' + err);

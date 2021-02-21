@@ -1,18 +1,12 @@
-from __future__ import unicode_literals
-
+import io
 import os
 import sys
 
 import mock
-import six
 
-here = os.path.dirname(__file__)
-root = os.path.abspath(os.path.join(here, "..", "..", ".."))
-sys.path.insert(0, root)
-
-from tools.localpaths import repo_root
-from tools.lint import lint as lint_mod
-from tools.lint.lint import filter_ignorelist_errors, parse_ignorelist, lint, create_parser
+from ...localpaths import repo_root
+from .. import lint as lint_mod
+from ..lint import filter_ignorelist_errors, parse_ignorelist, lint, create_parser
 
 _dummy_repo = os.path.join(os.path.dirname(__file__), "dummy")
 
@@ -58,7 +52,7 @@ def test_filter_ignorelist_errors():
 
 
 def test_parse_ignorelist():
-    input_buffer = six.StringIO("""
+    input_buffer = io.StringIO("""
 # Comment
 CR AT EOL: svg/import/*
 CR AT EOL: streams/resources/test-utils.js

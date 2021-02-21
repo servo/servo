@@ -85,8 +85,8 @@
         orientation: config.orientation,
         timeRange: 1000,
         fill: 'both',
-        startScrollOffset: {target: target, edge: 'end', ...config.start},
-        endScrollOffset: {target: target, edge:'start', ...config.end }
+        scrollOffsets: [{target: target, edge: 'end', ...config.start},
+                        {target: target, edge:'start', ...config.end }]
       });
 
       // Wait for new animation frame which allows the timeline to compute new

@@ -1,7 +1,7 @@
 pytest-2.5.1: fixes and new home page styling
 ===========================================================================
 
-pytest is a mature Python testing tool with more than a 1000 tests
+pytest is a mature Python testing tool with more than 1000 tests
 against itself, passing on many different interpreters and platforms.
 
 The 2.5.1 release maintains the "zero-reported-bugs" promise by fixing

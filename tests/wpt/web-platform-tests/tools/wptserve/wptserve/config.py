@@ -2,9 +2,7 @@ import copy
 import logging
 import os
 from collections import defaultdict
-
-from six.moves.collections_abc import Mapping
-from six import integer_types, iteritems, itervalues, string_types
+from collections.abc import Mapping
 
 from . import sslutils
 from .utils import get_port
@@ -20,7 +18,7 @@ _renamed_props = {
 
 def _merge_dict(base_dict, override_dict):
     rv = base_dict.copy()
-    for key, value in iteritems(base_dict):
+    for key, value in base_dict.items():
         if key in override_dict:
             if isinstance(value, dict):
                 rv[key] = _merge_dict(value, override_dict[key])
@@ -89,7 +87,7 @@ class Config(Mapping):
                 target = target[part]
             value = target[key[-1]]
             if isinstance(value, dict):
-                target[key[-1]] = {k:v for (k,v) in iteritems(value) if not k.startswith("op")}
+                target[key[-1]] = {k:v for (k,v) in value.items() if not k.startswith("op")}
             else:
                 target[key[-1]] = [x for x in value if not x.startswith("op")]
 
@@ -98,9 +96,9 @@ class Config(Mapping):
 
 def json_types(obj):
     if isinstance(obj, dict):
-        return {key: json_types(value) for key, value in iteritems(obj)}
-    if (isinstance(obj, string_types) or
-        isinstance(obj, integer_types) or
+        return {key: json_types(value) for key, value in obj.items()}
+    if (isinstance(obj, str) or
+        isinstance(obj, int) or
         isinstance(obj, float) or
         isinstance(obj, bool) or
         obj is None):
@@ -203,13 +201,13 @@ class ConfigBuilder(object):
                 self.log_level = level_name
             self._logger_name = logger.name
 
-        for k, v in iteritems(self._default):
+        for k, v in self._default.items():
             self._data[k] = kwargs.pop(k, v)
 
         self._data["subdomains"] = subdomains
         self._data["not_subdomains"] = not_subdomains
 
-        for k, new_k in iteritems(_renamed_props):
+        for k, new_k in _renamed_props.items():
             if k in kwargs:
                 self.logger.warning(
                     "%s in config is deprecated; use %s instead" % (
@@ -242,7 +240,7 @@ class ConfigBuilder(object):
             if k in override:
                 self._set_override(k, override.pop(k))
 
-        for k, new_k in iteritems(_renamed_props):
+        for k, new_k in _renamed_props.items():
             if k in override:
                 self.logger.warning(
                     "%s in config is deprecated; use %s instead" % (
@@ -287,7 +285,7 @@ class ConfigBuilder(object):
 
     def _get_ports(self, data):
         new_ports = defaultdict(list)
-        for scheme, ports in iteritems(data["ports"]):
+        for scheme, ports in data["ports"].items():
             if scheme in ["wss", "https"] and not sslutils.get_cls(data["ssl"]["type"]).ssl_enabled:
                 continue
             for i, port in enumerate(ports):
@@ -301,7 +299,7 @@ class ConfigBuilder(object):
         hosts[""] = data["browser_host"]
 
         rv = {}
-        for name, host in iteritems(hosts):
+        for name, host in hosts.items():
             rv[name] = {subdomain: (subdomain.encode("idna").decode("ascii") + u"." + host)
                         for subdomain in data["subdomains"]}
             rv[name][""] = host
@@ -313,7 +311,7 @@ class ConfigBuilder(object):
         hosts[""] = data["browser_host"]
 
         rv = {}
-        for name, host in iteritems(hosts):
+        for name, host in hosts.items():
             rv[name] = {subdomain: (subdomain.encode("idna").decode("ascii") + u"." + host)
                         for subdomain in data["not_subdomains"]}
         return rv
@@ -327,13 +325,13 @@ class ConfigBuilder(object):
 
     def _get_domains_set(self, data):
         return {domain
-                for per_host_domains in itervalues(data["domains"])
-                for domain in itervalues(per_host_domains)}
+                for per_host_domains in data["domains"].values()
+                for domain in per_host_domains.values()}
 
     def _get_not_domains_set(self, data):
         return {domain
-                for per_host_domains in itervalues(data["not_domains"])
-                for domain in itervalues(per_host_domains)}
+                for per_host_domains in data["not_domains"].values()
+                for domain in per_host_domains.values()}
 
     def _get_all_domains_set(self, data):
         return data["domains_set"] | data["not_domains_set"]

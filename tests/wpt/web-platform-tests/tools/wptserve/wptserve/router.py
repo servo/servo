@@ -3,7 +3,6 @@ import re
 import sys
 
 from .logger import get_logger
-from six import binary_type, text_type
 
 any_method = object()
 
@@ -146,7 +145,7 @@ class Router(object):
                         object and the response object.
 
         """
-        if isinstance(methods, (binary_type, text_type)) or methods is any_method:
+        if isinstance(methods, (bytes, str)) or methods is any_method:
             methods = [methods]
         for method in methods:
             self.routes.append((method, compile_path_match(path), handler))

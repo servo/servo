@@ -3,11 +3,11 @@ import argparse
 import os
 import sys
 
+from configparser import ConfigParser
+
 from mozlog import structuredlog
 from mozlog.handlers import BaseHandler, StreamHandler
 from mozlog.formatters import MachFormatter
-from six import iteritems
-from six.moves.configparser import ConfigParser
 from wptrunner import wptcommandline, wptrunner
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -84,7 +84,7 @@ def run_tests(product, kwargs):
 
 def settings_to_argv(settings):
     rv = []
-    for name, value in iteritems(settings):
+    for name, value in settings.items():
         key = "--%s" % name
         if not value:
             rv.append(key)
@@ -110,7 +110,7 @@ def run(config, args):
 
     logger.suite_start(tests=[])
 
-    for product, product_settings in iteritems(config["products"]):
+    for product, product_settings in config["products"].items():
         if args.product and product not in args.product:
             continue
 

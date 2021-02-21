@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>mongolian, 0-9</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#simple-numeric'>
+<meta name='flags' content='font'>
+<meta name="assert" content="list-style-type:mongolian produces numbers up to 9 per the spec.">
+<style type='text/css'>
+ol li { list-style-type: mongolian;  }
+/* the following CSS is not part of the test */
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, IGNORING the suffix.</p>
+<div class="test">
+<ol>
+<div><bdi>᠑. </bdi>᠑</div>
+<div><bdi>᠒. </bdi>᠒</div>
+<div><bdi>᠓. </bdi>᠓</div>
+<div><bdi>᠔. </bdi>᠔</div>
+<div><bdi>᠕. </bdi>᠕</div>
+<div><bdi>᠖. </bdi>᠖</div>
+<div><bdi>᠗. </bdi>᠗</div>
+<div><bdi>᠘. </bdi>᠘</div>
+<div><bdi>᠙. </bdi>᠙</div>
+</ol></div>
+<!--Notes:
+You will need an appropriate font to run this test.
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+</body>
+</html>

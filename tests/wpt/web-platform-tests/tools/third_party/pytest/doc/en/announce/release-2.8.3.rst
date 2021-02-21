@@ -1,7 +1,7 @@
 pytest-2.8.3: bug fixes
 =======================
 
-pytest is a mature Python testing tool with more than a 1100 tests
+pytest is a mature Python testing tool with more than 1100 tests
 against itself, passing on many different interpreters and platforms.
 This release is supposed to be drop-in compatible to 2.8.2.
 

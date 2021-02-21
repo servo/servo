@@ -5,8 +5,7 @@ import time
 import traceback
 import uuid
 
-from six import iteritems, iterkeys
-from six.moves.urllib.parse import urljoin
+from urllib.parse import urljoin
 
 errors = None
 marionette = None
@@ -727,14 +726,14 @@ class MarionetteProtocol(Protocol):
 
     def on_environment_change(self, old_environment, new_environment):
         #Unset all the old prefs
-        for name in iterkeys(old_environment.get("prefs", {})):
+        for name in old_environment.get("prefs", {}).keys():
             value = self.executor.original_pref_values[name]
             if value is None:
                 self.prefs.clear(name)
             else:
                 self.prefs.set(name, value)
 
-        for name, value in iteritems(new_environment.get("prefs", {})):
+        for name, value in new_environment.get("prefs", {}).items():
             self.executor.original_pref_values[name] = self.prefs.get(name)
             self.prefs.set(name, value)
 
@@ -1000,7 +999,7 @@ class MarionetteRefTestExecutor(RefTestExecutor):
                 result["extra"]["assertion_count"] = assertion_count
 
         if self.debug_test and result["status"] in ["PASS", "FAIL", "ERROR"] and "extra" in result:
-            self.parent.base.set_window(self.parent.base.window_handles()[0])
+            self.protocol.base.set_window(self.protocol.base.window_handles()[0])
             self.protocol.debug.load_reftest_analyzer(test, result)
 
         return self.convert_result(test, result)
@@ -1048,8 +1047,7 @@ class InternalRefTestImplementation(RefTestImplementation):
         data = {"screenshot": screenshot, "isPrint": self.executor.is_print}
         if self.executor.group_metadata is not None:
             data["urlCount"] = {urljoin(self.executor.server_url(key[0]), key[1]):value
-                                for key, value in iteritems(
-                                    self.executor.group_metadata.get("url_count", {}))
+                                for key, value in self.executor.group_metadata.get("url_count", {}).items()
                                 if value > 1}
         self.chrome_scope = chrome_scope
         if chrome_scope:
