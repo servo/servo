@@ -1,18 +1,16 @@
-from six.moves import BaseHTTPServer
 import errno
+import http.server
 import os
 import socket
-from six.moves.socketserver import ThreadingMixIn
+from socketserver import ThreadingMixIn
 import ssl
 import sys
 import threading
 import time
 import traceback
-from six import binary_type, text_type
 import uuid
 from collections import OrderedDict
-
-from six.moves.queue import Queue
+from queue import Queue
 
 from h2.config import H2Configuration
 from h2.connection import H2Connection
@@ -21,7 +19,7 @@ from h2.exceptions import StreamClosedError, ProtocolError
 from h2.settings import SettingCodes
 from h2.utilities import extract_method_header
 
-from six.moves.urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urlsplit, urlunsplit
 
 from mod_pywebsocket import dispatch
 from mod_pywebsocket.handshake import HandshakeException
@@ -38,13 +36,12 @@ from .ws_h2_handshake import WsH2Handshaker
 
 # We need to stress test that browsers can send/receive many headers (there is
 # no specified limit), but the Python stdlib has an arbitrary limit of 100
-# headers. Hitting the limit would produce an exception that is silently caught
-# in Python 2 but leads to HTTP 431 in Python 3, so we monkey patch it higher.
+# headers. Hitting the limit leads to HTTP 431, so we monkey patch it higher.
 # https://bugs.python.org/issue26586
 # https://github.com/web-platform-tests/wpt/pull/24451
-from six.moves import http_client
-assert isinstance(getattr(http_client, '_MAXHEADERS'), int)
-setattr(http_client, '_MAXHEADERS', 512)
+import http.client
+assert isinstance(getattr(http.client, '_MAXHEADERS'), int)
+setattr(http.client, '_MAXHEADERS', 512)
 
 """
 HTTP server designed for testing purposes.
@@ -106,7 +103,7 @@ class RequestRewriter(object):
         :param output_path: Path to replace the input path with in
                             the request.
         """
-        if isinstance(methods, (binary_type, text_type)):
+        if isinstance(methods, (bytes, str)):
             methods = [methods]
         self.rules[input_path] = (methods, output_path)
 
@@ -129,7 +126,7 @@ class RequestRewriter(object):
                 request_handler.path = new_url
 
 
-class WebTestServer(ThreadingMixIn, BaseHTTPServer.HTTPServer):
+class WebTestServer(ThreadingMixIn, http.server.HTTPServer):
     allow_reuse_address = True
     acceptable_errors = (errno.EPIPE, errno.ECONNABORTED)
     request_queue_size = 2000
@@ -190,8 +187,7 @@ class WebTestServer(ThreadingMixIn, BaseHTTPServer.HTTPServer):
         else:
             hostname_port = ("",server_address[1])
 
-        #super doesn't work here because BaseHTTPServer.HTTPServer is old-style
-        BaseHTTPServer.HTTPServer.__init__(self, hostname_port, request_handler_cls, **kwargs)
+        http.server.HTTPServer.__init__(self, hostname_port, request_handler_cls, **kwargs)
 
         if config is not None:
             Server.config = config
@@ -236,12 +232,12 @@ class WebTestServer(ThreadingMixIn, BaseHTTPServer.HTTPServer):
             self.logger.error(traceback.format_exc())
 
 
-class BaseWebTestRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+class BaseWebTestRequestHandler(http.server.BaseHTTPRequestHandler):
     """RequestHandler for WebTestHttpd"""
 
     def __init__(self, *args, **kwargs):
         self.logger = get_logger()
-        BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
+        http.server.BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
 
     def finish_handling_h1(self, request_line_is_valid):
 

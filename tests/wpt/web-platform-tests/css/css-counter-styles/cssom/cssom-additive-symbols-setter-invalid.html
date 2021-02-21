@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>CSSCounterStyleRule additiveSymbols setter with invalid values</title>
+<link rel="help" href="https://www.w3.org/TR/css-counter-styles-3/#the-csscounterstylerule-interface">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="match" href="cssom-additive-symbols-setter-ref.html">
+<style id="sheet">
+@counter-style foo {
+  system: additive;
+  additive-symbols: 2 C, 1 B, 0 A;
+}
+</style>
+
+<ol style="list-style-type: foo; list-style-position: inside" start=0>
+  <li></li>
+  <li></li>
+  <li></li>
+</ol>
+
+<script>
+// Force layout update before changing the rule
+document.body.offsetWidth;
+
+const sheet = document.getElementById('sheet');
+const foo_rule = sheet.sheet.rules[0];
+
+// Invalid values should be ignored
+foo_rule.additiveSymbols = '';
+foo_rule.additiveSymbols = 'A B C';
+foo_rule.additiveSymbols = '1 B, 2 C, 0 A';
+foo_rule.additiveSymbols = '2 C C, 1 B, 0 A';
+</script>

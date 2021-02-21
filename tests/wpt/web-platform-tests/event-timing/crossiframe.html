@@ -72,10 +72,13 @@
     });
     const childFrameEntriesPromise = new Promise(resolve => {
       window.addEventListener("message", (event) => {
-        t.step(() => {
-          validateChildFrameEntries(event.data);
-        });
-        resolve();
+        // testdriver-complete is a webdriver internal event
+        if (event.data.type != "testdriver-complete") {
+          t.step(() => {
+            validateChildFrameEntries(event.data);
+          });
+          resolve();
+        }
       }, false);
     });
     let iframe = document.getElementById('iframe');

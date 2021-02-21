@@ -24,10 +24,8 @@ The ideal pytest helper
  - feels confident in using pytest (e.g. has explored command line options, knows how to write parametrized tests, has an idea about conftest contents)
  - does not need to be an expert in every aspect!
 
-`Pytest helpers, sign up here`_! (preferably in February, hard deadline 22 March)
+Pytest helpers, sign up here! (preferably in February, hard deadline 22 March)
 
-
-.. _`Pytest helpers, sign up here`: http://goo.gl/forms/nxqAhqWt1P
 
 
 The ideal partner project
@@ -40,16 +38,14 @@ The ideal partner project
  - has the support of the core development team, in trying out pytest adoption
  - has no tests... or 100% test coverage... or somewhere in between!
 
-`Partner projects, sign up here`_! (by 22 March)
+Partner projects, sign up here! (by 22 March)
 
-
-.. _`Partner projects, sign up here`:  http://goo.gl/forms/ZGyqlHiwk3
 
 
 What does it mean to "adopt pytest"?
 -----------------------------------------
 
-There can be many different definitions of "success". Pytest can run many `nose and unittest`_ tests by default, so using pytest as your testrunner may be possible from day 1. Job done, right?
+There can be many different definitions of "success". Pytest can run many nose_ and unittest_ tests by default, so using pytest as your testrunner may be possible from day 1. Job done, right?
 
 Progressive success might look like:
 
@@ -67,12 +63,13 @@ Progressive success might look like:
 
 It may be after the month is up, the partner project decides that pytest is not right for it. That's okay - hopefully the pytest team will also learn something about its weaknesses or deficiencies.
 
-.. _`nose and unittest`: faq.html#how-does-pytest-relate-to-nose-and-unittest
-.. _assert: asserts.html
+.. _nose: nose.html
+.. _unittest: unittest.html
+.. _assert: assert.html
 .. _pycmd: https://bitbucket.org/hpk42/pycmd/overview
 .. _`setUp/tearDown methods`: xunit_setup.html
 .. _fixtures: fixture.html
-.. _markers: markers.html
+.. _markers: mark.html
 .. _distributed: xdist.html
 
 

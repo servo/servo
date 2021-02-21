@@ -133,6 +133,10 @@ self.addEventListener('fetch', function(event) {
             }
           }
 
+          if (params['clone']) {
+            response = response.clone();
+          }
+
           // |cache| means to bounce responses through Cache Storage and back.
           if (params['cache']) {
             var cacheName = "cached-fetches-" + performance.now() + "-" +

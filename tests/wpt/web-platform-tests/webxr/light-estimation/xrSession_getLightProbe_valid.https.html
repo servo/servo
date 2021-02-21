@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="../resources/webxr_util.js"></script>
+  <script src="../resources/webxr_test_constants.js"></script>
+
+  <script>
+    let testName = "Can create valid XRLightProbe objects";
+
+    function testFunction(session, controller, t) {
+      // Request a default lightProbe
+      let defaultProbe = session.requestLightProbe();
+      let srgba8Probe = session.requestLightProbe({reflectionFormat: "srgba8"});
+      let preferredProbe = session.requestLightProbe({reflectionFormat: session.preferredReflectionFormat });
+
+      return Promise.all([defaultProbe, srgba8Probe, preferredProbe]);
+    }
+
+    xr_session_promise_test(
+      testName,
+      testFunction,
+      IMMERSIVE_AR_DEVICE,
+      'immersive-ar', {'requiredFeatures': ['light-estimation']});
+
+  </script>
+</body>

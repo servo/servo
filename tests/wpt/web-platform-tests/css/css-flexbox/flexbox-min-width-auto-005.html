@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>CSS Flexible Box Test: Aspect ratio handling of images</title>
+<link rel="author" title="Sergio Villar Senin" href="mailto:svillar@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#min-size-auto" />
+<link rel="match" href="reference/flexbox-min-width-auto-005-ref.html" />
+<meta name="assert" content="Test that min-width:auto does not incorrectly stretch items with aspect ratio" />
+
+<style>
+.reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 50px;
+    z-index: -1;
+}
+.constrained-flex {
+    display: flex;
+    height: 50px;
+}
+br { margin: 50px; }
+</style>
+
+<p>Test passes if there is <strong>no red</strong> visible on the page.</p>
+
+<div class="reference-overlapped-red"></div>
+<div class="constrained-flex">
+    <img src="support/40x20-green.png" />
+</div>
+
+<br>
+
+<div class="reference-overlapped-red" style="width: 40px;"></div>
+<div style="display: flex">
+    <div class="constrained-flex">
+        <img src="support/40x20-green.png" />
+    </div>
+</div>

@@ -1,11 +1,12 @@
 import os
 import unittest
 import json
+import types
+
+from http.client import BadStatusLine
 from io import BytesIO
 
 import pytest
-from six import create_bound_method, PY3
-from six.moves.http_client import BadStatusLine
 
 wptserve = pytest.importorskip("wptserve")
 from .base import TestUsingServer, TestUsingH2Server, doc_root
@@ -22,8 +23,8 @@ class TestResponse(TestUsingServer):
     def test_head_without_body(self):
         @wptserve.handlers.handler
         def handler(request, response):
-            response.writer.end_headers = create_bound_method(send_body_as_header,
-                                                              response.writer)
+            response.writer.end_headers = types.MethodType(send_body_as_header,
+                                                           response.writer)
             return [("X-Test", "TEST")], "body\r\n"
 
         route = ("GET", "/test/test_head_without_body", handler)
@@ -37,8 +38,8 @@ class TestResponse(TestUsingServer):
         @wptserve.handlers.handler
         def handler(request, response):
             response.send_body_for_head_request = True
-            response.writer.end_headers = create_bound_method(send_body_as_header,
-                                                              response.writer)
+            response.writer.end_headers = types.MethodType(send_body_as_header,
+                                                           response.writer)
             return [("X-Test", "TEST")], "body\r\n"
 
         route = ("GET", "/test/test_head_with_body", handler)
@@ -177,13 +178,9 @@ class TestResponse(TestUsingServer):
         route = ("GET", "/test/test_write_raw_content", handler)
         self.server.router.register(*route)
 
-        try:
-            resp = self.request(route[1])
-            assert resp.read() == resp_content
-        except BadStatusLine as e:
-            # In Python3, an invalid HTTP request should throw BadStatusLine.
-            assert PY3
-            assert str(e) == resp_content.decode('utf-8')
+        with pytest.raises(BadStatusLine) as e:
+            self.request(route[1])
+        assert str(e.value) == resp_content.decode('utf-8')
 
 class TestH2Response(TestUsingH2Server):
     def test_write_without_ending_stream(self):

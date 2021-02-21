@@ -1,7 +1,7 @@
 import re
 import os
 import itertools
-from six import ensure_binary, itervalues, iteritems
+from six import ensure_binary
 from collections import defaultdict
 
 MYPY = False
@@ -194,13 +194,13 @@ class PathFilter(object):
                 rule = cast(Tuple[bool, Pattern[bytes]], rule)
             if not dir_only:
                 rules_iter = itertools.chain(
-                    itertools.chain(*(iteritems(item) for item in itervalues(self.literals_dir))),
-                    itertools.chain(*(iteritems(item) for item in itervalues(self.literals_file))),
+                    itertools.chain(*(item.items() for item in self.literals_dir.values())),
+                    itertools.chain(*(item.items() for item in self.literals_file.values())),
                     self.patterns_dir,
                     self.patterns_file)  # type: Iterable[Tuple[Any, List[Tuple[bool, Pattern[bytes]]]]]
             else:
                 rules_iter = itertools.chain(
-                    itertools.chain(*(iteritems(item) for item in itervalues(self.literals_dir))),
+                    itertools.chain(*(item.items() for item in self.literals_dir.values())),
                     self.patterns_dir)
 
             for rules in rules_iter:

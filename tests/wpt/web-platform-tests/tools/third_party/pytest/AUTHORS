@@ -15,6 +15,7 @@ Alexander Johnson
 Alexei Kozlenok
 Allan Feldman
 Aly Sivji
+Amir Elkess
 Anatoly Bubenkoff
 Anders Hovmöller
 Andras Mitzki
@@ -22,6 +23,7 @@ Andras Tim
 Andrea Cimatoribus
 Andreas Zeidler
 Andrey Paramonov
+Andrzej Klajnert
 Andrzej Ostrowski
 Andy Freeland
 Anthon van der Neut
@@ -50,31 +52,38 @@ Carl Friedrich Bolz
 Carlos Jenkins
 Ceridwen
 Charles Cloud
+Charles Machalow
 Charnjit SiNGH (CCSJ)
 Chris Lamb
 Christian Boelsen
 Christian Fetzer
+Christian Neumüller
 Christian Theunert
 Christian Tismer
-Christopher Gilling
+Christoph Buelter
 Christopher Dignam
+Christopher Gilling
+Claire Cecil
 Claudio Madotto
 CrazyMerlyn
 Cyrus Maden
 Damian Skrzypczak
-Dhiren Serai
 Daniel Grana
 Daniel Hahler
 Daniel Nuri
 Daniel Wandschneider
 Danielle Jenkins
+Daniil Galiev
 Dave Hunt
 David Díaz-Barquero
 David Mohr
+David Paul Röthlisberger
 David Szotten
 David Vierra
 Daw-Ran Liou
+Debi Mishra
 Denis Kirisov
+Dhiren Serai
 Diego Russo
 Dmitry Dygalo
 Dmitry Pribysh
@@ -87,25 +96,31 @@ Elizaveta Shashkova
 Endre Galaczi
 Eric Hunsberger
 Eric Siegerman
+Erik Aronesty
 Erik M. Bray
 Evan Kepner
 Fabien Zarifian
 Fabio Zadrozny
+Felix Nieuwenhuizen
 Feng Ma
-Fernando Mezzabotta Rey
 Florian Bruhin
+Florian Dahlitz
 Floris Bruynooghe
 Gabriel Reis
+Gene Wood
 George Kussumoto
 Georgy Dyuldin
+Gleb Nikonorov
 Graham Horler
 Greg Price
+Gregory Lee
 Grig Gheorghiu
 Grigorii Eremeev (budulianin)
 Guido Wesdorp
 Guoqiang Zhang
 Harald Armin Massa
 Henk-Jaap Wagenaar
+Holger Kohr
 Hugo van Kemenade
 Hui Wang (coldnight)
 Ian Bicking
@@ -114,6 +129,7 @@ Ilya Konstantinov
 Ionuț Turturică
 Iwan Briquemont
 Jaap Broekhuizen
+Jakub Mitoraj
 Jan Balster
 Janne Vanhala
 Jason R. Coombs
@@ -130,12 +146,17 @@ Jordan Guymon
 Jordan Moldow
 Jordan Speicher
 Joseph Hunkeler
+Josh Karpel
 Joshua Bronson
 Jurko Gospodnetić
 Justyna Janczyszyn
 Kale Kundert
+Kamran Ahmad
+Karl O. Pinc
 Katarzyna Jachim
+Katarzyna Król
 Katerina Koukiou
+Keri Volans
 Kevin Cox
 Kevin J. Foley
 Kodi B. Arfer
@@ -145,6 +166,7 @@ Kyle Altendorf
 Lawrence Mitchell
 Lee Kamentsky
 Lev Maximov
+Lewis Cowles
 Llandy Riveron Del Risco
 Loic Esteve
 Lukas Bednar
@@ -157,7 +179,9 @@ Manuel Krebber
 Marc Schlaich
 Marcelo Duarte Trevisani
 Marcin Bachry
+Marco Gorelli
 Mark Abramowitz
+Mark Dickinson
 Markus Unterwaditzer
 Martijn Faassen
 Martin Altmayer
@@ -169,16 +193,20 @@ Matt Duck
 Matt Williams
 Matthias Hafner
 Maxim Filipenko
+Maximilian Cosmo Sitter
 mbyt
 Michael Aquilina
 Michael Birtwell
 Michael Droettboom
+Michael Goerz
+Michael Krebs
 Michael Seifert
 Michal Wajszczuk
 Mihai Capotă
 Mike Hoyle (hoylemd)
 Mike Lundy
 Miro Hrončok
+Nathaniel Compton
 Nathaniel Waisbrot
 Ned Batchelder
 Neven Mundar
@@ -195,25 +223,34 @@ Omer Hadari
 Ondřej Súkup
 Oscar Benjamin
 Patrick Hayes
+Pauli Virtanen
+Pavel Karateev
 Paweł Adamczak
 Pedro Algarvio
+Philipp Loose
 Pieter Mulder
 Piotr Banaszkiewicz
+Piotr Helm
+Prashant Anand
 Pulkit Goyal
 Punyashloka Biswal
 Quentin Pradet
 Ralf Schmitt
+Ram Rachum
+Ralph Giles
 Ran Benita
 Raphael Castaneda
 Raphael Pierzina
 Raquel Alegre
 Ravi Chandra
+Robert Holt
 Roberto Polli
 Roland Puntaier
 Romain Dorgueil
 Roman Bolshakov
 Ronny Pfannschmidt
 Ross Lawley
+Ruaridh Williamson
 Russel Winder
 Ryan Wooden
 Samuel Dion-Girardeau
@@ -222,15 +259,19 @@ Samuele Pedroni
 Sankt Petersbug
 Segev Finer
 Serhii Mozghovyi
+Seth Junot
 Simon Gomizelj
+Simon Kerr
 Skylar Downes
 Srinivas Reddy Thatiparthy
 Stefan Farmbauer
+Stefan Scherfke
 Stefan Zimmermann
 Stefano Taschini
 Steffen Allner
 Stephan Obermann
 Sven-Hendrik Haase
+Sylvain Marié
 Tadek Teleżyński
 Takafumi Arakaki
 Tarcisio Fischer
@@ -238,10 +279,13 @@ Tareq Alayan
 Ted Xiao
 Thomas Grainger
 Thomas Hisch
+Tim Hoffmann
 Tim Strazny
 Tom Dalton
 Tom Viner
+Tomáš Gavenčiak
 Tomer Keren
+Tor Colvin
 Trevor Bekolay
 Tyler Goodlet
 Tzu-ping Chung
@@ -252,12 +296,17 @@ Vidar T. Fauske
 Virgil Dupras
 Vitaly Lashmanov
 Vlad Dragos
+Vlad Radziuk
+Vladyslav Rachek
 Volodymyr Piskun
+Wei Lin
 Wil Cooley
 William Lee
 Wim Glenn
 Wouter van Ackooy
+Xixi Zhao
 Xuan Luong
 Xuecong Liao
+Yoav Caspi
 Zac Hatfield-Dodds
 Zoltán Máté

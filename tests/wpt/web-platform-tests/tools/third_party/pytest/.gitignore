@@ -25,16 +25,20 @@ src/_pytest/_version.py
 
 doc/*/_build
 doc/*/.doctrees
+doc/*/_changelog_towncrier_draft.rst
 build/
 dist/
 *.egg-info
+htmlcov/
 issue/
 env/
 .env/
+.venv/
 3rdparty/
 .tox
 .cache
 .pytest_cache
+.mypy_cache
 .coverage
 .coverage.*
 coverage.xml

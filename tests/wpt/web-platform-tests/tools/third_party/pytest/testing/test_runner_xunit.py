@@ -1,11 +1,5 @@
-# -*- coding: utf-8 -*-
-"""
- test correct setup/teardowns at
- module, class, and instance level
-"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+"""Test correct setup/teardowns at module, class, and instance level."""
+from typing import List
 
 import pytest
 
@@ -239,20 +233,20 @@ def test_setup_funcarg_setup_when_outer_scope_fails(testdir):
             "*ValueError*42*",
             "*function2*",
             "*ValueError*42*",
-            "*2 error*",
+            "*2 errors*",
         ]
     )
-    assert "xyz43" not in result.stdout.str()
+    result.stdout.no_fnmatch_line("*xyz43*")
 
 
 @pytest.mark.parametrize("arg", ["", "arg"])
 def test_setup_teardown_function_level_with_optional_argument(
-    testdir, monkeypatch, arg
-):
-    """parameter to setup/teardown xunit-style functions parameter is now optional (#1728)."""
+    testdir, monkeypatch, arg: str,
+) -> None:
+    """Parameter to setup/teardown xunit-style functions parameter is now optional (#1728)."""
     import sys
 
-    trace_setups_teardowns = []
+    trace_setups_teardowns = []  # type: List[str]
     monkeypatch.setattr(
         sys, "trace_setups_teardowns", trace_setups_teardowns, raising=False
     )

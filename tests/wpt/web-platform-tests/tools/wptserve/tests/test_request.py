@@ -1,5 +1,4 @@
 import mock
-from six import binary_type
 
 from wptserve.request import Request, RequestHeaders, MultiDict
 
@@ -49,9 +48,9 @@ def test_request_headers_encoding():
         'x-bar': ['bar1', 'bar2'],
     })
     headers = RequestHeaders(raw_headers)
-    assert isinstance(headers['x-foo'], binary_type)
-    assert isinstance(headers['x-bar'], binary_type)
-    assert isinstance(headers.get_list('x-bar')[0], binary_type)
+    assert isinstance(headers['x-foo'], bytes)
+    assert isinstance(headers['x-bar'], bytes)
+    assert isinstance(headers.get_list('x-bar')[0], bytes)
 
 
 def test_request_url_from_server_address():

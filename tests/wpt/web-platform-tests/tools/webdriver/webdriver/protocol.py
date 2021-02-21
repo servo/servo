@@ -2,8 +2,6 @@ import json
 
 import webdriver
 
-from six import iteritems
-
 
 """WebDriver wire protocol codecs."""
 
@@ -45,5 +43,5 @@ class Decoder(json.JSONDecoder):
         elif isinstance(payload, dict) and webdriver.ShadowRoot.identifier in payload:
             return webdriver.ShadowRoot.from_json(payload, self.session)
         elif isinstance(payload, dict):
-            return {k: self.object_hook(v) for k, v in iteritems(payload)}
+            return {k: self.object_hook(v) for k, v in payload.items()}
         return payload

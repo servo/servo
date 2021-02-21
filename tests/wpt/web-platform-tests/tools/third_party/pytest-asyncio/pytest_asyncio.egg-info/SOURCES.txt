@@ -1,0 +1,12 @@
+LICENSE
+README.rst
+setup.cfg
+setup.py
+pytest_asyncio/__init__.py
+pytest_asyncio/plugin.py
+pytest_asyncio.egg-info/PKG-INFO
+pytest_asyncio.egg-info/SOURCES.txt
+pytest_asyncio.egg-info/dependency_links.txt
+pytest_asyncio.egg-info/entry_points.txt
+pytest_asyncio.egg-info/requires.txt
+pytest_asyncio.egg-info/top_level.txt

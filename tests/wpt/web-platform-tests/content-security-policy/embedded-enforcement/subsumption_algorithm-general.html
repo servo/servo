@@ -69,14 +69,18 @@
         "returned_csp": "style-src http://*.example.com:*",
         "returned_csp_2": "style-src http://*.com",
         "expected": IframeLoad.EXPECT_LOAD },
-      { "name": "Iframe should block if plugin-types directive is not subsumed.",
+      { "name": "Removed plugin-types directive should be ignored.",
         "required_csp": "plugin-types application/pdf",
         "returned_csp": null,
-        "expected": IframeLoad.EXPECT_BLOCK },
-      { "name": "Iframe should load if plugin-types directive is subsumed.",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Removed plugin-types directive should be ignored 2.",
         "required_csp": "plugin-types application/pdf application/x-java-applet",
         "returned_csp": "plugin-types application/pdf",
         "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Removed plugin-types directive should be ignored 3.",
+        "required_csp": "style-src 'none'; plugin-types application/pdf",
+        "returned_csp": null,
+        "expected": IframeLoad.EXPECT_BLOCK },
     ];
 
     tests.forEach(test => {

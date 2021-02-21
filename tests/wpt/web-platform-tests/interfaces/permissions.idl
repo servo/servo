@@ -34,6 +34,29 @@ interface Permissions {
   Promise<PermissionStatus> query(object permissionDesc);
 };
 
+enum PermissionName {
+  "geolocation",
+  "notifications",
+  "push",
+  "midi",
+  "camera",
+  "microphone",
+  "speaker-selection",
+  "device-info",
+  "background-fetch",
+  "background-sync",
+  "bluetooth",
+  "persistent-storage",
+  "ambient-light-sensor",
+  "accelerometer",
+  "gyroscope",
+  "magnetometer",
+  "clipboard-read",
+  "clipboard-write",
+  "display-capture",
+  "nfc",
+};
+
 dictionary PushPermissionDescriptor : PermissionDescriptor {
   boolean userVisibleOnly = false;
 };

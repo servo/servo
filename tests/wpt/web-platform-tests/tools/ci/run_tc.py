@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """Wrapper script for running jobs in Taskcluster
 
@@ -58,6 +58,8 @@ def run(cmd, return_stdout=False, **kwargs):
     print(" ".join(cmd))
     if return_stdout:
         f = subprocess.check_output
+        if "encoding" not in kwargs:
+            kwargs["encoding"] = "utf-8"
     else:
         f = subprocess.check_call
     return f(cmd, **kwargs)
@@ -146,7 +148,7 @@ def install_chrome(channel):
 
     dest = os.path.join("/tmp", deb_archive)
     deb_url = "https://dl.google.com/linux/direct/%s" % deb_archive
-    with open(dest, "w") as f:
+    with open(dest, "wb") as f:
         get_download_to_descriptor(f, deb_url)
 
     run(["sudo", "apt-get", "-qqy", "update"])

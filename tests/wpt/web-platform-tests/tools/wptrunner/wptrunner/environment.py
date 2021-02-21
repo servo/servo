@@ -5,7 +5,6 @@ import signal
 import socket
 import sys
 import time
-from six import iteritems
 
 from mozlog import get_default_logger, handlers, proxy
 
@@ -108,7 +107,7 @@ class TestEnvironment(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.process_interrupts()
 
-        for scheme, servers in iteritems(self.servers):
+        for scheme, servers in self.servers.items():
             for port, server in servers:
                 server.kill()
         for cm in self.env_extras_cms:
@@ -215,7 +214,7 @@ class TestEnvironment(object):
         route_builder.add_handler("GET", "/resources/testdriver.js",
                                   StringHandler(data, "text/javascript"))
 
-        for url_base, paths in iteritems(self.test_paths):
+        for url_base, paths in self.test_paths.items():
             if url_base == "/":
                 continue
             route_builder.add_mount_point(url_base, paths["tests_path"])
@@ -247,13 +246,13 @@ class TestEnvironment(object):
         failed = []
         pending = []
         host = self.config["server_host"]
-        for scheme, servers in iteritems(self.servers):
+        for scheme, servers in self.servers.items():
             for port, server in servers:
                 if not server.is_alive():
                     failed.append((scheme, port))
 
         if not failed and self.test_server_port:
-            for scheme, servers in iteritems(self.servers):
+            for scheme, servers in self.servers.items():
                 # TODO(Hexcles): Find a way to test QUIC's UDP port.
                 if scheme == "quic-transport":
                     continue

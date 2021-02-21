@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<title>HTMLSelectMenuElement Test: popup</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<selectmenu id="selectMenu0">
+  <option>one</option>
+  <option id="selectMenu0-child2">two</option>
+  <div id="selectMenu0-child3">I'm a div with no part attr</div>
+  <option>three</option>
+  <option>four</option>
+</selectmenu>
+
+<selectmenu id="selectMenu1">
+  <div slot="button" part="button" id="selectMenu1-button">
+    Custom button
+  </div>
+  <popup slot="listbox" part="listbox">
+    <option>one</option>
+    <option id="selectMenu1-child2">two</option>
+    <div part="option" id="selectMenu1-child3">three</div>
+  </popup>
+</selectmenu>
+
+<selectmenu id="selectMenu2">
+  <!-- Swap out the listbox part without providing a replacement -->
+  <div slot="listbox"></div>
+</selectmenu>
+<script>
+
+  function clickOn(element) {
+    const actions = new test_driver.Actions();
+    return actions.pointerMove(0, 0, {origin: element})
+      .pointerDown({button: actions.ButtonType.LEFT})
+      .pointerUp({button: actions.ButtonType.LEFT})
+      .send();
+  }
+
+  promise_test(async () => {
+    const selectMenu0 = document.getElementById("selectMenu0");
+    const selectMenu0Child2 = document.getElementById("selectMenu0-child2");
+    const selectMenu0Child3 = document.getElementById("selectMenu0-child3");
+    assert_equals(selectMenu0.value, "one");
+    await clickOn(selectMenu0);
+    await clickOn(selectMenu0Child2);
+    assert_equals(selectMenu0.value, "two");
+
+    await clickOn(selectMenu0);
+    await clickOn(selectMenu0Child3);
+    assert_equals(selectMenu0.value, "two", "Clicking a non-option should not change the value");
+  }, "Opening the popup and clicking an option should change the selectmenu's value");
+
+  promise_test(async () => {
+    const selectMenu1 = document.getElementById("selectMenu1");
+    const selectMenu1Button = document.getElementById("selectMenu1-button");
+    const selectMenu1Child2 = document.getElementById("selectMenu1-child2");
+    const selectMenu1Child3 = document.getElementById("selectMenu1-child3");
+    assert_equals(selectMenu1.value, "one");
+    await clickOn(selectMenu1Button);
+    await clickOn(selectMenu1Child2);
+    assert_equals(selectMenu1.value, "two", "Clicking an <option> should change the value");
+
+    await clickOn(selectMenu1Button);
+    await clickOn(selectMenu1Child3);
+    assert_equals(selectMenu1.value, "three", "Clicking a <div part='option'> should change the value");
+  }, "With custom button and popup: opening the popup and clicking an option should change the selectmenu's value");
+
+  promise_test(async () => {
+    const selectMenu2 = document.getElementById("selectMenu2");
+    await clickOn(selectMenu2);
+    assert_equals(selectMenu2.value, "");
+  }, "Clicking a popup with no listbox part does nothing");
+</script>

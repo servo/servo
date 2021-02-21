@@ -3,6 +3,50 @@
 Basic patterns and examples
 ==========================================================
 
+How to change command line options defaults
+-------------------------------------------
+
+It can be tedious to type the same series of command line options
+every time you use ``pytest``.  For example, if you always want to see
+detailed info on skipped and xfailed tests, as well as have terser "dot"
+progress output, you can write it into a configuration file:
+
+.. code-block:: ini
+
+    # content of pytest.ini
+    [pytest]
+    addopts = -ra -q
+
+
+Alternatively, you can set a ``PYTEST_ADDOPTS`` environment variable to add command
+line options while the environment is in use:
+
+.. code-block:: bash
+
+    export PYTEST_ADDOPTS="-v"
+
+Here's how the command-line is built in the presence of ``addopts`` or the environment variable:
+
+.. code-block:: text
+
+    <pytest.ini:addopts> $PYTEST_ADDOPTS <extra command-line arguments>
+
+So if the user executes in the command-line:
+
+.. code-block:: bash
+
+    pytest -m slow
+
+The actual command line executed is:
+
+.. code-block:: bash
+
+    pytest -ra -q -v -m slow
+
+Note that as usual for other command-line applications, in case of conflicting options the last one wins, so the example
+above will show verbose output because ``-v`` overwrites ``-q``.
+
+
 .. _request example:
 
 Pass different values to a test function, depending on command line options
@@ -65,7 +109,9 @@ Let's run this without supplying our new option:
     test_sample.py:6: AssertionError
     --------------------------- Captured stdout call ---------------------------
     first
-    1 failed in 0.12 seconds
+    ========================= short test summary info ==========================
+    FAILED test_sample.py::test_answer - assert 0
+    1 failed in 0.12s
 
 And now with supplying a command line option:
 
@@ -89,7 +135,9 @@ And now with supplying a command line option:
     test_sample.py:6: AssertionError
     --------------------------- Captured stdout call ---------------------------
     second
-    1 failed in 0.12 seconds
+    ========================= short test summary info ==========================
+    FAILED test_sample.py::test_answer - assert 0
+    1 failed in 0.12s
 
 You can see that the command line option arrived in our test.  This
 completes the basic pattern.  However, one often rather wants to process
@@ -127,12 +175,12 @@ directory with the above conftest.py:
 
     $ pytest
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
     cachedir: $PYTHON_PREFIX/.pytest_cache
     rootdir: $REGENDOC_TMPDIR
     collected 0 items
 
-    ======================= no tests ran in 0.12 seconds =======================
+    ========================== no tests ran in 0.12s ===========================
 
 .. _`excontrolskip`:
 
@@ -155,6 +203,10 @@ line option to control skipping of ``pytest.mark.slow`` marked tests:
         parser.addoption(
             "--runslow", action="store_true", default=False, help="run slow tests"
         )
+
+
+    def pytest_configure(config):
+        config.addinivalue_line("markers", "slow: mark test as slow to run")
 
 
     def pytest_collection_modifyitems(config, items):
@@ -188,7 +240,7 @@ and when running it will see a skipped "slow" test:
 
     $ pytest -rs    # "-rs" means report details on the little 's'
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
     cachedir: $PYTHON_PREFIX/.pytest_cache
     rootdir: $REGENDOC_TMPDIR
     collected 2 items
@@ -197,7 +249,7 @@ and when running it will see a skipped "slow" test:
 
     ========================= short test summary info ==========================
     SKIPPED [1] test_module.py:8: need --runslow option to run
-    =================== 1 passed, 1 skipped in 0.12 seconds ====================
+    ======================= 1 passed, 1 skipped in 0.12s =======================
 
 Or run it including the ``slow`` marked test:
 
@@ -205,17 +257,19 @@ Or run it including the ``slow`` marked test:
 
     $ pytest --runslow
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
     cachedir: $PYTHON_PREFIX/.pytest_cache
     rootdir: $REGENDOC_TMPDIR
     collected 2 items
 
     test_module.py ..                                                    [100%]
 
-    ========================= 2 passed in 0.12 seconds =========================
+    ============================ 2 passed in 0.12s =============================
+
+.. _`__tracebackhide__`:
 
 Writing well integrated assertion helpers
---------------------------------------------------
+-----------------------------------------
 
 .. regendoc:wipe
 
@@ -234,7 +288,7 @@ Example:
     def checkconfig(x):
         __tracebackhide__ = True
         if not hasattr(x, "config"):
-            pytest.fail("not configured: %s" % (x,))
+            pytest.fail("not configured: {}".format(x))
 
 
     def test_something():
@@ -257,7 +311,9 @@ Let's run our little function:
     E       Failed: not configured: 42
 
     test_checkconfig.py:11: Failed
-    1 failed in 0.12 seconds
+    ========================= short test summary info ==========================
+    FAILED test_checkconfig.py::test_something - Failed: not configured: 42
+    1 failed in 0.12s
 
 If you only want to hide certain exceptions, you can set ``__tracebackhide__``
 to a callable which gets the ``ExceptionInfo`` object. You can for example use
@@ -276,7 +332,7 @@ this to make sure unexpected exception types aren't hidden:
     def checkconfig(x):
         __tracebackhide__ = operator.methodcaller("errisinstance", ConfigException)
         if not hasattr(x, "config"):
-            raise ConfigException("not configured: %s" % (x,))
+            raise ConfigException("not configured: {}".format(x))
 
 
     def test_something():
@@ -298,34 +354,31 @@ running from a test you can do something like this:
 
 .. code-block:: python
 
+    # content of your_module.py
+
+
+    _called_from_test = False
+
+.. code-block:: python
+
     # content of conftest.py
 
 
     def pytest_configure(config):
-        import sys
+        your_module._called_from_test = True
 
-        sys._called_from_test = True
-
-
-    def pytest_unconfigure(config):
-        import sys
-
-        del sys._called_from_test
-
-and then check for the ``sys._called_from_test`` flag:
+and then check for the ``your_module._called_from_test`` flag:
 
 .. code-block:: python
 
-    if hasattr(sys, "_called_from_test"):
+    if your_module._called_from_test:
         # called from within a test run
         ...
     else:
         # called "normally"
         ...
 
-accordingly in your application.  It's also a good idea
-to use your own application module rather than ``sys``
-for handling flag.
+accordingly in your application.
 
 Adding info to test report header
 --------------------------------------------------------------
@@ -348,13 +401,13 @@ which will add the string to the test header accordingly:
 
     $ pytest
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
     cachedir: $PYTHON_PREFIX/.pytest_cache
     project deps: mylib-1.1
     rootdir: $REGENDOC_TMPDIR
     collected 0 items
 
-    ======================= no tests ran in 0.12 seconds =======================
+    ========================== no tests ran in 0.12s ===========================
 
 .. regendoc:wipe
 
@@ -377,14 +430,14 @@ which will add info only when run with "--v":
 
     $ pytest -v
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y -- $PYTHON_PREFIX/bin/python
+    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y -- $PYTHON_PREFIX/bin/python
     cachedir: $PYTHON_PREFIX/.pytest_cache
     info1: did you know that ...
     did you?
     rootdir: $REGENDOC_TMPDIR
     collecting ... collected 0 items
 
-    ======================= no tests ran in 0.12 seconds =======================
+    ========================== no tests ran in 0.12s ===========================
 
 and nothing when run plainly:
 
@@ -392,12 +445,12 @@ and nothing when run plainly:
 
     $ pytest
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
     cachedir: $PYTHON_PREFIX/.pytest_cache
     rootdir: $REGENDOC_TMPDIR
     collected 0 items
 
-    ======================= no tests ran in 0.12 seconds =======================
+    ========================== no tests ran in 0.12s ===========================
 
 profiling test duration
 --------------------------
@@ -432,18 +485,18 @@ Now we can profile which test functions execute the slowest:
 
     $ pytest --durations=3
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
     cachedir: $PYTHON_PREFIX/.pytest_cache
     rootdir: $REGENDOC_TMPDIR
     collected 3 items
 
     test_some_are_slow.py ...                                            [100%]
 
-    ========================= slowest 3 test durations =========================
-    0.31s call     test_some_are_slow.py::test_funcslow2
+    =========================== slowest 3 durations ============================
+    0.30s call     test_some_are_slow.py::test_funcslow2
     0.20s call     test_some_are_slow.py::test_funcslow1
     0.10s call     test_some_are_slow.py::test_funcfast
-    ========================= 3 passed in 0.12 seconds =========================
+    ============================ 3 passed in 0.12s =============================
 
 incremental testing - test steps
 ---------------------------------------------------
@@ -460,21 +513,52 @@ an ``incremental`` marker which is to be used on classes:
 
     # content of conftest.py
 
+    from typing import Dict, Tuple
     import pytest
+
+    # store history of failures per test class name and per index in parametrize (if parametrize used)
+    _test_failed_incremental: Dict[str, Dict[Tuple[int, ...], str]] = {}
 
 
     def pytest_runtest_makereport(item, call):
         if "incremental" in item.keywords:
+            # incremental marker is used
             if call.excinfo is not None:
-                parent = item.parent
-                parent._previousfailed = item
+                # the test has failed
+                # retrieve the class name of the test
+                cls_name = str(item.cls)
+                # retrieve the index of the test (if parametrize is used in combination with incremental)
+                parametrize_index = (
+                    tuple(item.callspec.indices.values())
+                    if hasattr(item, "callspec")
+                    else ()
+                )
+                # retrieve the name of the test function
+                test_name = item.originalname or item.name
+                # store in _test_failed_incremental the original name of the failed test
+                _test_failed_incremental.setdefault(cls_name, {}).setdefault(
+                    parametrize_index, test_name
+                )
 
 
     def pytest_runtest_setup(item):
         if "incremental" in item.keywords:
-            previousfailed = getattr(item.parent, "_previousfailed", None)
-            if previousfailed is not None:
-                pytest.xfail("previous test failed (%s)" % previousfailed.name)
+            # retrieve the class name of the test
+            cls_name = str(item.cls)
+            # check if a previous test has failed for this class
+            if cls_name in _test_failed_incremental:
+                # retrieve the index of the test (if parametrize is used in combination with incremental)
+                parametrize_index = (
+                    tuple(item.callspec.indices.values())
+                    if hasattr(item, "callspec")
+                    else ()
+                )
+                # retrieve the name of the first test function to fail for this class name and index
+                test_name = _test_failed_incremental[cls_name].get(parametrize_index, None)
+                # if name found, test has failed for the combination of class name & test name
+                if test_name is not None:
+                    pytest.xfail("previous test failed ({})".format(test_name))
+
 
 These two hook implementations work together to abort incremental-marked
 tests in a class.  Here is a test module example:
@@ -487,7 +571,7 @@ tests in a class.  Here is a test module example:
 
 
     @pytest.mark.incremental
-    class TestUserHandling(object):
+    class TestUserHandling:
         def test_login(self):
             pass
 
@@ -507,7 +591,7 @@ If we run this:
 
     $ pytest -rx
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
     cachedir: $PYTHON_PREFIX/.pytest_cache
     rootdir: $REGENDOC_TMPDIR
     collected 4 items
@@ -527,7 +611,7 @@ If we run this:
     ========================= short test summary info ==========================
     XFAIL test_step.py::TestUserHandling::test_deletion
       reason: previous test failed (test_modification)
-    ============== 1 failed, 2 passed, 1 xfailed in 0.12 seconds ===============
+    ================== 1 failed, 2 passed, 1 xfailed in 0.12s ==================
 
 We'll see that ``test_deletion`` was not executed because ``test_modification``
 failed.  It is reported as an "expected failure".
@@ -552,7 +636,7 @@ Here is an example for making a ``db`` fixture available in a directory:
     import pytest
 
 
-    class DB(object):
+    class DB:
         pass
 
 
@@ -591,7 +675,7 @@ We can run this:
 
     $ pytest
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
     cachedir: $PYTHON_PREFIX/.pytest_cache
     rootdir: $REGENDOC_TMPDIR
     collected 7 items
@@ -640,7 +724,12 @@ We can run this:
     E       assert 0
 
     a/test_db2.py:2: AssertionError
-    ========== 3 failed, 2 passed, 1 xfailed, 1 error in 0.12 seconds ==========
+    ========================= short test summary info ==========================
+    FAILED test_step.py::TestUserHandling::test_modification - assert 0
+    FAILED a/test_db.py::test_a1 - AssertionError: <conftest.DB object at 0x7...
+    FAILED a/test_db2.py::test_a2 - AssertionError: <conftest.DB object at 0x...
+    ERROR b/test_error.py::test_root
+    ============= 3 failed, 2 passed, 1 xfailed, 1 error in 0.12s ==============
 
 The two test modules in the ``a`` directory see the same ``db`` fixture instance
 while the one test in the sister-directory ``b`` doesn't see it.  We could of course
@@ -680,7 +769,7 @@ case we just write some information out to a ``failures`` file:
             with open("failures", mode) as f:
                 # let's also access a fixture for the fun of it
                 if "tmpdir" in item.fixturenames:
-                    extra = " (%s)" % item.funcargs["tmpdir"]
+                    extra = " ({})".format(item.funcargs["tmpdir"])
                 else:
                     extra = ""
 
@@ -705,7 +794,7 @@ and run them:
 
     $ pytest test_module.py
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
     cachedir: $PYTHON_PREFIX/.pytest_cache
     rootdir: $REGENDOC_TMPDIR
     collected 2 items
@@ -729,7 +818,10 @@ and run them:
     E       assert 0
 
     test_module.py:6: AssertionError
-    ========================= 2 failed in 0.12 seconds =========================
+    ========================= short test summary info ==========================
+    FAILED test_module.py::test_fail1 - assert 0
+    FAILED test_module.py::test_fail2 - assert 0
+    ============================ 2 failed in 0.12s =============================
 
 you will have a "failures" file which contains the failing test ids:
 
@@ -809,7 +901,7 @@ and run it:
 
     $ pytest -s test_module.py
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
     cachedir: $PYTHON_PREFIX/.pytest_cache
     rootdir: $REGENDOC_TMPDIR
     collected 3 items
@@ -844,7 +936,11 @@ and run it:
     E       assert 0
 
     test_module.py:19: AssertionError
-    ==================== 2 failed, 1 error in 0.12 seconds =====================
+    ========================= short test summary info ==========================
+    FAILED test_module.py::test_call_fails - assert 0
+    FAILED test_module.py::test_fail2 - assert 0
+    ERROR test_module.py::test_setup_fails - assert 0
+    ======================== 2 failed, 1 error in 0.12s ========================
 
 You'll see that the fixture finalizers could use the precise reporting
 information.
@@ -858,9 +954,9 @@ information.
 
 Sometimes a test session might get stuck and there might be no easy way to figure out
 which test got stuck, for example if pytest was run in quiet mode (``-q``) or you don't have access to the console
-output. This is particularly a problem if the problem helps only sporadically, the famous "flaky" kind of tests.
+output. This is particularly a problem if the problem happens only sporadically, the famous "flaky" kind of tests.
 
-``pytest`` sets a ``PYTEST_CURRENT_TEST`` environment variable when running tests, which can be inspected
+``pytest`` sets the :envvar:`PYTEST_CURRENT_TEST` environment variable when running tests, which can be inspected
 by process monitoring utilities or libraries like `psutil <https://pypi.org/project/psutil/>`_ to discover which
 test got stuck if necessary:
 
@@ -874,8 +970,8 @@ test got stuck if necessary:
             print(f'pytest process {pid} running: {environ["PYTEST_CURRENT_TEST"]}')
 
 During the test session pytest will set ``PYTEST_CURRENT_TEST`` to the current test
-:ref:`nodeid <nodeids>` and the current stage, which can be ``setup``, ``call``
-and ``teardown``.
+:ref:`nodeid <nodeids>` and the current stage, which can be ``setup``, ``call``,
+or ``teardown``.
 
 For example, when running a single test function named ``test_foo`` from ``foo_module.py``,
 ``PYTEST_CURRENT_TEST`` will be set to:

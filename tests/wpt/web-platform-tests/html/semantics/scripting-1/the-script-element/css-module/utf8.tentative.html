@@ -17,18 +17,18 @@ const t3 = async_test("windows-1252");
 const t4 = async_test("utf-7");
 </script>
 <script type="module" onerror="t1.step(() => assert_unreached(event))">
-import v from "../serve-with-content-type.py?fn=css-module/resources/utf8.css&ct=text/css%3Bcharset=utf-8";
+import v from "../serve-with-content-type.py?fn=css-module/resources/utf8.css&ct=text/css%3Bcharset=utf-8" assert { type: "css" };
 check(t1, v);
 </script>
 <script type="module" onerror="t2.step(() => assert_unreached(event))">
-import v from "../serve-with-content-type.py?fn=css-module/resources/utf8.css&ct=text/css%3Bcharset=shift-jis";
+import v from "../serve-with-content-type.py?fn=css-module/resources/utf8.css&ct=text/css%3Bcharset=shift-jis" assert { type: "css" };
 check(t2, v);
 </script>
 <script type="module" onerror="t3.step(() => assert_unreached(event))">
-import v from "../serve-with-content-type.py?fn=css-module/resources/utf8.css&ct=text/css%3Bcharset=windows-1252";
+import v from "../serve-with-content-type.py?fn=css-module/resources/utf8.css&ct=text/css%3Bcharset=windows-1252" assert { type: "css" };
 check(t3, v);
 </script>
 <script type="module" onerror="t4.step(() => assert_unreached(event))">
-import v from "../serve-with-content-type.py?fn=css-module/resources/utf8.css&ct=text/css%3Bcharset=utf-7";
+import v from "../serve-with-content-type.py?fn=css-module/resources/utf8.css&ct=text/css%3Bcharset=utf-7" assert { type: "css" };
 check(t4, v);
 </script>

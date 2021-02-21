@@ -1,11 +1,13 @@
-# -*- coding: utf-8 -*-
+import io
 import os
 import re
-from io import open
-
-import six
+from typing import cast
 
 import pytest
+from _pytest.capture import CaptureManager
+from _pytest.config import ExitCode
+from _pytest.pytester import Testdir
+from _pytest.terminal import TerminalReporter
 
 
 def test_nothing_logged(testdir):
@@ -112,7 +114,7 @@ def test_log_cli_level_log_level_interaction(testdir):
             "=* 1 failed in *=",
         ]
     )
-    assert "DEBUG" not in result.stdout.str()
+    result.stdout.no_re_match_line("DEBUG")
 
 
 def test_setup_logging(testdir):
@@ -167,60 +169,6 @@ def test_teardown_logging(testdir):
             "*text going to logger from teardown*",
         ]
     )
-
-
-def test_disable_log_capturing(testdir):
-    testdir.makepyfile(
-        """
-        import sys
-        import logging
-
-        logger = logging.getLogger(__name__)
-
-        def test_foo():
-            sys.stdout.write('text going to stdout')
-            logger.warning('catch me if you can!')
-            sys.stderr.write('text going to stderr')
-            assert False
-        """
-    )
-    result = testdir.runpytest("--no-print-logs")
-    print(result.stdout)
-    assert result.ret == 1
-    result.stdout.fnmatch_lines(["*- Captured stdout call -*", "text going to stdout"])
-    result.stdout.fnmatch_lines(["*- Captured stderr call -*", "text going to stderr"])
-    with pytest.raises(pytest.fail.Exception):
-        result.stdout.fnmatch_lines(["*- Captured *log call -*"])
-
-
-def test_disable_log_capturing_ini(testdir):
-    testdir.makeini(
-        """
-        [pytest]
-        log_print=False
-        """
-    )
-    testdir.makepyfile(
-        """
-        import sys
-        import logging
-
-        logger = logging.getLogger(__name__)
-
-        def test_foo():
-            sys.stdout.write('text going to stdout')
-            logger.warning('catch me if you can!')
-            sys.stderr.write('text going to stderr')
-            assert False
-        """
-    )
-    result = testdir.runpytest()
-    print(result.stdout)
-    assert result.ret == 1
-    result.stdout.fnmatch_lines(["*- Captured stdout call -*", "text going to stdout"])
-    result.stdout.fnmatch_lines(["*- Captured stderr call -*", "text going to stderr"])
-    with pytest.raises(pytest.fail.Exception):
-        result.stdout.fnmatch_lines(["*- Captured *log call -*"])
 
 
 @pytest.mark.parametrize("enabled", [True, False])
@@ -285,7 +233,7 @@ def test_log_cli_default_level(testdir):
             "WARNING*test_log_cli_default_level.py* message will be shown*",
         ]
     )
-    assert "INFO message won't be shown" not in result.stdout.str()
+    result.stdout.no_fnmatch_line("*INFO message won't be shown*")
     # make sure that that we get a '0' exit code for the testsuite
     assert result.ret == 0
 
@@ -569,7 +517,7 @@ def test_log_cli_level(testdir):
             "PASSED",  # 'PASSED' on its own line because the log message prints a new line
         ]
     )
-    assert "This log message won't be shown" not in result.stdout.str()
+    result.stdout.no_fnmatch_line("*This log message won't be shown*")
 
     # make sure that that we get a '0' exit code for the testsuite
     assert result.ret == 0
@@ -583,7 +531,7 @@ def test_log_cli_level(testdir):
             "PASSED",  # 'PASSED' on its own line because the log message prints a new line
         ]
     )
-    assert "This log message won't be shown" not in result.stdout.str()
+    result.stdout.no_fnmatch_line("*This log message won't be shown*")
 
     # make sure that that we get a '0' exit code for the testsuite
     assert result.ret == 0
@@ -619,7 +567,7 @@ def test_log_cli_ini_level(testdir):
             "PASSED",  # 'PASSED' on its own line because the log message prints a new line
         ]
     )
-    assert "This log message won't be shown" not in result.stdout.str()
+    result.stdout.no_fnmatch_line("*This log message won't be shown*")
 
     # make sure that that we get a '0' exit code for the testsuite
     assert result.ret == 0
@@ -629,7 +577,7 @@ def test_log_cli_ini_level(testdir):
     "cli_args",
     ["", "--log-level=WARNING", "--log-file-level=WARNING", "--log-cli-level=WARNING"],
 )
-def test_log_cli_auto_enable(testdir, request, cli_args):
+def test_log_cli_auto_enable(testdir, cli_args):
     """Check that live logs are enabled if --log-level or --log-cli-level is passed on the CLI.
     It should not be auto enabled if the same configs are set on the INI file.
     """
@@ -841,16 +789,14 @@ def test_log_file_unicode(testdir):
         )
     )
     testdir.makepyfile(
-        """
-        # -*- coding: utf-8 -*-
-        from __future__ import unicode_literals
+        """\
         import logging
 
         def test_log_file():
             logging.getLogger('catchlog').info("Normal message")
             logging.getLogger('catchlog').info("├")
             logging.getLogger('catchlog').info("Another normal message")
-    """
+        """
     )
 
     result = testdir.runpytest()
@@ -861,12 +807,12 @@ def test_log_file_unicode(testdir):
     with open(log_file, encoding="utf-8") as rfh:
         contents = rfh.read()
         assert "Normal message" in contents
-        assert u"├" in contents
+        assert "├" in contents
         assert "Another normal message" in contents
 
 
 @pytest.mark.parametrize("has_capture_manager", [True, False])
-def test_live_logging_suspends_capture(has_capture_manager, request):
+def test_live_logging_suspends_capture(has_capture_manager: bool, request) -> None:
     """Test that capture manager is suspended when we emitting messages for live logging.
 
     This tests the implementation calls instead of behavior because it is difficult/impossible to do it using
@@ -889,12 +835,14 @@ def test_live_logging_suspends_capture(has_capture_manager, request):
             yield
             self.calls.append("exit disabled")
 
-    class DummyTerminal(six.StringIO):
+    class DummyTerminal(io.StringIO):
         def section(self, *args, **kwargs):
             pass
 
-    out_file = DummyTerminal()
-    capture_manager = MockCaptureManager() if has_capture_manager else None
+    out_file = cast(TerminalReporter, DummyTerminal())
+    capture_manager = (
+        cast(CaptureManager, MockCaptureManager()) if has_capture_manager else None
+    )
     handler = _LiveLoggingStreamHandler(out_file, capture_manager)
     handler.set_when("call")
 
@@ -907,7 +855,7 @@ def test_live_logging_suspends_capture(has_capture_manager, request):
         assert MockCaptureManager.calls == ["enter disabled", "exit disabled"]
     else:
         assert MockCaptureManager.calls == []
-    assert out_file.getvalue() == "\nsome message\n"
+    assert cast(io.StringIO, out_file).getvalue() == "\nsome message\n"
 
 
 def test_collection_live_logging(testdir):
@@ -947,15 +895,15 @@ def test_collection_collect_only_live_logging(testdir, verbose):
             ]
         )
     elif verbose == "-q":
-        assert "collected 1 item*" not in result.stdout.str()
+        result.stdout.no_fnmatch_line("*collected 1 item**")
         expected_lines.extend(
             [
                 "*test_collection_collect_only_live_logging.py::test_simple*",
-                "no tests ran in * seconds",
+                "no tests ran in [0-9].[0-9][0-9]s",
             ]
         )
     elif verbose == "-qq":
-        assert "collected 1 item*" not in result.stdout.str()
+        result.stdout.no_fnmatch_line("*collected 1 item**")
         expected_lines.extend(["*test_collection_collect_only_live_logging.py: 1*"])
 
     result.stdout.fnmatch_lines(expected_lines)
@@ -988,7 +936,7 @@ def test_collection_logging_to_file(testdir):
 
     result = testdir.runpytest()
 
-    assert "--- live log collection ---" not in result.stdout.str()
+    result.stdout.no_fnmatch_line("*--- live log collection ---*")
 
     assert result.ret == 0
     assert os.path.isfile(log_file)
@@ -1108,20 +1056,18 @@ def test_log_set_path(testdir):
         """
     )
     testdir.runpytest()
-    with open(os.path.join(report_dir_base, "test_first"), "r") as rfh:
+    with open(os.path.join(report_dir_base, "test_first")) as rfh:
         content = rfh.read()
         assert "message from test 1" in content
 
-    with open(os.path.join(report_dir_base, "test_second"), "r") as rfh:
+    with open(os.path.join(report_dir_base, "test_second")) as rfh:
         content = rfh.read()
         assert "message from test 2" in content
 
 
 def test_colored_captured_log(testdir):
-    """
-    Test that the level names of captured log messages of a failing test are
-    colored.
-    """
+    """Test that the level names of captured log messages of a failing test
+    are colored."""
     testdir.makepyfile(
         """
         import logging
@@ -1144,9 +1090,7 @@ def test_colored_captured_log(testdir):
 
 
 def test_colored_ansi_esc_caplogtext(testdir):
-    """
-    Make sure that caplog.text does not contain ANSI escape sequences.
-    """
+    """Make sure that caplog.text does not contain ANSI escape sequences."""
     testdir.makepyfile(
         """
         import logging
@@ -1160,3 +1104,53 @@ def test_colored_ansi_esc_caplogtext(testdir):
     )
     result = testdir.runpytest("--log-level=INFO", "--color=yes")
     assert result.ret == 0
+
+
+def test_logging_emit_error(testdir: Testdir) -> None:
+    """An exception raised during emit() should fail the test.
+
+    The default behavior of logging is to print "Logging error"
+    to stderr with the call stack and some extra details.
+
+    pytest overrides this behavior to propagate the exception.
+    """
+    testdir.makepyfile(
+        """
+        import logging
+
+        def test_bad_log():
+            logging.warning('oops', 'first', 2)
+        """
+    )
+    result = testdir.runpytest()
+    result.assert_outcomes(failed=1)
+    result.stdout.fnmatch_lines(
+        [
+            "====* FAILURES *====",
+            "*not all arguments converted during string formatting*",
+        ]
+    )
+
+
+def test_logging_emit_error_supressed(testdir: Testdir) -> None:
+    """If logging is configured to silently ignore errors, pytest
+    doesn't propagate errors either."""
+    testdir.makepyfile(
+        """
+        import logging
+
+        def test_bad_log(monkeypatch):
+            monkeypatch.setattr(logging, 'raiseExceptions', False)
+            logging.warning('oops', 'first', 2)
+        """
+    )
+    result = testdir.runpytest()
+    result.assert_outcomes(passed=1)
+
+
+def test_log_file_cli_subdirectories_are_successfully_created(testdir):
+    path = testdir.makepyfile(""" def test_logger(): pass """)
+    expected = os.path.join(os.path.dirname(str(path)), "foo", "bar")
+    result = testdir.runpytest("--log-file=foo/bar/logf.log")
+    assert "logf.log" in os.listdir(expected)
+    assert result.ret == ExitCode.OK

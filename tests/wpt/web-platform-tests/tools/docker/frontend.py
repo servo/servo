@@ -5,8 +5,6 @@ import re
 import subprocess
 import sys
 
-from six import iteritems
-
 here = os.path.abspath(os.path.dirname(__file__))
 wpt_root = os.path.abspath(os.path.join(here, os.pardir, os.pardir))
 
@@ -37,7 +35,7 @@ def walk_yaml(root, target):
             if isinstance(value, (dict, list)):
                 rv.extend(walk_yaml(value, target))
     elif isinstance(root, dict):
-        for key, value in iteritems(root):
+        for key, value in root.items():
             if isinstance(value, (dict, list)):
                 rv.extend(walk_yaml(value, target))
             elif key == target:

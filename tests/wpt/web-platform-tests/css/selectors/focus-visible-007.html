@@ -36,7 +36,7 @@
     <li>If the user-agent does not claim to support the <code>:focus-visible</code> pseudo-class then SKIP this test.</li>
     <li>Use the mouse to focus the element below that says "Click me."</li>
     <li>If the element has a red outline, then the test result is FAILURE.</li>
-    <li>Press the SHIFT key.</li>
+    <li>Press the ENTER key.</li>
     <li>If the element now has a green outline and not red background, then the test result is SUCCESS.</li>
   </ol>
 
@@ -65,7 +65,8 @@
         one.addEventListener("keyup", t.step_func(test_modality_change));
         one.removeEventListener("focus", handle_initial_focus);
 
-        test_driver.send_keys(one, "\uE050");
+        const enter = "\uE007";
+        test_driver.send_keys(one, enter);
       });
 
       const test_modality_change = t.step_func(() => {

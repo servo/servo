@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>cjk-earthly-branch, 13+</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#simple-numeric'>
+<meta name='flags' content='font'>
+<meta name="assert" content="list-style-type: cjk-earthly-branch produces numbers after 12 per the spec.">
+<style type='text/css'>
+ol li { list-style-type: cjk-earthly-branch;  }
+/* the following CSS is not part of the test */
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, IGNORING the suffix.</p>
+<div class="test">
+<ol start="13"><div><bdi dir=ltr>子子、</bdi>子子</div></ol>
+<ol start="14"><div><bdi dir=ltr>子丑、</bdi>子丑</div></ol>
+<ol start="77"><div><bdi dir=ltr>巳辰、</bdi>巳辰</div></ol>
+<ol start="80"><div><bdi dir=ltr>巳未、</bdi>巳未</div></ol>
+<ol start="99"><div><bdi dir=ltr>未寅、</bdi>未寅</div></ol>
+<ol start="100"><div><bdi dir=ltr>未卯、</bdi>未卯</div></ol>
+<ol start="101"><div><bdi dir=ltr>未辰、</bdi>未辰</div></ol>
+<ol start="222"><div><bdi dir=ltr>子巳巳、</bdi>子巳巳</div></ol>
+<ol start="540"><div><bdi dir=ltr>寅未亥、</bdi>寅未亥</div></ol>
+<ol start="999"><div><bdi dir=ltr>巳戌寅、</bdi>巳戌寅</div></ol>
+<ol start="1000"><div><bdi dir=ltr>巳戌卯、</bdi>巳戌卯</div></ol>
+<ol start="1005"><div><bdi dir=ltr>巳戌申、</bdi>巳戌申</div></ol>
+<ol start="1060"><div><bdi dir=ltr>午卯卯、</bdi>午卯卯</div></ol>
+<ol start="1065"><div><bdi dir=ltr>午卯申、</bdi>午卯申</div></ol>
+<ol start="1800"><div><bdi dir=ltr>亥辰亥、</bdi>亥辰亥</div></ol>
+<ol start="1860"><div><bdi dir=ltr>亥酉亥、</bdi>亥酉亥</div></ol>
+<ol start="5865"><div><bdi dir=ltr>寅卯未申、</bdi>寅卯未申</div></ol>
+<ol start="7005"><div><bdi dir=ltr>寅亥午申、</bdi>寅亥午申</div></ol>
+<ol start="7800"><div><bdi dir=ltr>卯巳子亥、</bdi>卯巳子亥</div></ol>
+<ol start="7864"><div><bdi dir=ltr>卯巳午卯、</bdi>卯巳午卯</div></ol>
+<ol start="9999"><div><bdi dir=ltr>辰申辰寅、</bdi>辰申辰寅</div></ol>
+</div>
+<!--Notes:
+You will need an appropriate font to run this test.
+The test relies on the start attribute working.
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+</body>
+</html>

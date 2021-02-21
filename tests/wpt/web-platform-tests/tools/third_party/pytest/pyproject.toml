@@ -1,23 +1,69 @@
 [build-system]
 requires = [
   # sync with setup.py until we discard non-pep-517/518
-  "setuptools>=40.0",
-  "setuptools-scm",
+  "setuptools>=42.0",
+  "setuptools-scm[toml]>=3.4",
   "wheel",
 ]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools_scm]
+write_to = "src/_pytest/_version.py"
+
+[tool.pytest.ini_options]
+minversion = "2.0"
+addopts = "-rfEX -p pytester --strict-markers"
+python_files = ["test_*.py", "*_test.py", "testing/python/*.py"]
+python_classes = ["Test", "Acceptance"]
+python_functions = ["test"]
+# NOTE: "doc" is not included here, but gets tested explicitly via "doctesting".
+testpaths = ["testing"]
+norecursedirs = ["testing/example_scripts"]
+xfail_strict = true
+filterwarnings = [
+    "error",
+    "default:Using or importing the ABCs:DeprecationWarning:unittest2.*",
+    "default:the imp module is deprecated in favour of importlib:DeprecationWarning:nose.*",
+    "ignore:Module already imported so cannot be rewritten:pytest.PytestWarning",
+    # produced by python3.6/site.py itself (3.6.7 on Travis, could not trigger it with 3.6.8)."
+    "ignore:.*U.*mode is deprecated:DeprecationWarning:(?!(pytest|_pytest))",
+    # produced by pytest-xdist
+    "ignore:.*type argument to addoption.*:DeprecationWarning",
+    # produced by python >=3.5 on execnet (pytest-xdist)
+    "ignore:.*inspect.getargspec.*deprecated, use inspect.signature.*:DeprecationWarning",
+    # pytest's own futurewarnings
+    "ignore::pytest.PytestExperimentalApiWarning",
+    # Do not cause SyntaxError for invalid escape sequences in py37.
+    # Those are caught/handled by pyupgrade, and not easy to filter with the
+    # module being the filename (with .py removed).
+    "default:invalid escape sequence:DeprecationWarning",
+    # ignore use of unregistered marks, because we use many to test the implementation
+    "ignore::_pytest.warning_types.PytestUnknownMarkWarning",
+]
+pytester_example_dir = "testing/example_scripts"
+markers = [
+    # dummy markers for testing
+    "foo",
+    "bar",
+    "baz",
+    # conftest.py reorders tests moving slow ones to the end of the list
+    "slow",
+    # experimental mark for all tests using pexpect
+    "uses_pexpect",
+]
+
+
 [tool.towncrier]
 package = "pytest"
 package_dir = "src"
-filename = "CHANGELOG.rst"
+filename = "doc/en/changelog.rst"
 directory = "changelog/"
 title_format = "pytest {version} ({project_date})"
 template = "changelog/_template.rst"
 
   [[tool.towncrier.type]]
-  directory = "removal"
-  name = "Removals"
+  directory = "breaking"
+  name = "Breaking Changes"
   showcontent = true
 
   [[tool.towncrier.type]]
@@ -28,6 +74,11 @@ template = "changelog/_template.rst"
   [[tool.towncrier.type]]
   directory = "feature"
   name = "Features"
+  showcontent = true
+
+  [[tool.towncrier.type]]
+  directory = "improvement"
+  name = "Improvements"
   showcontent = true
 
   [[tool.towncrier.type]]
@@ -49,3 +100,6 @@ template = "changelog/_template.rst"
   directory = "trivial"
   name = "Trivial/Internal Changes"
   showcontent = true
+
+[tool.black]
+target-version = ['py35']

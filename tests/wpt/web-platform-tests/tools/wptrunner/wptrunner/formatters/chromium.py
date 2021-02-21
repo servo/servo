@@ -1,6 +1,5 @@
 import json
 import time
-import six
 
 from collections import defaultdict
 from mozlog.formatters import base
@@ -88,7 +87,7 @@ class ChromiumFormatter(base.BaseFormatter):
         :param str artifact_name: the name of the artifact
         :param str artifact_value: the value of the artifact
         """
-        assert isinstance(artifact_value, six.string_types), "artifact_value must be a str"
+        assert isinstance(artifact_value, str), "artifact_value must be a str"
         if "artifacts" not in cur_dict.keys():
             cur_dict["artifacts"] = defaultdict(list)
         cur_dict["artifacts"][artifact_name].append(artifact_value)

@@ -1,7 +1,6 @@
 import os.path
 from inspect import isabstract
-from six import iteritems, with_metaclass
-from six.moves.urllib.parse import urljoin, urlparse, parse_qs
+from urllib.parse import urljoin, urlparse, parse_qs
 from abc import ABCMeta, abstractproperty
 
 from .utils import to_os_path
@@ -42,7 +41,7 @@ class ManifestItemMeta(ABCMeta):
         return rv  # type: ignore
 
 
-class ManifestItem(with_metaclass(ManifestItemMeta)):
+class ManifestItem(metaclass=ManifestItemMeta):
     __slots__ = ("_tests_root", "path")
 
     def __init__(self, tests_root, path):
@@ -289,7 +288,7 @@ class RefTest(URLManifestItem):
         if self.dpi is not None:
             extras["dpi"] = self.dpi
         if self.fuzzy:
-            extras["fuzzy"] = list(iteritems(self.fuzzy))
+            extras["fuzzy"] = list(self.fuzzy.items())
         return rv
 
     @classmethod

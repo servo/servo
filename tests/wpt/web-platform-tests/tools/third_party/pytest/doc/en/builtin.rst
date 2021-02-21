@@ -23,7 +23,7 @@ For information about fixtures, see :ref:`fixtures`. To see a complete list of a
         cache.get(key, default)
         cache.set(key, value)
 
-        Keys must be a ``/`` separated value, where the first part is usually the
+        Keys must be ``/`` separated strings, where the first part is usually the
         name of your plugin or application to avoid clashes with other cache users.
 
         Values can be any object handled by the json stdlib module.
@@ -57,7 +57,8 @@ For information about fixtures, see :ref:`fixtures`. To see a complete list of a
         ``out`` and ``err`` will be ``byte`` objects.
 
     doctest_namespace [session scope]
-        Fixture that returns a :py:class:`dict` that will be injected into the namespace of doctests.
+        Fixture that returns a :py:class:`dict` that will be injected into the
+        namespace of doctests.
 
     pytestconfig [session scope]
         Session-scoped fixture that returns the :class:`_pytest.config.Config` object.
@@ -69,11 +70,13 @@ For information about fixtures, see :ref:`fixtures`. To see a complete list of a
                     ...
 
     record_property
-        Add an extra properties the calling test.
+        Add extra properties to the calling test.
+
         User properties become part of the test report and are available to the
         configured reporters, like JUnit XML.
-        The fixture is callable with ``(name, value)``, with value being automatically
-        xml-encoded.
+
+        The fixture is callable with ``name, value``. The value is automatically
+        XML-encoded.
 
         Example::
 
@@ -82,12 +85,15 @@ For information about fixtures, see :ref:`fixtures`. To see a complete list of a
 
     record_xml_attribute
         Add extra xml attributes to the tag for the calling test.
-        The fixture is callable with ``(name, value)``, with value being
-        automatically xml-encoded
+
+        The fixture is callable with ``name, value``. The value is
+        automatically XML-encoded.
 
     record_testsuite_property [session scope]
-        Records a new ``<property>`` tag as child of the root ``<testsuite>``. This is suitable to
-        writing global information regarding the entire test suite, and is compatible with ``xunit2`` JUnit family.
+        Record a new ``<property>`` tag as child of the root ``<testsuite>``.
+
+        This is suitable to writing global information regarding the entire test
+        suite, and is compatible with ``xunit2`` JUnit family.
 
         This is a ``session``-scoped fixture which is called with ``(name, value)``. Example:
 
@@ -99,19 +105,28 @@ For information about fixtures, see :ref:`fixtures`. To see a complete list of a
 
         ``name`` must be a string, ``value`` will be converted to a string and properly xml-escaped.
 
+        .. warning::
+
+            Currently this fixture **does not work** with the
+            `pytest-xdist <https://github.com/pytest-dev/pytest-xdist>`__ plugin. See issue
+            `#7767 <https://github.com/pytest-dev/pytest/issues/7767>`__ for details.
+
     caplog
         Access and control log capturing.
 
         Captured logs are available through the following properties/methods::
 
+        * caplog.messages        -> list of format-interpolated log messages
         * caplog.text            -> string containing formatted log output
         * caplog.records         -> list of logging.LogRecord instances
         * caplog.record_tuples   -> list of (logger_name, level, message) tuples
         * caplog.clear()         -> clear captured records and formatted log output string
 
     monkeypatch
-        The returned ``monkeypatch`` fixture provides these
-        helper methods to modify objects, dictionaries or os.environ::
+        A convenient fixture for monkey-patching.
+
+        The fixture provides these methods to modify objects, dictionaries or
+        os.environ::
 
             monkeypatch.setattr(obj, name, value, raising=True)
             monkeypatch.delattr(obj, name, raising=True)
@@ -122,10 +137,9 @@ For information about fixtures, see :ref:`fixtures`. To see a complete list of a
             monkeypatch.syspath_prepend(path)
             monkeypatch.chdir(path)
 
-        All modifications will be undone after the requesting
-        test function or fixture has finished. The ``raising``
-        parameter determines if a KeyError or AttributeError
-        will be raised if the set/deletion operation has no target.
+        All modifications will be undone after the requesting test function or
+        fixture has finished. The ``raising`` parameter determines if a KeyError
+        or AttributeError will be raised if the set/deletion operation has no target.
 
     recwarn
         Return a :class:`WarningsRecorder` instance that records all warnings emitted by test functions.
@@ -140,29 +154,32 @@ For information about fixtures, see :ref:`fixtures`. To see a complete list of a
         Return a :class:`_pytest.tmpdir.TempPathFactory` instance for the test session.
 
     tmpdir
-        Return a temporary directory path object
-        which is unique to each test function invocation,
-        created as a sub directory of the base temporary
-        directory.  The returned object is a `py.path.local`_
-        path object.
+        Return a temporary directory path object which is unique to each test
+        function invocation, created as a sub directory of the base temporary
+        directory.
+
+        The returned object is a `py.path.local`_ path object.
 
         .. _`py.path.local`: https://py.readthedocs.io/en/latest/path.html
 
     tmp_path
-        Return a temporary directory path object
-        which is unique to each test function invocation,
-        created as a sub directory of the base temporary
-        directory.  The returned object is a :class:`pathlib.Path`
-        object.
+        Return a temporary directory path object which is unique to each test
+        function invocation, created as a sub directory of the base temporary
+        directory.
+
+        The returned object is a :class:`pathlib.Path` object.
 
         .. note::
 
-            in python < 3.6 this is a pathlib2.Path
+            In python < 3.6 this is a pathlib2.Path.
 
 
-    no tests ran in 0.12 seconds
+    no tests ran in 0.12s
 
-You can also interactively ask for help, e.g. by typing on the Python interactive prompt something like::
+You can also interactively ask for help, e.g. by typing on the Python interactive prompt something like:
+
+.. code-block:: python
 
     import pytest
+
     help(pytest)

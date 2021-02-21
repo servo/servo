@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>trad-chinese-formal, negative</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#complex-cjk'>
+<link rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+<meta name='flags' content='font'>
+<meta name="assert" content="With list-style-type set to trad-chinese-formal, negative list markers will be rendered according to the rules described.">
+<style type='text/css'>
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+ol li { list-style-type: trad-chinese-formal;  }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, ignoring the suffix.</p>
+
+
+<div class="test"><ol start="-11"><div><bdi>負壹拾壹、</bdi>負壹拾壹、</div><div><bdi>負壹拾、</bdi>負壹拾、</div><div><bdi>負玖、</bdi>負玖、</div></ol></div>
+
+
+<!--Notes:
+You will need an appropriate font to run this test.
+
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+
+
+</body>
+</html>

@@ -31,7 +31,7 @@ you will see that ``pytest`` only collects test-modules, which do not match the 
 .. code-block:: pytest
 
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    platform linux -- Python 3.x.y, pytest-5.x.y, py-1.x.y, pluggy-0.x.y
     rootdir: $REGENDOC_TMPDIR, inifile:
     collected 5 items
 
@@ -115,15 +115,13 @@ Changing naming conventions
 
 You can configure different naming conventions by setting
 the :confval:`python_files`, :confval:`python_classes` and
-:confval:`python_functions` configuration options.
+:confval:`python_functions` in your :ref:`configuration file <config file formats>`.
 Here is an example:
 
 .. code-block:: ini
 
     # content of pytest.ini
     # Example 1: have pytest look for "check" instead of "test"
-    # can also be defined in tox.ini or setup.cfg file, although the section
-    # name in setup.cfg files should be "tool:pytest"
     [pytest]
     python_files = check_*.py
     python_classes = Check
@@ -131,12 +129,15 @@ Here is an example:
 
 This would make ``pytest`` look for tests in files that match the ``check_*
 .py`` glob-pattern, ``Check`` prefixes in classes, and functions and methods
-that match ``*_check``. For example, if we have::
+that match ``*_check``. For example, if we have:
+
+.. code-block:: python
 
     # content of check_myapp.py
-    class CheckMyApp(object):
+    class CheckMyApp:
         def simple_check(self):
             pass
+
         def complex_check(self):
             pass
 
@@ -146,24 +147,24 @@ The test collection would look like this:
 
     $ pytest --collect-only
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
     cachedir: $PYTHON_PREFIX/.pytest_cache
-    rootdir: $REGENDOC_TMPDIR, inifile: pytest.ini
+    rootdir: $REGENDOC_TMPDIR, configfile: pytest.ini
     collected 2 items
+
     <Module check_myapp.py>
       <Class CheckMyApp>
           <Function simple_check>
           <Function complex_check>
 
-    ======================= no tests ran in 0.12 seconds =======================
+    ========================== no tests ran in 0.12s ===========================
 
 You can check for multiple glob patterns by adding a space between the patterns:
 
 .. code-block:: ini
 
     # Example 2: have pytest look for files with "test" and "example"
-    # content of pytest.ini, tox.ini, or setup.cfg file (replace "pytest"
-    # with "tool:pytest" for setup.cfg)
+    # content of pytest.ini
     [pytest]
     python_files = test_*.py example_*.py
 
@@ -208,17 +209,18 @@ You can always peek at the collection tree without running tests like this:
 
     . $ pytest --collect-only pythoncollection.py
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
     cachedir: $PYTHON_PREFIX/.pytest_cache
-    rootdir: $REGENDOC_TMPDIR, inifile: pytest.ini
+    rootdir: $REGENDOC_TMPDIR, configfile: pytest.ini
     collected 3 items
+
     <Module CWD/pythoncollection.py>
       <Function test_function>
       <Class TestClass>
           <Function test_method>
           <Function test_anothermethod>
 
-    ======================= no tests ran in 0.12 seconds =======================
+    ========================== no tests ran in 0.12s ===========================
 
 .. _customizing-test-collection:
 
@@ -238,7 +240,9 @@ You can easily instruct ``pytest`` to discover tests from every Python file:
 However, many projects will have a ``setup.py`` which they don't want to be
 imported. Moreover, there may files only importable by a specific python
 version. For such cases you can dynamically define files to be ignored by
-listing them in a ``conftest.py`` file::
+listing them in a ``conftest.py`` file:
+
+.. code-block:: python
 
     # content of conftest.py
     import sys
@@ -247,7 +251,9 @@ listing them in a ``conftest.py`` file::
     if sys.version_info[0] > 2:
         collect_ignore.append("pkg/module_py2.py")
 
-and then if you have a module file like this::
+and then if you have a module file like this:
+
+.. code-block:: python
 
     # content of pkg/module_py2.py
     def test_only_on_python2():
@@ -256,10 +262,12 @@ and then if you have a module file like this::
         except Exception, e:
             pass
 
-and a ``setup.py`` dummy file like this::
+and a ``setup.py`` dummy file like this:
+
+.. code-block:: python
 
     # content of setup.py
-    0/0  # will raise exception if imported
+    0 / 0  # will raise exception if imported
 
 If you run with a Python 2 interpreter then you will find the one test and will
 leave out the ``setup.py`` file:
@@ -283,19 +291,21 @@ file will be left out:
 
     $ pytest --collect-only
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-4.x.y, py-1.x.y, pluggy-0.x.y
+    platform linux -- Python 3.x.y, pytest-6.x.y, py-1.x.y, pluggy-0.x.y
     cachedir: $PYTHON_PREFIX/.pytest_cache
-    rootdir: $REGENDOC_TMPDIR, inifile: pytest.ini
+    rootdir: $REGENDOC_TMPDIR, configfile: pytest.ini
     collected 0 items
 
-    ======================= no tests ran in 0.12 seconds =======================
+    ========================== no tests ran in 0.12s ===========================
 
 It's also possible to ignore files based on Unix shell-style wildcards by adding
-patterns to ``collect_ignore_glob``.
+patterns to :globalvar:`collect_ignore_glob`.
 
 The following example ``conftest.py`` ignores the file ``setup.py`` and in
 addition all files that end with ``*_py2.py`` when executed with a Python 3
-interpreter::
+interpreter:
+
+.. code-block:: python
 
     # content of conftest.py
     import sys
@@ -303,3 +313,12 @@ interpreter::
     collect_ignore = ["setup.py"]
     if sys.version_info[0] > 2:
         collect_ignore_glob = ["*_py2.py"]
+
+Since Pytest 2.6, users can prevent pytest from discovering classes that start
+with ``Test`` by setting a boolean ``__test__`` attribute to ``False``.
+
+.. code-block:: python
+
+    # Will not be discovered as a test
+    class TestClass:
+        __test__ = False

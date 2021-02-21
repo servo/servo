@@ -12,7 +12,7 @@ import time
 
 import requests
 
-from six.moves import cStringIO as StringIO
+from io import StringIO
 
 from .base import Browser, ExecutorBrowser, require_arg
 from .base import get_timeout_multiplier   # noqa: F401

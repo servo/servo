@@ -1,7 +1,7 @@
 pytest-2.9.0
 ============
 
-pytest is a mature Python testing tool with more than a 1100 tests
+pytest is a mature Python testing tool with more than 1100 tests
 against itself, passing on many different interpreters and platforms.
 
 See below for the changes and see docs at:
@@ -75,7 +75,7 @@ The py.test Development Team
 
 **Changes**
 
-* **Important**: `py.code <https://pylib.readthedocs.io/en/latest/code.html>`_ has been
+* **Important**: `py.code <https://pylib.readthedocs.io/en/stable/code.html>`_ has been
   merged into the ``pytest`` repository as ``pytest._code``. This decision
   was made because ``py.code`` had very few uses outside ``pytest`` and the
   fact that it was in a different repository made it difficult to fix bugs on
@@ -88,7 +88,7 @@ The py.test Development Team
   **experimental**, so you definitely should not import it explicitly!
 
   Please note that the original ``py.code`` is still available in
-  `pylib <https://pylib.readthedocs.io>`_.
+  `pylib <https://pylib.readthedocs.io/en/stable/>`_.
 
 * ``pytest_enter_pdb`` now optionally receives the pytest config object.
   Thanks `@nicoddemus`_ for the PR.
@@ -131,7 +131,7 @@ The py.test Development Team
   with same name.
 
 
-.. _`traceback style docs`: https://pytest.org/latest/usage.html#modifying-python-traceback-printing
+.. _`traceback style docs`: https://pytest.org/en/stable/usage.html#modifying-python-traceback-printing
 
 .. _#1422: https://github.com/pytest-dev/pytest/issues/1422
 .. _#1379: https://github.com/pytest-dev/pytest/issues/1379

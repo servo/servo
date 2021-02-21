@@ -4,7 +4,6 @@ import re
 from ..wpt.testfiles import branch_point, files_changed
 
 from tools import localpaths  # noqa: F401
-from six import iteritems
 
 wpt_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
 
@@ -109,7 +108,7 @@ def get_jobs(paths, **kwargs):
     includes = kwargs.get("includes")
     if includes is not None:
         includes = set(includes)
-    for key, value in iteritems(job_path_map):
+    for key, value in job_path_map.items():
         if includes is None or key in includes:
             rules[key] = Ruleset(value)
 
@@ -124,7 +123,7 @@ def get_jobs(paths, **kwargs):
 
     # Default jobs shuld run even if there were no changes
     if not paths:
-        for job, path_re in iteritems(job_path_map):
+        for job, path_re in job_path_map.items():
             if ".*" in path_re:
                 jobs.add(job)
 

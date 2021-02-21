@@ -3,8 +3,6 @@ import json
 import os
 from collections import defaultdict
 
-from six import iteritems
-
 from .manifest import load_and_update, Manifest
 from .log import get_logger
 
@@ -102,7 +100,7 @@ def write_output(path_id_map, as_json):
     if as_json:
         print(json.dumps(path_id_map))
     else:
-        for path, test_ids in sorted(iteritems(path_id_map)):
+        for path, test_ids in sorted(path_id_map.items()):
             print(path)
             for test_id in sorted(test_ids):
                 print("  " + test_id)

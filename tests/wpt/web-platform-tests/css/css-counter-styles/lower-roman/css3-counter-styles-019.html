@@ -6,13 +6,13 @@
 <link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
 <link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#simple-numeric'>
 <link rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
-<meta name='flags' content='font'>
+<link rel='match' href='css3-counter-styles-019-ref.html'>
 <meta name="assert" content="list-style: lower-roman produces numbers up to 9 items per the spec.">
 <style type='text/css'>
 ol li { list-style-type: lower-roman;  }
 /* the following CSS is not part of the test */
 .test { font-size: 25px; }
-ol { margin: 0; padding-left: 8em; }
+ol { margin: 0; padding-left: 8em; list-style-position: inside; }
 </style>
 </head>
 <body>

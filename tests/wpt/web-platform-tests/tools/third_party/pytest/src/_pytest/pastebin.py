@@ -1,18 +1,21 @@
-# -*- coding: utf-8 -*-
-""" submit failure or test session information to a pastebin service. """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-import sys
+"""Submit failure or test session information to a pastebin service."""
 import tempfile
-
-import six
+from io import StringIO
+from typing import IO
+from typing import Union
 
 import pytest
+from _pytest.config import Config
+from _pytest.config import create_terminal_writer
+from _pytest.config.argparsing import Parser
+from _pytest.store import StoreKey
+from _pytest.terminal import TerminalReporter
 
 
-def pytest_addoption(parser):
+pastebinfile_key = StoreKey[IO[bytes]]()
+
+
+def pytest_addoption(parser: Parser) -> None:
     group = parser.getgroup("terminal reporting")
     group._addoption(
         "--pastebin",
@@ -26,85 +29,82 @@ def pytest_addoption(parser):
 
 
 @pytest.hookimpl(trylast=True)
-def pytest_configure(config):
+def pytest_configure(config: Config) -> None:
     if config.option.pastebin == "all":
         tr = config.pluginmanager.getplugin("terminalreporter")
-        # if no terminal reporter plugin is present, nothing we can do here;
-        # this can happen when this function executes in a slave node
-        # when using pytest-xdist, for example
+        # If no terminal reporter plugin is present, nothing we can do here;
+        # this can happen when this function executes in a worker node
+        # when using pytest-xdist, for example.
         if tr is not None:
-            # pastebin file will be utf-8 encoded binary file
-            config._pastebinfile = tempfile.TemporaryFile("w+b")
+            # pastebin file will be UTF-8 encoded binary file.
+            config._store[pastebinfile_key] = tempfile.TemporaryFile("w+b")
             oldwrite = tr._tw.write
 
             def tee_write(s, **kwargs):
                 oldwrite(s, **kwargs)
-                if isinstance(s, six.text_type):
+                if isinstance(s, str):
                     s = s.encode("utf-8")
-                config._pastebinfile.write(s)
+                config._store[pastebinfile_key].write(s)
 
             tr._tw.write = tee_write
 
 
-def pytest_unconfigure(config):
-    if hasattr(config, "_pastebinfile"):
-        # get terminal contents and delete file
-        config._pastebinfile.seek(0)
-        sessionlog = config._pastebinfile.read()
-        config._pastebinfile.close()
-        del config._pastebinfile
-        # undo our patching in the terminal reporter
+def pytest_unconfigure(config: Config) -> None:
+    if pastebinfile_key in config._store:
+        pastebinfile = config._store[pastebinfile_key]
+        # Get terminal contents and delete file.
+        pastebinfile.seek(0)
+        sessionlog = pastebinfile.read()
+        pastebinfile.close()
+        del config._store[pastebinfile_key]
+        # Undo our patching in the terminal reporter.
         tr = config.pluginmanager.getplugin("terminalreporter")
         del tr._tw.__dict__["write"]
-        # write summary
+        # Write summary.
         tr.write_sep("=", "Sending information to Paste Service")
         pastebinurl = create_new_paste(sessionlog)
         tr.write_line("pastebin session-log: %s\n" % pastebinurl)
 
 
-def create_new_paste(contents):
-    """
-    Creates a new paste using bpaste.net service.
+def create_new_paste(contents: Union[str, bytes]) -> str:
+    """Create a new paste using the bpaste.net service.
 
-    :contents: paste contents as utf-8 encoded bytes
-    :returns: url to the pasted contents
+    :contents: Paste contents string.
+    :returns: URL to the pasted contents, or an error message.
     """
     import re
-
-    if sys.version_info < (3, 0):
-        from urllib import urlopen, urlencode
-    else:
-        from urllib.request import urlopen
-        from urllib.parse import urlencode
+    from urllib.request import urlopen
+    from urllib.parse import urlencode
 
     params = {"code": contents, "lexer": "text", "expiry": "1week"}
     url = "https://bpaste.net"
-    response = urlopen(url, data=urlencode(params).encode("ascii")).read()
-    m = re.search(r'href="/raw/(\w+)"', response.decode("utf-8"))
+    try:
+        response = (
+            urlopen(url, data=urlencode(params).encode("ascii")).read().decode("utf-8")
+        )  # type: str
+    except OSError as exc_info:  # urllib errors
+        return "bad response: %s" % exc_info
+    m = re.search(r'href="/raw/(\w+)"', response)
     if m:
-        return "%s/show/%s" % (url, m.group(1))
+        return "{}/show/{}".format(url, m.group(1))
     else:
-        return "bad response: " + response
+        return "bad response: invalid format ('" + response + "')"
 
 
-def pytest_terminal_summary(terminalreporter):
-    import _pytest.config
-
+def pytest_terminal_summary(terminalreporter: TerminalReporter) -> None:
     if terminalreporter.config.option.pastebin != "failed":
         return
-    tr = terminalreporter
-    if "failed" in tr.stats:
+    if "failed" in terminalreporter.stats:
         terminalreporter.write_sep("=", "Sending information to Paste Service")
-        for rep in terminalreporter.stats.get("failed"):
+        for rep in terminalreporter.stats["failed"]:
             try:
                 msg = rep.longrepr.reprtraceback.reprentries[-1].reprfileloc
             except AttributeError:
-                msg = tr._getfailureheadline(rep)
-            tw = _pytest.config.create_terminal_writer(
-                terminalreporter.config, stringio=True
-            )
+                msg = terminalreporter._getfailureheadline(rep)
+            file = StringIO()
+            tw = create_terminal_writer(terminalreporter.config, file)
             rep.toterminal(tw)
-            s = tw.stringio.getvalue()
+            s = file.getvalue()
             assert len(s)
             pastebinurl = create_new_paste(s)
-            tr.write_line("%s --> %s" % (msg, pastebinurl))
+            terminalreporter.write_line("{} --> {}".format(msg, pastebinurl))

@@ -5,7 +5,6 @@ import io
 import os
 from collections import OrderedDict, defaultdict
 from datetime import datetime
-from six import iteritems
 
 from mozlog import reader
 from mozlog.formatters import JSONFormatter
@@ -142,10 +141,10 @@ def process_results(log, iterations):
     handler = LogHandler()
     reader.handle_log(reader.read(log), handler)
     results = handler.results
-    for test_name, test in iteritems(results):
+    for test_name, test in results.items():
         if is_inconsistent(test["status"], iterations):
             inconsistent.append((test_name, None, test["status"], []))
-        for subtest_name, subtest in iteritems(test["subtests"]):
+        for subtest_name, subtest in test["subtests"].items():
             if is_inconsistent(subtest["status"], iterations):
                 inconsistent.append((test_name, subtest_name, subtest["status"], subtest["messages"]))
 
@@ -235,7 +234,7 @@ def write_results(log, results, iterations, pr_number=None, use_details=False):
                                                   "tests" if len(results) > 1
                                                   else "test"))
 
-    for test_name, test in iteritems(results):
+    for test_name, test in results.items():
         baseurl = "http://w3c-test.org/submissions"
         if "https" in os.path.splitext(test_name)[0].split(".")[1:]:
             baseurl = "https://w3c-test.org/submissions"
@@ -305,7 +304,7 @@ def get_steps(logger, repeat_loop, repeat_restart, kwargs_extras):
     for kwargs_extra in kwargs_extras:
         if kwargs_extra:
             flags_string = " with flags %s" % " ".join(
-                "%s=%s" % item for item in iteritems(kwargs_extra))
+                "%s=%s" % item for item in kwargs_extra.items())
         else:
             flags_string = ""
 

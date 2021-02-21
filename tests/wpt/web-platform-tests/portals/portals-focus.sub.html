@@ -29,6 +29,19 @@
     }
   }, "test that an element inside a portal cannot steal focus");
 
+  promise_test(async () => {
+    let portal = await createPortal(document, new URL("resources/focus-page-with-button.html", location.href));
+    try {
+      let activeElementUpdated = new Promise(r => {
+        portal.onmessage = e => r(e.data.activeElementUpdated)
+      });
+      portal.postMessage('focus-update-active-element');
+      assert_true(await activeElementUpdated);
+    } finally {
+      document.body.removeChild(portal);
+    }
+  }, "test that activeElement inside a portal is updated after focus() is called");
+
   promise_test(async t => {
     let portal = await createPortal(document, new URL("resources/focus-page-with-x-origin-iframe.sub.html", location.href));
     try {
@@ -41,6 +54,19 @@
       document.body.removeChild(portal);
     }
   }, "test that an element inside a portal's x-origin subframe cannot steal focus");
+
+  promise_test(async () => {
+    let portal = await createPortal(document, new URL("resources/focus-page-with-x-origin-iframe.sub.html", location.href));
+    try {
+      portal.postMessage("focus-update-active-element");
+      let {activeElementUpdated} = await new Promise(r => {
+        portal.onmessage = e => r(e.data);
+      });
+      assert_true(activeElementUpdated);
+    } finally {
+      document.body.removeChild(portal);
+    }
+  }, "test that a portal's x-origin subframe becomes active element on focus");
 
   promise_test(async t => {
     let win = await openBlankPortalHost();
@@ -86,6 +112,28 @@
       win.close();
     }
   }, "test that a x-origin iframe inside an adopted portal cannot steal focus");
+
+  promise_test(async () => {
+    let win = await openBlankPortalHost();
+    let doc = win.document;
+    try {
+      let portal = await createPortal(doc, new URL("resources/focus-page-with-autofocus.html", location.href));
+      portal.postMessage('check-active-element');
+      let result = await new Promise(r => {
+        portal.onmessage = e => r(e.data);
+      });
+      assert_true(result, "autofocused element is active element");
+
+      await portal.activate();
+      win.portalHost.postMessage('check-active-element');
+      result = await new Promise(r => {
+        win.portalHost.onmessage = e => r(e.data)
+      });
+      assert_true(result, "autofocused element is still active element");
+    } finally {
+      win.close();
+    }
+  }, "test that autofocus inside a portal works");
 
   const TAB = "\ue004"; // https://w3c.github.io/webdriver/#keyboard-actions
   const SPACE = " "

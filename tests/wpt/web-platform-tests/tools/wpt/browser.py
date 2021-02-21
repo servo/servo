@@ -9,7 +9,7 @@ from abc import ABCMeta, abstractmethod
 from datetime import datetime, timedelta
 from distutils.spawn import find_executable
 
-from six.moves.urllib.parse import urlsplit
+from urllib.parse import urlsplit
 import requests
 
 from .utils import call, get, rmtree, untar, unzip, get_download_to_descriptor, sha256sum

@@ -171,7 +171,7 @@
       assert_greater_than_equal(touch.pageY, 0, "touch.pageY is no less than 0");
     }
 
-    function run() {
+    async function run() {
       var target0 = document.getElementById("target0");
       var target1 = document.getElementById("target1");
 
@@ -185,7 +185,6 @@
       var touchend_received = false;
       var invalid_touchmove_received = false;
       var touchstart_identifier;
-      var actions_promise;
 
       on_event(target0, "touchstart", function onTouchStart(ev) {
         ev.preventDefault();
@@ -242,7 +241,7 @@
         }, "touchstart: touch screenX/screenY pageX/pageY and clientX/clientY values are no less than 0");
       });
 
-      target0.ontouchmove = function (ev) {
+      on_event(target0, "touchmove", function ontouchmove(ev) {
         ev.preventDefault();
 
         if (touchmove_received)
@@ -289,13 +288,13 @@
           check_screenXY_clientXY_pageXY(tt);
         }, "touchmove: touch screenX/screenY pageX/pageY and clientX/clientY values are no less than 0");
 
-      };
+      });
 
       on_event(target1, "touchmove", function onTouchMove(ev) {
         invalid_touchmove_received = true;
       });
 
-      window.ontouchend = function(ev) {
+      on_event(window, "touchend", function ontouchend(ev) {
         touchend_received = true;
 
         test_touchend.step(function() {
@@ -335,7 +334,7 @@
         }, "touchend: touch screenX/screenY pageX/pageY and clientX/clientY values are no less than 0");
 
         done();
-      };
+      });
 
       on_event(target0, "mousedown", function onMouseDown(ev) {
         test_mousedown.step(function() {
@@ -355,7 +354,7 @@
         }
       });
 
-      actions_promise = new test_driver.Actions()
+      await new test_driver.Actions()
           .addPointer("touchPointer1", "touch")
           .pointerMove(0, 0, {origin: target0, sourceName: "touchPointer1"})
           .pointerDown({sourceName: "touchPointer1"})

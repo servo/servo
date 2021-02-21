@@ -6,8 +6,6 @@ import subprocess
 import tempfile
 from datetime import datetime, timedelta
 
-from six import iteritems, PY2
-
 # Amount of time beyond the present to consider certificates "expired." This
 # allows certificates to be proactively re-generated in the "buffer" period
 # prior to their exact expiration time.
@@ -18,11 +16,7 @@ def _ensure_str(s, encoding):
     """makes sure s is an instance of str, converting with encoding if needed"""
     if isinstance(s, str):
         return s
-
-    if PY2:
-        return s.encode(encoding)
-    else:
-        return s.decode(encoding)
+    return s.decode(encoding)
 
 
 class OpenSSL(object):
@@ -79,7 +73,7 @@ class OpenSSL(object):
         # Copy the environment, converting to plain strings. Win32 StartProcess
         # is picky about all the keys/values being str (on both Py2/3).
         env = {}
-        for k, v in iteritems(os.environ):
+        for k, v in os.environ.items():
             env[_ensure_str(k, "utf8")] = _ensure_str(v, "utf8")
 
         if self.base_conf_path is not None:

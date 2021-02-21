@@ -1,12 +1,11 @@
 language: python
-dist: xenial
-python: '3.7.4'
+dist: trusty
+python: '3.5.1'
 cache: false
 
 env:
   global:
-    - PYTEST_ADDOPTS="-vv --showlocals --durations=100 --exitfirst"
-    - PYTEST_COVERAGE=1
+    - PYTEST_ADDOPTS=-vv
 
 # setuptools-scm needs all tags in order to obtain a proper version
 git:
@@ -17,43 +16,11 @@ install:
 
 jobs:
   include:
-    # Coverage for:
-    # - TestArgComplete (linux only)
-    # - numpy
-    # - verbose=0
-    - stage: baseline
-      env: TOXENV=py27-xdist
-      python: '2.7'
-
-    - env: TOXENV=py38-xdist
-      python: '3.8'
-
-    - stage: tests
-    # - _pytest.unittest._handle_skip (via pexpect).
-      env: TOXENV=py27-pexpect,py27-twisted
-      python: '2.7'
-
-    - env: TOXENV=py35-xdist
-      python: '3.5.9'
-
-    - env: TOXENV=py36-xdist PYTEST_REORDER_TESTS=0
-      python: '3.6.9'
-
-    - env: TOXENV=py37-numpy-pexpect-twisted
-      python: '3.7.4'
-
-    # - test_sys_breakpoint_interception (via pexpect).
-    - env: TOXENV=py37-pexpect,py37-twisted
-      python: '3.7.4'
-
-    # Run also non-verbosely, to gain coverage
-    - env: TOXENV=py38-xdist PYTEST_ADDOPTS=""
-      python: '3.8'
-
-    - env: TOXENV=linting,docs,doctesting
-      cache:
-        directories:
-          - $HOME/.cache/pre-commit
+    # Coverage for Python 3.5.{0,1} specific code, mostly typing related.
+    - env: TOXENV=py35 PYTEST_COVERAGE=1 PYTEST_ADDOPTS="-k test_raises_cyclic_reference"
+      before_install:
+        # Work around https://github.com/jaraco/zipp/issues/40.
+        - python -m pip install -U 'setuptools>=34.4.0' virtualenv==16.7.9
 
 before_script:
   - |
@@ -68,13 +35,26 @@ before_script:
       export _PYTEST_TOX_COVERAGE_RUN="coverage run -m"
       export _PYTEST_TOX_EXTRA_DEP=coverage-enable-subprocess
     fi
-script: env COLUMNS=120 python -m tox
+
+script: tox
 
 after_success:
   - |
     if [[ "$PYTEST_COVERAGE" = 1 ]]; then
-      env CODECOV_NAME="$TOXENV-$TRAVIS_OS_NAME" scripts/report-coverage.sh
+      env CODECOV_NAME="$TOXENV-$TRAVIS_OS_NAME" scripts/report-coverage.sh -F Travis
     fi
+
+notifications:
+  irc:
+    channels:
+      - "chat.freenode.net#pytest"
+    on_success: change
+    on_failure: change
+    skip_join: true
+  email:
+    - pytest-commit@python.org
+
 branches:
   only:
-    - 4.6.x
+    - master
+    - /^\d+\.\d+\.x$/

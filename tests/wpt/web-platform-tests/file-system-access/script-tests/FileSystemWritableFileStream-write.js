@@ -117,14 +117,12 @@ directory_test(async (t, root) => {
   const handle = await createEmptyFile(t, 'bad_offset', root);
   const stream = await handle.createWritable();
 
-  await promise_rejects_dom(
-      t, 'InvalidStateError', stream.write({type: 'write', position: 4, data: new Blob(['abc'])}));
-  await promise_rejects_js(
-      t, TypeError, stream.close(), 'stream is already closed');
+  await stream.write({type: 'write', position: 4, data: new Blob(['abc'])});
+  await stream.close();
 
-  assert_equals(await getFileContents(handle), '');
-  assert_equals(await getFileSize(handle), 0);
-}, 'write() called with an invalid offset');
+  assert_equals(await getFileContents(handle), '\0\0\0\0abc');
+  assert_equals(await getFileSize(handle), 7);
+}, 'write() called with an offset beyond the end of the file');
 
 directory_test(async (t, root) => {
   const handle = await createEmptyFile(t, 'empty_string', root);

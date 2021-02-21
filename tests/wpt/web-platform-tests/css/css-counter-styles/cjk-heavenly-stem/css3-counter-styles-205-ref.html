@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>cjk-heavenly-stem, 10+</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#simple-numeric'>
+<meta name='flags' content='font'>
+<meta name="assert" content="list-style-type: cjk-heavenly-stem produces numbers after 9 per the spec.">
+<style type='text/css'>
+ol li { list-style-type: cjk-heavenly-stem;  }
+/* the following CSS is not part of the test */
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, IGNORING the suffix.</p>
+<div class="test">
+<ol start="11"><div><bdi dir=ltr>甲甲、</bdi>甲甲</div></ol>
+<ol start="12"><div><bdi dir=ltr>甲乙、</bdi>甲乙</div></ol>
+<ol start="43"><div><bdi dir=ltr>丁丙、</bdi>丁丙</div></ol>
+<ol start="77"><div><bdi dir=ltr>庚庚、</bdi>庚庚</div></ol>
+<ol start="80"><div><bdi dir=ltr>庚癸、</bdi>庚癸</div></ol>
+<ol start="99"><div><bdi dir=ltr>壬壬、</bdi>壬壬</div></ol>
+<ol start="100"><div><bdi dir=ltr>壬癸、</bdi>壬癸</div></ol>
+<ol start="101"><div><bdi dir=ltr>癸甲、</bdi>癸甲</div></ol>
+<ol start="222"><div><bdi dir=ltr>乙乙乙、</bdi>乙乙乙</div></ol>
+<ol start="540"><div><bdi dir=ltr>戊丙癸、</bdi>戊丙癸</div></ol>
+<ol start="999"><div><bdi dir=ltr>壬壬壬、</bdi>壬壬壬</div></ol>
+<ol start="1000"><div><bdi dir=ltr>壬壬癸、</bdi>壬壬癸</div></ol>
+<ol start="1005"><div><bdi dir=ltr>壬癸戊、</bdi>壬癸戊</div></ol>
+<ol start="1060"><div><bdi dir=ltr>癸戊癸、</bdi>癸戊癸</div></ol>
+<ol start="1065"><div><bdi dir=ltr>癸己戊、</bdi>癸己戊</div></ol>
+<ol start="1800"><div><bdi dir=ltr>甲庚壬癸、</bdi>甲庚壬癸</div></ol>
+<ol start="1860"><div><bdi dir=ltr>甲辛戊癸、</bdi>甲辛戊癸</div></ol>
+<ol start="5865"><div><bdi dir=ltr>戊辛己戊、</bdi>戊辛己戊</div></ol>
+<ol start="7005"><div><bdi dir=ltr>己壬癸戊、</bdi>己壬癸戊</div></ol>
+<ol start="7800"><div><bdi dir=ltr>庚庚壬癸、</bdi>庚庚壬癸</div></ol>
+<ol start="7864"><div><bdi dir=ltr>庚辛己丁、</bdi>庚辛己丁</div></ol>
+<ol start="9999"><div><bdi dir=ltr>壬壬壬壬、</bdi>壬壬壬壬</div></ol>
+</div>
+<!--Notes:
+You will need an appropriate font to run this test.
+The test relies on the start attribute working.
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+</body>
+</html>

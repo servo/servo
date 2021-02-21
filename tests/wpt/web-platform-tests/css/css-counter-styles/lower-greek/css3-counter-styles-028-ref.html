@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>lower-greek, extended</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#simple-alphabetic'>
+<link rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+<meta name='flags' content='font'>
+<meta name="assert" content="Setting list-style-type to lower-greek will produce list numbering after the basic alphabet as described in the CSS3 Counter Styles module.">
+<style type='text/css'>
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+ol li { list-style-type: lower-greek;  }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, ignoring the suffix.</p>
+
+
+<div class="test"><ol start='25'><div><bdi>αα. </bdi>αα.</div></ol>
+<ol start='26'><div><bdi>αβ. </bdi>αβ.</div></ol>
+<ol start='43'><div><bdi>ατ. </bdi>ατ.</div></ol>
+<ol start='77'><div><bdi>γε. </bdi>γε.</div></ol>
+<ol start='80'><div><bdi>γθ. </bdi>γθ.</div></ol>
+<ol start='99'><div><bdi>δγ. </bdi>δγ.</div></ol>
+<ol start='100'><div><bdi>δδ. </bdi>δδ.</div></ol>
+<ol start='101'><div><bdi>δε. </bdi>δε.</div></ol>
+<ol start='222'><div><bdi>ιζ. </bdi>ιζ.</div></ol>
+<ol start='540'><div><bdi>χμ. </bdi>χμ.</div></ol>
+<ol start='999'><div><bdi>αρο. </bdi>αρο.</div></ol>
+<ol start='1000'><div><bdi>αρπ. </bdi>αρπ.</div></ol>
+<ol start='1005'><div><bdi>αρφ. </bdi>αρφ.</div></ol>
+<ol start='1060'><div><bdi>αυδ. </bdi>αυδ.</div></ol>
+<ol start='1065'><div><bdi>αυι. </bdi>αυι.</div></ol>
+<ol start='1800'><div><bdi>γβω. </bdi>γβω.</div></ol>
+<ol start='1860'><div><bdi>γεμ. </bdi>γεμ.</div></ol>
+<ol start='5865'><div><bdi>κδι. </bdi>κδι.</div></ol>
+<ol start='7005'><div><bdi>μγφ. </bdi>μγφ.</div></ol>
+<ol start='7800'><div><bdi>νμω. </bdi>νμω.</div></ol>
+<ol start='7864'><div><bdi>νοπ. </bdi>νοπ.</div></ol>
+<ol start='9999'><div><bdi>ρθο. </bdi>ρθο.</div></ol>
+</div>
+
+
+<!--Notes:
+You will need an appropriate font to run this test.
+
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+
+
+</body>
+</html>

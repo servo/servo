@@ -8,7 +8,7 @@
 <span>This test passes if the renderer does not crash.</span>
 
 <script>
-  const root = host.attachShadow({mode:"open"});
+  let root = host.attachShadow({mode:"open"});
   root.innerHTML = `
     <slot id=outer1 name=outer>
       <slot id=inner1 name=inner>Fallback</slot>
@@ -27,7 +27,7 @@
   // The renderer should not crash here:
   root.querySelector("#outer2").remove();
 
-  const root = host.attachShadow({mode:"open"});
+  root = host.attachShadow({mode:"open"});
   root.innerHTML = `
     <slot id=outer3>
       <slot id=inner3>

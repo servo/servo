@@ -53,10 +53,10 @@ promise_test(async t => {
   // Wait until the video has non-zero resolution and some non-black pixels.
   await new Promise(p => {
     function checkColor()  {
-        if (destVideo.width > 0 && getVideoSignal(destVideo).toFixed() > 0.0)
+        if (destVideo.videoWidth > 0 && getVideoSignal(destVideo) > 0.0)
           p();
         else
-         t.step_timeout(checkColor, 0);
+          t.step_timeout(checkColor, 0);
     }
     checkColor();
   });
@@ -64,9 +64,8 @@ promise_test(async t => {
   // Uses Helper.js GetVideoSignal to query |destVideo| pixel value at a certain position.
   const pixelValue = getVideoSignal(destVideo);
 
-  // Expected value computed based on GetVideoSignal code, which takes green pixel data
-  // with coefficient 0.72.
-  assert_approx_equals(pixelValue, 0.72*255, 2);
+  // Anything non-black means that capture works.
+  assert_not_equals(pixelValue, 0);
   }, "Capturing a video element and sending it via PeerConnection");
 </script>
 </body>

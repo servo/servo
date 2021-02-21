@@ -7,8 +7,15 @@
 <script src="/common/get-host-info.sub.js"></script>
 <body>
 <script>
+
+const {
+  HTTP_NOTSAMESITE_ORIGIN,
+  HTTP_REMOTE_ORIGIN,
+  HTTP_REMOTE_ORIGIN_WITH_DIFFERENT_PORT
+} = get_host_info();
+
 function getUrl(origin1, origin2, withHeaders) {
-  const frameOrigin = host_info.HTTP_NOTSAMESITE_ORIGIN;
+  const frameOrigin = HTTP_NOTSAMESITE_ORIGIN;
   return `${frameOrigin}/fetch/api/resources/keepalive-iframe.html?` +
     `origin1=${origin1}&` +
     `origin2=${origin2}&` +
@@ -35,7 +42,7 @@ async function queryToken(token) {
 // an async_test.
 function checkToken(testName, token) {
   async_test((test) => {
-    new Promise((resolve) => test.step_timeout(resolve, 1000)).then(() => {
+    new Promise((resolve) => test.step_timeout(resolve, 3000)).then(() => {
       return queryToken(token);
     }).then((result) => {
       assert_equals(result, 'on');
@@ -47,7 +54,6 @@ function checkToken(testName, token) {
   }, testName);
 }
 
-const host_info = get_host_info();
 promise_test(async (test) => {
   const iframe = document.createElement('iframe');
   iframe.src = getUrl('', '', false);
@@ -62,8 +68,8 @@ promise_test(async (test) => {
 
 promise_test(async (test) => {
   const iframe = document.createElement('iframe');
-  iframe.src = getUrl(host_info.HTTP_REMOTE_ORIGIN,
-                      host_info.HTTP_REMOTE_ORIGIN_WITH_DIFFERENT_PORT, false);
+  iframe.src = getUrl(HTTP_REMOTE_ORIGIN,
+                      HTTP_REMOTE_ORIGIN_WITH_DIFFERENT_PORT, false);
   document.body.appendChild(iframe);
   const tokenPromise = getToken();
   await (new Promise((resolve) => iframe.addEventListener('load', resolve)));
@@ -75,8 +81,8 @@ promise_test(async (test) => {
 
 promise_test(async (test) => {
   const iframe = document.createElement('iframe');
-  iframe.src = getUrl(host_info.HTTP_REMOTE_ORIGIN,
-                      host_info.HTTP_REMOTE_ORIGIN_WITH_DIFFERENT_PORT, true);
+  iframe.src = getUrl(HTTP_REMOTE_ORIGIN,
+                      HTTP_REMOTE_ORIGIN_WITH_DIFFERENT_PORT, true);
   document.body.appendChild(iframe);
   const tokenPromise = getToken();
   await (new Promise((resolve) => iframe.addEventListener('load', resolve)));
@@ -86,6 +92,15 @@ promise_test(async (test) => {
   checkToken('cross-origin redirect with preflight', token);
 }, 'cross-origin redirect with preflight; setting up');
 
+promise_test(async (test) => {
+  const w = window.open(
+    `${HTTP_NOTSAMESITE_ORIGIN}/fetch/api/resources/keepalive-window.html`);
+  const tokenPromise = getToken();
+  const token = await tokenPromise;
+  w.close();
+
+  checkToken('keepalive in onunload in nested frame in another window', token);
+}, 'keepalive in onunload in nested frame in another window; setting up');
 </script>
 </body>
 </html>

@@ -1,14 +1,13 @@
-# -*- coding: utf-8 -*-
-import py
+import os.path
+import shutil
 
-failure_demo = py.path.local(__file__).dirpath("failure_demo.py")
+failure_demo = os.path.join(os.path.dirname(__file__), "failure_demo.py")
 pytest_plugins = ("pytester",)
 
 
 def test_failure_demo_fails_properly(testdir):
-    target = testdir.tmpdir.join(failure_demo.basename)
-    failure_demo.copy(target)
-    failure_demo.copy(testdir.tmpdir.join(failure_demo.basename))
+    target = testdir.tmpdir.join(os.path.basename(failure_demo))
+    shutil.copy(failure_demo, target)
     result = testdir.runpytest(target, syspathinsert=True)
     result.stdout.fnmatch_lines(["*44 failed*"])
     assert result.ret != 0

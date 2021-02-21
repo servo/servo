@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>IntersectionObserver when root == target doesn't compute an intersection</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1682915">
+<link rel="help" href="https://w3c.github.io/IntersectionObserver/#update-intersection-observations-algo">
+<!--
+  Quoting IntersectionObserver section 3.2.8, "Run the Update Intersection Observations Steps", step 2, substep 3:
+
+    If the intersection root is an Element, and target is not a descendant of
+    the intersection root in the containing block chain, skip to step 11.
+
+-->
+<style>
+  #container {
+    overflow: scroll;
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<div id=container>
+  <div></div>
+</div>
+<script>
+async_test(function(t) {
+  let container = document.getElementById("container");
+  let observer = new IntersectionObserver(t.step_func_done(function(entries) {
+    assert_equals(entries.length, 1);
+    assert_equals(entries[0].intersectionRatio, 0);
+    assert_equals(entries[0].isIntersecting, false);
+  }), { root: container });
+  observer.observe(container);
+});
+</script>

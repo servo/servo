@@ -4,6 +4,7 @@ Access-Control-Expose-Headers: X-Custom-Header, X-Custom-Header-Empty, X-Custom-
 Access-Control-Expose-Headers: X-Second-Expose
 Access-Control-Expose-Headers: Date
 Content-Type: text/plain
+Content-Length: 4
 X-Custom-Header: test
 X-Custom-Header: test
 Set-Cookie: test1=t1;max-age=2

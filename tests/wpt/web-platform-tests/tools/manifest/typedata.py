@@ -1,5 +1,4 @@
-from six import itervalues, iteritems
-from six.moves.collections_abc import MutableMapping
+from collections.abc import MutableMapping
 
 
 MYPY = False
@@ -181,7 +180,7 @@ class TypeData(TypeDataType):
             if isinstance(v, set):
                 count += 1
             else:
-                stack.extend(itervalues(v))
+                stack.extend(v.values())
 
         stack = [self._json_data]
         while stack:
@@ -189,7 +188,7 @@ class TypeData(TypeDataType):
             if isinstance(v, list):
                 count += 1
             else:
-                stack.extend(itervalues(v))
+                stack.extend(v.values())
 
         return count
 
@@ -270,7 +269,7 @@ class TypeData(TypeDataType):
         stack = [(self._data, json_rv, tuple())]  # type: List[Tuple[Dict[Text, Any], Dict[Text, Any], Tuple[Text, ...]]]
         while stack:
             data_node, json_node, par_full_key = stack.pop()
-            for k, v in iteritems(data_node):
+            for k, v in data_node.items():
                 full_key = par_full_key + (k,)
                 if isinstance(v, set):
                     assert k not in json_node

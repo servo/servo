@@ -7,12 +7,12 @@
 <link rel='author' title='Chris Lilley' href='mailto:chris@w3.org'>
 <link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#simple-numeric'>
 <link rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
-<meta name='flags' content='font'>
+<link rel='match' href='css3-counter-styles-020a-ref.html'>
 <meta name="assert" content="Setting list-style-type to lower-roman will produce list of up to 9 items in the range range: 1 to 3999.">
 <style type='text/css'>
 .test { font-size: 25px; }
 ol { margin: 0; padding-left: 8em; }
-ol li { list-style-type: lower-roman;  }
+ol li { list-style-type: lower-roman; list-style-position: inside; }
 </style>
 </head>
 <body>

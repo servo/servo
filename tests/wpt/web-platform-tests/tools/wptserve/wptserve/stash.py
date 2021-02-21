@@ -1,12 +1,10 @@
 import base64
 import json
 import os
-import six
 import threading
 import uuid
 
 from multiprocessing.managers import AcquirerProxy, BaseManager, DictProxy
-from six import text_type, binary_type
 
 from .utils import isomorphic_encode
 
@@ -67,10 +65,10 @@ def store_env_config(address, authkey):
 
 
 def start_server(address=None, authkey=None, mp_context=None):
-    if isinstance(authkey, text_type):
+    if isinstance(authkey, str):
         authkey = authkey.encode("ascii")
     kwargs = {}
-    if six.PY3 and mp_context is not None:
+    if mp_context is not None:
         kwargs["ctx"] = mp_context
     manager = ServerDictManager(address, authkey, **kwargs)
     manager.start()
@@ -160,7 +158,7 @@ class Stash(object):
         # This key format is required to support using the path. Since the data
         # passed into the stash can be a DictProxy which wouldn't detect
         # changes when writing to a subdict.
-        if isinstance(key, binary_type):
+        if isinstance(key, bytes):
             # UUIDs are within the ASCII charset.
             key = key.decode('ascii')
         return (isomorphic_encode(path), uuid.UUID(key).bytes)

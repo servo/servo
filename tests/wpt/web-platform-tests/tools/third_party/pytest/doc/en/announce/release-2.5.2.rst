@@ -1,7 +1,7 @@
 pytest-2.5.2: fixes
 ===========================================================================
 
-pytest is a mature Python testing tool with more than a 1000 tests
+pytest is a mature Python testing tool with more than 1000 tests
 against itself, passing on many different interpreters and platforms.
 
 The 2.5.2 release fixes a few bugs with two maybe-bugs remaining and

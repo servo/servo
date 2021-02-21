@@ -7,8 +7,7 @@ import re
 import time
 import uuid
 
-from six.moves import StringIO
-from six import text_type, binary_type
+from io import StringIO
 
 try:
     from html import escape
@@ -305,7 +304,7 @@ class ReplacementTokenizer(object):
         return ("var", token)
 
     def tokenize(self, string):
-        assert isinstance(string, binary_type)
+        assert isinstance(string, bytes)
         return self.scanner.scan(string)[0]
 
     scanner = re.Scanner([(br"\$\w+:", var),
@@ -320,7 +319,7 @@ class FirstWrapper(object):
 
     def __getitem__(self, key):
         try:
-            if isinstance(key, text_type):
+            if isinstance(key, str):
                 key = key.encode('iso-8859-1')
             return self.params.first(key)
         except KeyError:
@@ -408,7 +407,7 @@ class SubFunctions(object):
 
     @staticmethod
     def file_hash(request, algorithm, path):
-        assert isinstance(algorithm, text_type)
+        assert isinstance(algorithm, str)
         if algorithm not in SubFunctions.supported_algorithms:
             raise ValueError("Unsupported encryption algorithm: '%s'" % algorithm)
 
@@ -460,12 +459,12 @@ def template(request, content, escape_type="html"):
         tokens = deque(tokens)
 
         token_type, field = tokens.popleft()
-        assert isinstance(field, text_type)
+        assert isinstance(field, str)
 
         if token_type == "var":
             variable = field
             token_type, field = tokens.popleft()
-            assert isinstance(field, text_type)
+            assert isinstance(field, str)
         else:
             variable = None
 
@@ -516,7 +515,7 @@ def template(request, content, escape_type="html"):
                     "unexpected token type %s (token '%r'), expected ident or arguments" % (ttype, field)
                 )
 
-        assert isinstance(value, (int, (binary_type, text_type))), tokens
+        assert isinstance(value, (int, (bytes, str))), tokens
 
         if variable is not None:
             variables[variable] = value
@@ -527,10 +526,10 @@ def template(request, content, escape_type="html"):
         # Should possibly support escaping for other contexts e.g. script
         # TODO: read the encoding of the response
         # cgi.escape() only takes text strings in Python 3.
-        if isinstance(value, binary_type):
+        if isinstance(value, bytes):
             value = value.decode("utf-8")
         elif isinstance(value, int):
-            value = text_type(value)
+            value = str(value)
         return escape_func(value).encode("utf-8")
 
     template_regexp = re.compile(br"{{([^}]*)}}")

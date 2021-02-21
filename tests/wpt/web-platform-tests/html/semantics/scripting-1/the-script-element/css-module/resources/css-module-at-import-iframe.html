@@ -8,7 +8,7 @@
         };
     </script>
     <script type="module">
-        import v from "./bad-import.css";
+        import v from "./bad-import.css" assert { type: "css" };
         document.adoptedStyleSheets = [v];
     </script>
 

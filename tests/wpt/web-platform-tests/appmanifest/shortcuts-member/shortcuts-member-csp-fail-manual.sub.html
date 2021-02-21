@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta http-equiv="Content-Security-Policy" content="img-src {{host}}:{{ports[https][1]}}">
+<title>Test that shortcuts member is supported (icon CSP violation)</title>
+<link rel="help" href="https://w3c.github.io/manifest/#shortcuts-member" />
+<link rel="manifest" href="shortcuts-member-cors-fail.sub.webmanifest" />
+<h1>Testing support for shortcuts member (icon CSP violation)</h1>
+<script>
+    // Force the port of the origin to be ports[https][0] (likely :8443)
+    // we treat the port ports[https][1] (likely :8444) to be another origin that we fail against
+    if (window.location.origin !== "https://{{host}}:{{ports[https][0]}}") {
+        window.location = new URL(window.location.pathname, "https://{{host}}:{{ports[https][0]}}")
+    }
+</script>
+<p>
+    To pass, the application <strong>must not</strong> show a shortcut with
+    a white cross on red background.
+</p>

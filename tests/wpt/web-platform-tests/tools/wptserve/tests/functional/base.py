@@ -6,10 +6,9 @@ import os
 import pytest
 import unittest
 
-from six.moves.urllib.parse import urlencode, urlunsplit
-from six.moves.urllib.request import Request as BaseRequest
-from six.moves.urllib.request import urlopen
-from six import binary_type, iteritems, PY3
+from urllib.parse import urlencode, urlunsplit
+from urllib.request import Request as BaseRequest
+from urllib.request import urlopen
 
 from hyper import HTTP20Connection, tls
 import ssl
@@ -37,7 +36,7 @@ class Request(BaseRequest):
         if hasattr(data, "items"):
             data = urlencode(data).encode("ascii")
 
-        assert isinstance(data, binary_type)
+        assert isinstance(data, bytes)
 
         if hasattr(BaseRequest, "add_data"):
             BaseRequest.add_data(self, data)
@@ -68,7 +67,7 @@ class TestUsingServer(unittest.TestCase):
         if headers is None:
             headers = {}
 
-        for name, value in iteritems(headers):
+        for name, value in headers.items():
             req.add_header(name, value)
 
         if body is not None:
@@ -80,10 +79,7 @@ class TestUsingServer(unittest.TestCase):
         return urlopen(req)
 
     def assert_multiple_headers(self, resp, name, values):
-        if PY3:
-            assert resp.info().get_all(name) == values
-        else:
-            assert resp.info()[name] == ", ".join(values)
+        assert resp.info().get_all(name) == values
 
 
 @pytest.mark.skipif(not wptserve.utils.http2_compatible(), reason="h2 server only works in python 2.7.10+ and Python 3.6+")

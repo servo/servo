@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-5/#descdef-font-face-advance-override">
+<link rel="match" href="advance-override-ref.html">
+<link rel="assert" title="Tests that advance-override sets advance to characters rendered with the font face only">
+<title>Tests the advance-override descriptor of @font-face</title>
+<style>
+@font-face {
+  font-family: custom-font;
+  src: local(Ahem), url(/fonts/Ahem.ttf);
+  advance-override: 200%;
+  unicode-range: U+0-7F; /* ASCII only */
+}
+
+.target {
+  font: 20px custom-font, sans-serif;
+}
+
+@font-face {
+  font-family: reference-font;
+  src: local(Ahem), url(/fonts/Ahem.ttf);
+  advance-override: 100%;
+  unicode-range: U+0-7F; /* ASCII only */
+}
+
+.reference {
+  font: 20px reference-font, sans-serif;
+}
+
+</style>
+
+<p>advance-override should affect Ahem characters only.</p>
+
+<div class="target">
+  XXX一二三XXX
+</div>
+
+<p>advance-override: 100% should be the same as no override.</p>
+
+<div class="reference">
+  XXX一二三XXX
+</div>

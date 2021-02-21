@@ -35,6 +35,12 @@ function redirectTo(origin, url) {
   return origin + "/cookies/resources/redirectWithCORSHeaders.py?status=307&location=" + encodeURIComponent(url);
 }
 
+// Returns a URL on |origin| which navigates the window to the given URL (by
+// setting window.location).
+function navigateTo(origin, url) {
+  return origin + "/cookies/resources/navigate.html?location=" + encodeURIComponent(url);
+}
+
 // Asserts that `document.cookie` contains or does not contain (according to
 // the value of |present|) a cookie named |name| with a value of |value|.
 function assert_dom_cookie(name, value, present) {

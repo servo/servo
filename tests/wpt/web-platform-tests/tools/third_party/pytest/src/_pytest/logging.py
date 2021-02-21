@@ -1,34 +1,51 @@
-# -*- coding: utf-8 -*-
-""" Access and control log capturing. """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
+"""Access and control log capturing."""
 import logging
+import os
 import re
+import sys
 from contextlib import contextmanager
-
-import py
-import six
+from io import StringIO
+from typing import AbstractSet
+from typing import Dict
+from typing import Generator
+from typing import List
+from typing import Mapping
+from typing import Optional
+from typing import Tuple
+from typing import TypeVar
+from typing import Union
 
 import pytest
-from _pytest.compat import dummy_context_manager
+from _pytest import nodes
+from _pytest._io import TerminalWriter
+from _pytest.capture import CaptureManager
+from _pytest.compat import final
+from _pytest.compat import nullcontext
+from _pytest.config import _strtobool
+from _pytest.config import Config
 from _pytest.config import create_terminal_writer
+from _pytest.config.argparsing import Parser
+from _pytest.fixtures import FixtureRequest
+from _pytest.main import Session
 from _pytest.pathlib import Path
+from _pytest.store import StoreKey
+from _pytest.terminal import TerminalReporter
+
 
 DEFAULT_LOG_FORMAT = "%(levelname)-8s %(name)s:%(filename)s:%(lineno)d %(message)s"
 DEFAULT_LOG_DATE_FORMAT = "%H:%M:%S"
 _ANSI_ESCAPE_SEQ = re.compile(r"\x1b\[[\d;]+m")
+caplog_handler_key = StoreKey["LogCaptureHandler"]()
+caplog_records_key = StoreKey[Dict[str, List[logging.LogRecord]]]()
 
 
-def _remove_ansi_escape_sequences(text):
+def _remove_ansi_escape_sequences(text: str) -> str:
     return _ANSI_ESCAPE_SEQ.sub("", text)
 
 
 class ColoredLevelFormatter(logging.Formatter):
-    """
-    Colorize the %(levelname)..s part of the log format passed to __init__.
-    """
+    """A logging formatter which colorizes the %(levelname)..s part of the
+    log format passed to __init__."""
 
     LOGLEVEL_COLOROPTS = {
         logging.CRITICAL: {"red"},
@@ -38,17 +55,15 @@ class ColoredLevelFormatter(logging.Formatter):
         logging.INFO: {"green"},
         logging.DEBUG: {"purple"},
         logging.NOTSET: set(),
-    }
-    LEVELNAME_FMT_REGEX = re.compile(r"%\(levelname\)([+-]?\d*s)")
+    }  # type: Mapping[int, AbstractSet[str]]
+    LEVELNAME_FMT_REGEX = re.compile(r"%\(levelname\)([+-.]?\d*s)")
 
-    def __init__(self, terminalwriter, *args, **kwargs):
-        super(ColoredLevelFormatter, self).__init__(*args, **kwargs)
-        if six.PY2:
-            self._original_fmt = self._fmt
-        else:
-            self._original_fmt = self._style._fmt
-        self._level_to_fmt_mapping = {}
+    def __init__(self, terminalwriter: TerminalWriter, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._original_fmt = self._style._fmt
+        self._level_to_fmt_mapping = {}  # type: Dict[int, str]
 
+        assert self._fmt is not None
         levelname_fmt_match = self.LEVELNAME_FMT_REGEX.search(self._fmt)
         if not levelname_fmt_match:
             return
@@ -68,46 +83,111 @@ class ColoredLevelFormatter(logging.Formatter):
                 colorized_formatted_levelname, self._fmt
             )
 
-    def format(self, record):
+    def format(self, record: logging.LogRecord) -> str:
         fmt = self._level_to_fmt_mapping.get(record.levelno, self._original_fmt)
-        if six.PY2:
-            self._fmt = fmt
-        else:
-            self._style._fmt = fmt
-        return super(ColoredLevelFormatter, self).format(record)
+        self._style._fmt = fmt
+        return super().format(record)
 
 
-if not six.PY2:
-    # Formatter classes don't support format styles in PY2
+class PercentStyleMultiline(logging.PercentStyle):
+    """A logging style with special support for multiline messages.
 
-    class PercentStyleMultiline(logging.PercentStyle):
-        """A logging style with special support for multiline messages.
+    If the message of a record consists of multiple lines, this style
+    formats the message as if each line were logged separately.
+    """
 
-        If the message of a record consists of multiple lines, this style
-        formats the message as if each line were logged separately.
+    def __init__(self, fmt: str, auto_indent: Union[int, str, bool, None]) -> None:
+        super().__init__(fmt)
+        self._auto_indent = self._get_auto_indent(auto_indent)
+
+    @staticmethod
+    def _update_message(
+        record_dict: Dict[str, object], message: str
+    ) -> Dict[str, object]:
+        tmp = record_dict.copy()
+        tmp["message"] = message
+        return tmp
+
+    @staticmethod
+    def _get_auto_indent(auto_indent_option: Union[int, str, bool, None]) -> int:
+        """Determine the current auto indentation setting.
+
+        Specify auto indent behavior (on/off/fixed) by passing in
+        extra={"auto_indent": [value]} to the call to logging.log() or
+        using a --log-auto-indent [value] command line or the
+        log_auto_indent [value] config option.
+
+        Default behavior is auto-indent off.
+
+        Using the string "True" or "on" or the boolean True as the value
+        turns auto indent on, using the string "False" or "off" or the
+        boolean False or the int 0 turns it off, and specifying a
+        positive integer fixes the indentation position to the value
+        specified.
+
+        Any other values for the option are invalid, and will silently be
+        converted to the default.
+
+        :param None|bool|int|str auto_indent_option:
+            User specified option for indentation from command line, config
+            or extra kwarg. Accepts int, bool or str. str option accepts the
+            same range of values as boolean config options, as well as
+            positive integers represented in str form.
+
+        :returns:
+            Indentation value, which can be
+            -1 (automatically determine indentation) or
+            0 (auto-indent turned off) or
+            >0 (explicitly set indentation position).
         """
 
-        @staticmethod
-        def _update_message(record_dict, message):
-            tmp = record_dict.copy()
-            tmp["message"] = message
-            return tmp
+        if auto_indent_option is None:
+            return 0
+        elif isinstance(auto_indent_option, bool):
+            if auto_indent_option:
+                return -1
+            else:
+                return 0
+        elif isinstance(auto_indent_option, int):
+            return int(auto_indent_option)
+        elif isinstance(auto_indent_option, str):
+            try:
+                return int(auto_indent_option)
+            except ValueError:
+                pass
+            try:
+                if _strtobool(auto_indent_option):
+                    return -1
+            except ValueError:
+                return 0
 
-        def format(self, record):
-            if "\n" in record.message:
+        return 0
+
+    def format(self, record: logging.LogRecord) -> str:
+        if "\n" in record.message:
+            if hasattr(record, "auto_indent"):
+                # Passed in from the "extra={}" kwarg on the call to logging.log().
+                auto_indent = self._get_auto_indent(record.auto_indent)  # type: ignore[attr-defined]
+            else:
+                auto_indent = self._auto_indent
+
+            if auto_indent:
                 lines = record.message.splitlines()
                 formatted = self._fmt % self._update_message(record.__dict__, lines[0])
-                # TODO optimize this by introducing an option that tells the
-                # logging framework that the indentation doesn't
-                # change. This allows to compute the indentation only once.
-                indentation = _remove_ansi_escape_sequences(formatted).find(lines[0])
+
+                if auto_indent < 0:
+                    indentation = _remove_ansi_escape_sequences(formatted).find(
+                        lines[0]
+                    )
+                else:
+                    # Optimizes logging by allowing a fixed indentation.
+                    indentation = auto_indent
                 lines[0] = formatted
                 return ("\n" + " " * indentation).join(lines)
-            else:
-                return self._fmt % record.__dict__
+        return self._fmt % record.__dict__
 
 
-def get_option_ini(config, *names):
+def get_option_ini(config: Config, *names: str):
     for name in names:
         ret = config.getoption(name)  # 'default' arg won't work as expected
         if ret is None:
@@ -116,7 +196,7 @@ def get_option_ini(config, *names):
             return ret
 
 
-def pytest_addoption(parser):
+def pytest_addoption(parser: Parser) -> None:
     """Add options to control log capturing."""
     group = parser.getgroup("logging")
 
@@ -127,19 +207,15 @@ def pytest_addoption(parser):
         group.addoption(option, dest=dest, **kwargs)
 
     add_option_ini(
-        "--no-print-logs",
-        dest="log_print",
-        action="store_const",
-        const=False,
-        default=True,
-        type="bool",
-        help="disable printing caught logs on failed tests.",
-    )
-    add_option_ini(
         "--log-level",
         dest="log_level",
         default=None,
-        help="logging level used by the logging module",
+        metavar="LEVEL",
+        help=(
+            "level of messages to catch/display.\n"
+            "Not set by default, so it depends on the root/parent log handler's"
+            ' effective level, where it is "WARNING" by default.'
+        ),
     )
     add_option_ini(
         "--log-format",
@@ -198,111 +274,128 @@ def pytest_addoption(parser):
         default=DEFAULT_LOG_DATE_FORMAT,
         help="log date format as used by the logging module.",
     )
+    add_option_ini(
+        "--log-auto-indent",
+        dest="log_auto_indent",
+        default=None,
+        help="Auto-indent multiline messages passed to the logging module. Accepts true|on, false|off or an integer.",
+    )
 
 
-@contextmanager
-def catching_logs(handler, formatter=None, level=None):
+_HandlerType = TypeVar("_HandlerType", bound=logging.Handler)
+
+
+# Not using @contextmanager for performance reasons.
+class catching_logs:
     """Context manager that prepares the whole logging machinery properly."""
-    root_logger = logging.getLogger()
 
-    if formatter is not None:
-        handler.setFormatter(formatter)
-    if level is not None:
-        handler.setLevel(level)
+    __slots__ = ("handler", "level", "orig_level")
 
-    # Adding the same handler twice would confuse logging system.
-    # Just don't do that.
-    add_new_handler = handler not in root_logger.handlers
+    def __init__(self, handler: _HandlerType, level: Optional[int] = None) -> None:
+        self.handler = handler
+        self.level = level
 
-    if add_new_handler:
-        root_logger.addHandler(handler)
-    if level is not None:
-        orig_level = root_logger.level
-        root_logger.setLevel(min(orig_level, level))
-    try:
-        yield handler
-    finally:
-        if level is not None:
-            root_logger.setLevel(orig_level)
-        if add_new_handler:
-            root_logger.removeHandler(handler)
+    def __enter__(self):
+        root_logger = logging.getLogger()
+        if self.level is not None:
+            self.handler.setLevel(self.level)
+        root_logger.addHandler(self.handler)
+        if self.level is not None:
+            self.orig_level = root_logger.level
+            root_logger.setLevel(min(self.orig_level, self.level))
+        return self.handler
+
+    def __exit__(self, type, value, traceback):
+        root_logger = logging.getLogger()
+        if self.level is not None:
+            root_logger.setLevel(self.orig_level)
+        root_logger.removeHandler(self.handler)
 
 
 class LogCaptureHandler(logging.StreamHandler):
     """A logging handler that stores log records and the log text."""
 
-    def __init__(self):
-        """Creates a new log handler."""
-        logging.StreamHandler.__init__(self, py.io.TextIO())
-        self.records = []
+    stream = None  # type: StringIO
 
-    def emit(self, record):
+    def __init__(self) -> None:
+        """Create a new log handler."""
+        super().__init__(StringIO())
+        self.records = []  # type: List[logging.LogRecord]
+
+    def emit(self, record: logging.LogRecord) -> None:
         """Keep the log records in a list in addition to the log text."""
         self.records.append(record)
-        logging.StreamHandler.emit(self, record)
+        super().emit(record)
 
-    def reset(self):
+    def reset(self) -> None:
         self.records = []
-        self.stream = py.io.TextIO()
+        self.stream = StringIO()
+
+    def handleError(self, record: logging.LogRecord) -> None:
+        if logging.raiseExceptions:
+            # Fail the test if the log message is bad (emit failed).
+            # The default behavior of logging is to print "Logging error"
+            # to stderr with the call stack and some extra details.
+            # pytest wants to make such mistakes visible during testing.
+            raise
 
 
-class LogCaptureFixture(object):
+@final
+class LogCaptureFixture:
     """Provides access and control of log capturing."""
 
-    def __init__(self, item):
-        """Creates a new funcarg."""
+    def __init__(self, item: nodes.Node) -> None:
         self._item = item
-        # dict of log name -> log level
-        self._initial_log_levels = {}  # Dict[str, int]
+        self._initial_handler_level = None  # type: Optional[int]
+        # Dict of log name -> log level.
+        self._initial_logger_levels = {}  # type: Dict[Optional[str], int]
 
-    def _finalize(self):
-        """Finalizes the fixture.
+    def _finalize(self) -> None:
+        """Finalize the fixture.
 
         This restores the log levels changed by :meth:`set_level`.
         """
-        # restore log levels
-        for logger_name, level in self._initial_log_levels.items():
+        # Restore log levels.
+        if self._initial_handler_level is not None:
+            self.handler.setLevel(self._initial_handler_level)
+        for logger_name, level in self._initial_logger_levels.items():
             logger = logging.getLogger(logger_name)
             logger.setLevel(level)
 
     @property
-    def handler(self):
-        """
+    def handler(self) -> LogCaptureHandler:
+        """Get the logging handler used by the fixture.
+
         :rtype: LogCaptureHandler
         """
-        return self._item.catch_log_handler
+        return self._item._store[caplog_handler_key]
 
-    def get_records(self, when):
-        """
-        Get the logging records for one of the possible test phases.
+    def get_records(self, when: str) -> List[logging.LogRecord]:
+        """Get the logging records for one of the possible test phases.
 
         :param str when:
             Which test phase to obtain the records from. Valid values are: "setup", "call" and "teardown".
 
+        :returns: The list of captured records at the given stage.
         :rtype: List[logging.LogRecord]
-        :return: the list of captured records at the given stage
 
         .. versionadded:: 3.4
         """
-        handler = self._item.catch_log_handlers.get(when)
-        if handler:
-            return handler.records
-        else:
-            return []
+        return self._item._store[caplog_records_key].get(when, [])
 
     @property
-    def text(self):
-        """Returns the formatted log text."""
+    def text(self) -> str:
+        """The formatted log text."""
         return _remove_ansi_escape_sequences(self.handler.stream.getvalue())
 
     @property
-    def records(self):
-        """Returns the list of log records."""
+    def records(self) -> List[logging.LogRecord]:
+        """The list of log records."""
         return self.handler.records
 
     @property
-    def record_tuples(self):
-        """Returns a list of a stripped down version of log records intended
+    def record_tuples(self) -> List[Tuple[str, int, str]]:
+        """A list of a stripped down version of log records intended
         for use in assertion comparison.
 
         The format of the tuple is:
@@ -312,65 +405,76 @@ class LogCaptureFixture(object):
         return [(r.name, r.levelno, r.getMessage()) for r in self.records]
 
     @property
-    def messages(self):
-        """Returns a list of format-interpolated log messages.
+    def messages(self) -> List[str]:
+        """A list of format-interpolated log messages.
 
-        Unlike 'records', which contains the format string and parameters for interpolation, log messages in this list
-        are all interpolated.
-        Unlike 'text', which contains the output from the handler, log messages in this list are unadorned with
-        levels, timestamps, etc, making exact comparisons more reliable.
+        Unlike 'records', which contains the format string and parameters for
+        interpolation, log messages in this list are all interpolated.
 
-        Note that traceback or stack info (from :func:`logging.exception` or the `exc_info` or `stack_info` arguments
-        to the logging functions) is not included, as this is added by the formatter in the handler.
+        Unlike 'text', which contains the output from the handler, log
+        messages in this list are unadorned with levels, timestamps, etc,
+        making exact comparisons more reliable.
+
+        Note that traceback or stack info (from :func:`logging.exception` or
+        the `exc_info` or `stack_info` arguments to the logging functions) is
+        not included, as this is added by the formatter in the handler.
 
         .. versionadded:: 3.7
         """
         return [r.getMessage() for r in self.records]
 
-    def clear(self):
+    def clear(self) -> None:
         """Reset the list of log records and the captured log text."""
         self.handler.reset()
 
-    def set_level(self, level, logger=None):
-        """Sets the level for capturing of logs. The level will be restored to its previous value at the end of
-        the test.
-
-        :param int level: the logger to level.
-        :param str logger: the logger to update the level. If not given, the root logger level is updated.
+    def set_level(self, level: Union[int, str], logger: Optional[str] = None) -> None:
+        """Set the level of a logger for the duration of a test.
 
         .. versionchanged:: 3.4
-            The levels of the loggers changed by this function will be restored to their initial values at the
-            end of the test.
+            The levels of the loggers changed by this function will be
+            restored to their initial values at the end of the test.
+
+        :param int level: The level.
+        :param str logger: The logger to update. If not given, the root logger.
         """
-        logger_name = logger
-        logger = logging.getLogger(logger_name)
-        # save the original log-level to restore it during teardown
-        self._initial_log_levels.setdefault(logger_name, logger.level)
-        logger.setLevel(level)
+        logger_obj = logging.getLogger(logger)
+        # Save the original log-level to restore it during teardown.
+        self._initial_logger_levels.setdefault(logger, logger_obj.level)
+        logger_obj.setLevel(level)
+        if self._initial_handler_level is None:
+            self._initial_handler_level = self.handler.level
+        self.handler.setLevel(level)
 
     @contextmanager
-    def at_level(self, level, logger=None):
-        """Context manager that sets the level for capturing of logs. After the end of the 'with' statement the
-        level is restored to its original value.
+    def at_level(
+        self, level: int, logger: Optional[str] = None
+    ) -> Generator[None, None, None]:
+        """Context manager that sets the level for capturing of logs. After
+        the end of the 'with' statement the level is restored to its original
+        value.
 
-        :param int level: the logger to level.
-        :param str logger: the logger to update the level. If not given, the root logger level is updated.
+        :param int level: The level.
+        :param str logger: The logger to update. If not given, the root logger.
         """
-        logger = logging.getLogger(logger)
-        orig_level = logger.level
-        logger.setLevel(level)
+        logger_obj = logging.getLogger(logger)
+        orig_level = logger_obj.level
+        logger_obj.setLevel(level)
+        handler_orig_level = self.handler.level
+        self.handler.setLevel(level)
         try:
             yield
         finally:
-            logger.setLevel(orig_level)
+            logger_obj.setLevel(orig_level)
+            self.handler.setLevel(handler_orig_level)
 
 
 @pytest.fixture
-def caplog(request):
+def caplog(request: FixtureRequest) -> Generator[LogCaptureFixture, None, None]:
     """Access and control log capturing.
 
     Captured logs are available through the following properties/methods::
 
+    * caplog.messages        -> list of format-interpolated log messages
     * caplog.text            -> string containing formatted log output
     * caplog.records         -> list of logging.LogRecord instances
     * caplog.record_tuples   -> list of (logger_name, level, message) tuples
@@ -381,9 +485,7 @@ def caplog(request):
     result._finalize()
 
 
-def get_actual_log_level(config, *setting_names):
-    """Return the actual logging level."""
-
+def get_log_level_for_setting(config: Config, *setting_names: str) -> Optional[int]:
     for setting_name in setting_names:
         log_level = config.getoption(setting_name)
         if log_level is None:
@@ -391,308 +493,297 @@ def get_actual_log_level(config, *setting_names):
         if log_level:
             break
     else:
-        return
+        return None
 
-    if isinstance(log_level, six.string_types):
+    if isinstance(log_level, str):
         log_level = log_level.upper()
     try:
         return int(getattr(logging, log_level, log_level))
-    except ValueError:
+    except ValueError as e:
         # Python logging does not recognise this as a logging level
         raise pytest.UsageError(
             "'{}' is not recognized as a logging level name for "
             "'{}'. Please consider passing the "
             "logging level num instead.".format(log_level, setting_name)
-        )
+        ) from e
 
 
 # run after terminalreporter/capturemanager are configured
 @pytest.hookimpl(trylast=True)
-def pytest_configure(config):
+def pytest_configure(config: Config) -> None:
     config.pluginmanager.register(LoggingPlugin(config), "logging-plugin")
 
 
-class LoggingPlugin(object):
-    """Attaches to the logging module and captures log messages for each test.
-    """
+class LoggingPlugin:
+    """Attaches to the logging module and captures log messages for each test."""
 
-    def __init__(self, config):
-        """Creates a new plugin to capture log messages.
+    def __init__(self, config: Config) -> None:
+        """Create a new plugin to capture log messages.
 
         The formatter can be safely shared across all handlers so
         create a single one for the entire test session here.
         """
         self._config = config
 
-        self.print_logs = get_option_ini(config, "log_print")
+        # Report logging.
         self.formatter = self._create_formatter(
             get_option_ini(config, "log_format"),
             get_option_ini(config, "log_date_format"),
+            get_option_ini(config, "log_auto_indent"),
         )
-        self.log_level = get_actual_log_level(config, "log_level")
+        self.log_level = get_log_level_for_setting(config, "log_level")
+        self.caplog_handler = LogCaptureHandler()
+        self.caplog_handler.setFormatter(self.formatter)
+        self.report_handler = LogCaptureHandler()
+        self.report_handler.setFormatter(self.formatter)
 
-        self.log_file_level = get_actual_log_level(config, "log_file_level")
-        self.log_file_format = get_option_ini(config, "log_file_format", "log_format")
-        self.log_file_date_format = get_option_ini(
+        # File logging.
+        self.log_file_level = get_log_level_for_setting(config, "log_file_level")
+        log_file = get_option_ini(config, "log_file") or os.devnull
+        if log_file != os.devnull:
+            directory = os.path.dirname(os.path.abspath(log_file))
+            if not os.path.isdir(directory):
+                os.makedirs(directory)
+
+        self.log_file_handler = _FileHandler(log_file, mode="w", encoding="UTF-8")
+        log_file_format = get_option_ini(config, "log_file_format", "log_format")
+        log_file_date_format = get_option_ini(
             config, "log_file_date_format", "log_date_format"
         )
-        self.log_file_formatter = logging.Formatter(
-            self.log_file_format, datefmt=self.log_file_date_format
+
+        log_file_formatter = logging.Formatter(
+            log_file_format, datefmt=log_file_date_format
         )
+        self.log_file_handler.setFormatter(log_file_formatter)
 
-        log_file = get_option_ini(config, "log_file")
-        if log_file:
-            self.log_file_handler = logging.FileHandler(
-                log_file, mode="w", encoding="UTF-8"
-            )
-            self.log_file_handler.setFormatter(self.log_file_formatter)
-        else:
-            self.log_file_handler = None
-
-        self.log_cli_handler = None
-
-        self.live_logs_context = lambda: dummy_context_manager()
-        # Note that the lambda for the live_logs_context is needed because
-        # live_logs_context can otherwise not be entered multiple times due
-        # to limitations of contextlib.contextmanager.
-
+        # CLI/live logging.
+        self.log_cli_level = get_log_level_for_setting(
+            config, "log_cli_level", "log_level"
+        )
         if self._log_cli_enabled():
-            self._setup_cli_logging()
+            terminal_reporter = config.pluginmanager.get_plugin("terminalreporter")
+            capture_manager = config.pluginmanager.get_plugin("capturemanager")
+            # if capturemanager plugin is disabled, live logging still works.
+            self.log_cli_handler = _LiveLoggingStreamHandler(
+                terminal_reporter, capture_manager
+            )  # type: Union[_LiveLoggingStreamHandler, _LiveLoggingNullHandler]
+        else:
+            self.log_cli_handler = _LiveLoggingNullHandler()
+        log_cli_formatter = self._create_formatter(
+            get_option_ini(config, "log_cli_format", "log_format"),
+            get_option_ini(config, "log_cli_date_format", "log_date_format"),
+            get_option_ini(config, "log_auto_indent"),
+        )
+        self.log_cli_handler.setFormatter(log_cli_formatter)
 
-    def _create_formatter(self, log_format, log_date_format):
-        # color option doesn't exist if terminal plugin is disabled
+    def _create_formatter(self, log_format, log_date_format, auto_indent):
+        # Color option doesn't exist if terminal plugin is disabled.
         color = getattr(self._config.option, "color", "no")
         if color != "no" and ColoredLevelFormatter.LEVELNAME_FMT_REGEX.search(
             log_format
         ):
             formatter = ColoredLevelFormatter(
                 create_terminal_writer(self._config), log_format, log_date_format
-            )
+            )  # type: logging.Formatter
         else:
             formatter = logging.Formatter(log_format, log_date_format)
 
-        if not six.PY2:
-            formatter._style = PercentStyleMultiline(formatter._style._fmt)
+        formatter._style = PercentStyleMultiline(
+            formatter._style._fmt, auto_indent=auto_indent
+        )
+
         return formatter
 
-    def _setup_cli_logging(self):
-        config = self._config
-        terminal_reporter = config.pluginmanager.get_plugin("terminalreporter")
-        if terminal_reporter is None:
-            # terminal reporter is disabled e.g. by pytest-xdist.
-            return
+    def set_log_path(self, fname: str) -> None:
+        """Set the filename parameter for Logging.FileHandler().
 
-        capture_manager = config.pluginmanager.get_plugin("capturemanager")
-        # if capturemanager plugin is disabled, live logging still works.
-        log_cli_handler = _LiveLoggingStreamHandler(terminal_reporter, capture_manager)
-
-        log_cli_formatter = self._create_formatter(
-            get_option_ini(config, "log_cli_format", "log_format"),
-            get_option_ini(config, "log_cli_date_format", "log_date_format"),
-        )
-
-        log_cli_level = get_actual_log_level(config, "log_cli_level", "log_level")
-        self.log_cli_handler = log_cli_handler
-        self.live_logs_context = lambda: catching_logs(
-            log_cli_handler, formatter=log_cli_formatter, level=log_cli_level
-        )
-
-    def set_log_path(self, fname):
-        """Public method, which can set filename parameter for
-        Logging.FileHandler(). Also creates parent directory if
-        it does not exist.
+        Creates parent directory if it does not exist.
 
         .. warning::
-            Please considered as an experimental API.
+            This is an experimental API.
         """
-        fname = Path(fname)
+        fpath = Path(fname)
 
-        if not fname.is_absolute():
-            fname = Path(self._config.rootdir, fname)
+        if not fpath.is_absolute():
+            fpath = self._config.rootpath / fpath
 
-        if not fname.parent.exists():
-            fname.parent.mkdir(exist_ok=True, parents=True)
+        if not fpath.parent.exists():
+            fpath.parent.mkdir(exist_ok=True, parents=True)
 
-        self.log_file_handler = logging.FileHandler(
-            str(fname), mode="w", encoding="UTF-8"
-        )
-        self.log_file_handler.setFormatter(self.log_file_formatter)
+        stream = fpath.open(mode="w", encoding="UTF-8")
+        if sys.version_info >= (3, 7):
+            old_stream = self.log_file_handler.setStream(stream)
+        else:
+            old_stream = self.log_file_handler.stream
+            self.log_file_handler.acquire()
+            try:
+                self.log_file_handler.flush()
+                self.log_file_handler.stream = stream
+            finally:
+                self.log_file_handler.release()
+        if old_stream:
+            old_stream.close()
 
     def _log_cli_enabled(self):
-        """Return True if log_cli should be considered enabled, either explicitly
-        or because --log-cli-level was given in the command-line.
-        """
-        return self._config.getoption(
+        """Return whether live logging is enabled."""
+        enabled = self._config.getoption(
             "--log-cli-level"
         ) is not None or self._config.getini("log_cli")
+        if not enabled:
+            return False
+
+        terminal_reporter = self._config.pluginmanager.get_plugin("terminalreporter")
+        if terminal_reporter is None:
+            # terminal reporter is disabled e.g. by pytest-xdist.
+            return False
+
+        return True
 
     @pytest.hookimpl(hookwrapper=True, tryfirst=True)
-    def pytest_collection(self):
-        with self.live_logs_context():
-            if self.log_cli_handler:
-                self.log_cli_handler.set_when("collection")
+    def pytest_sessionstart(self) -> Generator[None, None, None]:
+        self.log_cli_handler.set_when("sessionstart")
 
-            if self.log_file_handler is not None:
-                with catching_logs(self.log_file_handler, level=self.log_file_level):
-                    yield
-            else:
-                yield
-
-    @contextmanager
-    def _runtest_for(self, item, when):
-        with self._runtest_for_main(item, when):
-            if self.log_file_handler is not None:
-                with catching_logs(self.log_file_handler, level=self.log_file_level):
-                    yield
-            else:
-                yield
-
-    @contextmanager
-    def _runtest_for_main(self, item, when):
-        """Implements the internals of pytest_runtest_xxx() hook."""
-        with catching_logs(
-            LogCaptureHandler(), formatter=self.formatter, level=self.log_level
-        ) as log_handler:
-            if self.log_cli_handler:
-                self.log_cli_handler.set_when(when)
-
-            if item is None:
-                yield  # run the test
-                return
-
-            if not hasattr(item, "catch_log_handlers"):
-                item.catch_log_handlers = {}
-            item.catch_log_handlers[when] = log_handler
-            item.catch_log_handler = log_handler
-            try:
-                yield  # run test
-            finally:
-                if when == "teardown":
-                    del item.catch_log_handler
-                    del item.catch_log_handlers
-
-            if self.print_logs:
-                # Add a captured log section to the report.
-                log = log_handler.stream.getvalue().strip()
-                item.add_report_section(when, "log", log)
-
-    @pytest.hookimpl(hookwrapper=True)
-    def pytest_runtest_setup(self, item):
-        with self._runtest_for(item, "setup"):
-            yield
-
-    @pytest.hookimpl(hookwrapper=True)
-    def pytest_runtest_call(self, item):
-        with self._runtest_for(item, "call"):
-            yield
-
-    @pytest.hookimpl(hookwrapper=True)
-    def pytest_runtest_teardown(self, item):
-        with self._runtest_for(item, "teardown"):
-            yield
-
-    @pytest.hookimpl(hookwrapper=True)
-    def pytest_runtest_logstart(self):
-        if self.log_cli_handler:
-            self.log_cli_handler.reset()
-        with self._runtest_for(None, "start"):
-            yield
-
-    @pytest.hookimpl(hookwrapper=True)
-    def pytest_runtest_logfinish(self):
-        with self._runtest_for(None, "finish"):
-            yield
-
-    @pytest.hookimpl(hookwrapper=True)
-    def pytest_runtest_logreport(self):
-        with self._runtest_for(None, "logreport"):
-            yield
-
-    @pytest.hookimpl(hookwrapper=True, tryfirst=True)
-    def pytest_sessionfinish(self):
-        with self.live_logs_context():
-            if self.log_cli_handler:
-                self.log_cli_handler.set_when("sessionfinish")
-            if self.log_file_handler is not None:
-                try:
-                    with catching_logs(
-                        self.log_file_handler, level=self.log_file_level
-                    ):
-                        yield
-                finally:
-                    # Close the FileHandler explicitly.
-                    # (logging.shutdown might have lost the weakref?!)
-                    self.log_file_handler.close()
-            else:
+        with catching_logs(self.log_cli_handler, level=self.log_cli_level):
+            with catching_logs(self.log_file_handler, level=self.log_file_level):
                 yield
 
     @pytest.hookimpl(hookwrapper=True, tryfirst=True)
-    def pytest_sessionstart(self):
-        with self.live_logs_context():
-            if self.log_cli_handler:
-                self.log_cli_handler.set_when("sessionstart")
-            if self.log_file_handler is not None:
-                with catching_logs(self.log_file_handler, level=self.log_file_level):
-                    yield
-            else:
+    def pytest_collection(self) -> Generator[None, None, None]:
+        self.log_cli_handler.set_when("collection")
+
+        with catching_logs(self.log_cli_handler, level=self.log_cli_level):
+            with catching_logs(self.log_file_handler, level=self.log_file_level):
                 yield
 
     @pytest.hookimpl(hookwrapper=True)
-    def pytest_runtestloop(self, session):
-        """Runs all collected test items."""
-
+    def pytest_runtestloop(self, session: Session) -> Generator[None, None, None]:
         if session.config.option.collectonly:
             yield
             return
 
         if self._log_cli_enabled() and self._config.getoption("verbose") < 1:
-            # setting verbose flag is needed to avoid messy test progress output
+            # The verbose flag is needed to avoid messy test progress output.
             self._config.option.verbose = 1
 
-        with self.live_logs_context():
-            if self.log_file_handler is not None:
-                with catching_logs(self.log_file_handler, level=self.log_file_level):
-                    yield  # run all the tests
-            else:
-                yield  # run all the tests
+        with catching_logs(self.log_cli_handler, level=self.log_cli_level):
+            with catching_logs(self.log_file_handler, level=self.log_file_level):
+                yield  # Run all the tests.
+
+    @pytest.hookimpl
+    def pytest_runtest_logstart(self) -> None:
+        self.log_cli_handler.reset()
+        self.log_cli_handler.set_when("start")
+
+    @pytest.hookimpl
+    def pytest_runtest_logreport(self) -> None:
+        self.log_cli_handler.set_when("logreport")
+
+    def _runtest_for(self, item: nodes.Item, when: str) -> Generator[None, None, None]:
+        """Implement the internals of the pytest_runtest_xxx() hooks."""
+        with catching_logs(
+            self.caplog_handler, level=self.log_level,
+        ) as caplog_handler, catching_logs(
+            self.report_handler, level=self.log_level,
+        ) as report_handler:
+            caplog_handler.reset()
+            report_handler.reset()
+            item._store[caplog_records_key][when] = caplog_handler.records
+            item._store[caplog_handler_key] = caplog_handler
+
+            yield
+
+            log = report_handler.stream.getvalue().strip()
+            item.add_report_section(when, "log", log)
+
+    @pytest.hookimpl(hookwrapper=True)
+    def pytest_runtest_setup(self, item: nodes.Item) -> Generator[None, None, None]:
+        self.log_cli_handler.set_when("setup")
+
+        empty = {}  # type: Dict[str, List[logging.LogRecord]]
+        item._store[caplog_records_key] = empty
+        yield from self._runtest_for(item, "setup")
+
+    @pytest.hookimpl(hookwrapper=True)
+    def pytest_runtest_call(self, item: nodes.Item) -> Generator[None, None, None]:
+        self.log_cli_handler.set_when("call")
+
+        yield from self._runtest_for(item, "call")
+
+    @pytest.hookimpl(hookwrapper=True)
+    def pytest_runtest_teardown(self, item: nodes.Item) -> Generator[None, None, None]:
+        self.log_cli_handler.set_when("teardown")
+
+        yield from self._runtest_for(item, "teardown")
+        del item._store[caplog_records_key]
+        del item._store[caplog_handler_key]
+
+    @pytest.hookimpl
+    def pytest_runtest_logfinish(self) -> None:
+        self.log_cli_handler.set_when("finish")
+
+    @pytest.hookimpl(hookwrapper=True, tryfirst=True)
+    def pytest_sessionfinish(self) -> Generator[None, None, None]:
+        self.log_cli_handler.set_when("sessionfinish")
+
+        with catching_logs(self.log_cli_handler, level=self.log_cli_level):
+            with catching_logs(self.log_file_handler, level=self.log_file_level):
+                yield
+
+    @pytest.hookimpl
+    def pytest_unconfigure(self) -> None:
+        # Close the FileHandler explicitly.
+        # (logging.shutdown might have lost the weakref?!)
+        self.log_file_handler.close()
+
+
+class _FileHandler(logging.FileHandler):
+    """A logging FileHandler with pytest tweaks."""
+
+    def handleError(self, record: logging.LogRecord) -> None:
+        # Handled by LogCaptureHandler.
+        pass
 
 
 class _LiveLoggingStreamHandler(logging.StreamHandler):
-    """
-    Custom StreamHandler used by the live logging feature: it will write a newline before the first log message
-    in each test.
+    """A logging StreamHandler used by the live logging feature: it will
+    write a newline before the first log message in each test.
 
-    During live logging we must also explicitly disable stdout/stderr capturing otherwise it will get captured
-    and won't appear in the terminal.
+    During live logging we must also explicitly disable stdout/stderr
+    capturing otherwise it will get captured and won't appear in the
+    terminal.
     """
 
-    def __init__(self, terminal_reporter, capture_manager):
-        """
-        :param _pytest.terminal.TerminalReporter terminal_reporter:
-        :param _pytest.capture.CaptureManager capture_manager:
-        """
-        logging.StreamHandler.__init__(self, stream=terminal_reporter)
+    # Officially stream needs to be a IO[str], but TerminalReporter
+    # isn't. So force it.
+    stream = None  # type: TerminalReporter # type: ignore
+
+    def __init__(
+        self,
+        terminal_reporter: TerminalReporter,
+        capture_manager: Optional[CaptureManager],
+    ) -> None:
+        logging.StreamHandler.__init__(self, stream=terminal_reporter)  # type: ignore[arg-type]
         self.capture_manager = capture_manager
         self.reset()
         self.set_when(None)
         self._test_outcome_written = False
 
-    def reset(self):
-        """Reset the handler; should be called before the start of each test"""
+    def reset(self) -> None:
+        """Reset the handler; should be called before the start of each test."""
         self._first_record_emitted = False
 
-    def set_when(self, when):
-        """Prepares for the given test phase (setup/call/teardown)"""
+    def set_when(self, when: Optional[str]) -> None:
+        """Prepare for the given test phase (setup/call/teardown)."""
         self._when = when
         self._section_name_shown = False
         if when == "start":
             self._test_outcome_written = False
 
-    def emit(self, record):
+    def emit(self, record: logging.LogRecord) -> None:
         ctx_manager = (
             self.capture_manager.global_and_fixture_disabled()
             if self.capture_manager
-            else dummy_context_manager()
+            else nullcontext()
         )
         with ctx_manager:
             if not self._first_record_emitted:
@@ -705,4 +796,22 @@ class _LiveLoggingStreamHandler(logging.StreamHandler):
             if not self._section_name_shown and self._when:
                 self.stream.section("live log " + self._when, sep="-", bold=True)
                 self._section_name_shown = True
-            logging.StreamHandler.emit(self, record)
+            super().emit(record)
+
+    def handleError(self, record: logging.LogRecord) -> None:
+        # Handled by LogCaptureHandler.
+        pass
+
+
+class _LiveLoggingNullHandler(logging.NullHandler):
+    """A logging handler used when live logging is disabled."""
+
+    def reset(self) -> None:
+        pass
+
+    def set_when(self, when: str) -> None:
+        pass
+
+    def handleError(self, record: logging.LogRecord) -> None:
+        # Handled by LogCaptureHandler.
+        pass

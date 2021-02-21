@@ -1,7 +1,7 @@
 import json
 import sys
 from os.path import dirname, join
-from six.moves import cStringIO as StringIO
+from io import StringIO
 
 from mozlog import handlers, structuredlog
 

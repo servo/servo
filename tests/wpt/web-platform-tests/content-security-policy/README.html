@@ -71,7 +71,7 @@ Cache-Control: no-store, no-cache, must-revalidate
 Cache-Control: post-check=0, pre-check=0, false
 Pragma: no-cache
 Set-Cookie: <span class=highlight2>script-src-1_1</span>={{$id:uuid()}}; Path=<span class=highlight2>/content-security-policy/script-src/</span>
-Content-Security-Policy: <span class=highlight1>script-src 'self'</span>; report-uri  <span class=highlight2>..</span>/support/report.py?op=put&reportID={{$id}}
+Content-Security-Policy: <span class=highlight1>script-src 'self'</span>; report-uri  <span class=highlight2></span>/reporting/resources/report.py?op=put&reportID={{$id}}
         </code></pre>
     <p>This sets some headers to prevent caching (just so we are more likely to see our latest changes if we're actively developing this test) sets a cookie (more on that later) and sets the relevant <span class=code>Content-Security-Policy</span> header for our test case.</p>
 

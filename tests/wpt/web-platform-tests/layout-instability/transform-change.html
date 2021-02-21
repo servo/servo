@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>Layout Instability: transform change</title>
+<title>Layout Instability: no layout shift for transform change</title>
 <link rel="help" href="https://wicg.github.io/layout-instability/" />
 <style>
 body { margin: 0; }
@@ -28,6 +28,6 @@ promise_test(async () => {
   await waitForAnimationFrames(2);
   // No shift should be reported.
   assert_equals(watcher.score, 0);
-}, 'transform change');
+}, 'no layout shift for transform change');
 
 </script>

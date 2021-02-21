@@ -238,13 +238,3 @@ typedef (boolean or ConstrainBooleanParameters) ConstrainBoolean;
 typedef (DOMString or
 sequence<DOMString> or
 ConstrainDOMStringParameters) ConstrainDOMString;
-
-dictionary Capabilities {};
-
-dictionary Settings {};
-
-dictionary ConstraintSet {};
-
-dictionary Constraints : ConstraintSet {
-  sequence<ConstraintSet> advanced;
-};

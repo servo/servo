@@ -425,21 +425,132 @@
     transform.multiplySelf(transform);
     @assert transform.toLocaleString() == canvasTransform.toLocaleString();
 
-- name: 2d.transformation.translate3d
-  desc: translate3d() function modifies the underlying matrix appropriately
+- name: 2d.transformation.translate.3d
+  desc: translate() function with three arguments modifies the underlying matrix appropriately
   testing:
-  - 2d.transformation.translate3d
+  - 2d.transformation.translate.3d
   code: |
     const dx = 2;
     const dy = 3;
     const dz = 4;
-    ctx.translate3d(dx, dy, dz);
+    ctx.translate(dx, dy, dz);
     let canvasTransform = ctx.getTransform();
     @assert canvasTransform.m41 = dx;
     @assert canvasTransform.m42 = dy;
     @assert canvasTransform.m43 = dz;
-    ctx.translate3d(dx, dy, dz);
+    ctx.translate(dx, dy, dz);
     canvasTransform = ctx.getTransform();
     @assert canvasTransform.m41 = 2 * dx;
     @assert canvasTransform.m42 = 2 * dy;
     @assert canvasTransform.m43 = 2 * dz;
+
+- name: 2d.transformation.scale.3d
+  desc: scale() function with three arguments modifies the underlying matrix appropriately
+  testing:
+  - 2d.transformation.scale.3d
+  code: |
+    const sx = 2;
+    const sy = 3;
+    const sz = 4;
+    ctx.scale(sx, sy, sz);
+    let canvasTransform = ctx.getTransform();
+    @assert canvasTransform.m11 = sx;
+    @assert canvasTransform.m22 = sy;
+    @assert canvasTransform.m33 = sz;
+    ctx.scale(sx, sy, sz);
+    canvasTransform = ctx.getTransform();
+    @assert canvasTransform.m11 = 2 * sx;
+    @assert canvasTransform.m22 = 2 * sy;
+    @assert canvasTransform.m33 = 2 * sz;
+
+- name: 2d.transformation.rotate3d.X
+  desc: rotate3d() around the x axis results in the correct transformation matrix
+  testing:
+  - 2d.transformation.rotate3d.X
+  code: |
+    // angles are in radians, test something that is not a multiple of pi
+    const angle = 2;
+    const domMatrix = new DOMMatrix();
+    ctx.rotate3d(angle, 0, 0);
+    domMatrix.rotateAxisAngleSelf(1, 0, 0, rad2deg(angle));
+    _assertMatricesApproxEqual(domMatrix, ctx.getTransform())
+    ctx.rotate3d(angle, 0, 0);
+    domMatrix.rotateAxisAngleSelf(1, 0, 0, rad2deg(angle));
+    _assertMatricesApproxEqual(domMatrix, ctx.getTransform())
+
+- name: 2d.transformation.rotate3d.Y
+  desc: rotate3d() around the y axis results in the correct transformation matrix
+  testing:
+  - 2d.transformation.rotate3d.Y
+  code: |
+    // angles are in radians, test something that is not a multiple of pi
+    const angle = 2;
+    const domMatrix = new DOMMatrix();
+    ctx.rotate3d(0, angle, 0);
+    domMatrix.rotateAxisAngleSelf(0, 1, 0, rad2deg(angle));
+    _assertMatricesApproxEqual(domMatrix, ctx.getTransform())
+    ctx.rotate3d(0, angle, 0);
+    domMatrix.rotateAxisAngleSelf(0, 1, 0, rad2deg(angle));
+    _assertMatricesApproxEqual(domMatrix, ctx.getTransform())
+
+- name: 2d.transformation.rotate3d.Z
+  desc: rotate3d() around the z axis results in the correct transformation matrix
+  testing:
+  - 2d.transformation.rotate3d.Z
+  code: |
+    // angles are in radians, test something that is not a multiple of pi
+    const angle = 2;
+    const domMatrix = new DOMMatrix();
+    ctx.rotate3d(0, 0, angle);
+    domMatrix.rotateAxisAngleSelf(0, 0, 1, rad2deg(angle));
+    _assertMatricesApproxEqual(domMatrix, ctx.getTransform())
+    ctx.rotate3d(0, 0, angle);
+    domMatrix.rotateAxisAngleSelf(0, 0, 1, rad2deg(angle));
+    _assertMatricesApproxEqual(domMatrix, ctx.getTransform())
+
+- name: 2d.transformation.rotate3d
+  desc: rotate3d() results in the correct transformation matrix
+  testing:
+  - 2d.transformation.rotate3d
+  code: |
+    // angles are in radians, test something that is not a multiple of pi
+    const angleX = 2;
+    const angleY = 3;
+    const angleZ = 4;
+    const domMatrix = new DOMMatrix();
+    ctx.rotate3d(angleX, angleY, angleZ);
+    domMatrix.rotateSelf(rad2deg(angleX), rad2deg(angleY), rad2deg(angleZ));
+    _assertMatricesApproxEqual(domMatrix, ctx.getTransform());
+    ctx.rotate3d(angleX, angleY, angleZ);
+    domMatrix.rotateSelf(rad2deg(angleX), rad2deg(angleY), rad2deg(angleZ));
+    _assertMatricesApproxEqual(domMatrix, ctx.getTransform());
+
+- name: 2d.transformation.rotateAxis
+  desc: rotateAxis() results in the correct transformation matrix
+  testing:
+  - 2d.transformation.rotateAxis
+  code: |
+    // angles are in radians, test something that is not a multiple of pi
+    const angle = 2;
+    const axis = {x: 1, y: 2, z: 3}
+    const domMatrix = new DOMMatrix();
+    ctx.rotateAxis(axis.x, axis.y, axis.z, angle);
+    domMatrix.rotateAxisAngleSelf(axis.x, axis.y, axis.z, rad2deg(angle));
+    _assertMatricesApproxEqual(domMatrix, ctx.getTransform());
+    ctx.rotateAxis(axis.x, axis.y, axis.z, angle);
+    domMatrix.rotateAxisAngleSelf(axis.x, axis.y, axis.z, rad2deg(angle));
+    _assertMatricesApproxEqual(domMatrix, ctx.getTransform());
+
+- name: 2d.transformation.perspective
+  desc: perspective() results in the correct transformation matrix
+  testing:
+  - 2d.transformation.perspective
+  code: |
+    const length = 100;
+    ctx.perspective(length);
+    const domMatrix = new DOMMatrix();
+    domMatrix.m34 = -1/length;
+    _assertMatricesApproxEqual(domMatrix, ctx.getTransform());
+    ctx.rotateAxis(1, 2, 3, 4);
+    domMatrix.rotateAxisAngleSelf(1, 2, 3, rad2deg(4));
+    _assertMatricesApproxEqual(domMatrix, ctx.getTransform());

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8" />
+<title>Popup light dismiss on scroll</title>
+<link rel="author" title="Mason Freed" href="mailto:masonfreed@chromium.org">
+<link rel=help href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/Popup/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id=scroller>
+  Scroll me<br><br>
+  Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt
+  ut labore et dolore magna aliqua. Enim ut sem viverra aliquet eget sit amet tellus. Massa
+  sed elementum tempus egestas sed sed risus pretium. Felis bibendum ut tristique et egestas
+  quis. Tortor dignissim convallis aenean et. Eu mi bibendum neque egestas congue quisque
+</div>
+
+<popup id=popup1>This is popup 1<div id=anchor></div></popup>
+<popup id=popup2 anchor=anchor>This is popup 2</popup>
+<button onclick='popup1.show();popup2.show();'>Open popups</button>
+
+<style>
+  #popup1 { top:50px; left: 50px; }
+  #popup2 { top:150px; left: 50px; }
+  #scroller {
+    height: 150px;
+    width: 150px;
+    overflow-y: scroll;
+    border: 1px solid black;
+  }
+</style>
+
+<script>
+  async_test(t => {
+    popup1.addEventListener('hide',e => {
+      assert_false(popup2.open);
+      t.done();
+    })
+    assert_false(popup1.open);
+    assert_false(popup2.open);
+    popup1.show();
+    popup2.show();
+    assert_true(popup1.open);
+    assert_true(popup2.open);
+    scroller.scrollTo(0, 100);
+  },'Scrolling light-dismisses all popups');
+</script>

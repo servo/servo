@@ -27,7 +27,7 @@ function isCoopOpenerBreakageReport(report) {
 
 async function pollReports(endpoint) {
   const res = await fetch(
-    `${directory}/report.py?endpoint=${endpoint.name}`,
+    `/reporting/resources/report.py?endpoint=${endpoint.name}`,
       {cache: 'no-store'});
   if (res.status !== 200) {
     return;
@@ -143,7 +143,7 @@ function getReportEndpoints(host) {
         'group': `${reportEndpoint.name}`,
         'max_age': 3600,
         'endpoints': [
-          {'url': `${host}/html/cross-origin-opener-policy/reporting/resources/report.py?endpoint=${reportEndpoint.name}`
+          {'url': `${host}/reporting/resources/report.py?endpoint=${reportEndpoint.name}`
           },
         ]
       };

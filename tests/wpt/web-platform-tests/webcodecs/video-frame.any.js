@@ -311,7 +311,7 @@ test(t => {
   let yPlane = {src: yPlaneData, stride: 4, rows: 2};
   let uvPlaneData = new Uint8Array([1, 2, 3, 4]);
   let uvPlane = {src: uvPlaneData, stride: 4, rows: 1};
-  frame = new VideoFrame(fmt, [yPlane, uvPlane], vfInit);
+  let frame = new VideoFrame(fmt, [yPlane, uvPlane], vfInit);
   assert_equals(frame.planes.length, 2, 'plane count');
   assert_equals(frame.format, fmt, 'plane format');
   verifyPlane(yPlane, frame.planes[0]);
@@ -368,7 +368,7 @@ test(t => {
   let argbPlaneData =
       new Uint8Array(new Uint32Array([1, 2, 3, 4, 5, 6, 7, 8]).buffer);
   let argbPlane = {src: argbPlaneData, stride: 4 * 4, rows: 2};
-  frame = new VideoFrame('ABGR', [argbPlane], vfInit);
+  let frame = new VideoFrame('ABGR', [argbPlane], vfInit);
   assert_equals(frame.planes.length, 1, 'plane count');
   assert_equals(frame.format, 'ABGR', 'plane format');
   verifyPlane(argbPlane, frame.planes[0]);

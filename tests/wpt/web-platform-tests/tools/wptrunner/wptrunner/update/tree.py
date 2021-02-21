@@ -3,8 +3,6 @@ import re
 import subprocess
 import tempfile
 
-from six.moves import range
-
 from .. import vcs
 from ..vcs import git, hg
 
@@ -403,5 +401,5 @@ class Commit(object):
         self.git = self.tree.git
 
     def _get_meta(self):
-        author, email, message = self.git("show", "-s", "--format=format:%an\n%ae\n%B", self.sha1).split(b"\n", 2)
-        return author.decode('utf-8'), email.decode('utf-8'), self.msg_cls(message.decode('utf-8'))
+        author, email, message = self.git("show", "-s", "--format=format:%an\n%ae\n%B", self.sha1).decode('utf-8').split("\n", 2)
+        return author, email, self.msg_cls(message)

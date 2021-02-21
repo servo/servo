@@ -18,7 +18,7 @@ example: specifying and selecting acceptance tests
         return AcceptFixture(request)
 
 
-    class AcceptFixture(object):
+    class AcceptFixture:
         def __init__(self, request):
             if not request.config.getoption("acceptance"):
                 pytest.skip("specify -A to run acceptance tests")
@@ -65,7 +65,7 @@ extend the `accept example`_ by putting this in our test module:
         return arg
 
 
-    class TestSpecialAcceptance(object):
+    class TestSpecialAcceptance:
         def test_sometest(self, accept):
             assert accept.tmpdir.join("special").check()
 
