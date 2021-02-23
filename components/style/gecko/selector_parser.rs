@@ -140,6 +140,9 @@ impl NonTSPseudoClass {
         if let NonTSPseudoClass::Autofill = *self {
             return static_prefs::pref!("layout.css.autofill.enabled");
         }
+        if let NonTSPseudoClass::MozSubmitInvalid = *self {
+            return static_prefs::pref!("layout.css.moz-submit-invalid.enabled");
+        }
         !self.has_any_flag(NonTSPseudoClassFlag::PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME)
     }
 
