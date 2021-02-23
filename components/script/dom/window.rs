@@ -558,6 +558,33 @@ impl Window {
         }
         event.dispatch(self.upcast(), true)
     }
+
+    // https://html.spec.whatwg.org/multipage/#document-tree-child-browsing-context-name-property-set
+    fn child_browsing_context_name_property_set(&self) -> Vec<DOMString> {
+        let document = self.Document();
+        // Step 1.
+        if !document.has_browsing_context() {
+            return Vec::<DOMString>::new();
+        }
+
+        // Step 2.
+        let child_browsing_context_names = document
+            .iter_iframes()
+            .map(|iframe| iframe.GetContentWindow())
+            .filter(|window_proxy| window_proxy.is_some())
+            .map(|window_proxy| window_proxy.unwrap().get_name())
+            .filter(|name| !name.is_empty())
+            .collect::<Vec<DOMString>>();
+        // TODO(pylbrecht)
+        // - "in order"
+        // - only the first document-tree child browsing context with a given name if multiple
+        //   document-tree child browsing contexts have the same one
+
+        // TODO(pylbrecht)
+        // Step 3.
+
+        child_browsing_context_names
+    }
 }
 
 // https://html.spec.whatwg.org/multipage/#atob
@@ -1406,6 +1433,7 @@ impl WindowMethods for Window {
         let document = self.Document();
 
         // TODO: Handle the document-tree child browsing context name property set.
+        let _child_browsing_context_names = self.child_browsing_context_name_property_set();
 
         // Step 1.
         let elements_with_name = document.get_elements_with_name(&name);
