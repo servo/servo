@@ -10,22 +10,27 @@ const dispatcher_path =
     '/html/cross-origin-opener-policy/reporting/resources/dispatcher.py';
 const dispatcher_url = new URL(dispatcher_path, location.href).href;
 
-const send = function(uuid, message) {
-  fetch(dispatcher_url + `?uuid=${uuid}`, {
-    method: 'POST',
-    body: message
+const send = async function(uuid, message) {
+  // The official web-platform-test runner sometimes drop POST requests when
+  // many are requested in parallel. Using a lock fixes the issue.
+  await navigator.locks.request("dispatcher_send", async lock => {
+    await fetch(dispatcher_url + `?uuid=${uuid}`, {
+      method: 'POST',
+      body: message
+    });
   });
 }
 
 const receive = async function(uuid, maybe_timeout) {
   const timeout = maybe_timeout || Infinity;
-  const retry_delay = 100;
-  for(let i = 0; i * retry_delay < timeout; ++i) {
+  let start = performance.now();
+  while(performance.now() - start < timeout) {
     let response = await fetch(dispatcher_url + `?uuid=${uuid}`);
     let data = await response.text();
     if (data != 'not ready')
       return data;
-    await new Promise(r => step_timeout(r, retry_delay));
+    // Save resources & spread the load:
+    await new Promise(r => setTimeout(r, 100*Math.random()));
   }
   return "timeout";
 }

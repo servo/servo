@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tests the second parameter of the advance-override descriptor of @font-face</title>
+<style>
+@font-face {
+  font-family: custom-font;
+  src: local(Ahem), url(/fonts/Ahem.ttf);
+  unicode-range: U+0-7F; /* ASCII only */
+}
+
+.test {
+  font: 20px custom-font, sans-serif;
+  border: 1px solid red;
+  width: max-content;
+}
+
+.vertical {
+  writing-mode: vertical-rl;
+}
+
+.upright {
+  text-orientation: upright;
+}
+</style>
+
+<p>advance-override uses the second parameter to override advance of upright characters in vertical text.</p>
+
+<div class="test">X&nbsp;X&nbsp;X&nbsp;</div>
+
+<div class="test vertical">X&nbsp;X&nbsp;X&nbsp;</div>
+
+<div class="test vertical upright">X&nbsp;&nbsp;X&nbsp;&nbsp;X&nbsp;&nbsp;</div>
