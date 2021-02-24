@@ -3,11 +3,15 @@
 <title>CSS Color 4: The RGB hexadecimal notations: #RRGGBB</title>
 <link rel="author" title="Chris Lilley" href="mailto:chris@w3.org">
 <link rel="help" href="https://drafts.csswg.org/css-color-4/#hex-notation">
-<link rel="match" href="greentext-ref.html">
+<link rel="match" href="greensquare-ref.html">
 <meta name="assert" content="8 digit hex, fully opaque">
 <style>
-    .test {color: #008000FF}
+    .test { background-color: red; width: 12em; height: 6em; margin-top:0}
+    .ref { background-color: #008000; width: 12em; height: 6em; margin-bottom: 0}
+    .test { background-color: #008000FF}
 </style>
 <body>
-    <p class="test">Test passes if this text is green</p>
+    <p>Test passes if you see a green square, and no red.</p>
+    <p class="ref"> </p>
+    <p class="test"> </p>
 </body>

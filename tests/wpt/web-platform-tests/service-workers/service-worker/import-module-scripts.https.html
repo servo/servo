@@ -9,7 +9,7 @@
 <script>
 function import_test(testCase) {
   promise_test(async t => {
-    const msgPromise = new Promise(resolve => {
+    const msgPromise1 = new Promise(resolve => {
       navigator.serviceWorker.onmessage = resolve;
     });
     await service_worker_unregister(t, testCase.scriptURL);
@@ -19,8 +19,18 @@ function import_test(testCase) {
       { scope: testCase.scriptURL, type: 'module' });
     registration.installing.postMessage(
       'Send message for tests from main script.');
-    const msgEvent = await msgPromise;
-    assert_array_equals(msgEvent.data, testCase.expectation);
+    const msgEvent1 = await msgPromise1;
+    assert_array_equals(msgEvent1.data, testCase.expectation);
+
+    // Tests importing module scripts for updated service workers.
+    const msgPromise2 = new Promise(resolve => {
+      navigator.serviceWorker.onmessage = resolve;
+    });
+    await registration.update();
+    const worker = registration.installing ? registration.installing : registration.active;
+    worker.postMessage('Send message for tests from main script.');
+    const msgEvent2 = await msgPromise2;
+    assert_array_equals(msgEvent2.data, testCase.expectation);
   }, testCase.description);
 }
 

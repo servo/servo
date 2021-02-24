@@ -2,7 +2,19 @@
 <html class="reftest-wait">
 <link rel="match" href="transform-interpolation-ref.html?skew">
 <link rel="help" href="https://drafts.csswg.org/css-transforms/">
-
+<!--
+Fuzzy match is needed because the browser may raster in different scales for the
+test and the reference. For example, in the first case the test animates skew
+from 0deg to 60deg and take snapshot when the skew is 30deg, while the reference
+animates skew from 30deg to 30deg, and the browser may choose a higher raster
+scale for the former because at 60deg the ideal scale is higher.
+  3000: 130 * 6 * 2 + 80 * 9 * 2
+  130, 80: width and height of the div
+  6: number of antialiased horizontal edges
+  9: number of antialiased vertical edges
+  2: number of antialiased pixels for each pixel on the edge
+-->
+<meta name=fuzzy content="0-255;0-3000">
 <script src="../../../common/reftest-wait.js"></script>
 <script src="support/transform-interpolation-reftests.js"></script>
 

@@ -6,19 +6,8 @@
 <script>
 setup({explicit_done:true});
 window.onmessage = function(e) {
-    var actual = e.data;
     test(function() {
-        // Make the difference between Firefox and Chrome visible separately
-        // from the comparison of the entire log string failing to match.
-        var endedWith = false;
-        if (actual.endsWith(",willspineventloop,")) {
-            endedWith = true;
-            actual += "innerbodyfocus,";
-        }
-        assert_true(endedWith, "Should not have gotten innerbodyfocus after willspineventloop");
-    }, "Check trailing events");
-    test(function() {
-        assert_equals(actual, "outerparse,activeElement:BODY,willfocusiframe,didfocusiframe,activeElement:IFRAME,willbluriframe,didbluriframe,activeElement:IFRAME,willspineventloop,innerbodyfocus,", 'Check log');
+        assert_equals(e.data, "outerparse,activeElement:BODY,willfocusiframe,didfocusiframe,activeElement:IFRAME,willbluriframe,didbluriframe,activeElement:IFRAME,willspineventloop,", 'Check log');
     }, "Check result");
     w.close();
     done();
