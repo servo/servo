@@ -2030,7 +2030,6 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::Target |
             NonTSPseudoClass::Valid |
             NonTSPseudoClass::Invalid |
-            NonTSPseudoClass::MozUIValid |
             NonTSPseudoClass::MozBroken |
             NonTSPseudoClass::MozLoading |
             NonTSPseudoClass::Required |
@@ -2047,7 +2046,8 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::OutOfRange |
             NonTSPseudoClass::Default |
             NonTSPseudoClass::MozSubmitInvalid |
-            NonTSPseudoClass::MozUIInvalid |
+            NonTSPseudoClass::UserValid |
+            NonTSPseudoClass::UserInvalid |
             NonTSPseudoClass::MozMeterOptimum |
             NonTSPseudoClass::MozMeterSubOptimum |
             NonTSPseudoClass::MozMeterSubSubOptimum |

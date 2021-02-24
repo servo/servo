@@ -103,6 +103,8 @@ impl NonTSPseudoClass {
                     "-moz-read-only" => Some(NonTSPseudoClass::ReadOnly),
                     "-moz-read-write" => Some(NonTSPseudoClass::ReadWrite),
                     "-moz-focusring" => Some(NonTSPseudoClass::FocusVisible),
+                    "-moz-ui-valid" => Some(NonTSPseudoClass::UserValid),
+                    "-moz-ui-invalid" => Some(NonTSPseudoClass::UserInvalid),
                     "-webkit-autofill" => Some(NonTSPseudoClass::Autofill),
                     _ => None,
                 }
