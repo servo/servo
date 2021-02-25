@@ -356,10 +356,10 @@ def uwp_nightly(rdp=False):
             "secrets:get:project/servo/windows-codesign-cert/latest",
         )
         .with_script(
-            "python3 mach build --release --target=x86_64-uwp-windows-msvc",
-            "python3 mach build --release --target=aarch64-uwp-windows-msvc",
-            "python3 mach package --release --target=x86_64-uwp-windows-msvc --uwp=x64 --uwp=arm64",
-            "python3 mach upload-nightly uwp --secret-from-taskcluster",
+            "python mach build --release --target=x86_64-uwp-windows-msvc",
+            "python mach build --release --target=aarch64-uwp-windows-msvc",
+            "python mach package --release --target=x86_64-uwp-windows-msvc --uwp=x64 --uwp=arm64",
+            "python mach upload-nightly uwp --secret-from-taskcluster",
         )
         .with_artifacts(appx_artifact)
         .with_max_run_time_minutes(3 * 60)
