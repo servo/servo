@@ -10,15 +10,12 @@ use style_traits::{CssWriter, ToCss};
 
 /// A generic value for the `<ratio>` value.
 #[derive(
-    Animate,
     Clone,
-    ComputeSquaredDistance,
     Copy,
     Debug,
     MallocSizeOf,
     PartialEq,
     SpecifiedValueInfo,
-    ToAnimatedZero,
     ToComputedValue,
     ToResolvedValue,
     ToShmem,
