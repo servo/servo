@@ -35,16 +35,8 @@ promise_test(async t => {
 
   let candidates1to2 = [];
   let candidates2to1 = [];
-  pc1.onicecandidate = event => {
-    if (event.candidate) {
-      candidates1to2.push(event.candidate);
-    }
-  }
-  pc2.onicecandidate = event => {
-    if (event.candidate) {
-      candidates2to1.push(event.candidate);
-    }
-  }
+  pc1.onicecandidate = e => candidates1to2.push(e.candidate);
+  pc2.onicecandidate = e => candidates2to1.push(e.candidate);
   const pc2GatheredCandidates = new Promise((resolve) => {
     pc2.addEventListener('icegatheringstatechange', () => {
       if (pc2.iceGatheringState == 'complete') {
@@ -74,16 +66,8 @@ promise_test(async t => {
 
   let candidates1to2 = [];
   let candidates2to1 = [];
-  pc1.onicecandidate = event => {
-    if (event.candidate) {
-      candidates1to2.push(event.candidate);
-    }
-  }
-  pc2.onicecandidate = event => {
-    if (event.candidate) {
-      candidates2to1.push(event.candidate);
-    }
-  }
+  pc1.onicecandidate = e => candidates1to2.push(e.candidate);
+  pc2.onicecandidate = e => candidates2to1.push(e.candidate);
   const pc1GatheredCandidates = new Promise((resolve) => {
     pc1.addEventListener('icegatheringstatechange', () => {
       if (pc1.iceGatheringState == 'complete') {

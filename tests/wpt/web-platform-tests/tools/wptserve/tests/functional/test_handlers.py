@@ -436,12 +436,12 @@ class TestServiceWorkersHandler(TestWrapperHandlerUsingServer):
                               'text/html', serve.ServiceWorkersHandler)
 
 
-class TestAnyWorkerHandler(TestWrapperHandlerUsingServer):
+class TestClassicWorkerHandler(TestWrapperHandlerUsingServer):
     dummy_files = {'bar.any.js': b''}
 
     def test_any_work_js(self):
         self.run_wrapper_test('bar.any.worker.js', 'text/javascript',
-                              serve.AnyWorkerHandler)
+                              serve.ClassicWorkerHandler)
 
 
 if __name__ == '__main__':

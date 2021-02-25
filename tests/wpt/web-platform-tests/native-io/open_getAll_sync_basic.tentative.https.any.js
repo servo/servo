@@ -4,12 +4,13 @@
 'use strict';
 
 test(testCase => {
-  const file = nativeIO.openSync('test_file');
+  const file = storageFoundation.openSync('test_file');
   testCase.add_cleanup(() => {
-    nativeIO.deleteSync('test_file');
+    storageFoundation.deleteSync('test_file');
   });
   file.close();
 
-  const fileNames = nativeIO.getAllSync();
+  const fileNames = storageFoundation.getAllSync();
   assert_in_array('test_file', fileNames);
-}, 'nativeIO.getAllSync returns file created by nativeIO.openSync');
+}, 'storageFoundation.getAllSync returns file created by' +
+     ' storageFoundation.openSync');

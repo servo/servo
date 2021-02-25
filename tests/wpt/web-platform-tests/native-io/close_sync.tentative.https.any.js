@@ -7,10 +7,10 @@
 //
 // The file will be closed and deleted when the test ends.
 function createFileSync(testCase, fileName) {
-  const file = nativeIO.openSync(fileName);
+  const file = storageFoundation.openSync(fileName);
   testCase.add_cleanup(() => {
     file.close();
-    nativeIO.deleteSync(fileName);
+    storageFoundation.deleteSync(fileName);
   });
 
   const writtenBytes = Uint8Array.from([64, 65, 66, 67]);

@@ -7,6 +7,7 @@
 -->
 <link rel="preload" as="style" crossorigin href="resources/dummy.css?link-header-crossorigin-preload2">
 <link rel="stylesheet" crossorigin href="resources/dummy.css?link-header-crossorigin-preload2">
+<script src="resources/dummy.js?link-header-preload2"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/preload/resources/preload_helper.js"></script>
@@ -18,7 +19,8 @@
 
     function check_finished() {
         if (numberOfResourceTimingEntries("resources/square.png?link-header-preload") == 1 &&
-            numberOfResourceTimingEntries("resources/dummy.js?link-header-preload") == 1 &&
+            numberOfResourceTimingEntries("resources/dummy.js?link-header-preload1") == 1 &&
+            numberOfResourceTimingEntries("resources/dummy.js?link-header-preload2") == 1 &&
             numberOfResourceTimingEntries("resources/dummy.css?link-header-preload") == 1 &&
             numberOfResourceTimingEntries("resources/dummy.css?link-header-crossorigin-preload1") == 1 &&
             numberOfResourceTimingEntries("resources/dummy.css?link-header-crossorigin-preload2") == 1) {
@@ -28,7 +30,8 @@
         if (iterations == 10) {
             // At least one is expected to fail, but this should give details to the exact failure(s).
             verifyNumberOfResourceTimingEntries("resources/square.png?link-header-preload", 1);
-            verifyNumberOfResourceTimingEntries("resources/dummy.js?link-header-preload", 1);
+            verifyNumberOfResourceTimingEntries("resources/dummy.js?link-header-preload1", 1);
+            verifyNumberOfResourceTimingEntries("resources/dummy.js?link-header-preload2", 1);
             verifyNumberOfResourceTimingEntries("resources/dummy.css?link-header-preload", 1);
             verifyNumberOfResourceTimingEntries("resources/dummy.css?link-header-crossorigin-preload1", 1);
             verifyNumberOfResourceTimingEntries("resources/dummy.css?link-header-crossorigin-preload2", 1);

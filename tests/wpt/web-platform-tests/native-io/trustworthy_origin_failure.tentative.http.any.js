@@ -4,6 +4,6 @@
 'use strict';
 
 test(testCase => {
-  var present = (typeof nativeIO !== 'undefined');
+  var present = (typeof storageFoundation !== 'undefined');
   assert_false(present);
 }, 'NativeIO should not be accessible from an untrustworthy origin');

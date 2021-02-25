@@ -6,10 +6,10 @@
 'use strict';
 
 promise_test(async testCase => {
-  const file = await nativeIO.open('test_file');
+  const file = await storageFoundation.open('test_file');
   testCase.add_cleanup(async () => {
     await file.close();
-    await nativeIO.delete('test_file');
+    await storageFoundation.delete('test_file');
   });
 
   const size = 1024;

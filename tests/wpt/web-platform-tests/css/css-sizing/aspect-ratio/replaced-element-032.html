@@ -23,12 +23,16 @@ img {
        border-top is 20x40 and the content box is 20x60.
        (note: height here is the block size of content-box.)
 
-  3rd: A green rect 20x100.
-       border-top is 20x40 and the content box is 20x60 because we compute
+  3rd: A green rect 10x100.
+       border-top is 10x40 and the content box is 10x60 because we compute
        the inline size by aspect-ratio which works with border-box and so the
-       inline size is 100px / 5 = 20px.
+       inline size is 100px / 10 = 10px.
        (note: height here is the block size of border-box.)
+
+  4th: A green rect 10x100.
+       border-top is 10x40 and the content box is 10x60 to add up to 10x100.
 -->
 <img src="support/1x1-green.png" style="height: 100px; aspect-ratio: auto 1/10; box-sizing: border-box;"
 ><img src="support/1x1-green.png" style="height: 60px; aspect-ratio: 1/3; box-sizing: content-box;"
-><img src="support/1x1-green.png" style="height: 100px; aspect-ratio: 1/5; box-sizing: border-box;">
+><img src="support/1x1-green.png" style="height: 100px; aspect-ratio: 1/10; box-sizing: border-box;"
+><img src="support/1x1-green.png" style="width: 10px; aspect-ratio: 1/6; box-sizing: content-box;">

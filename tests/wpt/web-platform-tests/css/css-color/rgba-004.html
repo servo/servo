@@ -6,8 +6,12 @@
 <link rel="match" href="greentext-ref.html">
 <meta name="assert" content="legacy rgba() with 8-bit numbers and numeric alpha, also no comma">
 <style>
-    .test {color: rgba(0 128.0 0 / 1)}
+    .test { background-color: red; width: 12em; height: 6em; margin-top:0}
+    .ref { background-color: #008000; width: 12em; height: 6em; margin-bottom: 0}
+    .test { background-color: rgba(0 128.0 0 / 1)}
 </style>
 <body>
-    <p class="test">Test passes if this text is green</p>
+    <p>Test passes if you see a green square, and no red.</p>
+    <p class="ref"> </p>
+    <p class="test"> </p>
 </body>

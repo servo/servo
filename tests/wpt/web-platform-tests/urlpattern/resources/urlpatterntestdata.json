@@ -226,7 +226,23 @@
     }
   },
   {
+    "pattern": { "pathname": "/foo/*" },
+    "input": { "pathname": "/foo/bar" },
+    "expected": {
+      "input": { "pathname": "/foo/bar" },
+      "pathname": { "input": "/foo/bar", "groups": { "0": "bar" } }
+    }
+  },
+  {
     "pattern": { "pathname": "/foo/(.*)" },
+    "input": { "pathname": "/foo/bar/baz" },
+    "expected": {
+      "input": { "pathname": "/foo/bar/baz" },
+      "pathname": { "input": "/foo/bar/baz", "groups": { "0": "bar/baz" } }
+    }
+  },
+  {
+    "pattern": { "pathname": "/foo/*" },
     "input": { "pathname": "/foo/bar/baz" },
     "expected": {
       "input": { "pathname": "/foo/bar/baz" },
@@ -242,7 +258,20 @@
     }
   },
   {
+    "pattern": { "pathname": "/foo/*" },
+    "input": { "pathname": "/foo/" },
+    "expected": {
+      "input": { "pathname": "/foo/" },
+      "pathname": { "input": "/foo/", "groups": { "0": "" } }
+    }
+  },
+  {
     "pattern": { "pathname": "/foo/(.*)" },
+    "input": { "pathname": "/foo" },
+    "expected": null
+  },
+  {
+    "pattern": { "pathname": "/foo/*" },
     "input": { "pathname": "/foo" },
     "expected": null
   },
@@ -380,7 +409,23 @@
     }
   },
   {
+    "pattern": { "pathname": "/foo/*?" },
+    "input": { "pathname": "/foo/bar" },
+    "expected": {
+      "input": { "pathname": "/foo/bar" },
+      "pathname": { "input": "/foo/bar", "groups": { "0": "bar" } }
+    }
+  },
+  {
     "pattern": { "pathname": "/foo/(.*)?" },
+    "input": { "pathname": "/foo/bar/baz" },
+    "expected": {
+      "input": { "pathname": "/foo/bar/baz" },
+      "pathname": { "input": "/foo/bar/baz", "groups": { "0": "bar/baz" } }
+    }
+  },
+  {
+    "pattern": { "pathname": "/foo/*?" },
     "input": { "pathname": "/foo/bar/baz" },
     "expected": {
       "input": { "pathname": "/foo/bar/baz" },
@@ -396,7 +441,23 @@
     }
   },
   {
+    "pattern": { "pathname": "/foo/*?" },
+    "input": { "pathname": "/foo" },
+    "expected": {
+      "input": { "pathname": "/foo" },
+      "pathname": { "input": "/foo", "groups": { "0": "" } }
+    }
+  },
+  {
     "pattern": { "pathname": "/foo/(.*)?" },
+    "input": { "pathname": "/foo/" },
+    "expected": {
+      "input": { "pathname": "/foo/" },
+      "pathname": { "input": "/foo/", "groups": { "0": "" } }
+    }
+  },
+  {
+    "pattern": { "pathname": "/foo/*?" },
     "input": { "pathname": "/foo/" },
     "expected": {
       "input": { "pathname": "/foo/" },
@@ -409,12 +470,30 @@
     "expected": null
   },
   {
+    "pattern": { "pathname": "/foo/*?" },
+    "input": { "pathname": "/foobar" },
+    "expected": null
+  },
+  {
     "pattern": { "pathname": "/foo/(.*)?" },
     "input": { "pathname": "/fo" },
     "expected": null
   },
   {
+    "pattern": { "pathname": "/foo/*?" },
+    "input": { "pathname": "/fo" },
+    "expected": null
+  },
+  {
     "pattern": { "pathname": "/foo/(.*)+" },
+    "input": { "pathname": "/foo/bar" },
+    "expected": {
+      "input": { "pathname": "/foo/bar" },
+      "pathname": { "input": "/foo/bar", "groups": { "0": "bar" } }
+    }
+  },
+  {
+    "pattern": { "pathname": "/foo/*+" },
     "input": { "pathname": "/foo/bar" },
     "expected": {
       "input": { "pathname": "/foo/bar" },
@@ -430,7 +509,20 @@
     }
   },
   {
+    "pattern": { "pathname": "/foo/*+" },
+    "input": { "pathname": "/foo/bar/baz" },
+    "expected": {
+      "input": { "pathname": "/foo/bar/baz" },
+      "pathname": { "input": "/foo/bar/baz", "groups": { "0": "bar/baz" } }
+    }
+  },
+  {
     "pattern": { "pathname": "/foo/(.*)+" },
+    "input": { "pathname": "/foo" },
+    "expected": null
+  },
+  {
+    "pattern": { "pathname": "/foo/*+" },
     "input": { "pathname": "/foo" },
     "expected": null
   },
@@ -443,12 +535,30 @@
     }
   },
   {
+    "pattern": { "pathname": "/foo/*+" },
+    "input": { "pathname": "/foo/" },
+    "expected": {
+      "input": { "pathname": "/foo/" },
+      "pathname": { "input": "/foo/", "groups": { "0": "" } }
+    }
+  },
+  {
     "pattern": { "pathname": "/foo/(.*)+" },
     "input": { "pathname": "/foobar" },
     "expected": null
   },
   {
+    "pattern": { "pathname": "/foo/*+" },
+    "input": { "pathname": "/foobar" },
+    "expected": null
+  },
+  {
     "pattern": { "pathname": "/foo/(.*)+" },
+    "input": { "pathname": "/fo" },
+    "expected": null
+  },
+  {
+    "pattern": { "pathname": "/foo/*+" },
     "input": { "pathname": "/fo" },
     "expected": null
   },
@@ -461,7 +571,23 @@
     }
   },
   {
+    "pattern": { "pathname": "/foo/**" },
+    "input": { "pathname": "/foo/bar" },
+    "expected": {
+      "input": { "pathname": "/foo/bar" },
+      "pathname": { "input": "/foo/bar", "groups": { "0": "bar" } }
+    }
+  },
+  {
     "pattern": { "pathname": "/foo/(.*)*" },
+    "input": { "pathname": "/foo/bar/baz" },
+    "expected": {
+      "input": { "pathname": "/foo/bar/baz" },
+      "pathname": { "input": "/foo/bar/baz", "groups": { "0": "bar/baz" } }
+    }
+  },
+  {
+    "pattern": { "pathname": "/foo/**" },
     "input": { "pathname": "/foo/bar/baz" },
     "expected": {
       "input": { "pathname": "/foo/bar/baz" },
@@ -477,7 +603,23 @@
     }
   },
   {
+    "pattern": { "pathname": "/foo/**" },
+    "input": { "pathname": "/foo" },
+    "expected": {
+      "input": { "pathname": "/foo" },
+      "pathname": { "input": "/foo", "groups": { "0": "" } }
+    }
+  },
+  {
     "pattern": { "pathname": "/foo/(.*)*" },
+    "input": { "pathname": "/foo/" },
+    "expected": {
+      "input": { "pathname": "/foo/" },
+      "pathname": { "input": "/foo/", "groups": { "0": "" } }
+    }
+  },
+  {
+    "pattern": { "pathname": "/foo/**" },
     "input": { "pathname": "/foo/" },
     "expected": {
       "input": { "pathname": "/foo/" },
@@ -490,7 +632,17 @@
     "expected": null
   },
   {
+    "pattern": { "pathname": "/foo/**" },
+    "input": { "pathname": "/foobar" },
+    "expected": null
+  },
+  {
     "pattern": { "pathname": "/foo/(.*)*" },
+    "input": { "pathname": "/fo" },
+    "expected": null
+  },
+  {
+    "pattern": { "pathname": "/foo/**" },
     "input": { "pathname": "/fo" },
     "expected": null
   },

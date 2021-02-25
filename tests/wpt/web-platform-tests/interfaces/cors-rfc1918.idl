@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: CORS and RFC1918 (https://wicg.github.io/private-network-access/)
+// Source: Private Network Access (https://wicg.github.io/private-network-access/)
 
 enum AddressSpace { "local", "private", "public" };
 

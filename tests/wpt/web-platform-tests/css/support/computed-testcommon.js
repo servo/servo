@@ -36,6 +36,23 @@ function test_computed_value(property, specified, computed, titleExtra) {
   }, `Property ${property} value '${specified}'${titleExtra ? ' ' + titleExtra : ''}`);
 }
 
+function test_computed_value_greater_or_lower_than(property, specified, expected, titleExtra) {
+    test(() => {
+      const target = document.getElementById('target');
+      assert_true(property in getComputedStyle(target), property + " doesn't seem to be supported in the computed style");
+      assert_true(CSS.supports(property, specified), "'" + specified + "' is a supported value for " + property + ".");
+      target.style[property] = '';
+      target.style[property] = specified;
+      let readValue = parseFloat(getComputedStyle(target)[property]);
+      assert_true(isFinite(readValue), specified + " expected finite value but got " + readValue)
+      assert_false(isNaN(readValue),   specified + " expected finite value but got " + readValue)
+      if (expected > 0)
+        assert_greater_than_equal(readValue, expected, specified);
+      else
+        assert_less_than_equal(readValue, expected, specified);
+  }, `Property ${property} value '${specified}'${titleExtra ? ' ' + titleExtra : ''}`);
+}
+
 function test_pseudo_computed_value(pseudo, property, specified, computed, titleExtra) {
   if (!computed)
     computed = specified;

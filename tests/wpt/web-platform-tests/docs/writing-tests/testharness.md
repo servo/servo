@@ -140,6 +140,8 @@ It is possible to customize the set of scopes with a metadata comment, such as
 //       ==> would only run in the window and service worker scope
 // META: global=dedicatedworker
 //       ==> would run in the default dedicated worker scope
+// META: global=dedicatedworker-module
+//       ==> would run in the dedicated worker scope as a module
 // META: global=worker
 //       ==> would run in the dedicated, shared, and service worker scopes
 ```
@@ -149,8 +151,13 @@ are:
 
 * `window` (default): to be run at <code><var>x</var>.any.html</code>
 * `dedicatedworker` (default): to be run at <code><var>x</var>.any.worker.html</code>
-* `serviceworker`: to be run at <code><var>x</var>.any.serviceworker.html</code> (`.https` is implied)
+* `dedicatedworker-module` to be run at <code><var>x</var>.any.worker-module.html</code>
+* `serviceworker`: to be run at <code><var>x</var>.any.serviceworker.html</code> (`.https` is
+  implied)
+* `serviceworker-module`: to be run at <code><var>x</var>.any.serviceworker-module.html</code>
+  (`.https` is implied)
 * `sharedworker`: to be run at <code><var>x</var>.any.sharedworker.html</code>
+* `sharedworker-module`: to be run at <code><var>x</var>.any.sharedworker-module.html</code>
 * `jsshell`: to be run in a JavaScript shell, without access to the DOM
   (currently only supported in SpiderMonkey, and skipped in wptrunner)
 * `worker`: shorthand for the dedicated, shared, and service worker scopes
@@ -182,6 +189,10 @@ Use `// META: script=link/to/resource.js` at the beginning of the resource. For 
 ```
 
 can be used to include both the global and a local `utils.js` in a test.
+
+In window environments, the script will be included using a classic `<script>` tag. In classic
+worker environments, the script will be imported using `importScripts()`. In module worker
+environments, the script will be imported using a static `import`.
 
 ### Specifying a timeout of long
 

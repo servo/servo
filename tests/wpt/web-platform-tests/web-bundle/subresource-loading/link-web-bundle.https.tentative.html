@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<title>A link element with rel="webbundle"</title>
+<link
+  rel="help"
+  href="https://github.com/WICG/webpackage/blob/master/explainers/subresource-loading.md"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <link id="link_empty" />
+  <link id="link_web_bundle_1" rel="webbundle" />
+  <link id="link_web_bundle_2" rel="webbundle" resources="foo" />
+  <link id="link_web_bundle_3" rel="webbundle" scopes="bar" />
+  <script>
+    test(() => {
+      assert_false(
+        "resources" in Element.prototype,
+        "resources must not be defined on Element prototype"
+      );
+      assert_true(
+        "resources" in HTMLLinkElement.prototype,
+        "resources must be defined on HTMLLinkElement prototype"
+      );
+    }, "resources must be defined on HTMLLinkElement prototype");
+
+    test(() => {
+      assert_false(
+        "scopes" in Element.prototype,
+        "scopes must not be defined on Element prototype"
+      );
+      assert_true(
+        "scopes" in HTMLLinkElement.prototype,
+        "scopes must be defined on HTMLLinkElement prototype"
+      );
+    }, "scopes must be defined on HTMLLinkElement prototype");
+
+    test(() => {
+      const link = document.createElement("link");
+      assert_true(link.relList.supports("webbundle"));
+    }, "webbundle must be a supported token of a link element's relList");
+
+    test(() => {
+      const link_web_bundle = document.querySelector("#link_web_bundle_1");
+      assert_equals(
+        link_web_bundle.getAttribute("rel"),
+        "webbundle",
+        "rel attribute must return webbundle"
+      );
+      assert_true(
+        link_web_bundle.relList.contains("webbundle"),
+        "relList must contain webbundle for <link rel=webbundle>."
+      );
+      assert_false(
+        document.querySelector("#link_empty").relList.contains("webbundle"),
+        "relList must not contain webbundle for <link>"
+      );
+    }, "relList must contain webbundle if rel attribute contains it");
+
+    test(() => {
+      assert_equals(
+        document.querySelector("#link_web_bundle_1").getAttribute("resources"),
+        null,
+        "resources attribute must return null when the attribute is not given"
+      );
+      assert_equals(
+        document.querySelector("#link_web_bundle_2").getAttribute("resources"),
+        "foo",
+        "resources attribute must return the specified value"
+      );
+      assert_equals(
+        document.querySelector("#link_web_bundle_2").getAttribute("scopes"),
+        null,
+        "scopes attribute must return null when the attribute is not given"
+      );
+      assert_equals(
+        document.querySelector("#link_web_bundle_3").getAttribute("scopes"),
+        "bar",
+        "scopes attribute must return the specified value"
+      );
+      // TODO: Test more variant of resoruces attribute values.
+    }, "resoruces and scopes attribute must return null or specified value");
+
+    test(() => {
+      const link = document.createElement("link");
+      assert_class_string(link.resources, "DOMTokenList");
+      assert_equals(
+        String(link.resources.value),
+        "",
+        "resources.value should return the empty list for an undefined resources attribute"
+      );
+      link.setAttribute(
+        "resources",
+        "https://test1.example.com https://test2.example.com "
+      );
+      assert_array_equals(link.resources, [
+        "https://test1.example.com",
+        "https://test2.example.com"
+      ]);
+    }, "resources must be DOMTokenList");
+
+    test(() => {
+      const link = document.createElement("link");
+      assert_class_string(link.scopes, "DOMTokenList");
+      assert_equals(
+        String(link.scopes.value),
+        "",
+        "scopes.value should return the empty list for an undefined scopes attribute"
+      );
+      link.setAttribute(
+        "scopes",
+        "https://test1.example.com https://test2.example.com "
+      );
+      assert_array_equals(link.scopes, [
+        "https://test1.example.com",
+        "https://test2.example.com"
+      ]);
+    }, "scopes must be DOMTokenList");
+  </script>
+</body>
