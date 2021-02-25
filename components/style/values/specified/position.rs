@@ -16,10 +16,9 @@ use crate::values::generics::position::AspectRatio as GenericAspectRatio;
 use crate::values::generics::position::Position as GenericPosition;
 use crate::values::generics::position::PositionComponent as GenericPositionComponent;
 use crate::values::generics::position::PositionOrAuto as GenericPositionOrAuto;
-use crate::values::generics::position::Ratio as GenericRatio;
 use crate::values::generics::position::ZIndex as GenericZIndex;
 use crate::values::specified::{AllowQuirks, Integer, LengthPercentage, NonNegativeNumber};
-use crate::{Atom, One, Zero};
+use crate::{Atom, Zero};
 use cssparser::Parser;
 use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
@@ -900,6 +899,7 @@ impl Parse for AspectRatio {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         use crate::values::generics::position::PreferredRatio;
+        use crate::values::specified::Ratio;
 
         let location = input.current_source_location();
         let mut auto = input.try_parse(|i| i.expect_ident_matching("auto"));
@@ -926,31 +926,13 @@ impl AspectRatio {
     /// Returns Self by a valid ratio.
     pub fn from_mapped_ratio(w: f32, h: f32) -> Self {
         use crate::values::generics::position::PreferredRatio;
+        use crate::values::generics::ratio::Ratio;
         AspectRatio {
             auto: true,
-            ratio: PreferredRatio::Ratio(GenericRatio(
+            ratio: PreferredRatio::Ratio(Ratio(
                 NonNegativeNumber::new(w),
                 NonNegativeNumber::new(h),
             )),
         }
-    }
-}
-
-/// A specified <ratio> value.
-pub type Ratio = GenericRatio<NonNegativeNumber>;
-
-// https://drafts.csswg.org/css-values-4/#ratios
-impl Parse for Ratio {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        let a = NonNegativeNumber::parse(context, input)?;
-        let b = match input.try_parse(|input| input.expect_delim('/')) {
-            Ok(()) => NonNegativeNumber::parse(context, input)?,
-            _ => One::one(),
-        };
-
-        Ok(GenericRatio(a, b))
     }
 }

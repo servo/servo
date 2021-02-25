@@ -5,8 +5,7 @@
 //! Generic types for CSS handling of specified and computed values of
 //! [`position`](https://drafts.csswg.org/css-backgrounds-3/#position)
 
-use std::fmt::{self, Write};
-use style_traits::{CssWriter, ToCss};
+use crate::values::generics::ratio::Ratio;
 
 /// A generic type for representing a CSS [position](https://drafts.csswg.org/css-values/#position).
 #[derive(
@@ -151,50 +150,6 @@ impl<Integer> ZIndex<Integer> {
             ZIndex::Integer(n) => n,
             ZIndex::Auto => auto,
         }
-    }
-}
-
-/// A generic value for the `<ratio>` value.
-#[derive(
-    Animate,
-    Clone,
-    ComputeSquaredDistance,
-    Copy,
-    Debug,
-    MallocSizeOf,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToAnimatedZero,
-    ToComputedValue,
-    ToResolvedValue,
-    ToShmem,
-)]
-#[repr(C)]
-pub struct Ratio<N>(pub N, pub N);
-
-impl<N> ToCss for Ratio<N>
-where
-    N: ToCss
-{
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        self.0.to_css(dest)?;
-        // Even though 1 could be omitted, we don't per
-        // https://drafts.csswg.org/css-values-4/#ratio-value:
-        //
-        //     The second <number> is optional, defaulting to 1. However,
-        //     <ratio> is always serialized with both components.
-        //
-        // And for compat reasons, see bug 1669742.
-        //
-        // We serialize with spaces for consistency with all other
-        // slash-delimited things, see
-        // https://github.com/w3c/csswg-drafts/issues/4282
-        dest.write_str(" / ")?;
-        self.1.to_css(dest)?;
-        Ok(())
     }
 }
 

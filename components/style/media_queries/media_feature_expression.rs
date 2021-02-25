@@ -15,8 +15,7 @@ use crate::parser::{Parse, ParserContext};
 #[cfg(feature = "servo")]
 use crate::servo::media_queries::MEDIA_FEATURES;
 use crate::str::{starts_with_ignore_ascii_case, string_as_ascii_lowercase};
-use crate::values::computed::position::Ratio;
-use crate::values::computed::{self, ToComputedValue};
+use crate::values::computed::{self, Ratio, ToComputedValue};
 use crate::values::specified::{Integer, Length, Number, Resolution};
 use crate::values::{serialize_atom_identifier, CSSFloat};
 use crate::{Atom, Zero};
@@ -498,15 +497,9 @@ impl MediaExpressionValue {
                 MediaExpressionValue::Float(number.get())
             },
             Evaluator::NumberRatio(..) => {
-                use crate::values::generics::position::Ratio as GenericRatio;
-                use crate::values::generics::NonNegative;
-                use crate::values::specified::position::Ratio;
-
-                let ratio = Ratio::parse(context, input)?;
-                MediaExpressionValue::NumberRatio(GenericRatio(
-                    NonNegative(ratio.0.get()),
-                    NonNegative(ratio.1.get()),
-                ))
+                use crate::values::specified::Ratio as SpecifiedRatio;
+                let ratio = SpecifiedRatio::parse(context, input)?;
+                MediaExpressionValue::NumberRatio(Ratio::new(ratio.0.get(), ratio.1.get()))
             },
             Evaluator::Resolution(..) => {
                 MediaExpressionValue::Resolution(Resolution::parse(context, input)?)
