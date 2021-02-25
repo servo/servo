@@ -110,7 +110,7 @@ fn is_unrooted_ty(sym: &Symbols, cx: &LateContext, ty: &ty::TyS, in_new_function
                 continue;
             },
         };
-        let recur_into_subtree = match t.kind {
+        let recur_into_subtree = match t.kind() {
             ty::Adt(did, substs) => {
                 let has_attr = |did, name| has_lint_attr(sym, &cx.tcx.get_attrs(did), name);
                 if has_attr(did.did, sym.must_root) {
@@ -121,7 +121,7 @@ fn is_unrooted_ty(sym: &Symbols, cx: &LateContext, ty: &ty::TyS, in_new_function
                 } else if match_def_path(cx, did.did, &[sym.alloc, sym.rc, sym.Rc]) {
                     // Rc<Promise> is okay
                     let inner = substs.type_at(0);
-                    if let ty::Adt(did, _) = inner.kind {
+                    if let ty::Adt(did, _) = inner.kind() {
                         if has_attr(did.did, sym.allow_unrooted_in_rc) {
                             false
                         } else {
@@ -132,8 +132,12 @@ fn is_unrooted_ty(sym: &Symbols, cx: &LateContext, ty: &ty::TyS, in_new_function
                     }
                 } else if match_def_path(cx, did.did, &[sym::core, sym.cell, sym.Ref]) ||
                     match_def_path(cx, did.did, &[sym::core, sym.cell, sym.RefMut]) ||
-                    match_def_path(cx, did.did, &[sym::core, sym.slice, sym.Iter]) ||
-                    match_def_path(cx, did.did, &[sym::core, sym.slice, sym.IterMut]) ||
+                    match_def_path(cx, did.did, &[sym::core, sym::slice, sym::iter, sym.Iter]) ||
+                    match_def_path(
+                        cx,
+                        did.did,
+                        &[sym::core, sym::slice, sym::iter, sym.IterMut],
+                    ) ||
                     match_def_path(cx, did.did, &[sym.accountable_refcell, sym.Ref]) ||
                     match_def_path(cx, did.did, &[sym.accountable_refcell, sym.RefMut]) ||
                     match_def_path(
@@ -383,13 +387,14 @@ impl<'a, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'tcx> {
 /// usage e.g. with
 /// `match_def_path(cx, id, &["core", "option", "Option"])`
 fn match_def_path(cx: &LateContext, def_id: DefId, path: &[Symbol]) -> bool {
-    let krate = &cx.tcx.crate_name(def_id.krate);
+    let def_path = cx.tcx.def_path(def_id);
+    let krate = &cx.tcx.crate_name(def_path.krate);
     if krate != &path[0] {
         return false;
     }
 
     let path = &path[1..];
-    let other = cx.tcx.def_path(def_id).data;
+    let other = def_path.data;
 
     if other.len() != path.len() {
         return false;
@@ -398,7 +403,7 @@ fn match_def_path(cx: &LateContext, def_id: DefId, path: &[Symbol]) -> bool {
     other
         .into_iter()
         .zip(path)
-        .all(|(e, p)| e.data.as_symbol() == *p)
+        .all(|(e, p)| e.data.get_opt_name().as_ref() == Some(p))
 }
 
 fn in_derive_expn(span: Span) -> bool {
@@ -438,7 +443,6 @@ symbols! {
     accountable_refcell
     Ref
     RefMut
-    slice
     Iter
     IterMut
     collections
