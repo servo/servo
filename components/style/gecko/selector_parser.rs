@@ -198,11 +198,12 @@ impl NonTSPseudoClass {
     /// revalidation.
     pub fn needs_cache_revalidation(&self) -> bool {
         self.state_flag().is_empty() &&
-            !matches!(*self,
-                      // :-moz-any is handled by the revalidation visitor walking
-                      // the things inside it; it does not need to cause
-                      // revalidation on its own.
-                      NonTSPseudoClass::MozAny(_) |
+            !matches!(
+                *self,
+                // :-moz-any is handled by the revalidation visitor walking
+                // the things inside it; it does not need to cause
+                // revalidation on its own.
+                NonTSPseudoClass::MozAny(_) |
                       // :dir() depends on state only, but doesn't use state_flag
                       // because its semantics don't quite match.  Nevertheless, it
                       // doesn't need cache revalidation, because we already compare

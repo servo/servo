@@ -29,7 +29,9 @@ use style_traits::{ParseError, StyleParseErrorKind};
 /// A pseudo-element, both public and private.
 ///
 /// NB: If you add to this list, be sure to update `each_simple_pseudo_element` too.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize, ToShmem)]
+#[derive(
+    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize, ToShmem,
+)]
 #[allow(missing_docs)]
 #[repr(usize)]
 pub enum PseudoElement {

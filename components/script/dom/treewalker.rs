@@ -467,7 +467,7 @@ impl<'a> Iterator for &'a TreeWalker {
             // which cannot produce an Err result.
             {
                 unreachable!()
-            },
+            }
         }
     }
 }
