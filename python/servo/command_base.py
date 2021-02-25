@@ -610,6 +610,14 @@ install them, let us know by filing a bug!")
             extra_path += [self.msvc_package_dir("nuget")]
             extra_path += [path.join(self.msvc_package_dir("xargo"))]
 
+            env.setdefault("CC", "clang-cl.exe")
+            env.setdefault("CXX", "clang-cl.exe")
+            if uwp:
+                env.setdefault("TARGET_CFLAGS", "")
+                env.setdefault("TARGET_CXXFLAGS", "")
+                env["TARGET_CFLAGS"] += " -DWINAPI_FAMILY=WINAPI_FAMILY_APP"
+                env["TARGET_CXXFLAGS"] += " -DWINAPI_FAMILY=WINAPI_FAMILY_APP"
+
             arch = (target or host_triple()).split('-')[0]
             vcpkg_arch = {
                 "x86_64": "x64-windows",
