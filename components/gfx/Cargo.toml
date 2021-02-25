@@ -59,4 +59,4 @@ xml-rs = "0.8"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 dwrote = "0.11"
-truetype = "0.26"
+truetype = "0.30"
