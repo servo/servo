@@ -241,7 +241,7 @@ def upload_docs():
             import urllib, json, os
             root_url = os.environ["TASKCLUSTER_PROXY_URL"]
             url = root_url + "/api/secrets/v1/secret/project/servo/doc.servo.org"
-            token = json.load(urlopen(url))["secret"]["token"]
+            token = json.load(urllib.request.urlopen(url))["secret"]["token"]
             open("/root/.git-credentials", "w").write("https://git:%s@github.com/" % token)
         """)
         .with_script("""
