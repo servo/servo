@@ -166,22 +166,22 @@ fn derive_struct_fields<'a>(
     true
 }
 
-#[darling(attributes(value_info), default)]
 #[derive(Default, FromDeriveInput)]
+#[darling(attributes(value_info), default)]
 struct ValueInfoInputAttrs {
     ty: Option<Ident>,
     other_values: Option<String>,
 }
 
-#[darling(attributes(value_info), default)]
 #[derive(Default, FromVariant)]
+#[darling(attributes(value_info), default)]
 struct ValueInfoVariantAttrs {
     starts_with_keyword: bool,
     other_values: Option<String>,
 }
 
-#[darling(attributes(value_info), default)]
 #[derive(Default, FromField)]
+#[darling(attributes(value_info), default)]
 struct ValueInfoFieldAttrs {
     other_values: Option<String>,
 }

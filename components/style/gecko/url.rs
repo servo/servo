@@ -21,8 +21,8 @@ use style_traits::{CssWriter, ParseError, ToCss};
 use to_shmem::{self, SharedMemoryBuilder, ToShmem};
 
 /// A CSS url() value for gecko.
-#[css(function = "url")]
 #[derive(Clone, Debug, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[css(function = "url")]
 #[repr(C)]
 pub struct CssUrl(pub Arc<CssUrlData>);
 

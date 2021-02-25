@@ -47,7 +47,6 @@ pub use self::GenericMatrix as Matrix;
 
 #[allow(missing_docs)]
 #[cfg_attr(rustfmt, rustfmt_skip)]
-#[css(comma, function = "matrix3d")]
 #[derive(
     Clone,
     Copy,
@@ -62,6 +61,7 @@ pub use self::GenericMatrix as Matrix;
     ToResolvedValue,
     ToShmem,
 )]
+#[css(comma, function = "matrix3d")]
 #[repr(C)]
 pub struct GenericMatrix3D<T> {
     pub m11: T, pub m12: T, pub m13: T, pub m14: T,

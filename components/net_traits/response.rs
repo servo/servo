@@ -312,7 +312,7 @@ impl Response {
             metadata.referrer_policy = response.referrer_policy.clone();
             metadata.redirected = response.actual_response().url_list.len() > 1;
             metadata
-        };
+        }
 
         if let Some(error) = self.get_network_error() {
             return Err(error.clone());

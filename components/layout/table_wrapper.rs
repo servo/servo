@@ -157,7 +157,7 @@ impl TableWrapperFlow {
             .zip(guesses.iter())
         {
             intermediate_column_inline_size.size = guess.calculate(selection);
-            intermediate_column_inline_size.percentage = 0.0;
+            // intermediate_column_inline_size.percentage = 0.0;
             total_used_inline_size = total_used_inline_size + intermediate_column_inline_size.size
         }
 
@@ -382,7 +382,7 @@ impl Flow for TableWrapperFlow {
             .map(
                 |column_intrinsic_inline_size| IntermediateColumnInlineSize {
                     size: column_intrinsic_inline_size.minimum_length,
-                    percentage: column_intrinsic_inline_size.percentage,
+                    // percentage: column_intrinsic_inline_size.percentage,
                 },
             )
             .collect::<Vec<_>>();
@@ -822,7 +822,9 @@ impl ExcessInlineSizeDistributionInfo {
 /// An intermediate column size assignment.
 struct IntermediateColumnInlineSize {
     size: Au,
-    percentage: f32,
+    // This used to be stored here but nothing used it,
+    // which started emitting a compiler warning: https://github.com/servo/servo/pull/28202
+    // percentage: f32,
 }
 
 /// Returns the computed inline size of the table wrapper represented by `block`.

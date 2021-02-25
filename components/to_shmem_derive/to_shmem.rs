@@ -65,14 +65,14 @@ pub fn derive(mut input: syn::DeriveInput) -> TokenStream {
     }
 }
 
-#[darling(attributes(shmem), default)]
 #[derive(Default, FromDeriveInput)]
+#[darling(attributes(shmem), default)]
 pub struct ShmemInputAttrs {
     pub no_bounds: bool,
 }
 
-#[darling(attributes(shmem), default)]
 #[derive(Default, FromField)]
+#[darling(attributes(shmem), default)]
 pub struct ShmemFieldAttrs {
     pub field_bound: bool,
 }

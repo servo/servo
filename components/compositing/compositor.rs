@@ -141,9 +141,6 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     /// the compositor.
     pub shutdown_state: ShutdownState,
 
-    /// Tracks the last composite time.
-    last_composite_time: u64,
-
     /// Tracks whether the zoom action has happened recently.
     zoom_action: bool,
 
@@ -320,7 +317,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             frame_tree_id: FrameTreeId(0),
             constellation_chan: state.constellation_chan,
             time_profiler_chan: state.time_profiler_chan,
-            last_composite_time: 0,
             ready_to_save_state: ReadyState::Unknown,
             webrender: state.webrender,
             webrender_document: state.webrender_document,
@@ -1579,8 +1575,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         if let Err(err) = self.webrender_surfman.present() {
             warn!("Failed to present surface: {:?}", err);
         }
-
-        self.last_composite_time = precise_time_ns();
 
         self.composition_request = CompositionRequest::NoCompositingNecessary;
 

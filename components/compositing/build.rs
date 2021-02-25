@@ -47,6 +47,6 @@ fn main() {
                 _ => panic!("Cannot find package definitions in lockfile"),
             }
         },
-        Err(e) => panic!(e),
+        Err(e) => panic!("{}", e),
     }
 }

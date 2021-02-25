@@ -132,12 +132,14 @@ impl Build {
             .get_field_name_mapping()
             .map(|pref_attr| pref_attr.value())
             .unwrap_or_else(|| {
-                path_stack
-                    .iter()
-                    .chain(iter::once(&field.name))
-                    .map(Ident::to_string)
-                    .intersperse(String::from("."))
-                    .collect()
+                Itertools::intersperse(
+                    path_stack
+                        .iter()
+                        .chain(iter::once(&field.name))
+                        .map(Ident::to_string),
+                    String::from("."),
+                )
+                .collect()
             })
     }
 

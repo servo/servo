@@ -101,10 +101,7 @@ impl Profiler {
                 let name_clone = name.clone();
                 match self.reporters.insert(name, reporter) {
                     None => true,
-                    Some(_) => panic!(format!(
-                        "RegisterReporter: '{}' name is already in use",
-                        name_clone
-                    )),
+                    Some(_) => panic!("RegisterReporter: '{}' name is already in use", name_clone),
                 }
             },
 
@@ -112,7 +109,7 @@ impl Profiler {
                 // Panic if it hasn't previously been registered.
                 match self.reporters.remove(&name) {
                     Some(_) => true,
-                    None => panic!(format!("UnregisterReporter: '{}' name is unknown", &name)),
+                    None => panic!("UnregisterReporter: '{}' name is unknown", &name),
                 }
             },
 

@@ -188,7 +188,7 @@ where
         Some(ref mut s) => (f)(s),
         None => Err("Servo not available in this thread"),
     }) {
-        Err(e) => panic!(e),
+        Err(e) => panic!("{}", e),
         Ok(r) => r,
     }
 }

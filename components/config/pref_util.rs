@@ -113,12 +113,7 @@ macro_rules! impl_from_pref {
                     if let $variant(value) = other {
                         value.into()
                     } else {
-                        panic!(
-                            format!("Cannot convert {:?} to {:?}",
-                                other,
-                                std::any::type_name::<$t>()
-                            )
-                        );
+                        panic!("Cannot convert {:?} to {:?}", other, std::any::type_name::<$t>())
                     }
                 }
             }

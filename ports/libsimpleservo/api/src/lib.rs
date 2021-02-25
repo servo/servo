@@ -174,7 +174,7 @@ pub struct ServoGlue {
     // and exit if it is empty afterwards.
     browsers: Vec<BrowserId>,
     events: Vec<WindowEvent>,
-    current_url: Option<ServoUrl>,
+
     context_menu_sender: Option<IpcSender<ContextMenuResult>>,
 }
 
@@ -306,7 +306,6 @@ pub fn init(
             browser_id: None,
             browsers: vec![],
             events: vec![],
-            current_url: Some(url.clone()),
             context_menu_sender: None,
         };
         let browser_id = BrowserId::new();
@@ -636,7 +635,6 @@ impl ServoGlue {
                     self.callbacks
                         .host_callbacks
                         .on_url_changed(entries[current].clone().to_string());
-                    self.current_url = Some(entries[current].clone());
                 },
                 EmbedderMsg::LoadStart => {
                     self.callbacks.host_callbacks.on_load_started();
