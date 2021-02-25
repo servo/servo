@@ -60,7 +60,7 @@ http = "0.1"
 hyper = "0.12"
 hyper_serde = "0.11"
 image = "0.23"
-indexmap = "1.0.2"
+indexmap = { version = "1.0.2", features = ["std"] }
 ipc-channel = "0.14"
 itertools = "0.8"
 js = { package = "mozjs", git = "https://github.com/servo/rust-mozjs" }
