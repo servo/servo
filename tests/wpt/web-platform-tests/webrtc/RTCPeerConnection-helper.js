@@ -176,11 +176,9 @@ function exchangeIceCandidates(pc1, pc2) {
     localPc.addEventListener('icecandidate', event => {
       const { candidate } = event;
 
-      // candidate may be null to indicate end of candidate gathering.
-      // There is ongoing discussion on w3c/webrtc-pc#1213
-      // that there should be an empty candidate string event
-      // for end of candidate for each m= section.
-      if(candidate && remotePc.signalingState !== 'closed') {
+      // Guard against already closed peerconnection to
+      // avoid unrelated exceptions.
+      if (remotePc.signalingState !== 'closed') {
         remotePc.addIceCandidate(candidate);
       }
     });

@@ -1,0 +1,14 @@
+<!doctype html>
+<title>Support for the :user-valid pseudo-class</title>
+<link rel="help" href="https://drafts.csswg.org/selectors/#user-pseudos">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<input>
+<script>
+test(() => {
+  const input = document.querySelector('input');
+  assert_true(input.validity.valid);
+  // The selector can't match because no interaction has happened.
+  assert_false(input.matches(':user-valid'));
+}, ':user-valid selector should be supported');
+</script>

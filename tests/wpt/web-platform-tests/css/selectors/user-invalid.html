@@ -3,10 +3,11 @@
 <link rel="help" href="https://drafts.csswg.org/selectors/#user-pseudos">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<input>
+<input value="bar" pattern="foo">
 <script>
 test(() => {
   const input = document.querySelector('input');
+  assert_false(input.validity.valid, "Should be invalid");
   // The selector can't match because no interaction has happened.
   assert_false(input.matches(':user-invalid'));
 }, ':user-invalid selector should be supported');

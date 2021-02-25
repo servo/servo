@@ -3,11 +3,15 @@
 <title>CSS Color 4: RGB functions rgb() and rgba()</title>
 <link rel="author" title="Chris Lilley" href="mailto:chris@w3.org">
 <link rel="help" href="https://drafts.csswg.org/css-color-4/#rgb-functions">
-<link rel="match" href="greentext-ref.html">
+<link rel="match" href="greensquare-ref.html">
 <meta name="assert" content="legacy rgb() with 8-bit numbers and percent alpha, with commas">
 <style>
-    .test {color: rgb(0, 128.0, 0, 100%)}
+    .test { background-color: red; width: 12em; height: 6em; margin-top:0}
+    .ref { background-color: #008000; width: 12em; height: 6em; margin-bottom: 0}
+    .test { background-color: rgb(0, 128.0, 0, 100%)}
 </style>
 <body>
-    <p class="test">Test passes if this text is green</p>
+    <p>Test passes if you see a green square, and no red.</p>
+    <p class="ref"> </p>
+    <p class="test"> </p>
 </body>

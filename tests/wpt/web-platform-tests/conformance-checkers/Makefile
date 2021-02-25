@@ -32,7 +32,7 @@ messages.json: .FORCE
 	  https://github.com/validator/validator/releases/download/jar/vnu.jar
 	$(JAVA) $(JAVAFLAGS) -cp vnu.jar nu.validator.client.TestRunner \
 	  --ignore=html-its --write-messages $@
-	$(PYTHON) $(PYTHONFLAGS) -mjson.tool $@ > $@.tmp
+	$(PYTHON) $(PYTHONFLAGS) -mjson.tool --sort-keys $@ > $@.tmp
 	mv $@.tmp $@
 
 test: .FORCE

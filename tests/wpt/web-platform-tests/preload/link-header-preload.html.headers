@@ -1,4 +1,5 @@
-Link: </preload/resources/dummy.js?link-header-preload>;rel=preload;as=script
+Link: </preload/resources/dummy.js?link-header-preload1>;rel=preload;as=script
+Link: </preload/resources/dummy.js?link-header-preload2>;rel=preload;as=script
 Link: </preload/resources/dummy.css?link-header-preload>;rel=preload;as=style
 Link: </preload/resources/square.png?link-header-preload>;rel=preload;as=image
 Link: </preload/resources/dummy.css?link-header-crossorigin-preload1>;rel=preload;as=style;crossorigin

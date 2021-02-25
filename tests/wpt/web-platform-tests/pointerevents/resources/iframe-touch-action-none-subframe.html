@@ -11,10 +11,10 @@
   <body></body>
   <script>
     function handler(e) {
-        window.top.postMessage(JSON.stringify({
-            "type": "event",
+        window.top.postMessage({
+            "type": "subframe-event",
             "eventType": e.type
-        }), "*");
+        }, "*");
     }
 
     ["pointerup", "pointercancel"].forEach(eventType => {

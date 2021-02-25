@@ -60,18 +60,10 @@ and ensures that an empty string sent by one is received by the second.
     }
   });
 
-  function exchangeIce(pc) {
-     return function(e) {
-       if (e.candidate) {
-          pc.addIceCandidate(e.candidate);
-       }
-     };
-  }
-
   function exchangeDescription(pc1, pc2) {
-     return function() {
-       return pc1.setRemoteDescription(pc2.localDescription);
-     };
+    return function() {
+      return pc1.setRemoteDescription(pc2.localDescription);
+    };
   }
 
   test.step(function() {
@@ -81,8 +73,8 @@ and ensures that an empty string sent by one is received by the second.
     gSecondConnection = new RTCPeerConnection(null);
     test.add_cleanup(() => gSecondConnection.close());
 
-    gFirstConnection.onicecandidate = exchangeIce(gSecondConnection);
-    gSecondConnection.onicecandidate = exchangeIce(gFirstConnection);
+    gFirstConnection.onicecandidate = e => gSecondConnection.addIceCandidate(e.candidate);
+    gSecondConnection.onicecandidate = e => gFirstConnection.addIceCandidate(e.candidate);
 
     gSecondConnection.ondatachannel = onReceiveChannel;
 

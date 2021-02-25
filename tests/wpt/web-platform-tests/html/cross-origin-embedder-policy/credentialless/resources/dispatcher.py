@@ -31,7 +31,7 @@ def main(request, response):
                 headers[isomorphic_decode(key)] = isomorphic_decode(request.headers[key])
             headers = json.dumps(headers);
             queue.append(headers);
-            ret = headers;
+            ret = b'';
 
         # Push into the |uuid| queue, the posted data.
         elif request.method == u'POST':

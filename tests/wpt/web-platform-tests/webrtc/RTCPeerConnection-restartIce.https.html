@@ -153,22 +153,8 @@ for (const negotiator of negotiators) {
     t.add_cleanup(() => pc1.close());
     t.add_cleanup(() => pc2.close());
 
-    pc1.onicecandidate = e => {
-      if (e.candidate) {
-        pc2.addIceCandidate({
-          candidate: e.candidate.candidate,
-          sdpMid: e.candidate.sdpMid
-        });
-      }
-    }
-    pc2.onicecandidate = e => {
-      if (e.candidate) {
-        pc1.addIceCandidate({
-          candidate: e.candidate.candidate,
-          sdpMid: e.candidate.sdpMid
-        });
-      }
-    }
+    pc1.onicecandidate = e => pc2.addIceCandidate(e.candidate);
+    pc2.onicecandidate = e => pc1.addIceCandidate(e.candidate);
 
     // See the explanation below about Chrome's onnegotiationneeded firing
     // too early.

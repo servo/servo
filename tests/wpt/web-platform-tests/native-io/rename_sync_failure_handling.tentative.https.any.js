@@ -7,12 +7,13 @@
 setup(() => {
   // Without this assertion, one test passes even if renameSync is not defined
   assert_implements(
-    nativeIO.renameSync, 'nativeIO.renameSync is not implemented.');
+    storageFoundation.renameSync, 'storageFoundation.renameSync is' +
+                                    ' not implemented.');
 });
 
 test(testCase => {
-  const file1 = nativeIO.openSync('test_file_1');
-  const file2 = nativeIO.openSync('test_file_2');
+  const file1 = storageFoundation.openSync('test_file_1');
+  const file2 = storageFoundation.openSync('test_file_2');
   testCase.add_cleanup(() => {
     file1.close();
     file2.close();
@@ -28,21 +29,21 @@ test(testCase => {
 
   assert_throws_dom(
     'NoModificationAllowedError',
-    () => nativeIO.renameSync('test_file_1', 'test_file_2'));
+    () => storageFoundation.renameSync('test_file_1', 'test_file_2'));
 
-  const fileNamesAfterRename = nativeIO.getAllSync();
+  const fileNamesAfterRename = storageFoundation.getAllSync();
   assert_in_array('test_file_1', fileNamesAfterRename);
   assert_in_array('test_file_2', fileNamesAfterRename);
 
   // Make sure that a failed rename does not modify file contents.
-  const file1_after = nativeIO.openSync('test_file_1');
-  const file2_after = nativeIO.openSync('test_file_2');
+  const file1_after = storageFoundation.openSync('test_file_1');
+  const file2_after = storageFoundation.openSync('test_file_2');
 
   testCase.add_cleanup(() => {
     file1_after.close();
     file2_after.close();
-    nativeIO.deleteSync('test_file_1');
-    nativeIO.deleteSync('test_file_2');
+    storageFoundation.deleteSync('test_file_1');
+    storageFoundation.deleteSync('test_file_2');
   });
   const readBytes1 = new Uint8Array(writtenBytes1.length);
   file1_after.read(readBytes1, 0);
@@ -54,90 +55,93 @@ test(testCase => {
   assert_array_equals(
     readBytes2, writtenBytes2,
     'the bytes read should match the bytes written');
-}, 'nativeIO.renameSync does not overwrite an existing file.');
+}, 'storageFoundation.renameSync does not overwrite an existing file.');
 
 test(testCase => {
-  const file = nativeIO.openSync('test_file');
+  const file = storageFoundation.openSync('test_file');
   testCase.add_cleanup(() => {
     file.close();
-    nativeIO.deleteSync('test_file');
+    storageFoundation.deleteSync('test_file');
   });
   assert_throws_dom(
     'NoModificationAllowedError',
-    () => nativeIO.renameSync('test_file', 'renamed_test_file'));
+    () => storageFoundation.renameSync('test_file', 'renamed_test_file'));
   file.close();
 
-  const fileNamesAfterRename = nativeIO.getAllSync();
+  const fileNamesAfterRename = storageFoundation.getAllSync();
   assert_equals(fileNamesAfterRename.indexOf('renamed_test_file'), -1);
   assert_in_array('test_file', fileNamesAfterRename);
-}, 'nativeIO.renameSync allows renaming an open file.');
+}, 'storageFoundation.renameSync allows renaming an open file.');
 
 test(testCase => {
   testCase.add_cleanup(() => {
     file.close();
-    nativeIO.deleteSync('test_file');
-    for (let name of nativeIO.getAllSync()) {
-      nativeIO.deleteSync(name);
+    storageFoundation.deleteSync('test_file');
+    for (let name of storageFoundation.getAllSync()) {
+      storageFoundation.deleteSync(name);
     }
   });
 
-  const file = nativeIO.openSync('test_file');
+  const file = storageFoundation.openSync('test_file');
   file.close();
   for (let name of kBadNativeIoNames) {
-    assert_throws_js(TypeError, () => nativeIO.renameSync('test_file', name));
-    assert_throws_js(TypeError, () => nativeIO.renameSync(name, 'test_file_2'));
+    assert_throws_js(TypeError, () => storageFoundation.renameSync('test_file',
+                                        name));
+    assert_throws_js(TypeError, () => storageFoundation.renameSync(name,
+                                        'test_file_2'));
   }
-}, 'nativeIO.renameSync does not allow renaming from or to invalid names.');
+}, 'storageFoundation.renameSync does not allow renaming from or to invalid' +
+     ' names.');
 
 test(testCase => {
-  const closed_file = nativeIO.openSync('closed_file');
+  const closed_file = storageFoundation.openSync('closed_file');
   closed_file.close();
-  const opened_file = nativeIO.openSync('opened_file');
+  const opened_file = storageFoundation.openSync('opened_file');
   testCase.add_cleanup(() => {
     closed_file.close();
     opened_file.close();
-    nativeIO.deleteSync('closed_file');
-    nativeIO.deleteSync('opened_file');
+    storageFoundation.deleteSync('closed_file');
+    storageFoundation.deleteSync('opened_file');
   });
 
   // First rename fails, as source is still open.
   assert_throws_dom(
     'NoModificationAllowedError',
-    () => nativeIO.renameSync('opened_file', 'closed_file'));
+    () => storageFoundation.renameSync('opened_file', 'closed_file'));
   // First rename fails again, as source has not been unlocked.
   assert_throws_dom(
     'NoModificationAllowedError',
-    () => nativeIO.renameSync('opened_file', 'closed_file'));
-}, 'Failed nativeIO.renameSync does not unlock the source.');
+    () => storageFoundation.renameSync('opened_file', 'closed_file'));
+}, 'Failed storageFoundation.renameSync does not unlock the source.');
 
 test(testCase => {
-  const closed_file = nativeIO.openSync('closed_file');
+  const closed_file = storageFoundation.openSync('closed_file');
   closed_file.close();
-  const opened_file = nativeIO.openSync('opened_file');
+  const opened_file = storageFoundation.openSync('opened_file');
   testCase.add_cleanup(() => {
     closed_file.close();
     opened_file.close();
-    nativeIO.deleteSync('closed_file');
-    nativeIO.deleteSync('opened_file');
+    storageFoundation.deleteSync('closed_file');
+    storageFoundation.deleteSync('opened_file');
   });
 
   // First rename fails, as destination is still open.
   assert_throws_dom(
     'NoModificationAllowedError',
-    () => nativeIO.renameSync('closed_file', 'opened_file'));
+    () => storageFoundation.renameSync('closed_file', 'opened_file'));
   // First rename fails again, as destination has not been unlocked.
   assert_throws_dom(
     'NoModificationAllowedError',
-    () => nativeIO.renameSync('closed_file', 'opened_file'));
-}, 'Failed nativeIO.renameSync does not unlock the destination.');
+    () => storageFoundation.renameSync('closed_file', 'opened_file'));
+}, 'Failed storageFoundation.renameSync does not unlock the destination.');
 
 test(testCase => {
   // Make sure that the file does not exist.
-  nativeIO.deleteSync('does_not_exist');
+  storageFoundation.deleteSync('does_not_exist');
   testCase.add_cleanup(() => {
-    nativeIO.deleteSync('new_name');
+    storageFoundation.deleteSync('new_name');
   });
   assert_throws_dom(
     'NotFoundError',
-    () => nativeIO.renameSync('does_not_exist', 'new_name'));
+    () => storageFoundation.renameSync('does_not_exist', 'new_name'));
 }, 'Renaming a non-existing file fails with a NotFoundError.');

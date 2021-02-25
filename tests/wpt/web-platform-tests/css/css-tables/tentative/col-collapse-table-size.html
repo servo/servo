@@ -1,0 +1,88 @@
+<!doctype html>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src="/resources/check-layout-th.js"></script>
+<title>col visibility:collapse and minmax sizes</title>
+<link rel="author" title="Aleks Totic" href="atotic@chromium.org" />
+<link rel="help" href="https://www.w3.org/TR/css-tables-3/#visibility-collapse-track-rendering"/>
+
+<style>
+
+  main table {
+    right: 0;
+    display:inline-table;
+    border: 1px solid black;
+  }
+  main col {
+    visibility:collapse;
+  }
+  main td {
+    width: 200px;
+    height: 20px;
+  }
+  main caption {
+    background: yellow;
+  }
+  main td:nth-child(1) {
+    background: rgba(255,0,0,0.2);
+  }
+  main td:nth-child(2) {
+    background: rgba(200,200,200,1.0);
+  }
+  main table:hover col {
+    visibility: visible;
+  }
+</style>
+
+<h1>Interactions between &lt;COL&gt; visiblity:collapse, and table inline size</h1>
+<p>What happens to the table size when column collapses? Should the space taken up by the table
+  remain the same, but the table iteslf should shrink?</p>
+<p>Hovering over tables will turn off column collapsing</p>
+<main>
+
+<p style="position:absolute;top:200px;left:0;width: 300px">
+Tables to the right are absolutely positioned</p>
+<table id="abs" style="position:absolute;top:200px;right:0">
+  <col>
+  <td style="width:100px"></td>
+  <td>absolute, right:0</td>
+</table>
+
+ <table id="abscaption" style="position:absolute; top:260px;right:0" >
+  <col>
+  <caption style="width:250px">caption</caption>
+  <td></td>
+  <td>absolute, right:0</td>
+</table>
+
+<p style="margin-top:200px">Inline tables</p>
+<table id="caption">
+  <col>
+  <caption style="width:500px">caption</caption>
+  <td></td>
+  <td></td>
+</table><span style="font-size:50px">after</span>
+<p>
+
+<table id="plain">
+  <col>
+  <td style="width:100px">td</td>
+  <td></td>
+</table><span style="font-size:50px">after</span>
+
+<p>Table as a flex item</p>
+
+<div style="display:flex;width:700px">
+
+<table id="plain">
+  <col>
+  <td style="width:100px">td</td>
+  <td></td>
+</table>
+<div style="flex-grow:1;background-color:yellow">
+</div>
+</main>
+
+<script>
+  checkLayout("main table");
+</script>

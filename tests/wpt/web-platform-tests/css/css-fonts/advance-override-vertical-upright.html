@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-5/#descdef-font-face-advance-override">
+<link rel="match" href="advance-override-vertical-upright-ref.html">
+<link rel="assert" title="Tests that advance-override uses the second parameter to override advance of upright characters in vertical text">
+<title>Tests the second parameter of the advance-override descriptor of @font-face</title>
+<style>
+@font-face {
+  font-family: custom-font;
+  src: local(Ahem), url(/fonts/Ahem.ttf);
+  advance-override: 200% 300%;
+  unicode-range: U+0-7F; /* ASCII only */
+}
+
+.test {
+  font: 20px custom-font, sans-serif;
+  border: 1px solid red;
+  width: max-content;
+}
+
+.vertical {
+  writing-mode: vertical-rl;
+}
+
+.upright {
+  text-orientation: upright;
+}
+</style>
+
+<p>advance-override uses the second parameter to override advance of upright characters in vertical text.</p>
+
+<div class="test">
+  XXX
+</div>
+
+<div class="test vertical">
+  XXX
+</div>
+
+<div class="test vertical upright">
+  XXX
+</div>

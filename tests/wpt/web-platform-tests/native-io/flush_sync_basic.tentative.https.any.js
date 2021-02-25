@@ -5,10 +5,10 @@
 'use strict';
 
 test(testCase => {
-  const file = nativeIO.openSync('test_file');
+  const file = storageFoundation.openSync('test_file');
   testCase.add_cleanup(() => {
     file.close();
-    nativeIO.deleteSync('test_file');
+    storageFoundation.deleteSync('test_file');
   });
 
   const size = 1024;

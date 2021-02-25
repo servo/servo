@@ -1,19 +1,20 @@
 // Names disallowed by NativeIO
 const kBadNativeIoNames = [
-  "Uppercase",
-  "has-dash",
-  "has.dot",
-  "has/slash",
+  'Uppercase',
+  'has-dash',
+  'has.dot',
+  'has/slash',
+  'x'.repeat(101),
 ];
 
 // Returns a handle to a newly created file that holds some data.
 //
 // The file will be closed and deleted when the test ends.
 async function createFile(testCase, fileName) {
-  const file = await nativeIO.open(fileName);
+  const file = await storageFoundation.open(fileName);
   testCase.add_cleanup(async () => {
     await file.close();
-    await nativeIO.delete(fileName);
+    await storageFoundation.delete(fileName);
   });
 
   const writeSharedArrayBuffer = new SharedArrayBuffer(4);
@@ -29,10 +30,10 @@ async function createFile(testCase, fileName) {
 //
 // The file will be closed and deleted when the test ends.
 function createFileSync(testCase, fileName) {
-  const file = nativeIO.openSync(fileName);
+  const file = storageFoundation.openSync(fileName);
   testCase.add_cleanup(() => {
     file.close();
-    nativeIO.deleteSync(fileName);
+    storageFoundation.deleteSync(fileName);
   });
 
   const writtenBytes = Uint8Array.from([64, 65, 66, 67]);

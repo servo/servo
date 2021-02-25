@@ -2,10 +2,6 @@
 <html>
 <head>
     <title>test wildcard host name matching (asterisk as part of a subdomain is not accepted)</title>
-    <meta http-equiv="Content-Security-Policy" content="script-src 'self' *w.{{host}}:{{ports[http][0]}} w*.{{host}}:{{ports[http][0]}} 'unsafe-inline';">
-    <script src='/resources/testharness.js'></script>
-    <script src='/resources/testharnessreport.js'></script>
-    <script src='wildcardHostTestFailure.js'></script>
     <script>
       var t_spv = async_test("Should fire violation events for every failed violation");
       var spvEvent;
@@ -23,6 +19,10 @@
       script.src = "http://www." + location.hostname + ":" + location.port + "/content-security-policy/generic/wildcardHostTestSuceeds.js";
       head.appendChild(script);
     </script>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' *w.{{host}}:{{ports[http][0]}} w*.{{host}}:{{ports[http][0]}} 'unsafe-inline';">
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script src='wildcardHostTestFailure.js'></script>
 </head>
 <body>
     <h1>test wildcard host name matching (asterisk as part of a subdomain is not accepted)</h1>

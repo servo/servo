@@ -84,9 +84,13 @@ def read_script_metadata(f, regexp):
 _any_variants = {
     "window": {"suffix": ".any.html"},
     "serviceworker": {"force_https": True},
+    "serviceworker-module": {"force_https": True},
     "sharedworker": {},
+    "sharedworker-module": {},
     "dedicatedworker": {"suffix": ".any.worker.html"},
+    "dedicatedworker-module": {"suffix": ".any.worker-module.html"},
     "worker": {"longhand": {"dedicatedworker", "sharedworker", "serviceworker"}},
+    "worker-module": {},
     "jsshell": {"suffix": ".any.js"},
 }  # type: Dict[Text, Dict[Text, Any]]
 

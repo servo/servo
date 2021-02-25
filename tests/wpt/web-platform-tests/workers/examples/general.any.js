@@ -7,7 +7,7 @@
 
 // testharness.js is imported (via importScripts()) by generated glue code by
 // WPT server.
-// See AnyWorkerHandler in
+// See ClassicWorkerHandler in
 // https://github.com/web-platform-tests/wpt/blob/master/tools/serve/serve.py.
 
 // ============================================================================
@@ -30,5 +30,5 @@ test(() => {
 
 // done() is NOT needed in .any.js tests, as it is called by generated
 // glue code by the WPT server.
-// See AnyWorkerHandler in
+// See ClassicWorkerHandler in
 // https://github.com/web-platform-tests/wpt/blob/master/tools/serve/serve.py.

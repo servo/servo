@@ -92,12 +92,10 @@
 
   const trickle = (t, pc1, pc2) => {
     pc1.onicecandidate = t.step_func(async e => {
-      if (e.candidate) {
-        try {
-          await pc2.addIceCandidate(e.candidate);
-        } catch (e) {
-          assert_true(false, "addIceCandidate threw error: " + e.name);
-        }
+      try {
+        await pc2.addIceCandidate(e.candidate);
+      } catch (e) {
+        assert_true(false, "addIceCandidate threw error: " + e.name);
       }
     });
   };

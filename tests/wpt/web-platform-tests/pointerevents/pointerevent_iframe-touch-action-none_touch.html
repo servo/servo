@@ -42,10 +42,13 @@
             actions_promise.then(() => test_pointerEvent.done());
         });
 
-        on_event(window, "message",  e => {
-            var msg = JSON.parse(event.data);
-            if (msg.type == "event")
-                event_log.push(msg.eventType);
+        on_event(window, "message",  function(event) {
+            if (event.source != target.contentWindow) {
+              return;
+            }
+            if (event.data && event.data.type == "subframe-event") {
+              event_log.push(event.data.eventType);
+            }
         });
 
         actions_promise = new test_driver.Actions()
