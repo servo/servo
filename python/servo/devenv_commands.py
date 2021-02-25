@@ -209,10 +209,10 @@ class MachCommands(CommandBase):
     def rustup(self):
         url = get_static_rust_lang_org_dist() + "/channel-rust-nightly-date.txt"
         nightly_date = urllib.request.urlopen(url, **get_urlopen_kwargs()).read()
-        toolchain = "nightly-" + nightly_date
+        toolchain = b"nightly-" + nightly_date
         filename = path.join(self.context.topdir, "rust-toolchain")
-        with open(filename, "w") as f:
-            f.write(toolchain + "\n")
+        with open(filename, "wb") as f:
+            f.write(toolchain + b"\n")
         self.ensure_bootstrapped()
 
     @Command('fetch',
