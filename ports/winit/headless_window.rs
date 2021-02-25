@@ -7,20 +7,20 @@
 use crate::events_loop::EventsLoop;
 use crate::window_trait::WindowPortsMethods;
 use euclid::{Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
-use winit;
 use servo::compositing::windowing::{AnimationState, WindowEvent};
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
 use servo::webrender_api::units::DeviceIntRect;
-use servo_media::player::context as MediaPlayerCtxt;
 use servo::webrender_surfman::WebrenderSurfman;
+use servo_media::player::context as MediaPlayerCtxt;
 use std::cell::Cell;
 use std::rc::Rc;
 use surfman::Connection;
 use surfman::Context;
 use surfman::Device;
 use surfman::SurfaceType;
+use winit;
 
 pub struct Window {
     webrender_surfman: WebrenderSurfman,
@@ -36,14 +36,13 @@ impl Window {
     ) -> Rc<dyn WindowPortsMethods> {
         // Initialize surfman
         let connection = Connection::new().expect("Failed to create connection");
-        let adapter = connection.create_software_adapter().expect("Failed to create adapter");
+        let adapter = connection
+            .create_software_adapter()
+            .expect("Failed to create adapter");
         let size = size.to_untyped().to_i32();
         let surface_type = SurfaceType::Generic { size };
-        let webrender_surfman = WebrenderSurfman::create(
-            &connection,
-            &adapter,
-            surface_type,
-        ).expect("Failed to create WR surfman");
+        let webrender_surfman = WebrenderSurfman::create(&connection, &adapter, surface_type)
+            .expect("Failed to create WR surfman");
 
         let window = Window {
             webrender_surfman,
@@ -77,7 +76,8 @@ impl WindowPortsMethods for Window {
     }
 
     fn page_height(&self) -> f32 {
-        let height = self.webrender_surfman
+        let height = self
+            .webrender_surfman
             .context_surface_info()
             .unwrap_or(None)
             .map(|info| info.size.height)
@@ -108,9 +108,10 @@ impl WindowPortsMethods for Window {
 }
 
 impl WindowMethods for Window {
-     fn get_coordinates(&self) -> EmbedderCoordinates {
+    fn get_coordinates(&self) -> EmbedderCoordinates {
         let dpr = self.servo_hidpi_factor();
-        let size = self.webrender_surfman
+        let size = self
+            .webrender_surfman
             .context_surface_info()
             .unwrap_or(None)
             .map(|info| Size2D::from_untyped(info.size))
@@ -126,11 +127,11 @@ impl WindowMethods for Window {
         }
     }
 
-     fn set_animation_state(&self, state: AnimationState) {
+    fn set_animation_state(&self, state: AnimationState) {
         self.animation_state.set(state);
     }
 
-     fn get_gl_context(&self) -> MediaPlayerCtxt::GlContext {
+    fn get_gl_context(&self) -> MediaPlayerCtxt::GlContext {
         MediaPlayerCtxt::GlContext::Unknown
     }
 
@@ -148,7 +149,11 @@ impl WindowMethods for Window {
 }
 
 impl webxr::glwindow::GlWindow for Window {
-    fn get_render_target(&self, _device: &mut Device, _context: &mut Context) -> webxr::glwindow::GlWindowRenderTarget {
+    fn get_render_target(
+        &self,
+        _device: &mut Device,
+        _context: &mut Context,
+    ) -> webxr::glwindow::GlWindowRenderTarget {
         unimplemented!()
     }
 

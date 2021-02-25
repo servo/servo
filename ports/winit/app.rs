@@ -9,7 +9,6 @@ use crate::embedder::EmbedderCallbacks;
 use crate::events_loop::EventsLoop;
 use crate::window_trait::WindowPortsMethods;
 use crate::{headed_window, headless_window};
-use winit::WindowId;
 use servo::compositing::windowing::WindowEvent;
 use servo::config::opts::{self, parse_url_or_filename};
 use servo::servo_config::pref;
@@ -21,6 +20,7 @@ use std::env;
 use std::mem;
 use std::rc::Rc;
 use webxr::glwindow::GlWindowDiscovery;
+use winit::WindowId;
 
 thread_local! {
     pub static WINDOWS: RefCell<HashMap<WindowId, Rc<dyn WindowPortsMethods>>> = RefCell::new(HashMap::new());
@@ -70,10 +70,7 @@ impl App {
         };
 
         // Implements embedder methods, used by libservo and constellation.
-        let embedder = Box::new(EmbedderCallbacks::new(
-            events_loop.clone(),
-            xr_discovery,
-        ));
+        let embedder = Box::new(EmbedderCallbacks::new(events_loop.clone(), xr_discovery));
 
         // Handle browser state.
         let browser = Browser::new(window.clone());

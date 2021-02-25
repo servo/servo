@@ -90,7 +90,7 @@ fn has_lint_attr(sym: &Symbols, attrs: &[Attribute], name: Symbol) -> bool {
     attrs.iter().any(|attr| {
         matches!(
             &attr.kind,
-            AttrKind::Normal(attr_item)
+            AttrKind::Normal(attr_item, _)
             if attr_item.path.segments.len() == 2 &&
             attr_item.path.segments[0].ident.name == sym.unrooted_must_root_lint &&
             attr_item.path.segments[1].ident.name == name

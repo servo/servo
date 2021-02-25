@@ -9,14 +9,18 @@
 //! FIXME: if/when a future version of the `backtrace` crate has
 //! https://github.com/rust-lang/backtrace-rs/pull/265, use that instead.
 
-use std::fmt::{self, Write};
 use backtrace::{BytesOrWideString, PrintFmt};
+use std::fmt::{self, Write};
 
 #[inline(never)]
 pub(crate) fn print(w: &mut dyn std::io::Write) -> Result<(), std::io::Error> {
-    write!(w, "{:?}", Print {
-        print_fn_address: print as usize,
-    })
+    write!(
+        w,
+        "{:?}",
+        Print {
+            print_fn_address: print as usize,
+        }
+    )
 }
 
 struct Print {
@@ -50,7 +54,7 @@ impl fmt::Debug for Print {
                 let skip = frame_count < print_fn_frame;
                 frame_count += 1;
                 if skip {
-                    return true
+                    return true;
                 }
 
                 let mut frame_fmt = f.frame();
@@ -76,28 +80,26 @@ impl fmt::Debug for Print {
 
 fn print_path(fmt: &mut fmt::Formatter, path: BytesOrWideString) -> fmt::Result {
     match path {
-        BytesOrWideString::Bytes(mut bytes) => {
-            loop {
-                match std::str::from_utf8(bytes) {
-                    Ok(s) => {
-                        fmt.write_str(s)?;
-                        break;
+        BytesOrWideString::Bytes(mut bytes) => loop {
+            match std::str::from_utf8(bytes) {
+                Ok(s) => {
+                    fmt.write_str(s)?;
+                    break;
+                },
+                Err(err) => {
+                    fmt.write_char(std::char::REPLACEMENT_CHARACTER)?;
+                    match err.error_len() {
+                        Some(len) => bytes = &bytes[err.valid_up_to() + len..],
+                        None => break,
                     }
-                    Err(err) => {
-                        fmt.write_char(std::char::REPLACEMENT_CHARACTER)?;
-                        match err.error_len() {
-                            Some(len) => bytes = &bytes[err.valid_up_to() + len..],
-                            None => break,
-                        }
-                    }
-                }
+                },
             }
-        }
+        },
         BytesOrWideString::Wide(wide) => {
             for c in std::char::decode_utf16(wide.iter().cloned()) {
                 fmt.write_char(c.unwrap_or(std::char::REPLACEMENT_CHARACTER))?
             }
-        }
+        },
     }
     Ok(())
 }

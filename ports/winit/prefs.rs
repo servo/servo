@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use servo::embedder_traits;
 use getopts::{Matches, Options};
 use servo::config::opts::{self, ArgumentParsingResult};
 use servo::config::prefs::{self, PrefValue};
+use servo::embedder_traits;
+use servo::servo_config::basedir;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
-use servo::servo_config::basedir;
 
 pub fn register_user_prefs(opts_matches: &Matches) {
     // Read user's prefs.json and then parse --pref command line args.
@@ -24,30 +24,35 @@ pub fn register_user_prefs(opts_matches: &Matches) {
     let mut userprefs = if let Some(path) = user_prefs_path {
         let mut file = File::open(&path).expect("Error opening user prefs");
         let mut txt = String::new();
-        file.read_to_string(&mut txt).expect("Can't read user prefs file");
+        file.read_to_string(&mut txt)
+            .expect("Can't read user prefs file");
         prefs::read_prefs_map(&txt).expect("Can't parse user prefs file")
     } else {
         HashMap::new()
     };
 
-    let argprefs: HashMap<String, PrefValue> = opts_matches.opt_strs("pref").iter().map(|pref| {
-        let split: Vec<&str> = pref.splitn(2, '=').collect();
-        let pref_name = split[0];
-        let pref_value = match split.get(1).cloned() {
-            Some("true") | None => PrefValue::Bool(true),
-            Some("false") => PrefValue::Bool(false),
-            Some(string) => {
-                if let Some(int) = string.parse::<i64>().ok() {
-                    PrefValue::Int(int)
-                } else if let Some(float) = string.parse::<f64>().ok() {
-                    PrefValue::Float(float)
-                } else {
-                    PrefValue::from(string)
-                }
-            },
-        };
-        (pref_name.to_string(), pref_value)
-    }).collect();
+    let argprefs: HashMap<String, PrefValue> = opts_matches
+        .opt_strs("pref")
+        .iter()
+        .map(|pref| {
+            let split: Vec<&str> = pref.splitn(2, '=').collect();
+            let pref_name = split[0];
+            let pref_value = match split.get(1).cloned() {
+                Some("true") | None => PrefValue::Bool(true),
+                Some("false") => PrefValue::Bool(false),
+                Some(string) => {
+                    if let Some(int) = string.parse::<i64>().ok() {
+                        PrefValue::Int(int)
+                    } else if let Some(float) = string.parse::<f64>().ok() {
+                        PrefValue::Float(float)
+                    } else {
+                        PrefValue::from(string)
+                    }
+                },
+            };
+            (pref_name.to_string(), pref_value)
+        })
+        .collect();
 
     // --pref overrides user prefs.json
     userprefs.extend(argprefs);
@@ -61,11 +66,7 @@ fn test_parse_pref(arg: &str) {
     embedder_traits::resources::set_for_tests();
     let mut opts = Options::new();
     opts.optmulti("", "pref", "", "");
-    let args = vec![
-        "servo".to_string(),
-        "--pref".to_string(),
-        arg.to_string()
-    ];
+    let args = vec!["servo".to_string(), "--pref".to_string(), arg.to_string()];
     let matches = match opts::from_cmdline_args(opts, &args) {
         ArgumentParsingResult::ContentProcess(m, _) => m,
         ArgumentParsingResult::ChromeProcess(m) => m,
@@ -106,7 +107,6 @@ fn test_parse_pref_from_command_line() {
     test_parse_pref("dom.bluetooth.enabled");
     assert_eq!(pref!(dom.bluetooth.enabled), true);
 }
-
 
 #[test]
 fn test_invalid_prefs_from_command_line_panics() {
