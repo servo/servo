@@ -608,7 +608,6 @@ install them, let us know by filing a bug!")
             extra_path += [path.join(self.msvc_package_dir("llvm"), "bin")]
             extra_path += [path.join(self.msvc_package_dir("ninja"), "bin")]
             extra_path += [self.msvc_package_dir("nuget")]
-            extra_path += [path.join(self.msvc_package_dir("xargo"))]
 
             arch = (target or host_triple()).split('-')[0]
             vcpkg_arch = {
@@ -932,9 +931,8 @@ install them, let us know by filing a bug!")
         args += ["--features", " ".join(features)]
 
         if target and 'uwp' in target:
-            return call(["xargo", command] + args + cargo_args, env=env, verbose=verbose)
-        else:
-            return self.call_rustup_run(["cargo", command] + args + cargo_args, env=env, verbose=verbose)
+            cargo_args += ["-Z", "build-std"]
+        return self.call_rustup_run(["cargo", command] + args + cargo_args, env=env, verbose=verbose)
 
     def android_support_dir(self):
         return path.join(self.context.topdir, "support", "android")
