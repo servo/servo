@@ -335,19 +335,14 @@ class Longhand(Property):
         assert (
             has_effect_on_gecko_scrollbars in [None, False, True]
             and not style_struct.inherited
-            or (gecko_pref is None) == (has_effect_on_gecko_scrollbars is None)), (
-            "Property " + name + ": has_effect_on_gecko_scrollbars must be "
-            "specified, and must have a value of True or False, iff a "
-            "property is inherited and is behind a Gecko pref")
-        # For enabled_in, the setup is as follows:
-        # It needs to be one of the four values: ["", "ua", "chrome", "content"]
-        #  * "chrome" implies "ua", and implies that they're explicitly
-        #    enabled.
-        #  * "" implies the property will never be parsed.
-        #  * "content" implies the property is accessible unconditionally,
-        #    modulo a pref, set via servo_pref / gecko_pref.
-        assert enabled_in in ["", "ua", "chrome", "content"]
-        self.enabled_in = enabled_in
+            or (gecko_pref is None) == (has_effect_on_gecko_scrollbars is None)
+        ), (
+            "Property "
+            + name
+            + ": has_effect_on_gecko_scrollbars must be "
+            + "specified, and must have a value of True or False, iff a "
+            + "property is inherited and is behind a Gecko pref"
+        )
         self.need_index = need_index
         self.gecko_ffi_name = gecko_ffi_name or "m" + self.camel_case
         self.cast_type = cast_type
