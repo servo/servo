@@ -44,7 +44,7 @@ fn assert_parse(
                     filtered: FilteredMetadata::Basic(m),
                     ..
                 }) => m,
-                result => panic!(result),
+                result => panic!("{:?}", result),
             };
             assert_eq!(metadata.content_type.map(Serde::into_inner), content_type);
             assert_eq!(metadata.charset.as_ref().map(String::deref), charset);

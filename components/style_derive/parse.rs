@@ -8,15 +8,15 @@ use proc_macro2::TokenStream;
 use syn::{self, DeriveInput, Path};
 use synstructure::{Structure, VariantInfo};
 
-#[darling(attributes(parse), default)]
 #[derive(Default, FromVariant)]
+#[darling(attributes(parse), default)]
 pub struct ParseVariantAttrs {
     pub aliases: Option<String>,
     pub condition: Option<Path>,
 }
 
-#[darling(attributes(parse), default)]
 #[derive(Default, FromField)]
+#[darling(attributes(parse), default)]
 pub struct ParseFieldAttrs {
     field_bound: bool,
 }

@@ -116,7 +116,7 @@ impl<'a> FontSettingTagIter<'a> {
             let mut sorted_tags = Vec::from_iter(tags.iter());
             sorted_tags.sort_by_key(|k| k.tag.0);
             sorted_tags
-        };
+        }
 
         Ok(FontSettingTagIter {
             a_state: FontSettingTagIterState::new(as_new_sorted_tags(&a_settings.0)),

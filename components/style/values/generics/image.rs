@@ -264,7 +264,6 @@ impl ToCss for PaintWorklet {
 ///
 /// `-moz-image-rect(<uri>, top, right, bottom, left);`
 #[allow(missing_docs)]
-#[css(comma, function = "-moz-image-rect")]
 #[derive(
     Clone,
     Debug,
@@ -276,6 +275,7 @@ impl ToCss for PaintWorklet {
     ToResolvedValue,
     ToShmem,
 )]
+#[css(comma, function = "-moz-image-rect")]
 #[repr(C)]
 pub struct GenericMozImageRect<NumberOrPercentage, MozImageRectUrl> {
     pub url: MozImageRectUrl,

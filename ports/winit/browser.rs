@@ -42,19 +42,11 @@ pub struct Browser<Window: WindowPortsMethods + ?Sized> {
     browsers: Vec<BrowserId>,
 
     title: Option<String>,
-    status: Option<String>,
-    favicon: Option<ServoUrl>,
-    loading_state: Option<LoadingState>,
+
     window: Rc<Window>,
     event_queue: Vec<WindowEvent>,
     clipboard_ctx: Option<ClipboardContext>,
     shutdown_requested: bool,
-}
-
-enum LoadingState {
-    Connecting,
-    Loading,
-    Loaded,
 }
 
 impl<Window> Browser<Window>
@@ -67,9 +59,6 @@ where
             current_url: None,
             browser_id: None,
             browsers: Vec::new(),
-            status: None,
-            favicon: None,
-            loading_state: None,
             window: window,
             clipboard_ctx: match ClipboardContext::new() {
                 Ok(c) => Some(c),
@@ -278,8 +267,8 @@ where
     pub fn handle_servo_events(&mut self, events: Vec<(Option<BrowserId>, EmbedderMsg)>) {
         for (browser_id, msg) in events {
             match msg {
-                EmbedderMsg::Status(status) => {
-                    self.status = status;
+                EmbedderMsg::Status(_status) => {
+                    // FIXME: surface this status string in the UI somehow
                 },
                 EmbedderMsg::ChangePageTitle(title) => {
                     self.title = title;
@@ -440,11 +429,11 @@ where
                 EmbedderMsg::SetCursor(cursor) => {
                     self.window.set_cursor(cursor);
                 },
-                EmbedderMsg::NewFavicon(url) => {
-                    self.favicon = Some(url);
+                EmbedderMsg::NewFavicon(_url) => {
+                    // FIXME: show favicons in the UI somehow
                 },
                 EmbedderMsg::HeadParsed => {
-                    self.loading_state = Some(LoadingState::Loading);
+                    // FIXME: surface the loading state in the UI somehow
                 },
                 EmbedderMsg::HistoryChanged(urls, current) => {
                     self.current_url = Some(urls[current].clone());
@@ -453,10 +442,10 @@ where
                     self.window.set_fullscreen(state);
                 },
                 EmbedderMsg::LoadStart => {
-                    self.loading_state = Some(LoadingState::Connecting);
+                    // FIXME: surface the loading state in the UI somehow
                 },
                 EmbedderMsg::LoadComplete => {
-                    self.loading_state = Some(LoadingState::Loaded);
+                    // FIXME: surface the loading state in the UI somehow
                 },
                 EmbedderMsg::CloseBrowser => {
                     // TODO: close the appropriate "tab".

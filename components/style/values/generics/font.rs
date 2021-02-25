@@ -77,7 +77,6 @@ pub struct VariationValue<Number> {
 }
 
 /// A value both for font-variation-settings and font-feature-settings.
-#[css(comma)]
 #[derive(
     Clone,
     Debug,
@@ -90,6 +89,7 @@ pub struct VariationValue<Number> {
     ToResolvedValue,
     ToShmem,
 )]
+#[css(comma)]
 pub struct FontSettings<T>(#[css(if_empty = "normal", iterable)] pub Box<[T]>);
 
 impl<T> FontSettings<T> {

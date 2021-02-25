@@ -170,9 +170,6 @@
             /// Making this type generic allows the compiler to figure out the
             /// animated value for us, instead of having to implement it
             /// manually for every type we care about.
-            % if separator == "Comma":
-            #[css(comma)]
-            % endif
             #[derive(
                 Clone,
                 Debug,
@@ -182,6 +179,9 @@
                 ToResolvedValue,
                 ToCss,
             )]
+            % if separator == "Comma":
+            #[css(comma)]
+            % endif
             pub struct OwnedList<T>(
                 % if not allow_empty:
                 #[css(iterable)]
@@ -198,9 +198,6 @@
             % else:
             pub use self::ComputedList as List;
 
-            % if separator == "Comma":
-            #[css(comma)]
-            % endif
             #[derive(
                 Clone,
                 Debug,
@@ -208,6 +205,9 @@
                 PartialEq,
                 ToCss,
             )]
+            % if separator == "Comma":
+            #[css(comma)]
+            % endif
             pub struct ComputedList(
                 % if not allow_empty:
                 #[css(iterable)]
@@ -324,10 +324,10 @@
         }
 
         /// The specified value of ${name}.
+        #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
         % if separator == "Comma":
         #[css(comma)]
         % endif
-        #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
         pub struct SpecifiedValue(
             % if not allow_empty:
             #[css(iterable)]

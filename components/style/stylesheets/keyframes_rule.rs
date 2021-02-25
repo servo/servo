@@ -149,8 +149,8 @@ impl KeyframePercentage {
 
 /// A keyframes selector is a list of percentages or from/to symbols, which are
 /// converted at parse time to percentages.
-#[css(comma)]
 #[derive(Clone, Debug, Eq, PartialEq, ToCss, ToShmem)]
+#[css(comma)]
 pub struct KeyframeSelector(#[css(iterable)] Vec<KeyframePercentage>);
 
 impl KeyframeSelector {

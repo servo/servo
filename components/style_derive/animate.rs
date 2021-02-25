@@ -112,14 +112,14 @@ fn derive_variant_arm(
     }
 }
 
-#[darling(attributes(animation), default)]
 #[derive(Default, FromDeriveInput)]
+#[darling(attributes(animation), default)]
 pub struct AnimationInputAttrs {
     pub no_bound: Option<PathList>,
 }
 
-#[darling(attributes(animation), default)]
 #[derive(Default, FromVariant)]
+#[darling(attributes(animation), default)]
 pub struct AnimationVariantAttrs {
     pub error: bool,
     // Only here because of structs, where the struct definition acts as a
@@ -127,8 +127,8 @@ pub struct AnimationVariantAttrs {
     pub no_bound: Option<PathList>,
 }
 
-#[darling(attributes(animation), default)]
 #[derive(Default, FromField)]
+#[darling(attributes(animation), default)]
 pub struct AnimationFieldAttrs {
     pub constant: bool,
     pub field_bound: bool,

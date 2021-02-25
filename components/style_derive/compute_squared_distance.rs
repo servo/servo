@@ -118,8 +118,8 @@ fn derive_variant_arm(
     };
 }
 
-#[darling(attributes(distance), default)]
 #[derive(Default, FromField)]
+#[darling(attributes(distance), default)]
 struct DistanceFieldAttrs {
     field_bound: bool,
 }

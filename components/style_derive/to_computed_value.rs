@@ -195,8 +195,8 @@ pub struct ToValueAttrs {
     pub no_field_bound: bool,
 }
 
-#[darling(attributes(compute), default)]
 #[derive(Default, FromField)]
+#[darling(attributes(compute), default)]
 struct ComputedValueAttrs {
     field_bound: bool,
     no_field_bound: bool,

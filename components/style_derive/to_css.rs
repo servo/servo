@@ -236,8 +236,8 @@ fn derive_single_field_expr(
     expr
 }
 
-#[darling(attributes(css), default)]
 #[derive(Default, FromDeriveInput)]
+#[darling(attributes(css), default)]
 pub struct CssInputAttrs {
     pub derive_debug: bool,
     // Here because structs variants are also their whole type definition.
@@ -246,8 +246,8 @@ pub struct CssInputAttrs {
     pub comma: bool,
 }
 
-#[darling(attributes(css), default)]
 #[derive(Default, FromVariant)]
+#[darling(attributes(css), default)]
 pub struct CssVariantAttrs {
     pub function: Option<Override<String>>,
     // Here because structs variants are also their whole type definition.
@@ -258,8 +258,8 @@ pub struct CssVariantAttrs {
     pub skip: bool,
 }
 
-#[darling(attributes(css), default)]
 #[derive(Default, FromField)]
+#[darling(attributes(css), default)]
 pub struct CssFieldAttrs {
     pub if_empty: Option<String>,
     pub field_bound: bool,

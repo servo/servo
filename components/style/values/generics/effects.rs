@@ -35,7 +35,6 @@ pub use self::GenericBoxShadow as BoxShadow;
 
 /// A generic value for a single `filter`.
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[animation(no_bound(U))]
 #[derive(
     Clone,
     ComputeSquaredDistance,
@@ -49,6 +48,7 @@ pub use self::GenericBoxShadow as BoxShadow;
     ToResolvedValue,
     ToShmem,
 )]
+#[animation(no_bound(U))]
 #[repr(C, u8)]
 pub enum GenericFilter<Angle, NonNegativeFactor, ZeroToOneFactor, Length, Shadow, U> {
     /// `blur(<length>)`

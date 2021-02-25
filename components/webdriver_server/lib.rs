@@ -138,12 +138,11 @@ pub struct WebDriverSession {
     implicit_wait_timeout: u64,
 
     page_loading_strategy: String,
-    secure_tls: bool,
+
     strict_file_interactability: bool,
+
     unhandled_prompt_behavior: String,
 
-    // https://w3c.github.io/webdriver/#dfn-active-input-sources
-    active_input_sources: Vec<InputSourceState>,
     // https://w3c.github.io/webdriver/#dfn-input-state-table
     input_state_table: HashMap<String, InputSourceState>,
     // https://w3c.github.io/webdriver/#dfn-input-cancel-list
@@ -165,11 +164,9 @@ impl WebDriverSession {
             implicit_wait_timeout: 0,
 
             page_loading_strategy: "normal".to_string(),
-            secure_tls: true,
             strict_file_interactability: false,
             unhandled_prompt_behavior: "dismiss and notify".to_string(),
 
-            active_input_sources: Vec::new(),
             input_state_table: HashMap::new(),
             input_cancel_list: Vec::new(),
         }
@@ -532,8 +529,8 @@ impl Handler {
                     );
 
                     match processed.get("acceptInsecureCerts") {
-                        Some(accept_insecure_certs) => {
-                            session.secure_tls = !accept_insecure_certs.as_bool().unwrap()
+                        Some(_accept_insecure_certs) => {
+                            // FIXME do something here?
                         },
                         None => {
                             processed.insert(
@@ -1374,7 +1371,6 @@ impl Handler {
 
         let session = self.session_mut()?;
         session.input_state_table = HashMap::new();
-        session.active_input_sources = Vec::new();
 
         Ok(WebDriverResponse::Void)
     }

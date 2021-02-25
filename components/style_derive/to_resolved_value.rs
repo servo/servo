@@ -44,8 +44,8 @@ pub fn derive(input: DeriveInput) -> TokenStream {
     )
 }
 
-#[darling(attributes(resolve), default)]
 #[derive(Default, FromField)]
+#[darling(attributes(resolve), default)]
 struct ResolvedValueAttrs {
     field_bound: bool,
     no_field_bound: bool,
