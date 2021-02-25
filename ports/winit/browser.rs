@@ -4,12 +4,13 @@
 
 use crate::keyutils::{CMD_OR_ALT, CMD_OR_CONTROL};
 use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
+use clipboard::{ClipboardContext, ClipboardProvider};
 use euclid::{Point2D, Vector2D};
 use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 use servo::compositing::windowing::{WebRenderDebugOption, WindowEvent};
 use servo::embedder_traits::{
-    ContextMenuResult, EmbedderMsg, FilterPattern, PermissionRequest, PromptDefinition, PromptOrigin, PromptResult,
-    PermissionPrompt,
+    ContextMenuResult, EmbedderMsg, FilterPattern, PermissionPrompt, PermissionRequest,
+    PromptDefinition, PromptOrigin, PromptResult,
 };
 use servo::msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
 use servo::msg::constellation_msg::TraversalDirection;
@@ -19,7 +20,6 @@ use servo::servo_config::opts;
 use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::ScrollLocation;
-use clipboard::{ClipboardContext, ClipboardProvider};
 use std::env;
 use std::fs::File;
 use std::io::Write;
@@ -294,68 +294,70 @@ where
                 EmbedderMsg::Prompt(definition, origin) => {
                     let res = if opts::get().headless {
                         match definition {
-                            PromptDefinition::Alert(_message, sender) => {
-                                sender.send(())
-                            }
+                            PromptDefinition::Alert(_message, sender) => sender.send(()),
                             PromptDefinition::YesNo(_message, sender) => {
                                 sender.send(PromptResult::Primary)
-                            }
+                            },
                             PromptDefinition::OkCancel(_message, sender) => {
                                 sender.send(PromptResult::Primary)
-                            }
+                            },
                             PromptDefinition::Input(_message, default, sender) => {
                                 sender.send(Some(default.to_owned()))
-                            }
+                            },
                         }
                     } else {
                         thread::Builder::new()
                             .name("display alert dialog".to_owned())
-                            .spawn(move || {
-                                match definition {
-                                    PromptDefinition::Alert(mut message, sender) => {
-                                        if origin == PromptOrigin::Untrusted {
-                                            message = tiny_dialog_escape(&message);
-                                        }
-                                        tinyfiledialogs::message_box_ok(
-                                            "Alert!",
-                                            &message,
-                                            MessageBoxIcon::Warning,
-                                        );
-                                        sender.send(())
+                            .spawn(move || match definition {
+                                PromptDefinition::Alert(mut message, sender) => {
+                                    if origin == PromptOrigin::Untrusted {
+                                        message = tiny_dialog_escape(&message);
                                     }
-                                    PromptDefinition::YesNo(mut message, sender) => {
-                                        if origin == PromptOrigin::Untrusted {
-                                            message = tiny_dialog_escape(&message);
-                                        }
-                                        let result = tinyfiledialogs::message_box_yes_no(
-                                            "", &message, MessageBoxIcon::Warning, YesNo::No,
-                                        );
-                                        sender.send(match result {
-                                            YesNo::Yes => PromptResult::Primary,
-                                            YesNo::No => PromptResult::Secondary,
-                                        })
+                                    tinyfiledialogs::message_box_ok(
+                                        "Alert!",
+                                        &message,
+                                        MessageBoxIcon::Warning,
+                                    );
+                                    sender.send(())
+                                },
+                                PromptDefinition::YesNo(mut message, sender) => {
+                                    if origin == PromptOrigin::Untrusted {
+                                        message = tiny_dialog_escape(&message);
                                     }
-                                    PromptDefinition::OkCancel(mut message, sender) => {
-                                        if origin == PromptOrigin::Untrusted {
-                                            message = tiny_dialog_escape(&message);
-                                        }
-                                        let result = tinyfiledialogs::message_box_ok_cancel(
-                                            "", &message, MessageBoxIcon::Warning, OkCancel::Cancel,
-                                        );
-                                        sender.send(match result {
-                                            OkCancel::Ok => PromptResult::Primary,
-                                            OkCancel::Cancel => PromptResult::Secondary,
-                                        })
+                                    let result = tinyfiledialogs::message_box_yes_no(
+                                        "",
+                                        &message,
+                                        MessageBoxIcon::Warning,
+                                        YesNo::No,
+                                    );
+                                    sender.send(match result {
+                                        YesNo::Yes => PromptResult::Primary,
+                                        YesNo::No => PromptResult::Secondary,
+                                    })
+                                },
+                                PromptDefinition::OkCancel(mut message, sender) => {
+                                    if origin == PromptOrigin::Untrusted {
+                                        message = tiny_dialog_escape(&message);
                                     }
-                                    PromptDefinition::Input(mut message, mut default, sender) => {
-                                        if origin == PromptOrigin::Untrusted {
-                                            message = tiny_dialog_escape(&message);
-                                            default = tiny_dialog_escape(&default);
-                                        }
-                                        let result = tinyfiledialogs::input_box("", &message, &default);
-                                        sender.send(result)
+                                    let result = tinyfiledialogs::message_box_ok_cancel(
+                                        "",
+                                        &message,
+                                        MessageBoxIcon::Warning,
+                                        OkCancel::Cancel,
+                                    );
+                                    sender.send(match result {
+                                        OkCancel::Ok => PromptResult::Primary,
+                                        OkCancel::Cancel => PromptResult::Secondary,
+                                    })
+                                },
+                                PromptDefinition::Input(mut message, mut default, sender) => {
+                                    if origin == PromptOrigin::Untrusted {
+                                        message = tiny_dialog_escape(&message);
+                                        default = tiny_dialog_escape(&default);
                                     }
-                                }
+                                    let result = tinyfiledialogs::input_box("", &message, &default);
+                                    sender.send(result)
+                                },
                             })
                             .unwrap()
                             .join()
@@ -404,28 +406,26 @@ where
                 },
                 EmbedderMsg::GetClipboardContents(sender) => {
                     let contents = match self.clipboard_ctx {
-                        Some(ref mut ctx) => {
-                            match ctx.get_contents() {
-                                Ok(c) => c,
-                                Err(e) => {
-                                    warn!("Error getting clipboard contents ({}), defaulting to empty string", e);
-                                    "".to_owned()
-                                },
-                            }
+                        Some(ref mut ctx) => match ctx.get_contents() {
+                            Ok(c) => c,
+                            Err(e) => {
+                                warn!("Error getting clipboard contents ({}), defaulting to empty string", e);
+                                "".to_owned()
+                            },
                         },
                         None => "".to_owned(),
                     };
                     if let Err(e) = sender.send(contents) {
                         warn!("Failed to send clipboard ({})", e);
                     }
-                }
+                },
                 EmbedderMsg::SetClipboardContents(text) => {
                     if let Some(ref mut ctx) = self.clipboard_ctx {
                         if let Err(e) = ctx.set_contents(text) {
                             warn!("Error setting clipboard contents ({})", e);
                         }
                     }
-                }
+                },
                 EmbedderMsg::SetCursor(cursor) => {
                     self.window.set_cursor(cursor);
                 },
@@ -486,7 +486,7 @@ where
                 EmbedderMsg::PromptPermission(prompt, sender) => {
                     let permission_state = prompt_user(prompt);
                     let _ = sender.send(permission_state);
-                }
+                },
                 EmbedderMsg::ShowIME(_kind, _text, _rect) => {
                     debug!("ShowIME received");
                 },
@@ -504,15 +504,13 @@ where
                     debug!("MediaSessionEvent received");
                     // TODO(ferjm): MediaSession support for winit based browsers.
                 },
-                EmbedderMsg::OnDevtoolsStarted(port, _token) => {
-                    match port {
-                        Ok(p) => info!("Devtools Server running on port {}", p),
-                        Err(()) => error!("Error running devtools server"),
-                    }
+                EmbedderMsg::OnDevtoolsStarted(port, _token) => match port {
+                    Ok(p) => info!("Devtools Server running on port {}", p),
+                    Err(()) => error!("Error running devtools server"),
                 },
                 EmbedderMsg::ShowContextMenu(sender, ..) => {
                     let _ = sender.send(ContextMenuResult::Ignored);
-                }
+                },
             }
         }
     }
@@ -643,20 +641,21 @@ fn sanitize_url(request: &str) -> Option<ServoUrl> {
 // different programs depending on what the user has installed.
 #[cfg(target_os = "linux")]
 fn tiny_dialog_escape(raw: &str) -> String {
-   let s:String = raw.chars()
-       .filter_map(|c| match c {
-           '\n' => Some('\n'),
-           '\0' ..= '\x1f' => None,
-           '<' => Some('\u{FF1C}'),
-           '>' => Some('\u{FF1E}'),
-           '&' => Some('\u{FF06}'),
-           _ => Some(c)
-       })
-       .collect();
-   return shellwords::escape(&s);
+    let s: String = raw
+        .chars()
+        .filter_map(|c| match c {
+            '\n' => Some('\n'),
+            '\0'..='\x1f' => None,
+            '<' => Some('\u{FF1C}'),
+            '>' => Some('\u{FF1E}'),
+            '&' => Some('\u{FF06}'),
+            _ => Some(c),
+        })
+        .collect();
+    return shellwords::escape(&s);
 }
 
 #[cfg(not(target_os = "linux"))]
 fn tiny_dialog_escape(raw: &str) -> String {
-   raw.to_string()
+    raw.to_string()
 }

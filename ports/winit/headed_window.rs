@@ -7,29 +7,20 @@
 use crate::events_loop::EventsLoop;
 use crate::keyutils::keyboard_event_from_winit;
 use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
-use euclid::{
-    Angle, Point2D, Rotation3D, Scale, Size2D, UnknownUnit,
-    Vector2D, Vector3D,
-};
-use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
-#[cfg(target_os = "macos")]
-use winit::os::macos::{ActivationPolicy, WindowBuilderExt};
-#[cfg(any(target_os = "linux", target_os = "windows"))]
-use winit::Icon;
-use winit::{ElementState, KeyboardInput, MouseButton, MouseScrollDelta, TouchPhase, VirtualKeyCode};
+use euclid::{Angle, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector2D, Vector3D};
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use image;
 use keyboard_types::{Key, KeyState, KeyboardEvent};
 use servo::compositing::windowing::{AnimationState, MouseWindowEvent, WindowEvent};
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
 use servo::embedder_traits::Cursor;
-use servo::script_traits::{TouchEventType, WheelMode, WheelDelta};
+use servo::script_traits::{TouchEventType, WheelDelta, WheelMode};
 use servo::servo_config::opts;
 use servo::servo_config::pref;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
-use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
+use servo::webrender_api::ScrollLocation;
 use servo::webrender_surfman::WebrenderSurfman;
 use servo_media::player::context::{GlApi, GlContext as PlayerGLContext, NativeDisplay};
 use std::cell::{Cell, RefCell};
@@ -48,6 +39,14 @@ use surfman::GLVersion;
 use surfman::SurfaceType;
 #[cfg(target_os = "windows")]
 use winapi;
+use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
+#[cfg(target_os = "macos")]
+use winit::os::macos::{ActivationPolicy, WindowBuilderExt};
+#[cfg(any(target_os = "linux", target_os = "windows"))]
+use winit::Icon;
+use winit::{
+    ElementState, KeyboardInput, MouseButton, MouseScrollDelta, TouchPhase, VirtualKeyCode,
+};
 
 #[cfg(target_os = "macos")]
 fn builder_with_platform_options(mut builder: winit::WindowBuilder) -> winit::WindowBuilder {
@@ -125,7 +124,9 @@ impl Window {
 
         window_builder = builder_with_platform_options(window_builder);
 
-        let winit_window = window_builder.build(events_loop.borrow().as_winit()).expect("Failed to create window.");
+        let winit_window = window_builder
+            .build(events_loop.borrow().as_winit())
+            .expect("Failed to create window.");
 
         #[cfg(any(target_os = "linux", target_os = "windows"))]
         {
@@ -149,17 +150,17 @@ impl Window {
         winit_window.show();
 
         // Initialize surfman
-        let connection = Connection::from_winit_window(&winit_window).expect("Failed to create connection");
-        let adapter = connection.create_adapter().expect("Failed to create adapter");
+        let connection =
+            Connection::from_winit_window(&winit_window).expect("Failed to create connection");
+        let adapter = connection
+            .create_adapter()
+            .expect("Failed to create adapter");
         let native_widget = connection
             .create_native_widget_from_winit_window(&winit_window)
             .expect("Failed to create native widget");
         let surface_type = SurfaceType::Widget { native_widget };
-        let webrender_surfman = WebrenderSurfman::create(
-            &connection,
-            &adapter,
-            surface_type,
-        ).expect("Failed to create WR surfman");
+        let webrender_surfman = WebrenderSurfman::create(&connection, &adapter, surface_type)
+            .expect("Failed to create WR surfman");
 
         debug!("Created window {:?}", winit_window.id());
         Window {
@@ -190,7 +191,8 @@ impl Window {
             // shift ASCII control characters to lowercase
             ch = (ch as u8 + 96) as char;
         }
-        let (mut event, key_code) = if let Some((event, key_code)) = self.last_pressed.replace(None) {
+        let (mut event, key_code) = if let Some((event, key_code)) = self.last_pressed.replace(None)
+        {
             (event, key_code)
         } else if ch.is_ascii() {
             // Some keys like Backspace emit a control character in winit
@@ -209,7 +211,9 @@ impl Window {
             // to infer that it's related to this character and set the event
             // properties appropriately.
             if let Some(key_code) = key_code {
-                self.keys_down.borrow_mut().insert(key_code, event.key.clone());
+                self.keys_down
+                    .borrow_mut()
+                    .insert(key_code, event.key.clone());
             }
         }
 
@@ -351,8 +355,11 @@ impl WindowPortsMethods for Window {
 
     fn set_fullscreen(&self, state: bool) {
         if self.fullscreen.get() != state {
-            self.winit_window
-                .set_fullscreen(if state { Some(self.primary_monitor.clone()) } else { None });
+            self.winit_window.set_fullscreen(if state {
+                Some(self.primary_monitor.clone())
+            } else {
+                None
+            });
         }
         self.fullscreen.set(state);
     }
@@ -433,8 +440,9 @@ impl WindowPortsMethods for Window {
             },
             winit::WindowEvent::MouseWheel { delta, phase, .. } => {
                 let (mut dx, mut dy, mode) = match delta {
-                    MouseScrollDelta::LineDelta(dx, dy) => (dx as f64, (dy * LINE_HEIGHT) as f64,
-                                                            WheelMode::DeltaLine),
+                    MouseScrollDelta::LineDelta(dx, dy) => {
+                        (dx as f64, (dy * LINE_HEIGHT) as f64, WheelMode::DeltaLine)
+                    },
                     MouseScrollDelta::PixelDelta(position) => {
                         let position =
                             position.to_physical(self.device_hidpi_factor().get() as f64);
@@ -443,7 +451,12 @@ impl WindowPortsMethods for Window {
                 };
 
                 // Create wheel event before snapping to the major axis of movement
-                let wheel_delta = WheelDelta { x: dx, y: dy, z: 0.0, mode };
+                let wheel_delta = WheelDelta {
+                    x: dx,
+                    y: dy,
+                    z: 0.0,
+                    mode,
+                };
                 let pos = self.mouse_pos.get();
                 let position = Point2D::new(pos.x as f32, pos.y as f32);
                 let wheel_event = WindowEvent::Wheel(wheel_delta, position);
@@ -458,7 +471,8 @@ impl WindowPortsMethods for Window {
 
                 let scroll_location = ScrollLocation::Delta(Vector2D::new(dx as f32, dy as f32));
                 let phase = winit_phase_to_touch_event_type(phase);
-                let scroll_event = WindowEvent::Scroll(scroll_location, self.mouse_pos.get(), phase);
+                let scroll_event =
+                    WindowEvent::Scroll(scroll_location, self.mouse_pos.get(), phase);
 
                 // Send events
                 self.event_queue.borrow_mut().push(wheel_event);
@@ -489,7 +503,9 @@ impl WindowPortsMethods for Window {
                 if self.inner_size.get() != new_size {
                     let physical_size = size.to_physical(self.device_hidpi_factor().get() as f64);
                     let physical_size = Size2D::new(physical_size.width, physical_size.height);
-                    self.webrender_surfman.resize(physical_size.to_i32()).expect("Failed to resize");
+                    self.webrender_surfman
+                        .resize(physical_size.to_i32())
+                        .expect("Failed to resize");
                     self.inner_size.set(new_size);
                     self.event_queue.borrow_mut().push(WindowEvent::Resize);
                 }
@@ -499,7 +515,9 @@ impl WindowPortsMethods for Window {
     }
 
     fn new_glwindow(&self, events_loop: &EventsLoop) -> Box<dyn webxr::glwindow::GlWindow> {
-        let size = self.winit_window.get_outer_size()
+        let size = self
+            .winit_window
+            .get_outer_size()
             .expect("Failed to get window outer size");
 
         let mut window_builder = winit::WindowBuilder::new()
@@ -509,7 +527,8 @@ impl WindowPortsMethods for Window {
 
         window_builder = builder_with_platform_options(window_builder);
 
-        let winit_window = window_builder.build(events_loop.as_winit())
+        let winit_window = window_builder
+            .build(events_loop.as_winit())
             .expect("Failed to create window.");
 
         let pose = Rc::new(XRWindowPose {
@@ -576,10 +595,12 @@ impl WindowMethods for Window {
 
         #[cfg(target_os = "linux")]
         return match native_context {
-            NativeContext::Default(NativeContext::Default(native_context)) =>
-                PlayerGLContext::Egl(native_context.egl_context as usize),
-            NativeContext::Default(NativeContext::Alternate(native_context)) =>
-                PlayerGLContext::Egl(native_context.egl_context as usize),
+            NativeContext::Default(NativeContext::Default(native_context)) => {
+                PlayerGLContext::Egl(native_context.egl_context as usize)
+            },
+            NativeContext::Default(NativeContext::Alternate(native_context)) => {
+                PlayerGLContext::Egl(native_context.egl_context as usize)
+            },
             NativeContext::Alternate(_) => unimplemented!(),
         };
 
@@ -607,10 +628,12 @@ impl WindowMethods for Window {
 
         #[cfg(target_os = "linux")]
         return match native_connection {
-            NativeConnection::Default(NativeConnection::Default(conn)) =>
-                NativeDisplay::Egl(conn.0 as usize),
-            NativeConnection::Default(NativeConnection::Alternate(conn)) =>
-                NativeDisplay::X11(conn.x11_display as usize),
+            NativeConnection::Default(NativeConnection::Default(conn)) => {
+                NativeDisplay::Egl(conn.0 as usize)
+            },
+            NativeConnection::Default(NativeConnection::Alternate(conn)) => {
+                NativeDisplay::X11(conn.x11_display as usize)
+            },
             NativeConnection::Alternate(_) => unimplemented!(),
         };
 
@@ -671,8 +694,13 @@ struct XRWindowPose {
 }
 
 impl webxr::glwindow::GlWindow for XRWindow {
-    fn get_render_target(&self, device: &mut Device, _context: &mut Context) -> webxr::glwindow::GlWindowRenderTarget {
-        let native_widget = device.connection()
+    fn get_render_target(
+        &self,
+        device: &mut Device,
+        _context: &mut Context,
+    ) -> webxr::glwindow::GlWindowRenderTarget {
+        let native_widget = device
+            .connection()
             .create_native_widget_from_winit_window(&self.winit_window)
             .expect("Failed to create native widget");
         webxr::glwindow::GlWindowRenderTarget::NativeWidget(native_widget)

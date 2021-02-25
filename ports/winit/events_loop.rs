@@ -4,13 +4,12 @@
 
 //! An event loop implementation that works in headless mode.
 
-
-use winit;
 use servo::embedder_traits::EventLoopWaker;
-use std::sync::{Arc, Condvar, Mutex};
-use std::rc::Rc;
 use std::cell::RefCell;
+use std::rc::Rc;
+use std::sync::{Arc, Condvar, Mutex};
 use std::time;
+use winit;
 
 #[allow(dead_code)]
 enum EventLoop {
@@ -29,7 +28,9 @@ impl EventsLoop {
     // but on Linux, the event loop requires a X11 server.
     #[cfg(not(target_os = "linux"))]
     pub fn new(_headless: bool) -> Rc<RefCell<EventsLoop>> {
-        Rc::new(RefCell::new(EventsLoop(EventLoop::Winit(Some(winit::EventsLoop::new())))))
+        Rc::new(RefCell::new(EventsLoop(EventLoop::Winit(Some(
+            winit::EventsLoop::new(),
+        )))))
     }
     #[cfg(target_os = "linux")]
     pub fn new(headless: bool) -> Rc<RefCell<EventsLoop>> {
@@ -51,19 +52,22 @@ impl EventsLoop {
                     .expect("Can't create waker for unavailable event loop.");
                 Box::new(HeadedEventLoopWaker::new(&events_loop))
             },
-            EventLoop::Headless(ref data) =>
-                Box::new(HeadlessEventLoopWaker(data.clone())),
+            EventLoop::Headless(ref data) => Box::new(HeadlessEventLoopWaker(data.clone())),
         }
     }
     pub fn as_winit(&self) -> &winit::EventsLoop {
         match self.0 {
             EventLoop::Winit(Some(ref event_loop)) => event_loop,
-            EventLoop::Winit(None) | EventLoop::Headless(..) =>
-                panic!("Can't access winit event loop while using the fake headless event loop"),
+            EventLoop::Winit(None) | EventLoop::Headless(..) => {
+                panic!("Can't access winit event loop while using the fake headless event loop")
+            },
         }
     }
 
-    pub fn poll_events<F>(&mut self, callback: F) where F: FnMut(winit::Event) {
+    pub fn poll_events<F>(&mut self, callback: F)
+    where
+        F: FnMut(winit::Event),
+    {
         match self.0 {
             EventLoop::Winit(Some(ref mut events_loop)) => events_loop.poll_events(callback),
             EventLoop::Winit(None) => (),
@@ -78,17 +82,20 @@ impl EventsLoop {
                 // check it first and avoid sleeping unnecessarily.
                 self.sleep(&data.0, &data.1);
                 *data.0.lock().unwrap() = false;
-            }
+            },
         }
     }
-    pub fn run_forever<F>(&mut self, mut callback: F) where F: FnMut(winit::Event) -> winit::ControlFlow {
+    pub fn run_forever<F>(&mut self, mut callback: F)
+    where
+        F: FnMut(winit::Event) -> winit::ControlFlow,
+    {
         match self.0 {
             EventLoop::Winit(ref mut events_loop) => {
                 let events_loop = events_loop
                     .as_mut()
                     .expect("Can't run an unavailable event loop.");
                 events_loop.run_forever(callback);
-            }
+            },
             EventLoop::Headless(ref data) => {
                 let &(ref flag, ref condvar) = &**data;
                 while !*flag.lock().unwrap() {
@@ -97,7 +104,7 @@ impl EventsLoop {
                         break;
                     }
                 }
-            }
+            },
         }
     }
     fn sleep(&self, lock: &Mutex<bool>, condvar: &Condvar) {
@@ -109,9 +116,9 @@ impl EventsLoop {
         if *guard {
             return;
         }
-        let _ = condvar.wait_timeout(
-            guard, time::Duration::from_millis(5)
-        ).unwrap();
+        let _ = condvar
+            .wait_timeout(guard, time::Duration::from_millis(5))
+            .unwrap();
     }
 }
 

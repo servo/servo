@@ -34,4 +34,3 @@ pub fn install() {
     signal!(Sig::IOT, handler); // handle double panics
     signal!(Sig::BUS, handler); // handle invalid memory access
 }
-
