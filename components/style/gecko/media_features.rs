@@ -303,25 +303,11 @@ fn eval_prefers_reduced_motion(device: &Device, query_value: Option<PrefersReduc
 /// https://drafts.csswg.org/mediaqueries-5/#prefers-contrast
 #[derive(Clone, Copy, Debug, FromPrimitive, PartialEq, Parse, ToCss)]
 #[repr(u8)]
-#[allow(missing_docs)]
-enum PrefersContrast {
+pub enum PrefersContrast {
+    /// More contrast is preferred. Corresponds to an accessibility theme
+    /// being enabled or Firefox forcing high contrast colors.
     More,
-    Less,
-    NoPreference,
-    Forced,
-}
-
-/// Represents the parts of prefers-contrast that explicitly deal with
-/// contrast. Used in combination with information about rather or not
-/// forced colors are active this allows for evaluation of the
-/// prefers-contrast media query.
-#[derive(Clone, Copy, Debug, FromPrimitive, PartialEq)]
-#[repr(u8)]
-pub enum ContrastPref {
-    /// More contrast is prefered. Corresponds to an accessibility theme
-    /// being enabled or firefox forcing high contrast colors.
-    More,
-    /// Low contrast is prefered.
+    /// Low contrast is preferred.
     Less,
     /// The default value if neither high or low contrast is enabled.
     NoPreference,
@@ -329,19 +315,11 @@ pub enum ContrastPref {
 
 /// https://drafts.csswg.org/mediaqueries-5/#prefers-contrast
 fn eval_prefers_contrast(device: &Device, query_value: Option<PrefersContrast>) -> bool {
-    let forced_colors = !device.use_document_colors();
-    let contrast_pref =
-        unsafe { bindings::Gecko_MediaFeatures_PrefersContrast(device.document(), forced_colors) };
-    if let Some(query_value) = query_value {
-        match query_value {
-            PrefersContrast::Forced => forced_colors,
-            PrefersContrast::More => contrast_pref == ContrastPref::More,
-            PrefersContrast::Less => contrast_pref == ContrastPref::Less,
-            PrefersContrast::NoPreference => contrast_pref == ContrastPref::NoPreference,
-        }
-    } else {
-        // Only prefers-contrast: no-preference evaluates to false.
-        forced_colors || (contrast_pref != ContrastPref::NoPreference)
+    let prefers_contrast =
+        unsafe { bindings::Gecko_MediaFeatures_PrefersContrast(device.document()) };
+    match query_value {
+        Some(v) => v == prefers_contrast,
+        None => prefers_contrast != PrefersContrast::NoPreference,
     }
 }
 
