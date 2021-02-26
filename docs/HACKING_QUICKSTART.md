@@ -295,14 +295,8 @@ See the [debugging guide](./debugging.md) to get started in how to debug Servo.
 
 ## Ask questions
 
-### [Matrix](https://wiki.mozilla.org/Matrix)
-
-- [Servo room](https://chat.mozilla.org/#/room/#servo:mozilla.org)
+### [Servo’s Zulip](https://servo.zulipchat.com/)
 
 ### Discord servers
 
 The official [Rust Discord server](https://discordapp.com/invite/rust-lang) is a great place to ask Rust specific questions, including questions related to cargo.
-
-### Mailing list
-
-https://lists.mozilla.org/listinfo/dev-servo
