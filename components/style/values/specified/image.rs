@@ -1144,15 +1144,6 @@ impl Parse for PaintWorklet {
 }
 
 impl MozImageRect {
-    #[cfg(not(feature = "gecko"))]
-    fn parse<'i, 't>(
-        _context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-        _cors_mode: CorsMode,
-    ) -> Result<Self, ParseError<'i>> {
-        Err(input.new_error_for_next_token())
-    }
-
     #[cfg(feature = "gecko")]
     fn parse<'i, 't>(
         context: &ParserContext,

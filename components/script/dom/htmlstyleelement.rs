@@ -96,7 +96,8 @@ impl HTMLStyleElement {
             .expect("Element.textContent must be a string");
         let url = window.get_url();
         let css_error_reporter = window.css_error_reporter();
-        let context = CssParserContext::new_for_cssom(
+        let context = CssParserContext::new(
+            Origin::Author,
             &url,
             Some(CssRuleType::Media),
             ParsingMode::DEFAULT,

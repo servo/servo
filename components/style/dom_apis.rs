@@ -16,7 +16,6 @@ use selectors::matching::{self, MatchingContext, MatchingMode};
 use selectors::parser::{Combinator, Component, LocalName, SelectorImpl};
 use selectors::{Element, NthIndexCache, SelectorList};
 use smallvec::SmallVec;
-use std::borrow::Borrow;
 
 /// <https://dom.spec.whatwg.org/#dom-element-matches>
 pub fn element_matches<E>(
@@ -354,11 +353,14 @@ where
         ref name,
         ref lower_name,
     } = *local_name;
-    if element.is_html_element_in_html_document() {
-        element.local_name() == lower_name.borrow()
+
+    let chosen_name = if element.is_html_element_in_html_document() {
+        lower_name
     } else {
-        element.local_name() == name.borrow()
-    }
+        name
+    };
+
+    element.local_name() == &**chosen_name
 }
 
 /// Fast paths for querySelector with a single simple selector.

@@ -117,7 +117,7 @@ pub use self::GenericCrossFadeElement as CrossFadeElement;
 pub use self::GenericCrossFadeImage as CrossFadeImage;
 
 /// https://drafts.csswg.org/css-images-4/#image-set-notation
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToResolvedValue, ToShmem, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss, ToResolvedValue, ToShmem)]
 #[css(comma, function = "image-set")]
 #[repr(C)]
 pub struct GenericImageSet<Image, Resolution> {

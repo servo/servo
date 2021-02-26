@@ -214,6 +214,7 @@ fn test_insert() {
 fn mock_stylist() -> Stylist {
     let device = Device::new(
         MediaType::screen(),
+        QuirksMode::NoQuirks,
         Size2D::new(0f32, 0f32),
         Scale::new(1.0),
     );

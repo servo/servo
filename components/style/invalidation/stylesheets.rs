@@ -66,7 +66,7 @@ impl Invalidation {
 
 /// Whether we should invalidate just the element, or the whole subtree within
 /// it.
-#[derive(Copy, Clone, Debug, Eq, MallocSizeOf, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Ord, PartialEq, PartialOrd)]
 enum InvalidationKind {
     None = 0,
     Element,

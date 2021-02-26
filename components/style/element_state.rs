@@ -128,7 +128,7 @@ bitflags! {
         /// https://html.spec.whatwg.org/multipage/#centered-alignment
         const IN_MODAL_DIALOG_STATE = 1 << 53;
 
-        /// https://html.spec.whatwg.org/multipage/interaction.html#inert-subtrees
+        /// https://html.spec.whatwg.org/multipage/#inert-subtrees
         const IN_MOZINERT_STATE = 1 << 54;
         /// State for the topmost dialog element in top layer
         const IN_TOPMOST_MODAL_DIALOG_STATE = 1 << 55;

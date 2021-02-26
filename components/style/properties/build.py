@@ -111,7 +111,7 @@ def main():
                     p.name: {"pref": getattr(p, pref_attr)}
                     for prop in properties_list
                     if prop.enabled_in_content()
-                    for p in [prop] + prop.alias
+                    for p in [prop] + prop.aliases
                 }
                 for kind, properties_list in [
                     ("longhands", properties.longhands),

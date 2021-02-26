@@ -4,8 +4,6 @@
 
 //! Specified types for CSS values related to tables.
 
-use crate::parser::ParserContext;
-
 /// Specified values for the `caption-side` property.
 ///
 /// Note that despite having "physical" names, these are actually interpreted
@@ -15,7 +13,7 @@ use crate::parser::ParserContext;
 ///
 /// https://drafts.csswg.org/css-tables/#propdef-caption-side
 #[cfg(feature = "gecko")]
-fn caption_side_non_standard_enabled(_context: &ParserContext) -> bool {
+fn caption_side_non_standard_enabled(_: &crate::parser::ParserContext) -> bool {
     static_prefs::pref!("layout.css.caption-side-non-standard.enabled")
 }
 

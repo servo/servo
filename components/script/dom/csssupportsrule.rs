@@ -16,7 +16,7 @@ use servo_arc::Arc;
 use style::parser::ParserContext;
 use style::shared_lock::{Locked, ToCssWithGuard};
 use style::stylesheets::supports_rule::SupportsCondition;
-use style::stylesheets::{CssRuleType, SupportsRule};
+use style::stylesheets::{CssRuleType, Origin, SupportsRule};
 use style_traits::{ParsingMode, ToCss};
 
 #[dom_struct]
@@ -71,7 +71,8 @@ impl CSSSupportsRule {
             let win = global.as_window();
             let url = win.Document().url();
             let quirks_mode = win.Document().quirks_mode();
-            let context = ParserContext::new_for_cssom(
+            let context = ParserContext::new(
+                Origin::Author,
                 &url,
                 Some(CssRuleType::Supports),
                 ParsingMode::DEFAULT,

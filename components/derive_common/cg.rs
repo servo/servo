@@ -222,7 +222,12 @@ where
     }
 }
 
-fn map_type_params_in_path<F>(path: &Path, params: &[&TypeParam], self_type: &Path, f: &mut F) -> Path
+fn map_type_params_in_path<F>(
+    path: &Path,
+    params: &[&TypeParam],
+    self_type: &Path,
+    f: &mut F,
+) -> Path
 where
     F: FnMut(&Ident) -> Type,
 {
@@ -241,9 +246,9 @@ where
                                 .iter()
                                 .map(|arg| match arg {
                                     ty @ &GenericArgument::Lifetime(_) => ty.clone(),
-                                    &GenericArgument::Type(ref data) => {
-                                        GenericArgument::Type(map_type_params(data, params, self_type, f))
-                                    },
+                                    &GenericArgument::Type(ref data) => GenericArgument::Type(
+                                        map_type_params(data, params, self_type, f),
+                                    ),
                                     &GenericArgument::Binding(ref data) => {
                                         GenericArgument::Binding(Binding {
                                             ty: map_type_params(&data.ty, params, self_type, f),

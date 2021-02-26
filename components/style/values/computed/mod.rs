@@ -510,10 +510,11 @@ trivial_to_computed_value!(u16);
 trivial_to_computed_value!(u32);
 trivial_to_computed_value!(usize);
 trivial_to_computed_value!(Atom);
+trivial_to_computed_value!(crate::values::AtomIdent);
 #[cfg(feature = "servo")]
-trivial_to_computed_value!(html5ever::Namespace);
+trivial_to_computed_value!(crate::Namespace);
 #[cfg(feature = "servo")]
-trivial_to_computed_value!(html5ever::Prefix);
+trivial_to_computed_value!(crate::Prefix);
 trivial_to_computed_value!(String);
 trivial_to_computed_value!(Box<str>);
 trivial_to_computed_value!(crate::OwnedStr);

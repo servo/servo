@@ -147,6 +147,13 @@ impl PartialEq for WeakAtom {
     }
 }
 
+impl PartialEq<Atom> for WeakAtom {
+    #[inline]
+    fn eq(&self, other: &Atom) -> bool {
+        self == &**other
+    }
+}
+
 unsafe impl Send for Atom {}
 unsafe impl Sync for Atom {}
 unsafe impl Sync for WeakAtom {}

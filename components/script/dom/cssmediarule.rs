@@ -18,7 +18,7 @@ use servo_arc::Arc;
 use style::media_queries::MediaList as StyleMediaList;
 use style::parser::ParserContext;
 use style::shared_lock::{Locked, ToCssWithGuard};
-use style::stylesheets::{CssRuleType, MediaRule};
+use style::stylesheets::{CssRuleType, MediaRule, Origin};
 use style_traits::{ParsingMode, ToCss};
 
 #[dom_struct]
@@ -82,7 +82,8 @@ impl CSSMediaRule {
         let window = global.as_window();
         let url = window.get_url();
         let quirks_mode = window.Document().quirks_mode();
-        let context = ParserContext::new_for_cssom(
+        let context = ParserContext::new(
+            Origin::Author,
             &url,
             Some(CssRuleType::Media),
             ParsingMode::DEFAULT,

@@ -60,6 +60,7 @@ ${helpers.predefined_type(
     initial_specified_value="specified::Image::None",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-lists/#propdef-list-style-image",
+    boxed=engine == "servo-2013",
     servo_restyle_damage="rebuild_and_reflow",
 )}
 

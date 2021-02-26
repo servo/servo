@@ -113,6 +113,7 @@ macro_rules! viewport_length {
 fn empty_viewport_rule() {
     let device = Device::new(
         MediaType::screen(),
+        QuirksMode::NoQuirks,
         Size2D::new(800., 600.),
         Scale::new(1.0),
     );
@@ -140,6 +141,7 @@ macro_rules! assert_decl_eq {
 fn simple_viewport_rules() {
     let device = Device::new(
         MediaType::screen(),
+        QuirksMode::NoQuirks,
         Size2D::new(800., 600.),
         Scale::new(1.0),
     );
@@ -308,6 +310,7 @@ fn simple_meta_viewport_contents() {
 fn cascading_within_viewport_rule() {
     let device = Device::new(
         MediaType::screen(),
+        QuirksMode::NoQuirks,
         Size2D::new(800., 600.),
         Scale::new(1.0),
     );
@@ -448,6 +451,7 @@ fn multiple_stylesheets_cascading() {
     set_pref!(layout.viewport.enabled, true);
     let device = Device::new(
         MediaType::screen(),
+        QuirksMode::NoQuirks,
         Size2D::new(800., 600.),
         Scale::new(1.0),
     );
@@ -539,7 +543,12 @@ fn constrain_viewport() {
     }
 
     let initial_viewport = Size2D::new(800., 600.);
-    let device = Device::new(MediaType::screen(), initial_viewport, Scale::new(1.0));
+    let device = Device::new(
+        MediaType::screen(),
+        QuirksMode::NoQuirks,
+        initial_viewport,
+        Scale::new(1.0),
+    );
     let mut input = ParserInput::new("");
     assert_eq!(
         ViewportConstraints::maybe_new(&device, from_css!(input), QuirksMode::NoQuirks),
@@ -597,7 +606,12 @@ fn constrain_viewport() {
     );
 
     let initial_viewport = Size2D::new(200., 150.);
-    let device = Device::new(MediaType::screen(), initial_viewport, Scale::new(1.0));
+    let device = Device::new(
+        MediaType::screen(),
+        QuirksMode::NoQuirks,
+        initial_viewport,
+        Scale::new(1.0),
+    );
     let mut input = ParserInput::new("width: 320px auto");
     assert_eq!(
         ViewportConstraints::maybe_new(&device, from_css!(input), QuirksMode::NoQuirks),

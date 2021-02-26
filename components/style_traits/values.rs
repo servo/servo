@@ -118,6 +118,16 @@ where
     }
 }
 
+impl ToCss for () {
+    #[inline]
+    fn to_css<W>(&self, _: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        Ok(())
+    }
+}
+
 /// A writer tailored for serialising CSS.
 ///
 /// Coupled with SequenceWriter, this allows callers to transparently handle

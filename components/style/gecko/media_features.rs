@@ -307,7 +307,7 @@ fn eval_prefers_reduced_motion(device: &Device, query_value: Option<PrefersReduc
 
 /// Possible values for prefers-contrast media query.
 /// https://drafts.csswg.org/mediaqueries-5/#prefers-contrast
-#[derive(Clone, Copy, Debug, FromPrimitive, PartialEq, Parse, ToCss)]
+#[derive(Clone, Copy, Debug, FromPrimitive, Parse, PartialEq, ToCss)]
 #[repr(u8)]
 pub enum PrefersContrast {
     /// More contrast is preferred. Corresponds to an accessibility theme
@@ -331,7 +331,7 @@ fn eval_prefers_contrast(device: &Device, query_value: Option<PrefersContrast>) 
 
 /// Possible values for the forced-colors media query.
 /// https://drafts.csswg.org/mediaqueries-5/#forced-colors
-#[derive(Clone, Copy, Debug, FromPrimitive, PartialEq, Parse, ToCss)]
+#[derive(Clone, Copy, Debug, FromPrimitive, Parse, PartialEq, ToCss)]
 #[repr(u8)]
 pub enum ForcedColors {
     /// Page colors are not being forced.

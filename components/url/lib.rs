@@ -103,6 +103,10 @@ impl ServoUrl {
         scheme == "about" || scheme == "blob" || scheme == "data"
     }
 
+    pub fn chrome_rules_enabled(&self) -> bool {
+        self.is_chrome()
+    }
+
     pub fn is_chrome(&self) -> bool {
         self.scheme() == "chrome"
     }

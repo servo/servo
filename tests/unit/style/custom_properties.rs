@@ -5,6 +5,7 @@
 use cssparser::{Parser, ParserInput};
 use euclid::{Scale, Size2D};
 use servo_arc::Arc;
+use style::context::QuirksMode;
 use style::custom_properties::{
     CustomPropertiesBuilder, CustomPropertiesMap, Name, SpecifiedValue,
 };
@@ -30,6 +31,7 @@ fn cascade(
 
     let device = Device::new(
         MediaType::screen(),
+        QuirksMode::NoQuirks,
         Size2D::new(800., 600.),
         Scale::new(1.0),
     );

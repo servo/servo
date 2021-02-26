@@ -39,7 +39,7 @@ use style::attr::AttrValue;
 use style::media_queries::MediaList;
 use style::parser::ParserContext as CssParserContext;
 use style::str::HTML_SPACE_CHARACTERS;
-use style::stylesheets::{CssRuleType, Stylesheet};
+use style::stylesheets::{CssRuleType, Origin, Stylesheet};
 use style_traits::ParsingMode;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
@@ -310,7 +310,8 @@ impl HTMLLinkElement {
         // FIXME(emilio): This looks somewhat fishy, since we use the context
         // only to parse the media query list, CssRuleType::Media doesn't make
         // much sense.
-        let context = CssParserContext::new_for_cssom(
+        let context = CssParserContext::new(
+            Origin::Author,
             &doc_url,
             Some(CssRuleType::Media),
             ParsingMode::DEFAULT,

@@ -142,7 +142,7 @@ use style::properties::style_structs::Font;
 use style::properties::{PropertyId, ShorthandId};
 use style::selector_parser::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
-use style::stylesheets::CssRuleType;
+use style::stylesheets::{CssRuleType, Origin};
 use style_traits::{CSSPixel, DevicePixel, ParsingMode};
 use url::Position;
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize, LayoutPixel};
@@ -1307,7 +1307,8 @@ impl WindowMethods for Window {
         let mut parser = Parser::new(&mut input);
         let url = self.get_url();
         let quirks_mode = self.Document().quirks_mode();
-        let context = CssParserContext::new_for_cssom(
+        let context = CssParserContext::new(
+            Origin::Author,
             &url,
             Some(CssRuleType::Media),
             ParsingMode::DEFAULT,

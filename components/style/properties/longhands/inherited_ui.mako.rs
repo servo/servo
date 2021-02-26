@@ -37,7 +37,7 @@ ${helpers.single_keyword(
     gecko_enum_prefix="StyleInert",
     animation_value_type="discrete",
     enabled_in="ua",
-    spec="Nonstandard (https://html.spec.whatwg.org/multipage/interaction.html#inert-subtrees)",
+    spec="Nonstandard (https://html.spec.whatwg.org/multipage/#inert-subtrees)",
 )}
 
 ${helpers.single_keyword(

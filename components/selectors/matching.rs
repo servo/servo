@@ -908,12 +908,7 @@ where
     let index = if let Some(i) = cache.as_mut().and_then(|c| c.lookup(element.opaque())) {
         i
     } else {
-        let i = nth_child_index(
-            element,
-            is_of_type,
-            is_from_end,
-            cache.as_deref_mut(),
-        );
+        let i = nth_child_index(element, is_of_type, is_from_end, cache.as_deref_mut());
         if let Some(c) = cache.as_mut() {
             c.insert(element.opaque(), i)
         }

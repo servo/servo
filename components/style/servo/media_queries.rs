@@ -4,6 +4,7 @@
 
 //! Servo's media-query device and expression representation.
 
+use crate::context::QuirksMode;
 use crate::custom_properties::CssEnvironment;
 use crate::media_queries::media_feature::{AllowsRanges, ParsingRequirements};
 use crate::media_queries::media_feature::{Evaluator, MediaFeatureDescription};
@@ -33,6 +34,9 @@ pub struct Device {
     viewport_size: Size2D<f32, CSSPixel>,
     /// The current device pixel ratio, from CSS pixels to device pixels.
     device_pixel_ratio: Scale<f32, CSSPixel, DevicePixel>,
+    /// The current quirks mode.
+    #[ignore_malloc_size_of = "Pure stack type"]
+    quirks_mode: QuirksMode,
 
     /// The font size of the root element
     /// This is set when computing the style of the root
@@ -60,6 +64,7 @@ impl Device {
     /// Trivially construct a new `Device`.
     pub fn new(
         media_type: MediaType,
+        quirks_mode: QuirksMode,
         viewport_size: Size2D<f32, CSSPixel>,
         device_pixel_ratio: Scale<f32, CSSPixel, DevicePixel>,
     ) -> Device {
@@ -67,6 +72,7 @@ impl Device {
             media_type,
             viewport_size,
             device_pixel_ratio,
+            quirks_mode,
             // FIXME(bz): Seems dubious?
             root_font_size: AtomicU32::new(FONT_MEDIUM_PX.to_bits()),
             used_root_font_size: AtomicBool::new(false),
@@ -99,6 +105,11 @@ impl Device {
     pub fn set_root_font_size(&self, size: CSSPixelLength) {
         self.root_font_size
             .store(size.px().to_bits(), Ordering::Relaxed)
+    }
+
+    /// Get the quirks mode of the current device.
+    pub fn quirks_mode(&self) -> QuirksMode {
+        self.quirks_mode
     }
 
     /// Sets the body text color for the "inherit color from body" quirk.

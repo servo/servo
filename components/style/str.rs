@@ -179,3 +179,11 @@ pub type CssStringWriter = ::nsstring::nsACString;
 /// needs to allocate a temporary string.
 #[cfg(feature = "gecko")]
 pub type CssString = ::nsstring::nsCString;
+
+/// String. The comments for the Gecko types explain the need for this abstraction.
+#[cfg(feature = "servo")]
+pub type CssStringWriter = String;
+
+/// String. The comments for the Gecko types explain the need for this abstraction.
+#[cfg(feature = "servo")]
+pub type CssString = String;

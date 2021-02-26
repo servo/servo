@@ -792,6 +792,9 @@ impl Fragment {
                         );
                     }
                 },
+                Image::CrossFade(..) | Image::ImageSet(..) => {
+                    unreachable!("Shouldn't be parsed by Servo for now")
+                },
                 Image::Rect(ref rect) => {
                     // This is a (boxed) empty enum on non-Gecko
                     match **rect {}

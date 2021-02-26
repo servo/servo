@@ -474,6 +474,7 @@ impl LayoutThread {
         // but it will be set correctly when the initial reflow takes place.
         let device = Device::new(
             MediaType::screen(),
+            QuirksMode::NoQuirks,
             window_size.initial_viewport,
             window_size.device_pixel_ratio,
         );
@@ -952,7 +953,12 @@ impl LayoutThread {
             ua_or_user: &ua_or_user_guard,
         };
 
-        let device = Device::new(MediaType::screen(), initial_viewport, device_pixel_ratio);
+        let device = Device::new(
+            MediaType::screen(),
+            self.stylist.quirks_mode(),
+            initial_viewport,
+            device_pixel_ratio,
+        );
         let sheet_origins_affected_by_device_change = self.stylist.set_device(device, &guards);
 
         self.stylist

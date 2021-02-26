@@ -54,7 +54,8 @@ pub use self::cascade::*;
 
 <%!
     from collections import defaultdict
-    from data import Method, PropertyRestrictions, Keyword, to_rust_ident, to_camel_case, RULE_VALUES, SYSTEM_FONT_LONGHANDS
+    from data import Method, PropertyRestrictions, Keyword, to_rust_ident, \
+                     to_camel_case, RULE_VALUES, SYSTEM_FONT_LONGHANDS
     import os.path
 %>
 
@@ -1199,7 +1200,10 @@ impl LonghandId {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<PropertyDeclaration, ParseError<'i>> {
-        type ParsePropertyFn = for<'i, 't> fn(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<PropertyDeclaration, ParseError<'i>>;
+        type ParsePropertyFn = for<'i, 't> fn(
+            context: &ParserContext,
+            input: &mut Parser<'i, 't>,
+        ) -> Result<PropertyDeclaration, ParseError<'i>>;
         static PARSE_PROPERTY: [ParsePropertyFn; ${len(data.longhands)}] = [
         % for property in data.longhands:
             longhands::${property.ident}::parse_declared,

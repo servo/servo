@@ -9,7 +9,6 @@ use crate::computed_value_flags::ComputedValueFlags;
 use crate::dom::TElement;
 use crate::properties::longhands::display::computed_value::T as Display;
 use crate::properties::longhands::float::computed_value::T as Float;
-use crate::properties::longhands::overflow_x::computed_value::T as Overflow;
 use crate::properties::longhands::position::computed_value::T as Position;
 use crate::properties::{self, ComputedValues, StyleBuilder};
 
@@ -153,7 +152,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
     }
 
-    /// https://html.spec.whatwg.org/multipage/interaction.html#inert-subtrees
+    /// https://html.spec.whatwg.org/multipage/#inert-subtrees
     ///
     ///    If -moz-inert is applied then add:
     ///        -moz-user-focus: none;
@@ -168,6 +167,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     ///
     /// NOTE: If this or the pointer-events tweak is removed, then
     /// minimal-xul.css and the scrollbar style caching need to be tweaked.
+    #[cfg(feature = "gecko")]
     fn adjust_for_inert(&mut self) {
         use crate::values::specified::ui::CursorKind;
         use crate::values::specified::ui::UserSelect;
@@ -529,6 +529,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// parent, but we need to make sure it's still scrollable.
     #[cfg(feature = "gecko")]
     fn adjust_for_text_control_editing_root(&mut self) {
+        use crate::properties::longhands::overflow_x::computed_value::T as Overflow;
         use crate::selector_parser::PseudoElement;
 
         if self.style.pseudo != Some(&PseudoElement::MozTextControlEditingRoot) {

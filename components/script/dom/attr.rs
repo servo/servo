@@ -21,6 +21,7 @@ use servo_atoms::Atom;
 use std::borrow::ToOwned;
 use std::mem;
 use style::attr::{AttrIdentifier, AttrValue};
+use style::values::GenericAtomIdent;
 
 // https://dom.spec.whatwg.org/#interface-attr
 #[dom_struct]
@@ -46,10 +47,10 @@ impl Attr {
         Attr {
             node_: Node::new_inherited(document),
             identifier: AttrIdentifier {
-                local_name: local_name,
-                name: name,
-                namespace: namespace,
-                prefix: prefix,
+                local_name: GenericAtomIdent(local_name),
+                name: GenericAtomIdent(name),
+                namespace: GenericAtomIdent(namespace),
+                prefix: prefix.map(GenericAtomIdent),
             },
             value: DomRefCell::new(value),
             owner: MutNullableDom::new(owner),
@@ -75,17 +76,17 @@ impl Attr {
 
     #[inline]
     pub fn name(&self) -> &LocalName {
-        &self.identifier.name
+        &self.identifier.name.0
     }
 
     #[inline]
     pub fn namespace(&self) -> &Namespace {
-        &self.identifier.namespace
+        &self.identifier.namespace.0
     }
 
     #[inline]
     pub fn prefix(&self) -> Option<&Prefix> {
-        self.identifier.prefix.as_ref()
+        Some(&self.identifier.prefix.as_ref()?.0)
     }
 }
 
@@ -105,7 +106,7 @@ impl AttrMethods for Attr {
     // https://dom.spec.whatwg.org/#dom-attr-value
     fn SetValue(&self, value: DOMString) {
         if let Some(owner) = self.owner() {
-            let value = owner.parse_attribute(&self.identifier.namespace, self.local_name(), value);
+            let value = owner.parse_attribute(self.namespace(), self.local_name(), value);
             self.set_value(value, &owner);
         } else {
             *self.value.borrow_mut() = AttrValue::String(value.into());
@@ -115,12 +116,12 @@ impl AttrMethods for Attr {
     // https://dom.spec.whatwg.org/#dom-attr-name
     fn Name(&self) -> DOMString {
         // FIXME(ajeffrey): convert directly from LocalName to DOMString
-        DOMString::from(&*self.identifier.name)
+        DOMString::from(&**self.name())
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-namespaceuri
     fn GetNamespaceURI(&self) -> Option<DOMString> {
-        match self.identifier.namespace {
+        match *self.namespace() {
             ns!() => None,
             ref url => Some(DOMString::from(&**url)),
         }
@@ -170,7 +171,7 @@ impl Attr {
         assert_eq!(Some(owner), self.owner().as_deref());
         owner.will_mutate_attr(self);
         self.swap_value(&mut value);
-        if self.identifier.namespace == ns!() {
+        if *self.namespace() == ns!() {
             vtable_for(owner.upcast())
                 .attribute_mutated(self, AttributeMutation::Set(Some(&value)));
         }
@@ -196,7 +197,7 @@ impl Attr {
     /// Sets the owner element. Should be called after the attribute is added
     /// or removed from its older parent.
     pub fn set_owner(&self, owner: Option<&Element>) {
-        let ns = &self.identifier.namespace;
+        let ns = self.namespace();
         match (self.owner(), owner) {
             (Some(old), None) => {
                 // Already gone from the list of attributes of old owner.
@@ -218,7 +219,7 @@ impl Attr {
 
     pub fn summarize(&self) -> AttrInfo {
         AttrInfo {
-            namespace: (*self.identifier.namespace).to_owned(),
+            namespace: (**self.namespace()).to_owned(),
             name: String::from(self.Name()),
             value: String::from(self.Value()),
         }
@@ -263,11 +264,11 @@ impl<'dom> AttrHelpersForLayout<'dom> for LayoutDom<'dom, Attr> {
 
     #[inline]
     fn local_name(self) -> &'dom LocalName {
-        unsafe { &self.unsafe_get().identifier.local_name }
+        unsafe { &self.unsafe_get().identifier.local_name.0 }
     }
 
     #[inline]
     fn namespace(self) -> &'dom Namespace {
-        unsafe { &self.unsafe_get().identifier.namespace }
+        unsafe { &self.unsafe_get().identifier.namespace.0 }
     }
 }

@@ -139,13 +139,17 @@ pub type LocalName = crate::values::AtomIdent;
 pub use crate::gecko_string_cache::Namespace;
 
 #[cfg(feature = "servo")]
-pub use html5ever::LocalName;
-#[cfg(feature = "servo")]
-pub use html5ever::Namespace;
-#[cfg(feature = "servo")]
-pub use html5ever::Prefix;
-#[cfg(feature = "servo")]
 pub use servo_atoms::Atom;
+
+#[cfg(feature = "servo")]
+#[allow(missing_docs)]
+pub type LocalName = crate::values::GenericAtomIdent<html5ever::LocalNameStaticSet>;
+#[cfg(feature = "servo")]
+#[allow(missing_docs)]
+pub type Namespace = crate::values::GenericAtomIdent<html5ever::NamespaceStaticSet>;
+#[cfg(feature = "servo")]
+#[allow(missing_docs)]
+pub type Prefix = crate::values::GenericAtomIdent<html5ever::PrefixStaticSet>;
 
 pub use style_traits::arc_slice::ArcSlice;
 pub use style_traits::owned_slice::OwnedSlice;
