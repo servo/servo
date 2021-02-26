@@ -180,7 +180,7 @@ impl Parse for Image {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Image, ParseError<'i>> {
-        Image::parse_with_cors_mode(context, input, CorsMode::None)
+        Image::parse_with_cors_mode(context, input, CorsMode::None, /* allow_none = */ true)
     }
 }
 
@@ -189,8 +189,9 @@ impl Image {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
         cors_mode: CorsMode,
+        allow_none: bool,
     ) -> Result<Image, ParseError<'i>> {
-        if input.try_parse(|i| i.expect_ident_matching("none")).is_ok() {
+        if allow_none && input.try_parse(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(generic::Image::None);
         }
         if let Ok(url) = input.try_parse(|input| SpecifiedImageUrl::parse_with_cors_mode(context, input, cors_mode)) {
@@ -249,14 +250,11 @@ impl Image {
 
     /// Provides an alternate method for parsing that associates the URL with
     /// anonymous CORS headers.
-    ///
-    /// FIXME(emilio): It'd be nicer for this to pass a `CorsMode` parameter to
-    /// a shared function instead.
     pub fn parse_with_cors_anonymous<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Image, ParseError<'i>> {
-        Self::parse_with_cors_mode(context, input, CorsMode::Anonymous)
+        Self::parse_with_cors_mode(context, input, CorsMode::Anonymous, /* allow_none = */ true)
     }
 }
 
@@ -295,17 +293,28 @@ impl CrossFadeElement {
     }
 }
 
-impl PercentOrNone {
-    fn parse_or_none<'i, 't>(
+impl CrossFadeImage {
+    fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
-    ) -> Self {
+        cors_mode: CorsMode,
+    ) -> Result<Self, ParseError<'i>> {
+        if let Ok(image) = input.try_parse(|input| Image::parse_with_cors_mode(context, input, cors_mode, /* allow_none = */ false)) {
+            return Ok(Self::Image(image))
+        }
+        Ok(Self::Color(Color::parse(context, input)?))
+    }
+}
+
+impl PercentOrNone {
+    fn parse_or_none<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Self {
         // We clamp our values here as this is the way that Safari and
         // Chrome's implementation handle out-of-bounds percentages
         // but whether or not this behavior follows the specification
         // is still being discussed. See:
         // <https://github.com/w3c/csswg-drafts/issues/5333>
-        if let Ok(percent) = input.try_parse(|input| Percentage::parse_non_negative(context, input)) {
+        if let Ok(percent) = input.try_parse(|input| Percentage::parse_non_negative(context, input))
+        {
             Self::Percent(percent.clamp_to_hundred())
         } else {
             Self::None
@@ -338,7 +347,7 @@ impl ImageSetItem {
     ) -> Result<Self, ParseError<'i>> {
         let image = match input.try_parse(|i| i.expect_url_or_string()) {
             Ok(url) => Image::Url(SpecifiedImageUrl::parse_from_string(url.as_ref().into(), context, cors_mode)),
-            Err(..) => Image::parse(context, input)?,
+            Err(..) => Image::parse_with_cors_mode(context, input, cors_mode, /* allow_none = */ false)?,
         };
         let resolution = input.try_parse(|input| Resolution::parse(context, input)).unwrap_or(Resolution::X(1.0));
         Ok(Self {
