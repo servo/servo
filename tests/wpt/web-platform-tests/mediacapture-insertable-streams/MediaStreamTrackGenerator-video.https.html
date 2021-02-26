@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>MediaStream Insertable Streams - Video</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+
+async function getVideoFrame() {
+  const stream = await navigator.mediaDevices.getUserMedia({video: true});
+  const input_track = stream.getTracks()[0];
+  const processor = new MediaStreamTrackProcessor(input_track);
+  const reader = processor.readable.getReader();
+  const result = await reader.read();
+  input_track.stop();
+  return result.value;
+}
+
+promise_test(async t => {
+  const videoFrame = await getVideoFrame();
+  const originalWidth = videoFrame.displayWidth;
+  const originalHeight = videoFrame.displayHeight;
+  const originalTimestamp = videoFrame.timestamp;
+  const generator = new MediaStreamTrackGenerator({kind: 'video'});
+
+  // Use a MediaStreamTrackProcessor as a sink for |generator| to verify
+  // that |processor| actually forwards the frames written to its writable
+  // field.
+  const processor = new MediaStreamTrackProcessor(generator);
+  const reader = processor.readable.getReader();
+  const readerPromise = new Promise(async resolve => {
+    const result = await reader.read();
+    assert_equals(result.value.displayWidth, originalWidth);
+    assert_equals(result.value.displayHeight, originalHeight);
+    assert_equals(result.value.timestamp, originalTimestamp);
+    resolve();
+  });
+
+  generator.writable.getWriter().write(videoFrame);
+  return readerPromise;
+}, 'MediaStreamTrackGenerator forwards frames to sink');
+
+</script>
+</body>
+</html>

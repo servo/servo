@@ -1,0 +1,25 @@
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="./resources/common.js"></script>
+<script src="./resources/dispatcher.js"></script>
+<script src="./resources/iframeTest.js"></script>
+
+<script>
+
+const parent_coep_none = newWindow(coep_none);
+iframeTest("COEP:none embeds same-origin COEP:none",
+  parent_coep_none, same_origin, coep_none, EXPECT_LOAD);
+iframeTest("COEP:none embeds cross-origin COEP:none",
+  parent_coep_none, cross_origin, coep_none, EXPECT_LOAD);
+iframeTest("COEP:none embeds same-origin COEP:credentialless",
+  parent_coep_none, same_origin, coep_credentialless, EXPECT_LOAD);
+iframeTest("COEP:none embeds cross-origin COEP:credentialless",
+  parent_coep_none, cross_origin, coep_credentialless, EXPECT_LOAD);
+iframeTest("COEP:none embeds same-origin COEP:require-corp",
+  parent_coep_none, same_origin, coep_require_corp, EXPECT_LOAD);
+iframeTest("COEP:none embeds cross-origin COEP:require-corp",
+  parent_coep_none, cross_origin, coep_require_corp, EXPECT_LOAD);
+
+</script>

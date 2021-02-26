@@ -12,6 +12,8 @@ setup(() => {
 });
 
 test(testCase => {
+  reserveAndCleanupCapacitySync(testCase);
+
   const file1 = storageFoundation.openSync('test_file_1');
   const file2 = storageFoundation.openSync('test_file_2');
   testCase.add_cleanup(() => {
@@ -58,6 +60,8 @@ test(testCase => {
 }, 'storageFoundation.renameSync does not overwrite an existing file.');
 
 test(testCase => {
+  reserveAndCleanupCapacitySync(testCase);
+
   const file = storageFoundation.openSync('test_file');
   testCase.add_cleanup(() => {
     file.close();
@@ -74,6 +78,8 @@ test(testCase => {
 }, 'storageFoundation.renameSync allows renaming an open file.');
 
 test(testCase => {
+  reserveAndCleanupCapacitySync(testCase);
+
   testCase.add_cleanup(() => {
     file.close();
     storageFoundation.deleteSync('test_file');
@@ -94,6 +100,8 @@ test(testCase => {
      ' names.');
 
 test(testCase => {
+  reserveAndCleanupCapacitySync(testCase);
+
   const closed_file = storageFoundation.openSync('closed_file');
   closed_file.close();
   const opened_file = storageFoundation.openSync('opened_file');
@@ -115,6 +123,8 @@ test(testCase => {
 }, 'Failed storageFoundation.renameSync does not unlock the source.');
 
 test(testCase => {
+  reserveAndCleanupCapacitySync(testCase);
+
   const closed_file = storageFoundation.openSync('closed_file');
   closed_file.close();
   const opened_file = storageFoundation.openSync('opened_file');
@@ -136,6 +146,8 @@ test(testCase => {
 }, 'Failed storageFoundation.renameSync does not unlock the destination.');
 
 test(testCase => {
+  reserveAndCleanupCapacitySync(testCase);
+
   // Make sure that the file does not exist.
   storageFoundation.deleteSync('does_not_exist');
   testCase.add_cleanup(() => {

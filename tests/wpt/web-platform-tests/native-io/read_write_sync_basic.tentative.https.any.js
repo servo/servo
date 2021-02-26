@@ -1,9 +1,13 @@
 // META: title=Synchronous NativeIO API: Written bytes are read back.
 // META: global=dedicatedworker
+// META: script=resources/support.js
 
 'use strict';
 
+
 test(testCase => {
+  reserveAndCleanupCapacitySync(testCase);
+
   const file = storageFoundation.openSync('test_file');
   testCase.add_cleanup(() => {
     file.close();

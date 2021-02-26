@@ -7,21 +7,25 @@ const kBadNativeIoNames = [
   'x'.repeat(101),
 ];
 
+const kDefaultCapacity = 1024 * 1024;
+
 // Returns a handle to a newly created file that holds some data.
 //
 // The file will be closed and deleted when the test ends.
-async function createFile(testCase, fileName) {
+async function createFile(testCase, fileName, data = [64, 65, 66, 67]) {
   const file = await storageFoundation.open(fileName);
+
   testCase.add_cleanup(async () => {
     await file.close();
     await storageFoundation.delete(fileName);
   });
 
-  const writeSharedArrayBuffer = new SharedArrayBuffer(4);
+  const writeSharedArrayBuffer = new SharedArrayBuffer(data.length);
   const writtenBytes = new Uint8Array(writeSharedArrayBuffer);
-  writtenBytes.set([64, 65, 66, 67]);
+  writtenBytes.set(data);
   const writeCount = await file.write(writtenBytes, 0);
-  assert_equals(writeCount, 4);
+  assert_equals(writeCount, data.length,
+    'NativeIOFile.write() should resolve with the number of bytes written');
 
   return file;
 }
@@ -29,16 +33,17 @@ async function createFile(testCase, fileName) {
 // Returns a handle to a newly created file that holds some data.
 //
 // The file will be closed and deleted when the test ends.
-function createFileSync(testCase, fileName) {
+function createFileSync(testCase, fileName, data = [64, 65, 66, 67]) {
   const file = storageFoundation.openSync(fileName);
   testCase.add_cleanup(() => {
     file.close();
     storageFoundation.deleteSync(fileName);
   });
 
-  const writtenBytes = Uint8Array.from([64, 65, 66, 67]);
+  const writtenBytes = Uint8Array.from(data);
   const writeCount = file.write(writtenBytes, 0);
-  assert_equals(writeCount, 4);
+  assert_equals(writeCount, data.length,
+    'NativeIOFileSync.write() should resolve with the number of bytes written');
 
   return file;
 }
@@ -77,4 +82,25 @@ function readIoFileSync(file) {
   const readBuffer = new Uint8Array(length);
   file.read(readBuffer, 0);
   return readBuffer;
+}
+
+// Default capacity allocation for non-quota related tests.
+async function reserveAndCleanupCapacity(testCase,
+                                         capacity = kDefaultCapacity) {
+  const grantedCapacity = await storageFoundation.requestCapacity(capacity);
+  testCase.add_cleanup(async () => {
+    let available_capacity = await storageFoundation.getRemainingCapacity();
+    await storageFoundation.releaseCapacity(available_capacity);
+  });
+  assert_greater_than_equal(grantedCapacity, capacity);
+}
+
+// Default capacity allocation for non-quota related sync tests.
+function reserveAndCleanupCapacitySync(testCase, capacity = kDefaultCapacity) {
+  const grantedCapacity = storageFoundation.requestCapacitySync(capacity);
+  testCase.add_cleanup(() => {
+    let available_capacity = storageFoundation.getRemainingCapacitySync();
+    storageFoundation.releaseCapacitySync(available_capacity);
+  });
+  assert_greater_than_equal(grantedCapacity, capacity);
 }

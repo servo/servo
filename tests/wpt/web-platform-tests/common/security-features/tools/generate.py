@@ -76,6 +76,43 @@ def get_test_filename(spec_directory, spec_json, selection):
         spec_json['test_file_path_pattern'] % selection_for_filename)
 
 
+def get_csp_value(value):
+    '''
+    Returns actual CSP header values (e.g. "worker-src 'self'") for the
+    given string used in PolicyDelivery's value (e.g. "worker-src-self").
+    '''
+
+    # script-src
+    # Test-related scripts like testharness.js and inline scripts containing
+    # test bodies.
+    # 'unsafe-inline' is added as a workaround here. This is probably not so
+    # bad, as it shouldn't intefere non-inline-script requests that we want to
+    # test.
+    if value == 'script-src-wildcard':
+        return "script-src * 'unsafe-inline'"
+    if value == 'script-src-self':
+        return "script-src 'self' 'unsafe-inline'"
+    # Workaround for "script-src 'none'" would be more complicated, because
+    # - "script-src 'none' 'unsafe-inline'" is handled somehow differently from
+    #   "script-src 'none'", i.e.
+    #   https://w3c.github.io/webappsec-csp/#match-url-to-source-list Step 3
+    #   handles the latter but not the former.
+    # - We need nonce- or path-based additional values to allow same-origin
+    #   test scripts like testharness.js.
+    # Therefore, we disable 'script-src-none' tests for now in
+    # `/content-security-policy/spec.src.json`.
+    if value == 'script-src-none':
+        return "script-src 'none'"
+
+    # worker-src
+    if value == 'worker-src-wildcard':
+        return 'worker-src *'
+    if value == 'worker-src-self':
+        return "worker-src 'self'"
+    if value == 'worker-src-none':
+        return "worker-src 'none'"
+    raise Exception('Invalid delivery_value: %s' % value)
+
 def handle_deliveries(policy_deliveries):
     '''
     Generate <meta> elements and HTTP headers for the given list of
@@ -107,6 +144,16 @@ def handle_deliveries(policy_deliveries):
                        'content="block-all-mixed-content">'
             elif delivery.delivery_type == 'http-rp':
                 headers['Content-Security-Policy'] = 'block-all-mixed-content'
+            else:
+                raise Exception(
+                    'Invalid delivery_type: %s' % delivery.delivery_type)
+        elif delivery.key == 'contentSecurityPolicy':
+            csp_value = get_csp_value(delivery.value)
+            if delivery.delivery_type == 'meta':
+                meta += '<meta http-equiv="Content-Security-Policy" ' + \
+                       'content="' + csp_value + '">'
+            elif delivery.delivery_type == 'http-rp':
+                headers['Content-Security-Policy'] = csp_value
             else:
                 raise Exception(
                     'Invalid delivery_type: %s' % delivery.delivery_type)

@@ -1,0 +1,566 @@
+{
+  "test_description_template": "Content Security Policy: Expects %(expectation)s for %(subresource)s to %(origin)s origin and %(redirection)s redirection from %(source_scheme)s context.",
+  "test_page_title_template": "Content Security Policy: %(title)s",
+  "specification": [
+    {
+      "title": "content security policy",
+      "description": "content security policy",
+      "specification_url": "https://w3c.github.io/webappsec-csp/",
+      "test_expansion": [
+        // Set "allowed" for all requests here, and set "block" for requests
+        // to be blocked by CSP in subsequent sections.
+        // (Requests blocked due to non-CSP reasons (e.g. cross-origin workers)
+        // are excluded by `excluded_tests` sections)
+        {
+          "expansion": "default",
+          "source_scheme": "*",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "*",
+          "redirection": "*",
+          "origin": "*",
+          "subresource": "*",
+          "expectation": "allowed"
+        },
+
+        // script-src
+        {
+          // "script-src" blocks script-ish requests, except for ...
+          "expansion": "override",
+          "source_scheme": "*",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": [
+            "script-src-none",
+            "script-src-self",
+            "script-src-wildcard"
+          ],
+          "redirection": "*",
+          "origin": "*",
+          "subresource": [
+            "script-tag",
+            "sharedworker-classic",
+            "sharedworker-import",
+            "sharedworker-import-data",
+            "sharedworker-module",
+            "worker-classic",
+            "worker-import",
+            "worker-import-data",
+            "worker-module",
+            "worklet-animation",
+            "worklet-animation-import-data",
+            "worklet-audio",
+            "worklet-audio-import-data",
+            "worklet-layout",
+            "worklet-layout-import-data",
+            "worklet-paint",
+            "worklet-paint-import-data"
+          ],
+          "expectation": "blocked"
+        },
+        {
+          // non-data: URLs for "script-src *",
+          "expansion": "override",
+          "source_scheme": "*",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "script-src-wildcard",
+          "redirection": "*",
+          "origin": "*",
+          "subresource": [
+            "script-tag",
+            "sharedworker-classic",
+            "sharedworker-import",
+            "sharedworker-module",
+            "worker-classic",
+            "worker-import",
+            "worker-module",
+            "worklet-animation",
+            "worklet-audio",
+            "worklet-layout",
+            "worklet-paint"
+          ],
+          "expectation": "allowed"
+        },
+        {
+          // same-origin requests (HTTP) for "script-src 'self'", or
+          "expansion": "override",
+          "source_scheme": "http",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "script-src-self",
+          "redirection": ["no-redirect", "keep-origin"],
+          "origin": "same-http",
+          "subresource": [
+            "script-tag",
+            "sharedworker-classic",
+            "sharedworker-import",
+            "sharedworker-module",
+            "worker-classic",
+            "worker-import",
+            "worker-module",
+            "worklet-animation",
+            "worklet-audio",
+            "worklet-layout",
+            "worklet-paint"
+          ],
+          "expectation": "allowed"
+        },
+        {
+          // same-origin requests (HTTPS) for "script-src 'self'".
+          "expansion": "override",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "script-src-self",
+          "redirection": ["no-redirect", "keep-origin"],
+          "origin": "same-https",
+          "subresource": [
+            "script-tag",
+            "sharedworker-classic",
+            "sharedworker-import",
+            "sharedworker-module",
+            "worker-classic",
+            "worker-import",
+            "worker-module",
+            "worklet-animation",
+            "worklet-audio",
+            "worklet-layout",
+            "worklet-paint"
+          ],
+          "expectation": "allowed"
+        },
+
+        // worker-src
+        {
+          // "worker-src" blocks worker requests, except for ...
+          "expansion": "override",
+          "source_scheme": "*",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": [
+            "worker-src-none",
+            "worker-src-self",
+            "worker-src-wildcard"
+          ],
+          "redirection": "*",
+          "origin": "*",
+          "subresource": [
+            "sharedworker-classic",
+            "sharedworker-import",
+            "sharedworker-import-data",
+            "sharedworker-module",
+            "worker-classic",
+            "worker-import",
+            "worker-import-data",
+            "worker-module"
+          ],
+          "expectation": "blocked"
+        },
+        {
+          // non-data: URLs for "worker-src *",
+          "expansion": "override",
+          "source_scheme": "*",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "worker-src-wildcard",
+          "redirection": "*",
+          "origin": "*",
+          "subresource": [
+            "sharedworker-classic",
+            "sharedworker-import",
+            "sharedworker-module",
+            "worker-classic",
+            "worker-import",
+            "worker-module"
+          ],
+          "expectation": "allowed"
+        },
+        {
+          // same-origin requests (HTTP) for "worker-src 'self'", or
+          "expansion": "override",
+          "source_scheme": "http",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "worker-src-self",
+          "redirection": ["no-redirect", "keep-origin"],
+          "origin": "same-http",
+          "subresource": [
+            "sharedworker-classic",
+            "sharedworker-import",
+            "sharedworker-module",
+            "worker-classic",
+            "worker-import",
+            "worker-module"
+          ],
+          "expectation": "allowed"
+        },
+        {
+          // same-origin requests (HTTPS) for "worker-src 'self'".
+          "expansion": "override",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "worker-src-self",
+          "redirection": ["no-redirect", "keep-origin"],
+          "origin": "same-https",
+          "subresource": [
+            "sharedworker-classic",
+            "sharedworker-import",
+            "sharedworker-module",
+            "worker-classic",
+            "worker-import",
+            "worker-module"
+          ],
+          "expectation": "allowed"
+        },
+
+      ]
+    }
+  ],
+  "delivery_key": "contentSecurityPolicy",
+  "excluded_tests": [
+    {
+      // upgraded-protocol-workers
+      "expansion": "*",
+      "source_scheme": "http",
+      "source_context_list": "*",
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": "*",
+      "origin": [
+        "same-https",
+        "cross-https"
+      ],
+      "subresource": [
+        "worker-classic",
+        "worker-module",
+        "sharedworker-classic",
+        "sharedworker-module"
+      ],
+      "expectation": "*"
+    },
+    {
+      // mixed-content-insecure-subresources
+      "expansion": "*",
+      "source_scheme": "https",
+      "source_context_list": "*",
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": "*",
+      "origin": [
+        "same-http",
+        "same-http-downgrade",
+        "cross-http",
+        "cross-http-downgrade",
+        "same-ws",
+        "same-ws-downgrade",
+        "cross-ws",
+        "cross-ws-downgrade"
+      ],
+      "subresource": "*",
+      "expectation": "*"
+    },
+    {
+      // redirections that content security policy tests don't care
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": "*",
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": [
+        "keep-scheme",
+        "swap-scheme",
+        "downgrade"
+      ],
+      "origin": "*",
+      "subresource": "*",
+      "expectation": "*"
+    },
+    {
+      // origins that content security policy tests don't care
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": "*",
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": "*",
+      "origin": [
+        "same-http-downgrade",
+        "cross-http-downgrade",
+        "same-ws-downgrade",
+        "cross-ws-downgrade"
+      ],
+      "subresource": "*",
+      "expectation": "*"
+    },
+    {
+      // source_context_list values not for content security policy tests
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": [
+        "worker-classic",
+        "worker-module"
+      ],
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": "*",
+      "subresource": "*",
+      "origin": "*",
+      "expectation": "*"
+    },
+    {
+      // source_context_list values to be blocked by CSP (i.e. the source
+      // context itself should be blocked by CSP before sending subresource
+      // requests):
+      // - data: URLs are blocked by "worker-src *", "worker-src 'self'" or
+      //   "worker-src 'none'".
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": [
+        "worker-classic-data",
+        "worker-module-data",
+        "sharedworker-classic-data",
+        "sharedworker-module-data"
+      ],
+      "delivery_type": "*",
+      "delivery_value": [
+        "worker-src-wildcard",
+        "worker-src-self",
+        "worker-src-none"
+      ],
+      "redirection": "*",
+      "subresource": "*",
+      "origin": "*",
+      "expectation": "*"
+    },
+    {
+      // Currently only requests from top-level Documents are tested, because
+      // `generic/test-case.sub.js` assumes that `securitypolicyviolation`
+      // events are fired on top-level Documents. Once
+      // `generic/test-case.sub.js` is fixed, we can enable non-top
+      // source_context_list here.
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": [
+        "srcdoc-inherit",
+        "srcdoc",
+        "iframe",
+        "iframe-blank-inherit",
+        "worker-classic",
+        "worker-classic-inherit",
+        "worker-classic-data",
+        "worker-module",
+        "worker-module-inherit",
+        "worker-module-data",
+        "sharedworker-classic",
+        "sharedworker-classic-data",
+        "sharedworker-module",
+        "sharedworker-module-data"
+      ],
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": "*",
+      "subresource": "*",
+      "origin": "*",
+      "expectation": "*"
+    },
+    {
+      // Skip tests with no CSP directives.
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": "*",
+      "delivery_type": "*",
+      "delivery_value": null,
+      "redirection": "*",
+      "subresource": "*",
+      "origin": "*",
+      "expectation": "*"
+    },
+    {
+      // Skip script-src-none tests, as "script-src 'none'" would prevent
+      // test scripts as well. See also comments in `get_csp_value()` in
+      // `common/security-features/tools/generate.py`.
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": "*",
+      "delivery_type": "*",
+      "delivery_value": "script-src-none",
+      "redirection": "*",
+      "subresource": "*",
+      "origin": "*",
+      "expectation": "*"
+    },
+    // Only test relevant subresources.
+    // E.g. do not test <a> tag for worker-src directives.
+    {
+      // script-src: workers (block), worklets (block), scripts (block)
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": "*",
+      "delivery_type": "*",
+      "delivery_value": [
+        "script-src-wildcard",
+        "script-src-self",
+        "script-src-none"
+      ],
+      "redirection": "*",
+      "subresource": [
+        "a-tag",
+        "area-tag",
+        "audio-tag",
+        "beacon",
+        "fetch",
+        "iframe-tag",
+        "img-tag",
+        "link-css-tag",
+        "link-prefetch-tag",
+        "object-tag",
+        "picture-tag",
+        "video-tag",
+        "websocket",
+        "xhr"
+      ],
+      "origin": "*",
+      "expectation": "*"
+    },
+    {
+      // worker-src: workers (block), worklets (allow), scripts (allow)
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": "*",
+      "delivery_type": "*",
+      "delivery_value": [
+        "worker-src-wildcard",
+        "worker-src-self",
+        "worker-src-none"
+      ],
+      "redirection": "*",
+      "subresource": [
+        "a-tag",
+        "area-tag",
+        "audio-tag",
+        "beacon",
+        "fetch",
+        "iframe-tag",
+        "img-tag",
+        "link-css-tag",
+        "link-prefetch-tag",
+        "object-tag",
+        "picture-tag",
+        "video-tag",
+        "websocket",
+        "xhr"
+      ],
+      "origin": "*",
+      "expectation": "*"
+    },
+    {
+      // HTTP->HTTPS requests are skipped to reduce the number of tests.
+      "expansion": "*",
+      "source_scheme": "http",
+      "source_context_list": "*",
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": "*",
+      "origin": [
+        "same-https",
+        "cross-https"
+      ],
+      "subresource": "*",
+      "expectation": "*"
+    },
+  ],
+  "source_context_schema": {
+    "supported_delivery_type": {
+      "top": [
+        "meta",
+        "http-rp"
+      ],
+      // The following lines are commented out, because the
+      // contentSecurityPolicy deliveries are not yet implemented in the
+      // `common/security-features/scope/` scripts.
+      "iframe": [
+        // "meta",
+        // "http-rp"
+      ],
+      "iframe-blank": [
+        // "meta"
+      ],
+      "srcdoc": [
+        // "meta"
+      ],
+      "worker-classic": [
+        // "http-rp"
+      ],
+      "worker-module": [
+        // "http-rp"
+      ],
+      "worker-classic-data": [],
+      "worker-module-data": [],
+      "sharedworker-classic": [
+        // "http-rp"
+      ],
+      "sharedworker-module": [
+        // "http-rp"
+      ],
+      "sharedworker-classic-data": [],
+      "sharedworker-module-data": []
+    }
+  },
+  "subresource_schema": {
+    "supported_delivery_type": {
+      // No per-request CSP can be specified.
+      "a-tag": [],
+      "area-tag": [],
+      "audio-tag": [],
+      "beacon": [],
+      "fetch": [],
+      "iframe-tag": [],
+      "img-tag": [],
+      "link-css-tag": [],
+      "link-prefetch-tag": [],
+      "object-tag": [],
+      "picture-tag": [],
+      "script-tag": [],
+      "sharedworker-classic": [],
+      "sharedworker-import": [],
+      "sharedworker-import-data": [],
+      "sharedworker-module": [],
+      "video-tag": [],
+      "websocket": [],
+      "worker-classic": [],
+      "worker-import": [],
+      "worker-import-data": [],
+      "worker-module": [],
+      "worklet-animation": [],
+      "worklet-animation-import-data": [],
+      "worklet-audio": [],
+      "worklet-audio-import-data": [],
+      "worklet-layout": [],
+      "worklet-layout-import-data": [],
+      "worklet-paint": [],
+      "worklet-paint-import-data": [],
+      "xhr": []
+    }
+  },
+  "test_expansion_schema": {
+    "delivery_type": [
+      "http-rp",
+      "meta"
+    ],
+    "delivery_value": [
+      null,
+      "script-src-none",
+      "script-src-self",
+      "script-src-wildcard",
+      "worker-src-none",
+      "worker-src-self",
+      "worker-src-wildcard"
+    ],
+    "expectation": [
+      "blocked",
+      "allowed"
+    ]
+  }
+}

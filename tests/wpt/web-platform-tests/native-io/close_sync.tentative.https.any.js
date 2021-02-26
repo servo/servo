@@ -1,26 +1,12 @@
 // META: title=Synchronous NativeIO API: close().
 // META: global=dedicatedworker
+// META: script=resources/support.js
 
 'use strict';
 
-// Returns a handle to a newly created file that holds some data.
-//
-// The file will be closed and deleted when the test ends.
-function createFileSync(testCase, fileName) {
-  const file = storageFoundation.openSync(fileName);
-  testCase.add_cleanup(() => {
-    file.close();
-    storageFoundation.deleteSync(fileName);
-  });
-
-  const writtenBytes = Uint8Array.from([64, 65, 66, 67]);
-  const writeCount = file.write(writtenBytes, 0);
-  assert_equals(writeCount, 4);
-
-  return file;
-}
-
 test(testCase => {
+  reserveAndCleanupCapacitySync(testCase);
+
   const file = createFileSync(testCase, 'file_name');
   assert_equals(undefined, file.close());
 
@@ -28,6 +14,8 @@ test(testCase => {
 }, 'NativeIOFileSync.close is idempotent');
 
 test(testCase => {
+  reserveAndCleanupCapacitySync(testCase);
+
   const file = createFileSync(testCase, 'file_name');
   assert_equals(undefined, file.close());
 
@@ -36,6 +24,8 @@ test(testCase => {
 }, 'NativeIOFileSync.read fails after NativeIOFileSync.close');
 
 test(testCase => {
+  reserveAndCleanupCapacitySync(testCase);
+
   const file = createFileSync(testCase, 'file_name');
   assert_equals(undefined, file.close());
 
@@ -44,6 +34,8 @@ test(testCase => {
 }, 'NativeIOFile.write fails after NativeIOFile.close');
 
 test(testCase => {
+  reserveAndCleanupCapacitySync(testCase);
+
   const file = createFileSync(testCase, 'file_name');
   assert_equals(undefined, file.close());
 
@@ -51,6 +43,8 @@ test(testCase => {
 }, 'NativeIOFileSync.getLength fails after NativeIOFileSync.close');
 
 test(testCase => {
+  reserveAndCleanupCapacitySync(testCase);
+
   const file = createFileSync(testCase, 'file_name');
   assert_equals(undefined, file.close());
 
@@ -58,6 +52,8 @@ test(testCase => {
 }, 'NativeIOFileSync.flush fails after NativeIOFileSync.close');
 
 test(testCase => {
+  reserveAndCleanupCapacitySync(testCase);
+
   const file = createFileSync(testCase, 'file_name');
   assert_equals(undefined, file.close());
 

@@ -5,16 +5,9 @@
 'use strict';
 
 promise_test(async testCase => {
-  const file = await storageFoundation.open('test_file');
-  testCase.add_cleanup(async () => {
-    await file.close();
-    await storageFoundation.delete('test_file');
-  });
+  await reserveAndCleanupCapacity(testCase);
 
-  const writeSharedArrayBuffer = new SharedArrayBuffer(4);
-  const writtenBytes = new Uint8Array(writeSharedArrayBuffer);
-  writtenBytes.set([97, 98, 99, 100]);
-  await file.write(writtenBytes, 0);
+  const file = await createFile(testCase, 'test_file', [97, 98, 99, 100]);
 
   await file.setLength(3);
   const readBytes = await readIoFile(file);
@@ -29,16 +22,9 @@ promise_test(async testCase => {
       'new length');
 
 promise_test(async testCase => {
-  const file = await storageFoundation.open('test_file');
-  testCase.add_cleanup(async () => {
-    await file.close();
-    await storageFoundation.delete('test_file');
-  });
+  await reserveAndCleanupCapacity(testCase);
 
-  const writeSharedArrayBuffer = new SharedArrayBuffer(4);
-  const writtenBytes = new Uint8Array(writeSharedArrayBuffer);
-  writtenBytes.set([97, 98, 99, 100]);
-  await file.write(writtenBytes, 0);
+  const file = await createFile(testCase, 'test_file', [97, 98, 99, 100]);
 
   await file.setLength(5);
   const readBytes = await readIoFile(file);

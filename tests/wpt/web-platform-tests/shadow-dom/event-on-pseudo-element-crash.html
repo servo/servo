@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Mason Freed" href="mailto:masonfreed@chromium.org">
+<link rel="help" href="https://crbug.com/1180286">
+<meta name="assert" content="The renderer should not crash.">
+
+<span>This test passes if the renderer does not crash.</span>
+
+<div>
+  <option></option>
+</div>
+
+<style>
+  div {
+    direction: rtl;
+    zoom: 0.01;
+  }
+  option {
+    zoom: 5;
+  }
+  option::before {
+    display: table-caption;
+    overflow: scroll;
+    content: open-quote;
+    padding-right: 1px;
+    -webkit-column-width: 1px;
+  }
+</style>

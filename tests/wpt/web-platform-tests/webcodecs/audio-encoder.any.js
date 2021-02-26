@@ -108,6 +108,87 @@ promise_test(async t => {
 }, 'Simple audio encoding');
 
 
+async function checkEncodingError(config, good_frames, bad_frame) {
+  let error = null;
+  let outputs = 0;
+  let init = {
+    error: e => {
+      error = e;
+    },
+    output: chunk => {
+      outputs++;
+    }
+  };
+
+  let encoder = new AudioEncoder(init);
+
+  encoder.configure(config);
+  for (let frame of good_frames) {
+    encoder.encode(frame);
+  }
+  await encoder.flush();
+
+  let txt_config = "sampleRate: " + config.sampleRate
+                 + " numberOfChannels: " + config.numberOfChannels;
+  assert_equals(error, null, txt_config);
+  assert_greater_than(outputs, 0);
+  encoder.encode(bad_frame);
+  await encoder.flush().catch(() => {});
+  assert_not_equals(error, null, txt_config);
+}
+
+function channelNumberVariationTests() {
+  let sample_rate = 48000;
+  for (let channels = 1; channels < 12; channels++) {
+    let config = {
+      codec: 'opus',
+      sampleRate: sample_rate,
+      numberOfChannels: channels,
+      bitrate: 128000
+    };
+
+    let ts = 0;
+    let length = sample_rate / 10;
+    let frame1 = make_audio_frame(ts, channels, sample_rate, length);
+
+    ts += Math.floor(frame1.buffer.duration / 1000000);
+    let frame2 = make_audio_frame(ts, channels, sample_rate, length);
+    ts += Math.floor(frame2.buffer.duration / 1000000);
+
+    let bad_frame = make_audio_frame(ts, channels + 1, sample_rate, length);
+    promise_test(async t =>
+      checkEncodingError(config, [frame1, frame2], bad_frame),
+      "Channel number variation: " + channels);
+  }
+}
+channelNumberVariationTests();
+
+function sampleRateVariationTests() {
+  let channels = 1
+  for (let sample_rate = 3000; sample_rate < 96000; sample_rate += 10000) {
+    let config = {
+      codec: 'opus',
+      sampleRate: sample_rate,
+      numberOfChannels: channels,
+      bitrate: 128000
+    };
+
+    let ts = 0;
+    let length = sample_rate / 10;
+    let frame1 = make_audio_frame(ts, channels, sample_rate, length);
+
+    ts += Math.floor(frame1.buffer.duration / 1000000);
+    let frame2 = make_audio_frame(ts, channels, sample_rate, length);
+    ts += Math.floor(frame2.buffer.duration / 1000000);
+
+    let bad_frame = make_audio_frame(ts, channels, sample_rate + 333, length);
+    promise_test(async t =>
+      checkEncodingError(config, [frame1, frame2], bad_frame),
+      "Sample rate variation: " + sample_rate);
+  }
+}
+sampleRateVariationTests();
+
 promise_test(async t => {
   let sample_rate = 48000;
   let total_duration_s = 2;

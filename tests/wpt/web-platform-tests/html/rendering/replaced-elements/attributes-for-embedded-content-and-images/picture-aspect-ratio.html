@@ -83,8 +83,9 @@ test(function() {
   var source = img.previousSibling;
   assert_equals(getComputedStyle(source).width, "auto");
   assert_equals(getComputedStyle(source).height, "auto");
+}, "Computed style for width/height/aspect-ratio");
 
-  // Source width/height should take precedence over img attributes.
+test(function() {
   img = createPicture(200, 100);
   img.setAttribute("width", 250);
   img.setAttribute("height", 50);
@@ -97,8 +98,9 @@ test(function() {
   source = img.previousSibling;
   assert_equals(getComputedStyle(source).width, "auto");
   assert_equals(getComputedStyle(source).height, "auto");
+}, "Source width/height should take precedence over img attributes.");
 
-  // Make sure style gets invalidated correctly when the source gets removed.
+test(function() {
   img.parentNode.removeChild(img.previousSibling);
   assert_cs(img, "auto 250 / 50");
   img.src = "/images/green.png";
@@ -107,9 +109,9 @@ test(function() {
   img.setAttribute("nowidth", "true");
   assert_equals(getComputedStyle(img).width, "250px");
   assert_equals(getComputedStyle(img).height, "50px");
+}, "Make sure style gets invalidated correctly when the source gets removed.");
 
-  // If the <source> has only one of width/height, we don't get an aspect
-  // ratio, even if the <img> has both.
+test(function() {
   img = createPicture(100, undefined);
   img.setAttribute("width", 200);
   img.setAttribute("height", 100);
@@ -118,16 +120,16 @@ test(function() {
   img.setAttribute("nowidth", "true");
   assert_equals(getComputedStyle(img).width, "100px");
   assert_equals(getComputedStyle(img).height, "auto");
+}, "If the <source> has only one of width/height, we don't get an aspect ratio, even if the <img> has both.");
 
-  // If we don't have width/height on the source, we fall back to width/height
-  // on the <img>.
+test(function() {
   img = createPicture(undefined, undefined);
   img.setAttribute("width", 200);
   img.setAttribute("height", 100);
   assert_cs(img, "auto 200 / 100");
+}, "If we don't have width/height on the source, we fall back to width/height on the <img>.");
 
-  // If we only have one width/height attribute, we should get that attribute
-  // mapped but no aspect ratio, even if <img> has attributes.
+test(function() {
   img = createPicture(100, undefined);
   img.parentNode.style.display = "none";
   img.setAttribute("width", "200");
@@ -145,8 +147,9 @@ test(function() {
   assert_cs(img, "auto");
   assert_equals(getComputedStyle(img).width, "auto");
   assert_equals(getComputedStyle(img).height, "100px");
+}, "If we only have one width/height attribute, we should get that attribute mapped but no aspect ratio, even if <img> has attributes.");
 
-  // Testing dynamic changes
+test(function() {
   img = createPicture(100, 100);
   assert_cs(img, "auto 100 / 100");
   img.previousSibling.setAttribute("height", "300");
@@ -157,7 +160,9 @@ test(function() {
   img.setAttribute("nowidth", "true");
   assert_equals(getComputedStyle(img).width, "10px");
   assert_equals(getComputedStyle(img).height, "300px");
+}, "Dynamically changing width/height should change computed style");
 
+test(function() {
   img = document.getElementById("twosource-img");
   assert_cs(img, "auto 100 / 100");
   source = document.getElementById("twosource-s1");
@@ -168,9 +173,9 @@ test(function() {
   img.setAttribute("nowidth", "true");
   assert_equals(getComputedStyle(img).width, "300px");
   assert_equals(getComputedStyle(img).height, "150px");
+}, "Changing which <source> matches should change computed style");
 
-  // Percentages on source should be ignored for aspect-ratio but used for
-  // width/height.
+test(function() {
   img = document.getElementById("percent-img");
   assert_equals(img.offsetWidth, 100);
   assert_equals(img.offsetHeight, 0);
@@ -182,8 +187,9 @@ test(function() {
   img.setAttribute("nowidth", "true");
   assert_equals(getComputedStyle(img).width, "100%");
   assert_equals(getComputedStyle(img).height, "50%");
+}, "Percentages on source should be ignored for aspect-ratio but used for width/height.");
 
-  // Trailing garbage should be ignored but not invalidate anything.
+test(function() {
   img = document.getElementById("trailing-img");
   assert_equals(img.offsetWidth, 100);
   assert_equals(img.offsetHeight, 50);
@@ -195,12 +201,30 @@ test(function() {
   img.setAttribute("nowidth", "true");
   assert_equals(getComputedStyle(img).width, "100px");
   assert_equals(getComputedStyle(img).height, "50px");
-}, "Computed style");
+}, "Trailing garbage should be ignored but not make the attribute invalid");
 
 onload = t.step_func_done(function() {
   let images = document.querySelectorAll("img");
-  assert_ratio(images[0], 2.0, "2.0 is the original aspect ratio of green-100x50.png");
-  assert_ratio(images[1], 2.0, "Loaded image's aspect ratio, at least by default, overrides width / height ratio.");
-  assert_ratio(images[2], 2.0, "Loaded image's aspect ratio, at least by default, overrides width / height ratio (2).");
+  var img = images[0];
+  assert_ratio(img, 2.0, "2.0 is the original aspect ratio of green-100x50.png");
+  assert_cs(img, "auto");
+  img.style.display = "none";
+  img.setAttribute("nowidth", "true");
+  assert_equals(getComputedStyle(img).width, "auto");
+  assert_equals(getComputedStyle(img).height, "auto");
+  img = images[1];
+  assert_ratio(img, 2.0, "Loaded image's aspect ratio, at least by default, overrides width / height ratio.");
+  assert_cs(img, "auto 100 / 100");
+  img.style.display = "none";
+  img.setAttribute("nowidth", "true");
+  assert_equals(getComputedStyle(img).width, "100px");
+  assert_equals(getComputedStyle(img).height, "100px");
+  img = images[2];
+  assert_ratio(img, 2.0, "Loaded image's aspect ratio, at least by default, overrides width / height ratio (2).");
+  assert_cs(img, "auto 100 / 100");
+  img.style.display = "none";
+  img.setAttribute("nowidth", "true");
+  assert_equals(getComputedStyle(img).width, "100px");
+  assert_equals(getComputedStyle(img).height, "100px");
 });
 </script>

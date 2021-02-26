@@ -5,6 +5,8 @@
 'use strict';
 
 promise_test(async testCase => {
+  await reserveAndCleanupCapacity(testCase);
+
   const file = await createFile(testCase, "file_length_zero");
   await file.setLength(0);
   const lengthDecreased = await file.getLength();
@@ -14,6 +16,8 @@ promise_test(async testCase => {
      'file length to 0.');
 
 promise_test(async testCase => {
+  await reserveAndCleanupCapacity(testCase);
+
   const file = await createFile(testCase, "file_length_negative");
   await promise_rejects_js(testCase, TypeError,
                            file.setLength(-1));

@@ -286,9 +286,9 @@ class TestExecutor(object):
         """Run a particular test.
 
         :param test: The test to run"""
-        if test.environment != self.last_environment:
-            self.on_environment_change(test.environment)
         try:
+            if test.environment != self.last_environment:
+                self.on_environment_change(test.environment)
             result = self.do_test(test)
         except Exception as e:
             exception_string = traceback.format_exc()
