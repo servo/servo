@@ -38,7 +38,7 @@ byteorder = "1.0"
 cssparser = "0.28"
 derive_more = "0.99"
 encoding_rs = { version = "0.8", optional = true }
-euclid = "0.22"
+euclid = "0.20"
 fallible = { path = "../fallible" }
 fxhash = "0.2"
 hashglobe = { path = "../hashglobe" }
