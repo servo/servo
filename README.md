@@ -166,7 +166,8 @@ sudo zypper install libX11-devel libexpat-devel Mesa-libEGL-devel Mesa-libGL-dev
 
 ``` sh
 sudo pacman -S --needed base-devel git python2 python2-virtualenv python2-pip mesa cmake libxmu \
-    pkg-config ttf-fira-sans harfbuzz ccache llvm clang autoconf2.13 gstreamer gstreamer-vaapi
+    pkg-config ttf-fira-sans harfbuzz ccache llvm clang autoconf2.13 gstreamer gstreamer-vaapi \
+    gst-plugins-base gst-plugins-good gst-plugins-bad
 ```
 
 #### On Gentoo Linux
