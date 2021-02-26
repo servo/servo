@@ -70,7 +70,7 @@ pub use self::list::MozListReversed;
 pub use self::list::Quotes;
 pub use self::motion::{OffsetPath, OffsetRotate};
 pub use self::outline::OutlineStyle;
-pub use self::page::{Orientation, PaperSize, PageSize};
+pub use self::page::{Orientation, PageSize, PaperSize};
 pub use self::percentage::Percentage;
 pub use self::position::AspectRatio;
 pub use self::position::{
@@ -122,8 +122,8 @@ pub mod length;
 pub mod list;
 pub mod motion;
 pub mod outline;
-pub mod percentage;
 pub mod page;
+pub mod percentage;
 pub mod position;
 pub mod ratio;
 pub mod rect;

@@ -496,9 +496,7 @@ where
                 let t = t.to_pixel_length(reference_height)? as f64;
                 Transform3D::translation(0., t, 0.)
             },
-            TranslateZ(ref z) => {
-                Transform3D::translation(0., 0., z.to_pixel_length(None)? as f64)
-            },
+            TranslateZ(ref z) => Transform3D::translation(0., 0., z.to_pixel_length(None)? as f64),
             Skew(theta_x, theta_y) => Transform3D::skew(
                 euclid::Angle::radians(theta_x.radians64()),
                 euclid::Angle::radians(theta_y.radians64()),

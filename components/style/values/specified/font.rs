@@ -2325,14 +2325,18 @@ impl Parse for MathDepth {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<MathDepth, ParseError<'i>> {
-        if input.try_parse(|i| i.expect_ident_matching("auto-add")).is_ok() {
+        if input
+            .try_parse(|i| i.expect_ident_matching("auto-add"))
+            .is_ok()
+        {
             return Ok(MathDepth::AutoAdd);
         }
         if let Ok(math_depth_value) = input.try_parse(|input| Integer::parse(context, input)) {
             return Ok(MathDepth::Absolute(math_depth_value));
         }
         input.expect_function_matching("add")?;
-        let math_depth_delta_value = input.parse_nested_block(|input| Integer::parse(context, input))?;
+        let math_depth_delta_value =
+            input.parse_nested_block(|input| Integer::parse(context, input))?;
         Ok(MathDepth::Add(math_depth_delta_value))
     }
 }

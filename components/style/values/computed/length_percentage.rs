@@ -265,9 +265,9 @@ impl LengthPercentage {
                     CalcLengthPercentageLeaf::Length(l) => {
                         Self::new_length(Length::new(clamping_mode.clamp(l.px())).normalized())
                     },
-                    CalcLengthPercentageLeaf::Percentage(p) => {
-                        Self::new_percent(Percentage(clamping_mode.clamp(crate::values::normalize(p.0))))
-                    },
+                    CalcLengthPercentageLeaf::Percentage(p) => Self::new_percent(Percentage(
+                        clamping_mode.clamp(crate::values::normalize(p.0)),
+                    )),
                 }
             },
             _ => Self::new_calc_unchecked(Box::new(CalcLengthPercentage {

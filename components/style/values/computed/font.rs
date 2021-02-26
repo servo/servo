@@ -35,9 +35,9 @@ use style_traits::{CssWriter, ParseError, ToCss};
 use to_shmem::{self, SharedMemoryBuilder, ToShmem};
 
 pub use crate::values::computed::Length as MozScriptMinSize;
-pub use crate::values::specified::Integer as SpecifiedInteger;
 pub use crate::values::specified::font::{FontSynthesis, MozScriptSizeMultiplier};
 pub use crate::values::specified::font::{XLang, XTextZoom};
+pub use crate::values::specified::Integer as SpecifiedInteger;
 
 /// A value for the font-weight property per:
 ///

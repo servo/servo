@@ -5,11 +5,13 @@
 //! A centralized set of stylesheets for a document.
 
 use crate::dom::TElement;
-use crate::invalidation::stylesheets::{StylesheetInvalidationSet, RuleChangeKind};
+use crate::invalidation::stylesheets::{RuleChangeKind, StylesheetInvalidationSet};
 use crate::media_queries::Device;
 use crate::selector_parser::SnapshotMap;
 use crate::shared_lock::SharedRwLockReadGuard;
-use crate::stylesheets::{CssRule, Origin, OriginSet, OriginSetIterator, PerOrigin, StylesheetInDocument};
+use crate::stylesheets::{
+    CssRule, Origin, OriginSet, OriginSetIterator, PerOrigin, StylesheetInDocument,
+};
 use std::{mem, slice};
 
 /// Entry for a StylesheetSet.
@@ -465,9 +467,9 @@ macro_rules! sheet_set_methods {
                 // Insertion / Removals need to rebuild both the cascade and
                 // invalidation data. For generic changes this is conservative,
                 // could be optimized on a per-case basis.
-                RuleChangeKind::Generic |
-                RuleChangeKind::Insertion |
-                RuleChangeKind::Removal => DataValidity::FullyInvalid,
+                RuleChangeKind::Generic | RuleChangeKind::Insertion | RuleChangeKind::Removal => {
+                    DataValidity::FullyInvalid
+                },
                 // TODO(emilio): This, in theory, doesn't need to invalidate
                 // style data, if the rule we're modifying is actually in the
                 // CascadeData already.
@@ -536,9 +538,9 @@ where
     /// Returns whether the given set has changed from the last flush.
     pub fn has_changed(&self) -> bool {
         !self.invalidations.is_empty() ||
-        self.collections
-            .iter_origins()
-            .any(|(collection, _)| collection.dirty)
+            self.collections
+                .iter_origins()
+                .any(|(collection, _)| collection.dirty)
     }
 
     /// Flush the current set, unmarking it as dirty, and returns a

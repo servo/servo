@@ -139,13 +139,17 @@ fn eager_pseudo_is_definitely_not_generated(
         return false;
     }
 
-    if !style.flags.intersects(ComputedValueFlags::DISPLAY_DEPENDS_ON_INHERITED_STYLE) &&
+    if !style
+        .flags
+        .intersects(ComputedValueFlags::DISPLAY_DEPENDS_ON_INHERITED_STYLE) &&
         style.get_box().clone_display() == Display::None
     {
         return true;
     }
 
-    if !style.flags.intersects(ComputedValueFlags::CONTENT_DEPENDS_ON_INHERITED_STYLE) &&
+    if !style
+        .flags
+        .intersects(ComputedValueFlags::CONTENT_DEPENDS_ON_INHERITED_STYLE) &&
         style.ineffective_content_property()
     {
         return true;

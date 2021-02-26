@@ -188,7 +188,7 @@ where
 
 impl<T> Parse for Box<T>
 where
-    T: Parse
+    T: Parse,
 {
     fn parse<'i, 't>(
         context: &ParserContext,

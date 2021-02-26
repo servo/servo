@@ -59,10 +59,10 @@ pub enum GenericImage<G, MozImageRect, ImageUrl, Color, Percentage, Resolution> 
 pub use self::GenericImage as Image;
 
 /// <https://drafts.csswg.org/css-images-4/#cross-fade-function>
-#[css(comma, function = "cross-fade")]
 #[derive(
     Clone, Debug, MallocSizeOf, PartialEq, ToResolvedValue, ToShmem, ToCss, ToComputedValue,
 )]
+#[css(comma, function = "cross-fade")]
 #[repr(C)]
 pub struct GenericCrossFade<Image, Color, Percentage> {
     /// All of the image percent pairings passed as arguments to
@@ -74,14 +74,7 @@ pub struct GenericCrossFade<Image, Color, Percentage> {
 /// A `<percent> | none` value. Represents optional percentage values
 /// assosicated with cross-fade images.
 #[derive(
-    Clone,
-    Debug,
-    MallocSizeOf,
-    PartialEq,
-    ToComputedValue,
-    ToResolvedValue,
-    ToShmem,
-    ToCss,
+    Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem, ToCss,
 )]
 #[repr(C, u8)]
 pub enum PercentOrNone<Percentage> {
@@ -94,14 +87,7 @@ pub enum PercentOrNone<Percentage> {
 
 /// An optional percent and a cross fade image.
 #[derive(
-    Clone,
-    Debug,
-    MallocSizeOf,
-    PartialEq,
-    ToComputedValue,
-    ToResolvedValue,
-    ToShmem,
-    ToCss,
+    Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem, ToCss,
 )]
 #[repr(C)]
 pub struct GenericCrossFadeElement<Image, Color, Percentage> {
@@ -115,15 +101,7 @@ pub struct GenericCrossFadeElement<Image, Color, Percentage> {
 /// An image or a color. `cross-fade` takes either when blending
 /// images together.
 #[derive(
-    Clone,
-    Debug,
-    MallocSizeOf,
-    PartialEq,
-    ToComputedValue,
-    ToResolvedValue,
-    ToShmem,
-    ToCss,
-    Parse,
+    Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem, ToCss,
 )]
 #[repr(C, u8)]
 pub enum GenericCrossFadeImage<I, C> {
@@ -139,10 +117,8 @@ pub use self::GenericCrossFadeElement as CrossFadeElement;
 pub use self::GenericCrossFadeImage as CrossFadeImage;
 
 /// https://drafts.csswg.org/css-images-4/#image-set-notation
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToResolvedValue, ToShmem, ToCss)]
 #[css(comma, function = "image-set")]
-#[derive(
-    Clone, Debug, MallocSizeOf, PartialEq, ToResolvedValue, ToShmem, ToCss,
-)]
 #[repr(C)]
 pub struct GenericImageSet<Image, Resolution> {
     /// The index of the selected candidate. Zero for specified values.

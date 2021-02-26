@@ -130,7 +130,13 @@ where
             };
 
             let mut effective = true;
-            let children = children_of_rule::<C>(rule, self.device, self.quirks_mode, self.guard, &mut effective);
+            let children = children_of_rule::<C>(
+                rule,
+                self.device,
+                self.quirks_mode,
+                self.guard,
+                &mut effective,
+            );
             if !effective {
                 continue;
             }
@@ -197,7 +203,7 @@ impl EffectiveRules {
     ) -> bool {
         match *rule {
             CssRule::Import(ref import_rule) => {
-            let import_rule = import_rule.read_with(guard);
+                let import_rule = import_rule.read_with(guard);
                 Self::process_import(guard, device, quirks_mode, import_rule)
             },
             CssRule::Document(ref doc_rule) => {

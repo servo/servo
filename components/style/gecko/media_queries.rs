@@ -4,12 +4,12 @@
 
 //! Gecko's media-query device and expression representation.
 
+use crate::context::QuirksMode;
 use crate::custom_properties::CssEnvironment;
 use crate::gecko::values::{convert_nscolor_to_rgba, convert_rgba_to_nscolor};
 use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::structs;
 use crate::media_queries::MediaType;
-use crate::context::QuirksMode;
 use crate::properties::ComputedValues;
 use crate::string_cache::Atom;
 use crate::values::computed::Length;
@@ -20,8 +20,8 @@ use cssparser::RGBA;
 use euclid::default::Size2D;
 use euclid::{Scale, SideOffsets2D};
 use servo_arc::Arc;
-use std::{cmp, fmt};
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicUsize, Ordering};
+use std::{cmp, fmt};
 use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel};
 
@@ -275,7 +275,7 @@ impl Device {
         };
 
         if pc.mIsRootPaginatedDocument() != 0 {
-            return self.page_size_minus_default_margin(pc)
+            return self.page_size_minus_default_margin(pc);
         }
 
         let size = &pc.mSizeForViewportUnits;

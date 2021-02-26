@@ -7,15 +7,15 @@
 //!
 //! [image]: https://drafts.csswg.org/css-images/#image-values
 
-use crate::values::computed::position::Position;
 use crate::values::computed::percentage::Percentage;
+use crate::values::computed::position::Position;
 use crate::values::computed::url::ComputedImageUrl;
 #[cfg(feature = "gecko")]
 use crate::values::computed::NumberOrPercentage;
 use crate::values::computed::{Angle, Color, Context};
 use crate::values::computed::{
     AngleOrPercentage, LengthPercentage, NonNegativeLength, NonNegativeLengthPercentage,
-    ToComputedValue, Resolution,
+    Resolution, ToComputedValue,
 };
 use crate::values::generics::image::{self as generic, GradientCompatMode};
 use crate::values::specified::image as specified;
@@ -26,7 +26,8 @@ use style_traits::{CssWriter, ToCss};
 
 /// Computed values for an image according to CSS-IMAGES.
 /// <https://drafts.csswg.org/css-images/#image-values>
-pub type Image = generic::GenericImage<Gradient, MozImageRect, ComputedImageUrl, Color, Percentage, Resolution>;
+pub type Image =
+    generic::GenericImage<Gradient, MozImageRect, ComputedImageUrl, Color, Percentage, Resolution>;
 
 /// Computed values for a CSS gradient.
 /// <https://drafts.csswg.org/css-images/#gradients>
@@ -115,7 +116,6 @@ impl ToComputedValue for specified::ImageSet {
         }
     }
 }
-
 
 /// Computed values for `-moz-image-rect(...)`.
 #[cfg(feature = "gecko")]

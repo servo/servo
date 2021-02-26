@@ -21,7 +21,7 @@ use crate::values::specified::position::{Position, PositionComponent, Side};
 use crate::values::specified::url::SpecifiedImageUrl;
 use crate::values::specified::{
     Angle, AngleOrPercentage, Color, Length, LengthPercentage, NonNegativeLength,
-    NonNegativeLengthPercentage, Resolution
+    NonNegativeLengthPercentage, Resolution,
 };
 use crate::values::specified::{Number, NumberOrPercentage, Percentage};
 use crate::Atom;
@@ -36,7 +36,8 @@ use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 
 /// Specified values for an image according to CSS-IMAGES.
 /// <https://drafts.csswg.org/css-images/#image-values>
-pub type Image = generic::Image<Gradient, MozImageRect, SpecifiedImageUrl, Color, Percentage, Resolution>;
+pub type Image =
+    generic::Image<Gradient, MozImageRect, SpecifiedImageUrl, Color, Percentage, Resolution>;
 
 /// Specified values for a CSS gradient.
 /// <https://drafts.csswg.org/css-images/#gradients>
@@ -194,7 +195,9 @@ impl Image {
         if allow_none && input.try_parse(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(generic::Image::None);
         }
-        if let Ok(url) = input.try_parse(|input| SpecifiedImageUrl::parse_with_cors_mode(context, input, cors_mode)) {
+        if let Ok(url) = input
+            .try_parse(|input| SpecifiedImageUrl::parse_with_cors_mode(context, input, cors_mode))
+        {
             return Ok(generic::Image::Url(url));
         }
         if let Ok(gradient) = input.try_parse(|i| Gradient::parse(context, i)) {
@@ -218,7 +221,9 @@ impl Image {
         }
         #[cfg(feature = "gecko")]
         {
-            if let Ok(image_rect) = input.try_parse(|input| MozImageRect::parse(context, input, cors_mode)) {
+            if let Ok(image_rect) =
+                input.try_parse(|input| MozImageRect::parse(context, input, cors_mode))
+            {
                 return Ok(generic::Image::Rect(Box::new(image_rect)));
             }
             Ok(generic::Image::Element(Image::parse_element(input)?))
@@ -254,7 +259,12 @@ impl Image {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Image, ParseError<'i>> {
-        Self::parse_with_cors_mode(context, input, CorsMode::Anonymous, /* allow_none = */ true)
+        Self::parse_with_cors_mode(
+            context,
+            input,
+            CorsMode::Anonymous,
+            /* allow_none = */ true,
+        )
     }
 }
 
@@ -299,8 +309,10 @@ impl CrossFadeImage {
         input: &mut Parser<'i, 't>,
         cors_mode: CorsMode,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(image) = input.try_parse(|input| Image::parse_with_cors_mode(context, input, cors_mode, /* allow_none = */ false)) {
-            return Ok(Self::Image(image))
+        if let Ok(image) = input.try_parse(|input| {
+            Image::parse_with_cors_mode(context, input, cors_mode, /* allow_none = */ false)
+        }) {
+            return Ok(Self::Image(image));
         }
         Ok(Self::Color(Color::parse(context, input)?))
     }
@@ -334,7 +346,7 @@ impl ImageSet {
         })?;
         Ok(Self {
             selected_index: 0,
-            items: items.into()
+            items: items.into(),
         })
     }
 }
@@ -346,14 +358,19 @@ impl ImageSetItem {
         cors_mode: CorsMode,
     ) -> Result<Self, ParseError<'i>> {
         let image = match input.try_parse(|i| i.expect_url_or_string()) {
-            Ok(url) => Image::Url(SpecifiedImageUrl::parse_from_string(url.as_ref().into(), context, cors_mode)),
-            Err(..) => Image::parse_with_cors_mode(context, input, cors_mode, /* allow_none = */ false)?,
+            Ok(url) => Image::Url(SpecifiedImageUrl::parse_from_string(
+                url.as_ref().into(),
+                context,
+                cors_mode,
+            )),
+            Err(..) => Image::parse_with_cors_mode(
+                context, input, cors_mode, /* allow_none = */ false,
+            )?,
         };
-        let resolution = input.try_parse(|input| Resolution::parse(context, input)).unwrap_or(Resolution::X(1.0));
-        Ok(Self {
-            image,
-            resolution,
-        })
+        let resolution = input
+            .try_parse(|input| Resolution::parse(context, input))
+            .unwrap_or(Resolution::X(1.0));
+        Ok(Self { image, resolution })
     }
 }
 

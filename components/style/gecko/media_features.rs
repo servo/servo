@@ -107,7 +107,12 @@ fn eval_aspect_ratio(
     query_value: Option<Ratio>,
     range_or_operator: Option<RangeOrOperator>,
 ) -> bool {
-    eval_aspect_ratio_for(device, query_value, range_or_operator, Device::au_viewport_size)
+    eval_aspect_ratio_for(
+        device,
+        query_value,
+        range_or_operator,
+        Device::au_viewport_size,
+    )
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#device-aspect-ratio
@@ -244,7 +249,8 @@ fn eval_monochrome(
     range_or_operator: Option<RangeOrOperator>,
 ) -> bool {
     // For color devices we should return 0.
-    let depth = unsafe { bindings::Gecko_MediaFeatures_GetMonochromeBitsPerPixel(device.document()) };
+    let depth =
+        unsafe { bindings::Gecko_MediaFeatures_GetMonochromeBitsPerPixel(device.document()) };
     RangeOrOperator::evaluate(range_or_operator, query_value, depth)
 }
 

@@ -206,8 +206,12 @@ impl DocumentMatchingFunction {
             DocumentMatchingFunction::MediaDocument(_) => {
                 GeckoDocumentMatchingFunction::MediaDocument
             },
-            DocumentMatchingFunction::PlainTextDocument(..) => GeckoDocumentMatchingFunction::PlainTextDocument,
-            DocumentMatchingFunction::UnobservableDocument(..) => GeckoDocumentMatchingFunction::UnobservableDocument,
+            DocumentMatchingFunction::PlainTextDocument(..) => {
+                GeckoDocumentMatchingFunction::PlainTextDocument
+            },
+            DocumentMatchingFunction::UnobservableDocument(..) => {
+                GeckoDocumentMatchingFunction::UnobservableDocument
+            },
         };
 
         let pattern = nsCStr::from(match *self {

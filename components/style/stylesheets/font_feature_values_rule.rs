@@ -20,7 +20,7 @@ use crate::values::serialize_atom_identifier;
 use crate::Atom;
 use cssparser::{AtRuleParser, AtRuleType, BasicParseErrorKind, CowRcStr};
 use cssparser::{DeclarationListParser, DeclarationParser, Parser};
-use cssparser::{QualifiedRuleParser, RuleListParser, SourceLocation, ParserState, Token};
+use cssparser::{ParserState, QualifiedRuleParser, RuleListParser, SourceLocation, Token};
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 

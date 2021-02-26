@@ -27,7 +27,7 @@ use crate::values::computed::font::FamilyName;
 use crate::values::{CssUrl, CustomIdent, KeyframesName};
 use crate::{Namespace, Prefix};
 use cssparser::{AtRuleParser, AtRuleType, Parser, QualifiedRuleParser, RuleListParser};
-use cssparser::{BasicParseError, BasicParseErrorKind, CowRcStr, SourcePosition, ParserState};
+use cssparser::{BasicParseError, BasicParseErrorKind, CowRcStr, ParserState, SourcePosition};
 use selectors::SelectorList;
 use servo_arc::Arc;
 use style_traits::{ParseError, StyleParseErrorKind};
@@ -482,7 +482,12 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                 );
 
                 Ok(CssRule::FontFeatureValues(Arc::new(self.shared_lock.wrap(
-                    FontFeatureValuesRule::parse(&context, input, family_names, start.source_location()),
+                    FontFeatureValuesRule::parse(
+                        &context,
+                        input,
+                        family_names,
+                        start.source_location(),
+                    ),
                 ))))
             },
             AtRuleBlockPrelude::CounterStyle(name) => {
@@ -492,9 +497,12 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                     self.namespaces,
                 );
 
-                Ok(CssRule::CounterStyle(Arc::new(self.shared_lock.wrap(
-                    parse_counter_style_body(name, &context, input, start.source_location())?.into(),
-                ))))
+                Ok(CssRule::CounterStyle(Arc::new(
+                    self.shared_lock.wrap(
+                        parse_counter_style_body(name, &context, input, start.source_location())?
+                            .into(),
+                    ),
+                )))
             },
             AtRuleBlockPrelude::Media(media_queries) => {
                 Ok(CssRule::Media(Arc::new(self.shared_lock.wrap(MediaRule {

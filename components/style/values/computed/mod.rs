@@ -71,7 +71,7 @@ pub use self::list::MozListReversed;
 pub use self::list::Quotes;
 pub use self::motion::{OffsetPath, OffsetRotate};
 pub use self::outline::OutlineStyle;
-pub use self::page::{Orientation, PaperSize, PageSize};
+pub use self::page::{Orientation, PageSize, PaperSize};
 pub use self::percentage::{NonNegativePercentage, Percentage};
 pub use self::position::AspectRatio;
 pub use self::position::{

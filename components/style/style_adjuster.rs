@@ -169,14 +169,14 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// NOTE: If this or the pointer-events tweak is removed, then
     /// minimal-xul.css and the scrollbar style caching need to be tweaked.
     fn adjust_for_inert(&mut self) {
+        use crate::values::specified::ui::CursorKind;
+        use crate::values::specified::ui::UserSelect;
         use properties::longhands::_moz_inert::computed_value::T as Inert;
         use properties::longhands::_moz_user_focus::computed_value::T as UserFocus;
         use properties::longhands::_moz_user_input::computed_value::T as UserInput;
         use properties::longhands::_moz_user_modify::computed_value::T as UserModify;
-        use properties::longhands::pointer_events::computed_value::T as PointerEvents;
         use properties::longhands::cursor::computed_value::T as Cursor;
-        use crate::values::specified::ui::CursorKind;
-        use crate::values::specified::ui::UserSelect;
+        use properties::longhands::pointer_events::computed_value::T as PointerEvents;
 
         let needs_update = {
             let ui = self.style.get_inherited_ui();
