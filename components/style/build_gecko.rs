@@ -279,7 +279,7 @@ impl<'a> BuilderWithConfig<'a> {
     fn get_builder(self) -> Builder {
         for key in self.config.keys() {
             if !self.used_keys.contains(key.as_str()) {
-                panic!(format!("Unknown key: {}", key));
+                panic!("Unknown key: {}", key);
             }
         }
         self.builder
