@@ -421,22 +421,6 @@ where
     )
 }
 
-/// Parse a comma separated list of compound selectors.
-pub fn parse_compound_selector_list<'i, 't, P, Impl>(
-    parser: &P,
-    input: &mut CssParser<'i, 't>,
-) -> Result<Box<[Selector<Impl>]>, ParseError<'i, P::Error>>
-where
-    P: Parser<'i, Impl = Impl>,
-    Impl: SelectorImpl,
-{
-    input
-        .parse_comma_separated(|input| {
-            parse_inner_compound_selector(parser, input, SelectorParsingState::empty())
-        })
-        .map(|selectors| selectors.into_boxed_slice())
-}
-
 /// Ancestor hashes for the bloom filter. We precompute these and store them
 /// inline with selectors to optimize cache performance during matching.
 /// This matters a lot.
@@ -1522,14 +1506,6 @@ impl<Impl: SelectorImpl> ToCss for Component<Impl> {
             AttributeOther(ref attr_selector) => attr_selector.to_css(dest),
 
             // Pseudo-classes
-            Negation(ref arg) => {
-                dest.write_str(":not(")?;
-                for component in arg.iter() {
-                    component.to_css(dest)?;
-                }
-                dest.write_str(")")
-            },
-
             FirstChild => dest.write_str(":first-child"),
             LastChild => dest.write_str(":last-child"),
             OnlyChild => dest.write_str(":only-child"),
@@ -1559,10 +1535,11 @@ impl<Impl: SelectorImpl> ToCss for Component<Impl> {
                 write_affine(dest, a, b)?;
                 dest.write_char(')')
             },
-            Is(ref list) | Where(ref list) => {
+            Is(ref list) | Where(ref list) | Negation(ref list) => {
                 match *self {
                     Where(..) => dest.write_str(":where(")?,
                     Is(..) => dest.write_str(":is(")?,
+                    Negation(..) => dest.write_str(":not(")?,
                     _ => unreachable!(),
                 }
                 serialize_selector_list(list.iter(), dest)?;
