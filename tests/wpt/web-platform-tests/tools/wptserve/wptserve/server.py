@@ -478,14 +478,19 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
         try:
             handshaker.do_handshake()
         except HandshakeException as e:
-            self.logger.info('Handshake failed for error: %s', e)
+            self.logger.info('Handshake failed for error: %s' % e)
             h2response.set_error(e.status)
             h2response.write()
             return
 
         # h2 Handshaker prepares the headers but does not send them down the
         # wire. Flush the headers here.
-        h2response.write_status_headers()
+        try:
+            h2response.write_status_headers()
+        except StreamClosedError:
+            # work around https://github.com/web-platform-tests/wpt/issues/27786
+            # The stream was already closed.
+            return
 
         request_wrapper._dispatcher = dispatcher
 
@@ -518,7 +523,13 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
 
     def _stream_ws_sub_thread(self, request, stream_handler, queue):
         dispatcher = request._dispatcher
-        dispatcher.transfer_data(request)
+        try:
+            dispatcher.transfer_data(request)
+        except StreamClosedError:
+            # work around https://github.com/web-platform-tests/wpt/issues/27786
+            # The stream was already closed.
+            queue.put(None)
+            return
 
         stream_id = stream_handler.h2_stream_id
         with stream_handler.conn as connection:
