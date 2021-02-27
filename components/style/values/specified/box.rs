@@ -110,12 +110,6 @@ pub enum DisplayInside {
     #[cfg(feature = "gecko")]
     MozBox,
     #[cfg(feature = "gecko")]
-    MozGrid,
-    #[cfg(feature = "gecko")]
-    MozGridGroup,
-    #[cfg(feature = "gecko")]
-    MozGridLine,
-    #[cfg(feature = "gecko")]
     MozStack,
     #[cfg(feature = "gecko")]
     MozDeck,
@@ -233,12 +227,6 @@ impl Display {
     #[cfg(feature = "gecko")]
     pub const MozInlineBox: Self = Self::new(DisplayOutside::Inline, DisplayInside::MozBox);
     #[cfg(feature = "gecko")]
-    pub const MozGrid: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozGrid);
-    #[cfg(feature = "gecko")]
-    pub const MozGridGroup: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozGridGroup);
-    #[cfg(feature = "gecko")]
-    pub const MozGridLine: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozGridLine);
-    #[cfg(feature = "gecko")]
     pub const MozStack: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozStack);
     #[cfg(feature = "gecko")]
     pub const MozDeck: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozDeck);
@@ -276,6 +264,12 @@ impl Display {
             (self.0 >> Self::DISPLAY_INSIDE_BITS) & ((1 << Self::DISPLAY_OUTSIDE_BITS) - 1),
         )
         .unwrap()
+    }
+
+    /// Returns the raw underlying u16 value.
+    #[inline]
+    pub const fn to_u16(&self) -> u16 {
+        self.0
     }
 
     /// Whether this is `display: inline` (or `inline list-item`).
@@ -614,12 +608,6 @@ impl Parse for Display {
             "-moz-box" if moz_box_display_values_enabled(context) => Display::MozBox,
             #[cfg(feature = "gecko")]
             "-moz-inline-box" if moz_box_display_values_enabled(context) => Display::MozInlineBox,
-            #[cfg(feature = "gecko")]
-            "-moz-grid" if moz_display_values_enabled(context) => Display::MozGrid,
-            #[cfg(feature = "gecko")]
-            "-moz-grid-group" if moz_display_values_enabled(context) => Display::MozGridGroup,
-            #[cfg(feature = "gecko")]
-            "-moz-grid-line" if moz_display_values_enabled(context) => Display::MozGridLine,
             #[cfg(feature = "gecko")]
             "-moz-stack" if moz_display_values_enabled(context) => Display::MozStack,
             #[cfg(feature = "gecko")]
@@ -1188,7 +1176,7 @@ bitflags! {
     /// Values for the `touch-action` property.
     #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
     /// These constants match Gecko's `NS_STYLE_TOUCH_ACTION_*` constants.
-    #[value_info(other_values = "auto,none,manipulation,pan-x,pan-y")]
+    #[value_info(other_values = "auto,none,manipulation,pan-x,pan-y,pinch-zoom")]
     #[repr(C)]
     pub struct TouchAction: u8 {
         /// `none` variant
@@ -1201,6 +1189,8 @@ bitflags! {
         const PAN_Y = 1 << 3;
         /// `manipulation` variant
         const MANIPULATION = 1 << 4;
+        /// `pinch-zoom` variant
+        const PINCH_ZOOM = 1 << 5;
     }
 }
 
@@ -1217,43 +1207,70 @@ impl ToCss for TouchAction {
     where
         W: Write,
     {
-        match *self {
-            TouchAction::NONE => dest.write_str("none"),
-            TouchAction::AUTO => dest.write_str("auto"),
-            TouchAction::MANIPULATION => dest.write_str("manipulation"),
-            _ if self.contains(TouchAction::PAN_X | TouchAction::PAN_Y) => {
-                dest.write_str("pan-x pan-y")
-            },
-            _ if self.contains(TouchAction::PAN_X) => dest.write_str("pan-x"),
-            _ if self.contains(TouchAction::PAN_Y) => dest.write_str("pan-y"),
-            _ => panic!("invalid touch-action value"),
+        if self.contains(TouchAction::AUTO) {
+            return dest.write_str("auto");
         }
+        if self.contains(TouchAction::NONE) {
+            return dest.write_str("none");
+        }
+        if self.contains(TouchAction::MANIPULATION) {
+            return dest.write_str("manipulation");
+        }
+
+        let mut has_any = false;
+        macro_rules! maybe_write_value {
+            ($ident:path => $str:expr) => {
+                if self.contains($ident) {
+                    if has_any {
+                        dest.write_str(" ")?;
+                    }
+                    has_any = true;
+                    dest.write_str($str)?;
+                }
+            };
+        }
+        maybe_write_value!(TouchAction::PAN_X => "pan-x");
+        maybe_write_value!(TouchAction::PAN_Y => "pan-y");
+        maybe_write_value!(TouchAction::PINCH_ZOOM => "pinch-zoom");
+
+        debug_assert!(has_any);
+        Ok(())
     }
 }
 
 impl Parse for TouchAction {
+    /// auto | none | [ pan-x || pan-y || pinch-zoom ] | manipulation
     fn parse<'i, 't>(
         _context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<TouchAction, ParseError<'i>> {
-        try_match_ident_ignore_ascii_case! { input,
-            "auto" => Ok(TouchAction::AUTO),
-            "none" => Ok(TouchAction::NONE),
-            "manipulation" => Ok(TouchAction::MANIPULATION),
-            "pan-x" => {
-                if input.try_parse(|i| i.expect_ident_matching("pan-y")).is_ok() {
-                    Ok(TouchAction::PAN_X | TouchAction::PAN_Y)
-                } else {
-                    Ok(TouchAction::PAN_X)
-                }
-            },
-            "pan-y" => {
-                if input.try_parse(|i| i.expect_ident_matching("pan-x")).is_ok() {
-                    Ok(TouchAction::PAN_X | TouchAction::PAN_Y)
-                } else {
-                    Ok(TouchAction::PAN_Y)
-                }
-            },
+        let mut result = TouchAction::empty();
+        while let Ok(name) = input.try_parse(|i| i.expect_ident_cloned()) {
+            let flag = match_ignore_ascii_case! { &name,
+                "pan-x" => Some(TouchAction::PAN_X),
+                "pan-y" => Some(TouchAction::PAN_Y),
+                "pinch-zoom" => Some(TouchAction::PINCH_ZOOM),
+                "none" if result.is_empty() => return Ok(TouchAction::NONE),
+                "manipulation" if result.is_empty() => return Ok(TouchAction::MANIPULATION),
+                "auto" if result.is_empty() => return Ok(TouchAction::AUTO),
+                _ => None
+            };
+
+            let flag = match flag {
+                Some(flag) if !result.contains(flag) => flag,
+                _ => {
+                    return Err(
+                        input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name))
+                    );
+                },
+            };
+            result.insert(flag);
+        }
+
+        if !result.is_empty() {
+            Ok(result)
+        } else {
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
     }
 }
@@ -1525,8 +1542,36 @@ pub enum Resize {
 pub enum Appearance {
     /// No appearance at all.
     None,
+    /// Default appearance for the element.
+    ///
+    /// This value doesn't make sense for -moz-default-appearance, but we don't bother to guard
+    /// against parsing it.
+    Auto,
+    /// A searchfield.
+    Searchfield,
+    /// A multi-line text field, e.g. HTML <textarea>.
+    #[parse(aliases = "textfield-multiline")]
+    Textarea,
+    /// A checkbox element.
+    Checkbox,
+    /// A radio element within a radio group.
+    Radio,
+    /// A dropdown list.
+    Menulist,
+    /// List boxes.
+    Listbox,
+    /// A horizontal meter bar.
+    #[parse(aliases = "meterbar")]
+    Meter,
+    /// A horizontal progress bar.
+    #[parse(aliases = "progressbar")]
+    ProgressBar,
     /// A typical dialog button.
     Button,
+    /// A single-line text field, e.g. HTML <input type=text>.
+    Textfield,
+    /// The dropdown button(s) that open up a dropdown list.
+    MenulistButton,
     /// Various arrows that go in buttons
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     ButtonArrowDown,
@@ -1536,29 +1581,15 @@ pub enum Appearance {
     ButtonArrowPrevious,
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     ButtonArrowUp,
-    /// A rectangular button that contains complex content
-    /// like images (e.g. HTML <button> elements)
-    #[css(skip)]
-    ButtonBevel,
     /// The focus outline box inside of a button.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     ButtonFocus,
-    /// The caret of a text area
-    #[css(skip)]
-    Caret,
     /// A dual toolbar button (e.g., a Back button with a dropdown)
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     Dualbutton,
     /// A groupbox.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     Groupbox,
-    /// A inner-spin button.
-    InnerSpinButton,
-    /// List boxes.
-    Listbox,
-    /// A listbox item.
-    #[css(skip)]
-    Listitem,
     /// Menu Bar background
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     Menubar,
@@ -1572,16 +1603,9 @@ pub enum Appearance {
     /// For text on non-iconic menuitems only
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     Menuitemtext,
-    /// A dropdown list.
-    Menulist,
-    /// The dropdown button(s) that open up a dropdown list.
-    MenulistButton,
     /// The text part of a dropdown list, to left of button.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MenulistText,
-    /// An editable textfield with a dropdown list (a combobox).
-    #[css(skip)]
-    MenulistTextfield,
     /// Menu Popup background.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     Menupopup,
@@ -1597,9 +1621,6 @@ pub enum Appearance {
     /// An image in the menu gutter, like in bookmarks or history.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     Menuimage,
-    /// A horizontal meter bar.
-    #[parse(aliases = "meterbar")]
-    Meter,
     /// The meter bar's meter indicator.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     Meterchunk,
@@ -1607,19 +1628,11 @@ pub enum Appearance {
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozMenulistArrowButton,
     /// For HTML's <input type=number>
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     NumberInput,
-    /// A horizontal progress bar.
-    #[parse(aliases = "progressbar")]
-    ProgressBar,
     /// The progress bar's progress indicator
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     Progresschunk,
-    /// A vertical progress bar.
-    ProgressbarVertical,
-    /// A checkbox element.
-    Checkbox,
-    /// A radio element within a radio group.
-    Radio,
     /// A generic container that always repaints on state changes. This is a
     /// hack to make XUL checkboxes and radio buttons work.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
@@ -1633,8 +1646,10 @@ pub enum Appearance {
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     RadioLabel,
     /// nsRangeFrame and its subparts
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     Range,
-    RangeThumb, // FIXME: This should not be exposed to content.
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
+    RangeThumb,
     /// The resizer background area in a status bar for the resizer widget in
     /// the corner of a window.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
@@ -1642,23 +1657,6 @@ pub enum Appearance {
     /// The resizer itself.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     Resizer,
-    /// A slider.
-    ScaleHorizontal,
-    ScaleVertical,
-    /// A slider's thumb.
-    ScalethumbHorizontal,
-    ScalethumbVertical,
-    /// If the platform supports it, the left/right chunks of the slider thumb.
-    Scalethumbstart,
-    Scalethumbend,
-    /// The ticks for a slider.
-    Scalethumbtick,
-    /// A scrollbar.
-    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
-    Scrollbar,
-    /// A small scrollbar.
-    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
-    ScrollbarSmall,
     /// The scrollbar slider
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     ScrollbarHorizontal,
@@ -1676,16 +1674,18 @@ pub enum Appearance {
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     ScrollbarbuttonRight,
     /// The scrollbar thumb.
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     ScrollbarthumbHorizontal,
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     ScrollbarthumbVertical,
     /// The scrollbar track.
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     ScrollbartrackHorizontal,
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     ScrollbartrackVertical,
     /// The scroll corner
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     Scrollcorner,
-    /// A searchfield.
-    Searchfield,
     /// A separator.  Can be horizontal or vertical.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     Separator,
@@ -1724,11 +1724,6 @@ pub enum Appearance {
     TabScrollArrowBack,
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     TabScrollArrowForward,
-    /// A multi-line text field, e.g. HTML <textarea>.
-    #[parse(aliases = "textfield-multiline")]
-    Textarea,
-    /// A single-line text field, e.g. HTML <input type=text>.
-    Textfield,
     /// A toolbar in an application window.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     Toolbar,
@@ -1793,9 +1788,6 @@ pub enum Appearance {
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozWinExcludeGlass,
 
-    /// Titlebar elements on the Mac.
-    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
-    MozMacFullscreenButton,
     /// Mac help button.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozMacHelpButton,
@@ -1845,10 +1837,6 @@ pub enum Appearance {
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozMacVibrantTitlebarLight,
 
-    /// A non-disappearing scrollbar.
-    #[css(skip)]
-    ScrollbarNonDisappearing,
-
     /// A themed focus outline (for outline:auto).
     ///
     /// This isn't exposed to CSS at all, just here for convenience.
@@ -1858,14 +1846,6 @@ pub enum Appearance {
     /// A dummy variant that should be last to let the GTK widget do hackery.
     #[css(skip)]
     Count,
-}
-
-impl Appearance {
-    /// Returns whether we're the `none` value.
-    #[inline]
-    pub fn is_none(self) -> bool {
-        self == Appearance::None
-    }
 }
 
 /// A kind of break between two boxes.
@@ -1990,5 +1970,25 @@ pub enum Overflow {
     Scroll,
     Auto,
     #[cfg(feature = "gecko")]
-    MozHiddenUnscrollable,
+    #[parse(aliases = "-moz-hidden-unscrollable")]
+    Clip,
+}
+
+impl Overflow {
+    /// Return true if the value will create a scrollable box.
+    #[inline]
+    pub fn is_scrollable(&self) -> bool {
+        matches!(*self, Self::Hidden | Self::Scroll | Self::Auto)
+    }
+    /// Convert the value to a scrollable value if it's not already scrollable.
+    /// This maps `visible` to `auto` and `clip` to `hidden`.
+    #[inline]
+    pub fn to_scrollable(&self) -> Self {
+        match *self {
+            Self::Hidden | Self::Scroll | Self::Auto => *self,
+            Self::Visible => Self::Auto,
+            #[cfg(feature = "gecko")]
+            Self::Clip => Self::Hidden,
+        }
+    }
 }

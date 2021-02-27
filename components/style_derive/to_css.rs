@@ -105,7 +105,7 @@ fn derive_variant_arm(variant: &VariantInfo, generics: &mut Option<WhereClause>)
         }
     } else if let Some(function) = variant_attrs.function {
         let mut identifier = function.explicit().map_or(identifier, |name| name);
-        identifier.push_str("(");
+        identifier.push('(');
         expr = quote! {
             std::fmt::Write::write_str(dest, #identifier)?;
             #expr?;

@@ -351,10 +351,7 @@ where
             rule_inclusion,
             PseudoElementResolution::IfApplicable,
         )
-        .resolve_primary_style(
-            style.as_ref().map(|s| &**s),
-            layout_parent_style.as_ref().map(|s| &**s),
-        );
+        .resolve_primary_style(style.as_deref(), layout_parent_style.as_deref());
 
         let is_display_contents = primary_style.style().is_display_contents();
 
@@ -373,10 +370,7 @@ where
         rule_inclusion,
         PseudoElementResolution::Force,
     )
-    .resolve_style(
-        style.as_ref().map(|s| &**s),
-        layout_parent_style.as_ref().map(|s| &**s),
-    )
+    .resolve_style(style.as_deref(), layout_parent_style.as_deref())
     .into()
 }
 

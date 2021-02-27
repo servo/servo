@@ -47,6 +47,7 @@ use style::properties::{
 };
 use style::selector_parser::PseudoElement;
 use style::shared_lock::SharedRwLock;
+use style::stylesheets::{CssRuleType, Origin};
 use style_traits::{CSSPixel, ParsingMode, ToCss};
 use webrender_api::ExternalScrollId;
 
@@ -762,10 +763,12 @@ fn create_font_declaration(
         &mut declarations,
         property.clone(),
         value,
+        Origin::Author,
         url_data,
         None,
         ParsingMode::DEFAULT,
         quirks_mode,
+        CssRuleType::Style,
     );
     let declarations = match result {
         Ok(()) => {

@@ -82,27 +82,6 @@ impl<'a> ParserContext<'a> {
         }
     }
 
-    /// Create a parser context for on-the-fly parsing in CSSOM
-    #[inline]
-    pub fn new_for_cssom(
-        url_data: &'a UrlExtraData,
-        rule_type: Option<CssRuleType>,
-        parsing_mode: ParsingMode,
-        quirks_mode: QuirksMode,
-        error_reporter: Option<&'a dyn ParseErrorReporter>,
-        use_counters: Option<&'a UseCounters>,
-    ) -> Self {
-        Self::new(
-            Origin::Author,
-            url_data,
-            rule_type,
-            parsing_mode,
-            quirks_mode,
-            error_reporter,
-            use_counters,
-        )
-    }
-
     /// Create a parser context based on a previous context, but with a modified
     /// rule type.
     #[inline]
@@ -161,7 +140,7 @@ impl<'a> ParserContext<'a> {
     /// Returns whether chrome-only rules should be parsed.
     #[inline]
     pub fn chrome_rules_enabled(&self) -> bool {
-        self.url_data.is_chrome() || self.stylesheet_origin == Origin::User
+        self.url_data.chrome_rules_enabled() || self.stylesheet_origin == Origin::User
     }
 
     /// Whether we're in a user-agent stylesheet or chrome rules are enabled.
@@ -204,6 +183,18 @@ where
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         <T as OneOrMoreSeparated>::S::parse(input, |i| T::parse(context, i))
+    }
+}
+
+impl<T> Parse for Box<T>
+where
+    T: Parse,
+{
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        T::parse(context, input).map(Box::new)
     }
 }
 

@@ -22,7 +22,7 @@ use style_traits::{CssWriter, ToCss};
     Clone, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem,
 )]
 #[repr(C, u8)]
-pub enum GenericImage<G, MozImageRect, ImageUrl> {
+pub enum GenericImage<G, MozImageRect, ImageUrl, Color, Percentage, Resolution> {
     /// `none` variant.
     None,
     /// A `<url()>` image.
@@ -45,9 +45,108 @@ pub enum GenericImage<G, MozImageRect, ImageUrl> {
     /// <https://drafts.css-houdini.org/css-paint-api/>
     #[cfg(feature = "servo-layout-2013")]
     PaintWorklet(PaintWorklet),
+
+    /// A `<cross-fade()>` image. Storing this directly inside of
+    /// GenericImage increases the size by 8 bytes so we box it here
+    /// and store images directly inside of cross-fade instead of
+    /// boxing them there.
+    CrossFade(Box<GenericCrossFade<Self, Color, Percentage>>),
+
+    /// An `image-set()` function.
+    ImageSet(#[compute(field_bound)] Box<GenericImageSet<Self, Resolution>>),
 }
 
 pub use self::GenericImage as Image;
+
+/// <https://drafts.csswg.org/css-images-4/#cross-fade-function>
+#[derive(
+    Clone, Debug, MallocSizeOf, PartialEq, ToResolvedValue, ToShmem, ToCss, ToComputedValue,
+)]
+#[css(comma, function = "cross-fade")]
+#[repr(C)]
+pub struct GenericCrossFade<Image, Color, Percentage> {
+    /// All of the image percent pairings passed as arguments to
+    /// cross-fade.
+    #[css(iterable)]
+    pub elements: crate::OwnedSlice<GenericCrossFadeElement<Image, Color, Percentage>>,
+}
+
+/// A `<percent> | none` value. Represents optional percentage values
+/// assosicated with cross-fade images.
+#[derive(
+    Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem, ToCss,
+)]
+#[repr(C, u8)]
+pub enum PercentOrNone<Percentage> {
+    /// `none` variant.
+    #[css(skip)]
+    None,
+    /// A percentage variant.
+    Percent(Percentage),
+}
+
+/// An optional percent and a cross fade image.
+#[derive(
+    Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem, ToCss,
+)]
+#[repr(C)]
+pub struct GenericCrossFadeElement<Image, Color, Percentage> {
+    /// The percent of the final image that `image` will be.
+    pub percent: PercentOrNone<Percentage>,
+    /// A color or image that will be blended when cross-fade is
+    /// evaluated.
+    pub image: GenericCrossFadeImage<Image, Color>,
+}
+
+/// An image or a color. `cross-fade` takes either when blending
+/// images together.
+#[derive(
+    Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem, ToCss,
+)]
+#[repr(C, u8)]
+pub enum GenericCrossFadeImage<I, C> {
+    /// A boxed image value. Boxing provides indirection so images can
+    /// be cross-fades and cross-fades can be images.
+    Image(I),
+    /// A color value.
+    Color(C),
+}
+
+pub use self::GenericCrossFade as CrossFade;
+pub use self::GenericCrossFadeElement as CrossFadeElement;
+pub use self::GenericCrossFadeImage as CrossFadeImage;
+
+/// https://drafts.csswg.org/css-images-4/#image-set-notation
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss, ToResolvedValue, ToShmem)]
+#[css(comma, function = "image-set")]
+#[repr(C)]
+pub struct GenericImageSet<Image, Resolution> {
+    /// The index of the selected candidate. Zero for specified values.
+    #[css(skip)]
+    pub selected_index: usize,
+
+    /// All of the image and resolution pairs.
+    #[css(iterable)]
+    pub items: crate::OwnedSlice<GenericImageSetItem<Image, Resolution>>,
+}
+
+/// An optional percent and a cross fade image.
+#[derive(
+    Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem, ToCss,
+)]
+#[repr(C)]
+pub struct GenericImageSetItem<Image, Resolution> {
+    /// `<image>`. `<string>` is converted to `Image::Url` at parse time.
+    pub image: Image,
+    /// The `<resolution>`.
+    ///
+    /// TODO: Skip serialization if it is 1x.
+    pub resolution: Resolution,
+    // TODO: type() function.
+}
+
+pub use self::GenericImageSet as ImageSet;
+pub use self::GenericImageSetItem as ImageSetItem;
 
 /// A CSS gradient.
 /// <https://drafts.csswg.org/css-images/#gradients>
@@ -291,22 +390,23 @@ pub struct GenericMozImageRect<NumberOrPercentage, MozImageRectUrl> {
 
 pub use self::GenericMozImageRect as MozImageRect;
 
-impl<G, R, U> fmt::Debug for Image<G, R, U>
+impl<G, R, U, C, P, Resolution> fmt::Debug for Image<G, R, U, C, P, Resolution>
 where
-    G: ToCss,
-    R: ToCss,
-    U: ToCss,
+    Image<G, R, U, C, P, Resolution>: ToCss,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.to_css(&mut CssWriter::new(f))
     }
 }
 
-impl<G, R, U> ToCss for Image<G, R, U>
+impl<G, R, U, C, P, Resolution> ToCss for Image<G, R, U, C, P, Resolution>
 where
     G: ToCss,
     R: ToCss,
     U: ToCss,
+    C: ToCss,
+    P: ToCss,
+    Resolution: ToCss,
 {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
@@ -325,6 +425,8 @@ where
                 serialize_atom_identifier(selector, dest)?;
                 dest.write_str(")")
             },
+            Image::ImageSet(ref is) => is.to_css(dest),
+            Image::CrossFade(ref cf) => cf.to_css(dest),
         }
     }
 }

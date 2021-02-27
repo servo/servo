@@ -174,11 +174,11 @@ impl VariableValue {
         /// Prevent values from getting terribly big since you can use custom
         /// properties exponentially.
         ///
-        /// This number (1MB) is somewhat arbitrary, but silly enough that no
-        /// sane page would hit it. We could limit by number of total
+        /// This number (2MB) is somewhat arbitrary, but silly enough that no
+        /// reasonable page should hit it. We could limit by number of total
         /// substitutions, but that was very easy to work around in practice
         /// (just choose a larger initial value and boom).
-        const MAX_VALUE_LENGTH_IN_BYTES: usize = 1024 * 1024;
+        const MAX_VALUE_LENGTH_IN_BYTES: usize = 2 * 1024 * 1024;
 
         if self.css.len() + css.len() > MAX_VALUE_LENGTH_IN_BYTES {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
@@ -247,8 +247,11 @@ impl VariableValue {
             .collect::<Vec<_>>()
             .into_boxed_slice();
 
+        let mut css = css.into_owned();
+        css.shrink_to_fit();
+
         Ok(Arc::new(VariableValue {
-            css: css.into_owned(),
+            css,
             first_token_type,
             last_token_type,
             references: custom_property_references,
@@ -268,9 +271,11 @@ impl VariableValue {
             unit: CowRcStr::from("px"),
         };
         let token_type = token.serialization_type();
+        let mut css = token.to_css_string();
+        css.shrink_to_fit();
 
         VariableValue {
-            css: token.to_css_string(),
+            css,
             first_token_type: token_type,
             last_token_type: token_type,
             references: Default::default(),
@@ -577,7 +582,7 @@ impl<'a> CustomPropertiesBuilder<'a> {
                 let value = if !has_references && unparsed_value.references_environment {
                     let result = substitute_references_in_value(unparsed_value, &map, &self.device);
                     match result {
-                        Ok(new_value) => Arc::new(new_value),
+                        Ok(new_value) => new_value,
                         Err(..) => {
                             // Don't touch the map, this has the same effect as
                             // making it compute to the inherited one.
@@ -657,6 +662,7 @@ impl<'a> CustomPropertiesBuilder<'a> {
             let inherited = self.inherited.as_ref().map(|m| &***m);
             substitute_all(&mut map, inherited, self.device);
         }
+        map.shrink_to_fit();
         Some(Arc::new(map))
     }
 }
@@ -847,7 +853,7 @@ fn substitute_all(
         let result = substitute_references_in_value(&value, &context.map, &context.device);
         match result {
             Ok(computed_value) => {
-                context.map.insert(name, Arc::new(computed_value));
+                context.map.insert(name, computed_value);
             },
             Err(..) => {
                 // This is invalid, reset it to the unset (inherited) value.
@@ -889,7 +895,7 @@ fn substitute_references_in_value<'i>(
     value: &'i VariableValue,
     custom_properties: &CustomPropertiesMap,
     device: &Device,
-) -> Result<ComputedValue, ParseError<'i>> {
+) -> Result<Arc<ComputedValue>, ParseError<'i>> {
     debug_assert!(!value.references.is_empty() || value.references_environment);
 
     let mut input = ParserInput::new(&value.css);
@@ -906,7 +912,8 @@ fn substitute_references_in_value<'i>(
     )?;
 
     computed_value.push_from(&input, position, last_token_type)?;
-    Ok(computed_value)
+    computed_value.css.shrink_to_fit();
+    Ok(Arc::new(computed_value))
 }
 
 /// Replace `var()` functions in an arbitrary bit of input.

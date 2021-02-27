@@ -13,6 +13,7 @@ use std::slice;
 impl<T> Deref for nsTArray<T> {
     type Target = [T];
 
+    #[inline]
     fn deref<'a>(&'a self) -> &'a [T] {
         unsafe { slice::from_raw_parts(self.slice_begin(), self.header().mLength as usize) }
     }

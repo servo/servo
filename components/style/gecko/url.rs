@@ -109,7 +109,11 @@ impl CssUrlData {
     /// Returns true if this URL looks like a fragment.
     /// See https://drafts.csswg.org/css-values/#local-urls
     pub fn is_fragment(&self) -> bool {
-        self.as_str().chars().next().map_or(false, |c| c == '#')
+        self.as_str()
+            .as_bytes()
+            .iter()
+            .next()
+            .map_or(false, |b| *b == b'#')
     }
 
     /// Return the unresolved url as string, or the empty string if it's
@@ -285,14 +289,13 @@ impl SpecifiedImageUrl {
 
     /// Provides an alternate method for parsing that associates the URL
     /// with anonymous CORS headers.
-    pub fn parse_with_cors_anonymous<'i, 't>(
+    pub fn parse_with_cors_mode<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
+        cors_mode: CorsMode,
     ) -> Result<Self, ParseError<'i>> {
         Ok(SpecifiedImageUrl(SpecifiedUrl::parse_with_cors_mode(
-            context,
-            input,
-            CorsMode::Anonymous,
+            context, input, cors_mode,
         )?))
     }
 }

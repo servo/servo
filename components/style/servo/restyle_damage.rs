@@ -254,7 +254,7 @@ fn compute_damage(old: &ComputedValues, new: &ComputedValues) -> ServoRestyleDam
 
     // Paint worklets may depend on custom properties,
     // so if they have changed we should repaint.
-    if old.custom_properties() != new.custom_properties() {
+    if !old.custom_properties_equal(new) {
         damage.insert(ServoRestyleDamage::REPAINT);
     }
 

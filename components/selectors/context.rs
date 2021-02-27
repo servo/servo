@@ -238,10 +238,10 @@ where
     where
         F: FnOnce(&mut Self) -> R,
     {
-        debug_assert!(!self.in_negation, "Someone messed up parsing?");
+        let old_in_negation = self.in_negation;
         self.in_negation = true;
         let result = self.nest(f);
-        self.in_negation = false;
+        self.in_negation = old_in_negation;
         result
     }
 
@@ -286,6 +286,6 @@ where
     /// against.
     #[inline]
     pub fn shadow_host(&self) -> Option<OpaqueElement> {
-        self.current_host.clone()
+        self.current_host
     }
 }

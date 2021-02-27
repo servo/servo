@@ -620,13 +620,20 @@ pub struct MaybeCaseInsensitiveHashMap<K: PrecomputedHash + Hash + Eq, V: 'stati
     PrecomputedHashMap<K, V>,
 );
 
+impl<V: 'static> Default for MaybeCaseInsensitiveHashMap<Atom, V> {
+    #[inline]
+    fn default() -> Self {
+        MaybeCaseInsensitiveHashMap(PrecomputedHashMap::default())
+    }
+}
+
 // FIXME(Manishearth) the 'static bound can be removed when
 // our HashMap fork (hashglobe) is able to use NonZero,
 // or when stdlib gets fallible collections
 impl<V: 'static> MaybeCaseInsensitiveHashMap<Atom, V> {
     /// Empty map
     pub fn new() -> Self {
-        MaybeCaseInsensitiveHashMap(PrecomputedHashMap::default())
+        Self::default()
     }
 
     /// HashMap::try_entry
@@ -639,6 +646,12 @@ impl<V: 'static> MaybeCaseInsensitiveHashMap<Atom, V> {
             key = key.to_ascii_lowercase()
         }
         self.0.try_entry(key)
+    }
+
+    /// HashMap::is_empty
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 
     /// HashMap::iter

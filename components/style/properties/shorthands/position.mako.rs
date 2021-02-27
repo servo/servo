@@ -115,7 +115,7 @@
 <%helpers:shorthand
     name="gap"
     engines="gecko"
-    alias="grid-gap"
+    aliases="grid-gap"
     sub_properties="row-gap column-gap"
     spec="https://drafts.csswg.org/css-align-3/#gap-shorthand"
 >

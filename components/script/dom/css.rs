@@ -14,7 +14,7 @@ use dom_struct::dom_struct;
 use style::context::QuirksMode;
 use style::parser::ParserContext;
 use style::stylesheets::supports_rule::{parse_condition_or_declaration, Declaration};
-use style::stylesheets::CssRuleType;
+use style::stylesheets::{CssRuleType, Origin};
 use style_traits::ParsingMode;
 
 #[dom_struct]
@@ -39,7 +39,8 @@ impl CSS {
         decl.push_str(&value);
         let decl = Declaration(decl);
         let url = win.Document().url();
-        let context = ParserContext::new_for_cssom(
+        let context = ParserContext::new(
+            Origin::Author,
             &url,
             Some(CssRuleType::Style),
             ParsingMode::DEFAULT,
@@ -60,7 +61,8 @@ impl CSS {
         };
 
         let url = win.Document().url();
-        let context = ParserContext::new_for_cssom(
+        let context = ParserContext::new(
+            Origin::Author,
             &url,
             Some(CssRuleType::Style),
             ParsingMode::DEFAULT,

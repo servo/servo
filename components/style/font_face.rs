@@ -456,9 +456,9 @@ macro_rules! font_face_descriptors_common {
             pub fn decl_to_css(&self, dest: &mut CssStringWriter) -> fmt::Result {
                 $(
                     if let Some(ref value) = self.$ident {
-                        dest.write_str(concat!("  ", $name, ": "))?;
+                        dest.write_str(concat!($name, ": "))?;
                         ToCss::to_css(value, &mut CssWriter::new(dest))?;
-                        dest.write_str(";\n")?;
+                        dest.write_str("; ")?;
                     }
                 )*
                 Ok(())
@@ -469,8 +469,11 @@ macro_rules! font_face_descriptors_common {
            type Declaration = ();
            type Error = StyleParseErrorKind<'i>;
 
-           fn parse_value<'t>(&mut self, name: CowRcStr<'i>, input: &mut Parser<'i, 't>)
-                              -> Result<(), ParseError<'i>> {
+           fn parse_value<'t>(
+               &mut self,
+               name: CowRcStr<'i>,
+               input: &mut Parser<'i, 't>,
+            ) -> Result<(), ParseError<'i>> {
                 match_ignore_ascii_case! { &*name,
                     $(
                         $name if is_descriptor_enabled!($name) => {
@@ -493,7 +496,7 @@ macro_rules! font_face_descriptors_common {
 impl ToCssWithGuard for FontFaceRuleData {
     // Serialization of FontFaceRule is not specced.
     fn to_css(&self, _guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
-        dest.write_str("@font-face {\n")?;
+        dest.write_str("@font-face { ")?;
         self.decl_to_css(dest)?;
         dest.write_str("}")
     }

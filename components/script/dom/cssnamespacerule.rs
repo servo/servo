@@ -63,7 +63,7 @@ impl CSSNamespaceRuleMethods for CSSNamespaceRule {
     // https://drafts.csswg.org/cssom/#dom-cssnamespacerule-namespaceuri
     fn NamespaceURI(&self) -> DOMString {
         let guard = self.cssrule.shared_lock().read();
-        (*self.namespacerule.read_with(&guard).url).into()
+        (**self.namespacerule.read_with(&guard).url).into()
     }
 }
 

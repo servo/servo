@@ -24,7 +24,7 @@
         "border-%s-color" % side_name, "Color",
         "computed_value::T::currentcolor()",
         engines="gecko servo-2013 servo-2020",
-        alias=maybe_moz_logical_alias(engine, side, "-moz-border-%s-color"),
+        aliases=maybe_moz_logical_alias(engine, side, "-moz-border-%s-color"),
         spec=maybe_logical_spec(side, "color"),
         animation_value_type="AnimatedColor",
         logical=is_logical,
@@ -37,12 +37,11 @@
         "border-%s-style" % side_name, "BorderStyle",
         "specified::BorderStyle::None",
         engines="gecko servo-2013 servo-2020",
-        alias=maybe_moz_logical_alias(engine, side, "-moz-border-%s-style"),
+        aliases=maybe_moz_logical_alias(engine, side, "-moz-border-%s-style"),
         spec=maybe_logical_spec(side, "style"),
         animation_value_type="discrete" if not is_logical else "none",
         logical=is_logical,
         logical_group="border-style",
-        needs_context=False,
     )}
 
     ${helpers.predefined_type(
@@ -51,7 +50,7 @@
         "crate::values::computed::NonNegativeLength::new(3.)",
         engines="gecko servo-2013 servo-2020",
         computed_type="crate::values::computed::NonNegativeLength",
-        alias=maybe_moz_logical_alias(engine, side, "-moz-border-%s-width"),
+        aliases=maybe_moz_logical_alias(engine, side, "-moz-border-%s-width"),
         spec=maybe_logical_spec(side, "width"),
         animation_value_type="NonNegativeLength",
         logical=is_logical,

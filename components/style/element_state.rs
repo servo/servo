@@ -53,18 +53,8 @@ bitflags! {
         const IN_MOZ_UI_INVALID_STATE = 1 << 13;
         /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-broken
         const IN_BROKEN_STATE = 1 << 14;
-        /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-user-disabled
-        const IN_USER_DISABLED_STATE = 1 << 15;
-        /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-suppressed
-        const IN_SUPPRESSED_STATE = 1 << 16;
         /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-loading
         const IN_LOADING_STATE = 1 << 17;
-        /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-handler-blocked
-        const IN_HANDLER_BLOCKED_STATE = 1 << 18;
-        /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-handler-disabled
-        const IN_HANDLER_DISABLED_STATE = 1 << 19;
-        /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-handler-crashed
-        const IN_HANDLER_CRASHED_STATE = 1 << 20;
         /// <https://html.spec.whatwg.org/multipage/#selector-required>
         const IN_REQUIRED_STATE = 1 << 21;
         /// <https://html.spec.whatwg.org/multipage/#selector-optional>
@@ -107,13 +97,9 @@ bitflags! {
         /// Non-standard & undocumented.
         const IN_INCREMENT_SCRIPT_LEVEL_STATE = 1 << 38;
         /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-focusring
+        ///
+        /// But also https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo
         const IN_FOCUSRING_STATE = 1 << 39;
-        /// Non-standard & undocumented.
-        const IN_HANDLER_CLICK_TO_PLAY_STATE = 1 << 40;
-        /// Non-standard & undocumented.
-        const IN_HANDLER_VULNERABLE_UPDATABLE_STATE = 1 << 41;
-        /// Non-standard & undocumented.
-        const IN_HANDLER_VULNERABLE_NO_UPDATE_STATE = 1 << 42;
         /// <https://drafts.csswg.org/selectors-4/#the-focus-within-pseudo>
         const IN_FOCUS_WITHIN_STATE = 1 << 43;
         /// :dir matching; the states are used for dynamic change detection.
@@ -137,14 +123,17 @@ bitflags! {
         const IN_AUTOFILL_STATE = 1 << 50;
         /// Non-standard & undocumented.
         const IN_AUTOFILL_PREVIEW_STATE = 1 << 51;
-        /// :focus-visible
-        ///
-        /// https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo
-        const IN_FOCUS_VISIBLE_STATE = 1 << 52;
         /// State that dialog element is modal, for centered alignment
         ///
         /// https://html.spec.whatwg.org/multipage/#centered-alignment
         const IN_MODAL_DIALOG_STATE = 1 << 53;
+
+        /// https://html.spec.whatwg.org/multipage/#inert-subtrees
+        const IN_MOZINERT_STATE = 1 << 54;
+        /// State for the topmost dialog element in top layer
+        const IN_TOPMOST_MODAL_DIALOG_STATE = 1 << 55;
+        /// Non-standard & undocumented.
+        const IN_HANDLER_NOPLUGINS = 1 << 56;
     }
 }
 

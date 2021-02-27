@@ -16,7 +16,7 @@ use style::media_queries::MediaList as StyleMediaList;
 use style::media_queries::MediaQuery;
 use style::parser::ParserContext;
 use style::shared_lock::{Locked, SharedRwLock};
-use style::stylesheets::CssRuleType;
+use style::stylesheets::{CssRuleType, Origin};
 use style_traits::{ParsingMode, ToCss};
 
 #[dom_struct]
@@ -81,7 +81,8 @@ impl MediaListMethods for MediaList {
         let window = global.as_window();
         let url = window.get_url();
         let quirks_mode = window.Document().quirks_mode();
-        let context = ParserContext::new_for_cssom(
+        let context = ParserContext::new(
+            Origin::Author,
             &url,
             Some(CssRuleType::Media),
             ParsingMode::DEFAULT,
@@ -122,7 +123,8 @@ impl MediaListMethods for MediaList {
         let win = global.as_window();
         let url = win.get_url();
         let quirks_mode = win.Document().quirks_mode();
-        let context = ParserContext::new_for_cssom(
+        let context = ParserContext::new(
+            Origin::Author,
             &url,
             Some(CssRuleType::Media),
             ParsingMode::DEFAULT,
@@ -159,7 +161,8 @@ impl MediaListMethods for MediaList {
         let win = global.as_window();
         let url = win.get_url();
         let quirks_mode = win.Document().quirks_mode();
-        let context = ParserContext::new_for_cssom(
+        let context = ParserContext::new(
+            Origin::Author,
             &url,
             Some(CssRuleType::Media),
             ParsingMode::DEFAULT,

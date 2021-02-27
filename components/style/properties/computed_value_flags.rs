@@ -42,34 +42,39 @@ bitflags! {
         /// A flag used to mark styles which are a pseudo-element or under one.
         const IS_IN_PSEUDO_ELEMENT_SUBTREE = 1 << 4;
 
-        /// Whether this style inherits the `display` property.
+        /// Whether this style's `display` property depends on our parent style.
         ///
         /// This is important because it may affect our optimizations to avoid
         /// computing the style of pseudo-elements, given whether the
         /// pseudo-element is generated depends on the `display` value.
-        const INHERITS_DISPLAY = 1 << 6;
+        const DISPLAY_DEPENDS_ON_INHERITED_STYLE = 1 << 6;
 
-        /// Whether this style inherits the `content` property.
+        /// Whether this style's `content` depends on our parent style.
         ///
         /// Important because of the same reason.
-        const INHERITS_CONTENT = 1 << 7;
+        const CONTENT_DEPENDS_ON_INHERITED_STYLE = 1 << 7;
 
         /// Whether the child explicitly inherits any reset property.
         const INHERITS_RESET_STYLE = 1 << 8;
 
-        /// Whether any value on our style is font-metric-dependent.
-        const DEPENDS_ON_FONT_METRICS = 1 << 9;
+        /// Whether any value on our style is font-metric-dependent on our
+        /// primary font.
+        const DEPENDS_ON_SELF_FONT_METRICS = 1 << 9;
+
+        /// Whether any value on our style is font-metric-dependent on the
+        /// primary font of our parent.
+        const DEPENDS_ON_INHERITED_FONT_METRICS = 1 << 10;
 
         /// Whether the style or any of the ancestors has a multicol style.
         ///
         /// Only used in Servo.
-        const CAN_BE_FRAGMENTED = 1 << 10;
+        const CAN_BE_FRAGMENTED = 1 << 11;
 
         /// Whether this style is the style of the document element.
-        const IS_ROOT_ELEMENT_STYLE = 1 << 11;
+        const IS_ROOT_ELEMENT_STYLE = 1 << 12;
 
         /// Whether this element is inside an `opacity: 0` subtree.
-        const IS_IN_OPACITY_ZERO_SUBTREE = 1 << 12;
+        const IS_IN_OPACITY_ZERO_SUBTREE = 1 << 13;
 
         /// Whether there are author-specified rules for border-* properties
         /// (except border-image-*), background-color, or background-image.
@@ -77,13 +82,13 @@ bitflags! {
         /// TODO(emilio): Maybe do include border-image, see:
         ///
         /// https://github.com/w3c/csswg-drafts/issues/4777#issuecomment-604424845
-        const HAS_AUTHOR_SPECIFIED_BORDER_BACKGROUND = 1 << 13;
+        const HAS_AUTHOR_SPECIFIED_BORDER_BACKGROUND = 1 << 14;
 
         /// Whether there are author-specified rules for padding-* properties.
         ///
         /// FIXME(emilio): Try to merge this with BORDER_BACKGROUND, see
         /// https://github.com/w3c/csswg-drafts/issues/4777
-        const HAS_AUTHOR_SPECIFIED_PADDING = 1 << 14;
+        const HAS_AUTHOR_SPECIFIED_PADDING = 1 << 15;
     }
 }
 

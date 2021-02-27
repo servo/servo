@@ -482,7 +482,7 @@ impl CalcNode {
             Leaf::Time(ref t) => Ok(t.seconds()),
             _ => Err(()),
         })?;
-        Ok(Time::from_calc(seconds))
+        Ok(Time::from_calc(crate::values::normalize(seconds)))
     }
 
     /// Tries to simplify this expression into an `Angle` value.
@@ -491,7 +491,7 @@ impl CalcNode {
             Leaf::Angle(ref angle) => Ok(angle.degrees()),
             _ => Err(()),
         })?;
-        Ok(Angle::from_calc(degrees))
+        Ok(Angle::from_calc(crate::values::normalize(degrees)))
     }
 
     /// Tries to simplify this expression into a `<number>` value.
@@ -517,26 +517,8 @@ impl CalcNode {
         name: &CowRcStr<'i>,
         location: cssparser::SourceLocation,
     ) -> Result<MathFunction, ParseError<'i>> {
-        // TODO(emilio): Unify below when the pref for math functions is gone.
-        if name.eq_ignore_ascii_case("calc") {
-            return Ok(MathFunction::Calc);
-        }
-
-        #[cfg(feature = "gecko")]
-        fn comparison_functions_enabled() -> bool {
-            static_prefs::pref!("layout.css.comparison-functions.enabled")
-        }
-
-        #[cfg(feature = "servo")]
-        fn comparison_functions_enabled() -> bool {
-            false
-        }
-
-        if !comparison_functions_enabled() {
-            return Err(location.new_unexpected_token_error(Token::Function(name.clone())));
-        }
-
         Ok(match_ignore_ascii_case! { &*name,
+            "calc" => MathFunction::Calc,
             "min" => MathFunction::Min,
             "max" => MathFunction::Max,
             "clamp" => MathFunction::Clamp,
@@ -573,6 +555,7 @@ impl CalcNode {
     ) -> Result<CSSFloat, ParseError<'i>> {
         Self::parse(context, input, function, CalcUnit::Percentage)?
             .to_percentage()
+            .map(crate::values::normalize)
             .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 
@@ -596,6 +579,7 @@ impl CalcNode {
     ) -> Result<CSSFloat, ParseError<'i>> {
         Self::parse(context, input, function, CalcUnit::Number)?
             .to_number()
+            .map(crate::values::normalize)
             .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 

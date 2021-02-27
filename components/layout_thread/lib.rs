@@ -506,6 +506,7 @@ impl LayoutThread {
 
         let device = Device::new(
             MediaType::screen(),
+            QuirksMode::NoQuirks,
             window_size.initial_viewport,
             window_size.device_pixel_ratio,
         );
@@ -1267,7 +1268,12 @@ impl LayoutThread {
         };
 
         let had_used_viewport_units = self.stylist.device().used_viewport_units();
-        let device = Device::new(MediaType::screen(), initial_viewport, device_pixel_ratio);
+        let device = Device::new(
+            MediaType::screen(),
+            self.stylist.quirks_mode(),
+            initial_viewport,
+            device_pixel_ratio,
+        );
         let sheet_origins_affected_by_device_change = self.stylist.set_device(device, &guards);
 
         self.stylist

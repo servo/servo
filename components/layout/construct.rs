@@ -71,8 +71,8 @@ use style::logical_geometry::Direction;
 use style::properties::ComputedValues;
 use style::selector_parser::{PseudoElement, RestyleDamage};
 use style::servo::restyle_damage::ServoRestyleDamage;
+use style::values::computed::Image;
 use style::values::generics::counters::ContentItem;
-use style::values::generics::url::UrlOrNone as ImageUrlOrNone;
 
 /// The results of flow construction for a DOM node.
 #[derive(Clone)]
@@ -1506,9 +1506,9 @@ where
     ) -> ConstructionResult {
         let flotation = FloatKind::from_property(flotation);
         let marker_fragments = match node.style(self.style_context()).get_list().list_style_image {
-            ImageUrlOrNone::Url(ref url_value) => {
+            Image::Url(ref url_value) => {
                 let image_info = Box::new(ImageFragmentInfo::new(
-                    url_value.url().map(|u| u.clone()),
+                    url_value.url().cloned(),
                     None,
                     node,
                     &self.layout_context,
@@ -1519,7 +1519,13 @@ where
                     self.layout_context,
                 )]
             },
-            ImageUrlOrNone::None => match ListStyleTypeContent::from_list_style_type(
+            // XXX: Non-None image types unimplemented.
+            Image::ImageSet(..) |
+            Image::Rect(..) |
+            Image::Gradient(..) |
+            Image::PaintWorklet(..) |
+            Image::CrossFade(..) |
+            Image::None => match ListStyleTypeContent::from_list_style_type(
                 node.style(self.style_context()).get_list().list_style_type,
             ) {
                 ListStyleTypeContent::None => Vec::new(),

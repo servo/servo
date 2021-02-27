@@ -42,12 +42,6 @@ pub mod namespace;
 
 pub use self::namespace::{Namespace, WeakNamespace};
 
-macro_rules! local_name {
-    ($s:tt) => {
-        atom!($s)
-    };
-}
-
 /// A handle to a Gecko atom. This is a type that can represent either:
 ///
 ///  * A strong reference to a dynamic atom (an `nsAtom` pointer), in which case
@@ -150,6 +144,13 @@ impl PartialEq for WeakAtom {
         let weak: *const WeakAtom = self;
         let other: *const WeakAtom = other;
         weak == other
+    }
+}
+
+impl PartialEq<Atom> for WeakAtom {
+    #[inline]
+    fn eq(&self, other: &Atom) -> bool {
+        self == &**other
     }
 }
 

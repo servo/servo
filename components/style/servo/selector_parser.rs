@@ -15,6 +15,7 @@ use crate::properties::longhands::display::computed_value::T as Display;
 use crate::properties::{ComputedValues, PropertyFlags};
 use crate::selector_parser::AttrValue as SelectorAttrValue;
 use crate::selector_parser::{PseudoElementCascadeType, SelectorParser};
+use crate::values::{AtomIdent, AtomString};
 use crate::{Atom, CaseSensitivityExt, LocalName, Namespace, Prefix};
 use cssparser::{serialize_identifier, CowRcStr, Parser as CssParser, SourceLocation, ToCss};
 use fxhash::FxHashMap;
@@ -66,10 +67,6 @@ pub enum PseudoElement {
 /// The count of all pseudo-elements.
 pub const PSEUDO_COUNT: usize = PseudoElement::ServoInlineAbsolute as usize + 1;
 
-impl ::selectors::parser::PseudoElement for PseudoElement {
-    type Impl = SelectorImpl;
-}
-
 impl ToCss for PseudoElement {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
     where
@@ -94,6 +91,10 @@ impl ToCss for PseudoElement {
             ServoInlineAbsolute => "::-servo-inline-absolute",
         })
     }
+}
+
+impl ::selectors::parser::PseudoElement for PseudoElement {
+    type Impl = SelectorImpl;
 }
 
 /// The number of eager pseudo-elements. Keep this in sync with cascade_type.
@@ -313,11 +314,6 @@ impl ::selectors::parser::NonTSPseudoClass for NonTSPseudoClass {
         )
     }
 
-    #[inline]
-    fn has_zero_specificity(&self) -> bool {
-        false
-    }
-
     fn visit<V>(&self, _: &mut V) -> bool
     where
         V: SelectorVisitor<Impl = Self::Impl>,
@@ -406,15 +402,13 @@ impl ::selectors::SelectorImpl for SelectorImpl {
     type NonTSPseudoClass = NonTSPseudoClass;
 
     type ExtraMatchingData = InvalidationMatchingData;
-    type AttrValue = String;
-    type Identifier = Atom;
-    type ClassName = Atom;
-    type PartName = Atom;
+    type AttrValue = AtomString;
+    type Identifier = AtomIdent;
     type LocalName = LocalName;
     type NamespacePrefix = Prefix;
     type NamespaceUrl = Namespace;
-    type BorrowedLocalName = LocalName;
-    type BorrowedNamespaceUrl = Namespace;
+    type BorrowedLocalName = html5ever::LocalName;
+    type BorrowedNamespaceUrl = html5ever::Namespace;
 }
 
 impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
@@ -700,15 +694,15 @@ impl ElementSnapshot for ServoElementSnapshot {
             .map(|v| v.as_atom())
     }
 
-    fn is_part(&self, _name: &Atom) -> bool {
+    fn is_part(&self, _name: &AtomIdent) -> bool {
         false
     }
 
-    fn imported_part(&self, _: &Atom) -> Option<Atom> {
+    fn imported_part(&self, _: &AtomIdent) -> Option<AtomIdent> {
         None
     }
 
-    fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
+    fn has_class(&self, name: &AtomIdent, case_sensitivity: CaseSensitivity) -> bool {
         self.get_attr(&ns!(), &local_name!("class"))
             .map_or(false, |v| {
                 v.as_tokens()
@@ -719,11 +713,11 @@ impl ElementSnapshot for ServoElementSnapshot {
 
     fn each_class<F>(&self, mut callback: F)
     where
-        F: FnMut(&Atom),
+        F: FnMut(&AtomIdent),
     {
         if let Some(v) = self.get_attr(&ns!(), &local_name!("class")) {
             for class in v.as_tokens() {
-                callback(class);
+                callback(AtomIdent::cast(class));
             }
         }
     }
@@ -731,7 +725,7 @@ impl ElementSnapshot for ServoElementSnapshot {
     fn lang_attr(&self) -> Option<SelectorAttrValue> {
         self.get_attr(&ns!(xml), &local_name!("lang"))
             .or_else(|| self.get_attr(&ns!(), &local_name!("lang")))
-            .map(|v| String::from(v as &str))
+            .map(|v| SelectorAttrValue::from(v as &str))
     }
 }
 
@@ -741,7 +735,7 @@ impl ServoElementSnapshot {
         &self,
         ns: &NamespaceConstraint<&Namespace>,
         local_name: &LocalName,
-        operation: &AttrSelectorOperation<&String>,
+        operation: &AttrSelectorOperation<&AtomString>,
     ) -> bool {
         match *ns {
             NamespaceConstraint::Specific(ref ns) => self

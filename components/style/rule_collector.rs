@@ -13,7 +13,6 @@ use crate::selector_parser::PseudoElement;
 use crate::shared_lock::Locked;
 use crate::stylesheets::Origin;
 use crate::stylist::{AuthorStylesEnabled, Rule, RuleInclusion, Stylist};
-use crate::Atom;
 use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode};
 use servo_arc::ArcBorrow;
 use smallvec::SmallVec;
@@ -43,7 +42,7 @@ pub fn containing_shadow_ignoring_svg_use<E: TElement>(
     loop {
         let host = shadow.host();
         let host_is_svg_use_element =
-            host.is_svg_element() && host.local_name() == &*local_name!("use");
+            host.is_svg_element() && host.local_name() == &**local_name!("use");
         if !host_is_svg_use_element {
             return Some(shadow);
         }
@@ -319,7 +318,7 @@ where
             };
 
             hash_target.each_part(|part| {
-                if let Some(part_rules) = part_rules.get(part) {
+                if let Some(part_rules) = part_rules.get(&part.0) {
                     collector.collect_rules_in_list(part_rules, cascade_level);
                 }
             });
@@ -377,7 +376,7 @@ where
 
         let mut shadow_cascade_order = ShadowCascadeOrder::for_innermost_containing_tree();
 
-        let mut parts = SmallVec::<[Atom; 3]>::new();
+        let mut parts = SmallVec::<[_; 3]>::new();
         self.rule_hash_target.each_part(|p| parts.push(p.clone()));
 
         loop {
@@ -405,7 +404,7 @@ where
                 };
                 self.in_tree(containing_host, |collector| {
                     for p in &parts {
-                        if let Some(part_rules) = part_rules.get(p) {
+                        if let Some(part_rules) = part_rules.get(&p.0) {
                             collector.collect_rules_in_list(part_rules, cascade_level);
                         }
                     }

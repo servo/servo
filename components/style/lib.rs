@@ -131,21 +131,25 @@ pub use crate::gecko_string_cache as string_cache;
 pub use crate::gecko_string_cache::Atom;
 /// The namespace prefix type for Gecko, which is just an atom.
 #[cfg(feature = "gecko")]
-pub type Prefix = crate::gecko_string_cache::Atom;
+pub type Prefix = crate::values::AtomIdent;
 /// The local name of an element for Gecko, which is just an atom.
 #[cfg(feature = "gecko")]
-pub type LocalName = crate::gecko_string_cache::Atom;
+pub type LocalName = crate::values::AtomIdent;
 #[cfg(feature = "gecko")]
 pub use crate::gecko_string_cache::Namespace;
 
 #[cfg(feature = "servo")]
-pub use html5ever::LocalName;
-#[cfg(feature = "servo")]
-pub use html5ever::Namespace;
-#[cfg(feature = "servo")]
-pub use html5ever::Prefix;
-#[cfg(feature = "servo")]
 pub use servo_atoms::Atom;
+
+#[cfg(feature = "servo")]
+#[allow(missing_docs)]
+pub type LocalName = crate::values::GenericAtomIdent<html5ever::LocalNameStaticSet>;
+#[cfg(feature = "servo")]
+#[allow(missing_docs)]
+pub type Namespace = crate::values::GenericAtomIdent<html5ever::NamespaceStaticSet>;
+#[cfg(feature = "servo")]
+#[allow(missing_docs)]
+pub type Prefix = crate::values::GenericAtomIdent<html5ever::PrefixStaticSet>;
 
 pub use style_traits::arc_slice::ArcSlice;
 pub use style_traits::owned_slice::OwnedSlice;

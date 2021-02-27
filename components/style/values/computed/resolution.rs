@@ -13,6 +13,8 @@ use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 
 /// A computed `<resolution>`.
+#[repr(C)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToResolvedValue, ToShmem)]
 pub struct Resolution(CSSFloat);
 
 impl Resolution {

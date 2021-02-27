@@ -37,7 +37,7 @@ pub struct NthIndexCacheInner(FxHashMap<OpaqueElement, i32>);
 impl NthIndexCacheInner {
     /// Does a lookup for a given element in the cache.
     pub fn lookup(&mut self, el: OpaqueElement) -> Option<i32> {
-        self.0.get(&el).map(|x| *x)
+        self.0.get(&el).copied()
     }
 
     /// Inserts an entry into the cache.

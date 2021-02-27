@@ -74,14 +74,15 @@ trivial_to_resolved_value!(Box<str>);
 trivial_to_resolved_value!(crate::OwnedStr);
 trivial_to_resolved_value!(cssparser::RGBA);
 trivial_to_resolved_value!(crate::Atom);
+trivial_to_resolved_value!(crate::values::AtomIdent);
 trivial_to_resolved_value!(app_units::Au);
 trivial_to_resolved_value!(computed::url::ComputedUrl);
 #[cfg(feature = "gecko")]
 trivial_to_resolved_value!(computed::url::ComputedImageUrl);
 #[cfg(feature = "servo")]
-trivial_to_resolved_value!(html5ever::Namespace);
+trivial_to_resolved_value!(crate::Namespace);
 #[cfg(feature = "servo")]
-trivial_to_resolved_value!(html5ever::Prefix);
+trivial_to_resolved_value!(crate::Prefix);
 trivial_to_resolved_value!(computed::LengthPercentage);
 trivial_to_resolved_value!(style_traits::values::specified::AllowedNumericType);
 

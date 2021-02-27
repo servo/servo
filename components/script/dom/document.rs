@@ -3454,7 +3454,12 @@ impl Document {
         let window_size = self.window().window_size();
         let viewport_size = window_size.initial_viewport;
         let device_pixel_ratio = window_size.device_pixel_ratio;
-        Device::new(MediaType::screen(), viewport_size, device_pixel_ratio)
+        Device::new(
+            MediaType::screen(),
+            self.quirks_mode(),
+            viewport_size,
+            device_pixel_ratio,
+        )
     }
 
     pub fn salvageable(&self) -> bool {
@@ -3551,8 +3556,9 @@ impl Document {
         } else {
             snapshot.other_attributes_changed = true;
         }
-        if !snapshot.changed_attrs.contains(attr.local_name()) {
-            snapshot.changed_attrs.push(attr.local_name().clone());
+        let local_name = style::LocalName::cast(attr.local_name());
+        if !snapshot.changed_attrs.contains(local_name) {
+            snapshot.changed_attrs.push(local_name.clone());
         }
         if snapshot.attrs.is_none() {
             let attrs = el

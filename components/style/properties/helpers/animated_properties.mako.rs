@@ -248,7 +248,7 @@ impl AnimationValue {
         decl: &PropertyDeclaration,
         context: &mut Context,
         extra_custom_properties: Option<<&Arc<crate::custom_properties::CustomPropertiesMap>>,
-        initial: &ComputedValues
+        initial: &ComputedValues,
     ) -> Option<Self> {
         use super::PropertyDeclarationVariantRepr;
 
@@ -367,15 +367,18 @@ impl AnimationValue {
                 }
             },
             PropertyDeclaration::WithVariables(ref declaration) => {
+                let mut cache = Default::default();
                 let substituted = {
                     let custom_properties =
                         extra_custom_properties.or_else(|| context.style().custom_properties());
 
                     declaration.value.substitute_variables(
                         declaration.id,
+                        context.builder.writing_mode,
                         custom_properties,
                         context.quirks_mode,
                         context.device(),
+                        &mut cache,
                     )
                 };
                 return AnimationValue::from_declaration(
@@ -820,7 +823,7 @@ impl<'a> Iterator for TransitionPropertyIterator<'a> {
                 if let Some(longhand_id) = longhand_iterator.next() {
                     return Some(TransitionPropertyIteration {
                         longhand_id,
-                        index: self.index_range.start,
+                        index: self.index_range.start - 1,
                     });
                 }
                 self.longhand_iterator = None;

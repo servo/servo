@@ -478,7 +478,7 @@ impl<'a> SelectorVisitor for SelectorDependencyCollector<'a> {
                     Component::Class(..) => &mut self.map.class_to_selector,
                     _ => unreachable!(),
                 };
-                let entry = match map.try_entry(atom.clone(), self.quirks_mode) {
+                let entry = match map.try_entry(atom.0.clone(), self.quirks_mode) {
                     Ok(entry) => entry,
                     Err(err) => {
                         *self.alloc_error = Some(err);
@@ -506,6 +506,12 @@ impl<'a> SelectorVisitor for SelectorDependencyCollector<'a> {
                     NonTSPseudoClass::MozTableBorderNonzero => local_name!("border"),
                     #[cfg(feature = "gecko")]
                     NonTSPseudoClass::MozBrowserFrame => local_name!("mozbrowser"),
+                    #[cfg(feature = "gecko")]
+                    NonTSPseudoClass::MozSelectListBox => {
+                        // This depends on two attributes.
+                        return self.add_attr_dependency(local_name!("multiple")) &&
+                            self.add_attr_dependency(local_name!("size"));
+                    },
                     NonTSPseudoClass::Lang(..) => local_name!("lang"),
                     _ => return true,
                 };

@@ -20,7 +20,8 @@ use crate::selector_parser::{AttrValue, Lang, PseudoElement, SelectorImpl};
 use crate::shared_lock::{Locked, SharedRwLock};
 use crate::stylist::CascadeData;
 use crate::traversal_flags::TraversalFlags;
-use crate::{Atom, LocalName, Namespace, WeakAtom};
+use crate::values::AtomIdent;
+use crate::{LocalName, Namespace, WeakAtom};
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use selectors::matching::{ElementSelectorFlags, QuirksMode, VisitedHandlingMode};
 use selectors::sink::Push;
@@ -121,7 +122,7 @@ pub trait TDocument: Sized + Copy + Clone {
     /// return an empty slice.
     fn elements_with_id<'a>(
         &self,
-        _id: &Atom,
+        _id: &AtomIdent,
     ) -> Result<&'a [<Self::ConcreteNode as TNode>::ConcreteElement], ()>
     where
         Self: 'a,
@@ -187,22 +188,18 @@ pub trait TNode: Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
             return Some(c);
         }
 
-        if Some(*self) == scoped_to {
-            return None;
-        }
-
-        let mut current = *self;
+        let mut current = Some(*self);
         loop {
-            if let Some(s) = current.next_sibling() {
-                return Some(s);
-            }
-
-            let parent = current.parent_node();
-            if parent == scoped_to {
+            if current == scoped_to {
                 return None;
             }
 
-            current = parent.expect("Not a descendant of the scope?");
+            debug_assert!(current.is_some(), "not a descendant of the scope?");
+            if let Some(s) = current?.next_sibling() {
+                return Some(s);
+            }
+
+            current = current?.parent_node();
         }
     }
 
@@ -344,7 +341,7 @@ pub trait TShadowRoot: Sized + Copy + Clone + Debug + PartialEq {
     /// return an empty slice.
     fn elements_with_id<'a>(
         &self,
-        _id: &Atom,
+        _id: &AtomIdent,
     ) -> Result<&'a [<Self::ConcreteNode as TNode>::ConcreteElement], ()>
     where
         Self: 'a,
@@ -520,20 +517,20 @@ pub trait TElement:
     /// Internal iterator for the classes of this element.
     fn each_class<F>(&self, callback: F)
     where
-        F: FnMut(&Atom);
+        F: FnMut(&AtomIdent);
 
     /// Internal iterator for the part names of this element.
     fn each_part<F>(&self, _callback: F)
     where
-        F: FnMut(&Atom),
+        F: FnMut(&AtomIdent),
     {
     }
 
     /// Internal iterator for the part names that this element exports for a
     /// given part name.
-    fn each_exported_part<F>(&self, _name: &Atom, _callback: F)
+    fn each_exported_part<F>(&self, _name: &AtomIdent, _callback: F)
     where
-        F: FnMut(&Atom),
+        F: FnMut(&AtomIdent),
     {
     }
 
@@ -584,14 +581,35 @@ pub trait TElement:
         traversal_flags: TraversalFlags,
     ) -> bool {
         if traversal_flags.for_animation_only() {
-            // In animation-only restyle we never touch snapshots and don't
-            // care about them. But we can't assert '!self.handled_snapshot()'
+            // In animation-only restyle we never touch snapshots and don't care
+            // about them. But we can't assert '!self.handled_snapshot()'
             // here since there are some cases that a second animation-only
             // restyle which is a result of normal restyle (e.g. setting
             // animation-name in normal restyle and creating a new CSS
             // animation in a SequentialTask) is processed after the normal
             // traversal in that we had elements that handled snapshot.
-            return data.has_styles() && !data.hint.has_animation_hint_or_recascade();
+            if !data.has_styles() {
+                return false;
+            }
+
+            if !data.hint.has_animation_hint_or_recascade() {
+                return true;
+            }
+
+            // FIXME: This should ideally always return false, but it is a hack
+            // to work around our weird animation-only traversal
+            // stuff: If we're display: none and the rules we could match could
+            // change, we consider our style up-to-date. This is because
+            // re-cascading with and old style doesn't guarantee returning the
+            // correct animation style (that's bug 1393323). So if our display
+            // changed, and it changed from display: none, we would incorrectly
+            // forget about it and wouldn't be able to correctly style our
+            // descendants later.
+            if data.styles.is_display_none() && data.hint.match_self() {
+                return true;
+            }
+
+            return false;
         }
 
         if self.has_snapshot() && !self.handled_snapshot() {

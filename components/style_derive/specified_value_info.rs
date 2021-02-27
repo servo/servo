@@ -112,6 +112,7 @@ pub fn derive(mut input: DeriveInput) -> TokenStream {
 
     let name = &input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+
     quote! {
         impl #impl_generics style_traits::SpecifiedValueInfo for #name #ty_generics
         #where_clause

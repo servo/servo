@@ -9,10 +9,8 @@ use crate::computed_value_flags::ComputedValueFlags;
 use crate::dom::TElement;
 use crate::properties::longhands::display::computed_value::T as Display;
 use crate::properties::longhands::float::computed_value::T as Float;
-use crate::properties::longhands::overflow_x::computed_value::T as Overflow;
 use crate::properties::longhands::position::computed_value::T as Position;
 use crate::properties::{self, ComputedValues, StyleBuilder};
-use app_units::Au;
 
 /// A struct that implements all the adjustment methods.
 ///
@@ -151,6 +149,63 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     fn adjust_for_position(&mut self) {
         if self.style.is_absolutely_positioned() && self.style.is_floating() {
             self.style.mutate_box().set_float(Float::None);
+        }
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#inert-subtrees
+    ///
+    ///    If -moz-inert is applied then add:
+    ///        -moz-user-focus: none;
+    ///        -moz-user-input: none;
+    ///        -moz-user-modify: read-only;
+    ///        user-select: none;
+    ///        pointer-events: none;
+    ///        cursor: default;
+    ///
+    /// NOTE: dialog:-moz-topmost-modal-dialog is used to override above
+    /// rules to remove the inertness for the topmost modal dialog.
+    ///
+    /// NOTE: If this or the pointer-events tweak is removed, then
+    /// minimal-xul.css and the scrollbar style caching need to be tweaked.
+    #[cfg(feature = "gecko")]
+    fn adjust_for_inert(&mut self) {
+        use crate::values::specified::ui::CursorKind;
+        use crate::values::specified::ui::UserSelect;
+        use properties::longhands::_moz_inert::computed_value::T as Inert;
+        use properties::longhands::_moz_user_focus::computed_value::T as UserFocus;
+        use properties::longhands::_moz_user_input::computed_value::T as UserInput;
+        use properties::longhands::_moz_user_modify::computed_value::T as UserModify;
+        use properties::longhands::cursor::computed_value::T as Cursor;
+        use properties::longhands::pointer_events::computed_value::T as PointerEvents;
+
+        let needs_update = {
+            let ui = self.style.get_inherited_ui();
+            if ui.clone__moz_inert() == Inert::None {
+                return;
+            }
+
+            ui.clone__moz_user_focus() != UserFocus::None ||
+                ui.clone__moz_user_input() != UserInput::None ||
+                ui.clone__moz_user_modify() != UserModify::ReadOnly ||
+                ui.clone_pointer_events() != PointerEvents::None ||
+                ui.clone_cursor().keyword != CursorKind::Default ||
+                ui.clone_cursor().images != Default::default()
+        };
+
+        if needs_update {
+            let ui = self.style.mutate_inherited_ui();
+            ui.set__moz_user_focus(UserFocus::None);
+            ui.set__moz_user_input(UserInput::None);
+            ui.set__moz_user_modify(UserModify::ReadOnly);
+            ui.set_pointer_events(PointerEvents::None);
+            ui.set_cursor(Cursor {
+                images: Default::default(),
+                keyword: CursorKind::Default,
+            });
+        }
+
+        if self.style.get_ui().clone_user_select() != UserSelect::None {
+            self.style.mutate_ui().set_user_select(UserSelect::None);
         }
     }
 
@@ -414,52 +469,28 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             .none_or_hidden() &&
             self.style.get_outline().outline_has_nonzero_width()
         {
-            self.style.mutate_outline().set_outline_width(Au(0).into());
+            self.style
+                .mutate_outline()
+                .set_outline_width(crate::Zero::zero());
         }
     }
 
-    /// CSS3 overflow-x and overflow-y require some fixup as well in some
-    /// cases.
-    ///
-    /// overflow: clip and overflow: visible are meaningful only when used in
-    /// both dimensions.
+    /// CSS overflow-x and overflow-y require some fixup as well in some cases.
+    /// https://drafts.csswg.org/css-overflow-3/#overflow-properties
+    /// "Computed value: as specified, except with `visible`/`clip` computing to
+    /// `auto`/`hidden` (respectively) if one of `overflow-x` or `overflow-y` is
+    /// neither `visible` nor `clip`."
     fn adjust_for_overflow(&mut self) {
-        let original_overflow_x = self.style.get_box().clone_overflow_x();
-        let original_overflow_y = self.style.get_box().clone_overflow_y();
-
-        let mut overflow_x = original_overflow_x;
-        let mut overflow_y = original_overflow_y;
-
+        let overflow_x = self.style.get_box().clone_overflow_x();
+        let overflow_y = self.style.get_box().clone_overflow_y();
         if overflow_x == overflow_y {
-            return;
+            return; // optimization for the common case
         }
 
-        // If 'visible' is specified but doesn't match the other dimension,
-        // it turns into 'auto'.
-        if overflow_x == Overflow::Visible {
-            overflow_x = Overflow::Auto;
-        }
-
-        if overflow_y == Overflow::Visible {
-            overflow_y = Overflow::Auto;
-        }
-
-        #[cfg(feature = "gecko")]
-        {
-            // overflow: clip is deprecated, so convert to hidden if it's
-            // specified in only one dimension.
-            if overflow_x == Overflow::MozHiddenUnscrollable {
-                overflow_x = Overflow::Hidden;
-            }
-            if overflow_y == Overflow::MozHiddenUnscrollable {
-                overflow_y = Overflow::Hidden;
-            }
-        }
-
-        if overflow_x != original_overflow_x || overflow_y != original_overflow_y {
+        if overflow_x.is_scrollable() != overflow_y.is_scrollable() {
             let box_style = self.style.mutate_box();
-            box_style.set_overflow_x(overflow_x);
-            box_style.set_overflow_y(overflow_y);
+            box_style.set_overflow_x(overflow_x.to_scrollable());
+            box_style.set_overflow_y(overflow_y.to_scrollable());
         }
     }
 
@@ -498,6 +529,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// parent, but we need to make sure it's still scrollable.
     #[cfg(feature = "gecko")]
     fn adjust_for_text_control_editing_root(&mut self) {
+        use crate::properties::longhands::overflow_x::computed_value::T as Overflow;
         use crate::selector_parser::PseudoElement;
 
         if self.style.pseudo != Some(&PseudoElement::MozTextControlEditingRoot) {
@@ -508,13 +540,9 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         let overflow_x = box_style.clone_overflow_x();
         let overflow_y = box_style.clone_overflow_y();
 
-        fn scrollable(v: Overflow) -> bool {
-            v != Overflow::MozHiddenUnscrollable && v != Overflow::Visible
-        }
-
         // If at least one is scrollable we'll adjust the other one in
         // adjust_for_overflow if needed.
-        if scrollable(overflow_x) || scrollable(overflow_y) {
+        if overflow_x.is_scrollable() || overflow_y.is_scrollable() {
             return;
         }
 
@@ -762,10 +790,16 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     where
         E: TElement,
     {
-        use crate::properties::longhands::_moz_appearance::computed_value::T as Appearance;
+        use crate::properties::longhands::appearance::computed_value::T as Appearance;
         use crate::properties::longhands::line_height::computed_value::T as LineHeight;
 
-        if self.style.get_box().clone__moz_appearance() == Appearance::Menulist {
+        let box_ = self.style.get_box();
+        let appearance = match box_.clone_appearance() {
+            Appearance::Auto => box_.clone__moz_default_appearance(),
+            a => a,
+        };
+
+        if appearance == Appearance::Menulist {
             if self.style.get_inherited_text().clone_line_height() == LineHeight::normal() {
                 return;
             }
@@ -773,7 +807,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
                 return;
             }
             let is_html_select_element = element.map_or(false, |e| {
-                e.is_html_element() && e.local_name() == &*local_name!("select")
+                e.is_html_element() && e.local_name() == &*atom!("select")
             });
             if !is_html_select_element {
                 return;
@@ -848,6 +882,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         #[cfg(feature = "gecko")]
         {
             self.adjust_for_appearance(element);
+            self.adjust_for_inert();
         }
         self.set_bits();
     }

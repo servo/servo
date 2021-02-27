@@ -129,9 +129,10 @@ use style::selector_parser::{
     NonTSPseudoClass, PseudoElement, RestyleDamage, SelectorImpl, SelectorParser,
 };
 use style::shared_lock::{Locked, SharedRwLock};
+use style::stylesheets::CssRuleType;
 use style::thread_state;
 use style::values::generics::NonNegative;
-use style::values::{computed, specified, CSSFloat};
+use style::values::{computed, specified, AtomIdent, AtomString, CSSFloat};
 use style::CaseSensitivityExt;
 use xml5ever::serialize as xmlSerialize;
 use xml5ever::serialize::SerializeOpts as XmlSerializeOpts;
@@ -568,7 +569,7 @@ pub fn get_attr_for_layout<'dom>(
 
 pub trait LayoutElementHelpers<'dom> {
     fn attrs(self) -> &'dom [LayoutDom<'dom, Attr>];
-    fn has_class_for_layout(self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool;
+    fn has_class_for_layout(self, name: &AtomIdent, case_sensitivity: CaseSensitivity) -> bool;
     fn get_classes_for_layout(self) -> Option<&'dom [Atom]>;
 
     fn synthesize_presentational_hints_for_legacy_attributes<V>(self, hints: &mut V)
@@ -616,7 +617,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     }
 
     #[inline]
-    fn has_class_for_layout(self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
+    fn has_class_for_layout(self, name: &AtomIdent, case_sensitivity: CaseSensitivity) -> bool {
         get_attr_for_layout(self, &ns!(), &local_name!("class")).map_or(false, |attr| {
             attr.as_tokens()
                 .unwrap()
@@ -2851,6 +2852,7 @@ impl VirtualMethods for Element {
                                 &doc.base_url(),
                                 win.css_error_reporter(),
                                 doc.quirks_mode(),
+                                CssRuleType::Style,
                             )))
                         };
 
@@ -3135,16 +3137,16 @@ impl<'a> SelectorsElement for DomRoot<Element> {
 
     fn attr_matches(
         &self,
-        ns: &NamespaceConstraint<&Namespace>,
-        local_name: &LocalName,
-        operation: &AttrSelectorOperation<&String>,
+        ns: &NamespaceConstraint<&style::Namespace>,
+        local_name: &style::LocalName,
+        operation: &AttrSelectorOperation<&AtomString>,
     ) -> bool {
         match *ns {
             NamespaceConstraint::Specific(ref ns) => self
                 .get_attribute(ns, local_name)
                 .map_or(false, |attr| attr.value().eval_selector(operation)),
             NamespaceConstraint::Any => self.attrs.borrow().iter().any(|attr| {
-                attr.local_name() == local_name && attr.value().eval_selector(operation)
+                *attr.local_name() == **local_name && attr.value().eval_selector(operation)
             }),
         }
     }
@@ -3240,23 +3242,23 @@ impl<'a> SelectorsElement for DomRoot<Element> {
         }
     }
 
-    fn has_id(&self, id: &Atom, case_sensitivity: CaseSensitivity) -> bool {
+    fn has_id(&self, id: &AtomIdent, case_sensitivity: CaseSensitivity) -> bool {
         self.id_attribute
             .borrow()
             .as_ref()
-            .map_or(false, |atom| case_sensitivity.eq_atom(id, atom))
+            .map_or(false, |atom| case_sensitivity.eq_atom(&*id, atom))
     }
 
-    fn is_part(&self, _name: &Atom) -> bool {
+    fn is_part(&self, _name: &AtomIdent) -> bool {
         false
     }
 
-    fn imported_part(&self, _: &Atom) -> Option<Atom> {
+    fn imported_part(&self, _: &AtomIdent) -> Option<AtomIdent> {
         None
     }
 
-    fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
-        Element::has_class(&**self, name, case_sensitivity)
+    fn has_class(&self, name: &AtomIdent, case_sensitivity: CaseSensitivity) -> bool {
+        Element::has_class(&**self, &name, case_sensitivity)
     }
 
     fn is_html_element_in_html_document(&self) -> bool {

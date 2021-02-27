@@ -12,6 +12,7 @@ use crate::str::str_join;
 use crate::str::{read_exponent, read_fraction, HTML_SPACE_CHARACTERS};
 use crate::str::{read_numbers, split_commas, split_html_space_chars};
 use crate::values::specified::Length;
+use crate::values::AtomString;
 use crate::{Atom, LocalName, Namespace, Prefix};
 use app_units::Au;
 use cssparser::{self, Color, RGBA};
@@ -354,7 +355,7 @@ impl AttrValue {
         }
     }
 
-    pub fn eval_selector(&self, selector: &AttrSelectorOperation<&String>) -> bool {
+    pub fn eval_selector(&self, selector: &AttrSelectorOperation<&AtomString>) -> bool {
         // FIXME(SimonSapin) this can be more efficient by matching on `(self, selector)` variants
         // and doing Atom comparisons instead of string comparisons where possible,
         // with SelectorImpl::AttrValue changed to Atom.

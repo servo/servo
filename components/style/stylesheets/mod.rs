@@ -4,6 +4,7 @@
 
 //! Style sheets and their CSS rules.
 
+mod cascading_at_rule;
 mod counter_style_rule;
 mod document_rule;
 mod font_face_rule;
@@ -56,7 +57,9 @@ pub use self::page_rule::PageRule;
 pub use self::rule_list::{CssRules, CssRulesHelpers};
 pub use self::rule_parser::{InsertRuleContext, State, TopLevelRuleParser};
 pub use self::rules_iterator::{AllRules, EffectiveRules};
-pub use self::rules_iterator::{NestedRuleIterationCondition, RulesIterator};
+pub use self::rules_iterator::{
+    EffectiveRulesIterator, NestedRuleIterationCondition, RulesIterator,
+};
 pub use self::style_rule::StyleRule;
 pub use self::stylesheet::{AllowImportRules, SanitizationData, SanitizationKind};
 pub use self::stylesheet::{DocumentStyleSheet, Namespaces, Stylesheet};
@@ -153,8 +156,8 @@ impl UrlExtraData {
 
     /// True if this URL scheme is chrome.
     #[inline]
-    pub fn is_chrome(&self) -> bool {
-        self.as_ref().mIsChrome
+    pub fn chrome_rules_enabled(&self) -> bool {
+        self.as_ref().mChromeRulesEnabled
     }
 
     /// Create a reference to this `UrlExtraData` from a reference to pointer.
@@ -212,7 +215,7 @@ impl fmt::Debug for UrlExtraData {
 
         formatter
             .debug_struct("URLExtraData")
-            .field("is_chrome", &self.is_chrome())
+            .field("chrome_rules_enabled", &self.chrome_rules_enabled())
             .field(
                 "base",
                 &DebugURI(self.as_ref().mBaseURI.raw::<structs::nsIURI>()),
@@ -299,7 +302,7 @@ impl CssRule {
 }
 
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, FromPrimitive, PartialEq)]
 pub enum CssRuleType {
     // https://drafts.csswg.org/cssom/#the-cssrule-interface
     Style = 1,
@@ -404,8 +407,10 @@ impl CssRule {
             allow_import_rules,
         };
 
-        parse_one_rule(&mut input, &mut rule_parser)
-            .map_err(|_| rule_parser.dom_error.unwrap_or(RulesMutateError::Syntax))
+        match parse_one_rule(&mut input, &mut rule_parser) {
+            Ok((_, rule)) => Ok(rule),
+            Err(_) => Err(rule_parser.dom_error.unwrap_or(RulesMutateError::Syntax)),
+        }
     }
 }
 

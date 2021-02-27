@@ -59,7 +59,7 @@ pub use self::font::{FontFeatureSettings, FontVariantLigatures, FontVariantNumer
 pub use self::font::{FontSize, FontSizeAdjust, FontStretch, FontSynthesis};
 pub use self::font::{FontVariantAlternates, FontWeight};
 pub use self::font::{FontVariantEastAsian, FontVariationSettings};
-pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, XLang, XTextZoom};
+pub use self::font::{MathDepth, MozScriptMinSize, MozScriptSizeMultiplier, XLang, XTextZoom};
 pub use self::image::{Gradient, Image, LineDirection, MozImageRect};
 pub use self::length::{CSSPixelLength, ExtremumLength, NonNegativeLength};
 pub use self::length::{Length, LengthOrNumber, LengthPercentage, NonNegativeLengthOrNumber};
@@ -71,11 +71,13 @@ pub use self::list::MozListReversed;
 pub use self::list::Quotes;
 pub use self::motion::{OffsetPath, OffsetRotate};
 pub use self::outline::OutlineStyle;
+pub use self::page::{Orientation, PageSize, PaperSize};
 pub use self::percentage::{NonNegativePercentage, Percentage};
 pub use self::position::AspectRatio;
 pub use self::position::{
     GridAutoFlow, GridTemplateAreas, MasonryAutoFlow, Position, PositionOrAuto, ZIndex,
 };
+pub use self::ratio::Ratio;
 pub use self::rect::NonNegativeLengthOrNumberRect;
 pub use self::resolution::Resolution;
 pub use self::svg::MozContextProperties;
@@ -118,11 +120,14 @@ pub mod length_percentage;
 pub mod list;
 pub mod motion;
 pub mod outline;
+pub mod page;
 pub mod percentage;
 pub mod position;
+pub mod ratio;
 pub mod rect;
 pub mod resolution;
 pub mod svg;
+pub mod table;
 pub mod text;
 pub mod time;
 pub mod transform;
@@ -232,7 +237,7 @@ impl<'a> Context<'a> {
         // -x-text-zoom property, which leads to a false value
         // in mAllowZoomAndMinSize
         if self.style().get_font().gecko.mAllowZoomAndMinSize {
-            self.device().zoom_text(Au::from(size)).into()
+            self.device().zoom_text(size)
         } else {
             size
         }
@@ -505,10 +510,11 @@ trivial_to_computed_value!(u16);
 trivial_to_computed_value!(u32);
 trivial_to_computed_value!(usize);
 trivial_to_computed_value!(Atom);
+trivial_to_computed_value!(crate::values::AtomIdent);
 #[cfg(feature = "servo")]
-trivial_to_computed_value!(html5ever::Namespace);
+trivial_to_computed_value!(crate::Namespace);
 #[cfg(feature = "servo")]
-trivial_to_computed_value!(html5ever::Prefix);
+trivial_to_computed_value!(crate::Prefix);
 trivial_to_computed_value!(String);
 trivial_to_computed_value!(Box<str>);
 trivial_to_computed_value!(crate::OwnedStr);

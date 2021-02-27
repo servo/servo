@@ -133,3 +133,27 @@ macro_rules! profiler_label {
 macro_rules! profiler_label {
     ($label_type:ident) => {};
 }
+
+#[cfg(feature = "servo")]
+macro_rules! local_name {
+    ($s:tt) => {
+        $crate::values::GenericAtomIdent(html5ever::local_name!($s))
+    };
+}
+
+#[cfg(feature = "servo")]
+macro_rules! ns {
+    () => {
+        $crate::values::GenericAtomIdent(html5ever::ns!())
+    };
+    ($s:tt) => {
+        $crate::values::GenericAtomIdent(html5ever::ns!($s))
+    };
+}
+
+#[cfg(feature = "gecko")]
+macro_rules! local_name {
+    ($s:tt) => {
+        $crate::values::AtomIdent(atom!($s))
+    };
+}

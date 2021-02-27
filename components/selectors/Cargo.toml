@@ -19,7 +19,7 @@ bench = []
 
 [dependencies]
 bitflags = "1.0"
-cssparser = "0.27"
+cssparser = "0.28"
 derive_more = "0.99"
 fxhash = "0.2"
 log = "0.4"
@@ -27,7 +27,6 @@ phf = "0.8"
 precomputed-hash = "0.1"
 servo_arc = { version = "0.1", path = "../servo_arc" }
 smallvec = "1.0"
-thin-slice = "0.1.0"
 to_shmem = { path = "../to_shmem" }
 to_shmem_derive = { path = "../to_shmem_derive" }
 

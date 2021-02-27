@@ -7,7 +7,7 @@
 use super::media_feature_expression::RangeOrOperator;
 use super::Device;
 use crate::parser::ParserContext;
-use crate::values::computed::position::Ratio;
+use crate::values::computed::Ratio;
 use crate::values::computed::{CSSPixelLength, Resolution};
 use crate::Atom;
 use cssparser::Parser;

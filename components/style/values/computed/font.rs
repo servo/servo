@@ -37,6 +37,7 @@ use to_shmem::{self, SharedMemoryBuilder, ToShmem};
 pub use crate::values::computed::Length as MozScriptMinSize;
 pub use crate::values::specified::font::{FontSynthesis, MozScriptSizeMultiplier};
 pub use crate::values::specified::font::{XLang, XTextZoom};
+pub use crate::values::specified::Integer as SpecifiedInteger;
 
 /// A value for the font-weight property per:
 ///
@@ -156,7 +157,7 @@ impl FontSize {
     /// Get default value of font size.
     pub fn medium() -> Self {
         Self {
-            size: NonNegative(Length::new(specified::FONT_MEDIUM_PX as CSSFloat)),
+            size: NonNegative(Length::new(specified::FONT_MEDIUM_PX)),
             keyword_info: KeywordInfo::medium(),
         }
     }
@@ -811,38 +812,39 @@ impl ToComputedValue for specified::MozScriptMinSize {
     }
 }
 
-/// The computed value of the -moz-script-level property.
-pub type MozScriptLevel = i8;
+/// The computed value of the math-depth property.
+pub type MathDepth = i8;
 
 #[cfg(feature = "gecko")]
-impl ToComputedValue for specified::MozScriptLevel {
-    type ComputedValue = MozScriptLevel;
+impl ToComputedValue for specified::MathDepth {
+    type ComputedValue = MathDepth;
 
     fn to_computed_value(&self, cx: &Context) -> i8 {
-        use crate::properties::longhands::_moz_math_display::SpecifiedValue as DisplayValue;
+        use crate::properties::longhands::math_style::SpecifiedValue as MathStyleValue;
         use std::{cmp, i8};
 
         let int = match *self {
-            specified::MozScriptLevel::Auto => {
-                let parent = cx.builder.get_parent_font().clone__moz_script_level() as i32;
-                let display = cx.builder.get_parent_font().clone__moz_math_display();
-                if display == DisplayValue::Inline {
+            specified::MathDepth::AutoAdd => {
+                let parent = cx.builder.get_parent_font().clone_math_depth() as i32;
+                let style = cx.builder.get_parent_font().clone_math_style();
+                if style == MathStyleValue::Compact {
                     parent + 1
                 } else {
                     parent
                 }
             },
-            specified::MozScriptLevel::Relative(rel) => {
-                let parent = cx.builder.get_parent_font().clone__moz_script_level();
-                parent as i32 + rel
+            specified::MathDepth::Add(rel) => {
+                let parent = cx.builder.get_parent_font().clone_math_depth();
+                parent as i32 + rel.to_computed_value(cx)
             },
-            specified::MozScriptLevel::MozAbsolute(abs) => abs,
+            specified::MathDepth::Absolute(abs) => abs.to_computed_value(cx),
         };
         cmp::min(int, i8::MAX as i32) as i8
     }
 
     fn from_computed_value(other: &i8) -> Self {
-        specified::MozScriptLevel::MozAbsolute(*other as i32)
+        let computed_value = *other as i32;
+        specified::MathDepth::Absolute(SpecifiedInteger::from_computed_value(&computed_value))
     }
 }
 

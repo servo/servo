@@ -72,7 +72,6 @@ ${helpers.predefined_type(
     "FillRule",
     "Default::default()",
     engines="gecko",
-    needs_context=False,
     animation_value_type="discrete",
     spec="https://www.w3.org/TR/SVG11/painting.html#FillRuleProperty",
 )}
@@ -165,7 +164,6 @@ ${helpers.predefined_type(
     "FillRule",
     "Default::default()",
     engines="gecko",
-    needs_context=False,
     animation_value_type="discrete",
     spec="https://www.w3.org/TR/SVG11/masking.html#ClipRuleProperty",
 )}

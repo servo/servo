@@ -84,7 +84,6 @@ ${helpers.predefined_type(
     "BorderStyle",
     "computed::BorderStyle::None",
     engines="gecko",
-    needs_context=False,
     initial_specified_value="specified::BorderStyle::None",
     extra_prefixes="moz:layout.css.prefixes.columns",
     animation_value_type="discrete",

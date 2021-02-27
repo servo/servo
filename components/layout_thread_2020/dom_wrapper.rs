@@ -90,6 +90,7 @@ use style::shared_lock::{
 };
 use style::str::is_whitespace;
 use style::stylist::CascadeData;
+use style::values::{AtomIdent, AtomString};
 use style::CaseSensitivityExt;
 
 #[derive(Clone, Copy)]
@@ -508,7 +509,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     }
 
     #[inline]
-    fn has_attr(&self, namespace: &Namespace, attr: &LocalName) -> bool {
+    fn has_attr(&self, namespace: &style::Namespace, attr: &style::LocalName) -> bool {
         self.get_attr(namespace, attr).is_some()
     }
 
@@ -520,11 +521,11 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     #[inline(always)]
     fn each_class<F>(&self, mut callback: F)
     where
-        F: FnMut(&Atom),
+        F: FnMut(&AtomIdent),
     {
         if let Some(ref classes) = self.element.get_classes_for_layout() {
             for class in *classes {
-                callback(class)
+                callback(AtomIdent::cast(class))
             }
         }
     }
@@ -648,7 +649,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     fn lang_attr(&self) -> Option<SelectorAttrValue> {
         self.get_attr(&ns!(xml), &local_name!("lang"))
             .or_else(|| self.get_attr(&ns!(), &local_name!("lang")))
-            .map(|v| String::from(v as &str))
+            .map(|v| SelectorAttrValue::from(v as &str))
     }
 
     fn match_element_lang(
@@ -671,8 +672,8 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         // so we can decide when to fall back to the Content-Language check.
         let element_lang = match override_lang {
             Some(Some(lang)) => lang,
-            Some(None) => String::new(),
-            None => self.element.get_lang_for_layout(),
+            Some(None) => AtomString::default(),
+            None => AtomString::from(&*self.element.get_lang_for_layout()),
         };
         extended_filtering(&element_lang, &*value)
     }
@@ -821,9 +822,9 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
 
     fn attr_matches(
         &self,
-        ns: &NamespaceConstraint<&Namespace>,
-        local_name: &LocalName,
-        operation: &AttrSelectorOperation<&String>,
+        ns: &NamespaceConstraint<&style::Namespace>,
+        local_name: &style::LocalName,
+        operation: &AttrSelectorOperation<&AtomString>,
     ) -> bool {
         match *ns {
             NamespaceConstraint::Specific(ref ns) => self
@@ -953,7 +954,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     }
 
     #[inline]
-    fn has_id(&self, id: &Atom, case_sensitivity: CaseSensitivity) -> bool {
+    fn has_id(&self, id: &AtomIdent, case_sensitivity: CaseSensitivity) -> bool {
         unsafe {
             (*self.element.id_attribute())
                 .as_ref()
@@ -962,16 +963,16 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     }
 
     #[inline]
-    fn is_part(&self, _name: &Atom) -> bool {
+    fn is_part(&self, _name: &AtomIdent) -> bool {
         false
     }
 
-    fn imported_part(&self, _: &Atom) -> Option<Atom> {
+    fn imported_part(&self, _: &AtomIdent) -> Option<AtomIdent> {
         None
     }
 
     #[inline]
-    fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
+    fn has_class(&self, name: &AtomIdent, case_sensitivity: CaseSensitivity) -> bool {
         self.element.has_class_for_layout(name, case_sensitivity)
     }
 
@@ -1445,9 +1446,9 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
 
     fn attr_matches(
         &self,
-        ns: &NamespaceConstraint<&Namespace>,
-        local_name: &LocalName,
-        operation: &AttrSelectorOperation<&String>,
+        ns: &NamespaceConstraint<&style::Namespace>,
+        local_name: &style::LocalName,
+        operation: &AttrSelectorOperation<&AtomString>,
     ) -> bool {
         match *ns {
             NamespaceConstraint::Specific(ref ns) => self
@@ -1479,23 +1480,23 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
         false
     }
 
-    fn has_id(&self, _id: &Atom, _case_sensitivity: CaseSensitivity) -> bool {
+    fn has_id(&self, _id: &AtomIdent, _case_sensitivity: CaseSensitivity) -> bool {
         debug!("ServoThreadSafeLayoutElement::has_id called");
         false
     }
 
     #[inline]
-    fn is_part(&self, _name: &Atom) -> bool {
+    fn is_part(&self, _name: &AtomIdent) -> bool {
         debug!("ServoThreadSafeLayoutElement::is_part called");
         false
     }
 
-    fn imported_part(&self, _: &Atom) -> Option<Atom> {
+    fn imported_part(&self, _: &AtomIdent) -> Option<AtomIdent> {
         debug!("ServoThreadSafeLayoutElement::imported_part called");
         None
     }
 
-    fn has_class(&self, _name: &Atom, _case_sensitivity: CaseSensitivity) -> bool {
+    fn has_class(&self, _name: &AtomIdent, _case_sensitivity: CaseSensitivity) -> bool {
         debug!("ServoThreadSafeLayoutElement::has_class called");
         false
     }

@@ -7,7 +7,7 @@ use crate::dom_traversal::{NodeAndStyleInfo, NodeExt, PseudoElementContentItem};
 use crate::replaced::ReplacedContent;
 use style::properties::longhands::list_style_type::computed_value::T as ListStyleType;
 use style::properties::style_structs;
-use style::values::computed::url::UrlOrNone;
+use style::values::computed::Image;
 
 /// https://drafts.csswg.org/css-lists/#content-property
 pub(crate) fn make_marker<'dom, Node>(
@@ -21,13 +21,18 @@ where
 
     // https://drafts.csswg.org/css-lists/#marker-image
     let marker_image = || match &style.list_style_image {
-        UrlOrNone::Url(url) => Some(vec![
+        Image::Url(url) => Some(vec![
             PseudoElementContentItem::Replaced(ReplacedContent::from_image_url(
                 info.node, context, url,
             )?),
             PseudoElementContentItem::Text(" ".into()),
         ]),
-        UrlOrNone::None => None,
+        // XXX: Non-None image types unimplemented.
+        Image::ImageSet(..) |
+        Image::Rect(..) |
+        Image::Gradient(..) |
+        Image::CrossFade(..) |
+        Image::None => None,
     };
     marker_image().or_else(|| {
         Some(vec![PseudoElementContentItem::Text(

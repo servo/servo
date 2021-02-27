@@ -4,6 +4,7 @@
 
 //! Servo's media-query device and expression representation.
 
+use crate::context::QuirksMode;
 use crate::custom_properties::CssEnvironment;
 use crate::media_queries::media_feature::{AllowsRanges, ParsingRequirements};
 use crate::media_queries::media_feature::{Evaluator, MediaFeatureDescription};
@@ -17,7 +18,7 @@ use app_units::Au;
 use cssparser::RGBA;
 use euclid::default::Size2D as UntypedSize2D;
 use euclid::{Scale, SideOffsets2D, Size2D};
-use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel};
 
@@ -33,6 +34,9 @@ pub struct Device {
     viewport_size: Size2D<f32, CSSPixel>,
     /// The current device pixel ratio, from CSS pixels to device pixels.
     device_pixel_ratio: Scale<f32, CSSPixel, DevicePixel>,
+    /// The current quirks mode.
+    #[ignore_malloc_size_of = "Pure stack type"]
+    quirks_mode: QuirksMode,
 
     /// The font size of the root element
     /// This is set when computing the style of the root
@@ -43,7 +47,7 @@ pub struct Device {
     /// the parent to compute everything else. So it is correct to just use
     /// a relaxed atomic here.
     #[ignore_malloc_size_of = "Pure stack type"]
-    root_font_size: AtomicIsize,
+    root_font_size: AtomicU32,
     /// Whether any styles computed in the document relied on the root font-size
     /// by using rem units.
     #[ignore_malloc_size_of = "Pure stack type"]
@@ -60,6 +64,7 @@ impl Device {
     /// Trivially construct a new `Device`.
     pub fn new(
         media_type: MediaType,
+        quirks_mode: QuirksMode,
         viewport_size: Size2D<f32, CSSPixel>,
         device_pixel_ratio: Scale<f32, CSSPixel, DevicePixel>,
     ) -> Device {
@@ -67,8 +72,9 @@ impl Device {
             media_type,
             viewport_size,
             device_pixel_ratio,
+            quirks_mode,
             // FIXME(bz): Seems dubious?
-            root_font_size: AtomicIsize::new(Au::from_px(FONT_MEDIUM_PX).0 as isize),
+            root_font_size: AtomicU32::new(FONT_MEDIUM_PX.to_bits()),
             used_root_font_size: AtomicBool::new(false),
             used_viewport_units: AtomicBool::new(false),
             environment: CssEnvironment,
@@ -90,15 +96,20 @@ impl Device {
     }
 
     /// Get the font size of the root element (for rem)
-    pub fn root_font_size(&self) -> Au {
+    pub fn root_font_size(&self) -> CSSPixelLength {
         self.used_root_font_size.store(true, Ordering::Relaxed);
-        Au::new(self.root_font_size.load(Ordering::Relaxed) as i32)
+        CSSPixelLength::new(f32::from_bits(self.root_font_size.load(Ordering::Relaxed)))
     }
 
     /// Set the font size of the root element (for rem)
-    pub fn set_root_font_size(&self, size: Au) {
+    pub fn set_root_font_size(&self, size: CSSPixelLength) {
         self.root_font_size
-            .store(size.0 as isize, Ordering::Relaxed)
+            .store(size.px().to_bits(), Ordering::Relaxed)
+    }
+
+    /// Get the quirks mode of the current device.
+    pub fn quirks_mode(&self) -> QuirksMode {
+        self.quirks_mode
     }
 
     /// Sets the body text color for the "inherit color from body" quirk.

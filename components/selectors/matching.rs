@@ -334,10 +334,7 @@ where
     let result =
         matches_complex_selector_internal(iter, element, context, flags_setter, Rightmost::Yes);
 
-    match result {
-        SelectorMatchingResult::Matched => true,
-        _ => false,
-    }
+    matches!(result, SelectorMatchingResult::Matched)
 }
 
 #[inline]
@@ -751,7 +748,7 @@ where
                 &NamespaceConstraint::Specific(&crate::parser::namespace_empty_string::<E::Impl>()),
                 local_name,
                 &AttrSelectorOperation::WithValue {
-                    operator: operator,
+                    operator,
                     case_sensitivity: case_sensitivity.to_unconditional(is_html),
                     expected_value: value,
                 },
@@ -780,9 +777,9 @@ where
                         case_sensitivity,
                         ref expected_value,
                     } => AttrSelectorOperation::WithValue {
-                        operator: operator,
+                        operator,
                         case_sensitivity: case_sensitivity.to_unconditional(is_html),
-                        expected_value: expected_value,
+                        expected_value,
                     },
                 },
             )
@@ -853,14 +850,13 @@ where
             }
             false
         }),
-        Component::Negation(ref negated) => context.shared.nest_for_negation(|context| {
-            let mut local_context = LocalMatchingContext {
-                matches_hover_and_active_quirk: MatchesHoverAndActiveQuirk::No,
-                shared: context,
-            };
-            !negated
-                .iter()
-                .all(|ss| matches_simple_selector(ss, element, &mut local_context, flags_setter))
+        Component::Negation(ref list) => context.shared.nest_for_negation(|context| {
+            for selector in &**list {
+                if matches_complex_selector(selector.iter(), element, context, flags_setter) {
+                    return false;
+                }
+            }
+            true
         }),
     }
 }
@@ -912,13 +908,10 @@ where
     let index = if let Some(i) = cache.as_mut().and_then(|c| c.lookup(element.opaque())) {
         i
     } else {
-        let i = nth_child_index(
-            element,
-            is_of_type,
-            is_from_end,
-            cache.as_mut().map(|s| &mut **s),
-        );
-        cache.as_mut().map(|c| c.insert(element.opaque(), i));
+        let i = nth_child_index(element, is_of_type, is_from_end, cache.as_deref_mut());
+        if let Some(c) = cache.as_mut() {
+            c.insert(element.opaque(), i)
+        }
         i
     };
     debug_assert_eq!(

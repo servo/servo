@@ -232,12 +232,12 @@ macro_rules! counter_style_descriptors {
             fn to_css(&self, _guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
                 dest.write_str("@counter-style ")?;
                 self.name.to_css(&mut CssWriter::new(dest))?;
-                dest.write_str(" {\n")?;
+                dest.write_str(" { ")?;
                 $(
                     if let Some(ref value) = self.$ident {
-                        dest.write_str(concat!("  ", $name, ": "))?;
+                        dest.write_str(concat!($name, ": "))?;
                         ToCss::to_css(value, &mut CssWriter::new(dest))?;
-                        dest.write_str(";\n")?;
+                        dest.write_str("; ")?;
                     }
                 )+
                 dest.write_str("}")

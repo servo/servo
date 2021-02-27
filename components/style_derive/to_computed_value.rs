@@ -47,12 +47,15 @@ pub fn derive_to_value(
         cg::add_predicate(&mut where_clause, parse_quote!(#param: #trait_path));
     }
 
+    let computed_value_type = cg::fmap_trait_output(&input, &trait_path, &output_type_name);
+
     let mut add_field_bound = |binding: &BindingInfo| {
         let ty = &binding.ast().ty;
 
         let output_type = cg::map_type_params(
             ty,
             &params,
+            &computed_value_type,
             &mut |ident| parse_quote!(<#ident as #trait_path>::#output_type_name),
         );
 
@@ -142,7 +145,6 @@ pub fn derive_to_value(
 
     input.generics.where_clause = where_clause;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
-    let computed_value_type = cg::fmap_trait_output(&input, &trait_path, &output_type_name);
 
     let impl_ = trait_impl(from_body, to_body);
 
