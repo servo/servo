@@ -25,8 +25,6 @@ def pytest_configure(config):
     # register the capabilities marker
     config.addinivalue_line("markers",
         "capabilities: mark test to use capabilities")
-    config.addinivalue_line("markers",
-        "bidi: mark test to use bidi")
 
 
 @pytest.fixture
@@ -41,10 +39,6 @@ def pytest_generate_tests(metafunc):
         if marker:
             metafunc.parametrize("capabilities", marker.args, ids=None)
 
-    if "bidi" in metafunc.fixturenames:
-        marker = metafunc.definition.get_closest_marker(name="bidi")
-        if marker:
-            metafunc.parametrize("bidi", marker.args, ids=None)
 
 # Ensure that the event loop is restarted once per session rather than the default  of once per test
 # if we don't do this, tests will try to reuse a closed event loop and fail with an error that the "future
@@ -55,6 +49,7 @@ def event_loop():
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
+
 
 @pytest.fixture
 def add_event_listeners(session):
@@ -127,12 +122,9 @@ def configuration():
         "capabilities": capabilities
     }
 
-@pytest.fixture(scope="session")
-def bidi():
-    return False
 
 @pytest.fixture(scope="function")
-async def session(capabilities, configuration, request, bidi):
+async def session(capabilities, configuration, request):
     """Create and start a session for a test that does not itself test session creation.
 
     By default the session will stay open after each test, but we always try to start a
@@ -150,31 +142,69 @@ async def session(capabilities, configuration, request, bidi):
     is_cur_bidi = isinstance(_current_session, webdriver.BidiSession)
     # If there is a session with different capabilities active or the current session
     # is of different type than the one we would like to create, end it now.
-    if _current_session is not None and (
-            (not _current_session.match(caps)) or
-            (is_cur_bidi != bidi)):
-        if is_cur_bidi:
-            await _current_session.end()
-        else:
-            _current_session.end()
-        _current_session = None
+    if _current_session is not None:
+        is_bidi = isinstance(_current_session, webdriver.BidiSession)
+        if is_bidi or caps != _current_session.requested_capabilities:
+            if is_bidi:
+                await _current_session.end()
+            else:
+                _current_session.end()
+            _current_session = None
 
     if _current_session is None:
-        if bidi:
-            _current_session = webdriver.BidiSession(
-                configuration["host"],
-                configuration["port"],
-                capabilities=caps)
-        else:
-            _current_session = webdriver.Session(
-                configuration["host"],
-                configuration["port"],
-                capabilities=caps)
+        _current_session = webdriver.Session(
+            configuration["host"],
+            configuration["port"],
+            capabilities=caps)
     try:
-        if type(_current_session) == webdriver.BidiSession:
-            await _current_session.start()
-        else:
-            _current_session.start()
+        _current_session.start()
+
+    except webdriver.error.SessionNotCreatedException:
+        if not _current_session.session_id:
+            raise
+
+    # Enforce a fixed default window size and position
+    _current_session.window.size = defaults.WINDOW_SIZE
+    _current_session.window.position = defaults.WINDOW_POSITION
+
+    yield _current_session
+
+    cleanup_session(_current_session)
+
+
+@pytest.fixture(scope="function")
+async def bidi_session(capabilities, configuration, request):
+    """Create and start a bidi session for a test that does not itself test
+    bidi session creation.
+    By default the session will stay open after each test, but we always try to start a
+    new one and assume that if that fails there is already a valid session. This makes it
+    possible to recover from some errors that might leave the session in a bad state, but
+    does not demand that we start a new session per test."""
+    global _current_session
+
+    # Update configuration capabilities with custom ones from the
+    # capabilities fixture, which can be set by tests
+    caps = copy.deepcopy(configuration["capabilities"])
+    deep_update(caps, capabilities)
+    caps = {"alwaysMatch": caps}
+
+    if _current_session is not None:
+        is_bidi = isinstance(_current_session, webdriver.BidiSession)
+        if not is_bidi or not _current_session.match(caps):
+            if is_bidi:
+                await _current_session.end()
+            else:
+                _current_session.end()
+            _current_session = None
+
+    if _current_session is None:
+        _current_session = webdriver.BidiSession(
+            configuration["host"],
+            configuration["port"],
+            capabilities=caps)
+
+    try:
+        await _current_session.start()
 
     except webdriver.error.SessionNotCreatedException:
         if not _current_session.session_id:

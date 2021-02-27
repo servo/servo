@@ -11,6 +11,8 @@ setup(async () => {
 });
 
 promise_test(async testCase => {
+  await reserveAndCleanupCapacity(testCase);
+
   const file1 = await storageFoundation.open('test_file_1');
   const file2 = await storageFoundation.open('test_file_2');
   testCase.add_cleanup(async () => {
@@ -64,6 +66,8 @@ promise_test(async testCase => {
 }, 'storageFoundation.rename does not overwrite an existing file.');
 
 promise_test(async testCase => {
+  await reserveAndCleanupCapacity(testCase);
+
   const file = await storageFoundation.open('test_file');
   testCase.add_cleanup(async () => {
     await file.close();
@@ -80,6 +84,8 @@ promise_test(async testCase => {
 }, 'storageFoundation.rename does not allow renaming an open file.');
 
 promise_test(async testCase => {
+  await reserveAndCleanupCapacity(testCase);
+
   testCase.add_cleanup(async () => {
     await file.close();
     await storageFoundation.delete('test_file');
@@ -99,6 +105,8 @@ promise_test(async testCase => {
 }, 'storageFoundation.rename does not allow renaming from or to invalid names.');
 
 promise_test(async testCase => {
+  await reserveAndCleanupCapacity(testCase);
+
   const closed_file = await storageFoundation.open('closed_file');
   closed_file.close();
   const opened_file = await storageFoundation.open('opened_file');
@@ -120,6 +128,8 @@ promise_test(async testCase => {
 }, 'Failed storageFoundation.rename does not unlock the source.');
 
 promise_test(async testCase => {
+  await reserveAndCleanupCapacity(testCase);
+
   const closed_file = await storageFoundation.open('closed_file');
   await closed_file.close();
   const opened_file = await storageFoundation.open('opened_file');
@@ -141,6 +151,8 @@ promise_test(async testCase => {
 }, 'Failed storageFoundation.rename does not unlock the destination.');
 
 promise_test(async testCase => {
+  await reserveAndCleanupCapacity(testCase);
+
   // Make sure that the file does not exist.
   await storageFoundation.delete('does_not_exist');
   testCase.add_cleanup(async () => {

@@ -1,0 +1,6 @@
+spec: https://wicg.github.io/cors-rfc1918/
+suggested_reviewers:
+  - letitz
+  - hemeryar
+  - camillelamy
+  - mikewest

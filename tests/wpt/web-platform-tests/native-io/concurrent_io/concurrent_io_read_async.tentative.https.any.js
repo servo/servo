@@ -10,6 +10,8 @@
 
 for (let op of kOperations) {
   promise_test(async testCase => {
+    await reserveAndCleanupCapacity(testCase);
+
     const file = await createFile(testCase, 'read_file');
 
     const readSharedArrayBuffer = new SharedArrayBuffer(4);

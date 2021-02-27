@@ -101,15 +101,29 @@ test_no_interpolation({
   to: '0 / 1',
 });
 
+// Addition of <ratio>s is not possible.
+// https://drafts.csswg.org/css-values/#combine-ratio
+//
+// And if a value type does not define a specific procedure for addition or is
+// defined as not additive, its addition operation is simply Vresult = Va.
+// (The first value is Va, the second value is Vb, and the result is Vresult.)
+// https://drafts.csswg.org/css-values-4/#not-additive,
+//
+// So in this test case:
+// 1. The 1st keyframe: { aspectRatio: 0.5/1, composite: 'replace', offset: 0 }
+// 2. The 2nd keyframe: { aspectRatio:   1/1, composite: 'add',     offset: 1 }
+// and the underlying value is 2/1. Based on the spec, the composited from_value
+// is 0.5/1 (because we just replace it), and the composited to_value is 2/1
+// (because we use Va as the result value).
 test_composition({
   property: 'aspect-ratio',
-  underlying: '0.5 / 1',
-  replaceFrom: '1 / 1',
-  addTo: '2 / 1',
+  underlying: '2 / 1',
+  replaceFrom: '0.5 / 1',
+  addTo: '1 / 1',
 }, [
-  {at: 0, expect: '1 / 1'},
+  {at: 0, expect: '0.5 / 1'},
   {at: 0.5, expect: '1 / 1'},
-  {at: 1, expect: '1 / 1'}
+  {at: 1, expect: '2 / 1'}
 ]);
 
 </script>

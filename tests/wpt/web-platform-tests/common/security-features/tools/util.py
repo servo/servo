@@ -122,6 +122,8 @@ class PolicyDelivery(object):
                 raise ShouldSkip()
             policy_delivery = target_policy_delivery
         elif obj == "anotherPolicy":
+            if len(supported_delivery_types) == 0:
+                raise ShouldSkip()
             policy_delivery = target_policy_delivery.get_another_policy(
                 supported_delivery_types[0])
         elif isinstance(obj, dict):
@@ -156,6 +158,11 @@ class PolicyDelivery(object):
                 return PolicyDelivery(delivery_type, self.key, None)
             else:
                 return PolicyDelivery(delivery_type, self.key, 'opt-in')
+        elif self.key == 'contentSecurityPolicy':
+            if self.value is not None:
+                return PolicyDelivery(delivery_type, self.key, None)
+            else:
+                return PolicyDelivery(delivery_type, self.key, 'worker-src-none')
         elif self.key == 'upgradeInsecureRequests':
             if self.value == 'upgrade':
                 return PolicyDelivery(delivery_type, self.key, None)

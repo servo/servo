@@ -6,26 +6,17 @@
 'use strict';
 
 promise_test(async testCase => {
-  const file = await storageFoundation.open('test_file');
-  testCase.add_cleanup(async () => {
-    await file.close();
-    await storageFoundation.delete('test_file');
-  });
+  await reserveAndCleanupCapacity(testCase);
 
   const size = 1024;
-  const longarray = createLargeArray(size, /*seed = */ 103);
-  const writeSharedArrayBuffer = new SharedArrayBuffer(size);
-  const writtenBytes = new Uint8Array(writeSharedArrayBuffer);
-  writtenBytes.set(longarray);
-  const writeCount = await file.write(writtenBytes, 0);
-  assert_equals(
-      writeCount, size,
-      'NativeIOFile.write() should resolve with the number of bytes written');
+  const longArray = createLargeArray(size, /*seed = */ 103);
+
+  const file = await createFile(testCase, 'test_file', longArray);
 
   await file.flush();
   const readBytes = await readIoFile(file);
 
-  assert_array_equals(readBytes, writtenBytes,
+  assert_array_equals(readBytes, longArray,
                       'the bytes read should match the bytes written');
 }, 'NativeIOFile.read returns bytes written by NativeIOFile.write' +
      ' after NativeIOFile.flush');

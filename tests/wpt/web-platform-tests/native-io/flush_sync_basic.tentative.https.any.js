@@ -5,24 +5,17 @@
 'use strict';
 
 test(testCase => {
-  const file = storageFoundation.openSync('test_file');
-  testCase.add_cleanup(() => {
-    file.close();
-    storageFoundation.deleteSync('test_file');
-  });
+  reserveAndCleanupCapacitySync(testCase);
 
   const size = 1024;
-  const longarray = createLargeArray(size, /*seed = */ 107);
-  const writtenBytes = Uint8Array.from(longarray);
-  const writeCount = file.write(writtenBytes, 0);
-  assert_equals(
-      writeCount, size,
-      'NativeIOFile.write() should resolve with the number of bytes written');
+  const longArray = createLargeArray(size, /*seed = */ 107);
+
+  const file = createFileSync(testCase, 'test_file', longArray);
 
   file.flush();
   const readBytes = readIoFileSync(file);
 
-  assert_array_equals(readBytes, writtenBytes,
-                      'the bytes read should match the bytes written');
+  assert_array_equals(readBytes, longArray,
+    'the bytes read should match the bytes written');
 }, 'NativeIOFileSync.read returns bytes written by NativeIOFileSync.write' +
-     ' after NativeIOFileSync.flush');
+    ' after NativeIOFileSync.flush');

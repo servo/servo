@@ -501,7 +501,7 @@ promise_test(async t => {
     const echo_url = '/fetch/api/resources/echo-content.py?ignore';
     const response = await frame.contentWindow.fetch(echo_url, {
         method: 'POST',
-        body: rs
+        body: rs.pipeThrough(new TextEncoderStream())
     });
     const text = await response.text();
     assert_equals(text,
@@ -550,9 +550,10 @@ promise_test(async t => {
     const frame = await with_iframe(page_url);
     t.add_cleanup(() => { frame.remove(); });
     const echo_url = '/fetch/api/resources/echo-content.py?use-and-ignore';
-    await promise_rejects_js(t, TypeError, frame.contentWindow.fetch(echo_url, {
+    const w = frame.contentWindow;
+    await promise_rejects_js(t, w.TypeError, w.fetch(echo_url, {
         method: 'POST',
-        body: rs
+        body: rs.pipeThrough(new TextEncoderStream())
     }));
   }, 'FetchEvent#body is a ReadableStream, used and passed to network fallback');
 
