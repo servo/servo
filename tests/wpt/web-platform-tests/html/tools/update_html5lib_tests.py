@@ -56,7 +56,7 @@ def get_expected(data):
 def get_hash(data, container=None):
     if container == None:
         container = ""
-    return hashlib.sha1("#container%s#data%s"%(container.encode("utf8"),
+    return hashlib.sha1(b"#container%s#data%s"%(container.encode("utf8"),
                                                data.encode("utf8"))).hexdigest()
 
 def make_tests(script_dir, out_dir, input_file_name, test_data):
@@ -78,10 +78,10 @@ def make_tests(script_dir, out_dir, input_file_name, test_data):
             print("WARNING: id %s seen multiple times in file %s this time for test (%s, %s) before for test %s, skipping"%(test_id, input_file_name, container, data, ids_seen[test_id]))
             continue
         ids_seen[test_id] = (container, data)
-        test_list.append({'string_uri_encoded_input':"\"%s\""%urllib.quote(data.encode("utf8")),
+        test_list.append({'string_uri_encoded_input':"\"%s\""%urllib.parse.quote(data.encode("utf8")),
                           'input':data,
                           'expected':expected,
-                          'string_escaped_expected':json.dumps(urllib.quote(expected.encode("utf8"))),
+                          'string_escaped_expected':json.dumps(urllib.parse.quote(expected.encode("utf8"))),
                           'id':test_id,
                           'container':container
                           })
@@ -108,8 +108,8 @@ def write_test_file(script_dir, out_dir, tests, file_name, template_file_name):
     stream = template.generate(file_name=short_name, tests=tests)
 
     with open(file_name, "w") as f:
-        f.write(stream.render('html', doctype='html5',
-                              encoding="utf8"))
+        f.write(str(stream.render('html', doctype='html5',
+                              encoding="utf8"), "utf-8"))
     return file_name
 
 def escape_js_string(in_data):
@@ -126,15 +126,15 @@ def main():
     inner_html_files = []
 
     if len(sys.argv) > 2:
-        test_iterator = itertools.izip(
+        test_iterator = zip(
             itertools.repeat(False),
             sorted(os.path.abspath(item) for item in
                    glob.glob(os.path.join(sys.argv[2], "*.dat"))))
     else:
         test_iterator = itertools.chain(
-            itertools.izip(itertools.repeat(False),
+            zip(itertools.repeat(False),
                            sorted(support.get_data_files("tree-construction"))),
-            itertools.izip(itertools.repeat(True),
+            zip(itertools.repeat(True),
                            sorted(support.get_data_files(
                         os.path.join("tree-construction", "scripted")))))
 

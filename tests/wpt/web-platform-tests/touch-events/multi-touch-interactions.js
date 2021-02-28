@@ -67,7 +67,7 @@ function check_starting_elements(list) {
     }
 }
 
-function run() {
+async function run() {
     var target0 = document.getElementById("target0");
     var target1 = document.getElementById("target1");
 
@@ -368,4 +368,23 @@ function run() {
             done();
         }
     });
+
+    await new test_driver.Actions()
+          .addPointer("touchPointer1", "touch")
+          .addPointer("touchPointer2", "touch")
+          .addPointer("touchPointer3", "touch")
+          .pointerMove(0, 0, {origin: target0, sourceName: "touchPointer1"})
+          .pointerMove(3, 0, {origin: target0, sourceName: "touchPointer2"})
+          .pointerDown({sourceName: "touchPointer1"})
+          .pointerDown({sourceName: "touchPointer2"})
+          .pointerMove(0, 10, {origin: target0, sourceName: "touchPointer1"})
+          .pointerMove(3, 10, {origin: target0, sourceName: "touchPointer2"})
+          .pointerMove(0, 0, {origin: target1, sourceName: "touchPointer1"})
+          .pointerMove(3, 0, {origin: target1, sourceName: "touchPointer2"})
+          .pointerMove(6, 0, {origin: target0, sourceName: "touchPointer3"})
+          .pointerDown({sourceName: "touchPointer3"})
+          .pointerUp({sourceName: "touchPointer1"})
+          .pointerUp({sourceName: "touchPointer2"})
+          .pointerUp({sourceName: "touchPointer3"})
+          .send();
 }

@@ -1,5 +1,7 @@
 <!DOCTYPE HTML>
 <title>auxclick is a PointerEvent</title>
+<meta name="variant" content="?mouse">
+<meta name="variant" content="?pen">
 <link rel="help" href="https://github.com/w3c/pointerevents/pull/317">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -14,6 +16,7 @@
 let target = document.getElementById("target");
 let pointerId = 0;
 let pointerType = "";
+let inputSource = location.search.substring(1);
 
 target.addEventListener("pointerdown", (e)=>{
   pointerId = e.pointerId;
@@ -50,7 +53,6 @@ function run_test(pointerType){
   }), "auxclick using " + pointerType + " is a PointerEvent");
 }
 
-run_test("mouse");
-run_test("pen");
+run_test(inputSource);
 // TODO(crbug.com/1150441): Add test for auxclick from touch.Note: Calling run_test("touch") here times out.
 </script>
