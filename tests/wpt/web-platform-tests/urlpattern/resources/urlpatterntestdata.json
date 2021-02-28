@@ -789,6 +789,174 @@
     "error": true
   },
   {
+    "pattern": { "protocol": ":café" },
+    "input": { "protocol": "foo" },
+    "expected": {
+      "input": { "protocol": "foo" },
+      "protocol": { "input": "foo", "groups": { "café": "foo" } }
+    }
+  },
+  {
+    "pattern": { "username": ":café" },
+    "input": { "username": "foo" },
+    "expected": {
+      "input": { "username": "foo" },
+      "username": { "input": "foo", "groups": { "café": "foo" } }
+    }
+  },
+  {
+    "pattern": { "password": ":café" },
+    "input": { "password": "foo" },
+    "expected": {
+      "input": { "password": "foo" },
+      "password": { "input": "foo", "groups": { "café": "foo" } }
+    }
+  },
+  {
+    "pattern": { "hostname": ":café" },
+    "input": { "hostname": "foo" },
+    "expected": {
+      "input": { "hostname": "foo" },
+      "hostname": { "input": "foo", "groups": { "café": "foo" } }
+    }
+  },
+  {
+    "pattern": { "pathname": "/:café" },
+    "input": { "pathname": "/foo" },
+    "expected": {
+      "input": { "pathname": "/foo" },
+      "pathname": { "input": "/foo", "groups": { "café": "foo" } }
+    }
+  },
+  {
+    "pattern": { "search": ":café" },
+    "input": { "search": "foo" },
+    "expected": {
+      "input": { "search": "foo" },
+      "search": { "input": "foo", "groups": { "café": "foo" } }
+    }
+  },
+  {
+    "pattern": { "hash": ":café" },
+    "input": { "hash": "foo" },
+    "expected": {
+      "input": { "hash": "foo" },
+      "hash": { "input": "foo", "groups": { "café": "foo" } }
+    }
+  },
+  {
+    "pattern": { "protocol": ":\u2118" },
+    "input": { "protocol": "foo" },
+    "expected": {
+      "input": { "protocol": "foo" },
+      "protocol": { "input": "foo", "groups": { "\u2118": "foo" } }
+    }
+  },
+  {
+    "pattern": { "username": ":\u2118" },
+    "input": { "username": "foo" },
+    "expected": {
+      "input": { "username": "foo" },
+      "username": { "input": "foo", "groups": { "\u2118": "foo" } }
+    }
+  },
+  {
+    "pattern": { "password": ":\u2118" },
+    "input": { "password": "foo" },
+    "expected": {
+      "input": { "password": "foo" },
+      "password": { "input": "foo", "groups": { "\u2118": "foo" } }
+    }
+  },
+  {
+    "pattern": { "hostname": ":\u2118" },
+    "input": { "hostname": "foo" },
+    "expected": {
+      "input": { "hostname": "foo" },
+      "hostname": { "input": "foo", "groups": { "\u2118": "foo" } }
+    }
+  },
+  {
+    "pattern": { "pathname": "/:\u2118" },
+    "input": { "pathname": "/foo" },
+    "expected": {
+      "input": { "pathname": "/foo" },
+      "pathname": { "input": "/foo", "groups": { "\u2118": "foo" } }
+    }
+  },
+  {
+    "pattern": { "search": ":\u2118" },
+    "input": { "search": "foo" },
+    "expected": {
+      "input": { "search": "foo" },
+      "search": { "input": "foo", "groups": { "\u2118": "foo" } }
+    }
+  },
+  {
+    "pattern": { "hash": ":\u2118" },
+    "input": { "hash": "foo" },
+    "expected": {
+      "input": { "hash": "foo" },
+      "hash": { "input": "foo", "groups": { "\u2118": "foo" } }
+    }
+  },
+  {
+    "pattern": { "protocol": ":\u3400" },
+    "input": { "protocol": "foo" },
+    "expected": {
+      "input": { "protocol": "foo" },
+      "protocol": { "input": "foo", "groups": { "\u3400": "foo" } }
+    }
+  },
+  {
+    "pattern": { "username": ":\u3400" },
+    "input": { "username": "foo" },
+    "expected": {
+      "input": { "username": "foo" },
+      "username": { "input": "foo", "groups": { "\u3400": "foo" } }
+    }
+  },
+  {
+    "pattern": { "password": ":\u3400" },
+    "input": { "password": "foo" },
+    "expected": {
+      "input": { "password": "foo" },
+      "password": { "input": "foo", "groups": { "\u3400": "foo" } }
+    }
+  },
+  {
+    "pattern": { "hostname": ":\u3400" },
+    "input": { "hostname": "foo" },
+    "expected": {
+      "input": { "hostname": "foo" },
+      "hostname": { "input": "foo", "groups": { "\u3400": "foo" } }
+    }
+  },
+  {
+    "pattern": { "pathname": "/:\u3400" },
+    "input": { "pathname": "/foo" },
+    "expected": {
+      "input": { "pathname": "/foo" },
+      "pathname": { "input": "/foo", "groups": { "\u3400": "foo" } }
+    }
+  },
+  {
+    "pattern": { "search": ":\u3400" },
+    "input": { "search": "foo" },
+    "expected": {
+      "input": { "search": "foo" },
+      "search": { "input": "foo", "groups": { "\u3400": "foo" } }
+    }
+  },
+  {
+    "pattern": { "hash": ":\u3400" },
+    "input": { "hash": "foo" },
+    "expected": {
+      "input": { "hash": "foo" },
+      "hash": { "input": "foo", "groups": { "\u3400": "foo" } }
+    }
+  },
+  {
     "pattern": { "protocol": "(.*)" },
     "input": { "protocol" : "café" },
     "expected": null

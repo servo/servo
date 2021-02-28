@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset='utf-8'>
-<title>Window Placement: getScreens() tentative</title>
+<title>Window Placement: getScreensDeprecated() tentative</title>
 <!-- TODO: update link to W3C whenever specifications are ready -->
 <link rel='help' href='https://github.com/webscreens/window-placement'/>
 <script src='/resources/testharness.js'></script>
@@ -25,8 +25,8 @@ function check_screen_matches_display(screen, display) {
 screen_enumeration_test(async (t, mockScreenEnum) => {
   mockScreenEnum.setSuccess(true);
   await test_driver.set_permission({name: 'window-placement'}, 'granted');
-  assert_equals((await self.getScreens()).length, 0);
-}, 'getScreens() supports an empty set of mocked screens');
+  assert_equals((await self.getScreensDeprecated()).length, 0);
+}, 'getScreensDeprecated() supports an empty set of mocked screens');
 
 screen_enumeration_test(async (t, mockScreenEnum) => {
   let display1 = makeDisplay(10,
@@ -41,13 +41,13 @@ screen_enumeration_test(async (t, mockScreenEnum) => {
 
   await test_driver.set_permission({name: 'window-placement'}, 'granted');
 
-  const screens = await self.getScreens();
+  const screens = await self.getScreensDeprecated();
   assert_equals(screens.length, 1);
   check_screen_matches_display(screens[0], display1);
   assert_equals(screens[0].primary, true);
   assert_equals(screens[0].internal, true);
   assert_equals(screens[0].id, '0');
-}, 'getScreens() supports a single mocked screen');
+}, 'getScreensDeprecated() supports a single mocked screen');
 
 screen_enumeration_test(async (t, mockScreenEnum) => {
   let display1 = makeDisplay(10,
@@ -74,7 +74,7 @@ screen_enumeration_test(async (t, mockScreenEnum) => {
 
   await test_driver.set_permission({name: 'window-placement'}, 'granted');
 
-  let screens = await self.getScreens();
+  let screens = await self.getScreensDeprecated();
   assert_equals(screens.length, 3);
   check_screen_matches_display(screens[0], display1);
   assert_equals(screens[0].primary, true);
@@ -90,7 +90,7 @@ screen_enumeration_test(async (t, mockScreenEnum) => {
   assert_equals(screens[2].id, '2');
 
   mockScreenEnum.removeDisplay(display2.id);
-  screens = await self.getScreens();
+  screens = await self.getScreensDeprecated();
   assert_equals(screens.length, 2);
   check_screen_matches_display(screens[0], display1);
   assert_equals(screens[0].id, '0');
@@ -98,16 +98,16 @@ screen_enumeration_test(async (t, mockScreenEnum) => {
   assert_equals(screens[1].id, '1');
 
   mockScreenEnum.removeDisplay(display1.id);
-  screens = await self.getScreens();
+  screens = await self.getScreensDeprecated();
   assert_equals(screens.length, 1);
   check_screen_matches_display(screens[0], display3);
   assert_equals(screens[0].id, '0');
-}, 'getScreens() supports multiple mocked screens');
+}, 'getScreensDeprecated() supports multiple mocked screens');
 
 screen_enumeration_test(async (t, mockScreenEnum) => {
   mockScreenEnum.setSuccess(false);
   await test_driver.set_permission({name: 'window-placement'}, 'granted');
-  promise_rejects_dom(t, 'NotAllowedError', self.getScreens());
-}, 'getScreens() rejects when the mock success value is set to false');
+  promise_rejects_dom(t, 'NotAllowedError', self.getScreensDeprecated());
+}, 'getScreensDeprecated() rejects when the mock success value is set false');
 
 </script>
