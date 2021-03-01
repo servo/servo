@@ -84,18 +84,18 @@ checksum = "80b9e34fcbf29c0563547cb2ecce9b49504597cad6166769b1e4efb45c6c2951"
 
 [[package]]
 name = "android_log-sys"
-version = "0.1.2"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8052e2d8aabbb8d556d6abbcce2a22b9590996c5f849b9c7ce4544a2e3b984e"
+checksum = "85965b6739a430150bdd138e2374a98af0c3ee0d030b3bb7fc3bddff58d0102e"
 
 [[package]]
 name = "android_logger"
-version = "0.8.6"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8cbd542dd180566fad88fd2729a53a62a734843c626638006a9d63ec0688484e"
+checksum = "7b49bdae48631d048e8f687320764bb0754a399ceba5a17c887b8fbfb668f4a3"
 dependencies = [
  "android_log-sys",
- "env_logger 0.7.1",
+ "env_logger 0.8.2",
  "lazy_static",
  "log",
 ]
