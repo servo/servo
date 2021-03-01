@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<iframe src="resources/frame-with-anchor.html"></iframe>
+
+<script>
+'use strict';
+
+promise_test(async () => {
+  await waitForLoad(window);
+  const iframe = document.querySelector('iframe');
+  iframe.contentWindow.location.hash = 'anchor1';
+  const doc = iframe.contentDocument;
+  assert_true(!!doc.querySelector(':target'));
+
+  let input = doc.createElement('input');
+  input.autofocus = true;
+  doc.body.appendChild(input);
+  await waitUntilStableAutofocusState();
+  assert_not_equals(doc.activeElement, input);
+}, 'Autofocus elements in iframed documents with URL fragments should be skipped.');
+
+promise_test(async () => {
+  let w = window.open('resources/frame-with-anchor.html');
+  await waitForLoad(w);
+  w.location.hash = 'anchor1';
+  const doc = w.document;
+  assert_true(!!doc.querySelector(':target'));
+
+  let input = doc.createElement('input');
+  input.autofocus = true;
+  doc.body.appendChild(input);
+  await waitUntilStableAutofocusState();
+  assert_not_equals(doc.activeElement, input);
+  w.close();
+}, 'Autofocus elements in top-level browsing context\'s documents with URL fragments should be skipped.');
+</script>
