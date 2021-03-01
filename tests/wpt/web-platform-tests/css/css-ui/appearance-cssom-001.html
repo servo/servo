@@ -42,6 +42,9 @@
         assert_style_for_prop(button.style, prop, value);
         const style = getComputedStyle(button);
         assert_style_for_prop(style, prop, value);
+        button.style.setProperty('background-color', 'black');
+        assert_style_for_prop(style, prop, value,
+                              'Computed value should be the specified value');
       }, `${prop}: ${value}`);
     }
 
