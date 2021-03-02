@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
+<meta name=timeout content=long>
 <title>Service Worker: Schedule Job algorithm</title>
 <script src="/resources/testharness.js"></script>
 <script src="resources/testharness-helpers.js"></script>
@@ -21,7 +22,33 @@ function absolute_url(url) {
   return new URL(url, self.location).toString();
 }
 
-// Test scriptURL and updateViaCache.
+// A helper that returns the newest worker of the registration. This helps the
+// test fail with stable output on browers that incorrectly coalesce
+// register jobs, since then sometimes registration.installing is not
+// a new worker as expected.
+function get_newest_worker(registration) {
+  return registration.installing || registration.waiting || registration.active;
+}
+
+// Test that a change to `script` starts a new register job.
+promise_test(async t => {
+  await cleanup();
+  t.add_cleanup(cleanup);
+
+  // Make a registration.
+  const registration = await
+      navigator.serviceWorker.register(script1, {scope});
+
+  // Schedule two more register jobs.
+  navigator.serviceWorker.register(script1, {scope});
+  await navigator.serviceWorker.register(script2, {scope});
+
+  // The jobs should not have been coalesced.
+  const worker = get_newest_worker(registration);
+  assert_equals(worker.scriptURL, absolute_url(script2));
+}, 'different scriptURL');
+
+// Test that a change to `updateViaCache` starts a new register job.
 promise_test(async t => {
   await cleanup();
   t.add_cleanup(cleanup);
@@ -31,22 +58,17 @@ promise_test(async t => {
       navigator.serviceWorker.register(script1, {scope});
   assert_equals(registration.updateViaCache, 'imports');
 
-  // Schedule several register jobs.
+  // Schedule two more register jobs.
   navigator.serviceWorker.register(script1, {scope});
-  navigator.serviceWorker.register(script2, {scope});
-  await navigator.serviceWorker.register(script2,
-                                         {scope, updateViaCache: 'none'});
+  await navigator.serviceWorker.register(script1, {scope,
+      updateViaCache: 'none'});
 
-  // None of the changes should have been coalesced.
-  assert_equals(registration.installing.scriptURL, absolute_url(script2));
+  // The jobs should not have been coalesced.
   assert_equals(registration.updateViaCache, 'none');
-}, 'different scriptURL and updateViaCache');
+}, 'different updateViaCache');
 
-// Test |type| in another test case because most browsers don't support it.
+// Test that a change to `type` starts a new register job.
 promise_test(async t => {
-  const script1 = 'resources/empty.js';
-  const script2 = 'resources/empty.js?change';
-
   await cleanup();
   t.add_cleanup(cleanup);
 
@@ -55,13 +77,12 @@ promise_test(async t => {
       navigator.serviceWorker.register(script1, {scope});
   assert_equals(registration.installing.type, 'classic');
 
-  // Schedule several register jobs.
+  // Schedule two more register jobs.
   navigator.serviceWorker.register(script1, {scope});
-  navigator.serviceWorker.register(script2, {scope});
-  await navigator.serviceWorker.register(script2, {scope, type: 'module'});
+  await navigator.serviceWorker.register(script1, {scope, type: 'module'});
 
-  // None of the changes should have been coalesced.
-  assert_equals(registration.installing.scriptURL, absolute_url(script2));
-  assert_equals(registration.installing.type, 'module');
+  // The jobs should not have been coalesced.
+  const worker = get_newest_worker(registration.installing);
+  assert_equals(worker.type, 'module');
 }, 'different type');
 </script>

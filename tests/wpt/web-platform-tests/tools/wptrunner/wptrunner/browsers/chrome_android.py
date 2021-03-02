@@ -34,7 +34,9 @@ def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
     return {"package_name": kwargs["package_name"],
             "device_serial": kwargs["device_serial"],
             "webdriver_binary": kwargs["webdriver_binary"],
-            "webdriver_args": kwargs.get("webdriver_args")}
+            "webdriver_args": kwargs.get("webdriver_args"),
+            "stackparser_script": kwargs.get("stackparser_script"),
+            "output_directory": kwargs.get("output_directory")}
 
 
 def executor_kwargs(logger, test_type, server_config, cache_manager, run_info_data,
@@ -123,9 +125,14 @@ class ChromeAndroidBrowserBase(Browser):
     def __init__(self, logger,
                  webdriver_binary="chromedriver",
                  remote_queue = None,
-                 device_serial=None, webdriver_args=None):
+                 device_serial=None,
+                 webdriver_args=None,
+                 stackparser_script=None,
+                 output_directory=None):
         super(ChromeAndroidBrowserBase, self).__init__(logger)
         self.device_serial = device_serial
+        self.stackparser_script = stackparser_script
+        self.output_directory = output_directory
         self.remote_queue = remote_queue
         self.server = ChromeDriverServer(self.logger,
                                          binary=webdriver_binary,
@@ -182,6 +189,16 @@ class ChromeAndroidBrowserBase(Browser):
         cmd.extend(['logcat', '*:D'])
         return cmd
 
+    def maybe_parse_tombstone(self, logger):
+        if self.stackparser_script:
+            cmd = [self.stackparser_script, "-a", "-w"]
+            if self.device_serial:
+                cmd.extend(["--device", self.device_serial])
+            cmd.extend(["--output-directory", self.output_directory])
+            raw_output = subprocess.check_output(cmd)
+            for line in raw_output.splitlines():
+                logger.process_output("TRACE", line, "logcat")
+
     def setup_adb_reverse(self):
         self._adb_run(['wait-for-device'])
         self._adb_run(['forward', '--remove-all'])
@@ -198,8 +215,12 @@ class ChromeAndroidBrowser(ChromeAndroidBrowserBase):
     def __init__(self, logger, package_name,
                  webdriver_binary="chromedriver",
                  remote_queue = None,
-                 device_serial=None, webdriver_args=None):
+                 device_serial=None,
+                 webdriver_args=None,
+                 stackparser_script=None,
+                 output_directory=None):
         super(ChromeAndroidBrowser, self).__init__(logger,
-                webdriver_binary, remote_queue, device_serial, webdriver_args)
+                webdriver_binary, remote_queue, device_serial,
+                webdriver_args, stackparser_script, output_directory)
         self.package_name = package_name
         self.wptserver_ports = _wptserve_ports

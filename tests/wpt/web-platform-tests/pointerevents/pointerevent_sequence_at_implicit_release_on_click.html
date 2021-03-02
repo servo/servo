@@ -3,6 +3,9 @@
   <head>
     <title>Pointer Event: Event sequence at implicit release on click</title>
     <meta content="text/html; charset=UTF-8" http-equiv="Content-Type"/>
+    <meta name="variant" content="?mouse">
+    <meta name="variant" content="?touch">
+    <meta name="variant" content="?pen">
     <link rel="author" title="Google" href="http://www.google.com "/>
     <meta name="assert" content="When a captured pointer is implicitly released after a click, the boundary events should follow the lostpointercapture event."/>
     <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
@@ -13,11 +16,11 @@
     <script src="/resources/testdriver-vendor.js"></script>
     <script type="text/javascript" src="pointerevent_support.js"></script>
     <script type="text/javascript">
+      var inputSource = location.search.substring(1);
       var detected_pointertypes = {};
       var event_log = [];
       var start_logging = false;
       var actions_promise;
-      var index = 0;
 
       function resetTestState() {
         detected_eventTypes = {};
@@ -26,7 +29,7 @@
       }
 
       function run() {
-        var test_pointer_event = setup_pointerevent_test("Event sequence at implicit release on click", ALL_POINTERS);
+        var test_pointer_event = setup_pointerevent_test("Event sequence at implicit release on click", [inputSource]);
 
         on_event(document.getElementById("done"), "click", function() {
           test_pointer_event.step(function () {
@@ -35,16 +38,6 @@
           });
           // Make sure the test finishes after all the input actions are completed.
           actions_promise.then( () => {
-            if (index == 0) {
-              actions_promise = clickInTarget("touch", target).then(function() {
-                return clickInTarget("touch", button);
-              });
-            } else if (index == 1) {
-              actions_promise = clickInTarget("pen", target).then(function() {
-                return clickInTarget("pen", button);
-              });
-            }
-            index++;
             test_pointer_event.done();
           });
         });
@@ -69,8 +62,8 @@
         });
 
         // Inject pointer inputs.
-        actions_promise = clickInTarget("mouse", target).then(function() {
-          return clickInTarget("mouse", button);
+        actions_promise = clickInTarget(inputSource, target).then(function() {
+          return clickInTarget(inputSource, button);
         });
       }
     </script>

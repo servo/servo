@@ -82,37 +82,36 @@ default to regular max size.</p>
     assert_equals(div.offsetWidth, 100);
     assert_equals(flexbox.offsetWidth, document.body.offsetWidth);
     assert_equals(flexbox.offsetWidth, table.offsetWidth + div.offsetWidth);
-  }, "table's max width inside flexbox width:auto is not infinite");
+  }, "table's width inside flexbox width:auto is not infinite");
 
   test(_ => {
     let flexbox = document.querySelector("#flextest_max");
     let table = flexbox.querySelector("table");
-    assert_equals(table.offsetWidth, 100);
-  }, "table's max width inside flexbox width:max-content is not infinite");
+    assert_greater_than(table.offsetWidth, document.body.offsetWidth);
+  }, "table's width inside flexbox width:max-content is infinite");
 
   test(_ => {
     let grid = document.querySelector("#grid");
     let table = grid.querySelector("table");
     assert_equals(grid.offsetWidth, document.body.offsetWidth);
     assert_equals(grid.offsetWidth, table.offsetWidth);
-  }, "table's max width inside grid width:auto is not infinite");
+  }, "table's width inside grid width:auto is not infinite");
 
   test(_ => {
     let grid = document.querySelector("#grid_max");
     let table = grid.querySelector("table");
-    assert_equals(grid.offsetWidth, 100);
-    assert_equals(table.offsetWidth, 100);
-  }, "table's max width inside grid width:max-content is not infinite");
+    assert_greater_than(table.offsetWidth, document.body.offsetWidth);
+  }, "table's width inside grid width:max-content is infinite");
 
   test(_ => {
     let table = document.querySelector("#table_container");
     assert_equals(table.offsetWidth, document.body.offsetWidth);
-  }, "table's max width inside a table cell is infinite");
+  }, "table's width inside a table cell is infinite");
 
   test(_ => {
     let abs = document.querySelector("#absolute");
     let table = abs.querySelector("table");
     assert_equals(table.offsetWidth, abs.offsetWidth);
-  }, "table's max width inside an absolute block is infinite");
+  }, "table's width inside an absolute block is infinite");
 
 </script>

@@ -12,8 +12,9 @@
   const blockWidth = getComputedStyle(document.querySelector('#block-ref')).width;
   const inlineWidth = getComputedStyle(document.querySelector('#inline-ref')).width;
   const testElm = document.querySelector('#test');
+  // Please only add canonical values to these lists:
   const blocks = ['block', 'table', 'table-row-group', 'table-header-group', 'table-footer-group', 'table-row', 'table-cell',
-                  'table-column-group', 'table-column', 'table-caption', 'list-item', 'flow', 'flow-root','run-in'];
+                  'table-column-group', 'table-column', 'table-caption', 'list-item', 'flow-root', 'run-in', 'block ruby'];
   const inlines = ['inline', 'inline-block', 'inline-table', 'ruby', 'ruby-base', 'ruby-text', 'ruby-base-container', 'ruby-text-container'];
 
   function test_display(val, expectedWidth) {
@@ -21,11 +22,6 @@
       testElm.style.removeProperty('display');
       testElm.style.display = val;
       const computed = getComputedStyle(testElm);
-      // Note that computed value is different from the used value.
-      // E.g., if ruby is not supported, the following assertion will
-      // fail as the computed value of display will be block.
-      // If ruby is supported, computed.display will return "ruby",
-      // but the used value is supposed to be "inline".
       assert_equals(computed.display, val, `display: ${val} is not supported`);
       assert_equals(computed.width, expectedWidth);
     }, `fieldset with display: ${val}`);
