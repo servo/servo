@@ -1,5 +1,7 @@
 import socket
-import sys
+
+
+from .logger import get_logger
 
 
 def isomorphic_decode(s):
@@ -154,9 +156,18 @@ def get_port(host=''):
     return port
 
 def http2_compatible():
-    # Currently, the HTTP/2.0 server is only working in python 2.7.10+ or 3.6+ and OpenSSL 1.0.2+
+    # The HTTP/2.0 server requires OpenSSL 1.0.2+ (and Python 3.6+, but WPT
+    # requires that anyway so we don't check that here.)
+    #
+    # For systems using other SSL libraries (e.g. LibreSSL), we assume they
+    # have the necessary support.
     import ssl
+    if not ssl.OPENSSL_VERSION.startswith("OpenSSL"):
+        logger = get_logger()
+        logger.warning(
+            'Skipping HTTP/2.0 compatibility check as system is not using '
+            'OpenSSL (found: %s)' % ssl.OPENSSL_VERSION)
+        return True
+
     ssl_v = ssl.OPENSSL_VERSION_INFO
-    py_v = sys.version_info
-    return (((py_v[0] == 2 and py_v[1] == 7 and py_v[2] >= 10) or (py_v[0] == 3 and py_v[1] >= 6)) and
-        (ssl_v[0] == 1 and (ssl_v[1] == 1 or (ssl_v[1] == 0 and ssl_v[2] >= 2))))
+    return ssl_v[0] == 1 and (ssl_v[1] == 1 or (ssl_v[1] == 0 and ssl_v[2] >= 2))

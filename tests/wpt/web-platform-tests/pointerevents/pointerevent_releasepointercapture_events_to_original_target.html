@@ -3,6 +3,9 @@
     <head>
         <title>Pointer Event: releasePointerCapture() - subsequent events follow normal hitting testing mechanisms</title>
         <meta content="text/html; charset=UTF-8" http-equiv="Content-Type"/>
+        <meta name="variant" content="?mouse">
+        <meta name="variant" content="?touch">
+        <meta name="variant" content="?pen">
         <link rel="author" title="Microsoft" href="http://www.microsoft.com/"/>
         <meta name="assert" content="After invoking the releasePointerCapture method on an element, subsequent events for the specified pointer must follow normal hit testing mechanisms for determining the event target"/>
         <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
@@ -14,6 +17,7 @@
         <!-- Additional helper script for common checks across event types -->
         <script type="text/javascript" src="pointerevent_support.js"></script>
         <script type="text/javascript">
+            var inputSource = location.search.substring(1);
             var test_pointerEvent;
             var detected_pointertypes = {};
             var captured_event = null;
@@ -22,7 +26,6 @@
             var outLeaveEventsFail = false;
             var f_gotPointerCapture = false;
             var f_lostPointerCapture = false;
-            var index = 0;
             var actions_promise;
 
             function resetTestState() {
@@ -102,12 +105,6 @@
                         test_done = true;
                         // Make sure the test finishes after all the input actions are completed.
                         actions_promise.then( () => {
-                            if (index == 0) {
-                                actions_promise =  pointerDragInTarget('touch', target0, 'right');
-                            } else if (index == 1) {
-                                actions_promise =  pointerDragInTarget('pen', target0, 'right');
-                            }
-                            index++;
                             test_pointerEvent.done();
                         });
                     }
@@ -115,7 +112,7 @@
             }
 
             function run() {
-                test_pointerEvent = setup_pointerevent_test("got/lost pointercapture: subsequent events to target", ALL_POINTERS);  // set up test harness
+                test_pointerEvent = setup_pointerevent_test("got/lost pointercapture: subsequent events to target", [inputSource]);  // set up test harness
                 var listener = document.getElementById("listener");
                 var target0 = document.getElementById("target0");
                 target0.style["touchAction"] = "none";
@@ -127,7 +124,7 @@
                 }
 
                 // Inject pointer inputs.
-                actions_promise = pointerDragInTarget('mouse', target0, 'right');
+                actions_promise = pointerDragInTarget(inputSource, target0, 'right');
             }
         </script>
     </head>

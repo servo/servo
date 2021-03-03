@@ -30,7 +30,9 @@ def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
     return {"binary": kwargs["binary"],
             "device_serial": kwargs["device_serial"],
             "webdriver_binary": kwargs["webdriver_binary"],
-            "webdriver_args": kwargs.get("webdriver_args")}
+            "webdriver_args": kwargs.get("webdriver_args"),
+            "stackparser_script": kwargs.get("stackparser_script"),
+            "output_directory": kwargs.get("output_directory")}
 
 
 def executor_kwargs(logger, test_type, server_config, cache_manager, run_info_data,
@@ -81,10 +83,13 @@ class WeblayerShell(ChromeAndroidBrowserBase):
                  webdriver_binary="chromedriver",
                  remote_queue=None,
                  device_serial=None,
-                 webdriver_args=None):
+                 webdriver_args=None,
+                 stackparser_script=None,
+                 output_directory=None):
         """Creates a new representation of Chrome.  The `binary` argument gives
         the browser binary to use for testing."""
         super(WeblayerShell, self).__init__(logger,
-                webdriver_binary, remote_queue, device_serial, webdriver_args)
+                webdriver_binary, remote_queue, device_serial,
+                webdriver_args, stackparser_script, output_directory)
         self.binary = binary
         self.wptserver_ports = _wptserve_ports

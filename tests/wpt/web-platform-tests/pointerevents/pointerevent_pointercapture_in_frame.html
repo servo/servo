@@ -1,3 +1,6 @@
+<meta name="variant" content="?mouse">
+<meta name="variant" content="?touch">
+<meta name="variant" content="?pen">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -60,101 +63,100 @@ function Reset() {
 }
 
 function run() {
-    ALL_POINTERS.forEach(function(pointerType) {
-        promise_test (async() => {
-            Reset();
-            document.setPointerCaptureOnPointerDown = true;
-            expectedEventList = ["innerFrame received pointerdown",
-                                 "innerFrame received gotpointercapture",
-                                 "innerFrame received pointermove",
-                                 "innerFrame received pointermove",
-                                 "innerFrame received pointerup",
-                                 "innerFrame received lostpointercapture"];
-            var pointerId = pointerType + "Pointer1";
-            await new test_driver.Actions()
-                                 .addPointer(pointerId, pointerType)
-                                 .pointerMove(200, 200)
-                                 .pointerDown()
-                                 .pointerMove(150, 150)
-                                 .pointerMove(50, 50)
-                                 .pointerUp()
-                                 .send();
-            assert_array_equals(receivedEventList, expectedEventList, "Received events: " + receivedEventList);
-            document.setPointerCaptureOnPointerDown = false;
-        }, "Test " + pointerType + "pointer capture in same-origin frame: Pointer down at inner frame and set pointer capture.");
+    var pointerType = location.search.substring(1);
+    promise_test (async() => {
+        Reset();
+        document.setPointerCaptureOnPointerDown = true;
+        expectedEventList = ["innerFrame received pointerdown",
+                             "innerFrame received gotpointercapture",
+                             "innerFrame received pointermove",
+                             "innerFrame received pointermove",
+                             "innerFrame received pointerup",
+                             "innerFrame received lostpointercapture"];
+        var pointerId = pointerType + "Pointer1";
+        await new test_driver.Actions()
+                             .addPointer(pointerId, pointerType)
+                             .pointerMove(200, 200)
+                             .pointerDown()
+                             .pointerMove(150, 150)
+                             .pointerMove(50, 50)
+                             .pointerUp()
+                             .send();
+        assert_array_equals(receivedEventList, expectedEventList, "Received events: " + receivedEventList);
+        document.setPointerCaptureOnPointerDown = false;
+    }, "Test " + pointerType + "pointer capture in same-origin frame: Pointer down at inner frame and set pointer capture.");
 
-        promise_test (async() => {
-            Reset();
-            document.setPointerCaptureOnPointerDown = true;
-            expectedEventList = ["outerFrame received pointerdown",
-                                 "outerFrame received gotpointercapture",
-                                 "outerFrame received pointermove",
-                                 "outerFrame received pointerup",
-                                 "outerFrame received lostpointercapture"];
-            var pointerId = pointerType + "Pointer1";
-            await new test_driver.Actions()
-                                 .addPointer(pointerId, pointerType)
-                                 .pointerMove(25, 25)
-                                 .pointerDown()
-                                 .pointerMove(200, 200)
-                                 .pointerUp()
-                                 .send();
-            assert_array_equals(receivedEventList, expectedEventList, "Received events: " + receivedEventList);
-            document.setPointerCaptureOnPointerDown = false;
-        }, "Test " + pointerType + "pointer capture in same-origin frame: Pointer down at outer frame body and set pointer capture.");
-
-
-        promise_test (async() => {
-            Reset();
-            document.setPointerCaptureOnPointerDown = true;
-            document.releasePointerCaptureOnFirstMove = true;
-            // Mouse event has the frame capture, so after pointer capture released, events are
-            // dispatched to innerFrameDocument.
-            expectedEventList = ["innerFrame received pointerdown",
-                                 "innerFrame received gotpointercapture",
-                                 "innerFrame received pointermove",
-                                 "innerFrame received lostpointercapture",
-                                 (pointerType == "touch" ? "outerFrame": "innerFrameDocument") + " received pointermove",
-                                 (pointerType == "touch" ? "outerFrame": "innerFrameDocument") + " received pointerup",];
-            var pointerId = pointerType + "Pointer1";
-            await new test_driver.Actions()
-                                 .addPointer(pointerId, pointerType)
-                                 .pointerMove(200, 200)
-                                 .pointerDown()
-                                 .pointerMove(150, 150)
-                                 .pointerMove(50, 50)
-                                 .pointerUp()
-                                 .send();
-            assert_array_equals(receivedEventList, expectedEventList, "Received events: " + receivedEventList);
-            document.releasePointerCaptureOnFirstMove = false;
-            document.setPointerCaptureOnPointerDown = false;
-        }, "Test " + pointerType + "pointer capture in same-origin frame: Pointerdown with set capture at inner frame, then release on next pointermove.");
+    promise_test (async() => {
+        Reset();
+        document.setPointerCaptureOnPointerDown = true;
+        expectedEventList = ["outerFrame received pointerdown",
+                             "outerFrame received gotpointercapture",
+                             "outerFrame received pointermove",
+                             "outerFrame received pointerup",
+                             "outerFrame received lostpointercapture"];
+        var pointerId = pointerType + "Pointer1";
+        await new test_driver.Actions()
+                             .addPointer(pointerId, pointerType)
+                             .pointerMove(25, 25)
+                             .pointerDown()
+                             .pointerMove(200, 200)
+                             .pointerUp()
+                             .send();
+        assert_array_equals(receivedEventList, expectedEventList, "Received events: " + receivedEventList);
+        document.setPointerCaptureOnPointerDown = false;
+    }, "Test " + pointerType + "pointer capture in same-origin frame: Pointer down at outer frame body and set pointer capture.");
 
 
-        promise_test (async() => {
-            Reset();
-            document.setPointerCaptureOnPointerDown = true;
-            document.releasePointerCaptureOnFirstMove = true;
-            expectedEventList = ["outerFrame received pointerdown",
-                                 "outerFrame received gotpointercapture",
-                                 "outerFrame received pointermove",
-                                 "outerFrame received lostpointercapture",
-                                 "innerFrame received pointermove",
-                                 "innerFrame received pointerup"];
-            var pointerId = pointerType + "Pointer1";
-            await new test_driver.Actions()
-                                 .addPointer(pointerId, pointerType)
-                                 .pointerMove(50, 50)
-                                 .pointerDown()
-                                 .pointerMove(200, 200)
-                                 .pointerMove(250, 250)
-                                 .pointerUp()
-                                 .send();
-            assert_array_equals(receivedEventList, expectedEventList, "Received events: " + receivedEventList);
-            document.releasePointerCaptureOnFirstMove = false;
-            document.setPointerCaptureOnPointerDown = false;
-        }, "Test " + pointerType + "pointer capture in same-origin frame: Pointerdown with set capture at outer frame, then release on next pointermove.");
-    });
+    promise_test (async() => {
+        Reset();
+        document.setPointerCaptureOnPointerDown = true;
+        document.releasePointerCaptureOnFirstMove = true;
+        // Mouse event has the frame capture, so after pointer capture released, events are
+        // dispatched to innerFrameDocument.
+        expectedEventList = ["innerFrame received pointerdown",
+                             "innerFrame received gotpointercapture",
+                             "innerFrame received pointermove",
+                             "innerFrame received lostpointercapture",
+                             (pointerType == "touch" ? "outerFrame": "innerFrameDocument") + " received pointermove",
+                             (pointerType == "touch" ? "outerFrame": "innerFrameDocument") + " received pointerup",];
+        var pointerId = pointerType + "Pointer1";
+        await new test_driver.Actions()
+                             .addPointer(pointerId, pointerType)
+                             .pointerMove(200, 200)
+                             .pointerDown()
+                             .pointerMove(150, 150)
+                             .pointerMove(50, 50)
+                             .pointerUp()
+                             .send();
+        assert_array_equals(receivedEventList, expectedEventList, "Received events: " + receivedEventList);
+        document.releasePointerCaptureOnFirstMove = false;
+        document.setPointerCaptureOnPointerDown = false;
+    }, "Test " + pointerType + "pointer capture in same-origin frame: Pointerdown with set capture at inner frame, then release on next pointermove.");
+
+
+    promise_test (async() => {
+        Reset();
+        document.setPointerCaptureOnPointerDown = true;
+        document.releasePointerCaptureOnFirstMove = true;
+        expectedEventList = ["outerFrame received pointerdown",
+                             "outerFrame received gotpointercapture",
+                             "outerFrame received pointermove",
+                             "outerFrame received lostpointercapture",
+                             "innerFrame received pointermove",
+                             "innerFrame received pointerup"];
+        var pointerId = pointerType + "Pointer1";
+        await new test_driver.Actions()
+                             .addPointer(pointerId, pointerType)
+                             .pointerMove(50, 50)
+                             .pointerDown()
+                             .pointerMove(200, 200)
+                             .pointerMove(250, 250)
+                             .pointerUp()
+                             .send();
+        assert_array_equals(receivedEventList, expectedEventList, "Received events: " + receivedEventList);
+        document.releasePointerCaptureOnFirstMove = false;
+        document.setPointerCaptureOnPointerDown = false;
+    }, "Test " + pointerType + "pointer capture in same-origin frame: Pointerdown with set capture at outer frame, then release on next pointermove.");
 }
 </script>
 

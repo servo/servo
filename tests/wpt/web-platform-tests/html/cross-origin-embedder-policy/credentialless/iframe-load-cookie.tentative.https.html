@@ -1,0 +1,108 @@
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="./resources/common.js"></script>
+<script src="./resources/dispatcher.js"></script>
+<script>
+
+const same_origin = get_host_info().HTTPS_ORIGIN;
+const cross_origin = get_host_info().HTTPS_REMOTE_ORIGIN;
+const cookie_key = "coep_credentialless_iframe_load_cookie";
+const cookie_same_origin = "same_origin";
+const cookie_cross_origin = "cross_origin";
+
+// Open a new window with a given |origin|, loaded with COEP:credentialless. The
+// new document will execute any scripts sent toward the token it returns.
+const newCredentiallessWindow = (origin) => {
+  const main_document_token = token();
+  const url = origin + executor_path + coep_credentialless +
+    `&uuid=${main_document_token}`;
+  const w = window.open(url);
+  add_completion_callback(() => w.close());
+  return main_document_token;
+};
+
+// Create a new iframe, loaded with COEP:credentialless.
+// The new document will execute any scripts sent toward the token it returns.
+const newCredentiallessIframe = (parent_token, child_origin) => {
+  const sub_document_token = token();
+  const iframe_url = child_origin + executor_path + coep_credentialless +
+    `&uuid=${sub_document_token}`;
+  send(parent_token, `
+    let iframe = document.createElement("iframe");
+    iframe.src = "${iframe_url}";
+    document.body.appendChild(iframe);
+  `)
+  return sub_document_token;
+};
+
+// Fetch a resource, returns the HTTP request cookies.
+const cookieFromResource = async (document_token, resource_origin) => {
+  const resource_token = token();
+  send(document_token, `
+    let img = document.createElement("img");
+    img.src = "${showRequestHeaders(resource_origin, resource_token)}";
+    document.body.appendChild(img);
+  `);
+  let headers = JSON.parse(await receive(resource_token));
+  return parseCookies(headers)[cookie_key];
+};
+
+promise_test_parallel(async test => {
+  // Set cookie on same_origin.
+  document.cookie = `${cookie_key}=${cookie_same_origin}`;
+
+  // Set cookie on cross_origin.
+  {
+    const w_token = token();
+    const w_url = cross_origin + executor_path + `&uuid=${w_token}`;
+    const w = window.open(w_url);
+
+    const reply_token = token();
+    send(w_token, `
+      document.cookie = "${cookie_key}=${cookie_cross_origin}";
+      send("${reply_token}", "done");
+    `);
+    assert_equals(await receive(reply_token), "done");
+    w.close();
+  }
+
+  let credentialless_window = newCredentiallessWindow(same_origin);
+
+  let iframe_same_origin =
+    newCredentiallessIframe(credentialless_window, same_origin);
+  let iframe_cross_origin =
+    newCredentiallessIframe(credentialless_window, cross_origin);
+
+  promise_test_parallel(async test => {
+    assert_equals(
+      await cookieFromResource(iframe_same_origin, same_origin),
+      cookie_same_origin
+    );
+  }, "same_origin iframe can send same_origin credentials");
+
+  promise_test_parallel(async test => {
+    assert_equals(
+      await cookieFromResource(iframe_same_origin, cross_origin),
+      undefined
+    );
+  }, "same_origin iframe can't send cross_origin credentials");
+
+  promise_test_parallel(async test => {
+    assert_equals(
+      await cookieFromResource(iframe_cross_origin, cross_origin),
+      undefined
+    );
+  }, "cross_origin iframe can send cross_origin credentials");
+
+  promise_test_parallel(async test => {
+    assert_equals(
+      await cookieFromResource(iframe_cross_origin, same_origin),
+      undefined
+    );
+  }, "Cross origin iframe can't send same_origin credentials");
+
+}, "Setup")
+
+</script>
