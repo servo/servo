@@ -204,19 +204,13 @@ impl App {
             }
         });
 
-        // FIXME: this could be handled by Servo. We don't need
-        // a repaint_synchronously function exposed.
-        let need_resize = app_events.iter().any(|e| match *e {
-            WindowEvent::Resize => true,
-            _ => false,
-        });
-
         browser.handle_window_events(app_events);
 
         let mut servo_events = self.servo.as_mut().unwrap().get_events();
+        let mut need_resize = false;
         loop {
             browser.handle_servo_events(servo_events);
-            self.servo.as_mut().unwrap().handle_events(browser.get_events());
+            need_resize |= self.servo.as_mut().unwrap().handle_events(browser.get_events());
             if browser.shutdown_requested() {
                 return true;
             }
