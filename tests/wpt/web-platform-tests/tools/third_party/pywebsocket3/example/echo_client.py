@@ -599,8 +599,14 @@ class EchoClient(object):
 
 
 def main():
+    # Force Python 2 to use the locale encoding, even when the output is not a
+    # tty. This makes the behaviour the same as Python 3. The encoding won't
+    # necessarily support all unicode characters. This problem is particularly
+    # prevalent on Windows.
     if six.PY2:
-        sys.stdout = codecs.getwriter('utf-8')(sys.stdout)
+        import locale
+        encoding = locale.getpreferredencoding()
+        sys.stdout = codecs.getwriter(encoding)(sys.stdout)
 
     parser = argparse.ArgumentParser()
     # We accept --command_line_flag style flags which is the same as Google
@@ -636,7 +642,7 @@ def main():
         '--message',
         dest='message',
         type=six.text_type,
-        default=u'Hello,\u65e5\u672c',
+        default=u'Hello,<>',
         help=('comma-separated messages to send. '
               '%s will force close the connection from server.' %
               _GOODBYE_MESSAGE))

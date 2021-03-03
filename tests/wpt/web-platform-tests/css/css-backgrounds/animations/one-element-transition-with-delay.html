@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#background-color">
+<link rel="match" href="one-element-transition-with-delay-ref.html">
+<style>
+.container {
+  width: 100px;
+  height: 100px;
+  background-color: rgb(0, 200, 0);
+  transition: background-color 200000ms steps(2) -99995ms;
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<body>
+<div class="container" id="target"></div>
+
+<script>
+// This test differs from "one-element-transition.html" because it runs the
+// transition starting from the set background color, rather than using a
+// delay to start in the middle of the transition. This tests a new codepath
+// where the first frame of the transition has the original background color,
+// which is why we need the transition fully running. Since we are using the
+// step(2) in the animation, so it is enough to wait for 5ms and the animation
+// should be in its mid-point, that's the time we should take screenshot.
+let start_time;
+function startTransition(timestamp) {
+  document.getElementById('target').style.backgroundColor = "rgb(200, 0, 0)";
+  requestAnimationFrame(startTimer);
+}
+
+function startTimer(timestamp) {
+  start_time = timestamp;
+  requestAnimationFrame(wait);
+}
+
+function wait(timestamp) {
+  if (timestamp - start_time <= 5) {
+    requestAnimationFrame(wait);
+    return;
+  }
+  takeScreenshot();
+}
+
+requestAnimationFrame(startTransition);
+</script>
+</body>
+</html>

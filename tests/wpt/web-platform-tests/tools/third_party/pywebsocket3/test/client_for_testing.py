@@ -303,7 +303,7 @@ class WebSocketHandshake(object):
                                 self._options.server_port,
                                 self._options.use_tls))
 
-        if self._options.version is 8:
+        if self._options.version == 8:
             fields.append(_sec_origin_header(self._options.origin))
         else:
             fields.append(_origin_header(self._options.origin))

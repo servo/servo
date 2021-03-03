@@ -64,8 +64,8 @@ function clone_frame(frame) {
 
 promise_test(async t => {
   let sample_rate = 48000;
-  let total_duration_s = 2;
-  let frame_count = 20;
+  let total_duration_s = 1;
+  let frame_count = 10;
   let outputs = [];
   let init = {
     error: e => {
@@ -89,11 +89,11 @@ promise_test(async t => {
   encoder.configure(config);
 
   let timestamp_us = 0;
+  let frame_duration_s = total_duration_s / frame_count;
+  let frame_length = frame_duration_s * config.sampleRate;
   for (let i = 0; i < frame_count; i++) {
-    let frame_duration_s = total_duration_s / frame_count;
-    let length = frame_duration_s * config.sampleRate;
     let frame = make_audio_frame(timestamp_us, config.numberOfChannels,
-      config.sampleRate, length);
+      config.sampleRate, frame_length);
     encoder.encode(frame);
     timestamp_us += frame_duration_s * 1_000_000;
   }
@@ -191,8 +191,8 @@ sampleRateVariationTests();
 
 promise_test(async t => {
   let sample_rate = 48000;
-  let total_duration_s = 2;
-  let frame_count = 20;
+  let total_duration_s = 1;
+  let frame_count = 10;
   let input_frames = [];
   let output_frames = [];
 
@@ -252,7 +252,9 @@ promise_test(async t => {
   for (let channel = 0; channel < total_input.numberOfChannels; channel++) {
     let input_data = total_input.getChannelData(channel);
     let output_data = total_output.getChannelData(channel);
-    for (let i = 0; i < total_input.length; i++) {
+    for (let i = 0; i < total_input.length; i += 10) {
+      // Checking only every 10th sample to save test time in slow
+      // configurations like MSAN etc.
       assert_approx_equals(input_data[i], output_data[i], 0.5,
         "Difference between input and output is too large."
         + " index: " + i

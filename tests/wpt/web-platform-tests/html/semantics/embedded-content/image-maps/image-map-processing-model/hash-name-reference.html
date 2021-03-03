@@ -31,7 +31,7 @@ onload = function() {
       [img, object].forEach(function(elm) {
         test(function(t) {
           var expected = div.getAttribute('data-expect');
-          var expected_elm = expected === 'no match' ? elm : div.querySelector('area[href="#' + expected + '"]');
+          var expected_elm = (expected === 'no match' || elm === object) ? elm : div.querySelector('area[href="#' + expected + '"]');
           var got_elm = doc.elementFromPoint(elm.offsetLeft, elm.offsetTop);
           assert_not_equals(expected_elm, null, 'sanity check (data-expect value wrong?)');
           assert_not_equals(got_elm, null, 'sanity check (too many tests to fit in viewport?)');

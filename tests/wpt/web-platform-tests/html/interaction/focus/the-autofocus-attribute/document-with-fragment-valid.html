@@ -12,6 +12,7 @@ promise_test(async () => {
   await waitForLoad(window);
   const iframe = document.querySelector('iframe');
   iframe.contentWindow.location.hash = 'anchor1';
+  await waitForEvent(iframe.contentWindow, 'hashchange');
   const doc = iframe.contentDocument;
   assert_true(!!doc.querySelector(':target'));
 
@@ -26,6 +27,7 @@ promise_test(async () => {
   let w = window.open('resources/frame-with-anchor.html');
   await waitForLoad(w);
   w.location.hash = 'anchor1';
+  await waitForEvent(w, 'hashchange');
   const doc = w.document;
   assert_true(!!doc.querySelector(':target'));
 
