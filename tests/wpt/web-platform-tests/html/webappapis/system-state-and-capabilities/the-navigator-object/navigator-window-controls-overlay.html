@@ -34,4 +34,8 @@
     assert_equals(rect.width, 0);
     assert_equals(rect.height, 0);
   }, 'getBoundingClientRect should return a empty DOMRect');
+
+  test(function(){
+    assert_idl_attribute(navigator.windowControlsOverlay, 'ongeometrychange');
+  }, 'ongeometrychange should be a member of the windowControlsOverlay object');
 </script>

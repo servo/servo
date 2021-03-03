@@ -93,41 +93,47 @@ promise_test(async t => {
 }, 'Test successful configure(), encode(), and flush()');
 
 promise_test(async t => {
+  let timestamp = 0;
   let callbacks_before_reset = 0;
   let callbacks_after_reset = 0;
+  const timestamp_step = 40000;
+  const expected_callbacks_before_reset = 3;
   let codecInit = getDefaultCodecInit(t);
+  let bitmap = await generateBitmap(320, 200);
+  let encoder = null;
+  let reset_completed = false;
   codecInit.output = chunk => {
     if (chunk.timestamp % 2 == 0) {
       // pre-reset frames have even timestamp
       callbacks_before_reset++;
+      if (callbacks_before_reset == expected_callbacks_before_reset) {
+        encoder.reset();
+        reset_completed = true;
+      }
     } else {
       // after-reset frames have odd timestamp
       callbacks_after_reset++;
     }
   }
 
-  let encoder = new VideoEncoder(codecInit);
+  encoder = new VideoEncoder(codecInit);
   encoder.configure(defaultConfig);
   await encoder.flush();
 
-  let frames = [];
-  for (let i = 0; i < 200; i++) {
-    let frame = await createVideoFrame(640, 480, i * 40_000);
-    frames.push(frame);
+  // Send 10x frames to the encoder, call reset() on it after x outputs,
+  // and make sure no more chunks are emitted afterwards.
+  let encodes_before_reset = expected_callbacks_before_reset * 10;
+  for (let i = 0; i < encodes_before_reset; i++) {
+    let frame = new VideoFrame(bitmap, { timestamp: timestamp });
+    timestamp += timestamp_step;
+    encoder.encode(frame);
   }
 
-  for (frame of frames)
-    encoder.encode(frame);
+  await t.step_wait(() => reset_completed,
+    "Reset() should be called by output callback", 10000, 1);
 
-  // Wait for the first frame to be encoded
-  await t.step_wait(() => callbacks_before_reset > 0,
-    "Encoded outputs started coming", 10000, 1);
-
-  let saved_callbacks_before_reset = callbacks_before_reset;
-  assert_greater_than(callbacks_before_reset, 0);
-  assert_less_than_equal(callbacks_before_reset, frames.length);
-
-  encoder.reset();
+  assert_equals(callbacks_before_reset, expected_callbacks_before_reset);
+  assert_true(reset_completed);
   assert_equals(encoder.encodeQueueSize, 0);
 
   let newConfig = { ...defaultConfig };
@@ -135,13 +141,18 @@ promise_test(async t => {
   newConfig.height = 600;
   encoder.configure(newConfig);
 
-  for (let i = frames.length; i < frames.length + 5; i++) {
-    let frame = await createVideoFrame(800, 600, i * 40_000 + 1);
+  const frames_after_reset = 5;
+  for (let i = 0; i < frames_after_reset; i++) {
+    let frame = await createVideoFrame(800, 600, timestamp + 1);
+    timestamp += timestamp_step;
     encoder.encode(frame);
   }
   await encoder.flush();
-  assert_equals(callbacks_after_reset, 5);
-  assert_equals(saved_callbacks_before_reset, callbacks_before_reset);
+
+  assert_equals(callbacks_after_reset, frames_after_reset,
+    "not all after-reset() outputs have been emitted");
+  assert_equals(callbacks_before_reset, expected_callbacks_before_reset,
+    "pre-reset() outputs were emitter after reset() and flush()");
   assert_equals(encoder.encodeQueueSize, 0);
 }, 'Test successful reset() and re-confiugre()');
 

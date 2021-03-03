@@ -97,25 +97,6 @@ def get_script_interp(script_path, cygwin_path=None):
     return None
 
 
-def wrap_popen3_for_win(cygwin_path):
-    """Wrap popen3 to support #!-script on Windows.
-
-    Args:
-      cygwin_path:  path for cygwin binary if command path is needed to be
-                    translated.  None if no translation required.
-    """
-    __orig_popen3 = os.popen3
-
-    def __wrap_popen3(cmd, mode='t', bufsize=-1):
-        cmdline = cmd.split(' ')
-        interp = get_script_interp(cmdline[0], cygwin_path)
-        if interp:
-            cmd = interp + ' ' + cmd
-        return __orig_popen3(cmd, mode, bufsize)
-
-    os.popen3 = __wrap_popen3
-
-
 def hexify(s):
     return ' '.join(['%02x' % x for x in six.iterbytes(s)])
 

@@ -89,8 +89,8 @@ def install_android_packages(logger, sdk_path, no_prompt=False):
 
     #TODO: Not sure what's really needed here
     packages = ["platform-tools",
-                "build-tools;29.0.3",
-                "platforms;android-29",
+                "build-tools;30.0.2",
+                "platforms;android-30",
                 "emulator"]
 
     # TODO: make this work non-internactively

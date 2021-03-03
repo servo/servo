@@ -314,8 +314,9 @@ interface mixin SVGElementInstance {
   [SameObject] readonly attribute SVGUseElement? correspondingUseElement;
 };
 
-[Constructor(Animation source, Animatable newTarget), Exposed=Window]
+[Exposed=Window]
 interface ShadowAnimation : Animation {
+  constructor(Animation source, Animatable newTarget);
   [SameObject] readonly attribute Animation sourceAnimation;
 };
 

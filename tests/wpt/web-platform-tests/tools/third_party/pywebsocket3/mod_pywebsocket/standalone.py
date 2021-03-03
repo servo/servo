@@ -403,8 +403,7 @@ def _parse_args_and_config(args):
 def _main(args=None):
     """You can call this function from your own program, but please note that
     this function has some side-effects that might affect your program. For
-    example, util.wrap_popen3_for_win use in this method replaces implementation
-    of os.popen3.
+    example, it changes the current directory.
     """
 
     options, args = _parse_args_and_config(args=args)
@@ -427,7 +426,6 @@ def _main(args=None):
             # full path of third_party/cygwin/bin.
             if 'CYGWIN_PATH' in os.environ:
                 cygwin_path = os.environ['CYGWIN_PATH']
-            util.wrap_popen3_for_win(cygwin_path)
 
             def __check_script(scriptpath):
                 return util.get_script_interp(scriptpath, cygwin_path)
