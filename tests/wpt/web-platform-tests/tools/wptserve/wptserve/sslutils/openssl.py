@@ -318,7 +318,7 @@ class OpenSSLEnvironment(object):
             end_date_str = openssl("x509",
                                    "-noout",
                                    "-enddate",
-                                   "-in", cert_path).split("=", 1)[1].strip()
+                                   "-in", cert_path).decode("utf8").split("=", 1)[1].strip()
             # Not sure if this works in other locales
             end_date = datetime.strptime(end_date_str, "%b %d %H:%M:%S %Y %Z")
             time_buffer = timedelta(**CERT_EXPIRY_BUFFER)

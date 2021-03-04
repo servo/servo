@@ -446,3 +446,11 @@ test(t => {
 
   frame.close();
 }, 'Test VideoFrame constructed VideoFrame');
+
+test(t => {
+  let canvas = makeOffscreenCanvas(16, 16);
+  let frame = new VideoFrame(canvas);
+  assert_equals(frame.displayWidth, 16);
+  assert_equals(frame.displayHeight, 16);
+  frame.close();
+}, 'Test we can construct a VideoFrame from an offscreen canvas.');
