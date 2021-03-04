@@ -206,17 +206,33 @@ class FakeDevice {
     return Promise.resolve({ success: true });
   }
 
-  claimInterface(interfaceNumber) {
+  async claimInterface(interfaceNumber) {
     assert_true(this.opened_);
     assert_false(this.currentConfiguration_ == null, 'device configured');
     assert_false(this.claimedInterfaces_.has(interfaceNumber),
                  'interface already claimed');
 
-    // Blink should never request an invalid interface.
-    assert_true(this.currentConfiguration_.interfaces.some(
-            iface => iface.interfaceNumber == interfaceNumber));
+    const protectedInterfaces = new Set([
+      mojom.USB_AUDIO_CLASS,
+      mojom.USB_HID_CLASS,
+      mojom.USB_MASS_STORAGE_CLASS,
+      mojom.USB_SMART_CARD_CLASS,
+      mojom.USB_VIDEO_CLASS,
+      mojom.USB_AUDIO_VIDEO_CLASS,
+      mojom.USB_WIRELESS_CLASS,
+    ]);
+
+    let iface = this.currentConfiguration_.interfaces.find(
+        iface => iface.interfaceNumber == interfaceNumber);
+    // Blink should never request an invalid interface or alternate.
+    assert_false(iface == undefined);
+    if (iface.alternates.some(
+            alt => protectedInterfaces.has(alt.interfaceClass))) {
+      return {result: mojom.UsbClaimInterfaceResult.kProtectedClass};
+    }
+
     this.claimedInterfaces_.set(interfaceNumber, 0);
-    return Promise.resolve({ success: true });
+    return {result: mojom.UsbClaimInterfaceResult.kSuccess};
   }
 
   releaseInterface(interfaceNumber) {

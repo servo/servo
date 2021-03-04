@@ -1,0 +1,46 @@
+<title>Test ImageDecoder outputs to a image-orientation: none canvas.</title>
+<canvas style="image-orientation: none"></canvas>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webcodecs/image-decoder-utils.js"></script>
+<script>
+promise_test(t => {
+  return testFourColorDecodeWithExifOrientation(
+      1, document.querySelector('canvas'));
+}, 'Test JPEG w/ EXIF orientation top-left on canvas w/o orientation');
+
+promise_test(t => {
+  return testFourColorDecodeWithExifOrientation(
+      2, document.querySelector('canvas'));
+}, 'Test JPEG w/ EXIF orientation top-right on canvas w/o orientation.');
+
+promise_test(t => {
+  return testFourColorDecodeWithExifOrientation(
+      3, document.querySelector('canvas'));
+}, 'Test JPEG w/ EXIF orientation bottom-right on canvas w/o orientation.');
+
+promise_test(t => {
+  return testFourColorDecodeWithExifOrientation(
+      4, document.querySelector('canvas'));
+}, 'Test JPEG w/ EXIF orientation bottom-left on canvas w/o orientation.');
+
+promise_test(t => {
+  return testFourColorDecodeWithExifOrientation(
+      5, document.querySelector('canvas'));
+}, 'Test JPEG w/ EXIF orientation left-top on canvas w/o orientation.');
+
+promise_test(t => {
+  return testFourColorDecodeWithExifOrientation(
+      6, document.querySelector('canvas'));
+}, 'Test JPEG w/ EXIF orientation right-top on canvas w/o orientation.');
+
+promise_test(t => {
+  return testFourColorDecodeWithExifOrientation(
+      7, document.querySelector('canvas'));
+}, 'Test JPEG w/ EXIF orientation right-bottom on canvas w/o orientation.');
+
+promise_test(t => {
+  return testFourColorDecodeWithExifOrientation(
+      8, document.querySelector('canvas'));
+}, 'Test JPEG w/ EXIF orientation left-bottom on canvas w/o orientation.');
+</script>

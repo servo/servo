@@ -17,6 +17,35 @@ function load_image(path) {
   });
 }
 
+function assert_ordered(entry, attributes) {
+  let before = attributes[0];
+  attributes.slice(1).forEach(after => {
+    assert_greater_than_equal(entry[after], entry[before],
+      `${after} should be greater than ${before}`);
+    before = after;
+  });
+}
+
+function assert_zeroed(entry, attributes) {
+  attributes.forEach(attribute => {
+    assert_equals(entry[attribute], 0, `${attribute} should be 0`);
+  });
+}
+
+function assert_not_negative(entry, attributes) {
+  attributes.forEach(attribute => {
+    assert_greater_than_equal(entry[attribute], 0,
+      `${attribute} should be greater than or equal to 0`);
+  });
+}
+
+function assert_positive(entry, attributes) {
+  attributes.forEach(attribute => {
+    assert_greater_than(entry[attribute], 0,
+      `${attribute} should be greater than 0`);
+  });
+}
+
 promise_test(async () => {
   // Clean up entries from scripts includes.
   performance.clearResourceTimings();
@@ -25,8 +54,38 @@ promise_test(async () => {
   if (entry_list.length != 1) {
     throw new Error("There should be one entry for one resource");
   }
-  assert_true(entry_list[0].name.includes('#hash=1'),
-      "There should be a hash in the resource name");
+  const entry = entry_list[0];
+  assert_true(entry.name.includes('#hash=1'),
+    "There should be a hash in the resource name");
+
+  assert_ordered(entry, [
+    "fetchStart",
+    "domainLookupStart",
+    "domainLookupEnd",
+    "connectStart",
+    "connectEnd",
+    "requestStart",
+    "responseStart",
+    "responseEnd",
+  ]);
+
+  assert_zeroed(entry, [
+    "workerStart",
+    "secureConnectionStart",
+    "redirectStart",
+    "redirectEnd",
+  ]);
+
+  assert_not_negative(entry, [
+    "duration",
+  ]);
+
+  assert_positive(entry, [
+    "fetchStart",
+    "transferSize",
+    "encodedBodySize",
+    "decodedBodySize",
+  ]);
 }, "URL fragments should be present in the 'name' attribute");
 
 </script>

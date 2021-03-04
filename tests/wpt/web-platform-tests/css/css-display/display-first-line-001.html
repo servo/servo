@@ -23,20 +23,20 @@
 <div id="t7">First line is flex but not float.</div>
 <div id="t8">First line is not float or flex.</div>
 <script>
-  function getFistLetterDisplayFor(id) {
+  function getFirstLetterDisplayFor(id) {
     return window.getComputedStyle(document.getElementById(id), "::first-letter").display;
   }
-  function getFistLineDisplayFor(id) {
+  function getFirstLineDisplayFor(id) {
     return window.getComputedStyle(document.getElementById(id), "::first-line").display;
   }
   test(function() {
-    assert_equals(getFistLetterDisplayFor("t1"), "block");
-    assert_equals(getFistLetterDisplayFor("t2"), "block");
-    assert_equals(getFistLetterDisplayFor("t3"), "inline");
-    assert_equals(getFistLetterDisplayFor("t4"), "inline");
-    assert_equals(getFistLineDisplayFor("t5"), "inline");
-    assert_equals(getFistLineDisplayFor("t6"), "inline");
-    assert_equals(getFistLineDisplayFor("t7"), "inline");
-    assert_equals(getFistLineDisplayFor("t8"), "inline");
+    assert_equals(getFirstLetterDisplayFor("t1"), "block");
+    assert_equals(getFirstLetterDisplayFor("t2"), "block");
+    assert_equals(getFirstLetterDisplayFor("t3"), "inline");
+    assert_equals(getFirstLetterDisplayFor("t4"), "inline");
+    assert_equals(getFirstLineDisplayFor("t5"), "inline");
+    assert_equals(getFirstLineDisplayFor("t6"), "inline");
+    assert_equals(getFirstLineDisplayFor("t7"), "inline");
+    assert_equals(getFirstLineDisplayFor("t8"), "inline");
   }, "display of first-letter and first-line");
 </script>

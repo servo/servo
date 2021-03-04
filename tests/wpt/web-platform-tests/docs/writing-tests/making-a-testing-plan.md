@@ -381,13 +381,14 @@ all), you can review the contents of the `fetch/` directory in WPT. Here's how
 that looks on a UNIX-like command line:
 
     $ ls fetch
-    api/                           data-urls/   range/
-    content-encoding/              http-cache/  README.md
-    content-length/                images/      redirect-navigate/
-    content-type/                  metadata/    security/
-    corb/                          META.yml     stale-while-revalidate/
-    cors-rfc1918/                  nosniff/
-    cross-origin-resource-policy/  origin/
+    api/                           DIR_METADATA  OWNERS
+    connection-pool/               h1-parsing/   private-network-access/
+    content-encoding/              http-cache/   range/
+    content-length/                images/       README.md
+    content-type/                  metadata/     redirect-navigate/
+    corb/                          META.yml      redirects/
+    cross-origin-resource-policy/  nosniff/      security/
+    data-urls/                     origin/       stale-while-revalidate/
 
 This test is for a behavior directly exposed through the API, so we should look
 in the `api/` directory:

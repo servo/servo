@@ -1,11 +1,13 @@
-function makeImageBitmap(width, height) {
+function makeOffscreenCanvas(width, height) {
   let canvas = new OffscreenCanvas(width, height);
-
   let ctx = canvas.getContext('2d');
   ctx.fillStyle = 'rgba(50, 100, 150, 255)';
   ctx.fillRect(0, 0, width, height);
+  return canvas;
+}
 
-  return canvas.transferToImageBitmap();
+function makeImageBitmap(width, height) {
+  return makeOffscreenCanvas(width, height).transferToImageBitmap();
 }
 
 // Gives a chance to pending output and error callbacks to complete before
