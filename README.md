@@ -75,10 +75,10 @@ sudo apt install python-virtualenv python-pip
 If you are on Ubuntu 20.04 or higher you need to do the following to install the missing python2 bits:
 
 ```sh
-curl https://bootstrap.pypa.io/2.7/get-pip.py -sSf -o get-pip.py -sSf -o get-pip.py
-python2 get-pip.py
-python2 -m pip install virtualenv
-sudo apt install python-dev
+curl https://bootstrap.pypa.io/get-pip.py -sSf -o get-pip.py -sSf -o get-pip.py
+python get-pip.py
+python -m pip install virtualenv
+sudo apt install python3-dev
 ```
 
 If `./mach bootstrap` doesn't work, file a bug, and, run the commands below:
