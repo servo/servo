@@ -708,4 +708,17 @@
     }, "Cross-document references and moves.");
   </script>
 
+  <!-- TODO(chrishall): add additional GC test covering:
+       if an element is in an invalid scope but attached to the document, it's
+       not GC'd;
+  -->
+
+  <!-- TODO(chrishall): add additional GC test covering:
+       if an element is not attached to the document, but is in a tree fragment
+       which is not GC'd because there is a script reference to another element
+       in the tree fragment, and the relationship is valid because it is between
+       two elements in that tree fragment, the relationship is exposed *and* the
+       element is not GC'd
+  -->
+
 </html>

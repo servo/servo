@@ -123,6 +123,21 @@ def configuration():
     }
 
 
+async def reset_current_session_if_necessary(caps, request_bidi):
+    global _current_session
+
+    # If there is a session with different capabilities active or the current session
+    # is of different type than the one we would like to create, end it now.
+    if _current_session is not None:
+        is_bidi = isinstance(_current_session, webdriver.BidiSession)
+        if is_bidi != request_bidi or not _current_session.match(caps):
+            if is_bidi:
+                await _current_session.end()
+            else:
+                _current_session.end()
+            _current_session = None
+
+
 @pytest.fixture(scope="function")
 async def session(capabilities, configuration, request):
     """Create and start a session for a test that does not itself test session creation.
@@ -139,17 +154,7 @@ async def session(capabilities, configuration, request):
     deep_update(caps, capabilities)
     caps = {"alwaysMatch": caps}
 
-    is_cur_bidi = isinstance(_current_session, webdriver.BidiSession)
-    # If there is a session with different capabilities active or the current session
-    # is of different type than the one we would like to create, end it now.
-    if _current_session is not None:
-        is_bidi = isinstance(_current_session, webdriver.BidiSession)
-        if is_bidi or caps != _current_session.requested_capabilities:
-            if is_bidi:
-                await _current_session.end()
-            else:
-                _current_session.end()
-            _current_session = None
+    await reset_current_session_if_necessary(caps, False)
 
     if _current_session is None:
         _current_session = webdriver.Session(
@@ -188,21 +193,13 @@ async def bidi_session(capabilities, configuration, request):
     deep_update(caps, capabilities)
     caps = {"alwaysMatch": caps}
 
-    if _current_session is not None:
-        is_bidi = isinstance(_current_session, webdriver.BidiSession)
-        if not is_bidi or not _current_session.match(caps):
-            if is_bidi:
-                await _current_session.end()
-            else:
-                _current_session.end()
-            _current_session = None
+    await reset_current_session_if_necessary(caps, True)
 
     if _current_session is None:
         _current_session = webdriver.BidiSession(
             configuration["host"],
             configuration["port"],
             capabilities=caps)
-
     try:
         await _current_session.start()
 

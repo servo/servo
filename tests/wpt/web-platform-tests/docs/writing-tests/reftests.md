@@ -162,6 +162,22 @@ One meta element is required per reference requiring a unique
 fuzziness value, but any unprefixed value will automatically be
 applied to any ref that doesn't have a more specific value.
 
+### Debugging fuzzy reftests
+
+When debugging a fuzzy reftest via `wpt run`, it can be useful to know what the
+allowed and detected differences were. Many of the output logger options will
+provide this information. For example, by passing `--log-mach=-` for a run of a
+hypothetical failing test, one might get:
+
+```
+ 0:08.15 TEST_START: /foo/bar.html
+ 0:09.70 INFO Found 250 pixels different, maximum difference per channel 6 on page 1
+ 0:09.70 INFO Allowed 0-100 pixels different, maximum difference per channel 0-0
+ 0:09.70 TEST_END: FAIL, expected PASS - /foo/bar.html ['f83385ed9c9bea168108b8c448366678c7941627']
+```
+
+For other logging flags, see the output of `wpt run --help`.
+
 ## Limitations
 
 In some cases, a test cannot be a reftest. For example, there is no

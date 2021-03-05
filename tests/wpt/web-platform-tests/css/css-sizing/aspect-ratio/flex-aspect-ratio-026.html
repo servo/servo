@@ -15,6 +15,7 @@
   .item {
     background: green;
     padding-left: 15px;
+    padding-top: 10px;
     box-sizing: border-box;
   }
   .item > div {
@@ -53,25 +54,25 @@
        because its value contains 'auto'. -->
   <div class="flexContainer" style="height: auto;">
     <!-- The content-box width 10px is transferred to the main axis,
-         yielding a resolved flex base size of 200px. -->
-    <div class="item" style="min-height:0; width: 25px; aspect-ratio: auto 1/20;"><div></div></div>
+         yielding a resolved flex base size of 190px. -->
+    <div class="item" style="min-height:0; width: 25px; aspect-ratio: auto 1/19;"><div></div></div>
   </div>
 
   <div class="flexContainer">
     <!-- The content-box width 10px is transferred to the main axis,
-         yielding a resolved min-height:auto of 200px. -->
-    <div class="item" style="width: 25px; aspect-ratio: auto 1/20;"><div></div></div>
+         yielding a resolved min-height:auto of 190px. -->
+    <div class="item" style="width: 25px; aspect-ratio: auto 1/19;"><div></div></div>
   </div>
 
   <div class="flexContainer">
     <!-- The content-box min-width 10px is transferred to the main axis,
-         yielding a resolved min-height:auto of 200px. -->
-    <div class="item" style="min-width: 25px; aspect-ratio: auto 1/20;"><div></div></div>
+         yielding a resolved min-height:auto of 190px. -->
+    <div class="item" style="min-width: 25px; aspect-ratio: auto 1/19;"><div></div></div>
   </div>
 
   <div class="flexContainer">
     <!-- The content-box width 10px (clamped by max-width) is transferred to the main axis,
-         yielding a resolved min-height:auto of 200px. -->
-    <div class="item" style="max-width: 25px; width: 100px; aspect-ratio: auto 1/20;"><div></div></div>
+         yielding a resolved min-height:auto of 190px. -->
+    <div class="item" style="max-width: 25px; width: 100px; aspect-ratio: auto 1/19;"><div></div></div>
   </div>
 </html>
