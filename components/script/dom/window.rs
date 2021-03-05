@@ -558,33 +558,6 @@ impl Window {
         }
         event.dispatch(self.upcast(), true)
     }
-
-    // https://html.spec.whatwg.org/multipage/#document-tree-child-browsing-context-name-property-set
-    fn child_browsing_context_name_property_set(&self) -> Vec<DOMString> {
-        let document = self.Document();
-        // Step 1.
-        if !document.has_browsing_context() {
-            return Vec::<DOMString>::new();
-        }
-
-        // Step 2.
-        let child_browsing_context_names = document
-            .iter_iframes()
-            .map(|iframe| iframe.GetContentWindow())
-            .filter(|window_proxy| window_proxy.is_some())
-            .map(|window_proxy| window_proxy.unwrap().get_name())
-            .filter(|name| !name.is_empty())
-            .collect::<Vec<DOMString>>();
-        // TODO(pylbrecht)
-        // - "in order"
-        // - only the first document-tree child browsing context with a given name if multiple
-        //   document-tree child browsing contexts have the same one
-
-        // TODO(pylbrecht)
-        // Step 3.
-
-        child_browsing_context_names
-    }
 }
 
 // https://html.spec.whatwg.org/multipage/#atob
@@ -1429,20 +1402,33 @@ impl WindowMethods for Window {
         if name.is_empty() {
             return None;
         }
-        let name = Atom::from(name);
         let document = self.Document();
 
-        // TODO: Handle the document-tree child browsing context name property set.
-        let _child_browsing_context_names = self.child_browsing_context_name_property_set();
+        // https://html.spec.whatwg.org/multipage/#document-tree-child-browsing-context-name-property-set
+        let iframes: Vec<_> = document
+            .iter_iframes()
+            .filter(|iframe| {
+                if let Some(window) = iframe.GetContentWindow() {
+                    return window.get_name() == name;
+                }
+                false
+            })
+            .collect();
+
+        let iframe_iter = iframes.iter().map(|iframe| iframe.upcast::<Element>());
+
+        let name = Atom::from(&*name);
 
         // Step 1.
         let elements_with_name = document.get_elements_with_name(&name);
         let name_iter = elements_with_name
             .iter()
+            .map(|element| &**element)
             .filter(|elem| is_named_element_with_name_attribute(elem));
         let elements_with_id = document.get_elements_with_id(&name);
         let id_iter = elements_with_id
             .iter()
+            .map(|element| &**element)
             .filter(|elem| is_named_element_with_id_attribute(elem));
 
         // Step 2.
@@ -1459,7 +1445,7 @@ impl WindowMethods for Window {
             }
         }
 
-        let mut elements = name_iter.chain(id_iter);
+        let mut elements = iframe_iter.chain(name_iter).chain(id_iter);
 
         let first = elements.next()?;
 
