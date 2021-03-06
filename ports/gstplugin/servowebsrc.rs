@@ -251,7 +251,7 @@ impl ServoThread {
                 ServoWebSrcMsg::Resize(size) => self.resize(size),
                 ServoWebSrcMsg::Heartbeat => {
                     self.servo.handle_events(vec![]);
-                }
+                },
                 ServoWebSrcMsg::Stop => break,
             }
         }
