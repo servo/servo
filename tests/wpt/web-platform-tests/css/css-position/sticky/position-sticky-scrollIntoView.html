@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>Scrolling to sticky position elements uses their unshifted position</title>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#stickypos-scroll" />
+<meta name="assert" content="This test checks that scrolling to sticky position elements uses their initial position" />
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+
+h1 {
+  position: sticky;
+  background: #ddd;
+  border: 1px solid black;
+  top: 0px;
+  bottom: 0px;
+}
+
+section {
+  height: 100vh;
+}
+</style>
+
+<body>
+  <h1>Title 1</h1>
+  <section></section>
+  <h1>Title 2</h1>
+  <section></section>
+  <h1>Title 3</h1>
+  <section></section>
+
+<script>
+test(() => {
+  window.scrollTo(0, 0);
+  const element = document.querySelectorAll('h1')[2];
+  element.scrollIntoView();
+  assert_approx_equals(document.scrollingElement.scrollTop, element.offsetTop, 1);
+}, 'scrolling a sticky element into view should use its unshifted position');
+</script>
+</body>
+

@@ -120,17 +120,21 @@
                 });
 
                 // Inject keyboard scroll inputs.
+                const arrow_down = "\uE015";
+                const arrow_right = "\uE014";
+
                 actions_promise = new test_driver.Actions()
                     .addPointer("mousePointer1", "mouse")
                     .pointerMove(0, 0, {origin: target0})
                     .pointerDown()
                     .pointerUp()
                     .addTick()
-                    .keyDown("\uE015")
-                    .keyUp("\uE015")
-                    .keyDown("\uE014")
-                    .keyUp("\uE014")
                     .send();
+                actions_promise = actions_promise
+                    .then(()=>test_driver.send_keys(target0, arrow_down))
+                    .then(()=>test_driver.send_keys(target0, arrow_down))
+                    .then(()=>test_driver.send_keys(target0, arrow_right))
+                    .then(()=>test_driver.send_keys(target0, arrow_right));
             }
 
             function updateDescriptionNextStepKeyboard() {

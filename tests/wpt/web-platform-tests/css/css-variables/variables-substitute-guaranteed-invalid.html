@@ -30,15 +30,15 @@
         let cs = getComputedStyle(target1);
         assert_equals(cs.getPropertyValue('--var1'), '');
         assert_equals(cs.getPropertyValue('--var2'), '');
-    }, 'Custom properties in a cycle are guaranteed-invalid');
+    }, 'Custom properties in a cycle become guaranteed-invalid');
 
     test( function () {
         let cs = getComputedStyle(target1);
-        assert_equals(cs.getPropertyValue('--var3'), ' inherited');
-    }, 'A custom property referencing a cycle is treated as unset');
+        assert_equals(cs.getPropertyValue('--var3'), '');
+    }, 'A custom property referencing a cycle becomes guaranteed-invalid');
 
     test( function () {
         let cs = getComputedStyle(target1);
-        assert_equals(cs.getPropertyValue('--var4'), ' inherited');
-    }, 'A custom property referencing a non-existent variable is treated as unset');
+        assert_equals(cs.getPropertyValue('--var4'), '');
+    }, 'A custom property referencing a non-existent variable becomes guaranteed-invalid');
 </script>

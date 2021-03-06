@@ -3,17 +3,16 @@ promise_test(() => {
 }, "Loading JSON…");
 
 function runTests(testUnits) {
-  testUnits.forEach(testUnit => {
-    const input = encodeURIComponent(testUnit.input);
+  testUnits.forEach(({ input, output }) => {
     promise_test(t => {
-      const result = fetch("resources/content-length.py?length=" + input);
-      if (testUnit.output === null) {
+      const result = fetch(`resources/content-length.py?length=${encodeURIComponent(input)}`);
+      if (output === null) {
         return promise_rejects_js(t, TypeError, result);
       } else {
         return result.then(res => res.text()).then(text => {
-          assert_equals(text.length, testUnit.output);
+          assert_equals(text.length, output);
         });
       }
-    }, input);
+    }, `Input: ${format_value(input)}. Expected: ${output === null ? "network error" : output}.`);
   });
 }

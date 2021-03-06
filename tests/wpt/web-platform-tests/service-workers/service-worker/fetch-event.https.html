@@ -1030,5 +1030,27 @@ promise_test(async t => {
     assert_true(loadend, 'loadend');
   }, 'XHR upload progress events for network fallback');
 
+promise_test(async t => {
+    // Set page_url to "?ignore" so the service worker falls back to network
+    // for the main resource request, and add a suffix to avoid colliding
+    // with other tests.
+    const page_url = 'resources/?ignore-for-request-body-fallback-string';
+
+    const frame = await with_iframe(page_url);
+    t.add_cleanup(() => { frame.remove(); });
+    // Add "?clone-and-ignore" so the service worker falls back to
+    // echo-content.py.
+    const echo_url = '/fetch/api/resources/echo-content.py?status=421';
+    const response = await frame.contentWindow.fetch(echo_url, {
+        method: 'POST',
+        body: 'text body'
+    });
+    assert_equals(response.status, 421);
+    const text = await response.text();
+    assert_equals(
+        text,
+        'text body. Request was sent 1 times.',
+        'the network fallback request should include the request body');
+  }, 'Fetch with POST with text on sw 421 response should not be retried.');
 </script>
 </body>

@@ -28,12 +28,7 @@ const KEY_CODE_MAP = {
  */
 function keyPress(target, key) {
   const code = KEY_CODE_MAP[key];
-
-  let actions = new test_driver.Actions()
-    .keyDown(code)
-    .keyUp(code);
-
-  return actions.send();
+  return test_driver.send_keys(target, code);
 }
 </script>
 
