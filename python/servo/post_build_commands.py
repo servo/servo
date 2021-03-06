@@ -162,7 +162,7 @@ class PostBuildCommands(CommandBase):
                     command = rustCommand
 
             # Prepend the debugger args.
-            args = ([command] + self.debuggerInfo.args
+            args = ([command] + self.debuggerInfo.args + ["--"]
                     + args + params)
         else:
             args = args + params
