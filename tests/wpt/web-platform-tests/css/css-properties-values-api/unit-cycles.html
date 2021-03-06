@@ -4,7 +4,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
-    function register_length(name, inherits=true) {
+    function register_length(name, inherits=false) {
         CSS.registerProperty({
             name: name,
             syntax: '<length>',
@@ -96,19 +96,19 @@
     test(function() {
         target.style = 'font-size: var(--font-size-em);';
         assert_property_equals('font-size', unsetFontSize);
-        assert_property_equals('--font-size-em', '');
+        assert_property_equals('--font-size-em', '0px');
     }, 'Lengths with em units may not be referenced from font-size');
 
     test(function() {
         target.style = 'font-size: var(--font-size-ex);';
         assert_property_equals('font-size', unsetFontSize);
-        assert_property_equals('--font-size-ex', '');
+        assert_property_equals('--font-size-ex', '0px');
     }, 'Lengths with ex units may not be referenced from font-size');
 
     test(function() {
         target.style = 'font-size: var(--font-size-ch);';
         assert_property_equals('font-size', unsetFontSize);
-        assert_property_equals('--font-size-ch', '');
+        assert_property_equals('--font-size-ch', '0px');
     }, 'Lengths with ch units may not be referenced from font-size');
 
     test(function() {
@@ -122,7 +122,7 @@
         let root = document.documentElement;
         root.style = 'font-size: var(--font-size-rem);';
         assert_property_equals('font-size', unsetFontSize, root);
-        assert_property_equals('--font-size-rem', '', root);
+        assert_property_equals('--font-size-rem', '0px', root);
     }, 'Lengths with rem units may not be referenced from font-size on root element');
 
     test(function() {
@@ -155,26 +155,26 @@
     test(function() {
         target.style = 'font-size: var(--font-size-em-via-var);';
         assert_property_equals('font-size', unsetFontSize);
-        assert_property_equals('--font-size-em-via-var', '');
+        assert_property_equals('--font-size-em-via-var', '0px');
     }, 'Lengths with em units are detected via var references');
 
     test(function() {
         target.style = 'font-size: var(--font-size-ex-via-var);';
         assert_property_equals('font-size', unsetFontSize);
-        assert_property_equals('--font-size-ex-via-var', '');
+        assert_property_equals('--font-size-ex-via-var', '0px');
     }, 'Lengths with ex units are detected via var references');
 
     test(function() {
         target.style = 'font-size: var(--font-size-ch-via-var);';
         assert_property_equals('font-size', unsetFontSize);
-        assert_property_equals('--font-size-ch-via-var', '');
+        assert_property_equals('--font-size-ch-via-var', '0px');
     }, 'Lengths with ch units are detected via var references');
 
     test(function() {
         let root = document.documentElement;
         root.style = 'font-size: var(--font-size-rem-via-var);';
         assert_property_equals('font-size', unsetFontSize, root);
-        assert_property_equals('--font-size-rem-via-var', '', root);
+        assert_property_equals('--font-size-rem-via-var', '0px', root);
         root.style = 'font-size: unset';
     }, 'Lengths with rem units are detected via var references');
 

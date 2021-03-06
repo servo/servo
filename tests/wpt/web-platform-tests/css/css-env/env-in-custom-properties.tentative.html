@@ -28,8 +28,8 @@
 
     test(() => {
       const style = window.getComputedStyle(child);
-      assert_equals(style.getPropertyValue("--var1"), " inherited");
-    }, 'Substitution of unrecognized env() causes unset');
+      assert_equals(style.getPropertyValue("--var1"), "");
+    }, 'Substitution of unrecognized env() causes guaranteed-invalid');
     </script>
   </body>
 </html>

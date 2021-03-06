@@ -986,12 +986,28 @@
     }
   },
   {
+    "pattern": { "username": "café" },
+    "input": { "username" : "café" },
+    "expected": {
+      "input": { "username" : "café" },
+      "username": { "input": "caf%C3%A9", "groups": {}}
+    }
+  },
+  {
     "pattern": { "username": "caf%c3%a9" },
     "input": { "username" : "café" },
     "expected": null
   },
   {
     "pattern": { "password": "caf%C3%A9" },
+    "input": { "password" : "café" },
+    "expected": {
+      "input": { "password" : "café" },
+      "password": { "input": "caf%C3%A9", "groups": {}}
+    }
+  },
+  {
+    "pattern": { "password": "café" },
     "input": { "password" : "café" },
     "expected": {
       "input": { "password" : "café" },
@@ -1012,6 +1028,14 @@
     }
   },
   {
+    "pattern": { "hostname": "café.com" },
+    "input": { "hostname" : "café.com" },
+    "expected": {
+      "input": { "hostname" : "café.com" },
+      "hostname": { "input": "xn--caf-dma.com", "groups": {}}
+    }
+  },
+  {
     "pattern": { "port": "" },
     "input": { "protocol": "http", "port": "80" },
     "expected": {
@@ -1019,6 +1043,35 @@
       "protocol": { "input": "http", "groups": { "0": "http" }},
       "port": { "input": "", "groups": {}}
     }
+  },
+  {
+    "pattern": { "protocol": "http", "port": "80" },
+    "input": { "protocol": "http", "port": "80" },
+    "expected": {
+      "input": { "protocol": "http", "port": "80" },
+      "protocol": { "input": "http", "groups": {}},
+      "port": { "input": "", "groups": {}}
+    }
+  },
+  {
+    "pattern": { "protocol": "http", "port": "80{20}?" },
+    "input": { "protocol": "http", "port": "80" },
+    "expected": null
+  },
+  {
+    "pattern": { "protocol": "http", "port": "80 " },
+    "input": { "protocol": "http", "port": "80" },
+    "error": true
+  },
+  {
+    "pattern": { "port": "80" },
+    "input": { "protocol": "http", "port": "80" },
+    "expected": null
+  },
+  {
+    "pattern": { "protocol": "http{s}?", "port": "80" },
+    "input": { "protocol": "http", "port": "80" },
+    "expected": null
   },
   {
     "pattern": { "port": "80" },
@@ -1058,6 +1111,14 @@
     }
   },
   {
+    "pattern": { "pathname": "/café" },
+    "input": { "pathname": "/café" },
+    "expected": {
+      "input": { "pathname": "/café" },
+      "pathname": { "input": "/caf%C3%A9", "groups": {}}
+    }
+  },
+  {
     "pattern": { "pathname": "/caf%c3%a9" },
     "input": { "pathname": "/café" },
     "expected": null
@@ -1074,6 +1135,25 @@
       "input": { "pathname": "foo/bar", "baseURL": "https://example.com" },
       "protocol": { "input": "https", "groups": { "0": "https" }},
       "hostname": { "input": "example.com", "groups": { "0": "example.com" }},
+      "pathname": { "input": "/foo/bar", "groups": {}}
+    }
+  },
+  {
+    "pattern": { "pathname": "/foo/../bar" },
+    "input": { "pathname": "/bar" },
+    "expected": {
+      "input": { "pathname": "/bar" },
+      "pathname": { "input": "/bar", "groups": {}}
+    }
+  },
+  {
+    "pattern": { "pathname": "./foo/bar", "baseURL": "https://example.com" },
+    "input": { "pathname": "foo/bar", "baseURL": "https://example.com" },
+    "expected": {
+      "input": { "pathname": "foo/bar", "baseURL": "https://example.com" },
+      "exactly_empty_components": [ "username", "password", "port" ],
+      "protocol": { "input": "https", "groups": {}},
+      "hostname": { "input": "example.com", "groups": {}},
       "pathname": { "input": "/foo/bar", "groups": {}}
     }
   },
@@ -1113,12 +1193,28 @@
     }
   },
   {
+    "pattern": { "search": "q=café" },
+    "input": { "search": "q=café" },
+    "expected": {
+      "input": { "search": "q=café" },
+      "search": { "input": "q=caf%C3%A9", "groups": {}}
+    }
+  },
+  {
     "pattern": { "search": "q=caf%c3%a9" },
     "input": { "search": "q=café" },
     "expected": null
   },
   {
     "pattern": { "hash": "caf%C3%A9" },
+    "input": { "hash": "café" },
+    "expected": {
+      "input": { "hash": "café" },
+      "hash": { "input": "caf%C3%A9", "groups": {}}
+    }
+  },
+  {
+    "pattern": { "hash": "café" },
     "input": { "hash": "café" },
     "expected": {
       "input": { "hash": "café" },

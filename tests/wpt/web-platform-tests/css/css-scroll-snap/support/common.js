@@ -19,14 +19,7 @@ async function keyPress(target, key) {
     code = KEY_CODE_MAP[key];
 
   // First move pointer on target and click to ensure it receives the key.
-  let actions = new test_driver.Actions()
-    .pointerMove(0, 0, {origin: target})
-    .pointerDown()
-    .pointerUp()
-    .keyDown(code)
-    .keyUp(code);
-
-  return actions.send();
+  return test_driver.send_keys(target, code);
 }
 
 // Use rAF to wait for the value of the getter function passed to not change for

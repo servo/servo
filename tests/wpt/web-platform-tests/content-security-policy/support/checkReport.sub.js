@@ -70,7 +70,7 @@
           assert_equals("false", reportExists, data.error);
         } else {
           if(reportExists != "" && reportExists == "false" && data["csp-report"]) {
-              assert_unreached("CSP report sent, but not expecting one: " + JSON.stringify(data["csp-report"]));
+              assert_unreached("CSP report sent, but not expecting one");
           }
           // Firefox expands 'self' or origins in a policy to the actual origin value
           // so "www.example.com" becomes "http://www.example.com:80".
