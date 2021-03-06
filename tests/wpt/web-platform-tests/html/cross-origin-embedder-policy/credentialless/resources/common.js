@@ -40,3 +40,29 @@ let parseCookies = function(headers_json) {
       return acc;
     }, {});
 }
+
+// Open a new window with a given |origin|, loaded with COEP:credentialless. The
+// new document will execute any scripts sent toward the token it returns.
+const newCredentiallessWindow = (origin) => {
+  const main_document_token = token();
+  const url = origin + executor_path + coep_credentialless +
+    `&uuid=${main_document_token}`;
+  const w = window.open(url);
+  add_completion_callback(() => w.close());
+  return main_document_token;
+};
+
+// Create a new iframe, loaded with COEP:credentialless.
+// The new document will execute any scripts sent toward the token it returns.
+const newCredentiallessIframe = (parent_token, child_origin) => {
+  const sub_document_token = token();
+  const iframe_url = child_origin + executor_path + coep_credentialless +
+    `&uuid=${sub_document_token}`;
+  send(parent_token, `
+    let iframe = document.createElement("iframe");
+    iframe.src = "${iframe_url}";
+    document.body.appendChild(iframe);
+  `)
+  return sub_document_token;
+};
+

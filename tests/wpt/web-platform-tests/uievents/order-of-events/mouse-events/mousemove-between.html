@@ -115,11 +115,17 @@ window.onload = async function() {
   // Inject mouse inputs.
   await new test_driver.Actions()
       .pointerMove(b_rect.right + 10, center_b_y)
+      .pause(50)
       .pointerMove(0, 0, {origin: b})
+      .pause(50)
       .pointerMove(b_rect.right + 10, center_b_y)
+      .pause(50)
       .pointerMove(a_rect.right + 10, center_b_y)
+      .pause(50)
       .pointerMove(c_rect.right + 10, center_c_y)
+      .pause(50)
       .pointerMove(0, 0, {origin: c})
+      .pause(50)
       .pointerMove(c_rect.right + 20, c_rect.bottom + 20)
       .send();
 };
