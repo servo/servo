@@ -19,26 +19,24 @@ jobs:
     name: Build (Windows)
     runs-on: windows-2019
     steps:
-      - name: Clone
-        run: |
-          mkdir c:/Repo
-          git clone https://github.com/${ GITHUB_REPOSITORY } --depth 2 c:/Repo
-          cd c:/Repo
-          git fetch origin ${ GITHUB_REF }
-          git checkout ${ GITHUB_SHA }
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Copy to C drive
+        run: cp D:\a C:\ -Recurse
       - name: Bootstrap
-        working-directory: c:/Repo
+        working-directory: "C:\\a\\${ REPOSITORY_NAME }\\${ REPOSITORY_NAME }"
         run: |
           python -m pip install --upgrade pip virtualenv
           python mach fetch
       - name: Release build
-        working-directory: c:/Repo
+        working-directory: "C:\\a\\${ REPOSITORY_NAME }\\${ REPOSITORY_NAME }"
         run: python mach build --release --media-stack=dummy
       - name: Unit tests
-        working-directory: c:/Repo
+        working-directory: "C:\\a\\${ REPOSITORY_NAME }\\${ REPOSITORY_NAME }"
         run: python mach test-unit --release
       - name: Smoketest
-        working-directory: c:/Repo
+        working-directory: "C:\\a\\${ REPOSITORY_NAME }\\${ REPOSITORY_NAME }"
         run: python mach smoketest --angle
 
   build-mac:

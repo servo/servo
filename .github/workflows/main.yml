@@ -19,26 +19,24 @@ jobs:
     name: Build (Windows)
     runs-on: windows-2019
     steps:
-      - name: Clone
-        run: |
-          mkdir c:/Repo
-          git clone https://github.com/${{ github.repository }} --depth 2 c:/Repo
-          cd c:/Repo
-          git fetch origin ${{ github.ref }}
-          git checkout ${{ github.sha }}
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Copy to C drive
+        run: cp D:\a C:\ -Recurse
       - name: Bootstrap
-        working-directory: c:/Repo
+        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
         run: |
           python -m pip install --upgrade pip virtualenv
           python mach fetch
       - name: Release build
-        working-directory: c:/Repo
+        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
         run: python mach build --release --media-stack=dummy
       - name: Unit tests
-        working-directory: c:/Repo
+        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
         run: python mach test-unit --release
       - name: Smoketest
-        working-directory: c:/Repo
+        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
         run: python mach smoketest --angle
 
   build-mac:

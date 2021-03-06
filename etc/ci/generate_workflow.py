@@ -49,9 +49,7 @@ def main():
         f.write(render(
             'workflow.mako',
             total_chunks=20,
-            GITHUB_REPOSITORY="${{ github.repository }}",
-            GITHUB_REF="${{ github.ref }}",
-            GITHUB_SHA="${{ github.sha }}",
+            REPOSITORY_NAME="${{ github.event.repository.name }}",
         ))
 
 
