@@ -39,3 +39,6 @@ exiftool to add an orientation marker.
 ```
 exiftool -Orientation=1 -n four-colors.jpg
 ```
+
+### four-colors.mp4
+Used a [custom tool](https://storage.googleapis.com/dalecurtis/avif2mp4.html) to convert four-colors.avif into a .mp4 file.
