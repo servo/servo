@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Test cookie value parsing with control characters</title>
+    <meta name=help href="https://tools.ietf.org/html/rfc6265#section-5.2">
+    <meta name="timeout" content="long">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/cookies/resources/cookie-test.js"></script>
+  </head>
+  <body>
+    <div id=log></div>
+    <script>
+      // Tests for control characters (CTLs) in a cookie's value.
+      // CTLs are defined by RFC 5234 to be %x00-1F / %x7F.
+      const {TERMINATING_CTLS, CTLS} = getCtlCharacters();
+
+      // Test that terminating CTLs truncate the cookie string.
+      for (const ctl of TERMINATING_CTLS) {
+        domCookieTest(
+            `test=${ctl.code}${ctl.chr}value`,
+            `test=${ctl.code}`,
+            `Cookie with %x${ctl.code.toString(16)} in value is truncated.`);
+      }
+
+      // Test that other CTLs result in cookie rejection.
+      for (const ctl of CTLS) {
+        domCookieTest(
+            `test=${ctl.code}${ctl.chr}value`,
+            '',
+            `Cookie with %x${ctl.code.toString(16)} in value is rejected.`);
+      }
+
+      // Test that truncation due to terminating CTLs occurs first.
+      for (const termCtl of TERMINATING_CTLS) {
+        for (const ctl of CTLS) {
+          domCookieTest(
+              `test=${ctl.code}term${termCtl.chr}va${ctl.chr}lue`,
+              `test=${ctl.code}term`,
+              `Cookie with %x${ctl.code.toString(16)} after ` +
+                  `%x${termCtl.code.toString(16)} in value is truncated.`);
+        }
+      }
+    </script>
+  </body>
+</html>

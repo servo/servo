@@ -91,21 +91,30 @@ function testFourColorDecodeWithExifOrientation(orientation, canvas) {
           };
         }
 
-        let expectedTopLeft = matrix[0][0];
-        let expectedTopRight = matrix[0][1];
-        let expectedBottomLeft = matrix[1][0];
-        let expectedBottomRight = matrix[1][1];
-
-        let topLeft = toUInt32(ctx.getImageData(0, 0, 1, 1));
-        let topRight = toUInt32(ctx.getImageData(expectedWidth - 1, 0, 1, 1));
-        let bottomLeft =
-            toUInt32(ctx.getImageData(0, expectedHeight - 1, 1, 1));
-        let bottomRight = toUInt32(
-            ctx.getImageData(expectedWidth - 1, expectedHeight - 1, 1, 1));
-
-        assert_equals(topLeft, expectedTopLeft, 'top left corner');
-        assert_equals(topRight, expectedTopRight, 'top right corner');
-        assert_equals(bottomLeft, expectedBottomLeft, 'bottom left corner');
-        assert_equals(bottomRight, expectedBottomRight, 'bottom right corner');
+        verifyFourColorsImage(expectedWidth, expectedHeight, ctx, matrix);
       });
+}
+
+function verifyFourColorsImage(width, height, ctx, matrix) {
+  if (!matrix) {
+    matrix = [
+      [0xFFFF00FF, 0xFF0000FF],  // yellow, red
+      [0x0000FFFF, 0x00FF00FF],  // blue, green
+    ];
+  }
+
+  let expectedTopLeft = matrix[0][0];
+  let expectedTopRight = matrix[0][1];
+  let expectedBottomLeft = matrix[1][0];
+  let expectedBottomRight = matrix[1][1];
+
+  let topLeft = toUInt32(ctx.getImageData(0, 0, 1, 1));
+  let topRight = toUInt32(ctx.getImageData(width - 1, 0, 1, 1));
+  let bottomLeft = toUInt32(ctx.getImageData(0, height - 1, 1, 1));
+  let bottomRight = toUInt32(ctx.getImageData(width - 1, height - 1, 1, 1));
+
+  assert_equals(topLeft, expectedTopLeft, 'top left corner');
+  assert_equals(topRight, expectedTopRight, 'top right corner');
+  assert_equals(bottomLeft, expectedBottomLeft, 'bottom left corner');
+  assert_equals(bottomRight, expectedBottomRight, 'bottom right corner');
 }

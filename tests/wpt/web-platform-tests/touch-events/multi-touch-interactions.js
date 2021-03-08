@@ -67,7 +67,7 @@ function check_starting_elements(list) {
     }
 }
 
-async function run() {
+function run() {
     var target0 = document.getElementById("target0");
     var target1 = document.getElementById("target1");
 
@@ -85,6 +85,8 @@ async function run() {
     var last_touches;
     var last_targetTouches={};
     var last_changedTouches={};
+
+    var actions_promise;
 
     on_event(window, "touchstart", function onTouchStart(ev) {
         // process event only if it's targeted at target0 or target1
@@ -348,7 +350,7 @@ async function run() {
 
         debug_print("touchend #" + touchend_received + ": done<br>");
         if(ev.touches.length==0)
-            done();
+            actions_promise.then( () => done() );
     });
 
     on_event(target0, "mousedown", function onMouseDown(ev) {
@@ -369,7 +371,7 @@ async function run() {
         }
     });
 
-    await new test_driver.Actions()
+    actions_promise = new test_driver.Actions()
           .addPointer("touchPointer1", "touch")
           .addPointer("touchPointer2", "touch")
           .addPointer("touchPointer3", "touch")
