@@ -8,6 +8,7 @@ partial interface Navigator {
   [SecureContext, SameObject] readonly attribute Keyboard keyboard;
 };
 
+[Exposed=Window]
 interface KeyboardLayoutMap {
   readonly maplike<DOMString, DOMString>;
 };

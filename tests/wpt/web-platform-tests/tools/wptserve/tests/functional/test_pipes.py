@@ -224,5 +224,10 @@ class TestPipesWithVariousHandlers(TestUsingServer):
         self.assertTrue(b'Content' in resp.read())
         self.assertGreater(6, t1-t0)
 
+    def test_gzip_handler(self):
+        resp = self.request("/document.txt", query="pipe=gzip")
+        self.assertEqual(resp.getcode(), 200)
+
+
 if __name__ == '__main__':
     unittest.main()

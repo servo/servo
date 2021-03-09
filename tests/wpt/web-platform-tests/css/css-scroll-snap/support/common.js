@@ -55,3 +55,28 @@ function waitForAnimationEnd(getValue) {
   });
 }
 
+function waitForScrollEvent(eventTarget) {
+  return new Promise((resolve, reject) => {
+    const scrollListener = () => {
+      eventTarget.removeEventListener('scroll', scrollListener);
+      resolve();
+    };
+    eventTarget.addEventListener('scroll', scrollListener);
+  });
+}
+
+function waitForScrollEnd(eventTarget, getValue, targetValue) {
+  return new Promise((resolve, reject) => {
+    const scrollListener = () => {
+      if (getValue() == targetValue) {
+        eventTarget.removeEventListener('scroll', scrollListener);
+        resolve();
+      }
+    };
+    if (getValue() == targetValue)
+      resolve();
+    else
+      eventTarget.addEventListener('scroll', scrollListener);
+  });
+}
+

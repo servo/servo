@@ -9,7 +9,7 @@ partial interface ServiceWorkerRegistration {
 
 [Exposed=(Window,Worker)]
 interface SyncManager {
-  Promise<void> register(DOMString tag);
+  Promise<undefined> register(DOMString tag);
   Promise<sequence<DOMString>> getTags();
 };
 

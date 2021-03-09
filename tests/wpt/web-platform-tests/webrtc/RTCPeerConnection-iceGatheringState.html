@@ -11,7 +11,7 @@
   // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
 
   // The following helper functions are called from RTCPeerConnection-helper.js:
-  // exchangeOfferAnswer
+  // exchangeAnswer
   // exchangeIceCandidates
   // generateAudioReceiveOnlyOffer
 
@@ -52,6 +52,8 @@
    */
   test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
     assert_equals(pc.iceGatheringState, 'new');
   }, 'Initial iceGatheringState should be new');
 
@@ -162,7 +164,12 @@
   }, 'renegotiation that closes all transports should result in ICE gathering state "new"');
 
   /*
-    4.4.2.  RTCIceGatheringState Enum
+    4.3.2.  RTCIceGatheringState Enum
+      new
+        Any of the RTCIceTransports are in the "new" gathering state and none
+        of the transports are in the "gathering" state, or there are no
+        transports.
+
       gathering
         Any of the RTCIceTransport s are in the gathering state.
 
@@ -179,7 +186,7 @@
         indication for this transport has been sent. It will not gather candidates
         again until an ICE restart causes it to restart.
    */
-  async_test(t => {
+  promise_test(async t => {
     const pc1 = new RTCPeerConnection();
     t.add_cleanup(() => pc1.close());
     const pc2 = new RTCPeerConnection();
@@ -193,7 +200,7 @@
         const iceTransport = pc2.sctp.transport.iceTransport;
 
         assert_equals(iceTransport.gatheringState, 'gathering',
-          'Expect ICE transport to be in checking gatheringState when iceGatheringState is checking');
+          'Expect ICE transport to be in gathering gatheringState when iceGatheringState is gathering');
 
       } else if(iceGatheringState === 'complete') {
         const iceTransport = pc2.sctp.transport.iceTransport;
@@ -207,17 +214,20 @@
 
     pc1.createDataChannel('test');
 
-    assert_equals(pc2.onicegatheringstatechange, null,
-      'Expect connection to have icegatheringstatechange event');
-
     // Spec bug w3c/webrtc-pc#1382
     // Because sctp is only defined when answer is set, we listen
     // to pc2 so that we can be confident that sctp is defined
     // when icegatheringstatechange event is fired.
     pc2.addEventListener('icegatheringstatechange', onIceGatheringStateChange);
 
+
     exchangeIceCandidates(pc1, pc2);
-    exchangeOfferAnswer(pc1, pc2);
+
+    await pc1.setLocalDescription();
+    assert_equals(pc1.sctp.transport.iceTransport.gatheringState, 'new');
+    await pc2.setRemoteDescription(pc1.localDescription);
+
+    await exchangeAnswer(pc1, pc2);
   }, 'connection with one data channel should eventually have connected connection state');
 
   /*

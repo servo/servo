@@ -3,67 +3,63 @@
   <meta http-equiv="Content-Security-Policy" content="img-src 'none'">
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
-
+  <title>document.open() does not change Content Security Policies</title>
 </head>
 <body>
   <script>
-    var t0 = async_test("Image loaded in srcdoc iframe using document.write is blocked");
-    var t1 = async_test("Image loaded in normal iframe using document.write is blocked");
-    var t2 = async_test("Image loaded directly in simple srcdoc iframe is blocked");
-
-    window.onmessage = function(e) {
-      var current_test;
-      if (e.data.type == "spv0") {
-        current_test = t0;
-      } else if (e.data.type == "spv1") {
-        current_test = t1;
-      } else if (e.data.type == "spv2") {
-        current_test = t2;
-      } else {
-        t0.step(function() {assert_true(false, "Unexpected message received from child frames")});
-        t1.step(function() {assert_true(false, "Unexpected message received from child frames")});
-        t2.step(function() {assert_true(false, "Unexpected message received from child frames")});
-      }
-
-      current_test.step(function() {
-        assert_equals(e.data.violatedDirective, 'img-src');
-        current_test.done();
+    let message_from = (w) => {
+      return new Promise(resolve => {
+        let listener = msg => {
+          if (msg.source != w)
+            return;
+          window.removeEventListener('message', listener);
+          resolve(msg.data);
+        };
+        window.addEventListener('message', listener);
       });
-    }
-  </script>
+    };
 
-  <!--As discovered thanks to crbug.com/920531, there is a bug in CSP where the
-      CSP is not inherited when using document.open/document.write to edit a
-      document's contents. -->
-  <iframe id="frame1" srcdoc=""></iframe>
-
-  <!-- This is speculatively correct https://github.com/whatwg/html/issues/4510 -->
-  <iframe id="frame2" src="/content-security-policy/common/blank.html"></iframe>
-
-  <!--<script>
+    var documentBody = function(should_load) {
+      let image = should_load ? "pass.png" : "fail.png";
+      return `
+      <script>
+        function loaded() {
+          window.top.postMessage("loaded", '*');
+        };
         window.addEventListener('securitypolicyviolation', function(e) {
-          window.top.postMessage({type: 'spv2', violatedDirective: e.violatedDirective}, '*');
+          window.top.postMessage("blocked", '*');
         });
-      </script>
-      <img src='/content-security-policy/support/fail.png'>
-  -->
-  <iframe srcdoc="<script>window.addEventListener('securitypolicyviolation', function(e) {window.top.postMessage({type: 'spv2', violatedDirective: e.violatedDirective}, '*');});</script><img src='/content-security-policy/support/fail.png'>"></iframe>
-  <script>
-    var frames = ['frame1', 'frame2'];
-    for (var i = 0; i < frames.length; i++) {
-      var body_text = ['<script>',
-                       ' window.addEventListener("securitypolicyviolation", function(e) {',
-                       '  window.top.postMessage({type: "spv'+ i + '", violatedDirective: e.violatedDirective}, "*");',
-                       ' });',
-                       '</scr' + 'ipt>',
-                       '<img src="/content-security-policy/support/fail.png">'].join('\n');
+      </scr`+`ipt>
+      <img src='/content-security-policy/support/${image}' onload='loaded()'>`;
+    };
 
-      var e = document.getElementById(frames[i]);
-      var n = e.contentWindow.document;
-      n.open();
-      n.write("<html><body>" + body_text + "</body></html>");
-      n.close();
-    }
+    promise_test(async () => {
+      let iframe = document.createElement('iframe');
+      document.body.appendChild(iframe);
+
+      let msg = message_from(iframe.contentWindow);
+      let doc = iframe.contentWindow.document;
+      doc.open();
+      doc.write("<html><body>" + documentBody(false) + "</body></html>");
+      doc.close();
+      assert_equals(await msg, "blocked");
+    }, "document.open() keeps inherited CSPs on empty iframe.");
+
+    promise_test(async () => {
+      let iframe = document.createElement('iframe');
+      let loaded = new Promise(resolve => iframe.onload = resolve);
+      iframe.src = "/common/blank.html";
+      document.body.appendChild(iframe);
+      await loaded;
+
+      let msg = message_from(iframe.contentWindow);
+      let doc = iframe.contentWindow.document;
+      doc.open();
+      doc.write("<html><body>" + documentBody(true) + "</body></html>");
+      doc.close();
+      assert_equals(await msg, "loaded");
+    }, "document.open() does not change delivered CSPs.");
+
   </script>
 </body>
 </html>
