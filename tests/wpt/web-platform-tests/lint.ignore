@@ -740,6 +740,7 @@ MISSING DEPENDENCY: resources/chromium/webxr-test.js
 
 # Tests that are false positives for using Ahem as a system font
 AHEM SYSTEM FONT: acid/acid3/test.html
+AHEM SYSTEM FONT: resource-timing/entry-attributes.html
 AHEM SYSTEM FONT: resource-timing/font-timestamps.html
 AHEM SYSTEM FONT: resource-timing/resources/all_resource_types.htm
 AHEM SYSTEM FONT: resource-timing/resources/iframe-reload-TAO.sub.html

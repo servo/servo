@@ -16,6 +16,9 @@
       // CTLs are defined by RFC 5234 to be %x00-1F / %x7F.
       const {TERMINATING_CTLS, CTLS} = getCtlCharacters();
 
+      // Start with a clean slate.
+      dropAllDomCookies();
+
       // Test that terminating CTLs truncate the cookie string.
       for (const ctl of TERMINATING_CTLS) {
         domCookieTest(

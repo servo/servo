@@ -24,7 +24,7 @@
   }
 </style>
 <main>
-<h1>Fixed tables: Compute column computed widths from assignable table width</h1>
+ <h1>Fixed tables: Compute column computed widths from assignable table width</h1>
 <ul>
   <li>auto columns have a min width of 0. Max width still gets computed.</li>
   <li>percent columns have a min width of 0.</li>
@@ -298,7 +298,7 @@ Columns are scaled so they add up to 100%
 <h2>Percentage/auto/fixed mix</h2>
 
 <p class="testdesc">Assignable: 100px;C0:50% C1:100px C2: Auto
-C0: 50% becomes
+C0, C1 get assigned values, C2 fills the rest.
 <table style="width:calc(100px + 32px)" data-expected-width=132>
   <tr>
     <td style="width:50%" data-expected-width=50>50%</td>
@@ -326,6 +326,48 @@ Fixed widths get distributed first, percentage takes the rest.
     <td style="width:60px" data-expected-width=60>60px</td>
   </tr>
 </table>
+
+<h2>Fixed 0-width columns</h2>
+<p>Fixed 0-width columns are an exception. They are treated as a mix of fixed and auto columns.</p>
+  <li>If there are only zero-width columns, width is distibuted evenly.</li>
+  <li>If there are any fixed,percentage, or auto columns,  0-width columns do not grow.</li>
+<p class="testdesc">Assignable: 100px;C0:0-width, C1:0-width
+  All 0-width columns grow.
+</p>
+<table style="width:calc(100px + 24px)" data-expected-width=124>
+  <tr>
+    <td style="width:0" data-expected-width=50>0</td>
+    <td style="width:0" data-expected-width=50>0</td>
+  </tr>
+</table>
+<p class="testdesc">Assignable: 100px;C0:0-width, C1:auto
+  0-width column does not grow.
+</p>
+<table style="width:calc(100px + 24px)" data-expected-width=124>
+  <tr>
+    <td style="width:0" data-expected-width=0>0</td>
+    <td style="width:auto" data-expected-width=100>0</td>
+  </tr>
+</table>
+<p class="testdesc">Assignable: 100px;C0:0-width, C1:50px
+  0-width column does not grow.
+</p>
+<table style="width:calc(100px + 24px)" data-expected-width=124>
+  <tr>
+    <td style="width:0" data-expected-width=0>0</td>
+    <td style="width:50px" data-expected-width=100>0</td>
+  </tr>
+</table>
+<p class="testdesc">Assignable: 100px;C0:0-width, C1:50%
+  0-width column does not grow.
+</p>
+<table style="width:calc(100px + 24px)" data-expected-width=124>
+  <tr>
+    <td style="width:0" data-expected-width=0>0</td>
+    <td style="width:50%" data-expected-width=100>0</td>
+  </tr>
+</table>
+
 </main>
 <script>
   checkLayout("table");

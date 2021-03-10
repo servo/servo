@@ -8,13 +8,29 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 
-// Returns a promise that settles once the given path has been fetched.
+// Returns a promise that settles once the given path has been fetched as an
+// image resource.
 function load_image(path) {
   return new Promise(resolve => {
     const img = new Image();
     img.onload = img.onerror = resolve;
     img.src = path;
   });
+}
+
+// Returns a promise that settles once the given path has been fetched as a
+// font resource.
+function load_font(path) {
+  document.getElementById('forFonts').innerHTML = `
+    <style>
+    @font-face {
+        font-family: ahem;
+        src: url('${path}');
+    }
+    </style>
+    <div style="font-family: ahem;">This fetches ahem font.</div>
+  `;
+  return document.fonts.ready;
 }
 
 function assert_ordered(entry, attributes) {
@@ -46,18 +62,7 @@ function assert_positive(entry, attributes) {
   });
 }
 
-promise_test(async () => {
-  // Clean up entries from scripts includes.
-  performance.clearResourceTimings();
-  await load_image("resources/fake_responses.py#hash=1");
-  const entry_list = performance.getEntriesByType("resource");
-  if (entry_list.length != 1) {
-    throw new Error("There should be one entry for one resource");
-  }
-  const entry = entry_list[0];
-  assert_true(entry.name.includes('#hash=1'),
-    "There should be a hash in the resource name");
-
+function assert_http_resource(entry) {
   assert_ordered(entry, [
     "fetchStart",
     "domainLookupStart",
@@ -86,7 +91,33 @@ promise_test(async () => {
     "encodedBodySize",
     "decodedBodySize",
   ]);
-}, "URL fragments should be present in the 'name' attribute");
+}
+
+promise_test(async () => {
+  // Clear out everything that isn't the one ResourceTiming entry under test.
+  performance.clearResourceTimings();
+  await load_image("resources/fake_responses.py#hash=1");
+  const entry_list = performance.getEntriesByType("resource");
+  if (entry_list.length != 1) {
+    throw new Error("There should be one entry for one resource");
+  }
+  const entry = entry_list[0];
+  assert_true(entry.name.includes('#hash=1'),
+    "There should be a hash in the resource name");
+
+  assert_http_resource(entry);
+}, "Image resources should generate conformant entries");
+
+promise_test(async () => {
+  // Clear out everything that isn't the one ResourceTiming entry under test.
+  performance.clearResourceTimings();
+  await load_font("/fonts/Ahem.ttf");
+  const entry_list = performance.getEntriesByType("resource");
+  if (entry_list.length != 1) {
+    throw new Error("There should be one entry for one resource");
+  }
+  assert_http_resource(entry_list[0]);
+}, "Font resources should generate conformant entries");
 
 </script>
 </head>
@@ -94,5 +125,6 @@ promise_test(async () => {
 <h1>Description</h1>
 <p>This test validates that PerformanceResourceTiming entries' attributes are
 populated with the correct values.</p>
+<div id="forFonts"></div>
 </body>
 </html>
