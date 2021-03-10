@@ -1,0 +1,2 @@
+Content-Security-Policy: prefetch-src 'none'
+Link: </content-security-policy/support/fail.png>;rel=prefetch

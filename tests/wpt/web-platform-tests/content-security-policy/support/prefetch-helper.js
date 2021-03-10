@@ -1,10 +1,11 @@
-test(t => {
-  assert_true(document.createElement('link').relList.supports('prefetch'));
-}, "Browser supports prefetch.");
-
-test(t => {
-  assert_true(!!window.PerformanceResourceTiming);
-}, "Browser supports performance APIs.");
+setup(_ => {
+  assert_implements_optional(
+    document.createElement('link').relList.supports('prefetch'),
+    "Browser supports prefetch.");
+  assert_implements_optional(
+    "PerformanceResourceTiming" in window,
+    "Browser supports performance APIs.");
+});
 
 async function waitUntilResourceDownloaded(url) {
   await new Promise((resolve, reject) => {

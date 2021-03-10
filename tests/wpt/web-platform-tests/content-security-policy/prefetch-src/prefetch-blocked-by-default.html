@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!-- Block everything by default, but allow the page's scripts to execute. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'self'">
+
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/content-security-policy/support/testharness-helper.js'></script>
+  <script src='/content-security-policy/support/prefetch-helper.js'></script>
+  <script>
+    async_test(t => {
+      let url = window.origin + '/content-security-policy/support/fail.png';
+
+      let link = document.createElement('link');
+      link.rel = 'prefetch';
+      link.href = url;
+
+      assert_link_does_not_prefetch(t, link);
+    }, "`default-src`-blocked prefetch generates report.");
+  </script>
+</head>
+<body>
+</body>
+</html>
