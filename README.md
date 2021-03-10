@@ -72,15 +72,6 @@ sudo apt install python3-virtualenv python3-pip
 ./mach bootstrap
 ```
 
-If you are on Ubuntu 20.04 or higher you need to do the following to install the missing python3 bits:
-
-```sh
-curl https://bootstrap.pypa.io/get-pip.py -sSf -o get-pip.py
-python3 get-pip.py
-python3 -m pip install virtualenv
-sudo apt install python3-dev
-```
-
 If `./mach bootstrap` doesn't work, file a bug, and, run the commands below:
 
 ``` sh
