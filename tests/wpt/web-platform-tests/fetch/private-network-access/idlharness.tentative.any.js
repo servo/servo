@@ -8,7 +8,7 @@
 // https://wicg.github.io/private-network-access/
 
 idl_test(
-  ['cors-rfc1918'],
+  ['private-network-access'],
   ['html', 'dom'],
   idlArray => {
     if (self.GLOBAL.isWorker()) {

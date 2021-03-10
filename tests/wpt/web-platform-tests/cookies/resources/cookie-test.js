@@ -123,22 +123,31 @@ function httpRedirectCookieTest(cookie, expectedValue, name, location) {
     name);
 }
 
+// Cleans up all cookies accessible via document.cookie. This will not clean up
+// any HttpOnly cookies.
+function dropAllDomCookies() {
+  let cookies = document.cookie.split('; ');
+  for (const cookie of cookies) {
+    if (!Boolean(cookie))
+      continue;
+    document.cookie = `${cookie}; expires=01 Jan 1970 00:00:00 GMT`;
+  }
+  assert_equals(document.cookie, '', 'All DOM cookies were dropped.');
+}
+
 // Sets a `cookie` via the DOM, checks it against `expectedValue` via the DOM,
 // then cleans it up via the DOM. This is needed in cases where going through
 // HTTP headers may modify the cookie line (e.g. by stripping control
 // characters).
 function domCookieTest(cookie, expectedValue, name) {
-  return test(() => {
+  return test(function() {
     document.cookie = cookie;
     let cookies = document.cookie;
-    if (Boolean(expectedValue)) {
-      assert_equals(cookies, expectedValue, 'The cookie was set as expected.');
-    } else {
-      assert_equals(cookies, expectedValue, 'The cookie was rejected.');
-    }
-    document.cookie = `${expectedValue}; expires=01 Jan 1970 00:00:00 GMT`;
+    this.add_cleanup(dropAllDomCookies);
     assert_equals(
-        document.cookie, '', 'The cookies were cleaned up properly post-test.');
+        cookies, expectedValue,
+        Boolean(expectedValue) ? 'The cookie was set as expected.' :
+                                 'The cookie was rejected.');
   }, name);
 }
 
