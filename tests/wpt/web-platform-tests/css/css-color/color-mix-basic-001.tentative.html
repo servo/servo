@@ -1,0 +1,67 @@
+<!doctype html>
+<!-- Tentative pending potential syntax changes in https://github.com/w3c/csswg-drafts/issues/6066 -->
+<link rel="help" href="https://drafts.csswg.org/css-color-5/#color-mix">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1695376">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+div { color: black }
+</style>
+<div id="test"></div>
+<div id="ref"></div>
+<script>
+const TEST_CASES = [
+  ["blue", "red"],
+  ["blue", "green"],
+  ["rgb(255, 0, 0, .2)", "red"],
+  ["blue", "red", 0.9],
+  ["blue", "red", 0],
+  ["currentColor", "white"],
+  ["currentColor", "rgba(0, 0, 0, .5)"],
+];
+
+const testElement = document.getElementById("test");
+const refElement = document.getElementById("ref");
+const testStyle = getComputedStyle(testElement);
+const refStyle = getComputedStyle(refElement);
+
+let animation = null;
+
+for (let [from, to, animationProgress] of TEST_CASES) {
+  const animationProgressExplicit = animationProgress !== undefined;
+  animationProgress = animationProgressExplicit ? animationProgress : 0.5;
+  test(function() {
+    // Set up the ref.
+    if (animation) {
+      animation.cancel();
+    }
+    animation = refElement.animate({
+      backgroundColor: [from, to],
+    }, { duration: 1000 });
+    animation.pause();
+    animation.currentTime = 1000 * animationProgress;
+
+    let progress = ` ${animationProgress * 100}%`;
+    let oneMinusProgress = ` ${(1 - animationProgress) * 100}%`;
+    let values = [
+      `color-mix(in srgb, ${from}, ${to} ${progress})`,
+      `color-mix(in srgb, ${from} ${oneMinusProgress}, ${to})`,
+      `color-mix(in srgb, ${from} ${oneMinusProgress}, ${to} ${progress})`,
+    ];
+
+    if (animationProgress == 0.5) {
+      values.push(`color-mix(in srgb, ${from}, ${to})`);
+    }
+
+    for (let value of values) {
+      testElement.style.backgroundColor = "";
+      testElement.style.backgroundColor = value;
+
+      assert_not_equals(testElement.style.backgroundColor, "", "Should parse " + value);
+      assert_equals(testStyle.backgroundColor, refStyle.backgroundColor, "Colors should match for " + value);
+    }
+  }, `From ${from} to ${to} at ${animationProgress}`);
+}
+</script>

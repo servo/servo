@@ -26,7 +26,7 @@
   }, 'getTotalLength and getPointAtLength do not take pathLength into account');
 
   test(function() {
-    assert_true(box.getPointAtLength(210) instanceof DOMPoint);
-  }, 'getPointAtLength() returns instance of DOMPoint');
+    assert_true(box.getPointAtLength(210) instanceof SVGPoint);
+  }, 'getPointAtLength() returns instance of SVGPoint');
   ]]></script>
 </svg>

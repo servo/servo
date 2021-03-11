@@ -1,0 +1,16 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>tagName in template</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<template><div></div></template>
+<div id="log"></div>
+<script><![CDATA[
+test(function() {
+  assert_equals(document.getElementsByTagName("template")[0].content.firstChild.tagName, 'div', "tagName case");
+}, "tagName case");
+]]></script>
+</body>
+</html>

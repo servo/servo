@@ -10,8 +10,8 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
-<script>
-"use strict";
+<script type=module>
+import inputTypes from "./input-types.js";
 
 test(function() {
   var input = document.createElement("input");
@@ -31,23 +31,25 @@ test(function() {
   assert_equals(copy.value, "foo bar");
 }, "input element's dirty value flag should be cloned, so setAttribute doesn't affect the cloned input's value");
 
-test(function() {
-  var input = document.createElement("input");
-  input.setAttribute("type", "radio");
-  input.checked = true;
+for (const inputType of inputTypes) {
+  test(function() {
+    var input = document.createElement("input");
+    input.setAttribute("type", inputType);
+    input.checked = true;
 
-  var copy = input.cloneNode();
-  assert_equals(copy.checked, true);
-}, "input element's checkedness should be cloned");
+    var copy = input.cloneNode();
+    assert_equals(copy.checked, true);
+  }, `input[type=${inputType}] element's checkedness should be cloned`);
 
-test(function() {
-  var input = document.createElement("input");
-  input.setAttribute("type", "radio");
-  input.checked = false;
+  test(function() {
+    var input = document.createElement("input");
+    input.setAttribute("type", inputType);
+    input.checked = false;
 
-  var copy = input.cloneNode();
-  copy.setAttribute("checked", "checked");
+    var copy = input.cloneNode();
+    copy.setAttribute("checked", "checked");
 
-  assert_equals(copy.checked, false);
-}, "input element's dirty checkedness should be cloned, so setAttribute doesn't affect the cloned input's checkedness");
+    assert_equals(copy.checked, false);
+  }, `input[type=${inputType}] element's dirty checkedness should be cloned, so setAttribute doesn't affect the cloned input's checkedness`);
+}
 </script>
