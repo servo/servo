@@ -80,18 +80,22 @@ impl EventsLoop {
             }
             EventLoop::Headless(ref data) => {
                 let &(ref flag, ref condvar) = &**data;
+                let mut event = winit::event::Event::NewEvents(winit::event::StartCause::Init);
                 loop {
                     self.sleep(flag, condvar);
                     let mut control_flow = winit::event_loop::ControlFlow::Poll;
-
                     callback(
-                        winit::event::Event::<ServoEvent>::UserEvent(ServoEvent::Awakened),
+                        event,
                         None,
                         &mut control_flow
                     );
+                    event = winit::event::Event::<ServoEvent>::UserEvent(ServoEvent::Awakened);
+
                     if control_flow != winit::event_loop::ControlFlow::Poll {
                         *flag.lock().unwrap() = false;
-                    } else if control_flow == winit::event_loop::ControlFlow::Exit {
+                    }
+
+                    if control_flow == winit::event_loop::ControlFlow::Exit {
                         break;
                     }
                 }

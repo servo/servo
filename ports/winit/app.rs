@@ -69,7 +69,7 @@ impl App {
             if let winit::event::Event::NewEvents(winit::event::StartCause::Init) = e {
                 let surfman = window.webrender_surfman();
 
-                let xr_discovery = if pref!(dom.webxr.glwindow.enabled) {
+                let xr_discovery = if pref!(dom.webxr.glwindow.enabled) && ! opts::get().headless {
                     let window = window.clone();
                     // This should be safe because run_forever does, in fact,
                     // run forever. The event loop window target doesn't get
