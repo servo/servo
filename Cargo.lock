@@ -4134,12 +4134,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8d3b63360ec3cb337817c2dbd47ab4a0f170d285d8e5a2064600f3def1402397"
 
 [[package]]
-name = "once_cell"
-version = "1.7.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af8b08b04175473088b46763e51ee54da5f9a164bc162f615b91bc179dbf15a3"
-
-[[package]]
 name = "opaque-debug"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4847,18 +4841,17 @@ checksum = "4e1b7878800220a76a08f32c057829511440f65528b63b940f2f2bc145d7ac68"
 [[package]]
 name = "regex"
 version = "1.4.3"
-source = "git+https://github.com/rust-lang/regex?rev=f858ff321d7a8129100c95d8d3f8f3f0ff99a55d#f858ff321d7a8129100c95d8d3f8f3f0ff99a55d"
+source = "git+https://github.com/rust-lang/regex?rev=e040c1b06397a254cccd3506ee80dbe042360afd#e040c1b06397a254cccd3506ee80dbe042360afd"
 dependencies = [
  "aho-corasick",
  "memchr",
  "regex-syntax",
- "thread_local",
 ]
 
 [[package]]
 name = "regex-syntax"
 version = "0.6.22"
-source = "git+https://github.com/rust-lang/regex?rev=f858ff321d7a8129100c95d8d3f8f3f0ff99a55d#f858ff321d7a8129100c95d8d3f8f3f0ff99a55d"
+source = "git+https://github.com/rust-lang/regex?rev=e040c1b06397a254cccd3506ee80dbe042360afd#e040c1b06397a254cccd3506ee80dbe042360afd"
 
 [[package]]
 name = "remove_dir_all"
@@ -6224,15 +6217,6 @@ dependencies = [
  "proc-macro2 1.0.24",
  "quote 1.0.9",
  "syn",
-]
-
-[[package]]
-name = "thread_local"
-version = "1.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8018d24e04c95ac8790716a5987d0fec4f8b27249ffa0f7d33f1369bdfb88cbd"
-dependencies = [
- "once_cell",
 ]
 
 [[package]]
