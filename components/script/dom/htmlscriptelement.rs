@@ -452,7 +452,8 @@ impl FetchResponseListener for ClassicContext {
                     &mut transform_str_to_source_text(&context.script_text) as *mut _,
                     Some(off_thread_compilation_callback),
                     Box::into_raw(context) as *mut c_void,
-                ).is_null());
+                )
+                .is_null());
             }
         } else {
             let load = ScriptOrigin::external(

@@ -591,8 +591,16 @@ unsafe fn new_rt_and_cx_with_parent(
             .unwrap_or(u32::max_value()),
     );
     // NOTE: This is disabled above, so enabling it here will do nothing for now.
-    JS_SetGCParameter(cx, JSGCParamKey::JSGC_INCREMENTAL_GC_ENABLED, pref!(js.mem.gc.incremental.enabled) as u32);
-    JS_SetGCParameter(cx, JSGCParamKey::JSGC_PER_ZONE_GC_ENABLED, pref!(js.mem.gc.per_zone.enabled) as u32);
+    JS_SetGCParameter(
+        cx,
+        JSGCParamKey::JSGC_INCREMENTAL_GC_ENABLED,
+        pref!(js.mem.gc.incremental.enabled) as u32,
+    );
+    JS_SetGCParameter(
+        cx,
+        JSGCParamKey::JSGC_PER_ZONE_GC_ENABLED,
+        pref!(js.mem.gc.per_zone.enabled) as u32,
+    );
     if let Some(val) = in_range(pref!(js.mem.gc.incremental.slice_ms), 0, 100_000) {
         JS_SetGCParameter(cx, JSGCParamKey::JSGC_SLICE_TIME_BUDGET_MS, val as u32);
     }
