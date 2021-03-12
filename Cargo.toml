@@ -36,3 +36,9 @@ raqote = { git = "https://github.com/jdm/raqote", branch = "fkup" }
 [patch."https://github.com/servo/webrender"]
 webrender = { git = "https://github.com/jdm/webrender", branch = "crash-backtrace" }
 webrender_api = { git = "https://github.com/jdm/webrender", branch = "crash-backtrace" }
+
+#[patch."https://github.com/servo/mozjs"]
+#mozjs_sys = { git = "https://github.com/jdm/mozjs", branch = "jdm-patch-24" }
+#[patch."https://github.com/servo/webxr"]
+#webxr = { git = "https://github.com/jdm/webxr", branch = "bindgenup" }
+#webxr-api = { git = "https://github.com/jdm/webxr", branch = "bindgenup" }
