@@ -29,7 +29,7 @@ use js::rust::wrappers::JS_FireOnNewGlobalObject;
 use js::rust::wrappers::RUST_SYMBOL_TO_JSID;
 use js::rust::wrappers::{JS_DefineProperty, JS_DefineProperty5};
 use js::rust::wrappers::{JS_DefineProperty3, JS_DefineProperty4, JS_DefinePropertyById5};
-use js::rust::wrappers::{JS_LinkConstructorAndPrototype, JS_NewObjectWithUniqueType};
+use js::rust::wrappers::{JS_LinkConstructorAndPrototype, JS_NewObjectWithGivenProto};
 use js::rust::{define_methods, define_properties, get_object_class};
 use js::rust::{HandleObject, HandleValue, MutableHandleObject, RealmOptions};
 use std::convert::TryFrom;
@@ -316,7 +316,7 @@ pub fn create_object(
     mut rval: MutableHandleObject,
 ) {
     unsafe {
-        rval.set(JS_NewObjectWithUniqueType(*cx, class, proto));
+        rval.set(JS_NewObjectWithGivenProto(*cx, class, proto));
     }
     assert!(!rval.is_null());
     define_guarded_methods(cx, rval.handle(), methods, global);

@@ -45,14 +45,14 @@ use js::jsapi::Handle as RawHandle;
 use js::jsapi::HandleObject;
 use js::jsapi::HandleValue as RawHandleValue;
 use js::jsapi::Value;
-use js::jsapi::{CompileModule1, ExceptionStackBehavior, FinishDynamicModuleImport};
+use js::jsapi::{CompileModule1, ExceptionStackBehavior, FinishDynamicModuleImport_NoTLA};
 use js::jsapi::{DynamicImportStatus, SetModuleDynamicImportHook, SetScriptPrivateReferenceHooks};
 use js::jsapi::{GetModuleResolveHook, JSRuntime, SetModuleResolveHook};
 use js::jsapi::{GetRequestedModules, SetModuleMetadataHook};
 use js::jsapi::{Heap, JSContext, JS_ClearPendingException, SetModulePrivate};
 use js::jsapi::{JSAutoRealm, JSObject, JSString};
 use js::jsapi::{JS_DefineProperty4, JS_IsExceptionPending, JS_NewStringCopyN, JSPROP_ENUMERATE};
-use js::jsapi::{ModuleEvaluate, ModuleInstantiate};
+use js::jsapi::{ThrowOnModuleEvaluationFailure, ModuleInstantiate};
 use js::jsval::{JSVal, PrivateValue, UndefinedValue};
 use js::rust::jsapi_wrapped::{GetArrayLength, JS_GetElement};
 use js::rust::jsapi_wrapped::{GetRequestedModuleSpecifier, JS_GetPendingException};
@@ -505,7 +505,7 @@ impl ModuleTree {
         let _ac = JSAutoRealm::new(*global.get_cx(), *global.reflector().get_jsobject());
 
         unsafe {
-            if !ModuleEvaluate(*global.get_cx(), module_record) {
+            if !ThrowOnModuleEvaluationFailure(*global.get_cx(), module_record) {
                 warn!("fail to evaluate module");
 
                 rooted!(in(*global.get_cx()) let mut exception = UndefinedValue());
@@ -1024,7 +1024,7 @@ impl ModuleOwner {
         debug!("Finishing dynamic import for {:?}", module_identity);
 
         unsafe {
-            FinishDynamicModuleImport(
+            FinishDynamicModuleImport_NoTLA(
                 *cx,
                 status,
                 module.referencing_private.handle(),
