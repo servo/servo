@@ -63,7 +63,7 @@ image = "0.23"
 indexmap = { version = "1.0.2", features = ["std"] }
 ipc-channel = "0.14"
 itertools = "0.8"
-js = { package = "mozjs", git = "https://github.com/servo/rust-mozjs" }
+js = { package = "mozjs", git = "https://github.com/sagudev/rust-mozjs" }
 jstraceable_derive = { path = "../jstraceable_derive" }
 keyboard-types = "0.5"
 lazy_static = "1"
