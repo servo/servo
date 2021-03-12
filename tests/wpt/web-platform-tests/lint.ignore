@@ -129,6 +129,7 @@ PARSE-FAILED: dom/nodes/Document-createElement-namespace-tests/empty.xml
 PARSE-FAILED: dom/nodes/Document-createElement-namespace-tests/minimal_html.svg
 PARSE-FAILED: dom/nodes/Document-createElement-namespace-tests/minimal_html.xhtml
 PARSE-FAILED: dom/nodes/Document-createElement-namespace-tests/minimal_html.xml
+PARSE-FAILED: custom-elements/xhtml-crash.xhtml
 
 # setTimeout usage (should probably mostly be fixed)
 SET TIMEOUT: *-manual.*

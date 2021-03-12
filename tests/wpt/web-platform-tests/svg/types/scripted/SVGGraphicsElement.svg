@@ -11,15 +11,15 @@
     var el = document.createElementNS("http://www.w3.org/2000/svg", "rect");
 
     test(function() {
-        assert_true(el.getBBox() instanceof DOMRect);
-    }, 'getBBox() returns instance of DOMRect');
+        assert_true(el.getBBox() instanceof SVGRect);
+    }, 'getBBox() returns instance of SVGRect');
 
     test(function() {
-        assert_true(el.getCTM() instanceof DOMMatrix);
-    }, 'getCTM() returns instance of DOMMatrix');
+        assert_true(el.getCTM() instanceof SVGMatrix);
+    }, 'getCTM() returns instance of SVGMatrix');
 
     test(function() {
-        assert_true(el.getScreenCTM() instanceof DOMMatrix);
-    }, 'getScreenCTM() returns instance of DOMMatrix');
+        assert_true(el.getScreenCTM() instanceof SVGMatrix);
+    }, 'getScreenCTM() returns instance of SVGMatrix');
   ]]></script>
 </svg>
