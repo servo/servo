@@ -29,6 +29,9 @@ opt-level = 3
 # This is here to dedupe winapi since mio 0.6 is still using winapi 0.2.
 mio = { git = "https://github.com/servo/mio.git", branch = "servo-mio-0.6.22" }
 
+regex = { git = "https://github.com/rust-lang/regex", rev = "f858ff321d7a8129100c95d8d3f8f3f0ff99a55d" }
+regex-syntax = { git = "https://github.com/rust-lang/regex", rev = "f858ff321d7a8129100c95d8d3f8f3f0ff99a55d" }
+
 [patch."https://github.com/jrmuizel/raqote"]
 raqote = { git = "https://github.com/jdm/raqote", branch = "fkup" }
 

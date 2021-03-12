@@ -4847,8 +4847,7 @@ checksum = "4e1b7878800220a76a08f32c057829511440f65528b63b940f2f2bc145d7ac68"
 [[package]]
 name = "regex"
 version = "1.4.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9251239e129e16308e70d853559389de218ac275b515068abc96829d05b948a"
+source = "git+https://github.com/rust-lang/regex?rev=f858ff321d7a8129100c95d8d3f8f3f0ff99a55d#f858ff321d7a8129100c95d8d3f8f3f0ff99a55d"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -4858,9 +4857,8 @@ dependencies = [
 
 [[package]]
 name = "regex-syntax"
-version = "0.6.23"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24d5f089152e60f62d28b835fbff2cd2e8dc0baf1ac13343bef92ab7eed84548"
+version = "0.6.22"
+source = "git+https://github.com/rust-lang/regex?rev=f858ff321d7a8129100c95d8d3f8f3f0ff99a55d#f858ff321d7a8129100c95d8d3f8f3f0ff99a55d"
 
 [[package]]
 name = "remove_dir_all"
