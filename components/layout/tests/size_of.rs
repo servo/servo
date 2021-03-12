@@ -10,7 +10,10 @@ extern crate size_of_test;
 use layout::Fragment;
 use layout::SpecificFragmentInfo;
 
+#[cfg(debug_assertions)]
 size_of_test!(test_size_of_fragment, Fragment, 176);
+#[cfg(not(debug_assertions))]
+size_of_test!(test_size_of_fragment, Fragment, 152);
 size_of_test!(
     test_size_of_specific_fragment_info,
     SpecificFragmentInfo,
