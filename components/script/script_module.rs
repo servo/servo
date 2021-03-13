@@ -52,7 +52,7 @@ use js::jsapi::{GetRequestedModules, SetModuleMetadataHook};
 use js::jsapi::{Heap, JSContext, JS_ClearPendingException, SetModulePrivate};
 use js::jsapi::{JSAutoRealm, JSObject, JSString};
 use js::jsapi::{JS_DefineProperty4, JS_IsExceptionPending, JS_NewStringCopyN, JSPROP_ENUMERATE};
-use js::jsapi::{ModuleInstantiate, ThrowOnModuleEvaluationFailure};
+use js::jsapi::{ModuleInstantiate, ModuleEvaluate};
 use js::jsval::{JSVal, PrivateValue, UndefinedValue};
 use js::rust::jsapi_wrapped::{GetArrayLength, JS_GetElement};
 use js::rust::jsapi_wrapped::{GetRequestedModuleSpecifier, JS_GetPendingException};
@@ -505,7 +505,8 @@ impl ModuleTree {
         let _ac = JSAutoRealm::new(*global.get_cx(), *global.reflector().get_jsobject());
 
         unsafe {
-            if !ThrowOnModuleEvaluationFailure(*global.get_cx(), module_record) {
+            rooted!(in(*global.get_cx()) let mut rval = UndefinedValue());
+            if !ModuleEvaluate(*global.get_cx(), module_record, rval.handle_mut().into()) {
                 warn!("fail to evaluate module");
 
                 rooted!(in(*global.get_cx()) let mut exception = UndefinedValue());
