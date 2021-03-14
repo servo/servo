@@ -136,6 +136,44 @@ jobs:
           name: release-binary
           path: target.tar.gz
 
+  build-linux-alt:
+    name: Build (Linux non-default)
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Bootstrap
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          python3 ./mach bootstrap
+      - name: Tidy
+        run: |
+          python3 ./mach test-tidy --no-progress --all
+          python3 ./mach test-tidy --no-progress --self-test
+      # Dev build disabled due to OOM
+      #- name: Dev build
+      #  run: python3 ./mach build --dev
+      - name: Lockfile check
+        run: ./etc/ci/lockfile_changed.sh
+      - name: Memory reports
+        run: ./etc/memory_reports_over_time.py --test
+      - name: Disallowed panics
+        run: ./etc/ci/check_no_panic.sh
+      - name: Unit tests
+        run: python3 ./mach test-unit --release
+      - name: Refcell backtrace
+        run: python3 ./mach build --release --features refcell_backtrace
+      - name: Layout 2020
+        run: python3 ./mach build --release --features layout-2020
+      - name: libsimpleservo
+        run: python3 ./mach build --release --libsimpleservo
+      - name: gstplugin
+        run: python3 ./mach build --release -p servo-gst-plugin
+      - name: Dummy media stack
+        run: python3 ./mach build --release --media-stack=dummy
+
 % for chunk in range(1, total_chunks + 1):
   # linux-wpt${chunk}:
   #  #needs: build-linux
