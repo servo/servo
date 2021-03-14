@@ -39,6 +39,51 @@ jobs:
         working-directory: "C:\\a\\${ REPOSITORY_NAME }\\${ REPOSITORY_NAME }"
         run: python mach smoketest --angle
 
+  build-win-uwp:
+    name: Build (Windows UWP)
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Copy to C drive
+        run: cp D:\a C:\ -Recurse
+      - name: Bootstrap
+        working-directory: "C:\\a\\${ REPOSITORY_NAME }\\${ REPOSITORY_NAME }"
+        run: |
+          python -m pip install --upgrade pip virtualenv
+          python mach fetch
+      - name: Release build
+        working-directory: "C:\\a\\${ REPOSITORY_NAME }\\${ REPOSITORY_NAME }"
+        run: python mach build --release --target=x86_64-uwp-windows-msvc
+      - name: Package
+        working-directory: "C:\\a\\${ REPOSITORY_NAME }\\${ REPOSITORY_NAME }"
+        run: python mach package --release --target=x86_64-uwp-windows-msvc --uwp=x64
+      - name: Tidy
+        working-directory: "C:\\a\\${ REPOSITORY_NAME }\\${ REPOSITORY_NAME }"
+        run: python mach test-tidy --force-cpp --no-wpt
+
+  build-win-arm64:
+    name: Build (Windows UWP ARM64)
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Copy to C drive
+        run: cp D:\a C:\ -Recurse
+      - name: Bootstrap
+        working-directory: "C:\\a\\${ REPOSITORY_NAME }\\${ REPOSITORY_NAME }"
+        run: |
+          python -m pip install --upgrade pip virtualenv
+          python mach fetch
+      - name: Release build
+        working-directory: "C:\\a\\${ REPOSITORY_NAME }\\${ REPOSITORY_NAME }"
+        run: python mach build --release --target=aarch64-uwp-windows-msvc
+      - name: Package
+        working-directory: "C:\\a\\${ REPOSITORY_NAME }\\${ REPOSITORY_NAME }"
+        run: python mach package --release --target=aarch64-uwp-windows-msvc --uwp=arm64
+
   build-mac:
     name: Build (macOS)
     runs-on: macos-10.15
@@ -222,7 +267,7 @@ jobs:
   build_result:
     name: homu build finished
     runs-on: ubuntu-latest
-    needs: ["build-win", "build-mac", "build-linux"]
+    needs: ["build-win", "build-mac", "build-linux", "build-linux-alt", "build-win-uwp", "build-win-arm64"]
     steps:
       - name: Mark the job as successful
         run: exit 0
