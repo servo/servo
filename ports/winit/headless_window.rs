@@ -4,7 +4,7 @@
 
 //! A headless window implementation.
 
-use crate::events_loop::EventsLoop;
+use crate::events_loop::ServoEvent;
 use crate::window_trait::WindowPortsMethods;
 use euclid::{Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
 use servo::compositing::windowing::{AnimationState, WindowEvent};
@@ -71,8 +71,8 @@ impl WindowPortsMethods for Window {
         false
     }
 
-    fn id(&self) -> winit::WindowId {
-        unsafe { winit::WindowId::dummy() }
+    fn id(&self) -> winit::window::WindowId {
+        unsafe { winit::window::WindowId::dummy() }
     }
 
     fn page_height(&self) -> f32 {
@@ -98,11 +98,14 @@ impl WindowPortsMethods for Window {
         self.animation_state.get() == AnimationState::Animating
     }
 
-    fn winit_event_to_servo_event(&self, _event: winit::WindowEvent) {
+    fn winit_event_to_servo_event(&self, _event: winit::event::WindowEvent) {
         // Not expecting any winit events.
     }
 
-    fn new_glwindow(&self, _events_loop: &EventsLoop) -> Box<dyn webxr::glwindow::GlWindow> {
+    fn new_glwindow(
+        &self,
+        _events_loop: &winit::event_loop::EventLoopWindowTarget<ServoEvent>
+    ) -> Box<dyn webxr::glwindow::GlWindow> {
         unimplemented!()
     }
 }
