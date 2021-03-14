@@ -22,7 +22,7 @@ ply == 3.8
 colorama == 0.3.7
 
 # For package uploading
-boto3 == 1.4.4
+boto3 == 1.17.27
 
 # Default root CAs on Windows CI do not trust CloudFront certificates,
 # connecting to https://static.rust-lang.org would fail:
