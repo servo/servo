@@ -835,7 +835,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
     }
 
-    pub fn on_resize_window_event(&mut self) {
+    pub fn on_resize_window_event(&mut self) -> bool {
         debug!("compositor resize requested");
 
         let old_coords = self.embedder_coordinates;
@@ -847,11 +847,12 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
 
         if self.embedder_coordinates.viewport == old_coords.viewport {
-            return;
+            return false;
         }
 
         self.send_window_size(WindowSizeType::Resize);
         self.composite_if_necessary(CompositingReason::Resize);
+        return true;
     }
 
     pub fn on_mouse_window_event_class(&mut self, mouse_window_event: MouseWindowEvent) {

@@ -57,10 +57,10 @@ libservo = { path = "../../components/servo" }
 log = "0.4"
 servo-media = { git = "https://github.com/servo/media" }
 shellwords = "1.0.0"
-surfman = { version = "0.3", features = ["sm-winit", "sm-x11"] }
+surfman = { version = "0.4", features = ["sm-winit", "sm-x11"] }
 tinyfiledialogs = "3.0"
 webxr = { git = "https://github.com/servo/webxr", features = ["ipc", "glwindow", "headless"] }
-winit = "0.19"
+winit = "0.24"
 
 [target.'cfg(any(target_os = "linux", target_os = "windows"))'.dependencies]
 image = "0.23"

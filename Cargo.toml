@@ -28,6 +28,8 @@ opt-level = 3
 
 # This is here to dedupe winapi since mio 0.6 is still using winapi 0.2.
 mio = { git = "https://github.com/servo/mio.git", branch = "servo-mio-0.6.22" }
+# Work around bug in winit 0.24 crashing servo headless in macOS
+winit = { git = "https://github.com/rust-windowing/winit.git", rev = "4192d04a53202c199f94d1b7d883a34c9ad09272" }
 
 [patch."https://github.com/jrmuizel/raqote"]
 raqote = { git = "https://github.com/jdm/raqote", branch = "fkup" }

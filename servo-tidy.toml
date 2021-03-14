@@ -67,16 +67,17 @@ packages = [
   # Lots of crates to update.
   "smallvec",
 
-  # https://github.com/servo/servo/issues/24421
-  "proc-macro2",
-  "quote",
-  "unicode-xid",
-
   # https://github.com/servo/servo/pull/25518
   "core-foundation",
   "core-foundation-sys",
   "core-graphics",
   "lyon_geom",
+
+  # https://github.com/servo/servo/pull/28236
+  "dlib",
+  "nix",
+  "nom",
+  "strsim",
 
   # Duplicated by webrender debugger via ws
   "digest",

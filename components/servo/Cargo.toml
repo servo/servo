@@ -78,7 +78,7 @@ servo_url = { path = "../url" }
 sparkle = "0.1"
 style = { path = "../style", features = ["servo"] }
 style_traits = { path = "../style_traits", features = ["servo"] }
-surfman = "0.3"
+surfman = "0.4"
 webdriver_server = { path = "../webdriver_server", optional = true }
 webgpu = { path = "../webgpu" }
 webrender = { git = "https://github.com/servo/webrender" }

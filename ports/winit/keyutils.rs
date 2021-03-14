@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use winit::event::{ElementState, KeyboardInput, ModifiersState, VirtualKeyCode};
 use keyboard_types::{Code, Key, KeyState, KeyboardEvent, Location, Modifiers};
-use winit::{ElementState, KeyboardInput, ModifiersState, VirtualKeyCode};
 
 // Some shortcuts use Cmd on Mac and Control on other systems.
 #[cfg(target_os = "macos")]
@@ -18,7 +18,7 @@ pub const CMD_OR_ALT: Modifiers = Modifiers::META;
 pub const CMD_OR_ALT: Modifiers = Modifiers::ALT;
 
 fn get_servo_key_from_winit_key(key: Option<VirtualKeyCode>) -> Key {
-    use winit::VirtualKeyCode::*;
+    use winit::event::VirtualKeyCode::*;
     // TODO: figure out how to map NavigateForward, NavigateBackward
     // TODO: map the remaining keys if possible
     let key = if let Some(key) = key {
@@ -127,7 +127,7 @@ fn get_servo_key_from_winit_key(key: Option<VirtualKeyCode>) -> Key {
 }
 
 fn get_servo_location_from_winit_key(key: Option<VirtualKeyCode>) -> Location {
-    use winit::VirtualKeyCode::*;
+    use winit::event::VirtualKeyCode::*;
     // TODO: add more numpad keys
     let key = if let Some(key) = key {
         key
@@ -243,14 +243,14 @@ fn get_servo_code_from_scancode(_scancode: u32) -> Code {
 
 fn get_modifiers(mods: ModifiersState) -> Modifiers {
     let mut modifiers = Modifiers::empty();
-    modifiers.set(Modifiers::CONTROL, mods.ctrl);
-    modifiers.set(Modifiers::SHIFT, mods.shift);
-    modifiers.set(Modifiers::ALT, mods.alt);
-    modifiers.set(Modifiers::META, mods.logo);
+    modifiers.set(Modifiers::CONTROL, mods.ctrl());
+    modifiers.set(Modifiers::SHIFT, mods.shift());
+    modifiers.set(Modifiers::ALT, mods.alt());
+    modifiers.set(Modifiers::META, mods.logo());
     modifiers
 }
 
-pub fn keyboard_event_from_winit(input: KeyboardInput) -> KeyboardEvent {
+pub fn keyboard_event_from_winit(input: KeyboardInput, state: ModifiersState) -> KeyboardEvent {
     info!("winit keyboard input: {:?}", input);
     KeyboardEvent {
         state: match input.state {
@@ -260,7 +260,7 @@ pub fn keyboard_event_from_winit(input: KeyboardInput) -> KeyboardEvent {
         key: get_servo_key_from_winit_key(input.virtual_keycode),
         code: get_servo_code_from_scancode(input.scancode),
         location: get_servo_location_from_winit_key(input.virtual_keycode),
-        modifiers: get_modifiers(input.modifiers),
+        modifiers: get_modifiers(state),
         repeat: false,
         is_composing: false,
     }
