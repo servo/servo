@@ -27,6 +27,8 @@ jobs:
       - name: Bootstrap
         working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
         run: |
+          curl -OLS https://github.com/wixtoolset/wix3/releases/download/wix3111rtm/wix311.exe
+          .\wix311.exe /install /quiet /norestart
           python -m pip install --upgrade pip virtualenv
           python mach fetch
       - name: Release build
@@ -35,9 +37,60 @@ jobs:
       - name: Unit tests
         working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
         run: python mach test-unit --release
+      - name: Package
+        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+        run: python mach package --release
+      - name: libsimpleservo
+        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+        run: python mach build --release --libsimpleservo
       - name: Smoketest
         working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
         run: python mach smoketest --angle
+
+  build-win-uwp:
+    name: Build (Windows UWP)
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Copy to C drive
+        run: cp D:\a C:\ -Recurse
+      - name: Bootstrap
+        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+        run: |
+          python -m pip install --upgrade pip virtualenv
+          python mach fetch
+      - name: Release build
+        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+        run: python mach build --release --target=x86_64-uwp-windows-msvc
+      - name: Package
+        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+        run: python mach package --release --target=x86_64-uwp-windows-msvc --uwp=x64
+      - name: Tidy
+        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+        run: python mach test-tidy --force-cpp --no-wpt
+
+  build-win-arm64:
+    name: Build (Windows UWP ARM64)
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Copy to C drive
+        run: cp D:\a C:\ -Recurse
+      - name: Bootstrap
+        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+        run: |
+          python -m pip install --upgrade pip virtualenv
+          python mach fetch
+      - name: Release build
+        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+        run: python mach build --release --target=aarch64-uwp-windows-msvc
+      - name: Package
+        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+        run: python mach package --release --target=aarch64-uwp-windows-msvc --uwp=arm64
 
   build-mac:
     name: Build (macOS)
@@ -894,6 +947,44 @@ jobs:
           name: release-binary
           path: target.tar.gz
 
+  build-linux-alt:
+    name: Build (Linux non-default)
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Bootstrap
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          python3 ./mach bootstrap
+      - name: Tidy
+        run: |
+          python3 ./mach test-tidy --no-progress --all
+          python3 ./mach test-tidy --no-progress --self-test
+      # Dev build disabled due to OOM
+      #- name: Dev build
+      #  run: python3 ./mach build --dev
+      - name: Lockfile check
+        run: ./etc/ci/lockfile_changed.sh
+      - name: Memory reports
+        run: ./etc/memory_reports_over_time.py --test
+      - name: Disallowed panics
+        run: ./etc/ci/check_no_panic.sh
+      - name: Unit tests
+        run: python3 ./mach test-unit --release
+      - name: Refcell backtrace
+        run: python3 ./mach build --release --features refcell_backtrace
+      - name: Layout 2020
+        run: python3 ./mach build --release --features layout-2020
+      - name: libsimpleservo
+        run: python3 ./mach build --release --libsimpleservo
+      - name: gstplugin
+        run: python3 ./mach build --release -p servo-gst-plugin
+      - name: Dummy media stack
+        run: python3 ./mach build --release --media-stack=dummy
+
   # linux-wpt1:
   #  #needs: build-linux
   #  runs-on: ubuntu-20.04
@@ -1738,7 +1829,7 @@ jobs:
   build_result:
     name: homu build finished
     runs-on: ubuntu-latest
-    needs: ["build-win", "build-mac", "build-linux"]
+    needs: ["build-win", "build-mac", "build-linux", "build-linux-alt", "build-win-uwp", "build-win-arm64"]
     steps:
       - name: Mark the job as successful
         run: exit 0
