@@ -27,6 +27,8 @@ jobs:
       - name: Bootstrap
         working-directory: "C:\\a\\${ REPOSITORY_NAME }\\${ REPOSITORY_NAME }"
         run: |
+          curl -OLS https://github.com/wixtoolset/wix3/releases/download/wix3111rtm/wix311.exe
+          .\wix311.exe /install /quiet /norestart
           python -m pip install --upgrade pip virtualenv
           python mach fetch
       - name: Release build
@@ -35,6 +37,12 @@ jobs:
       - name: Unit tests
         working-directory: "C:\\a\\${ REPOSITORY_NAME }\\${ REPOSITORY_NAME }"
         run: python mach test-unit --release
+      - name: Package
+        working-directory: "C:\\a\\${ REPOSITORY_NAME }\\${ REPOSITORY_NAME }"
+        run: python mach package --release
+      - name: libsimpleservo
+        working-directory: "C:\\a\\${ REPOSITORY_NAME }\\${ REPOSITORY_NAME }"
+        run: python mach build --release --libsimpleservo
       - name: Smoketest
         working-directory: "C:\\a\\${ REPOSITORY_NAME }\\${ REPOSITORY_NAME }"
         run: python mach smoketest --angle
