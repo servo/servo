@@ -29,11 +29,11 @@ pub struct EventsLoop(EventLoop);
 impl EventsLoop {
     // Ideally, we could use the winit event loop in both modes,
     // but on Linux, the event loop requires a X11 server.
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(not(any(target_os = "linux", target_os = "macos")))]
     pub fn new(_headless: bool) -> EventsLoop {
         EventsLoop(EventLoop::Winit(Some(winit::event_loop::EventLoop::with_user_event())))
     }
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     pub fn new(headless: bool) -> EventsLoop {
         EventsLoop(if headless {
             EventLoop::Headless(Arc::new((Mutex::new(false), Condvar::new())))
