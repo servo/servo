@@ -633,28 +633,15 @@ class MarionetteDebugProtocolPart(DebugProtocolPart):
     def load_devtools(self):
         with self.marionette.using_context(self.marionette.CONTEXT_CHROME):
             self.parent.base.execute_script("""
-const DevToolsShim = ChromeUtils.import(
-  "chrome://devtools-startup/content/DevToolsShim.jsm"
-);
+const { require } = ChromeUtils.import("resource://devtools/shared/Loader.jsm");
+const { TargetFactory } = require("devtools/client/framework/target");
+const { gDevTools } = require("devtools/client/framework/devtools");
 
 const callback = arguments[arguments.length - 1];
 
 async function loadDevTools() {
-    const tab = window.gBrowser.selectedTab;
-    // showToolboxForTab is available for Firefox 87 or newer.
-    if (typeof DevToolsShim.showToolboxForTab === "function") {
-        await showToolboxForTab(tab, {
-          toolId: "webconsole",
-          hostType: "window"
-        });
-    } else {
-        // This branch can be removed whe wptrunner can only be used with
-        // Firefox 87 or newer.
-        const { TargetFactory } = require("devtools/client/framework/target");
-        const { gDevTools } = require("devtools/client/framework/devtools");
-        const target = await TargetFactory.forTab(tab);
-        await gDevTools.showToolbox(target, "webconsole", "window");
-    }
+    const target = await TargetFactory.forTab(window.gBrowser.selectedTab);
+    await gDevTools.showToolbox(target, "webconsole", "window");
 }
 
 loadDevTools().catch(() => dump("Devtools failed to load"))

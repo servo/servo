@@ -549,7 +549,7 @@ where
         }
     }
 
-    fn handle_window_event(&mut self, event: WindowEvent) {
+    fn handle_window_event(&mut self, event: WindowEvent) -> bool {
         match event {
             WindowEvent::Idle => {},
 
@@ -558,7 +558,7 @@ where
             },
 
             WindowEvent::Resize => {
-                self.compositor.on_resize_window_event();
+                return self.compositor.on_resize_window_event();
             },
 
             WindowEvent::AllowNavigationResponse(pipeline_id, allowed) => {
@@ -745,6 +745,7 @@ where
                 }
             },
         }
+        return false;
     }
 
     fn receive_messages(&mut self) {
@@ -776,18 +777,20 @@ where
         ::std::mem::replace(&mut self.embedder_events, Vec::new())
     }
 
-    pub fn handle_events(&mut self, events: Vec<WindowEvent>) {
+    pub fn handle_events(&mut self, events: Vec<WindowEvent>) -> bool {
         if self.compositor.receive_messages() {
             self.receive_messages();
         }
+        let mut need_resize = false;
         for event in events {
-            self.handle_window_event(event);
+            need_resize |= self.handle_window_event(event);
         }
         if self.compositor.shutdown_state != ShutdownState::FinishedShuttingDown {
             self.compositor.perform_updates();
         } else {
             self.embedder_events.push((None, EmbedderMsg::Shutdown));
         }
+        need_resize
     }
 
     pub fn repaint_synchronously(&mut self) {

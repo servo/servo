@@ -81,14 +81,11 @@
         }
       }, false);
     });
-    let iframe = document.getElementById('iframe');
-    const iframeX = document.getElementById('iframe').offsetLeft;
-    const iframeY = document.getElementById('iframe').offsetTop;
     // Tap on the iframe, with an offset of 10 to target the div inside it.
     const actions = new test_driver.Actions()
-        .pointerMove(iframeX + 10, iframeY + 10)
+        .pointerMove(10, 10, { origin: document.getElementById("iframe") })
         .pointerDown()
-        .pointerUp()
+        .pointerUp();
     actions.send();
     return Promise.all([observerPromise, childFrameEntriesPromise]);
   }, "Event Timing: entries should only be observable by its own frame.");

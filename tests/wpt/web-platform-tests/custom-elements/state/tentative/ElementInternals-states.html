@@ -48,5 +48,35 @@ test(() => {
   i.states.add('--baz');
   assert_array_equals([...i.states], ['--foo', '--baz']);
 }, 'CustomStateSet behavior of ElementInternals.states: Modifications');
+
+test(() => {
+  let i = (new TestElement()).internals;
+  i.states.add('--one');
+  i.states.add('--two');
+  i.states.add('--three');
+  let iter = i.states.values();
+
+  // Delete the next item.
+  i.states.delete('--one');
+  let item = iter.next();
+  assert_false(item.done);
+  assert_equals(item.value, '--two');
+
+  // Clear the set.
+  i.states.clear();
+  item = iter.next();
+  assert_true(item.done);
+
+  // Delete the previous item.
+  i.states.add('--one');
+  i.states.add('--two');
+  i.states.add('--three');
+  iter = i.states.values();
+  item = iter.next();
+  assert_equals(item.value, '--one');
+  i.states.delete('--one');
+  item = iter.next();
+  assert_equals(item.value, '--two');
+}, 'Updating a CustomStateSet while iterating it should work');
 </script>
 

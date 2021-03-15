@@ -26,9 +26,8 @@ promise_test(async () => {
   // Generate a layout shift.
   document.querySelector("#shift").style = "top: 60px";
 
-  // Impact region: width * (height - scrollTop + moveDistance)
-  const expectedScore = computeExpectedScore(
-      300 * (200 - 100 + 60), 60);
+  const moveDistanceInView = 100 - 60;
+  const expectedScore = computeExpectedScore(300 * 200, moveDistanceInView);
 
   await watcher.promise;
   assert_equals(watcher.score, expectedScore);

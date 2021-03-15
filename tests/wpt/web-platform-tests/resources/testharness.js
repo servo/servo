@@ -3541,10 +3541,9 @@ policies and contribution forms [3].
                 if (assert.stack) {
                     output_location = assert.stack.split("\n", 1)[0].replace(/@?\w+:\/\/[^ "\/]+(?::\d+)?/g, " ");
                 }
-                return "<tr><td class=" +
-                    status_class(Test.prototype.status_formats[assert.status]) + ">" +
+                return "<tr><td class='" +
+                    status_class(Test.prototype.status_formats[assert.status]) + "'>" +
                     Test.prototype.status_formats[assert.status] + "</td>" +
-                    "</td>" +
                     "<td><pre>" +
                     output_fn +
                     (output_location ? "\n" + escape_html(output_location) : "") +

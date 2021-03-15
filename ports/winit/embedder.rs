@@ -4,26 +4,23 @@
 
 //! Implements the global methods required by Servo (not window/gl/compositor related).
 
-use crate::events_loop::EventsLoop;
 use servo::compositing::windowing::EmbedderMethods;
 use servo::embedder_traits::{EmbedderProxy, EventLoopWaker};
 use servo::servo_config::pref;
-use std::cell::RefCell;
-use std::rc::Rc;
 use webxr::glwindow::GlWindowDiscovery;
 
 pub struct EmbedderCallbacks {
-    events_loop: Rc<RefCell<EventsLoop>>,
+    event_loop_waker: Box<dyn EventLoopWaker>,
     xr_discovery: Option<GlWindowDiscovery>,
 }
 
 impl EmbedderCallbacks {
     pub fn new(
-        events_loop: Rc<RefCell<EventsLoop>>,
+        event_loop_waker: Box<dyn EventLoopWaker>,
         xr_discovery: Option<GlWindowDiscovery>,
     ) -> EmbedderCallbacks {
         EmbedderCallbacks {
-            events_loop,
+            event_loop_waker,
             xr_discovery,
         }
     }
@@ -31,7 +28,7 @@ impl EmbedderCallbacks {
 
 impl EmbedderMethods for EmbedderCallbacks {
     fn create_event_loop_waker(&mut self) -> Box<dyn EventLoopWaker> {
-        self.events_loop.borrow().create_event_loop_waker()
+        self.event_loop_waker.clone()
     }
 
     fn register_webxr(

@@ -7,10 +7,14 @@ const remote = get_host_info().HTTP_REMOTE_ORIGIN + "/xhr/resources/corsenabled.
 [remote, redirect].forEach(url => {
   async_test(test => {
     const client = new XMLHttpRequest();
-    client.upload.onprogress = test.step_func_done();
+    const data = "On time: " + url;
+    client.upload.onprogress = test.step_func_done(e => {
+      assert_true(e.lengthComputable);
+      assert_equals(e.total, data.length);
+    });
     client.onload = test.unreached_func();
     client.open("POST", url);
-    client.send("On time: " + url);
+    client.send(data);
   }, "Upload events registered on time (" + url + ")");
 });
 

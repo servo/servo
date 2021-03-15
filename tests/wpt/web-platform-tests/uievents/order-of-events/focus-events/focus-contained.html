@@ -4,9 +4,11 @@
   <meta charset="utf-8">
   <title>Focus-related events should fire in the correct order</title>
   <link rel="help" href="https://w3c.github.io/uievents/#events-focusevent-event-order">
-  <meta name="flags" content="interact">
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
   <script src="/uievents/resources/eventrecorder.js"></script>
 </head>
 
@@ -35,9 +37,10 @@ var relevantEvents = [
   "focusin",
   "focusout"
 ];
-window.onload = function () {
+window.onload = async function () {
   var a = document.getElementById("a");
   var b = document.getElementById("b");
+  var button = document.getElementById("done");
   var inputs = [a, b];
   EventRecorder.configure({
       objectMap: {
@@ -48,22 +51,22 @@ window.onload = function () {
 
   EventRecorder.addEventListenersForNodes(relevantEvents, inputs, stopPropagation);
   var expected = [
-    {type: "focusin", target: "b"},
     {type: "focus", target: "b"},
-    {type: "focusout", target: "b"},
-    {type: "focusin", target: "a"},
+    {type: "focusin", target: "b"},
     {type: "blur", target: "b"},
-    {type: "focus", target: "a"},
-    {type: "focusout", target: "a"},
-    {type: "focusin", target: "b"},
-    {type: "blur", target: "a"},
-    {type: "focus", target: "b"},
     {type: "focusout", target: "b"},
-    {type: "blur", target: "b"}
+    {type: "focus", target: "a"},
+    {type: "focusin", target: "a"},
+    {type: "blur", target: "a"},
+    {type: "focusout", target: "a"},
+    {type: "focus", target: "b"},
+    {type: "focusin", target: "b"},
+    {type: "blur", target: "b"},
+    {type: "focusout", target: "b"}
   ];
 
   async_test(function(t) {
-    document.getElementById("done").addEventListener("click", function () {
+    button.addEventListener("click", function () {
       t.step(function () {
         assert_true(EventRecorder.checkRecords(expected));
         t.done();
@@ -71,6 +74,21 @@ window.onload = function () {
     }, false);
   }, "Focus-related events should fire in the correct order");
   EventRecorder.start();
+
+  await new test_driver.Actions()
+    .pointerMove(0, 0, {origin: b})
+    .pointerDown()
+    .pointerUp()
+    .pointerMove(0, 0, {origin: a})
+    .pointerDown()
+    .pointerUp()
+    .pointerMove(0, 0, {origin: b})
+    .pointerDown()
+    .pointerUp()
+    .pointerMove(0, 0, {origin: button})
+    .pointerDown()
+    .pointerUp()
+    .send();
 };
 </script>
 </html>

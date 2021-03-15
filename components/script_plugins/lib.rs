@@ -210,7 +210,8 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
     /// All structs containing #[unrooted_must_root_lint::must_root] types
     /// must be #[unrooted_must_root_lint::must_root] themselves
     fn check_item(&mut self, cx: &LateContext<'tcx>, item: &'tcx hir::Item) {
-        if has_lint_attr(&self.symbols, &item.attrs, self.symbols.must_root) {
+        let attrs = cx.tcx.hir().attrs(item.hir_id());
+        if has_lint_attr(&self.symbols, &attrs, self.symbols.must_root) {
             return;
         }
         if let hir::ItemKind::Struct(def, ..) = &item.kind {
@@ -235,7 +236,8 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
     fn check_variant(&mut self, cx: &LateContext, var: &hir::Variant) {
         let ref map = cx.tcx.hir();
         let parent_item = map.expect_item(map.get_parent_item(var.id));
-        if !has_lint_attr(&self.symbols, &parent_item.attrs, self.symbols.must_root) {
+        let attrs = cx.tcx.hir().attrs(parent_item.hir_id());
+        if !has_lint_attr(&self.symbols, &attrs, self.symbols.must_root) {
             match var.data {
                 hir::VariantData::Tuple(fields, ..) => {
                     for field in fields {
@@ -268,10 +270,10 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
         id: HirId,
     ) {
         let in_new_function = match kind {
-            visit::FnKind::ItemFn(n, _, _, _, _) | visit::FnKind::Method(n, _, _, _) => {
+            visit::FnKind::ItemFn(n, _, _, _) | visit::FnKind::Method(n, _, _) => {
                 &*n.as_str() == "new" || n.as_str().starts_with("new_")
             },
-            visit::FnKind::Closure(_) => return,
+            visit::FnKind::Closure => return,
         };
 
         if !in_derive_expn(span) {

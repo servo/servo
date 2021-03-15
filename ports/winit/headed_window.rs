@@ -4,10 +4,18 @@
 
 //! A winit window implementation.
 
-use crate::events_loop::EventsLoop;
+use crate::events_loop::{EventsLoop, ServoEvent};
 use crate::keyutils::keyboard_event_from_winit;
 use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
-use euclid::{Angle, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector2D, Vector3D};
+use euclid::{
+    Angle, Point2D, Rotation3D, Scale, Size2D, UnknownUnit,
+    Vector2D, Vector3D,
+};
+#[cfg(target_os = "macos")]
+use winit::platform::macos::{ActivationPolicy, WindowBuilderExtMacOS};
+#[cfg(any(target_os = "linux", target_os = "windows"))]
+use winit::window::Icon;
+use winit::event::{ElementState, KeyboardInput, MouseButton, MouseScrollDelta, TouchPhase, VirtualKeyCode};
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use image;
 use keyboard_types::{Key, KeyState, KeyboardEvent};
@@ -39,17 +47,11 @@ use surfman::GLVersion;
 use surfman::SurfaceType;
 #[cfg(target_os = "windows")]
 use winapi;
-use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
-#[cfg(target_os = "macos")]
-use winit::os::macos::{ActivationPolicy, WindowBuilderExt};
-#[cfg(any(target_os = "linux", target_os = "windows"))]
-use winit::Icon;
-use winit::{
-    ElementState, KeyboardInput, MouseButton, MouseScrollDelta, TouchPhase, VirtualKeyCode,
-};
+use winit::dpi::{LogicalPosition, PhysicalPosition, PhysicalSize};
+use winit::event::ModifiersState;
 
 #[cfg(target_os = "macos")]
-fn builder_with_platform_options(mut builder: winit::WindowBuilder) -> winit::WindowBuilder {
+fn builder_with_platform_options(mut builder: winit::window::WindowBuilder) -> winit::window::WindowBuilder {
     if opts::get().output_file.is_some() {
         // Prevent the window from showing in Dock.app, stealing focus,
         // when generating an output file.
@@ -59,18 +61,18 @@ fn builder_with_platform_options(mut builder: winit::WindowBuilder) -> winit::Wi
 }
 
 #[cfg(not(target_os = "macos"))]
-fn builder_with_platform_options(builder: winit::WindowBuilder) -> winit::WindowBuilder {
+fn builder_with_platform_options(builder: winit::window::WindowBuilder) -> winit::window::WindowBuilder {
     builder
 }
 
 pub struct Window {
-    winit_window: winit::Window,
+    winit_window: winit::window::Window,
     webrender_surfman: WebrenderSurfman,
     screen_size: Size2D<u32, DeviceIndependentPixel>,
     inner_size: Cell<Size2D<u32, DeviceIndependentPixel>>,
-    mouse_down_button: Cell<Option<winit::MouseButton>>,
+    mouse_down_button: Cell<Option<winit::event::MouseButton>>,
     mouse_down_point: Cell<Point2D<i32, DevicePixel>>,
-    primary_monitor: winit::MonitorId,
+    primary_monitor: winit::monitor::MonitorHandle,
     event_queue: RefCell<Vec<WindowEvent>>,
     mouse_pos: Cell<Point2D<i32, DevicePixel>>,
     last_pressed: Cell<Option<(KeyboardEvent, Option<VirtualKeyCode>)>>,
@@ -81,6 +83,7 @@ pub struct Window {
     fullscreen: Cell<bool>,
     device_pixels_per_px: Option<f32>,
     xr_window_poses: RefCell<Vec<Rc<XRWindowPose>>>,
+    modifiers_state: Cell<ModifiersState>,
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -98,7 +101,7 @@ fn window_creation_scale_factor() -> Scale<f32, DeviceIndependentPixel, DevicePi
 impl Window {
     pub fn new(
         win_size: Size2D<u32, DeviceIndependentPixel>,
-        events_loop: Rc<RefCell<EventsLoop>>,
+        events_loop: &EventsLoop,
         no_native_titlebar: bool,
         device_pixels_per_px: Option<f32>,
     ) -> Window {
@@ -114,19 +117,16 @@ impl Window {
         let width = win_size.to_untyped().width;
         let height = win_size.to_untyped().height;
 
-        let mut window_builder = winit::WindowBuilder::new()
+        let mut window_builder = winit::window::WindowBuilder::new()
             .with_title("Servo".to_string())
             .with_decorations(!no_native_titlebar)
-            .with_transparency(no_native_titlebar)
-            .with_dimensions(LogicalSize::new(width as f64, height as f64))
-            .with_visibility(visible)
-            .with_multitouch();
+            .with_transparent(no_native_titlebar)
+            .with_inner_size(PhysicalSize::new(width as f64, height as f64))
+            .with_visible(visible);
 
         window_builder = builder_with_platform_options(window_builder);
 
-        let winit_window = window_builder
-            .build(events_loop.borrow().as_winit())
-            .expect("Failed to create window.");
+        let winit_window = window_builder.build(events_loop.as_winit()).expect("Failed to create window.");
 
         #[cfg(any(target_os = "linux", target_os = "windows"))]
         {
@@ -134,20 +134,15 @@ impl Window {
             winit_window.set_window_icon(Some(load_icon(icon_bytes)));
         }
 
-        let primary_monitor = events_loop.borrow().as_winit().get_primary_monitor();
+        let primary_monitor = events_loop.as_winit().available_monitors().nth(0).expect("No monitor detected");
 
         let PhysicalSize {
             width: screen_width,
             height: screen_height,
-        } = primary_monitor.get_dimensions();
+        } = primary_monitor.clone().size();
         let screen_size = Size2D::new(screen_width as u32, screen_height as u32);
-        // TODO(ajeffrey): can this fail?
-        let LogicalSize { width, height } = winit_window
-            .get_inner_size()
-            .expect("Failed to get window inner size.");
+        let PhysicalSize { width, height } = winit_window.inner_size();
         let inner_size = Size2D::new(width as u32, height as u32);
-
-        winit_window.show();
 
         // Initialize surfman
         let connection =
@@ -179,6 +174,7 @@ impl Window {
             screen_size,
             device_pixels_per_px,
             xr_window_poses: RefCell::new(vec![]),
+            modifiers_state: Cell::new(ModifiersState::empty()),
         }
     }
 
@@ -227,7 +223,7 @@ impl Window {
     }
 
     fn handle_keyboard_input(&self, input: KeyboardInput) {
-        let mut event = keyboard_event_from_winit(input);
+        let mut event = keyboard_event_from_winit(input, self.modifiers_state.get());
         trace!("handling {:?}", event);
         if event.state == KeyState::Down && event.key == Key::Unidentified {
             // If pressed and probably printable, we expect a ReceivedCharacter event.
@@ -247,7 +243,7 @@ impl Window {
             self.last_pressed.set(None);
             let xr_poses = self.xr_window_poses.borrow();
             for xr_window_pose in &*xr_poses {
-                xr_window_pose.handle_xr_rotation(&input);
+                xr_window_pose.handle_xr_rotation(&input, self.modifiers_state.get());
             }
             self.event_queue
                 .borrow_mut()
@@ -258,17 +254,17 @@ impl Window {
     /// Helper function to handle a click
     fn handle_mouse(
         &self,
-        button: winit::MouseButton,
-        action: winit::ElementState,
+        button: winit::event::MouseButton,
+        action: winit::event::ElementState,
         coords: Point2D<i32, DevicePixel>,
     ) {
         use servo::script_traits::MouseButton;
 
         let max_pixel_dist = 10.0 * self.servo_hidpi_factor().get();
         let mouse_button = match &button {
-            winit::MouseButton::Left => MouseButton::Left,
-            winit::MouseButton::Right => MouseButton::Right,
-            winit::MouseButton::Middle => MouseButton::Middle,
+            winit::event::MouseButton::Left => MouseButton::Left,
+            winit::event::MouseButton::Right => MouseButton::Right,
+            winit::event::MouseButton::Middle => MouseButton::Middle,
             _ => MouseButton::Left,
         };
         let event = match action {
@@ -305,7 +301,7 @@ impl Window {
     }
 
     fn device_hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-        Scale::new(self.winit_window.get_hidpi_factor() as f32)
+        Scale::new(self.winit_window.scale_factor() as f32)
     }
 
     fn servo_hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
@@ -332,8 +328,7 @@ impl WindowPortsMethods for Window {
         let dpr = self.servo_hidpi_factor();
         let size = self
             .winit_window
-            .get_inner_size()
-            .expect("Failed to get window inner size.");
+            .inner_size();
         size.height as f32 * dpr.get()
     }
 
@@ -342,24 +337,23 @@ impl WindowPortsMethods for Window {
     }
 
     fn set_inner_size(&self, size: DeviceIntSize) {
-        let size = size.to_f32() / self.device_hidpi_factor();
         self.winit_window
-            .set_inner_size(LogicalSize::new(size.width.into(), size.height.into()))
+            .set_inner_size::<PhysicalSize<i32>>(PhysicalSize::new(size.width.into(), size.height.into()))
     }
 
     fn set_position(&self, point: DeviceIntPoint) {
-        let point = point.to_f32() / self.device_hidpi_factor();
         self.winit_window
-            .set_position(LogicalPosition::new(point.x.into(), point.y.into()))
+            .set_outer_position::<PhysicalPosition<i32>>(PhysicalPosition::new(point.x.into(), point.y.into()))
     }
 
     fn set_fullscreen(&self, state: bool) {
         if self.fullscreen.get() != state {
-            self.winit_window.set_fullscreen(if state {
-                Some(self.primary_monitor.clone())
-            } else {
-                None
-            });
+            self.winit_window
+                .set_fullscreen(
+                    if state {
+                        Some(winit::window::Fullscreen::Borderless(Some(self.primary_monitor.clone())))
+                    } else { None }
+                );
         }
         self.fullscreen.set(state);
     }
@@ -369,68 +363,68 @@ impl WindowPortsMethods for Window {
     }
 
     fn set_cursor(&self, cursor: Cursor) {
-        use winit::MouseCursor;
+        use winit::window::CursorIcon;
 
         let winit_cursor = match cursor {
-            Cursor::Default => MouseCursor::Default,
-            Cursor::Pointer => MouseCursor::Hand,
-            Cursor::ContextMenu => MouseCursor::ContextMenu,
-            Cursor::Help => MouseCursor::Help,
-            Cursor::Progress => MouseCursor::Progress,
-            Cursor::Wait => MouseCursor::Wait,
-            Cursor::Cell => MouseCursor::Cell,
-            Cursor::Crosshair => MouseCursor::Crosshair,
-            Cursor::Text => MouseCursor::Text,
-            Cursor::VerticalText => MouseCursor::VerticalText,
-            Cursor::Alias => MouseCursor::Alias,
-            Cursor::Copy => MouseCursor::Copy,
-            Cursor::Move => MouseCursor::Move,
-            Cursor::NoDrop => MouseCursor::NoDrop,
-            Cursor::NotAllowed => MouseCursor::NotAllowed,
-            Cursor::Grab => MouseCursor::Grab,
-            Cursor::Grabbing => MouseCursor::Grabbing,
-            Cursor::EResize => MouseCursor::EResize,
-            Cursor::NResize => MouseCursor::NResize,
-            Cursor::NeResize => MouseCursor::NeResize,
-            Cursor::NwResize => MouseCursor::NwResize,
-            Cursor::SResize => MouseCursor::SResize,
-            Cursor::SeResize => MouseCursor::SeResize,
-            Cursor::SwResize => MouseCursor::SwResize,
-            Cursor::WResize => MouseCursor::WResize,
-            Cursor::EwResize => MouseCursor::EwResize,
-            Cursor::NsResize => MouseCursor::NsResize,
-            Cursor::NeswResize => MouseCursor::NeswResize,
-            Cursor::NwseResize => MouseCursor::NwseResize,
-            Cursor::ColResize => MouseCursor::ColResize,
-            Cursor::RowResize => MouseCursor::RowResize,
-            Cursor::AllScroll => MouseCursor::AllScroll,
-            Cursor::ZoomIn => MouseCursor::ZoomIn,
-            Cursor::ZoomOut => MouseCursor::ZoomOut,
-            _ => MouseCursor::Default,
+            Cursor::Default => CursorIcon::Default,
+            Cursor::Pointer => CursorIcon::Hand,
+            Cursor::ContextMenu => CursorIcon::ContextMenu,
+            Cursor::Help => CursorIcon::Help,
+            Cursor::Progress => CursorIcon::Progress,
+            Cursor::Wait => CursorIcon::Wait,
+            Cursor::Cell => CursorIcon::Cell,
+            Cursor::Crosshair => CursorIcon::Crosshair,
+            Cursor::Text => CursorIcon::Text,
+            Cursor::VerticalText => CursorIcon::VerticalText,
+            Cursor::Alias => CursorIcon::Alias,
+            Cursor::Copy => CursorIcon::Copy,
+            Cursor::Move => CursorIcon::Move,
+            Cursor::NoDrop => CursorIcon::NoDrop,
+            Cursor::NotAllowed => CursorIcon::NotAllowed,
+            Cursor::Grab => CursorIcon::Grab,
+            Cursor::Grabbing => CursorIcon::Grabbing,
+            Cursor::EResize => CursorIcon::EResize,
+            Cursor::NResize => CursorIcon::NResize,
+            Cursor::NeResize => CursorIcon::NeResize,
+            Cursor::NwResize => CursorIcon::NwResize,
+            Cursor::SResize => CursorIcon::SResize,
+            Cursor::SeResize => CursorIcon::SeResize,
+            Cursor::SwResize => CursorIcon::SwResize,
+            Cursor::WResize => CursorIcon::WResize,
+            Cursor::EwResize => CursorIcon::EwResize,
+            Cursor::NsResize => CursorIcon::NsResize,
+            Cursor::NeswResize => CursorIcon::NeswResize,
+            Cursor::NwseResize => CursorIcon::NwseResize,
+            Cursor::ColResize => CursorIcon::ColResize,
+            Cursor::RowResize => CursorIcon::RowResize,
+            Cursor::AllScroll => CursorIcon::AllScroll,
+            Cursor::ZoomIn => CursorIcon::ZoomIn,
+            Cursor::ZoomOut => CursorIcon::ZoomOut,
+            _ => CursorIcon::Default,
         };
-        self.winit_window.set_cursor(winit_cursor);
+        self.winit_window.set_cursor_icon(winit_cursor);
     }
 
     fn is_animating(&self) -> bool {
         self.animation_state.get() == AnimationState::Animating
     }
 
-    fn id(&self) -> winit::WindowId {
+    fn id(&self) -> winit::window::WindowId {
         self.winit_window.id()
     }
 
-    fn winit_event_to_servo_event(&self, event: winit::WindowEvent) {
+    fn winit_event_to_servo_event(&self, event: winit::event::WindowEvent) {
         match event {
-            winit::WindowEvent::ReceivedCharacter(ch) => self.handle_received_character(ch),
-            winit::WindowEvent::KeyboardInput { input, .. } => self.handle_keyboard_input(input),
-            winit::WindowEvent::MouseInput { state, button, .. } => {
+            winit::event::WindowEvent::ReceivedCharacter(ch) => self.handle_received_character(ch),
+            winit::event::WindowEvent::KeyboardInput { input, .. } => self.handle_keyboard_input(input),
+            winit::event::WindowEvent::ModifiersChanged(state) => self.modifiers_state.set(state),
+            winit::event::WindowEvent::MouseInput { state, button, .. } => {
                 if button == MouseButton::Left || button == MouseButton::Right {
                     self.handle_mouse(button, state, self.mouse_pos.get());
                 }
             },
-            winit::WindowEvent::CursorMoved { position, .. } => {
-                let pos = position.to_physical(self.device_hidpi_factor().get() as f64);
-                let (x, y): (i32, i32) = pos.into();
+            winit::event::WindowEvent::CursorMoved { position, .. } => {
+                let (x, y): (i32, i32) = position.into();
                 self.mouse_pos.set(Point2D::new(x, y));
                 self.event_queue
                     .borrow_mut()
@@ -438,15 +432,15 @@ impl WindowPortsMethods for Window {
                         x as f32, y as f32,
                     )));
             },
-            winit::WindowEvent::MouseWheel { delta, phase, .. } => {
+            winit::event::WindowEvent::MouseWheel { delta, phase, .. } => {
                 let (mut dx, mut dy, mode) = match delta {
                     MouseScrollDelta::LineDelta(dx, dy) => {
                         (dx as f64, (dy * LINE_HEIGHT) as f64, WheelMode::DeltaLine)
                     },
                     MouseScrollDelta::PixelDelta(position) => {
-                        let position =
-                            position.to_physical(self.device_hidpi_factor().get() as f64);
-                        (position.x as f64, position.y as f64, WheelMode::DeltaPixel)
+                        let position: LogicalPosition<f64> =
+                            position.to_logical(self.device_hidpi_factor().get() as f64);
+                        (position.x, position.y, WheelMode::DeltaPixel)
                     },
                 };
 
@@ -478,30 +472,24 @@ impl WindowPortsMethods for Window {
                 self.event_queue.borrow_mut().push(wheel_event);
                 self.event_queue.borrow_mut().push(scroll_event);
             },
-            winit::WindowEvent::Touch(touch) => {
+            winit::event::WindowEvent::Touch(touch) => {
                 use servo::script_traits::TouchId;
 
                 let phase = winit_phase_to_touch_event_type(touch.phase);
                 let id = TouchId(touch.id as i32);
-                let position = touch
-                    .location
-                    .to_physical(self.device_hidpi_factor().get() as f64);
+                let position = touch.location;
                 let point = Point2D::new(position.x as f32, position.y as f32);
                 self.event_queue
                     .borrow_mut()
                     .push(WindowEvent::Touch(phase, id, point));
             },
-            winit::WindowEvent::Refresh => {
-                self.event_queue.borrow_mut().push(WindowEvent::Refresh);
-            },
-            winit::WindowEvent::CloseRequested => {
+            winit::event::WindowEvent::CloseRequested => {
                 self.event_queue.borrow_mut().push(WindowEvent::Quit);
             },
-            winit::WindowEvent::Resized(size) => {
-                let (width, height) = size.into();
+            winit::event::WindowEvent::Resized(physical_size) => {
+                let (width, height) = physical_size.into();
                 let new_size = Size2D::new(width, height);
                 if self.inner_size.get() != new_size {
-                    let physical_size = size.to_physical(self.device_hidpi_factor().get() as f64);
                     let physical_size = Size2D::new(physical_size.width, physical_size.height);
                     self.webrender_surfman
                         .resize(physical_size.to_i32())
@@ -514,21 +502,20 @@ impl WindowPortsMethods for Window {
         }
     }
 
-    fn new_glwindow(&self, events_loop: &EventsLoop) -> Box<dyn webxr::glwindow::GlWindow> {
-        let size = self
-            .winit_window
-            .get_outer_size()
-            .expect("Failed to get window outer size");
+    fn new_glwindow(
+        &self,
+        event_loop: &winit::event_loop::EventLoopWindowTarget<ServoEvent>
+    ) -> Box<dyn webxr::glwindow::GlWindow> {
+        let size = self.winit_window.outer_size();
 
-        let mut window_builder = winit::WindowBuilder::new()
+        let mut window_builder = winit::window::WindowBuilder::new()
             .with_title("Servo XR".to_string())
-            .with_dimensions(size)
-            .with_visibility(true);
+            .with_inner_size(size)
+            .with_visible(true);
 
         window_builder = builder_with_platform_options(window_builder);
 
-        let winit_window = window_builder
-            .build(events_loop.as_winit())
+        let winit_window = window_builder.build(event_loop)
             .expect("Failed to create window.");
 
         let pose = Rc::new(XRWindowPose {
@@ -542,24 +529,23 @@ impl WindowPortsMethods for Window {
 
 impl WindowMethods for Window {
     fn get_coordinates(&self) -> EmbedderCoordinates {
-        // TODO(ajeffrey): can this fail?
-        let dpr = self.device_hidpi_factor();
-        let LogicalSize { width, height } = self
+        // Needed to convince the type system that winit's physical pixels
+        // are actually device pixels.
+        let dpr: Scale<f32, DeviceIndependentPixel, DevicePixel> = Scale::new(1.0);
+        let PhysicalSize { width, height } = self
             .winit_window
-            .get_outer_size()
-            .expect("Failed to get window outer size.");
-        let LogicalPosition { x, y } = self
+            .outer_size();
+        let PhysicalPosition { x, y } = self
             .winit_window
-            .get_position()
-            .unwrap_or(LogicalPosition::new(0., 0.));
+            .outer_position()
+            .unwrap_or(PhysicalPosition::new(0, 0));
         let win_size = (Size2D::new(width as f32, height as f32) * dpr).to_i32();
         let win_origin = (Point2D::new(x as f32, y as f32) * dpr).to_i32();
         let screen = (self.screen_size.to_f32() * dpr).to_i32();
 
-        let LogicalSize { width, height } = self
+        let PhysicalSize { width, height } = self
             .winit_window
-            .get_inner_size()
-            .expect("Failed to get window inner size.");
+            .inner_size();
         let inner_size = (Size2D::new(width as f32, height as f32) * dpr).to_i32();
         let viewport = DeviceIntRect::new(Point2D::zero(), inner_size);
         let framebuffer = DeviceIntSize::from_untyped(viewport.size.to_untyped());
@@ -684,7 +670,7 @@ fn load_icon(icon_bytes: &[u8]) -> Icon {
 }
 
 struct XRWindow {
-    winit_window: winit::Window,
+    winit_window: winit::window::Window,
     pose: Rc<XRWindowPose>,
 }
 
@@ -757,8 +743,8 @@ impl XRWindowPose {
         self.xr_translation.set(vec);
     }
 
-    fn handle_xr_rotation(&self, input: &KeyboardInput) {
-        if input.state != winit::ElementState::Pressed {
+    fn handle_xr_rotation(&self, input: &KeyboardInput, modifiers: ModifiersState) {
+        if input.state != winit::event::ElementState::Pressed {
             return;
         }
         let mut x = 0.0;
@@ -770,7 +756,7 @@ impl XRWindowPose {
             Some(VirtualKeyCode::Right) => y = -1.0,
             _ => return,
         };
-        if input.modifiers.shift {
+        if modifiers.shift() {
             x = 10.0 * x;
             y = 10.0 * y;
         }

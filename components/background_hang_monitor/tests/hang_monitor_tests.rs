@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#![allow(unused_imports)]
+
 #[macro_use]
 extern crate lazy_static;
 
@@ -127,6 +129,8 @@ fn test_hang_monitoring() {
 }
 
 #[test]
+// https://github.com/servo/servo/issues/28270
+#[cfg(not(target_os = "windows"))]
 fn test_hang_monitoring_unregister() {
     let _lock = SERIAL.lock().unwrap();
 
@@ -161,6 +165,8 @@ fn test_hang_monitoring_unregister() {
 }
 
 #[test]
+// https://github.com/servo/servo/issues/28270
+#[cfg(not(target_os = "windows"))]
 fn test_hang_monitoring_exit_signal() {
     let _lock = SERIAL.lock().unwrap();
 
