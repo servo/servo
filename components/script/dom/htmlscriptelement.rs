@@ -66,7 +66,6 @@ use std::io::{Read, Seek, Write};
 use std::mem::replace;
 use std::path::PathBuf;
 use std::process::Command;
-use std::ptr;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use style::str::{StaticStringVec, HTML_SPACE_CHARACTERS};
@@ -446,16 +445,15 @@ impl FetchResponseListener for ClassicContext {
                 fetch_options: self.fetch_options.clone(),
             });
 
-            let mut token = ptr::null_mut();
             unsafe {
-                assert!(CompileOffThread1(
+                assert!(!CompileOffThread1(
                     *cx,
                     options.ptr as *const _,
                     &mut transform_str_to_source_text(&context.script_text) as *mut _,
                     Some(off_thread_compilation_callback),
                     Box::into_raw(context) as *mut c_void,
-                    &mut token,
-                ));
+                )
+                .is_null());
             }
         } else {
             let load = ScriptOrigin::external(

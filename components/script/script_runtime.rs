@@ -56,7 +56,7 @@ use js::jsapi::{
 };
 use js::jsapi::{HandleObject, Heap, JobQueue};
 use js::jsapi::{JSContext as RawJSContext, JSTracer, SetDOMCallbacks, SetGCSliceCallback};
-use js::jsapi::{JSGCMode, JSGCParamKey, JS_SetGCParameter, JS_SetGlobalJitCompilerOption};
+use js::jsapi::{JSGCParamKey, JS_SetGCParameter, JS_SetGlobalJitCompilerOption};
 use js::jsapi::{
     JSJitCompilerOption, JS_SetOffthreadIonCompilationEnabled, JS_SetParallelParsingEnabled,
 };
@@ -591,14 +591,16 @@ unsafe fn new_rt_and_cx_with_parent(
             .unwrap_or(u32::max_value()),
     );
     // NOTE: This is disabled above, so enabling it here will do nothing for now.
-    let js_gc_mode = if pref!(js.mem.gc.incremental.enabled) {
-        JSGCMode::JSGC_MODE_INCREMENTAL
-    } else if pref!(js.mem.gc.per_zone.enabled) {
-        JSGCMode::JSGC_MODE_ZONE
-    } else {
-        JSGCMode::JSGC_MODE_GLOBAL
-    };
-    JS_SetGCParameter(cx, JSGCParamKey::JSGC_MODE, js_gc_mode as u32);
+    JS_SetGCParameter(
+        cx,
+        JSGCParamKey::JSGC_INCREMENTAL_GC_ENABLED,
+        pref!(js.mem.gc.incremental.enabled) as u32,
+    );
+    JS_SetGCParameter(
+        cx,
+        JSGCParamKey::JSGC_PER_ZONE_GC_ENABLED,
+        pref!(js.mem.gc.per_zone.enabled) as u32,
+    );
     if let Some(val) = in_range(pref!(js.mem.gc.incremental.slice_ms), 0, 100_000) {
         JS_SetGCParameter(cx, JSGCParamKey::JSGC_SLICE_TIME_BUDGET_MS, val as u32);
     }
