@@ -6195,7 +6195,7 @@ dependencies = [
  "metal 0.18.0",
  "objc",
  "parking_lot 0.10.2",
- "wayland-sys 0.24.0",
+ "wayland-sys 0.24.1",
  "winapi",
  "winit",
  "wio",
@@ -7071,9 +7071,9 @@ dependencies = [
 
 [[package]]
 name = "wayland-sys"
-version = "0.24.0"
+version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "695d1a3f30f853d3b9b530df7d9ed1c32ff9b025b5d51529827a231521f2f2e4"
+checksum = "537500923d50be11d95a63c4cb538145e4c82edf61296b7debc1f94a1a6514ed"
 dependencies = [
  "dlib 0.4.2",
  "lazy_static",
