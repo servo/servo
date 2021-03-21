@@ -3880,6 +3880,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0419348c027fa7be448d2ae7ea0e4e04c2334c31dc4e74ab29f00a2a7ca69204"
 
 [[package]]
+name = "must_root"
+version = "0.0.1"
+dependencies = [
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "naga"
 version = "0.2.0"
 source = "git+https://github.com/gfx-rs/naga?rev=b278e10ea7c144b2387585c4e81c1d86db8e2def#b278e10ea7c144b2387585c4e81c1d86db8e2def"
@@ -5169,6 +5177,7 @@ dependencies = [
  "mozangle",
  "mozjs",
  "msg",
+ "must_root",
  "net_traits",
  "num-traits",
  "parking_lot 0.10.2",
