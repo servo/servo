@@ -127,6 +127,32 @@ impl CanvasContextState {
     }
 }
 
+pub(crate) struct RemoteCanvasState(IpcSender<CanvasMsg>, CanvasId);
+
+impl RemoteCanvasState {
+    pub(crate) fn new(global: &GlobalScope, size: Size2D<u64>) -> RemoteCanvasState {
+        debug!("Creating new canvas rendering context.");
+        let (sender, receiver) =
+            profiled_ipc::channel(global.time_profiler_chan().clone()).unwrap();
+        let script_to_constellation_chan = global.script_to_constellation_chan();
+        debug!("Asking constellation to create new canvas thread.");
+        script_to_constellation_chan
+            .send(ScriptMsg::CreateCanvasPaintThread(size, sender))
+            .unwrap();
+        let remote_canvas_state = receiver.recv().unwrap();
+        debug!("Done.");
+        RemoteCanvasState(remote_canvas_state)
+    }
+
+    pub(crate) fn get_ipc_renderer(&self) -> &IpcSender<CanvasMsg> {
+        &self.0
+    }
+
+    pub(crate) fn get_canvas_id(&self) -> CanvasId {
+        self.1.clone()
+    }
+}
+
 #[unrooted_must_root_lint::must_root]
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct CanvasState {
@@ -147,17 +173,7 @@ pub(crate) struct CanvasState {
 }
 
 impl CanvasState {
-    pub(crate) fn new(global: &GlobalScope, size: Size2D<u64>) -> CanvasState {
-        debug!("Creating new canvas rendering context.");
-        let (sender, receiver) =
-            profiled_ipc::channel(global.time_profiler_chan().clone()).unwrap();
-        let script_to_constellation_chan = global.script_to_constellation_chan();
-        debug!("Asking constellation to create new canvas thread.");
-        script_to_constellation_chan
-            .send(ScriptMsg::CreateCanvasPaintThread(size, sender))
-            .unwrap();
-        let (ipc_renderer, canvas_id) = receiver.recv().unwrap();
-        debug!("Done.");
+    pub(crate) fn new(global: &GlobalScope, size: Size2D<u64>, remote_canvas_state: RemoteCanvasState) -> CanvasState {
         // Worklets always receive a unique origin. This messes with fetching
         // cached images in the case of paint worklets, since the image cache
         // is keyed on the origin requesting the image data.
@@ -167,8 +183,8 @@ impl CanvasState {
             global.origin().immutable().clone()
         };
         CanvasState {
-            ipc_renderer: ipc_renderer,
-            canvas_id: canvas_id,
+            ipc_renderer: remote_canvas_state.get_ipc_renderer(),
+            canvas_id: remote_canvas_state.get_canvas_id(),
             state: DomRefCell::new(CanvasContextState::new()),
             origin_clean: Cell::new(true),
             image_cache: global.image_cache(),

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::canvas_state::CanvasState;
+use crate::canvas_state::{CanvasState, RemoteCanvasState};
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasDirection;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasFillRule;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasImageSource;
@@ -31,6 +31,22 @@ use ipc_channel::ipc::IpcSender;
 use servo_url::ServoUrl;
 use std::mem;
 
+struct DroppableFields {
+    ipc_renderer: IpcSender<CanvasMsg>,
+    canvas_id: CanvasId,
+}
+
+impl Drop for DroppableFields {
+    fn drop(&mut self) {
+        if let Err(err) = self
+            .ipc_renderer
+            .send(CanvasMsg::Close(self.canvas_id))
+        {
+            warn!("Could not close canvas: {}", err)
+        }
+    }
+}
+
 // https://html.spec.whatwg.org/multipage/#canvasrenderingcontext2d
 #[dom_struct]
 pub struct CanvasRenderingContext2D {
@@ -39,6 +55,7 @@ pub struct CanvasRenderingContext2D {
     /// for ones created by a paint worklet, this is None.
     canvas: Option<Dom<HTMLCanvasElement>>,
     canvas_state: CanvasState,
+    droppable_fields: DroppableFields,
 }
 
 impl CanvasRenderingContext2D {
@@ -47,13 +64,19 @@ impl CanvasRenderingContext2D {
         canvas: Option<&HTMLCanvasElement>,
         size: Size2D<u32>,
     ) -> CanvasRenderingContext2D {
+        let remote_canvas_state = RemoteCanvasState::new(global, Size2D::new(size.width as u64, size.height as u64));
         CanvasRenderingContext2D {
             reflector_: Reflector::new(),
             canvas: canvas.map(Dom::from_ref),
             canvas_state: CanvasState::new(
                 global,
                 Size2D::new(size.width as u64, size.height as u64),
+                remote_canvas_state,
             ),
+            droppable_fields: DroppableFields {
+                ipc_renderer: remote_canvas_state.get_ipc_renderer(),
+                canvas_id: remote_canvas_state.get_canvas_id(),
+            }
         }
     }
 
@@ -650,17 +673,5 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor
     fn SetShadowColor(&self, value: DOMString) {
         self.canvas_state.set_shadow_color(value)
-    }
-}
-
-impl Drop for CanvasRenderingContext2D {
-    fn drop(&mut self) {
-        if let Err(err) = self
-            .canvas_state
-            .get_ipc_renderer()
-            .send(CanvasMsg::Close(self.canvas_state.get_canvas_id()))
-        {
-            warn!("Could not close canvas: {}", err)
-        }
     }
 }
