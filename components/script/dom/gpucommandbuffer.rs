@@ -22,14 +22,33 @@ impl Hash for DomRoot<GPUBuffer> {
     }
 }
 
+#[derive(MallocSizeOf)]
+struct DroppableField {
+    #[ignore_malloc_size_of = "defined in webgpu"]
+    channel: WebGPU,
+    command_buffer: WebGPUCommandBuffer,
+}
+
+impl Drop for DroppableField {
+    fn drop(&mut self) {
+        if let Err(e) = self.channel.0.send((
+            None,
+            WebGPURequest::FreeCommandBuffer(self.command_buffer.0),
+        )) {
+            warn!(
+                "Failed to send FreeCommandBuffer({:?}) ({})",
+                self.command_buffer.0, e
+            );
+        }
+    }
+}
+
 #[dom_struct]
 pub struct GPUCommandBuffer {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "defined in webgpu"]
-    channel: WebGPU,
     label: DomRefCell<Option<USVString>>,
-    command_buffer: WebGPUCommandBuffer,
     buffers: DomRefCell<HashSet<Dom<GPUBuffer>>>,
+    droppable_field: DroppableField,
 }
 
 impl GPUCommandBuffer {
@@ -40,11 +59,13 @@ impl GPUCommandBuffer {
         label: Option<USVString>,
     ) -> Self {
         Self {
-            channel,
             reflector_: Reflector::new(),
             label: DomRefCell::new(label),
-            command_buffer,
             buffers: DomRefCell::new(buffers.into_iter().map(|b| Dom::from_ref(&*b)).collect()),
+            droppable_field: DroppableField {
+                channel,
+                command_buffer,
+            }
         }
     }
 
@@ -67,23 +88,9 @@ impl GPUCommandBuffer {
     }
 }
 
-impl Drop for GPUCommandBuffer {
-    fn drop(&mut self) {
-        if let Err(e) = self.channel.0.send((
-            None,
-            WebGPURequest::FreeCommandBuffer(self.command_buffer.0),
-        )) {
-            warn!(
-                "Failed to send FreeCommandBuffer({:?}) ({})",
-                self.command_buffer.0, e
-            );
-        }
-    }
-}
-
 impl GPUCommandBuffer {
     pub fn id(&self) -> WebGPUCommandBuffer {
-        self.command_buffer
+        self.droppable_field.command_buffer
     }
 
     pub fn buffers(&self) -> Ref<HashSet<Dom<GPUBuffer>>> {
