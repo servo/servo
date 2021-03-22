@@ -33,12 +33,23 @@ use servo_media::webrtc::{
 use std::cell::Cell;
 use std::ptr;
 
-#[dom_struct]
-pub struct RTCDataChannel {
-    eventtarget: EventTarget,
+#[derive(MallocSizeOf)]
+struct DroppableField {
     #[ignore_malloc_size_of = "defined in servo-media"]
     servo_media_id: DataChannelId,
     peer_connection: Dom<RTCPeerConnection>,
+}
+
+impl Drop for DroppableField {
+    fn drop(&mut self) {
+        self.peer_connection
+            .unregister_data_channel(&self.servo_media_id);
+    }
+}
+
+#[dom_struct]
+pub struct RTCDataChannel {
+    eventtarget: EventTarget,
     label: USVString,
     ordered: bool,
     max_packet_life_time: Option<u16>,
@@ -48,6 +59,7 @@ pub struct RTCDataChannel {
     id: Option<u16>,
     ready_state: Cell<RTCDataChannelState>,
     binary_type: DomRefCell<DOMString>,
+    droppable_field: DroppableField,
 }
 
 impl RTCDataChannel {
@@ -72,8 +84,6 @@ impl RTCDataChannel {
 
         let channel = RTCDataChannel {
             eventtarget: EventTarget::new_inherited(),
-            servo_media_id,
-            peer_connection: Dom::from_ref(&peer_connection),
             label,
             ordered: options.ordered,
             max_packet_life_time: options.maxPacketLifeTime,
@@ -83,6 +93,10 @@ impl RTCDataChannel {
             id: options.id,
             ready_state: Cell::new(RTCDataChannelState::Connecting),
             binary_type: DomRefCell::new(DOMString::from("blob")),
+            droppable_field: DroppableField {
+                servo_media_id,
+                peer_connection: Dom::from_ref(&peer_connection),
+            }
         };
 
         channel
@@ -234,13 +248,6 @@ impl RTCDataChannel {
             .send_data_channel_message(&self.servo_media_id, message);
 
         Ok(())
-    }
-}
-
-impl Drop for RTCDataChannel {
-    fn drop(&mut self) {
-        self.peer_connection
-            .unregister_data_channel(&self.servo_media_id);
     }
 }
 
