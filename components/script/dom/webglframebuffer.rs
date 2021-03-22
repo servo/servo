@@ -84,13 +84,36 @@ pub enum WebGLFramebufferAttachmentRoot {
     Texture(DomRoot<WebGLTexture>),
 }
 
+struct DroppableField {
+    id: WebGLFramebufferId,
+    is_deleted: Cell<bool>,
+    context: WebGLRenderingContext,
+}
+
+impl DroppableField {
+    fn delete(&self, operation_fallibility: Operation) {
+        if !self.is_deleted.get() {
+            self.is_deleted.set(true);
+            let cmd = WebGLCommand::DeleteFramebuffer(self.id);
+            match operation_fallibility {
+                Operation::Fallible => self.context.send_command_ignored(cmd),
+                Operation::Infallible => self.context.send_command(cmd),
+            }
+        }
+    }
+}
+
+impl Drop for DroppableField {
+    fn drop(&mut self) {
+        self.delete(Operation::Fallible);
+    }
+}
+
 #[dom_struct]
 pub struct WebGLFramebuffer {
     webgl_object: WebGLObject,
     webgl_version: WebGLVersion,
-    id: WebGLFramebufferId,
     target: Cell<Option<u32>>,
-    is_deleted: Cell<bool>,
     size: Cell<Option<(i32, i32)>>,
     status: Cell<u32>,
     // The attachment points for textures and renderbuffers on this
@@ -105,6 +128,7 @@ pub struct WebGLFramebuffer {
     // Framebuffers for XR keep a reference to the XR session.
     // https://github.com/immersive-web/webxr/issues/856
     xr_session: MutNullableDom<XRSession>,
+    droppable_field: DroppableField,
 }
 
 impl WebGLFramebuffer {
@@ -112,9 +136,7 @@ impl WebGLFramebuffer {
         Self {
             webgl_object: WebGLObject::new_inherited(context),
             webgl_version: context.webgl_version(),
-            id: id,
             target: Cell::new(None),
-            is_deleted: Cell::new(false),
             size: Cell::new(None),
             status: Cell::new(constants::FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT),
             colors: vec![DomRefCell::new(None); context.limits().max_color_attachments as usize],
@@ -125,6 +147,11 @@ impl WebGLFramebuffer {
             color_draw_buffers: DomRefCell::new(vec![constants::COLOR_ATTACHMENT0]),
             is_initialized: Cell::new(false),
             xr_session: Default::default(),
+            droppable_field: DroppableField {
+                id,
+                is_deleted: Cell::new(false),
+                context: Dom::from_ref(context),
+            },
         }
     }
 
@@ -160,7 +187,7 @@ impl WebGLFramebuffer {
 
 impl WebGLFramebuffer {
     pub fn id(&self) -> WebGLFramebufferId {
-        self.id
+        self.droppable_field.id
     }
 
     fn is_in_xr_session(&self) -> bool {
@@ -184,31 +211,23 @@ impl WebGLFramebuffer {
         }
 
         self.target.set(Some(target));
-        self.upcast::<WebGLObject>()
-            .context()
+        self.droppable_field
+            .context
             .send_command(WebGLCommand::BindFramebuffer(
                 target,
-                WebGLFramebufferBindingRequest::Explicit(self.id),
+                WebGLFramebufferBindingRequest::Explicit(self.droppable_field.id),
             ));
     }
 
     pub fn delete(&self, operation_fallibility: Operation) {
-        if !self.is_deleted.get() {
-            self.is_deleted.set(true);
-            let context = self.upcast::<WebGLObject>().context();
-            let cmd = WebGLCommand::DeleteFramebuffer(self.id);
-            match operation_fallibility {
-                Operation::Fallible => context.send_command_ignored(cmd),
-                Operation::Infallible => context.send_command(cmd),
-            }
-        }
+        self.droppable_field.delete(operation_fallibility);
     }
 
     pub fn is_deleted(&self) -> bool {
         // TODO: if a framebuffer has an attachment which is invalid due to
         // being outside a webxr rAF, should this make the framebuffer invalid?
         // https://github.com/immersive-web/layers/issues/196
-        self.is_deleted.get()
+        self.droppable_field.is_deleted.get()
     }
 
     pub fn size(&self) -> Option<(i32, i32)> {
@@ -976,12 +995,6 @@ impl WebGLFramebuffer {
 
     pub fn target(&self) -> Option<u32> {
         self.target.get()
-    }
-}
-
-impl Drop for WebGLFramebuffer {
-    fn drop(&mut self) {
-        let _ = self.delete(Operation::Fallible);
     }
 }
 
