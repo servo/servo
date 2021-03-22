@@ -39,16 +39,34 @@ use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
 use std::ptr;
 use std::rc::Rc;
 
-#[dom_struct]
-#[unrooted_must_root_lint::allow_unrooted_in_rc]
-pub struct Promise {
-    reflector: Reflector,
+#[derive(MallocSizeOf)]
+struct DroppableField {
     /// Since Promise values are natively reference counted without the knowledge of
     /// the SpiderMonkey GC, an explicit root for the reflector is stored while any
     /// native instance exists. This ensures that the reflector will never be GCed
     /// while native code could still interact with its native representation.
     #[ignore_malloc_size_of = "SM handles JS values"]
     permanent_js_root: Heap<JSVal>,
+}
+
+impl Drop for DroppableField {
+    #[allow(unsafe_code)]
+    fn drop(&mut self) {
+        unsafe {
+            let object = self.permanent_js_root.get().to_object();
+            assert!(!object.is_null());
+            let cx = Runtime::get();
+            assert!(!cx.is_null());
+            RemoveRawValueRoot(cx, self.permanent_js_root.get_unsafe());
+        }
+    }
+}
+
+#[dom_struct]
+#[unrooted_must_root_lint::allow_unrooted_in_rc]
+pub struct Promise {
+    reflector: Reflector,
+    droppable_field: DroppableField,
 }
 
 /// Private helper to enable adding new methods to Rc<Promise>.
@@ -60,26 +78,13 @@ impl PromiseHelper for Rc<Promise> {
     #[allow(unsafe_code)]
     fn initialize(&self, cx: SafeJSContext) {
         let obj = self.reflector().get_jsobject();
-        self.permanent_js_root.set(ObjectValue(*obj));
+        self.droppable_field.permanent_js_root.set(ObjectValue(*obj));
         unsafe {
             assert!(AddRawValueRoot(
                 *cx,
-                self.permanent_js_root.get_unsafe(),
+                self.droppable_field.permanent_js_root.get_unsafe(),
                 b"Promise::root\0".as_c_char_ptr()
             ));
-        }
-    }
-}
-
-impl Drop for Promise {
-    #[allow(unsafe_code)]
-    fn drop(&mut self) {
-        unsafe {
-            let object = self.permanent_js_root.get().to_object();
-            assert!(!object.is_null());
-            let cx = Runtime::get();
-            assert!(!cx.is_null());
-            RemoveRawValueRoot(cx, self.permanent_js_root.get_unsafe());
         }
     }
 }
@@ -110,7 +115,9 @@ impl Promise {
             assert!(IsPromiseObject(obj));
             let promise = Promise {
                 reflector: Reflector::new(),
-                permanent_js_root: Heap::default(),
+                droppable_field: DroppableField {
+                    permanent_js_root: Heap::default(),
+                }
             };
             let promise = Rc::new(promise);
             promise.init_reflector(obj.get());
