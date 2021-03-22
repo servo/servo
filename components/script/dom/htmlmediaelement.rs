@@ -74,7 +74,7 @@ use html5ever::{LocalName, Prefix};
 use http::header::{self, HeaderMap, HeaderValue};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use media::{glplayer_channel, GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
+use media::{glplayer_channel, GLPlayerPipeline, GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
 use net_traits::image::base::Image;
 use net_traits::image_cache::ImageResponse;
 use net_traits::request::Destination;
@@ -296,6 +296,41 @@ impl From<MediaStreamOrBlob> for SrcObject {
     }
 }
 
+struct DroppableField {
+    /// Player Id reported the player thread
+    id: Cell<u64>,
+    glplayer_chan: Option<GLPlayerPipeline>,
+    /// Media controls id.
+    /// In order to workaround the lack of privileged JS context, we secure the
+    /// the access to the "privileged" document.servoGetMediaControls(id) API by
+    /// keeping a whitelist of media controls identifiers.
+    media_controls_id: DomRefCell<Option<String>>,
+    root: Option<DomRoot<Document>>,
+}
+
+impl DroppableField {
+    fn remove_controls(&self, root: DomRoot<Document>) {
+        if let Some(id) = self.media_controls_id.borrow_mut().take() {
+            root.unregister_media_controls(&id);
+        }
+    }
+}
+
+impl Drop for DroppableField {
+    fn drop(&mut self) {
+        if let Some(ref pipeline) = self.glplayer_chan {
+            if let Err(err) = pipeline
+                .channel()
+                .send(GLPlayerMsg::UnregisterPlayer(self.id.get()))
+            {
+                warn!("GLPlayer disappeared!: {:?}", err);
+            }
+        }
+
+        self.remove_controls(self.root.take().unwrap());
+    }
+}
+
 #[dom_struct]
 #[allow(non_snake_case)]
 pub struct HTMLMediaElement {
@@ -371,15 +406,9 @@ pub struct HTMLMediaElement {
     next_timeupdate_event: Cell<Timespec>,
     /// Latest fetch request context.
     current_fetch_context: DomRefCell<Option<HTMLMediaElementFetchContext>>,
-    /// Player Id reported the player thread
-    id: Cell<u64>,
-    /// Media controls id.
-    /// In order to workaround the lack of privileged JS context, we secure the
-    /// the access to the "privileged" document.servoGetMediaControls(id) API by
-    /// keeping a whitelist of media controls identifiers.
-    media_controls_id: DomRefCell<Option<String>>,
     #[ignore_malloc_size_of = "Defined in other crates"]
     player_context: WindowGLContext,
+    droppable_field: DroppableField,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -405,7 +434,8 @@ pub enum ReadyState {
 
 impl HTMLMediaElement {
     pub fn new_inherited(tag_name: LocalName, prefix: Option<Prefix>, document: &Document) -> Self {
-        Self {
+        let player_context = document.window().get_player_context();
+        let mut node = Self {
             htmlelement: HTMLElement::new_inherited(tag_name, prefix, document),
             network_state: Cell::new(NetworkState::Empty),
             ready_state: Cell::new(ReadyState::HaveNothing),
@@ -442,10 +472,16 @@ impl HTMLMediaElement {
             text_tracks_list: Default::default(),
             next_timeupdate_event: Cell::new(time::get_time() + Duration::milliseconds(250)),
             current_fetch_context: DomRefCell::new(None),
-            id: Cell::new(0),
-            media_controls_id: DomRefCell::new(None),
-            player_context: document.window().get_player_context(),
-        }
+            droppable_field: DroppableField {
+                id: Cell::new(0),
+                media_controls_id: DomRefCell::new(None),
+                glplayer_chan: player_context.glplayer_chan.clone(),
+                root: None,
+            },
+            player_context,
+        };
+        node.droppable_field.root = Some(document_from_node(node));
+        node
     }
 
     pub fn get_ready_state(&self) -> ReadyState {
@@ -1911,12 +1947,6 @@ impl HTMLMediaElement {
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
-    fn remove_controls(&self) {
-        if let Some(id) = self.media_controls_id.borrow_mut().take() {
-            document_from_node(self).unregister_media_controls(&id);
-        }
-    }
-
     pub fn get_current_frame(&self) -> Option<VideoFrame> {
         match self.video_renderer.lock().unwrap().current_frame_holder {
             Some(ref holder) => Some(holder.get_frame()),
@@ -1975,21 +2005,6 @@ impl HTMLMediaElement {
     // https://github.com/servo/servo/issues/22293
     fn direction_of_playback(&self) -> PlaybackDirection {
         PlaybackDirection::Forwards
-    }
-}
-
-impl Drop for HTMLMediaElement {
-    fn drop(&mut self) {
-        if let Some(ref pipeline) = self.player_context.glplayer_chan {
-            if let Err(err) = pipeline
-                .channel()
-                .send(GLPlayerMsg::UnregisterPlayer(self.id.get()))
-            {
-                warn!("GLPlayer disappeared!: {:?}", err);
-            }
-        }
-
-        self.remove_controls();
     }
 }
 
@@ -2433,7 +2448,8 @@ impl VirtualMethods for HTMLMediaElement {
                 if mutation.new_value(attr).is_some() {
                     self.render_controls();
                 } else {
-                    self.remove_controls();
+                    let root = &self.droppable_field.root.unwrap();
+                    self.droppable_field.remove_controls(DomRoot::from_ref(root));
                 }
             },
             _ => (),

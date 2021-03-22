@@ -14,8 +14,8 @@ extern crate serde;
 mod media_channel;
 mod media_thread;
 
-pub use crate::media_channel::glplayer_channel;
-use crate::media_channel::{GLPlayerChan, GLPlayerPipeline, GLPlayerReceiver, GLPlayerSender};
+pub use crate::media_channel::{glplayer_channel, GLPlayerPipeline};
+use crate::media_channel::{GLPlayerChan, GLPlayerReceiver, GLPlayerSender};
 use crate::media_thread::GLPlayerThread;
 use euclid::default::Size2D;
 use servo_media::player::context::{GlApi, GlContext, NativeDisplay, PlayerGLContext};
