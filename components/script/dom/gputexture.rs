@@ -102,7 +102,7 @@ impl GPUTexture {
                 texture,
                 channel,
                 destroyed: Cell::new(false),
-            }
+            },
         }
     }
 

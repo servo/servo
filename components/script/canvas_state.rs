@@ -173,7 +173,11 @@ pub(crate) struct CanvasState {
 }
 
 impl CanvasState {
-    pub(crate) fn new(global: &GlobalScope, size: Size2D<u64>, remote_canvas_state: RemoteCanvasState) -> CanvasState {
+    pub(crate) fn new(
+        global: &GlobalScope,
+        size: Size2D<u64>,
+        remote_canvas_state: RemoteCanvasState,
+    ) -> CanvasState {
         // Worklets always receive a unique origin. This messes with fetching
         // cached images in the case of paint worklets, since the image cache
         // is keyed on the origin requesting the image data.

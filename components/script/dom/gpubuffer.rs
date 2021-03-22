@@ -176,7 +176,7 @@ impl GPUBuffer {
                 buffer,
                 map_promise: DomRefCell::new(None),
                 map_info,
-            }
+            },
         }
     }
 
@@ -193,7 +193,14 @@ impl GPUBuffer {
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUBuffer::new_inherited(
-                channel, buffer, device, state, size, map_info, label, global.get_cx(),
+                channel,
+                buffer,
+                device,
+                state,
+                size,
+                map_info,
+                label,
+                global.get_cx(),
             )),
             global,
         )
@@ -283,7 +290,9 @@ impl GPUBufferMethods for GPUBuffer {
             return promise;
         }
 
-        self.droppable_field.state.set(GPUBufferState::MappingPending);
+        self.droppable_field
+            .state
+            .set(GPUBufferState::MappingPending);
         *self.droppable_field.map_info.borrow_mut() = Some(GPUBufferMapInfo {
             mapping: Rc::new(RefCell::new(Vec::with_capacity(0))),
             mapping_range: map_range,
@@ -386,11 +395,10 @@ impl AsyncWGPUListener for GPUBuffer {
             },
         }
         *self.droppable_field.map_promise.borrow_mut() = None;
-        if let Err(e) = self
-            .channel
-            .0
-            .send((None, WebGPURequest::BufferMapComplete(self.droppable_field.buffer.0)))
-        {
+        if let Err(e) = self.channel.0.send((
+            None,
+            WebGPURequest::BufferMapComplete(self.droppable_field.buffer.0),
+        )) {
             warn!(
                 "Failed to send BufferMapComplete({:?}) ({})",
                 self.droppable_field.buffer.0, e

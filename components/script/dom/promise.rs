@@ -78,7 +78,9 @@ impl PromiseHelper for Rc<Promise> {
     #[allow(unsafe_code)]
     fn initialize(&self, cx: SafeJSContext) {
         let obj = self.reflector().get_jsobject();
-        self.droppable_field.permanent_js_root.set(ObjectValue(*obj));
+        self.droppable_field
+            .permanent_js_root
+            .set(ObjectValue(*obj));
         unsafe {
             assert!(AddRawValueRoot(
                 *cx,
@@ -117,7 +119,7 @@ impl Promise {
                 reflector: Reflector::new(),
                 droppable_field: DroppableField {
                     permanent_js_root: Heap::default(),
-                }
+                },
             };
             let promise = Rc::new(promise);
             promise.init_reflector(obj.get());

@@ -38,10 +38,7 @@ struct DroppableFields {
 
 impl Drop for DroppableFields {
     fn drop(&mut self) {
-        if let Err(err) = self
-            .ipc_renderer
-            .send(CanvasMsg::Close(self.canvas_id))
-        {
+        if let Err(err) = self.ipc_renderer.send(CanvasMsg::Close(self.canvas_id)) {
             warn!("Could not close canvas: {}", err)
         }
     }
@@ -64,7 +61,8 @@ impl CanvasRenderingContext2D {
         canvas: Option<&HTMLCanvasElement>,
         size: Size2D<u32>,
     ) -> CanvasRenderingContext2D {
-        let remote_canvas_state = RemoteCanvasState::new(global, Size2D::new(size.width as u64, size.height as u64));
+        let remote_canvas_state =
+            RemoteCanvasState::new(global, Size2D::new(size.width as u64, size.height as u64));
         CanvasRenderingContext2D {
             reflector_: Reflector::new(),
             canvas: canvas.map(Dom::from_ref),
@@ -76,7 +74,7 @@ impl CanvasRenderingContext2D {
             droppable_fields: DroppableFields {
                 ipc_renderer: remote_canvas_state.get_ipc_renderer(),
                 canvas_id: remote_canvas_state.get_canvas_id(),
-            }
+            },
         }
     }
 

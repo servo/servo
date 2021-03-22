@@ -74,7 +74,7 @@ use html5ever::{LocalName, Prefix};
 use http::header::{self, HeaderMap, HeaderValue};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use media::{glplayer_channel, GLPlayerPipeline, GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
+use media::{glplayer_channel, GLPlayerMsg, GLPlayerMsgForward, GLPlayerPipeline, WindowGLContext};
 use net_traits::image::base::Image;
 use net_traits::image_cache::ImageResponse;
 use net_traits::request::Destination;
@@ -2449,7 +2449,8 @@ impl VirtualMethods for HTMLMediaElement {
                     self.render_controls();
                 } else {
                     let root = &self.droppable_field.root.unwrap();
-                    self.droppable_field.remove_controls(DomRoot::from_ref(root));
+                    self.droppable_field
+                        .remove_controls(DomRoot::from_ref(root));
                 }
             },
             _ => (),

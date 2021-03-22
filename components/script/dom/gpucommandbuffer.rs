@@ -65,7 +65,7 @@ impl GPUCommandBuffer {
             droppable_field: DroppableField {
                 channel,
                 command_buffer,
-            }
+            },
         }
     }
 

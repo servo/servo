@@ -6,7 +6,7 @@
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::{DomRoot, Dom};
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
 use canvas_traits::webgl::webgl_channel;
@@ -85,7 +85,7 @@ impl WebGLBuffer {
                 marked_for_deletion: Default::default(),
                 attached_counter: Default::default(),
                 context: Dom::from_ref(context),
-            }
+            },
         }
     }
 
@@ -140,7 +140,8 @@ impl WebGLBuffer {
     }
 
     pub fn mark_for_deletion(&self, operation_fallibility: Operation) {
-        self.droppable_field.mark_for_deletion(operation_fallibility);
+        self.droppable_field
+            .mark_for_deletion(operation_fallibility);
     }
 
     fn delete(&self, operation_fallibility: Operation) {
@@ -186,7 +187,8 @@ impl WebGLBuffer {
 
     pub fn increment_attached_counter(&self) {
         self.droppable_field.attached_counter.set(
-            self.droppable_field.attached_counter
+            self.droppable_field
+                .attached_counter
                 .get()
                 .checked_add(1)
                 .expect("refcount overflowed"),
@@ -195,7 +197,8 @@ impl WebGLBuffer {
 
     pub fn decrement_attached_counter(&self, operation_fallibility: Operation) {
         self.droppable_field.attached_counter.set(
-            self.droppable_field.attached_counter
+            self.droppable_field
+                .attached_counter
                 .get()
                 .checked_sub(1)
                 .expect("refcount underflowed"),

@@ -96,7 +96,7 @@ impl RTCDataChannel {
             droppable_field: DroppableField {
                 servo_media_id,
                 peer_connection: Dom::from_ref(&peer_connection),
-            }
+            },
         };
 
         channel
