@@ -56,85 +56,22 @@ pub struct GPUBufferMapInfo {
     pub map_mode: Option<u32>,
 }
 
-#[dom_struct]
-pub struct GPUBuffer {
-    reflector_: Reflector,
-    #[ignore_malloc_size_of = "defined in webgpu"]
+#[derive(MallocSizeOf)]
+struct DroppableField {
+    cx: JSContext,
     channel: WebGPU,
-    label: DomRefCell<Option<USVString>>,
     state: Cell<GPUBufferState>,
     buffer: WebGPUBuffer,
     device: Dom<GPUDevice>,
-    size: GPUSize64,
     #[ignore_malloc_size_of = "promises are hard"]
     map_promise: DomRefCell<Option<Rc<Promise>>>,
     map_info: DomRefCell<Option<GPUBufferMapInfo>>,
 }
 
-impl GPUBuffer {
-    fn new_inherited(
-        channel: WebGPU,
-        buffer: WebGPUBuffer,
-        device: &GPUDevice,
-        state: GPUBufferState,
-        size: GPUSize64,
-        map_info: DomRefCell<Option<GPUBufferMapInfo>>,
-        label: Option<USVString>,
-    ) -> Self {
-        Self {
-            reflector_: Reflector::new(),
-            channel,
-            label: DomRefCell::new(label),
-            state: Cell::new(state),
-            device: Dom::from_ref(device),
-            buffer,
-            map_promise: DomRefCell::new(None),
-            size,
-            map_info,
-        }
-    }
-
-    #[allow(unsafe_code)]
-    pub fn new(
-        global: &GlobalScope,
-        channel: WebGPU,
-        buffer: WebGPUBuffer,
-        device: &GPUDevice,
-        state: GPUBufferState,
-        size: GPUSize64,
-        map_info: DomRefCell<Option<GPUBufferMapInfo>>,
-        label: Option<USVString>,
-    ) -> DomRoot<Self> {
-        reflect_dom_object(
-            Box::new(GPUBuffer::new_inherited(
-                channel, buffer, device, state, size, map_info, label,
-            )),
-            global,
-        )
-    }
-}
-
-impl GPUBuffer {
-    pub fn id(&self) -> WebGPUBuffer {
-        self.buffer
-    }
-
-    pub fn state(&self) -> GPUBufferState {
-        self.state.get()
-    }
-}
-
-impl Drop for GPUBuffer {
-    fn drop(&mut self) {
-        self.Destroy()
-    }
-}
-
-impl GPUBufferMethods for GPUBuffer {
+impl DroppableField {
     #[allow(unsafe_code)]
     /// https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap
-    fn Unmap(&self) {
-        let cx = self.global().get_cx();
+    fn Unmap(&self, cx: &mut JSContext) {
         // Step 1
         match self.state.get() {
             GPUBufferState::Unmapped | GPUBufferState::Destroyed => {
@@ -149,7 +86,7 @@ impl GPUBufferMethods for GPUBuffer {
                 if let Err(e) = self.channel.0.send((
                     self.device.use_current_scope(),
                     WebGPURequest::UnmapBuffer {
-                        buffer_id: self.id().0,
+                        buffer_id: self.buffer.0,
                         device_id: self.device.id().0,
                         array_buffer: IpcSharedMemory::from_bytes(
                             m_info.mapping.borrow().as_slice(),
@@ -178,11 +115,11 @@ impl GPUBufferMethods for GPUBuffer {
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpubuffer-destroy
-    fn Destroy(&self) {
+    fn Destroy(&mut self, cx: &mut JSContext) {
         let state = self.state.get();
         match state {
             GPUBufferState::Mapped | GPUBufferState::MappedAtCreation => {
-                self.Unmap();
+                self.Unmap(cx);
             },
             GPUBufferState::Destroyed => return,
             _ => {},
@@ -198,6 +135,91 @@ impl GPUBufferMethods for GPUBuffer {
             );
         };
         self.state.set(GPUBufferState::Destroyed);
+    }
+}
+
+impl Drop for DroppableField {
+    fn drop(&mut self) {
+        self.Destroy(&mut self.cx)
+    }
+}
+
+#[dom_struct]
+pub struct GPUBuffer {
+    reflector_: Reflector,
+    #[ignore_malloc_size_of = "defined in webgpu"]
+    label: DomRefCell<Option<USVString>>,
+    size: GPUSize64,
+    droppable_field: DroppableField,
+}
+
+impl GPUBuffer {
+    fn new_inherited(
+        channel: WebGPU,
+        buffer: WebGPUBuffer,
+        device: &GPUDevice,
+        state: GPUBufferState,
+        size: GPUSize64,
+        map_info: DomRefCell<Option<GPUBufferMapInfo>>,
+        label: Option<USVString>,
+        cx: JSContext,
+    ) -> Self {
+        Self {
+            reflector_: Reflector::new(),
+            label: DomRefCell::new(label),
+            size,
+            droppable_field: DroppableField {
+                cx,
+                channel,
+                state: Cell::new(state),
+                device: Dom::from_ref(device),
+                buffer,
+                map_promise: DomRefCell::new(None),
+                map_info,
+            }
+        }
+    }
+
+    #[allow(unsafe_code)]
+    pub fn new(
+        global: &GlobalScope,
+        channel: WebGPU,
+        buffer: WebGPUBuffer,
+        device: &GPUDevice,
+        state: GPUBufferState,
+        size: GPUSize64,
+        map_info: DomRefCell<Option<GPUBufferMapInfo>>,
+        label: Option<USVString>,
+    ) -> DomRoot<Self> {
+        reflect_dom_object(
+            Box::new(GPUBuffer::new_inherited(
+                channel, buffer, device, state, size, map_info, label, global.get_cx(),
+            )),
+            global,
+        )
+    }
+}
+
+impl GPUBuffer {
+    pub fn id(&self) -> WebGPUBuffer {
+        self.droppable_field.buffer
+    }
+
+    pub fn state(&self) -> GPUBufferState {
+        self.droppable_field.state.get()
+    }
+}
+
+impl GPUBufferMethods for GPUBuffer {
+    #[allow(unsafe_code)]
+    /// https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap
+    fn Unmap(&self) {
+        self.droppable_field.Unmap(self.global().cx());
+    }
+
+    /// https://gpuweb.github.io/gpuweb/#dom-gpubuffer-destroy
+    fn Destroy(&self) {
+        self.droppable_field.Destroy(self.global().cx());
     }
 
     #[allow(unsafe_code)]
@@ -218,9 +240,9 @@ impl GPUBufferMethods for GPUBuffer {
         } else {
             self.size - offset
         };
-        let scope_id = self.device.use_current_scope();
-        if self.state.get() != GPUBufferState::Unmapped {
-            self.device.handle_server_msg(
+        let scope_id = self.droppable_field.device.use_current_scope();
+        if self.droppable_field.state.get() != GPUBufferState::Unmapped {
+            self.droppable_field.device.handle_server_msg(
                 scope_id,
                 WebGPUOpResult::ValidationError(String::from("Buffer is not Unmapped")),
             );
@@ -231,7 +253,7 @@ impl GPUBufferMethods for GPUBuffer {
             GPUMapModeConstants::READ => HostMap::Read,
             GPUMapModeConstants::WRITE => HostMap::Write,
             _ => {
-                self.device.handle_server_msg(
+                self.droppable_field.device.handle_server_msg(
                     scope_id,
                     WebGPUOpResult::ValidationError(String::from("Invalid MapModeFlags")),
                 );
@@ -243,33 +265,33 @@ impl GPUBufferMethods for GPUBuffer {
         let map_range = offset..offset + range_size;
 
         let sender = response_async(&promise, self);
-        if let Err(e) = self.channel.0.send((
+        if let Err(e) = self.droppable_field.channel.0.send((
             scope_id,
             WebGPURequest::BufferMapAsync {
                 sender,
-                buffer_id: self.buffer.0,
-                device_id: self.device.id().0,
+                buffer_id: self.droppable_field.buffer.0,
+                device_id: self.droppable_field.device.id().0,
                 host_map,
                 map_range: map_range.clone(),
             },
         )) {
             warn!(
                 "Failed to send BufferMapAsync ({:?}) ({})",
-                self.buffer.0, e
+                self.droppable_field.buffer.0, e
             );
             promise.reject_error(Error::Operation);
             return promise;
         }
 
-        self.state.set(GPUBufferState::MappingPending);
-        *self.map_info.borrow_mut() = Some(GPUBufferMapInfo {
+        self.droppable_field.state.set(GPUBufferState::MappingPending);
+        *self.droppable_field.map_info.borrow_mut() = Some(GPUBufferMapInfo {
             mapping: Rc::new(RefCell::new(Vec::with_capacity(0))),
             mapping_range: map_range,
             mapped_ranges: Vec::new(),
             js_buffers: Vec::new(),
             map_mode: Some(mode),
         });
-        *self.map_promise.borrow_mut() = Some(promise.clone());
+        *self.droppable_field.map_promise.borrow_mut() = Some(promise.clone());
         promise
     }
 
@@ -289,10 +311,10 @@ impl GPUBufferMethods for GPUBuffer {
             self.size - offset
         };
         let m_end = offset + range_size;
-        let mut info = self.map_info.borrow_mut();
+        let mut info = self.droppable_field.map_info.borrow_mut();
         let m_info = info.as_mut().unwrap();
 
-        let mut valid = match self.state.get() {
+        let mut valid = match self.droppable_field.state.get() {
             GPUBufferState::Mapped | GPUBufferState::MappedAtCreation => true,
             _ => false,
         };
@@ -352,7 +374,7 @@ impl AsyncWGPUListener for GPUBuffer {
                     .mapping
                     .borrow_mut() = bytes.to_vec();
                 promise.resolve_native(&());
-                self.state.set(GPUBufferState::Mapped);
+                self.droppable_field.state.set(GPUBufferState::Mapped);
             },
             Err(e) => {
                 warn!("Could not map buffer({:?})", e);
@@ -363,15 +385,15 @@ impl AsyncWGPUListener for GPUBuffer {
                 promise.reject_error(Error::Operation);
             },
         }
-        *self.map_promise.borrow_mut() = None;
+        *self.droppable_field.map_promise.borrow_mut() = None;
         if let Err(e) = self
             .channel
             .0
-            .send((None, WebGPURequest::BufferMapComplete(self.buffer.0)))
+            .send((None, WebGPURequest::BufferMapComplete(self.droppable_field.buffer.0)))
         {
             warn!(
                 "Failed to send BufferMapComplete({:?}) ({})",
-                self.buffer.0, e
+                self.droppable_field.buffer.0, e
             );
         }
     }
