@@ -6,9 +6,8 @@
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants2;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
-use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom, Dom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::webglactiveinfo::WebGLActiveInfo;
 use crate::dom::webglobject::WebGLObject;
@@ -23,66 +22,16 @@ use dom_struct::dom_struct;
 use fnv::FnvHashSet;
 use std::cell::Cell;
 
-#[dom_struct]
-pub struct WebGLProgram {
-    webgl_object: WebGLObject,
+struct DroppableField {
     id: WebGLProgramId,
-    is_in_use: Cell<bool>,
     marked_for_deletion: Cell<bool>,
-    link_called: Cell<bool>,
-    linked: Cell<bool>,
-    link_generation: Cell<u64>,
+    is_in_use: Cell<bool>,
     fragment_shader: MutNullableDom<WebGLShader>,
     vertex_shader: MutNullableDom<WebGLShader>,
-    active_attribs: DomRefCell<Box<[ActiveAttribInfo]>>,
-    active_uniforms: DomRefCell<Box<[ActiveUniformInfo]>>,
-    active_uniform_blocks: DomRefCell<Box<[ActiveUniformBlockInfo]>>,
-    transform_feedback_varyings_length: Cell<i32>,
-    transform_feedback_mode: Cell<i32>,
+    context: WebGLRenderingContext,
 }
 
-impl WebGLProgram {
-    fn new_inherited(context: &WebGLRenderingContext, id: WebGLProgramId) -> Self {
-        Self {
-            webgl_object: WebGLObject::new_inherited(context),
-            id: id,
-            is_in_use: Default::default(),
-            marked_for_deletion: Default::default(),
-            link_called: Default::default(),
-            linked: Default::default(),
-            link_generation: Default::default(),
-            fragment_shader: Default::default(),
-            vertex_shader: Default::default(),
-            active_attribs: DomRefCell::new(vec![].into()),
-            active_uniforms: DomRefCell::new(vec![].into()),
-            active_uniform_blocks: DomRefCell::new(vec![].into()),
-            transform_feedback_varyings_length: Default::default(),
-            transform_feedback_mode: Default::default(),
-        }
-    }
-
-    pub fn maybe_new(context: &WebGLRenderingContext) -> Option<DomRoot<Self>> {
-        let (sender, receiver) = webgl_channel().unwrap();
-        context.send_command(WebGLCommand::CreateProgram(sender));
-        receiver
-            .recv()
-            .unwrap()
-            .map(|id| WebGLProgram::new(context, id))
-    }
-
-    pub fn new(context: &WebGLRenderingContext, id: WebGLProgramId) -> DomRoot<Self> {
-        reflect_dom_object(
-            Box::new(WebGLProgram::new_inherited(context, id)),
-            &*context.global(),
-        )
-    }
-}
-
-impl WebGLProgram {
-    pub fn id(&self) -> WebGLProgramId {
-        self.id
-    }
-
+impl DroppableField {
     /// glDeleteProgram
     pub fn mark_for_deletion(&self, operation_fallibility: Operation) {
         if self.marked_for_deletion.get() {
@@ -90,10 +39,9 @@ impl WebGLProgram {
         }
         self.marked_for_deletion.set(true);
         let cmd = WebGLCommand::DeleteProgram(self.id);
-        let context = self.upcast::<WebGLObject>().context();
         match operation_fallibility {
-            Operation::Fallible => context.send_command_ignored(cmd),
-            Operation::Infallible => context.send_command(cmd),
+            Operation::Fallible => self.context.send_command_ignored(cmd),
+            Operation::Infallible => self.context.send_command(cmd),
         }
         if self.is_deleted() {
             self.detach_shaders();
@@ -121,17 +69,98 @@ impl WebGLProgram {
             self.vertex_shader.set(None);
         }
     }
+}
+
+impl Drop for DroppableField {
+    fn drop(&mut self) {
+        self.in_use(false);
+        self.mark_for_deletion(Operation::Fallible);
+    }
+}
+
+#[dom_struct]
+pub struct WebGLProgram {
+    webgl_object: WebGLObject,
+    link_called: Cell<bool>,
+    linked: Cell<bool>,
+    link_generation: Cell<u64>,
+    active_attribs: DomRefCell<Box<[ActiveAttribInfo]>>,
+    active_uniforms: DomRefCell<Box<[ActiveUniformInfo]>>,
+    active_uniform_blocks: DomRefCell<Box<[ActiveUniformBlockInfo]>>,
+    transform_feedback_varyings_length: Cell<i32>,
+    transform_feedback_mode: Cell<i32>,
+    droppable_field: DroppableField,
+}
+
+impl WebGLProgram {
+    fn new_inherited(context: &WebGLRenderingContext, id: WebGLProgramId) -> Self {
+        Self {
+            webgl_object: WebGLObject::new_inherited(context),
+            link_called: Default::default(),
+            linked: Default::default(),
+            link_generation: Default::default(),
+            active_attribs: DomRefCell::new(vec![].into()),
+            active_uniforms: DomRefCell::new(vec![].into()),
+            active_uniform_blocks: DomRefCell::new(vec![].into()),
+            transform_feedback_varyings_length: Default::default(),
+            transform_feedback_mode: Default::default(),
+            droppable_field: DroppableField {
+                id,
+                is_in_use: Default::default(),
+                marked_for_deletion: Default::default(),
+                fragment_shader: Default::default(),
+                vertex_shader: Default::default(),
+                context: Dom::from_ref(context),
+            },
+        }
+    }
+
+    pub fn maybe_new(context: &WebGLRenderingContext) -> Option<DomRoot<Self>> {
+        let (sender, receiver) = webgl_channel().unwrap();
+        context.send_command(WebGLCommand::CreateProgram(sender));
+        receiver
+            .recv()
+            .unwrap()
+            .map(|id| WebGLProgram::new(context, id))
+    }
+
+    pub fn new(context: &WebGLRenderingContext, id: WebGLProgramId) -> DomRoot<Self> {
+        reflect_dom_object(
+            Box::new(WebGLProgram::new_inherited(context, id)),
+            &*context.global(),
+        )
+    }
+}
+
+impl WebGLProgram {
+    pub fn id(&self) -> WebGLProgramId {
+        self.droppable_field.id
+    }
+
+    /// glDeleteProgram
+    pub fn mark_for_deletion(&self, operation_fallibility: Operation) {
+        self.droppable_field
+            .mark_for_deletion(operation_fallibility);
+    }
+
+    pub fn in_use(&self, value: bool) {
+        self.droppable_field.in_use(value);
+    }
+
+    fn detach_shaders(&self) {
+        self.droppable_field.detach_shaders();
+    }
 
     pub fn is_in_use(&self) -> bool {
-        self.is_in_use.get()
+        self.droppable_field.is_in_use.get()
     }
 
     pub fn is_marked_for_deletion(&self) -> bool {
-        self.marked_for_deletion.get()
+        self.droppable_field.marked_for_deletion.get()
     }
 
     pub fn is_deleted(&self) -> bool {
-        self.marked_for_deletion.get() && !self.is_in_use.get()
+        self.droppable_field.marked_for_deletion.get() && !self.droppable_field.is_in_use.get()
     }
 
     pub fn is_linked(&self) -> bool {
@@ -147,20 +176,20 @@ impl WebGLProgram {
         *self.active_uniforms.borrow_mut() = Box::new([]);
         *self.active_uniform_blocks.borrow_mut() = Box::new([]);
 
-        match self.fragment_shader.get() {
+        match self.droppable_field.fragment_shader.get() {
             Some(ref shader) if shader.successfully_compiled() => {},
             _ => return Ok(()), // callers use gl.LINK_STATUS to check link errors
         }
 
-        match self.vertex_shader.get() {
+        match self.droppable_field.vertex_shader.get() {
             Some(ref shader) if shader.successfully_compiled() => {},
             _ => return Ok(()), // callers use gl.LINK_STATUS to check link errors
         }
 
         let (sender, receiver) = webgl_channel().unwrap();
-        self.upcast::<WebGLObject>()
-            .context()
-            .send_command(WebGLCommand::LinkProgram(self.id, sender));
+        self.droppable_field
+            .context
+            .send_command(WebGLCommand::LinkProgram(self.droppable_field.id, sender));
         let link_info = receiver.recv().unwrap();
 
         {
@@ -221,9 +250,9 @@ impl WebGLProgram {
         if self.is_deleted() {
             return Err(WebGLError::InvalidOperation);
         }
-        self.upcast::<WebGLObject>()
-            .context()
-            .send_command(WebGLCommand::ValidateProgram(self.id));
+        self.droppable_field
+            .context
+            .send_command(WebGLCommand::ValidateProgram(self.droppable_field.id));
         Ok(())
     }
 
@@ -233,8 +262,8 @@ impl WebGLProgram {
             return Err(WebGLError::InvalidOperation);
         }
         let shader_slot = match shader.gl_type() {
-            constants::FRAGMENT_SHADER => &self.fragment_shader,
-            constants::VERTEX_SHADER => &self.vertex_shader,
+            constants::FRAGMENT_SHADER => &self.droppable_field.fragment_shader,
+            constants::VERTEX_SHADER => &self.droppable_field.vertex_shader,
             _ => {
                 error!("detachShader: Unexpected shader type");
                 return Err(WebGLError::InvalidValue);
@@ -248,9 +277,12 @@ impl WebGLProgram {
         shader_slot.set(Some(shader));
         shader.increment_attached_counter();
 
-        self.upcast::<WebGLObject>()
-            .context()
-            .send_command(WebGLCommand::AttachShader(self.id, shader.id()));
+        self.droppable_field
+            .context
+            .send_command(WebGLCommand::AttachShader(
+                self.droppable_field.id,
+                shader.id(),
+            ));
 
         Ok(())
     }
@@ -261,8 +293,8 @@ impl WebGLProgram {
             return Err(WebGLError::InvalidOperation);
         }
         let shader_slot = match shader.gl_type() {
-            constants::FRAGMENT_SHADER => &self.fragment_shader,
-            constants::VERTEX_SHADER => &self.vertex_shader,
+            constants::FRAGMENT_SHADER => &self.droppable_field.fragment_shader,
+            constants::VERTEX_SHADER => &self.droppable_field.vertex_shader,
             _ => return Err(WebGLError::InvalidValue),
         };
 
@@ -277,9 +309,12 @@ impl WebGLProgram {
         shader_slot.set(None);
         shader.decrement_attached_counter();
 
-        self.upcast::<WebGLObject>()
-            .context()
-            .send_command(WebGLCommand::DetachShader(self.id, shader.id()));
+        self.droppable_field
+            .context
+            .send_command(WebGLCommand::DetachShader(
+                self.droppable_field.id,
+                shader.id(),
+            ));
 
         Ok(())
     }
@@ -297,10 +332,10 @@ impl WebGLProgram {
             return Err(WebGLError::InvalidOperation);
         }
 
-        self.upcast::<WebGLObject>()
-            .context()
+        self.droppable_field
+            .context
             .send_command(WebGLCommand::BindAttribLocation(
-                self.id,
+                self.droppable_field.id,
                 index,
                 name.into(),
             ));
@@ -376,10 +411,10 @@ impl WebGLProgram {
         }
 
         let (sender, receiver) = webgl_channel().unwrap();
-        self.upcast::<WebGLObject>()
-            .context()
+        self.droppable_field
+            .context
             .send_command(WebGLCommand::GetFragDataLocation(
-                self.id,
+                self.droppable_field.id,
                 name.into(),
                 sender,
             ));
@@ -424,21 +459,21 @@ impl WebGLProgram {
         };
 
         let (sender, receiver) = webgl_channel().unwrap();
-        self.upcast::<WebGLObject>()
-            .context()
+        self.droppable_field
+            .context
             .send_command(WebGLCommand::GetUniformLocation(
-                self.id,
+                self.droppable_field.id,
                 name.into(),
                 sender,
             ));
         let location = receiver.recv().unwrap();
-        let context_id = self.upcast::<WebGLObject>().context().context_id();
+        let context_id = self.droppable_field.context.context_id();
 
         Ok(Some(WebGLUniformLocation::new(
             self.global().as_window(),
             location,
             context_id,
-            self.id,
+            self.droppable_field.id,
             self.link_generation.get(),
             size,
             type_,
@@ -455,10 +490,10 @@ impl WebGLProgram {
         }
 
         let (sender, receiver) = webgl_channel().unwrap();
-        self.upcast::<WebGLObject>()
-            .context()
+        self.droppable_field
+            .context
             .send_command(WebGLCommand::GetUniformBlockIndex(
-                self.id,
+                self.droppable_field.id,
                 name.into(),
                 sender,
             ));
@@ -485,9 +520,13 @@ impl WebGLProgram {
             .collect::<Vec<_>>();
 
         let (sender, receiver) = webgl_channel().unwrap();
-        self.upcast::<WebGLObject>()
-            .context()
-            .send_command(WebGLCommand::GetUniformIndices(self.id, names, sender));
+        self.droppable_field
+            .context
+            .send_command(WebGLCommand::GetUniformIndices(
+                self.droppable_field.id,
+                names,
+                sender,
+            ));
         Ok(receiver.recv().unwrap())
     }
 
@@ -512,10 +551,13 @@ impl WebGLProgram {
         }
 
         let (sender, receiver) = webgl_channel().unwrap();
-        self.upcast::<WebGLObject>()
-            .context()
+        self.droppable_field
+            .context
             .send_command(WebGLCommand::GetActiveUniforms(
-                self.id, indices, pname, sender,
+                self.droppable_field.id,
+                indices,
+                pname,
+                sender,
             ));
         Ok(receiver.recv().unwrap())
     }
@@ -544,9 +586,14 @@ impl WebGLProgram {
         }
 
         let (sender, receiver) = webgl_channel().unwrap();
-        self.upcast::<WebGLObject>().context().send_command(
-            WebGLCommand::GetActiveUniformBlockParameter(self.id, block_index, pname, sender),
-        );
+        self.droppable_field
+            .context
+            .send_command(WebGLCommand::GetActiveUniformBlockParameter(
+                self.droppable_field.id,
+                block_index,
+                pname,
+                sender,
+            ));
         Ok(receiver.recv().unwrap())
     }
 
@@ -560,9 +607,13 @@ impl WebGLProgram {
         }
 
         let (sender, receiver) = webgl_channel().unwrap();
-        self.upcast::<WebGLObject>().context().send_command(
-            WebGLCommand::GetActiveUniformBlockName(self.id, block_index, sender),
-        );
+        self.droppable_field
+            .context
+            .send_command(WebGLCommand::GetActiveUniformBlockName(
+                self.droppable_field.id,
+                block_index,
+                sender,
+            ));
         Ok(receiver.recv().unwrap())
     }
 
@@ -576,10 +627,10 @@ impl WebGLProgram {
             active_uniforms[block_binding as usize].bind_index = Some(block_binding);
         }
 
-        self.upcast::<WebGLObject>()
-            .context()
+        self.droppable_field
+            .context
             .send_command(WebGLCommand::UniformBlockBinding(
-                self.id,
+                self.droppable_field.id,
                 block_index,
                 block_binding,
             ));
@@ -592,7 +643,10 @@ impl WebGLProgram {
             return Err(WebGLError::InvalidValue);
         }
         if self.link_called.get() {
-            let shaders_compiled = match (self.fragment_shader.get(), self.vertex_shader.get()) {
+            let shaders_compiled = match (
+                self.droppable_field.fragment_shader.get(),
+                self.droppable_field.vertex_shader.get(),
+            ) {
                 (Some(fs), Some(vs)) => fs.successfully_compiled() && vs.successfully_compiled(),
                 _ => false,
             };
@@ -601,18 +655,24 @@ impl WebGLProgram {
             }
         }
         let (sender, receiver) = webgl_channel().unwrap();
-        self.upcast::<WebGLObject>()
-            .context()
-            .send_command(WebGLCommand::GetProgramInfoLog(self.id, sender));
+        self.droppable_field
+            .context
+            .send_command(WebGLCommand::GetProgramInfoLog(
+                self.droppable_field.id,
+                sender,
+            ));
         Ok(receiver.recv().unwrap())
     }
 
     pub fn attached_shaders(&self) -> WebGLResult<Vec<DomRoot<WebGLShader>>> {
-        if self.marked_for_deletion.get() {
+        if self.droppable_field.marked_for_deletion.get() {
             return Err(WebGLError::InvalidValue);
         }
         Ok(
-            match (self.vertex_shader.get(), self.fragment_shader.get()) {
+            match (
+                self.droppable_field.vertex_shader.get(),
+                self.droppable_field.fragment_shader.get(),
+            ) {
                 (Some(vertex_shader), Some(fragment_shader)) => {
                     vec![vertex_shader, fragment_shader]
                 },
@@ -632,13 +692,6 @@ impl WebGLProgram {
 
     pub fn transform_feedback_buffer_mode(&self) -> i32 {
         self.transform_feedback_mode.get()
-    }
-}
-
-impl Drop for WebGLProgram {
-    fn drop(&mut self) {
-        self.in_use(false);
-        self.mark_for_deletion(Operation::Fallible);
     }
 }
 
