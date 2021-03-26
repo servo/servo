@@ -3,7 +3,7 @@ name: CI
 on:
   # Triggers the workflow on push or pull request events but only for the master branch
   push:
-    branches: [ "master", "github-actions-dev", "auto", "try", "try-linux", "try-mac" ]
+    branches: [ "master", "github-actions-dev", "auto", "try", "try-linux", "try-mac", "try-windows", "try-wpt", "linux-wpt-tests"]
   pull_request:
     branches: [ "master", "github-actions-dev" ]
 
@@ -137,54 +137,54 @@ jobs:
           path: target.tar.gz
 
 % for chunk in range(1, total_chunks + 1):
-  # linux-wpt${chunk}:
-  #  #needs: build-linux
-  #  runs-on: ubuntu-20.04
-  #  steps:
-  #    - uses: actions/checkout@v2
-  #      with:
-  #        fetch-depth: 2
-
-  #    #- name: Download release binary
-  #    #  uses: actions/download-artifact@v2
-  #    #  with:
-  #    #    name: release-binary
-
-  #    - name: Fake build
-  #      run: |
-  #        wget https://joshmatthews.net/release-binary.zip
-  #        unzip release-binary.zip
-
-  #    - name: Prep test environment
-  #      run: |
-  #        tar -xzf target.tar.gz
-  #        python3 -m pip install --upgrade pip virtualenv
-  #        sudo apt update
-  #        sudo apt install -qy --no-install-recommends libgl1 libssl1.1 libdbus-1-3 libxcb-xfixes0-dev libxcb-shape0-dev libunwind8 libegl1-mesa
-  #        wget http://mirrors.kernel.org/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
-  #        sudo apt install ./libffi6_3.2.1-8_amd64.deb
-  #        python3 ./mach bootstrap-gstreamer
-
-  #    - name: Run tests
-  #      run: |
-  #        python3 ./mach test-wpt --release --processes=2 --total-chunks=${total_chunks} --this-chunk=${chunk} --log-raw=test-wpt.log --log-servojson=wpt-jsonsummary.log --always-succeed | cat
-  #        python3 ./mach filter-intermittents wpt-jsonsummary.log --log-intermittents=intermittents.log --log-filteredsummary=filtered-wpt-summary.log --tracker-api=default --reporter-api=default
-
-  #    - name: Archive logs
-  #      uses: actions/upload-artifact@v2
-  #      with:
-  #        name: wpt${chunk}-logs-linux
-  #        path: |
-  #          test-wpt.log
-  #          wpt-jsonsummary.log
-  #          filtered-wpt-summary.log
-  #          intermittents.log
+  linux-wpt-${chunk}:
+    name: Linux WPT Tests ${chunk}
+    runs-on: ubuntu-20.04
+    needs: ["build-linux"]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - uses: actions/download-artifact@v2
+        with:
+          name: release-binary
+          path: release-binary
+      - name: unPackage binary
+        run: tar -xzf release-binary/target.tar.gz
+      - name: Prep test environment
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          sudo apt install -qy --no-install-recommends libgl1 libssl1.1 libdbus-1-3 libxcb-xfixes0-dev libxcb-shape0-dev libunwind8 libegl1-mesa
+          wget http://mirrors.kernel.org/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
+          sudo apt install ./libffi6_3.2.1-8_amd64.deb
+          python3 ./mach bootstrap-gstreamer
+      - name: Run tests
+        run: |
+          python3 ./mach test-wpt --release --processes $(nproc) --timeout-multiplier 2 --total-chunks ${total_chunks} --this-chunk ${chunk} --log-raw test-wpt.${chunk}.log --log-servojson wpt-jsonsummary.${chunk}.log --always-succeed
+          python3 ./mach filter-intermittents wpt-jsonsummary.${chunk}.log --log-intermittents=intermittents.${chunk}.log --log-filteredsummary=filtered-wpt-summary.${chunk}.log --tracker-api=default --reporter-api=default
+      - name: Archive logs
+        uses: actions/upload-artifact@v2
+        with:
+          name: wpt${chunk}-logs-linux
+          path: |
+            test-wpt.${chunk}.log
+            wpt-jsonsummary.${chunk}.log
+            filtered-wpt-summary.${chunk}.log
+            intermittents.${chunk}.log
 % endfor
 
   build_result:
     name: homu build finished
     runs-on: ubuntu-latest
-    needs: ["build-win", "build-mac", "build-linux"]
+    needs:
+      - "build-win"
+      - "build-linux"
+      - "build-mac"
+    % for chunk in range(1, total_chunks + 1):
+      - "linux-wpt-${chunk}"
+    % endfor
+
     steps:
       - name: Mark the job as successful
         run: exit 0
