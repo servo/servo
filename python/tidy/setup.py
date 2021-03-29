@@ -18,7 +18,7 @@ install_requires = [
     "toml==0.9.2",
     "colorama==0.3.7",
     "voluptuous==0.11.5",
-    "PyYAML==5.1",
+    "PyYAML==5.4",
 ]
 
 here = os.path.dirname(os.path.abspath(__file__))
