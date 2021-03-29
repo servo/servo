@@ -192,7 +192,6 @@ pub fn create(
             proto.get(),
             // TODO: pass proper clasp
             &CLASS,
-            true,
         ));
         assert!(!properties_obj.get().is_null());
         let mut succeeded = false;
