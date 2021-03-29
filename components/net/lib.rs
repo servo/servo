@@ -33,9 +33,11 @@ pub mod resource_thread;
 mod storage_thread;
 pub mod subresource_integrity;
 mod websocket_loader;
+
 /// An implementation of the [Fetch specification](https://fetch.spec.whatwg.org/)
 pub mod fetch {
     pub mod cors_cache;
+    pub mod headers;
     pub mod methods;
 }
 

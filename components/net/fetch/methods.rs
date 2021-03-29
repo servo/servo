@@ -4,6 +4,7 @@
 
 use crate::data_loader::decode;
 use crate::fetch::cors_cache::CorsCache;
+use crate::fetch::headers::determine_nosniff;
 use crate::filemanager_thread::{FileManager, FILE_CHUNK_SIZE};
 use crate::http_loader::{determine_requests_referrer, http_fetch, HttpState};
 use crate::http_loader::{set_default_accept, set_default_accept_language};
@@ -834,18 +835,12 @@ pub fn should_be_blocked_due_to_nosniff(
     destination: Destination,
     response_headers: &HeaderMap,
 ) -> bool {
-    // Steps 1-3.
-    // TODO(eijebong): Replace this once typed headers allow custom ones...
-    if response_headers
-        .get("x-content-type-options")
-        .map_or(true, |val| {
-            val.to_str().unwrap_or("").to_lowercase() != "nosniff"
-        })
-    {
+    // Step 1
+    if !determine_nosniff(response_headers) {
         return false;
     }
 
-    // Step 4
+    // Step 2
     // Note: an invalid MIME type will produce a `None`.
     let content_type_header = response_headers.typed_get::<ContentType>();
 
@@ -877,19 +872,19 @@ pub fn should_be_blocked_due_to_nosniff(
     }
 
     match content_type_header {
-        // Step 6
+        // Step 4
         Some(ref ct) if destination.is_script_like() => {
             !is_javascript_mime_type(&ct.clone().into())
         },
 
-        // Step 7
+        // Step 5
         Some(ref ct) if destination == Destination::Style => {
             let m: mime::Mime = ct.clone().into();
             m.type_() != mime::TEXT && m.subtype() != mime::CSS
         },
 
         None if destination == Destination::Style || destination.is_script_like() => true,
-        // Step 8
+        // Step 6
         _ => false,
     }
 }
