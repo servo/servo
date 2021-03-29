@@ -58,7 +58,8 @@ fn report_panic(reason: &str, backtrace: Option<String>) {
     };
     let error = CString::new(message).expect("Can't create string");
     (ON_PANIC.read().unwrap())(error.as_ptr());
-    panic!("At that point, embedder should have thrown");
+    // At this point, embedder should probably have thrown, so we never reach
+    // this point. But if it didn't, don't recursively panic.
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -490,7 +491,11 @@ pub extern "C" fn init_with_egl(
     }
 }
 
-#[cfg(any(target_os = "linux", target_os = "windows", target_os = "macos"))]
+#[cfg(any(
+    target_os = "linux",
+    all(target_os = "windows", not(feature = "no-wgl")),
+    target_os = "macos"
+))]
 #[no_mangle]
 pub extern "C" fn init_with_gl(
     opts: CInitOptions,
