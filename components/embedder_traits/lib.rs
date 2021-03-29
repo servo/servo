@@ -197,7 +197,10 @@ pub enum EmbedderMsg {
     /// Open interface to request permission specified by prompt.
     PromptPermission(PermissionPrompt, IpcSender<PermissionRequest>),
     /// Request to present an IME to the user when an editable element is focused.
-    ShowIME(InputMethodType, Option<String>, DeviceIntRect),
+    /// If the input is text, the second parameter defines the pre-existing string
+    /// text content and the zero-based index into the string locating the insertion point.
+    /// bool is true for multi-line and false otherwise.
+    ShowIME(InputMethodType, Option<(String, i32)>, bool, DeviceIntRect),
     /// Request to hide the IME when the editable element is blurred.
     HideIME,
     /// Servo has shut down

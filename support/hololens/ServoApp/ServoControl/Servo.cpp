@@ -66,7 +66,7 @@ void on_panic(const char *cbacktrace) {
   throw hresult_error(E_FAIL, backtrace);
 }
 
-void on_ime_show(const char *text, int32_t x, int32_t y, int32_t width,
+void on_ime_show(const char *text, int32_t text_index, bool multiline, int32_t x, int32_t y, int32_t width,
                  int32_t height) {
   hstring htext = L"";
   if (text != nullptr) {
