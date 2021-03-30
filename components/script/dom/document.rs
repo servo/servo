@@ -1122,16 +1122,29 @@ impl Document {
                     Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
                     Size2D::new(rect.size.width.to_px(), rect.size.height.to_px()),
                 );
-                let text = if let Some(input) = elem.downcast::<HTMLInputElement>() {
-                    Some((&input.Value()).to_string())
+                let (text, multiline) = if let Some(input) = elem.downcast::<HTMLInputElement>() {
+                    (
+                        Some((
+                            (&input.Value()).to_string(),
+                            input.GetSelectionEnd().unwrap_or(0) as i32,
+                        )),
+                        false,
+                    )
                 } else if let Some(textarea) = elem.downcast::<HTMLTextAreaElement>() {
-                    Some((&textarea.Value()).to_string())
+                    (
+                        Some((
+                            (&textarea.Value()).to_string(),
+                            textarea.GetSelectionEnd().unwrap_or(0) as i32,
+                        )),
+                        true,
+                    )
                 } else {
-                    None
+                    (None, false)
                 };
                 self.send_to_embedder(EmbedderMsg::ShowIME(
                     kind,
                     text,
+                    multiline,
                     DeviceIntRect::from_untyped(&rect),
                 ));
             }

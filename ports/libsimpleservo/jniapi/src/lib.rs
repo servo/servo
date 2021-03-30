@@ -530,7 +530,14 @@ impl HostTrait for HostCallbacks {
         .unwrap();
     }
 
-    fn on_ime_show(&self, _type: InputEncoding, _text: Option<String>, _rect: DeviceIntRect) {}
+    fn on_ime_show(
+        &self,
+        _type: InputEncoding,
+        _text: Option<(String, i32)>,
+        _multiline: bool,
+        _rect: DeviceIntRect,
+    ) {
+    }
     fn on_ime_hide(&self) {}
 
     fn get_clipboard_contents(&self) -> Option<String> {

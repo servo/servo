@@ -141,7 +141,13 @@ pub trait HostTrait {
     /// Servo finished shutting down.
     fn on_shutdown_complete(&self);
     /// A text input is focused.
-    fn on_ime_show(&self, input_type: InputMethodType, text: Option<String>, bounds: DeviceIntRect);
+    fn on_ime_show(
+        &self,
+        input_type: InputMethodType,
+        text: Option<(String, i32)>,
+        multiline: bool,
+        bounds: DeviceIntRect,
+    );
     /// Input lost focus
     fn on_ime_hide(&self);
     /// Gets sytem clipboard contents.
@@ -742,10 +748,10 @@ impl ServoGlue {
 
                     let _ = sender.send(result);
                 },
-                EmbedderMsg::ShowIME(kind, text, bounds) => {
+                EmbedderMsg::ShowIME(kind, text, multiline, bounds) => {
                     self.callbacks
                         .host_callbacks
-                        .on_ime_show(kind, text, bounds);
+                        .on_ime_show(kind, text, multiline, bounds);
                 },
                 EmbedderMsg::HideIME => {
                     self.callbacks.host_callbacks.on_ime_hide();

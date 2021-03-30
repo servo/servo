@@ -416,7 +416,8 @@ impl HostTrait for HostCallbacks {
     fn on_ime_show(
         &self,
         _input_type: InputMethodType,
-        _text: Option<String>,
+        _text: Option<(String, i32)>,
+        _multiline: bool,
         _bounds: DeviceIntRect,
     ) {
         if let Some(keyboard) = self.keyboard.0 {
