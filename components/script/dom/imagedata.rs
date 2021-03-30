@@ -15,7 +15,6 @@ use js::jsapi::{Heap, JSObject};
 use js::rust::Runtime;
 use js::typedarray::{CreateWith, Uint8ClampedArray};
 use std::borrow::Cow;
-use std::convert::TryInto;
 use std::default::Default;
 use std::ptr;
 use std::ptr::NonNull;
