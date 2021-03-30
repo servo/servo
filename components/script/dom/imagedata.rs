@@ -116,7 +116,7 @@ impl ImageData {
         rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
         Uint8ClampedArray::create(
             *cx,
-            CreateWith::Length(len.try_into().unwrap()),
+            CreateWith::Length(len as usize),
             array.handle_mut(),
         )
         .unwrap();
