@@ -920,6 +920,7 @@ jobs:
         run: |
           python3 ./mach test-wpt --release --processes $(nproc) --timeout-multiplier 2 --total-chunks 20 --this-chunk 1 --log-raw test-wpt.1.log --log-servojson wpt-jsonsummary.1.log --always-succeed
           python3 ./mach filter-intermittents wpt-jsonsummary.1.log --log-intermittents=intermittents.1.log --log-filteredsummary=filtered-wpt-summary.1.log --tracker-api=default --reporter-api=default
+        continue-on-error: true
       - name: Archive logs
         uses: actions/upload-artifact@v2
         with:
@@ -956,6 +957,7 @@ jobs:
         run: |
           python3 ./mach test-wpt --release --processes $(nproc) --timeout-multiplier 2 --total-chunks 20 --this-chunk 2 --log-raw test-wpt.2.log --log-servojson wpt-jsonsummary.2.log --always-succeed
           python3 ./mach filter-intermittents wpt-jsonsummary.2.log --log-intermittents=intermittents.2.log --log-filteredsummary=filtered-wpt-summary.2.log --tracker-api=default --reporter-api=default
+        continue-on-error: true
       - name: Archive logs
         uses: actions/upload-artifact@v2
         with:
@@ -992,6 +994,7 @@ jobs:
         run: |
           python3 ./mach test-wpt --release --processes 8 --timeout-multiplier 2 --total-chunks 20 --this-chunk 3 --log-raw test-wpt.3.log --log-servojson wpt-jsonsummary.3.log --always-succeed
           python3 ./mach filter-intermittents wpt-jsonsummary.3.log --log-intermittents=intermittents.3.log --log-filteredsummary=filtered-wpt-summary.3.log --tracker-api=default --reporter-api=default
+        continue-on-error: true
       - name: Archive logs
         uses: actions/upload-artifact@v2
         with:
@@ -1028,6 +1031,7 @@ jobs:
         run: |
           python3 ./mach test-wpt --release --processes 8 --timeout-multiplier 2 --total-chunks 20 --this-chunk 4 --log-raw test-wpt.4.log --log-servojson wpt-jsonsummary.4.log --always-succeed
           python3 ./mach filter-intermittents wpt-jsonsummary.4.log --log-intermittents=intermittents.4.log --log-filteredsummary=filtered-wpt-summary.4.log --tracker-api=default --reporter-api=default
+        continue-on-error: true
       - name: Archive logs
         uses: actions/upload-artifact@v2
         with:
@@ -1064,6 +1068,7 @@ jobs:
         run: |
           python3 ./mach test-wpt --release --processes 8 --timeout-multiplier 2 --total-chunks 20 --this-chunk 5 --log-raw test-wpt.5.log --log-servojson wpt-jsonsummary.5.log --always-succeed
           python3 ./mach filter-intermittents wpt-jsonsummary.5.log --log-intermittents=intermittents.5.log --log-filteredsummary=filtered-wpt-summary.5.log --tracker-api=default --reporter-api=default
+        continue-on-error: true
       - name: Archive logs
         uses: actions/upload-artifact@v2
         with:
@@ -1100,6 +1105,7 @@ jobs:
         run: |
           python3 ./mach test-wpt --release --processes 8 --timeout-multiplier 2 --total-chunks 20 --this-chunk 6 --log-raw test-wpt.6.log --log-servojson wpt-jsonsummary.6.log --always-succeed
           python3 ./mach filter-intermittents wpt-jsonsummary.6.log --log-intermittents=intermittents.6.log --log-filteredsummary=filtered-wpt-summary.6.log --tracker-api=default --reporter-api=default
+        continue-on-error: true
       - name: Archive logs
         uses: actions/upload-artifact@v2
         with:
@@ -1136,6 +1142,7 @@ jobs:
         run: |
           python3 ./mach test-wpt --release --processes 8 --timeout-multiplier 2 --total-chunks 20 --this-chunk 7 --log-raw test-wpt.7.log --log-servojson wpt-jsonsummary.7.log --always-succeed
           python3 ./mach filter-intermittents wpt-jsonsummary.7.log --log-intermittents=intermittents.7.log --log-filteredsummary=filtered-wpt-summary.7.log --tracker-api=default --reporter-api=default
+        continue-on-error: true
       - name: Archive logs
         uses: actions/upload-artifact@v2
         with:
@@ -1172,6 +1179,7 @@ jobs:
         run: |
           python3 ./mach test-wpt --release --processes 8 --timeout-multiplier 2 --total-chunks 20 --this-chunk 8 --log-raw test-wpt.8.log --log-servojson wpt-jsonsummary.8.log --always-succeed
           python3 ./mach filter-intermittents wpt-jsonsummary.8.log --log-intermittents=intermittents.8.log --log-filteredsummary=filtered-wpt-summary.8.log --tracker-api=default --reporter-api=default
+        continue-on-error: true
       - name: Archive logs
         uses: actions/upload-artifact@v2
         with:
@@ -1208,6 +1216,7 @@ jobs:
         run: |
           python3 ./mach test-wpt --release --processes 8 --timeout-multiplier 2 --total-chunks 20 --this-chunk 9 --log-raw test-wpt.9.log --log-servojson wpt-jsonsummary.9.log --always-succeed
           python3 ./mach filter-intermittents wpt-jsonsummary.9.log --log-intermittents=intermittents.9.log --log-filteredsummary=filtered-wpt-summary.9.log --tracker-api=default --reporter-api=default
+        continue-on-error: true
       - name: Archive logs
         uses: actions/upload-artifact@v2
         with:
@@ -1244,6 +1253,7 @@ jobs:
         run: |
           python3 ./mach test-wpt --release --processes 8 --timeout-multiplier 2 --total-chunks 20 --this-chunk 10 --log-raw test-wpt.10.log --log-servojson wpt-jsonsummary.10.log --always-succeed
           python3 ./mach filter-intermittents wpt-jsonsummary.10.log --log-intermittents=intermittents.10.log --log-filteredsummary=filtered-wpt-summary.10.log --tracker-api=default --reporter-api=default
+        continue-on-error: true
       - name: Archive logs
         uses: actions/upload-artifact@v2
         with:
@@ -1280,6 +1290,7 @@ jobs:
         run: |
           python3 ./mach test-wpt --release --processes 8 --timeout-multiplier 2 --total-chunks 20 --this-chunk 11 --log-raw test-wpt.11.log --log-servojson wpt-jsonsummary.11.log --always-succeed
           python3 ./mach filter-intermittents wpt-jsonsummary.11.log --log-intermittents=intermittents.11.log --log-filteredsummary=filtered-wpt-summary.11.log --tracker-api=default --reporter-api=default
+        continue-on-error: true
       - name: Archive logs
         uses: actions/upload-artifact@v2
         with:
@@ -1316,6 +1327,7 @@ jobs:
         run: |
           python3 ./mach test-wpt --release --processes 8 --timeout-multiplier 2 --total-chunks 20 --this-chunk 12 --log-raw test-wpt.12.log --log-servojson wpt-jsonsummary.12.log --always-succeed
           python3 ./mach filter-intermittents wpt-jsonsummary.12.log --log-intermittents=intermittents.12.log --log-filteredsummary=filtered-wpt-summary.12.log --tracker-api=default --reporter-api=default
+        continue-on-error: true
       - name: Archive logs
         uses: actions/upload-artifact@v2
         with:
@@ -1352,6 +1364,7 @@ jobs:
         run: |
           python3 ./mach test-wpt --release --processes 8 --timeout-multiplier 2 --total-chunks 20 --this-chunk 13 --log-raw test-wpt.13.log --log-servojson wpt-jsonsummary.13.log --always-succeed
           python3 ./mach filter-intermittents wpt-jsonsummary.13.log --log-intermittents=intermittents.13.log --log-filteredsummary=filtered-wpt-summary.13.log --tracker-api=default --reporter-api=default
+        continue-on-error: true
       - name: Archive logs
         uses: actions/upload-artifact@v2
         with:
@@ -1388,6 +1401,7 @@ jobs:
         run: |
           python3 ./mach test-wpt --release --processes 8 --timeout-multiplier 2 --total-chunks 20 --this-chunk 14 --log-raw test-wpt.14.log --log-servojson wpt-jsonsummary.14.log --always-succeed
           python3 ./mach filter-intermittents wpt-jsonsummary.14.log --log-intermittents=intermittents.14.log --log-filteredsummary=filtered-wpt-summary.14.log --tracker-api=default --reporter-api=default
+        continue-on-error: true
       - name: Archive logs
         uses: actions/upload-artifact@v2
         with:
@@ -1424,6 +1438,7 @@ jobs:
         run: |
           python3 ./mach test-wpt --release --processes 8 --timeout-multiplier 2 --total-chunks 20 --this-chunk 15 --log-raw test-wpt.15.log --log-servojson wpt-jsonsummary.15.log --always-succeed
           python3 ./mach filter-intermittents wpt-jsonsummary.15.log --log-intermittents=intermittents.15.log --log-filteredsummary=filtered-wpt-summary.15.log --tracker-api=default --reporter-api=default
+        continue-on-error: true
       - name: Archive logs
         uses: actions/upload-artifact@v2
         with:
@@ -1460,6 +1475,7 @@ jobs:
         run: |
           python3 ./mach test-wpt --release --processes 8 --timeout-multiplier 2 --total-chunks 20 --this-chunk 16 --log-raw test-wpt.16.log --log-servojson wpt-jsonsummary.16.log --always-succeed
           python3 ./mach filter-intermittents wpt-jsonsummary.16.log --log-intermittents=intermittents.16.log --log-filteredsummary=filtered-wpt-summary.16.log --tracker-api=default --reporter-api=default
+        continue-on-error: true
       - name: Archive logs
         uses: actions/upload-artifact@v2
         with:
@@ -1496,6 +1512,7 @@ jobs:
         run: |
           python3 ./mach test-wpt --release --processes 8 --timeout-multiplier 2 --total-chunks 20 --this-chunk 17 --log-raw test-wpt.17.log --log-servojson wpt-jsonsummary.17.log --always-succeed
           python3 ./mach filter-intermittents wpt-jsonsummary.17.log --log-intermittents=intermittents.17.log --log-filteredsummary=filtered-wpt-summary.17.log --tracker-api=default --reporter-api=default
+        continue-on-error: true
       - name: Archive logs
         uses: actions/upload-artifact@v2
         with:
@@ -1532,6 +1549,7 @@ jobs:
         run: |
           python3 ./mach test-wpt --release --processes 8 --timeout-multiplier 2 --total-chunks 20 --this-chunk 18 --log-raw test-wpt.18.log --log-servojson wpt-jsonsummary.18.log --always-succeed
           python3 ./mach filter-intermittents wpt-jsonsummary.18.log --log-intermittents=intermittents.18.log --log-filteredsummary=filtered-wpt-summary.18.log --tracker-api=default --reporter-api=default
+        continue-on-error: true
       - name: Archive logs
         uses: actions/upload-artifact@v2
         with:
@@ -1568,6 +1586,7 @@ jobs:
         run: |
           python3 ./mach test-wpt --release --processes 8 --timeout-multiplier 2 --total-chunks 20 --this-chunk 19 --log-raw test-wpt.19.log --log-servojson wpt-jsonsummary.19.log --always-succeed
           python3 ./mach filter-intermittents wpt-jsonsummary.19.log --log-intermittents=intermittents.19.log --log-filteredsummary=filtered-wpt-summary.19.log --tracker-api=default --reporter-api=default
+        continue-on-error: true
       - name: Archive logs
         uses: actions/upload-artifact@v2
         with:
@@ -1604,6 +1623,7 @@ jobs:
         run: |
           python3 ./mach test-wpt --release --processes 8 --timeout-multiplier 2 --total-chunks 20 --this-chunk 20 --log-raw test-wpt.20.log --log-servojson wpt-jsonsummary.20.log --always-succeed
           python3 ./mach filter-intermittents wpt-jsonsummary.20.log --log-intermittents=intermittents.20.log --log-filteredsummary=filtered-wpt-summary.20.log --tracker-api=default --reporter-api=default
+        continue-on-error: true
       - name: Archive logs
         uses: actions/upload-artifact@v2
         with:
