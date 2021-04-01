@@ -15,61 +15,61 @@ env:
   SHELL: /bin/bash
 
 jobs:
-  build-win:
-    name: Build (Windows)
-    runs-on: windows-2019
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 2
-      - name: Copy to C drive
-        run: cp D:\a C:\ -Recurse
-      - name: Bootstrap
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
-        run: |
-          python -m pip install --upgrade pip virtualenv
-          python mach fetch
-      - name: Release build
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
-        run: python mach build --release --media-stack=dummy
-      - name: Unit tests
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
-        run: python mach test-unit --release
-      - name: Smoketest
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
-        run: python mach smoketest --angle
+  # build-win:
+  #   name: Build (Windows)
+  #   runs-on: windows-2019
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: 2
+  #     - name: Copy to C drive
+  #       run: cp D:\a C:\ -Recurse
+  #     - name: Bootstrap
+  #       working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+  #       run: |
+  #         python -m pip install --upgrade pip virtualenv
+  #         python mach fetch
+  #     - name: Release build
+  #       working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+  #       run: python mach build --release --media-stack=dummy
+  #     - name: Unit tests
+  #       working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+  #       run: python mach test-unit --release
+  #     - name: Smoketest
+  #       working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+  #       run: python mach smoketest --angle
 
-  build-mac:
-    name: Build (macOS)
-    runs-on: macos-10.15
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 2
-      - name: Bootstrap
-        run: |
-          python3 -m pip install --upgrade pip virtualenv
-          brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
-          brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile-build
-          rm -rf /usr/local/etc/openssl
-          rm -rf /usr/local/etc/openssl@1.1
-          brew install openssl@1.1 gnu-tar
-      - name: Release build
-        run: |
-          export OPENSSL_INCLUDE_DIR="$(brew --prefix openssl)/include"
-          export OPENSSL_LIB_DIR="$(brew --prefix openssl)/lib"
-          export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/"
-          export PKG_CONFIG_PATH="$(brew --prefix zlib)/lib/pkgconfig/:$PKG_CONFIG_PATH"
-          python3 ./mach build --release
-      - name: Smoketest
-        run: python3 ./mach smoketest
-      - name: Package binary
-        run: gtar -czf target.tar.gz target/release/servo target/release/*.dylib resources
-      - name: Archive binary
-        uses: actions/upload-artifact@v2
-        with:
-          name: release-binary-macos
-          path: target.tar.gz
+  # build-mac:
+  #   name: Build (macOS)
+  #   runs-on: macos-10.15
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: 2
+  #     - name: Bootstrap
+  #       run: |
+  #         python3 -m pip install --upgrade pip virtualenv
+  #         brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
+  #         brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile-build
+  #         rm -rf /usr/local/etc/openssl
+  #         rm -rf /usr/local/etc/openssl@1.1
+  #         brew install openssl@1.1 gnu-tar
+  #     - name: Release build
+  #       run: |
+  #         export OPENSSL_INCLUDE_DIR="$(brew --prefix openssl)/include"
+  #         export OPENSSL_LIB_DIR="$(brew --prefix openssl)/lib"
+  #         export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/"
+  #         export PKG_CONFIG_PATH="$(brew --prefix zlib)/lib/pkgconfig/:$PKG_CONFIG_PATH"
+  #         python3 ./mach build --release
+  #     - name: Smoketest
+  #       run: python3 ./mach smoketest
+  #     - name: Package binary
+  #       run: gtar -czf target.tar.gz target/release/servo target/release/*.dylib resources
+  #     - name: Archive binary
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: release-binary-macos
+  #         path: target.tar.gz
 
   # mac-wpt1:
   #   #needs: build-mac
