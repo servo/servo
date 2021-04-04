@@ -37,10 +37,10 @@ def tasks(task_for):
             windows_arm64,
             windows_uwp_x64,
             macos_unit,
-            linux_wpt,
-            linux_wpt_layout_2020,
+            # linux_wpt,
+            # linux_wpt_layout_2020,
             linux_release,
-            macos_wpt,
+            # macos_wpt,
         ]
         by_branch_name = {
             "auto": all_tests,
@@ -60,9 +60,10 @@ def tasks(task_for):
             "try-linux": [linux_tidy_unit, linux_docs_check, linux_release],
             "try-windows": [windows_unit, windows_arm64, windows_uwp_x64],
             "try-arm": [windows_arm64],
-            "try-wpt": [linux_wpt],
+            "try-wpt": [],
             "try-wpt-2020": [linux_wpt_layout_2020],
-            "try-wpt-mac": [macos_wpt],
+            "try-wpt-mac": [],
+            "test-wpt": [],
         }
         by_branch_name["try-windows-rdp"] = [
             functools.partial(f, rdp=True) for f in by_branch_name["try-windows"]
