@@ -37,8 +37,8 @@ def tasks(task_for):
             windows_arm64,
             windows_uwp_x64,
             macos_unit,
-            linux_wpt,
-            linux_wpt_layout_2020,
+            # linux_wpt,
+            # linux_wpt_layout_2020,
             linux_release,
             macos_wpt,
         ]
