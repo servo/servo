@@ -1,9 +1,9 @@
 name: CI
 
 on:
-  # Triggers the workflow on push or pull request events but only for the master branch
+  # Trigger CI when making pushes to try branches, or the branch that homu interacts with.
   push:
-    branches: [ "master", "github-actions-dev", "auto", "try", "try-linux", "try-mac" ]
+    branches: [ "github-actions-dev", "auto", "try", "try-linux", "try-mac", "try-windows" ]
   pull_request:
     branches: [ "master", "github-actions-dev" ]
 
