@@ -793,6 +793,7 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
 }
 
 #[test]
+#[cfg(not(target_os = "windows"))]
 fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
     let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
         response.headers_mut().insert(
