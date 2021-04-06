@@ -1432,7 +1432,10 @@ impl WindowMethods for Window {
             .filter(|elem| is_named_element_with_id_attribute(elem));
 
         // Step 2.
-        for elem in id_iter.clone() {
+        // TODO(pylbrecht): it would be great to just iterate over
+        // elements_with_id, but it seems document.get_elements_with_id()
+        // does not return HTMLIFrameElements. Why is that?
+        for elem in iframe_iter.clone() {
             if let Some(nested_window_proxy) = elem
                 .downcast::<HTMLIFrameElement>()
                 .and_then(|iframe| iframe.GetContentWindow())
