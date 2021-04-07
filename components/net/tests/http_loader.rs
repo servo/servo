@@ -352,8 +352,7 @@ fn test_request_and_response_message_from_devtool_without_pipeline_id() {
     let (devtools_chan, devtools_port) = unbounded();
     let response = fetch(&mut request, Some(devtools_chan));
     assert!(response
-        .internal_response
-        .unwrap()
+        .actual_response()
         .status
         .unwrap()
         .0
@@ -793,7 +792,6 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
 }
 
 #[test]
-#[cfg(not(target_os = "windows"))]
 fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
     let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
         response.headers_mut().insert(
@@ -822,8 +820,7 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
     let _ = server.close();
 
     assert!(response
-        .internal_response
-        .unwrap()
+        .actual_response()
         .status
         .unwrap()
         .0
