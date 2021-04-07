@@ -354,6 +354,7 @@ fn test_request_and_response_message_from_devtool_without_pipeline_id() {
     assert!(response
         .actual_response()
         .status
+        .as_ref()
         .unwrap()
         .0
         .is_success());
@@ -822,6 +823,7 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
     assert!(response
         .actual_response()
         .status
+        .as_ref()
         .unwrap()
         .0
         .is_success());
