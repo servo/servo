@@ -161,7 +161,7 @@ unsafe extern "C" fn is_extensible(
 
 #[allow(unsafe_code)]
 unsafe extern "C" fn class_name(_cx: *mut JSContext, _proxy: HandleObject) -> *const i8 {
-    &b"WindowProperties" as *const _ as *const i8
+    &b"WindowProperties\0" as *const _ as *const i8
 }
 
 // Maybe this should be a DOMJSClass. See https://bugzilla.mozilla.org/show_bug.cgi?id=787070
