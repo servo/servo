@@ -17,9 +17,10 @@ use js::glue::{CreateProxyHandler, NewProxyObject, ProxyTraps, RUST_JSID_IS_STRI
 use js::jsapi::JS_SetImmutablePrototype;
 use js::jsapi::{Handle, HandleObject, JSClass, JSContext, JSErrNum, UndefinedHandleValue};
 use js::jsapi::{
-    HandleId, JSClass_NON_NATIVE, MutableHandle, ObjectOpResult, PropertyDescriptor,
-    ProxyClassExtension, ProxyClassOps, ProxyObjectOps, JSCLASS_DELAY_METADATA_BUILDER,
-    JSCLASS_IS_PROXY, JSCLASS_RESERVED_SLOTS_MASK, JSCLASS_RESERVED_SLOTS_SHIFT,
+    HandleId, JSClass_NON_NATIVE, MutableHandle, MutableHandleIdVector, ObjectOpResult,
+    PropertyDescriptor, ProxyClassExtension, ProxyClassOps, ProxyObjectOps,
+    JSCLASS_DELAY_METADATA_BUILDER, JSCLASS_IS_PROXY, JSCLASS_RESERVED_SLOTS_MASK,
+    JSCLASS_RESERVED_SLOTS_SHIFT,
 };
 use js::jsval::UndefinedValue;
 use js::rust::IntoHandle;
@@ -38,7 +39,7 @@ lazy_static! {
             enter: None,
             getOwnPropertyDescriptor: Some(get_own_property_descriptor),
             defineProperty: Some(define_property),
-            ownPropertyKeys: None,
+            ownPropertyKeys: Some(own_property_keys),
             delete_: Some(delete),
             enumerate: None,
             getPrototypeIfOrdinary: None,
@@ -111,6 +112,16 @@ unsafe extern "C" fn get_own_property_descriptor(
         fill_property_descriptor(RustMutableHandle::from_raw(desc), proxy.get(), val.get(), 0);
     }
     return true;
+}
+
+#[allow(unsafe_code)]
+unsafe extern "C" fn own_property_keys(
+    _cx: *mut JSContext,
+    _proxy: HandleObject,
+    _props: MutableHandleIdVector,
+) -> bool {
+    // FIXME(pylbrecht): dummy implementation
+    true
 }
 
 #[allow(unsafe_code)]
