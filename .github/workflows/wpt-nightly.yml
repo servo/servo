@@ -1,0 +1,38 @@
+name: Synchronize WPT Nightly
+
+on:
+  pull_request:
+    branches: ["master", "github-actions-dev"]
+  schedule:
+    # Run this job at 00:00 everyday
+    - cron: "0 0 * * *"
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  sync:
+    name: Synchronize WPT Nightly
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Bootstrap
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          python3 ./mach bootstrap
+      - name: Add sync-fork remote
+        run: git remote add sync-fork https://github.com/servo-wpt-sync/servo.git
+      - name: Release build
+        run: python3 ./mach build --release
+      - name: Run WPT Update
+        env:
+          WPT_SYNC_TOKEN: ${{ secrets.WPT_SYNC_TOKEN }}
+        run: |
+          # Use `cat` to force wptrunner’s non-interactive mode
+          ./etc/ci/update-wpt-checkout fetch-and-update-expectations | cat
+          ./etc/ci/update-wpt-checkout open-pr
+          ./etc/ci/update-wpt-checkout cleanup
