@@ -266,7 +266,7 @@ impl<'a> BuilderWithConfig<'a> {
     fn handle_common(self, fixups: &mut Vec<Fixup>) -> BuilderWithConfig<'a> {
         self.handle_str_items("headers", |b, item| b.header(add_include(item)))
             .handle_str_items("raw-lines", |b, item| b.raw_line(item))
-            .handle_str_items("hide-types", |b, item| b.blacklist_type(item))
+            .handle_str_items("hide-types", |b, item| b.blocklist_type(item))
             .handle_table_items("fixups", |builder, item| {
                 fixups.push(Fixup {
                     pat: item["pat"].as_str().unwrap().into(),
@@ -293,16 +293,16 @@ fn generate_structs() {
     let mut fixups = vec![];
     let builder = BuilderWithConfig::new(builder, CONFIG["structs"].as_table().unwrap())
         .handle_common(&mut fixups)
-        .handle_str_items("whitelist-functions", |b, item| b.whitelist_function(item))
+        .handle_str_items("whitelist-functions", |b, item| b.allowlist_function(item))
         .handle_str_items("bitfield-enums", |b, item| b.bitfield_enum(item))
         .handle_str_items("rusty-enums", |b, item| b.rustified_enum(item))
-        .handle_str_items("whitelist-vars", |b, item| b.whitelist_var(item))
-        .handle_str_items("whitelist-types", |b, item| b.whitelist_type(item))
+        .handle_str_items("whitelist-vars", |b, item| b.allowlist_var(item))
+        .handle_str_items("whitelist-types", |b, item| b.allowlist_type(item))
         .handle_str_items("opaque-types", |b, item| b.opaque_type(item))
         .handle_table_items("cbindgen-types", |b, item| {
             let gecko = item["gecko"].as_str().unwrap();
             let servo = item["servo"].as_str().unwrap();
-            b.blacklist_type(format!("mozilla::{}", gecko))
+            b.blocklist_type(format!("mozilla::{}", gecko))
                 .module_raw_line("root::mozilla", format!("pub use {} as {};", servo, gecko))
         })
         .handle_table_items("mapped-generic-types", |builder, item| {
@@ -320,7 +320,7 @@ fn generate_structs() {
                 pat: format!("\\broot\\s*::\\s*{}\\b", gecko),
                 rep: format!("crate::gecko_bindings::structs::{}", gecko_name),
             });
-            builder.blacklist_type(gecko).raw_line(format!(
+            builder.blocklist_type(gecko).raw_line(format!(
                 "pub type {0}{2} = {1}{2};",
                 gecko_name,
                 servo,

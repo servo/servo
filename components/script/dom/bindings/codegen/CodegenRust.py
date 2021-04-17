@@ -1833,6 +1833,7 @@ class AttrDefiner(PropertyDefiner):
                 "name": m.identifier.name,
                 "attr": m,
                 "flags": "JSPROP_ENUMERATE",
+                "is_accessor": "true",
             }
             for m in descriptor.interface.members if
             m.isAttr() and m.isStatic() == static
@@ -1847,7 +1848,8 @@ class AttrDefiner(PropertyDefiner):
             self.regular.append({
                 "name": "@@toStringTag",
                 "attr": None,
-                "flags": "JSPROP_READONLY | JSPROP_INTERNAL_USE_BIT"
+                "flags": "JSPROP_READONLY",
+                "is_accessor": "false",
             })
 
     def generateArray(self, array, name):
@@ -1897,23 +1899,24 @@ class AttrDefiner(PropertyDefiner):
 
         def specData(attr):
             if attr["name"] == "@@toStringTag":
-                return (attr["name"][2:], attr["flags"],
+                return (attr["name"][2:], attr["flags"], attr["is_accessor"],
                         str_to_const_array(self.descriptor.interface.getClassName()))
 
             flags = attr["flags"]
             if self.unforgeable:
                 flags += " | JSPROP_PERMANENT"
-            return (str_to_const_array(attr["attr"].identifier.name), flags, getter(attr),
+            return (str_to_const_array(attr["attr"].identifier.name), flags, attr["is_accessor"], getter(attr),
                     setter(attr))
 
         def template(m):
             if m["name"] == "@@toStringTag":
                 return """    JSPropertySpec {
                     name: JSPropertySpec_Name { symbol_: SymbolCode::%s as usize + 1 },
-                    flags_: (%s) as u8,
+                    attributes_: (%s) as u8,
+                    isAccessor_: (%s),
                     u: JSPropertySpec_AccessorsOrValue {
                         value: JSPropertySpec_ValueWrapper {
-                            type_: JSValueType::JSVAL_TYPE_STRING as _,
+                            type_: JSPropertySpec_ValueWrapper_Type::String,
                             __bindgen_anon_1: JSPropertySpec_ValueWrapper__bindgen_ty_1 {
                                 string: %s as *const u8 as *const libc::c_char,
                             }
@@ -1923,7 +1926,8 @@ class AttrDefiner(PropertyDefiner):
 """
             return """    JSPropertySpec {
                     name: JSPropertySpec_Name { string_: %s as *const u8 as *const libc::c_char },
-                    flags_: (%s) as u8,
+                    attributes_: (%s) as u8,
+                    isAccessor_: (%s),
                     u: JSPropertySpec_AccessorsOrValue {
                         accessors: JSPropertySpec_AccessorsOrValue_Accessors {
                             getter: JSPropertySpec_Accessor {
@@ -2923,7 +2927,7 @@ let root = raw.reflect_with(obj.get());
 let _ac = JSAutoRealm::new(*cx, obj.get());
 rooted!(in(*cx) let mut proto = ptr::null_mut::<JSObject>());
 GetProtoObject(cx, obj.handle(), proto.handle_mut());
-assert!(JS_SplicePrototype(*cx, obj.handle(), proto.handle()));
+assert!(JS_SetPrototype(*cx, obj.handle(), proto.handle()));
 let mut immutable = false;
 assert!(JS_SetImmutablePrototype(*cx, obj.handle(), &mut immutable));
 assert!(immutable);
@@ -4107,6 +4111,7 @@ class CGMemberJITInfo(CGThing):
                         protoID: PrototypeList::ID::${name} as u16,
                     },
                     __bindgen_anon_3: JSJitInfo__bindgen_ty_3 { depth: ${depth} },
+                    _bitfield_align_1: [],
                     _bitfield_1: __BindgenBitfieldUnit::new(
                         new_jsjitinfo_bitfield_1!(
                             JSJitInfo_OpType::${opType} as u8,
@@ -6090,13 +6095,13 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::JSPROP_ENUMERATE',
         'js::jsapi::JSPROP_PERMANENT',
         'js::jsapi::JSPROP_READONLY',
-        'js::jsapi::JSPROP_INTERNAL_USE_BIT',
         'js::jsapi::JSPropertySpec',
         'js::jsapi::JSPropertySpec_Accessor',
         'js::jsapi::JSPropertySpec_AccessorsOrValue',
         'js::jsapi::JSPropertySpec_AccessorsOrValue_Accessors',
         'js::jsapi::JSPropertySpec_Name',
         'js::jsapi::JSPropertySpec_ValueWrapper',
+        'js::jsapi::JSPropertySpec_ValueWrapper_Type',
         'js::jsapi::JSPropertySpec_ValueWrapper__bindgen_ty_1',
         'js::jsapi::JSString',
         'js::jsapi::JSTracer',
@@ -6130,7 +6135,6 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::rust::wrappers::JS_SetProperty',
         'js::rust::wrappers::JS_SetPrototype',
         'js::jsapi::JS_SetReservedSlot',
-        'js::rust::wrappers::JS_SplicePrototype',
         'js::rust::wrappers::JS_WrapValue',
         'js::rust::wrappers::JS_WrapObject',
         'js::rust::MutableHandle',

@@ -41,7 +41,6 @@ packages = [
   "env_logger",
   "fixedbitset",
   "gleam",
-  "humantime",
   "libloading",
   "lock_api",
   "memoffset",
