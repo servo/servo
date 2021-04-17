@@ -4111,7 +4111,7 @@ class CGMemberJITInfo(CGThing):
                         protoID: PrototypeList::ID::${name} as u16,
                     },
                     __bindgen_anon_3: JSJitInfo__bindgen_ty_3 { depth: ${depth} },
-                    _bitfield_align_1: Default::default(),
+                    _bitfield_align_1: [],
                     _bitfield_1: __BindgenBitfieldUnit::new(
                         new_jsjitinfo_bitfield_1!(
                             JSJitInfo_OpType::${opType} as u8,
