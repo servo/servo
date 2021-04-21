@@ -1941,6 +1941,20 @@ pub fn capture_webgl_backtrace<T: DomObject>(obj: &T) -> WebGLCommandBacktrace {
     }
 }
 
+#[cfg(not(feature = "webgl_backtrace"))]
+#[inline]
+pub fn stub_webgl_backtrace() -> WebGLCommandBacktrace {
+    WebGLCommandBacktrace {}
+}
+
+#[cfg(feature = "webgl_backtrace")]
+pub fn stub_webgl_backtrace() -> WebGLCommandBacktrace {
+      WebGLCommandBacktrace {
+          backtrace: String::new(),
+          js_backtrace: None,
+      }
+}
+
 impl Drop for WebGLRenderingContext {
     fn drop(&mut self) {
         let _ = self.webgl_sender.send_remove();
