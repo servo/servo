@@ -6,9 +6,9 @@
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::{DomRoot};
 use crate::dom::webglobject::WebGLObject;
-use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
+use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext, WebGLMessageSender, capture_webgl_backtrace};
 use canvas_traits::webgl::webgl_channel;
 use canvas_traits::webgl::{WebGLBufferId, WebGLCommand, WebGLError, WebGLResult};
 use dom_struct::dom_struct;
@@ -24,7 +24,7 @@ struct DroppableField {
     id: WebGLBufferId,
     marked_for_deletion: Cell<bool>,
     attached_counter: Cell<u32>,
-    context: WebGLRenderingContext,
+    sender: WebGLMessageSender,
 }
 
 impl DroppableField {
@@ -42,8 +42,8 @@ impl DroppableField {
         assert!(self.is_deleted());
         let cmd = WebGLCommand::DeleteBuffer(self.id);
         match operation_fallibility {
-            Operation::Fallible => self.context.send_command_ignored(cmd),
-            Operation::Infallible => self.context.send_command(cmd),
+            Operation::Fallible => self.sender.send(cmd, capture_webgl_backtrace()),
+            Operation::Infallible => self.sender.send(cmd, capture_webgl_backtrace()).unwrap(),
         }
     }
 
@@ -84,7 +84,7 @@ impl WebGLBuffer {
                 id,
                 marked_for_deletion: Default::default(),
                 attached_counter: Default::default(),
-                context: Dom::from_ref(context),
+                sender: context.webgl_sender(),
             },
         }
     }
