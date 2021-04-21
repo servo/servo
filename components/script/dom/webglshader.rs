@@ -13,7 +13,7 @@ use crate::dom::webgl_extensions::ext::extshadertexturelod::EXTShaderTextureLod;
 use crate::dom::webgl_extensions::ext::oesstandardderivatives::OESStandardDerivatives;
 use crate::dom::webgl_extensions::WebGLExtensions;
 use crate::dom::webglobject::WebGLObject;
-use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
+use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext, WebGLMessageSender, stub_webgl_backtrace};
 use canvas_traits::webgl::{webgl_channel, GlType, WebGLVersion};
 use canvas_traits::webgl::{GLLimits, WebGLCommand, WebGLError};
 use canvas_traits::webgl::{WebGLResult, WebGLSLVersion, WebGLShaderId};
@@ -30,16 +30,43 @@ pub enum ShaderCompilationStatus {
     Failed,
 }
 
+struct DroppableField {
+    marked_for_deletion: Cell<bool>,
+    sender: WebGLMessageSender,
+    id: WebGLShaderId,
+}
+
+impl DroppableField {
+    /// Mark this shader as deleted (if it wasn't previously)
+    /// and delete it as if calling glDeleteShader.
+    /// Currently does not check if shader is attached
+    pub fn mark_for_deletion(&self, operation_fallibility: Operation) {
+        if !self.marked_for_deletion.get() {
+            self.marked_for_deletion.set(true);
+            let cmd = WebGLCommand::DeleteShader(self.id);
+            match operation_fallibility {
+                Operation::Fallible => self.sender.send(cmd, stub_webgl_backtrace()),
+                Operation::Infallible => self.sender.send(cmd, stub_webgl_backtrace()).unwrap(),
+            }
+        }
+    }
+}
+
+impl Drop for DroppableField {
+    fn drop(&mut self) {
+        self.mark_for_deletion(Operation::Fallible);
+    }
+}
+
 #[dom_struct]
 pub struct WebGLShader {
     webgl_object: WebGLObject,
-    id: WebGLShaderId,
     gl_type: u32,
     source: DomRefCell<DOMString>,
     info_log: DomRefCell<DOMString>,
-    marked_for_deletion: Cell<bool>,
     attached_counter: Cell<u32>,
     compilation_status: Cell<ShaderCompilationStatus>,
+    droppable_field: DroppableField,
 }
 
 static GLSLANG_INITIALIZATION: Once = Once::new();
@@ -49,13 +76,16 @@ impl WebGLShader {
         GLSLANG_INITIALIZATION.call_once(|| ::mozangle::shaders::initialize().unwrap());
         Self {
             webgl_object: WebGLObject::new_inherited(context),
-            id: id,
             gl_type: shader_type,
             source: Default::default(),
             info_log: Default::default(),
-            marked_for_deletion: Cell::new(false),
             attached_counter: Cell::new(0),
             compilation_status: Cell::new(ShaderCompilationStatus::NotCompiled),
+            droppable_field: DroppableField {
+                marked_for_deletion: Cell::new(false),
+                sender: context.webgl_sender(),
+                id,
+            }
         }
     }
 
@@ -197,7 +227,7 @@ fn default_validator() -> BuiltInResources {
 
 impl WebGLShader {
     pub fn id(&self) -> WebGLShaderId {
-        self.id
+        self.droppable_field.id
     }
 
     pub fn gl_type(&self) -> u32 {
@@ -213,11 +243,11 @@ impl WebGLShader {
         limits: &GLLimits,
         ext: &WebGLExtensions,
     ) -> WebGLResult<()> {
-        if self.marked_for_deletion.get() && !self.is_attached() {
+        if self.droppable_field.marked_for_deletion.get() && !self.is_attached() {
             return Err(WebGLError::InvalidValue);
         }
         if self.compilation_status.get() != ShaderCompilationStatus::NotCompiled {
-            debug!("Compiling already compiled shader {}", self.id);
+            debug!("Compiling already compiled shader {}", self.droppable_field.id);
         }
 
         let source = self.source.borrow();
@@ -328,13 +358,13 @@ impl WebGLShader {
                 // It could be interesting to retrieve the info log from the paint thread though
                 self.upcast::<WebGLObject>()
                     .context()
-                    .send_command(WebGLCommand::CompileShader(self.id, translated_source));
+                    .send_command(WebGLCommand::CompileShader(self.droppable_field.id, translated_source));
                 self.compilation_status
                     .set(ShaderCompilationStatus::Succeeded);
             },
             Err(error) => {
                 self.compilation_status.set(ShaderCompilationStatus::Failed);
-                debug!("Shader {} compilation failed: {}", self.id, error);
+                debug!("Shader {} compilation failed: {}", self.droppable_field.id, error);
             },
         }
 
@@ -347,23 +377,15 @@ impl WebGLShader {
     /// and delete it as if calling glDeleteShader.
     /// Currently does not check if shader is attached
     pub fn mark_for_deletion(&self, operation_fallibility: Operation) {
-        if !self.marked_for_deletion.get() {
-            self.marked_for_deletion.set(true);
-            let context = self.upcast::<WebGLObject>().context();
-            let cmd = WebGLCommand::DeleteShader(self.id);
-            match operation_fallibility {
-                Operation::Fallible => context.send_command_ignored(cmd),
-                Operation::Infallible => context.send_command(cmd),
-            }
-        }
+        self.droppable_field.mark_for_deletion(operation_fallibility);
     }
 
     pub fn is_marked_for_deletion(&self) -> bool {
-        self.marked_for_deletion.get()
+        self.droppable_field.marked_for_deletion.get()
     }
 
     pub fn is_deleted(&self) -> bool {
-        self.marked_for_deletion.get() && !self.is_attached()
+        self.droppable_field.marked_for_deletion.get() && !self.is_attached()
     }
 
     pub fn is_attached(&self) -> bool {
@@ -396,11 +418,5 @@ impl WebGLShader {
 
     pub fn successfully_compiled(&self) -> bool {
         self.compilation_status.get() == ShaderCompilationStatus::Succeeded
-    }
-}
-
-impl Drop for WebGLShader {
-    fn drop(&mut self) {
-        self.mark_for_deletion(Operation::Fallible);
     }
 }
