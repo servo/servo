@@ -1,6 +1,6 @@
 [package]
 name = "selectors"
-version = "0.22.0"
+version = "0.23.0"
 authors = ["The Servo Project Developers"]
 documentation = "https://docs.rs/selectors/"
 description = "CSS Selectors matching for Rust"
