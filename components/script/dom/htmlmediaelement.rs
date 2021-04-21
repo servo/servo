@@ -65,6 +65,7 @@ use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingLi
 use crate::realms::InRealm;
 use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
+use msg::constellation_msg::PipelineId;
 use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource as EmbedderResource};
 use embedder_traits::{MediaPositionState, MediaSessionEvent, MediaSessionPlaybackState};
@@ -305,13 +306,15 @@ struct DroppableField {
     /// the access to the "privileged" document.servoGetMediaControls(id) API by
     /// keeping a whitelist of media controls identifiers.
     media_controls_id: DomRefCell<Option<String>>,
-    root: Option<DomRoot<Document>>,
+    pipeline_id: PipelineId,
 }
 
 impl DroppableField {
-    fn remove_controls(&self, root: DomRoot<Document>) {
-        if let Some(id) = self.media_controls_id.borrow_mut().take() {
-            root.unregister_media_controls(&id);
+    fn remove_controls(&self) {
+        if let Some(root) = ScriptThread::find_document(self.pipeline_id) {
+            if let Some(id) = self.media_controls_id.borrow_mut().take() {
+                root.unregister_media_controls(&id);
+            }
         }
     }
 }
@@ -327,7 +330,7 @@ impl Drop for DroppableField {
             }
         }
 
-        self.remove_controls(self.root.take().unwrap());
+        self.remove_controls();
     }
 }
 
@@ -435,7 +438,7 @@ pub enum ReadyState {
 impl HTMLMediaElement {
     pub fn new_inherited(tag_name: LocalName, prefix: Option<Prefix>, document: &Document) -> Self {
         let player_context = document.window().get_player_context();
-        let mut node = Self {
+        Self {
             htmlelement: HTMLElement::new_inherited(tag_name, prefix, document),
             network_state: Cell::new(NetworkState::Empty),
             ready_state: Cell::new(ReadyState::HaveNothing),
@@ -476,12 +479,10 @@ impl HTMLMediaElement {
                 id: Cell::new(0),
                 media_controls_id: DomRefCell::new(None),
                 glplayer_chan: player_context.glplayer_chan.clone(),
-                root: None,
+                pipeline_id: PipelineId::new(),
             },
             player_context,
-        };
-        node.droppable_field.root = Some(document_from_node(node));
-        node
+        }
     }
 
     pub fn get_ready_state(&self) -> ReadyState {
@@ -2448,9 +2449,8 @@ impl VirtualMethods for HTMLMediaElement {
                 if mutation.new_value(attr).is_some() {
                     self.render_controls();
                 } else {
-                    let root = &self.droppable_field.root.unwrap();
                     self.droppable_field
-                        .remove_controls(DomRoot::from_ref(root));
+                        .remove_controls();
                 }
             },
             _ => (),
