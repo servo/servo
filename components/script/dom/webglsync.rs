@@ -8,29 +8,60 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglobject::WebGLObject;
-use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
+use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext, WebGLMessageSender, stub_webgl_backtrace};
 use crate::task_source::TaskSource;
 use canvas_traits::webgl::{webgl_channel, WebGLCommand, WebGLSyncId};
 use dom_struct::dom_struct;
 use std::cell::Cell;
 
+struct DroppableField {
+    sender: WebGLMessageSender,
+    marked_for_deletion: Cell<bool>,
+    sync_id: WebGLSyncId,
+}
+
+impl DroppableField {
+    pub fn delete(&self, operation_fallibility: Operation) {
+        if self.is_valid() {
+            self.marked_for_deletion.set(true);
+            let cmd = WebGLCommand::DeleteSync(self.sync_id);
+            match operation_fallibility {
+                Operation::Fallible => self.sender.send(cmd, stub_webgl_backtrace()),
+                Operation::Infallible => self.sender.send(cmd, stub_webgl_backtrace()).unwrap(),
+            }
+        }
+    }
+
+    pub fn is_valid(&self) -> bool {
+        !self.marked_for_deletion.get()
+    }
+}
+
+impl Drop for DroppableField {
+    fn drop(&mut self) {
+        self.delete(Operation::Fallible);
+    }
+}
+
 #[dom_struct]
 pub struct WebGLSync {
     webgl_object: WebGLObject,
-    sync_id: WebGLSyncId,
-    marked_for_deletion: Cell<bool>,
     client_wait_status: Cell<Option<u32>>,
     sync_status: Cell<Option<u32>>,
+    droppable_field: DroppableField,
 }
 
 impl WebGLSync {
     fn new_inherited(context: &WebGLRenderingContext, sync_id: WebGLSyncId) -> Self {
         Self {
             webgl_object: WebGLObject::new_inherited(context),
-            sync_id,
-            marked_for_deletion: Cell::new(false),
             client_wait_status: Cell::new(None),
             sync_status: Cell::new(None),
+            droppable_field: DroppableField {
+                sender: context.webgl_sender(),
+                marked_for_deletion: Cell::new(false),
+                sync_id,
+            }
         }
     }
 
@@ -63,7 +94,7 @@ impl WebGLSync {
                     let context = context.root();
                     let (sender, receiver) = webgl_channel().unwrap();
                     context.send_command(WebGLCommand::ClientWaitSync(
-                        this.sync_id,
+                        this.droppable_field.sync_id,
                         flags,
                         timeout,
                         sender,
@@ -83,15 +114,7 @@ impl WebGLSync {
     }
 
     pub fn delete(&self, operation_fallibility: Operation) {
-        if self.is_valid() {
-            self.marked_for_deletion.set(true);
-            let context = self.upcast::<WebGLObject>().context();
-            let cmd = WebGLCommand::DeleteSync(self.sync_id);
-            match operation_fallibility {
-                Operation::Fallible => context.send_command_ignored(cmd),
-                Operation::Infallible => context.send_command(cmd),
-            }
-        }
+        self.droppable_field.delete(operation_fallibility);
     }
 
     pub fn get_sync_status(&self, pname: u32, context: &WebGLRenderingContext) -> Option<u32> {
@@ -104,7 +127,7 @@ impl WebGLSync {
                     let this = this.root();
                     let context = context.root();
                     let (sender, receiver) = webgl_channel().unwrap();
-                    context.send_command(WebGLCommand::GetSyncParameter(this.sync_id, pname, sender));
+                    context.send_command(WebGLCommand::GetSyncParameter(this.droppable_field.sync_id, pname, sender));
                     this.sync_status.set(Some(receiver.recv().unwrap()));
                 });
                 global
@@ -120,16 +143,10 @@ impl WebGLSync {
     }
 
     pub fn is_valid(&self) -> bool {
-        !self.marked_for_deletion.get()
+        !self.droppable_field.is_valid()
     }
 
     pub fn id(&self) -> WebGLSyncId {
-        self.sync_id
-    }
-}
-
-impl Drop for WebGLSync {
-    fn drop(&mut self) {
-        self.delete(Operation::Fallible);
+        self.droppable_field.sync_id
     }
 }
