@@ -28,8 +28,12 @@ impl DroppableField {
 
             let command = WebGLCommand::DeleteQuery(self.gl_id);
             match operation_fallibility {
-                Operation::Fallible => self.sender.send(command, stub_webgl_backtrace()),
-                Operation::Infallible => self.sender.send(command, stub_webgl_backtrace()).unwrap(),
+                Operation::Fallible => {
+                    let _ = self.sender.send(command, stub_webgl_backtrace());
+                },
+                Operation::Infallible => {
+                    self.sender.send(command, stub_webgl_backtrace()).unwrap();
+                },
             }
         }
     }

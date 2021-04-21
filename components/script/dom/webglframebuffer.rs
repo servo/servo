@@ -96,8 +96,12 @@ impl DroppableField {
             self.is_deleted.set(true);
             let cmd = WebGLCommand::DeleteFramebuffer(self.id);
             match operation_fallibility {
-                Operation::Fallible => self.sender.send(cmd, stub_webgl_backtrace()),
-                Operation::Infallible => self.sender.send(cmd, stub_webgl_backtrace()).unwrap(),
+                Operation::Fallible => {
+                    let _ = self.sender.send(cmd, stub_webgl_backtrace());
+                },
+                Operation::Infallible => {
+                    self.sender.send(cmd, stub_webgl_backtrace()).unwrap();
+                },
             }
         }
     }
