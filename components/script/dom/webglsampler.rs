@@ -3,21 +3,45 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
-use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglobject::WebGLObject;
-use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
+use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext, WebGLMessageSender, stub_webgl_backtrace};
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{webgl_channel, WebGLCommand, WebGLSamplerId};
 use dom_struct::dom_struct;
 use std::cell::Cell;
 
+struct DroppableField {
+    sender: WebGLMessageSender,
+    gl_id: WebGLSamplerId
+}
+
+impl DroppableField {
+    pub fn delete(&self, operation_fallibility: Operation) {
+        if !self.marked_for_deletion.get() {
+            self.marked_for_deletion.set(true);
+
+            let command = WebGLCommand::DeleteSampler(self.gl_id);
+            match operation_fallibility {
+                Operation::Fallible => self.sender.send(command, stub_webgl_backtrace),
+                Operation::Infallible => self.sender.send(command, stub_webgl_backtrace).unwrap(),
+            }
+        }
+    }
+}
+
+impl Drop for DroppableField {
+    fn drop(&mut self) {
+        self.delete(Operation::Fallible);
+    }
+}
+
 #[dom_struct]
 pub struct WebGLSampler {
     webgl_object: WebGLObject,
-    gl_id: WebGLSamplerId,
     marked_for_deletion: Cell<bool>,
+    droppable_field: DroppableField,
 }
 
 #[derive(Clone, Copy)]
@@ -74,8 +98,11 @@ impl WebGLSampler {
     fn new_inherited(context: &WebGLRenderingContext, id: WebGLSamplerId) -> Self {
         Self {
             webgl_object: WebGLObject::new_inherited(context),
-            gl_id: id,
             marked_for_deletion: Cell::new(false),
+            droppable_field: DroppableField {
+                sender: context.webgl_sender(),
+                gl_id: id,
+            }
         }
     }
 
@@ -91,16 +118,7 @@ impl WebGLSampler {
     }
 
     pub fn delete(&self, operation_fallibility: Operation) {
-        if !self.marked_for_deletion.get() {
-            self.marked_for_deletion.set(true);
-
-            let command = WebGLCommand::DeleteSampler(self.gl_id);
-            let context = self.upcast::<WebGLObject>().context();
-            match operation_fallibility {
-                Operation::Fallible => context.send_command_ignored(command),
-                Operation::Infallible => context.send_command(command),
-            }
-        }
+        self.droppable_field.delete(operation_fallibility);
     }
 
     pub fn is_valid(&self) -> bool {
@@ -115,7 +133,7 @@ impl WebGLSampler {
         if !self.is_valid() {
             return Err(InvalidOperation);
         }
-        context.send_command(WebGLCommand::BindSampler(unit, self.gl_id));
+        context.send_command(WebGLCommand::BindSampler(unit, self.droppable_field.gl_id));
         Ok(())
     }
 
@@ -133,10 +151,10 @@ impl WebGLSampler {
         }
         let command = match value {
             WebGLSamplerValue::GLenum(value) => {
-                WebGLCommand::SetSamplerParameterInt(self.gl_id, pname, value as i32)
+                WebGLCommand::SetSamplerParameterInt(self.droppable_field.gl_id, pname, value as i32)
             },
             WebGLSamplerValue::Float(value) => {
-                WebGLCommand::SetSamplerParameterFloat(self.gl_id, pname, value)
+                WebGLCommand::SetSamplerParameterFloat(self.droppable_field.gl_id, pname, value)
             },
         };
         context.send_command(command);
@@ -161,24 +179,18 @@ impl WebGLSampler {
             constants::TEXTURE_COMPARE_MODE => {
                 let (sender, receiver) = webgl_channel().unwrap();
                 context.send_command(WebGLCommand::GetSamplerParameterInt(
-                    self.gl_id, pname, sender,
+                    self.droppable_field.gl_id, pname, sender,
                 ));
                 Ok(WebGLSamplerValue::GLenum(receiver.recv().unwrap() as u32))
             },
             constants::TEXTURE_MIN_LOD | constants::TEXTURE_MAX_LOD => {
                 let (sender, receiver) = webgl_channel().unwrap();
                 context.send_command(WebGLCommand::GetSamplerParameterFloat(
-                    self.gl_id, pname, sender,
+                    self.droppable_field.gl_id, pname, sender,
                 ));
                 Ok(WebGLSamplerValue::Float(receiver.recv().unwrap()))
             },
             _ => Err(InvalidEnum),
         }
-    }
-}
-
-impl Drop for WebGLSampler {
-    fn drop(&mut self) {
-        self.delete(Operation::Fallible);
     }
 }
