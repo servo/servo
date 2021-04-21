@@ -160,11 +160,19 @@ pub enum Operation {
     Infallible,
 }
 
+struct DroppableField {
+    webgl_sender: WebGLMessageSender,
+}
+
+impl Drop for DroppableField {
+    fn drop(&mut self) {
+        let _ = self.webgl_sender.send_remove();
+    }
+}
+
 #[dom_struct]
 pub struct WebGLRenderingContext {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "Channels are hard"]
-    webgl_sender: WebGLMessageSender,
     #[ignore_malloc_size_of = "Defined in webrender"]
     webrender_image: webrender_api::ImageKey,
     webgl_version: WebGLVersion,
@@ -199,6 +207,7 @@ pub struct WebGLRenderingContext {
     current_vao_webgl2: MutNullableDom<WebGLVertexArrayObject>,
     textures: Textures,
     api_type: GlType,
+    droppable_field: DroppableField,
 }
 
 impl WebGLRenderingContext {
@@ -229,10 +238,6 @@ impl WebGLRenderingContext {
             let max_vertex_attribs = ctx_data.limits.max_vertex_attribs as usize;
             Self {
                 reflector_: Reflector::new(),
-                webgl_sender: WebGLMessageSender::new(
-                    ctx_data.sender,
-                    window.get_event_loop_waker(),
-                ),
                 webrender_image: ctx_data.image_key,
                 webgl_version,
                 glsl_version: ctx_data.glsl_version,
@@ -267,6 +272,12 @@ impl WebGLRenderingContext {
                 current_vao_webgl2: Default::default(),
                 textures: Textures::new(max_combined_texture_image_units),
                 api_type: ctx_data.api_type,
+                droppable_field: DroppableField {
+                    webgl_sender: WebGLMessageSender::new(
+                        ctx_data.sender,
+                        window.get_event_loop_waker(),
+                    )
+                }
             }
         })
     }
@@ -332,7 +343,7 @@ impl WebGLRenderingContext {
 
     pub fn recreate(&self, size: Size2D<u32>) {
         let (sender, receiver) = webgl_channel().unwrap();
-        self.webgl_sender.send_resize(size, sender).unwrap();
+        self.droppable_field.webgl_sender.send_resize(size, sender).unwrap();
         // FIXME(#21718) The backend is allowed to choose a size smaller than
         // what was requested
         self.size.set(size);
@@ -380,11 +391,11 @@ impl WebGLRenderingContext {
     }
 
     pub(crate) fn webgl_sender(&self) -> WebGLMessageSender {
-        self.webgl_sender.clone()
+        self.droppable_filed.webgl_sender.clone()
     }
 
     pub fn context_id(&self) -> WebGLContextId {
-        self.webgl_sender.context_id()
+        self.droppable_field.webgl_sender.context_id()
     }
 
     pub fn onscreen(&self) -> bool {
@@ -393,13 +404,14 @@ impl WebGLRenderingContext {
 
     #[inline]
     pub fn send_command(&self, command: WebGLCommand) {
-        self.webgl_sender
+        self.droppable_field.webgl_sender
             .send(command, capture_webgl_backtrace(self))
             .unwrap();
     }
 
     pub fn send_command_ignored(&self, command: WebGLCommand) {
         let _ = self
+            .droppable_field
             .webgl_sender
             .send(command, capture_webgl_backtrace(self));
     }
@@ -1955,12 +1967,6 @@ pub fn stub_webgl_backtrace() -> WebGLCommandBacktrace {
       }
 }
 
-impl Drop for WebGLRenderingContext {
-    fn drop(&mut self) {
-        let _ = self.webgl_sender.send_remove();
-    }
-}
-
 impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1
     fn Canvas(&self) -> DomRoot<HTMLCanvasElement> {
@@ -2312,6 +2318,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         // If the send does not succeed, assume context lost
         let backtrace = capture_webgl_backtrace(self);
         if self
+            .droppable_field
             .webgl_sender
             .send(WebGLCommand::GetContextAttributes(sender), backtrace)
             .is_err()
@@ -4491,13 +4498,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         texture.set_attached_to_dom();
 
         let command = DOMToTextureCommand::Attach(
-            self.webgl_sender.context_id(),
+            self.droppable_field.webgl_sender.context_id(),
             texture.id(),
             document_id,
             pipeline_id.to_webrender(),
             Size2D::new(width, height),
         );
-        self.webgl_sender.send_dom_to_texture(command).unwrap();
+        self.droppable_field.webgl_sender.send_dom_to_texture(command).unwrap();
 
         Ok(())
     }
