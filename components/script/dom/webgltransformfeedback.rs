@@ -2,34 +2,71 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglobject::WebGLObject;
-use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
+use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext, WebGLMessageSender, stub_webgl_backtrace};
 use canvas_traits::webgl::{webgl_channel, WebGLCommand};
 use dom_struct::dom_struct;
 use std::cell::Cell;
 
+struct DroppableField {
+    sender: WebGLMessageSender,
+    marked_for_deletion: Cell<bool>,
+    id: u32,
+}
+
+impl DroppableField {
+    pub fn delete(&self, operation_fallibility: Operation) {
+        if self.is_valid() && self.id() != 0 {
+            self.marked_for_deletion.set(true);
+            let cmd = WebGLCommand::DeleteTransformFeedback(self.id);
+            match operation_fallibility {
+                Operation::Fallible => {
+                    let _ = self.sender.send(cmd, stub_webgl_backtrace());
+                },
+                Operation::Infallible => {
+                    self.sender.send(cmd, stub_webgl_backtrace()).unwrap();
+                },
+            }
+        }
+    }
+
+    pub fn is_valid(&self) -> bool {
+        !self.marked_for_deletion.get()
+    }
+
+    pub fn id(&self) -> u32 {
+        self.id
+    }
+}
+
+impl Drop for DroppableField {
+    fn drop(&mut self) {
+        self.delete(Operation::Fallible);
+    }
+}
 #[dom_struct]
 pub struct WebGLTransformFeedback {
     webgl_object: WebGLObject,
-    id: u32,
-    marked_for_deletion: Cell<bool>,
     has_been_bound: Cell<bool>,
     is_active: Cell<bool>,
     is_paused: Cell<bool>,
+    droppable_field: DroppableField,
 }
 
 impl WebGLTransformFeedback {
     fn new_inherited(context: &WebGLRenderingContext, id: u32) -> Self {
         Self {
             webgl_object: WebGLObject::new_inherited(context),
-            id,
-            marked_for_deletion: Cell::new(false),
             has_been_bound: Cell::new(false),
             is_active: Cell::new(false),
             is_paused: Cell::new(false),
+            droppable_field: DroppableField {
+                sender: context.webgl_sender(),
+                id,
+                marked_for_deletion: Cell::new(false),
+            }
         }
     }
 
@@ -83,11 +120,11 @@ impl WebGLTransformFeedback {
     }
 
     pub fn id(&self) -> u32 {
-        self.id
+        self.droppable_field.id()
     }
 
     pub fn is_valid(&self) -> bool {
-        !self.marked_for_deletion.get()
+        self.droppable_field.is_valid()
     }
 
     pub fn is_active(&self) -> bool {
@@ -99,15 +136,7 @@ impl WebGLTransformFeedback {
     }
 
     pub fn delete(&self, operation_fallibility: Operation) {
-        if self.is_valid() && self.id() != 0 {
-            self.marked_for_deletion.set(true);
-            let context = self.upcast::<WebGLObject>().context();
-            let cmd = WebGLCommand::DeleteTransformFeedback(self.id);
-            match operation_fallibility {
-                Operation::Fallible => context.send_command_ignored(cmd),
-                Operation::Infallible => context.send_command(cmd),
-            }
-        }
+        self.droppable_field.delete(operation_fallibility);
     }
 
     pub fn set_active(&self, value: bool) {
@@ -120,11 +149,5 @@ impl WebGLTransformFeedback {
         if self.is_valid() && self.is_active() {
             self.is_active.set(value);
         }
-    }
-}
-
-impl Drop for WebGLTransformFeedback {
-    fn drop(&mut self) {
-        self.delete(Operation::Fallible);
     }
 }
