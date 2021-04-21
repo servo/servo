@@ -10,7 +10,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderbuffer::WebGLRenderbuffer;
-use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
+use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext, WebGLMessageSender, stub_webgl_backtrace};
 use crate::dom::webgltexture::WebGLTexture;
 use crate::dom::xrsession::XRSession;
 use canvas_traits::webgl::WebGLFramebufferId;
@@ -87,7 +87,7 @@ pub enum WebGLFramebufferAttachmentRoot {
 struct DroppableField {
     id: WebGLFramebufferId,
     is_deleted: Cell<bool>,
-    context: WebGLRenderingContext,
+    sender: WebGLMessageSender,
 }
 
 impl DroppableField {
@@ -96,8 +96,8 @@ impl DroppableField {
             self.is_deleted.set(true);
             let cmd = WebGLCommand::DeleteFramebuffer(self.id);
             match operation_fallibility {
-                Operation::Fallible => self.context.send_command_ignored(cmd),
-                Operation::Infallible => self.context.send_command(cmd),
+                Operation::Fallible => self.sender.send(cmd, stub_webgl_backtrace()),
+                Operation::Infallible => self.sender.send(cmd, stub_webgl_backtrace()).unwrap(),
             }
         }
     }
@@ -150,7 +150,7 @@ impl WebGLFramebuffer {
             droppable_field: DroppableField {
                 id,
                 is_deleted: Cell::new(false),
-                context: Dom::from_ref(context),
+                sender: context.webgl_sender(),
             },
         }
     }
@@ -211,8 +211,8 @@ impl WebGLFramebuffer {
         }
 
         self.target.set(Some(target));
-        self.droppable_field
-            .context
+        self.upcast::<WebGLObject>()
+            .context()
             .send_command(WebGLCommand::BindFramebuffer(
                 target,
                 WebGLFramebufferBindingRequest::Explicit(self.droppable_field.id),
