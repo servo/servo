@@ -14,7 +14,8 @@ use std::cell::Cell;
 
 struct DroppableField {
     sender: WebGLMessageSender,
-    gl_id: WebGLSamplerId
+    gl_id: WebGLSamplerId,
+    marked_for_deletion: Cell<bool>,
 }
 
 impl DroppableField {
@@ -44,7 +45,6 @@ impl Drop for DroppableField {
 #[dom_struct]
 pub struct WebGLSampler {
     webgl_object: WebGLObject,
-    marked_for_deletion: Cell<bool>,
     droppable_field: DroppableField,
 }
 
@@ -102,10 +102,10 @@ impl WebGLSampler {
     fn new_inherited(context: &WebGLRenderingContext, id: WebGLSamplerId) -> Self {
         Self {
             webgl_object: WebGLObject::new_inherited(context),
-            marked_for_deletion: Cell::new(false),
             droppable_field: DroppableField {
                 sender: context.webgl_sender(),
                 gl_id: id,
+                marked_for_deletion: Cell::new(false),
             }
         }
     }
@@ -126,7 +126,7 @@ impl WebGLSampler {
     }
 
     pub fn is_valid(&self) -> bool {
-        !self.marked_for_deletion.get()
+        !self.droppable_field.marked_for_deletion.get()
     }
 
     pub fn bind(
