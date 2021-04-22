@@ -5,6 +5,7 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants;
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{DomRoot};
 use crate::dom::webglobject::WebGLObject;
@@ -153,7 +154,7 @@ impl WebGLBuffer {
     }
 
     pub fn is_marked_for_deletion(&self) -> bool {
-        self.droppable_field.is_marked_for_deletion();
+        self.droppable_field.marked_for_deletion.get()
     }
 
     pub fn is_deleted(&self) -> bool {
