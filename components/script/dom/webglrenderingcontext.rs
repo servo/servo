@@ -160,6 +160,7 @@ pub enum Operation {
     Infallible,
 }
 
+#[derive(JSTraceable, MallocSizeOf)]
 struct DroppableField {
     webgl_sender: WebGLMessageSender,
 }
@@ -391,7 +392,7 @@ impl WebGLRenderingContext {
     }
 
     pub(crate) fn webgl_sender(&self) -> WebGLMessageSender {
-        self.droppable_filed.webgl_sender.clone()
+        self.droppable_field.webgl_sender.clone()
     }
 
     pub fn context_id(&self) -> WebGLContextId {
