@@ -15,6 +15,7 @@ use canvas_traits::webgl::{webgl_channel, WebGLCommand, WebGLQueryId};
 use dom_struct::dom_struct;
 use std::cell::Cell;
 
+#[derive(JSTraceable, MallocSizeOf)]
 struct DroppableField {
     sender: WebGLMessageSender,
     gl_id: WebGLQueryId,
