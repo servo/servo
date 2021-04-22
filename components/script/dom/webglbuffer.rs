@@ -21,6 +21,7 @@ fn target_is_copy_buffer(target: u32) -> bool {
         target == WebGL2RenderingContextConstants::COPY_WRITE_BUFFER
 }
 
+#[derive(JSTraceable, MallocSizeOf)]
 struct DroppableField {
     id: WebGLBufferId,
     marked_for_deletion: Cell<bool>,
