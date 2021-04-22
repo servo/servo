@@ -70,6 +70,7 @@ use uuid::Uuid;
 const WORKLET_THREAD_POOL_SIZE: u32 = 3;
 const MIN_GC_THRESHOLD: u32 = 1_000_000;
 
+#[derive(JSTraceable, MallocSizeOf)]
 struct DroppableField {
     worklet_id: WorkletId,
 }
