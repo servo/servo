@@ -139,7 +139,7 @@ impl GPUTexture {
 
 impl GPUTexture {
     pub fn id(&self) -> WebGPUTexture {
-        self.texture
+        self.droppable_field.texture
     }
 }
 
@@ -202,12 +202,12 @@ impl GPUTextureMethods for GPUTexture {
             .lock()
             .create_texture_view_id(self.device.id().0.backend());
 
-        self.channel
+        self.droppable_field.channel
             .0
             .send((
                 scope_id,
                 WebGPURequest::CreateTextureView {
-                    texture_id: self.texture.0,
+                    texture_id: self.droppable_field.texture.0,
                     texture_view_id,
                     device_id: self.device.id().0,
                     descriptor: desc,
