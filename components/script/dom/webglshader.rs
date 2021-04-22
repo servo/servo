@@ -30,6 +30,7 @@ pub enum ShaderCompilationStatus {
     Failed,
 }
 
+#[derive(JSTraceable, MallocSizeOf)]
 struct DroppableField {
     marked_for_deletion: Cell<bool>,
     sender: WebGLMessageSender,
