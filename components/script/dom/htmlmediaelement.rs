@@ -1443,7 +1443,7 @@ impl HTMLMediaElement {
             })
             .unwrap_or((0, None));
 
-        self.id.set(player_id);
+        self.droppable_field.id.set(player_id);
         self.video_renderer.lock().unwrap().player_id = Some(player_id);
 
         if let Some(image_receiver) = image_receiver {
@@ -1915,7 +1915,7 @@ impl HTMLMediaElement {
         // `id` needs to match the internally generated UUID assigned to a media element.
         let id = document.register_media_controls(&shadow_root);
         let media_controls_script = media_controls_script.as_mut_str().replace("@@@id@@@", &id);
-        *self.media_controls_id.borrow_mut() = Some(id);
+        *self.droppable_field.media_controls_id.borrow_mut() = Some(id);
         script
             .upcast::<Node>()
             .SetTextContent(Some(DOMString::from(media_controls_script)));
