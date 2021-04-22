@@ -23,6 +23,7 @@ use dom_struct::dom_struct;
 use fnv::FnvHashSet;
 use std::cell::Cell;
 
+#[derive(JSTraceable, MallocSizeOf)]
 struct DroppableField {
     id: WebGLProgramId,
     marked_for_deletion: Cell<bool>,
