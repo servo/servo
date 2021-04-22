@@ -297,6 +297,7 @@ impl From<MediaStreamOrBlob> for SrcObject {
     }
 }
 
+#[derive(JSTraceable, MallocSizeOf)]
 struct DroppableField {
     /// Player Id reported the player thread
     id: Cell<u64>,
