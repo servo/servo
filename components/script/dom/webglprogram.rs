@@ -6,6 +6,7 @@
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants2;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
@@ -60,6 +61,10 @@ impl DroppableField {
         if self.is_deleted() {
             self.detach_shaders();
         }
+    }
+
+    pub fn is_deleted(&self) -> bool {
+        self.marked_for_deletion.get() && !self.is_in_use.get()
     }
 
     fn detach_shaders(&self) {
@@ -164,7 +169,7 @@ impl WebGLProgram {
     }
 
     pub fn is_deleted(&self) -> bool {
-        self.droppable_field.marked_for_deletion.get() && !self.droppable_field.is_in_use.get()
+        self.droppable_field.is_deleted()
     }
 
     pub fn is_linked(&self) -> bool {
