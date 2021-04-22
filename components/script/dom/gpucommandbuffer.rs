@@ -22,7 +22,7 @@ impl Hash for DomRoot<GPUBuffer> {
     }
 }
 
-#[derive(MallocSizeOf)]
+#[derive(JSTraceable, MallocSizeOf)]
 struct DroppableField {
     #[ignore_malloc_size_of = "defined in webgpu"]
     channel: WebGPU,
