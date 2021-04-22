@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::canvas_state::CanvasState;
+use crate::canvas_state::{CanvasState, RemoteCanvasState};
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasDirection;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasFillRule;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasImageSource;
@@ -49,7 +49,7 @@ impl OffscreenCanvasRenderingContext2D {
             reflector_: Reflector::new(),
             canvas: Dom::from_ref(canvas),
             htmlcanvas: htmlcanvas.map(Dom::from_ref),
-            canvas_state: CanvasState::new(global, canvas.get_size()),
+            canvas_state: CanvasState::new(global, canvas.get_size(), RemoteCanvasState::new(global, canvas.get_size())),
         }
     }
 

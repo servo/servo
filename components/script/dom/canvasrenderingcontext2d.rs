@@ -72,7 +72,7 @@ impl CanvasRenderingContext2D {
                 remote_canvas_state,
             ),
             droppable_fields: DroppableFields {
-                ipc_renderer: remote_canvas_state.get_ipc_renderer(),
+                ipc_renderer: remote_canvas_state.get_ipc_renderer().clone(),
                 canvas_id: remote_canvas_state.get_canvas_id(),
             },
         }

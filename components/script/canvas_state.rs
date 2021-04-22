@@ -139,9 +139,9 @@ impl RemoteCanvasState {
         script_to_constellation_chan
             .send(ScriptMsg::CreateCanvasPaintThread(size, sender))
             .unwrap();
-        let remote_canvas_state = receiver.recv().unwrap();
+        let (sender, canvas_id) = receiver.recv().unwrap();
         debug!("Done.");
-        RemoteCanvasState(remote_canvas_state)
+        RemoteCanvasState(sender, canvas_id)
     }
 
     pub(crate) fn get_ipc_renderer(&self) -> &IpcSender<CanvasMsg> {
@@ -187,7 +187,7 @@ impl CanvasState {
             global.origin().immutable().clone()
         };
         CanvasState {
-            ipc_renderer: remote_canvas_state.get_ipc_renderer(),
+            ipc_renderer: remote_canvas_state.get_ipc_renderer().clone(),
             canvas_id: remote_canvas_state.get_canvas_id(),
             state: DomRefCell::new(CanvasContextState::new()),
             origin_clean: Cell::new(true),
