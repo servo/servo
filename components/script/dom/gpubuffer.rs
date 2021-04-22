@@ -100,7 +100,7 @@ impl DroppableField {
                 }
                 // Step 3.3
                 m_info.js_buffers.drain(..).for_each(|obj| unsafe {
-                    DetachArrayBuffer(*cx, obj.handle());
+                    DetachArrayBuffer(**cx, obj.handle());
                 });
             },
             // Step 2
@@ -221,12 +221,12 @@ impl GPUBufferMethods for GPUBuffer {
     #[allow(unsafe_code)]
     /// https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap
     fn Unmap(&self) {
-        self.droppable_field.Unmap(self.global().cx());
+        self.droppable_field.Unmap(&mut self.global().get_cx());
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpubuffer-destroy
     fn Destroy(&self) {
-        self.droppable_field.Destroy(self.global().cx());
+        self.droppable_field.Destroy(&mut self.global().get_cx());
     }
 
     #[allow(unsafe_code)]
@@ -376,6 +376,7 @@ impl AsyncWGPUListener for GPUBuffer {
         match response {
             Ok(WebGPUResponse::BufferMapAsync(bytes)) => {
                 *self
+                    .droppable_field
                     .map_info
                     .borrow_mut()
                     .as_mut()
@@ -395,7 +396,7 @@ impl AsyncWGPUListener for GPUBuffer {
             },
         }
         *self.droppable_field.map_promise.borrow_mut() = None;
-        if let Err(e) = self.channel.0.send((
+        if let Err(e) = self.droppable_field.channel.0.send((
             None,
             WebGPURequest::BufferMapComplete(self.droppable_field.buffer.0),
         )) {
