@@ -143,8 +143,8 @@ impl RTCDataChannel {
         );
         event.upcast::<Event>().fire(self.upcast());
 
-        self.peer_connection
-            .unregister_data_channel(&self.servo_media_id);
+        self.droppable_field.peer_connection
+            .unregister_data_channel(&self.droppable_field.servo_media_id);
     }
 
     pub fn on_error(&self, error: WebRtcError) {
@@ -241,11 +241,11 @@ impl RTCDataChannel {
             SendSource::ArrayBufferView(array) => DataChannelMessage::Binary(array.to_vec()),
         };
 
-        let controller = self.peer_connection.get_webrtc_controller().borrow();
+        let controller = self.droppable_field.peer_connection.get_webrtc_controller().borrow();
         controller
             .as_ref()
             .unwrap()
-            .send_data_channel_message(&self.servo_media_id, message);
+            .send_data_channel_message(&self.droppable_field.servo_media_id, message);
 
         Ok(())
     }
@@ -324,11 +324,11 @@ impl RTCDataChannelMethods for RTCDataChannel {
 
     // https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-close
     fn Close(&self) {
-        let controller = self.peer_connection.get_webrtc_controller().borrow();
+        let controller = self.droppable_field.peer_connection.get_webrtc_controller().borrow();
         controller
             .as_ref()
             .unwrap()
-            .close_data_channel(&self.servo_media_id);
+            .close_data_channel(&self.droppable_field.servo_media_id);
     }
 
     // https://www.w3.org/TR/webrtc/#dom-datachannel-binarytype
