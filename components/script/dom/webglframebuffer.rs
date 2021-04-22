@@ -84,6 +84,7 @@ pub enum WebGLFramebufferAttachmentRoot {
     Texture(DomRoot<WebGLTexture>),
 }
 
+#[derive(JSTraceable, MallocSizeOf)]
 struct DroppableField {
     id: WebGLFramebufferId,
     is_deleted: Cell<bool>,
