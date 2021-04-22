@@ -26,7 +26,7 @@ use webgpu::{
     WebGPUTextureView,
 };
 
-#[derive(MallocSizeOf)]
+#[derive(JSTraceable, MallocSizeOf)]
 struct DroppableField {
     texture: WebGPUTexture,
     #[ignore_malloc_size_of = "channels are hard"]
