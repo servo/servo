@@ -56,6 +56,7 @@ enum ReadyState {
     Closed = 2,
 }
 
+#[derive(JSTraceable, MallocSizeOf)]
 struct DroppableFields {
     canceller: DomRefCell<FetchCanceller>,
 }
