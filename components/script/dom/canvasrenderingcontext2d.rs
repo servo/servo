@@ -31,6 +31,7 @@ use ipc_channel::ipc::IpcSender;
 use servo_url::ServoUrl;
 use std::mem;
 
+#[derive(JSTraceable, MallocSizeOf)]
 struct DroppableFields {
     ipc_renderer: IpcSender<CanvasMsg>,
     canvas_id: CanvasId,
