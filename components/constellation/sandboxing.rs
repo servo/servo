@@ -4,12 +4,15 @@
 
 use crate::pipeline::UnprivilegedPipelineContent;
 use crate::serviceworker::ServiceWorkerUnprivilegedContent;
-#[cfg(all(
-    not(target_os = "windows"),
-    not(target_os = "ios"),
-    not(target_os = "android"),
-    not(target_arch = "arm"),
-    not(target_arch = "aarch64")
+#[cfg(any(
+    target_os = "macos",
+    all(
+        not(target_os = "windows"),
+        not(target_os = "ios"),
+        not(target_os = "android"),
+        not(target_arch = "arm"),
+        not(target_arch = "aarch64")
+    )
 ))]
 use gaol::profile::{Operation, PathPattern, Profile};
 use ipc_channel::Error;
@@ -120,7 +123,9 @@ pub fn content_process_sandbox_profile() -> Profile {
     target_os = "ios",
     target_os = "android",
     target_arch = "arm",
-    target_arch = "aarch64",
+
+    // exclude apple arm devices
+    all(target_arch = "aarch64", not(target_os = "macos"))
 ))]
 pub fn content_process_sandbox_profile() {
     error!("Sandboxed multiprocess is not supported on this platform.");

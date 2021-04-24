@@ -6148,9 +6148,9 @@ dependencies = [
 
 [[package]]
 name = "surfman"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "84898d7f74abdd4b956334d71d1ddf60e63bff8fd2fa6c91be8653d50d30cbf3"
+checksum = "bbbf3b7f873f25cb7791b06a00f0626a141c05f1b95e5b34bc498358876e1a58"
 dependencies = [
  "bitflags",
  "cfg_aliases",
@@ -6169,6 +6169,7 @@ dependencies = [
  "metal 0.18.0",
  "objc",
  "parking_lot 0.10.2",
+ "raw-window-handle",
  "wayland-sys 0.24.1",
  "winapi",
  "winit",
