@@ -54,7 +54,7 @@ Please select your operating system:
 
 Xcode version 10.2 or above is recommended.
 
-##### On macOS (Homebrew)
+##### On macOS(Intel based or ARM based) (Homebrew)
 
 NOTE: run these steps after you've cloned the project locally.
 
