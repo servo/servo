@@ -9,6 +9,7 @@
 
 import os
 import sys
+import platform
 
 GSTREAMER_DYLIBS = [
     ("gstapp", "gst-plugins-base"),
@@ -117,35 +118,34 @@ def windows_plugins(uwp):
     return [x + ".dll" for x in dlls]
 
 
-def macos_libnice():
-    return os.path.join('/', 'usr', 'local', 'opt', 'libnice', 'lib')
+def macos_lib_dir():
+    # homebrew use /opt/homebrew on macos ARM, use /usr/local on Intel
+    if platform.machine() == 'arm64':
+        return os.path.join('/', 'opt', 'homebrew', 'lib')
+    return os.path.join('/', 'usr', 'local', 'lib')
 
 
 def macos_dylibs():
     return [
         os.path.join(
-            "/usr/local/opt",
-            path,
-            "lib",
+            macos_lib_dir(),
             "lib" + name + "-1.0.0.dylib"
         ) for name, path in GSTREAMER_DYLIBS
     ] + [
-        os.path.join(macos_libnice(), "libnice.dylib"),
-        os.path.join(macos_libnice(), "libnice.10.dylib"),
+        os.path.join(macos_lib_dir(), "libnice.dylib"),
+        os.path.join(macos_lib_dir(), "libnice.10.dylib"),
     ]
 
 
 def macos_plugins():
     return [
         os.path.join(
-            "/usr/local/opt",
-            path,
-            "lib",
-            "gstreamer-1.0",
+            macos_lib_dir(),
+            'gstreamer-1.0',
             "lib" + name + ".dylib"
         ) for name, path in GSTREAMER_PLUGINS + MACOS_PLUGINS
     ] + [
-        os.path.join(macos_libnice(), "gstreamer-1.0", "libgstnice.dylib"),
+        os.path.join(macos_lib_dir(), "gstreamer-1.0", "libgstnice.dylib"),
     ]
 
 
