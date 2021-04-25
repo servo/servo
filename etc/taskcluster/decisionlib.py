@@ -696,7 +696,7 @@ class MacOsGenericWorkerTask(UnixTaskMixin, GenericWorkerTask):
                 "/bin/bash", "--login", "-x", "-e", "-o", "pipefail", "-c",
                 deindent("\n".join(self.scripts))
             ]
-        ]
+        ] # pragma: no cover
 
     def with_python3(self):
         return self.with_early_script("""

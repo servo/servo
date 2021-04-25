@@ -37,10 +37,7 @@ def tasks(task_for):
             windows_arm64,
             windows_uwp_x64,
             macos_unit,
-            # linux_wpt,
-            # linux_wpt_layout_2020,
             linux_release,
-            # macos_wpt,
         ]
         by_branch_name = {
             "auto": all_tests,
@@ -61,7 +58,7 @@ def tasks(task_for):
             "try-windows": [windows_unit, windows_arm64, windows_uwp_x64],
             "try-arm": [windows_arm64],
             "try-wpt": [],
-            "try-wpt-2020": [linux_wpt_layout_2020],
+            "try-wpt-2020": [],
             "try-wpt-mac": [],
             "test-wpt": [],
         }
@@ -504,15 +501,15 @@ def macos_release_build_with_debug_assertions(priority=None):
         ]))
         .with_artifacts("repo/target.tar.gz")
         .find_or_create("build.macos_x64_release_w_assertions." + CONFIG.tree_hash())
-    )
+    ) # pragma: no cover
 
 
 def linux_release_build_with_debug_assertions(layout_2020):
     if layout_2020:
-        name_prefix = "Layout 2020 "
-        build_args = "--with-layout-2020"
-        index_key_suffix = "_2020"
-        treeherder_prefix = "2020-"
+        name_prefix = "Layout 2020 "      # pragma: no cover
+        build_args = "--with-layout-2020" # pragma: no cover
+        index_key_suffix = "_2020"        # pragma: no cover
+        treeherder_prefix = "2020-"       # pragma: no cover
     else:
         name_prefix = ""
         build_args = ""
@@ -537,186 +534,6 @@ def linux_release_build_with_debug_assertions(layout_2020):
             CONFIG.tree_hash(),
         ))
     )
-
-
-def macos_wpt():
-    priority = "high" if CONFIG.git_ref == "refs/heads/auto" else None
-    build_task = macos_release_build_with_debug_assertions(priority=priority)
-    def macos_run_task(name):
-        task = macos_task(name).with_python3() \
-            .with_repo_bundle(alternate_object_dir="/var/cache/servo.git/objects")
-        return with_homebrew(task, ["etc/taskcluster/macos/Brewfile"])
-    wpt_chunks(
-        "macOS x64",
-        macos_run_task,
-        build_task,
-        repo_dir="repo",
-        total_chunks=20,
-        processes=8,
-        run_webgpu=False,
-    )
-
-
-def linux_wpt():
-    linux_wpt_common(total_chunks=4, layout_2020=False)
-
-
-def linux_wpt_layout_2020():
-    linux_wpt_common(total_chunks=2, layout_2020=True)
-
-
-def linux_wpt_common(total_chunks, layout_2020):
-    release_build_task = linux_release_build_with_debug_assertions(layout_2020)
-    def linux_run_task(name):
-        return linux_task(name).with_dockerfile(dockerfile_path("run")).with_repo_bundle()
-    wpt_chunks("Linux x64", linux_run_task, release_build_task, repo_dir="/repo",
-               processes=20, total_chunks=total_chunks, layout_2020=layout_2020)
-
-
-def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
-               repo_dir, chunks="all", layout_2020=False, run_webgpu=False):
-    if layout_2020:
-        start = 1  # Skip the "extra" WPT testing, a.k.a. chunk 0
-        name_prefix = "Layout 2020 "
-        job_id_prefix = "2020-"
-        args = ["--layout-2020"]
-    else:
-        start = 0
-        name_prefix = ""
-        job_id_prefix = ""
-        args = []
-
-    # Our Mac CI runs on machines with an Intel 4000 GPU, so need to work around
-    # https://github.com/servo/webrender/wiki/Driver-issues#bug-1570736---texture-swizzling-affects-wrap-modes-on-some-intel-gpus
-    if platform == "macOS x64":
-        args += ["--pref gfx.texture-swizzling.enabled=false"]
-
-    if chunks == "all":
-        chunks = range(start, total_chunks + 1)
-    for this_chunk in chunks:
-        task = (
-            make_chunk_task("{}WPT chunk {:0{width}} / {}".format(
-                name_prefix,
-                this_chunk,
-                total_chunks,
-                width=len(str(total_chunks)),
-            ))
-            .with_treeherder(
-                platform,
-                "WPT-%s" % this_chunk,
-                group_symbol=job_id_prefix + "WPT",
-                group_name=name_prefix + "web-platform-tests"
-            )
-            .with_curl_artifact_script(build_task, "target.tar.gz")
-            .with_script("tar -xzf target.tar.gz")
-            .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
-            .with_max_run_time_minutes(90)
-            .with_env(
-                TOTAL_CHUNKS=str(total_chunks),
-                THIS_CHUNK=str(this_chunk),
-                PROCESSES=str(processes),
-                WPT_ARGS=" ".join(args),
-                GST_DEBUG="3",
-            )
-        )
-        # `test-wpt` is piped into `cat` so that stdout is not a TTY
-        # and wptrunner does not use "interactive mode" formatting:
-        # https://github.com/servo/servo/issues/22438
-        if this_chunk == 0:
-            if run_webgpu:
-                webgpu_script = """
-                    time python3 ./mach test-wpt _webgpu --release --processes $PROCESSES \
-                        --headless --log-raw test-webgpu.log --always-succeed \
-                        --log-errorsummary webgpu-errorsummary.log \
-                        | cat
-                    python3 ./mach filter-intermittents \
-                        webgpu-errorsummary.log \
-                        --log-intermittents webgpu-intermittents.log \
-                        --log-filteredsummary filtered-webgpu-errorsummary.log \
-                        --tracker-api default \
-                        --reporter-api default
-                """  # pragma: no cover
-            else:
-                webgpu_script = ""
-
-            task.with_script("""
-                time python3 ./mach test-wpt --release --binary-arg=--multiprocess \
-                    --processes $PROCESSES \
-                    --log-raw test-wpt-mp.log \
-                    --log-errorsummary wpt-mp-errorsummary.log \
-                    eventsource \
-                    | cat
-                time env PYTHONIOENCODING=utf-8 python3 ./mach test-wpt --release \
-                    --processes $PROCESSES \
-                    --log-raw test-wpt-py3.log \
-                    --log-errorsummary wpt-py3-errorsummary.log \
-                    --always-succeed \
-                    url \
-                    | cat
-                python3 ./mach filter-intermittents \
-                    wpt-py3-errorsummary.log \
-                    --log-intermittents wpt-py3-intermittents.log \
-                    --log-filteredsummary filtered-py3-errorsummary.log \
-                    --tracker-api default \
-                    --reporter-api default
-                time python3 ./mach test-wpt --release --product=servodriver --headless  \
-                    tests/wpt/mozilla/tests/mozilla/DOMParser.html \
-                    tests/wpt/mozilla/tests/css/per_glyph_font_fallback_a.html \
-                    tests/wpt/mozilla/tests/css/img_simple.html \
-                    tests/wpt/mozilla/tests/mozilla/secure.https.html \
-                    | cat
-                time python3 ./mach test-wpt --release --processes $PROCESSES --product=servodriver \
-                    --headless --log-raw test-bluetooth.log \
-                    --log-errorsummary bluetooth-errorsummary.log \
-                    bluetooth \
-                    | cat
-                time python3 ./mach test-wpt --release --processes $PROCESSES --timeout-multiplier=4 \
-                    --headless --log-raw test-wdspec.log \
-                    --log-servojson wdspec-jsonsummary.log \
-                    --always-succeed \
-                    webdriver \
-                    | cat
-                python3 ./mach filter-intermittents \
-                    wdspec-jsonsummary.log \
-                    --log-intermittents intermittents.log \
-                    --log-filteredsummary filtered-wdspec-errorsummary.log \
-                    --tracker-api default \
-                    --reporter-api default
-                """ + webgpu_script
-            )
-        else:
-            task.with_script("""
-                python3 ./mach test-wpt \
-                    --release \
-                    $WPT_ARGS \
-                    --processes $PROCESSES \
-                    --total-chunks "$TOTAL_CHUNKS" \
-                    --this-chunk "$THIS_CHUNK" \
-                    --log-raw test-wpt.log \
-                    --log-servojson wpt-jsonsummary.log \
-                    --always-succeed \
-                    | cat
-                python3 ./mach filter-intermittents \
-                    wpt-jsonsummary.log \
-                    --log-intermittents intermittents.log \
-                    --log-filteredsummary filtered-wpt-errorsummary.log \
-                    --tracker-api default \
-                    --reporter-api default
-            """)
-        all_artifacts = set([
-            "%s/%s" % (repo_dir, word)
-            for script in task.scripts
-            for word in script.split()
-            if word.endswith(".log")
-        ])
-        task.with_artifacts(*all_artifacts)
-        task.find_or_create("%s_%swpt_%s.%s" % (
-            platform.replace(" ", "_").lower(),
-            job_id_prefix.replace("-", "_"),
-            this_chunk,
-            CONFIG.tree_hash(),
-        ))
-
 
 def daily_tasks_setup():
     # Unlike when reacting to a GitHub push event,
