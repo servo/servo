@@ -1,0 +1,206 @@
+version: 2
+updates:
+- package-ecosystem: cargo
+  directory: "/"
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 10
+  allow:
+  - dependency-type: direct
+  - dependency-type: indirect
+  ignore:
+  - dependency-name: slab
+    versions:
+    - 0.4.3
+  - dependency-name: humantime
+    versions:
+    - 2.1.0
+  - dependency-name: backtrace
+    versions:
+    - 0.3.57
+  - dependency-name: utf-8
+    versions:
+    - 0.7.6
+  - dependency-name: weezl
+    versions:
+    - 0.1.5
+  - dependency-name: httparse
+    versions:
+    - 1.4.0
+  - dependency-name: android_logger
+    versions:
+    - 0.10.0
+    - 0.10.1
+  - dependency-name: keyboard-types
+    versions:
+    - 0.6.1
+  - dependency-name: futures-task
+    versions:
+    - 0.3.14
+  - dependency-name: futures-core
+    versions:
+    - 0.3.14
+  - dependency-name: futures-sink
+    versions:
+    - 0.3.14
+  - dependency-name: futures-io
+    versions:
+    - 0.3.14
+  - dependency-name: bincode
+    versions:
+    - 1.3.3
+  - dependency-name: cbindgen
+    versions:
+    - 0.17.0
+    - 0.18.0
+    - 0.19.0
+  - dependency-name: euclid
+    versions:
+    - 0.22.2
+    - 0.22.3
+  - dependency-name: bzip2-sys
+    versions:
+    - 0.1.10+1.0.8
+  - dependency-name: libc
+    versions:
+    - 0.2.84
+    - 0.2.85
+    - 0.2.86
+    - 0.2.87
+    - 0.2.88
+    - 0.2.89
+    - 0.2.92
+    - 0.2.93
+  - dependency-name: unicode-bidi
+    versions:
+    - 0.3.5
+  - dependency-name: const_fn
+    versions:
+    - 0.4.6
+  - dependency-name: security-framework-sys
+    versions:
+    - 2.1.0
+    - 2.1.1
+    - 2.2.0
+  - dependency-name: serde
+    versions:
+    - 1.0.125
+  - dependency-name: tinyvec
+    versions:
+    - 1.2.0
+  - dependency-name: wasm-bindgen
+    versions:
+    - 0.2.71
+    - 0.2.73
+  - dependency-name: proc-macro2
+    versions:
+    - 1.0.26
+  - dependency-name: dtoa
+    versions:
+    - 0.4.8
+  - dependency-name: version_check
+    versions:
+    - 0.9.3
+  - dependency-name: pin-project
+    versions:
+    - 0.4.28
+  - dependency-name: js-sys
+    versions:
+    - 0.3.48
+    - 0.3.49
+  - dependency-name: siphasher
+    versions:
+    - 0.3.5
+  - dependency-name: syn
+    versions:
+    - 1.0.61
+    - 1.0.62
+    - 1.0.63
+    - 1.0.67
+  - dependency-name: derive_more
+    versions:
+    - 0.99.13
+  - dependency-name: walkdir
+    versions:
+    - 2.3.2
+  - dependency-name: glslopt
+    versions:
+    - 0.1.9
+  - dependency-name: ipc-channel
+    versions:
+    - 0.15.0
+  - dependency-name: typenum
+    versions:
+    - 1.13.0
+  - dependency-name: smithay-client-toolkit
+    versions:
+    - 0.12.3
+  - dependency-name: regex-syntax
+    versions:
+    - 0.6.23
+  - dependency-name: regex
+    versions:
+    - 1.4.4
+  - dependency-name: indexmap
+    versions:
+    - 1.6.2
+  - dependency-name: surfman-chains
+    versions:
+    - 0.6.0
+  - dependency-name: once_cell
+    versions:
+    - 1.6.0
+    - 1.7.0
+    - 1.7.2
+  - dependency-name: surfman
+    versions:
+    - 0.3.1
+  - dependency-name: pin-project-lite
+    versions:
+    - 0.1.12
+  - dependency-name: serde_json
+    versions:
+    - 1.0.63
+  - dependency-name: security-framework
+    versions:
+    - 2.1.0
+    - 2.1.1
+  - dependency-name: tracing
+    versions:
+    - 0.1.23
+    - 0.1.24
+    - 0.1.25
+  - dependency-name: cc
+    versions:
+    - 1.0.67
+  - dependency-name: generator
+    versions:
+    - 0.6.24
+  - dependency-name: thiserror
+    versions:
+    - 1.0.24
+  - dependency-name: bumpalo
+    versions:
+    - 3.6.0
+    - 3.6.1
+  - dependency-name: core-text
+    versions:
+    - 19.2.0
+  - dependency-name: env_logger
+    versions:
+    - 0.8.3
+  - dependency-name: unicode-normalization
+    versions:
+    - 0.1.17
+  - dependency-name: jni
+    versions:
+    - 0.19.0
+  - dependency-name: encoding_rs
+    versions:
+    - 0.8.28
+  - dependency-name: range-alloc
+    versions:
+    - 0.1.2
+  - dependency-name: flate2
+    versions:
+    - 1.0.20
