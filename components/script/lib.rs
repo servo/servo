@@ -5,6 +5,7 @@
 #![feature(assoc_char_funcs)]
 #![feature(const_fn)]
 #![feature(const_fn_fn_ptr_basics)]
+#![feature(const_fn_trait_bound)]
 #![feature(core_intrinsics)]
 #![feature(drain_filter)]
 #![feature(plugin)]
