@@ -106,7 +106,7 @@ def get_taskcluster_secret(name):
 
 def otool(s):
     o = subprocess.Popen(['/usr/bin/otool', '-L', s], stdout=subprocess.PIPE)
-    for line in o.stdout:
+    for line in map(lambda s: s.decode('ascii'), o.stdout):
         if line[0] == '\t':
             yield line.split(' ', 1)[0][1:]
 
