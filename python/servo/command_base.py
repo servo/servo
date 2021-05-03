@@ -120,7 +120,7 @@ def archive_deterministically(dir_to_archive, dest_archive, prepend_path=None):
                             arcname = os.path.normpath(os.path.join(prepend_path, arcname))
                         zip_file.write(entry, arcname=arcname)
             else:
-                with gzip.GzipFile('wb', fileobj=out_file, mtime=0) as gzip_file:
+                with gzip.GzipFile(mode='wb', fileobj=out_file, mtime=0) as gzip_file:
                     with tarfile.open(fileobj=gzip_file, mode='w:') as tar_file:
                         for entry in file_list:
                             arcname = entry
