@@ -1464,7 +1464,7 @@ unsafe extern "C" fn HostPopulateImportMeta(
 
     rooted!(in(cx) let url_string = JS_NewStringCopyN(
         cx,
-        base_url.as_str().as_ptr() as *const i8,
+        base_url.as_str().as_ptr() as *const _,
         base_url.as_str().len()
     ));
 
@@ -1472,7 +1472,7 @@ unsafe extern "C" fn HostPopulateImportMeta(
     JS_DefineProperty4(
         cx,
         meta_object,
-        "url\0".as_ptr() as *const i8,
+        "url\0".as_ptr() as *const _,
         url_string.handle().into_handle(),
         JSPROP_ENUMERATE.into(),
     )
