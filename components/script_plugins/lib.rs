@@ -8,9 +8,9 @@
 //!
 //!  - `#[derive(DenyPublicFields)]` : Forces all fields in a struct/enum to be private
 //!  - `#[derive(JSTraceable)]` : Auto-derives an implementation of `JSTraceable` for a struct in the script crate
-//!  - `#[unrooted_must_root_lint::must_root]` : Prevents data of the marked type from being used on the stack.
+//!  - `#[unrooted_must_root_lint::must_root_type]` : Prevents data of the marked type from being used on the stack.
 //!                     See the lints module for more details
-//!  - `#[dom_struct]` : Implies #[derive(JSTraceable, DenyPublicFields)]`, and `#[unrooted_must_root_lint::must_root]`.
+//!  - `#[dom_struct]` : Implies #[derive(JSTraceable, DenyPublicFields)]`, and `#[unrooted_must_root_lint::must_root_type]`.
 //!                       Use this for structs that correspond to a DOM type
 
 #![deny(unsafe_code)]
@@ -62,11 +62,11 @@ declare_lint!(
 /// Lint for ensuring safe usage of unrooted pointers
 ///
 /// This lint (disable with `-A unrooted-must-root`/`#[allow(unrooted_must_root)]`) ensures that
-/// `#[unrooted_must_root_lint::must_root]` values are used correctly.
+/// `#[unrooted_must_root_lint::must_root_type]` values are used correctly.
 ///
 /// "Incorrect" usage includes:
 ///
-///  - Not being used in a struct/enum field which is not `#[unrooted_must_root_lint::must_root]` itself
+///  - Not being used in a struct/enum field which is not `#[unrooted_must_root_lint::must_root_type]` itself
 ///  - Not being used as an argument to a function (Except onces named `new` and `new_inherited`)
 ///  - Not being bound locally in a `let` statement, assignment, `for` loop, or `match` statement.
 ///
@@ -113,7 +113,7 @@ fn is_unrooted_ty(sym: &Symbols, cx: &LateContext, ty: &ty::TyS, in_new_function
         let recur_into_subtree = match t.kind() {
             ty::Adt(did, substs) => {
                 let has_attr = |did, name| has_lint_attr(sym, &cx.tcx.get_attrs(did), name);
-                if has_attr(did.did, sym.must_root) {
+                if has_attr(did.did, sym.must_root_type) {
                     ret = true;
                     false
                 } else if has_attr(did.did, sym.allow_unrooted_interior) {
@@ -207,11 +207,11 @@ impl LintPass for UnrootedPass {
 }
 
 impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
-    /// All structs containing #[unrooted_must_root_lint::must_root] types
-    /// must be #[unrooted_must_root_lint::must_root] themselves
+    /// All structs containing #[unrooted_must_root_lint::must_root_type] types
+    /// must be #[unrooted_must_root_lint::must_root_type] themselves
     fn check_item(&mut self, cx: &LateContext<'tcx>, item: &'tcx hir::Item) {
         let attrs = cx.tcx.hir().attrs(item.hir_id());
-        if has_lint_attr(&self.symbols, &attrs, self.symbols.must_root) {
+        if has_lint_attr(&self.symbols, &attrs, self.symbols.must_root_type) {
             return;
         }
         if let hir::ItemKind::Struct(def, ..) = &item.kind {
@@ -220,7 +220,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
                 if is_unrooted_ty(&self.symbols, cx, cx.tcx.type_of(def_id), false) {
                     cx.lint(UNROOTED_MUST_ROOT, |lint| {
                         lint.build(
-                            "Type must be rooted, use #[unrooted_must_root_lint::must_root] \
+                            "Type must be rooted, use #[must_root] \
                              on the struct definition to propagate",
                         )
                         .set_span(field.span)
@@ -231,13 +231,13 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
         }
     }
 
-    /// All enums containing #[unrooted_must_root_lint::must_root] types
-    /// must be #[unrooted_must_root_lint::must_root] themselves
+    /// All enums containing #[unrooted_must_root_lint::must_root_type] types
+    /// must be #[unrooted_must_root_lint::must_root_type] themselves
     fn check_variant(&mut self, cx: &LateContext, var: &hir::Variant) {
         let ref map = cx.tcx.hir();
         let parent_item = map.expect_item(map.get_parent_item(var.id));
         let attrs = cx.tcx.hir().attrs(parent_item.hir_id());
-        if !has_lint_attr(&self.symbols, &attrs, self.symbols.must_root) {
+        if !has_lint_attr(&self.symbols, &attrs, self.symbols.must_root_type) {
             match var.data {
                 hir::VariantData::Tuple(fields, ..) => {
                     for field in fields {
@@ -246,7 +246,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
                             cx.lint(UNROOTED_MUST_ROOT, |lint| {
                                 lint.build(
                                     "Type must be rooted, \
-                                    use #[unrooted_must_root_lint::must_root] \
+                                    use #[must_root] \
                                     on the enum definition to propagate",
                                 )
                                 .set_span(field.ty.span)
@@ -259,7 +259,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
             }
         }
     }
-    /// Function arguments that are #[unrooted_must_root_lint::must_root] types are not allowed
+    /// Function arguments that are #[unrooted_must_root_lint::must_root_type] types are not allowed
     fn check_fn(
         &mut self,
         cx: &LateContext<'tcx>,
@@ -332,7 +332,7 @@ impl<'a, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'tcx> {
         };
 
         match expr.kind {
-            // Trait casts from #[unrooted_must_root_lint::must_root] types are not allowed
+            // Trait casts from #[unrooted_must_root_lint::must_root_type] types are not allowed
             ExprKind::Cast(ref subexpr, _) => require_rooted(cx, self.in_new_function, &*subexpr),
             // This catches assignments... the main point of this would be to catch mutable
             // references to `JS<T>`.
@@ -437,7 +437,7 @@ symbols! {
     unrooted_must_root_lint
     allow_unrooted_interior
     allow_unrooted_in_rc
-    must_root
+    must_root_type
     alloc
     rc
     Rc

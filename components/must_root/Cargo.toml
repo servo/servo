@@ -1,0 +1,14 @@
+[package]
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+name = "must_root"
+publish = false
+version = "0.0.1"
+
+[dependencies]
+quote = "1"
+syn = { version = "1", default-features = false, features = ["clone-impls", "parsing"] }
+
+[lib]
+path = "lib.rs"
+proc-macro = true

@@ -77,6 +77,7 @@ mime = "0.3.13"
 mime_guess = "2.0.0"
 mitochondria = "1.1.2"
 msg = { path = "../msg" }
+must_root = { path = "../must_root" }
 net_traits = { path = "../net_traits" }
 num-traits = "0.2"
 parking_lot = "0.10"

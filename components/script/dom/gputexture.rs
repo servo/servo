@@ -26,14 +26,45 @@ use webgpu::{
     WebGPUTextureView,
 };
 
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableField {
+    texture: WebGPUTexture,
+    #[ignore_malloc_size_of = "channels are hard"]
+    channel: WebGPU,
+    destroyed: Cell<bool>,
+}
+
+impl DroppableField {
+    /// https://gpuweb.github.io/gpuweb/#dom-gputexture-destroy
+    fn Destroy(&self) {
+        if self.destroyed.get() {
+            return;
+        }
+        if let Err(e) = self
+            .channel
+            .0
+            .send((None, WebGPURequest::DestroyTexture(self.texture.0)))
+        {
+            warn!(
+                "Failed to send WebGPURequest::DestroyTexture({:?}) ({})",
+                self.texture.0, e
+            );
+        };
+        self.destroyed.set(true);
+    }
+}
+
+impl Drop for DroppableField {
+    fn drop(&mut self) {
+        self.Destroy()
+    }
+}
+
 #[dom_struct]
 pub struct GPUTexture {
     reflector_: Reflector,
-    texture: WebGPUTexture,
     label: DomRefCell<Option<USVString>>,
     device: Dom<GPUDevice>,
-    #[ignore_malloc_size_of = "channels are hard"]
-    channel: WebGPU,
     #[ignore_malloc_size_of = "defined in webgpu"]
     texture_size: GPUExtent3DDict,
     mip_level_count: u32,
@@ -41,7 +72,7 @@ pub struct GPUTexture {
     dimension: GPUTextureDimension,
     format: GPUTextureFormat,
     texture_usage: u32,
-    destroyed: Cell<bool>,
+    droppable_field: DroppableField,
 }
 
 impl GPUTexture {
@@ -59,17 +90,19 @@ impl GPUTexture {
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
-            texture,
             label: DomRefCell::new(label),
             device: Dom::from_ref(device),
-            channel,
             texture_size,
             mip_level_count,
             sample_count,
             dimension,
             format,
             texture_usage,
-            destroyed: Cell::new(false),
+            droppable_field: DroppableField {
+                texture,
+                channel,
+                destroyed: Cell::new(false),
+            },
         }
     }
 
@@ -104,15 +137,9 @@ impl GPUTexture {
     }
 }
 
-impl Drop for GPUTexture {
-    fn drop(&mut self) {
-        self.Destroy()
-    }
-}
-
 impl GPUTexture {
     pub fn id(&self) -> WebGPUTexture {
-        self.texture
+        self.droppable_field.texture
     }
 }
 
@@ -175,12 +202,12 @@ impl GPUTextureMethods for GPUTexture {
             .lock()
             .create_texture_view_id(self.device.id().0.backend());
 
-        self.channel
+        self.droppable_field.channel
             .0
             .send((
                 scope_id,
                 WebGPURequest::CreateTextureView {
-                    texture_id: self.texture.0,
+                    texture_id: self.droppable_field.texture.0,
                     texture_view_id,
                     device_id: self.device.id().0,
                     descriptor: desc,
@@ -200,19 +227,6 @@ impl GPUTextureMethods for GPUTexture {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gputexture-destroy
     fn Destroy(&self) {
-        if self.destroyed.get() {
-            return;
-        }
-        if let Err(e) = self
-            .channel
-            .0
-            .send((None, WebGPURequest::DestroyTexture(self.texture.0)))
-        {
-            warn!(
-                "Failed to send WebGPURequest::DestroyTexture({:?}) ({})",
-                self.texture.0, e
-            );
-        };
-        self.destroyed.set(true);
+        self.droppable_field.Destroy();
     }
 }

@@ -104,7 +104,7 @@ impl GLPlayerChan {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, JSTraceable, MallocSizeOf)]
 pub struct GLPlayerPipeline(pub GLPlayerChan);
 
 impl GLPlayerPipeline {
