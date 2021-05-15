@@ -4,14 +4,8 @@
 
 //! Servo's compiler plugin/macro crate
 //!
-//! Attributes this crate provides:
-//!
-//!  - `#[derive(DenyPublicFields)]` : Forces all fields in a struct/enum to be private
-//!  - `#[derive(JSTraceable)]` : Auto-derives an implementation of `JSTraceable` for a struct in the script crate
-//!  - `#[unrooted_must_root_lint::must_root]` : Prevents data of the marked type from being used on the stack.
-//!                     See the lints module for more details
-//!  - `#[dom_struct]` : Implies #[derive(JSTraceable, DenyPublicFields)]`, and `#[unrooted_must_root_lint::must_root]`.
-//!                       Use this for structs that correspond to a DOM type
+//! This crate provides the `#[unrooted_must_root_lint::must_root]` lint. This lint prevents data
+//! of the marked type from being used on the stack. See the source for more details.
 
 #![deny(unsafe_code)]
 #![feature(plugin)]
