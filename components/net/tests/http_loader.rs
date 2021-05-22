@@ -746,6 +746,7 @@ fn test_load_sends_cookie_if_nonhttp() {
 }
 
 #[test]
+#[cfg(not(target_os = "windows"))]
 fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl() {
     let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
         response.headers_mut().insert(
