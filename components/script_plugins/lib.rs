@@ -405,7 +405,11 @@ fn match_def_path(cx: &LateContext, def_id: DefId, path: &[Symbol]) -> bool {
 fn in_derive_expn(span: Span) -> bool {
     matches!(
         span.ctxt().outer_expn_data().kind,
-        ExpnKind::Macro(MacroKind::Derive, _)
+        ExpnKind::Macro {
+            kind: MacroKind::Derive,
+            name: _,
+            proc_macro: _,
+        }
     )
 }
 
