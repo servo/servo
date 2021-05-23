@@ -601,7 +601,10 @@ class PackageCommands(CommandBase):
     @CommandArgument('--secret-from-taskcluster',
                      action='store_true',
                      help='Retrieve the appropriate secrets from taskcluster.')
-    def upload_nightly(self, platform, secret_from_taskcluster):
+    @CommandArgument('--secret-from-environment',
+                     action='store_true',
+                     help='Retrieve the appropriate secrets from the environment.')
+    def upload_nightly(self, platform, secret_from_taskcluster, secret_from_environment):
         import boto3
 
         def get_s3_secret():
@@ -609,6 +612,10 @@ class PackageCommands(CommandBase):
             aws_secret_access_key = None
             if secret_from_taskcluster:
                 secret = get_taskcluster_secret("s3-upload-credentials")
+                aws_access_key = secret["aws_access_key_id"]
+                aws_secret_access_key = secret["aws_secret_access_key"]
+            elif secret_from_environment:
+                secret = json.loads(os.environ['S3_UPLOAD_CREDENTIALS'])
                 aws_access_key = secret["aws_access_key_id"]
                 aws_secret_access_key = secret["aws_secret_access_key"]
             return (aws_access_key, aws_secret_access_key)
