@@ -5,7 +5,6 @@
 use serde::{Deserialize, Serialize};
 use serde::{Deserializer, Serializer};
 
-#[macro_use]
 macro_rules! unreachable_serializable {
     ($name:ident) => {
         impl<T> Serialize for $name<T> {
