@@ -28,7 +28,7 @@ import taskcluster
 # Public API
 __all__ = [
     "CONFIG", "SHARED", "Task", "DockerWorkerTask",
-    "GenericWorkerTask", "WindowsGenericWorkerTask", "MacOsGenericWorkerTask",
+    "GenericWorkerTask", "WindowsGenericWorkerTask",
     "make_repo_bundle",
 ]
 
@@ -671,45 +671,6 @@ class UnixTaskMixin(Task):
             assert_truthy(self.git_checkout_sha),
             alternate=alternate_object_dir,
         ))
-
-
-class MacOsGenericWorkerTask(UnixTaskMixin, GenericWorkerTask):
-    """
-    Task definition for a `generic-worker` task running on macOS.
-
-    Scripts are interpreted with `bash`.
-    """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.scripts = []
-
-    with_script = chaining(append_to_attr, "scripts")
-    with_early_script = chaining(prepend_to_attr, "scripts")
-
-    def build_command(self):
-        # generic-worker accepts multiple commands, but unlike on Windows
-        # the current directory and environment variables
-        # are not preserved across commands on macOS.
-        # So concatenate scripts and use a single `bash` command instead.
-        return [
-            [
-                "/bin/bash", "--login", "-x", "-e", "-o", "pipefail", "-c",
-                deindent("\n".join(self.scripts))
-            ]
-        ] # pragma: no cover
-
-    def with_python3(self):
-        return self.with_early_script("""
-            python3 -m ensurepip --user
-            python3 -m pip install --user virtualenv
-        """)
-
-    def with_rustup(self):
-        return self.with_early_script("""
-            export PATH="$HOME/.cargo/bin:$PATH"
-            which rustup || curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain none -y
-            rustup self update
-        """)
 
 
 class DockerWorkerTask(UnixTaskMixin, Task):
