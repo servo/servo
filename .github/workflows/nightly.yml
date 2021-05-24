@@ -1,0 +1,110 @@
+name: Nightly builds
+
+on:
+  schedule:
+    # Run at 5:30 am, daily.
+    - cron: '15 5 * * *'
+  workflow_dispatch:
+
+env:
+  RUST_BACKTRACE: 1
+  SHELL: /bin/bash
+
+jobs:
+  build-linux-with-rust-nightly:
+    name: Build (Linux) + rustc nightly
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Update rustc
+        run: echo nightly > rust-toolchain
+      - name: Bootstrap
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          python3 ./mach bootstrap
+      - name: Release build
+        run: python3 ./mach build --release
+      - name: Unit tests
+        run: python3 ./mach test-unit --release
+
+  upload-linux:
+    name: Upload nightly (Linux)
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Bootstrap
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          python3 ./mach bootstrap
+      - name: Release build
+        run: python3 ./mach build --release
+      - name: Package
+        run: python3 ./mach package --release
+      - name: Upload
+        run: python3 ./mach upload-nightly linux --secret-from-environment
+        env:
+          S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
+
+  upload-mac:
+    name: Upload nightly (macOS)
+    runs-on: macos-10.15
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Bootstrap
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
+          brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile-build
+          rm -rf /usr/local/etc/openssl
+          rm -rf /usr/local/etc/openssl@1.1
+          brew install openssl@1.1 gnu-tar
+      - name: Release build
+        run: |
+          export OPENSSL_INCLUDE_DIR="$(brew --prefix openssl)/include"
+          export OPENSSL_LIB_DIR="$(brew --prefix openssl)/lib"
+          export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/"
+          export PKG_CONFIG_PATH="$(brew --prefix zlib)/lib/pkgconfig/:$PKG_CONFIG_PATH"
+          python3 ./mach build --release
+      - name: Package
+        run: python3 ./mach package --release
+      - name: Smoketest
+        run: ./etc/ci/macos_package_smoketest.sh target/release/servo-tech-demo.dmg
+      - name: Upload
+        run: python3 ./mach upload-nightly mac --secret-from-environment
+        env:
+          S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
+          GITHUB_HOMEBREW_TOKEN: ${{ secrets.HOMEBREW_TOKEN }}
+
+  upload-win:
+    name: Upload nightly (Windows)
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Copy to C drive
+        run: cp D:\a C:\ -Recurse
+      - name: Bootstrap
+        working-directory: "C:\\a\\${ REPOSITORY_NAME }\\${ REPOSITORY_NAME }"
+        run: |
+          python -m pip install --upgrade pip virtualenv
+          python mach fetch
+      - name: Release build
+        working-directory: "C:\\a\\${ REPOSITORY_NAME }\\${ REPOSITORY_NAME }"
+        run: python mach build --release --media-stack=dummy
+      - name: Package
+        working-directory: "C:\\a\\${ REPOSITORY_NAME }\\${ REPOSITORY_NAME }"
+        run: python mach package --release
+      - name: Upload
+        working-directory: "C:\\a\\${ REPOSITORY_NAME }\\${ REPOSITORY_NAME }"
+        run: python mach upload-nightly windows-msvc --secret-from-environment
+        env:
+          S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
