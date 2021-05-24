@@ -36,7 +36,6 @@ def tasks(task_for):
             windows_unit,
             windows_arm64,
             windows_uwp_x64,
-            linux_release,
         ]
         by_branch_name = {
             "auto": all_tests,
@@ -45,7 +44,6 @@ def tasks(task_for):
                 # Add functions here as needed, in your push to that branch
             ],
             "master": [
-                upload_docs,
                 layout_2020_regressions_report,
             ],
 
@@ -53,7 +51,7 @@ def tasks(task_for):
             # https://github.com/servo/saltfs/blob/master/homu/map.jinja
 
             "try-mac": [],
-            "try-linux": [linux_tidy_unit, linux_docs_check, linux_release],
+            "try-linux": [linux_tidy_unit, linux_docs_check],
             "try-windows": [windows_unit, windows_arm64, windows_uwp_x64],
             "try-arm": [windows_arm64],
             "try-wpt": [],
@@ -192,58 +190,17 @@ def linux_tidy_unit():
 
 def linux_docs_check():
     return (
-        linux_build_task("Docs + check")
-        .with_treeherder("Linux x64", "Doc+Check")
-        .with_script("""
-            RUSTDOCFLAGS="--disable-minification" python3 ./mach doc
-            (
-                cd target/doc
-                git init
-                git add .
-                git -c user.name="Taskcluster" -c user.email="" \
-                    commit -q -m "Rebuild Servo documentation"
-                git bundle create docs.bundle HEAD
-            )
-
-        """
+        linux_build_task("Check")
+        .with_treeherder("Linux x64", "Check")
+        .with_script('RUSTDOCFLAGS="--disable-minification" python3 ./mach doc')
         # Because `rustdoc` needs metadata of dependency crates,
         # `cargo doc` does almost all of the work that `cargo check` does.
         # Therefore, when running them in this order the second command does very little
         # and should finish quickly.
         # The reverse order would not increase the total amount of work to do,
         # but would reduce the amount of parallelism available.
-        """
-            python3 ./mach check
-        """)
-        .with_artifacts("/repo/target/doc/docs.bundle")
-        .find_or_create("docs." + CONFIG.tree_hash())
-    )
-
-
-def upload_docs():
-    docs_build_task_id = decisionlib.Task.find("docs." + CONFIG.tree_hash())
-    return (
-        linux_task("Upload docs to GitHub Pages")
-        .with_treeherder("Linux x64", "DocUpload")
-        .with_dockerfile(dockerfile_path("base"))
-        .with_curl_artifact_script(docs_build_task_id, "docs.bundle")
-        .with_features("taskclusterProxy")
-        .with_scopes("secrets:get:project/servo/doc.servo.org")
-        .with_env(PY="""if 1:
-            import urllib.request, json, os
-            root_url = os.environ["TASKCLUSTER_PROXY_URL"]
-            url = root_url + "/api/secrets/v1/secret/project/servo/doc.servo.org"
-            token = json.load(urllib.request.urlopen(url))["secret"]["token"]
-            open("/root/.git-credentials", "w").write("https://git:%s@github.com/" % token)
-        """)
-        .with_script("""
-            python3 -c "$PY"
-            git init --bare
-            git config credential.helper store
-            git fetch --quiet docs.bundle
-            git push --force https://github.com/servo/doc.servo.org FETCH_HEAD:gh-pages
-        """)
-        .create()
+        .with_script("python3 ./mach check")
+        .find_or_create("check." + CONFIG.tree_hash())
     )
 
 
@@ -356,18 +313,6 @@ def windows_unit(cached=True, rdp=False):
         return task.find_or_create("build.windows_x64_dev." + CONFIG.tree_hash())
     else:
         return task.create()
-
-
-def linux_release():
-    return (
-        linux_build_task("Release build")
-        .with_treeherder("Linux x64", "Release")
-        .with_script(
-            "python3 ./mach build --release",
-            "python3 ./mach package --release",
-        )
-        .find_or_create("build.linux_x64_release" + CONFIG.tree_hash())
-    )
 
 
 def update_wpt():
@@ -527,12 +472,6 @@ def windows_build_task(name, package=True, arch="x86_64", rdp=False):
         task.with_path_from_homedir("wix")
     if rdp:
         task.with_rdp_info(artifact_name="project/servo/rdp-info")
-    return task
-
-
-def with_homebrew(task, brewfiles):
-    for brewfile in brewfiles:
-        task.with_script("time brew bundle install --verbose --no-upgrade --file=" + brewfile)
     return task
 
 
