@@ -1,11 +1,9 @@
 name: CI
 
 on:
-  # Triggers the workflow on push or pull request events but only for the master branch
+  # Triggers the workflow on push events but only for the master branch
   push:
-    branches: [ "master", "github-actions-dev", "auto", "try", "try-linux", "try-mac", "try-windows", "try-wpt", "linux-wpt-tests"]
-  pull_request:
-    branches: [ "master", "github-actions-dev" ]
+    branches: [ "auto", "try", "try-linux", "try-mac", "try-windows", "try-wpt"]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -63,6 +61,12 @@ jobs:
           python3 ./mach build --release
       - name: Smoketest
         run: python3 ./mach smoketest
+      - name: Unit tests
+        run: python3 ./mach test-unit --release
+      - name: Test package
+        run: python3 ./mach package --release
+      - name: Package smoketest
+        run: ./etc/ci/macos_package_smoketest.sh target/release/servo-tech-demo.dmg
       - name: Package binary
         run: gtar -czf target.tar.gz target/release/servo target/release/*.dylib resources
       - name: Archive binary
