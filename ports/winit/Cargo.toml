@@ -56,7 +56,7 @@ libc = "0.2"
 libservo = { path = "../../components/servo" }
 log = "0.4"
 servo-media = { git = "https://github.com/servo/media" }
-shellwords = "1.0.0"
+shellwords = "1.1.0"
 surfman = { version = "0.4", features = ["sm-winit", "sm-x11"] }
 tinyfiledialogs = "3.0"
 webxr = { git = "https://github.com/servo/webxr", features = ["ipc", "glwindow", "headless"] }
