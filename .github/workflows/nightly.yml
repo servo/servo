@@ -73,16 +73,19 @@ jobs:
           fetch-depth: 2
       - name: Copy to C drive
         run: cp D:\a C:\ -Recurse
-      - uses: engineerd/configurator@v0.0.6
+      - uses: suisei-cn/actions-download-file@v1
+        id: wix311-binaries
+        name: Download wix binaries
         with:
-          name: "candle.exe"
           url: "https://github.com/wixtoolset/wix3/releases/download/wix3111rtm/wix311-binaries.zip"
-          pathInArchive: "candle.exe"
-      - uses: engineerd/configurator@v0.0.6
+          target: "C:\\wix311-binaries.zip"
+      - uses: DuckSoft/extract-7z-action@v1.0
+        name: Extract wix binaries
         with:
-          name: "light.exe"
-          url: "https://github.com/wixtoolset/wix3/releases/download/wix3111rtm/wix311-binaries.zip"
-          pathInArchive: "light.exe"
+          pathSource: "C:\\wix311-binaries.zip"
+          pathTarget: "C:\\wix"
+      - name: Add binaries to path
+        run: echo "C:\\wix" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: Bootstrap
         working-directory: "C:\\a\\servo\\servo"
         run: |
