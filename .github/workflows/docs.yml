@@ -29,7 +29,7 @@ jobs:
           git add .
           git -c user.name="Workflow" -c user.email="" \
               commit -q -m "Rebuild Servo documentation"
-          git remote set-url origin https://git:${DOC_SERVO_ORG}@github.com/servo/doc.servo.org
-          git push --force origin FETCH_HEAD:gh-pages
+          git remote add origin https://git:${DOC_SERVO_ORG}@github.com/servo/doc.servo.org
+          git push --force origin master:gh-pages
         env:
           DOC_SERVO_ORG: ${{ secrets.DOC_SERVO_ORG }}
