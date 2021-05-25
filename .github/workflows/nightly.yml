@@ -11,25 +11,6 @@ env:
   SHELL: /bin/bash
 
 jobs:
-  build-linux-with-rust-nightly:
-    name: Build (Linux) + rustc nightly
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 2
-      - name: Update rustc
-        run: echo nightly > rust-toolchain
-      - name: Bootstrap
-        run: |
-          python3 -m pip install --upgrade pip virtualenv
-          sudo apt update
-          python3 ./mach bootstrap
-      - name: Release build
-        run: python3 ./mach build --release
-      - name: Unit tests
-        run: python3 ./mach test-unit --release
-
   upload-linux:
     name: Upload nightly (Linux)
     runs-on: ubuntu-20.04
