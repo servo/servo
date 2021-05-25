@@ -13,6 +13,11 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 2
+      - name: Bootstrap
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          python3 ./mach bootstrap
       - name: Compile docs
         run: python3 ./mach doc
         env:

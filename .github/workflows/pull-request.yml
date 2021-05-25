@@ -1,0 +1,32 @@
+name: Basic cross-platform builds and checks
+on:
+  pull_request:
+    branches: ["**"]
+
+env:
+  RUST_BACKTRACE: 1
+  SHELL: /bin/bash
+
+jobs:
+  build-linux:
+    name: Build (Linux)
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Bootstrap
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          python3 ./mach bootstrap
+      - name: Workflow check
+        run: ./etc/ci/workflow_changed.sh
+      - name: Release build
+        run: python3 ./mach build --release
+      - name: Unit tests
+        run: python3 ./mach test-unit --release
+      - name: Tidy
+        run: python3 ./mach test-tidy --no-progress --all
+      - name: Lockfile check
+        run: ./etc/ci/lockfile_changed.sh
