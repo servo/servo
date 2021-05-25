@@ -73,6 +73,16 @@ jobs:
           fetch-depth: 2
       - name: Copy to C drive
         run: cp D:\a C:\ -Recurse
+      - uses: engineerd/configurator@v0.0.6
+        with:
+          name: "candle.exe"
+          url: "https://github.com/wixtoolset/wix3/releases/download/wix3111rtm/wix311-binaries.zip"
+          pathInArchive: "candle.exe"
+      - uses: engineerd/configurator@v0.0.6
+        with:
+          name: "light.exe"
+          url: "https://github.com/wixtoolset/wix3/releases/download/wix3111rtm/wix311-binaries.zip"
+          pathInArchive: "light.exe"
       - name: Bootstrap
         working-directory: "C:\\a\\servo\\servo"
         run: |
