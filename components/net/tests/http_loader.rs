@@ -333,6 +333,7 @@ fn test_request_and_response_data_with_network_messages() {
 }
 
 #[test]
+#[cfg(not(target_os = "windows"))]
 fn test_request_and_response_message_from_devtool_without_pipeline_id() {
     let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
         response
