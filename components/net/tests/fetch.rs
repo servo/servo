@@ -4,6 +4,7 @@
 
 use crate::fetch_with_context;
 use crate::fetch_with_cors_cache;
+#[cfg(not(target_os = "windows"))]
 use crate::http_loader::{expect_devtools_http_request, expect_devtools_http_response};
 use crate::{
     create_embedder_proxy, fetch, make_server, make_ssl_server, new_fetch_context,
@@ -1344,6 +1345,7 @@ fn test_opaque_redirect_filtered_fetch_async_returns_complete_response() {
 }
 
 #[test]
+#[cfg(not(target_os = "windows"))]
 fn test_fetch_with_devtools() {
     static MESSAGE: &'static [u8] = b"Yay!";
     let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
