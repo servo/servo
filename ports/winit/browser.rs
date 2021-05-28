@@ -368,8 +368,8 @@ where
                                     // Since tinyfiledialogs does not support a single dialog with
                                     // multiple inputs, we must ask the user for username and
                                     // password separately.
-                                    let username = tinyfiledialogs::input_box("Username", &message, "");
-                                    let password = tinyfiledialogs::password_box("Password", &message);
+                                    let username = tinyfiledialogs::input_box(&message, "Username", "");
+                                    let password = tinyfiledialogs::password_box(&message, "Passsword");
                                     sender.send((username, password))
                                 },
                             })

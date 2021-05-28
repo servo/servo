@@ -1424,6 +1424,7 @@ fn http_network_or_cache_fetch(
 
     fn prompt_user_for_credentials(
         context: &FetchContext,
+        request: &Request,
     ) -> Option<String> {
         let embedder_proxy: EmbedderProxy;
         { embedder_proxy = context.state.embedder_proxy.lock().unwrap().clone(); }
@@ -1431,7 +1432,7 @@ fn http_network_or_cache_fetch(
         // TODO: Make message include the URI and also the WWW-Authenticate
         let (sender, receiver) = ipc::channel().unwrap();
         let prompt = PromptDefinition::UserAndPass(
-            "Authentication required for TODO".to_string(),
+            format!("{}", request.current_url()),
             sender
         );
         let embedder_message = (
@@ -1598,11 +1599,15 @@ fn http_network_or_cache_fetch(
 
         // Substep 3
         if !http_request.use_url_credentials || authentication_fetch_flag {
-            let token = prompt_user_for_credentials(context).unwrap();
-            let credential = format!("Basic {}", token);
-            http_request
-                .headers
-                .insert(header::AUTHORIZATION, credential.clone().parse().unwrap());
+            match prompt_user_for_credentials(context, http_request) {
+                Some(token) => {
+                    let credential = format!("Basic {}", token);
+                    http_request
+                        .headers
+                        .insert(header::AUTHORIZATION, credential.clone().parse().unwrap());
+                }
+                None => return response
+            }
         }
 
         // Make sure this is set to None,
@@ -1632,16 +1637,15 @@ fn http_network_or_cache_fetch(
         // TODO: Spec says requires testing on Proxy-Authenticate headers
 
         // Step 3
-        let token = prompt_user_for_credentials(context).unwrap();
-        let credential = format!("Basic {}", token);
-        http_request
-            .headers
-            .insert(header::AUTHORIZATION, credential.clone().parse().unwrap());
-
-        // Wrong, but will have to do until we are able to prompt the user
-        // otherwise this creates an infinite loop
-        // We basically pretend that the user declined to enter credentials
-        return response;
+        match prompt_user_for_credentials(context, http_request) {
+            Some(token) => {
+                let credential = format!("Basic {}", token);
+                http_request
+                    .headers
+                    .insert(header::AUTHORIZATION, credential.clone().parse().unwrap());
+            }
+            None => return response
+        }
 
         // Step 4
         // return http_network_or_cache_fetch(request, authentication_fetch_flag,
