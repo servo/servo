@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#![allow(unused_imports)]
+
 use crate::fetch_with_context;
 use crate::fetch_with_cors_cache;
 #[cfg(not(target_os = "windows"))]
