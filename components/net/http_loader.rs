@@ -1424,29 +1424,26 @@ fn http_network_or_cache_fetch(
 
     fn prompt_user_for_credentials(
         context: &FetchContext,
-    ) -> std::option::Option<std::string::String> {
+    ) -> Option<String> {
         let embedder_proxy: EmbedderProxy;
         { embedder_proxy = context.state.embedder_proxy.lock().unwrap().clone(); }
-        let (name_sender, name_receiver) = ipc::channel().unwrap();
-        let name_prompt = PromptDefinition::Input("Name".to_string(), "".to_string(), name_sender);
-        let name_msg = (
-            None,
-            EmbedderMsg::Prompt(name_prompt, PromptOrigin::Trusted),
-        );
-        embedder_proxy.send(name_msg);
-        let name_str = name_receiver.recv().unwrap()?;
 
-        let (pass_sender, pass_receiver) = ipc::channel().unwrap();
-        let pass_prompt =
-            PromptDefinition::Input("Password".to_string(), "".to_string(), pass_sender);
-        let pass_msg = (
-            None,
-            EmbedderMsg::Prompt(pass_prompt, PromptOrigin::Trusted),
+        // TODO: Make message include the URI and also the WWW-Authenticate
+        let (sender, receiver) = ipc::channel().unwrap();
+        let prompt = PromptDefinition::UserAndPass(
+            "Authentication required for TODO".to_string(),
+            sender
         );
-        embedder_proxy.send(pass_msg);
-        let pass_str = pass_receiver.recv().unwrap()?;
+        let embedder_message = (
+            None,
+            EmbedderMsg::Prompt(prompt, PromptOrigin::Trusted),
+        );
+        embedder_proxy.send(embedder_message);
 
-        serde::export::Some(base64::encode(&format!("{}:{}", name_str, pass_str)))
+        match receiver.recv().unwrap() {
+            (Some(user), Some(pass)) => Some(base64::encode(&format!("{}:{}", user, pass))),
+            (_, _) => None
+        }
     }
 
     wait_for_cached_response(done_chan, &mut response);
@@ -1601,11 +1598,11 @@ fn http_network_or_cache_fetch(
 
         // Substep 3
         if !http_request.use_url_credentials || authentication_fetch_flag {
-            let loc_str = prompt_user_for_credentials(context).unwrap();
-            let temp_str = format!("Basic {}", loc_str);
+            let token = prompt_user_for_credentials(context).unwrap();
+            let credential = format!("Basic {}", token);
             http_request
                 .headers
-                .insert(header::AUTHORIZATION, temp_str.clone().parse().unwrap());
+                .insert(header::AUTHORIZATION, credential.clone().parse().unwrap());
         }
 
         // Make sure this is set to None,
@@ -1635,11 +1632,11 @@ fn http_network_or_cache_fetch(
         // TODO: Spec says requires testing on Proxy-Authenticate headers
 
         // Step 3
-        let loc_str = prompt_user_for_credentials(context).unwrap();
-        let temp_str = format!("Basic {}", loc_str);
+        let token = prompt_user_for_credentials(context).unwrap();
+        let credential = format!("Basic {}", token);
         http_request
             .headers
-            .insert(header::AUTHORIZATION, temp_str.clone().parse().unwrap());
+            .insert(header::AUTHORIZATION, credential.clone().parse().unwrap());
 
         // Wrong, but will have to do until we are able to prompt the user
         // otherwise this creates an infinite loop

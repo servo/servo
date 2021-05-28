@@ -304,6 +304,9 @@ where
                             PromptDefinition::Input(_message, default, sender) => {
                                 sender.send(Some(default.to_owned()))
                             },
+                            PromptDefinition::UserAndPass(_message, sender) => {
+                                sender.send((None, None))
+                            },
                         }
                     } else {
                         thread::Builder::new()
@@ -357,6 +360,17 @@ where
                                     }
                                     let result = tinyfiledialogs::input_box("", &message, &default);
                                     sender.send(result)
+                                },
+                                PromptDefinition::UserAndPass(mut message, sender) => {
+                                    if origin == PromptOrigin::Untrusted {
+                                        message = tiny_dialog_escape(&message);
+                                    }
+                                    // Since tinyfiledialogs does not support a single dialog with
+                                    // multiple inputs, we must ask the user for username and
+                                    // password separately.
+                                    let username = tinyfiledialogs::input_box("Username", &message, "");
+                                    let password = tinyfiledialogs::password_box("Password", &message);
+                                    sender.send((username, password))
                                 },
                             })
                             .unwrap()
