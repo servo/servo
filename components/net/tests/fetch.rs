@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![allow(unused_imports)]
+#![cfg(not(target_os = "windows"))]
 
 use crate::fetch_with_context;
 use crate::fetch_with_cors_cache;
-#[cfg(not(target_os = "windows"))]
 use crate::http_loader::{expect_devtools_http_request, expect_devtools_http_response};
 use crate::{
     create_embedder_proxy, fetch, make_server, make_ssl_server, new_fetch_context,
