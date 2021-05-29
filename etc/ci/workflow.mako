@@ -37,6 +37,54 @@ jobs:
         working-directory: "C:\\a\\${ REPOSITORY_NAME }\\${ REPOSITORY_NAME }"
         run: python mach smoketest --angle
 
+  build-uwp-x64:
+    name: Build (Windows UWP x64)
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Copy to C drive
+        run: cp D:\a C:\ -Recurse
+      - name: Bootstrap
+        working-directory: "C:\\a\\${ REPOSITORY_NAME }\\${ REPOSITORY_NAME }"
+        run: |
+          python -m pip install --upgrade pip virtualenv
+          python mach fetch
+      - name: Release build
+        working-directory: "C:\\a\\${ REPOSITORY_NAME }\\${ REPOSITORY_NAME }"
+        run: python mach build --release --target=x86_64-uwp-windows-msvc
+      - name: Package
+        working-directory: "C:\\a\\${ REPOSITORY_NAME }\\${ REPOSITORY_NAME }"
+        run: python mach package --release --target=x86_64-uwp-windows-msvc --uwp=x64
+        #env:
+        #  CODESIGN_CERT: ${{ CODESIGN_CERT }}
+      - name: Tidy
+        run: python mach test-tidy --force-cpp --no-wpt
+
+  build-uwp-arm64:
+    name: Build (Windows UWP arm64)
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Copy to C drive
+        run: cp D:\a C:\ -Recurse
+      - name: Bootstrap
+        working-directory: "C:\\a\\servo\\servo"
+        run: |
+          python -m pip install --upgrade pip virtualenv
+          python mach fetch
+      - name: Release build
+        working-directory: "C:\\a\\servo\\servo"
+        run: python mach build --release --target=aarch64-uwp-windows-msvc
+      - name: Package
+        working-directory: "C:\\a\\servo\\servo"
+        run: python mach package --release --target=aarch64-uwp-windows-msvc --uwp=arm64
+        #env:
+        #  CODESIGN_CERT: ${{ CODESIGN_CERT }}
+
   build-mac:
     name: Build (macOS)
     runs-on: macos-10.15
@@ -183,6 +231,8 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - "build-win"
+      - "build-uwp-x64"
+      - "build-uwp-arm64"
       - "build-linux"
       - "build-mac"
     % for chunk in range(1, total_chunks + 1):
