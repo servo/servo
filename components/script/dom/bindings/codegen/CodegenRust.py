@@ -5235,7 +5235,7 @@ class CGProxySpecialOperation(CGPerSignatureCall):
             }
             self.cgRoot.prepend(instantiateJSToNativeConversionTemplate(
                 template, templateValues, declType, argument.identifier.name))
-            self.cgRoot.prepend(CGGeneric("rooted!(in(*cx) let value = desc.value);"))
+            self.cgRoot.prepend(CGGeneric("rooted!(in(*cx) let value = desc.value_);"))
 
     def getArguments(self):
         args = [(a, process_arg(a.identifier.name, a)) for a in self.arguments]
@@ -5354,7 +5354,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
             attrs = "JSPROP_ENUMERATE"
             if self.descriptor.operations['IndexedSetter'] is None:
                 attrs += " | JSPROP_READONLY"
-            fillDescriptor = ("desc.value = result_root.get();\n"
+            fillDescriptor = ("desc.value_ = result_root.get();\n"
                               "fill_property_descriptor(MutableHandle::from_raw(desc), proxy.get(), (%s) as u32);\n"
                               "return true;" % attrs)
             templateValues = {
@@ -5379,7 +5379,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 attrs = " | ".join(attrs)
             else:
                 attrs = "0"
-            fillDescriptor = ("desc.value = result_root.get();\n"
+            fillDescriptor = ("desc.value_ = result_root.get();\n"
                               "fill_property_descriptor(MutableHandle::from_raw(desc), proxy.get(), (%s) as u32);\n"
                               "return true;" % attrs)
             templateValues = {

@@ -909,7 +909,7 @@ unsafe extern "C" fn getOwnPropertyDescriptor(
     if let Some((window, attrs)) = window {
         rooted!(in(cx) let mut val = UndefinedValue());
         window.to_jsval(cx, val.handle_mut());
-        desc.value = val.get();
+        desc.value_ = val.get();
         fill_property_descriptor(MutableHandle::from_raw(desc), proxy.get(), attrs);
         return true;
     }

@@ -46,7 +46,10 @@ use js::jsapi::HandleObject;
 use js::jsapi::HandleValue as RawHandleValue;
 use js::jsapi::Value;
 use js::jsapi::{CompileModule1, ExceptionStackBehavior, FinishDynamicModuleImport_NoTLA};
-use js::jsapi::{DynamicImportStatus, SetModuleDynamicImportHook, SetScriptPrivateReferenceHooks};
+use js::jsapi::{
+    CreateModuleRequest, DynamicImportStatus, GetModuleRequestSpecifier,
+    SetModuleDynamicImportHook, SetScriptPrivateReferenceHooks,
+};
 use js::jsapi::{GetModuleResolveHook, JSRuntime, SetModuleResolveHook};
 use js::jsapi::{GetRequestedModules, SetModuleMetadataHook};
 use js::jsapi::{Heap, JSContext, JS_ClearPendingException, SetModulePrivate};
@@ -1025,11 +1028,13 @@ impl ModuleOwner {
         debug!("Finishing dynamic import for {:?}", module_identity);
 
         unsafe {
+            rooted!(in(*cx) let module_request = CreateModuleRequest(*cx, module.specifier.handle()));
+
             FinishDynamicModuleImport_NoTLA(
                 *cx,
                 status,
                 module.referencing_private.handle(),
-                module.specifier.handle(),
+                module_request.handle().into(),
                 module.promise.reflector().get_jsobject().into_handle(),
             );
             assert!(!JS_IsExceptionPending(*cx));
@@ -1249,7 +1254,7 @@ unsafe extern "C" fn host_release_top_level_script(value: *const Value) {
 pub unsafe extern "C" fn host_import_module_dynamically(
     cx: *mut JSContext,
     reference_private: RawHandleValue,
-    specifier: RawHandle<*mut JSString>,
+    module_request: RawHandle<*mut JSObject>,
     promise: RawHandle<*mut JSObject>,
 ) -> bool {
     // Step 1.
@@ -1273,9 +1278,10 @@ pub unsafe extern "C" fn host_import_module_dynamically(
     let promise = Promise::new_with_js_promise(Handle::from_raw(promise), cx);
 
     //Step 5 & 6.
+    rooted!(in(*cx) let specifier = GetModuleRequestSpecifier(*cx, module_request));
     if let Err(e) = fetch_an_import_module_script_graph(
         &global_scope,
-        specifier,
+        specifier.handle().into(),
         reference_private,
         base_url,
         options,
@@ -1402,7 +1408,7 @@ fn fetch_an_import_module_script_graph(
 unsafe extern "C" fn HostResolveImportedModule(
     cx: *mut JSContext,
     reference_private: RawHandleValue,
-    specifier: RawHandle<*mut JSString>,
+    module_request: RawHandle<*mut JSObject>,
 ) -> *mut JSObject {
     let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
     let global_scope = GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof));
@@ -1417,7 +1423,12 @@ unsafe extern "C" fn HostResolveImportedModule(
     }
 
     // Step 5.
-    let url = ModuleTree::resolve_module_specifier(*global_scope.get_cx(), &base_url, specifier);
+    rooted!(in(cx) let specifier = GetModuleRequestSpecifier(cx, module_request));
+    let url = ModuleTree::resolve_module_specifier(
+        *global_scope.get_cx(),
+        &base_url,
+        specifier.handle().into(),
+    );
 
     // Step 6.
     assert!(url.is_ok());

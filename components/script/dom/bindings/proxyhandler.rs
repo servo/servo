@@ -174,6 +174,6 @@ pub fn fill_property_descriptor(
 ) {
     desc.obj = obj;
     desc.attrs = attrs;
-    desc.getter = None;
-    desc.setter = None;
+    desc.getter = ptr::null_mut();
+    desc.setter = ptr::null_mut();
 }
