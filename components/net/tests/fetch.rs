@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#![cfg(not(target_os = "windows"))]
+
 use crate::fetch_with_context;
 use crate::fetch_with_cors_cache;
 use crate::http_loader::{expect_devtools_http_request, expect_devtools_http_response};
@@ -1344,6 +1346,7 @@ fn test_opaque_redirect_filtered_fetch_async_returns_complete_response() {
 }
 
 #[test]
+#[cfg(not(target_os = "windows"))]
 fn test_fetch_with_devtools() {
     static MESSAGE: &'static [u8] = b"Yay!";
     let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
