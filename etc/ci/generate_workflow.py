@@ -50,6 +50,7 @@ def main():
             'workflow.mako',
             total_chunks=20,
             REPOSITORY_NAME="${{ github.event.repository.name }}",
+            CODESIGN_CERT="${{ secrets.WINDOWS_CODESIGN_CERT }}",
         ))
 
 
