@@ -180,6 +180,10 @@ jobs:
           python3 ./mach bootstrap
       - name: Release build
         run: python3 ./mach build --release
+      - name: Lockfile check
+        run: ./etc/ci/lockfile_changed.sh
+      - name: Forbidden panic check
+        run: ./etc/ci/check_no_panic.sh
       - name: Package binary
         run: tar -czf target.tar.gz target/release/servo resources
       - name: Archive binary
