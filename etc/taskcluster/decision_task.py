@@ -34,8 +34,6 @@ def tasks(task_for):
             linux_tidy_unit,
             linux_docs_check,
             windows_unit,
-            windows_arm64,
-            windows_uwp_x64,
         ]
         by_branch_name = {
             "auto": all_tests,
@@ -52,8 +50,8 @@ def tasks(task_for):
 
             "try-mac": [],
             "try-linux": [linux_tidy_unit, linux_docs_check],
-            "try-windows": [windows_unit, windows_arm64, windows_uwp_x64],
-            "try-arm": [windows_arm64],
+            "try-windows": [windows_unit],
+            "try-arm": [],
             "try-wpt": [],
             "try-wpt-2020": [],
             "try-wpt-mac": [],
@@ -87,7 +85,6 @@ def tasks(task_for):
     elif task_for == "daily":
         daily_tasks_setup()
         update_wpt()
-        uwp_nightly()
 
 
 ping_on_daily_task_failure = "SimonSapin, nox, emilio"
@@ -218,68 +215,6 @@ def layout_2020_regressions_report():
         .with_artifacts("/repo/tests/wpt/reftests-report/report.html")
         .with_index_at("layout-2020-regressions-report")
         .create()
-    )
-
-
-appx_artifact = '/'.join([
-    'repo',
-    'support',
-    'hololens',
-    'AppPackages',
-    'ServoApp',
-    'FirefoxReality.zip',
-])
-
-
-def windows_arm64(rdp=False):
-    return (
-        windows_build_task("UWP dev build", arch="arm64", package=False, rdp=rdp)
-        .with_treeherder("Windows arm64", "UWP-Dev")
-        .with_features("taskclusterProxy")
-        .with_scopes("secrets:get:project/servo/windows-codesign-cert/latest")
-        .with_script(
-            "python mach build --dev --target=aarch64-uwp-windows-msvc",
-            "python mach package --dev --target aarch64-uwp-windows-msvc --uwp=arm64",
-        )
-        .with_artifacts(appx_artifact)
-        .find_or_create("build.windows_uwp_arm64_dev." + CONFIG.tree_hash())
-    )
-
-
-def windows_uwp_x64(rdp=False):
-    return (
-        windows_build_task("UWP dev build", package=False, rdp=rdp)
-        .with_treeherder("Windows x64", "UWP-Dev")
-        .with_features("taskclusterProxy")
-        .with_scopes("secrets:get:project/servo/windows-codesign-cert/latest")
-        .with_script(
-            "python mach build --dev --target=x86_64-uwp-windows-msvc",
-            "python mach package --dev --target=x86_64-uwp-windows-msvc --uwp=x64",
-            "python mach test-tidy --force-cpp --no-wpt",
-        )
-        .with_artifacts(appx_artifact)
-        .find_or_create("build.windows_uwp_x64_dev." + CONFIG.tree_hash())
-    )
-
-
-def uwp_nightly(rdp=False):
-    return (
-        windows_build_task("Nightly UWP build and upload", package=False, rdp=rdp)
-        .with_treeherder("Windows x64", "UWP-Nightly")
-        .with_features("taskclusterProxy")
-        .with_scopes(
-            "secrets:get:project/servo/s3-upload-credentials",
-            "secrets:get:project/servo/windows-codesign-cert/latest",
-        )
-        .with_script(
-            "python mach build --release --target=x86_64-uwp-windows-msvc",
-            "python mach build --release --target=aarch64-uwp-windows-msvc",
-            "python mach package --release --target=x86_64-uwp-windows-msvc --uwp=x64 --uwp=arm64",
-            "python mach upload-nightly uwp --secret-from-taskcluster",
-        )
-        .with_artifacts(appx_artifact)
-        .with_max_run_time_minutes(3 * 60)
-        .find_or_create("build.windows_uwp_nightlies." + CONFIG.tree_hash())
     )
 
 
