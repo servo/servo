@@ -177,6 +177,14 @@ With the following environment variable set:
 export LIBCLANG_PATH=$(llvm-config --prefix)/lib64
 ```
 
+#### On nixOS Linux
+
+```sh
+nix-shell etc/shell.nix
+```
+
+You will need to run this in every shell before running mach.
+
 #### On Windows (MSVC)
 
 1. Install Python 3.9 for Windows (https://www.python.org/downloads/release/python-392/). The Windows x86-64 MSI installer is fine. This is required in order to build the JavaScript engine, SpiderMonkey.
