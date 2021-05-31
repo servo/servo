@@ -12,7 +12,7 @@ doctest = false
 [dependencies]
 app_units = "0.7"
 cssparser = "0.28"
-euclid = "0.20"
+euclid = "0.22"
 html5ever = "0.25"
 rayon = "1"
 serde_json = "1.0"
