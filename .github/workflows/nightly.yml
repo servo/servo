@@ -126,8 +126,8 @@ jobs:
       - name: Package
         working-directory: "C:\\a\\servo\\servo"
         run: python mach package --release --target=x86_64-uwp-windows-msvc --uwp=x64 --uwp=arm64
-        #env:
-        #  CODESIGN_CERT: ${{ secrets.WINDOWS_CODESIGN_CERT }}
+        env:
+          CODESIGN_CERT: ${{ secrets.WINDOWS_CODESIGN_CERT }}
       - name: Upload
         working-directory: "C:\\a\\servo\\servo"
         run: python mach upload-nightly uwp --secret-from-environment
