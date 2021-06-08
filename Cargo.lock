@@ -5460,7 +5460,7 @@ dependencies = [
 name = "servo-gst-plugin"
 version = "0.0.1"
 dependencies = [
- "crossbeam-channel 0.4.4",
+ "crossbeam-channel 0.5.0",
  "euclid",
  "glib",
  "gst-plugin-version-helper",
