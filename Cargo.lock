@@ -249,6 +249,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7d5ca2cd0adc3f48f9e9ea5a6bbdf9ccc0bfade884847e484d452414c7ccffb3"
 
 [[package]]
+name = "base64"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
+
+[[package]]
 name = "binary-space-partition"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5010,14 +5016,14 @@ dependencies = [
 
 [[package]]
 name = "rust-argon2"
-version = "0.8.2"
+version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9dab61250775933275e84053ac235621dfb739556d5c54a2f2e9313b7cf43a19"
+checksum = "4b18820d944b33caa75a71378964ac46f58517c92b6ae5f762636247c09e78fb"
 dependencies = [
- "base64 0.12.0",
+ "base64 0.13.0",
  "blake2b_simd",
  "constant_time_eq",
- "crossbeam-utils 0.7.2",
+ "crossbeam-utils 0.8.1",
 ]
 
 [[package]]
