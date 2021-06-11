@@ -74,7 +74,6 @@ use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image::base::{Image, ImageMetadata};
-use ref_slice::ref_slice;
 use script_layout_interface::message::QueryMsg;
 use script_layout_interface::{HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType};
 use script_layout_interface::{SVGSVGData, StyleAndOpaqueLayoutData, TrustedNodeAddress};
@@ -93,6 +92,7 @@ use std::default::Default;
 use std::iter;
 use std::mem;
 use std::ops::Range;
+use std::slice::from_ref;
 use std::sync::Arc as StdArc;
 use style::context::QuirksMode;
 use style::dom::OpaqueNode;
@@ -2061,7 +2061,7 @@ impl Node {
             new_nodes.r()
         } else {
             // Step 3.
-            ref_slice(&node)
+            from_ref(&node)
         };
         // Step 6.
         let previous_sibling = match suppress_observers {
@@ -2130,7 +2130,7 @@ impl Node {
                 added_nodes.extend(node.children().map(|child| Dom::from_ref(&*child)));
                 added_nodes.r()
             } else {
-                ref_slice(node)
+                from_ref(node)
             }
         } else {
             &[] as &[&Node]
@@ -2750,7 +2750,7 @@ impl NodeMethods for Node {
             nodes.extend(node.children().map(|node| Dom::from_ref(&*node)));
             nodes.r()
         } else {
-            ref_slice(&node)
+            from_ref(&node)
         };
 
         // Step 13.
@@ -3273,7 +3273,7 @@ impl<'a> ChildrenMutation<'a> {
         if let Some(ref removed) = *removed {
             if let (None, None) = (prev, next) {
                 ChildrenMutation::ReplaceAll {
-                    removed: ref_slice(removed),
+                    removed: from_ref(removed),
                     added: added,
                 }
             } else {
