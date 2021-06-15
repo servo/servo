@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2018 The Servo Project Developers. See the COPYRIGHT
 # file at the top-level directory of this distribution.

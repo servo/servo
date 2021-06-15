@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Emit documentation for private items so it is easier to look
 # up internal definitions.
