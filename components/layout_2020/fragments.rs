@@ -227,9 +227,10 @@ impl Fragment {
     pub(crate) fn find<T>(
         &self,
         containing_block: &PhysicalRect<Length>,
-        process_func: &mut impl FnMut(&Fragment, &PhysicalRect<Length>) -> Option<T>,
+        level: usize,
+        process_func: &mut impl FnMut(&Fragment, usize, &PhysicalRect<Length>) -> Option<T>,
     ) -> Option<T> {
-        if let Some(result) = process_func(self, containing_block) {
+        if let Some(result) = process_func(self, level, containing_block) {
             return Some(result);
         }
 
@@ -239,20 +240,22 @@ impl Fragment {
                     .content_rect
                     .to_physical(fragment.style.writing_mode, containing_block)
                     .translate(containing_block.origin.to_vector());
-                fragment
-                    .children
-                    .iter()
-                    .find_map(|child| child.borrow().find(&new_containing_block, process_func))
+                fragment.children.iter().find_map(|child| {
+                    child
+                        .borrow()
+                        .find(&new_containing_block, level + 1, process_func)
+                })
             },
             Fragment::Anonymous(fragment) => {
                 let new_containing_block = fragment
                     .rect
                     .to_physical(fragment.mode, containing_block)
                     .translate(containing_block.origin.to_vector());
-                fragment
-                    .children
-                    .iter()
-                    .find_map(|child| child.borrow().find(&new_containing_block, process_func))
+                fragment.children.iter().find_map(|child| {
+                    child
+                        .borrow()
+                        .find(&new_containing_block, level + 1, process_func)
+                })
             },
             _ => None,
         }

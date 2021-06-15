@@ -299,7 +299,7 @@ pub fn process_resolved_style_request<'dom>(
         None => return computed_style(),
     };
     fragment_tree
-        .find(|fragment, containing_block| {
+        .find(|fragment, _, containing_block| {
             let box_fragment = match fragment {
                 Fragment::Box(ref box_fragment) if box_fragment.tag == tag_to_find => box_fragment,
                 _ => return None,
