@@ -2593,9 +2593,9 @@ dependencies = [
 
 [[package]]
 name = "gvr-sys"
-version = "0.7.0"
+version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1334b94d8ce67319ddc44663daef53d8c1538629a11562530c981dbd9085b9a"
+checksum = "d2a8e6ed12756f9e5fd8d50019e4f6839f50cf95f82657353e9d860730a5f797"
 
 [[package]]
 name = "h2"
