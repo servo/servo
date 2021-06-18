@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Cross-compile environment for Android on ARMv7 and x86
 #
 # Contents licensed under the terms of the OpenSSL license

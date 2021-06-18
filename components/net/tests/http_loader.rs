@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#![cfg(not(target_os = "windows"))]
+
 use crate::fetch;
 use crate::fetch_with_context;
 use crate::make_server;
@@ -333,6 +335,7 @@ fn test_request_and_response_data_with_network_messages() {
 }
 
 #[test]
+#[cfg(not(target_os = "windows"))]
 fn test_request_and_response_message_from_devtool_without_pipeline_id() {
     let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
         response

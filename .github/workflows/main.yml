@@ -37,6 +37,54 @@ jobs:
         working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
         run: python mach smoketest --angle
 
+  build-uwp-x64:
+    name: Build (Windows UWP x64)
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Copy to C drive
+        run: cp D:\a C:\ -Recurse
+      - name: Bootstrap
+        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+        run: |
+          python -m pip install --upgrade pip virtualenv
+          python mach fetch
+      - name: Release build
+        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+        run: python mach build --release --target=x86_64-uwp-windows-msvc
+      - name: Package
+        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+        run: python mach package --release --target=x86_64-uwp-windows-msvc --uwp=x64
+        #env:
+        #  CODESIGN_CERT: {'${{ secrets.WINDOWS_CODESIGN_CERT }}'}
+      - name: Tidy
+        run: python mach test-tidy --force-cpp --no-wpt
+
+  build-uwp-arm64:
+    name: Build (Windows UWP arm64)
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Copy to C drive
+        run: cp D:\a C:\ -Recurse
+      - name: Bootstrap
+        working-directory: "C:\\a\\servo\\servo"
+        run: |
+          python -m pip install --upgrade pip virtualenv
+          python mach fetch
+      - name: Release build
+        working-directory: "C:\\a\\servo\\servo"
+        run: python mach build --release --target=aarch64-uwp-windows-msvc
+      - name: Package
+        working-directory: "C:\\a\\servo\\servo"
+        run: python mach package --release --target=aarch64-uwp-windows-msvc --uwp=arm64
+        #env:
+        #  CODESIGN_CERT: {'${{ secrets.WINDOWS_CODESIGN_CERT }}'}
+
   build-mac:
     name: Build (macOS)
     runs-on: macos-10.15
@@ -890,6 +938,10 @@ jobs:
           python3 ./mach bootstrap
       - name: Release build
         run: python3 ./mach build --release
+      - name: Lockfile check
+        run: ./etc/ci/lockfile_changed.sh
+      - name: Forbidden panic check
+        run: ./etc/ci/check_no_panic.sh
       - name: Package binary
         run: tar -czf target.tar.gz target/release/servo resources
       - name: Archive binary
@@ -1604,6 +1656,8 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - "build-win"
+      - "build-uwp-x64"
+      - "build-uwp-arm64"
       - "build-linux"
       - "build-mac"
       - "linux-wpt-1"

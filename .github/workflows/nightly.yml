@@ -73,19 +73,63 @@ jobs:
           fetch-depth: 2
       - name: Copy to C drive
         run: cp D:\a C:\ -Recurse
+      - uses: suisei-cn/actions-download-file@v1
+        id: wix311-binaries
+        name: Download wix binaries
+        with:
+          url: "https://github.com/wixtoolset/wix3/releases/download/wix3111rtm/wix311-binaries.zip"
+          target: "C:\\wix311-binaries.zip"
+      - uses: DuckSoft/extract-7z-action@v1.0
+        name: Extract wix binaries
+        with:
+          pathSource: "C:\\wix311-binaries.zip"
+          pathTarget: "C:\\wix"
+      - name: Add binaries to path
+        run: echo "C:\\wix" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: Bootstrap
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+        working-directory: "C:\\a\\servo\\servo"
         run: |
           python -m pip install --upgrade pip virtualenv
           python mach fetch
       - name: Release build
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+        working-directory: "C:\\a\\servo\\servo"
         run: python mach build --release --media-stack=dummy
       - name: Package
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+        working-directory: "C:\\a\\servo\\servo"
         run: python mach package --release
       - name: Upload
-        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+        working-directory: "C:\\a\\servo\\servo"
         run: python mach upload-nightly windows-msvc --secret-from-environment
+        env:
+          S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
+
+  upload-uwp:
+    name: Upload nightly (UWP)
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Copy to C drive
+        run: cp D:\a C:\ -Recurse
+      - name: Bootstrap
+        working-directory: "C:\\a\\servo\\servo"
+        run: |
+          python -m pip install --upgrade pip virtualenv
+          python mach fetch
+      - name: Release build (x64)
+        working-directory: "C:\\a\\servo\\servo"
+        run: python mach build --release --target=x86_64-uwp-windows-msvc
+      - name: Release build (arm64)
+        working-directory: "C:\\a\\servo\\servo"
+        run: python mach build --release --target=aarch64-uwp-windows-msvc
+      - name: Package
+        working-directory: "C:\\a\\servo\\servo"
+        run: python mach package --release --target=x86_64-uwp-windows-msvc --uwp=x64 --uwp=arm64
+        env:
+          CODESIGN_CERT: ${{ secrets.WINDOWS_CODESIGN_CERT }}
+      - name: Upload
+        working-directory: "C:\\a\\servo\\servo"
+        run: python mach upload-nightly uwp --secret-from-environment
         env:
           S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}

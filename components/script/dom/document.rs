@@ -140,7 +140,6 @@ use num_traits::ToPrimitive;
 use percent_encoding::percent_decode;
 use profile_traits::ipc as profile_ipc;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
-use ref_slice::ref_slice;
 use script_layout_interface::message::{Msg, PendingRestyle, ReflowGoal};
 use script_layout_interface::TrustedNodeAddress;
 use script_traits::{AnimationState, DocumentActivity, MouseButton, MouseEventType};
@@ -161,6 +160,7 @@ use std::default::Default;
 use std::mem;
 use std::ptr::NonNull;
 use std::rc::Rc;
+use std::slice::from_ref;
 use std::time::{Duration, Instant};
 use style::attr::AttrValue;
 use style::context::QuirksMode;
@@ -1708,7 +1708,7 @@ impl Document {
             Some(window),
             0i32,
             &touches,
-            &TouchList::new(window, ref_slice(&&*touch)),
+            &TouchList::new(window, from_ref(&&*touch)),
             &TouchList::new(window, target_touches.r()),
             // FIXME: modifier keys
             false,

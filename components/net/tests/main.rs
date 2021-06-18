@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #![cfg(test)]
+#![allow(dead_code)]
 
 #[macro_use]
 extern crate lazy_static;

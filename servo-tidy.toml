@@ -52,6 +52,9 @@ packages = [
   "petgraph",
   "ron",
   "wayland-sys",
+  "rustc_version",
+  "semver",
+  "semver-parser",
 
   # https://github.com/servo/servo/issues/26933
   "futures",

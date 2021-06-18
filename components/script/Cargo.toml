@@ -85,7 +85,6 @@ phf = "0.8"
 pixels = { path = "../pixels" }
 profile_traits = { path = "../profile_traits" }
 ref_filter_map = "1.0.1"
-ref_slice = "1.0"
 regex = "1.1"
 script_layout_interface = { path = "../script_layout_interface" }
 script_plugins = { path = "../script_plugins" }

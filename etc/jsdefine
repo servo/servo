@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Handy tool for extracting #defines from jsapi.h.  For example:
 #     ./jsdefine %x JSCLASS_GLOBAL_FLAGS
