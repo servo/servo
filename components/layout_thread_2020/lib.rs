@@ -1212,7 +1212,8 @@ impl LayoutThread {
                         process_resolved_font_style_query(node, property, value);
                 },
                 &QueryMsg::OffsetParentQuery(node) => {
-                    rw_data.offset_parent_response = process_offset_parent_query(node);
+                    rw_data.offset_parent_response =
+                        process_offset_parent_query(node, self.fragment_tree.borrow().clone());
                 },
                 &QueryMsg::StyleQuery => {},
                 &QueryMsg::NodesFromPointQuery(client_point, ref reflow_goal) => {
