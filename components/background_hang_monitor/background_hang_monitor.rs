@@ -103,7 +103,7 @@ impl BackgroundHangMonitorClone for HangMonitorRegister {
 }
 
 /// Messages sent from monitored components to the monitor.
-pub enum MonitoredComponentMsg {
+enum MonitoredComponentMsg {
     /// Register component for monitoring,
     Register(
         Box<dyn Sampler>,
@@ -123,7 +123,7 @@ pub enum MonitoredComponentMsg {
 /// A wrapper around a sender to the monitor,
 /// which will send the Id of the monitored component along with each message,
 /// and keep track of whether the monitor is still listening on the other end.
-pub struct BackgroundHangMonitorChan {
+struct BackgroundHangMonitorChan {
     sender: Sender<(MonitoredComponentId, MonitoredComponentMsg)>,
     component_id: MonitoredComponentId,
     disconnected: Cell<bool>,
@@ -131,7 +131,7 @@ pub struct BackgroundHangMonitorChan {
 }
 
 impl BackgroundHangMonitorChan {
-    pub fn new(
+    fn new(
         sender: Sender<(MonitoredComponentId, MonitoredComponentMsg)>,
         component_id: MonitoredComponentId,
         monitoring_enabled: bool,
@@ -144,7 +144,7 @@ impl BackgroundHangMonitorChan {
         }
     }
 
-    pub fn send(&self, msg: MonitoredComponentMsg) {
+    fn send(&self, msg: MonitoredComponentMsg) {
         if self.disconnected.get() {
             return;
         }
@@ -188,7 +188,7 @@ struct MonitoredComponent {
 
 struct Sample(MonitoredComponentId, Instant, NativeStack);
 
-pub struct BackgroundHangMonitorWorker {
+struct BackgroundHangMonitorWorker {
     component_names: HashMap<MonitoredComponentId, String>,
     monitored_components: HashMap<MonitoredComponentId, MonitoredComponent>,
     constellation_chan: IpcSender<HangMonitorAlert>,
@@ -204,7 +204,7 @@ pub struct BackgroundHangMonitorWorker {
 }
 
 impl BackgroundHangMonitorWorker {
-    pub fn new(
+    fn new(
         constellation_chan: IpcSender<HangMonitorAlert>,
         control_port: IpcReceiver<BackgroundHangMonitorControlMsg>,
         port: Receiver<(MonitoredComponentId, MonitoredComponentMsg)>,
@@ -268,7 +268,7 @@ impl BackgroundHangMonitorWorker {
             .send(HangMonitorAlert::Profile(bytes));
     }
 
-    pub fn run(&mut self) -> bool {
+    fn run(&mut self) -> bool {
         let tick = if let Some(duration) = self.sampling_duration {
             let duration = duration
                 .checked_sub(Instant::now() - self.last_sample)
