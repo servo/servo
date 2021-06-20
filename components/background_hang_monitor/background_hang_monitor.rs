@@ -44,6 +44,11 @@ impl HangMonitorRegister {
                 while monitor.run() {
                     // Monitoring until all senders have been dropped...
                 }
+
+                // Suppress `signal_to_exit`
+                for (_, mut component) in monitor.monitored_components.drain() {
+                    component.exit_signal.release();
+                }
             })
             .expect("Couldn't start BHM worker.");
         Box::new(HangMonitorRegister {
@@ -85,6 +90,15 @@ impl BackgroundHangMonitorRegister for HangMonitorRegister {
         #[cfg(any(target_os = "android", target_arch = "arm", target_arch = "aarch64"))]
         let sampler = crate::sampler::DummySampler::new();
 
+        // There's a race condition between the reception of
+        // `BackgroundHangMonitorControlMsg::Exit` and
+        // `MonitoredComponentMsg::Register`. When the worker receives `Exit`,
+        // it stops receiving messages, and any remaining messages (including
+        // the `MonitoredComponentMsg::Register` we sent) in the channel are
+        // dropped. Wrapping `exit_signal` with this RAII wrapper ensures the
+        // exit signal is delivered even in such cases.
+        let exit_signal = SignalToExitOnDrop(exit_signal);
+
         bhm_chan.send(MonitoredComponentMsg::Register(
             sampler,
             thread::current().name().map(str::to_owned),
@@ -110,7 +124,7 @@ enum MonitoredComponentMsg {
         Option<String>,
         Duration,
         Duration,
-        Option<Box<dyn BackgroundHangMonitorExitSignal>>,
+        SignalToExitOnDrop,
     ),
     /// Unregister component for monitoring.
     Unregister,
@@ -174,6 +188,33 @@ impl BackgroundHangMonitor for BackgroundHangMonitorChan {
     }
 }
 
+/// Wraps [`BackgroundHangMonitorExitSignal`] and calls `signal_to_exit` when
+/// dropped.
+struct SignalToExitOnDrop(Option<Box<dyn BackgroundHangMonitorExitSignal>>);
+
+impl SignalToExitOnDrop {
+    /// Call `BackgroundHangMonitorExitSignal::signal_to_exit` now.
+    fn signal_to_exit(&mut self) {
+        if let Some(signal) = self.0.take() {
+            signal.signal_to_exit();
+        }
+    }
+
+    /// Disassociate `BackgroundHangMonitorExitSignal` from itself, preventing
+    /// `BackgroundHangMonitorExitSignal::signal_to_exit` from being called in
+    /// the future.
+    fn release(&mut self) {
+        self.0 = None;
+    }
+}
+
+impl Drop for SignalToExitOnDrop {
+    #[inline]
+    fn drop(&mut self) {
+        self.signal_to_exit();
+    }
+}
+
 struct MonitoredComponent {
     sampler: Box<dyn Sampler>,
     last_activity: Instant,
@@ -183,7 +224,7 @@ struct MonitoredComponent {
     sent_transient_alert: bool,
     sent_permanent_alert: bool,
     is_waiting: bool,
-    exit_signal: Option<Box<dyn BackgroundHangMonitorExitSignal>>,
+    exit_signal: SignalToExitOnDrop,
 }
 
 struct Sample(MonitoredComponentId, Instant, NativeStack);
@@ -306,10 +347,8 @@ impl BackgroundHangMonitorWorker {
                         return true;
                     },
                     Ok(BackgroundHangMonitorControlMsg::Exit(sender)) => {
-                        for component in self.monitored_components.values() {
-                            if let Some(signal) = component.exit_signal.as_ref() {
-                                signal.signal_to_exit();
-                            }
+                        for component in self.monitored_components.values_mut() {
+                            component.exit_signal.signal_to_exit();
                         }
 
                         // Confirm exit with to the constellation.
@@ -379,10 +418,13 @@ impl BackgroundHangMonitorWorker {
                 );
             },
             (component_id, MonitoredComponentMsg::Unregister) => {
-                let _ = self
+                let (_, mut component) = self
                     .monitored_components
                     .remove_entry(&component_id)
                     .expect("Received Unregister for an unknown component");
+
+                // Prevent `signal_to_exit` from being called
+                component.exit_signal.release();
             },
             (component_id, MonitoredComponentMsg::NotifyActivity(annotation)) => {
                 let component = self

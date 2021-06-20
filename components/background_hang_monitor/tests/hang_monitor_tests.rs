@@ -164,10 +164,45 @@ fn test_hang_monitoring_unregister() {
     assert!(background_hang_monitor_receiver.try_recv().is_err());
 }
 
+// Perform two certain steps in `test_hang_monitoring_exit_signal_inner` in
+// different orders to check for the race condition that
+// caused <https://github.com/servo/servo/issues/28270> and
+// <https://github.com/servo/servo/issues/27191>.
 #[test]
-// https://github.com/servo/servo/issues/28270
-#[cfg(not(any(target_os = "windows", target_os = "macos")))]
-fn test_hang_monitoring_exit_signal() {
+fn test_hang_monitoring_exit_signal1() {
+    test_hang_monitoring_exit_signal_inner(|e1, e2| {
+        e1();
+        thread::sleep(Duration::from_millis(100));
+        e2();
+    });
+}
+
+#[test]
+fn test_hang_monitoring_exit_signal2() {
+    test_hang_monitoring_exit_signal_inner(|e1, e2| {
+        e1();
+        e2();
+    });
+}
+
+#[test]
+fn test_hang_monitoring_exit_signal3() {
+    test_hang_monitoring_exit_signal_inner(|e1, e2| {
+        e2();
+        e1();
+    });
+}
+
+#[test]
+fn test_hang_monitoring_exit_signal4() {
+    test_hang_monitoring_exit_signal_inner(|e1, e2| {
+        e2();
+        thread::sleep(Duration::from_millis(100));
+        e1();
+    });
+}
+
+fn test_hang_monitoring_exit_signal_inner(op_order: fn(&mut dyn FnMut(), &mut dyn FnMut())) {
     let _lock = SERIAL.lock().unwrap();
 
     let (background_hang_monitor_ipc_sender, _background_hang_monitor_receiver) =
@@ -185,9 +220,9 @@ fn test_hang_monitoring_exit_signal() {
     }
 
     let closing = Arc::new(AtomicBool::new(false));
-    let signal = BHMExitSignal {
+    let mut signal = Some(Box::new(BHMExitSignal {
         closing: closing.clone(),
-    };
+    }));
 
     // Init a worker, without active monitoring.
     let background_hang_monitor_register = HangMonitorRegister::init(
@@ -195,26 +230,38 @@ fn test_hang_monitoring_exit_signal() {
         control_receiver,
         false,
     );
-    let _background_hang_monitor = background_hang_monitor_register.register_component(
-        MonitoredComponentId(TEST_PIPELINE_ID, MonitoredComponentType::Script),
-        Duration::from_millis(10),
-        Duration::from_millis(1000),
-        Some(Box::new(signal)),
+
+    let mut background_hang_monitor = None;
+    let (exit_sender, exit_receiver) = ipc::channel().expect("Failed to create IPC channel!");
+    let mut exit_sender = Some(exit_sender);
+
+    // `op_order` determines the order in which these two closures are
+    // executed.
+    op_order(
+        &mut || {
+            // Register a component.
+            background_hang_monitor = Some(background_hang_monitor_register.register_component(
+                MonitoredComponentId(TEST_PIPELINE_ID, MonitoredComponentType::Script),
+                Duration::from_millis(10),
+                Duration::from_millis(1000),
+                Some(signal.take().unwrap()),
+            ));
+        },
+        &mut || {
+            // Send the exit message.
+            control_sender
+                .send(BackgroundHangMonitorControlMsg::Exit(
+                    exit_sender.take().unwrap(),
+                ))
+                .unwrap();
+        },
     );
 
-    let (exit_sender, exit_receiver) = ipc::channel().expect("Failed to create IPC channel!");
+    // Assert we receive a confirmation back.
+    assert!(exit_receiver.recv().is_ok());
 
-    // Send the exit message.
-    if control_sender
-        .send(BackgroundHangMonitorControlMsg::Exit(exit_sender))
-        .is_ok()
-    {
-        // Assert we receive a confirmation back.
-        assert!(exit_receiver.recv().is_ok());
-
-        // Assert we get the exit signal.
-        while !closing.load(Ordering::SeqCst) {
-            thread::sleep(Duration::from_millis(10));
-        }
+    // Assert we get the exit signal.
+    while !closing.load(Ordering::SeqCst) {
+        thread::sleep(Duration::from_millis(10));
     }
 }
