@@ -27,6 +27,7 @@ lazy_static! {
 }
 
 #[test]
+#[cfg(not("linux"))]
 fn test_hang_monitoring() {
     let _lock = SERIAL.lock().unwrap();
 
@@ -130,7 +131,7 @@ fn test_hang_monitoring() {
 
 #[test]
 // https://github.com/servo/servo/issues/28270
-#[cfg(not(any(target_os = "windows", target_os = "macos")))]
+#[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
 fn test_hang_monitoring_unregister() {
     let _lock = SERIAL.lock().unwrap();
 
@@ -166,7 +167,7 @@ fn test_hang_monitoring_unregister() {
 
 #[test]
 // https://github.com/servo/servo/issues/28270
-#[cfg(not(any(target_os = "windows", target_os = "macos")))]
+#[cfg(not(any(target_os = "windows", target_os = "macos", "linux")))]
 fn test_hang_monitoring_exit_signal() {
     let _lock = SERIAL.lock().unwrap();
 
