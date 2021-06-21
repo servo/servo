@@ -110,6 +110,7 @@ if __name__ == '__main__':
         import subprocess
         from shlex import quote
         mach_dir = os.path.abspath(os.path.dirname(__file__))
+        print('NOTE: Entering nix-shell etc/shell.nix')
         try:
             # sys argv already contains the ./mach part, so we just need to pass it as-is
             subprocess.Popen(['nix-shell', mach_dir + '/etc/shell.nix', '--run', ' '.join(map(quote, sys.argv))]).wait()

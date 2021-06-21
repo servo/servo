@@ -400,8 +400,12 @@ def bootstrap(context, force=False, specific=None):
         distrib, version = get_linux_distribution()
 
         if distrib.lower() == 'nixos':
-            print('NixOS does not need bootstrap')
-            print('just run ./mach build')
+            print('NixOS does not need bootstrap, it will automatically enter a nix-shell')
+            print('Just run ./mach build')
+            print('')
+            print('You will need to run a nix-shell if you are trying to run any of the built binaries')
+            print('To enter the nix-shell manually use:')
+            print('  $ nix-shell etc/shell.nix')
             return
 
         context.distro = distrib
