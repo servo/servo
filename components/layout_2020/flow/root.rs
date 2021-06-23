@@ -437,17 +437,17 @@ impl FragmentTree {
 
     pub(crate) fn find<T>(
         &self,
-        mut process_func: impl FnMut(&Fragment, &PhysicalRect<Length>) -> Option<T>,
+        mut process_func: impl FnMut(&Fragment, usize, &PhysicalRect<Length>) -> Option<T>,
     ) -> Option<T> {
         self.root_fragments.iter().find_map(|child| {
             child
                 .borrow()
-                .find(&self.initial_containing_block, &mut process_func)
+                .find(&self.initial_containing_block, 0, &mut process_func)
         })
     }
 
     pub fn remove_nodes_in_fragment_tree_from_set(&self, set: &mut FxHashSet<AnimationSetKey>) {
-        self.find(|fragment, _| {
+        self.find(|fragment, _, _| {
             let (node, pseudo) = match fragment.tag()? {
                 Tag::Node(node) => (node, None),
                 Tag::BeforePseudo(node) => (node, Some(PseudoElement::Before)),
@@ -461,7 +461,7 @@ impl FragmentTree {
     pub fn get_content_box_for_node(&self, requested_node: OpaqueNode) -> Rect<Au> {
         let mut bounding_box = PhysicalRect::zero();
         let tag_to_find = Tag::Node(requested_node);
-        self.find(|fragment, containing_block| {
+        self.find(|fragment, _, containing_block| {
             if fragment.tag() != Some(tag_to_find) {
                 return None::<()>;
             }
@@ -497,7 +497,7 @@ impl FragmentTree {
     }
 
     pub fn get_border_dimensions_for_node(&self, requested_node: OpaqueNode) -> Rect<i32> {
-        self.find(|fragment, containing_block| {
+        self.find(|fragment, _, containing_block| {
             let (style, padding_rect) = match fragment {
                 Fragment::Box(fragment) if fragment.tag.node() == requested_node => {
                     (&fragment.style, fragment.padding_rect())

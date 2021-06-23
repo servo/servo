@@ -299,7 +299,7 @@ pub fn process_resolved_style_request<'dom>(
         None => return computed_style(),
     };
     fragment_tree
-        .find(|fragment, containing_block| {
+        .find(|fragment, _, containing_block| {
             let box_fragment = match fragment {
                 Fragment::Box(ref box_fragment) if box_fragment.tag == tag_to_find => box_fragment,
                 _ => return None,
@@ -375,8 +375,205 @@ pub fn process_resolved_style_request_for_unstyled_node<'dom>(
     style.computed_value_to_string(PropertyDeclarationId::Longhand(longhand_id))
 }
 
-pub fn process_offset_parent_query(_requested_node: OpaqueNode) -> OffsetParentResponse {
-    OffsetParentResponse::empty()
+pub fn process_offset_parent_query(
+    node: OpaqueNode,
+    fragment_tree: Option<Arc<FragmentTree>>,
+) -> OffsetParentResponse {
+    process_offset_parent_query_inner(node, fragment_tree)
+        .unwrap_or_else(OffsetParentResponse::empty)
+}
+
+#[inline]
+fn process_offset_parent_query_inner(
+    node: OpaqueNode,
+    fragment_tree: Option<Arc<FragmentTree>>,
+) -> Option<OffsetParentResponse> {
+    let fragment_tree = fragment_tree?;
+
+    struct NodeOffsetBoxInfo {
+        border_box: Rect<Au>,
+        offset_parent_node_address: Option<OpaqueNode>,
+    }
+
+    // https://www.w3.org/TR/2016/WD-cssom-view-1-20160317/#extensions-to-the-htmlelement-interface
+    let mut parent_node_addresses = Vec::new();
+    let node_offset_box = fragment_tree.find(|fragment, level, containing_block| {
+        // FIXME: Is there a less fragile way of checking whether this
+        // fragment is the body element, rather than just checking that
+        // it's at level 1 (below the root node)?
+        let is_body_element = level == 1;
+
+        if fragment.tag() == Some(Tag::Node(node)) {
+            // Only consider the first fragment of the node found as per a
+            // possible interpretation of the specification: "[...] return the
+            // y-coordinate of the top border edge of the first CSS layout box
+            // associated with the element [...]"
+            //
+            // FIXME: Browsers implement this all differently (e.g., [1]) -
+            // Firefox does returns the union of all layout elements of some
+            // sort. Chrome returns the first fragment for a block element (the
+            // same as ours) or the union of all associated fragments in the
+            // first containing block fragment for an inline element. We could
+            // implement Chrome's behavior, but our fragment tree currently
+            // provides insufficient information.
+            //
+            // [1]: https://github.com/w3c/csswg-drafts/issues/4541
+            let fragment_relative_rect = match fragment {
+                Fragment::Box(fragment) => fragment
+                    .border_rect()
+                    .to_physical(fragment.style.writing_mode, &containing_block),
+                Fragment::Text(fragment) => fragment
+                    .rect
+                    .to_physical(fragment.parent_style.writing_mode, &containing_block),
+                Fragment::AbsoluteOrFixedPositioned(_) |
+                Fragment::Image(_) |
+                Fragment::Anonymous(_) => unreachable!(),
+            };
+            let border_box = fragment_relative_rect.translate(containing_block.origin.to_vector());
+
+            let mut border_box = Rect::new(
+                Point2D::new(
+                    Au::from_f32_px(border_box.origin.x.px()),
+                    Au::from_f32_px(border_box.origin.y.px()),
+                ),
+                Size2D::new(
+                    Au::from_f32_px(border_box.size.width.px()),
+                    Au::from_f32_px(border_box.size.height.px()),
+                ),
+            );
+
+            // "If any of the following holds true return null and terminate
+            // this algorithm: [...] The element’s computed value of the
+            // `position` property is `fixed`."
+            let is_fixed = match fragment {
+                Fragment::Box(fragment) if fragment.style.get_box().position == Position::Fixed => {
+                    true
+                },
+                _ => false,
+            };
+
+            if is_body_element {
+                // "If the element is the HTML body element or [...] return zero
+                // and terminate this algorithm."
+                border_box.origin = Point2D::zero();
+            }
+
+            let offset_parent_node_address = if is_fixed {
+                None
+            } else {
+                // Find the nearest ancestor element eligible as `offsetParent`.
+                parent_node_addresses[..level]
+                    .iter()
+                    .rev()
+                    .cloned()
+                    .find_map(std::convert::identity)
+            };
+
+            Some(NodeOffsetBoxInfo {
+                border_box,
+                offset_parent_node_address,
+            })
+        } else {
+            // Record the paths of the nodes being traversed.
+            let parent_node_address = match fragment {
+                Fragment::Box(fragment) => {
+                    let is_eligible_parent =
+                        match (is_body_element, fragment.style.get_box().position) {
+                            // Spec says the element is eligible as `offsetParent` if any of
+                            // these are true:
+                            //  1) Is the body element
+                            //  2) Is static position *and* is a table or table cell
+                            //  3) Is not static position
+                            // TODO: Handle case 2
+                            (true, _) |
+                            (false, Position::Absolute) |
+                            (false, Position::Relative) |
+                            (false, Position::Fixed) => true,
+
+                            // Otherwise, it's not a valid parent
+                            (false, Position::Static) => false,
+                        };
+
+                    if let Tag::Node(node_address) = fragment.tag {
+                        is_eligible_parent.then(|| node_address)
+                    } else {
+                        None
+                    }
+                },
+                Fragment::AbsoluteOrFixedPositioned(_) |
+                Fragment::Text(_) |
+                Fragment::Image(_) |
+                Fragment::Anonymous(_) => None,
+            };
+
+            while parent_node_addresses.len() <= level {
+                parent_node_addresses.push(None);
+            }
+            parent_node_addresses[level] = parent_node_address;
+            None
+        }
+    });
+
+    // Bail out if the element doesn't have an associated fragment.
+    // "If any of the following holds true return null and terminate this
+    // algorithm: [...] The element does not have an associated CSS layout box."
+    // (`offsetParent`) "If the element is the HTML body element [...] return
+    // zero and terminate this algorithm." (others)
+    let node_offset_box = node_offset_box?;
+
+    let offset_parent_padding_box_corner = node_offset_box
+        .offset_parent_node_address
+        .map(|offset_parent_node_address| {
+            // Find the top and left padding edges of "the first CSS layout box
+            // associated with the `offsetParent` of the element".
+            //
+            // Since we saw `offset_parent_node_address` once, we should be able
+            // to find it again.
+            fragment_tree
+                .find(|fragment, _, containing_block| {
+                    match fragment {
+                        Fragment::Box(fragment)
+                            if fragment.tag == Tag::Node(offset_parent_node_address) =>
+                        {
+                            // Again, take the *first* associated CSS layout box.
+                            let padding_box_corner = fragment
+                                .padding_rect()
+                                .to_physical(fragment.style.writing_mode, &containing_block)
+                                .origin
+                                .to_vector() +
+                                containing_block.origin.to_vector();
+                            let padding_box_corner = Vector2D::new(
+                                Au::from_f32_px(padding_box_corner.x.px()),
+                                Au::from_f32_px(padding_box_corner.y.px()),
+                            );
+                            Some(padding_box_corner)
+                        }
+                        Fragment::AbsoluteOrFixedPositioned(_) |
+                        Fragment::Box(_) |
+                        Fragment::Text(_) |
+                        Fragment::Image(_) |
+                        Fragment::Anonymous(_) => None,
+                    }
+                })
+                .unwrap()
+        })
+        // "If the offsetParent of the element is null," subtract zero in the
+        // following step.
+        .unwrap_or(Vector2D::zero());
+
+    Some(OffsetParentResponse {
+        node_address: node_offset_box.offset_parent_node_address.map(Into::into),
+        // "Return the result of subtracting the x-coordinate of the left
+        // padding edge of the first CSS layout box associated with the
+        // `offsetParent` of the element from the x-coordinate of the left
+        // border edge of the first CSS layout box associated with the element,
+        // relative to the initial containing block origin, ignoring any
+        // transforms that apply to the element and its ancestors." (and vice
+        // versa for the top border edge)
+        rect: node_offset_box
+            .border_box
+            .translate(-offset_parent_padding_box_corner),
+    })
 }
 
 // https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute
