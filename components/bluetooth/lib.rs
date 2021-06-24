@@ -209,8 +209,8 @@ impl BluetoothManager {
         embedder_proxy: EmbedderProxy,
     ) -> BluetoothManager {
         BluetoothManager {
-            receiver: receiver,
-            adapter: adapter,
+            receiver,
+            adapter,
             address_to_id: HashMap::new(),
             service_to_device: HashMap::new(),
             characteristic_to_service: HashMap::new(),
@@ -220,7 +220,7 @@ impl BluetoothManager {
             cached_characteristics: HashMap::new(),
             cached_descriptors: HashMap::new(),
             allowed_services: HashMap::new(),
-            embedder_proxy: embedder_proxy,
+            embedder_proxy,
         }
     }
 
