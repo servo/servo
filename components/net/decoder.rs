@@ -40,6 +40,7 @@ use std::fmt;
 use std::io::{self, Read};
 use std::mem;
 
+#[derive(Debug)]
 pub enum Error {
     Io(io::Error),
     Hyper(hyper::error::Error),
@@ -66,7 +67,7 @@ pub struct Decoder {
     inner: Inner,
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 enum DecoderType {
     Gzip,
     Brotli,
@@ -313,6 +314,7 @@ pub struct ReadableChunks<S> {
     stream: S,
 }
 
+#[derive(Debug)]
 enum ReadState {
     /// A chunk is ready to be read from.
     Ready(Chunk),
@@ -322,6 +324,7 @@ enum ReadState {
     Eof,
 }
 
+#[derive(Debug)]
 enum StreamState {
     /// More bytes can be read from the stream.
     HasMore,
@@ -330,6 +333,7 @@ enum StreamState {
 }
 
 /// A buffering reader that ensures `Read`s return at least a few bytes.
+#[derive(Debug)]
 struct Peeked<R> {
     state: PeekedState,
     peeked_buf: [u8; 10],
@@ -337,6 +341,7 @@ struct Peeked<R> {
     inner: R,
 }
 
+#[derive(Debug)]
 enum PeekedState {
     /// The internal buffer hasn't filled yet.
     NotReady,

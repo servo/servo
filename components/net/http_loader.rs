@@ -82,6 +82,7 @@ pub enum HttpCacheEntryState {
     PendingStore(usize),
 }
 
+#[derive(Debug)]
 pub struct HttpState {
     pub hsts_list: RwLock<HstsList>,
     pub cookie_jar: RwLock<CookieStorage>,

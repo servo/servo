@@ -2,9 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::fmt;
+
 use mime::{self, Mime};
 use net_traits::LoadContext;
 
+#[derive(Debug)]
 pub struct MimeClassifier {
     image_classifier: GroupedClassifier,
     audio_video_classifier: GroupedClassifier,
@@ -16,6 +19,7 @@ pub struct MimeClassifier {
     font_classifier: GroupedClassifier,
 }
 
+#[derive(Debug)]
 pub enum MediaType {
     Xml,
     Html,
@@ -23,6 +27,7 @@ pub enum MediaType {
     Image,
 }
 
+#[derive(Debug)]
 pub enum ApacheBugFlag {
     On,
     Off,
@@ -43,7 +48,7 @@ impl ApacheBugFlag {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum NoSniffFlag {
     On,
     Off,
@@ -299,6 +304,7 @@ impl<'a, T: Iterator<Item = &'a u8> + Clone> Matches for T {
     }
 }
 
+#[derive(Debug)]
 struct ByteMatcher {
     pattern: &'static [u8],
     mask: &'static [u8],
@@ -424,6 +430,7 @@ impl MIMEChecker for Mp4Matcher {
     }
 }
 
+#[derive(Debug)]
 struct BinaryOrPlaintextClassifier;
 
 impl BinaryOrPlaintextClassifier {
@@ -457,6 +464,13 @@ impl MIMEChecker for BinaryOrPlaintextClassifier {
 struct GroupedClassifier {
     byte_matchers: Vec<Box<dyn MIMEChecker + Send + Sync>>,
 }
+
+impl fmt::Debug for GroupedClassifier {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("GroupedClassifier").finish_non_exhaustive()
+    }
+}
+
 impl GroupedClassifier {
     fn image_classifer() -> GroupedClassifier {
         GroupedClassifier {
@@ -544,6 +558,7 @@ impl GroupedClassifier {
         }
     }
 }
+
 impl MIMEChecker for GroupedClassifier {
     fn classify(&self, data: &[u8]) -> Option<Mime> {
         self.byte_matchers
@@ -560,6 +575,7 @@ impl MIMEChecker for GroupedClassifier {
     }
 }
 
+#[derive(Debug)]
 enum Match {
     Start,
     DidNotMatch,
@@ -597,7 +613,9 @@ where
     }
 }
 
+#[derive(Debug)]
 struct FeedsClassifier;
+
 impl FeedsClassifier {
     // Implements sniffing for mislabeled feeds (https://mimesniff.spec.whatwg.org/#sniffing-a-mislabeled-feed)
     fn classify_impl(&self, data: &[u8]) -> Option<Mime> {

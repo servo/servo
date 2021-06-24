@@ -90,6 +90,14 @@ impl Clone for EmbedderProxy {
     }
 }
 
+impl Debug for EmbedderProxy {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("EmbedderProxy")
+            .field("sender", &self.sender)
+            .finish_non_exhaustive()
+    }
+}
+
 /// The port that the embedder receives messages on.
 pub struct EmbedderReceiver {
     pub receiver: Receiver<(Option<TopLevelBrowsingContextId>, EmbedderMsg)>,
@@ -113,7 +121,7 @@ pub enum ContextMenuResult {
     Selected(usize),
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum PromptDefinition {
     /// Show a message.
     Alert(String, IpcSender<()>),
@@ -125,7 +133,7 @@ pub enum PromptDefinition {
     Input(String, String, IpcSender<Option<String>>),
 }
 
-#[derive(Deserialize, PartialEq, Serialize)]
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
 pub enum PromptOrigin {
     /// Prompt is triggered from content (window.prompt/alert/confirm/…).
     /// Prompt message is unknown.
@@ -134,7 +142,7 @@ pub enum PromptOrigin {
     Trusted,
 }
 
-#[derive(Deserialize, PartialEq, Serialize)]
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
 pub enum PromptResult {
     /// Prompt was closed by clicking on the primary button (ok/yes)
     Primary,

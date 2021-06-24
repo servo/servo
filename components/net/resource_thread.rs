@@ -465,6 +465,7 @@ pub struct CoreResourceManager {
 }
 
 /// The state of the thread-pool used by CoreResource.
+#[derive(Debug)]
 struct ThreadPoolState {
     /// The number of active workers.
     active_workers: u32,
@@ -507,6 +508,7 @@ impl ThreadPoolState {
 }
 
 /// Threadpool used by Fetch and file operations.
+#[derive(Debug)]
 pub struct CoreResourceThreadPool {
     pool: rayon::ThreadPool,
     state: Arc<Mutex<ThreadPoolState>>,

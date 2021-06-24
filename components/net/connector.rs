@@ -35,7 +35,7 @@ const SIGNATURE_ALGORITHMS: &'static str = concat!(
     "RSA+SHA512:RSA+SHA384:RSA+SHA256"
 );
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ConnectionCerts {
     certs: Arc<Mutex<HashMap<String, (Vec<u8>, u32)>>>,
 }
@@ -97,7 +97,7 @@ impl Connect for HttpConnector {
 pub type Connector = HttpsConnector<HttpConnector>;
 pub type TlsConfig = SslConnectorBuilder;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ExtraCerts(Arc<Mutex<Vec<Vec<u8>>>>);
 
 impl ExtraCerts {

@@ -958,7 +958,7 @@ impl MallocSizeOf for hyper::StatusCode {
 
 /// Measurable that defers to inner value and used to verify MallocSizeOf implementation in a
 /// struct.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Measurable<T: MallocSizeOf>(pub T);
 
 impl<T: MallocSizeOf> Deref for Measurable<T> {

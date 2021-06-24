@@ -34,6 +34,7 @@ use uuid::Uuid;
 pub const FILE_CHUNK_SIZE: usize = 32768; //32 KB
 
 /// FileManagerStore's entry
+#[derive(Debug)]
 struct FileStoreEntry {
     /// Origin of the entry's "creator"
     origin: FileOrigin,
@@ -53,7 +54,7 @@ struct FileStoreEntry {
     outstanding_tokens: HashSet<Uuid>,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct FileMetaData {
     path: PathBuf,
     /// Modified time in UNIX Epoch format
@@ -62,7 +63,7 @@ struct FileMetaData {
 }
 
 /// File backend implementation
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 enum FileImpl {
     /// Metadata of on-disk file
     MetaDataOnly(FileMetaData),
@@ -73,7 +74,7 @@ enum FileImpl {
     Sliced(Uuid, RelativePos),
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct FileManager {
     embedder_proxy: EmbedderProxy,
     store: Arc<FileManagerStore>,
@@ -389,6 +390,7 @@ impl FileManager {
 /// File manager's data store. It maintains a thread-safe mapping
 /// from FileID to FileStoreEntry which might have different backend implementation.
 /// Access to the content is encapsulated as methods of this struct.
+#[derive(Debug)]
 struct FileManagerStore {
     entries: RwLock<HashMap<Uuid, FileStoreEntry>>,
 }
