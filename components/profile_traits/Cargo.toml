@@ -17,5 +17,4 @@ log = "0.4"
 serde = "1.0"
 servo_config = { path = "../config" }
 signpost = { git = "https://github.com/pcwalton/signpost.git" }
-time = "0.1.12"
-
+time = "0.1.41"
