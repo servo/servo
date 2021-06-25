@@ -383,6 +383,7 @@ def get_linux_distribution():
         'debian gnu/linux',
         'fedora',
         'void',
+        'nixos',
     ]:
         raise Exception('mach bootstrap does not support %s, please file a bug' % distrib)
 
@@ -397,6 +398,15 @@ def bootstrap(context, force=False, specific=None):
         bootstrapper = windows_msvc
     elif "linux-gnu" in host_triple():
         distrib, version = get_linux_distribution()
+
+        if distrib.lower() == 'nixos':
+            print('NixOS does not need bootstrap, it will automatically enter a nix-shell')
+            print('Just run ./mach build')
+            print('')
+            print('You will need to run a nix-shell if you are trying to run any of the built binaries')
+            print('To enter the nix-shell manually use:')
+            print('  $ nix-shell etc/shell.nix')
+            return
 
         context.distro = distrib
         context.distro_version = version

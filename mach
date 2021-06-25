@@ -106,4 +106,15 @@ if __name__ == '__main__':
         orig_command_line = forking.get_command_line
         forking.get_command_line = my_get_command_line
 
-    main(sys.argv)
+    if os.path.exists('/etc/NIXOS') and not 'IN_NIX_SHELL' in os.environ: # we're on a nixOS system, need to run mach in nix-shell
+        import subprocess
+        from shlex import quote
+        mach_dir = os.path.abspath(os.path.dirname(__file__))
+        print('NOTE: Entering nix-shell etc/shell.nix')
+        try:
+            # sys argv already contains the ./mach part, so we just need to pass it as-is
+            subprocess.Popen(['nix-shell', mach_dir + '/etc/shell.nix', '--run', ' '.join(map(quote, sys.argv))]).wait()
+        except KeyboardInterrupt:
+            sys.exit(0)
+    else:
+        main(sys.argv)
