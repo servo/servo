@@ -45,7 +45,7 @@ smallbitvec = "2.3.0"
 smallvec = "1.0"
 string_cache = { version = "0.8", optional = true }
 thin-slice = "0.1.0"
-time = { version = "0.1.17", optional = true }
+time = { version = "0.1.41", optional = true }
 url = { version = "2.0", optional = true }
 uuid = { version = "0.8", features = ["v4"], optional = true }
 void = "1.0.2"
