@@ -88,7 +88,7 @@ impl FileManager {
         FileManager {
             embedder_proxy,
             store: Arc::new(FileManagerStore::new()),
-            thread_pool: pool_handle
+            thread_pool: pool_handle,
         }
     }
 
