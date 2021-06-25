@@ -217,7 +217,7 @@ struct StrictTransportSecurity {
     max_age: u64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 enum Directive {
     MaxAge(u64),
     IncludeSubdomains,

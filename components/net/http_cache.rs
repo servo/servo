@@ -32,7 +32,7 @@ use std::time::SystemTime;
 use time::{Duration, Timespec, Tm};
 
 /// The key used to differentiate requests in the cache.
-#[derive(Debug, Clone, Eq, Hash, MallocSizeOf, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
 pub struct CacheKey {
     url: ServoUrl,
 }
@@ -53,7 +53,7 @@ impl CacheKey {
 }
 
 /// A complete cached resource.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 struct CachedResource {
     request_headers: Arc<Mutex<HeaderMap>>,
     body: Arc<Mutex<ResponseBody>>,
@@ -62,7 +62,7 @@ struct CachedResource {
     data: Measurable<MeasurableCachedResource>,
 }
 
-#[derive(Debug, Clone, MallocSizeOf)]
+#[derive(Clone, Debug, MallocSizeOf)]
 struct MeasurableCachedResource {
     metadata: CachedMetadata,
     location_url: Option<Result<ServoUrl, String>>,
@@ -85,7 +85,7 @@ impl MallocSizeOf for CachedResource {
 }
 
 /// Metadata about a loaded resource, such as is obtained from HTTP headers.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 struct CachedMetadata {
     /// Headers
     pub headers: Arc<Mutex<HeaderMap>>,
@@ -93,7 +93,7 @@ struct CachedMetadata {
     pub data: Measurable<MeasurableCachedMetadata>,
 }
 
-#[derive(Debug, Clone, MallocSizeOf)]
+#[derive(Clone, Debug, MallocSizeOf)]
 struct MeasurableCachedMetadata {
     /// Final URL after redirects.
     pub final_url: ServoUrl,
@@ -123,7 +123,7 @@ pub struct CachedResponse {
 }
 
 /// A memory cache.
-#[derive(MallocSizeOf, Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub struct HttpCache {
     /// cached responses.
     entries: HashMap<CacheKey, Vec<CachedResource>>,

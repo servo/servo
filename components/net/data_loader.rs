@@ -8,7 +8,7 @@ use percent_encoding::percent_decode;
 use servo_url::ServoUrl;
 use url::Position;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Clone, Copy, Debug)]
 pub enum DecodeError {
     InvalidDataUri,
     NonBase64DataUri,

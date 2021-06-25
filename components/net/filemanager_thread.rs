@@ -54,7 +54,7 @@ struct FileStoreEntry {
     outstanding_tokens: HashSet<Uuid>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 struct FileMetaData {
     path: PathBuf,
     /// Modified time in UNIX Epoch format
@@ -63,7 +63,7 @@ struct FileMetaData {
 }
 
 /// File backend implementation
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 enum FileImpl {
     /// Metadata of on-disk file
     MetaDataOnly(FileMetaData),
@@ -74,7 +74,7 @@ enum FileImpl {
     Sliced(Uuid, RelativePos),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct FileManager {
     embedder_proxy: EmbedderProxy,
     store: Arc<FileManagerStore>,
