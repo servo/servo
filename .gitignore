@@ -41,6 +41,7 @@ capture_webrender/
 # VSCode
 .vscode
 !/.vscode/extensions.json
+!/.vscode/settings.json
 
 # Emacs
 *~
@@ -67,3 +68,6 @@ support/hololens/.vs/
 
 # Layout debugger trace files
 layout_trace*
+
+# Package managers
+etc/taskcluster/macos/Brewfile.lock.json
