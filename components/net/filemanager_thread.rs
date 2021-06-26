@@ -86,7 +86,7 @@ impl FileManager {
         pool_handle: Weak<CoreResourceThreadPool>,
     ) -> FileManager {
         FileManager {
-            embedder_proxy: embedder_proxy,
+            embedder_proxy,
             store: Arc::new(FileManagerStore::new()),
             thread_pool: pool_handle,
         }
