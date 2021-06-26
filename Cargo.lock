@@ -938,6 +938,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "cookie"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "888604f00b3db336d2af898ec3c1d5d0ddf5e6d462220f2ededc33a87ac4bbd5"
+dependencies = [
+ "time",
+]
+
+[[package]]
 name = "copyless"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2819,7 +2828,7 @@ version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3bf0fc731a638339172253834b4ba8d60a9ecbeb4c031fcfcacd25b3cdf6e6c1"
 dependencies = [
- "cookie",
+ "cookie 0.11.2",
  "headers",
  "http 0.1.21",
  "hyper",
@@ -3948,7 +3957,7 @@ dependencies = [
  "brotli",
  "bytes 0.4.12",
  "content-security-policy",
- "cookie",
+ "cookie 0.11.2",
  "crossbeam-channel 0.4.4",
  "data-url",
  "devtools_traits",
@@ -4011,7 +4020,7 @@ name = "net_traits"
 version = "0.0.1"
 dependencies = [
  "content-security-policy",
- "cookie",
+ "cookie 0.11.2",
  "embedder_traits",
  "headers",
  "http 0.1.21",
@@ -5126,7 +5135,7 @@ dependencies = [
  "canvas_traits",
  "chrono",
  "content-security-policy",
- "cookie",
+ "cookie 0.11.2",
  "crossbeam-channel 0.4.4",
  "cssparser",
  "data-url",
@@ -5270,7 +5279,7 @@ dependencies = [
  "bitflags",
  "bluetooth_traits",
  "canvas_traits",
- "cookie",
+ "cookie 0.11.2",
  "crossbeam-channel 0.4.4",
  "devtools_traits",
  "embedder_traits",
@@ -7099,12 +7108,12 @@ dependencies = [
 
 [[package]]
 name = "webdriver"
-version = "0.40.1"
+version = "0.40.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad517a7e5bb5228bee491b97f5c471b31606a42e89fda90a966d8245a4308e31"
+checksum = "e1b3d17741d40524f2f5b9040a21a78397afe2d9d399b5e75de05c2dff1d2620"
 dependencies = [
  "base64 0.10.1",
- "cookie",
+ "cookie 0.12.0",
  "http 0.1.21",
  "log",
  "regex",
@@ -7124,7 +7133,7 @@ version = "0.0.1"
 dependencies = [
  "base64 0.10.1",
  "compositing",
- "cookie",
+ "cookie 0.11.2",
  "crossbeam-channel 0.4.4",
  "euclid",
  "hyper",
