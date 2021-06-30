@@ -8,7 +8,7 @@ use crate::dom::bindings::error::{throw_dom_exception, Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::proxyhandler::fill_property_descriptor;
 use crate::dom::bindings::reflector::{DomObject, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::{DomRoot, TransplantableDomOnceCell};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::bindings::utils::{get_array_index_from_id, AsVoidPtr, WindowProxyHandler};
@@ -58,10 +58,18 @@ use std::ptr;
 use style::attr::parse_integer;
 
 #[dom_struct]
+// `dom_object(transplantable)` removes `!Untransplantable` impl.
+#[dom_object(transplantable)]
 // NOTE: the browsing context for a window is managed in two places:
 // here, in script, but also in the constellation. The constellation
 // manages the session history, which in script is accessed through
 // History objects, messaging the constellation.
+//
+// `WindowProxy` being transplantable means all references to `WindowProxy` must
+// be maintained through cross-realm compatible reference wrappers such as
+// `*TransplantableDom*`. In addition, all DOM references contained within
+// must be wrapped by `*TransplantableDom*` as well because their realms vary
+// from `WindowProxy`'s point of view.
 pub struct WindowProxy {
     /// The JS WindowProxy object.
     /// Unlike other reflectors, we mutate this field because
@@ -101,10 +109,10 @@ pub struct WindowProxy {
     is_closing: Cell<bool>,
 
     /// The containing iframe element, if this is a same-origin iframe
-    frame_element: Option<Dom<Element>>,
+    frame_element: TransplantableDomOnceCell<Element>,
 
     /// The parent browsing context's window proxy, if this is a nested browsing context
-    parent: Option<Dom<WindowProxy>>,
+    parent: TransplantableDomOnceCell<WindowProxy>,
 
     /// https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
     delaying_load_events_mode: Cell<bool>,
@@ -120,12 +128,12 @@ pub struct WindowProxy {
 }
 
 impl WindowProxy {
+    #[allow(unsafe_code)]
     pub fn new_inherited(
         browsing_context_id: BrowsingContextId,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         currently_active: Option<PipelineId>,
         frame_element: Option<&Element>,
-        parent: Option<&WindowProxy>,
         opener: Option<BrowsingContextId>,
         creator: CreatorBrowsingContextInfo,
     ) -> WindowProxy {
@@ -141,8 +149,9 @@ impl WindowProxy {
             discarded: Cell::new(false),
             disowned: Cell::new(false),
             is_closing: Cell::new(false),
-            frame_element: frame_element.map(Dom::from_ref),
-            parent: parent.map(Dom::from_ref),
+            // Safety: These fields are not set until they are pinned
+            frame_element: unsafe { TransplantableDomOnceCell::new() },
+            parent: unsafe { TransplantableDomOnceCell::new() },
             delaying_load_events_mode: Cell::new(false),
             opener,
             creator_base_url: creator.base_url,
@@ -185,7 +194,6 @@ impl WindowProxy {
                 top_level_browsing_context_id,
                 current,
                 frame_element,
-                parent,
                 opener,
                 creator,
             ));
@@ -208,6 +216,17 @@ impl WindowProxy {
                 js_proxy.get()
             );
             window_proxy.reflector.set_jsobject(js_proxy.get());
+
+            // Set the remaining fields after pinning.
+            window_proxy
+                .frame_element
+                .set(frame_element, &window_proxy.global())
+                .unwrap();
+            window_proxy
+                .parent
+                .set(parent, &window_proxy.global())
+                .unwrap();
+
             DomRoot::from_ref(&*Box::into_raw(window_proxy))
         }
     }
@@ -233,7 +252,6 @@ impl WindowProxy {
                 top_level_browsing_context_id,
                 None,
                 None,
-                parent,
                 opener,
                 creator,
             ));
@@ -270,6 +288,13 @@ impl WindowProxy {
                 js_proxy.get()
             );
             window_proxy.reflector.set_jsobject(js_proxy.get());
+
+            // Set the remaining field after pinning.
+            window_proxy
+                .parent
+                .set(parent, &window_proxy.global())
+                .unwrap();
+
             DomRoot::from_ref(&*Box::into_raw(window_proxy))
         }
     }
@@ -423,7 +448,7 @@ impl WindowProxy {
             Some(opener_browsing_context_id) => opener_browsing_context_id,
             None => return NullValue(),
         };
-        let parent_browsing_context = self.parent.as_deref();
+        let parent_browsing_context = self.parent.as_ref();
         let opener_proxy = match ScriptThread::find_window_proxy(opener_id) {
             Some(window_proxy) => window_proxy,
             None => {
@@ -593,7 +618,7 @@ impl WindowProxy {
     }
 
     pub fn frame_element(&self) -> Option<&Element> {
-        self.frame_element.as_deref()
+        self.frame_element.as_ref()
     }
 
     pub fn document(&self) -> Option<DomRoot<Document>> {
@@ -603,7 +628,7 @@ impl WindowProxy {
     }
 
     pub fn parent(&self) -> Option<&WindowProxy> {
-        self.parent.as_deref()
+        self.parent.as_ref()
     }
 
     pub fn top(&self) -> &WindowProxy {
@@ -623,6 +648,11 @@ impl WindowProxy {
             debug!("Setting window of {:p}.", self);
             let handler = CreateWrapperProxyHandler(traps);
             assert!(!handler.is_null());
+
+            // FIXME: Disable compacting GC during this operation so that
+            //        yet-to-be-rewrapped child pointers won't be traced with
+            //        an incorrect compartment. We need something like
+            //        `js::AutoDisableCompactingGC`.
 
             let cx = window.get_cx();
             let window_jsobject = window.reflector().get_jsobject();
@@ -652,6 +682,10 @@ impl WindowProxy {
             );
             rooted!(in(*cx) let new_js_proxy = JS_TransplantObject(*cx, old_js_proxy, new_js_proxy.handle()));
             debug!("Transplanted proxy is {:p}.", new_js_proxy.get());
+
+            // Re-wrap reflectors for the new realm.
+            self.frame_element.rewrap(window);
+            self.parent.rewrap(window);
 
             // Transfer ownership of this browsing context from the old window proxy to the new one.
             SetProxyReservedSlot(new_js_proxy.get(), 0, &PrivateValue(self.as_void_ptr()));

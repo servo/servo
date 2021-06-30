@@ -32,7 +32,7 @@
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomObject, Reflector, Untransplantable};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::utils::WindowProxyHandler;
@@ -1192,7 +1192,7 @@ impl<'a, T: 'static + JSTraceable> RootedVec<'a, T> {
     }
 }
 
-impl<'a, T: 'static + JSTraceable + DomObject> RootedVec<'a, Dom<T>> {
+impl<'a, T: 'static + JSTraceable + DomObject + Untransplantable> RootedVec<'a, Dom<T>> {
     /// Create a vector of items of type Dom<T> that is rooted for
     /// the lifetime of this struct
     pub fn from_iter<I>(root: &'a mut RootableVec<Dom<T>>, iter: I) -> Self
