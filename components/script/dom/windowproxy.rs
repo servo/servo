@@ -58,7 +58,8 @@ use std::ptr;
 use style::attr::parse_integer;
 
 #[dom_struct]
-// `dom_object(transplantable)` removes `!Untransplantable` impl.
+// `dom_object(transplantable)` suppress the implicit derivation of an
+// `Untransplantable` impl by `derive(DomObject)`.
 #[dom_object(transplantable)]
 // NOTE: the browsing context for a window is managed in two places:
 // here, in script, but also in the constellation. The constellation
