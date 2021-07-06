@@ -16,6 +16,10 @@ use js::glue::UncheckedUnwrapObject;
 use js::jsapi::GetWellKnownSymbol;
 use js::jsapi::HandleObject as RawHandleObject;
 use js::jsapi::{jsid, JSClass, JSClassOps};
+use js::jsapi::{
+    Compartment, CompartmentSpecifier, IsSharableCompartment, IsSystemCompartment,
+    JS_IterateCompartments, JS::CompartmentIterResult,
+};
 use js::jsapi::{JSAutoRealm, JSContext, JSFunctionSpec, JSObject, JSFUN_CONSTRUCTOR};
 use js::jsapi::{JSPropertySpec, JSString, JSTracer, JS_AtomizeAndPinString};
 use js::jsapi::{JS_GetFunctionObject, JS_NewFunction, JS_NewGlobalObject};
@@ -139,6 +143,7 @@ pub unsafe fn create_global_object(
     options.creationOptions_.traceGlobal_ = Some(trace);
     options.creationOptions_.sharedMemoryAndAtomics_ = false;
     options.creationOptions_.streams_ = true;
+    select_compartment(cx, &mut options);
 
     rval.set(JS_NewGlobalObject(
         *cx,
@@ -160,6 +165,43 @@ pub unsafe fn create_global_object(
 
     let _ac = JSAutoRealm::new(*cx, rval.get());
     JS_FireOnNewGlobalObject(*cx, rval.handle());
+}
+
+/// Choose the compartment to create a new global object in.
+fn select_compartment(cx: SafeJSContext, options: &mut RealmOptions) {
+    type Data = *mut Compartment;
+    unsafe extern "C" fn callback(
+        _cx: *mut JSContext,
+        data: *mut libc::c_void,
+        compartment: *mut Compartment,
+    ) -> CompartmentIterResult {
+        let data = data as *mut Data;
+
+        if !IsSharableCompartment(compartment) || IsSystemCompartment(compartment) {
+            return CompartmentIterResult::KeepGoing;
+        }
+
+        // Choose any sharable, non-system compartment in this context to allow
+        // same-agent documents to share JS and DOM objects.
+        *data = compartment;
+        CompartmentIterResult::Stop
+    }
+
+    let mut compartment: Data = ptr::null_mut();
+    unsafe {
+        JS_IterateCompartments(
+            *cx,
+            (&mut compartment) as *mut Data as *mut libc::c_void,
+            Some(callback),
+        );
+    }
+
+    if compartment.is_null() {
+        options.creationOptions_.compSpec_ = CompartmentSpecifier::NewCompartmentAndZone;
+    } else {
+        options.creationOptions_.compSpec_ = CompartmentSpecifier::ExistingCompartment;
+        options.creationOptions_.__bindgen_anon_1.comp_ = compartment;
+    }
 }
 
 /// Create and define the interface object of a callback interface.
