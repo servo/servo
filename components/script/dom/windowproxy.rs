@@ -637,13 +637,11 @@ impl WindowProxy {
             // The old window proxy no longer owns this browsing context.
             SetProxyReservedSlot(old_js_proxy.get(), 0, &PrivateValue(ptr::null_mut()));
 
-            // Brain transpant the window proxy.
-            // We need to do this, because the Window and WindowProxy
-            // objects need to be in the same realm.
-            // JS_TransplantObject does this by copying the contents
-            // of the old window proxy to the new window proxy, then
-            // making the old window proxy a cross-realm wrapper
-            // pointing to the new window proxy.
+            // Brain transpant the window proxy. Brain transplantation is
+            // usually done to move a window proxy between compartments, but
+            // that's not what we are doing here. We need to do this just
+            // because we want to replace the wrapper's `ProxyTraps`, but we
+            // don't want to update its identity.
             rooted!(in(*cx) let new_js_proxy = NewWindowProxy(*cx, window_jsobject, handler));
             debug!(
                 "Transplanting proxy from {:p} to {:p}.",
