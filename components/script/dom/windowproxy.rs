@@ -1040,6 +1040,8 @@ unsafe extern "C" fn get_prototype_if_ordinary(
 }
 
 static PROXY_HANDLER: ProxyTraps = ProxyTraps {
+    // TODO: These traps should change their behavior depending on
+    //       `IsPlatformObjectSameOrigin(this.[[Window]])`
     enter: None,
     getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor),
     defineProperty: Some(defineProperty),
@@ -1047,6 +1049,9 @@ static PROXY_HANDLER: ProxyTraps = ProxyTraps {
     delete_: None,
     enumerate: None,
     getPrototypeIfOrdinary: Some(get_prototype_if_ordinary),
+    getPrototype: None, // TODO: return `null` if cross origin-domain
+    setPrototype: None,
+    setImmutablePrototype: None,
     preventExtensions: None,
     isExtensible: None,
     has: Some(has),
@@ -1189,6 +1194,9 @@ static XORIGIN_PROXY_HANDLER: ProxyTraps = ProxyTraps {
     delete_: Some(delete_xorigin),
     enumerate: None,
     getPrototypeIfOrdinary: None,
+    getPrototype: None,
+    setPrototype: None,
+    setImmutablePrototype: None,
     preventExtensions: Some(preventExtensions_xorigin),
     isExtensible: None,
     has: Some(has_xorigin),
