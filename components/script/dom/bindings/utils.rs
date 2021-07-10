@@ -16,7 +16,10 @@ use crate::dom::bindings::error::{throw_dom_exception, throw_invalid_this, Error
 use crate::dom::bindings::inheritance::TopTypeId;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::trace_object;
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::windowproxy;
+use crate::realms::AlreadyInRealm;
+use crate::realms::InRealm;
 use crate::script_runtime::JSContext as SafeJSContext;
 use js::conversions::ToJSValConvertible;
 use js::glue::SetIsFrameIdCallback;
@@ -110,7 +113,7 @@ enum CrossOriginObjectType {
     CrossOriginOpaque,
 }
 
-unsafe fn identify_cross_origin_object(obj: HandleObject) -> CrossOriginObjectType {
+unsafe fn identify_cross_origin_object(obj: RawHandleObject) -> CrossOriginObjectType {
     let obj = UncheckedUnwrapObject(obj.get(), /* stopAtWindowProxy = */ 0);
     let obj_class = JS_GetClass(obj);
     let name = str::from_utf8(CStr::from_ptr((*obj_class).name).to_bytes())
@@ -123,7 +126,7 @@ unsafe fn identify_cross_origin_object(obj: HandleObject) -> CrossOriginObjectTy
     }
 }
 
-unsafe fn target_subsumes_obj(cx: *mut JSContext, obj: HandleObject) -> bool {
+unsafe fn target_subsumes_obj(cx: *mut JSContext, obj: RawHandleObject) -> bool {
     //step 1 get compartment
     let obj_c = get_object_compartment(obj.get());
     let ctx_c = get_context_compartment(cx);
@@ -166,7 +169,7 @@ pub unsafe extern "C" fn subsumes(obj: *mut JSPrincipals, other: *mut JSPrincipa
     obj_origin.same_origin_domain(&other_origin)
 }
 
-unsafe fn select_wrapper(cx: *mut JSContext, obj: HandleObject) -> *const libc::c_void {
+unsafe fn select_wrapper(cx: *mut JSContext, obj: RawHandleObject) -> *const libc::c_void {
     let security_wrapper = !target_subsumes_obj(cx, obj);
     if !security_wrapper {
         return GetCrossCompartmentWrapper();
@@ -603,7 +606,13 @@ unsafe extern "C" fn wrap(
 
 unsafe extern "C" fn throw_dom_exception_callback(cx: *mut JSContext) {
     //TODO it might not always be a SecurityError?
-    throw_dom_exception(cx, &GlobalScope::from_context(cx), Error::Security);
+    let cx = SafeJSContext::from_ptr(cx);
+    let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
+    throw_dom_exception(
+        cx,
+        &GlobalScope::from_context(*cx, InRealm::in_realm(&in_realm_proof)),
+        Error::Security,
+    );
 }
 
 unsafe extern "C" fn is_frame_id(cx: *mut JSContext, obj: *mut JSObject, id_arg: jsid) -> bool {

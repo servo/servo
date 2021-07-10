@@ -473,7 +473,7 @@ unsafe fn new_rt_and_cx_with_parent(
 
     JS_AddExtraGCRootsTracer(cx, Some(trace_rust_roots), ptr::null_mut());
 
-    JS_SetSecurityCallbacks(runtime.rt(), &SECURITY_CALLBACKS);
+    JS_SetSecurityCallbacks(cx, &SECURITY_CALLBACKS);
 
     // Needed for debug assertions about whether GC is running.
     if cfg!(debug_assertions) {
