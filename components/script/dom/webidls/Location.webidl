@@ -4,7 +4,8 @@
 
 // https://html.spec.whatwg.org/multipage/#location
 [Exposed=Window, Unforgeable] interface Location {
-  [Throws] stringifier attribute USVString href;
+  [Throws, CrossOriginWritable]
+        stringifier attribute USVString href;
   [Throws] readonly attribute USVString origin;
   [Throws]          attribute USVString protocol;
   [Throws]          attribute USVString host;
@@ -15,7 +16,8 @@
   [Throws]          attribute USVString hash;
 
   [Throws] void assign(USVString url);
-  [Throws] void replace(USVString url);
+  [Throws, CrossOriginCallable]
+           void replace(USVString url);
   [Throws] void reload();
 
   //[SameObject] readonly attribute USVString[] ancestorOrigins;
