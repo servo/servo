@@ -1,4 +1,7 @@
 #!/usr/bin/python
+
+from __future__ import print_function
+
 import os, re, os.path, glob
 
 head = re.compile( r"^(\s*</head>)", re.MULTILINE )
@@ -19,7 +22,7 @@ def process_file( infile, outfile ) :
 
 if __name__ == '__main__' :
     if (not os.getcwd().endswith('polyfill')) :
-        print "Please run from polyfill directory"
+        print("Please run from polyfill directory")
         exit( 1 )
 
     for infile in glob.glob( "../*.html" ) :

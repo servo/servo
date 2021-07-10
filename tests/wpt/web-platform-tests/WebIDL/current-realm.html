@@ -35,12 +35,26 @@
     ["createNodeIterator", document.head],
     ["createTreeWalker", document.head]].forEach(function(val) {
      test(function() {
-       var obj = self[0].document[val[0]](val[1], val[2])
+       const method = val.shift();
+       let obj = self[0].document[method](...val);
        assert_global(obj)
 
-       obj = Document.prototype[val[0]].call(self[0].document, val[1], val[2])
+       obj = Document.prototype[method].call(self[0].document, ...val);
        assert_global(obj)
      }, val[0])
+   })
+
+   ;["Request", "Response"].forEach(val => {
+     test(() => {
+       const obj = new self[0][val]("about:blank");
+       assert_global(obj);
+
+       const cloneObj = obj.clone();
+       assert_global(cloneObj);
+
+       const involvedCloneObj = self[val].prototype["clone"].call(cloneObj);
+       assert_global(cloneObj);
+     }, val)
    })
 
    // Note: these are not [NewObject] and can be cached. But across globals?
@@ -48,10 +62,11 @@
      ["getElementsByTagNameNS", null, "x"],
      ["getElementsByClassName", "x"]].forEach(function(val) {
      test(function() {
-       var obj = self[0].document[val[0]](val[1], val[2])
+       const method = val.shift();
+       const obj = self[0].document[method](...val);
        assert_global(obj)
 
-       var obj2 = Document.prototype[val[0]].call(self[0].document, val[1], val[2])
+       const obj2 = Document.prototype[method].call(self[0].document, ...val);
        assert_global(obj)
 
        assert_equals(obj, obj2) // XXX this might be controversial
@@ -62,10 +77,11 @@
      ["createDocument", null, "", null],
      ["createHTMLDocument", "x"]].forEach(function(val) {
      test(function() {
-       var obj = self[0].document.implementation[val[0]](val[1], val[2], val[3])
+       const method = val.shift();
+       let obj = self[0].document.implementation[method](...val);
        assert_global(obj)
 
-       obj = DOMImplementation.prototype[val[0]].call(self[0].document.implementation, val[1], val[2], val[3])
+       obj = DOMImplementation.prototype[method].call(self[0].document.implementation, ...val);
        assert_global(obj)
      }, val[0])
    })
@@ -74,10 +90,11 @@
      ["getNamedItem", "test"],
      ["getNamedItemNS", null, "test"]].forEach(function(val) {
      test(function() {
-       var obj = self[0].document.body.attributes[val[0]](val[1], val[2])
+       const method = val.shift();
+       const obj = self[0].document.body.attributes[method](...val);
        assert_global(obj)
 
-       var obj2 = NamedNodeMap.prototype[val[0]].call(self[0].document.body.attributes, val[1], val[2])
+       const obj2 = NamedNodeMap.prototype[method].call(self[0].document.body.attributes, ...val);
        assert_global(obj)
 
        assert_equals(obj, obj2)
@@ -110,8 +127,13 @@
      test(function() {
        var c = self[0].document.createElement("canvas"),
            obj = c.getContext(val)
-       assert_global(obj)
 
+       // WebGL might not be enabled in this environment
+       if (!obj && val === "webgl") {
+         return;
+       }
+
+       assert_global(obj)
        obj = HTMLCanvasElement.prototype.getContext.call(c, val)
        assert_global(obj)
      }, "getContext " + val)
@@ -120,12 +142,13 @@
    ;[["createImageData", 5, 5],
      ["getImageData", 5, 5, 5, 5]].forEach(function(val) {
      test(function() {
-       var c = self[0].document.createElement("canvas").getContext("2d"),
-           obj = c[val[0]](val[1], val[2], val[3], val[4]);
+       const method = val.shift();
+       const c = self[0].document.createElement("canvas").getContext("2d");
+       let obj = c[method](...val);
        assert_global(obj)
        assert_global(obj.data)
 
-       obj = CanvasRenderingContext2D.prototype[val[0]].call(c, val[1], val[2], val[3], val[4]);
+       obj = CanvasRenderingContext2D.prototype[method].call(c, ...val);
        assert_global(obj)
        assert_global(obj.data)
      }, val[0])

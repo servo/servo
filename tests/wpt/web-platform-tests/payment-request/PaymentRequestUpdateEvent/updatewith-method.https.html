@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<!-- Copyright © 2017 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<meta charset="utf-8">
+<title>Test for PaymentRequestUpdateEvent's updateWith() method</title>
+<link rel="help" href="https://w3c.github.io/browser-payment-api/#updatewith-method">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const applePay = Object.freeze({
+  supportedMethods: "https://apple.com/apple-pay",
+  data: {
+    version: 3,
+    merchantIdentifier: "merchant.com.example",
+    countryCode: "US",
+    merchantCapabilities: ["supports3DS"],
+    supportedNetworks: ["visa"],
+  }
+});
+const basicCard = Object.freeze({ supportedMethods: "basic-card" });
+const defaultMethods = Object.freeze([basicCard, applePay]);
+const defaultDetails = Object.freeze({
+  total: {
+    label: "Total",
+    amount: {
+      currency: "USD",
+      value: "1.00",
+    },
+  },
+});
+
+test(() => {
+  // Smoke test - checks target is set as expected
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  const ev = new PaymentRequestUpdateEvent("test");
+  request.dispatchEvent(ev);
+  assert_equals(ev.target, request, "The request and the target at the same");
+}, "Let target be the request which is dispatching the event.");
+
+// Github issue: https://github.com/w3c/browser-payment-api/issues/546
+test(() => {
+  const untrustedEvents = [
+    new PaymentRequestUpdateEvent("just a test"),
+    new PaymentRequestUpdateEvent("shippingaddresschange"),
+    new PaymentRequestUpdateEvent("shippingoptionchange"),
+  ].forEach(ev => {
+    assert_throws_dom(
+      "InvalidStateError",
+      () => {
+        ev.updateWith(Promise.resolve());
+      },
+      `untrusted event of type "${ev.type}" must throw "InvalidStateError"`
+    );
+  });
+}, `Calling .updateWith() with an undispatched untrusted event throws "InvalidStateError"`);
+
+// Github issue: https://github.com/w3c/browser-payment-api/issues/546
+test(() => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  const untrustedEvents = [
+    new PaymentRequestUpdateEvent("just a test"),
+    new PaymentRequestUpdateEvent("shippingaddresschange"),
+    new PaymentRequestUpdateEvent("shippingoptionchange"),
+  ].map(ev => {
+    request.dispatchEvent(ev); // set .target and dispatch flag
+    // unstrusted event.
+    assert_throws_dom(
+      "InvalidStateError",
+      () => {
+        ev.updateWith(Promise.resolve())
+      },
+      `untrusted event of type "${ev.type}" must throw "InvalidStateError"`
+    );
+  });
+}, `Calling .updateWith() with a dispatched, untrusted event, throws "InvalidStateError"`);
+
+</script>

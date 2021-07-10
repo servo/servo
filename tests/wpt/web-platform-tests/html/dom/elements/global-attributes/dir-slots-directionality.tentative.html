@@ -1,0 +1,38 @@
+<!doctype html>
+<title>HTML Test: dir=auto|rtl with slots, and direction should be RTL</title>
+<meta charset="UTF-8">
+<meta name="author" title="Miyoung Shin" href="mailto:myid.shin@igalia.com">
+<meta name="assert" content="When dir='auto', the direction is set according to
+  slot's assigned node. And the direction should be propagated to shadow" />
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-dir-attribute"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="host1"><span></span></div>
+<div id="host2" dir="rtl"></div>
+<span id="host3" dir="auto"></span>
+<div id="host4">اختبر</div>
+<div id="host5"></div>
+<script>
+let root1 = host1.attachShadow({mode:"open"});
+root1.innerHTML = '<slot dir="rtl"></slot>';
+
+let root2 = host2.attachShadow({mode:"open"});
+root2.innerHTML = '<span></span>';
+
+let root3 = host3.attachShadow({mode:"open"});
+root3.innerHTML = `اختبر`;
+
+let root4 = host4.attachShadow({mode:"open"});
+root4.innerHTML = '<span dir="auto"><slot></slot></span>';
+
+let root5 = host5.attachShadow({mode:"open"});
+  root5.innerHTML = '<span dir="auto"><slot>اختبر</slot></span>';
+
+test(() => {
+  assert_equals(getComputedStyle(host1.firstChild).direction, "rtl");
+  assert_equals(getComputedStyle(root2.querySelector("span")).direction, "rtl");
+  assert_equals(getComputedStyle(host3).direction, "rtl");
+  assert_equals(getComputedStyle(root4.querySelector("span")).direction, "rtl");
+  assert_equals(getComputedStyle(root5.querySelector("span")).direction, "rtl");
+}, 'Slots: Directionality');
+</script>

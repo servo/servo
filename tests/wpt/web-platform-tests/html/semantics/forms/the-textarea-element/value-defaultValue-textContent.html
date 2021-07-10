@@ -1,0 +1,181 @@
+<!DOCTYPE HTML>
+<title>textarea element value/defaultValue/textContent functionality</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-textarea-value">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+test(() => {
+
+  const textarea = document.createElement("textarea");
+
+  assert_equals(textarea.defaultValue, "", "defaultValue is empty string when it has no content");
+  assert_equals(textarea.value, "", "value is empty string when it has no content");
+
+}, "defaultValue and value are the empty string by default");
+
+test(() => {
+
+  const textarea = document.createElement("textarea");
+
+  textarea.textContent = "foo bar";
+  assert_equals(textarea.defaultValue, "foo bar", "the defaultValue should reflect the textContent");
+  assert_equals(textarea.value, "foo bar",
+    "changing the textContent should change the raw value, and subsequently the api value");
+
+}, "defaultValue and value are affected by setting textContent");
+
+test(() => {
+
+  const textarea = document.createElement("textarea");
+
+  textarea.textContent = "some text";
+  textarea.firstChild.nodeValue = "foo bar";
+  assert_equals(textarea.defaultValue, "foo bar", "the defaultValue should reflect the textContent");
+  assert_equals(textarea.value, "foo bar",
+    "changing the textContent should change the raw value, and subsequently the api value");
+
+}, "defaultValue and value are affected by setting nodeValue on a child text node");
+
+test(() => {
+
+  const textarea = document.createElement("textarea");
+
+  textarea.textContent = "some text";
+  textarea.firstChild.data = "foo bar";
+  assert_equals(textarea.defaultValue, "foo bar", "the defaultValue should reflect the textContent");
+  assert_equals(textarea.value, "foo bar",
+    "changing the textContent should change the raw value, and subsequently the api value");
+
+}, "defaultValue and value are affected by setting data on a child text node");
+
+test(() => {
+
+  const textarea = document.createElement("textarea");
+
+  textarea.textContent = "foo bar";
+  textarea.appendChild(document.createTextNode(" baz"));
+  assert_equals(textarea.defaultValue, "foo bar baz", "the defaultValue should reflect the textContent");
+  assert_equals(textarea.value, "foo bar baz",
+    "changing the textContent should change the raw value, and subsequently the api value");
+
+}, "defaultValue and value are affected by textContent in combination with appending a text node");
+
+test(() => {
+
+  const textarea = document.createElement("textarea");
+  textarea.textContent = "foo bar";
+
+  const frag = document.createDocumentFragment();
+  frag.appendChild(document.createTextNode(" baz"));
+  const el = document.createElement("span");
+  el.appendChild(document.createTextNode("qux?"));
+  frag.appendChild(el);
+  frag.appendChild(document.createTextNode(" fizz"));
+  textarea.appendChild(frag);
+
+  textarea.appendChild(document.createTextNode(" whee"));
+  assert_equals(textarea.defaultValue, "foo bar baz fizz whee", "the defaultValue should reflect the textContent");
+  assert_equals(textarea.value, "foo bar baz fizz whee",
+    "changing the textContent should change the raw value, and subsequently the api value");
+
+}, "defaultValue and value are affected by textContent in combination with appending a DocumentFragment");
+
+test(() => {
+
+  const textarea = document.createElement("textarea");
+  textarea.appendChild(document.createTextNode("foo bar"));
+
+  const child = document.createElement("span");
+  child.textContent = "baz";
+  textarea.appendChild(child);
+
+  assert_equals(textarea.textContent, "foo barbaz", "the textContent should have *all* the text content");
+  assert_equals(textarea.defaultValue, "foo bar", "the defaultValue should reflect the child text content");
+  assert_equals(textarea.value, "foo bar",
+    "changing the child text content should change the raw value, and subsequently the api value");
+
+}, "defaultValue and value reflect child text content, not textContent");
+
+test(() => {
+
+  const textarea = document.createElement("textarea");
+  textarea.appendChild(document.createTextNode("foo bar"));
+
+  const child = document.createElement("span");
+  child.textContent = "baz";
+  textarea.appendChild(child);
+
+  textarea.defaultValue = "foo";
+
+  assert_equals(textarea.childNodes.length, 1, "Only one child node should exist");
+  assert_equals(textarea.defaultValue, "foo", "the defaultValue should be the new text");
+  assert_equals(textarea.value, "foo", "the api value should be the new text");
+  assert_equals(textarea.textContent, "foo", "the textContent should be the new text");
+
+}, "Setting defaultValue wipes out any children, including elements (just like setting textContent)");
+
+test(() => {
+
+  const textarea = document.createElement("textarea");
+
+  textarea.textContent = "foo\r\nbar\rbaz\nqux";
+  assert_equals(textarea.defaultValue, "foo\r\nbar\rbaz\nqux", "the defaultValue should reflect the textContent");
+  assert_equals(textarea.value, "foo\nbar\nbaz\nqux", "The value property should normalize CRLF and CR to LF");
+
+}, "defaultValue and value treat CRLF differently");
+
+test(() => {
+
+  const textarea = document.createElement("textarea");
+
+  textarea.appendChild(document.createTextNode("foo\r"));
+  textarea.appendChild(document.createTextNode("\nbar\rbaz\nqux"));
+  assert_equals(textarea.defaultValue, "foo\r\nbar\rbaz\nqux", "the defaultValue should reflect the textContent");
+  assert_equals(textarea.value, "foo\nbar\nbaz\nqux", "The value property should normalize CRLF and CR to LF");
+
+}, "value normalizes CRLF even spread over multiple text nodes");
+
+test(() => {
+
+  const textarea = document.createElement("textarea");
+
+  textarea.textContent = "foo";
+  textarea.value = "baz";
+  assert_equals(textarea.defaultValue, "foo", "setting the value property should not affect the defaultValue");
+  assert_equals(textarea.textContent, "foo", "setting the value property should not affect the textContent");
+  assert_equals(textarea.value, "baz",
+    "on setting, the value property must set the element's raw & api value to the new value");
+
+  textarea.value = "foo\r\nbar\rbaz\nqux";
+  assert_equals(textarea.value, "foo\nbar\nbaz\nqux", "The API value should normalize CRLF and CR to LF");
+
+  textarea.value = null;
+  assert_equals(textarea.value, "", "setting the value property to null should result in an empty string");
+
+}, "tests for the value setter");
+
+test(() => {
+
+  const textarea = document.createElement("textarea");
+
+  textarea.defaultValue = "foo\0";
+  assert_equals(textarea.defaultValue, "foo\0", "defaultValue after setting defaultValue");
+  assert_equals(textarea.textContent, "foo\0", "textContent after setting defaultValue");
+  assert_equals(textarea.value, "foo\0", "value after setting defaultValue");
+
+  textarea.textContent = "bar\0";
+  assert_equals(textarea.defaultValue, "bar\0", "defaultValue after setting textContent");
+  assert_equals(textarea.textContent, "bar\0", "textContent after setting textContent");
+  assert_equals(textarea.value, "bar\0", "value after setting textContent");
+
+  textarea.value = "baz\0";
+  assert_equals(textarea.defaultValue, "bar\0", "defaultValue after setting value");
+  assert_equals(textarea.textContent, "bar\0", "textContent after setting value");
+  assert_equals(textarea.value, "baz\0", "value after setting value");
+
+}, "tests for U+0000 NULL");
+</script>

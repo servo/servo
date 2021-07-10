@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html><head>
+<title>Reference: fragmenting a fieldset in multicol layout</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<style>
+  * {
+    color:black; background-color:white; font:16px/1 monospace; padding:0; margin:0;
+  }
+  body { width:600px; height:600px; }
+
+  .cols { columns:3; background:grey; margin-bottom: 10px; height:80px; column-fill:auto; }
+  .c2 { column-count:2; height:120px; }
+  legend { background:black; width:100px; height:19px; }
+  p {
+    position: relative;
+    border: solid;
+    border-width: 6px 3px 10px 7px;
+    margin: 3px 10px 7px 5px;
+    background-color: lightgrey;
+  }
+  p, legend {
+    background-clip: content-box;
+    padding: 10px 7px 20px 3px;
+  }
+  p { margin-top: 25px; }
+  legend {
+    position: absolute;
+    padding: 0;
+    border: 0 solid grey;
+    border-left-width: 3px;
+    border-right-width: 7px;
+    top: -18px; left: 3px;
+  }
+  p.sized {
+    height: 86px;
+  }
+  c { display:block; background:blue; opacity:.5; height:108px; }
+  pad { display:block; height: 21px; background-color: lightgrey;}
+</style>
+</head>
+<body>
+  <div class="cols">
+    <p><legend></legend><pad></pad><c></c></p>
+  </div>
+  <div class="cols c2">
+    <p><legend></legend><pad></pad><c></c></p>
+  </div>
+  <div class="cols">
+    <p class="sized"><legend></legend><pad></pad><c style="height:98px"></c><c style="width:154px;height:10px"></c></p>
+  </div>
+  <div class="cols c2">
+    <p class="sized"><legend></legend><pad></pad><c></c></p>
+  </div>
+</body>
+</html>

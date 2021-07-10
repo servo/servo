@@ -1,0 +1,20 @@
+<!doctype html>
+<meta name="timeout" content="long">
+<title>Accept-CH Persistence test</title>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/accept-ch-test.js"></script>
+
+<script>
+// Tests that an empty accept-ch header disables client hints.
+const test_name = "empty-ch on navigation";
+verify_initial_state(echo, test_name);
+attempt_set("navigation", accept, test_name, " to non-empty first");
+attempt_set("navigation", accept_blank, test_name, " to empty second");
+verify_navigation_state(do_not_expect, test_name);
+</script>
+</body>
+</html>
+

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<title>CSS Grid: grid gutters as percentage.</title>
+<link rel="author" title="Sergio Villar" href="mailto:svillar@igalia.com"/>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#gutters"/>
+<meta name="assert" content="Check that when 'height' is indefinite, row gaps should be based on grid's 'auto' height."/>
+<link rel="stylesheet" href="/css/support/grid.css"/>
+<link rel="stylesheet" href="/css/support/width-keyword-classes.css"/>
+<link rel="stylesheet" href="/css/support/height-keyword-classes.css"/>
+<link rel="stylesheet" href="/fonts/ahem.css" type="text/css"/>
+<style>
+body { margin: 0; }
+.grid { font: 10px/1 Ahem; position: relative; }
+.widthAuto { width: auto; }
+.heightAuto { height: auto; }
+.width400 { width: 400px; }
+.width200 { width: 200px; }
+.height200 { height: 200px; }
+.height100 { height: 100px; }
+.columns100-100 { grid-template-columns: 100px 100px; }
+.rows50-50 { grid-template-rows: 50px 50px; }
+.autoRepeat { grid-template: repeat(auto-fill, 50px) / repeat(auto-fill, 100px); }
+.columnGap10Percent { grid-column-gap: 10% }
+.rowGap20Percent { grid-row-gap: 20% }
+.positioned { position: absolute; width: 100%; height: 100%; }
+</style>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script type="text/javascript">
+    setup({ explicit_done: true });
+</script>
+
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+<div id="log"></div>
+
+<p>Height is indefinite, so row gaps should be based on grid's 'auto' height. Column gaps based on a grid's 'auto' width, which will reduce the available space for tracks; however, they can grow exceeding their content's max-width.</p>
+<div class="width400">
+    <div class="grid columnGap10Percent rowGap20Percent" data-expected-width="400" data-expected-height="20">
+        <div class="firstRowFirstColumn"   data-offset-x="0"   data-offset-y="0"  data-expected-width="180" data-expected-height="10">XXX X XX X</div>
+        <div class="firstRowSecondColumn"  data-offset-x="220" data-offset-y="0"  data-expected-width="180" data-expected-height="10">XX XXX X X</div>
+        <div class="secondRowFirstColumn"  data-offset-x="0"   data-offset-y="14" data-expected-width="180" data-expected-height="10">X XX XXX X</div>
+        <div class="secondRowSecondColumn" data-offset-x="220" data-offset-y="14" data-expected-width="180" data-expected-height="10">XXXXX X XX</div>
+    </div>
+</div>
+
+<p>Height is indefinite, so row gaps should be based on grid's 'auto' height. Column gaps based on a grid's 'instrinsic' width, which reduce the available space for tracks; however, since we use 'fit-content' intrinsic size, first column's width is reduced and height increased to let its content to fit.</p>
+<div class="width400">
+    <div class="grid fit-content heightAuto columnGap10Percent rowGap20Percent" data-expected-width="200" data-expected-height="40">
+        <div class="firstRowFirstColumn"   data-offset-x="0"   data-offset-y="0"  data-expected-width="80"  data-expected-height="20">XXX X XX X</div>
+        <div class="firstRowSecondColumn"  data-offset-x="100" data-offset-y="0"  data-expected-width="100" data-expected-height="20">XX XXX X X</div>
+        <div class="secondRowFirstColumn"  data-offset-x="0"   data-offset-y="28" data-expected-width="80"  data-expected-height="20">X XX XXX X</div>
+        <div class="secondRowSecondColumn" data-offset-x="100" data-offset-y="28" data-expected-width="100" data-expected-height="20">XXXXX X XX</div>
+    </div>
+</div>
+
+<p>Height is indefinite, so row gaps should be based on grid's 'auto' height. Column gaps based on a grid's 'auto' width, which will reduce the available space for tracks; however, they can grow exceeding their content's max-width.</p>
+<div class="width400">
+    <div class="grid fit-content widthAuto columnGap10Percent rowGap20Percent" data-expected-width="400" data-expected-height="20">
+        <div class="firstRowFirstColumn"   data-offset-x="0"   data-offset-y="0"  data-expected-width="180" data-expected-height="10">XXX X XX X</div>
+        <div class="firstRowSecondColumn"  data-offset-x="220" data-offset-y="0"  data-expected-width="180" data-expected-height="10">XX XXX X X</div>
+        <div class="secondRowFirstColumn"  data-offset-x="0"   data-offset-y="14" data-expected-width="180" data-expected-height="10">X XX XXX X</div>
+        <div class="secondRowSecondColumn" data-offset-x="220" data-offset-y="14" data-expected-width="180" data-expected-height="10">XXXXX X XX</div>
+    </div>
+</div>
+
+<p>Height is indefinite, so row gaps should be based on grid's 'auto' height. Column gaps based on a grid's 'instrinsic' width, which reduce the available space for tracks; however, since we use 'fit-content' intrinsic size, first column's width is reduced and height increased to let its content to fit.</p>
+<div class="width400">
+    <div class="grid fit-content columnGap10Percent rowGap20Percent" data-expected-width="200" data-expected-height="40">
+        <div class="firstRowFirstColumn"   data-offset-x="0"   data-offset-y="0"  data-expected-width="80"  data-expected-height="20">XXX X XX X</div>
+        <div class="firstRowSecondColumn"  data-offset-x="100" data-offset-y="0"  data-expected-width="100" data-expected-height="20">XX XXX X X</div>
+        <div class="secondRowFirstColumn"  data-offset-x="0"   data-offset-y="28" data-expected-width="80"  data-expected-height="20">X XX XXX X</div>
+        <div class="secondRowSecondColumn" data-offset-x="100" data-offset-y="28" data-expected-width="100" data-expected-height="20">XXXXX X XX</div>
+    </div>
+</div>
+
+<p>Height is indefinite, so row gaps should be based on grid's 'auto' height. Column gaps based on a grid's 'auto' width, which reduce the available space for tracks; however, they are fixed sized and fit.</p>
+<div class="width400">
+     <div class="grid columns100-100 rows50-50 columnGap10Percent rowGap20Percent" data-expected-width="400" data-expected-height="100">
+         <div class="firstRowFirstColumn"   data-offset-x="0"   data-offset-y="0"  data-expected-width="100" data-expected-height="50">XXX X XX X</div>
+         <div class="firstRowSecondColumn"  data-offset-x="140" data-offset-y="0"  data-expected-width="100" data-expected-height="50">XX XXX X X</div>
+         <div class="secondRowFirstColumn"  data-offset-x="0"   data-offset-y="70" data-expected-width="100" data-expected-height="50">X XX XXX X</div>
+         <div class="secondRowSecondColumn" data-offset-x="140" data-offset-y="70" data-expected-width="100" data-expected-height="50">XXXXX X XX</div>
+     </div>
+</div>
+
+<p>Height is indefinite, so row gaps should be based on grid's 'auto' height. Column gaps based on a grid's 'intrinsic' width, which reduce the available space for tracks; however, they are fixed sized and don't fit so they overflow the grid container.</p>
+<div class="width400">
+     <div class="grid fit-content heightAuto columns100-100 rows50-50 columnGap10Percent rowGap20Percent" data-expected-width="200" data-expected-height="100">
+         <div class="firstRowFirstColumn"   data-offset-x="0"   data-offset-y="0"  data-expected-width="100" data-expected-height="50">XXX X XX X</div>
+         <div class="firstRowSecondColumn"  data-offset-x="120" data-offset-y="0"  data-expected-width="100" data-expected-height="50">XX XXX X X</div>
+         <div class="secondRowFirstColumn"  data-offset-x="0"   data-offset-y="70" data-expected-width="100" data-expected-height="50">X XX XXX X</div>
+         <div class="secondRowSecondColumn" data-offset-x="120" data-offset-y="70" data-expected-width="100" data-expected-height="50">XXXXX X XX</div>
+     </div>
+</div>
+
+<p>Height is indefinite, so row gaps should be based on grid's 'auto' height. Column gaps based on a grid's 'auto' width, which reduce the available space for tracks; however, they are fixed sized and fit.</p>
+<div class="width400">
+     <div class="grid fit-content widthAuto columns100-100 rows50-50 columnGap10Percent rowGap20Percent" data-expected-width="400" data-expected-height="100">
+         <div class="firstRowFirstColumn"   data-offset-x="0"   data-offset-y="0"  data-expected-width="100" data-expected-height="50">XXX X XX X</div>
+         <div class="firstRowSecondColumn"  data-offset-x="140" data-offset-y="0"  data-expected-width="100" data-expected-height="50">XX XXX X X</div>
+         <div class="secondRowFirstColumn"  data-offset-x="0"   data-offset-y="70" data-expected-width="100" data-expected-height="50">X XX XXX X</div>
+         <div class="secondRowSecondColumn" data-offset-x="140" data-offset-y="70" data-expected-width="100" data-expected-height="50">XXXXX X XX</div>
+     </div>
+</div>
+
+<p>Both row and column gaps are based on definite sizes, but they will reduce the available space for tracks; however, since the container's specified inline size is not enough, first column's width is reduced and height increased to let its content to fit.</p>
+<div class="width400">
+    <div class="grid width200 height100 columnGap10Percent rowGap20Percent" data-expected-width="200" data-expected-height="100">
+        <div class="firstRowFirstColumn"   data-offset-x="0"   data-offset-y="0"  data-expected-width="80"  data-expected-height="40">XXX X XX X</div>
+        <div class="firstRowSecondColumn"  data-offset-x="100" data-offset-y="0"  data-expected-width="100" data-expected-height="40">XX XXX X X</div>
+        <div class="secondRowFirstColumn"  data-offset-x="0"   data-offset-y="60" data-expected-width="80"  data-expected-height="40">X XX XXX X</div>
+        <div class="secondRowSecondColumn" data-offset-x="100" data-offset-y="60" data-expected-width="100" data-expected-height="40">XXXXX X XX</div>
+    </div>
+</div>
+
+<p>Both row and column gaps are based on definite sizes, but they will reduce the available space for tracks; however, they can grow exceeding their content's max-width.</p>
+<div class="width400">
+    <div class="grid width400 height200 columnGap10Percent rowGap20Percent" data-expected-width="400" data-expected-height="200">
+        <div class="firstRowFirstColumn"   data-offset-x="0"   data-offset-y="0"   data-expected-width="180" data-expected-height="80">XXX X XX X</div>
+        <div class="firstRowSecondColumn"  data-offset-x="220" data-offset-y="0"   data-expected-width="180" data-expected-height="80">XX XXX X X</div>
+        <div class="secondRowFirstColumn"  data-offset-x="0"   data-offset-y="120" data-expected-width="180" data-expected-height="80">X XX XXX X</div>
+        <div class="secondRowSecondColumn" data-offset-x="220" data-offset-y="120" data-expected-width="180" data-expected-height="80">XXXXX X XX</div>
+    </div>
+</div>
+
+<p>Both row and column gaps are based on definite sizes, they will reduce the available space for tracks; however, they are fixed sized and don't fit so they overflow the grid container.</p>
+<div class="width400">
+    <div class="grid width200 height100 columns100-100 rows50-50 columnGap10Percent rowGap20Percent" data-expected-width="200" data-expected-height="100">
+        <div class="firstRowFirstColumn"   data-offset-x="0"   data-offset-y="0"  data-expected-width="100" data-expected-height="50">XXX X XX X</div>
+        <div class="firstRowSecondColumn"  data-offset-x="120" data-offset-y="0"  data-expected-width="100" data-expected-height="50">XX XXX X X</div>
+        <div class="secondRowFirstColumn"  data-offset-x="0"   data-offset-y="70" data-expected-width="100" data-expected-height="50">X XX XXX X</div>
+        <div class="secondRowSecondColumn" data-offset-x="120" data-offset-y="70" data-expected-width="100" data-expected-height="50">XXXXX X XX</div>
+    </div>
+</div>
+
+<p>Both row and column gaps are based on definite sizes, they will reduce the available space for tracks; however, they are fixed sized and fit.</p>
+<div class="width400">
+    <div class="grid width400 height200 columns100-100 rows50-50 columnGap10Percent rowGap20Percent" data-expected-width="400" data-expected-height="200">
+        <div class="firstRowFirstColumn"   data-offset-x="0"   data-offset-y="0"  data-expected-width="100" data-expected-height="50">XXX X XX X</div>
+        <div class="firstRowSecondColumn"  data-offset-x="140" data-offset-y="0"  data-expected-width="100" data-expected-height="50">XX XXX X X</div>
+        <div class="secondRowFirstColumn"  data-offset-x="0"   data-offset-y="90" data-expected-width="100" data-expected-height="50">X XX XXX X</div>
+        <div class="secondRowSecondColumn" data-offset-x="140" data-offset-y="90" data-expected-width="100" data-expected-height="50">XXXXX X XX</div>
+    </div>
+</div>
+
+<p>Height is indefinite, so row gaps should be based on grid's 'auto' height. Column gaps based on a grid's 'instrinsic' width, which reduce the available space for tracks; however, since we use 'fit-content' intrinsic size, only 1 repeteation is allowed, so tracks are adjusted to fit in the intrinsic size reduced by the gaps.</p>
+<div class="width400">
+    <div class="grid fit-content autoRepeat columnGap10Percent rowGap20Percent" data-expected-width="200" data-expected-height="70">
+        <div class="firstRowFirstColumn"   data-offset-x="0"   data-offset-y="0"  data-expected-width="100" data-expected-height="50">XXX X XX X</div>
+        <div class="firstRowSecondColumn"  data-offset-x="120" data-offset-y="0"  data-expected-width="80" data-expected-height="50">XX XXX X X</div>
+        <div class="secondRowFirstColumn"  data-offset-x="0"   data-offset-y="64" data-expected-width="100" data-expected-height="20">X XX XXX X</div>
+        <div class="secondRowSecondColumn" data-offset-x="120" data-offset-y="64" data-expected-width="80" data-expected-height="20">XXXXX X XX</div>
+    </div>
+</div>
+
+<p>Both row and column gaps are based on definite sizes, they will reduce the available space for tracks; however, repeat auto-fill allows all of them to fit.</p>
+<div class="">
+    <div class="grid width400 height200 autoRepeat columnGap10Percent rowGap20Percent" data-expected-width="400" data-expected-height="200">
+        <div class="firstRowFirstColumn"   data-offset-x="0"   data-offset-y="0"  data-expected-width="100" data-expected-height="50">XXX X XX X</div>
+        <div class="firstRowSecondColumn"  data-offset-x="140" data-offset-y="0"  data-expected-width="100" data-expected-height="50">XX XXX X X</div>
+        <div class="firstRowThirdColumn"  data-offset-x="280" data-offset-y="0"  data-expected-width="100" data-expected-height="50">XX XXX X X</div>
+        <div class="secondRowFirstColumn"  data-offset-x="0"   data-offset-y="90" data-expected-width="100" data-expected-height="50">X XX XXX X</div>
+        <div class="secondRowSecondColumn" data-offset-x="140" data-offset-y="90" data-expected-width="100" data-expected-height="50">XXXXX X XX</div>
+        <div class="secondRowThirdColumn" data-offset-x="280" data-offset-y="90" data-expected-width="100" data-expected-height="50">XXXXX X XX</div>
+    </div>
+</div>
+
+<p>Both row and column gaps are based on definite sizes, they will reduce the available space for tracks; however, repeat auto-fill allows only 1 repetition.</p>
+<div class="">
+    <div class="grid width200 height100 autoRepeat columnGap10Percent rowGap20Percent" data-expected-width="200" data-expected-height="100">
+        <div class="firstRowFirstColumn"   data-offset-x="0"   data-offset-y="0"  data-expected-width="100" data-expected-height="50">XXX X XX X</div>
+        <div class="firstRowSecondColumn"  data-offset-x="120" data-offset-y="0"  data-expected-width="80" data-expected-height="50">XX XXX X X</div>
+        <div class="secondRowFirstColumn"  data-offset-x="0"   data-offset-y="70" data-expected-width="100" data-expected-height="30">X XX XXX X</div>
+        <div class="secondRowSecondColumn" data-offset-x="120" data-offset-y="70" data-expected-width="80" data-expected-height="30">XXXXX X XX</div>
+    </div>
+</div>
+
+<p>Grid with positioned items. Height is indefinite, so row gaps should be based on grid's 'auto' height. Column gaps based on a grid's 'auto' width, which reduce the available space for tracks; however, they are fixed sized and fit.</p>
+<div class="width400">
+    <div class="grid columns100-100 rows50-50 columnGap10Percent rowGap20Percent" data-expected-width="400" data-expected-height="100">
+        <div class="positioned onlyFirstRowOnlyFirstColumn"   data-offset-x="0"   data-offset-y="0"  data-expected-width="100" data-expected-height="50">XXX X XX X</div>
+        <div class="positioned onlyFirstRowOnlySecondColumn"  data-offset-x="140" data-offset-y="0"  data-expected-width="100" data-expected-height="50">XX XXX X X</div>
+        <div class="positioned onlySecondRowOnlyFirstColumn"  data-offset-x="0"   data-offset-y="70" data-expected-width="100" data-expected-height="50">X XX XXX X</div>
+        <div class="positioned onlySecondRowOnlySecondColumn" data-offset-x="140" data-offset-y="70" data-expected-width="100" data-expected-height="50">XXXXX X XX</div>
+    </div>
+</div>
+
+<p>Grid with positioned items. Both row and column gaps are based on definite sizes, they will reduce the available space for tracks; however, they are fixed sized and don't fit so they overflow the grid container.</p>
+<div class="">
+    <div class="grid width200 height100 columns100-100 rows50-50 columnGap10Percent rowGap20Percent" data-expected-width="200" data-expected-height="100">
+        <div class="positioned onlyFirstRowOnlyFirstColumn"   data-offset-x="0"   data-offset-y="0"  data-expected-width="100" data-expected-height="50">XXX X XX X</div>
+        <div class="positioned onlyFirstRowOnlySecondColumn"  data-offset-x="120" data-offset-y="0"  data-expected-width="100" data-expected-height="50">XX XXX X X</div>
+        <div class="positioned onlySecondRowOnlyFirstColumn"  data-offset-x="0"   data-offset-y="70" data-expected-width="100" data-expected-height="50">X XX XXX X</div>
+        <div class="positioned onlySecondRowOnlySecondColumn" data-offset-x="120" data-offset-y="70" data-expected-width="100" data-expected-height="50">XXXXX X XX</div>
+    </div>
+</div>
+
+</body>

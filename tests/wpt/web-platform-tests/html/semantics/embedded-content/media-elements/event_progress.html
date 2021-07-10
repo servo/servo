@@ -15,22 +15,24 @@
   <div id="log"></div>
   <script>
 test(function() {
-  var t = async_test("setting src attribute on autoplay audio should trigger progress event", {timeout:5000});
+  var t = async_test("setting src attribute on autoplay audio should trigger progress event");
   var a = document.getElementById("a");
-  a.addEventListener("progress", function() {
+  a.addEventListener("error", t.unreached_func());
+  a.addEventListener("progress", t.step_func(function() {
     t.done();
     a.pause();
-  }, false);
+  }), false);
   a.src = getAudioURI("/media/sound_5") + "?" + new Date() + Math.random();
 }, "audio events - progress");
 
 test(function() {
-  var t = async_test("setting src attribute on autoplay video should trigger progress event", {timeout:5000});
+  var t = async_test("setting src attribute on autoplay video should trigger progress event");
   var v = document.getElementById("v");
-  v.addEventListener("progress", function() {
+  v.addEventListener("error", t.unreached_func());
+  v.addEventListener("progress", t.step_func(function() {
     t.done();
     v.pause();
-  }, false);
+  }), false);
   v.src = getVideoURI("/media/movie_5") + "?" + new Date() + Math.random();
 }, "video events - progress");
   </script>

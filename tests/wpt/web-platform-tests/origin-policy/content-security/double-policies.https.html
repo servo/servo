@@ -1,0 +1,16 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>Of two "content_security/policies" items only the second counts</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/origin-policy-test-runner.js"></script>
+
+<div id="log"></div>
+
+<script>
+"use strict";
+runTestsInSubframe({
+  hostname: "op3",
+  testJS: "resources/allow-unsafe-eval-disallow-images.mjs"
+});
+</script>

@@ -1,3 +1,3 @@
 def main(request, response):
-    return (302, "Moved"), [("Location", "../gamma/sharedworker.js")], "postMessage('executed redirecting script');"
+    return (302, b"Moved"), [(b"Location", b"../gamma/sharedworker.js")], u"postMessage('executed redirecting script');"
 

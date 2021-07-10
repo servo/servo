@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Testing new font-matching algorithm for font-weight values introduced in CSS Fonts level 4</title>
+    <link rel="help" href="https://www.w3.org/TR/css-fonts-4/#font-matching-algorithm" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+
+        .testcase {
+            float:left;
+            margin: 5px;
+            font-size:48pt;
+            font-feature-settings: "kern" 1;
+            color: rgba(0,0,0,0.5);
+            background: linear-gradient(to left, lime 0%, lime 91px, red 91px);
+        }
+
+        @font-face {
+            font-family: fontMatch;
+            src: local('CSSTest Weights 900'), url('./resources/csstest-weights-900-kerned.ttf');
+            font-weight: 100;
+        }
+
+        @font-face {
+            font-family: fontMatch;
+            src: local('CSSTest Weights 800'), url('./resources/csstest-weights-800-kerned.ttf');
+            font-weight: 250;
+        }
+
+        @font-face {
+            font-family: fontMatch;
+            src: local('CSSTest Weights 700'), url('./resources/csstest-weights-700-kerned.ttf');
+            font-weight: 400;
+        }
+
+        @font-face {
+            font-family: fontMatch;
+            src: local('CSSTest Weights 600'), url('./resources/csstest-weights-600-kerned.ttf');
+            font-weight: 450;
+        }
+
+        @font-face {
+            font-family: fontMatch;
+            src: local('CSSTest Weights 300'), url('./resources/csstest-weights-300-kerned.ttf');
+            font-weight: 500;
+        }
+
+        @font-face {
+            font-family: fontMatch;
+            src: local('CSSTest Weights 200'), url('./resources/csstest-weights-200-kerned.ttf');
+            font-weight: 750;
+        }
+
+        @font-face {
+            font-family: fontMatch;
+            src: local('CSSTest Weights 100'), url('./resources/csstest-weights-100-kerned.ttf');
+            font-weight: 900;
+        }
+
+    </style>
+</head>
+<body>
+
+    <span style="position: absolute; top: -100vh;">
+        <span style="font-family: fontMatch; font-weight: 100;">A</span>
+        <span style="font-family: fontMatch; font-weight: 250;">A</span>
+        <span style="font-family: fontMatch; font-weight: 400;">A</span>
+        <span style="font-family: fontMatch; font-weight: 450;">A</span>
+        <span style="font-family: fontMatch; font-weight: 500;">A</span>
+        <span style="font-family: fontMatch; font-weight: 750;">A</span>
+        <span style="font-family: fontMatch; font-weight: 900;">A</span>
+    </span>
+
+    <div id="testcases" style="overflow: hidden">
+        <!--
+            These testcases work using the new kerned CSSTest Weights fonts.
+            The letter A and its corresponding numeric digit kern as one character.
+        -->
+        <div class="testcase" style="font-family:'CSSTest Weights W2569'; font-weight: 375;">
+            A2
+        </div>
+    </div>
+
+    <script>
+
+        var testFontFaceMatch = [
+            { weight:  99, expectedFont: "CSSTest Weights 900" },
+            { weight: 100, expectedFont: "CSSTest Weights 900" },
+            { weight: 249, expectedFont: "CSSTest Weights 900" },
+            { weight: 250, expectedFont: "CSSTest Weights 800" },
+            { weight: 399, expectedFont: "CSSTest Weights 800" },
+            { weight: 400, expectedFont: "CSSTest Weights 700" },
+            { weight: 420, expectedFont: "CSSTest Weights 600" },
+            { weight: 470, expectedFont: "CSSTest Weights 300" },
+            { weight: 500, expectedFont: "CSSTest Weights 300" },
+            { weight: 600, expectedFont: "CSSTest Weights 200" },
+            { weight: 750, expectedFont: "CSSTest Weights 200" },
+            { weight: 751, expectedFont: "CSSTest Weights 100" },
+            { weight: 900, expectedFont: "CSSTest Weights 100" },
+            { weight:1000, expectedFont: "CSSTest Weights 100" },
+        ];
+
+        // wait for the fonts to load
+        // -- this should not be necessary if the fonts are installed as required
+        // -- but if they are not, the test is otherwise unstable
+        var once_fonts_are_ready = (document.fonts ? document.fonts.ready : new Promise(function(ready) { window.onload = time => [...document.querySelectorAll('body > span:nth-child(1) > span')].every(e => e.offsetWidth > 20) ? ready() : requestAnimationFrame(window.onload) }));
+
+        var testcases = document.querySelector("#testcases");
+        var testcaseTemplate = document.querySelector('.testcase'); testcaseTemplate.remove();
+        testFontFaceMatch.forEach(function(element) {
+
+            var testcase = testcaseTemplate.cloneNode(true);
+
+            // setup the test case style
+            testcase.style.fontFamily = 'fontMatch';
+            testcase.style.fontWeight = element.weight;
+
+            // create the assertion
+            var assertText = 'A' + /\d/.exec(element.expectedFont)[0];
+            testcase.textContent = assertText;
+
+            // append the testcase
+            testcases.appendChild(testcase);
+
+            // verify the testcase
+            promise_test(
+                assert => once_fonts_are_ready.then(assert => { assert_approx_equals(testcase.getBoundingClientRect().width, 90, 2, "@font-face should be mapped to " + element.expectedFont + "."); }),
+                "Test @font-face matching for weight " + element.weight
+            );
+        });
+
+    </script>
+</body>
+</html>

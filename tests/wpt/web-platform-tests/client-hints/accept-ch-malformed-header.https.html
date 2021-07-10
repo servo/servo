@@ -1,0 +1,26 @@
+<html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+
+promise_test(t => {
+  return fetch("/client-hints/resources/echo-client-hints-received.py").then(r => {
+    assert_equals(r.status, 200)
+    // Verify that the browser does not include client hints in the headers
+    // since Accept-CH is malformed (includes whitespace between attributes
+    // instead of comma).
+    assert_false(r.headers.has("device-memory-received"), "device-memory-received");
+    assert_false(r.headers.has("dpr-received"), "dpr-received");
+    assert_false(r.headers.has("viewport-width-received"), "viewport-width-received");
+    assert_false(r.headers.has("rtt-received"), "rtt-received");
+    assert_false(r.headers.has("downlink-received"), "downlink-received");
+    assert_false(r.headers.has("ect-received"), "ect-received");
+  });
+}, "Accept-CH header test");
+
+</script>
+
+</body>
+</html>

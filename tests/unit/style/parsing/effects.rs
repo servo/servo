@@ -1,9 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use parsing::parse;
-use style::properties::longhands::{self, perspective_origin, transform_origin};
+use crate::parsing::parse;
+use style::properties::longhands::{perspective_origin, transform_origin};
 use style_traits::ToCss;
 
 #[test]
@@ -16,28 +16,26 @@ fn test_clip() {
     assert_roundtrip_with_context!(clip::parse, "rect(auto, auto, auto, auto)");
 
     // Non-standard syntax
-    assert_roundtrip_with_context!(clip::parse,
-                                   "rect(1px 2px 3px 4px)",
-                                   "rect(1px, 2px, 3px, 4px)");
-    assert_roundtrip_with_context!(clip::parse,
-                                   "rect(auto 2px 3px auto)",
-                                   "rect(auto, 2px, 3px, auto)");
-    assert_roundtrip_with_context!(clip::parse,
-                                   "rect(1px auto auto 4px)",
-                                   "rect(1px, auto, auto, 4px)");
-    assert_roundtrip_with_context!(clip::parse,
-                                   "rect(auto auto auto auto)",
-                                   "rect(auto, auto, auto, auto)");
-}
-
-#[test]
-fn test_longhands_parse_origin() {
-    assert_parser_exhausted!(longhands::parse_origin, "1px some-rubbish", false);
-    assert_parser_exhausted!(longhands::parse_origin, "1px 2px", true);
-    assert_parser_exhausted!(longhands::parse_origin, "center left", true);
-    assert_parser_exhausted!(longhands::parse_origin, "center right", true);
-    assert_parser_exhausted!(longhands::parse_origin, "center right 1px", true);
-    assert_parser_exhausted!(longhands::parse_origin, "1% right", false);
+    assert_roundtrip_with_context!(
+        clip::parse,
+        "rect(1px 2px 3px 4px)",
+        "rect(1px, 2px, 3px, 4px)"
+    );
+    assert_roundtrip_with_context!(
+        clip::parse,
+        "rect(auto 2px 3px auto)",
+        "rect(auto, 2px, 3px, auto)"
+    );
+    assert_roundtrip_with_context!(
+        clip::parse,
+        "rect(1px auto auto 4px)",
+        "rect(1px, auto, auto, 4px)"
+    );
+    assert_roundtrip_with_context!(
+        clip::parse,
+        "rect(auto auto auto auto)",
+        "rect(auto, auto, auto, auto)"
+    );
 }
 
 #[test]
@@ -51,7 +49,7 @@ fn test_effects_parser_exhaustion() {
 
 #[test]
 fn test_parse_factor() {
-    use parsing::parse;
+    use crate::parsing::parse;
     use style::properties::longhands::filter;
 
     assert!(parse(filter::parse, "brightness(0)").is_ok());
@@ -95,7 +93,7 @@ fn test_parse_factor() {
 #[test]
 fn blur_radius_should_not_accept_negavite_values() {
     use style::properties::longhands::box_shadow;
-    assert!(parse(box_shadow::parse, "1px 1px -1px").is_err());// for -ve values
-    assert!(parse(box_shadow::parse, "1px 1px 0").is_ok());// for zero
-    assert!(parse(box_shadow::parse, "1px 1px 1px").is_ok());// for +ve value
+    assert!(parse(box_shadow::parse, "1px 1px -1px").is_err()); // for -ve values
+    assert!(parse(box_shadow::parse, "1px 1px 0").is_ok()); // for zero
+    assert!(parse(box_shadow::parse, "1px 1px 1px").is_ok()); // for +ve value
 }

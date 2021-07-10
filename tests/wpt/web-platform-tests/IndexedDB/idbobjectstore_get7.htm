@@ -19,7 +19,7 @@
     open_rq.onsuccess = function(e) {
         var store = db.transaction("store")
                       .objectStore("store")
-        assert_throws("DataError", function () {
+        assert_throws_dom("DataError", function () {
             store.get(null)
         }, "throw DataError when using invalid key.");
         t.done();

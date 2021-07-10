@@ -1,0 +1,6 @@
+{
+  "ids" : ["csp-valid-but-served-with-invalid-mimetype"],
+  "content_security" : {
+      "policies" : ["script-src 'self' 'unsafe-inline'"]
+  }
+}

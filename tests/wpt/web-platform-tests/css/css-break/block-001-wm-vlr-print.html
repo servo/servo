@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/">
+<link rel="match" href="block-001-wm-vlr-ref.html">
+<meta name="flags" content="paged">
+<meta name="fuzzy" content="maxDifference=0-60;totalPixels=0-200">
+<html>
+<style>
+@page {
+  size: 5in 3in;
+  margin: 0.5in;
+}
+
+html,body {
+  color:black; background-color:white; font:20px/1 monospace; padding:0; margin:0;
+  writing-mode: vertical-lr;
+}
+html { block-size: 40vw; }
+
+.b {
+  inline-size: 50vh;
+  block-size: 210vw;
+  box-sizing: border-box;
+  border: 5px solid black;
+  border-block-start-color: blue;
+  border-inline-start-color: lime;
+  margin-inline-start: 20px;
+  margin-block-end: -20px;
+}
+</style>
+<body>
+  <div class="b"></div>
+</body>
+</html>

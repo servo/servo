@@ -1,11 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::MediaErrorBinding::{self, MediaErrorMethods};
-use dom::bindings::js::Root;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::window::Window;
+use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethods;
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::window::Window;
 use dom_struct::dom_struct;
 
 #[dom_struct]
@@ -22,10 +23,8 @@ impl MediaError {
         }
     }
 
-    pub fn new(window: &Window, code: u16) -> Root<MediaError> {
-        reflect_dom_object(box MediaError::new_inherited(code),
-                           window,
-                           MediaErrorBinding::Wrap)
+    pub fn new(window: &Window, code: u16) -> DomRoot<MediaError> {
+        reflect_dom_object(Box::new(MediaError::new_inherited(code)), window)
     }
 }
 
@@ -33,5 +32,10 @@ impl MediaErrorMethods for MediaError {
     // https://html.spec.whatwg.org/multipage/#dom-mediaerror-code
     fn Code(&self) -> u16 {
         self.code
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-mediaerror-message
+    fn Message(&self) -> DOMString {
+        DOMString::new()
     }
 }

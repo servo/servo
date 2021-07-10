@@ -1,0 +1,206 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCSctpTransport.prototype.maxMessageSize</title>
+<link rel="help" href="https://w3c.github.io/webrtc-pc/#rtcsctptransport-interface">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+// This test has an assert_unreached() that requires that the variable
+// canSendSize (initiated below) must be 0 or greater than 2. The reason
+// is that we need two non-zero values for testing the following two cases:
+//
+// * if remote MMS `1` < canSendSize it should result in `1`.
+// * renegotiation of the above case with remoteMMS `2` should result in `2`.
+//
+// This is a bit unfortunate but shouldn't have any practical impact.
+
+// Helper class to read SDP attributes and generate SDPs with modified attribute values
+class SDPAttributeHelper {
+  constructor(attrName, valueRegExpStr) {
+    this.attrName = attrName;
+    this.re = new RegExp(`^a=${attrName}:(${valueRegExpStr})\\r\\n`, 'm');
+  }
+
+  getValue(sdp) {
+    const matches = sdp.match(this.re);
+    return matches ? matches[1] : null;
+  }
+
+  sdpWithValue(sdp, value) {
+    const matches = sdp.match(this.re);
+    const sdpParts = sdp.split(matches[0]);
+    const attributeLine = arguments.length > 1 ? `a=${this.attrName}:${value}\r\n` : '';
+    return `${sdpParts[0]}${attributeLine}${sdpParts[1]}`;
+  }
+
+  sdpWithoutAttribute(sdp) {
+    return this.sdpWithValue(sdp);
+  }
+}
+
+const mmsAttributeHelper = new SDPAttributeHelper('max-message-size', '\\d+');
+let canSendSize = null;
+const remoteSize1 = 1;
+const remoteSize2 = 2;
+
+promise_test(async (t) => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  assert_equals(pc.sctp, null, 'RTCSctpTransport must be null');
+
+  let offer = await generateDataChannelOffer(pc);
+  assert_not_equals(mmsAttributeHelper.getValue(offer.sdp), null,
+    'SDP should have max-message-size attribute');
+  offer = { type: 'offer', sdp: mmsAttributeHelper.sdpWithValue(offer.sdp, 0) };
+  await pc.setRemoteDescription(offer);
+  const answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+
+  assert_not_equals(pc.sctp, null, 'RTCSctpTransport must be available');
+  canSendSize = pc.sctp.maxMessageSize === Number.POSITIVE_INFINITY ? 0 : pc.sctp.maxMessageSize;
+  if (canSendSize !== 0 && canSendSize < remoteSize2) {
+    assert_unreached(
+      'This test needs canSendSize to be 0 or > 2 for further "below" and "above" tests');
+  }
+}, 'Determine the local side send limitation (canSendSize) by offering a max-message-size of 0');
+
+promise_test(async (t) => {
+  assert_not_equals(canSendSize, null, 'canSendSize needs to be determined');
+
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  assert_equals(pc.sctp, null, 'RTCSctpTransport must be null');
+
+  let offer = await generateDataChannelOffer(pc);
+  assert_not_equals(mmsAttributeHelper.getValue(offer.sdp), null,
+    'SDP should have max-message-size attribute');
+
+  // Remove the max-message-size SDP attribute
+  offer = { type: 'offer', sdp: mmsAttributeHelper.sdpWithoutAttribute(offer.sdp) };
+  await pc.setRemoteDescription(offer);
+  const answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+
+  assert_not_equals(pc.sctp, null, 'RTCSctpTransport must be available');
+  // Test outcome depends on canSendSize value
+  if (canSendSize !== 0) {
+    assert_equals(pc.sctp.maxMessageSize, Math.min(65536, canSendSize),
+      'Missing SDP attribute and a non-zero canSendSize should give an maxMessageSize of min(65536, canSendSize)');
+  } else {
+    assert_equals(pc.sctp.maxMessageSize, 65536,
+      'Missing SDP attribute and a canSendSize of 0 should give an maxMessageSize of 65536');
+  }
+}, 'Remote offer SDP missing max-message-size attribute');
+
+promise_test(async (t) => {
+  assert_not_equals(canSendSize, null, 'canSendSize needs to be determined');
+
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  assert_equals(pc.sctp, null, 'RTCSctpTransport must be null');
+
+  let offer = await generateDataChannelOffer(pc);
+  assert_not_equals(mmsAttributeHelper.getValue(offer.sdp), null,
+    'SDP should have max-message-size attribute');
+
+  offer = { type: 'offer', sdp: mmsAttributeHelper.sdpWithValue(offer.sdp, remoteSize1) };
+  await pc.setRemoteDescription(offer);
+  const answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+
+  assert_not_equals(pc.sctp, null, 'RTCSctpTransport must be available');
+  assert_equals(pc.sctp.maxMessageSize, remoteSize1,
+    'maxMessageSize should be the value provided by the remote peer (as long as it is less than canSendSize)');
+}, 'max-message-size with a (non-zero) value provided by the remote peer');
+
+promise_test(async (t) => {
+  assert_not_equals(canSendSize, null, 'canSendSize needs to be determined');
+
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  assert_equals(pc.sctp, null, 'RTCSctpTransport must be null');
+
+  let offer = await generateDataChannelOffer(pc);
+  assert_not_equals(mmsAttributeHelper.getValue(offer.sdp), null,
+    'SDP should have max-message-size attribute');
+
+  offer = { type: 'offer', sdp: mmsAttributeHelper.sdpWithValue(offer.sdp, remoteSize1) };
+  await pc.setRemoteDescription(offer);
+  let answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+
+  assert_not_equals(pc.sctp, null, 'RTCSctpTransport must be available');
+  assert_equals(pc.sctp.maxMessageSize, remoteSize1,
+    'maxMessageSize should be the value provided by the remote peer (as long as it is less than canSendSize)');
+
+  // Start new O/A exchange that updates max-message-size to remoteSize2
+  offer = await pc.createOffer();
+  offer = { type: 'offer', sdp: mmsAttributeHelper.sdpWithValue(offer.sdp, remoteSize2)};
+  await pc.setRemoteDescription(offer);
+  answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+
+  assert_not_equals(pc.sctp, null, 'RTCSctpTransport must be available');
+  assert_equals(pc.sctp.maxMessageSize, remoteSize2,
+    'maxMessageSize should be the new value provided by the remote peer (as long as it is less than canSendSize)');
+
+  // Start new O/A exchange that updates max-message-size to zero
+  offer = await pc.createOffer();
+  offer = { type: 'offer', sdp: mmsAttributeHelper.sdpWithValue(offer.sdp, 0)};
+  await pc.setRemoteDescription(offer);
+  answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+
+  assert_not_equals(pc.sctp, null, 'RTCSctpTransport must be available');
+  assert_equals(pc.sctp.maxMessageSize, canSendSize,
+    'maxMessageSize should be canSendSize');
+
+  // Start new O/A exchange that updates max-message-size to remoteSize1 again
+  offer = await pc.createOffer();
+  offer = { type: 'offer', sdp: mmsAttributeHelper.sdpWithValue(offer.sdp, remoteSize1)};
+  await pc.setRemoteDescription(offer);
+  answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+
+  assert_not_equals(pc.sctp, null, 'RTCSctpTransport must be available');
+  assert_equals(pc.sctp.maxMessageSize, remoteSize1,
+    'maxMessageSize should be the new value provided by the remote peer (as long as it is less than canSendSize)');
+}, 'Renegotiate max-message-size with various values provided by the remote peer');
+
+promise_test(async (t) => {
+  assert_not_equals(canSendSize, null, 'canSendSize needs to be determined');
+
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  assert_equals(pc.sctp, null, 'RTCSctpTransport must be null');
+  const largerThanCanSendSize = canSendSize === 0 ? 0 : canSendSize + 1;
+
+  let offer = await generateDataChannelOffer(pc);
+  assert_not_equals(mmsAttributeHelper.getValue(offer.sdp), null,
+    'SDP should have max-message-size attribute');
+
+  offer = { type: 'offer', sdp: mmsAttributeHelper.sdpWithValue(offer.sdp, largerThanCanSendSize) };
+  await pc.setRemoteDescription(offer);
+  const answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+
+  assert_not_equals(pc.sctp, null, 'RTCSctpTransport must be available');
+  // Test outcome depends on canSendSize value
+  if (canSendSize !== 0) {
+    assert_equals(pc.sctp.maxMessageSize, canSendSize,
+      'A remote value larger than a non-zero canSendSize should limit maxMessageSize to canSendSize');
+  } else {
+    assert_equals(pc.sctp.maxMessageSize, Number.POSITIVE_INFINITY,
+      'A remote value of zero and canSendSize zero should result in "infinity"');
+  }
+}, 'max-message-size with a (non-zero) value larger than canSendSize provided by the remote peer');
+
+</script>

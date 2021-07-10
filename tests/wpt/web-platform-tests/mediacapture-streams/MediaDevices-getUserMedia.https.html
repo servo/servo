@@ -15,9 +15,9 @@
 <script src=/resources/testharnessreport.js></script>
 <script>
 test(function () {
-  assert_true(undefined !== navigator.mediaDevices.getUserMedia, "navigator.mediaDevices.getUserMedia exists.");
+  assert_not_equals(navigator.mediaDevices.getUserMedia, undefined, "navigator.mediaDevices.getUserMedia exists.");
   // TODO: do some stuff with it
-  assert_true(undefined !== navigator.mediaDevices.getSupportedConstraints, "navigator.mediaDevices.getSupportedConstraints exists.");
+  assert_not_equals(navigator.mediaDevices.getSupportedConstraints, undefined, "navigator.mediaDevices.getSupportedConstraints exists.");
   var list = navigator.mediaDevices.getSupportedConstraints();
   // TODO: we are supposed to check that all values returned can be used in a constraint ....
   // NOTE: the current list of attributes that may or may not be here
@@ -36,6 +36,86 @@ test(function () {
   //   list.deviceId
   //   list.groupId
   }, "mediaDevices.getUserMedia() is present on navigator");
+
+promise_test(async t => {
+  assert_true(navigator.mediaDevices.getSupportedConstraints()["groupId"],
+    "groupId should be supported");
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  for (const device of devices) {
+    await navigator.mediaDevices.getUserMedia(
+        {video: {groupId: {exact: device.groupId}}}).then(stream => {
+      const found_device = devices.find(({deviceId}) =>
+        deviceId == stream.getTracks()[0].getSettings().deviceId);
+      assert_not_equals(found_device, undefined);
+      assert_equals(found_device.kind, "videoinput");
+      assert_equals(found_device.groupId, device.groupId);
+      stream.getTracks().forEach(t => t.stop());
+    }, error => {
+      assert_equals(error.name, "OverconstrainedError");
+      assert_equals(error.constraint, "groupId");
+      const found_device = devices.find(element =>
+        element.kind == "videoinput" && element.groupId == device.groupId);
+      assert_equals(found_device, undefined);
+    });
+  }
+}, 'groupId is correctly supported by getUserMedia() for video devices');
+
+promise_test(async t => {
+  assert_true(navigator.mediaDevices.getSupportedConstraints()["groupId"],
+    "groupId should be supported");
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  for (const device of devices) {
+    await navigator.mediaDevices.getUserMedia(
+        {audio: {groupId: {exact: device.groupId}}}).then(stream => {
+      const found_device = devices.find(({deviceId}) =>
+        deviceId == stream.getTracks()[0].getSettings().deviceId);
+      assert_not_equals(found_device, undefined);
+      assert_equals(found_device.kind, "audioinput");
+      assert_equals(found_device.groupId, device.groupId);
+      stream.getTracks().forEach(t => t.stop());
+    }, error => {
+      assert_equals(error.name, "OverconstrainedError");
+      assert_equals(error.constraint, "groupId");
+      const found_device = devices.find(element =>
+        element.kind == "audioinput" && element.groupId == device.groupId);
+      assert_equals(found_device, undefined);
+    });
+  }
+}, 'groupId is correctly supported by getUserMedia() for audio devices');
+
+promise_test(async t => {
+  assert_true(navigator.mediaDevices.getSupportedConstraints()["resizeMode"],
+    "resizeMode should be supported");
+  const stream = await navigator.mediaDevices.getUserMedia(
+      { video: {resizeMode: {exact: 'none'}}});
+  const [track] = stream.getVideoTracks();
+  t.add_cleanup(() => track.stop());
+  assert_equals(track.getSettings().resizeMode, 'none');
+}, 'getUserMedia() supports setting none as resizeMode.');
+
+promise_test(async t => {
+  assert_true(navigator.mediaDevices.getSupportedConstraints()["resizeMode"],
+    "resizeMode should be supported");
+  const stream = await navigator.mediaDevices.getUserMedia(
+      { video: {resizeMode: {exact: 'crop-and-scale'}}});
+  const [track] = stream.getVideoTracks();
+  t.add_cleanup(() => track.stop());
+  assert_equals(track.getSettings().resizeMode, 'crop-and-scale');
+}, 'getUserMedia() supports setting crop-and-scale as resizeMode.');
+
+promise_test(async t => {
+  assert_true(navigator.mediaDevices.getSupportedConstraints()["resizeMode"],
+    "resizeMode should be supported");
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia(
+        { video: {resizeMode: {exact: 'INVALID'}}});
+    t.add_cleanup(() => stream.getVideoTracks()[0].stop());
+    t.unreached_func('getUserMedia() should fail with invalid resizeMode')();
+  } catch (e) {
+    assert_equals(e.name, 'OverconstrainedError');
+    assert_equals(e.constraint, 'resizeMode');
+  }
+}, 'getUserMedia() fails with exact invalid resizeMode.');
 </script>
 </body>
 </html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<link rel="stylesheet" href="/css/support/alignment.css">
+<link rel="stylesheet" href="/css/support/grid.css">
+<style>
+body { margin: 0; }
+.block {
+   background: grey;
+   float: left;
+   margin: 5px;
+   text-orientation: sideways;
+   width: 175px;
+   height: 300px;
+   font-family: Ahem;
+}
+.block1 > :nth-child(1) { font-size:24px; }
+.block1 > :nth-child(2) { font-size:32px; }
+.block2 > :nth-child(1) { font-size:48px; }
+.block2 > :nth-child(2) { font-size:64px; }
+.item {
+   display: inline-block;
+   border-width: 2px 5px 3px 4px;
+   border-style: solid;
+   padding: 6px 3px 7px 8px;
+   margin: 10px 6px 4px 12px;
+}
+.extraLeftPadding { padding-left: 30px; }
+.extraRightPadding { padding-right: 30px; }
+.area { display: inline-block; }
+.block1 > .area:nth-child(1) { height: 60px;  }
+.block1 > .area:nth-child(2) { height: 60px;  }
+.block2 > .area:nth-child(1) { height: 75px;  }
+.block2 > .area:nth-child(2) { height: 100px; }
+.block1 { float: left;  }
+.block2 { float: left;  }
+</style>
+
+<p>4x1 with orthogonal items, but opposite block-flow direction.</p>
+<div class="block verticalLR"><div class="block1"><div class="area"><div class="item">É</div></div><div class="area"><div class="item">É</div></div></div><div class="block2 verticalRL"><div class="area"><div class="item">É</div></div><div class="area"><div class="item">É</div></div></div></div>
+<div class="block verticalLR"><div class="block1"><div class="area"><div class="item extraLeftPadding">É</div></div><div class="area"><div class="item extraRightPadding">É</div></div></div><div class="block2 verticalRL"><div class="area"><div class="item">É</div></div><div class="area"><div class="item">É</div></div></div></div>

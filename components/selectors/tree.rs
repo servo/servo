@@ -1,152 +1,130 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! Traits that nodes must implement. Breaks the otherwise-cyclic dependency between layout and
-//! style.
+//! Traits that nodes must implement. Breaks the otherwise-cyclic dependency
+//! between layout and style.
 
-use matching::{ElementSelectorFlags, StyleRelations};
-use parser::{AttrSelector, SelectorImpl};
-use std::ascii::AsciiExt;
+use crate::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
+use crate::matching::{ElementSelectorFlags, MatchingContext};
+use crate::parser::SelectorImpl;
+use std::fmt::Debug;
+use std::ptr::NonNull;
 
-/// The definition of whitespace per CSS Selectors Level 3 § 4.
-pub static SELECTOR_WHITESPACE: &'static [char] = &[' ', '\t', '\n', '\r', '\x0C'];
+/// Opaque representation of an Element, for identity comparisons.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct OpaqueElement(NonNull<()>);
 
-// Attribute matching routines. Consumers with simple implementations can implement
-// MatchAttrGeneric instead.
-pub trait MatchAttr {
+unsafe impl Send for OpaqueElement {}
+
+impl OpaqueElement {
+    /// Creates a new OpaqueElement from an arbitrarily-typed pointer.
+    pub fn new<T>(ptr: &T) -> Self {
+        unsafe {
+            OpaqueElement(NonNull::new_unchecked(
+                ptr as *const T as *const () as *mut (),
+            ))
+        }
+    }
+}
+
+pub trait Element: Sized + Clone + Debug {
     type Impl: SelectorImpl;
 
-    fn match_attr_has(
-        &self,
-        attr: &AttrSelector<Self::Impl>) -> bool;
+    /// Converts self into an opaque representation.
+    fn opaque(&self) -> OpaqueElement;
 
-    fn match_attr_equals(
-        &self,
-        attr: &AttrSelector<Self::Impl>,
-        value: &<Self::Impl as SelectorImpl>::AttrValue) -> bool;
-
-    fn match_attr_equals_ignore_ascii_case(
-        &self,
-        attr: &AttrSelector<Self::Impl>,
-        value: &<Self::Impl as SelectorImpl>::AttrValue) -> bool;
-
-    fn match_attr_includes(
-        &self,
-        attr: &AttrSelector<Self::Impl>,
-        value: &<Self::Impl as SelectorImpl>::AttrValue) -> bool;
-
-    fn match_attr_dash(
-        &self,
-        attr: &AttrSelector<Self::Impl>,
-        value: &<Self::Impl as SelectorImpl>::AttrValue) -> bool;
-
-    fn match_attr_prefix(
-        &self,
-        attr: &AttrSelector<Self::Impl>,
-        value: &<Self::Impl as SelectorImpl>::AttrValue) -> bool;
-
-    fn match_attr_substring(
-        &self,
-        attr: &AttrSelector<Self::Impl>,
-        value: &<Self::Impl as SelectorImpl>::AttrValue) -> bool;
-
-    fn match_attr_suffix(
-        &self,
-        attr: &AttrSelector<Self::Impl>,
-        value: &<Self::Impl as SelectorImpl>::AttrValue) -> bool;
-}
-
-pub trait MatchAttrGeneric {
-    type Impl: SelectorImpl;
-    fn match_attr<F>(&self, attr: &AttrSelector<Self::Impl>, test: F) -> bool where F: Fn(&str) -> bool;
-}
-
-impl<T> MatchAttr for T where T: MatchAttrGeneric, T::Impl: SelectorImpl<AttrValue = String> {
-    type Impl = T::Impl;
-
-    fn match_attr_has(&self, attr: &AttrSelector<Self::Impl>) -> bool {
-        self.match_attr(attr, |_| true)
-    }
-
-    fn match_attr_equals(&self, attr: &AttrSelector<Self::Impl>, value: &String) -> bool {
-        self.match_attr(attr, |v| v == value)
-    }
-
-    fn match_attr_equals_ignore_ascii_case(&self, attr: &AttrSelector<Self::Impl>,
-                                           value: &String) -> bool {
-        self.match_attr(attr, |v| v.eq_ignore_ascii_case(value))
-    }
-
-    fn match_attr_includes(&self, attr: &AttrSelector<Self::Impl>, value: &String) -> bool {
-        self.match_attr(attr, |attr_value| {
-            attr_value.split(SELECTOR_WHITESPACE).any(|v| v == value)
-        })
-    }
-
-    fn match_attr_dash(&self, attr: &AttrSelector<Self::Impl>, value: &String) -> bool {
-        self.match_attr(attr, |attr_value| {
-            // The attribute must start with the pattern.
-            if !attr_value.starts_with(value) {
-                return false
-            }
-
-            // If the strings are the same, we're done.
-            if attr_value.len() == value.len() {
-                return true
-            }
-
-            // The attribute is long than the pattern, so the next character must be '-'.
-            attr_value.as_bytes()[value.len()] == '-' as u8
-        })
-    }
-
-    fn match_attr_prefix(&self, attr: &AttrSelector<Self::Impl>, value: &String) -> bool {
-        self.match_attr(attr, |attr_value| {
-            attr_value.starts_with(value)
-        })
-    }
-
-    fn match_attr_substring(&self, attr: &AttrSelector<Self::Impl>, value: &String) -> bool {
-        self.match_attr(attr, |attr_value| {
-            attr_value.contains(value)
-        })
-    }
-
-    fn match_attr_suffix(&self, attr: &AttrSelector<Self::Impl>, value: &String) -> bool {
-        self.match_attr(attr, |attr_value| {
-            attr_value.ends_with(value)
-        })
-    }
-}
-
-pub trait Element: MatchAttr + Sized {
     fn parent_element(&self) -> Option<Self>;
 
-    // Skips non-element nodes
-    fn first_child_element(&self) -> Option<Self>;
+    /// Whether the parent node of this element is a shadow root.
+    fn parent_node_is_shadow_root(&self) -> bool;
 
-    // Skips non-element nodes
-    fn last_child_element(&self) -> Option<Self>;
+    /// The host of the containing shadow root, if any.
+    fn containing_shadow_host(&self) -> Option<Self>;
 
-    // Skips non-element nodes
+    /// The parent of a given pseudo-element, after matching a pseudo-element
+    /// selector.
+    ///
+    /// This is guaranteed to be called in a pseudo-element.
+    fn pseudo_element_originating_element(&self) -> Option<Self> {
+        debug_assert!(self.is_pseudo_element());
+        self.parent_element()
+    }
+
+    /// Whether we're matching on a pseudo-element.
+    fn is_pseudo_element(&self) -> bool;
+
+    /// Skips non-element nodes
     fn prev_sibling_element(&self) -> Option<Self>;
 
-    // Skips non-element nodes
+    /// Skips non-element nodes
     fn next_sibling_element(&self) -> Option<Self>;
 
     fn is_html_element_in_html_document(&self) -> bool;
-    fn get_local_name(&self) -> &<Self::Impl as SelectorImpl>::BorrowedLocalName;
-    fn get_namespace(&self) -> &<Self::Impl as SelectorImpl>::BorrowedNamespaceUrl;
 
-    fn match_non_ts_pseudo_class<F>(&self,
-                                    pc: &<Self::Impl as SelectorImpl>::NonTSPseudoClass,
-                                    relations: &mut StyleRelations,
-                                    flags_setter: &mut F) -> bool
-        where F: FnMut(&Self, ElementSelectorFlags);
+    fn has_local_name(&self, local_name: &<Self::Impl as SelectorImpl>::BorrowedLocalName) -> bool;
 
-    fn get_id(&self) -> Option<<Self::Impl as SelectorImpl>::Identifier>;
-    fn has_class(&self, name: &<Self::Impl as SelectorImpl>::ClassName) -> bool;
+    /// Empty string for no namespace
+    fn has_namespace(&self, ns: &<Self::Impl as SelectorImpl>::BorrowedNamespaceUrl) -> bool;
+
+    /// Whether this element and the `other` element have the same local name and namespace.
+    fn is_same_type(&self, other: &Self) -> bool;
+
+    fn attr_matches(
+        &self,
+        ns: &NamespaceConstraint<&<Self::Impl as SelectorImpl>::NamespaceUrl>,
+        local_name: &<Self::Impl as SelectorImpl>::LocalName,
+        operation: &AttrSelectorOperation<&<Self::Impl as SelectorImpl>::AttrValue>,
+    ) -> bool;
+
+    fn match_non_ts_pseudo_class<F>(
+        &self,
+        pc: &<Self::Impl as SelectorImpl>::NonTSPseudoClass,
+        context: &mut MatchingContext<Self::Impl>,
+        flags_setter: &mut F,
+    ) -> bool
+    where
+        F: FnMut(&Self, ElementSelectorFlags);
+
+    fn match_pseudo_element(
+        &self,
+        pe: &<Self::Impl as SelectorImpl>::PseudoElement,
+        context: &mut MatchingContext<Self::Impl>,
+    ) -> bool;
+
+    /// Whether this element is a `link`.
+    fn is_link(&self) -> bool;
+
+    /// Returns whether the element is an HTML <slot> element.
+    fn is_html_slot_element(&self) -> bool;
+
+    /// Returns the assigned <slot> element this element is assigned to.
+    ///
+    /// Necessary for the `::slotted` pseudo-class.
+    fn assigned_slot(&self) -> Option<Self> {
+        None
+    }
+
+    fn has_id(
+        &self,
+        id: &<Self::Impl as SelectorImpl>::Identifier,
+        case_sensitivity: CaseSensitivity,
+    ) -> bool;
+
+    fn has_class(
+        &self,
+        name: &<Self::Impl as SelectorImpl>::Identifier,
+        case_sensitivity: CaseSensitivity,
+    ) -> bool;
+
+    /// Returns the mapping from the `exportparts` attribute in the reverse
+    /// direction, that is, in an outer-tree -> inner-tree direction.
+    fn imported_part(
+        &self,
+        name: &<Self::Impl as SelectorImpl>::Identifier,
+    ) -> Option<<Self::Impl as SelectorImpl>::Identifier>;
+
+    fn is_part(&self, name: &<Self::Impl as SelectorImpl>::Identifier) -> bool;
 
     /// Returns whether this element matches `:empty`.
     ///
@@ -161,9 +139,9 @@ pub trait Element: MatchAttr + Sized {
     /// if the parent node is a `DocumentFragment`.
     fn is_root(&self) -> bool;
 
-    // Ordinarily I wouldn't use callbacks like this, but the alternative is
-    // really messy, since there is a `JSRef` and a `RefCell` involved. Maybe
-    // in the future when we have associated types and/or a more convenient
-    // JS GC story... --pcwalton
-    fn each_class<F>(&self, callback: F) where F: FnMut(&<Self::Impl as SelectorImpl>::ClassName);
+    /// Returns whether this element should ignore matching nth child
+    /// selector.
+    fn ignores_nth_child_selectors(&self) -> bool {
+        false
+    }
 }

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<title>Setting localTime to null means effect does not apply</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-animationworklet/">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="common.js"></script>
+
+<style>
+.box {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+  display: inline-block;
+}
+</style>
+
+<div>
+<div class="box" id="target1"></div>
+<div class="box" id="target2"></div>
+<div class="box" id="target3"></div>
+<div class="box" id="target4"></div>
+</div>
+
+
+<script>
+promise_test(async t => {
+  await runInAnimationWorklet(`
+    registerAnimator("blank_animator", class {
+      animate(currentTime, effect) {
+        // Unset effect.localTime is equivalent to 'null'
+      }
+    });
+  `);
+  const target = document.getElementById('target1');
+
+  const animation = new WorkletAnimation('blank_animator',
+    new KeyframeEffect(target,
+      [
+        { transform: 'translateY(100px)' },
+        { transform: 'translateY(200px)' }
+      ], {
+        duration: 1000,
+      }
+    )
+  );
+  animation.play();
+  await waitForAsyncAnimationFrames(1);
+  assert_equals(getComputedStyle(target).transform, "matrix(1, 0, 0, 1, 0, 0)");
+}, "A worklet which never sets localTime has no effect.");
+
+promise_test(async t => {
+  await runInAnimationWorklet(`
+    registerAnimator("null_animator", class {
+      animate(currentTime, effect) {
+        effect.localTime = null;
+      }
+    });
+  `);
+  const target = document.getElementById('target2');
+
+  const animation = new WorkletAnimation('null_animator',
+    new KeyframeEffect(target,
+      [
+        { transform: 'translateY(100px)' },
+        { transform: 'translateY(200px)' }
+      ], {
+        duration: 1000,
+      }
+    )
+  );
+  animation.play();
+  await waitForAsyncAnimationFrames(1);
+  assert_equals(getComputedStyle(target).transform, "matrix(1, 0, 0, 1, 0, 0)");
+}, "A worklet which sets localTime to null has no effect.");
+
+promise_test(async t => {
+  await runInAnimationWorklet(`
+    registerAnimator("drop_animator", class {
+      animate(currentTime, effect) {
+        if (currentTime < 500)
+          effect.localTime = 500;
+        else if (currentTime < 1000)
+          effect.localTime = 0;
+        else
+          effect.localTime = null;
+      }
+    });
+  `);
+  const target = document.getElementById('target3');
+
+  const animation = new WorkletAnimation('drop_animator',
+    new KeyframeEffect(target,
+      [
+        { transform: 'translateY(100px)' },
+        { transform: 'translateY(200px)' }
+      ], {
+        duration: 1000,
+      }
+    )
+  );
+  animation.play();
+  await waitForAsyncAnimationFrames(5);
+  assert_equals(getComputedStyle(target).transform, "matrix(1, 0, 0, 1, 0, 150)",
+      "The animation has an effect at first");
+
+  await waitForAnimationFrameWithCondition(() => animation.currentTime > 500);
+  await waitForAsyncAnimationFrames(1);
+  assert_equals(getComputedStyle(target).transform, "matrix(1, 0, 0, 1, 0, 100)",
+      "The effect correctly changes");
+
+  await waitForAnimationFrameWithCondition(() => animation.currentTime > 1000);
+  await waitForAsyncAnimationFrames(1);
+  assert_equals(getComputedStyle(target).transform, "matrix(1, 0, 0, 1, 0, 0)",
+      "The effect stops on nulling of localTime");
+
+}, "A worklet which changes localTime to from a number to null has no effect on transform.");
+
+promise_test(async t => {
+  await runInAnimationWorklet(`
+    registerAnimator("drop2_animator", class {
+      animate(currentTime, effect) {
+        if (currentTime < 500)
+          effect.localTime = 500;
+        else if (currentTime < 1000)
+          effect.localTime = 0;
+        else
+          effect.localTime = null;
+      }
+    });
+  `);
+  const target = document.getElementById('target4');
+
+  const animation = new WorkletAnimation('drop2_animator',
+    new KeyframeEffect(target,
+      [
+        { backgroundColor: 'red' },
+        { backgroundColor: 'blue' }
+      ], {
+        duration: 1000,
+      }
+    )
+  );
+  animation.play();
+  await waitForAsyncAnimationFrames(5);
+  assert_equals(getComputedStyle(target).backgroundColor, "rgb(128, 0, 128)",
+      "The animation has an effect at first");
+
+  await waitForAnimationFrameWithCondition(() => animation.currentTime > 500);
+  await waitForAsyncAnimationFrames(1);
+  assert_equals(getComputedStyle(target).backgroundColor, "rgb(255, 0, 0)",
+      "The effect correctly changes");
+
+  await waitForAnimationFrameWithCondition(() => animation.currentTime > 1000);
+  await waitForAsyncAnimationFrames(1);
+  assert_equals(getComputedStyle(target).backgroundColor, "rgb(0, 128, 0)",
+      "The effect stops on nulling of localTime");
+
+}, "A worklet which changes localTime to from a number to null has no effect on backgroundColor.");
+
+
+</script>

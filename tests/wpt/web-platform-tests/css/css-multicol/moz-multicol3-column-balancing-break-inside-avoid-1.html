@@ -1,0 +1,50 @@
+<!DOCTYPE HTML>
+<html><head>
+  <title>CSS Test: Balancing Overflow, page-break-inside:avoid</title>
+  <link rel="author" title="Mats Palmgren" href="https://bugzilla.mozilla.org/show_bug.cgi?id=685012">
+  <link rel="help" href="http://www.w3.org/TR/CSS21/page.html#propdef-page-break-inside">
+  <link rel="match" href="moz-multicol3-column-balancing-break-inside-avoid-1-ref.html">
+  <meta name="flags" content="paged">
+  <meta charset="utf-8">
+  <style type="text/css">
+@page { size:5in 3in; margin:0.5in; }
+
+        html,body {
+            color:black; background-color:white; font-size:16px; padding:0; margin:0;
+        }
+
+  .colset {
+    column-count: 3;
+    column-gap: 0;
+    border: solid silver;
+    width: 9em;
+  }
+  p { margin: 0; page-break-inside:avoid; }
+  .short { height: 5px; page-break-inside:avoid; }
+  .short p { page-break-inside:auto; }
+
+    </style>
+</head>
+<body>
+
+<div class="colset">
+<p>one</p>
+<p>two three</p>
+<p>four five</p>
+</div>
+
+<div class="colset">
+  <p>one two three four five</p>
+</div>
+
+<div class="colset">
+<p>one two</p>
+<p>three four five</p>
+</div>
+
+<div class="colset">
+  <div class="short"><p>one two three four five</p></div>
+</div>
+
+</body>
+</html>

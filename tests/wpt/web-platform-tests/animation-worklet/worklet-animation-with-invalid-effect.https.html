@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>Test that worklet animation with invalid effect cannot be played</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-animationworklet/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="common.js"></script>
+
+<style>
+#target {
+  width: 100px;
+  height: 100px;
+}
+</style>
+
+<div id="target"></div>
+
+<script>
+'use strict';
+
+promise_test(async function() {
+  await registerPassthroughAnimator();
+  let playFunc = function() {
+    let effect = new KeyframeEffect(
+        document.getElementById('target'),
+        [
+          // No keyframe.
+        ],
+        { duration: 1000 }
+    );
+    let animation = new WorkletAnimation('passthrough', effect);
+    animation.play();
+  }
+  assert_throws_dom('InvalidStateError', playFunc);
+}, 'Trying to play invalid worklet animation should throw an exception.');
+</script>

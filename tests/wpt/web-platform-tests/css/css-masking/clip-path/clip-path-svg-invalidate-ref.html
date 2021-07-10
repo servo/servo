@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<title>Clip Path: invalidate composited clip-path via SVG</title>
+<link rel="author" title="Chris Harrelson" href="mailto:chrishtr@chromium.org">
+
+<style>
+  body {
+    margin: 0;
+  }
+  div {
+    height: 500px;
+    background: black;
+    clip-path: url(#clip);
+    will-change: transform;
+  }
+  svg {
+    width: 0;
+    height: 0;
+  }
+</style>
+
+<div></div>
+
+<svg viewBox="0 0 1 1">
+  <clipPath id="clip" clipPathUnits="objectBoundingBox">
+    <polygon points="0,0 0.5,1 1,0" />
+  </clipPath>
+</svg>

@@ -19,5 +19,5 @@ async_test(function(t) {
     ws.close();
   });
   ws.onerror = ws.onmessage = ws.onclose = t.unreached_func();
-}, null, {timeout:9900});
+});
 </script>

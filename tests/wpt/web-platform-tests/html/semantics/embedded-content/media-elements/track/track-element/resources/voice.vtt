@@ -1,0 +1,15 @@
+WEBVTT
+Cue text fragment with <v> voice markup mapped to HTML <q> element with @title for annotation.
+
+1
+00:00:00.000 --> 00:00:30.500 align:start position:20%
+<v.blue Speaker>Bear is Coming!!!!!</v>
+Text span with a class and an annotation.
+
+2
+00:00:31.000 --> 00:01:00.500 align:start position:20%
+<v Doe Hunter>I said Bear is coming!!!!</v>
+
+3
+00:01:01.000 --> 00:02:00.500 align:start position:20%
+I said <v.blue	Speaker>Bear is coming now</v>!!!!

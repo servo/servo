@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Names specified in attr for a content property are case-insensitive in HTML documents</title>
+<link rel=match href=/css/css-content/attr-case-insensitive-ref.html>
+<link rel="help" href="https://drafts.csswg.org/css-content-3/#content-property" />
+<style type="text/css">
+div#gencon:before { content: attr(foo) attr(Foo) attr(fOO)
+                             attr(bar) attr(Bar) attr(bAR)
+                             attr(baz) attr(Baz) attr(BAZ) }
+</style>
+<body>
+<div id="gencon" foo="a" Bar="b" bAZ="c"></div>
+</body>

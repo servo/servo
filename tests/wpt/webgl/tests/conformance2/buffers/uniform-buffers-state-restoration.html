@@ -1,0 +1,124 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Uniform Buffers State Restoration Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script id='vshader' type='x-shader/x-vertex'>#version 300 es
+layout(location=0) in vec3 p;
+void main()
+{
+    gl_Position = vec4(p.xyz, 1.0);
+}
+</script>
+<script id='fshader' type='x-shader/x-fragment'>#version 300 es
+precision mediump float;
+layout(location=0) out vec4 oColor;
+
+uniform UBOData {
+    vec4 uboColor;
+};
+
+void main()
+{
+    oColor = uboColor;
+}
+</script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" style="width: 50px; height: 50px;"> </canvas>
+<div id="console"></div>
+<script>
+"use strict";
+description("This is a regression test verifying that uniform buffer bindings persist correctly across frames: <a href='http://crbug.com/722060'>crbug.com/722060</a>");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, null, 2);
+var greenBuf = null;
+var throwawayBuf = null;
+var red = new Float32Array([1, 0, 0, 1]);
+var green = new Float32Array([0, 1, 0, 1]);
+var frame = 0;
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    initTest();
+    wtu.waitForComposite(runTest);
+}
+
+function initTest() {
+    wtu.setupUnitQuad(gl);
+
+    var program = wtu.setupProgram(gl, ['vshader', 'fshader']);
+    if (!program) {
+        testFailed("Could not compile shader with uniform blocks without error");
+        return;
+    }
+    var uboLocation = gl.getUniformBlockIndex(program, "UBOData");
+    gl.uniformBlockBinding(program, uboLocation, 0);
+
+    greenBuf = gl.createBuffer();
+    throwawayBuf = gl.createBuffer();
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "createBuffer should not set an error");
+
+    // Bind uniform buffer (both index 0 AND generic binding points) to greenBuf
+    gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, greenBuf);
+    gl.bufferData(gl.UNIFORM_BUFFER, green, gl.STATIC_DRAW);
+    // Bind throwaray uniform buffer (from only the generic binding point)
+    gl.bindBuffer(gl.UNIFORM_BUFFER, throwawayBuf);
+}
+
+function runTest() {
+    // ONLY the binding point at index 0 (not the generic binding point) should be greenBuf.
+    // (The generic binding point should point at throwawayBuf.)
+    // So this bufferData should go into throwawayBuf.
+    gl.bufferData(gl.UNIFORM_BUFFER, red, gl.STATIC_DRAW);
+    wtu.clearAndDrawUnitQuad(gl);
+    wtu.checkCanvas(gl, [0, 255, 0, 255], "draw call should set canvas to green", 2);
+    finishTest();
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+
+</body>
+</html>

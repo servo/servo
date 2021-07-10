@@ -1,0 +1,4 @@
+{
+    "start_url": "https://{{host}}:{{ports[https][1]}}/appmanifest/start_url-member/fail.html",
+    "display": "fullscreen"
+}

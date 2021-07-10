@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+<head>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/input-onmessage.js"></script>
+<script src="../resources/pending-input-utils.js"></script>
+</head>
+<body>
+  <iframe src="http://{{hosts[][www1]}}:{{ports[http][0]}}/is-input-pending/resources/blank.html"></iframe>
+  <p>Ensure that a parent frame cannot detect events on a cross-origin subframe.</p>
+  <script>
+    window.addEventListener('load', () => {
+      PendingInputUtils.testCannotAccessPendingInputAt(window, 10, 10, 'cannot detect cross-origin events on subframe');
+    });
+  </script>
+</body>
+</html>

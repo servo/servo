@@ -1,0 +1,31 @@
+# To activate, change the Appveyor settings to use `.appveyor.yml`.
+environment:
+  global:
+    PATH: "C:\\Python27\\Scripts\\;%PATH%"
+    PYTEST_COMMAND: "coverage run -m pytest"
+  matrix:
+    - TOXENV: py27-base
+    - TOXENV: py27-optional
+    - TOXENV: py33-base
+    - TOXENV: py33-optional
+    - TOXENV: py34-base
+    - TOXENV: py34-optional
+    - TOXENV: py35-base
+    - TOXENV: py35-optional
+    - TOXENV: py36-base
+    - TOXENV: py36-optional
+
+install:
+  - git submodule update --init --recursive
+  - python -m pip install tox codecov
+
+build: off
+
+test_script:
+  - tox
+
+after_test:
+  - python debug-info.py
+
+on_success:
+  - codecov

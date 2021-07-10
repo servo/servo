@@ -31,7 +31,7 @@
       </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
-     	<p>
+       <p>
         Run the test. No interaction required.
       </p>
     </d:operatorScript>

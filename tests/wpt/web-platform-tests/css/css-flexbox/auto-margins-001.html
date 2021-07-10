@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Test: Aligning with auto margins</title>
+<link href="support/flexbox.css" rel="stylesheet">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<link rel="author" title="Google Inc." href="http://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#auto-margins">
+<link rel="match" href="auto-margins-001-ref.html">
+<meta name="flags" content="">
+<style>
+
+#circles, #circles div {
+    display: flex;
+    width: -webkit-calc(100% - 4em);
+    width: calc(100% - 4em);
+    height: -webkit-calc(100% - 4em);
+    height: calc(100% - 4em);
+    border: 1em solid blue;
+    border-radius:50%;
+    margin: auto;
+}
+
+#circles { width:9em; height:9em; }
+
+</style>
+</head>
+<body>
+<p>These tests are from the spec: <a href="http://dev.w3.org/csswg/css3-flexbox/#auto-margins">http://dev.w3.org/csswg/css3-flexbox/#auto-margins</a>.</p>
+
+<p>The black rectangle should be centered vertically and horizontally.</p>
+<div class="flexbox" style="width: 4em; height: 4em; background: silver">
+  <p id="ok" style="margin: auto; font-family: Ahem;">OK</p>
+</div>
+
+<div class="flexbox" style="width: 4em; height: 4em; margin-top: 10px; background: silver; writing-mode: vertical-rl">
+  <p id="okVertical" style="margin: auto; font-family: Ahem;">OK</p>
+</div>
+
+<p>You should see 3 blue concentric circles.</p>
+<div id="circles"><div><div></div></div></div>
+
+<p id="log">The computed style of each margin should not be 0.</p>
+<script>
+var okStyle = getComputedStyle(document.getElementById('ok'));
+document.getElementById("log").innerHTML += "<br>OK: " +
+    ((parseInt(okStyle.marginTop) && parseInt(okStyle.marginRight) && parseInt(okStyle.marginBottom) && parseInt(okStyle.marginLeft)) ? "PASS" : "FAIL");
+
+var okVerticalStyle = getComputedStyle(document.getElementById('okVertical'));
+document.getElementById("log").innerHTML += "<br>Vertical OK: " +
+    ((parseInt(okVerticalStyle.marginTop) && parseInt(okVerticalStyle.marginRight) && parseInt(okVerticalStyle.marginBottom) && parseInt(okVerticalStyle.marginLeft)) ? "PASS" : "FAIL");
+</script>
+</body>
+</html>

@@ -1,16 +1,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::WorkerLocationBinding;
-use dom::bindings::codegen::Bindings::WorkerLocationBinding::WorkerLocationMethods;
-use dom::bindings::js::Root;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::str::{DOMString, USVString};
-use dom::urlhelper::UrlHelper;
-use dom::workerglobalscope::WorkerGlobalScope;
+use crate::dom::bindings::codegen::Bindings::WorkerLocationBinding::WorkerLocationMethods;
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::USVString;
+use crate::dom::urlhelper::UrlHelper;
+use crate::dom::workerglobalscope::WorkerGlobalScope;
 use dom_struct::dom_struct;
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, ServoUrl};
 
 // https://html.spec.whatwg.org/multipage/#worker-locations
 #[dom_struct]
@@ -27,10 +26,14 @@ impl WorkerLocation {
         }
     }
 
-    pub fn new(global: &WorkerGlobalScope, url: ServoUrl) -> Root<WorkerLocation> {
-        reflect_dom_object(box WorkerLocation::new_inherited(url),
-                           global,
-                           WorkerLocationBinding::Wrap)
+    pub fn new(global: &WorkerGlobalScope, url: ServoUrl) -> DomRoot<WorkerLocation> {
+        reflect_dom_object(Box::new(WorkerLocation::new_inherited(url)), global)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-workerlocation-origin
+    #[allow(dead_code)]
+    pub fn origin(&self) -> ImmutableOrigin {
+        self.url.origin()
     }
 }
 
@@ -55,6 +58,11 @@ impl WorkerLocationMethods for WorkerLocation {
         UrlHelper::Href(&self.url)
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-workerlocation-origin
+    fn Origin(&self) -> USVString {
+        UrlHelper::Origin(&self.url)
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-workerlocation-pathname
     fn Pathname(&self) -> USVString {
         UrlHelper::Pathname(&self.url)
@@ -73,10 +81,5 @@ impl WorkerLocationMethods for WorkerLocation {
     // https://html.spec.whatwg.org/multipage/#dom-workerlocation-search
     fn Search(&self) -> USVString {
         UrlHelper::Search(&self.url)
-    }
-
-    // https://html.spec.whatwg.org/multipage/#dom-workerlocation-href
-    fn Stringifier(&self) -> DOMString {
-        DOMString::from(self.Href().0)
     }
 }

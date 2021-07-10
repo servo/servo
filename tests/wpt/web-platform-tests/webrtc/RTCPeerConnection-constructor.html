@@ -1,0 +1,76 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection constructor</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+test(function() {
+  assert_equals(RTCPeerConnection.length, 0);
+}, 'RTCPeerConnection.length');
+
+// These are used for string and number dictionary members to see if they are
+// being accessed at all.
+const toStringThrows = { toString: function() { throw new Error; } };
+const toNumberThrows = Symbol();
+
+// Test the first argument of the constructor. The key is the argument itself,
+// and the value is the first argument for assert_throws_js, or false if no
+// exception should be thrown.
+const testArgs = {
+  // No argument or equivalent.
+  '': false,
+  'null': false,
+  'undefined': false,
+  '{}': false,
+
+  // certificates
+  '{ certificates: null }': TypeError,
+  '{ certificates: undefined }': false,
+  '{ certificates: [] }': false,
+  '{ certificates: [null] }': TypeError,
+  '{ certificates: [undefined] }': TypeError,
+
+  // iceCandidatePoolSize
+  '{ iceCandidatePoolSize: toNumberThrows }': TypeError,
+}
+
+for (const arg in testArgs) {
+  const expr = 'new RTCPeerConnection(' + arg + ')';
+  test(function() {
+    const throws = testArgs[arg];
+    if (throws) {
+      assert_throws_js(throws, function() {
+        eval(expr);
+      });
+    } else {
+      eval(expr);
+    }
+  }, expr);
+}
+
+// The initial values of attributes of RTCPeerConnection.
+const initialState = {
+  'localDescription': null,
+  'currentLocalDescription': null,
+  'pendingLocalDescription': null,
+  'remoteDescription': null,
+  'currentRemoteDescription': null,
+  'pendingRemoteDescription': null,
+  'signalingState': 'stable',
+  'iceGatheringState': 'new',
+  'iceConnectionState': 'new',
+  'connectionState': 'new',
+  'canTrickleIceCandidates': null,
+  // TODO: defaultIceServers
+};
+
+for (const attr in initialState) {
+  test(function() {
+    // Use one RTCPeerConnection instance for all initial value tests.
+    if (!window.pc) {
+      window.pc = new RTCPeerConnection;
+    }
+    assert_equals(window.pc[attr], initialState[attr]);
+  }, attr + ' initial value');
+}
+</script>

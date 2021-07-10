@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSS Test: A Web Animations only apply to restricted properties on ::marker pseudo-elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="match" href="marker-animate-002-ref.html">
+<ul>
+  <li>Item</li>
+</ul>
+<script>
+document.querySelector('li').animate({
+  opacity: [0.1, 0.1],
+  color: ['green', 'green']
+}, {
+  pseudoElement: '::marker',
+  duration: Infinity
+});
+</script>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js" ></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.sub.js"></script>
+<meta http-equiv="Content-Security-Policy"
+      content="trusted-types SomeName SomeOtherName">
+<body>
+<script>
+  // Policy name test
+  test(t => {
+    let policy = trustedTypes.createPolicy('SomeName', {} );
+    assert_true(policy instanceof TrustedTypePolicy);
+    assert_equals(policy.name, 'SomeName');
+  }, "policy.name = name");
+
+  // Duplicate names test
+  test(t => {
+    assert_throws_js(TypeError, _ => {
+     trustedTypes.createPolicy('SomeName', {} );
+    });
+  }, "duplicate policy name attempt throws");
+
+  // Check error messages.
+  test(t => {
+    try {
+      trustedTypes.createPolicy("unknown name", {});
+    } catch (e) {
+      assert_true(e.toString().includes("disallowed"));
+      assert_false(e.toString().includes("already exists"));
+    }
+
+    try {
+      trustedTypes.createPolicy("SomeName", {});
+    } catch (e) {
+      assert_false(e.toString().includes("disallowed"));
+      assert_true(e.toString().includes("already exists"));
+    }
+  }, "Error messages for duplicates and unlisted policies should be different");
+
+</script>

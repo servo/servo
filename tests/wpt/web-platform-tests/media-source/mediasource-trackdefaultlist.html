@@ -32,7 +32,7 @@
         trackDefaults[4] = new TrackDefault("audio", "en-US", "label", ["main"], "");
         assert_equals(trackDefaults[0].type, trackDefaults[4].type, "same-type conflict setup");
         assert_equals(trackDefaults[0].byteStreamTrackID, trackDefaults[4].byteStreamTrackID, "same-byteStreamTrackID conflict setup");
-        assert_throws("InvalidAccessError",
+        assert_throws_dom("InvalidAccessError",
             function() { new TrackDefaultList(trackDefaults); },
             "TrackDefaultList construction should throw exception due to same type and byteStreamTrackID across at least 2 items in trackDefaults");
 
@@ -40,7 +40,7 @@
         trackDefaults[4] = new TrackDefault("video", "en-US", "label", ["main"], "1");
         assert_equals(trackDefaults[4].type, trackDefaults[5].type, "same-type conflict setup");
         assert_equals(trackDefaults[4].byteStreamTrackID, trackDefaults[5].byteStreamTrackID, "same-byteStreamTrackID conflict setup");
-        assert_throws("InvalidAccessError",
+        assert_throws_dom("InvalidAccessError",
             function() { new TrackDefaultList(trackDefaults); },
             "TrackDefaultList construction should throw exception due to same type and byteStreamTrackID across at least 2 items in trackDefaults");
 

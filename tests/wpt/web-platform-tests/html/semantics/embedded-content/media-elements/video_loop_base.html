@@ -6,7 +6,6 @@
     <link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-media-loop" />
     <meta name="flags" content="" />
     <meta name="assert" content="Check if video.loop is set to true that expecting the seeking event is fired more than once" />
-    <meta name=timeout content=long>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src="/common/media.js"></script>
@@ -34,7 +33,7 @@
 
         media.addEventListener("seeking", startTest, false);
         media.loop = true;
-        media.src = getVideoURI("/media/movie_5") + "?" + new Date() + Math.random();
+        media.src = getVideoURI("/media/2x2-green") + "?" + new Date() + Math.random();
         media.play();
     </script>
   </body>

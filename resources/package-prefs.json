@@ -1,7 +1,20 @@
 {
-  "dom.forcetouch.enabled": true,
-  "dom.mozbrowser.enabled": true,
-  "shell.builtin-key-shortcuts.enabled": false,
-  "os:windows,os:linux;shell.homepage": "browserhtml/index.html",
-  "os:macosx;shell.native-titlebar.enabled": false
+  "_comment": "this file is used to add some specific preferences to the Servo package (nightly builds)",
+  "all": {},
+  "macosx": {},
+  "linux": {},
+  "android": {},
+  "windows": {},
+  "hololens": {
+    "_comment": "settings specific to Hololens/UWP builds",
+    "devtools.server.enabled": true,
+    "dom.webxr.enabled": true,
+    "shell.homepage": "https://servo.org/hl-home/",
+    "gfx.subpixel-text-antialiasing.enabled": false
+  },
+  "vr": {
+    "_comment": "settings specific to VR builds",
+    "dom.webvr.enabled": true,
+    "dom.webxr.enabled": true
+  }
 }

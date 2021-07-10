@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Resource Timing TAO tests</title>
+<link rel="author" title="Google" href="http://www.google.com/" />
+<link rel="help" href="https://www.w3.org/TR/resource-timing-2/#timing-allow-origin"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webperftestharness.js"></script>
+<script src="resources/webperftestharnessextension.js"></script>
+<script>
+setup({explicit_done: true});
+
+// explicitly test the namespace before we start testing
+test_namespace('getEntriesByType');
+
+let iframe;
+function setup_iframe() {
+    iframe = document.getElementById('frameContext');
+    iframe.addEventListener('load', onload_test, false);
+}
+function onload_test() {
+    if (window.performance.getEntriesByType === undefined) {
+      done();
+      return;
+    }
+    const context = new PerformanceContext(iframe.contentWindow.performance);
+    const entries = context.getEntriesByType('resource');
+    test_equals(entries.length, 1, 'There should be one resource timing entry.');
+    const entry = entries[0];
+    test_equals(entry.redirectStart, 0, 'redirectStart should be 0 in cross-origin request.');
+    test_equals(entry.redirectEnd, 0, 'redirectEnd should be 0 in cross-origin request.');
+    test_equals(entry.domainLookupStart, 0, 'domainLookupStart should be 0 in cross-origin request.');
+    test_equals(entry.domainLookupEnd, 0, 'domainLookupEnd should be 0 in cross-origin request.');
+    test_equals(entry.connectStart, 0, 'connectStart should be 0 in cross-origin request.');
+    test_equals(entry.connectEnd, 0, 'connectEnd should be 0 in cross-origin request.');
+    test_equals(entry.requestStart, 0, 'requestStart should be 0 in cross-origin request.');
+    test_equals(entry.responseStart, 0, 'responseStart should be 0 in cross-origin request.');
+    test_equals(entry.secureConnectionStart, 0, 'secureConnectionStart should be 0 in cross-origin request.');
+    test_greater_than(entry.fetchStart, 0, 'fetchStart should be greater than 0 in cross-origin request.');
+    test_greater_than(entry.responseEnd, 0, 'responseEnd should be greater than 0 in cross-origin request.');
+    done();
+}
+window.setup_iframe = setup_iframe;
+</script>
+</head>
+<body>
+<h1>Description</h1>
+<p>This test validates that for a cross origin resource, the timing allow check algorithm will fail when the HTTP response includes zero Timing-Allow-Origin header value.</p>
+<div id="log"></div>
+<iframe id="frameContext" src="resources/iframe_TAO_zero.html"></iframe>
+</body>
+</html>

@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Ensure that body propagates its scrollbars</title>
+<link rel=match href="support/overflow-propagation-001-ref.html">
+<link rel=help href="https://www.w3.org/TR/CSS21/visufx.html#overflow-clipping">
+<script>
+  onload = function() {
+    document.body.remove();
+    var b = document.createElement("body");
+    b.style = "overflow: hidden; margin: 100px; width: 100px; height: 100px; border: 1px solid green; position: absolute; top: 0; left: 0";
+    b.textContent = "The body should have visible overflow of the text that totally doesn't fit in the little box.";
+    document.documentElement.appendChild(b);
+  }
+</script>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<title>CSS Test: Test generic family keywords matching for @font-face</title>
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#family-name-syntax">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-fonts/support/font-family-keywords.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css"/>
+<style>
+div {
+  font-size: 10px;
+}
+#ahem {
+  font-family: Ahem;
+}
+</style>
+<body>
+  <div><span id="ahem">00000</span></div>
+  <div><span id="test">00000</span></div>
+<script>
+  setup({ explicit_done: true });
+  window.addEventListener("load", () => { document.fonts.ready.then(runTests); });
+  function runTests() {
+    let ahem = document.getElementById('ahem');
+    let ahem_expected_width = ahem.offsetWidth;
+    kGenericFontFamilyKeywords.forEach(keyword => {
+      test(() => {
+        let element = document.getElementById('test');
+        element.setAttribute("style", `font-family: ${keyword};`);
+        let expected_width = element.offsetWidth;
+
+        // Insert the @font-face rules for quoted and unquoted keywords.
+        document.documentElement.insertAdjacentHTML('beforeend', `
+<style>
+@font-face {
+  font-family: ${keyword};
+  src: local(Ahem), url('/fonts/Ahem.ttf');
+}
+</style>
+<style>
+@font-face {
+  font-family: "${keyword}";
+  src: local(Ahem), url('/fonts/Ahem.ttf');
+}
+</style>`);
+
+        assert_equals(element.offsetWidth, expected_width, `unquoted ${keyword} does not match @font-face rule`);
+
+        element.setAttribute("style", `font-family: "${keyword}";`);
+        assert_equals(element.offsetWidth, ahem_expected_width, `quoted ${keyword} matches  @font-face rule`);
+      }, `@font-face matching for quoted and unquoted ${keyword}`);
+    });
+    done();
+  }
+</script>
+</body>

@@ -10,22 +10,22 @@
 </style>
 <script type="text/javascript">
 window.onload = function () {
-	var orange = document.getElementsByTagName('div')[0];
-	orange.ondragenter = orange.ondragover = function (e) {
-		e.preventDefault();
-	};
-	orange.ondrop = function (e) {
-		e.preventDefault();
-		document.getElementsByTagName('ol')[0].innerHTML = ( e.dataTransfer.files[0] && e.dataTransfer.files[0].name == 'pass.txt' ) ? 'PASS' : 'FAIL';
-	};
+  var orange = document.getElementsByTagName('div')[0];
+  orange.ondragenter = orange.ondragover = function (e) {
+    e.preventDefault();
+  };
+  orange.ondrop = function (e) {
+    e.preventDefault();
+    document.getElementsByTagName('ol')[0].innerHTML = ( e.dataTransfer.files[0] && e.dataTransfer.files[0].name == 'pass.txt' ) ? 'PASS' : 'FAIL';
+  };
 };
 </script>
 <div draggable="true"></div>
 
 <ol>
-	<li>Save <a href="pass.txt">pass.txt</a> and <a href="fail.txt">fail.txt</a> onto your computer.</li>
-	<li>Drag pass.txt from your computer onto the orange square.</li>
-	<li>A prompt should appear. Do not dismiss it. If a prompt does not appear, ignore any further steps, and check the tests in ../../file/</li>
-	<li>Drag fail.txt from your computer onto a blank part of this page. Fail if this page is replaced.</li>
-	<li>Accept the prompt. Fail if nothing happens.</li>
+  <li>Save <a href="pass.txt">pass.txt</a> and <a href="fail.txt">fail.txt</a> onto your computer.</li>
+  <li>Drag pass.txt from your computer onto the orange square.</li>
+  <li>A prompt should appear. Do not dismiss it. If a prompt does not appear, ignore any further steps, and check the tests in ../../file/</li>
+  <li>Drag fail.txt from your computer onto a blank part of this page. Fail if this page is replaced.</li>
+  <li>Accept the prompt. Fail if nothing happens.</li>
 </ol>

@@ -16,7 +16,7 @@
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/struct.html#ImageElement">
       <p>
         Test referencing an svg from an 'image' element, where the referenced
-        svg has a viewBox and a larger width and height than the 'image' 
+        svg has a viewBox and a larger width and height than the 'image'
         element viewport.
       </p>
       <p>

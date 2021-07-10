@@ -1,30 +1,44 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // NOTE: https://www.chromium.org/directwrite-font-proxy has useful
 // information for an approach that we'll likely need to take when the
 // renderer moves to a sandboxed process.
 
+use crate::font::{FontHandleMethods, FontMetrics, FontTableMethods};
+use crate::font::{FontTableTag, FractionalPixel};
+use crate::platform::font_template::FontTemplateData;
+use crate::platform::windows::font_context::FontContextHandle;
+use crate::platform::windows::font_list::font_from_atom;
+use crate::text::glyph::GlyphId;
 use app_units::Au;
-use dwrote;
 use dwrote::{Font, FontFace, FontFile};
-use dwrote::{FontWeight, FontStretch, FontStyle};
-use font::{FontHandleMethods, FontMetrics, FontTableMethods};
-use font::{FontTableTag, FractionalPixel};
-use platform::font_template::FontTemplateData;
-use platform::windows::font_context::FontContextHandle;
-use platform::windows::font_list::font_from_atom;
+use dwrote::{FontStretch, FontStyle};
+use servo_atoms::Atom;
+use std::fmt;
+use std::ops::Deref;
 use std::sync::Arc;
-use style::computed_values::{font_stretch, font_weight};
-use text::glyph::GlyphId;
-use truetype;
+use style::computed_values::font_stretch::T as StyleFontStretch;
+use style::computed_values::font_weight::T as StyleFontWeight;
+use style::values::computed::font::FontStyle as StyleFontStyle;
+use style::values::generics::font::FontStyle as GenericFontStyle;
+use style::values::generics::NonNegative;
+use style::values::specified::font::FontStretchKeyword;
 
 // 1em = 12pt = 16px, assuming 72 points per inch and 96 px per inch
-fn pt_to_px(pt: f64) -> f64 { pt / 72. * 96. }
-fn em_to_px(em: f64) -> f64 { em * 16. }
-fn au_from_em(em: f64) -> Au { Au::from_f64_px(em_to_px(em)) }
-fn au_from_pt(pt: f64) -> Au { Au::from_f64_px(pt_to_px(pt)) }
+fn pt_to_px(pt: f64) -> f64 {
+    pt / 72. * 96.
+}
+fn em_to_px(em: f64) -> f64 {
+    em * 16.
+}
+fn au_from_em(em: f64) -> Au {
+    Au::from_f64_px(em_to_px(em))
+}
+fn au_from_pt(pt: f64) -> Au {
+    Au::from_f64_px(pt_to_px(pt))
+}
 
 pub struct FontTable {
     data: Vec<u8>,
@@ -32,7 +46,9 @@ pub struct FontTable {
 
 impl FontTable {
     pub fn wrap(data: &[u8]) -> FontTable {
-        FontTable { data: data.to_vec() }
+        FontTable {
+            data: data.to_vec(),
+        }
     }
 }
 
@@ -47,7 +63,7 @@ fn make_tag(tag_bytes: &[u8]) -> FontTableTag {
     unsafe { *(tag_bytes.as_ptr() as *const FontTableTag) }
 }
 
-macro_rules! try_lossy(($result:expr) => (try!($result.map_err(|_| (())))));
+macro_rules! try_lossy(($result:expr) => ($result.map_err(|_| (()))?));
 
 // Given a set of records, figure out the string indices for the family and face
 // names.  We want name_id 1 and 2, and we need to use platform_id == 1 and
@@ -94,14 +110,14 @@ fn get_family_face_indices(records: &[truetype::naming_table::Record]) -> Option
 struct FontInfo {
     family_name: String,
     face_name: String,
-    weight: font_weight::T,
-    stretch: font_stretch::T,
-    style: FontStyle,
+    weight: StyleFontWeight,
+    stretch: StyleFontStretch,
+    style: StyleFontStyle,
 }
 
 impl FontInfo {
     fn new_from_face(face: &FontFace) -> Result<FontInfo, ()> {
-        use std::cmp::{min, max};
+        use std::cmp::{max, min};
         use std::io::Cursor;
         use truetype::{NamingTable, Value, WindowsMetrics};
 
@@ -119,7 +135,7 @@ impl FontInfo {
                     let strings = table.strings().unwrap();
                     let family = strings[family_index].clone();
                     let face = strings[face_index].clone();
-                    ((family, face))
+                    (family, face)
                 } else {
                     return Err(());
                 }
@@ -129,11 +145,11 @@ impl FontInfo {
                     let strings = table.strings().unwrap();
                     let family = strings[family_index].clone();
                     let face = strings[face_index].clone();
-                    ((family, face))
+                    (family, face)
                 } else {
                     return Err(());
                 }
-            }
+            },
         };
 
         let mut os2_table_cursor = Cursor::new(os2_table_bytes.as_ref().unwrap());
@@ -155,83 +171,68 @@ impl FontInfo {
             },
         };
 
-        let weight = match min(9, max(1, weight_val / 100)) {
-            1 => font_weight::T::Weight100,
-            2 => font_weight::T::Weight200,
-            3 => font_weight::T::Weight300,
-            4 => font_weight::T::Weight400,
-            5 => font_weight::T::Weight500,
-            6 => font_weight::T::Weight600,
-            7 => font_weight::T::Weight700,
-            8 => font_weight::T::Weight800,
-            9 => font_weight::T::Weight900,
-            _ => return Err(()),
-        };
+        let weight = StyleFontWeight(weight_val as f32);
 
-        let stretch = match min(9, max(1, width_val)) {
-            1 => font_stretch::T::ultra_condensed,
-            2 => font_stretch::T::extra_condensed,
-            3 => font_stretch::T::condensed,
-            4 => font_stretch::T::semi_condensed,
-            5 => font_stretch::T::normal,
-            6 => font_stretch::T::semi_expanded,
-            7 => font_stretch::T::expanded,
-            8 => font_stretch::T::extra_expanded,
-            9 => font_stretch::T::ultra_expanded,
-            _ => return Err(()),
-        };
+        let stretch = StyleFontStretch(NonNegative(
+            match min(9, max(1, width_val)) {
+                1 => FontStretchKeyword::UltraCondensed,
+                2 => FontStretchKeyword::ExtraCondensed,
+                3 => FontStretchKeyword::Condensed,
+                4 => FontStretchKeyword::SemiCondensed,
+                5 => FontStretchKeyword::Normal,
+                6 => FontStretchKeyword::SemiExpanded,
+                7 => FontStretchKeyword::Expanded,
+                8 => FontStretchKeyword::ExtraExpanded,
+                9 => FontStretchKeyword::UltraExpanded,
+                _ => return Err(()),
+            }
+            .compute(),
+        ));
 
         let style = if italic_bool {
-            FontStyle::Italic
+            GenericFontStyle::Italic
         } else {
-            FontStyle::Normal
+            GenericFontStyle::Normal
         };
 
         Ok(FontInfo {
             family_name: family,
             face_name: face,
-            weight: weight,
-            stretch: stretch,
-            style: style,
+            weight,
+            stretch,
+            style,
         })
     }
 
     fn new_from_font(font: &Font) -> Result<FontInfo, ()> {
-        let style = font.style();
-        let weight = match font.weight() {
-            FontWeight::Thin => font_weight::T::Weight100,
-            FontWeight::ExtraLight => font_weight::T::Weight200,
-            FontWeight::Light => font_weight::T::Weight300,
-            // slightly grayer gray
-            FontWeight::SemiLight => font_weight::T::Weight300,
-            FontWeight::Regular => font_weight::T::Weight400,
-            FontWeight::Medium => font_weight::T::Weight500,
-            FontWeight::SemiBold => font_weight::T::Weight600,
-            FontWeight::Bold => font_weight::T::Weight700,
-            FontWeight::ExtraBold => font_weight::T::Weight800,
-            FontWeight::Black => font_weight::T::Weight900,
-            // slightly blacker black
-            FontWeight::ExtraBlack => font_weight::T::Weight900,
+        let style = match font.style() {
+            FontStyle::Normal => GenericFontStyle::Normal,
+            FontStyle::Oblique => GenericFontStyle::Oblique(StyleFontStyle::default_angle()),
+            FontStyle::Italic => GenericFontStyle::Italic,
         };
-        let stretch = match font.stretch() {
-            FontStretch::Undefined => font_stretch::T::normal,
-            FontStretch::UltraCondensed => font_stretch::T::ultra_condensed,
-            FontStretch::ExtraCondensed => font_stretch::T::extra_condensed,
-            FontStretch::Condensed => font_stretch::T::condensed,
-            FontStretch::SemiCondensed => font_stretch::T::semi_condensed,
-            FontStretch::Normal => font_stretch::T::normal,
-            FontStretch::SemiExpanded => font_stretch::T::semi_expanded,
-            FontStretch::Expanded => font_stretch::T::expanded,
-            FontStretch::ExtraExpanded => font_stretch::T::extra_expanded,
-            FontStretch::UltraExpanded => font_stretch::T::ultra_expanded,
-        };
+        let weight = StyleFontWeight(font.weight().to_u32() as f32);
+        let stretch = StyleFontStretch(NonNegative(
+            match font.stretch() {
+                FontStretch::Undefined => FontStretchKeyword::Normal,
+                FontStretch::UltraCondensed => FontStretchKeyword::UltraCondensed,
+                FontStretch::ExtraCondensed => FontStretchKeyword::ExtraCondensed,
+                FontStretch::Condensed => FontStretchKeyword::Condensed,
+                FontStretch::SemiCondensed => FontStretchKeyword::SemiCondensed,
+                FontStretch::Normal => FontStretchKeyword::Normal,
+                FontStretch::SemiExpanded => FontStretchKeyword::SemiExpanded,
+                FontStretch::Expanded => FontStretchKeyword::Expanded,
+                FontStretch::ExtraExpanded => FontStretchKeyword::ExtraExpanded,
+                FontStretch::UltraExpanded => FontStretchKeyword::UltraExpanded,
+            }
+            .compute(),
+        ));
 
         Ok(FontInfo {
             family_name: font.family_name(),
             face_name: font.face_name(),
-            style: style,
-            weight: weight,
-            stretch: stretch,
+            style,
+            weight,
+            stretch,
         })
     }
 }
@@ -239,7 +240,7 @@ impl FontInfo {
 #[derive(Debug)]
 pub struct FontHandle {
     font_data: Arc<FontTemplateData>,
-    face: FontFace,
+    face: Nondebug<FontFace>,
     info: FontInfo,
     em_size: f32,
     du_per_em: f32,
@@ -247,32 +248,51 @@ pub struct FontHandle {
     scaled_du_to_px: f32,
 }
 
-impl FontHandle {
+struct Nondebug<T>(T);
+
+impl<T> fmt::Debug for Nondebug<T> {
+    fn fmt(&self, _f: &mut fmt::Formatter) -> fmt::Result {
+        Ok(())
+    }
 }
 
+impl<T> Deref for Nondebug<T> {
+    type Target = T;
+    fn deref(&self) -> &T {
+        &self.0
+    }
+}
+
+impl FontHandle {}
+
 impl FontHandleMethods for FontHandle {
-    fn new_from_template(_: &FontContextHandle, template: Arc<FontTemplateData>, pt_size: Option<Au>)
-                         -> Result<Self, ()>
-    {
+    fn new_from_template(
+        _: &FontContextHandle,
+        template: Arc<FontTemplateData>,
+        pt_size: Option<Au>,
+    ) -> Result<Self, ()> {
         let (info, face) = if let Some(ref raw_font) = template.bytes {
-            let font_file = FontFile::new_from_data(&raw_font);
+            let font_file = FontFile::new_from_data(Arc::new(raw_font.clone()));
             if font_file.is_none() {
                 // failed to load raw font
                 return Err(());
             }
 
-            let face = font_file.unwrap().create_face(0, dwrote::DWRITE_FONT_SIMULATIONS_NONE);
-            let info = try!(FontInfo::new_from_face(&face));
+            let face = font_file
+                .unwrap()
+                .create_face(0, dwrote::DWRITE_FONT_SIMULATIONS_NONE)
+                .map_err(|_| ())?;
+            let info = FontInfo::new_from_face(&face)?;
             (info, face)
         } else {
             let font = font_from_atom(&template.identifier);
             let face = font.create_font_face();
-            let info = try!(FontInfo::new_from_font(&font));
+            let info = FontInfo::new_from_font(&font)?;
             (info, face)
         };
 
         let pt_size = pt_size.unwrap_or(au_from_pt(12.));
-        let du_per_em = face.metrics().designUnitsPerEm as f32;
+        let du_per_em = face.metrics().metrics0().designUnitsPerEm as f32;
 
         let em_size = pt_size.to_f32_px() / 16.;
         let design_units_per_pixel = du_per_em / 16.;
@@ -282,7 +302,7 @@ impl FontHandleMethods for FontHandle {
 
         Ok(FontHandle {
             font_data: template.clone(),
-            face: face,
+            face: Nondebug(face),
             info: info,
             em_size: em_size,
             du_per_em: du_per_em,
@@ -295,26 +315,23 @@ impl FontHandleMethods for FontHandle {
         self.font_data.clone()
     }
 
-    fn family_name(&self) -> String {
-        self.info.family_name.clone()
+    fn family_name(&self) -> Option<String> {
+        Some(self.info.family_name.clone())
     }
 
     fn face_name(&self) -> Option<String> {
         Some(self.info.face_name.clone())
     }
 
-    fn is_italic(&self) -> bool {
-        match self.info.style {
-            FontStyle::Normal => false,
-            FontStyle::Oblique | FontStyle::Italic => true,
-        }
+    fn style(&self) -> StyleFontStyle {
+        self.info.style
     }
 
-    fn boldness(&self) -> font_weight::T {
+    fn boldness(&self) -> StyleFontWeight {
         self.info.weight
     }
 
-    fn stretchiness(&self) -> font_stretch::T {
+    fn stretchiness(&self) -> StyleFontStretch {
         self.info.stretch
     }
 
@@ -351,34 +368,40 @@ impl FontHandleMethods for FontHandle {
     }
 
     fn metrics(&self) -> FontMetrics {
-        let dm = self.face.metrics();
+        let dm = self.face.metrics().metrics0();
 
         let au_from_du = |du| -> Au { Au::from_f32_px(du as f32 * self.du_to_px) };
-        let au_from_du_s = |du| -> Au { Au:: from_f32_px(du as f32 * self.scaled_du_to_px) };
+        let au_from_du_s = |du| -> Au { Au::from_f32_px(du as f32 * self.scaled_du_to_px) };
 
         // anything that we calculate and don't just pull out of self.face.metrics
         // is pulled out here for clarity
         let leading = dm.ascent - dm.capHeight;
 
         let metrics = FontMetrics {
-            underline_size:   au_from_du(dm.underlineThickness as i32),
+            underline_size: au_from_du(dm.underlineThickness as i32),
             underline_offset: au_from_du_s(dm.underlinePosition as i32),
-            strikeout_size:   au_from_du(dm.strikethroughThickness as i32),
+            strikeout_size: au_from_du(dm.strikethroughThickness as i32),
             strikeout_offset: au_from_du_s(dm.strikethroughPosition as i32),
-            leading:          au_from_du_s(leading as i32),
-            x_height:         au_from_du_s(dm.xHeight as i32),
-            em_size:          au_from_em(self.em_size as f64),
-            ascent:           au_from_du_s(dm.ascent as i32),
-            descent:          au_from_du_s(dm.descent as i32),
-            max_advance:      au_from_pt(0.0), // FIXME
-            average_advance:  au_from_pt(0.0), // FIXME
-            line_gap:         au_from_du((dm.ascent + dm.descent + dm.lineGap as u16) as i32),
+            leading: au_from_du_s(leading as i32),
+            x_height: au_from_du_s(dm.xHeight as i32),
+            em_size: au_from_em(self.em_size as f64),
+            ascent: au_from_du_s(dm.ascent as i32),
+            descent: au_from_du_s(dm.descent as i32),
+            max_advance: au_from_pt(0.0),     // FIXME
+            average_advance: au_from_pt(0.0), // FIXME
+            line_gap: au_from_du_s((dm.ascent + dm.descent + dm.lineGap as u16) as i32),
         };
         debug!("Font metrics (@{} pt): {:?}", self.em_size * 12., metrics);
         metrics
     }
 
     fn table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {
-        self.face.get_font_table(tag).map(|bytes| FontTable { data: bytes })
+        self.face
+            .get_font_table(tag)
+            .map(|bytes| FontTable { data: bytes })
+    }
+
+    fn identifier(&self) -> Atom {
+        self.font_data.identifier.clone()
     }
 }

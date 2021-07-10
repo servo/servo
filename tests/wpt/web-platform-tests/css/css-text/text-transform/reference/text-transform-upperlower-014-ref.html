@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>CSS3 Text, text transform: Greek and Coptic, uppercase</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<style type='text/css'>
+@font-face {
+	font-family: 'webfont';
+	src: url('/fonts/GentiumPlus-R.woff') format('woff');
+	font-weight: normal;
+	font-style: normal;
+	}
+.test, .ref { font-size: 125%; line-height: 1.5em; font-family: 'Gentium Plus', 'Noto Serif', 'Noto Sans', webfont, sans-serif; }
+.test span, .ref span { margin-right: 1em; white-space: nowrap; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if both characters in each pair match. If you are missing a font glyph for a character, ignore that pair, but report which characters were ignored.</p>
+<div class="test"><span title="U+0371">&#x0370; &#x0370;</span> <span title="U+0373">&#x0372; &#x0372;</span> <span title="U+0377">&#x0376; &#x0376;</span> <span title="U+037B">&#x03FD; &#x03FD;</span> <span title="U+037C">&#x03FE; &#x03FE;</span> <span title="U+037D">&#x03FF; &#x03FF;</span> <span title="U+03AC">&#x0386; &#x0386;</span> <span title="U+03AD">&#x0388; &#x0388;</span> <span title="U+03AE">&#x0389; &#x0389;</span> <span title="U+03AF">&#x038A; &#x038A;</span> <span title="U+03B1">&#x0391; &#x0391;</span> <span title="U+03B2">&#x0392; &#x0392;</span> <span title="U+03B3">&#x0393; &#x0393;</span> <span title="U+03B4">&#x0394; &#x0394;</span> <span title="U+03B5">&#x0395; &#x0395;</span> <span title="U+03B6">&#x0396; &#x0396;</span> <span title="U+03B7">&#x0397; &#x0397;</span> <span title="U+03B8">&#x0398; &#x0398;</span> <span title="U+03B9">&#x0399; &#x0399;</span> <span title="U+03BA">&#x039A; &#x039A;</span> <span title="U+03BB">&#x039B; &#x039B;</span> <span title="U+03BC">&#x039C; &#x039C;</span> <span title="U+03BD">&#x039D; &#x039D;</span> <span title="U+03BE">&#x039E; &#x039E;</span> <span title="U+03BF">&#x039F; &#x039F;</span> <span title="U+03C0">&#x03A0; &#x03A0;</span> <span title="U+03C1">&#x03A1; &#x03A1;</span> <span title="U+03C2">&#x03A3; &#x03A3;</span> <span title="U+03C3">&#x03A3; &#x03A3;</span> <span title="U+03C4">&#x03A4; &#x03A4;</span> <span title="U+03C5">&#x03A5; &#x03A5;</span> <span title="U+03C6">&#x03A6; &#x03A6;</span> <span title="U+03C7">&#x03A7; &#x03A7;</span> <span title="U+03C8">&#x03A8; &#x03A8;</span> <span title="U+03C9">&#x03A9; &#x03A9;</span> <span title="U+03CA">&#x03AA; &#x03AA;</span> <span title="U+03CB">&#x03AB; &#x03AB;</span> <span title="U+03CC">&#x038C; &#x038C;</span> <span title="U+03CD">&#x038E; &#x038E;</span> <span title="U+03CE">&#x038F; &#x038F;</span> <span title="U+03D0">&#x0392; &#x0392;</span> <span title="U+03D1">&#x0398; &#x0398;</span> <span title="U+03D5">&#x03A6; &#x03A6;</span> <span title="U+03D6">&#x03A0; &#x03A0;</span> <span title="U+03D7">&#x03CF; &#x03CF;</span> <span title="U+03D9">&#x03D8; &#x03D8;</span> <span title="U+03DB">&#x03DA; &#x03DA;</span> <span title="U+03DD">&#x03DC; &#x03DC;</span> <span title="U+03DF">&#x03DE; &#x03DE;</span> <span title="U+03E1">&#x03E0; &#x03E0;</span> <span title="U+03E3">&#x03E2; &#x03E2;</span> <span title="U+03E5">&#x03E4; &#x03E4;</span> <span title="U+03E7">&#x03E6; &#x03E6;</span> <span title="U+03E9">&#x03E8; &#x03E8;</span> <span title="U+03EB">&#x03EA; &#x03EA;</span> <span title="U+03ED">&#x03EC; &#x03EC;</span> <span title="U+03EF">&#x03EE; &#x03EE;</span> <span title="U+03F0">&#x039A; &#x039A;</span> <span title="U+03F1">&#x03A1; &#x03A1;</span> <span title="U+03F2">&#x03F9; &#x03F9;</span> <span title="U+03F3">&#x037F; &#x037F;</span> <span title="U+03F5">&#x0395; &#x0395;</span> <span title="U+03F8">&#x03F7; &#x03F7;</span> <span title="U+03FB">&#x03FA; &#x03FA;</span> </div>
+<!--Notes:
+Characters from this block that do not have case equivalents: &#x0374; &#x0375; &#x037A; &#x037E; &#x0384; &#x0385; &#x0387; &#x0390; &#x03B0; &#x03D2; &#x03D3; &#x03D4; &#x03F6; &#x03FC;
+-->
+</body>
+</html>

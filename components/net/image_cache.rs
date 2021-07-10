@@ -1,23 +1,29 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use embedder_traits::resources::{self, Resource};
 use immeta::load_from_buf;
-use net_traits::{FetchResponseMsg, NetworkError};
-use net_traits::image::base::{Image, ImageMetadata, PixelFormat, load_from_memory};
-use net_traits::image_cache::{CanRequestImages, ImageCache, ImageResponder};
-use net_traits::image_cache::{ImageOrMetadataAvailable, ImageResponse, ImageState};
+use ipc_channel::ipc::IpcSender;
+use net_traits::image::base::{load_from_memory, Image, ImageMetadata};
+use net_traits::image_cache::{
+    CorsStatus, ImageCache, ImageCacheResult, ImageResponder, PendingImageResponse,
+};
+use net_traits::image_cache::{ImageOrMetadataAvailable, ImageResponse};
 use net_traits::image_cache::{PendingImageId, UsePlaceholder};
-use servo_config::resource_files::resources_dir_path;
-use servo_url::ServoUrl;
-use std::collections::HashMap;
+use net_traits::request::CorsSettings;
+use net_traits::{
+    FetchMetadata, FetchResponseMsg, FilteredMetadata, NetworkError, WebrenderIpcSender,
+};
+use pixels::PixelFormat;
+use servo_url::{ImmutableOrigin, ServoUrl};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
-use std::fs::File;
-use std::io::{self, Read};
+use std::collections::HashMap;
 use std::mem;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use webrender_traits;
+use webrender_api::units::DeviceIntSize;
+use webrender_api::ImageDescriptorFlags;
 
 ///
 /// TODO(gw): Remaining work on image cache:
@@ -33,88 +39,63 @@ use webrender_traits;
 // Helper functions.
 // ======================================================================
 
-fn convert_format(format: PixelFormat) -> webrender_traits::ImageFormat {
-    match format {
-        PixelFormat::K8 | PixelFormat::KA8 => {
-            panic!("Not support by webrender yet");
-        }
-        PixelFormat::RGB8 => webrender_traits::ImageFormat::RGB8,
-        PixelFormat::RGBA8 => webrender_traits::ImageFormat::RGBA8,
-    }
-}
-
-fn decode_bytes_sync(key: LoadKey, bytes: &[u8]) -> DecoderMsg {
-    let image = load_from_memory(bytes);
+fn decode_bytes_sync(key: LoadKey, bytes: &[u8], cors: CorsStatus) -> DecoderMsg {
+    let image = load_from_memory(bytes, cors);
     DecoderMsg {
         key: key,
-        image: image
+        image: image,
     }
 }
 
-fn get_placeholder_image(webrender_api: &webrender_traits::RenderApi) -> io::Result<Arc<Image>> {
-    let mut placeholder_path = try!(resources_dir_path());
-    placeholder_path.push("rippy.png");
-    let mut file = try!(File::open(&placeholder_path));
-    let mut image_data = vec![];
-    try!(file.read_to_end(&mut image_data));
-    let mut image = load_from_memory(&image_data).unwrap();
-    let format = convert_format(image.format);
+fn get_placeholder_image(webrender_api: &WebrenderIpcSender, data: &[u8]) -> Arc<Image> {
+    let mut image = load_from_memory(&data, CorsStatus::Unsafe).unwrap();
+    set_webrender_image_key(webrender_api, &mut image);
+    Arc::new(image)
+}
+
+fn set_webrender_image_key(webrender_api: &WebrenderIpcSender, image: &mut Image) {
+    if image.id.is_some() {
+        return;
+    }
     let mut bytes = Vec::new();
-    bytes.extend_from_slice(&*image.bytes);
-    let descriptor = webrender_traits::ImageDescriptor {
-        width: image.width,
-        height: image.height,
-        stride: None,
-        format: format,
-        offset: 0,
-        is_opaque: is_image_opaque(format, &bytes),
-    };
-    let data = webrender_traits::ImageData::new(bytes);
-    let image_key = webrender_api.generate_image_key();
-    webrender_api.add_image(image_key, descriptor, data, None);
-    image.id = Some(image_key);
-    Ok(Arc::new(image))
-}
-
-// TODO(gw): This is a port of the old is_image_opaque code from WR.
-//           Consider using SIMD to speed this up if it shows in profiles.
-fn is_image_opaque(format: webrender_traits::ImageFormat, bytes: &[u8]) -> bool {
-    match format {
-        webrender_traits::ImageFormat::RGBA8 => {
-            let mut is_opaque = true;
-            for i in 0..(bytes.len() / 4) {
-                if bytes[i * 4 + 3] != 255 {
-                    is_opaque = false;
-                    break;
-                }
+    let is_opaque = match image.format {
+        PixelFormat::BGRA8 => {
+            bytes.extend_from_slice(&*image.bytes);
+            pixels::rgba8_premultiply_inplace(bytes.as_mut_slice())
+        },
+        PixelFormat::RGB8 => {
+            bytes.reserve(image.bytes.len() / 3 * 4);
+            for bgr in image.bytes.chunks(3) {
+                bytes.extend_from_slice(&[bgr[2], bgr[1], bgr[0], 0xff]);
             }
-            is_opaque
-        }
-        webrender_traits::ImageFormat::RGB8 => true,
-        webrender_traits::ImageFormat::RG8 => true,
-        webrender_traits::ImageFormat::A8 => false,
-        webrender_traits::ImageFormat::Invalid | webrender_traits::ImageFormat::RGBAF32 => unreachable!(),
-    }
-}
 
-fn premultiply(data: &mut [u8]) {
-    let length = data.len();
-
-    for i in (0..length).step_by(4) {
-        let b = data[i + 0] as u32;
-        let g = data[i + 1] as u32;
-        let r = data[i + 2] as u32;
-        let a = data[i + 3] as u32;
-
-        data[i + 0] = (b * a / 255) as u8;
-        data[i + 1] = (g * a / 255) as u8;
-        data[i + 2] = (r * a / 255) as u8;
-    }
+            true
+        },
+        PixelFormat::K8 | PixelFormat::KA8 | PixelFormat::RGBA8 => {
+            panic!("Not support by webrender yet");
+        },
+    };
+    let mut flags = ImageDescriptorFlags::ALLOW_MIPMAPS;
+    flags.set(ImageDescriptorFlags::IS_OPAQUE, is_opaque);
+    let descriptor = webrender_api::ImageDescriptor {
+        size: DeviceIntSize::new(image.width as i32, image.height as i32),
+        stride: None,
+        format: webrender_api::ImageFormat::BGRA8,
+        offset: 0,
+        flags,
+    };
+    let data = webrender_api::ImageData::new(bytes);
+    let image_key = webrender_api.generate_image_key();
+    webrender_api.add_image(image_key, descriptor, data);
+    image.id = Some(image_key);
 }
 
 // ======================================================================
 // Aux structs and enums.
 // ======================================================================
+
+/// https://html.spec.whatwg.org/multipage/#list-of-available-images
+type ImageKey = (ServoUrl, ImmutableOrigin, Option<CorsSettings>);
 
 // Represents all the currently pending loads/decodings. For
 // performance reasons, loads are indexed by a dedicated load key.
@@ -123,9 +104,9 @@ struct AllPendingLoads {
     // for performance reasons.
     loads: HashMap<LoadKey, PendingLoad>,
 
-    // Get a load key from its url. Used ony when starting and
+    // Get a load key from its url and requesting origin. Used ony when starting and
     // finishing a load or when adding a new listener.
-    url_to_load_key: HashMap<ServoUrl, LoadKey>,
+    url_to_load_key: HashMap<ImageKey, LoadKey>,
 
     // A counter used to generate instances of LoadKey
     keygen: LoadKeyGenerator,
@@ -146,37 +127,45 @@ impl AllPendingLoads {
     }
 
     fn remove(&mut self, key: &LoadKey) -> Option<PendingLoad> {
-        self.loads.remove(key).
-            and_then(|pending_load| {
-                self.url_to_load_key.remove(&pending_load.url).unwrap();
-                Some(pending_load)
-            })
+        self.loads.remove(key).and_then(|pending_load| {
+            self.url_to_load_key
+                .remove(&(
+                    pending_load.url.clone(),
+                    pending_load.load_origin.clone(),
+                    pending_load.cors_setting,
+                ))
+                .unwrap();
+            Some(pending_load)
+        })
     }
 
-    fn get_cached<'a>(&'a mut self, url: ServoUrl, can_request: CanRequestImages)
-                      -> CacheResult<'a> {
-        match self.url_to_load_key.entry(url.clone()) {
+    fn get_cached<'a>(
+        &'a mut self,
+        url: ServoUrl,
+        origin: ImmutableOrigin,
+        cors_status: Option<CorsSettings>,
+    ) -> CacheResult<'a> {
+        match self
+            .url_to_load_key
+            .entry((url.clone(), origin.clone(), cors_status))
+        {
             Occupied(url_entry) => {
                 let load_key = url_entry.get();
                 CacheResult::Hit(*load_key, self.loads.get_mut(load_key).unwrap())
-            }
+            },
             Vacant(url_entry) => {
-                if can_request == CanRequestImages::No {
-                    return CacheResult::Miss(None);
-                }
-
                 let load_key = self.keygen.next();
                 url_entry.insert(load_key);
 
-                let pending_load = PendingLoad::new(url);
+                let pending_load = PendingLoad::new(url, origin, cors_status);
                 match self.loads.entry(load_key) {
                     Occupied(_) => unreachable!(),
                     Vacant(load_entry) => {
                         let mut_load = load_entry.insert(pending_load);
                         CacheResult::Miss(Some((load_key, mut_load)))
-                    }
+                    },
                 }
-            }
+            },
         }
     }
 }
@@ -251,14 +240,12 @@ impl ImageBytes {
 type LoadKey = PendingImageId;
 
 struct LoadKeyGenerator {
-    counter: u64
+    counter: u64,
 }
 
 impl LoadKeyGenerator {
     fn new() -> LoadKeyGenerator {
-        LoadKeyGenerator {
-            counter: 0
-        }
+        LoadKeyGenerator { counter: 0 }
     }
     fn next(&mut self) -> PendingImageId {
         self.counter += 1;
@@ -269,36 +256,58 @@ impl LoadKeyGenerator {
 enum LoadResult {
     Loaded(Image),
     PlaceholderLoaded(Arc<Image>),
-    None
+    None,
 }
 
 /// Represents an image that is either being loaded
 /// by the resource thread, or decoded by a worker thread.
 struct PendingLoad {
-    // The bytes loaded so far. Reset to an empty vector once loading
-    // is complete and the buffer has been transmitted to the decoder.
+    /// The bytes loaded so far. Reset to an empty vector once loading
+    /// is complete and the buffer has been transmitted to the decoder.
     bytes: ImageBytes,
 
-    // Image metadata, if available.
+    /// Image metadata, if available.
     metadata: Option<ImageMetadata>,
 
-    // Once loading is complete, the result of the operation.
+    /// Once loading is complete, the result of the operation.
     result: Option<Result<(), NetworkError>>,
+
+    /// The listeners that are waiting for this response to complete.
     listeners: Vec<ImageResponder>,
 
-    // The url being loaded. Do not forget that this may be several Mb
-    // if we are loading a data: url.
+    /// The url being loaded. Do not forget that this may be several Mb
+    /// if we are loading a data: url.
     url: ServoUrl,
+
+    /// The origin that requested this load.
+    load_origin: ImmutableOrigin,
+
+    /// The CORS attribute setting for the requesting
+    cors_setting: Option<CorsSettings>,
+
+    /// The CORS status of this image response.
+    cors_status: CorsStatus,
+
+    /// The URL of the final response that contains a body.
+    final_url: Option<ServoUrl>,
 }
 
 impl PendingLoad {
-    fn new(url: ServoUrl) -> PendingLoad {
+    fn new(
+        url: ServoUrl,
+        load_origin: ImmutableOrigin,
+        cors_setting: Option<CorsSettings>,
+    ) -> PendingLoad {
         PendingLoad {
-            bytes: ImageBytes::InProgress(vec!()),
+            bytes: ImageBytes::InProgress(vec![]),
             metadata: None,
             result: None,
-            listeners: vec!(),
+            listeners: vec![],
             url: url,
+            load_origin,
+            final_url: None,
+            cors_setting,
+            cors_status: CorsStatus::Unsafe,
         }
     }
 
@@ -315,13 +324,16 @@ struct ImageCacheStore {
     pending_loads: AllPendingLoads,
 
     // Images that have finished loading (successful or not)
-    completed_loads: HashMap<ServoUrl, CompletedLoad>,
+    completed_loads: HashMap<ImageKey, CompletedLoad>,
 
     // The placeholder image used when an image fails to load
-    placeholder_image: Option<Arc<Image>>,
+    placeholder_image: Arc<Image>,
+
+    // The URL used for the placeholder image
+    placeholder_url: ServoUrl,
 
     // Webrender API instance.
-    webrender_api: webrender_traits::RenderApi,
+    webrender_api: WebrenderIpcSender,
 }
 
 impl ImageCacheStore {
@@ -334,36 +346,29 @@ impl ImageCacheStore {
 
         match load_result {
             LoadResult::Loaded(ref mut image) => {
-                let format = convert_format(image.format);
-                let mut bytes = Vec::new();
-                bytes.extend_from_slice(&*image.bytes);
-                if format == webrender_traits::ImageFormat::RGBA8 {
-                    premultiply(bytes.as_mut_slice());
-                }
-                let descriptor = webrender_traits::ImageDescriptor {
-                    width: image.width,
-                    height: image.height,
-                    stride: None,
-                    format: format,
-                    offset: 0,
-                    is_opaque: is_image_opaque(format, &bytes),
-                };
-                let data = webrender_traits::ImageData::new(bytes);
-                let image_key = self.webrender_api.generate_image_key();
-                self.webrender_api.add_image(image_key, descriptor, data, None);
-                image.id = Some(image_key);
-            }
-            LoadResult::PlaceholderLoaded(..) | LoadResult::None => {}
+                set_webrender_image_key(&self.webrender_api, image)
+            },
+            LoadResult::PlaceholderLoaded(..) | LoadResult::None => {},
         }
 
+        let url = pending_load.final_url.clone();
         let image_response = match load_result {
-            LoadResult::Loaded(image) => ImageResponse::Loaded(Arc::new(image)),
-            LoadResult::PlaceholderLoaded(image) => ImageResponse::PlaceholderLoaded(image),
+            LoadResult::Loaded(image) => ImageResponse::Loaded(Arc::new(image), url.unwrap()),
+            LoadResult::PlaceholderLoaded(image) => {
+                ImageResponse::PlaceholderLoaded(image, self.placeholder_url.clone())
+            },
             LoadResult::None => ImageResponse::None,
         };
 
         let completed_load = CompletedLoad::new(image_response.clone(), key);
-        self.completed_loads.insert(pending_load.url.into(), completed_load);
+        self.completed_loads.insert(
+            (
+                pending_load.url.into(),
+                pending_load.load_origin,
+                pending_load.cors_setting,
+            ),
+            completed_load,
+        );
 
         for listener in pending_load.listeners {
             listener.respond(image_response.clone());
@@ -372,23 +377,27 @@ impl ImageCacheStore {
 
     /// Return a completed image if it exists, or None if there is no complete load
     /// or the complete load is not fully decoded or is unavailable.
-    fn get_completed_image_if_available(&self,
-                                        url: &ServoUrl,
-                                        placeholder: UsePlaceholder)
-                                        -> Option<Result<ImageOrMetadataAvailable, ImageState>> {
-        self.completed_loads.get(url).map(|completed_load| {
-            match (&completed_load.image_response, placeholder) {
-                (&ImageResponse::Loaded(ref image), _) |
-                (&ImageResponse::PlaceholderLoaded(ref image), UsePlaceholder::Yes) => {
-                    Ok(ImageOrMetadataAvailable::ImageAvailable(image.clone()))
-                }
-                (&ImageResponse::PlaceholderLoaded(_), UsePlaceholder::No) |
-                (&ImageResponse::None, _) |
-                (&ImageResponse::MetadataLoaded(_), _) => {
-                    Err(ImageState::LoadError)
-                }
-            }
-        })
+    fn get_completed_image_if_available(
+        &self,
+        url: ServoUrl,
+        origin: ImmutableOrigin,
+        cors_setting: Option<CorsSettings>,
+        placeholder: UsePlaceholder,
+    ) -> Option<Result<(Arc<Image>, ServoUrl), ()>> {
+        self.completed_loads
+            .get(&(url, origin, cors_setting))
+            .map(
+                |completed_load| match (&completed_load.image_response, placeholder) {
+                    (&ImageResponse::Loaded(ref image, ref url), _) |
+                    (
+                        &ImageResponse::PlaceholderLoaded(ref image, ref url),
+                        UsePlaceholder::Yes,
+                    ) => Ok((image.clone(), url.clone())),
+                    (&ImageResponse::PlaceholderLoaded(_, _), UsePlaceholder::No) |
+                    (&ImageResponse::None, _) |
+                    (&ImageResponse::MetadataLoaded(_), _) => Err(()),
+                },
+            )
     }
 
     /// Handle a message from one of the decoder worker threads or from a sync
@@ -407,58 +416,97 @@ pub struct ImageCacheImpl {
 }
 
 impl ImageCache for ImageCacheImpl {
-    fn new(webrender_api: webrender_traits::RenderApi) -> ImageCacheImpl {
+    fn new(webrender_api: WebrenderIpcSender) -> ImageCacheImpl {
         debug!("New image cache");
+
+        let rippy_data = resources::read_bytes(Resource::RippyPNG);
+
         ImageCacheImpl {
             store: Arc::new(Mutex::new(ImageCacheStore {
                 pending_loads: AllPendingLoads::new(),
                 completed_loads: HashMap::new(),
-                placeholder_image: get_placeholder_image(&webrender_api).ok(),
+                placeholder_image: get_placeholder_image(&webrender_api, &rippy_data),
+                placeholder_url: ServoUrl::parse("chrome://resources/rippy.png").unwrap(),
                 webrender_api: webrender_api,
-            }))
+            })),
         }
     }
 
-    /// Return any available metadata or image for the given URL,
-    /// or an indication that the image is not yet available if it is in progress,
-    /// or else reserve a slot in the cache for the URL if the consumer can request images.
-    fn find_image_or_metadata(&self,
-                              url: ServoUrl,
-                              use_placeholder: UsePlaceholder,
-                              can_request: CanRequestImages)
-                              -> Result<ImageOrMetadataAvailable, ImageState> {
-        debug!("Find image or metadata for {}", url);
+    fn get_image(
+        &self,
+        url: ServoUrl,
+        origin: ImmutableOrigin,
+        cors_setting: Option<CorsSettings>,
+    ) -> Option<Arc<Image>> {
+        let store = self.store.lock().unwrap();
+        let result =
+            store.get_completed_image_if_available(url, origin, cors_setting, UsePlaceholder::No);
+        match result {
+            Some(Ok((img, _))) => Some(img),
+            _ => None,
+        }
+    }
+
+    fn get_cached_image_status(
+        &self,
+        url: ServoUrl,
+        origin: ImmutableOrigin,
+        cors_setting: Option<CorsSettings>,
+        use_placeholder: UsePlaceholder,
+    ) -> ImageCacheResult {
         let mut store = self.store.lock().unwrap();
-        if let Some(result) = store.get_completed_image_if_available(&url, use_placeholder) {
-            debug!("{} is available", url);
-            return result;
+        if let Some(result) = store.get_completed_image_if_available(
+            url.clone(),
+            origin.clone(),
+            cors_setting,
+            use_placeholder,
+        ) {
+            match result {
+                Ok((image, image_url)) => {
+                    debug!("{} is available", url);
+                    let is_placeholder = image_url == store.placeholder_url;
+                    return ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable {
+                        image,
+                        url: image_url,
+                        is_placeholder,
+                    });
+                },
+                Err(()) => {
+                    debug!("{} is not available", url);
+                    return ImageCacheResult::LoadError;
+                },
+            }
         }
 
         let decoded = {
-            let result = store.pending_loads.get_cached(url.clone(), can_request);
+            let result = store
+                .pending_loads
+                .get_cached(url.clone(), origin.clone(), cors_setting);
             match result {
                 CacheResult::Hit(key, pl) => match (&pl.result, &pl.metadata) {
                     (&Some(Ok(_)), _) => {
                         debug!("Sync decoding {} ({:?})", url, key);
-                        decode_bytes_sync(key, &pl.bytes.as_slice())
-                    }
+                        decode_bytes_sync(key, &pl.bytes.as_slice(), pl.cors_status)
+                    },
                     (&None, &Some(ref meta)) => {
                         debug!("Metadata available for {} ({:?})", url, key);
-                        return Ok(ImageOrMetadataAvailable::MetadataAvailable(meta.clone()))
-                    }
+                        return ImageCacheResult::Available(
+                            ImageOrMetadataAvailable::MetadataAvailable(meta.clone()),
+                        );
+                    },
                     (&Some(Err(_)), _) | (&None, &None) => {
                         debug!("{} ({:?}) is still pending", url, key);
-                        return Err(ImageState::Pending(key));
-                    }
+                        return ImageCacheResult::Pending(key);
+                    },
                 },
                 CacheResult::Miss(Some((key, _pl))) => {
                     debug!("Should be requesting {} ({:?})", url, key);
-                    return Err(ImageState::NotRequested(key));
-                }
+                    return ImageCacheResult::ReadyForRequest(key);
+                },
                 CacheResult::Miss(None) => {
                     debug!("Couldn't find an entry for {}", url);
-                    return Err(ImageState::LoadError);
-                }
+                    return ImageCacheResult::LoadError;
+                },
             }
         };
 
@@ -467,10 +515,52 @@ impl ImageCache for ImageCacheImpl {
         // and ignore the async decode when it finishes later.
         // TODO: make this behaviour configurable according to the caller's needs.
         store.handle_decoder(decoded);
-        match store.get_completed_image_if_available(&url, use_placeholder) {
-            Some(result) => result,
-            None => Err(ImageState::LoadError),
+        match store.get_completed_image_if_available(url, origin, cors_setting, use_placeholder) {
+            Some(Ok((image, image_url))) => {
+                let is_placeholder = image_url == store.placeholder_url;
+                ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable {
+                    image,
+                    url: image_url,
+                    is_placeholder,
+                })
+            },
+            _ => ImageCacheResult::LoadError,
         }
+    }
+
+    fn track_image(
+        &self,
+        url: ServoUrl,
+        origin: ImmutableOrigin,
+        cors_setting: Option<CorsSettings>,
+        sender: IpcSender<PendingImageResponse>,
+        use_placeholder: UsePlaceholder,
+    ) -> ImageCacheResult {
+        debug!("Track image for {} ({:?})", url, origin);
+        let cache_result = self.get_cached_image_status(
+            url.clone(),
+            origin.clone(),
+            cors_setting,
+            use_placeholder,
+        );
+
+        match cache_result {
+            ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(_)) => {
+                let store = self.store.lock().unwrap();
+                let id = store
+                    .pending_loads
+                    .url_to_load_key
+                    .get(&(url, origin, cors_setting))
+                    .unwrap();
+                self.add_listener(*id, ImageResponder::new(sender, *id));
+            },
+            ImageCacheResult::Pending(id) | ImageCacheResult::ReadyForRequest(id) => {
+                self.add_listener(id, ImageResponder::new(sender, id));
+            },
+            _ => {},
+        }
+
+        cache_result
     }
 
     /// Add a new listener for the given pending image id. If the image is already present,
@@ -496,7 +586,31 @@ impl ImageCache for ImageCacheImpl {
         match (action, id) {
             (FetchResponseMsg::ProcessRequestBody, _) |
             (FetchResponseMsg::ProcessRequestEOF, _) => return,
-            (FetchResponseMsg::ProcessResponse(_response), _) => {}
+            (FetchResponseMsg::ProcessResponse(response), _) => {
+                debug!("Received {:?} for {:?}", response.as_ref().map(|_| ()), id);
+                let mut store = self.store.lock().unwrap();
+                let pending_load = store.pending_loads.get_by_key_mut(&id).unwrap();
+                let (cors_status, metadata) = match response {
+                    Ok(meta) => match meta {
+                        FetchMetadata::Unfiltered(m) => (CorsStatus::Safe, Some(m)),
+                        FetchMetadata::Filtered { unsafe_, filtered } => (
+                            match filtered {
+                                FilteredMetadata::Basic(_) | FilteredMetadata::Cors(_) => {
+                                    CorsStatus::Safe
+                                },
+                                FilteredMetadata::Opaque | FilteredMetadata::OpaqueRedirect(_) => {
+                                    CorsStatus::Unsafe
+                                },
+                            },
+                            Some(unsafe_),
+                        ),
+                    },
+                    Err(_) => (CorsStatus::Unsafe, None),
+                };
+                let final_url = metadata.as_ref().map(|m| m.final_url.clone());
+                pending_load.final_url = final_url;
+                pending_load.cors_status = cors_status;
+            },
             (FetchResponseMsg::ProcessResponseChunk(data), _) => {
                 debug!("Got some data for {:?}", id);
                 let mut store = self.store.lock().unwrap();
@@ -506,47 +620,44 @@ impl ImageCache for ImageCacheImpl {
                 if let None = pending_load.metadata {
                     if let Ok(metadata) = load_from_buf(&pending_load.bytes.as_slice()) {
                         let dimensions = metadata.dimensions();
-                        let img_metadata = ImageMetadata { width: dimensions.width,
-                                                           height: dimensions.height };
+                        let img_metadata = ImageMetadata {
+                            width: dimensions.width,
+                            height: dimensions.height,
+                        };
                         for listener in &pending_load.listeners {
                             listener.respond(ImageResponse::MetadataLoaded(img_metadata.clone()));
                         }
                         pending_load.metadata = Some(img_metadata);
                     }
                 }
-            }
+            },
             (FetchResponseMsg::ProcessResponseEOF(result), key) => {
                 debug!("Received EOF for {:?}", key);
                 match result {
-                    Ok(()) => {
-                        let bytes = {
+                    Ok(_) => {
+                        let (bytes, cors_status) = {
                             let mut store = self.store.lock().unwrap();
                             let pending_load = store.pending_loads.get_by_key_mut(&id).unwrap();
-                            pending_load.result = Some(result);
+                            pending_load.result = Some(Ok(()));
                             debug!("Async decoding {} ({:?})", pending_load.url, key);
-                            pending_load.bytes.mark_complete()
+                            (pending_load.bytes.mark_complete(), pending_load.cors_status)
                         };
 
                         let local_store = self.store.clone();
                         thread::spawn(move || {
-                            let msg = decode_bytes_sync(key, &*bytes);
+                            let msg = decode_bytes_sync(key, &*bytes, cors_status);
                             debug!("Image decoded");
                             local_store.lock().unwrap().handle_decoder(msg);
                         });
-                    }
+                    },
                     Err(_) => {
                         debug!("Processing error for {:?}", key);
                         let mut store = self.store.lock().unwrap();
-                        match store.placeholder_image.clone() {
-                            Some(placeholder_image) => {
-                                store.complete_load(
-                                    id, LoadResult::PlaceholderLoaded(placeholder_image))
-                            }
-                            None => store.complete_load(id, LoadResult::None),
-                        }
-                    }
+                        let placeholder_image = store.placeholder_image.clone();
+                        store.complete_load(id, LoadResult::PlaceholderLoaded(placeholder_image))
+                    },
                 }
-            }
+            },
         }
     }
 }

@@ -1,10 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::js::{JS, Root};
-use dom::bindings::trace::JSTraceable;
-use dom::globalscope::GlobalScope;
+use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::trace::JSTraceable;
+use crate::dom::globalscope::GlobalScope;
 use js::jsapi::GetScriptedCallerGlobal;
 use js::jsapi::HideScriptedCaller;
 use js::jsapi::JSTracer;
@@ -15,7 +15,7 @@ use std::thread;
 
 thread_local!(static STACK: RefCell<Vec<StackEntry>> = RefCell::new(Vec::new()));
 
-#[derive(PartialEq, Eq, Debug, JSTraceable)]
+#[derive(Debug, Eq, JSTraceable, PartialEq)]
 enum StackEntryKind {
     Incumbent,
     Entry,
@@ -24,7 +24,7 @@ enum StackEntryKind {
 #[allow(unrooted_must_root)]
 #[derive(JSTraceable)]
 struct StackEntry {
-    global: JS<GlobalScope>,
+    global: Dom<GlobalScope>,
     kind: StackEntryKind,
 }
 
@@ -35,37 +35,42 @@ pub unsafe fn trace(tracer: *mut JSTracer) {
     })
 }
 
+pub fn is_execution_stack_empty() -> bool {
+    STACK.with(|stack| stack.borrow().is_empty())
+}
+
 /// RAII struct that pushes and pops entries from the script settings stack.
 pub struct AutoEntryScript {
-    global: Root<GlobalScope>,
+    global: DomRoot<GlobalScope>,
 }
 
 impl AutoEntryScript {
-    /// https://html.spec.whatwg.org/multipage/#prepare-to-run-script
+    /// <https://html.spec.whatwg.org/multipage/#prepare-to-run-script>
     pub fn new(global: &GlobalScope) -> Self {
         STACK.with(|stack| {
             trace!("Prepare to run script with {:p}", global);
             let mut stack = stack.borrow_mut();
             stack.push(StackEntry {
-                global: JS::from_ref(global),
+                global: Dom::from_ref(global),
                 kind: StackEntryKind::Entry,
             });
             AutoEntryScript {
-                global: Root::from_ref(global),
+                global: DomRoot::from_ref(global),
             }
         })
     }
 }
 
 impl Drop for AutoEntryScript {
-    /// https://html.spec.whatwg.org/multipage/#clean-up-after-running-script
+    /// <https://html.spec.whatwg.org/multipage/#clean-up-after-running-script>
     fn drop(&mut self) {
         STACK.with(|stack| {
             let mut stack = stack.borrow_mut();
             let entry = stack.pop().unwrap();
-            assert_eq!(&*entry.global as *const GlobalScope,
-                       &*self.global as *const GlobalScope,
-                       "Dropped AutoEntryScript out of order.");
+            assert_eq!(
+                &*entry.global as *const GlobalScope, &*self.global as *const GlobalScope,
+                "Dropped AutoEntryScript out of order."
+            );
             assert_eq!(entry.kind, StackEntryKind::Entry);
             trace!("Clean up after running script with {:p}", &*entry.global);
         });
@@ -80,14 +85,17 @@ impl Drop for AutoEntryScript {
 /// Returns the ["entry"] global object.
 ///
 /// ["entry"]: https://html.spec.whatwg.org/multipage/#entry
-pub fn entry_global() -> Root<GlobalScope> {
-    STACK.with(|stack| {
-        stack.borrow()
-             .iter()
-             .rev()
-             .find(|entry| entry.kind == StackEntryKind::Entry)
-             .map(|entry| Root::from_ref(&*entry.global))
-    }).unwrap()
+pub fn entry_global() -> DomRoot<GlobalScope> {
+    STACK
+        .with(|stack| {
+            stack
+                .borrow()
+                .iter()
+                .rev()
+                .find(|entry| entry.kind == StackEntryKind::Entry)
+                .map(|entry| DomRoot::from_ref(&*entry.global))
+        })
+        .unwrap()
 }
 
 /// RAII struct that pushes and pops entries from the script settings stack.
@@ -96,7 +104,7 @@ pub struct AutoIncumbentScript {
 }
 
 impl AutoIncumbentScript {
-    /// https://html.spec.whatwg.org/multipage/#prepare-to-run-a-callback
+    /// <https://html.spec.whatwg.org/multipage/#prepare-to-run-a-callback>
     pub fn new(global: &GlobalScope) -> Self {
         // Step 2-3.
         unsafe {
@@ -109,7 +117,7 @@ impl AutoIncumbentScript {
             // Step 1.
             let mut stack = stack.borrow_mut();
             stack.push(StackEntry {
-                global: JS::from_ref(global),
+                global: Dom::from_ref(global),
                 kind: StackEntryKind::Incumbent,
             });
             AutoIncumbentScript {
@@ -120,18 +128,22 @@ impl AutoIncumbentScript {
 }
 
 impl Drop for AutoIncumbentScript {
-    /// https://html.spec.whatwg.org/multipage/#clean-up-after-running-a-callback
+    /// <https://html.spec.whatwg.org/multipage/#clean-up-after-running-a-callback>
     fn drop(&mut self) {
         STACK.with(|stack| {
             // Step 4.
             let mut stack = stack.borrow_mut();
             let entry = stack.pop().unwrap();
             // Step 3.
-            assert_eq!(&*entry.global as *const GlobalScope as usize,
-                       self.global,
-                       "Dropped AutoIncumbentScript out of order.");
+            assert_eq!(
+                &*entry.global as *const GlobalScope as usize, self.global,
+                "Dropped AutoIncumbentScript out of order."
+            );
             assert_eq!(entry.kind, StackEntryKind::Incumbent);
-            trace!("Clean up after running a callback with {:p}", &*entry.global);
+            trace!(
+                "Clean up after running a callback with {:p}",
+                &*entry.global
+            );
         });
         unsafe {
             // Step 1-2.
@@ -145,7 +157,7 @@ impl Drop for AutoIncumbentScript {
 /// Returns the ["incumbent"] global object.
 ///
 /// ["incumbent"]: https://html.spec.whatwg.org/multipage/#incumbent
-pub fn incumbent_global() -> Option<Root<GlobalScope>> {
+pub fn incumbent_global() -> Option<DomRoot<GlobalScope>> {
     // https://html.spec.whatwg.org/multipage/#incumbent-settings-object
 
     // Step 1, 3: See what the JS engine has to say. If we've got a scripted
@@ -163,8 +175,9 @@ pub fn incumbent_global() -> Option<Root<GlobalScope>> {
 
     // Step 2: nothing from the JS engine. Let's use whatever's on the explicit stack.
     STACK.with(|stack| {
-        stack.borrow()
-             .last()
-             .map(|entry| Root::from_ref(&*entry.global))
+        stack
+            .borrow()
+            .last()
+            .map(|entry| DomRoot::from_ref(&*entry.global))
     })
 }

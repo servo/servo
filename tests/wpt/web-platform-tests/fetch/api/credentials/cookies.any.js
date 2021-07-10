@@ -1,3 +1,4 @@
+// META: global=window,worker
 // META: script=../resources/utils.js
 
 function cookies(desc, credentials1, credentials2 ,cookies) {

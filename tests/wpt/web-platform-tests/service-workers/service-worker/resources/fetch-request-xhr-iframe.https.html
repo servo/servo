@@ -1,12 +1,8 @@
 <script src="/common/get-host-info.sub.js"></script>
-<script src="test-helpers.sub.js?pipe=sub"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/test-helpers.sub.js?pipe=sub"></script>
 <script>
-var port;
 var host_info = get_host_info();
-
-function assert_equals(a, b) {
-  port.postMessage({results: 'equals', got: a, expected: b});
-}
 
 function get_boundary(headers) {
   var reg = new RegExp('multipart\/form-data; boundary=(.*)');
@@ -23,24 +19,6 @@ function get_boundary(headers) {
   return '';
 }
 
-function create_file_system_file(file_name, data) {
-  return new Promise(function(resolve, reject) {
-      webkitRequestFileSystem(TEMPORARY, 1024, function(fs) {
-          fs.root.getFile(
-            file_name, {create: true, exclusive: true},
-            function(fileEntry) {
-              fileEntry.createWriter(function(fileWriter) {
-                  fileWriter.onwriteend = function(e) {
-                    fileEntry.file(function(file) { resolve(file); });
-                  };
-                  var blob = new Blob([data], {type: 'text/plain'});
-                  fileWriter.write(blob);
-                });
-            }, function(e) { reject(e); });
-        }, function(e) { reject(e); });
-    });
-}
-
 function xhr_send(url_base, method, data, with_credentials) {
   return new Promise(function(resolve, reject) {
       var xhr = new XMLHttpRequest();
@@ -54,9 +32,73 @@ function xhr_send(url_base, method, data, with_credentials) {
       if (with_credentials) {
         xhr.withCredentials = true;
       }
-      xhr.open(method, url_base + '/dummy?test', true);
+      xhr.open(method, url_base + '/sample?test', true);
       xhr.send(data);
     });
+}
+
+function get_sorted_header_name_list(headers) {
+  var header_names = [];
+  var idx, name;
+
+  for (idx = 0; idx < headers.length; ++idx) {
+    name = headers[idx][0];
+    // The `Accept-Language` header is optional; its presence should not
+    // influence test results.
+    //
+    // > 4. If request’s header list does not contain `Accept-Language`, user
+    // >    agents should append `Accept-Language`/an appropriate value to
+    // >    request's header list.
+    //
+    // https://fetch.spec.whatwg.org/#fetching
+    if (name === 'accept-language') {
+      continue;
+    }
+
+    header_names.push(name);
+  }
+  header_names.sort();
+  return header_names;
+}
+
+function get_header_test() {
+  return xhr_send(host_info['HTTPS_ORIGIN'], 'GET', '', false)
+    .then(function(response) {
+        assert_array_equals(
+          get_sorted_header_name_list(response.headers),
+          ["accept"],
+          'event.request has the expected headers for same-origin GET.');
+      });
+}
+
+function post_header_test() {
+  return xhr_send(host_info['HTTPS_ORIGIN'], 'POST', '', false)
+    .then(function(response) {
+        assert_array_equals(
+          get_sorted_header_name_list(response.headers),
+          ["accept", "content-type"],
+          'event.request has the expected headers for same-origin POST.');
+      });
+}
+
+function cross_origin_get_header_test() {
+  return xhr_send(host_info['HTTPS_REMOTE_ORIGIN'], 'GET', '', false)
+    .then(function(response) {
+        assert_array_equals(
+          get_sorted_header_name_list(response.headers),
+          ["accept"],
+          'event.request has the expected headers for cross-origin GET.');
+      });
+}
+
+function cross_origin_post_header_test() {
+  return xhr_send(host_info['HTTPS_REMOTE_ORIGIN'], 'POST', '', false)
+    .then(function(response) {
+        assert_array_equals(
+          get_sorted_header_name_list(response.headers),
+          ["accept", "content-type"],
+          'event.request has the expected headers for cross-origin POST.');
+      });
 }
 
 function string_test() {
@@ -119,7 +161,7 @@ function form_data_test() {
           '\r\n' +
           'file content\r\n' +
           '--' + boundary + '--\r\n';
-        assert_equals(response.body, expected_body);
+        assert_equals(response.body, expected_body, "form data response content is as expected");
       });
 }
 
@@ -163,17 +205,4 @@ function data_url_test() {
         assert_equals(data, 'Foobar');
       });
 }
-
-window.addEventListener('message', function(evt) {
-    port = evt.ports[0];
-    string_test()
-      .then(blob_test)
-      .then(custom_method_test)
-      .then(options_method_test)
-      .then(form_data_test)
-      .then(mode_credentials_test)
-      .then(data_url_test)
-      .then(function() { port.postMessage({results: 'finish'}); })
-      .catch(function(e) { port.postMessage({results: 'failure:' + e}); });
-  });
 </script>

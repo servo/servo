@@ -1,0 +1,126 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Test cookie path attribute parsing</title>
+    <meta name=help href="https://tools.ietf.org/html/rfc6265#section-5.2.4">
+    <meta name="timeout" content="long">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/cookies/resources/cookie-test.js"></script>
+  </head>
+  <body>
+    <script>
+      const pathRedirectTests = [
+        {
+          cookie: "test=1; path=/cookies/attributes/resources/path.html",
+          expected: "test=1",
+          name: "Cookie sent for exact redirected path match",
+          location: "/cookies/attributes/resources/path.html",
+        },
+        {
+          cookie: "test=2; path=/cookies/attributes/resources/path/one.html",
+          expected: "test=2",
+          name: "Cookie sent for exact redirected path match, one level deeper",
+          location: "/cookies/attributes/resources/path/one.html",
+        },
+        {
+          cookie: "test=3; path=/cookies/attributes/resources/path/",
+          expected: "test=3",
+          name: "Cookie sent for redirected path with trailing '/' and the redirected URL is one level deeper",
+          location: "/cookies/attributes/resources/path/one.html",
+        },
+        {
+          cookie: "test=4; path=/cookies/attributes/resources/path/",
+          expected: "test=4",
+          name: "Cookie sent for redirected path with trailing '/' and a double '/' in the redirected URL",
+          location: "/cookies/attributes/resources/path//one.html",
+        },
+        {
+          cookie: "test=5; path=/cookies/attributes/resources/path/one.html;",
+          expected: "test=5",
+          name: "Cookie sent for redirected path match with a trailing ';' after an unquoted Path",
+          location: "/cookies/attributes/resources/path/one.html",
+        },
+        {
+          cookie: 'test=6; path="/cookies/attributes/resources/path/one.html;"',
+          expected: "",
+          name: "No cookie sent for redirected path match with a trailing ';' inside a quoted Path",
+          location: "/cookies/attributes/resources/path/one.html",
+        },
+        {
+          cookie: "test=7a; path=/cookies/attributes/resources/p%61th/three.html",
+          expected: "",
+          name: "No cookie sent for redirected path match with partially URL encoded path",
+          location: "/cookies/attributes/resources/path/three.html",
+        },
+        {
+          cookie: ["test=8a; path=/cookies/attributes/resources",
+                   "test=8b; path=/cookies/attributes/resources/"],
+          expected: "test=8b; test=8a",
+          name: "Multiple cookies sent for multiple redirected path matches, sorted by length",
+          location: "/cookies/attributes/resources/path.html",
+        },
+        {
+          cookie: "test=9; path=/cookies/attributes/resources/path.html",
+          expected: "",
+          name: "No cookie sent for redirected path mismatch where path and redirected URL begin with same string",
+          location: "/cookies/attributes/resources/pathfakeout.html",
+        },
+        {
+          cookie: "test=10; path=/cookies/attributes/resources/path/one.html",
+          expected: "",
+          name: "No cookie sent for redirected path mismatch where final path directory component and redirected URL resource begin with same string",
+          location: "/cookies/attributes/resources/path.html",
+        },
+        {
+          cookie: "test=11; path=/cookies/attributes/resources/path/one.html",
+          expected: "",
+          name: "No cookie sent for redirected path mismatch where final path directory component begins with same string as redirected URL final directory component",
+          location: "/cookies/attributes/resources/pathfakeout/one.html",
+        },
+        {
+          cookie: "test=12; path=/cookies/attributes/resources/path/one.html",
+          expected: "",
+          name: "No cookie sent for redirected path mismatch for different resources inside the same final directory component",
+          location: "/cookies/attributes/resources/path/two.html",
+        },
+        {
+          cookie: "test=13; path=/cookies/attributes/resources/path/one.html/",
+          expected: "",
+          name: "No cookie sent for redirected path mismatch where final path directory component ends in '/' and does not match redirected URL",
+          location: "/cookies/attributes/resources/path/two.html",
+        },
+        {
+          cookie: "test=14; path=/cookies/attributes/resources/path/",
+          expected: "",
+          name: "No cookie sent for redirected path mismatch with a similar start to the redirected URL",
+          location: "/cookies/attributes/resources/pathfakeout.html",
+        },
+        {
+          cookie: "test=15; path=/cookies/attributes/resources/path/one.html?",
+          expected: "",
+          name: "No cookie sent for redirected path mismatch with trailing '?' after unquoted Path",
+          location: "/cookies/attributes/resources/path/one.html",
+        },
+        {
+          cookie: "test=16; path=/cookies/attributes/resources/path/one.html#",
+          expected: "",
+          name: "No cookie sent for redirected path mismatch with trailing '#' after unquoted Path",
+          location: "/cookies/attributes/resources/path/one.html",
+        },
+        {
+          cookie: "test=17; path=/cookies/attributes/resources/path/one.html/",
+          expected: "",
+          name: "No cookie sent for redirected path mismatch with trailing '/' after unquoted Path",
+          location: "/cookies/attributes/resources/path/one.html",
+        },
+      ];
+
+      for (const test of pathRedirectTests) {
+        httpRedirectCookieTest(test.cookie, test.expected, test.name,
+                               test.location);
+      }
+    </script>
+  </body>
+</html>

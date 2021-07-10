@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#interaction-sizing">
+<link rel="match" href="floats-ref.html">
+<meta name="assert" content="This test checks that if the layout() is a float, the flow layout respects the intrinsicSizes function." />
+
+<style>
+.test {
+  background: red;
+  border: solid 2px;
+}
+
+@supports (display: layout(test-layout)) {
+  .test {
+    display: layout(test-layout);
+    background: green;
+  }
+}
+
+.container-1 {
+  height: 100px;
+  width: 300px;
+}
+
+.container-2 {
+  height: 50px;
+  width: 50px;
+}
+
+.container-3 {
+  height: 80px;
+  width: 80px;
+}
+
+.left {
+  float: left;
+  writing-mode: horizontal-tb;
+}
+
+.right {
+  float: right;
+  writing-mode: vertical-rl;
+}
+
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+
+<div class="container-1">
+  <div class="left test" style="height: 100px"></div>
+  <div class="right test" style="width: 100px"></div>
+</div>
+
+<div class="container-2">
+  <div class="left test" style="height: 25px"></div>
+  <div class="right test" style="width: 25px"></div>
+</div>
+
+<div class="container-3">
+  <div class="left test" style="height: 25px"></div>
+  <div class="right test" style="width: 25px"></div>
+</div>
+
+
+<script id="code" type="text/worklet">
+registerLayout('test-layout', class {
+  async intrinsicSizes() {
+    return { maxContentSize: 100, minContentSize: 50 };
+  }
+  async layout() {}
+});
+</script>
+
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, document.getElementById('code').textContent);
+</script>
+</html>

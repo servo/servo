@@ -42,11 +42,6 @@
               test.waitForExpectedEvents(callback);
           }
 
-          function threeDecimalPlaces(number)
-          {
-              return Number(number.toFixed(3));
-          }
-
           // Verifies expected times to 3 decimal places before and after mediaSource.endOfStream(),
           // and calls |callback| on success.
           function verify_offset_and_buffered(test, mediaSource, sourceBuffer,
@@ -54,19 +49,21 @@
                                               expectedBufferedRangeMaxEndTimeBeforeEOS,
                                               expectedBufferedRangeEndTimeAfterEOS,
                                               callback) {
-              assert_equals(threeDecimalPlaces(sourceBuffer.timestampOffset),
-                            threeDecimalPlaces(expectedTimestampOffset),
-                            "expectedTimestampOffset");
+              assert_approx_equals(sourceBuffer.timestampOffset,
+                                   expectedTimestampOffset,
+                                   0.001,
+                                   "expectedTimestampOffset");
 
               // Prior to EOS, the buffered range end time may not have fully reached the next media
               // segment's timecode (adjusted by any timestampOffset). It should not exceed it though.
               // Therefore, an exact assertBufferedEquals() will not work here.
               assert_greater_than(sourceBuffer.buffered.length, 0, "sourceBuffer.buffered has at least 1 range before EOS");
-              assert_equals(threeDecimalPlaces(sourceBuffer.buffered.start(0)),
-                            threeDecimalPlaces(expectedBufferedRangeStartTime),
-                            "sourceBuffer.buffered range begins where expected before EOS");
-              assert_less_than_equal(threeDecimalPlaces(sourceBuffer.buffered.end(0)),
-                                     threeDecimalPlaces(expectedBufferedRangeMaxEndTimeBeforeEOS),
+              assert_approx_equals(sourceBuffer.buffered.start(0),
+                                   expectedBufferedRangeStartTime,
+                                   0.001,
+                                   "sourceBuffer.buffered range begins where expected before EOS");
+              assert_less_than_equal(sourceBuffer.buffered.end(0),
+                                     expectedBufferedRangeMaxEndTimeBeforeEOS + 0.001,
                                      "sourceBuffer.buffered range ends at or before expected upper bound before EOS");
 
               test.expectEvent(mediaSource, "sourceended", "mediaSource endOfStream");

@@ -1,0 +1,54 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Element Timing: observe cross origin images with various Timing-Allow-Origin headers</title>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/element-timing-helpers.js"></script>
+<script>
+  async_test(t => {
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    const beforeRender = performance.now();
+    const remote_img = 'http://{{domains[www]}}:{{ports[http][1]}}/element-timing/resources/TAOImage.py?'
+        + 'origin=' + window.location.origin +'&tao=';
+    const valid_tao = ['wildcard', 'origin', 'multi', 'multi_wildcard', 'match_origin', 'match_wildcard'];
+    function addImage(tao) {
+      const img = document.createElement('img');
+      img.src = remote_img + tao;
+      img.setAttribute('elementtiming', tao);
+      img.id = 'id_' + tao;
+      document.body.appendChild(img);
+    }
+    valid_tao.forEach(tao => {
+      addImage(tao);
+    });
+    const invalid_tao = ['null', 'space', 'uppercase'];
+    invalid_tao.forEach(tao => {
+      addImage(tao);
+    });
+    let img_count = 0;
+    const total_images = valid_tao.length + invalid_tao.length;
+    new PerformanceObserver(
+      t.step_func(entryList => {
+        entryList.getEntries().forEach(entry => {
+          img_count++;
+          const tao = entry.identifier;
+          const img = document.getElementById('id_' + tao);
+          if (valid_tao.includes(tao)) {
+            checkElement(entry, remote_img + tao, tao, 'id_' + tao, beforeRender, img);
+          } else if (invalid_tao.includes(tao)) {
+            assert_equals(entry.renderTime, 0, 'Entry with tao=' + tao + ' must have a renderTime of 0');
+            checkElement(entry, remote_img + tao, tao, 'id_' + tao, 0, img);
+          }
+          else {
+            assert_unreached('Should be in one of valid_tao OR invalid_tao');
+          }
+          checkNaturalSize(entry, 100, 100);
+          if (img_count == total_images)
+            t.done();
+        });
+      })
+    ).observe({type: 'element', buffered: true});
+  }, 'Cross-origin elements with valid TAO have correct renderTime, with invalid TAO have renderTime set to 0.');
+</script>
+</body>

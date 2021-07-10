@@ -4,8 +4,8 @@
 <title>Moving text between email inputs</title>
 <script type="application/ecmascript">
 function check()
-	{var input = document.querySelectorAll('input');
-	document.querySelector('p').firstChild.nodeValue = (input[0].value == '' &amp;&amp; input[1].value == 'mail@example.org')?'PASS':'FAIL';}
+  {var input = document.querySelectorAll('input');
+  document.querySelector('p').firstChild.nodeValue = (input[0].value == '' &amp;&amp; input[1].value == 'mail@example.org')?'PASS':'FAIL';}
 </script>
 </head>
 <body onload="document.querySelector('input').select()">

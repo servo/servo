@@ -41,7 +41,7 @@ def WebIDLTest(parser, harness):
         harness.check(argument.variadic, variadic, "Argument has the right variadic value")
 
     def checkMethod(method, QName, name, signatures,
-                    static=False, getter=False, setter=False, creator=False,
+                    static=False, getter=False, setter=False,
                     deleter=False, legacycaller=False, stringifier=False):
         harness.ok(isinstance(method, WebIDL.IDLMethod),
                    "Should be an IDLMethod")
@@ -53,7 +53,6 @@ def WebIDLTest(parser, harness):
         harness.check(method.isStatic(), static, "Method has the correct static value")
         harness.check(method.isGetter(), getter, "Method has the correct getter value")
         harness.check(method.isSetter(), setter, "Method has the correct setter value")
-        harness.check(method.isCreator(), creator, "Method has the correct creator value")
         harness.check(method.isDeleter(), deleter, "Method has the correct deleter value")
         harness.check(method.isLegacycaller(), legacycaller, "Method has the correct legacycaller value")
         harness.check(method.isStringifier(), stringifier, "Method has the correct stringifier value")
@@ -121,7 +120,7 @@ def WebIDLTest(parser, harness):
           };
         """)
         results = parser.finish()
-    except Exception, x:
+    except Exception as x:
         threw = True
     harness.ok(not threw, "Should allow integer to float type corecion")
 
@@ -134,7 +133,7 @@ def WebIDLTest(parser, harness):
           };
         """)
         results = parser.finish()
-    except Exception, x:
+    except Exception as x:
         threw = True
     harness.ok(threw, "Should not allow [GetterThrows] on methods")
 
@@ -147,7 +146,7 @@ def WebIDLTest(parser, harness):
           };
         """)
         results = parser.finish()
-    except Exception, x:
+    except Exception as x:
         threw = True
     harness.ok(threw, "Should not allow [SetterThrows] on methods")
 
@@ -160,7 +159,7 @@ def WebIDLTest(parser, harness):
           };
         """)
         results = parser.finish()
-    except Exception, x:
+    except Exception as x:
         threw = True
     harness.ok(threw, "Should spell [Throws] correctly on methods")
 
@@ -173,6 +172,85 @@ def WebIDLTest(parser, harness):
           };
         """)
         results = parser.finish()
-    except Exception, x:
+    except Exception as x:
         threw = True
     harness.ok(threw, "Should not allow __noSuchMethod__ methods")
+
+    parser = parser.reset()
+    threw = False
+    try:
+        parser.parse("""
+          interface A {
+            [Throws, LenientFloat]
+            void foo(float myFloat);
+            [Throws]
+            void foo();
+          };
+        """)
+        results = parser.finish()
+    except Exception as x:
+        threw = True
+    harness.ok(not threw, "Should allow LenientFloat to be only in a specific overload")
+
+    parser = parser.reset()
+    parser.parse("""
+      interface A {
+        [Throws]
+        void foo();
+        [Throws, LenientFloat]
+        void foo(float myFloat);
+      };
+    """)
+    results = parser.finish()
+    iface = results[0]
+    methods = iface.members
+    lenientFloat = methods[0].getExtendedAttribute("LenientFloat")
+    harness.ok(lenientFloat is not None, "LenientFloat in overloads must be added to the method")
+
+    parser = parser.reset()
+    threw = False
+    try:
+        parser.parse("""
+          interface A {
+            [Throws, LenientFloat]
+            void foo(float myFloat);
+            [Throws]
+            void foo(float myFloat, float yourFloat);
+          };
+        """)
+        results = parser.finish()
+    except Exception as x:
+        threw = True
+    harness.ok(threw, "Should prevent overloads from getting different restricted float behavior")
+
+    parser = parser.reset()
+    threw = False
+    try:
+        parser.parse("""
+          interface A {
+            [Throws]
+            void foo(float myFloat, float yourFloat);
+            [Throws, LenientFloat]
+            void foo(float myFloat);
+          };
+        """)
+        results = parser.finish()
+    except Exception as x:
+        threw = True
+    harness.ok(threw, "Should prevent overloads from getting different restricted float behavior (2)")
+
+    parser = parser.reset()
+    threw = False
+    try:
+        parser.parse("""
+          interface A {
+            [Throws, LenientFloat]
+            void foo(float myFloat);
+            [Throws, LenientFloat]
+            void foo(short myShort);
+          };
+        """)
+        results = parser.finish()
+    except Exception as x:
+        threw = True
+    harness.ok(threw, "Should prevent overloads from getting redundant [LenientFloat]")

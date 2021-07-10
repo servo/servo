@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Filtered block becomes containing block of absolutely positioned child</title>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty" title="5. Graphic filters: the filter property">
+<meta name="assert" content="A filtered block will be a containing block for absolutely positioned descendants. If all this takes place inside a multicol container, this means that the absolutely positioned box also has the multicol container in its containing block, which means that it should be fragmented.">
+<div id="multicol" style="columns:2;">
+  <div id="container" style="height:100px;">
+    <!-- The spanner is here to trigger the crash in crbug.com/847328 -->
+    <div style="column-span:all;"></div>
+    <div id="abspos" style="position:absolute; height:100px;"></div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(() => {
+  let container = document.getElementById("container");
+  let abspos = document.getElementById("abspos");
+  document.body.offsetTop;
+  assert_equals(abspos.getBoundingClientRect().height, 100);
+  container.style.filter = "opacity(0.5)";
+  assert_equals(abspos.getBoundingClientRect().height, 50);
+  // The last step will cause a crash if crbug.com/847328 is present
+  document.body.offsetTop;
+  abspos.style.display = "none";
+}, "Making a container filtered, and then removing an abspos child");
+</script>

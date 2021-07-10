@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-5/#descdef-font-face-advance-override">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<title>Serialization of advance-override</title>
+
+<style id="target">
+@font-face {
+  font-family: one-parameter;
+  src: local(Ahem), url(/fonts/Ahem.ttf);
+  advance-override: 50%;
+}
+
+@font-face {
+  font-family: two-parameters;
+  src: local(Ahem), url(/fonts/Ahem.ttf);
+  advance-override: 50% 100%;
+}
+
+@font-face {
+  font-family: two-identical-parameters;
+  src: local(Ahem), url(/fonts/Ahem.ttf);
+  advance-override: 100% 100%;
+}
+</style>
+
+<script>
+const sheet = document.getElementById("target").sheet;
+
+test(() => assert_equals(sheet.cssRules[0].style.advanceOverride, "50%"),
+     "One parameter should be serialized as one parameter");
+
+test(() => assert_equals(sheet.cssRules[1].style.advanceOverride, "50% 100%"),
+     "Two different parameters should be serialized as two parameters");
+
+test(() => assert_equals(sheet.cssRules[2].style.advanceOverride, "100%"),
+     "Two identical parameters should be simplified into one parameter");
+
+</script>

@@ -1,0 +1,277 @@
+﻿<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Instanced Arrays Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/desktop-gl-constants.js"></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" style="width: 128px; height: 128px;"> </canvas>
+<div id="console"></div>
+<script id="outputVertexShader" type="x-shader/x-vertex">#version 300 es
+in highp vec2 aPosition;
+in highp float aOffset;
+in highp float aColor;
+out mediump float vColor;
+void main() {
+    gl_Position = vec4(aPosition, 0.0, 1.0) + vec4(aOffset, 0.0, 0.0, 0.0);
+    vColor = aColor;
+}
+</script>
+
+<script id="outputFragmentShader" type="x-shader/x-fragment">#version 300 es
+layout(location = 0) out mediump vec4 oColor;
+in mediump float vColor;
+void main() {
+    oColor = vec4(vColor, 0.0, 0.0, 1.0);
+}
+</script>
+
+<script>
+"use strict";
+description("This test verifies a bug related with instanced rendering on Mac AMD.");
+debug("http://crbug.com/645298");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, null, 2);
+
+// The second and fourth test cases fail - it seems if the divisor doesn't change,
+// the next instanced draw call behaves incorrectly.
+// Also note that if we don't perform a readPixels (in wtu.checkCanvasRect), the bug
+// isn't triggered.
+var testCases = [
+    { instanceCount: 8, divisor: 4 },
+    { instanceCount: 6, divisor: 4 },
+    { instanceCount: 6, divisor: 3 },
+    { instanceCount: 8, divisor: 3 },
+];
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    for (var ii = 0; ii < testCases.length; ++ii) {
+        runDrawArraysTest(testCases[ii].instanceCount, testCases[ii].divisor);
+    }
+
+    for (var ii = 0; ii < testCases.length; ++ii) {
+        runDrawElementsTest(testCases[ii].instanceCount, testCases[ii].divisor);
+    }
+}
+
+function runDrawArraysTest(instanceCount, divisor) {
+    debug("");
+    debug("Testing drawArraysInstanced: instanceCount = " + instanceCount + ", divisor = " + divisor);
+
+    gl.viewport(0, 0, canvas.width, canvas.height);
+
+    var vao = gl.createVertexArray();
+    gl.bindVertexArray(vao);
+
+    var program = wtu.setupProgram(gl, ["outputVertexShader", "outputFragmentShader"]);
+    var positionLoc = gl.getAttribLocation(program, "aPosition");
+    var offsetLoc = gl.getAttribLocation(program, "aOffset");
+    var colorLoc = gl.getAttribLocation(program, "aColor");
+    if (!program || positionLoc < 0 || offsetLoc < 0 || colorLoc < 0) {
+        testFailed("Set up program failed");
+        return;
+    }
+    testPassed("Set up program succeeded");
+
+    var scale = 1.0 / instanceCount;
+
+    gl.enableVertexAttribArray(positionLoc);
+    gl.vertexAttribDivisor(positionLoc, 0);
+    var positions = new Float32Array([
+         1.0 * scale,  1.0,
+        -1.0 * scale,  1.0,
+        -1.0 * scale, -1.0,
+         1.0 * scale,  1.0,
+        -1.0 * scale, -1.0,
+         1.0 * scale, -1.0,
+    ]);
+    var positionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+    gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
+
+    gl.enableVertexAttribArray(offsetLoc);
+    gl.vertexAttribDivisor(offsetLoc, 1);
+    var offsets = new Float32Array(instanceCount);
+    for (var ii = 0; ii < instanceCount; ++ii) {
+        offsets[ii] = scale * (1 - instanceCount + ii * 2);
+    }
+    var offsetBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, offsetBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, offsets, gl.STATIC_DRAW);
+    gl.vertexAttribPointer(offsetLoc, 1, gl.FLOAT, false, 0, 0);
+
+    gl.enableVertexAttribArray(colorLoc);
+    gl.vertexAttribDivisor(colorLoc, divisor);
+    var colorCount = instanceCount / divisor;
+    if ((instanceCount % divisor) != 0)
+        colorCount++;
+    var colors = new Float32Array(colorCount);
+    for (var ii = 0; ii < colorCount; ++ii) {
+        colors[ii] = 1.0 / colorCount * (ii + 1);
+    }
+    var colorBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, colors, gl.STATIC_DRAW);
+    gl.vertexAttribPointer(colorLoc, 1, gl.FLOAT, false, 0, 0);
+
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawArraysInstanced should succeed");
+
+    var colorIndex = -1;
+    for (var ii = 0; ii < instanceCount; ++ii) {
+        if ((ii % divisor) == 0)
+            colorIndex++;
+        var refColor = [ Math.floor(colors[colorIndex] * 255), 0, 0, 255 ];
+        wtu.checkCanvasRect(gl, Math.floor(canvas.width / instanceCount * ii) + 1, 0, 1, canvas.height, refColor,
+            "instance " + ii + " should be " + refColor, 2);
+    }
+
+    gl.deleteBuffer(positionBuffer);
+    gl.deleteBuffer(offsetBuffer);
+    gl.deleteBuffer(colorBuffer);
+    gl.deleteProgram(program);
+    gl.deleteVertexArray(vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    gl.useProgram(null);
+    gl.bindVertexArray(null);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "clean up should succeed");
+}
+
+function runDrawElementsTest(instanceCount, divisor) {
+    debug("");
+    debug("Testing drawElementsInstanced: instanceCount = " + instanceCount + ", divisor = " + divisor);
+
+    gl.viewport(0, 0, canvas.width, canvas.height);
+
+    var vao = gl.createVertexArray();
+    gl.bindVertexArray(vao);
+
+    var program = wtu.setupProgram(gl, ["outputVertexShader", "outputFragmentShader"]);
+    var positionLoc = gl.getAttribLocation(program, "aPosition");
+    var offsetLoc = gl.getAttribLocation(program, "aOffset");
+    var colorLoc = gl.getAttribLocation(program, "aColor");
+    if (!program || positionLoc < 0 || offsetLoc < 0 || colorLoc < 0) {
+        testFailed("Set up program failed");
+        return;
+    }
+    testPassed("Set up program succeeded");
+
+    var scale = 1.0 / instanceCount;
+
+    gl.enableVertexAttribArray(positionLoc);
+    gl.vertexAttribDivisor(positionLoc, 0);
+    var positions = new Float32Array([
+         1.0 * scale,  1.0,
+        -1.0 * scale,  1.0,
+        -1.0 * scale, -1.0,
+         1.0 * scale, -1.0,
+    ]);
+    var positionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+    gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
+
+    gl.enableVertexAttribArray(offsetLoc);
+    gl.vertexAttribDivisor(offsetLoc, 1);
+    var offsets = new Float32Array(instanceCount);
+    for (var ii = 0; ii < instanceCount; ++ii) {
+        offsets[ii] = scale * (1 - instanceCount + ii * 2);
+    }
+    var offsetBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, offsetBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, offsets, gl.STATIC_DRAW);
+    gl.vertexAttribPointer(offsetLoc, 1, gl.FLOAT, false, 0, 0);
+
+    gl.enableVertexAttribArray(colorLoc);
+    gl.vertexAttribDivisor(colorLoc, divisor);
+    var colorCount = instanceCount / divisor;
+    if ((instanceCount % divisor) != 0)
+        colorCount++;
+    var colors = new Float32Array(colorCount);
+    for (var ii = 0; ii < colorCount; ++ii) {
+        colors[ii] = 1.0 / colorCount * (ii + 1);
+    }
+    var colorBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, colors, gl.STATIC_DRAW);
+    gl.vertexAttribPointer(colorLoc, 1, gl.FLOAT, false, 0, 0);
+
+    var indexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    var indices = new Uint16Array([0, 1, 2, 0, 2, 3]);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+
+    gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawElementsInstanced should succeed");
+
+    var colorIndex = -1;
+    for (var ii = 0; ii < instanceCount; ++ii) {
+        if ((ii % divisor) == 0)
+            colorIndex++;
+        var refColor = [ Math.floor(colors[colorIndex] * 255), 0, 0, 255 ];
+        wtu.checkCanvasRect(gl, Math.floor(canvas.width / instanceCount * ii) + 1, 0, 1, canvas.height, refColor,
+            "instance " + ii + " should be " + refColor, 2);
+    }
+
+    gl.deleteBuffer(positionBuffer);
+    gl.deleteBuffer(offsetBuffer);
+    gl.deleteBuffer(colorBuffer);
+    gl.deleteBuffer(indexBuffer);
+    gl.deleteProgram(program);
+    gl.deleteVertexArray(vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+    gl.useProgram(null);
+    gl.bindVertexArray(null);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "clean up should succeed");
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

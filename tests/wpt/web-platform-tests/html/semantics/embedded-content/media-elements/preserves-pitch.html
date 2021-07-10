@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<title>Test preservesPitch.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="pitch-detector.js"></script>
+<script>
+
+// Remove when media-elements/historical.html's preservePitch prefix tests are are passing.
+function getPreservesPitch(audio) {
+    if ("preservesPitch" in HTMLAudioElement.prototype) {
+        return audio.preservesPitch;
+    }
+    if ("mozPreservesPitch" in HTMLAudioElement.prototype) {
+        return audio.mozPreservesPitch;
+    }
+    if ("webkitPreservesPitch" in HTMLAudioElement.prototype) {
+        return audio.webkitPreservesPitch;
+    }
+    return undefined;
+}
+
+// Remove when media-elements/historical.html's preservePitch prefix tests are are passing.
+function setPreservesPitch(audio, value) {
+    if ("preservesPitch" in HTMLAudioElement.prototype) {
+        audio.preservesPitch = value;
+    } else if ("mozPreservesPitch" in HTMLAudioElement.prototype) {
+        audio.mozPreservesPitch = value;
+    } else if ("webkitPreservesPitch" in HTMLAudioElement.prototype) {
+        audio.webkitPreservesPitch = value;
+    }
+}
+
+test(function(t) {
+    assert_true("preservesPitch" in HTMLAudioElement.prototype);
+}, "Test that preservesPitch is present and unprefixed.");
+
+test(function(t) {
+    let defaultAudio = document.createElement('audio');
+    assert_true(getPreservesPitch(defaultAudio));
+
+    setPreservesPitch(defaultAudio, false);
+    assert_false(getPreservesPitch(defaultAudio));
+}, "Test that preservesPitch is on by default");
+
+
+var audio;
+
+function addTestCleanups(t, detector) {
+    t.add_cleanup(() => {
+        audio.pause();
+        audio.currentTime = 0;
+    });
+    t.add_cleanup(() => detector.cleanup());
+}
+
+function testPreservesPitch(preservesPitch, playbackRate, expectedPitch, description) {
+    promise_test(async t => {
+        let detector = getPitchDetector(audio);
+        addTestCleanups(t, detector);
+
+        audio.playbackRate = playbackRate;
+        setPreservesPitch(audio, preservesPitch);
+
+        function waitUntil(time) {
+            return new Promise((resolve) => {
+                audio.ontimeupdate = () => {
+                    if (audio.currentTime >= time) {
+                        resolve();
+                    }
+                };
+            });
+        }
+
+        // Wait until we have played some audio. Otherwise, the detector
+        // might return a pitch of 0Hz.
+        audio.play();
+        await waitUntil(0.25);
+
+        var pitch = detector.detect();
+
+        // 25Hz is larger than the margin we get from 48kHz and 44.1kHz
+        // audio being analyzed by a FFT of size 2048. If we get something
+        // different, there is an error within the test's calculations (or
+        // we might be dealing a larger sample rate).
+        assert_less_than(pitch.margin, 25,
+            "Test error: the margin should be reasonably small.")
+
+        assert_approx_equals(pitch.value, expectedPitch, pitch.margin,
+            "The actual pitch should be close to the expected pitch.");
+
+    }, description);
+}
+
+var REFERENCE_PITCH = 440;
+
+promise_test(async t => {
+    // Create the audio element only once, in order to lower the chances of
+    // tests timing out.
+    audio = document.createElement('audio');
+
+    // This file contains 5 seconds of a 440hz sine wave.
+    audio.src = "/media/sine440.mp3";
+
+    let detector = getPitchDetector(audio);
+    addTestCleanups(t, detector);
+
+    // The first time we run the test, we need to interact with the
+    // AudioContext and Audio element via user gestures.
+    await test_driver.bless("Play audio element", () => {
+        return Promise.all([audio.play(), detector.ensureStart()]);
+    });
+}, "Setup Audio element and AudioContext")
+
+testPreservesPitch(true, 1.0, REFERENCE_PITCH,
+    "The default playbackRate should not affect pitch")
+
+testPreservesPitch(false, 1.0, REFERENCE_PITCH,
+    "The default playbackRate should not affect pitch, even with preservesPitch=false")
+
+testPreservesPitch(true, 2.0, REFERENCE_PITCH,
+    "Speed-ups should not change the pitch when preservesPitch=true")
+
+testPreservesPitch(true, 0.5, REFERENCE_PITCH,
+    "Slow-downs should not change the pitch when preservesPitch=true")
+
+testPreservesPitch(false, 2.0, REFERENCE_PITCH*2.0,
+    "Speed-ups should change the pitch when preservesPitch=false")
+
+testPreservesPitch(false, 0.5, REFERENCE_PITCH*0.5,
+    "Slow-downs should change the pitch when preservesPitch=false")
+
+</script>

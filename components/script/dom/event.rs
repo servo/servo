@@ -1,37 +1,44 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::callback::ExceptionHandling;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::EventBinding;
+use crate::dom::bindings::codegen::Bindings::EventBinding::{EventConstants, EventMethods};
+use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
+use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceBinding::PerformanceMethods;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::document::Document;
+use crate::dom::element::Element;
+use crate::dom::eventtarget::{CompiledEventListener, EventTarget, ListenerPhase};
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::htmlinputelement::InputActivationState;
+use crate::dom::mouseevent::MouseEvent;
+use crate::dom::node::{Node, ShadowIncluding};
+use crate::dom::performance::reduce_timing_resolution;
+use crate::dom::virtualmethods::vtable_for;
+use crate::dom::window::Window;
+use crate::task::TaskOnce;
 use devtools_traits::{TimelineMarker, TimelineMarkerType};
-use dom::bindings::callback::ExceptionHandling;
-use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::EventBinding;
-use dom::bindings::codegen::Bindings::EventBinding::{EventConstants, EventMethods};
-use dom::bindings::error::Fallible;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, MutNullableJS, Root, RootedReference};
-use dom::bindings::refcounted::Trusted;
-use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::str::DOMString;
-use dom::document::Document;
-use dom::eventtarget::{CompiledEventListener, EventTarget, ListenerPhase};
-use dom::globalscope::GlobalScope;
-use dom::node::Node;
-use dom::virtualmethods::vtable_for;
-use dom::window::Window;
 use dom_struct::dom_struct;
-use script_thread::Runnable;
+use metrics::ToMs;
 use servo_atoms::Atom;
 use std::cell::Cell;
 use std::default::Default;
-use time;
 
 #[dom_struct]
 pub struct Event {
     reflector_: Reflector,
-    current_target: MutNullableJS<EventTarget>,
-    target: MutNullableJS<EventTarget>,
-    type_: DOMRefCell<Atom>,
+    current_target: MutNullableDom<EventTarget>,
+    target: MutNullableDom<EventTarget>,
+    type_: DomRefCell<Atom>,
     phase: Cell<EventPhase>,
     canceled: Cell<EventDefault>,
     stop_propagation: Cell<bool>,
@@ -41,7 +48,7 @@ pub struct Event {
     trusted: Cell<bool>,
     dispatching: Cell<bool>,
     initialized: Cell<bool>,
-    timestamp: u64,
+    precise_time_ns: u64,
 }
 
 impl Event {
@@ -50,7 +57,7 @@ impl Event {
             reflector_: Reflector::new(),
             current_target: Default::default(),
             target: Default::default(),
-            type_: DOMRefCell::new(atom!("")),
+            type_: DomRefCell::new(atom!("")),
             phase: Cell::new(EventPhase::None),
             canceled: Cell::new(EventDefault::Allowed),
             stop_propagation: Cell::new(false),
@@ -60,28 +67,31 @@ impl Event {
             trusted: Cell::new(false),
             dispatching: Cell::new(false),
             initialized: Cell::new(false),
-            timestamp: time::get_time().sec as u64,
+            precise_time_ns: time::precise_time_ns(),
         }
     }
 
-    pub fn new_uninitialized(global: &GlobalScope) -> Root<Event> {
-        reflect_dom_object(box Event::new_inherited(),
-                           global,
-                           EventBinding::Wrap)
+    pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<Event> {
+        reflect_dom_object(Box::new(Event::new_inherited()), global)
     }
 
-    pub fn new(global: &GlobalScope,
-               type_: Atom,
-               bubbles: EventBubbles,
-               cancelable: EventCancelable) -> Root<Event> {
+    pub fn new(
+        global: &GlobalScope,
+        type_: Atom,
+        bubbles: EventBubbles,
+        cancelable: EventCancelable,
+    ) -> DomRoot<Event> {
         let event = Event::new_uninitialized(global);
         event.init_event(type_, bool::from(bubbles), bool::from(cancelable));
         event
     }
 
-    pub fn Constructor(global: &GlobalScope,
-                       type_: DOMString,
-                       init: &EventBinding::EventInit) -> Fallible<Root<Event>> {
+    #[allow(non_snake_case)]
+    pub fn Constructor(
+        global: &GlobalScope,
+        type_: DOMString,
+        init: &EventBinding::EventInit,
+    ) -> Fallible<DomRoot<Event>> {
         let bubbles = EventBubbles::from(init.bubbles);
         let cancelable = EventCancelable::from(init.cancelable);
         Ok(Event::new(global, Atom::from(type_), bubbles, cancelable))
@@ -103,91 +113,251 @@ impl Event {
         self.cancelable.set(cancelable);
     }
 
-    // https://dom.spec.whatwg.org/#concept-event-dispatch
-    pub fn dispatch(&self,
-                    target: &EventTarget,
-                    target_override: Option<&EventTarget>)
-                    -> EventStatus {
-        assert!(!self.dispatching());
-        assert!(self.initialized());
-        assert_eq!(self.phase.get(), EventPhase::None);
-        assert!(self.GetCurrentTarget().is_none());
+    // Determine if there are any listeners for a given target and type.
+    // See https://github.com/whatwg/dom/issues/453
+    pub fn has_listeners_for(&self, target: &EventTarget, type_: &Atom) -> bool {
+        // TODO: take 'removed' into account? Not implemented in Servo yet.
+        // https://dom.spec.whatwg.org/#event-listener-removed
+        let mut event_path = self.construct_event_path(&target);
+        event_path.push(DomRoot::from_ref(target));
+        event_path
+            .iter()
+            .any(|target| target.has_listeners_for(type_))
+    }
 
+    // https://dom.spec.whatwg.org/#event-path
+    // TODO: shadow roots put special flags in the path,
+    // and it will stop just being a list of bare EventTargets
+    fn construct_event_path(&self, target: &EventTarget) -> Vec<DomRoot<EventTarget>> {
+        let mut event_path = vec![];
+        if let Some(target_node) = target.downcast::<Node>() {
+            // ShadowIncluding::Yes might be closer to right than ::No,
+            // but still wrong since things about the path change when crossing
+            // shadow attachments; getting it right needs to change
+            // more than just that.
+            for ancestor in target_node.inclusive_ancestors(ShadowIncluding::No) {
+                event_path.push(DomRoot::from_ref(ancestor.upcast::<EventTarget>()));
+            }
+            // Most event-target-to-parent relationships are node parent
+            // relationships, but the document-to-global one is not,
+            // so that's handled separately here.
+            // (an EventTarget.get_parent_event_target could save
+            // some redundancy, especially when shadow DOM relationships
+            // also need to be respected)
+            let top_most_ancestor_or_target = event_path
+                .last()
+                .cloned()
+                .unwrap_or(DomRoot::from_ref(target));
+            if let Some(document) = DomRoot::downcast::<Document>(top_most_ancestor_or_target) {
+                if self.type_() != atom!("load") && document.browsing_context().is_some() {
+                    event_path.push(DomRoot::from_ref(document.window().upcast()));
+                }
+            }
+        } else {
+            // a non-node EventTarget, likely a global.
+            // No parent to propagate up to, but we still
+            // need it on the path.
+            event_path.push(DomRoot::from_ref(target));
+        }
+        event_path
+    }
+
+    // https://dom.spec.whatwg.org/#concept-event-dispatch
+    pub fn dispatch(
+        &self,
+        target: &EventTarget,
+        legacy_target_override: bool,
+        // TODO legacy_did_output_listeners_throw_flag for indexeddb
+    ) -> EventStatus {
         // Step 1.
         self.dispatching.set(true);
 
         // Step 2.
-        self.target.set(Some(target_override.unwrap_or(target)));
+        let target_override_document; // upcasted EventTarget's lifetime depends on this
+        let target_override = if legacy_target_override {
+            target_override_document = target
+                .downcast::<Window>()
+                .expect("legacy_target_override must be true only when target is a Window")
+                .Document();
+            target_override_document.upcast::<EventTarget>()
+        } else {
+            target
+        };
 
-        if self.stop_propagation.get() {
-            // If the event's stop propagation flag is set, we can skip everything because
-            // it prevents the calls of the invoke algorithm in the spec.
+        // Step 3 - since step 5 always happens, we can wait until 5.5
 
-            // Step 10-12.
-            self.clear_dispatching_flags();
+        // Step 4 TODO: "retargeting" concept depends on shadow DOM
 
-            // Step 14.
-            return self.status();
-        }
+        // Step 5, outer if-statement, is always true until step 4 is implemented
+        // Steps 5.1-5.2 TODO: touch target lists don't exist yet
 
-        // Step 3. The "invoke" algorithm is only used on `target` separately,
-        // so we don't put it in the path.
-        rooted_vec!(let mut event_path);
+        // Steps 5.3 and most of 5.9
+        // A change in whatwg/dom#240 specifies that
+        // the event path belongs to the event itself, rather than being
+        // a local variable of the dispatch algorithm, but this is mostly
+        // related to shadow DOM requirements that aren't otherwise
+        // implemented right now. The path also needs to contain
+        // various flags instead of just bare event targets.
+        let path = self.construct_event_path(&target);
+        rooted_vec!(let event_path <- path.into_iter());
 
-        // Step 4.
-        if let Some(target_node) = target.downcast::<Node>() {
-            for ancestor in target_node.ancestors() {
-                event_path.push(JS::from_ref(ancestor.upcast::<EventTarget>()));
-            }
-            let top_most_ancestor_or_target =
-                Root::from_ref(event_path.r().last().cloned().unwrap_or(target));
-            if let Some(document) = Root::downcast::<Document>(top_most_ancestor_or_target) {
-                if self.type_() != atom!("load") && document.browsing_context().is_some() {
-                    event_path.push(JS::from_ref(document.window().upcast()));
+        // Step 5.4
+        let is_activation_event = self.is::<MouseEvent>() && self.type_() == atom!("click");
+
+        // Step 5.5
+        let mut activation_target = if is_activation_event {
+            target
+                .downcast::<Element>()
+                .and_then(|e| e.as_maybe_activatable())
+        } else {
+            // Step 3
+            None
+        };
+
+        // Steps 5-6 - 5.7 are shadow DOM slot things
+
+        // Step 5.9.8.1, not covered in construct_event_path
+        // This what makes sure that clicking on e.g. an <img> inside
+        // an <a> will cause activation of the activatable ancestor.
+        if is_activation_event && activation_target.is_none() && self.bubbles.get() {
+            for object in event_path.iter() {
+                if let Some(activatable_ancestor) = object
+                    .downcast::<Element>()
+                    .and_then(|e| e.as_maybe_activatable())
+                {
+                    activation_target = Some(activatable_ancestor);
+                    // once activation_target isn't null, we stop
+                    // looking at ancestors for it.
+                    break;
                 }
             }
         }
 
-        // Steps 5-9. In a separate function to short-circuit various things easily.
-        dispatch_to_listeners(self, target, event_path.r());
+        // Steps 5.10-5.11 are shadow DOM
 
-        // Default action.
-        if let Some(target) = self.GetTarget() {
-            if let Some(node) = target.downcast::<Node>() {
-                let vtable = vtable_for(&node);
-                vtable.handle_event(self);
+        // Not specified in dispatch spec overtly; this is because
+        // the legacy canceled activation behavior of a checkbox
+        // or radio button needs to know what happened in the
+        // corresponding pre-activation behavior.
+        let mut pre_activation_result: Option<InputActivationState> = None;
+
+        // Step 5.12
+        if is_activation_event {
+            if let Some(maybe_checkbox) = activation_target {
+                pre_activation_result = maybe_checkbox.legacy_pre_activation_behavior();
             }
         }
 
-        // Step 10-12.
-        self.clear_dispatching_flags();
+        let timeline_window = match DomRoot::downcast::<Window>(target.global()) {
+            Some(window) => {
+                if window.need_emit_timeline_marker(TimelineMarkerType::DOMEvent) {
+                    Some(window)
+                } else {
+                    None
+                }
+            },
+            _ => None,
+        };
 
-        // Step 14.
-        self.status()
+        // Step 5.13
+        for object in event_path.iter().rev() {
+            if &**object == &*target {
+                self.phase.set(EventPhase::AtTarget);
+            } else {
+                self.phase.set(EventPhase::Capturing);
+            }
+
+            // setting self.target is step 1 of invoke,
+            // but done here because our event_path isn't a member of self
+            // (without shadow DOM, target_override is always the
+            // target to set to)
+            self.target.set(Some(target_override));
+            invoke(
+                timeline_window.as_deref(),
+                object,
+                self,
+                Some(ListenerPhase::Capturing),
+            );
+        }
+
+        // Step 5.14
+        for object in event_path.iter() {
+            let at_target = &**object == &*target;
+            if at_target || self.bubbles.get() {
+                self.phase.set(if at_target {
+                    EventPhase::AtTarget
+                } else {
+                    EventPhase::Bubbling
+                });
+
+                self.target.set(Some(target_override));
+                invoke(
+                    timeline_window.as_deref(),
+                    object,
+                    self,
+                    Some(ListenerPhase::Bubbling),
+                );
+            }
+        }
+
+        // Step 6
+        self.phase.set(EventPhase::None);
+
+        // FIXME: The UIEvents spec still expects firing an event
+        // to carry a "default action" semantic, but the HTML spec
+        // has removed this concept. Nothing in either spec currently
+        // (as of Jan 11 2020) says that, e.g., a keydown event on an
+        // input element causes a character to be typed; the UIEvents
+        // spec assumes the HTML spec is covering it, and the HTML spec
+        // no longer specifies any UI event other than mouse click as
+        // causing an element to perform an action.
+        // Compare:
+        // https://w3c.github.io/uievents/#default-action
+        // https://dom.spec.whatwg.org/#action-versus-occurance
+        if !self.DefaultPrevented() {
+            if let Some(target) = self.GetTarget() {
+                if let Some(node) = target.downcast::<Node>() {
+                    let vtable = vtable_for(&node);
+                    vtable.handle_event(self);
+                }
+            }
+        }
+
+        // Step 7
+        self.current_target.set(None);
+
+        // Step 8 TODO: if path were in the event struct, we'd clear it now
+
+        // Step 9
+        self.dispatching.set(false);
+        self.stop_propagation.set(false);
+        self.stop_immediate.set(false);
+
+        // Step 10 TODO: condition is always false until there's shadow DOM
+
+        // Step 11
+        if let Some(activation_target) = activation_target {
+            if self.DefaultPrevented() {
+                activation_target.legacy_canceled_activation_behavior(pre_activation_result);
+            } else {
+                activation_target.activation_behavior(self, target);
+            }
+        }
+
+        return self.status();
     }
 
     pub fn status(&self) -> EventStatus {
-        match self.DefaultPrevented() {
-            true => EventStatus::Canceled,
-            false => EventStatus::NotCanceled
+        if self.DefaultPrevented() {
+            EventStatus::Canceled
+        } else {
+            EventStatus::NotCanceled
         }
     }
 
     #[inline]
     pub fn dispatching(&self) -> bool {
         self.dispatching.get()
-    }
-
-    #[inline]
-    // https://dom.spec.whatwg.org/#concept-event-dispatch Steps 10-12.
-    fn clear_dispatching_flags(&self) {
-        assert!(self.dispatching.get());
-
-        self.dispatching.set(false);
-        self.stop_propagation.set(false);
-        self.stop_immediate.set(false);
-        self.phase.set(EventPhase::None);
-        self.current_target.set(None);
     }
 
     #[inline]
@@ -233,12 +403,17 @@ impl EventMethods for Event {
     }
 
     // https://dom.spec.whatwg.org/#dom-event-target
-    fn GetTarget(&self) -> Option<Root<EventTarget>> {
+    fn GetTarget(&self) -> Option<DomRoot<EventTarget>> {
+        self.target.get()
+    }
+
+    // https://dom.spec.whatwg.org/#dom-event-srcelement
+    fn GetSrcElement(&self) -> Option<DomRoot<EventTarget>> {
         self.target.get()
     }
 
     // https://dom.spec.whatwg.org/#dom-event-currenttarget
-    fn GetCurrentTarget(&self) -> Option<Root<EventTarget>> {
+    fn GetCurrentTarget(&self) -> Option<DomRoot<EventTarget>> {
         self.current_target.get()
     }
 
@@ -275,17 +450,41 @@ impl EventMethods for Event {
         self.cancelable.get()
     }
 
+    // https://dom.spec.whatwg.org/#dom-event-returnvalue
+    fn ReturnValue(&self) -> bool {
+        self.canceled.get() == EventDefault::Allowed
+    }
+
+    // https://dom.spec.whatwg.org/#dom-event-returnvalue
+    fn SetReturnValue(&self, val: bool) {
+        if !val {
+            self.PreventDefault();
+        }
+    }
+
+    // https://dom.spec.whatwg.org/#dom-event-cancelbubble
+    fn CancelBubble(&self) -> bool {
+        self.stop_propagation.get()
+    }
+
+    // https://dom.spec.whatwg.org/#dom-event-cancelbubble
+    fn SetCancelBubble(&self, value: bool) {
+        if value {
+            self.stop_propagation.set(true)
+        }
+    }
+
     // https://dom.spec.whatwg.org/#dom-event-timestamp
-    fn TimeStamp(&self) -> u64 {
-        self.timestamp
+    fn TimeStamp(&self) -> DOMHighResTimeStamp {
+        reduce_timing_resolution(
+            (self.precise_time_ns - (*self.global().performance().TimeOrigin()).round() as u64)
+                .to_ms(),
+        )
     }
 
     // https://dom.spec.whatwg.org/#dom-event-initevent
-    fn InitEvent(&self,
-                 type_: DOMString,
-                 bubbles: bool,
-                 cancelable: bool) {
-         self.init_event(Atom::from(type_), bubbles, cancelable)
+    fn InitEvent(&self, type_: DOMString, bubbles: bool, cancelable: bool) {
+        self.init_event(Atom::from(type_), bubbles, cancelable)
     }
 
     // https://dom.spec.whatwg.org/#dom-event-istrusted
@@ -294,17 +493,18 @@ impl EventMethods for Event {
     }
 }
 
-#[derive(PartialEq, HeapSizeOf, Copy, Clone)]
+#[derive(Clone, Copy, MallocSizeOf, PartialEq)]
 pub enum EventBubbles {
     Bubbles,
-    DoesNotBubble
+    DoesNotBubble,
 }
 
 impl From<bool> for EventBubbles {
     fn from(boolean: bool) -> Self {
-        match boolean {
-            true => EventBubbles::Bubbles,
-            false => EventBubbles::DoesNotBubble
+        if boolean {
+            EventBubbles::Bubbles
+        } else {
+            EventBubbles::DoesNotBubble
         }
     }
 }
@@ -313,22 +513,23 @@ impl From<EventBubbles> for bool {
     fn from(bubbles: EventBubbles) -> Self {
         match bubbles {
             EventBubbles::Bubbles => true,
-            EventBubbles::DoesNotBubble => false
+            EventBubbles::DoesNotBubble => false,
         }
     }
 }
 
-#[derive(PartialEq, HeapSizeOf, Copy, Clone)]
+#[derive(Clone, Copy, MallocSizeOf, PartialEq)]
 pub enum EventCancelable {
     Cancelable,
-    NotCancelable
+    NotCancelable,
 }
 
 impl From<bool> for EventCancelable {
     fn from(boolean: bool) -> Self {
-        match boolean {
-            true => EventCancelable::Cancelable,
-            false => EventCancelable::NotCancelable
+        if boolean {
+            EventCancelable::Cancelable
+        } else {
+            EventCancelable::NotCancelable
         }
     }
 }
@@ -337,19 +538,19 @@ impl From<EventCancelable> for bool {
     fn from(bubbles: EventCancelable) -> Self {
         match bubbles {
             EventCancelable::Cancelable => true,
-            EventCancelable::NotCancelable => false
+            EventCancelable::NotCancelable => false,
         }
     }
 }
 
-#[derive(JSTraceable, Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Eq, JSTraceable, PartialEq)]
 #[repr(u16)]
-#[derive(HeapSizeOf)]
+#[derive(MallocSizeOf)]
 pub enum EventPhase {
-    None      = EventConstants::NONE,
+    None = EventConstants::NONE,
     Capturing = EventConstants::CAPTURING_PHASE,
-    AtTarget  = EventConstants::AT_TARGET,
-    Bubbling  = EventConstants::BUBBLING_PHASE,
+    AtTarget = EventConstants::AT_TARGET,
+    Bubbling = EventConstants::BUBBLING_PHASE,
 }
 
 /// An enum to indicate whether the default action of an event is allowed.
@@ -361,9 +562,9 @@ pub enum EventPhase {
 /// helps us to prevent such events from being [sent to the constellation][msg] where it will be
 /// handled once again for page scrolling (which is definitely not what we'd want).
 ///
-/// [msg]: https://doc.servo.org/script_traits/enum.ConstellationMsg.html#variant.KeyEvent
+/// [msg]: https://doc.servo.org/compositing/enum.ConstellationMsg.html#variant.KeyEvent
 ///
-#[derive(JSTraceable, HeapSizeOf, Copy, Clone, PartialEq)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum EventDefault {
     /// The default action of the event is allowed (constructor's default)
     Allowed,
@@ -377,21 +578,19 @@ pub enum EventDefault {
 #[derive(PartialEq)]
 pub enum EventStatus {
     Canceled,
-    NotCanceled
+    NotCanceled,
 }
 
 // https://dom.spec.whatwg.org/#concept-event-fire
-pub struct EventRunnable {
+pub struct EventTask {
     pub target: Trusted<EventTarget>,
     pub name: Atom,
     pub bubbles: EventBubbles,
     pub cancelable: EventCancelable,
 }
 
-impl Runnable for EventRunnable {
-    fn name(&self) -> &'static str { "EventRunnable" }
-
-    fn handler(self: Box<EventRunnable>) {
+impl TaskOnce for EventTask {
+    fn run_once(self) {
         let target = self.target.root();
         let bubbles = self.bubbles;
         let cancelable = self.cancelable;
@@ -400,129 +599,141 @@ impl Runnable for EventRunnable {
 }
 
 // https://html.spec.whatwg.org/multipage/#fire-a-simple-event
-pub struct SimpleEventRunnable {
+pub struct SimpleEventTask {
     pub target: Trusted<EventTarget>,
     pub name: Atom,
 }
 
-impl Runnable for SimpleEventRunnable {
-    fn name(&self) -> &'static str { "SimpleEventRunnable" }
-
-    fn handler(self: Box<SimpleEventRunnable>) {
+impl TaskOnce for SimpleEventTask {
+    fn run_once(self) {
         let target = self.target.root();
         target.fire_event(self.name);
     }
 }
 
-// See dispatch_event.
-// https://dom.spec.whatwg.org/#concept-event-dispatch
-fn dispatch_to_listeners(event: &Event, target: &EventTarget, event_path: &[&EventTarget]) {
-    assert!(!event.stop_propagation.get());
-    assert!(!event.stop_immediate.get());
+// https://dom.spec.whatwg.org/#concept-event-listener-invoke
+fn invoke(
+    timeline_window: Option<&Window>,
+    object: &EventTarget,
+    event: &Event,
+    phase: Option<ListenerPhase>,
+    // TODO legacy_output_did_listeners_throw for indexeddb
+) {
+    // Step 1: Until shadow DOM puts the event path in the
+    // event itself, this is easier to do in dispatch before
+    // calling invoke.
 
-    let window = match Root::downcast::<Window>(target.global()) {
-        Some(window) => {
-            if window.need_emit_timeline_marker(TimelineMarkerType::DOMEvent) {
-                Some(window)
-            } else {
-                None
-            }
-        },
-        _ => None,
-    };
+    // Step 2 TODO: relatedTarget only matters for shadow DOM
 
-    // Step 5.
-    event.phase.set(EventPhase::Capturing);
+    // Step 3 TODO: touch target lists not implemented
 
-    // Step 6.
-    for object in event_path.iter().rev() {
-        invoke(window.r(), object, event, Some(ListenerPhase::Capturing));
-        if event.stop_propagation.get() {
-            return;
-        }
-    }
-    assert!(!event.stop_propagation.get());
-    assert!(!event.stop_immediate.get());
-
-    // Step 7.
-    event.phase.set(EventPhase::AtTarget);
-
-    // Step 8.
-    invoke(window.r(), target, event, None);
+    // Step 4.
     if event.stop_propagation.get() {
         return;
     }
-    assert!(!event.stop_propagation.get());
-    assert!(!event.stop_immediate.get());
+    // Step 5.
+    event.current_target.set(Some(object));
 
-    if !event.bubbles.get() {
-        return;
-    }
+    // Step 6
+    let listeners = object.get_listeners_for(&event.type_(), phase);
 
-    // Step 9.1.
-    event.phase.set(EventPhase::Bubbling);
+    // Step 7.
+    let found = inner_invoke(timeline_window, object, event, &listeners);
 
-    // Step 9.2.
-    for object in event_path {
-        invoke(window.r(), object, event, Some(ListenerPhase::Bubbling));
-        if event.stop_propagation.get() {
-            return;
+    // Step 8
+    if !found && event.trusted.get() {
+        if let Some(legacy_type) = match event.type_() {
+            atom!("animationend") => Some(atom!("webkitAnimationEnd")),
+            atom!("animationiteration") => Some(atom!("webkitAnimationIteration")),
+            atom!("animationstart") => Some(atom!("webkitAnimationStart")),
+            atom!("transitionend") => Some(atom!("webkitTransitionEnd")),
+            atom!("transitionrun") => Some(atom!("webkitTransitionRun")),
+            _ => None,
+        } {
+            let original_type = event.type_();
+            *event.type_.borrow_mut() = legacy_type;
+            inner_invoke(timeline_window, object, event, &listeners);
+            *event.type_.borrow_mut() = original_type;
         }
     }
 }
 
-// https://dom.spec.whatwg.org/#concept-event-listener-invoke
-fn invoke(window: Option<&Window>,
-          object: &EventTarget,
-          event: &Event,
-          specific_listener_phase: Option<ListenerPhase>) {
-    // Step 1.
-    assert!(!event.stop_propagation.get());
-
-    // Steps 2-3.
-    let listeners = object.get_listeners_for(&event.type_(), specific_listener_phase);
-
-    // Step 4.
-    event.current_target.set(Some(object));
-
-    // Step 5.
-    inner_invoke(window, object, event, &listeners);
-
-    // TODO: step 6.
-}
-
 // https://dom.spec.whatwg.org/#concept-event-listener-inner-invoke
-fn inner_invoke(window: Option<&Window>,
-                object: &EventTarget,
-                event: &Event,
-                listeners: &[CompiledEventListener])
-                -> bool {
+fn inner_invoke(
+    timeline_window: Option<&Window>,
+    object: &EventTarget,
+    event: &Event,
+    listeners: &[CompiledEventListener],
+) -> bool {
     // Step 1.
     let mut found = false;
 
     // Step 2.
     for listener in listeners {
+        // FIXME(#25479): We need an "if !listener.removed()" here,
+        // but there's a subtlety. Where Servo is currently using the
+        // CompiledEventListener, we really need something that maps to
+        // https://dom.spec.whatwg.org/#concept-event-listener
+        // which is not the same thing as the EventListener interface.
+        // script::dom::eventtarget::EventListenerEntry is the closest
+        // match we have, and is already holding the "once" flag,
+        // but it's not a drop-in replacement.
+
         // Steps 2.1 and 2.3-2.4 are not done because `listeners` contain only the
         // relevant ones for this invoke call during the dispatch algorithm.
 
         // Step 2.2.
         found = true;
 
-        // TODO: step 2.5.
+        // Step 2.5.
+        if let CompiledEventListener::Listener(event_listener) = listener {
+            object.remove_listener_if_once(&event.type_(), &event_listener);
+        }
 
-        // Step 2.6.
+        // Step 2.6
+        let global = listener.associated_global();
+
+        // Step 2.7-2.8
+        let current_event = if let Some(window) = global.downcast::<Window>() {
+            window.set_current_event(Some(event))
+        } else {
+            None
+        };
+
+        // Step 2.9 TODO: EventListener passive option not implemented
+
+        // Step 2.10
         let marker = TimelineMarker::start("DOMEvent".to_owned());
+
+        // Step 2.10
         listener.call_or_handle_event(object, event, ExceptionHandling::Report);
-        if let Some(window) = window {
+
+        if let Some(window) = timeline_window {
             window.emit_timeline_marker(marker.end());
         }
+
+        // Step 2.11 TODO: passive not implemented
+
+        // Step 2.12
+        if let Some(window) = global.downcast::<Window>() {
+            window.set_current_event(current_event.as_ref().map(|e| &**e));
+        }
+
+        // Step 2.13: short-circuit instead of going to next listener
         if event.stop_immediate.get() {
             return found;
         }
-
-        // TODO: step 2.7.
     }
 
     // Step 3.
     found
+}
+
+impl Default for EventBinding::EventInit {
+    fn default() -> EventBinding::EventInit {
+        EventBinding::EventInit {
+            bubbles: false,
+            cancelable: false,
+        }
+    }
 }

@@ -1,0 +1,49 @@
+<!DOCTYPE HTML>
+<html>
+<head onload>
+<meta charset="utf-8" />
+<title>This test validates that synchronously adding entries in onresourcetimingbufferfull callback results in these entries being properly handled.</title>
+<link rel="help" href="http://www.w3.org/TR/resource-timing/#performanceresourcetiming"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/buffer-full-utilities.js"></script>
+</head>
+<body>
+<script>
+const resource_timing_buffer_size = 1;
+
+setup(() => {
+    // Get the browser into a consistent state.
+    clearBufferAndSetSize(resource_timing_buffer_size);
+    performance.addEventListener('resourcetimingbufferfull', () => { assert_unreached("resourcetimingbufferfull should not fire")});
+});
+
+let overflowTheBuffer = () => {
+    // These resources overflow the entry buffer, and go into the secondary buffer.
+    xhrScript('resources/empty.js?xhr2');
+    xhrScript('resources/empty.js?xhr3');
+    performance.clearResourceTimings();
+    performance.setResourceTimingBufferSize(3);
+    xhrScript('resources/empty.js?xhr4');
+    window.entriesAfterAddition = performance.getEntriesByType('resource');
+};
+
+let testThatBufferContainsTheRightResources = () => {
+    let entries = performance.getEntriesByType('resource');
+    assert_equals(entries.length, 3,
+                  'the last 3 resources should be in the buffer, since the first one was cleared');
+    assert_true(entries[0].name.includes('empty.js?xhr2'), "empty.js?xhr2 is in the entries buffer");
+    assert_true(entries[1].name.includes('empty.js?xhr3'), "empty.js?xhr3 is in the entries buffer");
+    assert_true(entries[2].name.includes('empty.js?xhr4'), "empty.js?xhr4 is in the entries buffer");
+    assert_equals(entriesAfterAddition.length, 0, "No entries should have been added to the primary buffer before the task to 'fire a buffer full event'.");
+};
+
+promise_test(async () => {
+    await fillUpTheBufferWithSingleResource("resources/empty.js");
+    overflowTheBuffer();
+    await waitForNextTask();
+    testThatBufferContainsTheRightResources();
+}, "Test that if the buffer is cleared after entries were added to the secondary buffer, those entries make it into the primary one");
+</script>
+</body>
+</html>

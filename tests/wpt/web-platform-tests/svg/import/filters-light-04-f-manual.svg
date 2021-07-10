@@ -29,8 +29,8 @@
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
-				The rendered image should look approximately like the reference image, and the third rectangle from the left
-				in each row must be animated.
+        The rendered image should look approximately like the reference image, and the third rectangle from the left
+        in each row must be animated.
       </p>
     </d:passCriteria>
   </d:SVGTestCase>
@@ -65,7 +65,7 @@
       <filter id="spotLightC" filterUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
         <feDiffuseLighting in="SourceGraphic" diffuseConstant="1" surfaceScale="10" lighting-color="white">
           <feSpotLight x="25" y="0" z="35" pointsAtX="25" pointsAtY="30" pointsAtZ="0" specularExponent="0" limitingConeAngle="0">
-          	<animate attributeName="limitingConeAngle" from="0" to="50" dur="10s" fill="freeze"/>
+            <animate attributeName="limitingConeAngle" from="0" to="50" dur="10s" fill="freeze"/>
           </feSpotLight>
         </feDiffuseLighting>
       </filter>
@@ -87,7 +87,7 @@
       <filter id="spotLightG" filterUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
         <feDiffuseLighting in="SourceGraphic" diffuseConstant="1" surfaceScale="10" lighting-color="white">
           <feSpotLight x="25" y="0" z="35" pointsAtX="25" pointsAtY="30" pointsAtZ="0" specularExponent="0" limitingConeAngle="0">
-          	<animate attributeName="limitingConeAngle" from="0" to="-50" dur="10s" fill="freeze"/>
+            <animate attributeName="limitingConeAngle" from="0" to="-50" dur="10s" fill="freeze"/>
           </feSpotLight>
         </feDiffuseLighting>
       </filter>
@@ -99,29 +99,29 @@
     </defs>
     <!-- feSpotLight -->
     <g transform="translate(0 -20)">
-	    <g transform="translate(0 110)" font-size="9" font-family="Arial">
-	      <text x="70" y="30">30</text>
-	      <text x="165" y="30">20</text>
-	      <text x="260" y="30">Animated (0..50)</text>
-	      <text x="355" y="30">5</text>
-				<g transform="translate(0 100)">
-		      <text x="70" y="30">-30</text>
-		      <text x="165" y="30">-20</text>
-		      <text x="260" y="30">Animated (0..-50)</text>
-		      <text x="355" y="30">-5</text>
-		    </g>
-	    </g>
-	    <g>
-	      <rect transform="translate(70, 145)" width="50" height="30" filter="url(#spotLightA)"/>
-	      <rect transform="translate(165, 145)" width="50" height="30" filter="url(#spotLightB)"/>
-	      <rect transform="translate(260, 145)" width="50" height="30" filter="url(#spotLightC)"/>
-	      <rect transform="translate(355, 145)" width="50" height="30" filter="url(#spotLightD)"/>
-	      <rect transform="translate(70, 245)" width="50" height="30" filter="url(#spotLightE)"/>
-	      <rect transform="translate(165, 245)" width="50" height="30" filter="url(#spotLightF)"/>
-	      <rect transform="translate(260, 245)" width="50" height="30" filter="url(#spotLightG)"/>
-	      <rect transform="translate(355, 245)" width="50" height="30" filter="url(#spotLightH)"/>
-	    </g>
-	  </g>
+      <g transform="translate(0 110)" font-size="9" font-family="Arial">
+        <text x="70" y="30">30</text>
+        <text x="165" y="30">20</text>
+        <text x="260" y="30">Animated (0..50)</text>
+        <text x="355" y="30">5</text>
+        <g transform="translate(0 100)">
+          <text x="70" y="30">-30</text>
+          <text x="165" y="30">-20</text>
+          <text x="260" y="30">Animated (0..-50)</text>
+          <text x="355" y="30">-5</text>
+        </g>
+      </g>
+      <g>
+        <rect transform="translate(70, 145)" width="50" height="30" filter="url(#spotLightA)"/>
+        <rect transform="translate(165, 145)" width="50" height="30" filter="url(#spotLightB)"/>
+        <rect transform="translate(260, 145)" width="50" height="30" filter="url(#spotLightC)"/>
+        <rect transform="translate(355, 145)" width="50" height="30" filter="url(#spotLightD)"/>
+        <rect transform="translate(70, 245)" width="50" height="30" filter="url(#spotLightE)"/>
+        <rect transform="translate(165, 245)" width="50" height="30" filter="url(#spotLightF)"/>
+        <rect transform="translate(260, 245)" width="50" height="30" filter="url(#spotLightG)"/>
+        <rect transform="translate(355, 245)" width="50" height="30" filter="url(#spotLightH)"/>
+      </g>
+    </g>
   </g>
   <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
     <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.4 $</text>

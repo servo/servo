@@ -1,5 +1,5 @@
-<svg id="svg-root" width="100%" height="100%" 
-  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg" 
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
   xmlns:xlink="http://www.w3.org/1999/xlink">
   <!--======================================================================-->
   <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
@@ -42,98 +42,98 @@
     </font-face>
   </defs>
   <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
-    
+
     <g transform="translate(0, 30)">
       <g fill="red">
         <g id="references">
           <rect x="100" width="20" height="100" rx="50" ry="20"/>
           <rect x="130" width="20" height="100" rx="10" ry="20"/>
           <rect x="160" width="20" height="100" rx="10" ry="20"/>
-          
+
           <rect x="190" width="20" height="100" rx="10" ry="50"/>
           <rect x="220" width="20" height="100" rx="10" ry="20"/>
           <rect x="250" width="20" height="100" rx="10" ry="10"/>
-          
+
           <rect x="280" width="20" height="100" rx="5" ry="5"/>
           <rect x="310" width="20" height="100" rx="0" ry="0"/>
-          <rect x="340" width="20" height="100" rx="0" ry="0"/>    
-    
+          <rect x="340" width="20" height="100" rx="0" ry="0"/>
+
           <g transform="translate(45,0)">
             <rect x="10" y="120" width="100" height="20" rx="50" ry="10"/>
             <rect x="10" y="150" width="100" height="20" rx="15" ry="10"/>
             <rect x="10" y="180" width="100" height="20" rx="10" ry="10"/>
-            
+
             <rect x="130" y="120" width="100" height="20" rx="50" ry="10"/>
             <rect x="130" y="150" width="100" height="20" rx="20" ry="10"/>
             <rect x="130" y="180" width="100" height="20" rx="10" ry="10"/>
-            
+
             <rect x="250" y="120" width="100" height="20" rx="5" ry="5"/>
             <rect x="250" y="150" width="100" height="20" rx="0" ry="0"/>
             <rect x="250" y="180" width="100" height="20" rx="0" ry="0"/>
           </g>
-    
+
           <g transform="translate(100,100)">
             <rect x="10" y="120" width="50" height="20" rx="25" ry="10"/>
             <rect x="80" y="120" width="20" height="50" rx="10" ry="25"/>
-            
+
             <rect x="120" y="120" width="50" height="20" rx="25" ry="10"/>
-            
+
             <rect stroke-width="0.5" width="20" height="30" rx="10" ry="15" transform="translate(-10 -15) scale(2) translate(10 15) translate(85 52.5)"/>
             <rect x="230" y="120" width="20" height="30" rx="10" ry="25"/>
           </g>
         </g>
-      </g>    
+      </g>
       <g id="tests" fill="lime">
         <rect x="100" width="20" height="100" rx="50" ry="20"/>
         <rect x="130" width="20" height="100" rx="15" ry="20"/>
         <rect x="160" width="20" height="100" rx="10" ry="20"/>
-        
+
         <rect x="190" width="20" height="100" rx="80"/>
         <rect x="220" width="20" height="100" rx="20"/>
         <rect x="250" width="20" height="100" rx="10"/>
-        
+
         <rect x="280" width="20" height="100" rx="5"/>
         <rect x="310" width="20" height="100" rx="0"/>
         <rect x="340" width="20" height="100" rx="0" ry="0"/>
-        
+
         <g transform="translate(45,0)">
           <rect x="10" y="120" width="100" height="20" rx="50" ry="20"/>
           <rect x="10" y="150" width="100" height="20" rx="15" ry="20"/>
           <rect x="10" y="180" width="100" height="20" rx="10" ry="20"/>
-          
+
           <rect x="130" y="120" width="100" height="20" ry="50"/>
           <rect x="130" y="150" width="100" height="20" ry="20"/>
           <rect x="130" y="180" width="100" height="20" ry="10"/>
-          
+
           <rect x="250" y="120" width="100" height="20" ry="5"/>
           <rect x="250" y="150" width="100" height="20" ry="0"/>
           <rect x="250" y="180" width="100" height="20" rx="0" ry="0"/>
         </g>
-        
+
         <g transform="translate(100,100)">
           <rect x="10" y="120" width="50" height="20" rx="50"/>
           <rect x="80" y="120" width="20" height="50" ry="50"/>
-          
+
           <rect x="120" y="120" width="50" height="20" rx="200" ry="200"/>
-          
+
           <rect width="20" height="30" rx="50" transform="translate(-10 -15) scale(2) translate(10 15) translate(85 52.5)"/>
           <rect x="230" y="120" width="20" height="30" ry="50"/>
         </g>
       </g>
-      
+
       <use xlink:href="#references" fill="none" stroke="black"/>
-      
-    </g>    
+
+    </g>
   </g>
   <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
-  <text id="revision" x="10" y="340" stroke="none" 
+  <text id="revision" x="10" y="340" stroke="none"
     fill="black">$Revision: 1.9 $</text>
   </g>
   <rect xml:id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
   <!-- comment out this watermark once the test is approved
   <g id="draft-watermark">
     <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
-    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240" 
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
       text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
   </g>-->
 </svg>

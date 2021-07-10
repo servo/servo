@@ -1,0 +1,40 @@
+import os
+import glob
+
+
+def main(request, response):
+    host_piece = request.url_parts.hostname.split(".")[0]
+
+    # Default return code for manifests if found.
+    return_code = 200
+
+    # Reserve 'op99' for tests that should use return code 404.
+    if host_piece == "op99":
+        return_code = 404
+
+    # Default mime type for returned data.
+    content_type = "application/originpolicy+json"
+
+    # op100 tests an invalid MIME type.
+    if host_piece == "op100":
+        content_type = "text/plain"
+
+    # op98 tests that charset is ignored and the result is always processed as UTF-8.
+    if host_piece == "op98":
+        content_type = "application/originpolicy+json;charset=utf-16"
+
+    # op97 tests that adding charset=utf-8 (and a BOM) does not break anything.
+    if host_piece == "op97":
+        content_type = "application/originpolicy+json;charset=utf-8"
+
+    filepath_pattern = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(
+        __file__)), "../origin-policy/policies/", "{} *.json".format(host_piece)))
+
+    matches = glob.glob(filepath_pattern)
+
+    if len(matches) != 1:
+        return 404, [], '{} origin policies found at a path matching "{}"'.format(len(matches), filepath_pattern)
+
+    with open(matches[0], 'rb') as f:
+        data = f.read()
+        return return_code, [('Content-Type', content_type)], data

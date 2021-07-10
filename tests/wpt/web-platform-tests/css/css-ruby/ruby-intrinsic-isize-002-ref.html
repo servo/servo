@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ja">
+<meta charset="UTF-8">
+<title>Intrinsic ISize calculation of ruby</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<style>
+  div {
+    display: inline-block;
+    border: 1px solid black;
+  }
+</style>
+<p>No line break should happen in any block, and the content should just fit in the block.</p>
+
+<div>
+  ABC DEF
+</div>
+<div>
+  XYZ ABCDEF XYZ
+</div>
+
+<div>
+  あい うえ
+</div>
+<div>
+  お あいうえ お
+</div>
+<br>

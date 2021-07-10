@@ -1,0 +1,3 @@
+CACHE MANIFEST
+# iframe_with_appcache_manifest.html references this manifest to get cached in
+# AppCache.

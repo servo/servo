@@ -1,6 +1,7 @@
 <!doctype html>
 <html>
 <title>WebVTT rendering, cue position after navigation</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <style>
 video {
   outline: solid;
@@ -13,7 +14,7 @@ video {
   color: green;
 }
 </style>
-<video autoplay controls onplaying="this.onplaying = null;
+<video autoplay onplaying="this.onplaying = null;
                            this.pause();
                            this.currentTime = 0;
                            ">

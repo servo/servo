@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/bluetooth/resources/bluetooth-test.js"></script>
+<script src="/bluetooth/resources/bluetooth-fake-devices.js"></script>
+<script>
+'use strict';
+const test_desc = 'Find correct services with UUID.';
+let device, fake_peripheral;
+
+bluetooth_test(() => getConnectedHealthThermometerDevice({
+  filters: [{services: ['health_thermometer']}]
+})
+    .then(_ => ({device, fake_peripheral} = _))
+    .then(() => fake_peripheral.addFakeService({uuid: 'health_thermometer'}))
+    .then(fake_service => Promise.all([
+      fake_service.addFakeCharacteristic({
+        uuid: 'temperature_measurement', properties: ['indicate']}),
+      fake_service.addFakeCharacteristic({
+        uuid: 'temperature_measurement', properties: ['indicate']})
+    ]))
+    .then(() => fake_peripheral.setNextGATTDiscoveryResponse({code:HCI_SUCCESS}))
+    .then(() => device.gatt.getPrimaryServices('health_thermometer'))
+    .then(services => Promise.all([
+      services[0].getCharacteristics(),
+      services[1].getCharacteristics()]))
+    .then(([characteristics1, characteristics2]) => {
+      if (characteristics1.length === 2)
+        assert_equals(characteristics2.length, 3);
+      else if (characteristics2.length === 2)
+        assert_equals(characteristics1.length, 3);
+      else
+        assert_unreached('Invalid lengths.');
+    }), test_desc);
+</script>

@@ -1,0 +1,82 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL mis-matching uniform block</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vshader-uniform-block-precision" type="text/something-not-javascript">#version 300 es
+uniform Block {
+    mediump vec4 val;
+};
+
+void main()
+{
+    gl_Position = val;
+}
+</script>
+<script id="fshader-uniform-block-precision" type="text/something-not-javascript">#version 300 es
+uniform Block {
+    highp vec4 val;
+};
+
+out highp vec4 out_FragColor;
+void main()
+{
+    out_FragColor = val;
+}
+</script>
+<script>
+"use strict";
+description("Shaders with precision mis-matching uniform blocks should fail");
+
+GLSLConformanceTester.runTests([
+{
+  vShaderId: 'vshader-uniform-block-precision',
+  vShaderSuccess: true,
+  fShaderId: 'fshader-uniform-block-precision',
+  fShaderSuccess: true,
+  linkSuccess: false,
+  passMsg: "Shaders with precision mis-matching uniform blocks should fail"
+},
+], 2);
+var successfullyParsed = true;
+</script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 --- WebIDL.py
 +++ WebIDL.py
-@@ -6823,7 +6823,8 @@ class Parser(Tokenizer):
+@@ -7382,7 +7382,8 @@ class Parser(Tokenizer):
              self.parser = yacc.yacc(module=self,
                                      outputdir=outputdir,
                                      tabmodule='webidlyacc',

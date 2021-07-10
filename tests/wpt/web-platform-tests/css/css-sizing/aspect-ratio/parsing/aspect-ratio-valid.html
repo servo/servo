@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio Test: aspect-ratio with valid values</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<meta name="assert" content="aspect-ratio supports the full grammar '[auto | <ratio>]'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+
+<script>
+test_valid_value("aspect-ratio", "auto");
+test_valid_value("aspect-ratio", "16", "16 / 1");
+test_valid_value("aspect-ratio", "1/1", "1 / 1");
+test_valid_value("aspect-ratio", "16.3 / 1", "16.3 / 1");
+test_valid_value("aspect-ratio", "16 / 9");
+test_valid_value("aspect-ratio", "16.3 / 9.4");
+test_valid_value("aspect-ratio", "16/9", "16 / 9");
+test_valid_value("aspect-ratio", "16 /9", "16 / 9");
+test_valid_value("aspect-ratio", "16/ 9", "16 / 9");
+test_valid_value("aspect-ratio", "0 / 9");
+test_valid_value("aspect-ratio", "16 / 0");
+test_valid_value("aspect-ratio", "auto 16", "auto 16 / 1");
+test_valid_value("aspect-ratio", "16 auto", "auto 16 / 1");
+test_valid_value("aspect-ratio", "0 / 0");
+</script>

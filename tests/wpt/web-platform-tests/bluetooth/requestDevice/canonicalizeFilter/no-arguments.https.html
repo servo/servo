@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharness-helpers.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/bluetooth/resources/bluetooth-test.js"></script>
+<script src="/bluetooth/resources/bluetooth-fake-devices.js"></script>
+<script>
+'use strict';
+const test_desc = 'requestDevice() requires an argument.';
+const expected = new TypeError();
+
+promise_test(
+    () => assert_promise_rejects_with_message(
+        requestDeviceWithTrustedClick(), expected),
+    test_desc);
+</script>

@@ -1,0 +1,151 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="c" width="16" height="16"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description('Tests texImage2D with invalid internalformat/format/type combinations from various dom elements');
+
+debug("<a href='https://www.khronos.org/registry/webgl/specs/latest/2.0/#TEXTURE_TYPES_FORMATS_FROM_DOM_ELEMENTS_TABLE'>Valid internalformat/format/type combinations</a>");
+debug("");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("c", undefined, 2);
+
+var doTexImage = function(domElement) {
+    var tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB10_A2UI, gl.RGBA_INTEGER, gl.UNSIGNED_INT_2_10_10_10_REV, domElement);
+    wtu.glErrorShouldBe(gl, [gl.INVALID_VALUE, gl.INVALID_ENUM, gl.INVALID_OPERATION], "TexImage2D taking RGB10_A2UI/RGBA_INTEGER/UNSIGNED_INT_2_10_10_10_REV should fail");
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG8, gl.RG, gl.FLOAT, domElement);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "TexImage2D taking RG8/RG/FLOAT should fail");
+    gl.deleteTexture(tex);
+}
+
+var createCanvas2DContext = function(width, height) {
+    var canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    var ctx = canvas.getContext("2d");
+    ctx.fillRect(0, 0, width, height);
+    return ctx;
+};
+
+var testImage = function(test) {
+  debug("HTMLImageElement");
+  var img = wtu.makeImage(test.src, function() {
+    doTexImage(img);
+    setTimeout(runNextTest, 0);
+  });
+}
+
+var testVideo = function(test) {
+  debug("HTMLVideoElement (" + test.videoType + ")");
+  var video = wtu.makeVideo(test.src);
+  if(!video.canPlayType(test.videoType).replace(/no/, '')) {
+    debug(test.videoType + " unsupported");
+    setTimeout(runNextTest, 0);
+    return;
+  }
+  wtu.startPlayingAndWaitForVideo(video, function() {
+    doTexImage(video);
+    setTimeout(runNextTest, 0);
+  });
+}
+
+var testCanvas = function(test) {
+  var ctx = createCanvas2DContext(test.width, test.height);
+  debug("HTMLCanvasElement");
+  doTexImage(ctx.canvas);
+  setTimeout(runNextTest, 0);
+}
+
+var testImageData = function(test) {
+  var ctx = createCanvas2DContext(test.width, test.height);
+  var imageData = ctx.getImageData(0, 0, test.width, test.height);
+  debug("ImageData");
+  doTexImage(imageData);
+  setTimeout(runNextTest, 0);
+}
+
+var testImageBitmap = function(test) {
+  debug("ImageBitmap");
+  if(!window.createImageBitmap || !window.ImageBitmap) {
+    debug("ImageBitmap isn't supported");
+    setTimeout(runNextTest, 0);
+    return;
+  }
+  var ctx = createCanvas2DContext(test.width, test.height);
+  createImageBitmap(ctx.canvas, 0, 0, test.width, test.height).then(function(imageBitmap) {
+    doTexImage(imageBitmap);
+    setTimeout(runNextTest, 0);
+  }, function() {
+    debug("createImageBitmap was rejected");
+    setTimeout(runNextTest, 0);
+  });
+}
+
+var tests = [
+  { type: "canvas", width: 64, height: 64, run: testCanvas },
+  { type: "image", src: "../../../resources/red-green.png", run: testImage },
+  { type: "ImageBitmap",width: 64, height: 64, run: testImageBitmap },
+  { type: "ImageData", width: 64, height: 64, run: testImageData },
+  { type: "video", src: "../../../resources/red-green.mp4", videoType: 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"', run: testVideo },
+  { type: "video", src: "../../../resources/red-green.bt601.vp9.webm", videoType: 'video/webm; codecs="vp9"', run: testVideo },
+  { type: "video", src: "../../../resources/red-green.webmvp8.webm", videoType: 'video/webm; codecs="vp8, vorbis"', run: testVideo },
+  { type: "video", src: "../../../resources/red-green.theora.ogv", videoType: 'video/ogg; codecs="theora, vorbis"', run: testVideo },
+];
+
+var testIndex = 0;
+var runNextTest = function() {
+  if (testIndex < tests.length) {
+    debug("");
+    var test = tests[testIndex];
+    ++testIndex;
+    test.run(test);
+  } else {
+    finishTest();
+  }
+};
+
+runNextTest();
+
+</script>
+</body>
+</html>

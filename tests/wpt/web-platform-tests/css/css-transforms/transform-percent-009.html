@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<title>CSS Transforms: 'transform' resolved percentage values in SVG</title>
+<link rel="help" href="https://drafts.csswg.org/css-transforms/#transform-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#target1 {
+  transform: translate(50%, 50%);
+  transform-box: fill-box;
+}
+
+#target2, #target3, #target4 {
+  transform: translate(50%, 50%);
+}
+</style>
+<svg fill="blue">
+  <rect id="target1" x="50" y="50" width="100" height="100"/>
+  <rect id="target2" x="-150" y="-75" width="100" height="100"/>
+  <svg viewBox="0 0 50 50" x="100" width="100" height="100">
+    <rect id="target3" x="-25" y="-25" width="100" height="100"/>
+  </svg>
+  <svg y="100" width="100" height="100">
+    <rect id="target4" x="-50" y="-50" width="100" height="100"/>
+  </svg>
+</svg>
+<script>
+test(function() {
+  let target = document.getElementById("target1");
+  assert_equals(getComputedStyle(target).getPropertyValue("transform"),
+                "matrix(1, 0, 0, 1, 50, 50)");
+}, "Percentage 'translate(...)' with 'fill-box' transform-box");
+
+test(function() {
+  let target = document.getElementById("target2");
+  assert_equals(getComputedStyle(target).getPropertyValue("transform"),
+                "matrix(1, 0, 0, 1, 150, 75)");
+}, "Percentage 'translate(...)' with 'view-box' transform-box");
+
+test(function() {
+  let target = document.getElementById("target3");
+  assert_equals(getComputedStyle(target).getPropertyValue("transform"),
+                "matrix(1, 0, 0, 1, 25, 25)");
+}, "Percentage 'translate(...)' with 'view-box' transform-box in nested <svg> with 'viewBox'");
+
+test(function() {
+  let target = document.getElementById("target4");
+  assert_equals(getComputedStyle(target).getPropertyValue("transform"),
+                "matrix(1, 0, 0, 1, 50, 50)");
+}, "Percentage 'translate(...)' with 'view-box' transform-box in nested <svg> without 'viewBox'");
+</script>

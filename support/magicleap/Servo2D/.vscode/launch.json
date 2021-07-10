@@ -1,0 +1,65 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Host OS Debug",
+			"request": "launch",
+			"type": "cppdbg",
+			"stopAtEntry": true,
+			"externalConsole": false,
+			"logging": {
+				"engineLogging": false,
+				"trace": false
+			 },
+			"windows": {
+				"type": "cppvsdbg",
+				"cwd": "${workspaceFolder}/.out/${config:lumin_package_name}",
+				"environment": [{"name": "PATH", "value": "${config:lumin_sdk}/VirtualDevice/bin;${config:lumin_sdk}/VirtualDevice/lib;${config:lumin_sdk}/lib/win64;${env.PATH}"}],
+				"program": "${workspaceFolder}/.out/debug_win_${config:lumin_host_toolchain}/${config:lumin_exe_name}.exe"
+			},
+			"osx": {
+				"type": "cppdbg",
+				"MIMode": "lldb",
+				"cwd": "${workspaceFolder}/.out/${config:lumin_package_name}",
+				"environment": [{"name": "DYLD_LIBRARY_PATH", "value": "${config:lumin_sdk}/VirtualDevice/bin:${config:lumin_sdk}/VirtualDevice/lib:${config:lumin_sdk}/lib/osx:${env.DYLD_LIBRARY_PATH}"}],
+				"program": "${workspaceFolder}/.out/debug_osx_${config:lumin_host_toolchain}/${config:lumin_exe_name}"
+			},
+			"linux": {
+				"type": "cppdbg",
+				"MIMode": "lldb",
+				"cwd": "${workspaceFolder}/.out/${config:lumin_package_name}",
+				"environment": [{"name": "LD_LIBRARY_PATH", "value": "${config:lumin_sdk}/VirtualDevice/bin:${config:lumin_sdk}/VirtualDevice/lib:${config:lumin_sdk}/lib/linux64:${env.LD_LIBRARY_PATH}"}],
+				"program": "${workspaceFolder}/.out/debug_linux_${config:lumin_host_toolchain}/${config:lumin_exe_name}"
+			},
+			"preLaunchTask": "Build (Host OS Debug)"
+		},
+		{
+			"name": "Lumin OS Debug",
+			"request": "launch",
+			"type": "cppdbg",
+			"stopAtEntry": true,
+			"externalConsole": false,
+			"logging": {
+				"engineLogging": false,
+				"trace": false
+			 },
+			 "cwd": "${workspaceFolder}/.out/${config:lumin_package_name}",
+			 "targetArchitecture": "arm64",
+			 "MIMode": "gdb",
+			 "miDebuggerPath": "${config:lumin_sdk}/tools/toolchains/bin/gdb",
+			 "windows": {
+				"miDebuggerPath": "${config:lumin_sdk}/tools/toolchains/bin/gdb.exe",
+			},
+			 "miDebuggerServerAddress": "localhost:7777",
+			 "program": "${workspaceFolder}/.out/debug_lumin_${config:lumin_device_toolchain}/${config:lumin_exe_name}",
+            "customLaunchSetupCommands": [
+                {"text": "-file-exec-and-symbols \"${workspaceFolder}/.out/debug_lumin_${config:lumin_device_toolchain}/${config:lumin_exe_name}\""},
+                {"text": "source ${workspaceFolder}/.out/debug_lumin_${config:lumin_device_toolchain}/${config:lumin_exe_name}.gdbinit"},
+                {"text": "-enable-pretty-printing"},
+                {"text": "continue", "ignoreFailures": true},
+                {"text": "continue", "ignoreFailures": true}
+            ],
+			"preLaunchTask": "Lumin: Setup for remote debugging",
+		}
+	]
+}

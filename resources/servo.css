@@ -1,3 +1,7 @@
+button {
+    cursor: default;
+}
+
 button,
 input {
   background: white;
@@ -168,16 +172,37 @@ svg > * {
   display: none;
 }
 
-/* style for text node. */
-*|*::-servo-text {
-    margin: 0;
-    text-overflow: inherit;
-    overflow: inherit;
+/*
+ * For most (but not all) anon-boxes, we inherit all values from the
+ * parent.
+ *
+ * Anonymous table flows shouldn't inherit their parents properties in order
+ * to avoid doubling up styles such as transformations. Same for text and such.
+ *
+ * For tables, we do want style to inherit, because TableWrapper is
+ * responsible for handling clipping and scrolling, while Table is
+ * responsible for creating stacking contexts.
+ *
+ * StackingContextCollectionFlags makes sure this is processed
+ * properly.
+ *
+ * FIXME(emilio): inheriting all is a very strong hammer, and it's likely
+ * broken for stuff like table backgrounds and such. Gecko explicitly inherits
+ * what it wants, which seems a bit better off-hand.
+ */
+*|*::-servo-anonymous-table,
+*|*::-servo-anonymous-table-wrapper,
+*|*::-servo-table-wrapper,
+*|*::-servo-anonymous-block,
+*|*::-servo-inline-block-wrapper,
+*|*::-servo-inline-absolute {
+    all: inherit;
 }
 
-/* style for text in input elements. */
-*|*::-servo-input-text {
-    margin: 0;
+/* style for text node. */
+*|*::-servo-text {
+    text-overflow: inherit;
+    overflow: inherit;
 }
 
 *|*::-servo-table-wrapper {
@@ -189,6 +214,11 @@ svg > * {
     position: static;
     margin: 0;
     counter-increment: none;
+
+    /* We don't want anonymous table parts to inherit hidden overflow, because
+     * they will create extra unnecessary ClipScrollNodes which also throws
+     * off assignment of contained flows. */
+    overflow: visible;
 }
 
 *|*::-servo-anonymous-table {
@@ -197,6 +227,7 @@ svg > * {
     border: none;
     padding: 0;
     counter-increment: none;
+    overflow: visible;
 }
 
 *|*::-servo-anonymous-table-row {
@@ -204,6 +235,7 @@ svg > * {
     position: static;
     border: none;
     counter-increment: none;
+    overflow: visible;
 }
 
 *|*::-servo-anonymous-table-cell {
@@ -211,6 +243,7 @@ svg > * {
     position: static;
     border: none;
     counter-increment: none;
+    overflow: visible;
 }
 
 *|*::-servo-anonymous-block {

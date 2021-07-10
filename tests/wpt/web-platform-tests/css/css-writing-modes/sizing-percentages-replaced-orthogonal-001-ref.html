@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Reftest Reference: Percentage size on orthogonal replaced elements</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<style>
+.container {
+  display: inline-block;
+  border: solid 5px black;
+  margin: 10px;
+  vertical-align: top;
+  width: 200px;
+  height: 100px;
+}
+
+img {
+  display: block;
+  width: 200px;
+  height: 100px;
+}
+
+</style>
+
+<p>The test passes if you see four filled lime rectangles with black border and <strong>no red</strong>.</p>
+
+<div class="container">
+  <img src="support/100x100-lime.png" />
+</div>
+
+<div class="container">
+  <img src="support/100x100-lime.png" />
+</div>
+
+<div class="container">
+  <img src="support/100x100-lime.png" />
+</div>
+
+<div class="container">
+  <img src="support/100x100-lime.png" />
+</div>

@@ -23,7 +23,7 @@ window.onload = () => {
     assert_not_equals(origProto, null);
   }, "Same-origin-domain prerequisite check: the original prototype is accessible");
 
-  testSettingImmutablePrototype("Same-origin-domain", targetLocation, origProto, { isSameOriginDomain: true });
+  testSettingImmutablePrototype("Same-origin-domain", targetLocation, origProto, { isSameOriginDomain: true }, frames[0]);
 
   done();
 };

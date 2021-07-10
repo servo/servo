@@ -1,0 +1,19 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(() => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.glucose_heart_rate);
+    return Promise.all([
+        window.navigator.bluetooth.requestDevice({filters: [{services: [heart_rate.alias]}]}),
+        window.navigator.bluetooth.requestDevice({filters: [{services: [heart_rate.name]}]}),
+        window.navigator.bluetooth.requestDevice({filters: [{services: [heart_rate.uuid]}]})])
+    .then(devices => {
+        devices.forEach(device => {
+            assert_true(device instanceof BluetoothDevice);
+        });
+    });
+}, 'Mock will resolve.');
+</script>

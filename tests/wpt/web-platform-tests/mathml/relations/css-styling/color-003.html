@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<title>color</title>
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#css-styling">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#text-mtext">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#radical-symbol">
+<link rel="match" href="color-003-ref.html"/>
+<meta name="assert" content="Verify that the color is used for text and radical symbol of the msqrt and mroot elements.">
+</head>
+<body>
+  <p>Test passes if you see a green square.</p>
+  <div style="background: green; color: red; width: 200px; height: 200px; padding: 1px;">
+    <math><msqrt style="color: green"><mn>1</mn></msqrt></math>
+    <math><mroot style="color: green"><mn>2</mn><mn>2</mn></mroot></math>
+    <div id="dynamic">
+      <math><msqrt><mn>1</mn></msqrt></math>
+      <math><mroot><mn>2</mn><mn>2</mn></mroot></math>
+    </div>
+  </div>
+  <script>
+    window.addEventListener("load", () => {
+        document.getElementById("dynamic").style.color = "green";
+        document.documentElement.classList.remove("reftest-wait");
+    });
+  </script>
+  <script src="/mathml/support/feature-detection.js"></script>
+  <script>MathMLFeatureDetection.ensure_for_match_reftest("has_msqrt");</script>
+</body>
+</html>

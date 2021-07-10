@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#outer {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-box-pack: center;
+  width: 100px;
+  height: 100px;
+}
+#inner {
+  width: 100px;
+  height: 200px;
+}
+</style>
+<div id="outer">
+  <div id="inner"></div>
+</div>
+<script>
+  test(function() {
+    var child = document.getElementById("inner");
+    assert_greater_than(child.offsetTop, 0);
+  }, "Child should be positioned at y-offset greater than 0 if children exceed bounds of parent");
+</script>

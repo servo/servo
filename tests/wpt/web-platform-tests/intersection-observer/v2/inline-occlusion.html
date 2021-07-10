@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/intersection-observer-test-utils.js"></script>
+
+<style>
+body, html {
+  margin: 0;
+}
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 200px;
+}
+.testdiv {
+  font-size: 24px;
+}
+</style>
+
+<div class="testdiv">This is the <span id="target">target</span>.</div>
+<div class="testdiv" id="occluder">This is the occluder.</div>
+
+<script>
+var delay = 100;
+var entries = [];
+var target;
+var occluder;
+
+runTestCycle(function() {
+  target = document.getElementById("target");
+  occluder = document.getElementById("occluder");
+  assert_true(!!target, "target exists");
+  assert_true(!!occluder, "occluder exists");
+  var observer = new IntersectionObserver(function(changes) {
+    entries = entries.concat(changes)
+  }, {trackVisibility: true, delay: delay});
+  observer.observe(target);
+  entries = entries.concat(observer.takeRecords());
+  assert_equals(entries.length, 0, "No initial notifications.");
+  runTestCycle(step0, "First rAF.", delay);
+}, "IntersectionObserverV2 in a single document using the implicit root, with an occluding element.", delay);
+
+function step0() {
+  occluder.style.marginTop = "-10px";
+  runTestCycle(step1, "occluder.style.marginTop = '-10px'", delay);
+  assert_equals(entries.length, 1);
+  assert_true(entries[0].isVisible);
+}
+
+function step1() {
+  // Occluding elements with opacity=0 should not affect target visibility.
+  occluder.style.opacity = "0";
+  runTestCycle(step2, "occluder.style.opacity = 0", delay);
+  assert_equals(entries.length, 2);
+  assert_false(entries[1].isVisible);
+}
+
+function step2() {
+  assert_equals(entries.length, 3);
+  assert_true(entries[2].isVisible);
+}
+</script>

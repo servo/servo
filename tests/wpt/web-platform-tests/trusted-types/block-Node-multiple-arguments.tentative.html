@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/helper.sub.js"></script>
+  <meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script';">
+</head>
+<body>
+<div id="container"></div>
+<script>
+  'use strict';
+  const container = document.querySelector("#container");
+  const policy = window.trustedTypes.createPolicy("policy", {
+    createScript: t => t,
+  });
+  function stringify(arg) {
+    return "textContent" in Object.getPrototypeOf(arg) ? arg.textContent : arg.toString()
+  }
+
+  // Test all combinations of:
+  // - DOM methods: append, prepend, replaceWith, after, before
+  // - one or two parameters, string, Text node, Trusted Script
+  // - into regular container or <script> element.
+  //
+  // Test arguments are all string literals with a semicolon, because -
+  // depending on target - it might be injected into a <script> and shouldn't
+  // cause syntax errors there.
+  const targets = ["div", "script"];
+  const pass_args = [
+    [ policy.createScript("'createScript';") ],
+    [ policy.createScript("'createScript #1';"), policy.createScript("'#2;'") ],
+  ];
+  const fail_args = [
+    [ "'plain text';" ],
+    [ "'plain text #1';", "'plain text #2';" ],
+    [ document.createTextNode("'node';") ],
+    [ document.createTextNode("'node #1';"),
+      document.createTextNode("'node #2';") ],
+    [ "'mixed';", document.createTextNode("'node';") ],
+    [ "'mixed';", policy.createScript("'script';") ],
+    [ document.createTextNode("'node';"),
+      policy.createScript("'script';") ],
+  ];
+  const all_args = [].concat(pass_args).concat(fail_args);
+
+  for (const target of targets) {
+    for (const args of all_args) {
+      var should_fail = target == "script" && fail_args.indexOf(args) != -1;
+      var fail_string = should_fail ? "fail" : "pass";
+
+      for (const setter of [container.replaceWith, container.after, container.before]) {
+        test(t => {
+          var outer = document.createElement(target);
+          container.appendChild(outer);
+          var inner = document.createElement("p");
+          outer.appendChild(inner);
+          var test_fn = _ => { setter.apply(inner, args); };
+          var expected;
+          if (should_fail) {
+            assert_throws_js(TypeError, test_fn, "This should throw.");
+            expected = "";
+          } else {
+            test_fn();
+            expected = args.map(stringify).join("");
+          }
+          assert_equals(outer.textContent, expected);
+        }, `${setter.name}(${args.toString()}) on <${target}> should ${fail_string}`);
+      }
+
+      for (const setter of [container.append, container.prepend]) {
+        test(t => {
+          let outer = document.createElement(target);
+          container.appendChild(outer);
+          var test_fn = _ => { setter.apply(outer, args); };
+          var expected;
+          if (should_fail) {
+            assert_throws_js(TypeError, test_fn, "This should throw.");
+            expected = "";
+          } else {
+            test_fn();
+            expected = args.map(stringify).join("");
+          }
+          assert_equals(outer.textContent, expected);
+        }, `${setter.name}(${args.toString()}) on <${target}> should ${fail_string}`);
+      }
+    }
+  }
+</script>
+</body>
+</html>

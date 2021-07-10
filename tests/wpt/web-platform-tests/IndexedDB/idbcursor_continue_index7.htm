@@ -27,7 +27,7 @@
             assert_true(cursor instanceof IDBCursor);
 
             event.target.transaction.abort();
-            assert_throws("TransactionInactiveError", function() {
+            assert_throws_dom("TransactionInactiveError", function() {
                 cursor.continue();
             }, "Calling continue() should throws an exception TransactionInactiveError when the transaction is not active.");
 

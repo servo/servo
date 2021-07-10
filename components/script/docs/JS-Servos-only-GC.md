@@ -31,7 +31,7 @@ the underlying low-level object. If the JavaScript garbage collector determines
 that a reflector is no longer reachable, it destroys the reflector and
 decrements the reference count on the underlying object.
 
-[uaf]: http://cwe.mitre.org/data/definitions/416.html
+[uaf]: https://cwe.mitre.org/data/definitions/416.html
 [refcounting]: https://en.wikipedia.org/wiki/Reference_counting
 [gEBI]: https://developer.mozilla.org/en-US/docs/Web/API/document.getElementById
 
@@ -143,7 +143,7 @@ use dom_struct::dom_struct;
 #[dom_struct]
 pub struct Document {
     node: Node,
-    window: JS<Window>,
+    window: Dom<Window>,
     is_html_document: bool,
     ...
 }
@@ -157,35 +157,49 @@ storing a `Node` struct within a `Document` struct. As in C++, the fields of
 `Node` are included in-line with the fields of `Document`, without any pointer
 indirection, and the auto-generated `trace` method will visit them as well.
 
-[document-spec]: http://dom.spec.whatwg.org/#interface-document
+[document-spec]: https://dom.spec.whatwg.org/#interface-document
 
 A `Document` also has an associated `Window`, but this is not an 'is-a'
 relationship. The `Document` just has a pointer to a `Window`, one of many
 pointers to that object, which can live in native DOM data structures or in
 JavaScript objects. These are precisely the pointers we need to tell the
 garbage collector about. We do this with a
-[custom type for traced pointers: `JS<T>`][js] (for example, the `JS<Window>`
-above). The implementation of `trace` for `JS<T>` is not auto-generated; this
+[custom type for traced pointers: `Dom<T>`][dom] (for example, the `Dom<Window>`
+above). The implementation of `trace` for `Dom<T>` is not auto-generated; this
 is where we actually call the SpiderMonkey trace hooks:
 
-[js]: http://doc.servo.org/script/dom/bindings/js/struct.JS.html
+[dom]: https://doc.servo.org/script/dom/bindings/root/struct.Dom.html
 
 ```rust
+/// Trace the `JSObject` held by `reflector`.
+#[allow(unrooted_must_root)]
 pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
+    trace!("tracing reflector {}", description);
+    trace_object(tracer, description, reflector.rootable())
+}
+
+/// Trace a `JSObject`.
+pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: &Heap<*mut JSObject>) {
     unsafe {
-        let name = CString::new(description).unwrap();
-        (*tracer).debugPrinter_ = None;
-        (*tracer).debugPrintIndex_ = !0;
-        (*tracer).debugPrintArg_ = name.as_ptr() as *const libc::c_void;
-        debug!("tracing reflector {}", description);
-        JS_CallUnbarrieredObjectTracer(tracer, reflector.rootable(),
-                                       GCTraceKindToAscii(JSGCTraceKind::JSTRACE_OBJECT));
+        trace!("tracing {}", description);
+        CallObjectTracer(
+            tracer,
+            obj.ptr.get() as *mut _,
+            GCTraceKindToAscii(TraceKind::Object),
+        );
     }
 }
 
-impl<T: DomObject> JSTraceable for JS<T> {
+unsafe impl<T: DomObject> JSTraceable for Dom<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
-        trace_reflector(trc, "", unsafe { (**self.ptr).reflector() });
+        let trace_string;
+        let trace_info = if cfg!(debug_assertions) {
+            trace_string = format!("for {} on heap", ::std::any::type_name::<T>());
+            &trace_string[..]
+        } else {
+            "for DOM object on heap"
+        };
+        trace_reflector(trc, trace_info, (*self.ptr.as_ptr()).reflector());
     }
 }
 ```
@@ -218,26 +232,26 @@ often called from JavaScript through [IDL-based bindings][bindings]. In this
 case, the bindings code constructs a [root][gc-root] for any involved DOM
 objects.
 
-[bindings]: http://doc.servo.org/script/dom/bindings/index.html
+[bindings]: https://doc.servo.org/script/dom/bindings/index.html
 [gc-root]: https://en.wikipedia.org/wiki/Tracing_garbage_collection#Reachability_of_an_object
 
 Another common situation is creating a stack-local root manually. For this
-purpose, we have a [`Root<T>`][root] struct. When the `Root<T>` is destroyed,
+purpose, we have a [`DomRoot<T>`][root] struct. When the `DomRoot<T>` is destroyed,
 typically at the end of the function (or block) where it was created, its
 destructor will un-root the DOM object. This is an example of the
 [RAII idiom][raii], which Rust inherits from C++.
-`Root<T>` structs are primarily returned from [`T::new` functions][new] when
+`DomRoot<T>` structs are primarily returned from [`T::new` functions][new] when
 creating a new DOM object.
 In some cases, we need to use a DOM object longer than the reference we
-received allows us to; the [`Root::from_ref` associated function][from-ref]
-allows creating a new `Root<T>` struct in that case.
+received allows us to; the [`DomRoot::from_ref` associated function][from-ref]
+allows creating a new `DomRoot<T>` struct in that case.
 
-[root]: http://doc.servo.org/script/dom/bindings/js/struct.Root.html
+[root]: https://doc.servo.org/script/dom/bindings/root/type.DomRoot.html
 [raii]: https://en.wikipedia.org/wiki/Resource_Acquisition_Is_Initialization
-[new]: http://doc.servo.org/script/dom/index.html#construction
-[from-ref]: http://doc.servo.org/script/dom/bindings/js/struct.Root.html#method.from_ref
+[new]: https://doc.servo.org/script/dom/index.html#construction
+[from-ref]: https://doc.servo.org/script/dom/bindings/root/struct.Root.html#method.from_ref
 
-We can then obtain a reference from the `Root<T>` through Rust's built-in
+We can then obtain a reference from the `DomRoot<T>` through Rust's built-in
 [`Deref` trait][deref], which exposes a method `deref` with the following
 signature:
 
@@ -249,19 +263,19 @@ pub fn deref<'a>(&'a self) -> &'a T {
 What this syntax means is:
 
 - **`<'a>`**: 'for any lifetime `'a`',
-- **`(&'a self)`**: 'take a reference to a `Root` which is valid over lifetime `'a`',
+- **`(&'a self)`**: 'take a reference to a `DomRoot` which is valid over lifetime `'a`',
 - **`-> &'a T`**: 'return a reference whose lifetime is limited to `'a`'.
 
 This allows us to call methods and access fields of the underlying type `T`
-through a `Root<T>`.
+through a `DomRoot<T>`.
 
 [deref]: https://doc.rust-lang.org/std/ops/trait.Deref.html
 
-A third way to obtain a reference is from the `JS<T>` struct we encountered
-earlier. Whenever we have a reference to a `JS<T>`, we know that the DOM struct
+A third way to obtain a reference is from the `Dom<T>` struct we encountered
+earlier. Whenever we have a reference to a `Dom<T>`, we know that the DOM struct
 that contains it is already rooted, and thus that the garbage collector is
-aware of the `JS<T>`, and will keep the DOM object it points to alive.
-This allows us to implement the `Deref` trait on `JS<T>` as well.
+aware of the `Dom<T>`, and will keep the DOM object it points to alive.
+This allows us to implement the `Deref` trait on `Dom<T>` as well.
 
 The correctness of these APIs is heavily dependent on the fact that the
 reference cannot outlive the smart pointer it was retrieved from, and the fact
@@ -282,10 +296,10 @@ use-after-free and other dangerous bugs.
 [lifetimes]: https://doc.rust-lang.org/book/lifetimes.html
 [ti]: https://en.wikipedia.org/wiki/Type_inference
 
-You can check out the [`js` module's documentation][js-docs] for more details
+You can check out the [`root` module's documentation][root-docs] for more details
 that didn't make it into this document.
 
-[js-docs]: http://doc.servo.org/script/dom/bindings/js/index.html
+[root-docs]: https://doc.servo.org/script/dom/bindings/root/index.html
 
 Custom static analysis
 ======================
@@ -294,14 +308,14 @@ To recapitulate, the safety of our system depends on two major parts:
 
 - The auto-generated `trace` methods ensure that SpiderMonkey's garbage
   collector can see all of the references between DOM objects.
-- The implementation of `Root<T>` guarantees that we can't use a DOM object
+- The implementation of `DomRoot<T>` guarantees that we can't use a DOM object
   from Rust without telling SpiderMonkey about our temporary reference.
 
 But there's a hole in this scheme. We could copy an unrooted pointer — a
-`JS<T>` — to a local variable on the stack, and then at some later point, root
+`Dom<T>` — to a local variable on the stack, and then at some later point, root
 it and use the DOM object. In the meantime, SpiderMonkey's garbage collector
-won't know about that `JS<T>` on the stack, so it might free the DOM object.
-To really be safe, we need to make sure that `JS<T>` *only* appears in places
+won't know about that `Dom<T>` on the stack, so it might free the DOM object.
+To really be safe, we need to make sure that `Dom<T>` *only* appears in places
 where it will be traced, such as DOM structs, and never in local variables,
 function arguments, and so forth.
 
@@ -312,15 +326,15 @@ although in this case we set the default severity to 'error'. There is more
 information about lints in section 4.7 of the paper [<cite>Experience Report:
 Developing the Servo Web Browser Engine using Rust</cite>][lints].
 
-[lints]: http://arxiv.org/pdf/1505.07383v1.pdf
+[lints]: https://arxiv.org/pdf/1505.07383v1.pdf
 
 We have already [implemented a plugin][js-lint] which effectively forbids
-`JS<T>` from appearing on the [stack][stack]. Because lint plugins are part of
+`Dom<T>` from appearing on the [stack][stack]. Because lint plugins are part of
 the usual [warnings infrastructure][warnings], we can use the `allow` attribute
-in places where it's okay to use `JS<T>`, like DOM struct definitions and the
-implementation of `JS<T>` itself.
+in places where it's okay to use `Dom<T>`, like DOM struct definitions and the
+implementation of `Dom<T>` itself.
 
-[js-lint]: http://doc.servo.org/plugins/lints/unrooted_must_root/struct.UnrootedPass.html
+[js-lint]: https://doc.servo.org/script_plugins/struct.UnrootedPass.html
 [stack]: https://en.wikipedia.org/wiki/Stack-based_memory_allocation
 [warnings]: https://doc.rust-lang.org/book/compiler-plugins.html#lint-plugins
 
@@ -329,7 +343,7 @@ this adds only a fraction of a second to the compile time for Servo's largest
 subcomponent, as Rust compile times are dominated by [LLVM][llvm]'s back-end
 optimizations and code generation.
 
-[llvm]: http://llvm.org/
+[llvm]: https://llvm.org/
 
 In the end, the plugin won't necessarily catch every mistake. It's hard to
 achieve full [soundness][soundness] with ad-hoc extensions to a type system.
@@ -351,8 +365,8 @@ a traditional reference-counted DOM. The [Blink][blink] team has also performed
 have Servo's luxury of starting from a clean slate and using a cutting-edge
 language.
 
-[blink]: http://www.chromium.org/blink
-[blink-gc]: http://www.chromium.org/blink/blink-gc
+[blink]: https://www.chromium.org/blink
+[blink-gc]: https://www.chromium.org/blink/blink-gc
 
 In the future, we will likely attempt to merge the allocations of DOM objects
 into the allocations of their JavaScript reflectors. This could produce

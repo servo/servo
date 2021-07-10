@@ -7,6 +7,11 @@
   <link rel="help" href="http://www.w3.org/TR/css-ruby-1/#anon-gen-inlinize">
   <link rel="match" href="ruby-inlinize-blocks-002-ref.html">
   <style>
+    body {
+      /* Use a sans-serif font to avoid fuzzy pixels where e.g. the
+         letter "a" bottom-right serif might overlap the table border: */
+      font: 16px sans-serif;
+    }
     .block, table, .flex {
       background-color: yellow;
       width: 100px; height: 30px;

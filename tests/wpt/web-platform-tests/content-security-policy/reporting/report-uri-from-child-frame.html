@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <title>Reporting works in child iframes.</title>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'nonce-abc'">
+</head>
+<body>
+    <script nonce="abc">
+      window.onmessage = function(e) {
+        if (e.data == 'cookie set') {
+          var s = document.createElement('script');
+          s.async = true;
+          s.defer = true;
+          s.src = '../support/checkReport.sub.js?reportField=violated-directive&reportValue=script-src%20%27self%27%20%27nonce-abc%27&reportCookieName=generate-csp-report';
+          document.body.appendChild(s);
+        }
+      }
+    </script>
+    <iframe src="support/generate-csp-report.html"/>
+</body>
+</html>

@@ -1,0 +1,144 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSSOM: Correct resolution of resolved value for display-affected pseudo-elements</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle">
+<link rel="help" href="https://drafts.csswg.org/cssom/#resolved-values">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+#test { width: 100px; }
+
+#contents {
+  display: contents;
+  border: 10px solid red;
+}
+
+#test::before,
+#test::after,
+#contents::before,
+#contents::after,
+#flex::before,
+#flex::after {
+  content: " ";
+  width: 50%;
+  height: 10px;
+  display: block;
+}
+#none {
+  display: none;
+}
+#none::before,
+#none::after {
+  content: "Foo";
+}
+#flex {
+  display: flex;
+}
+#flex-no-pseudo {
+  display: flex;
+}
+#contents-pseudos::before,
+#contents-pseudos::after {
+  display: contents;
+  content: "foo";
+  position: absolute;
+}
+#contents-pseudos-dynamic::before,
+#contents-pseudos-dynamic::after {
+  display: block;
+  content: "foo";
+  position: absolute;
+}
+#contents-pseudos-dynamic.contents::before,
+#contents-pseudos-dynamic.contents::after {
+  display: contents;
+}
+</style>
+<div id="test">
+  <div id="contents"></div>
+  <div id="none"></div>
+  <div id="flex"></div>
+  <div id="flex-no-pseudo"></div>
+  <div id="contents-pseudos"></div>
+  <div id="contents-pseudos-dynamic"></div>
+</div>
+<script>
+test(function() {
+  var div = document.getElementById('test');
+  [":before", ":after"].forEach(function(pseudo) {
+    assert_equals(getComputedStyle(div, pseudo).width, "50px");
+  });
+}, "Resolution of width is correct for ::before and ::after pseudo-elements");
+test(function() {
+  var contents = document.getElementById('contents');
+  [":before", ":after"].forEach(function(pseudo) {
+    assert_equals(getComputedStyle(contents, pseudo).width, "50px");
+  });
+}, "Resolution of width is correct for ::before and ::after pseudo-elements of display: contents elements");
+test(function() {
+  var has_no_pseudos = document.body;
+  has_no_pseudos.style.position = "relative";
+  [":before", ":after"].forEach(function(pseudo) {
+    assert_equals(getComputedStyle(has_no_pseudos, pseudo).position, "static",
+                  "Nonexistent " + pseudo + " pseudo-element shouldn't claim to have " +
+                  "the same style as the originating element");
+    assert_equals(getComputedStyle(has_no_pseudos, pseudo).width, "auto",
+                  "Nonexistent " + pseudo + " pseudo-element shouldn't claim to have " +
+                  "definite size");
+  });
+}, "Resolution of nonexistent pseudo-element styles");
+test(function() {
+  var none = document.getElementById('none');
+  [":before", ":after"].forEach(function(pseudo) {
+    assert_equals(getComputedStyle(none, pseudo).content, "\"Foo\"",
+                  "Pseudo-styles of display: none elements should be correct");
+  });
+}, "Resolution of pseudo-element styles in display: none elements");
+test(function() {
+  var flex = document.getElementById('flex');
+  [":before", ":after"].forEach(function(pseudo) {
+    assert_equals(getComputedStyle(flex, pseudo).display, "block",
+                  "Pseudo-styles of display: flex elements should get blockified");
+  });
+}, "Item-based blockification of pseudo-elements");
+test(function() {
+  var flexNoPseudo = document.getElementById('flex-no-pseudo');
+  [":before", ":after"].forEach(function(pseudo) {
+    assert_equals(getComputedStyle(flexNoPseudo, pseudo).display, "block",
+                  "Pseudo-styles of display: flex elements should get blockified");
+  });
+}, "Item-based blockification of nonexistent pseudo-elements");
+test(function() {
+  var contentsPseudos = document.getElementById('contents-pseudos');
+  [":before", ":after"].forEach(function(pseudo) {
+    assert_equals(getComputedStyle(contentsPseudos, pseudo).display, "contents",
+                  "display: contents in " + pseudo + " should get reflected on CSSOM");
+    assert_equals(getComputedStyle(contentsPseudos, pseudo).width, "auto",
+                  pseudo + " with display: contents should have no box");
+    assert_equals(getComputedStyle(contentsPseudos, pseudo).position, "absolute",
+                  "display: contents in " + pseudo + " should reflect other non-inherited properties in CSSOM");
+  });
+}, "display: contents on pseudo-elements");
+test(function() {
+  var contentsPseudosDynamic = document.getElementById('contents-pseudos-dynamic');
+  [":before", ":after"].forEach(function(pseudo) {
+    assert_equals(getComputedStyle(contentsPseudosDynamic, pseudo).display, "block",
+                  "Check that display for " + pseudo + " is block before change");
+  });
+  contentsPseudosDynamic.className = "contents";
+  [":before", ":after"].forEach(function(pseudo) {
+    assert_equals(getComputedStyle(contentsPseudosDynamic, pseudo).display, "contents",
+                  "display: contents in " + pseudo + " should get reflected on CSSOM");
+    assert_equals(getComputedStyle(contentsPseudosDynamic, pseudo).width, "auto",
+                  pseudo + " with display: contents should have no box");
+    assert_equals(getComputedStyle(contentsPseudosDynamic, pseudo).position, "absolute",
+                  "display: contents in " + pseudo + " should reflect other non-inherited properties in CSSOM");
+  });
+}, "Dynamically change to display: contents on pseudo-elements");
+test(function() {
+  var div = document.getElementById('test');
+  assert_throws_js(TypeError, () => getComputedStyle(div, "totallynotapseudo"),
+                   "getComputedStyle with an unknown pseudo-element throws");
+}, "Unknown pseudo-elements throw");
+</script>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      pannernode-basic.html
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="../../resources/audit-util.js"></script>
+    <script src="../../resources/audit.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      let context;
+      let panner;
+      let audit = Audit.createTaskRunner();
+
+      audit.define('initialize', (task, should) => {
+        should(() => {
+          context = new AudioContext();
+          panner = context.createPanner();
+        }, 'Initialize context and panner').notThrow();
+        task.done();
+      });
+
+      audit.define('basic', (task, should) => {
+        should(panner.numberOfInputs, 'panner.numberOfInputs').beEqualTo(1);
+        should(panner.numberOfOutputs, 'panner.numberOfOutputs').beEqualTo(1);
+        should(panner.refDistance, 'panner.refDistance').beEqualTo(1);
+        panner.refDistance = 270.5;
+        should(panner.refDistance, 'panner.refDistance = 270.5')
+            .beEqualTo(270.5);
+        should(panner.maxDistance, 'panner.maxDistance').beEqualTo(10000);
+        panner.maxDistance = 100.5;
+        should(panner.maxDistance, 'panner.maxDistance = 100.5')
+            .beEqualTo(100.5);
+        should(panner.rolloffFactor, 'panner.rolloffFactor').beEqualTo(1);
+        panner.rolloffFactor = 0.75;
+        should(panner.rolloffFactor, 'panner.rolloffFactor = 0.75')
+            .beEqualTo(0.75);
+        should(panner.coneInnerAngle, 'panner.coneInnerAngle').beEqualTo(360);
+        panner.coneInnerAngle = 240.5;
+        should(panner.coneInnerAngle, 'panner.coneInnerAngle = 240.5')
+            .beEqualTo(240.5);
+        should(panner.coneOuterAngle, 'panner.coneOuterAngle').beEqualTo(360);
+        panner.coneOuterAngle = 166.5;
+        should(panner.coneOuterAngle, 'panner.coneOuterAngle = 166.5')
+            .beEqualTo(166.5);
+        should(panner.coneOuterGain, 'panner.coneOuterGain').beEqualTo(0);
+        panner.coneOuterGain = 0.25;
+        should(panner.coneOuterGain, 'panner.coneOuterGain = 0.25')
+            .beEqualTo(0.25);
+        should(panner.panningModel, 'panner.panningModel')
+            .beEqualTo('equalpower');
+        should(panner.distanceModel)
+            .beEqualTo('inverse', 'panner.distanceModel');
+
+        should(panner.positionX.value, 'panner.positionX').beEqualTo(0);
+        should(panner.positionY.value, 'panner.positionY').beEqualTo(0);
+        should(panner.positionZ.value, 'panner.positionZ').beEqualTo(0);
+        should(panner.orientationX.value, 'panner.orientationX').beEqualTo(1);
+        should(panner.orientationY.value, 'panner.orientationY').beEqualTo(0);
+        should(panner.orientationZ.value, 'panner.orientationZ').beEqualTo(0);
+
+        task.done();
+      });
+
+      audit.define('listener', (task, should) => {
+        should(context.listener.positionX.value, 'listener.positionX')
+            .beEqualTo(0);
+        should(context.listener.positionY.value, 'listener.positionY')
+            .beEqualTo(0);
+        should(context.listener.positionZ.value, 'listener.positionZ')
+            .beEqualTo(0);
+        should(context.listener.forwardX.value, 'listener.forwardX')
+            .beEqualTo(0);
+        should(context.listener.forwardY.value, 'listener.forwardY')
+            .beEqualTo(0);
+        should(context.listener.forwardZ.value, 'listener.forwardZ')
+            .beEqualTo(-1);
+        should(context.listener.upX.value, 'listener.upX').beEqualTo(0);
+        should(context.listener.upY.value, 'listener.upY').beEqualTo(1);
+        should(context.listener.upZ.value, 'listener.upZ').beEqualTo(0);
+
+        task.done();
+      });
+
+      audit.define('panning models', (task, should) => {
+        // Check that the .panningModel attribute can be set to all legal
+        // values.
+        let panningModels = ['equalpower', 'HRTF'];
+
+        for (let i = 0; i < panningModels.length; ++i) {
+          should(function() {
+            panner.panningModel = panningModels[i];
+          }, 'Set panner.panningModel = "' + panningModels[i] + '"').notThrow();
+
+          should(
+              panner.panningModel,
+              'panner.panningModel = "' + panningModels[i] + '"')
+              .beEqualTo(panningModels[i]);
+        }
+
+        should(function() {
+          panner.panningModel = 'invalid';
+        }, 'panner.panningModel = "invalid"').notThrow();
+
+        should(panner.panningModel, 'panner.panningModel after invalid setter')
+            .beEqualTo('HRTF');
+
+        // Check that numerical values are no longer supported.  We shouldn't
+        // throw and the value shouldn't be changed.
+        panner.panningModel = 'HRTF';
+        should(function() {
+          panner.panningModel = 1;
+        }, 'panner.panningModel = 1').notThrow();
+
+        should(panner.panningModel, 'panner.panningModel').beEqualTo('HRTF');
+
+        task.done();
+      });
+
+      audit.define('distance models', (task, should) => {
+        // Check that the .panningModel attribute can be set to all legal
+        // values.
+        let distanceModels = ['linear', 'inverse', 'exponential'];
+
+        for (let i = 0; i < distanceModels.length; ++i) {
+          should(function() {
+            panner.distanceModel = distanceModels[i];
+          }, 'panner.distanceModel = "' + distanceModels[i] + '"').notThrow();
+
+          should(
+              panner.distanceModel,
+              'panner.distanceModel = "' + distanceModels[i] + '"')
+              .beEqualTo(distanceModels[i]);
+        }
+
+        should(function() {
+          panner.distanceModel = 'invalid';
+        }, 'panner.distanceModel = "invalid"').notThrow();
+
+        should(panner.distanceModel, 'panner.distanceModel')
+            .beEqualTo('exponential');
+
+        task.done();
+      });
+
+      audit.run();
+    </script>
+  </body>
+</html>

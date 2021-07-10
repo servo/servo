@@ -1,0 +1,27 @@
+﻿<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: ellipsed text selection</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#ellipsis-interaction">
+<meta name="flags" content="interact dom should">
+<meta name="assert" content="If all of the ellipsed text is selected, UAs should show selection of the ellipsis.">
+<style>
+div{
+  font-size: 25px;
+  font-family: monospace;
+  width: 2.1ch;
+  white-space: pre;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border: solid blue;
+}
+</style>
+
+<p>This test passes if both the “P” and the ellipsis (“…”) in the blue box bellow appear selected.
+<div id=test>Pass</div>
+
+<script>
+var sel = window.getSelection();
+sel.selectAllChildren(document.getElementById("test"));
+</script>

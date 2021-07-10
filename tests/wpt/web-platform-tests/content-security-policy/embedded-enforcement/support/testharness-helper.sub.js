@@ -6,7 +6,7 @@ const Host = {
 const PolicyHeader = {
   CSP: "echo-policy.py?policy=",
   CSP_MULTIPLE: "echo-policy-multiple.py",
-  EMBEDDING_CSP: "echo-embedding-csp.py",
+  REQUIRED_CSP: "echo-required-csp.py",
   ALLOW_CSP_FROM: "echo-allow-csp-from.py",
 };
 
@@ -17,7 +17,7 @@ const IframeLoad = {
 
 function getOrigin() {
   var url = new URL("http://{{host}}:{{ports[http][0]}}/");
-  return url.toString();
+  return url.origin;
 }
 
 function getCrossOrigin() {
@@ -34,16 +34,25 @@ function getSecureCrossOrigin() {
   return url.toString();
 }
 
-function generateURL(host, path) {
+function generateURL(host, path, include_second_level_iframe, second_level_iframe_csp) {
   var url = new URL("http://{{host}}:{{ports[http][0]}}/content-security-policy/embedded-enforcement/support/");
   url.hostname = host == Host.SAME_ORIGIN ? "{{host}}" : "{{domains[天気の良い日]}}";
   url.pathname += path;
+  if (include_second_level_iframe) {
+    url.searchParams.append("include_second_level_iframe", "");
+    if (second_level_iframe_csp)
+      url.searchParams.append("second_level_iframe_csp", second_level_iframe_csp);
+  }
 
   return url;
 }
 
 function generateURLString(host, path) {
-  return generateURL(host, path).toString();
+  return generateURL(host, path, false, "").toString();
+}
+
+function generateURLStringWithSecondIframeParams(host, path, second_level_iframe_csp) {
+  return generateURL(host, path, true, second_level_iframe_csp).toString();
 }
 
 function generateRedirect(host, target) {
@@ -68,17 +77,26 @@ function generateUrlWithAllowCSPFrom(host, allowCspFrom) {
   return url;
 }
 
-function assert_embedding_csp(t, url, csp, expected) {
+function assert_required_csp(t, url, csp, expected) {
   var i = document.createElement('iframe');
   if(csp)
     i.csp = csp;
   i.src = url;
 
   window.addEventListener('message', t.step_func(e => {
-    if (e.source != i.contentWindow || !('embedding_csp' in e.data))
-        return;
-    assert_equals(expected, e.data['embedding_csp']);
-    t.done();
+    if (e.source != i.contentWindow || !('required_csp' in e.data))
+      return;
+
+    if (expected.indexOf(e.data['required_csp']) == -1)
+      assert_unreached('Child iframes have unexpected csp:"' + e.data['required_csp'] + '"');
+
+    expected.splice(expected.indexOf(e.data['required_csp']), 1);
+
+    if (e.data['test_header_injection'] != null)
+      assert_unreached('HTTP header injection was successful');
+
+    if (expected.length == 0)
+      t.done();
   }));
 
   document.body.appendChild(i);
@@ -101,17 +119,17 @@ function assert_iframe_with_csp(t, url, csp, shouldBlock, urlId, blockedURI) {
 
   if (shouldBlock) {
     // Assert iframe does not load and is inaccessible.
-    window.onmessage = function (e) {
+    window.onmessage = t.step_func(function(e) {
       if (e.source != i.contentWindow)
           return;
-      t.unreached_func('No message should be sent from the frame.');
-    }
+      assert_unreached('No message should be sent from the frame.');
+    });
     i.onload = t.step_func(function () {
       // Delay the check until after the postMessage has a chance to execute.
       setTimeout(t.step_func_done(function () {
         assert_equals(loaded[urlId], undefined);
-      }), 1);
-      assert_throws("SecurityError", () => {
+      }), 500);
+      assert_throws_dom("SecurityError", () => {
         var x = i.contentWindow.location.href;
       });
     });
@@ -124,12 +142,18 @@ function assert_iframe_with_csp(t, url, csp, shouldBlock, urlId, blockedURI) {
       t.done();
     }));
   } else {
-    // Assert iframe loads.
+    // Assert iframe loads.  Wait for both the load event and the postMessage.
+    window.addEventListener('message', t.step_func(e => {
+      if (e.source != i.contentWindow)
+        return;
+      assert_true(loaded[urlId]);
+      if (i.onloadReceived)
+        t.done();
+    }));
     i.onload = t.step_func(function () {
-      // Delay the check until after the postMessage has a chance to execute.
-      setTimeout(t.step_func_done(function () {
-        assert_true(loaded[urlId]);
-      }), 1);
+      if (loaded[urlId])
+        t.done();
+      i.onloadReceived = true;
     });
   }
   document.body.appendChild(i);

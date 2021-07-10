@@ -1,0 +1,51 @@
+<!DOCTYPE HTML>
+<title>Document.prototype.elementsFromPoint on SVG text content elements</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-document-elementsfrompoint">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/elementsFromPoint.js"></script>
+<style>
+html, body {
+    margin: 0;
+    padding: 0;
+}
+#svg {
+    margin: 100px;
+    background-color: rgba(0,180,0,0.2);
+}
+text {
+    font-size: 50px;
+}
+</style>
+<div id='sandbox'>
+  <svg id='svg' width='300' height='300'>
+    <defs>
+      <path id="path" d="M10,170h1000"/>
+    </defs>
+    <text id="text1" x="10" y="50">Some text</text>
+    <text id="text2" x="10" y="110"><tspan id="tspan1">Some text</tspan></text>
+    <text id="text3"><textPath id="textpath1" xlink:href="#path">Some text</textPath></text>
+    <text id="text4" x="10" y="230">Text under<tspan id="tspan2" x="10">Text over</tspan></text>
+  </svg>
+</div>
+<script>
+test(function() {
+    assertElementsFromPoint('document', 125, 125,
+        [text1, svg, sandbox, document.body, document.documentElement]);
+}, 'elementsFromPoint for a point inside a <text>');
+
+test(function() {
+    assertElementsFromPoint('document', 125, 185,
+        [tspan1, svg, sandbox, document.body, document.documentElement]);
+}, 'elementsFromPoint for a point inside a <tspan> nested in a <text> without content');
+
+test(function() {
+    assertElementsFromPoint('document', 125, 245,
+        [textpath1, svg, sandbox, document.body, document.documentElement]);
+}, 'elementsFromPoint for a point inside a <textPath> nested in a <text> without content');
+
+test(function() {
+    assertElementsFromPoint('document', 125, 305,
+        [tspan2, text4, svg, sandbox, document.body, document.documentElement]);
+}, 'elementsFromPoint for a point inside an overlapping <tspan> nested in a <text>');
+</script>

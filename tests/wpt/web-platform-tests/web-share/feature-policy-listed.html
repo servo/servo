@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>WebShare Test: policy is listed</title>
+    <link rel="help" href="https://w3c.github.io/web-share/#permissions-policy">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+      'use strict';
+
+      test(() => {
+        assert_true(document.featurePolicy.allowsFeature('web-share'));
+      }, 'allowsFeature() returns true for web-share');
+
+      test(() => {
+        assert_true(document.featurePolicy.features().includes('web-share'));
+      }, 'features() includes web-share');
+
+      test(() => {
+        assert_true(document.featurePolicy.allowedFeatures().includes('web-share'));
+      }, 'allowedFeatures() includes web-share');
+
+      test(() => {
+        assert_equals(Array.from(document.featurePolicy.getAllowlistForFeature('web-share')).length, 1);
+      }, 'allowsFeature() returns a single entry for web-share');
+    </script>
+  </body>
+</html>

@@ -18,7 +18,7 @@ setup(function(){
     document.body.appendChild(video);
     if (!t1)
         throw new Error('t1 was undefined')
-}, {timeout:25000});
+});
 function smoke_test() {
   assert_true('HTMLTrackElement' in window, 'track not supported');
 }
@@ -56,9 +56,9 @@ test(function(){
 }, document.title+', different modes');
 
 // ok now let's load in a video
-var test1 = async_test(document.title+', video loading', {timeout:20000});
-var test2 = async_test(document.title+', video playing', {timeout:20000});
-var test3 = async_test(document.title+', adding cue during playback', {timeout:20000});
+var test1 = async_test(document.title+', video loading');
+var test2 = async_test(document.title+', video playing');
+var test3 = async_test(document.title+', adding cue during playback');
 test1.step(smoke_test);
 test2.step(smoke_test);
 test3.step(smoke_test);
@@ -77,11 +77,8 @@ test1.step(function(){
             test3.step(function(){
                 var c3 = new VTTCue(0, 2, "text3");
                 t1.addCue(c3);
-                assert_equals(t1.activeCues.length, 1, "t1.activeCues.length after adding a cue in the same script");
-                setTimeout(test3.step_func(function(){
-                    assert_equals(t1.activeCues.length, 2, "t1.activeCues.length after the event loop has spun");
-                    test3.done();
-                }, 0));
+                assert_equals(t1.activeCues.length, 2, "t1.activeCues.length should be changed immediately");
+                test3.done();
             });
             test2.done();
         });

@@ -128,6 +128,7 @@ class TestPrinter:
     def to_string(self):
         return "[UNKNOWN - type = {0}]".format(str(self.val.type))
 
+
 type_map = [
     ('struct Au', AuPrinter),
     ('FlowFlags', BitFieldU8Printer),

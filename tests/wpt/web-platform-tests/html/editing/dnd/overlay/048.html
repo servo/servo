@@ -32,16 +32,16 @@ window.onload = function() {
   var orange = document.getElementsByTagName('div')[0], fuchsia = document.getElementsByTagName('div')[1];
 
   orange.ondragstart = function(e) {
-		e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.effectAllowed = 'copy';
     e.dataTransfer.setData('text/plain', 'FAIL');
   };
   fuchsia.ondragenter = fuchsia.ondragover = function(e) {
-   	e.preventDefault();
+    e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
   };
-	fuchsia.ondrop = function(e) {
-   	e.preventDefault();
-   	document.getElementsByTagName('p')[0].innerHTML = 'FAIL';
+  fuchsia.ondrop = function(e) {
+    e.preventDefault();
+    document.getElementsByTagName('p')[0].innerHTML = 'FAIL';
   };
 
 };

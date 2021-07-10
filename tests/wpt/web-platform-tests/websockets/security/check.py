@@ -1,2 +1,2 @@
 def main(request, response):
-    return "FAIL" if 'Sec-WebSocket-Key' in request.headers else "PASS"
+    return b"FAIL" if b'Sec-WebSocket-Key' in request.headers else b"PASS"

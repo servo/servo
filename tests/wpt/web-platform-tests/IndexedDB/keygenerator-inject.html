@@ -88,7 +88,7 @@ indexeddb_test(
     const tx = db.transaction('store', 'readwrite');
     const store = tx.objectStore('store');
 
-    assert_throws('DataError', () => {
+    assert_throws_dom('DataError', () => {
       store.put(123);
     }, 'Key path should be checked against value');
 
@@ -104,11 +104,11 @@ indexeddb_test(
     const tx = db.transaction('store', 'readwrite');
     const store = tx.objectStore('store');
 
-    assert_throws('DataError', () => {
+    assert_throws_dom('DataError', () => {
       store.put({a: 123});
     }, 'Key path should be checked against value');
 
-    assert_throws('DataError', () => {
+    assert_throws_dom('DataError', () => {
       store.put({a: {b: 123} });
     }, 'Key path should be checked against value');
 

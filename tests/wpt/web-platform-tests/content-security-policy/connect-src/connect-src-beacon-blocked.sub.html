@@ -1,16 +1,39 @@
 <!DOCTYPE html>
-<meta http-equiv="Content-Security-Policy" content="connect-src 'self'">
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<script>
-    async_test(t => {
-      document.addEventListener("securitypolicyviolation", t.step_func_done(e => {
-        if (e.blockedURI != "http://{{domains[www]}}:{{ports[http][0]}}/common/text-plain.txt")
-            return;
+<html>
 
-        assert_equals(e.violatedDirective, "connect-src");
-      }));
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="connect-src 'self'; script-src 'self' 'unsafe-inline';">
+    <title>connect-src-beacon-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["Pass", "violated-directive=connect-src"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+    <!-- enforcing policy:
+connect-src 'self' http://{{host}}:{{ports[http][0]}}; script-src 'self' 'unsafe-inline';
+-->
+</head>
 
-      assert_true(navigator.sendBeacon("http://{{domains[www]}}:{{ports[http][0]}}/common/text-plain.txt"));
-    }, "sendBeacon should not throw.");
-</script>
+<body>
+    <script>
+        window.addEventListener('securitypolicyviolation', function(e) {
+            log("violated-directive=" + e.violatedDirective);
+        });
+
+        if (typeof navigator.sendBeacon != 'function') {
+            t_log.set_status(t_log.NOTRUN, "No navigator.sendBeacon, cannot run test.");
+            t_log.phase = t_log.phases.HAS_RESULT;
+            t_log.done();
+        } else {
+            try {
+                var es = navigator.sendBeacon("http://www1.{{host}}:{{ports[http][0]}}/security/contentSecurityPolicy/echo-report.php");
+                log("Pass");
+            } catch (e) {
+                log("Fail");
+            }
+        }
+    </script>
+    <div id="log"></div>
+</body>
+
+</html>

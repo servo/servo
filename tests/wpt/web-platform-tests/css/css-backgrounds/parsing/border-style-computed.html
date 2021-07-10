@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Backgrounds and Borders: getComputedStyle().borderStyle</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#border-style">
+<meta name="assert" content="border-style computed value is the specified keywords.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("border-style", "none");
+test_computed_value("border-style", "inset outset");
+test_computed_value("border-style", "hidden dotted dashed");
+test_computed_value("border-style", "solid double groove ridge");
+
+test_computed_value("border-top-style", "solid");
+test_computed_value("border-right-style", "double");
+test_computed_value("border-bottom-style", "groove");
+test_computed_value("border-left-style", "ridge");
+</script>
+</body>
+</html>

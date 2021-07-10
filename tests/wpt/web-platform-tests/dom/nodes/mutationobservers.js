@@ -1,7 +1,7 @@
 // Compares a mutation record to a predefined one
 // mutationToCheck is a mutation record from the user agent
 // expectedRecord is a mutation record minted by the test
-//    for expectedRecord, if properties are ommitted, they get default ones
+//    for expectedRecord, if properties are omitted, they get default ones
 function checkRecords(target, mutationToCheck, expectedRecord) {
   var mr1;
   var mr2;

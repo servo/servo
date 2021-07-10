@@ -1,12 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::{DOMPointReadOnlyMethods, Wrap};
-use dom::bindings::error::Fallible;
-use dom::bindings::js::Root;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::globalscope::GlobalScope;
+use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
+use crate::dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::DOMPointReadOnlyMethods;
+use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use std::cell::Cell;
 
@@ -20,6 +21,7 @@ pub struct DOMPointReadOnly {
     w: Cell<f64>,
 }
 
+#[allow(non_snake_case)]
 impl DOMPointReadOnly {
     pub fn new_inherited(x: f64, y: f64, z: f64, w: f64) -> DOMPointReadOnly {
         DOMPointReadOnly {
@@ -31,22 +33,30 @@ impl DOMPointReadOnly {
         }
     }
 
-    pub fn new(global: &GlobalScope, x: f64, y: f64, z: f64, w: f64) -> Root<DOMPointReadOnly> {
-        reflect_dom_object(box DOMPointReadOnly::new_inherited(x, y, z, w),
-                           global,
-                           Wrap)
+    pub fn new(global: &GlobalScope, x: f64, y: f64, z: f64, w: f64) -> DomRoot<DOMPointReadOnly> {
+        reflect_dom_object(
+            Box::new(DOMPointReadOnly::new_inherited(x, y, z, w)),
+            global,
+        )
     }
 
-    pub fn Constructor(global: &GlobalScope,
-                       x: f64,
-                       y: f64,
-                       z: f64,
-                       w: f64)
-                       -> Fallible<Root<DOMPointReadOnly>> {
+    pub fn Constructor(
+        global: &GlobalScope,
+        x: f64,
+        y: f64,
+        z: f64,
+        w: f64,
+    ) -> Fallible<DomRoot<DOMPointReadOnly>> {
         Ok(DOMPointReadOnly::new(global, x, y, z, w))
+    }
+
+    // https://drafts.fxtf.org/geometry/#dom-dompointreadonly-frompoint
+    pub fn FromPoint(global: &GlobalScope, init: &DOMPointInit) -> DomRoot<Self> {
+        Self::new(global, init.x, init.y, init.z, init.w)
     }
 }
 
+#[allow(non_snake_case)]
 impl DOMPointReadOnlyMethods for DOMPointReadOnly {
     // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-x
     fn X(&self) -> f64 {
@@ -69,6 +79,7 @@ impl DOMPointReadOnlyMethods for DOMPointReadOnly {
     }
 }
 
+#[allow(non_snake_case)]
 pub trait DOMPointWriteMethods {
     fn SetX(&self, value: f64);
     fn SetY(&self, value: f64);

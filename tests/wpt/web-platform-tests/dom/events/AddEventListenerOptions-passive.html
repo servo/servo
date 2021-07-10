@@ -55,6 +55,32 @@ test(function() {
   testPassiveValue({passive: 1}, false);
 }, "preventDefault should be ignored if-and-only-if the passive option is true");
 
+function testPassiveValueOnReturnValue(test, optionsValue, expectedDefaultPrevented) {
+  var defaultPrevented = undefined;
+  var handler = test.step_func(e => {
+    assert_false(e.defaultPrevented, "Event prematurely marked defaultPrevented");
+    e.returnValue = false;
+    defaultPrevented = e.defaultPrevented;
+  });
+  document.addEventListener('test', handler, optionsValue);
+  var uncanceled = document.body.dispatchEvent(new Event('test', {bubbles: true, cancelable: true}));
+
+  assert_equals(defaultPrevented, expectedDefaultPrevented, "Incorrect defaultPrevented for options: " + JSON.stringify(optionsValue));
+  assert_equals(uncanceled, !expectedDefaultPrevented, "Incorrect return value from dispatchEvent");
+
+  document.removeEventListener('test', handler, optionsValue);
+}
+
+async_test(t => {
+  testPassiveValueOnReturnValue(t, undefined, true);
+  testPassiveValueOnReturnValue(t, {}, true);
+  testPassiveValueOnReturnValue(t, {passive: false}, true);
+  testPassiveValueOnReturnValue(t, {passive: true}, false);
+  testPassiveValueOnReturnValue(t, {passive: 0}, true);
+  testPassiveValueOnReturnValue(t, {passive: 1}, false);
+  t.done();
+}, "returnValue should be ignored if-and-only-if the passive option is true");
+
 function testPassiveWithOtherHandlers(optionsValue, expectedDefaultPrevented) {
   var handlerInvoked1 = false;
   var dummyHandler1 = function() {
@@ -81,7 +107,7 @@ test(function() {
   testPassiveWithOtherHandlers({}, true);
   testPassiveWithOtherHandlers({passive: false}, true);
   testPassiveWithOtherHandlers({passive: true}, false);
-}, "passive behavior of one listener should be unaffeted by the presence of other listeners");
+}, "passive behavior of one listener should be unaffected by the presence of other listeners");
 
 function testOptionEquivalence(optionValue1, optionValue2, expectedEquality) {
   var invocationCount = 0;

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Emphasis marks for unrepresentable characters should not crash</title>
+<link rel="author" title="Emil A Eklund" href="eae@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-3/#emphasis-marks" title="3 Emphasis Marks">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  div {
+    text-emphasis: circle;
+    -webkit-text-emphasis-style: circle;
+  }
+</style>
+<body>
+  <div></div>
+</body>
+<script>
+  var el = document.body.firstElementChild;
+  el.appendChild(document.createTextNode(unescape('%udb14')));
+  el.appendChild(document.createTextNode(unescape('%udfe3%u7af4')));
+</script>
+<script>test(()=>{})</script>

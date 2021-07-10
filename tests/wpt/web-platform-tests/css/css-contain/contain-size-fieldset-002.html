@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Containment Test: Size containment on fieldset</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain-1/#containment-size">
+<link rel="match" href="reference/contain-size-fieldset-002-ref.html">
+<meta name=assert content="Size containment does apply to fieldsets, thus their size is the same than if they don't have contents.">
+<style>
+#border {
+  border: 1px solid black;
+  width: min-content;
+}
+fieldset {
+  contain: size;
+  visibility: hidden;
+  height: 1px;
+}
+</style>
+
+<p>This test passes if it has the same output as the reference. You should see a black border box below.</p>
+<div id="border">
+  <fieldset>
+    <legend>legend</legend>
+    Fieldset contents are here.
+  </fieldset>
+</div>

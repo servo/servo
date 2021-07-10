@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Non-reference case for text-decoration with subelements</title>
+    <style>
+      p {
+        margin: 0;
+        padding: 1em;
+      }
+      div.wrapper {
+        font-size: 2em;
+      }
+      span, sub, sup {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <p>Test passes if there is a single uniform underline for all the text in each line,
+      <i>not</i> a separate underline for the superscripts:
+    </p>
+    <div class=wrapper>
+      <p><span>Einstein said that <i>e = mc<sup>2</sup></i>.</span></p>
+      <p><span>Is <i>a<sup>n</sup> + b<sup>n</sup> = c<sup>n</sup></i> ever true for <i>n</i> &gt; 2?</span></p>
+    </div>
+  </body>
+</html>

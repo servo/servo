@@ -1,0 +1,83 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>Reference: text-overflow:ellipsis and ruby</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <style>
+html,body {
+  color:black; background-color:white; font:14px/1 monospace; padding:0; margin:0;
+}
+
+.clip {
+    overflow: hidden;
+    width: 40px;
+    text-overflow: ellipsis;
+}
+
+input { width: 40px; -webkit-appearance: none; border: 1px solid black; }
+span { white-space: pre; }
+.thg { display: inline-table; }
+.tc { display: inline-table; }
+.t { display: inline-table; }
+
+    </style>
+</head>
+<body>
+
+<div style="float:left; width:300px">
+<div class="clip">
+<span><span><span>aa<input class="thg">bb</span></span></span>
+<br>
+<span><span><span>aa<div class="thg">bbbbbb</div>cc</span></span></span>
+<br>
+<span><span><span>aa<span>bbbbbb</span>cc</span></span></span>
+<br>
+<span><span><span>aa<input class="tc">bb</span></span></span>
+<br>
+<span><span><span>aa<div class="tc">bbbbbb</div>cc</span></span></span>
+<br>
+<span><span><span>aa<input class="t">bb</span></span></span>
+<br>
+<span><span><span>aa<div class="t">bbbbbb</div>cc</span></span></span>
+
+<br>
+<span><span><span><input class="thg">bb</span></span></span>
+<br>
+<span><span><span><div class="thg">bbbbbb</div>cc</span></span></span>
+<br>
+<span><span><span><span>bbbbbb</span>cc</span></span></span>
+<br>
+<span><span><span><input class="tc">bb</span></span></span>
+<br>
+<span><span><span><div class="tc">bbbbbb</div>cc</span></span></span>
+<br>
+<span><span><span><input class="t">bb</span></span></span>
+<br>
+<span><span><span><div class="t">bbbbbb</div>cc</span></span></span>
+</div>
+</div>
+
+<div style="float:left; width:300px">
+<div class="clip">
+<span><span><input class="thg">bb</span></span>
+<br>
+<span><span><div class="thg">bbbbbb</div>cc</span></span>
+<br>
+<span><span>bbbbbbcc</span></span>
+<br>
+<span><span><input class="tc">bb</span></span>
+<br>
+<span><span><div class="tc">bbbbbb</div>cc</span></span>
+<br>
+<span><span><input class="t">bb</span></span>
+<br>
+<span><span><div class="t">bbbbbb</div>cc</span></span>
+</div>
+</div>
+
+</body>
+</html>

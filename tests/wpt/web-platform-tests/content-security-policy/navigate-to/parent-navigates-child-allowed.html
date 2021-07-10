@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+<script>
+  var t = async_test("Test that the parent can navigate the child because the relevant policy belongs to the navigation initiator (in this case the parent, which has the policy `navigate-to 'self'`)");
+  window.onmessage = t.step_func_done(function(e) {
+    assert_equals(e.data.result, 'success');
+  });
+  window.addEventListener('securitypolicyviolation', t.unreached_func("Should not have triggered a policy violation"));
+
+  var i = document.createElement('iframe');
+  var src_changed = false;
+  i.onload = function() {
+    if (src_changed) return;
+    src_changed = true;
+    i.src = "support/post_message_to_frame_owner.html";
+  }
+  i.src = "support/wait_for_navigation.html?csp=navigate-to%20%none%27";
+  document.body.appendChild(i);
+</script>
+</body>

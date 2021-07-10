@@ -1,36 +1,33 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::DOMStringMapBinding;
-use dom::bindings::codegen::Bindings::DOMStringMapBinding::DOMStringMapMethods;
-use dom::bindings::error::ErrorResult;
-use dom::bindings::js::{JS, Root};
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::str::DOMString;
-use dom::htmlelement::HTMLElement;
-use dom::node::window_from_node;
+use crate::dom::bindings::codegen::Bindings::DOMStringMapBinding::DOMStringMapMethods;
+use crate::dom::bindings::error::ErrorResult;
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::htmlelement::HTMLElement;
+use crate::dom::node::window_from_node;
 use dom_struct::dom_struct;
 
 #[dom_struct]
 pub struct DOMStringMap {
     reflector_: Reflector,
-    element: JS<HTMLElement>,
+    element: Dom<HTMLElement>,
 }
 
 impl DOMStringMap {
     fn new_inherited(element: &HTMLElement) -> DOMStringMap {
         DOMStringMap {
             reflector_: Reflector::new(),
-            element: JS::from_ref(element),
+            element: Dom::from_ref(element),
         }
     }
 
-    pub fn new(element: &HTMLElement) -> Root<DOMStringMap> {
+    pub fn new(element: &HTMLElement) -> DomRoot<DOMStringMap> {
         let window = window_from_node(element);
-        reflect_dom_object(box DOMStringMap::new_inherited(element),
-                           &*window,
-                           DOMStringMapBinding::Wrap)
+        reflect_dom_object(Box::new(DOMStringMap::new_inherited(element)), &*window)
     }
 }
 
@@ -53,6 +50,10 @@ impl DOMStringMapMethods for DOMStringMap {
 
     // https://html.spec.whatwg.org/multipage/#the-domstringmap-interface:supported-property-names
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        self.element.supported_prop_names_custom_attr().iter().cloned().collect()
+        self.element
+            .supported_prop_names_custom_attr()
+            .iter()
+            .cloned()
+            .collect()
     }
 }

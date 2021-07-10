@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>backdrop-filter: Update filter value</title>
+<link rel="author" title="Mason Freed" href="mailto:masonfreed@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="match"  href="backdrop-filter-update-ref.html">
+
+<p>Expected: A green box</p>
+<div id="colorbox"></div>
+<div id="filterbox"></div>
+
+<style>
+div {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    left: 10px;
+    top: 50px;
+}
+#colorbox {
+    background: #ff7fff;
+}
+#filterbox {
+    backdrop-filter: invert(0);
+}
+</style>
+
+<script>
+window.onload = function(e) {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      let filt = document.getElementById("filterbox");
+      filt.style.backdropFilter = "invert(1)";
+	  document.documentElement.classList.remove('reftest-wait');
+    });
+  });
+}
+</script>

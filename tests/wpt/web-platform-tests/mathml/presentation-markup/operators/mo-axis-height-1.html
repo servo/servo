@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>mo axis height</title>
-<link rel="help" href="http://www.mathml-association.org/MathMLinHTML5/S3.html#SS2.SSS4">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
 <meta name="assert" content="Element mo correctly uses the axis height parameter from the MATH table.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -25,9 +25,7 @@
   }
 
   setup({ explicit_done: true });
-  window.addEventListener("load", function() {
-    document.fonts.ready.then(runTests);
-  });
+  window.addEventListener("load", () => { document.fonts.ready.then(runTests); });
 
   function runTests() {
     test(function() {
@@ -54,23 +52,23 @@
 </script>
 </head>
 <body>
+  <div id="log"></div>
   <p>
     <math style="font-family: axisheight5000-verticalarrow14000;">
       <mrow>
-        <mspace id="baseline1" mathbackground="blue" width="50px" height="1px"/>
-        <mpadded voffset="50px"><mspace mathbackground="cyan" width="50px" height="1px"/></mpadded>
-        <mo id="mo1" symmetric="true" mathcolor="green">&#x21A8;</mo>
-        <mspace mathbackground="gray" width="10px" height="50px"/>
+        <mspace id="baseline1" style="background: blue" width="50px" height="1px"/>
+        <mpadded voffset="50px"><mspace style="background: cyan" width="50px" height="1px"/></mpadded>
+        <mo id="mo1" symmetric="true" style="color: green">&#x21A8;</mo>
+        <mspace style="background: gray" width="10px" height="50px"/>
       </mrow>
     </math>
     <math style="font-family: axisheight5000-verticalarrow14000;">
       <mrow>
-        <mspace id="baseline2" mathbackground="blue" width="50px" height="1px"/>
-        <mpadded voffset="50px"><mspace mathbackground="cyan" width="50px" height="1px"/></mpadded>
-        <mo id="mo2" symmetric="true" mathcolor="green">&#x21A8;</mo>
-        <mspace id="target2" mathbackground="gray" width="10px" height="200px"/>
+        <mspace id="baseline2" style="background: blue" width="50px" height="1px"/>
+        <mpadded voffset="50px"><mspace style="background: cyan" width="50px" height="1px"/></mpadded>
+        <mo id="mo2" symmetric="true" style="color: green">&#x21A8;</mo>
+        <mspace id="target2" style="background: gray" width="10px" height="200px"/>
       </mrow>
     </math>
-  </p>
 </body>
 </html>

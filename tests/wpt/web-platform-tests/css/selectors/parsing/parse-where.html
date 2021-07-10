@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selectors: The Specificity-adjustment Pseudo-class: ':where()'</title>
+<link rel="help" href="https://drafts.csswg.org/selectors/#zero-matches">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  test_valid_selector(':where(ul,ol,.list) > [hidden]',
+      ':where(ul, ol, .list) > [hidden]');
+  test_valid_selector(':where(:hover,:focus)',
+      ':where(:hover, :focus)');
+  test_valid_selector('a:where(:not(:hover))');
+
+  test_valid_selector(':where(#a)');
+  test_valid_selector('.a.b ~ :where(.c.d ~ .e.f)');
+  test_valid_selector('.a.b ~ .c.d:where(span.e + .f, .g.h > .i.j .k)');
+</script>

@@ -1,6 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 /*
  * Interface for a client side storage. See
  * https://html.spec.whatwg.org/multipage/#the-storageevent-interface
@@ -9,13 +9,20 @@
  * Event sent to a window when a storage area changes.
  */
 
-[Constructor(DOMString type, optional StorageEventInit eventInitDict), Exposed=Window]
+[Exposed=Window]
 interface StorageEvent : Event {
+  [Throws] constructor(DOMString type, optional StorageEventInit eventInitDict = {});
   readonly attribute DOMString? key;
   readonly attribute DOMString? oldValue;
   readonly attribute DOMString? newValue;
   readonly attribute DOMString url;
   readonly attribute Storage? storageArea;
+
+
+  void initStorageEvent(DOMString type, optional boolean bubbles = false,
+  optional boolean cancelable = false, optional DOMString? key = null, optional
+  DOMString? oldValue = null, optional DOMString? newValue = null, optional
+  USVString url = "", optional Storage? storageArea = null);
 };
 
 dictionary StorageEventInit : EventInit {

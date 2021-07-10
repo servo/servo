@@ -31,7 +31,7 @@ function runSpecialMatchesTests(method, type, element) {
   }, type + "." + method + "(undefined)")
 
   test(function() { // 3
-    assert_throws(TypeError(), function() {
+    assert_throws_js(element.ownerDocument.defaultView.TypeError, function() {
       element[method]();
     }, "This should throw a TypeError.")
   }, type + "." + method + " no parameter")
@@ -49,9 +49,13 @@ function runInvalidSelectorTestMatches(method, type, root, selectors) {
       var q = s["selector"];
 
       test(function() {
-        assert_throws("SyntaxError", function() {
-          root[method](q)
-        })
+        assert_throws_dom(
+          "SyntaxError",
+          root.ownerDocument.defaultView.DOMException,
+          function() {
+            root[method](q)
+          }
+        );
       }, type + "." + method + ": " + n + ": " + q);
     }
   }

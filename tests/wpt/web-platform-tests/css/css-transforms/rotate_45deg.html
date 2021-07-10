@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: rotateY with perspective produces a trapezoid</title>
+  <link rel="author" title="Ebay Inc." href="mailto:xiatian@ebay.com"/>
+  <link rel="help" href="https://www.w3.org/TR/css-transforms-1/#funcdef-transform-rotate"/>
+  <link rel="match" href="rotate_45deg-ref.html"/>
+  <meta name="flags" content="" />
+  <meta name="assert" content="Rotate 45 degree in y axis"/>
+  <style type="text/css">
+      .container {
+          border: 1px solid black;
+          height: 100px;
+          width: 100px;
+          background-color:#fff;
+      }
+      .transformed {
+          transform: rotateY(45deg);
+          background-color:green;
+          height: 100px;
+      }
+  </style>
+
+ </head>
+ <body>
+  <div class="container">
+    <div class="transformed"></div>
+  </div>
+  <p>45 degree rotate on y axis</p>
+</body>
+</html>

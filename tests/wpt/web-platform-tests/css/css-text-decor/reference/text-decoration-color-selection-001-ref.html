@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Test: CSS3 text-decoration-color when |::selection| exists</title>
+        <style>
+            #transparent-fill {
+                -webkit-text-fill-color: transparent;
+                -webkit-text-stroke-width: 1px;
+                -webkit-text-stroke-color: black;
+            }
+
+            .underline {
+                text-decoration: underline;
+                color: brown;
+                text-decoration-color: pink;
+            }
+            .overline {
+                text-decoration: overline;
+                color: purple;
+                text-decoration-color: skyblue;
+            }
+            .line-through {
+                text-decoration: line-through;
+                color: orange;
+                text-decoration-color: magenta;
+            }
+
+            .line-through::selection {
+                overflow: auto;
+                text-decoration-color: inherit;
+            }
+
+            .empty-selection-underline {
+                text-decoration: underline;
+                color: red;
+                text-decoration-color: blue;
+            }
+
+            .margin-bottom {
+                margin-bottom: 20px;
+            }
+        </style>
+        <script>
+            function startTest() {
+                var targetRange = document.createRange();
+                /* We first create an empty range */
+                targetRange.selectNodeContents(document.getElementById("wrapper"));
+                /* Then we set the range boundaries to the children of div#wrapper */
+                window.getSelection().addRange(targetRange);
+                /* Finally, we now select such range of content */
+            }
+        </script>
+    </head>
+    <body onload="startTest();">
+        <h3>Each line of this test should match its text decoration color description:</h3>
+
+        <!-- Test with text-fill-color and text-stroke-color values set -->
+        <div class="underline margin-bottom" id="transparent-fill" >Transparent fill with black stroke text and pink underline</div>
+
+        <!-- Valid values for underline, overline and line-through text decoration lines when selected-->
+        <div class="underline margin-bottom">Brown text with pink underline</div>
+        <div class="overline margin-bottom">Purple text with skyblue overline</div>
+
+        <div id="wrapper">
+            <div class="line-through margin-bottom">Orange text with magenta line-through</div>
+
+            <!-- When there is a selection but no |::selection| style exists. It should preserve the
+                style as it is. -->
+            <div class="empty-selection-underline margin-bottom">Red text with blue underline</div>
+        </div>
+    </body>
+</html>

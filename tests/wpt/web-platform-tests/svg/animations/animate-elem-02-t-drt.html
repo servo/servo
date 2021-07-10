@@ -1,0 +1,183 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>A copy of the corresponding W3C-SVG-1.1 test, which dumps the animation at certain times</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1 Tiny//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11-tiny.dtd">
+<!--======================================================================-->
+<!--=  Copyright 2000 World Wide Web Consortium, (Massachusetts          =-->
+<!--=  Institute of Technology, Institut National de Recherche en        =-->
+<!--=  Informatique et en Automatique, Keio University). All Rights      =-->
+<!--=  Reserved. See http://www.w3.org/Consortium/Legal/.                =-->
+<!--======================================================================-->
+<!-- =====================================================================-->
+<!--                                                                      -->
+<!-- animation-add-BE-09.svg                                              -->
+<!-- renamed for 1.1 suite to animate-elem-02-t.svg                       -->
+<!--                                                                      -->
+<!-- Test 'additive' and 'accumulate' attributes.                         -->
+<!--                                                                      -->
+<!-- Author : Jon Ferraiolo 11-Aug-2000                                   -->
+<!-- Revised for 1.1 : Rick Graham Feb/05/2002                            -->
+<!--                                                                      -->
+<!-- History:                                                             -->
+<!--  11-Aug-2000, JF: Serial#1 created.                                  -->
+<!--                                                                      -->
+<!-- =====================================================================-->
+<!--======================================================================-->
+<!--= Note. After October 2000, revision history is kept as CVS 'commit' =-->
+<!--= log messages, and therefore is no longer in the preceding preamble.=-->
+<!--======================================================================-->
+<svg version="1.1" baseProfile="tiny" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"  id="svg-root"
+     width="100%" height="100%" viewBox="0 0 480 360">
+    <SVGTestCase xmlns="http://www.w3.org/2000/02/svg/testsuite/description/">
+<!--nav data here-->
+        <OperatorScript version="$Revision: 1.8 $" testname="animate-elem-02-t.svg">
+            <Paragraph>
+                Test 'additive' and 'accumulate' attributes.
+            </Paragraph>
+            <Paragraph>
+                The four pictures show the effect with the four possible combinations of
+                'additive' (either 'replace' or 'sum') and 'accumulate' (either 'none' or 'sum').
+                Because two animations are animating the height, the effects of 'additive' and
+                'accumulate' are sometimes different than when there is only a single animation.
+            </Paragraph>
+        </OperatorScript>
+    </SVGTestCase>
+    <title id="test-title">animate-elem-02-t</title>
+    <desc id="test-desc">Test 'additive' and 'accumulate' attributes.</desc>
+    <!--======================================================================-->
+    <!--Content of Test Case follows...                  =====================-->
+    <!--======================================================================-->
+    <g id="test-body-content" font-family="Arial" font-size="30">
+
+            <g transform="translate(0, 0)">
+                <rect x="60" y="20" width="50" height="200" fill="#dfdfdf" stroke="#dfdfdf" stroke-width="4"/>
+                <line x1="40" x2="100" y1="220" y2="220" fill="none" stroke="#880000" stroke-width="4"/>
+                <line x1="40" x2="100" y1="120" y2="120" fill="none" stroke="#880000" stroke-width="4"/>
+                <rect x="60" y="20" width="50" height="20" fill="#0f5" stroke="#085" stroke-width="4">
+                    <animate id="an5" attributeName="height" calcMode="discrete" additive="replace" accumulate="none"
+                     repeatCount="2" from="200" to="20" begin="0s" dur="4s" fill="freeze"/>
+                </rect>
+                <text x="30" y="285" fill="navy">anim.5</text>
+            </g>
+            <g transform="translate(110, 0)">
+                <rect x="60" y="20" width="50" height="200" fill="#dfdfdf" stroke="#dfdfdf" stroke-width="4"/>
+                <line x1="40" x2="100" y1="220" y2="220" fill="none" stroke="#880000" stroke-width="4"/>
+                <line x1="40" x2="100" y1="120" y2="120" fill="none" stroke="#880000" stroke-width="4"/>
+                <rect x="60" y="20" width="50" height="20" fill="#0f5" stroke="#085" stroke-width="4">
+                    <animate id="an6" attributeName="height" calcMode="discrete" additive="sum" accumulate="none"
+                     repeatCount="2" from="200" to="20" begin="0s" dur="4s" fill="freeze"/>
+                </rect>
+                <text x="30" y="285" fill="navy">anim.6</text>
+            </g>
+            <g transform="translate(220, 0)">
+                <rect x="60" y="20" width="50" height="200" fill="#dfdfdf" stroke="#dfdfdf" stroke-width="4"/>
+                <line x1="40" x2="100" y1="220" y2="220" fill="none" stroke="#880000" stroke-width="4"/>
+                <line x1="40" x2="100" y1="120" y2="120" fill="none" stroke="#880000" stroke-width="4"/>
+                <rect x="60" y="20" width="50" height="20" fill="#0f5" stroke="#085" stroke-width="4">
+                    <animate id="an7" attributeName="height" calcMode="discrete" additive="replace" accumulate="sum"
+                     repeatCount="2" from="200" to="20" begin="0s" dur="4s" fill="freeze"/>
+                </rect>
+                <text x="30" y="285" fill="navy">anim.7</text>
+            </g>
+            <g transform="translate(330, 0)">
+                <rect x="60" y="20" width="50" height="200" fill="#dfdfdf" stroke="#dfdfdf" stroke-width="4"/>
+                <line x1="40" x2="100" y1="220" y2="220" fill="none" stroke="#880000" stroke-width="4"/>
+                <line x1="40" x2="100" y1="120" y2="120" fill="none" stroke="#880000" stroke-width="4"/>
+                <rect x="60" y="20" width="50" height="20" fill="#0f5" stroke="#085" stroke-width="4">
+                    <animate id="an8" attributeName="height" calcMode="discrete" additive="sum" accumulate="sum"
+                     repeatCount="2" from="200" to="20" begin="0s" dur="4s" fill="freeze"/>
+                </rect>
+                <text x="30" y="285" fill="navy">anim.8</text>
+            </g>
+    <text id="revision" x="10" y="340" font-size="40" stroke="none" fill="black">$Revision: 1.8 $</text>
+    <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+   </g>
+  <script>
+    // Pause the animation at t=0.
+    document.querySelector("svg").pauseAnimations();
+  </script>
+</svg>
+
+<script>
+var rootSVGElement = document.querySelector("svg");
+var epsilon = 1.0;
+
+// Setup animation test
+function sampleAfterBegin() {
+    assert_equals(rect1.height.animVal.value, 200);
+    assert_equals(rect1.height.baseVal.value, 20);
+
+    assert_equals(rect2.height.animVal.value, 220);
+    assert_equals(rect2.height.baseVal.value, 20);
+
+    assert_equals(rect3.height.animVal.value, 200);
+    assert_equals(rect3.height.baseVal.value, 20);
+}
+
+function sampleAfterMid() {
+    assert_equals(rect1.height.animVal.value, 20);
+    assert_equals(rect1.height.baseVal.value, 20);
+
+    assert_equals(rect2.height.animVal.value, 40);
+    assert_equals(rect2.height.baseVal.value, 20);
+
+    assert_equals(rect3.height.animVal.value, 20);
+    assert_equals(rect3.height.baseVal.value, 20);
+}
+
+function sampleAfterBeginOfFirstRepetition() {
+    assert_equals(rect1.height.animVal.value, 200);
+    assert_equals(rect1.height.baseVal.value, 20);
+
+    assert_equals(rect2.height.animVal.value, 220);
+    assert_equals(rect2.height.baseVal.value, 20);
+
+    assert_equals(rect3.height.animVal.value, 220);
+    assert_equals(rect3.height.baseVal.value, 20);
+}
+
+function sampleAfterMidOfFirstRepetition() {
+    assert_equals(rect1.height.animVal.value, 20);
+    assert_equals(rect1.height.baseVal.value, 20);
+
+    assert_equals(rect2.height.animVal.value, 40);
+    assert_equals(rect2.height.baseVal.value, 20);
+
+    assert_equals(rect3.height.animVal.value, 40);
+    assert_equals(rect3.height.baseVal.value, 20);
+}
+
+smil_async_test((t) => {
+    rects = rootSVGElement.ownerDocument.getElementsByTagName("rect");
+    rect1 = rects[1];
+    rect2 = rects[3];
+    rect3 = rects[5];
+    rect4 = rects[7];
+
+    // All animations in the test file use the same duration, so it's not needed to list all sample points individually for an5/an6/an7/an8.
+    const expectedValues = [
+        // [animationId, time, sampleCallback]
+        ["an5", 0.0,   sampleAfterBegin],
+        ["an5", 1.999, sampleAfterBegin],
+        ["an5", 2.0,   sampleAfterMid],
+        ["an5", 3.999, sampleAfterMid],
+        ["an5", 4.0,   sampleAfterBeginOfFirstRepetition],
+        ["an5", 5.999, sampleAfterBeginOfFirstRepetition],
+        ["an5", 6.001, sampleAfterMidOfFirstRepetition],
+        ["an5", 7.999, sampleAfterMidOfFirstRepetition],
+        ["an5", 8.001, sampleAfterMidOfFirstRepetition],
+        ["an5", 60.0,  sampleAfterMidOfFirstRepetition]
+    ];
+
+    runAnimationTest(t, expectedValues);
+});
+
+window.animationStartsImmediately = true;
+
+</script>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../resources/orientation-event-helpers.js"></script>
+<script>
+'use strict';
+
+sensor_test(async (t, sensorProvider) => {
+  const orientationData1 = generateOrientationData(1.1, 2.2, 3.3, false);
+  setMockOrientationData(sensorProvider, orientationData1);
+  await waitForEvent(getExpectedOrientationEvent(orientationData1));
+
+  const orientationData2 = generateOrientationData(11.1, 22.2, 33.3, false);
+  setMockOrientationData(sensorProvider, orientationData2);
+  await waitForEvent(getExpectedOrientationEvent(orientationData2));
+}, 'Tests that updates to the orientation causes new events to fire.');
+</script>

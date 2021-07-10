@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Cue without timings are ignored</title>
+<script src="track-helpers.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video>
+    <track src="resources/no-timings.vtt" default>
+    <script>
+        async_test(function(t) {
+            var track = document.querySelector("track");
+
+            track.onload = t.step_func_done(function() {
+                assert_cues_equal(track.track.cues, []);
+            });
+        });
+    </script>
+</video>

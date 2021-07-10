@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<link rel="match" href="reference/webkit-line-clamp-with-line-height-ref.html">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/2847#issuecomment-468084957">
+<meta name="assert" content="This test checks that -webkit-line-clamp calculates respects line-height when calculating its block-size.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+#test {
+  width: 100px;
+
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  overflow: hidden;
+
+  border: solid thin grey;
+  font: 20px 'Ahem';
+  line-height: 40px;
+}
+</style>
+<p>This tests the -webkit-line-clamp property with line-height applied.</p>
+<div id="test">
+  XXXX XXX
+</div>

@@ -1,0 +1,5 @@
+Expires: Mon, 26 Jul 1997 05:00:00 GMT
+Cache-Control: no-store, no-cache, must-revalidate
+Pragma: no-cache
+Set-Cookie: unsandboxed-blob-scheme={{$id:uuid()}}; Path=/content-security-policy/inheritance/
+Content-Security-Policy: script-src 'nonce-abc'; report-uri http://{{host}}:{{ports[http][0]}}/reporting/resources/report.py?op=put&reportID={{$id}}

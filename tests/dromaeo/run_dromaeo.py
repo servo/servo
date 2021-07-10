@@ -2,7 +2,7 @@
 
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import os
 import subprocess
@@ -65,15 +65,15 @@ if __name__ == '__main__':
         while not server.got_post:
             server.handle_request()
         data = json.loads(server.post_data[0])
-        n = 0
-        l = 0
+        number = 0
+        length = 0
         for test in data:
-            n = max(n, len(data[test]))
-            l = max(l, len(test))
-        print("\n Test{0} | Time".format(" " * (l - len("Test"))))
-        print("-{0}-|-{1}-".format("-" * l, "-" * n))
+            number = max(number, len(data[test]))
+            length = max(length, len(test))
+        print("\n Test{0} | Time".format(" " * (length - len("Test"))))
+        print("-{0}-|-{1}-".format("-" * length, "-" * number))
         for test in data:
-            print(" {0}{1} | {2}".format(test, " " * (l - len(test)), data[test]))
+            print(" {0}{1} | {2}".format(test, " " * (length - len(test)), data[test]))
         proc.kill()
     else:
         print_usage()

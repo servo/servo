@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Popup light dismiss behavior</title>
+<link rel="author" title="Mason Freed" href="mailto:masonfreed@chromium.org">
+<link rel=help href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/Popup/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+
+
+<button id=b1 onclick='p1.show()'>Popup 1</button>
+<span id=outside>Outside all popups</span>
+<popup id=p1 anchor=b1>
+  <span id=inside1>Inside popup 1</span>
+  <button id=b2 onclick='p2.show()'>Popup 2</button>
+</popup>
+<popup id=p2 anchor=b2>
+  <span id=inside2>Inside popup 2</span>
+</popup>
+
+<style>
+  #p1 { top:50px; }
+  #p2 { top:50px; left:250px; }
+  popup { border: 5px solid red; }
+</style>
+
+
+<script>
+  function clickOn(element) {
+    const actions = new test_driver.Actions();
+    return actions.pointerMove(0, 0, {origin: element})
+      .pointerDown({button: actions.ButtonType.LEFT})
+      .pointerUp({button: actions.ButtonType.LEFT})
+      .send();
+  }
+
+  const popup1 = document.querySelector('#p1');
+  const button1 = document.querySelector('#b1');
+  const popup2 = document.querySelector('#p2');
+  const outside = document.querySelector('#outside');
+  const inside1 = document.querySelector('#inside1');
+  const inside2 = document.querySelector('#inside2');
+
+  (async function() {
+    setup({ explicit_done: true });
+
+    let popup1HideCount = 0;
+    popup1.addEventListener('hide',(e) => {
+      ++popup1HideCount;
+      e.preventDefault(); // 'hide' should not be cancellable.
+    });
+    let popup2HideCount = 0;
+    popup2.addEventListener('hide',(e) => {
+      ++popup2HideCount;
+      e.preventDefault(); // 'hide' should not be cancellable.
+    });
+
+    assert_false(popup1.open);
+    popup1.show();
+    let p1HideCount = popup1HideCount;
+    assert_true(popup1.open);
+    await clickOn(outside);
+    test(t => {
+      assert_false(popup1.open);
+      assert_equals(popup1HideCount,p1HideCount+1);
+    },'Clicking outside a popup will dismiss the popup');
+
+    assert_false(popup1.open);
+    popup1.show();
+    p1HideCount = popup1HideCount;
+    await clickOn(inside1);
+    test(t => {
+      assert_true(popup1.open);
+      assert_equals(popup1HideCount,p1HideCount);
+    },'Clicking inside a popup does not close that popup');
+
+    popup2.show();
+    p1HideCount = popup1HideCount;
+    let p2HideCount = popup2HideCount;
+    await clickOn(inside2);
+    test(t => {
+      assert_true(popup1.open);
+      assert_true(popup2.open);
+      assert_equals(popup1HideCount,p1HideCount,'popup1');
+      assert_equals(popup2HideCount,p2HideCount,'popup2');
+    },'Clicking inside a child popup shouldn\'t close either popup');
+
+    popup2.show();
+    p1HideCount = popup1HideCount;
+    p2HideCount = popup2HideCount;
+    await clickOn(inside1);
+    test(t => {
+      assert_true(popup1.open);
+      assert_equals(popup1HideCount,p1HideCount);
+      assert_false(popup2.open);
+      assert_equals(popup2HideCount,p2HideCount+1);
+    },'Clicking inside a parent popup should close child popup');
+
+    p1HideCount = popup1HideCount;
+    await clickOn(button1);
+    test(t => {
+      assert_true(popup1.open);
+      assert_equals(popup1HideCount,p1HideCount);
+    },'Clicking on anchor element shouldn\'t close its popup');
+
+    done();
+  })();
+</script>

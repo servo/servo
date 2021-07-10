@@ -119,6 +119,38 @@ document_types().forEach(function (entry) {
 
     promise_test(function () {
         return getDocument().then(function (doc) {
+            const instance = document.createElement('my-custom-element');
+            const host = document.createElement('div');
+            const shadowRoot = host.attachShadow({mode: 'closed'});
+            shadowRoot.appendChild(instance);
+            document.body.appendChild(host);
+
+            calls = [];
+            doc.documentElement.appendChild(shadowRoot);
+            assert_array_equals(calls, ['disconnected', 'adopted', document, doc, 'connected']);
+        });
+    }, 'Moving the shadow host\'s shadow of a custom element from the owner document into ' + documentName + ' must enqueue and invoke adoptedCallback');
+
+    promise_test(function () {
+        return getDocument().then(function (doc) {
+            const instance = document.createElement('my-custom-element');
+            const template = document.createElement('template');
+            const templateContent = template.content;
+            templateContent.appendChild(instance);
+            document.body.appendChild(template);
+
+            calls = [];
+            doc.documentElement.appendChild(templateContent);
+            if (doc === templateContent.ownerDocument) {
+                assert_array_equals(calls, ['connected']);
+            } else {
+                assert_array_equals(calls, ['adopted', templateContent.ownerDocument, doc, 'connected']);
+            }
+        });
+    }, 'Moving the <template>\'s content of a custom element from the owner document into ' + documentName + ' must enqueue and invoke adoptedCallback');
+
+    promise_test(function () {
+        return getDocument().then(function (doc) {
             var instance = document.createElement('my-custom-element');
             var host = doc.createElementNS('http://www.w3.org/1999/xhtml', 'div');
             var shadowRoot = host.attachShadow({mode: 'closed'});

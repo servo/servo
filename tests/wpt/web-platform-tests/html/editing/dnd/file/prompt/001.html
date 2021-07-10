@@ -10,13 +10,13 @@
 
 <script>
 window.onload = function() {
-	if( location.protocol != 'http:' && location.protocol != 'https:' ) {
-		document.getElementsByTagName('p')[0].innerHTML = 'This test should be loaded over http or https.';
-		return;
-	}
-	var orange = document.getElementsByTagName('div')[0];
-	orange.ondragover = orange.ondragenter = orange.ondrop = function(e) {
-   	e.preventDefault();
+  if( location.protocol != 'http:' && location.protocol != 'https:' ) {
+    document.getElementsByTagName('p')[0].innerHTML = 'This test should be loaded over http or https.';
+    return;
+  }
+  var orange = document.getElementsByTagName('div')[0];
+  orange.ondragover = orange.ondragenter = orange.ondrop = function(e) {
+    e.preventDefault();
   };
   document.getElementsByTagName('span')[0].innerHTML = location.hostname;
 };

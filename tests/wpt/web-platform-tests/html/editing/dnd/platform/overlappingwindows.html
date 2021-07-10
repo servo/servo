@@ -11,13 +11,13 @@
     list-style-position: inside;
   }
   div {
-  	height: 100px;
-  	width: 100px;
-  	position: absolute;
-  	top: 50%;
-  	left: 50%;
-  	margin-top: -50px;
-  	margin-left: -50px;
+    height: 100px;
+    width: 100px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-top: -50px;
+    margin-left: -50px;
     background: orange;
   }
 </style>
@@ -27,30 +27,30 @@
 window.onload = function() {
   var orange = document.getElementsByTagName('div')[0];
   orange.ondragstart = function(e) {
-		e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.effectAllowed = 'copy';
     e.dataTransfer.setData('Text', 'dummy text');
   };
   var blue = document.getElementsByTagName('ol')[0];
   blue.ondragenter = blue.ondragover = function(e) {
-		e.preventDefault();
+    e.preventDefault();
   };
   blue.ondrop = function(e) {
-		e.preventDefault();
-		this.innerHTML = 'FAIL';
+    e.preventDefault();
+    this.innerHTML = 'FAIL';
   };
 };
 
 </script>
 
 <ol>
-	<li>Position the browser window so that the blue part of this page extends behind the system taskbar.</li>
-	<li>Use your mouse to drag the orange box over a part of the taskbar that overlays the blue part of this page.</li>
-	<li>If supported by the platform, the mouse cursor should <em>not</em> show the browser's custom &quot;copy&quot; cursor, and should instead show the system's expected cursor for dropping on that part of the taskbar.</li>
-	<li>Release the drag. Fail if the text on this page changes.</li>
-	<li>Reload and repeat this test for:<ul>
-		<li>Where the blue part of this page extends under an always-on-top window (eg. the Windows Task Manager).</li>
-		<li>Where the blue part of this page extends under an always-on-top notification (eg. a system tray info balloon).</li>
-	</ul></li>
+  <li>Position the browser window so that the blue part of this page extends behind the system taskbar.</li>
+  <li>Use your mouse to drag the orange box over a part of the taskbar that overlays the blue part of this page.</li>
+  <li>If supported by the platform, the mouse cursor should <em>not</em> show the browser's custom &quot;copy&quot; cursor, and should instead show the system's expected cursor for dropping on that part of the taskbar.</li>
+  <li>Release the drag. Fail if the text on this page changes.</li>
+  <li>Reload and repeat this test for:<ul>
+    <li>Where the blue part of this page extends under an always-on-top window (eg. the Windows Task Manager).</li>
+    <li>Where the blue part of this page extends under an always-on-top notification (eg. a system tray info balloon).</li>
+  </ul></li>
 </ol>
 <div draggable='true'></div>
 <noscript><p>Enable JavaScript and reload</p></noscript>

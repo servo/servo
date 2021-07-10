@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Grid aligned descendants with static position</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#abspos" title="Absolute Positioning">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#staticpos-rect" title="Appendix A: Static Position Terminology">
+<link rel="match" href="descendant-static-position-001-ref.html">
+<meta name="assert" content="This test checks that the position and size of the abs.pos. descendant is correct.">
+<style>
+.grid {
+  position: relative;
+  display: grid;
+  grid: 40px / 40px;
+  border: 2px solid;
+  border-top-width: 5px;
+  border-left-width: 3px;
+  width: 20px;
+  padding: 2px 4px 6px 1px;
+}
+.grid > div {
+  background: red;
+  background-clip: content-box;
+}
+.absolute {
+  position: absolute;
+  background: red;
+  grid-column: 1 / 2;
+}
+.content {
+  float: left;
+  width: 20px;
+  height: 40px;
+  background: green;
+}
+.content:nth-child(2) {
+  background: grey;
+}
+
+</style></head>
+<body>
+There should be no red:
+
+<div class="grid">
+  <div>
+    <div class="absolute">
+      <div class="content"></div>
+      <div class="content"></div>
+    </div>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns: 43px">
+  <div style="padding-left:3px">
+    <div class="absolute">
+      <div class="content"></div>
+      <div class="content"></div>
+    </div>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns: 43px">
+  <div style="border-left:2px solid black; padding-left:1px">
+    <div class="absolute">
+      <div class="content"></div>
+      <div class="content"></div>
+    </div>
+  </div>
+</div>
+
+<div class="grid" style="padding-top:10px">
+  <div>
+    <div class="absolute">
+      <div class="content"></div>
+      <div class="content"></div>
+    </div>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns: 10px 33px; padding-left:8px">
+  <div style="padding-left:3px">
+    <div class="absolute" style="grid-column: 2 / 3">
+      <div class="content"></div>
+      <div class="content"></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="./resources/webxr-util.js"></script>
+  <script>
+    navigator.xr.test.simulateDeviceConnection({
+      supportedModes: ["immersive-vr"],
+      views: TEST_VIEWS,
+    });
+    async_test((t) => {
+      navigator.xr.addEventListener("sessionavailable", (evt) => {
+        navigator.xr.requestSession("immersive-vr")
+          .then((session) => {
+            t.done();
+          })
+      });
+    }, "Requesting immersive session in a sessionavailable handler should succeed");
+  </script>
+</body>

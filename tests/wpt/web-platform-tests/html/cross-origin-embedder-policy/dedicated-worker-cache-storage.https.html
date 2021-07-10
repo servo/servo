@@ -1,0 +1,128 @@
+<!doctype html>
+<html>
+<title> Check enforcement of COEP in a DedicatedWorker using CacheStorage. </title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script>
+// See also: ./shared-worker-cache-storage.https.html
+
+function remote(path) {
+  const REMOTE_ORIGIN = get_host_info().HTTPS_REMOTE_ORIGIN;
+  return new URL(path, REMOTE_ORIGIN);
+}
+
+const iframe_path = "./resources/iframe.html?pipe=";
+const dedicated_worker_path = "./universal-worker.js?pipe=";
+const ressource_path = "/images/blue.png?pipe=";
+
+const coep_header= {
+  "coep-none"         : "",
+  "coep-require-corp" : "|header(Cross-Origin-Embedder-Policy,require-corp)",
+}
+
+const corp_header = {
+  "corp-undefined": "",
+  "corp-cross-origin": "|header(Cross-Origin-Resource-Policy,cross-origin)",
+}
+
+// Check enforcement of COEP in a DedicatedWorker using CacheStorage.
+//
+// 1) Fetch a response from a document with COEP:none. Store it in the
+//    CacheStorage. The response is cross-origin without any CORS header.
+// 2) From an iframe, start a DedicatedWorker and try to retrieve the response
+//    from the CacheStorage.
+//
+// Test parameters:
+// - |iframe_coep| the COEP header of the iframe's document response
+// - |worker_coep| the COEP header of the DedicatedWorker's script response.
+// - |response_corp| the CORP header of the response.
+//
+// Test expectations:
+// |result|
+//   - "success" when the worker is able to fetch the response from the
+//     CacheStorage,
+//   - "failure" when the worker is not able to fetch the response from the
+//     CacheStorage, and
+//   - "error" when it is unable to create a worker.
+// https://mikewest.github.io/corpp/#initialize-embedder-policy-for-global
+function check(
+  // Test parameters:
+  iframe_coep,
+  worker_coep,
+  response_corp,
+
+  // Test expectations:
+  result) {
+
+  promise_test(async (t) => {
+    // 1) Fetch a response from a document with COEP:none. Store it in the
+    //    CacheStorage. The response is cross-origin without any CORS header.
+    const resource_path = ressource_path + corp_header[response_corp];
+    const resource_url = remote(resource_path);
+    const fetch_request = new Request(resource_url, {mode: 'no-cors'});
+    const cache = await caches.open('v1');
+    const fetch_response = await fetch(fetch_request);
+    await cache.put(fetch_request, fetch_response);
+
+    // 2) From an iframe, start a DedicatedWorker and try to retrieve the
+    //    response from the CacheStorage.
+    const worker_url = dedicated_worker_path + coep_header[worker_coep];
+    const worker_eval = `
+      (async function() {
+        const cache = await caches.open('v1');
+        const request = new Request('${resource_url}', {
+          mode: 'no-cors'
+        });
+        try {
+          const response = await cache.match(request);
+          postMessage('success');
+        } catch(error) {
+          postMessage('failure');
+        }
+      })()
+    `;
+
+    const iframe_url = iframe_path + coep_header[iframe_coep];
+    const iframe_eval = `
+      (async function() {
+        const w = new Worker('${worker_url}');
+        const worker_response = new Promise(resolve => w.onmessage = resolve);
+        w.onerror = () => parent.postMessage('error');
+        w.postMessage(\`${worker_eval}\`);
+        const response = await worker_response;
+        parent.postMessage(response.data);
+      })();
+    `;
+
+    const iframe = document.createElement("iframe");
+    t.add_cleanup(() => iframe.remove());
+    iframe.src = iframe_url;
+    const iframe_loaded = new Promise(resolve => iframe.onload = resolve);
+    document.body.appendChild(iframe);
+    await iframe_loaded;
+
+    const iframe_response = new Promise(resolve => {
+      window.addEventListener("message", resolve);
+    })
+    iframe.contentWindow.postMessage(iframe_eval);
+
+    const {data} = await iframe_response;
+    assert_equals(data, result);
+  }, `${iframe_coep} ${worker_coep} ${response_corp}`)
+}
+
+// -----------------------------------------------------------------------------
+//    iframe_coep         , worker_coep         , response_corp       , loaded
+// -----------------------------------------------------------------------------
+check("coep-none"         , "coep-none"         , "corp-cross-origin" , "success");
+check("coep-none"         , "coep-none"         , "corp-undefined"    , "success");
+check("coep-none"         , "coep-require-corp" , "corp-cross-origin" , "success");
+check("coep-none"         , "coep-require-corp" , "corp-undefined"    , "failure");
+check("coep-require-corp" , "coep-none"         , "corp-cross-origin" , "error");
+check("coep-require-corp" , "coep-none"         , "corp-undefined"    , "error");
+check("coep-require-corp" , "coep-require-corp" , "corp-cross-origin" , "success");
+check("coep-require-corp" , "coep-require-corp" , "corp-undefined"    , "failure");
+
+</script>
+</html>

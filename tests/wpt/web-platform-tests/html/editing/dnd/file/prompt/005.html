@@ -10,13 +10,13 @@
 
 <script>
 window.onload = function() {
-	if( location.protocol == 'file:' || location.protocol == 'http:' || location.protocol == 'https:' ) {
-		document.getElementsByTagName('p')[0].innerHTML = 'Use the source of this file as the source of special-case URLs within your browser, such as scriptable chrome: or opera: or attachment: URLs (eg. opera:config and send yourself the file as an email attachments and open the attachment in the browser).';
-		return;
-	}
-	var orange = document.getElementsByTagName('div')[0];
-	orange.ondragover = orange.ondragenter = orange.ondrop = function(e) {
-   	e.preventDefault();
+  if( location.protocol == 'file:' || location.protocol == 'http:' || location.protocol == 'https:' ) {
+    document.getElementsByTagName('p')[0].innerHTML = 'Use the source of this file as the source of special-case URLs within your browser, such as scriptable chrome: or opera: or attachment: URLs (eg. opera:config and send yourself the file as an email attachments and open the attachment in the browser).';
+    return;
+  }
+  var orange = document.getElementsByTagName('div')[0];
+  orange.ondragover = orange.ondragenter = orange.ondrop = function(e) {
+    e.preventDefault();
   };
 };
 </script>

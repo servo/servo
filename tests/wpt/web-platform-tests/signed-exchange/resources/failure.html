@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<title>Content of invalid signed exchange</title>
+<script>
+window.addEventListener('message', (event) => {
+  event.data.port.postMessage("FAIL if this content is loaded");
+}, false);
+</script>

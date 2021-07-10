@@ -25,7 +25,7 @@
       t.step(function() {
         var contentEl = document.getElementById("content");
         var marginLeftVal = getComputedStyle(contentEl).getPropertyValue('margin-left');
-        assert_true(marginLeftVal == "2px");
+        assert_equals(marginLeftVal, "2px");
         t.done();
       }, "Inline style should not be applied");
     </script>

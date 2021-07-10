@@ -2,15 +2,24 @@
 
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import argparse
+import csv
 import itertools
 import json
 import os
+import platform
 import subprocess
+from datetime import datetime
 from functools import partial
 from statistics import median, StatisticsError
+from urllib.parse import urlsplit, urlunsplit, urljoin
+
+
+DATE = datetime.now().strftime("%Y-%m-%d")
+MACHINE = platform.machine()
+SYSTEM = platform.system()
 
 
 def load_manifest(filename):
@@ -31,6 +40,17 @@ def parse_manifest(text):
     return output
 
 
+def testcase_url(base, testcase):
+    # The tp5 manifest hardwires http://localhost/ as the base URL,
+    # which requires running the server as root in order to open
+    # the server on port 80. To allow non-root users to run the test
+    # case, we take the URL to be relative to a base URL.
+    (scheme, netloc, path, query, fragment) = urlsplit(testcase)
+    relative_url = urlunsplit(('', '', '.' + path, query, fragment))
+    absolute_url = urljoin(base, relative_url)
+    return absolute_url
+
+
 def execute_test(url, command, timeout):
     try:
         return subprocess.check_output(
@@ -46,16 +66,16 @@ def execute_test(url, command, timeout):
     return ""
 
 
-def run_servo_test(url, timeout, is_async):
+def run_servo_test(testcase, url, date, timeout, is_async):
     if is_async:
         print("Servo does not support async test!")
         # Return a placeholder
-        return parse_log("", url)
+        return parse_log("", testcase, url, date)
 
     ua_script_path = "{}/user-agent-js".format(os.getcwd())
     command = [
         "../../../target/release/servo", url,
-        "--userscripts", ua_script_path,
+        "--userscripts=" + ua_script_path,
         "--headless",
         "-x", "-o", "output.png"
     ]
@@ -71,16 +91,16 @@ def run_servo_test(url, timeout, is_async):
             ' '.join(command)
         ))
     except subprocess.TimeoutExpired:
-        print("Test FAILED due to timeout: {}".format(url))
-    return parse_log(log, url)
+        print("Test FAILED due to timeout: {}".format(testcase))
+    return parse_log(log, testcase, url, date)
 
 
-def parse_log(log, testcase):
+def parse_log(log, testcase, url, date):
     blocks = []
     block = []
     copy = False
     for line_bytes in log.splitlines():
-        line = line_bytes.decode()
+        line = line_bytes.decode('utf-8')
 
         if line.strip() == ("[PERF] perf block start"):
             copy = True
@@ -96,7 +116,7 @@ def parse_log(log, testcase):
         for line in block:
             try:
                 (_, key, value) = line.split(",")
-            except:
+            except ValueError:
                 print("[DEBUG] failed to parse the following line:")
                 print(line)
                 print('[DEBUG] log:')
@@ -112,11 +132,11 @@ def parse_log(log, testcase):
 
         return timing
 
-    def valid_timing(timing, testcase=None):
-        if (timing is None or
-                testcase is None or
-                timing.get('title') == 'Error response' or
-                timing.get('testcase') != testcase):
+    def valid_timing(timing, url=None):
+        if (timing is None
+                or testcase is None
+                or timing.get('title') == 'Error loading page'
+                or timing.get('testcase') != url):
             return False
         else:
             return True
@@ -127,6 +147,9 @@ def parse_log(log, testcase):
     # able to identify failed tests (successful tests have time >=0).
     def create_placeholder(testcase):
         return {
+            "system": SYSTEM,
+            "machine": MACHINE,
+            "date": date,
             "testcase": testcase,
             "title": "",
             "navigationStart": 0,
@@ -152,8 +175,18 @@ def parse_log(log, testcase):
             "domComplete": -1,
         }
 
-    valid_timing_for_case = partial(valid_timing, testcase=testcase)
-    timings = list(filter(valid_timing_for_case, map(parse_block, blocks)))
+    # Set the testcase field to contain the original testcase name,
+    # rather than the url.
+    def set_testcase(timing, testcase=None, date=None):
+        timing['testcase'] = testcase
+        timing['system'] = SYSTEM
+        timing['machine'] = MACHINE
+        timing['date'] = date
+        return timing
+
+    valid_timing_for_case = partial(valid_timing, url=url)
+    set_testcase_for_case = partial(set_testcase, testcase=testcase, date=date)
+    timings = list(map(set_testcase_for_case, filter(valid_timing_for_case, map(parse_block, blocks))))
 
     if len(timings) == 0:
         print("Didn't find any perf data in the log, test timeout?")
@@ -167,10 +200,11 @@ def parse_log(log, testcase):
         return timings
 
 
-def filter_result_by_manifest(result_json, manifest):
+def filter_result_by_manifest(result_json, manifest, base):
     filtered = []
     for name, is_async in manifest:
-        match = [tc for tc in result_json if tc['testcase'] == name]
+        url = testcase_url(base, name)
+        match = [tc for tc in result_json if tc['testcase'] == url]
         if len(match) == 0:
             raise Exception(("Missing test result: {}. This will cause a "
                              "discontinuity in the treeherder graph, "
@@ -201,9 +235,9 @@ def take_result_median(result_json, expected_runs):
     return median_results
 
 
-def save_result_json(results, filename, manifest, expected_runs):
+def save_result_json(results, filename, manifest, expected_runs, base):
 
-    results = filter_result_by_manifest(results, manifest)
+    results = filter_result_by_manifest(results, manifest, base)
     results = take_result_median(results, expected_runs)
 
     if len(results) == 0:
@@ -214,6 +248,45 @@ def save_result_json(results, filename, manifest, expected_runs):
         with open(filename, 'w') as f:
             json.dump(results, f, indent=2)
     print("Result saved to {}".format(filename))
+
+
+def save_result_csv(results, filename, manifest, expected_runs, base):
+
+    fieldnames = [
+        'system',
+        'machine',
+        'date',
+        'testcase',
+        'title',
+        'connectEnd',
+        'connectStart',
+        'domComplete',
+        'domContentLoadedEventEnd',
+        'domContentLoadedEventStart',
+        'domInteractive',
+        'domLoading',
+        'domainLookupEnd',
+        'domainLookupStart',
+        'fetchStart',
+        'loadEventEnd',
+        'loadEventStart',
+        'navigationStart',
+        'redirectEnd',
+        'redirectStart',
+        'requestStart',
+        'responseEnd',
+        'responseStart',
+        'secureConnectionStart',
+        'unloadEventEnd',
+        'unloadEventStart',
+    ]
+
+    successes = [r for r in results if r['domComplete'] != -1]
+
+    with open(filename, 'w', encoding='utf-8') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames)
+        writer.writeheader()
+        writer.writerows(successes)
 
 
 def format_result_summary(results):
@@ -245,6 +318,10 @@ def main():
                         help="the test manifest in tp5 format")
     parser.add_argument("output_file",
                         help="filename for the output json")
+    parser.add_argument("--base",
+                        type=str,
+                        default='http://localhost:8000/',
+                        help="the base URL for tests. Default: http://localhost:8000/")
     parser.add_argument("--runs",
                         type=int,
                         default=20,
@@ -254,6 +331,10 @@ def main():
                         default=300,  # 5 min
                         help=("kill the test if not finished in time (sec)."
                               " Default: 5 min"))
+    parser.add_argument("--date",
+                        type=str,
+                        default=None,  # 5 min
+                        help=("the date to use in the CSV file."))
     parser.add_argument("--engine",
                         type=str,
                         default='servo',
@@ -265,23 +346,28 @@ def main():
     elif args.engine == 'gecko':
         import gecko_driver  # Load this only when we need gecko test
         run_test = gecko_driver.run_gecko_test
+    date = args.date or DATE
     try:
         # Assume the server is up and running
         testcases = load_manifest(args.tp5_manifest)
         results = []
         for testcase, is_async in testcases:
+            url = testcase_url(args.base, testcase)
             for run in range(args.runs):
                 print("Running test {}/{} on {}".format(run + 1,
                                                         args.runs,
-                                                        testcase))
+                                                        url))
                 # results will be a mixure of timings dict and testcase strings
                 # testcase string indicates a failed test
-                results += run_test(testcase, args.timeout, is_async)
+                results += run_test(testcase, url, date, args.timeout, is_async)
                 print("Finished")
                 # TODO: Record and analyze other performance.timing properties
 
         print(format_result_summary(results))
-        save_result_json(results, args.output_file, testcases, args.runs)
+        if args.output_file.endswith('.csv'):
+            save_result_csv(results, args.output_file, testcases, args.runs, args.base)
+        else:
+            save_result_json(results, args.output_file, testcases, args.runs, args.base)
 
     except KeyboardInterrupt:
         print("Test stopped by user, saving partial result")

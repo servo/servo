@@ -1,3 +1,3 @@
 def main(request, response):
-    return [('Content-Type', 'text/html'),
-            ('X-Content-Type-Options', 'nosniff')], ""
+    return [(b'Content-Type', b'text/html'),
+            (b'X-Content-Type-Options', b'nosniff')], u""

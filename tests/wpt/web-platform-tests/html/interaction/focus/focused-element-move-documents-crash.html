@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="author" title="Joey Arhar" href="mailto:jarhar@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1172828">
+
+<!-- No crash should occur if a focused element is moved to another document. -->
+
+<div id=editable contenteditable=>
+
+<script>
+editable.addEventListener('blur', function() {
+  document.execCommand('InsertText', false, '\t');
+});
+editable.focus();
+const secondDoc = document.implementation.createDocument('', null);
+secondDoc.appendChild(editable);
+</script>

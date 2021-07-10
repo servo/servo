@@ -1,28 +1,12 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
+<meta name="timeout" content="long">
 <title>service worker: activation</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/test-helpers.sub.js"></script>
+<body>
 <script>
-// Registers, waits for activation, then unregisters on a dummy scope.
-//
-// This helper can be used in tests that assert that activation doesn't happen.
-// It would not be sufficient to check the .waiting/.active properties once,
-// since activation could be scheduled and just hasn't happened yet. Since this
-// helper shows that activation of another registration completed, we can be
-// sure that activation really will not happen.
-function wait_for_activation_on_dummy_scope(t) {
-  var dummy_scope = 'resources/there/is/no/there/there';
-  var registration;
-  return navigator.serviceWorker.register('resources/empty-worker.js',
-      { scope: dummy_scope })
-    .then(r => {
-        registration = r;
-        return wait_for_state(t, registration.installing, 'activated');
-      })
-    .then(() => registration.unregister());
-}
 // Returns {registration, iframe}, where |registration| has an active and
 // waiting worker. The active worker controls |iframe| and has an inflight
 // message event that can be finished by calling
@@ -66,7 +50,7 @@ function setup_activation_test(t, scope, worker_url) {
         return wait_for_state(t, registration.installing, 'installed');
       })
     .then(() => {
-        return wait_for_activation_on_dummy_scope(t);
+        return wait_for_activation_on_sample_scope(t, self);
       })
     .then(() => {
         assert_not_equals(registration.waiting, null);
@@ -86,7 +70,7 @@ promise_test(t => {
           iframe = result.iframe;
           // Finish the in-flight request.
           registration.active.postMessage('go');
-          return wait_for_activation_on_dummy_scope(t);
+          return wait_for_activation_on_sample_scope(t, self);
         })
       .then(() => {
           // The new worker is still waiting. Remove the frame and it should
@@ -130,10 +114,12 @@ promise_test(t => {
     var scope = 'resources/skip-waiting';
     var worker_url = 'resources/mint-new-worker.py?skip-waiting';
     var registration;
+    var iframe;
     var new_worker;
     return setup_activation_test(t, scope, worker_url)
       .then(result => {
           registration = result.registration;
+          iframe = result.iframe;
           // Finish the request. The iframe does not need to be removed because
           // skipWaiting() was called.
           new_worker = registration.waiting;
@@ -143,6 +129,8 @@ promise_test(t => {
         })
       .then(() => {
           assert_equals(registration.active, new_worker);
+          // Remove the iframe.
+          iframe.remove();
         });
   }, 'skipWaiting bypasses no controllee requirement');
 
@@ -177,3 +165,4 @@ promise_test(t => {
         });
   }, 'finishing a request triggers unregister');
 </script>
+</body>

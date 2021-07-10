@@ -28,83 +28,83 @@
 <script>
 
 function makeEl(eltype,props,contents) {
-	var elem = document.createElement(eltype);
-	for( var i in props ) {
-		if( props.hasOwnProperty(i) ) {
-			elem.setAttribute(i,props[i]);
-		}
-	}
-	if( contents ) {
-		elem.innerHTML = contents;
-	}
-	return elem;
+  var elem = document.createElement(eltype);
+  for( var i in props ) {
+    if( props.hasOwnProperty(i) ) {
+      elem.setAttribute(i,props[i]);
+    }
+  }
+  if( contents ) {
+    elem.innerHTML = contents;
+  }
+  return elem;
 }
 
 var orange, fails = [], doneonce = false;
 window.onload = function() {
   orange = document.getElementsByTagName('div')[0];
 
-	orange.appendChild( makeEl('div',{itemprop:'foo',itemscope:'itemscope'},'') );
-	orange.appendChild( makeEl('div',{itemscope:'itemscope'},'') );
-	orange.lastChild.appendChild( makeEl('div',{itemprop:'bar'},'test') );
-	orange.appendChild( makeEl('div',{itemprop:'bar',itemscope:'itemscope'},'') );
+  orange.appendChild( makeEl('div',{itemprop:'foo',itemscope:'itemscope'},'') );
+  orange.appendChild( makeEl('div',{itemscope:'itemscope'},'') );
+  orange.lastChild.appendChild( makeEl('div',{itemprop:'bar'},'test') );
+  orange.appendChild( makeEl('div',{itemprop:'bar',itemscope:'itemscope'},'') );
 
   orange.ondragstart = function(e) {
-		e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.effectAllowed = 'copy';
     e.dataTransfer.setData('Text', 'dummy text');
-  	var err;
-		if( err = checkprops(e.dataTransfer.getData('application/microdata+json')) ) {
-			fails[fails.length] = e.type + ' ' + err;
-	  }
+    var err;
+    if( err = checkprops(e.dataTransfer.getData('application/microdata+json')) ) {
+      fails[fails.length] = e.type + ' ' + err;
+    }
   };
   orange.nextSibling.ondragenter = orange.nextSibling.ondragleave = orange.nextSibling.ondragover =
   orange.ondrag = orange.ondragend = function(e) {
     if( e.type == 'dragover' || e.type == 'dragenter' ) {
-    	e.preventDefault();
-	    e.dataTransfer.dropEffect = 'copy';
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
     }
     if( e.dataTransfer.getData('application/microdata+json') ) {
-			fails[fails.length] = e.type + ' unexpectedly had microdata (security restriction)';
+      fails[fails.length] = e.type + ' unexpectedly had microdata (security restriction)';
     }
   };
-	orange.nextSibling.ondrop = function(e) {
-  	var err;
-		if( err = checkprops(e.dataTransfer.getData('application/microdata+json')) ) {
-			fails[fails.length] = e.type + ' ' + err;
-	  }
-	  if( e.type != 'drop' ) { return; }
-  	if( doneonce ) { return; }
-  	doneonce = true;
+  orange.nextSibling.ondrop = function(e) {
+    var err;
+    if( err = checkprops(e.dataTransfer.getData('application/microdata+json')) ) {
+      fails[fails.length] = e.type + ' ' + err;
+    }
+    if( e.type != 'drop' ) { return; }
+    if( doneonce ) { return; }
+    doneonce = true;
     setTimeout(function () {
-    	document.getElementsByTagName('p')[0].innerHTML = fails.length ? ( 'FAIL: ' + fails.join('<br>') ) : 'PASS';
-    	fails = [];
+      document.getElementsByTagName('p')[0].innerHTML = fails.length ? ( 'FAIL: ' + fails.join('<br>') ) : 'PASS';
+      fails = [];
     }, 200 );
   };
 
 };
 function checkprops(md) {
-	// http://dev.w3.org/html5/md/#drag-and-drop
-	//"The user agent must take the list of dragged nodes and extract the microdata from those nodes into a JSON form"
-	// http://dev.w3.org/html5/spec/dnd.html#drag-and-drop-processing-model
-	//"the list of dragged nodes contains only the source node, if any."
-	//nested items should only be in the items list if they are in a dragged *selection*
-	var i;
-	if( !md ) { return 'no microdata'; }
-	md = JSON.parse(md);
-	if( !md.items ) { return 'no items'; }
-	if( md.items.length != 1 ) { return md.items.length+' items instead of 1'; }
-	if( !md.items[0].properties ) { return 'no properties'; }
-	if( !md.items[0].properties.foo ) { return 'no properties.foo'; }
-	if( !md.items[0].properties.bar ) { return 'no properties.bar'; }
-	if( md.items[0].properties.foo.length != 1 ) { return 'properties.foo length '+md.items[0].properties.foo.length+' instead of 1'; }
-	if( md.items[0].properties.bar.length != 1 ) { return 'properties.bar length '+md.items[0].properties.bar.length+' instead of 1'; }
+  // http://dev.w3.org/html5/md/#drag-and-drop
+  //"The user agent must take the list of dragged nodes and extract the microdata from those nodes into a JSON form"
+  // http://dev.w3.org/html5/spec/dnd.html#drag-and-drop-processing-model
+  //"the list of dragged nodes contains only the source node, if any."
+  //nested items should only be in the items list if they are in a dragged *selection*
+  var i;
+  if( !md ) { return 'no microdata'; }
+  md = JSON.parse(md);
+  if( !md.items ) { return 'no items'; }
+  if( md.items.length != 1 ) { return md.items.length+' items instead of 1'; }
+  if( !md.items[0].properties ) { return 'no properties'; }
+  if( !md.items[0].properties.foo ) { return 'no properties.foo'; }
+  if( !md.items[0].properties.bar ) { return 'no properties.bar'; }
+  if( md.items[0].properties.foo.length != 1 ) { return 'properties.foo length '+md.items[0].properties.foo.length+' instead of 1'; }
+  if( md.items[0].properties.bar.length != 1 ) { return 'properties.bar length '+md.items[0].properties.bar.length+' instead of 1'; }
 
-	if( !md.items[0].properties.foo[0] ) { return 'properties.foo[0] <i>'+md.items[0].properties.foo[0]+'</i> instead of <i>{properties:{}}</i>'; }
-	if( !md.items[0].properties.foo[0].properties ) { return 'properties.foo[0].properties <i>'+md.items[0].properties.foo[0].properties+'</i> instead of <i>{}</i>'; }
+  if( !md.items[0].properties.foo[0] ) { return 'properties.foo[0] <i>'+md.items[0].properties.foo[0]+'</i> instead of <i>{properties:{}}</i>'; }
+  if( !md.items[0].properties.foo[0].properties ) { return 'properties.foo[0].properties <i>'+md.items[0].properties.foo[0].properties+'</i> instead of <i>{}</i>'; }
 
-	if( !md.items[0].properties.bar[0] ) { return 'properties.bar[0] <i>'+md.items[0].properties.bar[0]+'</i> instead of <i>{properties:{}}</i>'; }
-	if( !md.items[0].properties.bar[0].properties ) { return 'properties.bar[0].properties <i>'+md.items[0].properties.bar[0].properties+'</i> instead of <i>{}</i>'; }
-	return '';
+  if( !md.items[0].properties.bar[0] ) { return 'properties.bar[0] <i>'+md.items[0].properties.bar[0]+'</i> instead of <i>{properties:{}}</i>'; }
+  if( !md.items[0].properties.bar[0].properties ) { return 'properties.bar[0].properties <i>'+md.items[0].properties.bar[0].properties+'</i> instead of <i>{}</i>'; }
+  return '';
 }
 
 </script>

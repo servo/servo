@@ -2,13 +2,14 @@
 <html>
   <head>
     <title>EventSource: "retry" field</title>
+    <meta name="timeout" content="long">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
   </head>
   <body>
     <div id="log"></div>
     <script>
-      var test = async_test(document.title);
+      var test = async_test();
       test.step(function() {
         var timeoutms = 3000,
             timeoutstr = "03000", // 1536 in octal, but should be 3000

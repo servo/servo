@@ -1,0 +1,17 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Media Capture from DOM Elements (https://w3c.github.io/mediacapture-fromelement/)
+
+partial interface HTMLMediaElement {
+    MediaStream captureStream ();
+};
+
+partial interface HTMLCanvasElement {
+    MediaStream captureStream (optional double frameRequestRate);
+};
+
+[Exposed=Window] interface CanvasCaptureMediaStreamTrack : MediaStreamTrack {
+    readonly        attribute HTMLCanvasElement canvas;
+    undefined requestFrame ();
+};

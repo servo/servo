@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<link rel="author" title="David Grogan" href="dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#distributing-width-to-columns">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/94">
+
+<style>
+table {
+  width: 200px;
+  border-collapse: collapse;
+  table-layout: fixed;
+  height: 20px;
+}
+
+td {
+  padding: 0px;
+  background: lime;
+  outline: 1px solid blue;
+}
+</style>
+
+<h2>Calc width on col is treated as auto, even in fixed tables</h2>
+
+<table id=theTable>
+  <col style="width:calc(20% + 80px)">
+  <tr>
+    <td data-expected-width=100></td>
+    <td data-expected-width=100></td>
+  </tr>
+</table>
+
+<script>
+checkLayout('#theTable')
+</script>

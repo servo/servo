@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSSAnimation.animationName</title>
+<link rel="help"
+      href="https://drafts.csswg.org/css-animations-2/#dom-cssanimation-animationname">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/testcommon.js"></script>
+<style>
+@keyframes xyz {
+  to { left: 100px }
+}
+</style>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(t => {
+  const div = addDiv(t);
+  div.style.animation = 'xyz 100s';
+  assert_equals(div.getAnimations()[0].animationName, 'xyz',
+                'Animation name matches keyframes rule name');
+}, 'Animation name makes keyframe rule');
+
+test(t => {
+  const div = addDiv(t);
+  div.style.animation = 'x\\yz 100s';
+  assert_equals(div.getAnimations()[0].animationName, 'xyz',
+                'Escaped animation name matches keyframes rule name');
+}, 'Escaped animation name');
+
+test(t => {
+  const div = addDiv(t);
+  div.style.animation = 'x\\79 z 100s';
+  assert_equals(div.getAnimations()[0].animationName, 'xyz',
+                'Hex-escaped animation name matches keyframes rule'
+                + ' name');
+}, 'Animation name with hex-escape');
+
+</script>

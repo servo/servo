@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+<title> 'layout-animations' Policy : Correct behavior for affected and unaffected properties when
+         feature is disabled.
+</title>
+<body>
+<script>
+  // Sanity-check: Properties which are not affected by the policy 'layout-animations' should be
+  // interpolated normally (linearly) when the policy is disabled for the document.
+  test_interpolation(
+    {
+      property: "color",
+      from: "rgba(0, 50, 100, 1)",
+      to: "rgba(200, 150, 200, 1)",
+      test_prefix: 'Testing property "color".'
+    },
+    [
+      {at: 0.00, expect: "rgba(0,   50,  100, 1)"},
+      {at: 0.1,  expect: "rgba(20,  60,  110, 1)"},
+      {at: 0.2,  expect: "rgba(40,  70,  120, 1)"},
+      {at: 0.4,  expect: "rgba(80,  90,  140, 1)"},
+      {at: 0.6,  expect: "rgba(120, 110, 160, 1)"},
+      {at: 0.8,  expect: "rgba(160, 130, 180, 1)"},
+      {at: 0.9,  expect: "rgba(180, 140, 190, 1)"},
+    ]);
+
+  // There is no interpolation for the affected properties when the policy is disabled.
+  ["bottom", "height", "left", "right", "top", "width"].forEach(
+    (p) => test_no_interpolation(
+      {
+        property: p,
+        from: "100px",
+        to: "200px",
+        test_prefix: `Testing property "${p}".`
+      }));
+</script>
+</body>

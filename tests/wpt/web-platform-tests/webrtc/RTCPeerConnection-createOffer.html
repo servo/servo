@@ -1,0 +1,134 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.createOffer</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170515/webrtc.html
+
+  // The following helper functions are called from RTCPeerConnection-helper.js:
+  //   countAudioLine()
+  //   countVideoLine()
+  //   assert_session_desc_similar()
+
+  /*
+   *  4.3.2.  createOffer()
+   */
+
+  /*
+   *  Final steps to create an offer
+   *    4.  Let offer be a newly created RTCSessionDescriptionInit dictionary
+   *        with its type member initialized to the string "offer" and its sdp member
+   *        initialized to sdpString.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection()
+
+    t.add_cleanup(() => pc.close());
+
+    return pc.createOffer()
+    .then(offer => {
+      assert_equals(typeof offer, 'object',
+        'Expect offer to be plain object dictionary RTCSessionDescriptionInit');
+
+      assert_false(offer instanceof RTCSessionDescription,
+        'Expect offer to not be instance of RTCSessionDescription')
+    });
+  }, 'createOffer() with no argument from newly created RTCPeerConnection should succeed');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const states = [];
+    pc.addEventListener('signalingstatechange', () => states.push(pc.signalingState));
+
+    return generateVideoReceiveOnlyOffer(pc)
+    .then(offer =>
+       pc.setLocalDescription(offer)
+      .then(() => {
+        assert_equals(pc.signalingState, 'have-local-offer');
+        assert_session_desc_similar(pc.localDescription, offer);
+        assert_session_desc_similar(pc.pendingLocalDescription, offer);
+        assert_equals(pc.currentLocalDescription, null);
+
+        assert_array_equals(states, ['have-local-offer']);
+      }));
+  }, 'createOffer() and then setLocalDescription() should succeed');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    pc.close();
+
+    return promise_rejects_dom(t, 'InvalidStateError',
+      pc.createOffer());
+  }, 'createOffer() after connection is closed should reject with InvalidStateError');
+
+  /*
+   *  Final steps to create an offer
+   *    2.  If connection was modified in such a way that additional inspection of the
+   *        system state is necessary, then in parallel begin the steps to create an
+   *        offer again, given p, and abort these steps.
+   *
+   *  This test might hit step 2 of final steps to create an offer. But the media stream
+   *  is likely added already by the time steps to create an offer is executed, because
+   *  that is enqueued as an operation.
+   *  Either way it verifies that the media stream is included in the offer even though
+   *  the stream is added after synchronous call to createOffer.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const promise = pc.createOffer();
+
+    pc.addTransceiver('audio');
+    return promise.then(offer => {
+      assert_equals(countAudioLine(offer.sdp), 1,
+        'Expect m=audio line to be found in offer SDP')
+    });
+  }, 'When media stream is added when createOffer() is running in parallel, the result offer should contain the new media stream');
+
+  /*
+  If connection's signaling state is neither "stable" nor "have-local-offer", return a promise rejected with a newly created InvalidStateError.
+  */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const states = [];
+    pc.addEventListener('signalingstatechange', () => states.push(pc.signalingState));
+
+    return generateVideoReceiveOnlyOffer(pc)
+    .then(offer =>
+       pc.setRemoteDescription(offer)
+       .then(() => {
+          assert_equals(pc.signalingState, 'have-remote-offer');
+          return promise_rejects_dom(t, 'InvalidStateError',
+             pc.createOffer());
+       })
+     )
+  }, 'createOffer() should fail when signaling state is not stable or have-local-offer');
+  /*
+   *  TODO
+   *  4.3.2 createOffer
+   *    3.  If connection is configured with an identity provider, and an identity
+   *        assertion has not yet been generated using said identity provider, then
+   *        begin the identity assertion request process if it has not already begun.
+   *    Steps to create an offer
+   *    1.  If the need for an identity assertion was identified when createOffer was
+   *        invoked, wait for the identity assertion request process to complete.
+   *
+   *  Non-Testable
+   *  4.3.2 createOffer
+   *    Steps to create an offer
+   *    4.  Inspect the system state to determine the currently available resources as
+   *    necessary for generating the offer, as described in [JSEP] (section 4.1.6.).
+   *    5.  If this inspection failed for any reason, reject p with a newly created
+   *        OperationError and abort these steps.
+   */
+</script>

@@ -1,0 +1,95 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Presentation API (https://w3c.github.io/presentation-api/)
+
+partial interface Navigator {
+  [SecureContext, SameObject] readonly attribute Presentation presentation;
+};
+
+[SecureContext, Exposed=Window]
+interface Presentation {
+};
+
+partial interface Presentation {
+  attribute PresentationRequest? defaultRequest;
+};
+
+partial interface Presentation {
+  readonly attribute PresentationReceiver? receiver;
+};
+
+[SecureContext, Exposed=Window]
+interface PresentationRequest : EventTarget {
+  constructor(USVString url);
+  constructor(sequence<USVString> urls);
+  Promise<PresentationConnection> start();
+  Promise<PresentationConnection> reconnect(USVString presentationId);
+  Promise<PresentationAvailability> getAvailability();
+
+  attribute EventHandler onconnectionavailable;
+};
+
+[SecureContext, Exposed=Window]
+interface PresentationAvailability : EventTarget {
+  readonly attribute boolean value;
+
+  attribute EventHandler onchange;
+};
+
+[SecureContext, Exposed=Window]
+interface PresentationConnectionAvailableEvent : Event {
+  constructor(DOMString type, PresentationConnectionAvailableEventInit eventInitDict);
+  [SameObject] readonly attribute PresentationConnection connection;
+};
+
+dictionary PresentationConnectionAvailableEventInit : EventInit {
+  required PresentationConnection connection;
+};
+
+enum PresentationConnectionState { "connecting", "connected", "closed", "terminated" };
+
+[SecureContext, Exposed=Window]
+interface PresentationConnection : EventTarget {
+  readonly attribute USVString id;
+  readonly attribute USVString url;
+  readonly attribute PresentationConnectionState state;
+  undefined close();
+  undefined terminate();
+  attribute EventHandler onconnect;
+  attribute EventHandler onclose;
+  attribute EventHandler onterminate;
+
+  // Communication
+  attribute BinaryType binaryType;
+  attribute EventHandler onmessage;
+  undefined send (DOMString message);
+  undefined send (Blob data);
+  undefined send (ArrayBuffer data);
+  undefined send (ArrayBufferView data);
+};
+
+enum PresentationConnectionCloseReason { "error", "closed", "wentaway" };
+
+[SecureContext, Exposed=Window]
+interface PresentationConnectionCloseEvent : Event {
+  constructor(DOMString type, PresentationConnectionCloseEventInit eventInitDict);
+  readonly attribute PresentationConnectionCloseReason reason;
+  readonly attribute DOMString message;
+};
+
+dictionary PresentationConnectionCloseEventInit : EventInit {
+  required PresentationConnectionCloseReason reason;
+  DOMString message = "";
+};
+
+[SecureContext, Exposed=Window]
+interface PresentationReceiver {
+  readonly attribute Promise<PresentationConnectionList> connectionList;
+};
+
+[SecureContext, Exposed=Window]
+interface PresentationConnectionList : EventTarget {
+  readonly attribute FrozenArray<PresentationConnection> connections;
+  attribute EventHandler onconnectionavailable;
+};

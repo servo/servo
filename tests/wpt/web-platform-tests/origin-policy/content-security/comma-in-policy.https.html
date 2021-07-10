@@ -1,0 +1,16 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>Commas in "content_security/policy" cause parse errors and thus no CSP</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/origin-policy-test-runner.js"></script>
+
+<div id="log"></div>
+
+<script>
+"use strict";
+runTestsInSubframe({
+  hostname: "op1",
+  testJS: "resources/allow-unsafe-eval.mjs"
+});
+</script>

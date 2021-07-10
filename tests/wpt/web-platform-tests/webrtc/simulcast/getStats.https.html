@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection Simulcast Tests - getStats</title>
+<meta name="timeout" content="long">
+<script src="../third_party/sdp/sdp.js"></script>
+<script src="simulcast.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  const rids = [0, 1, 2];
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  await negotiateSimulcastAndWaitForVideo(t, rids, pc1, pc2);
+
+  const outboundStats = [];
+  const senderStats = await pc1.getSenders()[0].getStats();
+  senderStats.forEach(stat => {
+    if (stat.type === 'outbound-rtp') {
+      outboundStats.push(stat);
+    }
+  });
+  assert_equals(outboundStats.length, 3, "getStats result should contain three layers");
+  const statsRids = outboundStats.map(stat => parseInt(stat.rid, 10));
+  assert_array_equals(rids, statsRids.sort(), "getStats result should match the rids provided");
+}, 'Simulcast getStats results');
+</script>

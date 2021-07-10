@@ -47,10 +47,28 @@ test(function() {
 }, "createNodeIterator() with undefined as arguments");
 
 test(function() {
+  var err = {name: "failed"};
   var iter = document.createNodeIterator(document, NodeFilter.SHOW_ALL,
-                                        function() { throw {name: "failed"} });
-  assert_throws({name: "failed"}, function() { iter.nextNode() });
+                                         function() { throw err; });
+  assert_throws_exactly(err, function() { iter.nextNode() });
 }, "Propagate exception from filter function");
+
+test(function() {
+  var depth = 0;
+  var iter = document.createNodeIterator(document, NodeFilter.SHOW_ALL,
+    function() {
+      if (iter.referenceNode != document && depth == 0) {
+        depth++;
+        iter.nextNode();
+      }
+      return NodeFilter.FILTER_ACCEPT;
+    });
+  iter.nextNode();
+  iter.nextNode();
+  assert_throws_dom("InvalidStateError", function() { iter.nextNode() });
+  depth--;
+  assert_throws_dom("InvalidStateError", function() { iter.previousNode() });
+}, "Recursive filters need to throw");
 
 function testIterator(root, whatToShow, filter) {
   var iter = document.createNodeIterator(root, whatToShow, filter);
@@ -183,20 +201,15 @@ var callbacks = [
   "(function(node) { return node.nodeName[0] == '#' })",
 ];
 
-var tests = [];
 for (var i = 0; i < testNodes.length; i++) {
   for (var j = 0; j < whatToShows.length; j++) {
     for (var k = 0; k < callbacks.length; k++) {
-      tests.push([
-        "document.createNodeIterator(" + testNodes[i]
-          + ", " + whatToShows[j] + ", " + callbacks[k] + ")",
-        eval(testNodes[i]), eval(whatToShows[j]), eval(callbacks[k])
-      ]);
+      test(() => {
+        testIterator(eval(testNodes[i]), eval(whatToShows[j]), eval(callbacks[k]));
+      }, "document.createNodeIterator(" + testNodes[i] + ", " + whatToShows[j] + ", " + callbacks[k] + ")");
     }
   }
 }
-
-generate_tests(testIterator, tests);
 
 testDiv.style.display = "none";
 </script>

@@ -1,1 +1,1 @@
-postMessage('beta');
+var result = 'beta/script.js';

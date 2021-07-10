@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<title>mfrac created dynamically</title>
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#fractions-mfrac">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#dom-and-javascript">
+<meta name="assert" content="A dynamically added mfrac should render like the equivalent markup.">
+<link rel="match" href="frac-created-dynamically-3-ref.html">
+<script>
+  window.addEventListener("load", function() {
+
+  // force initial layout so we're sure what we're testing against
+  document.documentElement.getBoundingClientRect();
+
+  var mn3 = document.createElementNS("http://www.w3.org/1998/Math/MathML","mn");
+  mn3.appendChild(document.createTextNode("3"));
+  document.getElementsByTagName("mfrac")[0].appendChild(mn3);
+  document.getElementById("mn2").remove();
+
+  document.documentElement.classList.remove('reftest-wait');
+  });
+</script>
+</head>
+<body>
+  <p>This test passes if you see a fraction 1/3.</p>
+  <math>
+    <mfrac>
+      <mn>1</mn>
+      <mn id="mn2">2</mn>
+    </mfrac>
+  </math>
+  <script src="/mathml/support/feature-detection.js"></script>
+  <script>MathMLFeatureDetection.ensure_for_match_reftest("has_mfrac");</script>
+</body>
+</html>

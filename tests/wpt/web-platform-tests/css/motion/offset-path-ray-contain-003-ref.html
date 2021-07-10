@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Motion Path: ray paths with contain</title>
+    <style>
+      #container {
+        width: 300px;
+        height: 300px;
+      }
+      #target {
+        position: relative;
+        left: 100px;
+        top: 100px;
+        width: 100px;
+        height: 100px;
+        background-color: lime;
+        /* The movement is about 150 - 50 * sqrt(2) */
+        transform: rotate(-45deg) translate(79.29px) rotate(45deg);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container">
+      <div id="target"></div>
+    </div>
+  </body>
+</html>

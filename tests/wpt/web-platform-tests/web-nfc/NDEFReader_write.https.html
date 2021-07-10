@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Web NFC: NDEFReader.write Tests</title>
+<link rel="author" title="Intel" href="http://www.intel.com"/>
+<link rel="help" href="https://w3c.github.io/web-nfc/"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/nfc-helpers.js"></script>
+<script>
+
+"use strict";
+
+const invalid_type_messages =
+    [
+      // Invalid NDEFMessageSource type
+      undefined,
+
+      // NDEFMessage.records: should have at least 1 valid record.
+      // https://w3c.github.io/web-nfc/#the-write-method - Step 8.
+      createMessage([{}]),
+
+      // NDEFMessageSource: not NDEF-formatable.
+      // https://w3c.github.io/web-nfc/#the-write-method - Step 8.
+      createMessage([]),
+
+      // https://w3c.github.io/web-nfc/#dfn-map-text-to-ndef
+      // NDEFRecord must have data.
+      createMessage([createTextRecord()]),
+
+      // NDEFRecord.data for 'text' record must be either a string,
+      // an arrayBuffer, or an arrayBufferView.
+      createMessage([createTextRecord(test_json_data)]),
+
+      // NDEFRecord.encoding for 'text' record must be either "utf-8",
+      // "utf-16", "utf-16le" or "utf-16be".
+      createMessage([createTextRecord(test_buffer_data, "chinese")]),
+
+      // https://w3c.github.io/web-nfc/#dfn-map-a-url-to-ndef
+      // NDEFRecord must have data.
+      createMessage([createUrlRecord()]),
+
+      // https://w3c.github.io/web-nfc/#dfn-map-a-url-to-ndef
+      // NDEFRecord must have data.
+      createMessage([createUrlRecord(undefined, true)]),
+
+      // NDEFRecord.data for 'url' record must be string.
+      createMessage([createUrlRecord(test_buffer_data)]),
+      createMessage([createUrlRecord(test_json_data)]),
+
+      // NDEFRecord.data for 'absolute-url' record must be string.
+      createMessage([createUrlRecord(test_buffer_data, true)]),
+      createMessage([createUrlRecord(test_json_data, true)]),
+
+      // https://w3c.github.io/web-nfc/#dfn-map-binary-data-to-ndef
+      // NDEFRecord must have data.
+      createMessage([createMimeRecord()]),
+
+      // NDEFRecord.data for 'mime' record must be BufferSource.
+      createMessage([createMimeRecord(test_text_data)]),
+      createMessage([createMimeRecord(test_number_data)]),
+      createMessage([createMimeRecord(test_json_data)]),
+
+      // NDEFRecord must have data.
+      createMessage([createUnknownRecord()]),
+
+      // NDEFRecord.data for 'unknown' record must be BufferSource.
+      createMessage([createUnknownRecord(test_text_data)]),
+      createMessage([createUnknownRecord(test_number_data)]),
+      createMessage([createUnknownRecord(test_json_data)]),
+
+      // https://w3c.github.io/web-nfc/#dfn-map-external-data-to-ndef
+      // NDEFRecord must have data.
+      createMessage([createRecord('w3.org:xyz')]),
+
+      // NDEFRecord.data for external record must be a BufferSource or NDEFMessageInit.
+      createMessage([createRecord('w3.org:xyz', test_text_data)]),
+      createMessage([createRecord('w3.org:xyz', test_number_data)]),
+      createMessage([createRecord('w3.org:xyz', test_json_data)]),
+
+      // https://w3c.github.io/web-nfc/#dfn-map-local-type-to-ndef
+      // NDEFRecord must have data.
+      createMessage([createRecord(':xyz')]),
+
+      // NDEFRecord.data for local type record must be a BufferSource or NDEFMessageInit.
+      createMessage([createRecord(':xyz', test_text_data)]),
+      createMessage([createRecord(':xyz', test_number_data)]),
+      createMessage([createRecord(':xyz', test_json_data)]),
+
+      // https://w3c.github.io/web-nfc/#dfn-map-smart-poster-to-ndef
+      // NDEFRecord must have data.
+      createMessage([createRecord('smart-poster')]),
+
+      // NDEFRecord.data for smart-poster record must be a NDEFMessageInit.
+      createMessage([createRecord('smart-poster', test_text_data)]),
+      createMessage([createRecord('smart-poster', test_number_data)]),
+      createMessage([createRecord('smart-poster', test_json_data)]),
+      createMessage([createRecord('smart-poster', test_buffer_data)]),
+
+      // https://w3c.github.io/web-nfc/#ndef-record-types
+      // The record type is neither a known type ('text', 'mime' etc.) nor a
+      // valid external/local type.
+      createMessage([createRecord('unmatched_type', test_buffer_data)])
+    ];
+
+const invalid_syntax_messages =
+    [
+      // Data for 'url' or 'absolute-url' record, must be a valid URL.
+      createMessage([createUrlRecord('Invalid URL:// Data')]),
+      createMessage([createUrlRecord('Invalid URL:// Data', true)]),
+
+      // NDEFRecord.lang length for 'text' record must be lower than 64.
+      createMessage([createTextRecord(test_text_data, undefined /* encoding */,
+                                      [...Array(64)].map(_ => 'a'))]),
+    ];
+
+const invalid_signals = [
+  "string",
+  123,
+  {},
+  true,
+  Symbol(),
+  () => {},
+  self
+];
+
+nfc_test(async t => {
+  const ndef = new NDEFReader();
+  const promises = [];
+  invalid_type_messages.forEach(message => {
+    promises.push(
+      promise_rejects_js(t, TypeError, ndef.write(message)));
+  });
+  await Promise.all(promises);
+}, "Test that promise is rejected with TypeError if NDEFMessageSource is invalid.");
+
+nfc_test(async t => {
+  const ndef = new NDEFReader();
+  const promises = [];
+  invalid_syntax_messages.forEach(message => {
+    promises.push(
+      promise_rejects_dom(t, 'SyntaxError', ndef.write(message)));
+  });
+  await Promise.all(promises);
+}, "Test that promise is rejected with SyntaxError if NDEFMessageSource contains\
+ invalid records.");
+
+nfc_test(async t => {
+  await test_driver.set_permission({ name: 'nfc' }, 'denied', false);
+  const ndef = new NDEFReader();
+  await promise_rejects_dom(t, 'NotAllowedError', ndef.write(test_text_data));
+}, 'NDEFReader.write should fail if user permission is not granted.');
+
+// We do not provide NFC mock here to simulate that there has no available
+// implementation for NFC Mojo interface.
+nfc_test(async (t, mockNFC) => {
+  mockNFC.simulateClosedPipe();
+  const ndef = new NDEFReader();
+  await promise_rejects_dom(t, 'NotSupportedError', ndef.write(test_text_data));
+}, 'NDEFReader.write should fail if no implementation for NFC Mojo interface is available.');
+
+nfc_test(async (t, mockNFC) => {
+  const ndef = new NDEFReader();
+  const controller = new AbortController();
+
+  //Make sure push is pending
+  mockNFC.setPendingPushCompleted(false);
+  const p = ndef.write(test_text_data, { signal: controller.signal });
+  const rejected = promise_rejects_dom(t, 'AbortError', p);
+  let callback_called = false;
+  await new Promise(resolve => {
+    t.step_timeout(() => {
+      callback_called = true;
+      controller.abort();
+      resolve();
+    }, 10);
+  });
+  await rejected;
+  assert_true(callback_called, 'timeout should have caused the abort');
+}, "NDEFReader.write should fail if abort write request before write happends.");
+
+nfc_test(async t => {
+  const ndef = new NDEFReader();
+  const controller = new AbortController();
+  assert_false(controller.signal.aborted);
+  controller.abort();
+  assert_true(controller.signal.aborted);
+  await promise_rejects_dom(t, 'AbortError',
+      ndef.write(test_text_data, { signal: controller.signal }));
+}, "NDEFReader.write should fail if signal's aborted flag is set.");
+
+nfc_test(async t => {
+  const ndef = new NDEFReader();
+  const promises = [];
+  invalid_signals.forEach(invalid_signal => {
+    promises.push(promise_rejects_js(t, TypeError,
+        ndef.write(test_text_data, { signal: invalid_signal })));
+  });
+  await Promise.all(promises);
+}, "NDEFReader.write should fail if signal is not an AbortSignal.");
+
+nfc_test(async (t, mockNFC) => {
+  const ndef1 = new NDEFReader();
+  const ndef2 = new NDEFReader();
+  const controller = new AbortController();
+  const p1 = ndef1.write(test_text_data, { signal: controller.signal });
+
+  // Even though write request is grantable,
+  // this abort should be processed synchronously.
+  controller.abort();
+  await promise_rejects_dom(t, 'AbortError', p1);
+
+  await ndef2.write(test_text_data);
+  assertNDEFMessagesEqual(test_text_data, mockNFC.pushedMessage());
+}, "Synchronously signaled abort.");
+
+nfc_test(async (t, mockNFC) => {
+  const ndef = new NDEFReader();
+  mockNFC.setHWStatus(NFCHWStatus.DISABLED);
+  await promise_rejects_dom(t, 'NotReadableError', ndef.write(test_text_data));
+}, "NDEFReader.write should fail when NFC HW is disabled.");
+
+nfc_test(async (t, mockNFC) => {
+  const ndef = new NDEFReader();
+  mockNFC.setHWStatus(NFCHWStatus.NOT_SUPPORTED);
+  await promise_rejects_dom(t, 'NotSupportedError', ndef.write(test_text_data));
+}, "NDEFReader.write should fail when NFC HW is not supported.");
+
+nfc_test(async () => {
+  await new Promise((resolve,reject) => {
+    const iframe = document.createElement('iframe');
+    iframe.srcdoc = `<script>
+                      window.onmessage = async (message) => {
+                        if (message.data === "Ready") {
+                          try {
+                            const ndef = new NDEFReader();
+                            await ndef.write("Test");
+                            parent.postMessage("Failure", "*");
+                          } catch (error) {
+                            if (error.name == "InvalidStateError") {
+                              parent.postMessage("Success", "*");
+                            } else {
+                              parent.postMessage("Failure", "*");
+                            }
+                          }
+                        }
+                      };
+                    <\/script>`;
+    iframe.onload = () => iframe.contentWindow.postMessage('Ready', '*');
+    document.body.appendChild(iframe);
+    window.onmessage = message => {
+      if (message.data == 'Success') {
+        resolve();
+      } else if (message.data == 'Failure') {
+        reject();
+      }
+    }
+  });
+}, 'Test that WebNFC API is not accessible from iframe context.');
+
+nfc_test(async () => {
+  const ndef = new NDEFReader();
+  await ndef.write(test_text_data);
+}, 'NDEFReader.write should succeed when NFC HW is enabled');
+
+nfc_test(async (t, mockNFC) => {
+  const ndef = new NDEFReader();
+  const message = createMessage([createTextRecord(test_text_data),
+                               createMimeRecordFromJson(test_json_data),
+                               createMimeRecord(test_buffer_data),
+                               createUnknownRecord(test_buffer_data),
+                               createUrlRecord(test_url_data),
+                               createUrlRecord(test_url_data, true),
+                               createRecord('w3.org:xyz', test_buffer_data)],
+                               test_message_origin);
+  await ndef.write(message);
+  assertNDEFMessagesEqual(message, mockNFC.pushedMessage());
+}, "NDEFReader.write NDEFMessage containing text, mime, unknown, url, absolute-url \
+and external records with default NDEFWriteOptions.");
+
+nfc_test(async (t, mockNFC) => {
+  const messageContainText = createMessage([createTextRecord(test_text_data)]);
+
+  // Prepare a local type record that uses |messageContainText| as its payload.
+  const messageContainLocal = createMessage([createRecord(':containsTextRecord', messageContainText)]);
+
+  // Prepare an external type record that uses |messageContainLocal| as its payload.
+  const message = createMessage([createRecord('example.com:containsLocalRecord', messageContainLocal)]);
+
+  const ndef = new NDEFReader();
+  await ndef.write(message);
+  const pushed_message = mockNFC.pushedMessage();
+
+  // The mojom message received by mock nfc contains only the external type record.
+  assert_equals(pushed_message.data.length, 1);
+  assert_equals(pushed_message.data[0].recordType, 'example.com:containsLocalRecord', 'recordType');
+
+  // The external type record's payload is from the original |messageContainLocal|,
+  // containing only the local type record.
+  assert_array_equals(pushed_message.data[0].data, new Uint8Array(0),
+      'payloadMessage is used instead');
+  assert_equals(pushed_message.data[0].payloadMessage.data.length, 1);
+  assert_equals(pushed_message.data[0].payloadMessage.data[0].recordType, ':containsTextRecord', 'recordType');
+
+  // The local type record's payload is from the original |messageContainText|,
+  // containing only the text record.
+  assert_array_equals(pushed_message.data[0].payloadMessage.data[0].data, new Uint8Array(0),
+      'payloadMessage is used instead');
+  assertNDEFMessagesEqual(messageContainText, pushed_message.data[0].payloadMessage.data[0].payloadMessage);
+}, "NDEFReader.write NDEFMessage containing embedded records.");
+
+nfc_test(async (t, mockNFC) => {
+  // A smart-poster record contains a uri record, text record.
+  const uri_record = createUrlRecord(test_url_data);
+  const text_record = createTextRecord(test_text_data);
+  const payload_message = createMessage([uri_record, text_record]);
+  const message = createMessage([createRecord(
+      'smart-poster', payload_message, "dummy_record_id")]);
+
+  const ndef = new NDEFReader();
+  await ndef.write(message);
+  const pushed_message = mockNFC.pushedMessage();
+
+  // The mojom message received by mock nfc contains only the smart-poster record.
+  assert_equals(pushed_message.data.length, 1);
+  assert_equals(pushed_message.data[0].recordType, 'smart-poster', 'recordType');
+  assert_equals(pushed_message.data[0].mediaType, null, 'mediaType');
+  assert_equals(pushed_message.data[0].id, 'dummy_record_id', 'id');
+
+  const embedded_records = pushed_message.data[0].payloadMessage.data;
+  assert_equals(embedded_records.length, 2);
+
+  let embedded_record_types = [];
+  for(let record of embedded_records) {
+    embedded_record_types.push(record.recordType);
+    switch(record.recordType) {
+      case 'url':
+        compareNDEFRecords(uri_record, record);
+        break;
+      case 'text':
+        compareNDEFRecords(text_record, record);
+        break;
+      default:
+        assert_unreached("Unknown recordType");
+    }
+  }
+  assert_array_equals(embedded_record_types.sort(), ['text', 'url'],
+      'smart-poster record\'s contained record types');
+}, "NDEFReader.write NDEFMessage containing smart-poster record.");
+
+nfc_test(async (t, mockNFC) => {
+  const ndef = new NDEFReader();
+  await ndef.write(test_text_data);
+  assertNDEFMessagesEqual(test_text_data, mockNFC.pushedMessage());
+}, "Test that NDEFReader.write succeeds when message is DOMString.");
+
+nfc_test(async (t, mockNFC) => {
+  const ndef = new NDEFReader();
+  await ndef.write(test_buffer_data);
+  assertNDEFMessagesEqual(test_buffer_data, mockNFC.pushedMessage());
+}, "Test that NDEFReader.write succeeds when message is ArrayBuffer.");
+
+nfc_test(async (t, mockNFC) => {
+  let buffer_view = new Uint8Array(test_buffer_data, 2, 5);
+  const ndef = new NDEFReader();
+  await ndef.write(buffer_view);
+  assertNDEFMessagesEqual(buffer_view, mockNFC.pushedMessage());
+}, "Test that NDEFReader.write succeeds when message is ArrayBufferView.");
+
+nfc_test(async (t, mockNFC) => {
+  const ndef = new NDEFReader();
+  await ndef.write(createMessage([createRecord('empty')]));
+  const receivedMessage = mockNFC.pushedMessage();
+  assert_equals(receivedMessage.data.length, 1);
+  assert_equals(receivedMessage.data[0].recordType, 'empty', 'recordType');
+}, "NDEFReader.write with 'empty' record should succeed.");
+
+nfc_test(async (t, mockNFC) => {
+  const ndef = new NDEFReader();
+  await ndef.write(test_text_data);
+  assertNDEFWriteOptionsEqual({overwrite: true}, mockNFC.writeOptions());
+}, "Check that default NDEFWriteOptions values are correctly set.");
+
+nfc_test(async (t, mockNFC) => {
+  const ndef = new NDEFReader();
+  await ndef.write(test_text_data, {overwrite: false});
+  assertNDEFWriteOptionsEqual({overwrite: false}, mockNFC.writeOptions());
+}, "Check that provided NDEFWriteOptions values are correctly converted.");
+
+nfc_test(async (t, mockNFC) => {
+  const ndef1 = new NDEFReader();
+  const ndef2 = new NDEFReader();
+
+  const p1 = ndef1.write(test_text_data, {overwrite: false});
+  const p2 = ndef2.write(test_url_data, {overwrite: true});
+
+  await new Promise((resolve, reject) => {
+    // Make first push pending
+    mockNFC.setPendingPushCompleted(false);
+    let err = "";
+    p1.then(() => {
+      reject("pending push should not be fulfilled");
+    }).catch(e => {
+      err = e.name;
+    });
+    p2.then(() => {
+      assertNDEFMessagesEqual(test_url_data, mockNFC.pushedMessage());
+      assertNDEFWriteOptionsEqual( {overwrite: true}, mockNFC.writeOptions());
+      assert_equals(err, "AbortError", "the pending push should be aborted");
+      resolve();
+    });
+  });
+}, "NDEFReader.write should replace all previously configured write operations.");
+
+nfc_test(async (t, mockNFC) => {
+  const ndef = new NDEFReader();
+  await ndef.write({ records: [{ recordType: "mime", data: test_buffer_data }] });
+  assertNDEFMessagesEqual(test_buffer_data, mockNFC.pushedMessage());
+}, "Test that mediaType should be set to 'application/octet-stream' if \
+NDEFRecordInit.record's recordType is 'mime' and NDEFRecordInit.record's \
+mediaType is undefined.");
+
+nfc_test(async (t, mockNFC) => {
+  // Make sure the push will be pending in the mock.
+  mockNFC.setPendingPushCompleted(false);
+
+  const ndef1 = new NDEFReader();
+  const promise = ndef1.write(test_text_data);
+
+  // Just to make sure the write() request has already reached to the mock.
+  const ndef2 = new NDEFReader();
+  await ndef2.scan();
+
+  mockNFC.simulateNonNDEFTagDiscovered();
+  await promise_rejects_dom(t, 'NotSupportedError', promise);
+}, "NDEFReader.write should fail when the NFC device coming up does not expose \
+NDEF technology.");
+
+nfc_test(async (t, mockNFC) => {
+  const ndef = new NDEFReader();
+  await ndef.write(test_text_data, {overwrite: false});
+  assertNDEFMessagesEqual(test_text_data, mockNFC.pushedMessage());
+}, "NDEFReader.write should succeed to write data to an unformatted NFC device \
+when the NDEFWriteOptions.overwrite is false.");
+
+nfc_test(async (t, mockNFC) => {
+  const ndef = new NDEFReader();
+  await ndef.write(test_buffer_data);
+  assertNDEFMessagesEqual(test_buffer_data, mockNFC.pushedMessage());
+  await ndef.write(test_text_data, {overwrite: true});
+  assertNDEFMessagesEqual(test_text_data, mockNFC.pushedMessage());
+}, "NDEFReader.write should succeed to overwrite the existing data \
+when the NDEFWriteOptions.overwrite is true.");
+
+nfc_test(async (t, mockNFC) => {
+  const ndef = new NDEFReader();
+  const p = ndef.write(test_text_data, {overwrite: false});
+  mockNFC.setIsFormattedTag(true);
+  await promise_rejects_dom(t, 'NotAllowedError', p);
+}, "NDEFReader.write should fail when there are NDEF records on the NFC device \
+and NDEFWriteOptions.overwrite is false.");
+
+nfc_test(async (t, mockNFC) => {
+  const ndef = new NDEFReader();
+  mockNFC.simulateDataTransferFails();
+  await promise_rejects_dom(t, 'NetworkError', ndef.write(test_text_data));
+}, "NDEFReader.write should fail with NetworkError when NFC data transfer fails.");
+
+</script>

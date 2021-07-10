@@ -1,6 +1,6 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 #!/usr/bin/env python
 import os
@@ -11,8 +11,11 @@ from mozlog.structured import structuredlog
 
 here = os.path.split(__file__)[0]
 
-sys.path.insert(0, os.path.abspath(os.path.join(here, os.pardir, "harness")))
-sys.path.insert(0, os.path.abspath(os.path.join(here, os.pardir, "tests", "tools", "scripts")))
+sys.path.insert(0, os.path.abspath(os.path.join(here, os.pardir, "web-platform-tests", "tools", "wptrunner")))
+sys.path.insert(0, os.path.abspath(os.path.join(here, os.pardir, "web-platform-tests", "tools", "wptserve")))
+sys.path.insert(0, os.path.abspath(os.path.join(here, os.pardir, "web-platform-tests", "tools")))
+
+import localpaths
 
 from wptrunner.update import setup_logging, WPTUpdate
 from wptrunner.update.base import exit_unclean

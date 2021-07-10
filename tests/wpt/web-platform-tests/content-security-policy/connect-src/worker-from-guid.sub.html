@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="connect-src 'self'; script-src 'self' 'unsafe-inline' blob:;">
+    <title>worker-connect-src-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["violated-directive=connect-src","xhr blocked","TEST COMPLETE"]'></script>
+    <script src='../support/alertAssert.sub.js?alerts=[]'></script>
+</head>
+<p>This test loads a worker, from a guid.
+    The worker should be blocked from making an XHR
+    to www1 as this resource's policy is connect-src 'self
+    and a guid Worker should inherit is parent's policy.
+    A report should be sent to the report-uri specified
+    with this resource.</p>
+<body>
+    <script>
+        window.addEventListener('securitypolicyviolation', function(e) {
+            log("violated-directive=" + e.violatedDirective);
+        });
+        try {
+            var blob = new Blob([
+                "var xhr = new XMLHttpRequest;" +
+                "xhr.onerror = function () {" +
+                "  postMessage('xhr blocked');" +
+                "  postMessage('TEST COMPLETE');" +
+                "};" +
+                "xhr.onload = function () {" +
+                "  if (xhr.responseText == 'FAIL') {" +
+                "    postMessage('xhr allowed');" +
+                "  } else {" +
+                "    postMessage('xhr blocked');" +
+                "  }" +
+                "  postMessage('TEST COMPLETE');" +
+                "};" +
+                "try { " +
+                "  xhr.open(" +
+                "   'GET'," +
+                "   'http:///content-security-policy/support/fail.asis'," + 
+                "    true" +
+                "  );" +
+                "  xhr.send();" +
+                "} catch (e) {" +
+                "  postMessage('xhr blocked');" +
+                "  postMessage('TEST COMPLETE');" +
+                "}"],
+                {type : 'application/javascript'});
+            var url = URL.createObjectURL(blob);
+            var worker = new Worker(url);
+            worker.onmessage = function(event) {
+                log(event.data);
+            };
+        } catch (e) {
+            log(e);
+        }
+
+    </script>
+    <div id="log"></div>
+</body>
+
+</html>

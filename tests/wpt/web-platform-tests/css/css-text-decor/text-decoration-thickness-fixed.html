@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text Decoration Test: text-decoration-thickness respects variable font properties</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-width-property">
+<meta name="assert" content="text-decoration-thickness fixed values match thick and thin values from font.">
+<link rel="author" title="Dominik Röttsches" href="mailto:drott@chromium.org">
+<link rel="match" href="reference/text-decoration-thickness-fixed-ref.html">
+<style>
+@font-face {
+font-family: underline-variable;
+src: url(resources/UnderlineTest-VF.ttf);
+}
+
+.test {
+text-underline-position: from-font;
+font-size: 64px;
+line-height: 1.8;
+}
+
+.thin_underline {
+font-family: underline-variable;
+text-decoration: underline;
+text-decoration-thickness: 0.2px;
+}
+
+.thick_underline {
+font-family: underline-variable;
+text-decoration: underline;
+text-decoration-thickness: 6.3px;
+}
+
+.thin_underline_percent {
+font-family: underline-variable;
+text-decoration: underline;
+text-decoration-thickness: 0.3152%;
+}
+
+.thick_underline_percent {
+font-family: underline-variable;
+text-decoration: underline;
+text-decoration-thickness: 9.84375%;
+}
+</style>
+</head>
+<body>
+    <p>Test passes if underlines are thin, thick, thin, thick in this order and match the reference rendering.</p>
+    <div class="test"><span class="thin_underline">aagaa</span></div>
+    <div class="test"><span class="thick_underline">aagaa</span></div>
+    <div class="test"><span class="thin_underline_percent">aagaa</span></div>
+    <div class="test"><span class="thick_underline_percent">aagaa</span></div>
+</body>
+</html>

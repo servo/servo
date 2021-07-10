@@ -1,0 +1,38 @@
+[target.arm-linux-androideabi]
+linker = "./support/android/fakeld/fake-ld-arm.sh"
+ar = "arm-linux-androideabi-ar"
+
+[target.armv7-linux-androideabi]
+linker = "./support/android/fakeld/fake-ld-armv7.sh"
+ar = "arm-linux-androideabi-ar"
+
+[target.aarch64-linux-android]
+linker = "./support/android/fakeld/fake-ld-arm64.sh"
+ar = "aarch64-linux-android-ar"
+
+[target.i686-linux-android]
+linker = "./support/android/fakeld/fake-ld-x86.sh"
+ar = "i686-linux-android-ar"
+
+[target.arm-unknown-linux-gnueabihf]
+linker = "arm-linux-gnueabihf-gcc"
+ar = "arm-linux-gnueabihf-ar"
+
+[target.aarch64-unknown-linux-gnu]
+linker = "aarch64-linux-gnu-gcc"
+ar = "aarch64-linux-gnu-ar"
+
+[target.x86_64-pc-windows-msvc]
+linker = "lld-link.exe"
+
+[target.x86_64-uwp-windows-msvc]
+linker = "lld-link.exe"
+
+[target.i686-pc-windows-msvc]
+linker = "lld-link.exe"
+
+[target.aarch64-pc-windows-msvc]
+linker = "lld-link.exe"
+
+[target.aarch64-uwp-windows-msvc]
+linker = "lld-link.exe"

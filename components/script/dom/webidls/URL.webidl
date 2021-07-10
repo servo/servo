@@ -1,12 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://url.spec.whatwg.org/#url
-[Constructor(USVString url, optional USVString base), Exposed=(Window,Worker)]
+[Exposed=(Window,Worker),
+ LegacyWindowAlias=webkitURL]
 interface URL {
+  [Throws] constructor(USVString url, optional USVString base);
   [SetterThrows]
-  /*stringifier*/ attribute USVString href;
+  stringifier attribute USVString href;
   readonly attribute USVString origin;
            attribute USVString protocol;
            attribute USVString username;
@@ -24,8 +26,5 @@ interface URL {
   // static DOMString createFor(Blob blob);
   static void revokeObjectURL(DOMString url);
 
-  // This is only doing as well as gecko right now.
-  // https://github.com/servo/servo/issues/7590 is on file for
-  // adding attribute stringifier support.
-  stringifier;
+  USVString toJSON();
 };

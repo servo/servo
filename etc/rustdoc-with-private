@@ -1,4 +1,16 @@
-#!/bin/sh
-# Skip the strip-private and strip-hidden rustdoc passes
-# https://github.com/rust-lang/rust/issues/15347
-rustdoc --no-defaults --passes collapse-docs --passes unindent-comments --passes strip-priv-imports "$@"
+#!/usr/bin/env bash
+
+# Emit documentation for private items so it is easier to look
+# up internal definitions.
+#
+# Deny "deny warnings" to ensure documenting the crates
+# succeeds even if new warnings are introduced to the compiler.
+
+if [[ "$*" == *--document-private-items* ]]
+then
+    ARGS=""
+else
+    ARGS="--document-private-items"
+fi
+
+rustdoc -Z "unstable-options" --cap-lints warn $ARGS "$@"

@@ -1,0 +1,9 @@
+<!-- quirks mode -->
+<link rel="match" href="../../quirks/reference/green-100px-square-no-red.html">
+<link rel="help" href="https://quirks.spec.whatwg.org/#the-percentage-height-calculation-quirk">
+<p>There should be a filled green square below, and no red.</p>
+<div style="width: 100px; height: 100px; overflow: hidden; background: green;">
+  <div style="display: grid; position: relative; left: -20px;">
+    <canvas width=10 height=10 style="height: 200%; background: red;"></canvas>
+  </div>
+</div>

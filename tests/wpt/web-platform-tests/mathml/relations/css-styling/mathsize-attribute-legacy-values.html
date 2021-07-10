@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Legacy mathsize values</title>
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#css-styling">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#legacy-mathml-style-attributes">
+    <meta name="assert" content="Verify that legacy values for mathsize have no effect.">
+    <link rel="match" href="mathsize-attribute-legacy-values-ref.html">
+    <script src="/mathml/support/feature-detection.js"></script>
+  </head>
+  <body>
+    <p>Test passes if you see four "A" of equal size:</p>
+    <math>
+      <mtext>A</mtext>
+      <mtext mathsize="small">A</mtext>
+      <mtext mathsize="medium">A</mtext>
+      <mtext mathsize="big">A</mtext>
+    </math>
+   <script src="/mathml/support/feature-detection.js"></script>
+   <script>MathMLFeatureDetection.ensure_for_match_reftest("has_mathsize");</script>
+  </body>
+</html>

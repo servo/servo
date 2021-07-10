@@ -63,18 +63,18 @@ test(function() {
 
   elements["some-id"] = 5;
   assert_equals(elements["some-id"], old_item);
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     "use strict";
     elements["some-id"] = 5;
   });
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     Object.defineProperty(elements, "some-id", { value: 5 });
   });
 
   delete elements["some-id"];
   assert_equals(elements["some-id"], old_item);
 
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     "use strict";
     delete elements["some-id"];
   });
@@ -126,7 +126,7 @@ test(function() {
   delete elements["new-id2"];
   assert_equals(elements["new-id2"], 5);
 
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     "use strict";
     delete elements["new-id2"];
   });

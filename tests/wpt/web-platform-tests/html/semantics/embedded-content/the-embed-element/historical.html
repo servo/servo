@@ -8,7 +8,7 @@
 test(function() {
   var elm = document.getElementById('embed');
   assert_equals(typeof elm, 'object', 'typeof');
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     elm();
   });
 }, 'embed legacycaller should not be supported');

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>Should not crash on circular filter reference containing an svg under svg.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>test(()=>{})</script>
+<svg id="svg" filter="url(#filter)">
+  <filter id="filter">
+    <feImage xlink:href="#svg"></feImage>
+  </filter>
+  <svg overflow="hidden" width="20" height="20">
+    <rect fill="black" width="20" height="20"></rect>
+  </svg>
+</svg>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/bluetooth/resources/bluetooth-test.js"></script>
+<script src="/bluetooth/resources/bluetooth-fake-devices.js"></script>
+<script>
+'use strict';
+const test_desc = 'Services member must contain at least one service.';
+const expected = new TypeError();
+
+bluetooth_test(() => {
+  let test_promises = Promise.resolve();
+  generateRequestDeviceArgsWithServices([]).forEach(
+      args => {test_promises = test_promises.then(
+                   () => assert_promise_rejects_with_message(
+                       requestDeviceWithTrustedClick(args), expected,
+                       'Services member must contain at least one service'))});
+  return test_promises;
+}, test_desc);
+</script>

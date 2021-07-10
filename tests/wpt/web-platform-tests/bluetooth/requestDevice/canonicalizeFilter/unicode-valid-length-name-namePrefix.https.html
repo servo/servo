@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/bluetooth/resources/bluetooth-test.js"></script>
+<script src="/bluetooth/resources/bluetooth-fake-devices.js"></script>
+<script>
+'use strict';
+const test_desc = 'A namePrefix containing unicode characters whose utf8 ' +
+    'length is less than 30 must not throw an error.';
+// \u2764's UTF-8 representation is 3 bytes long.
+// 9 chars * 3 bytes/char = 27 bytes
+const valid_unicode_name = '\u2764'.repeat(9);
+
+bluetooth_test(
+    () => setUpPreconnectedDevice({name: valid_unicode_name})
+              .then(
+                  () => requestDeviceWithTrustedClick(
+                      {filters: [{namePrefix: valid_unicode_name}]}))
+              .then(device => assert_equals(device.name, valid_unicode_name)),
+    test_desc);
+</script>

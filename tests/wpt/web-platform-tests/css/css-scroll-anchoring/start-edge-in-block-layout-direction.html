@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<meta name="viewport" content="user-scalable=no"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+body { margin: 0; }
+html {
+  line-height: 0;
+  width: 200vw;
+  height: 200vh;
+}
+
+html.ltr { direction: ltr; }
+html.rtl { direction: rtl; }
+
+html.horz { writing-mode: horizontal-tb; }
+html.vlr { writing-mode: vertical-lr; }
+html.vrl { writing-mode: vertical-rl; }
+
+.horz.ltr .cx2, .vlr .cx2 { left: 100vw; }
+.horz.rtl .cx2, .vrl .cx2 { right: 100vw; }
+.horz .cy2, .ltr .cy2 { top: 100vh; }
+.vlr.rtl .cy2, .vrl.rtl .cy2 { bottom: 100vh; }
+
+#block_pusher, #inline_pusher {
+  display: inline-block;
+  width: 100px;
+  height: 100px;
+}
+#block_pusher { background-color: #e88; }
+#inline_pusher { background-color: #88e; }
+.vpush { height: 80px !important; }
+.hpush { width: 70px !important; }
+
+#anchor-container {
+  display: inline-block;
+}
+#anchor {
+  position: relative;
+  background-color: #8e8;
+  min-width: 100px;
+  min-height: 100px;
+}
+
+#grower { width: 0; height: 0; }
+.grow {
+  width: 180px !important;
+  height: 160px !important;
+}
+
+</style>
+<div id="container">
+  <div id="block_pusher"></div><br>
+  <div id="inline_pusher"></div><div id="anchor-container">
+    <div id="anchor">
+      <div id="grower"></div>
+    </div>
+  </div>
+</div>
+<script>
+
+// Tests that anchoring adjustments are only on the block layout axis and that
+// their magnitude is based on the movement of the block start edge of the
+// anchor node, for all 6 combinations of text direction and writing mode,
+// regardless of which corner of the viewport the anchor node overlaps.
+
+var CORNERS = ["cx1 cy1", "cx2 cy1", "cx1 cy2", "cx2 cy2"];
+var docEl = document.documentElement;
+var scroller = document.scrollingElement;
+var blockPusher = document.querySelector("#block_pusher");
+var inlinePusher = document.querySelector("#inline_pusher");
+var grower = document.querySelector("#grower");
+var anchor = document.querySelector("#anchor");
+
+function reset() {
+  scroller.scrollLeft = 0;
+  scroller.scrollTop = 0;
+  blockPusher.className = "";
+  inlinePusher.className = "";
+  grower.className = "";
+}
+
+function runCase(docClass, xDir, yDir, vert, expectXAdj, expectYAdj, corner) {
+  docEl.className = docClass;
+  anchor.className = corner;
+
+  var initX = 150 * xDir;
+  var initY = 150 * yDir;
+
+  scroller.scrollLeft = initX;
+  scroller.scrollTop = initY;
+
+  // Each corner moves a different distance.
+  block_pusher.className = vert ? "hpush" : "vpush";
+  inline_pusher.className = vert ? "vpush" : "hpush";
+  grower.className = "grow";
+
+  assert_equals(scroller.scrollLeft, initX + expectXAdj);
+  assert_equals(scroller.scrollTop, initY + expectYAdj);
+
+  reset();
+}
+
+test(() => {
+  CORNERS.forEach((corner) => {
+    runCase("horz ltr", 1, 1, false, 0, -20, corner);
+  });
+}, "Horizontal LTR.");
+
+test(() => {
+  CORNERS.forEach((corner) => {
+    runCase("horz rtl", -1, 1, false, 0, -20, corner);
+  });
+}, "Horizontal RTL.");
+
+test(() => {
+  CORNERS.forEach((corner) => {
+    runCase("vlr ltr", 1, 1, true, -30, 0, corner);
+  });
+}, "Vertical-LR LTR.");
+
+test(() => {
+  CORNERS.forEach((corner) => {
+    runCase("vlr rtl", 1, -1, true, -30, 0, corner);
+  });
+}, "Vertical-LR RTL.");
+
+test(() => {
+  CORNERS.forEach((corner) => {
+    runCase("vrl ltr", -1, 1, true, 30, 0, corner);
+  });
+}, "Vertical-RL LTR.");
+
+test(() => {
+  CORNERS.forEach((corner) => {
+    runCase("vrl rtl", -1, -1, true, 30, 0, corner);
+  });
+}, "Vertical-RL RTL.");
+
+</script>

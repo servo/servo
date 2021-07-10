@@ -24,10 +24,9 @@ setup(() => {
   window.refWhite = refStyle.backgroundColor;
   window.refBlack = refStyle.color;
   window.refMediumBorder = refStyle.borderTopWidth;
-  const iframeHeight = 150;
+  window.iframeHeight = 150;
   const bodyTopMargin = 8;
   window.dialogSize = parseFloat(ref1em) * 2 + parseFloat(refMediumBorder) * 2;
-  window.centeredVerticalDistance = iframeHeight / 2 - dialogSize / 2;
   window.normalBottomDistance = iframeHeight - bodyTopMargin - dialogSize;
 }, {explicit_done: true});
 
@@ -37,15 +36,20 @@ onload = () => {
     const styleAttr = iframe.getAttribute('style');
     const iframeWidth = parseInt(styleAttr.split(' ')[1]);
     const horizontalDistance = iframeWidth / 2 - dialogSize / 2;
+    const verticalDistance = iframeHeight / 2 - dialogSize / 2;
     test(() => {
       const style = win.getComputedStyle(win.dialogClosed);
+      assert_equals(style.position, 'absolute', 'position');
       assert_equals(style.display, 'none', 'display');
+      assert_equals(style.overflow, 'visible', 'overflow');
       assert_equals(style.top, 'auto', 'top');
       assert_equals(style.right, '0px', 'right');
       assert_equals(style.bottom, 'auto', 'bottom');
       assert_equals(style.left, '0px', 'left');
       assert_equals(style.width, 'fit-content', 'width');
       assert_equals(style.height, 'fit-content', 'height');
+      assert_equals(style.maxWidth, 'none', 'max-width');
+      assert_equals(style.maxHeight, 'none', 'max-height');
       assert_equals(style.marginTop, 'auto', 'marginTop');
       assert_equals(style.marginRight, 'auto', 'marginRight');
       assert_equals(style.marginBottom, 'auto', 'marginBottom');
@@ -55,13 +59,17 @@ onload = () => {
 
     test(() => {
       const style = win.getComputedStyle(win.dialogOpen);
+      assert_equals(style.position, 'absolute', 'position');
       assert_equals(style.display, 'block', 'display');
+      assert_equals(style.overflow, 'visible', 'overflow');
       assert_equals(style.top, '8px', 'top');
       assert_equals(style.right, '0px', 'right');
       assert_equals(style.bottom, normalBottomDistance + 'px', 'bottom');
       assert_equals(style.left, '0px', 'left');
       assert_equals(style.width, '0px', 'width');
       assert_equals(style.height, '0px', 'height');
+      assert_equals(style.maxWidth, 'none', 'max-width');
+      assert_equals(style.maxHeight, 'none', 'max-height');
       assert_equals(style.marginTop, '0px', 'marginTop');
       assert_equals(style.marginRight, horizontalDistance + 'px', 'marginRight');
       assert_equals(style.marginBottom, '0px', 'marginBottom');
@@ -71,16 +79,20 @@ onload = () => {
 
     test(() => {
       const style = win.getComputedStyle(win.dialogModal);
+      assert_equals(style.position, 'fixed', 'position');
       assert_equals(style.display, 'block', 'display');
-      assert_equals(style.top, centeredVerticalDistance + 'px', 'top');
+      assert_equals(style.overflow, 'auto', 'overflow');
+      assert_equals(style.top, '0px', 'top');
       assert_equals(style.right, '0px', 'right');
-      assert_equals(style.bottom, centeredVerticalDistance + 'px', 'bottom');
+      assert_equals(style.bottom, '0px', 'bottom');
       assert_equals(style.left, '0px', 'left');
       assert_equals(style.width, '0px', 'width');
       assert_equals(style.height, '0px', 'height');
-      assert_equals(style.marginTop, '0px', 'marginTop');
+      assert_equals(style.maxWidth, 'calc(100% - 38px)', 'max-width');
+      assert_equals(style.maxHeight, 'calc(100% - 38px)', 'max-height');
+      assert_equals(style.marginTop, verticalDistance + 'px', 'marginTop');
       assert_equals(style.marginRight, horizontalDistance + 'px', 'marginRight');
-      assert_equals(style.marginBottom, '0px', 'marginBottom');
+      assert_equals(style.marginBottom, verticalDistance + 'px', 'marginBottom');
       assert_equals(style.marginLeft, horizontalDistance + 'px', 'marginLeft');
       assertCommon(style);
     }, `Modal dialog in ${styleAttr} iframe`);
@@ -89,7 +101,6 @@ onload = () => {
 };
 
 function assertCommon(style) {
-  assert_equals(style.position, 'absolute', 'position');
   assert_equals(style.borderTopStyle, 'solid', 'borderTopStyle');
   assert_equals(style.borderRightStyle, 'solid', 'borderRightStyle');
   assert_equals(style.borderBottomStyle, 'solid', 'borderBottomStyle');

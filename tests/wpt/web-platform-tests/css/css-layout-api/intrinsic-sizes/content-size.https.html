@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#interaction-sizing">
+<link rel="match" href="content-size-ref.html">
+<meta name="assert" content="This test checks that the min-content and max-content sizes respect the values returned from the intrinsicSizes function." />
+
+<style>
+.test {
+  background: red;
+  border: solid 2px;
+  height: 100px;
+}
+
+.test-1 {
+  width: max-content;
+}
+
+.test-2 {
+  width: min-content;
+}
+
+@supports (display: layout(test-layout)) {
+  .test {
+    display: layout(test-layout);
+    background: green;
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+
+<div class="test test-1"></div>
+<div class="test test-2"></div>
+
+<script id="code" type="text/worklet">
+registerLayout('test-layout', class {
+  async intrinsicSizes() {
+    return { maxContentSize: 100, minContentSize: 50 };
+  }
+  async layout() {}
+});
+</script>
+
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, document.getElementById('code').textContent);
+</script>
+</html>

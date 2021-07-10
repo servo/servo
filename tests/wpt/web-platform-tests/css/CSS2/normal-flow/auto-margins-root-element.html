@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visudet.html#blockwidth">
+<style>
+  html {
+      width: 100px;
+      margin-left: auto;
+  }
+  body { /* Just to make testharness display nicely. */
+      position: absolute;
+      left: 0;
+      right: 0;
+  }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> {
+      var viewport_width = window.innerWidth;
+      var html = document.documentElement;
+      assert_equals(html.offsetLeft, viewport_width - 100);
+  }, "Root element auto margins resolve");
+</script>

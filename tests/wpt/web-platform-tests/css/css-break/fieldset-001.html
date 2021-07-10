@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html><head>
+<title>CSS Test: fragmenting a fieldset in multicol layout</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-break/#valdef-box-decoration-break-slice">
+<link rel="match" href="fieldset-001-ref.html">
+<style>
+  * {
+    color:black; background-color:white; font:16px/1 monospace; padding:0; margin:0;
+  }
+  body { width:600px; height:600px; }
+
+  .cols { columns:3; background:grey; margin-bottom: 10px; height:80px; column-fill:auto; }
+  .c2 { column-count:2; height:120px; }
+  legend { background:black; width:100px; height:19px; }
+  fieldset {
+    background-color: lightgrey;
+    border: solid;
+    border-width: 6px 3px 10px 7px;
+    margin: 3px 10px 7px 5px;
+  }
+  fieldset, legend {
+    background-clip: content-box;
+    padding: 10px 7px 20px 3px;
+  }
+  fieldset.sized {
+    height: 108px;
+  }
+  c { display:block; background:blue; opacity:.5; height:108px; }
+</style>
+</head>
+<body>
+  <div class="cols">
+    <fieldset><legend></legend><c></c></fieldset>
+  </div>
+  <div class="cols c2">
+    <fieldset><legend></legend><c></c></fieldset>
+  </div>
+  <div class="cols">
+    <fieldset class="sized"><legend></legend><c></c></fieldset>
+  </div>
+  <div class="cols c2">
+    <fieldset class="sized"><legend></legend><c></c></fieldset>
+  </div>
+</body>
+</html>

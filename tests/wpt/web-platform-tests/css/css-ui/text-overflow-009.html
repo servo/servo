@@ -1,0 +1,26 @@
+﻿<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: ellipsis and first atomic inline</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#text-overflow">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="flags" content="">
+<meta name="assert" content="The first atomic inline on a line must be clipped rather than ellipsed.">
+<style>
+body > div {
+  width: 100px;
+  white-space: pre;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  color: red;
+}
+span {
+  display: inline-block;
+  height: 100px;
+  width: 200px;
+  background: green;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div><span> </span>XXXXXX</div>

@@ -1,0 +1,82 @@
+<!doctype html>
+<html>
+  <head>
+    <title>aria-orientation=horizontal</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_HORIZONTAL"
+               ],
+               [
+                  "property",
+                  "states",
+                  "doesNotContain",
+                  "STATE_VERTICAL"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXOrientation",
+                  "is",
+                  "AXHorizontalOrientation"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "IA2_STATE_HORIZONTAL"
+               ],
+               [
+                  "property",
+                  "states",
+                  "doesNotContain",
+                  "IA2_STATE_VERTICAL"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "Orientation",
+                  "is",
+                  "horizontal"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "aria-orientation=horizontal"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for aria-orientation=horizontal.</p>
+    <div role='scrollbar' id='test' aria-orientation='horizontal'>content</div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>

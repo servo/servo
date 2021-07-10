@@ -1,7 +1,14 @@
 importScripts('../../resources/test-helpers.sub.js');
 importScripts('../../resources/worker-testharness.js');
 
+// TODO(nhiroki): stop using global states because service workers can be killed
+// at any point. Instead, we could post a message to the page on each event via
+// Client object (http://crbug.com/558244).
 var events_seen = [];
+
+// TODO(nhiroki): Move these assertions to registration-attribute.html because
+// an assertion failure on the worker is not shown on the result page and
+// handled as timeout. See registration-attribute-newer-worker.js for example.
 
 assert_equals(
   self.registration.scope,

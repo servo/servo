@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Containment Test: 'contain: style' and counter (with 'display: contents')</title>
+
+  <link rel="help" href="https://www.w3.org/TR/css-contain-1/#containment-style">
+  <link rel="match" href="reference/contain-style-counters-001-ref.html">
+
+  <meta content="This test checks that when an element has 'contain: style', then counters which may be affecting its subtree are reset to 0 for such scope. In this test, the div#test does not generate a principal box because of 'display: contents'. Despite that particular condition, 'contain: style' will have an effect on div#test." name="assert">
+  <meta name="flags" content="">
+
+  <style>
+  div#create-counter
+    {
+      counter-reset: counter-of-span 9;
+    }
+
+    /*
+    This creates a new counter identified as "counter-of-span"
+    and initially sets such counter to 9 (an entirely
+    arbitrary number).
+    */
+
+  div#test
+    {
+      contain: style;
+      display: contents;
+      font-size: 3em;
+    }
+
+    /*
+    Other types of containment (size, layout, paint) have no
+    effect on box that do not generate a principal box which
+    is the case here with div#test because of 'display: contents'.
+    But in this test, 'contain: style' will apply and will
+    have a rendering effect on the counter.
+    */
+
+  div#test span
+    {
+      counter-increment: counter-of-span 5;
+    }
+
+    /*
+    This increments the counter identified as "counter-of-span"
+    of the step value of 5 (an entirely arbitrary number) each
+    and every time there is a <span> descendant within the subtree
+    of div#test
+    */
+
+  div#test span::after
+    {
+      content: counter(counter-of-span);
+    }
+    /*
+    Now, the generated content after the span is set to the
+    current value of the counter identified as "counter-of-span"
+    */
+
+  </style>
+
+
+  <p>Test passes if there is the digit 5.
+
+  <div id="create-counter"></div>
+
+  <div id="test"><span></span></div>

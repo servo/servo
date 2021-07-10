@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Child moves and reveals previously obscured background of the parent</title>
+<link rel="match" href="child-move-reveals-parent-background-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  #parent {
+    width: 150px;
+    height: 150px;
+    background-color: green;
+  }
+  #child {
+    width: 150px;
+    height: 150px;
+    background-color: white;
+    position: relative;
+  }
+</style>
+<p>There should be a green square below.</p>
+<div id="parent">
+  <div id="child"></div>
+</div>
+<script>
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    child.style.left = '150px';
+    takeScreenshot();
+  }));
+</script>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>trad-chinese-informal, outside range</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#complex-cjk'>
+<link rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+<link rel='match' href='css3-counter-styles-083-ref.html'>
+<meta name="assert" content="[Exploratory] list-style-type: trad-chinese-informal produces counter values outside its range without using the prescribed fallback style.">
+<style type='text/css'>
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+ol { list-style-type: trad-chinese-informal; list-style-position: inside; }
+</style>
+</head>
+<body>
+<p class="instructions">Test fails if the two columns of the first line are NOT the same. Otherwise, test passes only if the left column of the 2nd and 3rd lines is NOT decimal digits and is NOT the same as the right side.  Score as Partial if the columns of the 2nd and 3rd lines are the same (ie. fallback was used). In all this IGNORE the suffix.</p>
+<div class="test"><ol start="9999">
+<li title="9999">九千九百九十九</li>
+<li title="10000">一〇〇〇〇</li>
+<li title="10001">一〇〇〇一</li>
+</ol></div>
+<!--Notes:
+You will need an appropriate font to run this test.
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+</body>
+</html>

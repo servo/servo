@@ -1,0 +1,1822 @@
+diff --git i/conformance/attribs/gl-vertex-attrib-zero-issues.html w/conformance/attribs/gl-vertex-attrib-zero-issues.html
+index de45ce308c..11a83ac00a 100644
+--- i/conformance/attribs/gl-vertex-attrib-zero-issues.html
++++ w/conformance/attribs/gl-vertex-attrib-zero-issues.html
+@@ -29,6 +29,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL Enable Vertex Attrib Zero Test</title>
+ <link rel="stylesheet" href="../../resources/js-test-style.css"/>
+ <script src=/resources/testharness.js></script>
+diff --git i/conformance/context/context-eviction-with-garbage-collection.html w/conformance/context/context-eviction-with-garbage-collection.html
+index 3989c7679a..b52e3a9e9f 100644
+--- i/conformance/context/context-eviction-with-garbage-collection.html
++++ w/conformance/context/context-eviction-with-garbage-collection.html
+@@ -29,6 +29,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>Test that context eviction and garbage collection do not interfere with each other</title>
+ <link rel="stylesheet" href="../../resources/js-test-style.css"/>
+ <script src=/resources/testharness.js></script>
+diff --git i/conformance/ogles/GL/acos/acos_001_to_006.html w/conformance/ogles/GL/acos/acos_001_to_006.html
+index 99de4e0a79..71c8990638 100644
+--- i/conformance/ogles/GL/acos/acos_001_to_006.html
++++ w/conformance/ogles/GL/acos/acos_001_to_006.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: acos_001_to_006.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../resources/ogles-tests.css" />
+diff --git i/conformance/ogles/GL/asin/asin_001_to_006.html w/conformance/ogles/GL/asin/asin_001_to_006.html
+index 5af87433aa..79afd9f430 100644
+--- i/conformance/ogles/GL/asin/asin_001_to_006.html
++++ w/conformance/ogles/GL/asin/asin_001_to_006.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: asin_001_to_006.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../resources/ogles-tests.css" />
+diff --git i/conformance/ogles/GL/log/log_001_to_008.html w/conformance/ogles/GL/log/log_001_to_008.html
+index 5552a4f82e..539cb33214 100644
+--- i/conformance/ogles/GL/log/log_001_to_008.html
++++ w/conformance/ogles/GL/log/log_001_to_008.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: log_001_to_008.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../resources/ogles-tests.css" />
+diff --git i/conformance/ogles/GL/log2/log2_001_to_008.html w/conformance/ogles/GL/log2/log2_001_to_008.html
+index 5552a4f82e..539cb33214 100644
+--- i/conformance/ogles/GL/log2/log2_001_to_008.html
++++ w/conformance/ogles/GL/log2/log2_001_to_008.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: log2_001_to_008.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../resources/ogles-tests.css" />
+diff --git i/conformance/rendering/many-draw-calls.html w/conformance/rendering/many-draw-calls.html
+index c1542f4fa9..b3ee786e0b 100644
+--- i/conformance/rendering/many-draw-calls.html
++++ w/conformance/rendering/many-draw-calls.html
+@@ -29,6 +29,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <link rel="stylesheet" href="../../resources/js-test-style.css"/>
+ <script src=/resources/testharness.js></script>
+ <script src=/resources/testharnessreport.js></script>
+--- i/conformance/glsl/misc/shader-uniform-packing-restrictions.html
++++ w/conformance/glsl/misc/shader-uniform-packing-restrictions.html
+@@ -29,6 +29,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL uniform packing restrctions Conformance Test</title>
+ <link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+ <link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+diff --git i/conformance/extensions/webgl-compressed-texture-s3tc.html w/conformance/extensions/webgl-compressed-texture-s3tc.html
+index 28e3cfc562..308e8577a8 100644
+--- i/conformance/extensions/webgl-compressed-texture-s3tc.html
++++ w/conformance/extensions/webgl-compressed-texture-s3tc.html
+@@ -29,6 +29,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <link rel="stylesheet" href="../../resources/js-test-style.css"/>
+ <script src=/resources/testharness.js></script>
+ <script src=/resources/testharnessreport.js></script>
+diff --git a/conformance/context/context-creation-and-destruction.html b/conformance/context/context-creation-and-destruction.html
+index a3912fcf7e..3ad7a02d79 100644
+--- a/conformance/context/context-creation-and-destruction.html
++++ b/conformance/context/context-creation-and-destruction.html
+@@ -29,6 +29,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>Test that contexts are freed and garbage collected reasonably</title>
+ <link rel="stylesheet" href="../../resources/js-test-style.css"/>
+ <script src=/resources/testharness.js></script>
+diff --git a/conformance/context/context-release-with-workers.html b/conformance/context/context-release-with-workers.html
+index 74127d165d..8610525b0f 100644
+--- a/conformance/context/context-release-with-workers.html
++++ b/conformance/context/context-release-with-workers.html
+@@ -29,6 +29,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL Context Release Test</title>
+ <link rel="stylesheet" href="../../resources/js-test-style.css"/>
+ <script src=/resources/testharness.js></script>
+diff --git a/conformance/glsl/bugs/temp-expressions-should-not-crash.html b/conformance/glsl/bugs/temp-expressions-should-not-crash.html
+index 535739ff7b..30a734c642 100644
+--- a/conformance/glsl/bugs/temp-expressions-should-not-crash.html
++++ b/conformance/glsl/bugs/temp-expressions-should-not-crash.html
+@@ -29,6 +29,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>Driver Bug - temp experssions should not crash</title>
+ <link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+ <script src=/resources/testharness.js></script>
+diff --git a/conformance/glsl/misc/shader-with-non-reserved-words.html b/conformance/glsl/misc/shader-with-non-reserved-words.html
+index 6aee7c6eba..29d891e0d1 100644
+--- a/conformance/glsl/misc/shader-with-non-reserved-words.html
++++ b/conformance/glsl/misc/shader-with-non-reserved-words.html
+@@ -29,6 +29,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL Conformance Tests - Non Reserved Words</title>
+ <link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+ <link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+diff --git a/conformance/ogles/GL/atan/atan_001_to_008.html b/conformance/ogles/GL/atan/atan_001_to_008.html
+index 96811c9a93..207db792c3 100644
+--- a/conformance/ogles/GL/atan/atan_001_to_008.html
++++ b/conformance/ogles/GL/atan/atan_001_to_008.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: atan_001_to_008.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/control_flow/control_flow_001_to_008.html b/conformance/ogles/GL/control_flow/control_flow_001_to_008.html
+index 76f9859b88..2b5e39031a 100644
+--- a/conformance/ogles/GL/control_flow/control_flow_001_to_008.html
++++ b/conformance/ogles/GL/control_flow/control_flow_001_to_008.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: control_flow_001_to_008.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/exp/exp_001_to_008.html b/conformance/ogles/GL/exp/exp_001_to_008.html
+index a0ce6c0641..497dc16a87 100644
+--- a/conformance/ogles/GL/exp/exp_001_to_008.html
++++ b/conformance/ogles/GL/exp/exp_001_to_008.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: exp_001_to_008.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/functions/functions_105_to_112.html b/conformance/ogles/GL/functions/functions_105_to_112.html
+index 7d826450fd..c3ce334d45 100644
+--- a/conformance/ogles/GL/functions/functions_105_to_112.html
++++ b/conformance/ogles/GL/functions/functions_105_to_112.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: functions_105_to_112.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/greaterThan/greaterThan_001_to_008.html b/conformance/ogles/GL/greaterThan/greaterThan_001_to_008.html
+index 7fee4bb8e3..db5145078d 100644
+--- a/conformance/ogles/GL/greaterThan/greaterThan_001_to_008.html
++++ b/conformance/ogles/GL/greaterThan/greaterThan_001_to_008.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: greaterThan_001_to_008.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/lessThanEqual/lessThanEqual_001_to_008.html b/conformance/ogles/GL/lessThanEqual/lessThanEqual_001_to_008.html
+index aca9d7b94d..9fb90921f8 100644
+--- a/conformance/ogles/GL/lessThanEqual/lessThanEqual_001_to_008.html
++++ b/conformance/ogles/GL/lessThanEqual/lessThanEqual_001_to_008.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: lessThanEqual_001_to_008.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/mod/mod_001_to_008.html b/conformance/ogles/GL/mod/mod_001_to_008.html
+index dcf5ac2405..833b1774a1 100644
+--- a/conformance/ogles/GL/mod/mod_001_to_008.html
++++ b/conformance/ogles/GL/mod/mod_001_to_008.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: mod_001_to_008.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/notEqual/notEqual_001_to_008.html b/conformance/ogles/GL/notEqual/notEqual_001_to_008.html
+index ea39e3045a..d023cfd462 100644
+--- a/conformance/ogles/GL/notEqual/notEqual_001_to_008.html
++++ b/conformance/ogles/GL/notEqual/notEqual_001_to_008.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: notEqual_001_to_008.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/pow/pow_009_to_016.html b/conformance/ogles/GL/pow/pow_009_to_016.html
+index 1ae02f1f31..22634ccd42 100644
+--- a/conformance/ogles/GL/pow/pow_009_to_016.html
++++ b/conformance/ogles/GL/pow/pow_009_to_016.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: pow_009_to_016.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/sin/sin_001_to_006.html b/conformance/ogles/GL/sin/sin_001_to_006.html
+index ae6a80723b..8ea1a134f2 100644
+--- a/conformance/ogles/GL/sin/sin_001_to_006.html
++++ b/conformance/ogles/GL/sin/sin_001_to_006.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: sin_001_to_006.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/struct/struct_001_to_008.html b/conformance/ogles/GL/struct/struct_001_to_008.html
+index 28691b7897..0b51124eee 100644
+--- a/conformance/ogles/GL/struct/struct_001_to_008.html
++++ b/conformance/ogles/GL/struct/struct_001_to_008.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: struct_001_to_008.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/clamp/clamp_001_to_006.html b/conformance/ogles/GL/clamp/clamp_001_to_006.html
+index 9abe66de09..8cdaad9e20 100644
+--- a/conformance/ogles/GL/clamp/clamp_001_to_006.html
++++ b/conformance/ogles/GL/clamp/clamp_001_to_006.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: clamp_001_to_006.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/functions/functions_001_to_008.html b/conformance/ogles/GL/functions/functions_001_to_008.html
+index 309e4b4917..89af11776d 100644
+--- a/conformance/ogles/GL/functions/functions_001_to_008.html
++++ b/conformance/ogles/GL/functions/functions_001_to_008.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: functions_001_to_008.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/functions/functions_009_to_016.html b/conformance/ogles/GL/functions/functions_009_to_016.html
+index 3a055a2e56..dbf4b719e3 100644
+--- a/conformance/ogles/GL/functions/functions_009_to_016.html
++++ b/conformance/ogles/GL/functions/functions_009_to_016.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: functions_009_to_016.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/functions/functions_113_to_120.html b/conformance/ogles/GL/functions/functions_113_to_120.html
+index c97b0c2d4a..fd84f79489 100644
+--- a/conformance/ogles/GL/functions/functions_113_to_120.html
++++ b/conformance/ogles/GL/functions/functions_113_to_120.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: functions_113_to_120.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/reflect/reflect_001_to_006.html b/conformance/ogles/GL/reflect/reflect_001_to_006.html
+index e41fa79800..03b6a647e9 100644
+--- a/conformance/ogles/GL/reflect/reflect_001_to_006.html
++++ b/conformance/ogles/GL/reflect/reflect_001_to_006.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: reflect_001_to_006.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/struct/struct_017_to_024.html b/conformance/ogles/GL/struct/struct_017_to_024.html
+index 5e64ae4210..c8608a4b0a 100644
+--- a/conformance/ogles/GL/struct/struct_017_to_024.html
++++ b/conformance/ogles/GL/struct/struct_017_to_024.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: struct_017_to_024.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/swizzlers/swizzlers_105_to_112.html b/conformance/ogles/GL/swizzlers/swizzlers_105_to_112.html
+index 27f01167c4..198d434663 100644
+--- a/conformance/ogles/GL/swizzlers/swizzlers_105_to_112.html
++++ b/conformance/ogles/GL/swizzlers/swizzlers_105_to_112.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: swizzlers_105_to_112.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/greaterThanEqual/greaterThanEqual_001_to_008.html b/conformance/ogles/GL/greaterThanEqual/greaterThanEqual_001_to_008.html
+index 2d854b0438..73310f3b6b 100644
+--- a/conformance/ogles/GL/greaterThanEqual/greaterThanEqual_001_to_008.html
++++ b/conformance/ogles/GL/greaterThanEqual/greaterThanEqual_001_to_008.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: greaterThanEqual_001_to_008.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/swizzlers/swizzlers_009_to_016.html b/conformance/ogles/GL/swizzlers/swizzlers_009_to_016.html
+index b4894c019e..f85523127e 100644
+--- a/conformance/ogles/GL/swizzlers/swizzlers_009_to_016.html
++++ b/conformance/ogles/GL/swizzlers/swizzlers_009_to_016.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: swizzlers_009_to_016.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/abs/abs_001_to_006.html b/conformance/ogles/GL/abs/abs_001_to_006.html
+index 5c2ae1d05b..2af0dd4b9c 100644
+--- a/conformance/ogles/GL/abs/abs_001_to_006.html
++++ b/conformance/ogles/GL/abs/abs_001_to_006.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: abs_001_to_006.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/all/all_001_to_004.html b/conformance/ogles/GL/all/all_001_to_004.html
+index 226d9c0825..a00461f8ba 100644
+--- a/conformance/ogles/GL/all/all_001_to_004.html
++++ b/conformance/ogles/GL/all/all_001_to_004.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: all_001_to_004.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/any/any_001_to_004.html b/conformance/ogles/GL/any/any_001_to_004.html
+index 53bd5a86ad..780b3b5432 100644
+--- a/conformance/ogles/GL/any/any_001_to_004.html
++++ b/conformance/ogles/GL/any/any_001_to_004.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: any_001_to_004.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/array/array_001_to_006.html b/conformance/ogles/GL/array/array_001_to_006.html
+index acb3839137..21a5506878 100644
+--- a/conformance/ogles/GL/array/array_001_to_006.html
++++ b/conformance/ogles/GL/array/array_001_to_006.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: array_001_to_006.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/atan/atan_009_to_012.html b/conformance/ogles/GL/atan/atan_009_to_012.html
+index f82f4fc8c6..2d74d0cc75 100644
+--- a/conformance/ogles/GL/atan/atan_009_to_012.html
++++ b/conformance/ogles/GL/atan/atan_009_to_012.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: atan_009_to_012.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/biConstants/biConstants_001_to_008.html b/conformance/ogles/GL/biConstants/biConstants_001_to_008.html
+index 362ca8f553..65706aa293 100644
+--- a/conformance/ogles/GL/biConstants/biConstants_001_to_008.html
++++ b/conformance/ogles/GL/biConstants/biConstants_001_to_008.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: biConstants_001_to_008.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/biConstants/biConstants_009_to_016.html b/conformance/ogles/GL/biConstants/biConstants_009_to_016.html
+index 5409dda25a..5107486582 100644
+--- a/conformance/ogles/GL/biConstants/biConstants_009_to_016.html
++++ b/conformance/ogles/GL/biConstants/biConstants_009_to_016.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: biConstants_009_to_016.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/biuDepthRange/biuDepthRange_001_to_002.html b/conformance/ogles/GL/biuDepthRange/biuDepthRange_001_to_002.html
+index d968a2a825..45d0523982 100644
+--- a/conformance/ogles/GL/biuDepthRange/biuDepthRange_001_to_002.html
++++ b/conformance/ogles/GL/biuDepthRange/biuDepthRange_001_to_002.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: biuDepthRange_001_to_002.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/build/build_001_to_008.html b/conformance/ogles/GL/build/build_001_to_008.html
+index 1883b6a814..c0c33c424a 100644
+--- a/conformance/ogles/GL/build/build_001_to_008.html
++++ b/conformance/ogles/GL/build/build_001_to_008.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: build_001_to_008.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/build/build_009_to_016.html b/conformance/ogles/GL/build/build_009_to_016.html
+index 4afb29be74..496fdb332f 100644
+--- a/conformance/ogles/GL/build/build_009_to_016.html
++++ b/conformance/ogles/GL/build/build_009_to_016.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: build_009_to_016.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/build/build_017_to_024.html b/conformance/ogles/GL/build/build_017_to_024.html
+index 10b3d6636c..48d22fd4ce 100644
+--- a/conformance/ogles/GL/build/build_017_to_024.html
++++ b/conformance/ogles/GL/build/build_017_to_024.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: build_017_to_024.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/build/build_025_to_032.html b/conformance/ogles/GL/build/build_025_to_032.html
+index 8ee6bdee38..bce572cd24 100644
+--- a/conformance/ogles/GL/build/build_025_to_032.html
++++ b/conformance/ogles/GL/build/build_025_to_032.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: build_025_to_032.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/build/build_033_to_040.html b/conformance/ogles/GL/build/build_033_to_040.html
+index 6667f89bb3..91c0ea47de 100644
+--- a/conformance/ogles/GL/build/build_033_to_040.html
++++ b/conformance/ogles/GL/build/build_033_to_040.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: build_033_to_040.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/build/build_041_to_048.html b/conformance/ogles/GL/build/build_041_to_048.html
+index ac62a69618..28d3221fee 100644
+--- a/conformance/ogles/GL/build/build_041_to_048.html
++++ b/conformance/ogles/GL/build/build_041_to_048.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: build_041_to_048.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/build/build_049_to_056.html b/conformance/ogles/GL/build/build_049_to_056.html
+index 62358b0c6e..be3df66d12 100644
+--- a/conformance/ogles/GL/build/build_049_to_056.html
++++ b/conformance/ogles/GL/build/build_049_to_056.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: build_049_to_056.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/build/build_057_to_064.html b/conformance/ogles/GL/build/build_057_to_064.html
+index f194ecf17b..aa7b633b9f 100644
+--- a/conformance/ogles/GL/build/build_057_to_064.html
++++ b/conformance/ogles/GL/build/build_057_to_064.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: build_057_to_064.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/build/build_065_to_072.html b/conformance/ogles/GL/build/build_065_to_072.html
+index 16372f8862..1d68894b99 100644
+--- a/conformance/ogles/GL/build/build_065_to_072.html
++++ b/conformance/ogles/GL/build/build_065_to_072.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: build_065_to_072.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/build/build_073_to_080.html b/conformance/ogles/GL/build/build_073_to_080.html
+index 0259cae929..58328dba2a 100644
+--- a/conformance/ogles/GL/build/build_073_to_080.html
++++ b/conformance/ogles/GL/build/build_073_to_080.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: build_073_to_080.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/build/build_081_to_088.html b/conformance/ogles/GL/build/build_081_to_088.html
+index ce86db8586..e02ad3dbe4 100644
+--- a/conformance/ogles/GL/build/build_081_to_088.html
++++ b/conformance/ogles/GL/build/build_081_to_088.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: build_081_to_088.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/build/build_089_to_096.html b/conformance/ogles/GL/build/build_089_to_096.html
+index 2356148861..db801551e6 100644
+--- a/conformance/ogles/GL/build/build_089_to_096.html
++++ b/conformance/ogles/GL/build/build_089_to_096.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: build_089_to_096.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/build/build_097_to_104.html b/conformance/ogles/GL/build/build_097_to_104.html
+index 2a4f2abcea..7b555c682e 100644
+--- a/conformance/ogles/GL/build/build_097_to_104.html
++++ b/conformance/ogles/GL/build/build_097_to_104.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: build_097_to_104.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/build/build_105_to_112.html b/conformance/ogles/GL/build/build_105_to_112.html
+index cd5dabddc6..b0f3958ac4 100644
+--- a/conformance/ogles/GL/build/build_105_to_112.html
++++ b/conformance/ogles/GL/build/build_105_to_112.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: build_105_to_112.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/build/build_113_to_120.html b/conformance/ogles/GL/build/build_113_to_120.html
+index a93b6e6ead..e6aa88e08f 100644
+--- a/conformance/ogles/GL/build/build_113_to_120.html
++++ b/conformance/ogles/GL/build/build_113_to_120.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: build_113_to_120.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/build/build_121_to_128.html b/conformance/ogles/GL/build/build_121_to_128.html
+index f13e0656d8..cbc49130c1 100644
+--- a/conformance/ogles/GL/build/build_121_to_128.html
++++ b/conformance/ogles/GL/build/build_121_to_128.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: build_121_to_128.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/build/build_129_to_136.html b/conformance/ogles/GL/build/build_129_to_136.html
+index 34eaa4352a..c3ec7500d6 100644
+--- a/conformance/ogles/GL/build/build_129_to_136.html
++++ b/conformance/ogles/GL/build/build_129_to_136.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: build_129_to_136.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/build/build_137_to_144.html b/conformance/ogles/GL/build/build_137_to_144.html
+index acb4502de5..8f1275fe0d 100644
+--- a/conformance/ogles/GL/build/build_137_to_144.html
++++ b/conformance/ogles/GL/build/build_137_to_144.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: build_137_to_144.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/build/build_145_to_152.html b/conformance/ogles/GL/build/build_145_to_152.html
+index ff3ea37f3b..e77616897e 100644
+--- a/conformance/ogles/GL/build/build_145_to_152.html
++++ b/conformance/ogles/GL/build/build_145_to_152.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: build_145_to_152.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/build/build_153_to_160.html b/conformance/ogles/GL/build/build_153_to_160.html
+index 844e548a47..467590650d 100644
+--- a/conformance/ogles/GL/build/build_153_to_160.html
++++ b/conformance/ogles/GL/build/build_153_to_160.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: build_153_to_160.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/build/build_161_to_168.html b/conformance/ogles/GL/build/build_161_to_168.html
+index 3bbcddaadc..ec7a9bb05c 100644
+--- a/conformance/ogles/GL/build/build_161_to_168.html
++++ b/conformance/ogles/GL/build/build_161_to_168.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: build_161_to_168.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/build/build_169_to_176.html b/conformance/ogles/GL/build/build_169_to_176.html
+index f00fa582c6..406cab463c 100644
+--- a/conformance/ogles/GL/build/build_169_to_176.html
++++ b/conformance/ogles/GL/build/build_169_to_176.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: build_169_to_176.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/build/build_177_to_178.html b/conformance/ogles/GL/build/build_177_to_178.html
+index a2406d8ed5..7c0a718ad0 100644
+--- a/conformance/ogles/GL/build/build_177_to_178.html
++++ b/conformance/ogles/GL/build/build_177_to_178.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: build_177_to_178.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/built_in_varying_array_out_of_bounds/built_in_varying_array_out_of_bounds_001_to_001.html b/conformance/ogles/GL/built_in_varying_array_out_of_bounds/built_in_varying_array_out_of_bounds_001_to_001.html
+index e6542bfe8d..d5a93f05ff 100644
+--- a/conformance/ogles/GL/built_in_varying_array_out_of_bounds/built_in_varying_array_out_of_bounds_001_to_001.html
++++ b/conformance/ogles/GL/built_in_varying_array_out_of_bounds/built_in_varying_array_out_of_bounds_001_to_001.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: built_in_varying_array_out_of_bounds_001_to_001.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/ceil/ceil_001_to_006.html b/conformance/ogles/GL/ceil/ceil_001_to_006.html
+index c8b3a25732..9068d26a5d 100644
+--- a/conformance/ogles/GL/ceil/ceil_001_to_006.html
++++ b/conformance/ogles/GL/ceil/ceil_001_to_006.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: ceil_001_to_006.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/control_flow/control_flow_009_to_010.html b/conformance/ogles/GL/control_flow/control_flow_009_to_010.html
+index 3845a8d9fd..018843b589 100644
+--- a/conformance/ogles/GL/control_flow/control_flow_009_to_010.html
++++ b/conformance/ogles/GL/control_flow/control_flow_009_to_010.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: control_flow_009_to_010.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/cos/cos_001_to_006.html b/conformance/ogles/GL/cos/cos_001_to_006.html
+index 6da1573843..fc6b6fd42d 100644
+--- a/conformance/ogles/GL/cos/cos_001_to_006.html
++++ b/conformance/ogles/GL/cos/cos_001_to_006.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: cos_001_to_006.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/cross/cross_001_to_002.html b/conformance/ogles/GL/cross/cross_001_to_002.html
+index c0c5bc44c5..6b45928307 100644
+--- a/conformance/ogles/GL/cross/cross_001_to_002.html
++++ b/conformance/ogles/GL/cross/cross_001_to_002.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: cross_001_to_002.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/default/default_001_to_001.html b/conformance/ogles/GL/default/default_001_to_001.html
+index 1a9e6c3214..9f2456cfcb 100644
+--- a/conformance/ogles/GL/default/default_001_to_001.html
++++ b/conformance/ogles/GL/default/default_001_to_001.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: default_001_to_001.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/degrees/degrees_001_to_006.html b/conformance/ogles/GL/degrees/degrees_001_to_006.html
+index 1e29130a3d..6f9c14d119 100644
+--- a/conformance/ogles/GL/degrees/degrees_001_to_006.html
++++ b/conformance/ogles/GL/degrees/degrees_001_to_006.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: degrees_001_to_006.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/discard/discard_001_to_002.html b/conformance/ogles/GL/discard/discard_001_to_002.html
+index 0efbe81fb4..bda9a2d99a 100644
+--- a/conformance/ogles/GL/discard/discard_001_to_002.html
++++ b/conformance/ogles/GL/discard/discard_001_to_002.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: discard_001_to_002.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/distance/distance_001_to_006.html b/conformance/ogles/GL/distance/distance_001_to_006.html
+index 7ad48ff83b..39441600eb 100644
+--- a/conformance/ogles/GL/distance/distance_001_to_006.html
++++ b/conformance/ogles/GL/distance/distance_001_to_006.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: distance_001_to_006.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/dot/dot_001_to_006.html b/conformance/ogles/GL/dot/dot_001_to_006.html
+index 35af74a12a..a75839bf29 100644
+--- a/conformance/ogles/GL/dot/dot_001_to_006.html
++++ b/conformance/ogles/GL/dot/dot_001_to_006.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: dot_001_to_006.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/equal/equal_001_to_008.html b/conformance/ogles/GL/equal/equal_001_to_008.html
+index 4266061afe..5b63f08e78 100644
+--- a/conformance/ogles/GL/equal/equal_001_to_008.html
++++ b/conformance/ogles/GL/equal/equal_001_to_008.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: equal_001_to_008.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/equal/equal_009_to_012.html b/conformance/ogles/GL/equal/equal_009_to_012.html
+index f5af33c3db..e32f989869 100644
+--- a/conformance/ogles/GL/equal/equal_009_to_012.html
++++ b/conformance/ogles/GL/equal/equal_009_to_012.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: equal_009_to_012.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/exp/exp_009_to_012.html b/conformance/ogles/GL/exp/exp_009_to_012.html
+index ddf15b619a..ea46abd3e3 100644
+--- a/conformance/ogles/GL/exp/exp_009_to_012.html
++++ b/conformance/ogles/GL/exp/exp_009_to_012.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: exp_009_to_012.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/exp2/exp2_001_to_008.html b/conformance/ogles/GL/exp2/exp2_001_to_008.html
+index 7b64d838de..a07d1e5743 100644
+--- a/conformance/ogles/GL/exp2/exp2_001_to_008.html
++++ b/conformance/ogles/GL/exp2/exp2_001_to_008.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: exp2_001_to_008.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/exp2/exp2_009_to_012.html b/conformance/ogles/GL/exp2/exp2_009_to_012.html
+index 2b29d52bd0..c771195266 100644
+--- a/conformance/ogles/GL/exp2/exp2_009_to_012.html
++++ b/conformance/ogles/GL/exp2/exp2_009_to_012.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: exp2_009_to_012.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/faceforward/faceforward_001_to_006.html b/conformance/ogles/GL/faceforward/faceforward_001_to_006.html
+index c70334794c..c9eb361142 100644
+--- a/conformance/ogles/GL/faceforward/faceforward_001_to_006.html
++++ b/conformance/ogles/GL/faceforward/faceforward_001_to_006.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: faceforward_001_to_006.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/floor/floor_001_to_006.html b/conformance/ogles/GL/floor/floor_001_to_006.html
+index 75d2d91675..30438dd7fd 100644
+--- a/conformance/ogles/GL/floor/floor_001_to_006.html
++++ b/conformance/ogles/GL/floor/floor_001_to_006.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: floor_001_to_006.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/fract/fract_001_to_006.html b/conformance/ogles/GL/fract/fract_001_to_006.html
+index 0fde847696..fd28dcff49 100644
+--- a/conformance/ogles/GL/fract/fract_001_to_006.html
++++ b/conformance/ogles/GL/fract/fract_001_to_006.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: fract_001_to_006.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/functions/functions_017_to_024.html b/conformance/ogles/GL/functions/functions_017_to_024.html
+index 72e2585af4..e90105b2d9 100644
+--- a/conformance/ogles/GL/functions/functions_017_to_024.html
++++ b/conformance/ogles/GL/functions/functions_017_to_024.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: functions_017_to_024.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/functions/functions_025_to_032.html b/conformance/ogles/GL/functions/functions_025_to_032.html
+index 32a7ef534d..0a000a8ddf 100644
+--- a/conformance/ogles/GL/functions/functions_025_to_032.html
++++ b/conformance/ogles/GL/functions/functions_025_to_032.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: functions_025_to_032.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/functions/functions_033_to_040.html b/conformance/ogles/GL/functions/functions_033_to_040.html
+index 4a8723664b..6c89d834f8 100644
+--- a/conformance/ogles/GL/functions/functions_033_to_040.html
++++ b/conformance/ogles/GL/functions/functions_033_to_040.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: functions_033_to_040.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/functions/functions_041_to_048.html b/conformance/ogles/GL/functions/functions_041_to_048.html
+index 0d3aee9278..4800ca94da 100644
+--- a/conformance/ogles/GL/functions/functions_041_to_048.html
++++ b/conformance/ogles/GL/functions/functions_041_to_048.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: functions_041_to_048.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/functions/functions_049_to_056.html b/conformance/ogles/GL/functions/functions_049_to_056.html
+index 4cbdf62fc9..ea65d15ce4 100644
+--- a/conformance/ogles/GL/functions/functions_049_to_056.html
++++ b/conformance/ogles/GL/functions/functions_049_to_056.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: functions_049_to_056.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/functions/functions_057_to_064.html b/conformance/ogles/GL/functions/functions_057_to_064.html
+index 2c2545718b..62782be16a 100644
+--- a/conformance/ogles/GL/functions/functions_057_to_064.html
++++ b/conformance/ogles/GL/functions/functions_057_to_064.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: functions_057_to_064.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/functions/functions_065_to_072.html b/conformance/ogles/GL/functions/functions_065_to_072.html
+index d01ded0bd3..05e9864c9c 100644
+--- a/conformance/ogles/GL/functions/functions_065_to_072.html
++++ b/conformance/ogles/GL/functions/functions_065_to_072.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: functions_065_to_072.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/functions/functions_073_to_080.html b/conformance/ogles/GL/functions/functions_073_to_080.html
+index 969754f71e..a871c24f66 100644
+--- a/conformance/ogles/GL/functions/functions_073_to_080.html
++++ b/conformance/ogles/GL/functions/functions_073_to_080.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: functions_073_to_080.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/functions/functions_081_to_088.html b/conformance/ogles/GL/functions/functions_081_to_088.html
+index 08c0e1163e..3142c5cd00 100644
+--- a/conformance/ogles/GL/functions/functions_081_to_088.html
++++ b/conformance/ogles/GL/functions/functions_081_to_088.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: functions_081_to_088.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/functions/functions_089_to_096.html b/conformance/ogles/GL/functions/functions_089_to_096.html
+index 3515815586..2413ca6df9 100644
+--- a/conformance/ogles/GL/functions/functions_089_to_096.html
++++ b/conformance/ogles/GL/functions/functions_089_to_096.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: functions_089_to_096.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/functions/functions_097_to_104.html b/conformance/ogles/GL/functions/functions_097_to_104.html
+index 2d5ef101d9..ba4e22d67e 100644
+--- a/conformance/ogles/GL/functions/functions_097_to_104.html
++++ b/conformance/ogles/GL/functions/functions_097_to_104.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: functions_097_to_104.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/functions/functions_121_to_126.html b/conformance/ogles/GL/functions/functions_121_to_126.html
+index 10eaee12a8..7c343c192b 100644
+--- a/conformance/ogles/GL/functions/functions_121_to_126.html
++++ b/conformance/ogles/GL/functions/functions_121_to_126.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: functions_121_to_126.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/gl_FragCoord/gl_FragCoord_001_to_003.html b/conformance/ogles/GL/gl_FragCoord/gl_FragCoord_001_to_003.html
+index 674ce26dc7..2fa27d8089 100644
+--- a/conformance/ogles/GL/gl_FragCoord/gl_FragCoord_001_to_003.html
++++ b/conformance/ogles/GL/gl_FragCoord/gl_FragCoord_001_to_003.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: gl_FragCoord_001_to_003.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/gl_FrontFacing/gl_FrontFacing_001_to_001.html b/conformance/ogles/GL/gl_FrontFacing/gl_FrontFacing_001_to_001.html
+index ace8b2aa6a..8abc04d7af 100644
+--- a/conformance/ogles/GL/gl_FrontFacing/gl_FrontFacing_001_to_001.html
++++ b/conformance/ogles/GL/gl_FrontFacing/gl_FrontFacing_001_to_001.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: gl_FrontFacing_001_to_001.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/inversesqrt/inversesqrt_001_to_006.html b/conformance/ogles/GL/inversesqrt/inversesqrt_001_to_006.html
+index c48b075aeb..0b1ed4a645 100644
+--- a/conformance/ogles/GL/inversesqrt/inversesqrt_001_to_006.html
++++ b/conformance/ogles/GL/inversesqrt/inversesqrt_001_to_006.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: inversesqrt_001_to_006.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/length/length_001_to_006.html b/conformance/ogles/GL/length/length_001_to_006.html
+index d5848dce1f..9d67dcc621 100644
+--- a/conformance/ogles/GL/length/length_001_to_006.html
++++ b/conformance/ogles/GL/length/length_001_to_006.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: length_001_to_006.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/lessThan/lessThan_001_to_008.html b/conformance/ogles/GL/lessThan/lessThan_001_to_008.html
+index 0c4b5d7c87..9f134c35a4 100644
+--- a/conformance/ogles/GL/lessThan/lessThan_001_to_008.html
++++ b/conformance/ogles/GL/lessThan/lessThan_001_to_008.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: lessThan_001_to_008.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/log/log_009_to_012.html b/conformance/ogles/GL/log/log_009_to_012.html
+index 1e362043d8..a01d5ae7e9 100644
+--- a/conformance/ogles/GL/log/log_009_to_012.html
++++ b/conformance/ogles/GL/log/log_009_to_012.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: log_009_to_012.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/log2/log2_009_to_012.html b/conformance/ogles/GL/log2/log2_009_to_012.html
+index e7abb0ba78..19cb80b8ea 100644
+--- a/conformance/ogles/GL/log2/log2_009_to_012.html
++++ b/conformance/ogles/GL/log2/log2_009_to_012.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: log2_009_to_012.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/mat/mat_001_to_008.html b/conformance/ogles/GL/mat/mat_001_to_008.html
+index 2010cbe02c..de9093445c 100644
+--- a/conformance/ogles/GL/mat/mat_001_to_008.html
++++ b/conformance/ogles/GL/mat/mat_001_to_008.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: mat_001_to_008.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/mat/mat_009_to_016.html b/conformance/ogles/GL/mat/mat_009_to_016.html
+index 0d73540a86..9e5c894705 100644
+--- a/conformance/ogles/GL/mat/mat_009_to_016.html
++++ b/conformance/ogles/GL/mat/mat_009_to_016.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: mat_009_to_016.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/mat/mat_017_to_024.html b/conformance/ogles/GL/mat/mat_017_to_024.html
+index 2e3a486765..d5b52de1bb 100644
+--- a/conformance/ogles/GL/mat/mat_017_to_024.html
++++ b/conformance/ogles/GL/mat/mat_017_to_024.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: mat_017_to_024.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/mat/mat_025_to_032.html b/conformance/ogles/GL/mat/mat_025_to_032.html
+index 8862968e9a..cfe59573d8 100644
+--- a/conformance/ogles/GL/mat/mat_025_to_032.html
++++ b/conformance/ogles/GL/mat/mat_025_to_032.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: mat_025_to_032.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/mat/mat_033_to_040.html b/conformance/ogles/GL/mat/mat_033_to_040.html
+index 66267c5343..9f367a24de 100644
+--- a/conformance/ogles/GL/mat/mat_033_to_040.html
++++ b/conformance/ogles/GL/mat/mat_033_to_040.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: mat_033_to_040.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/mat/mat_041_to_046.html b/conformance/ogles/GL/mat/mat_041_to_046.html
+index 42616f0bfe..a38b73e061 100644
+--- a/conformance/ogles/GL/mat/mat_041_to_046.html
++++ b/conformance/ogles/GL/mat/mat_041_to_046.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: mat_041_to_046.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/mat3/mat3_001_to_006.html b/conformance/ogles/GL/mat3/mat3_001_to_006.html
+index 60f5225933..2600512ff1 100644
+--- a/conformance/ogles/GL/mat3/mat3_001_to_006.html
++++ b/conformance/ogles/GL/mat3/mat3_001_to_006.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: mat3_001_to_006.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/matrixCompMult/matrixCompMult_001_to_004.html b/conformance/ogles/GL/matrixCompMult/matrixCompMult_001_to_004.html
+index bacbc87b42..caf777df83 100644
+--- a/conformance/ogles/GL/matrixCompMult/matrixCompMult_001_to_004.html
++++ b/conformance/ogles/GL/matrixCompMult/matrixCompMult_001_to_004.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: matrixCompMult_001_to_004.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/max/max_001_to_006.html b/conformance/ogles/GL/max/max_001_to_006.html
+index 8cc3f478f3..e79f3cced4 100644
+--- a/conformance/ogles/GL/max/max_001_to_006.html
++++ b/conformance/ogles/GL/max/max_001_to_006.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: max_001_to_006.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/min/min_001_to_006.html b/conformance/ogles/GL/min/min_001_to_006.html
+index a9dd90c99e..5d927dd73d 100644
+--- a/conformance/ogles/GL/min/min_001_to_006.html
++++ b/conformance/ogles/GL/min/min_001_to_006.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: min_001_to_006.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/mix/mix_001_to_006.html b/conformance/ogles/GL/mix/mix_001_to_006.html
+index abeb8c20e9..fbe3846b09 100644
+--- a/conformance/ogles/GL/mix/mix_001_to_006.html
++++ b/conformance/ogles/GL/mix/mix_001_to_006.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: mix_001_to_006.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/normalize/normalize_001_to_006.html b/conformance/ogles/GL/normalize/normalize_001_to_006.html
+index d711520fa4..dab9e4a21e 100644
+--- a/conformance/ogles/GL/normalize/normalize_001_to_006.html
++++ b/conformance/ogles/GL/normalize/normalize_001_to_006.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: normalize_001_to_006.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/not/not_001_to_004.html b/conformance/ogles/GL/not/not_001_to_004.html
+index 2376898aba..a3826ed0bb 100644
+--- a/conformance/ogles/GL/not/not_001_to_004.html
++++ b/conformance/ogles/GL/not/not_001_to_004.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: not_001_to_004.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/notEqual/notEqual_009_to_012.html b/conformance/ogles/GL/notEqual/notEqual_009_to_012.html
+index 3c2b81ee9d..966fd13c91 100644
+--- a/conformance/ogles/GL/notEqual/notEqual_009_to_012.html
++++ b/conformance/ogles/GL/notEqual/notEqual_009_to_012.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: notEqual_009_to_012.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/operators/operators_001_to_008.html b/conformance/ogles/GL/operators/operators_001_to_008.html
+index 8e59e71d2d..a90031de6a 100644
+--- a/conformance/ogles/GL/operators/operators_001_to_008.html
++++ b/conformance/ogles/GL/operators/operators_001_to_008.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: operators_001_to_008.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/operators/operators_009_to_016.html b/conformance/ogles/GL/operators/operators_009_to_016.html
+index e19f146b75..60692b9a32 100644
+--- a/conformance/ogles/GL/operators/operators_009_to_016.html
++++ b/conformance/ogles/GL/operators/operators_009_to_016.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: operators_009_to_016.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/operators/operators_017_to_024.html b/conformance/ogles/GL/operators/operators_017_to_024.html
+index 14da8ea63e..dd6e17de73 100644
+--- a/conformance/ogles/GL/operators/operators_017_to_024.html
++++ b/conformance/ogles/GL/operators/operators_017_to_024.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: operators_017_to_024.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/operators/operators_025_to_026.html b/conformance/ogles/GL/operators/operators_025_to_026.html
+index 812f24dc9a..97a2790610 100644
+--- a/conformance/ogles/GL/operators/operators_025_to_026.html
++++ b/conformance/ogles/GL/operators/operators_025_to_026.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: operators_025_to_026.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/pow/pow_001_to_008.html b/conformance/ogles/GL/pow/pow_001_to_008.html
+index cfd6e3b4f8..b4c6eb3ce5 100644
+--- a/conformance/ogles/GL/pow/pow_001_to_008.html
++++ b/conformance/ogles/GL/pow/pow_001_to_008.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: pow_001_to_008.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/pow/pow_017_to_024.html b/conformance/ogles/GL/pow/pow_017_to_024.html
+index 06420c9196..eb018051f0 100644
+--- a/conformance/ogles/GL/pow/pow_017_to_024.html
++++ b/conformance/ogles/GL/pow/pow_017_to_024.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: pow_017_to_024.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/radians/radians_001_to_006.html b/conformance/ogles/GL/radians/radians_001_to_006.html
+index 3d03c34a79..dbcb357a58 100644
+--- a/conformance/ogles/GL/radians/radians_001_to_006.html
++++ b/conformance/ogles/GL/radians/radians_001_to_006.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: radians_001_to_006.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/refract/refract_001_to_006.html b/conformance/ogles/GL/refract/refract_001_to_006.html
+index 3fdad36dab..594b82158e 100644
+--- a/conformance/ogles/GL/refract/refract_001_to_006.html
++++ b/conformance/ogles/GL/refract/refract_001_to_006.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: refract_001_to_006.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/sign/sign_001_to_006.html b/conformance/ogles/GL/sign/sign_001_to_006.html
+index 0e4a56dbcd..86bfd7bbeb 100644
+--- a/conformance/ogles/GL/sign/sign_001_to_006.html
++++ b/conformance/ogles/GL/sign/sign_001_to_006.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: sign_001_to_006.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/smoothstep/smoothstep_001_to_006.html b/conformance/ogles/GL/smoothstep/smoothstep_001_to_006.html
+index 06731acc31..891835904b 100644
+--- a/conformance/ogles/GL/smoothstep/smoothstep_001_to_006.html
++++ b/conformance/ogles/GL/smoothstep/smoothstep_001_to_006.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: smoothstep_001_to_006.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/sqrt/sqrt_001_to_006.html b/conformance/ogles/GL/sqrt/sqrt_001_to_006.html
+index ff5fb1cee9..bc865852bb 100644
+--- a/conformance/ogles/GL/sqrt/sqrt_001_to_006.html
++++ b/conformance/ogles/GL/sqrt/sqrt_001_to_006.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: sqrt_001_to_006.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/step/step_001_to_006.html b/conformance/ogles/GL/step/step_001_to_006.html
+index b2572d445b..6125e525a3 100644
+--- a/conformance/ogles/GL/step/step_001_to_006.html
++++ b/conformance/ogles/GL/step/step_001_to_006.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: step_001_to_006.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/struct/struct_009_to_016.html b/conformance/ogles/GL/struct/struct_009_to_016.html
+index ce9ea01c22..85b91c16a1 100644
+--- a/conformance/ogles/GL/struct/struct_009_to_016.html
++++ b/conformance/ogles/GL/struct/struct_009_to_016.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: struct_009_to_016.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/struct/struct_025_to_032.html b/conformance/ogles/GL/struct/struct_025_to_032.html
+index 1cd3af91d6..111e7b51ae 100644
+--- a/conformance/ogles/GL/struct/struct_025_to_032.html
++++ b/conformance/ogles/GL/struct/struct_025_to_032.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: struct_025_to_032.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/struct/struct_033_to_040.html b/conformance/ogles/GL/struct/struct_033_to_040.html
+index e81478b8ba..6fbb77a59b 100644
+--- a/conformance/ogles/GL/struct/struct_033_to_040.html
++++ b/conformance/ogles/GL/struct/struct_033_to_040.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: struct_033_to_040.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/struct/struct_041_to_048.html b/conformance/ogles/GL/struct/struct_041_to_048.html
+index 8aaa8da8e8..1101504a4e 100644
+--- a/conformance/ogles/GL/struct/struct_041_to_048.html
++++ b/conformance/ogles/GL/struct/struct_041_to_048.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: struct_041_to_048.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/struct/struct_049_to_056.html b/conformance/ogles/GL/struct/struct_049_to_056.html
+index 831ad2fb37..83597ef3f6 100644
+--- a/conformance/ogles/GL/struct/struct_049_to_056.html
++++ b/conformance/ogles/GL/struct/struct_049_to_056.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: struct_049_to_056.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/swizzlers/swizzlers_001_to_008.html b/conformance/ogles/GL/swizzlers/swizzlers_001_to_008.html
+index 022d14cab7..2ad45f6be5 100644
+--- a/conformance/ogles/GL/swizzlers/swizzlers_001_to_008.html
++++ b/conformance/ogles/GL/swizzlers/swizzlers_001_to_008.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: swizzlers_001_to_008.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/swizzlers/swizzlers_017_to_024.html b/conformance/ogles/GL/swizzlers/swizzlers_017_to_024.html
+index 76e6a9a97e..0d692208aa 100644
+--- a/conformance/ogles/GL/swizzlers/swizzlers_017_to_024.html
++++ b/conformance/ogles/GL/swizzlers/swizzlers_017_to_024.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: swizzlers_017_to_024.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/swizzlers/swizzlers_025_to_032.html b/conformance/ogles/GL/swizzlers/swizzlers_025_to_032.html
+index 6a38d1f9e3..43f871ca6e 100644
+--- a/conformance/ogles/GL/swizzlers/swizzlers_025_to_032.html
++++ b/conformance/ogles/GL/swizzlers/swizzlers_025_to_032.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: swizzlers_025_to_032.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/swizzlers/swizzlers_033_to_040.html b/conformance/ogles/GL/swizzlers/swizzlers_033_to_040.html
+index 27b9a25bd0..fa0e139fa4 100644
+--- a/conformance/ogles/GL/swizzlers/swizzlers_033_to_040.html
++++ b/conformance/ogles/GL/swizzlers/swizzlers_033_to_040.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: swizzlers_033_to_040.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/swizzlers/swizzlers_041_to_048.html b/conformance/ogles/GL/swizzlers/swizzlers_041_to_048.html
+index 0258666257..4153e79b16 100644
+--- a/conformance/ogles/GL/swizzlers/swizzlers_041_to_048.html
++++ b/conformance/ogles/GL/swizzlers/swizzlers_041_to_048.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: swizzlers_041_to_048.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/swizzlers/swizzlers_049_to_056.html b/conformance/ogles/GL/swizzlers/swizzlers_049_to_056.html
+index e0953edc17..d4610d6a6c 100644
+--- a/conformance/ogles/GL/swizzlers/swizzlers_049_to_056.html
++++ b/conformance/ogles/GL/swizzlers/swizzlers_049_to_056.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: swizzlers_049_to_056.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/swizzlers/swizzlers_057_to_064.html b/conformance/ogles/GL/swizzlers/swizzlers_057_to_064.html
+index 6932dca569..ec697a92db 100644
+--- a/conformance/ogles/GL/swizzlers/swizzlers_057_to_064.html
++++ b/conformance/ogles/GL/swizzlers/swizzlers_057_to_064.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: swizzlers_057_to_064.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/swizzlers/swizzlers_065_to_072.html b/conformance/ogles/GL/swizzlers/swizzlers_065_to_072.html
+index 8687c5dbde..04c139c0ea 100644
+--- a/conformance/ogles/GL/swizzlers/swizzlers_065_to_072.html
++++ b/conformance/ogles/GL/swizzlers/swizzlers_065_to_072.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: swizzlers_065_to_072.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/swizzlers/swizzlers_073_to_080.html b/conformance/ogles/GL/swizzlers/swizzlers_073_to_080.html
+index 5df7f6e3bf..baafeeee8c 100644
+--- a/conformance/ogles/GL/swizzlers/swizzlers_073_to_080.html
++++ b/conformance/ogles/GL/swizzlers/swizzlers_073_to_080.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: swizzlers_073_to_080.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/swizzlers/swizzlers_081_to_088.html b/conformance/ogles/GL/swizzlers/swizzlers_081_to_088.html
+index f2705dd655..a61fcb8497 100644
+--- a/conformance/ogles/GL/swizzlers/swizzlers_081_to_088.html
++++ b/conformance/ogles/GL/swizzlers/swizzlers_081_to_088.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: swizzlers_081_to_088.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/swizzlers/swizzlers_089_to_096.html b/conformance/ogles/GL/swizzlers/swizzlers_089_to_096.html
+index 7f4e8ffbd3..eab21a8d47 100644
+--- a/conformance/ogles/GL/swizzlers/swizzlers_089_to_096.html
++++ b/conformance/ogles/GL/swizzlers/swizzlers_089_to_096.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: swizzlers_089_to_096.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/swizzlers/swizzlers_097_to_104.html b/conformance/ogles/GL/swizzlers/swizzlers_097_to_104.html
+index 44ad2ab8a8..1661b5ffe5 100644
+--- a/conformance/ogles/GL/swizzlers/swizzlers_097_to_104.html
++++ b/conformance/ogles/GL/swizzlers/swizzlers_097_to_104.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: swizzlers_097_to_104.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/swizzlers/swizzlers_113_to_120.html b/conformance/ogles/GL/swizzlers/swizzlers_113_to_120.html
+index 23528dea2a..dcf962e1b3 100644
+--- a/conformance/ogles/GL/swizzlers/swizzlers_113_to_120.html
++++ b/conformance/ogles/GL/swizzlers/swizzlers_113_to_120.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: swizzlers_113_to_120.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/tan/tan_001_to_006.html b/conformance/ogles/GL/tan/tan_001_to_006.html
+index 0d8b1d70a8..60c92f4299 100644
+--- a/conformance/ogles/GL/tan/tan_001_to_006.html
++++ b/conformance/ogles/GL/tan/tan_001_to_006.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: tan_001_to_006.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/vec/vec_001_to_008.html b/conformance/ogles/GL/vec/vec_001_to_008.html
+index 5f55e73217..6e31e1fa36 100644
+--- a/conformance/ogles/GL/vec/vec_001_to_008.html
++++ b/conformance/ogles/GL/vec/vec_001_to_008.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: vec_001_to_008.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/vec/vec_009_to_016.html b/conformance/ogles/GL/vec/vec_009_to_016.html
+index d8573af715..cb28ecaeb8 100644
+--- a/conformance/ogles/GL/vec/vec_009_to_016.html
++++ b/conformance/ogles/GL/vec/vec_009_to_016.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: vec_009_to_016.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/vec/vec_017_to_018.html b/conformance/ogles/GL/vec/vec_017_to_018.html
+index 0b4c05e430..492bacd604 100644
+--- a/conformance/ogles/GL/vec/vec_017_to_018.html
++++ b/conformance/ogles/GL/vec/vec_017_to_018.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: vec_017_to_018.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/ogles/GL/vec3/vec3_001_to_008.html b/conformance/ogles/GL/vec3/vec3_001_to_008.html
+index b88ba393ff..29476159ce 100644
+--- a/conformance/ogles/GL/vec3/vec3_001_to_008.html
++++ b/conformance/ogles/GL/vec3/vec3_001_to_008.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: vec3_001_to_008.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../../resources/ogles-tests.css" />
+diff --git a/conformance/glsl/misc/shader-with-reserved-words.html b/conformance/glsl/misc/shader-with-reserved-words.html
+index a2166e9df7..fb9067f6c2 100644
+--- a/conformance/glsl/misc/shader-with-reserved-words.html
++++ b/conformance/glsl/misc/shader-with-reserved-words.html
+@@ -29,6 +29,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL Conformance Tests - Reserved Words</title>
+ <link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+ <link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+diff --git a/tests/wpt/webgl/tests/conformance/rendering/preservedrawingbuffer-leak.html b/tests/wpt/webgl/tests/conformance/rendering/preservedrawingbuffer-leak.html
+index 3df5355..80571f5 100644
+--- a/tests/wpt/webgl/tests/conformance/rendering/preservedrawingbuffer-leak.html
++++ b/tests/wpt/webgl/tests/conformance/rendering/preservedrawingbuffer-leak.html
+@@ -29,6 +29,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL PreserveDrawingBuffer Leak Test</title>
+ <link rel="stylesheet" href="../../resources/js-test-style.css"/>
+ <script src=/resources/testharness.js></script>

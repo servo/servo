@@ -4,9 +4,9 @@
 <title>Removing object during drag and drop of selection</title>
 <style type="text/css">
 object
-	{height:100px;
-	width:300px;
-	border:solid medium navy;}
+  {height:100px;
+  width:300px;
+  border:solid medium navy;}
 </style>
 </head>
 <body ondragenter="event.preventDefault();document.querySelector('body').removeChild(document.querySelector('object'))" ondragover="return false" ondrop="document.querySelector('p').firstChild.nodeValue = (event.dataTransfer.getData('text/plain') == 'Drag me')?'PASS':'FAIL'">

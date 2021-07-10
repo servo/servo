@@ -53,7 +53,7 @@ function mediaTest(file, mime) {
                               'mediaSource.readyState is "ended" after endOfStream()');
             });
             mediaSource.addEventListener('sourceended', t.step_func_done(function(e) {
-                assert_throws({name: 'InvalidStateError'}, function() {
+                assert_throws_dom('InvalidStateError', function() {
                     sourceBuffer.abort();
                 });
             }));

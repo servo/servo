@@ -1,0 +1,33 @@
+<!DOCTYPE HTML>
+<title>fieldset overflow</title>
+<link rel=match href=fieldset-overflow-ref.html>
+<style>
+fieldset, legend {
+  border: 1em solid;
+  margin: 0;
+  padding: 0;
+  background: lime
+}
+fieldset {
+  overflow: auto;
+  height: 2em;
+}
+legend {
+  height: 1em;
+  width: 5em;
+}
+div {
+  background: red;
+  height: 2em;
+}
+
+</style>
+<p>There should be no red.</p>
+<fieldset>
+ <legend></legend>
+ <div></div>
+ <div id=last></div>
+</fieldset>
+<script>
+ document.getElementById('last').scrollIntoView();
+</script>

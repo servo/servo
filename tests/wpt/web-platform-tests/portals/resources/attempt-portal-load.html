@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<body>
+<script>
+portalLoaded = new Promise((resolve, reject) => {
+  let portal = document.createElement('portal');
+  portal.src = 'simple-portal.html';
+  portal.onload = resolve;
+  document.body.appendChild(portal);
+});
+</script>
+</body>

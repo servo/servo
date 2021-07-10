@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="/css/support/grid.css">
+<style>
+.cell {
+  width: 50px;
+  height: auto;
+  min-height: 50px
+}
+
+.invisibleFont {
+  color: lime;
+}
+
+.floatLeft {
+  float: left;
+}
+
+.clearLeft {
+  clear: left;
+}
+
+.relative {
+  position: relative;
+}
+</style>
+</head>
+
+<body>
+
+<div>This test checks that grid item sets a new formatting context for its content, preventing any 'float' protruding content on the adjoining grid item ('Float' text shouldn't overflow the first row).</div>
+
+<div>
+  <div class="cell relative floatLeft firstRowFirstColumn">
+    <div>Float</div>
+    <div>Float</div>
+    <div>Float</div>
+    <div>Float</div>
+  </div>
+  <div class="cell floatLeft firstRowSecondColumn">
+    <div class="invisibleFont">Float</div>
+    <div class="invisibleFont">Float</div>
+    <div class="invisibleFont">Float</div>
+    <div class="invisibleFont">Float</div>
+  </div>
+  <div class="cell floatLeft clearLeft secondRowFirstColumn"></div>
+  <div class="cell floatLeft secondRowSecondColumn"></div>
+</div>
+
+</body>
+</html>

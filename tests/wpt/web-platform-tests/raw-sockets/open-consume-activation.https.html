@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Sockets test: consume user activation</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+  </head>
+  <body>
+    <script>
+      'use strict';
+
+      const options = { remotePort: 53 };
+
+      promise_test(async t => {
+        // Not activated by user gesture, so not allowed!
+        await promise_rejects_dom(t, "NotAllowedError",
+          navigator.openTCPSocket(options));
+
+        await test_driver.bless("open socket");
+
+        // We have a gesture, but remoteAddress is omitted - so not allowed!
+        await promise_rejects_dom(t, "NotAllowedError",
+          navigator.openTCPSocket(options));
+
+        // The activation has been consumed, so calling openTCPSocket() again
+        // would require a new gesture.
+        await promise_rejects_dom(t, "NotAllowedError",
+          navigator.openTCPSocket(options));
+      }, "Calling openTCPSocket consumes user activation");
+
+      promise_test(async t => {
+        // Not activated by user gesture, so not allowed!
+        await promise_rejects_dom(t, "NotAllowedError",
+          navigator.openUDPSocket(options));
+
+        await test_driver.bless("open socket");
+
+        // We have a gesture, but remoteAddress is omitted - so not allowed!
+        await promise_rejects_dom(t, "NotAllowedError",
+          navigator.openTCPSocket(options));
+
+        // The activation has been consumed, so calling openUDPSocket() again
+        // would require a new gesture.
+        await promise_rejects_dom(t, "NotAllowedError",
+          navigator.openUDPSocket(options));
+      }, "Calling openUDPSocket consumes user activation");
+    </script>
+  </body>
+</html>

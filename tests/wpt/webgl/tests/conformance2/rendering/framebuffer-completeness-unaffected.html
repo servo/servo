@@ -1,0 +1,112 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test drawBuffers, readBuffer, and fbo completeness</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="20" height="20"> </canvas>
+<script>
+// In MacOSX, if drawBuffers() and readBuffer() both select an attachment with no image attached,
+// fbo becomes incomplete. However, drawBuffers() and readBuffer() should not affect fbo completeness.
+
+"use strict";
+description("This tests drawBuffers, readBuffer, and fbo completeness");
+
+var setupRenderbuffer = function(attachment) {
+  var renderbuffer = gl.createRenderbuffer();
+  gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment, gl.RENDERBUFFER, renderbuffer);
+  gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA8, canvas.width, canvas.height);
+  return renderbuffer;
+}
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, undefined, 2);
+if (!gl) {
+  testFailed("context does not exist");
+} else {
+  testPassed("context exists");
+
+  var fb = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+
+  debug("fbo with two color images attached should be complete");
+  var colorbuffer = setupRenderbuffer(gl.COLOR_ATTACHMENT0);
+  var colorbuffer1 = setupRenderbuffer(gl.COLOR_ATTACHMENT1);
+  shouldBe('gl.checkFramebufferStatus(gl.FRAMEBUFFER)', 'gl.FRAMEBUFFER_COMPLETE');
+
+  debug("drawBuffers selects ATTACHMENT1, fbo should be complete");
+  gl.drawBuffers([gl.NONE, gl.COLOR_ATTACHMENT1]);
+  shouldBe('gl.checkFramebufferStatus(gl.FRAMEBUFFER)', 'gl.FRAMEBUFFER_COMPLETE');
+
+  debug("remove image attached to ATTACHMENT1, fbo should be complete");
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.RENDERBUFFER, null);
+  shouldBe('gl.checkFramebufferStatus(gl.FRAMEBUFFER)', 'gl.FRAMEBUFFER_COMPLETE');
+
+  debug("set read buffer to ATTACHMENT1, fbo should be complete");
+  gl.readBuffer(gl.COLOR_ATTACHMENT1);
+  shouldBe('gl.checkFramebufferStatus(gl.FRAMEBUFFER)', 'gl.FRAMEBUFFER_COMPLETE');
+
+  debug("drawBuffers selects ATTACHMENT0, fbo should be complete");
+  gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
+  shouldBe('gl.checkFramebufferStatus(gl.FRAMEBUFFER)', 'gl.FRAMEBUFFER_COMPLETE');
+
+  debug("drawBuffers selects ATTACHMENT1, fbo should be complete");
+  gl.drawBuffers([gl.NONE, gl.COLOR_ATTACHMENT1]);
+  shouldBe('gl.checkFramebufferStatus(gl.FRAMEBUFFER)', 'gl.FRAMEBUFFER_COMPLETE');
+
+  debug("set read buffer to ATTACHMENT0, fbo should be complete");
+  gl.readBuffer(gl.COLOR_ATTACHMENT0);
+  shouldBe('gl.checkFramebufferStatus(gl.FRAMEBUFFER)', 'gl.FRAMEBUFFER_COMPLETE');
+
+  gl.deleteFramebuffer(fb);
+  gl.deleteRenderbuffer(colorbuffer);
+  gl.deleteRenderbuffer(colorbuffer1);
+
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no error after setup and clear render buffer");
+}
+
+debug("");
+var successfullyParsed = true;
+
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

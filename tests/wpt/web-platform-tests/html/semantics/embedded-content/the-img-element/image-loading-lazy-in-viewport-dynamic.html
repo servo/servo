@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<head>
+  <title>In viewport images with loading='lazy' and changed to loading='eager'
+         do not block the window load event</title>
+  <link rel="author" title="Rob Buis" href="mailto:rbuis@igalia.com">
+  <link rel="help" href="https://github.com/scott-little/lazyload">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<script>
+  const t = async_test("Test that in viewport images with loading='lazy' and " +
+                       "changed to loading='eager' do not block the window " +
+                       "load event.");
+
+  let has_in_viewport_loaded = false;
+  let has_window_loaded = false;
+
+  const in_viewport_img_onload = t.step_func_done(function() {
+    assert_false(has_in_viewport_loaded,
+               "The in_viewport element should load only once.");
+    assert_true(has_window_loaded,
+               "The window load event should fire before in_viewport image loads.");
+    has_in_viewport_loaded = true;
+  });
+
+  window.addEventListener("load", t.step_func(function() {
+    assert_false(has_window_loaded,
+                 "The window load event should only fire once.");
+    has_window_loaded = true;
+  }));
+</script>
+
+<body>
+  <img id="in_viewport" src="resources/image.png?pipe=trickle(d2)"
+       loading="lazy" onload="in_viewport_img_onload();">
+  <script>
+    document.getElementById("in_viewport").loading = 'eager';
+  </script>
+</body>

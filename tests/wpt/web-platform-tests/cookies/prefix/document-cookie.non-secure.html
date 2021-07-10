@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+<script>
+  function create_test(prefix, params, shouldExistInDOM, shouldExistViaHTTP, title) {
+    promise_test(t => {
+      var name = prefix + "prefixtestcookie";
+      erase_cookie_from_js(name, params);
+      t.add_cleanup(() => erase_cookie_from_js(name, params));
+      var value = "" + Math.random();
+      document.cookie = name + "=" + value + ";" + params;
+
+      assert_dom_cookie(name, value, shouldExistInDOM);
+
+      return credFetch("/cookies/resources/list.py")
+        .then(r => r.json())
+        .then(cookies => assert_equals(cookies[name], shouldExistViaHTTP ? value : undefined));
+    }, title);
+  }
+
+  // No prefix
+  create_test("", "path=/", true, true, "No prefix, root path, no special behavior");
+  create_test("", "path=/;domain=" + document.location.hostname, true, true, "No prefix, domain, no special behavior");
+
+  // `__Secure-` Prefix
+  ["", "domain="+document.location.hostname, "MaxAge=10", "HttpOnly"].forEach(params => {
+    create_test("__Secure-", "Path=/;" + params, false, false, "__Secure: Non-secure origin: 'Path=/;" + params + "'");
+    create_test("__Secure-", "Secure; Path=/;" + params, false, false, "__Secure: Non-secure origin: 'Secure; Path=/;" + params + "'");
+  });
+
+  // `__Host-` Prefix
+  ["", "domain="+document.location.hostname, "MaxAge=10", "HttpOnly"].forEach(params => {
+    create_test("__Secure-", "Path=/;" + params, false, false, "__Host: Non-secure origin: 'Path=/; " + params + "'");
+    create_test("__Secure-", "Secure; Path=/;" + params, false, false, "__Host: Non-secure origin: 'Secure; Path=/; " + params + "'");
+  });
+  create_test("__Secure-", "Path=/cookies/resources/list.py;Secure", false, false, "__Host: Non-secure origin: 'Path=/cookies/resources/list.py;Secure'");
+</script>

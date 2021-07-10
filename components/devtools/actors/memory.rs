@@ -1,8 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::StreamId;
 use serde_json::{Map, Value};
 use std::net::TcpStream;
 
@@ -28,11 +29,14 @@ impl Actor for MemoryActor {
         self.name.clone()
     }
 
-    fn handle_message(&self,
-                      _registry: &ActorRegistry,
-                      _msg_type: &str,
-                      _msg: &Map<String, Value>,
-                      _stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
+    fn handle_message(
+        &self,
+        _registry: &ActorRegistry,
+        _msg_type: &str,
+        _msg: &Map<String, Value>,
+        _stream: &mut TcpStream,
+        _id: StreamId,
+    ) -> Result<ActorMessageStatus, ()> {
         Ok(ActorMessageStatus::Ignored)
     }
 }
@@ -42,10 +46,10 @@ impl MemoryActor {
     pub fn create(registry: &ActorRegistry) -> String {
         let actor_name = registry.new_name("memory");
         let actor = MemoryActor {
-            name: actor_name.clone()
+            name: actor_name.clone(),
         };
 
-        registry.register_later(box actor);
+        registry.register_later(Box::new(actor));
         actor_name
     }
 

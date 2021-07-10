@@ -1,48 +1,49 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! An implementation of re-entrant mutexes.
 //!
 //! Re-entrant mutexes are like mutexes, but where it is expected
 //! that a single thread may own a lock more than once.
 
-//! It provides the same interface as https://github.com/rust-lang/rust/blob/master/src/libstd/sys/common/remutex.rs
+//! It provides the same interface as https://github.com/rust-lang/rust/blob/5edaa7eefd76d4996dcf85dfc1c1a3f737087257/src/libstd/sys_common/remutex.rs
 //! so if those types are ever exported, we should be able to replace this implemtation.
 
-#![feature(nonzero)]
+#[macro_use]
+extern crate lazy_static;
+#[macro_use]
+extern crate log;
 
-extern crate core;
-#[macro_use] extern crate lazy_static;
-#[macro_use] extern crate log;
-
-use core::nonzero::NonZero;
 use std::cell::{Cell, UnsafeCell};
+use std::num::NonZeroUsize;
 use std::ops::Deref;
-use std::sync::{LockResult, Mutex, MutexGuard, PoisonError, TryLockError, TryLockResult};
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{LockResult, Mutex, MutexGuard, PoisonError, TryLockError, TryLockResult};
 
 /// A type for thread ids.
 
 // TODO: can we use the thread-id crate for this?
 
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-pub struct ThreadId(NonZero<usize>);
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct ThreadId(NonZeroUsize);
 
-lazy_static!{ static ref THREAD_COUNT: AtomicUsize = AtomicUsize::new(1); }
+lazy_static! {
+    static ref THREAD_COUNT: AtomicUsize = AtomicUsize::new(1);
+}
 
 impl ThreadId {
     #[allow(unsafe_code)]
     fn new() -> ThreadId {
         let number = THREAD_COUNT.fetch_add(1, Ordering::SeqCst);
-        ThreadId(unsafe { NonZero::new(number) })
+        ThreadId(NonZeroUsize::new(number).unwrap())
     }
     pub fn current() -> ThreadId {
         THREAD_ID.with(|tls| tls.clone())
     }
 }
 
-thread_local!{ static THREAD_ID: ThreadId = ThreadId::new() }
+thread_local! { static THREAD_ID: ThreadId = ThreadId::new() }
 
 /// A type for atomic storage of thread ids.
 #[derive(Debug)]
@@ -53,19 +54,13 @@ impl AtomicOptThreadId {
         AtomicOptThreadId(AtomicUsize::new(0))
     }
     pub fn store(&self, value: Option<ThreadId>, ordering: Ordering) {
-        let number = value.map(|id| *id.0).unwrap_or(0);
+        let number = value.map(|id| id.0.get()).unwrap_or(0);
         self.0.store(number, ordering);
     }
     #[allow(unsafe_code)]
     pub fn load(&self, ordering: Ordering) -> Option<ThreadId> {
         let number = self.0.load(ordering);
-        if number == 0 { None } else { Some(ThreadId(unsafe { NonZero::new(number) })) }
-    }
-    #[allow(unsafe_code)]
-    pub fn swap(&self, value: Option<ThreadId>, ordering: Ordering) -> Option<ThreadId> {
-        let number = value.map(|id| *id.0).unwrap_or(0);
-        let number = self.0.swap(number, ordering);
-        if number == 0 { None } else { Some(ThreadId(unsafe { NonZero::new(number) })) }
+        NonZeroUsize::new(number).map(ThreadId)
     }
 }
 
@@ -99,7 +94,8 @@ impl HandOverHandMutex {
         // that is the lifetime is 'a not 'static.
         let guard_ptr = &mut *(self.guard.get() as *mut u8 as *mut Option<MutexGuard<'a, ()>>);
         *guard_ptr = Some(guard);
-        self.owner.store(Some(ThreadId::current()), Ordering::Relaxed);
+        self.owner
+            .store(Some(ThreadId::current()), Ordering::Relaxed);
     }
     #[allow(unsafe_code)]
     unsafe fn unset_guard_and_owner(&self) {
@@ -119,7 +115,9 @@ impl HandOverHandMutex {
             Ok(guard) => (guard, Ok(())),
             Err(err) => (err.into_inner(), Err(PoisonError::new(()))),
         };
-        unsafe { self.set_guard_and_owner(guard); }
+        unsafe {
+            self.set_guard_and_owner(guard);
+        }
         result
     }
     #[allow(unsafe_code)]
@@ -127,14 +125,21 @@ impl HandOverHandMutex {
         let (guard, result) = match self.mutex.try_lock() {
             Ok(guard) => (guard, Ok(())),
             Err(TryLockError::WouldBlock) => return Err(TryLockError::WouldBlock),
-            Err(TryLockError::Poisoned(err)) => (err.into_inner(), Err(TryLockError::Poisoned(PoisonError::new(())))),
+            Err(TryLockError::Poisoned(err)) => (
+                err.into_inner(),
+                Err(TryLockError::Poisoned(PoisonError::new(()))),
+            ),
         };
-        unsafe { self.set_guard_and_owner(guard); }
+        unsafe {
+            self.set_guard_and_owner(guard);
+        }
         result
     }
     #[allow(unsafe_code)]
     pub fn unlock(&self) {
-        unsafe { self.unset_guard_and_owner(); }
+        unsafe {
+            self.unset_guard_and_owner();
+        }
     }
     pub fn owner(&self) -> Option<ThreadId> {
         self.owner.load(Ordering::Relaxed)
@@ -146,7 +151,7 @@ unsafe impl Send for HandOverHandMutex {}
 
 /// A type for re-entrant mutexes.
 ///
-/// It provides the same interface as https://github.com/rust-lang/rust/blob/master/src/libstd/sys/common/remutex.rs
+/// It provides the same interface as https://github.com/rust-lang/rust/blob/5edaa7eefd76d4996dcf85dfc1c1a3f737087257/src/libstd/sys_common/remutex.rs
 
 pub struct ReentrantMutex<T> {
     mutex: HandOverHandMutex,
@@ -188,7 +193,7 @@ impl<T> ReentrantMutex<T> {
                 match err {
                     TryLockError::WouldBlock => {
                         trace!("{:?} Would block.", ThreadId::current());
-                        return Err(TryLockError::WouldBlock)
+                        return Err(TryLockError::WouldBlock);
                     },
                     TryLockError::Poisoned(_) => {
                         trace!("{:?} Poison!", ThreadId::current());
@@ -203,7 +208,11 @@ impl<T> ReentrantMutex<T> {
 
     fn unlock(&self) {
         trace!("{:?} Unlocking.", ThreadId::current());
-        let count = self.count.get().checked_sub(1).expect("Underflowed lock count.");
+        let count = self
+            .count
+            .get()
+            .checked_sub(1)
+            .expect("Underflowed lock count.");
         trace!("{:?} Decrementing count to {}.", ThreadId::current(), count);
         self.count.set(count);
         if count == 0 {
@@ -213,7 +222,11 @@ impl<T> ReentrantMutex<T> {
     }
 
     fn mk_guard(&self) -> ReentrantMutexGuard<T> {
-        let count = self.count.get().checked_add(1).expect("Overflowed lock count.");
+        let count = self
+            .count
+            .get()
+            .checked_add(1)
+            .expect("Overflowed lock count.");
         trace!("{:?} Incrementing count to {}.", ThreadId::current(), count);
         self.count.set(count);
         ReentrantMutexGuard { mutex: self }
@@ -221,7 +234,10 @@ impl<T> ReentrantMutex<T> {
 }
 
 #[must_use]
-pub struct ReentrantMutexGuard<'a, T> where T: 'static {
+pub struct ReentrantMutexGuard<'a, T>
+where
+    T: 'static,
+{
     mutex: &'a ReentrantMutex<T>,
 }
 

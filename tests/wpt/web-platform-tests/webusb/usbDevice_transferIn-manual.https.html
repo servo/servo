@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/manual.js"></script>
+  </head>
+  <body>
+    <p>
+      This test requires a USB device implementing the USB CDC-ACM protocol
+      configured to loop back TX to RX. For example, this Arduino sketch could
+      be used:
+
+      <pre>
+void setup() {
+  Serial.begin(115200);
+  Serial.setTimeout(0);
+  while (!Serial) {
+    ;
+  }
+}
+
+void loop() {
+  if (Serial.available()) {
+    char buf[1024]; // Greater than the endpoint packet size.
+    int count = Serial.readBytes(buf, sizeof buf);
+    Serial.write(buf, count);
+  }
+}
+      </pre>
+    </p>
+    <script>
+      manual_usb_serial_test(async (t, device, inEndpoint, outEndpoint) => {
+        // Set up two IN transfers which should complete in order.
+        const transfer1 =
+            device.transferIn(inEndpoint.endpointNumber, inEndpoint.packetSize);
+        const transfer2 =
+            device.transferIn(inEndpoint.endpointNumber, inEndpoint.packetSize);
+
+        // Write a single byte to the port which should be echoed to complete
+        // transfer1.
+        let result = await device.transferOut(
+            outEndpoint.endpointNumber, new Uint8Array(['a'.charCodeAt(0)]));
+        assert_equals(result.status, 'ok');
+        assert_equals(result.bytesWritten, 1);
+
+        result = await transfer1;
+        assert_equals(result.status, 'ok');
+        assert_not_equals(result.data, null);
+        assert_equals(result.data.byteLength, 1, 'byteLength');
+        assert_equals(result.data.getUint8(0), 'a'.charCodeAt(0));
+
+        // Set up a third IN transfer which will be canceled when the device is
+        // closed at the end of the test.
+        const transfer3 = promise_rejects_dom(
+            t, 'AbortError',
+            device.transferIn(inEndpoint.endpointNumber,
+                              inEndpoint.packetSize));
+
+        // Write a single byte to the port which should be echoed to complete
+        // transfer2.
+        result = await device.transferOut(
+            outEndpoint.endpointNumber, new Uint8Array(['b'.charCodeAt(0)]));
+        assert_equals(result.status, 'ok');
+        assert_equals(result.bytesWritten, 1);
+
+        result = await transfer2;
+        assert_equals(result.status, 'ok');
+        assert_not_equals(result.data, null);
+        assert_equals(result.data.byteLength, 1, 'byteLength');
+        assert_equals(result.data.getUint8(0), 'b'.charCodeAt(0));
+
+        await device.close();
+        await transfer3;
+      }, 'Multiple small IN transfers on an endpoint complete in order');
+
+      manual_usb_serial_test(async (t, device, inEndpoint, outEndpoint) => {
+        const bufferLength = outEndpoint.packetSize * 20;
+        const parallelRequests = 6;
+
+        // Keep track of the order in which transfers are submitted.
+        let enqueueSequence = 0;
+        let dequeueSequence = 0;
+        const received = new Uint8Array(bufferLength);
+        let receivedOffset = 0;
+        let done = false;
+        const transfers = [];
+
+        async function readNext(sequence) {
+          let result;
+          try {
+            result = await device.transferIn(inEndpoint.endpointNumber,
+                                             inEndpoint.packetSize);
+          } catch (e) {
+            // The last few transfers will fail when the device is closed.
+            assert_true(done);
+            assert_equals(dequeueSequence++, sequence, 'dequeueSequence done');
+            assert_equals(receivedOffset, bufferLength, 'receivedOffset');
+            assert_equals(e.name, 'AbortError');
+            return;
+          }
+
+          assert_equals(dequeueSequence++, sequence, 'dequeueSequence');
+          assert_equals(result.status, 'ok');
+          assert_not_equals(result.data, null);
+
+          const data = new Uint8Array(
+              result.data.buffer, result.data.byteOffset,
+              result.data.byteLength);
+          received.set(data, receivedOffset);
+          receivedOffset += result.data.byteLength;
+
+          // Check |done| because there might be zero-length packet completions
+          // after the data has been completely received.
+          if (!done) {
+            if (receivedOffset == bufferLength) {
+              done = true;
+              assert_array_equals(received, buffer);
+              await device.close();
+            } else {
+              await readNext(enqueueSequence++);
+            }
+          }
+        }
+
+        for (let i = 0; i < parallelRequests; ++i) {
+          transfers.push(readNext(enqueueSequence++));
+        }
+
+        // Write a large buffer to the device which will be split up into
+        // smaller packets when echoed back.
+        const buffer = new Uint8Array(bufferLength);
+        for (let i = 0; i < buffer.byteLength; ++i) {
+          buffer[i] = i;
+        }
+        let result = await device.transferOut(
+            outEndpoint.endpointNumber, buffer);
+        assert_equals(result.status, 'ok');
+        assert_equals(result.bytesWritten, buffer.byteLength);
+
+        await Promise.all(transfers);
+        assert_equals(dequeueSequence, enqueueSequence);
+      }, 'Multiple large IN transfers on an endpoint complete in order');
+    </script>
+  </body>
+</html>

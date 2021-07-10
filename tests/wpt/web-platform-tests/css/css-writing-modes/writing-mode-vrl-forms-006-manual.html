@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>writing mode:vertical-rl, select, options</title>
+<link rel="author" title="Richard Ishida" href="mailto:ishida@w3.org"/>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#block-flow"/>
+<meta name="assert" content="writing-mode:vertical-rl will display selection options vertically."/>
+<meta name="flags" content="should"/>
+<style type="text/css">
+@font-face {
+    font-family: "webfont";
+    src: url("/fonts/mplus-1p-regular.woff") format("woff");
+    font-weight: normal;
+    font-style: normal;
+    }
+select { font-family: webfont; font-size: 24px; }
+.test { text-align: center; vertical-align: middle; width: 100%; }
+</style>
+<!-- this is the test -->
+<style type="text/css">
+.test { writing-mode: vertical-rl; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the selection options displayed when you click on the selector are vertical.</p>
+<div class="test">
+<select>
+<option value="1">国际化活动item1万维网联盟</option>
+<option value="2">国际化活动item2万维网联盟</option>
+<option value="3">国际化活动item3万维网联盟</option>
+</select>
+</div>
+</body>
+</html>

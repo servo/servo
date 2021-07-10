@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+<script src="../resources/webxr_test_asserts.js"></script>
+
+<style type="text/css">
+  div {
+      padding: 10px;
+      min-width: 10px;
+      min-height: 10px;
+  }
+  iframe {
+    border: 0;
+    width: 20px;
+    height: 20px;
+  }
+</style>
+<div id="div_overlay">
+  <div id="inner_a">
+  </div>
+  <div id="inner_b">
+  </div>
+  <!-- This SVG iframe is treated as cross-origin content. -->
+  <iframe id="iframe" src='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><rect height="20" width="20" fill="red" fill-opacity="0.3"/></svg>'>
+  </iframe>
+  <canvas>
+  </canvas>
+</div>
+<div id="div_other">
+  <p>test text</p>
+</div>
+
+<script>
+
+const fakeDeviceInitParams = {
+  supportedModes: ["immersive-ar"],
+  views: VALID_VIEWS,
+  viewerOrigin: IDENTITY_TRANSFORM,
+  supportedFeatures: ALL_FEATURES,
+  environmentBlendMode: "alpha-blend",
+  interactionMode: "screen-space"
+};
+
+let testBasicProperties = function(overlayElement, session, fakeDeviceController, t) {
+  assert_equals(session.mode, 'immersive-ar');
+  assert_not_equals(session.environmentBlendMode, 'opaque');
+
+  assert_true(overlayElement != null);
+  assert_true(overlayElement instanceof Element);
+
+  // Verify that the DOM overlay type is one of the known types.
+  assert_in_array(session.domOverlayState.type,
+                  ["screen", "floating", "head-locked"]);
+
+  // Verify SameObject property for domOverlayState
+  assert_equals(session.domOverlayState, session.domOverlayState);
+
+  // The overlay element should have a transparent background.
+  assert_equals(window.getComputedStyle(overlayElement).backgroundColor,
+                'rgba(0, 0, 0, 0)');
+
+  // Check that the pseudostyle is set.
+  assert_equals(document.querySelector(':xr-overlay'), overlayElement);
+
+  return new Promise((resolve) => {
+    session.requestAnimationFrame((time, xrFrame) => {
+      resolve();
+    });
+  });
+};
+
+let testFullscreen = async function(overlayElement, session, fakeDeviceController, t) {
+  // If the browser implements DOM Overlay using Fullscreen API,
+  // it must not be possible to change the DOM Overlay element by using
+  // Fullscreen API, and attempts to do so must be rejected.
+  // Since this is up to the UA, this test also passes if the fullscreen
+  // element is different from the overlay element.
+
+  // Wait for a rAF call before proceeding.
+  await new Promise((resolve) => session.requestAnimationFrame(resolve));
+
+  assert_implements_optional(document.fullscreenElement == overlayElement,
+                             "WebXR DOM overlay is not using Fullscreen API");
+  let elem = document.getElementById('div_other');
+  assert_not_equals(elem, null);
+  assert_not_equals(elem, overlayElement);
+
+  try {
+    await elem.requestFullscreen();
+    assert_unreached("fullscreen change should be blocked");
+  } catch {
+    // pass if the call rejects
+  }
+  // This is an async function, its return value is automatically a promise.
+};
+
+let watcherStep = new Event("watcherstep");
+let watcherDone = new Event("watcherdone");
+
+let testInput = function(overlayElement, session, fakeDeviceController, t) {
+  let debug = xr_debug.bind(this, 'testInput');
+
+  // Use two DIVs for this test. "inner_a" uses a "beforexrselect" handler
+  // that uses preventDefault(). Controller interactions with it should trigger
+  // that event, and not generate an XR select event.
+
+  let inner_a = document.getElementById('inner_a');
+  assert_true(inner_a != null);
+  let inner_b = document.getElementById('inner_b');
+  assert_true(inner_b != null);
+
+  let got_beforexrselect = false;
+  inner_a.addEventListener('beforexrselect', (ev) => {
+    ev.preventDefault();
+    got_beforexrselect = true;
+  });
+
+  let eventWatcher = new EventWatcher(
+    t, session, ["watcherstep", "select", "watcherdone"]);
+
+  // Set up the expected sequence of events. The test triggers two select
+  // actions, but only the second one should generate a "select" event.
+  // Use a "watcherstep" in between to verify this.
+  let eventPromise = eventWatcher.wait_for(
+    ["watcherstep", "select", "watcherdone"]);
+
+  let input_source =
+      fakeDeviceController.simulateInputSourceConnection(SCREEN_CONTROLLER);
+  session.requestReferenceSpace('viewer').then(function(viewerSpace) {
+    // Press the primary input button and then release it a short time later.
+    debug('got viewerSpace');
+    requestSkipAnimationFrame(session, (time, xrFrame) => {
+      debug('got rAF 1');
+      input_source.setOverlayPointerPosition(inner_a.offsetLeft + 1,
+                                             inner_a.offsetTop + 1);
+      input_source.startSelection();
+
+      session.requestAnimationFrame((time, xrFrame) => {
+        debug('got rAF 2');
+        input_source.endSelection();
+
+        session.requestAnimationFrame((time, xrFrame) => {
+          debug('got rAF 3');
+          // Need to process one more frame to allow select to propagate.
+          session.requestAnimationFrame((time, xrFrame) => {
+            debug('got rAF 4');
+            session.dispatchEvent(watcherStep);
+
+            assert_true(got_beforexrselect);
+
+            session.requestAnimationFrame((time, xrFrame) => {
+              debug('got rAF 5');
+              input_source.setOverlayPointerPosition(inner_b.offsetLeft + 1,
+                                                     inner_b.offsetTop + 1);
+              input_source.startSelection();
+
+              session.requestAnimationFrame((time, xrFrame) => {
+                debug('got rAF 6');
+                input_source.endSelection();
+
+                session.requestAnimationFrame((time, xrFrame) => {
+                  debug('got rAF 7');
+                  // Need to process one more frame to allow select to propagate.
+                  session.dispatchEvent(watcherDone);
+                });
+              });
+            });
+          });
+        });
+      });
+    });
+  });
+  return eventPromise;
+};
+
+let testCrossOriginContent = function(overlayElement, session, fakeDeviceController, t) {
+  let debug = xr_debug.bind(this, 'testCrossOriginContent');
+
+  let iframe = document.getElementById('iframe');
+  assert_true(iframe != null);
+  let inner_b = document.getElementById('inner_b');
+  assert_true(inner_b != null);
+
+  let eventWatcher = new EventWatcher(
+    t, session, ["watcherstep", "select", "watcherdone"]);
+
+  // Set up the expected sequence of events. The test triggers two select
+  // actions, but only the second one should generate a "select" event.
+  // Use a "watcherstep" in between to verify this.
+  let eventPromise = eventWatcher.wait_for(
+    ["watcherstep", "select", "watcherdone"]);
+
+  let input_source =
+      fakeDeviceController.simulateInputSourceConnection(SCREEN_CONTROLLER);
+  session.requestReferenceSpace('viewer').then(function(viewerSpace) {
+    // Press the primary input button and then release it a short time later.
+    requestSkipAnimationFrame(session, (time, xrFrame) => {
+      debug('got rAF 1');
+      input_source.setOverlayPointerPosition(iframe.offsetLeft + 1,
+                                             iframe.offsetTop + 1);
+      input_source.startSelection();
+
+      session.requestAnimationFrame((time, xrFrame) => {
+        debug('got rAF 2');
+        input_source.endSelection();
+
+        session.requestAnimationFrame((time, xrFrame) => {
+          debug('got rAF 3');
+          // Need to process one more frame to allow select to propagate.
+          session.requestAnimationFrame((time, xrFrame) => {
+            debug('got rAF 4');
+            session.dispatchEvent(watcherStep);
+
+            session.requestAnimationFrame((time, xrFrame) => {
+              debug('got rAF 5');
+              input_source.setOverlayPointerPosition(inner_b.offsetLeft + 1,
+                                                     inner_b.offsetTop + 1);
+              input_source.startSelection();
+
+              session.requestAnimationFrame((time, xrFrame) => {
+                debug('got rAF 6');
+                input_source.endSelection();
+
+                session.requestAnimationFrame((time, xrFrame) => {
+                  debug('got rAF 7');
+                  // Need to process one more frame to allow select to propagate.
+                  session.dispatchEvent(watcherDone);
+                });
+              });
+            });
+          });
+        });
+      });
+    });
+  });
+  return eventPromise;
+};
+
+xr_promise_test(
+"Ensures DOM Overlay rejected without root element",
+(t) => {
+  return navigator.xr.test.simulateDeviceConnection(fakeDeviceInitParams)
+  .then(() => {
+    return new Promise((resolve, reject) => {
+      navigator.xr.test.simulateUserActivation(() => {
+        resolve(
+          promise_rejects_dom(t, "NotSupportedError",
+            navigator.xr.requestSession('immersive-ar',
+              {requiredFeatures: ['dom-overlay']})
+            .then(session => session.end()),
+            "Should reject when not specifying DOM overlay root")
+        );
+      });
+    });
+  });
+});
+
+xr_session_promise_test(
+  "Ensures DOM Overlay feature works for immersive-ar, body element",
+  testBasicProperties.bind(this, document.body),
+  fakeDeviceInitParams, 'immersive-ar',
+    {requiredFeatures: ['dom-overlay'],
+     domOverlay: { root: document.body } });
+
+xr_session_promise_test(
+  "Ensures DOM Overlay feature works for immersive-ar, div element",
+  testBasicProperties.bind(this, document.getElementById('div_overlay')),
+  fakeDeviceInitParams, 'immersive-ar',
+    {requiredFeatures: ['dom-overlay'],
+     domOverlay: { root: document.getElementById('div_overlay') } });
+
+xr_session_promise_test(
+  "Ensures DOM Overlay input deduplication works",
+  testInput.bind(this, document.getElementById('div_overlay')),
+  fakeDeviceInitParams, 'immersive-ar', {
+    requiredFeatures: ['dom-overlay'],
+    domOverlay: { root: document.getElementById('div_overlay') }
+  });
+
+xr_session_promise_test(
+  "Ensures DOM Overlay Fullscreen API doesn't change DOM overlay",
+  testFullscreen.bind(this, document.getElementById('div_overlay')),
+  fakeDeviceInitParams, 'immersive-ar', {
+    requiredFeatures: ['dom-overlay'],
+    domOverlay: { root: document.getElementById('div_overlay') }
+  });
+
+xr_session_promise_test(
+  "Ensures DOM Overlay interactions on cross origin iframe are ignored",
+  testCrossOriginContent.bind(this, document.getElementById('div_overlay')),
+  fakeDeviceInitParams, 'immersive-ar', {
+    requiredFeatures: ['dom-overlay'],
+    domOverlay: { root: document.getElementById('div_overlay') }
+  });
+
+</script>

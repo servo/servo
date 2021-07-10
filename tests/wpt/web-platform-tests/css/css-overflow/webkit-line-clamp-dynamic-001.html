@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>CSS Overflow: appending to a box with -webkit-line-clamp</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#webkit-line-clamp">
+<link rel="match" href="reference/webkit-line-clamp-dynamic-001-ref.html">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<style>
+#container {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-size: 20px;
+  width: 10ch;
+}
+</style>
+<body>
+  <div id="container">
+    abc def ghi jkl mno pqr stu vwx yz
+  </div>
+<script>
+testAppend();
+function testAppend() {
+  document.body.offsetTop;
+  let span = document.createElement('span');
+  span.textContent = '123 456 789';
+  container.appendChild(span);
+}
+</script>
+</body>

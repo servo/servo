@@ -3,18 +3,31 @@ name = "canvas_traits"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
+edition = "2018"
 publish = false
 
 [lib]
 name = "canvas_traits"
 path = "lib.rs"
 
+[features]
+webgl_backtrace = []
+xr-profile = ["webxr-api/profile", "time"]
+
 [dependencies]
-cssparser = "0.13"
-euclid = "0.11"
-heapsize = "0.3.0"
-heapsize_derive = "0.1"
-ipc-channel = "0.7"
-serde = {version = "0.9", features = ["unstable"]}
-serde_derive = "0.9"
-webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+crossbeam-channel = "0.4"
+cssparser = "0.28"
+euclid = "0.20"
+ipc-channel = "0.14"
+lazy_static = "1"
+malloc_size_of = { path = "../malloc_size_of" }
+malloc_size_of_derive = "0.1"
+pixels = { path = "../pixels" }
+serde = "1.0"
+serde_bytes = "0.11"
+servo_config = { path = "../config" }
+sparkle = "0.1"
+style = { path = "../style" }
+time = { version = "0.1.41", optional = true }
+webrender_api = { git = "https://github.com/servo/webrender" }
+webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }

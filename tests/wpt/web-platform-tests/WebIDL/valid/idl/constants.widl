@@ -9,10 +9,3 @@ interface Util {
   const unrestricted double minusonedividedbyzero = -Infinity;
   const short notanumber = NaN;
 };
-
-exception Error {
-  const short ERR_UNKNOWN = 0;
-  const short ERR_OUT_OF_MEMORY = 1;
-
-  short errorCode;
-};

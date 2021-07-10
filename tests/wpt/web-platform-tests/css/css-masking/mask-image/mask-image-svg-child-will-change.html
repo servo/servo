@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>CSS Test: mask-image on svg with child with will-change: transform</title>
+<link rel="author" title="Xianzhu Wang" href="mailto:wangxianzhu@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#mask-layer-image">
+<link rel="match" href="reference/mask-image-svg-child-will-change-ref.html">
+<style>
+svg {
+  /* The image is 200x200 with 100x100 opaque pixels at the center */
+  -webkit-mask-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADICAYAAACtWK6eAAABNklEQVR42u3TyQ0AMAgEMUj/PS895IWQ3QHHVAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/6yiBJ4pyLHqv7xG89pwSBgEBAICAQEAgIBAQCAgGBAAIBgYBAQCAgEBAICAQEAgIBgQACAYGAQEAgIBAQCAgEBAICAQQCAgGBgEBAICAQEAgIBAQCAgEEAgIBgYBAQCAgEBAICAQEAggEBAICAYGAQEAgIBAQCAgEBAIIBAQCAgGBgEBAICAQEAgIBBAICAQEAgIBgYBAQCAgEBAICAQQCAgEBAICAYGAQEAgIBAQCAjECkAgIBAQCAgEBAICAYGAQEAggEBAICAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAthrrbgTIalbwsQAAAABJRU5ErkJggg==);
+  mask-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADICAYAAACtWK6eAAABNklEQVR42u3TyQ0AMAgEMUj/PS895IWQ3QHHVAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/6yiBJ4pyLHqv7xG89pwSBgEBAICAQEAgIBAQCAgGBAAIBgYBAQCAgEBAICAQEAgIBgQACAYGAQEAgIBAQCAgEBAICAQQCAgGBgEBAICAQEAgIBAQCAgEEAgIBgYBAQCAgEBAICAQEAggEBAICAYGAQEAgIBAQCAgEBAIIBAQCAgGBgEBAICAQEAgIBBAICAQEAgIBgYBAQCAgEBAICAQQCAgEBAICAYGAQEAgIBAQCAjECkAgIBAQCAgEBAICAYGAQEAggEBAICAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAthrrbgTIalbwsQAAAABJRU5ErkJggg==);
+  width: 100px;
+  height: 100px;
+  border: 50px solid red;
+  background: green;
+}
+</style>
+<p>The test passes if there is a green square and no red below.</p>
+<svg>
+  <rect style="will-change: transform">
+</svg>
+

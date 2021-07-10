@@ -17,8 +17,8 @@
       </p>
       <p>
         The test shows an 'ellipse' element originating at (0,0) of the current user coordinate system, which has been altered via 'transform' from
-        the initial user coordinate system. Two perpendicular lines which also originate at (0,0) and advance along the x and y axes of 
-        the current user coordinate system are shown. These lines overlap the top and left edges of the ellipse and verifies that the ellipse is 
+        the initial user coordinate system. Two perpendicular lines which also originate at (0,0) and advance along the x and y axes of
+        the current user coordinate system are shown. These lines overlap the top and left edges of the ellipse and verifies that the ellipse is
         thus axis-aligned with its current user coordinate system.
       </p>
     </d:testDescription>
@@ -29,7 +29,7 @@
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
-        The test is passed if both ellipses are divided into four equal parts by two sets of crossing lines, and the rightmost ellipse and crossing lines are rotated together. 
+        The test is passed if both ellipses are divided into four equal parts by two sets of crossing lines, and the rightmost ellipse and crossing lines are rotated together.
       </p>
     </d:passCriteria>
   </d:SVGTestCase>
@@ -63,7 +63,7 @@
       fill="black">$Revision: 1.5 $</text>
   </g>
   <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
-  <!-- comment out this watermark once the test is approved 
+  <!-- comment out this watermark once the test is approved
   <g id="draft-watermark">
     <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
     <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"

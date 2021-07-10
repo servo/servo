@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<title>Reference for nested left-constrained position:sticky elements should render correctly</title>
+
+<style>
+.group {
+  position: relative;
+  width: 250px;
+  height: 150px;
+}
+
+.scroller {
+  position: relative;
+  width: 200px;
+  height: 100px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.contents {
+  height: 100%;
+  width: 500px;
+}
+
+.outerIndicator {
+  background-color: green;
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 100px;
+}
+
+.innerIndicator {
+  background-color: blue;
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 50px;
+}
+</style>
+
+<script>
+window.addEventListener('load', function() {
+  document.getElementById('scroller1').scrollLeft = 50;
+  document.getElementById('scroller2').scrollLeft = 125;
+  document.getElementById('scroller3').scrollLeft = 225;
+});
+</script>
+
+<div class="group">
+  <div id="scroller1" class="scroller">
+    <div class="contents">
+      <div class="outerIndicator" style="left: 150px;"></div>
+      <div class="innerIndicator" style="left: 150px;"></div>
+    </div>
+  </div>
+</div>
+
+<div class="group">
+  <div id="scroller2" class="scroller">
+    <div class="contents">
+      <div class="outerIndicator" style="left: 175px;"></div>
+      <div class="innerIndicator" style="left: 185px;"></div>
+    </div>
+  </div>
+</div>
+
+<div class="group">
+  <div id="scroller3" class="scroller">
+    <div class="contents">
+      <div class="outerIndicator" style="left: 200px;"></div>
+      <div class="innerIndicator" style="left: 250px;"></div>
+    </div>
+  </div>
+</div>
+
+<div>You should see three green and three blue boxes above. No red should be visible.</div>

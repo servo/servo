@@ -1,0 +1,55 @@
+<svg width="300" height="300"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+    <!--
+    Tests the basic support for markers.
+
+    The top test examines the basic support for the marker element and style. The
+    markers are purple rectangles.
+
+    The middle test examines the support for the different styles of marker
+    properties. The "marker-start" property defines the marker to use at the first
+    vertex of the marked path, in this case a purple rectangle. The "marker-end"
+    property defines the marker to use at the last vertex of the marked path, in
+    this case a blue triangle. The "marker-mid" property defines the marker to use
+    at all vertices, other than the first and last, of the marked path, in this
+    case a green circle.
+
+    The bottom test examines the support for marker orientation along the path
+    direction. The second vertex, the top right corner of the path, has a marker
+    that is rotated 45 degrees, since that is the average of the horizontal and
+    vertical segments each side. The last vertex, the bottom right corner of the
+    path, has a marker rotated 90 degrees since that is the direction of the last
+    path segment.
+    -->
+    <html:link rel="help" href="https://www.w3.org/TR/2016/CR-SVG2-20160915/painting.html#Markers"/>
+    <html:link rel="match" href="marker-001-ref.svg"/>
+    <html:meta name="assert" content="Tests the basic support for markers."/>
+    <defs>
+      <!-- Define a few simple marker elements -->
+      <marker id="marker1" refX="1" refY="1" overflow="visible" >
+        <rect width="2" height="2" fill="purple" stroke="none"/>
+      </marker>
+      <marker id="marker2" orient="auto" refX="1" refY="1" overflow="visible">
+        <path d="M 1 0 L 2 2 L 0 2 Z" fill="blue" stroke="none"/>
+      </marker>
+      <marker id="markerStart" refX="1" refY="1" overflow="visible">
+        <rect width="2" height="2" fill="purple" stroke="none"/>
+      </marker>
+      <marker id="markerMiddle" overflow="visible">
+        <circle cx="0" cy="0" r="1" fill="green" stroke="none"/>
+      </marker>
+      <marker id="markerEnd" refX="1" refY="1" overflow="visible">
+        <path d="M 1 0 L 2 2 L 0 2 Z" fill="blue" stroke="none"/>
+      </marker>
+    </defs>
+    <!-- Basic Marker Test -->
+    <text x="10" y="30" font-size="14">Basic Markers</text>
+    <path fill="none" stroke="black" stroke-width="16" marker-start="url(#marker1)" marker-mid="url(#marker1)" marker-end="url(#marker1)" d="M 130 40 L 180 40 L 180 90"/>
+    <!-- Start, Middle and End Marker Test -->
+    <text x="10" y="115" font-size="14">Start, Middle and End</text>
+    <path fill="none" stroke="black" stroke-width="16" marker-start="url(#markerStart)" marker-mid="url(#markerMiddle)" marker-end="url(#markerEnd)" d="M 130 135 L 180 135 L 180 185"/>
+    <!-- Auto Orientation Marker Test -->
+    <text x="10" y="210" font-size="14">Automatic Orientation</text>
+    <path fill="none" stroke="black" stroke-width="16" marker-start="url(#marker2)" marker-mid="url(#marker2)" marker-end="url(#marker2)" d="M 130 230 L 180 230 L 180 280"/>
+</svg>

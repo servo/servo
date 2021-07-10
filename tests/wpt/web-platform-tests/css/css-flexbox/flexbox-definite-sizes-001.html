@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: nested flex containers with height established by 'min-height'</title>
+<link rel="match" href="flexbox-definite-sizes-001-ref.html">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#definite-sizes">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1449326">
+<style>
+div {
+  display: flex;
+}
+
+.item {
+  width: 100px;
+  background: red;
+  align-items: center;
+}
+
+.item span {
+  min-height: 100%;
+  width: 100%;
+  background: green;
+}
+</style>
+<p>Test passes if you see a green 100px x 100px square, and no red</p>
+<div style="min-height: 100px;">
+  <div class="item">
+    <span></span>
+  </div>
+</div>

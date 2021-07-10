@@ -1,48 +1,57 @@
 [package]
-name = "layout"
+name = "layout_2013"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
+edition = "2018"
 publish = false
 
 [lib]
 name = "layout"
 path = "lib.rs"
+test = false
+doctest = false
 
 [dependencies]
-app_units = "0.4"
+app_units = "0.7"
 atomic_refcell = "0.1"
-bitflags = "0.7"
-canvas_traits = {path = "../canvas_traits"}
-cssparser = "0.13"
-euclid = "0.11"
+bitflags = "1.0"
+canvas_traits = { path = "../canvas_traits" }
+embedder_traits = { path = "../embedder_traits" }
+euclid = "0.20"
 fnv = "1.0"
-gfx = {path = "../gfx"}
-gfx_traits = {path = "../gfx_traits"}
-heapsize = "0.3.0"
-html5ever-atoms = "0.3"
-ipc-channel = "0.7"
+gfx = { path = "../gfx" }
+gfx_traits = { path = "../gfx_traits" }
+html5ever = "0.25"
+ipc-channel = "0.14"
+lazy_static = "1"
 libc = "0.2"
-log = "0.3.5"
-msg = {path = "../msg"}
-net_traits = {path = "../net_traits"}
-ordered-float = "0.4"
-parking_lot = "0.3.3"
-profile_traits = {path = "../profile_traits"}
-range = {path = "../range"}
-rayon = "0.6"
-script_layout_interface = {path = "../script_layout_interface"}
-script_traits = {path = "../script_traits"}
-selectors = { path = "../selectors" }
-serde = "0.9"
-serde_derive = "0.9"
-servo_geometry = {path = "../geometry"}
-serde_json = "0.9"
-servo_config = {path = "../config"}
-servo_url = {path = "../url"}
-smallvec = "0.3"
-style = {path = "../style"}
-style_traits = {path = "../style_traits"}
-unicode-bidi = "0.2"
-unicode-script = {version = "0.1", features = ["harfbuzz"]}
-webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+log = "0.4"
+malloc_size_of = { path = "../malloc_size_of" }
+msg = { path = "../msg" }
+net_traits = { path = "../net_traits" }
+num-traits = "0.2"
+parking_lot = "0.10"
+profile_traits = { path = "../profile_traits" }
+range = { path = "../range" }
+rayon = "1"
+script_layout_interface = { path = "../script_layout_interface" }
+script_traits = { path = "../script_traits" }
+serde = "1.0"
+serde_json = "1.0"
+servo_arc = { path = "../servo_arc" }
+servo_atoms = { path = "../atoms" }
+servo_config = { path = "../config" }
+servo_geometry = { path = "../geometry" }
+servo_url = { path = "../url" }
+smallvec = { version = "0.6", features = ["std", "union"] }
+style = { path = "../style", features = ["servo", "servo-layout-2013"] }
+style_traits = { path = "../style_traits" }
+unicode-bidi = { version = "0.3", features = ["with_serde"] }
+unicode-script = "0.5"
+webrender_api = { git = "https://github.com/servo/webrender" }
+xi-unicode = "0.1.0"
+
+[dev-dependencies]
+size_of_test = { path = "../size_of_test" }
+

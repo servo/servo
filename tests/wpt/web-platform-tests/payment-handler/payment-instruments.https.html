@@ -1,0 +1,354 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Tests for PaymentInstruments interface</title>
+<link rel="help" href="https://w3c.github.io/payment-handler/#paymentinstruments-interface">
+<link rel="manifest" href="basic-card.json">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="register-and-activate-service-worker.js"></script>
+<script>
+function runTests(registration) {
+  promise_test(async t => {
+    await registration.paymentManager.instruments.clear();
+    await registration.paymentManager.instruments.set('instrument-key-1', {
+      name: 'Instrument Name 1',
+    });
+    await registration.paymentManager.instruments.set('instrument-key-2', {
+      name: 'Instrument Name 2',
+    });
+    await registration.paymentManager.instruments.delete('instrument-key-1');
+    await registration.paymentManager.instruments.set('instrument-key-1', {
+      name: 'Instrument Name 1',
+    });
+    const keys = await registration.paymentManager.instruments.keys();
+    assert_array_equals(keys, ['instrument-key-2', 'instrument-key-1']);
+  }, 'Instrument keys are returned in the original insertion order');
+
+  promise_test(async t => {
+    await registration.paymentManager.instruments.clear();
+    await registration.paymentManager.instruments.set(
+      'existing-instrument-key',
+      {
+        name: 'Instrument Name',
+      },
+    );
+    const result = await registration.paymentManager.instruments.delete(
+      'existing-instrument-key',
+    );
+    assert_true(result);
+  }, 'Deleting an existing instrument returns true');
+
+  promise_test(async t => {
+    await registration.paymentManager.instruments.clear();
+    await registration.paymentManager.instruments.set(
+      'existing-instrument-key',
+      {
+        name: 'Instrument Name',
+      },
+    );
+    await registration.paymentManager.instruments.delete(
+      'existing-instrument-key',
+    );
+    const result = await registration.paymentManager.instruments.delete(
+      'existing-instrument-key',
+    );
+    assert_false(result);
+  }, 'Deleting an existing instrument the second time returns false');
+
+  promise_test(async t => {
+    await registration.paymentManager.instruments.clear();
+    const result = await registration.paymentManager.instruments.delete(
+      'non-existing-instrument-key',
+    );
+    assert_false(result);
+  }, 'Deleting a non-existing instrument returns false');
+
+  promise_test(async t => {
+    await registration.paymentManager.instruments.clear();
+    await registration.paymentManager.instruments.set(
+      'existing-instrument-key',
+      {
+        name: 'Instrument Name',
+        icons: [
+          {
+            src: '/images/rgrg-256x256.png',
+            sizes: '256x256',
+            type: 'image/png',
+          },
+        ],
+        method: 'basic-card',
+        capabilities: {supportedNetworks: ['mir']},
+      },
+    );
+    const result = await registration.paymentManager.instruments.get(
+      'existing-instrument-key',
+    );
+    assert_equals(result.name, 'Instrument Name');
+  }, 'Getting an existing instrument returns the instrument');
+
+  promise_test(async t => {
+    await registration.paymentManager.instruments.clear();
+    const result = await registration.paymentManager.instruments.get(
+      'non-existing-instrument-key',
+    );
+    assert_equals(result, undefined);
+  }, 'Getting a non-existing instrument returns undefined');
+
+  promise_test(async t => {
+    await registration.paymentManager.instruments.clear();
+    await registration.paymentManager.instruments.set(
+      'existing-instrument-key',
+      {
+        name: 'Instrument Name v1',
+        icons: [
+          {src: '/images/green-16x16.png', sizes: '16x16', type: 'image/png'},
+        ],
+        method: 'basic-card',
+        capabilities: {supportedNetworks: ['mir']},
+      },
+    );
+    let result = await registration.paymentManager.instruments.get(
+      'existing-instrument-key',
+    );
+    assert_equals(result.name, 'Instrument Name v1');
+    assert_equals(result.icons.length, 1);
+    assert_equals(
+      result.icons[0].src,
+      new URL('/images/green-16x16.png', window.location.href).href,
+    );
+    assert_equals(result.icons[0].sizes, '16x16');
+    assert_equals(result.icons[0].type, 'image/png');
+    assert_equals(result.method, 'basic-card');
+    assert_array_equals(result.capabilities.supportedNetworks, ['mir']);
+    await registration.paymentManager.instruments.set(
+      'existing-instrument-key',
+      {
+        name: 'Instrument Name v2',
+        icons: [
+          {
+            src: '/images/rgrg-256x256.png',
+            sizes: '256x256',
+            type: 'image/png',
+          },
+        ],
+        method: 'basic-card',
+        capabilities: {supportedNetworks: ['visa']},
+      },
+    );
+    result = await registration.paymentManager.instruments.get(
+      'existing-instrument-key',
+    );
+    assert_equals(result.name, 'Instrument Name v2');
+    assert_equals(result.icons.length, 1);
+    assert_equals(
+      result.icons[0].src,
+      new URL('/images/rgrg-256x256.png', window.location.href).href,
+    );
+    assert_equals(result.icons[0].sizes, '256x256');
+    assert_equals(result.icons[0].type, 'image/png');
+    assert_equals(result.method, 'basic-card');
+    assert_array_equals(result.capabilities.supportedNetworks, ['visa']);
+  }, 'Resetting an existing instrument updates the instrument');
+
+  promise_test(async t => {
+    await registration.paymentManager.instruments.clear();
+    await registration.paymentManager.instruments.set(
+      'existing-instrument-key',
+      {
+        name: 'Instrument Name',
+        icons: [
+          {
+            src: '/images/rgrg-256x256.png',
+            sizes: '256x256',
+            type: 'image/png',
+          },
+        ],
+        method: 'basic-card',
+        capabilities: {supportedNetworks: ['mir']},
+      },
+    );
+    await registration.paymentManager.instruments.clear();
+    const result = await registration.paymentManager.instruments.get(
+      'existing-instrument-key',
+    );
+    assert_equals(result, undefined);
+  }, 'Clearing the instruments');
+
+  promise_test(async t => {
+    await registration.paymentManager.instruments.clear();
+    const setPromise = registration.paymentManager.instruments.set(
+      'instrument-key',
+      {
+        name: 'Instrument Name',
+        icons: [
+          {
+            src: '/images/rgrg-256x256.png',
+            sizes: '256x256',
+            type: 'image/jif',
+          },
+        ],
+        method: 'basic-card',
+      },
+    );
+    return promise_rejects_js(t, TypeError, setPromise);
+  }, 'Cannot register instruments with invalid icon media type image/jif');
+
+  promise_test(async t => {
+    await registration.paymentManager.instruments.clear();
+    const setPromise = registration.paymentManager.instruments.set(
+      'instrument-key',
+      {
+        name: 'Instrument Name',
+        icons: [
+          {
+            src: '/images/rgrg-256x256.png',
+            sizes: '256x256',
+            type: 'image/pn' + 'g'.repeat(1000),
+          },
+        ],
+        method: 'basic-card',
+      },
+    );
+    return promise_rejects_js(t, TypeError, setPromise);
+  }, "Don't crash when registering instruments with very long icon media type image/pngggggg...");
+
+  promise_test(async t => {
+    await registration.paymentManager.instruments.clear();
+    return registration.paymentManager.instruments.set('instrument-key', {
+      name: 'Instrument Name',
+      icons: [
+        {
+          src: '/images/rgrg-256x256.png',
+          sizes: '8'.repeat(100000) + 'x' + '8'.repeat(100000),
+          type: 'image/png',
+        },
+      ],
+      method: 'basic-card',
+    });
+  }, "Don't crash when registering an instrument with a very long icon size 888...x888...");
+
+  promise_test(async t => {
+    await registration.paymentManager.instruments.clear();
+    const setPromise = registration.paymentManager.instruments.set(
+      'instrument-key',
+      {
+        name: 'Instrument Name',
+        icons: [
+          {
+            src: '/images/rgrg-256x256.png',
+            sizes: '256 256',
+            type: 'image/png',
+          },
+        ],
+        method: 'basic-card',
+      },
+    );
+    return promise_rejects_js(t, TypeError, setPromise);
+  }, 'Cannot register instruments with invalid icon size "256 256" (missing "x")');
+
+  promise_test(async t => {
+    await registration.paymentManager.instruments.clear();
+    const setPromise = registration.paymentManager.instruments.set(
+      'instrument-key',
+      {
+        name: 'Instrument Name',
+        icons: [
+          {
+            src: '/images/rg\0rg-256x256.png',
+            sizes: '256x256',
+            type: 'image/png',
+          },
+        ],
+        method: 'basic-card',
+      },
+    );
+    return promise_rejects_js(t, TypeError, setPromise);
+  }, 'Cannot register instruments with invalid icon URL (has a null character)');
+
+  promise_test(async t => {
+    await registration.paymentManager.instruments.clear();
+    const setPromise = registration.paymentManager.instruments.set(
+      'instrument-key',
+      {
+        name: 'Instrument Name',
+        icons: [
+          {
+            src: 'http://test.example/images/rgrg-256x256.png',
+            sizes: '256x256',
+            type: 'image/png',
+          },
+        ],
+        method: 'basic-card',
+      },
+    );
+    return promise_rejects_js(t, TypeError, setPromise);
+  }, 'Cannot register instruments with non-existing non-https icon URL');
+
+  promise_test(async t => {
+    await registration.paymentManager.instruments.clear();
+    const setPromise = registration.paymentManager.instruments.set(
+      'instrument-key',
+      {
+        name: 'Instrument Name',
+        icons: [
+          {
+            src:
+              'http://www.chromium.org/_/rsrc/1438879449147/config/customLogo.gif',
+            sizes: '48x48',
+            type: 'image/gif',
+          },
+        ],
+        method: 'basic-card',
+      },
+    );
+    return promise_rejects_js(t, TypeError, setPromise);
+  }, 'Cannot register instruments with an existing non-https icon URL');
+
+  async function testUnusualStrings(existingKey, nonExistingKey) {
+    await registration.paymentManager.instruments.clear();
+    await registration.paymentManager.instruments.set(existingKey, {
+      name: existingKey,
+      icons: [
+        {src: '/images/rgrg-256x256.png', sizes: '256x256', type: 'image/png'},
+      ],
+      method: existingKey,
+      capabilities: {aCapabilityName: existingKey},
+    });
+    const hasExistingInstrument = await registration.paymentManager.instruments.has(
+      existingKey,
+    );
+    assert_true(hasExistingInstrument);
+    const hasNonExistingInstrument = await registration.paymentManager.instruments.has(
+      nonExistingKey,
+    );
+    assert_false(hasNonExistingInstrument);
+    const existingInstrument = await registration.paymentManager.instruments.get(
+      existingKey,
+    );
+    assert_equals(existingInstrument.name, existingKey);
+    const nonExistingInstrument = await registration.paymentManager.instruments.get(
+      nonExistingKey,
+    );
+    assert_equals(nonExistingInstrument, undefined);
+    const deletedExistingInstrument = await registration.paymentManager.instruments.delete(
+      existingKey,
+    );
+    assert_true(deletedExistingInstrument);
+    const deletedNonExistingInstrument = await registration.paymentManager.instruments.delete(
+      nonExistingKey,
+    );
+    assert_false(deletedNonExistingInstrument);
+  }
+
+  promise_test(async t => {
+    const length = 100000;
+    await testUnusualStrings('0'.repeat(length), '1'.repeat(length));
+  }, "Don't crash on very long key, name, method, and capability strings.");
+
+  promise_test(async t => {
+    await testUnusualStrings('foo\0bar', 'foo\0baz');
+  }, "Don't crash on null characters in key, name, method, and capability strings.");
+}
+
+registerAndActiveServiceWorker('basic-card.js', 'payment-app/', runTests);
+</script>

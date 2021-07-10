@@ -25,13 +25,19 @@
         assert_unreached("isSecureContext should be supported");
       });
 
-      var w2 = new Worker(https_dir + "support/dedicated-worker-script.js");
-      w2.onmessage = t2.step_func_done(function(e) {
-        assert_unreached("cross-origin workers should not be loaded");
-      });
-      w2.onerror = t2.step_func_done(function(e) {
-        e.preventDefault();
-      });
+      try {
+        var w2 = new Worker(https_dir + "support/dedicated-worker-script.js");
+        w2.onmessage = t2.step_func_done(function(e) {
+          assert_unreached("cross-origin workers should not be loaded");
+        });
+        w2.onerror = t2.step_func_done(function(e) {
+          e.preventDefault();
+        });
+      } catch (e) {
+        // Some browsers throw for cross-origin URLs. This violates the Worker spec,
+        // but isn't actually relevant to what we're testing here.
+        t2.done();
+      }
 
       var w3 = new Worker(http_dir + "support/parent-dedicated-worker-script.js");
       w3.onmessage = t3.step_func_done(function(e) {
@@ -41,13 +47,19 @@
         assert_unreached("isSecureContext should be supported");
       });
 
-      var w4 = new Worker(https_dir + "support/parent-dedicated-worker-script.js");
-      w4.onmessage = t4.step_func_done(function(e) {
-        assert_unreached("cross-origin workers should not be loaded");
-      });
-      w4.onerror = t4.step_func_done(function(e) {
-        e.preventDefault();
-      });
+      try {
+        var w4 = new Worker(https_dir + "support/parent-dedicated-worker-script.js");
+        w4.onmessage = t4.step_func_done(function(e) {
+          assert_unreached("cross-origin workers should not be loaded");
+        });
+        w4.onerror = t4.step_func_done(function(e) {
+          e.preventDefault();
+        });
+      } catch (e) {
+        // Some browsers throw for cross-origin URLs. This violates the Worker spec,
+        // but isn't actually relevant to what we're testing here.
+        t4.done();
+      }
 
       onmessage = function(e) {
         var data = e.data;

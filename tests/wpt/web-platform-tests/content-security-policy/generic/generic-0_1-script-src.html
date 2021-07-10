@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>default-src should cascade to script-src directive</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline';">
     <script src='/resources/testharness.js'></script>
     <script src='/resources/testharnessreport.js'></script>
     <script src='../support/siblingPath.js'></script>
@@ -14,6 +15,11 @@
       var scriptsrc1 = async_test("Verify cascading of default-src to script-src policy: block");
       var scriptsrc2 = async_test("Verify cascading of default-src to script-src policy: allow");
       var allowedScriptRan = false;
+      var t_spv = async_test("Should fire violation events for every failed violation");
+
+      window.addEventListener("securitypolicyviolation", t_spv.step_func_done(function(e) {
+          assert_equals(e.violatedDirective, "script-src-elem");
+      }));
     </script>
 
     <script src='pass-0_1.js'></script>
@@ -28,8 +34,5 @@
           scriptsrc2.done();
       }
     </script>
-
-    <script async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=script-src%20%27self%27%20%27unsafe-inline%27'></script>
-
 </body>
 </html>

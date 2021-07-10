@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Backgrounds and Borders: getComputedStyle().borderImageSource</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#border-image-source">
+<meta name="assert" content="border-image-source computed value is the keyword none or the specified image with URIs made absolute.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #target {
+    color: blue;
+  }
+</style>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("border-image-source", "none");
+test_computed_value("border-image-source", 'url("http://{{host}}/")');
+
+test_computed_value('border-image-source', 'linear-gradient(-45deg, red, currentcolor)', 'linear-gradient(-45deg, rgb(255, 0, 0), rgb(0, 0, 255))');
+test_computed_value('border-image-source', 'repeating-linear-gradient(-45deg, red, 30%, currentcolor 70%, lime)', 'repeating-linear-gradient(-45deg, rgb(255, 0, 0), 30%, rgb(0, 0, 255) 70%, rgb(0, 255, 0))');
+test_computed_value('border-image-source', 'radial-gradient(10px at 20px 30px, currentcolor, lime)', 'radial-gradient(10px at 20px 30px, rgb(0, 0, 255), rgb(0, 255, 0))');
+test_computed_value('border-image-source', 'conic-gradient(from 90deg at 80% 90%, lime, black)', 'conic-gradient(from 90deg at 80% 90%, rgb(0, 255, 0), rgb(0, 0, 0))');
+
+test(() => {
+  const target = document.getElementById('target');
+  target.style['border-image-source'] = 'url("a.b#c")';
+  const result = getComputedStyle(target)['border-image-source'];
+  const resolved = new URL("a.b#c", document.URL).href;
+  assert_equals(result, 'url("' + resolved + '")');
+}, 'url values are made absolute');
+</script>
+</body>
+</html>

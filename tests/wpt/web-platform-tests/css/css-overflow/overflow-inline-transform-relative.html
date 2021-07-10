@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>CSS Overflow and Transforms: css-overflow-3</title>
+<link rel="author" title="mailto:atotic@google.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#scrollable">
+<meta name="assert" content="css transform is used to compute scroll overflow of inline-block children">
+<style>
+  #container {
+    border: 1px solid black;
+    width: 200px;
+    overflow: auto;
+  }
+  #target {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    background: green;
+    position: relative;
+    top: 100px;
+    transform: translateY(80px);
+  }
+</style>
+<!--
+  #container should have vertical scrollbar because target is offset
+  by position:relative and transform.
+-->
+<div id="container">
+  <span>
+    scroll
+    <div id="target"></div>
+    down
+  </span>
+</div>
+<script>
+  test(() => {
+    assert_equals(document.querySelector("#container").scrollHeight, 200);
+  }, '#target used transform when computing scroll overflow');
+</script>

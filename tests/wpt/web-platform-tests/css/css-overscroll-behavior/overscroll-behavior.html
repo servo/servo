@@ -1,0 +1,198 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/css/css-scroll-snap/support/common.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-overscroll-behavior">
+
+<style>
+.outer {
+  height: 400px;
+  width: 1000px;
+  background: white
+}
+.content {
+  height: 600px;
+  width: 1200px;
+}
+#root {
+  overflow: scroll;
+  height: 600px;
+  width: 800px;
+  background: white;
+}
+#container {
+  overflow: scroll;
+}
+#non_scrollable {
+  overflow: none;
+}
+#green {
+  background: repeating-linear-gradient(to bottom right, green 15%, white 30%);
+}
+#blue {
+  background: repeating-linear-gradient(to bottom right, blue 15%, white 30%);
+}
+</style>
+
+<div id='root'>
+  <div id='non_scrollable' class='outer'>
+    <div id='green' class='content'></div>
+  </div>
+  <div id='container' class='outer'>
+    <div id='blue' class='content'></div>
+  </div>
+</div>
+<input type="button" id="btnDone" value="DONE" style="width: 100px; height: 50px;"/>
+<h1>overscroll-behavior</h1>
+<h4>Tests that overscroll-behavior prevents scroll-propagation in the area and direction as specified.</h4>
+<ol>
+  <li id="i1">Make two scrolls on <span style="color: blue">BLUE</span>, in this order: scroll UP (or drag down), then scroll LEFT (or drag right). Scroll (or drag) until nothing is scrolling. Then tap on DONE.</li>
+  <li id="i2">Repeat the same scrolls as in step 1 and then tap on DONE.</li>
+  <li id="i3">Repeat the same scrolls as in step 1 and then tap on DONE.</li>
+  <li id="i4">Make two separate scrolls on <span style="color: green">GREEN</span>, in this order: scroll UP (or drag down), then scroll LEFT (or drag right). Scroll (or drag) until nothing is scrolling. Then tap on DONE.</li>
+</ol>
+
+
+<script>
+setup({explicit_timeout: true});
+const container = document.getElementById('container');
+const non_scrollable = document.getElementById('non_scrollable');
+const root = document.getElementById('root');
+const btnDone = document.getElementById('btnDone');
+var test = async_test("overscroll-behavior prevents scroll-propagation in the area and direction as specified");
+var instruction1 = document.getElementById("i1");
+var instruction2 = document.getElementById("i2");
+var instruction3 = document.getElementById("i3");
+var instruction4 = document.getElementById("i4");
+var actions_promise;
+
+scrollTop = () => container.scrollTop;
+scrollLeft = () => container.scrollLeft;
+
+function smoothScrollByXY(xPosition, yPosition, xScrollOffset, yScrollOffset) {
+  return new test_driver.Actions()
+      .scroll(xPosition, yPosition, xScrollOffset, yScrollOffset)
+      .send();
+}
+
+function setUpForRoot(offset) {
+  root.scrollTop = offset;
+  root.scrollLeft = offset;
+}
+
+function setUpForContainer(offset) {
+  container.scrollTop = offset;
+  container.scrollLeft = offset
+}
+
+function set_boundary_prevents_y() {
+  instruction1.style.color = 'red';
+  instruction1.style.fontWeight = 'bold';
+  container.style.overscrollBehaviorX = 'auto';
+  container.style.overscrollBehaviorY = 'none';
+  setUpForRoot(100);
+  setUpForContainer(0);
+  window.scrollTo(0, 0);
+}
+
+function verify_y_prevented_and_set_boundary_prevents_x() {
+  instruction1.style.fontWeight = 'normal';
+  instruction2.style.fontWeight = 'bold';
+  test.step(function() {
+    assert_equals(root.scrollTop, 100);
+    assert_equals(root.scrollLeft, 0);
+    window.scrollTo(0, 0);
+  }, "overscroll-behavior-y: none should only prevent scroll propagation on y axis.");
+
+  container.style.overscrollBehaviorX = 'none';
+  container.style.overscrollBehaviorY = 'auto';
+  setUpForRoot(100);
+  setUpForContainer(0);
+  window.scrollTo(0, 0);
+}
+
+function verify_x_prevented_and_set_boundary_allows_inner() {
+  instruction2.style.fontWeight = 'normal';
+  instruction3.style.fontWeight = 'bold';
+  test.step(function() {
+    assert_equals(root.scrollTop, 0);
+    assert_equals(root.scrollLeft, 100);
+  }, "overscroll-behavior-x: none should only prevent scroll propagation on x axis.");
+
+  container.style.overscrollBehaviorX = 'none';
+  container.style.overscrollBehaviorY = 'none';
+  setUpForRoot(100);
+  setUpForContainer(100);
+  window.scrollTo(0, 0);
+}
+
+function verify_inner_allowed_and_set_nonscrollable_allows_propagation() {
+  instruction1.style.color = 'black';
+  instruction4.style.color = 'red';
+  instruction3.style.fontWeight = 'normal';
+  instruction4.style.fontWeight = 'bold';
+  test.step(function() {
+    assert_equals(container.scrollTop, 0);
+    assert_equals(container.scrollLeft, 0);
+    assert_equals(root.scrollTop, 100);
+    assert_equals(root.scrollLeft, 100);
+  }, "overscroll-behavior should latch the scroll to the inner container.");
+
+  non_scrollable.style.overscrollBehaviorX = 'none';
+  non_scrollable.style.overscrollBehaviorY = 'none';
+  setUpForRoot(100);
+  window.scrollTo(0, 0);
+}
+
+function verify_non_scrollable_allows_propagation() {
+  test.step(function() {
+    assert_equals(root.scrollLeft, 0);
+    assert_equals(root.scrollTop, 0);
+  }, "overscroll-behavior on non-scrollable area should not affect scroll propagation.");
+  actions_promise.then( () => {
+    test.done();
+  });
+}
+
+var verifyAndSetupForNext = [
+    set_boundary_prevents_y,
+    verify_y_prevented_and_set_boundary_prevents_x,
+    verify_x_prevented_and_set_boundary_allows_inner,
+    verify_inner_allowed_and_set_nonscrollable_allows_propagation,
+    verify_non_scrollable_allows_propagation];
+
+on_event(btnDone, "click", function() {
+  if (current_test < verifyAndSetupForNext.length)
+    verifyAndSetupForNext[current_test++]();
+});
+
+var current_test = 0;
+verifyAndSetupForNext[current_test++]();
+
+// Inject scroll actions.
+const test_cases = [
+  { x: 200, y: 500, dx: -200, dy: -200 },
+  { x: 200, y: 500, dx: -200, dy: -200 },
+  { x: 200, y: 500, dx: -200, dy: -200 },
+  { x: 200, y: 100, dx: -200, dy: -200 },
+];
+
+actions_promise = new Promise( (resolve) => {resolve();} );
+for (let action of test_cases) {
+  actions_promise = actions_promise.then(() => {
+    return smoothScrollByXY(action.x, action.y, 0, action.dy);
+  }).then(() => {
+    return waitForAnimationEnd(scrollTop);
+  }).then(() => {
+    return smoothScrollByXY(action.x, action.y, action.dx, 0);
+  }).then(() => {
+    return waitForAnimationEnd(scrollLeft);
+  }).then(() => {
+    return test_driver.click(btnDone);
+  });
+}
+
+</script>

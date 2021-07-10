@@ -1,0 +1,99 @@
+<!DOCTYPE HTML>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/elementsFromPoint.js"></script>
+<style>
+html, body {
+    margin: 0;
+    padding: 0;
+}
+#testtable {
+    margin: 100px;
+    width: 200px;
+    height: 200px;
+    background-color: rgba(0,180,0,0.2);
+}
+#testtable tr {
+    background-color: rgba(180,0,0,0.2);
+}
+#testtable td {
+    background-color: rgba(0,0,180,0.2);
+}
+.rtl {
+    direction: rtl;
+}
+.tblr {
+    writing-mode: vertical-lr;
+}
+</style>
+<div id='sandbox'>
+    <table id='testtable'>
+        <tr id='tr1'>
+            <td id='td11'></td>
+            <td id='td12'></td>
+            <td id='td13'></td>
+            <td id='td14'></td>
+        </tr>
+        <tr id='tr2'>
+            <td id='td21'></td>
+            <td id='td22'></td>
+            <td id='td23'></td>
+            <td id='td24'></td>
+        </tr>
+        <tr id='tr3'>
+            <td id='td31'></td>
+            <td id='td32'></td>
+            <td id='td33'></td>
+            <td id='td34'></td>
+        </tr>
+        <tr id='tr4'>
+            <td id='td41'></td>
+            <td id='td42'></td>
+            <td id='td43'></td>
+            <td id='td44'></td>
+        </tr>
+    </table>
+</div>
+<script>
+test(function() {
+    assertElementsFromPoint('document', 125, 125,
+        [td11, testtable, sandbox, document.body, document.documentElement]);
+    assertElementsFromPoint('document', 275, 125,
+        [td14, testtable, sandbox, document.body, document.documentElement]);
+    assertElementsFromPoint('document', 175, 175,
+        [td22, testtable, sandbox, document.body, document.documentElement]);
+    assertElementsFromPoint('document', 125, 275,
+        [td41, testtable, sandbox, document.body, document.documentElement]);
+}, 'elementsFromPoint for points inside table cells');
+
+test(function() {
+    assertElementsFromPoint('document', 100, 100,
+        [testtable, sandbox, document.body, document.documentElement]);
+    assertElementsFromPoint('document', 199, 199,
+        [testtable, sandbox, document.body, document.documentElement]);
+}, 'elementsFromPoint for points between table cells');
+
+testtable.setAttribute('class', 'rtl');
+test(function() {
+    assertElementsFromPoint('document', 125, 125,
+        [td14, testtable, sandbox, document.body, document.documentElement]);
+    assertElementsFromPoint('document', 275, 125,
+        [td11, testtable, sandbox, document.body, document.documentElement]);
+    assertElementsFromPoint('document', 100, 100,
+        [testtable, sandbox, document.body, document.documentElement]);
+    assertElementsFromPoint('document', 199, 199,
+        [testtable, sandbox, document.body, document.documentElement]);
+}, 'elementsFromPoint for points inside cells in a right-to-left table');
+
+testtable.setAttribute('class', 'tblr');
+test(function() {
+    assertElementsFromPoint('document', 125, 275,
+        [td14, testtable, sandbox, document.body, document.documentElement]);
+    assertElementsFromPoint('document', 275, 125,
+        [td41, testtable, sandbox, document.body, document.documentElement]);
+    assertElementsFromPoint('document', 100, 100,
+        [testtable, sandbox, document.body, document.documentElement]);
+    assertElementsFromPoint('document', 199, 199,
+        [testtable, sandbox, document.body, document.documentElement]);
+}, 'elementsFromPoint for points inside cells in a flipped (writing-mode:vertical-lr) table');
+</script>

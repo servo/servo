@@ -1,0 +1,41 @@
+<html class="reftest-wait">
+<title>Animation Worklet local time set after duration</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-animationworklet/">
+<meta name="assert" content="If an effect doesn't have fill-mode specified, setting its local time beyond its duration makes the animation inactive.">
+<link rel="match" href="references/not-translated-box-ref.html">
+
+<script src="/web-animations/testcommon.js"></script>
+<script src="/common/reftest-wait.js"></script>
+<script src="common.js"></script>
+
+<style>
+  #box {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+  }
+</style>
+
+<div id="box"></div>
+
+<script>
+  registerConstantLocalTimeAnimator(2000).then(() => {
+    const box = document.getElementById('box');
+    const effect = new KeyframeEffect(box,
+      [
+      { transform: 'translateY(100px)' },
+      { transform: 'translateY(200px)' }
+      ], {
+        duration: 1000,
+        delay: 1000
+      }
+    );
+
+    const animation = new WorkletAnimation('constant_time', effect);
+    animation.play();
+
+    waitForAsyncAnimationFrames(1).then(_ => {
+      takeScreenshot();
+    });
+  });
+</script>

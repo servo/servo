@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Edge cases for minsize and maxsize</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#dictionary-based-attributes">
+<meta name="assert" content="Verify edge cases for minsize and maxsize .">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  math {
+      font: 25px/1 Ahem;
+  }
+  @font-face {
+      font-family: operators;
+      src: url("/fonts/math/operators.woff");
+  }
+  mo {
+      font-family: operators;
+  }
+</style>
+<script>
+  setup({ explicit_done: true });
+  window.addEventListener("load", () => { document.fonts.ready.then(runTests); });
+
+  function runTests() {
+      var epsilon = 1;
+      var emToPx = 25;
+      test(function() {
+          assert_approx_equals(document.getElementById("negative_minsize").getBoundingClientRect().height, 5 * emToPx, epsilon);
+      }, `minsize < 0 is treated as 0`);
+
+      test(function() {
+          assert_approx_equals(document.getElementById("maxsize_less_than_minsize").getBoundingClientRect().height, 7 * emToPx, epsilon);
+      }, `maxsize < minsize is treated as maxsize = minsize`);
+
+      test(function() {
+          assert_less_than(document.getElementById("minsize_less_than_negative_maxsize").getBoundingClientRect().height, 2 * emToPx);
+      }, `minsize < maxsize < 0 is treated as maxsize = minsize = 0`);
+
+      test(function() {
+          assert_approx_equals(document.getElementById("zero_target_size_with_minsize").getBoundingClientRect().height, 4 * emToPx, epsilon);
+      }, `target size = 0 is treated as Tascent = Tdescent = minsize/2`);
+
+      done();
+  }
+</script>
+</head>
+<body>
+  <div id="log"></div>
+  <p>
+    <math>
+      <mrow>
+        <mspace width="1em" height="5em" style="background: blue"/>
+        <mo id="negative_minsize" minsize="-10em" stretchy="true" symmetric="false">⥯</mo>
+        <mn><!-- not space like --></mn>
+      </mrow>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mrow>
+        <mspace width="1em" height="5em" style="background: blue"/>
+        <mo id="maxsize_less_than_minsize" minsize="7em" maxsize="2em" stretchy="true" symmetric="false">⥯</mo>
+        <mn><!-- not space like --></mn>
+      </mrow>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mrow>
+        <mspace width="1em" height="5em" style="background: blue"/>
+        <mo id="minsize_less_than_negative_maxsize" minsize="-2em" maxsize="-1em" stretchy="true" symmetric="false">⥯</mo>
+        <mn><!-- not space like --></mn>
+      </mrow>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mrow>
+        <mspace width="1em" height="0em" style="background: blue"/>
+        <mo id="zero_target_size_with_minsize" minsize="2em" stretchy="true" symmetric="true">⥯</mo>
+        <mn><!-- not space like --></mn>
+      </mrow>
+    </math>
+  </p>
+</body>
+</html>

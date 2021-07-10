@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset=utf-8>
+<title>Text shaping must not be broken across inline box boundaries when there is no change in formatting</title>
+<link rel=match href="reference/boundary-shaping-010.ref.html">
+<link rel=help href="https://drafts.csswg.org/css-text/#boundary-shaping">
+<style>
+body {
+  font: 36px sans-serif;
+}
+div {
+  text-align: center;
+}
+</style>
+</head>
+<body>
+<div dir=rtl>
+ال<span>سل</span>ام
+</body>
+</html>

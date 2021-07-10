@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+<meta charset=utf-8>
+<link rel="author" title="Mike Bremford" href="mailto:mike@bfo.com">
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#white-space-phase-2">
+<link rel="match" href="reference/line-edge-white-space-collapse-001-ref.html">
+<meta name="flags" content="">
+<title>White space collapse at end of line collapses through an inline</title>
+<style>
+div { font: 30px/30px monospace; }
+span span { border-left: 30px solid green }
+aside {
+  font: 30px/30px monospace;
+  width: 30px;
+  background: red;
+  position: absolute;
+  z-index:-1;
+  height: 300px;
+
+  /* to avoid accidental bleeding at the edges by a pixel or a sub pixel*/
+  box-sizing: border-box;
+  border: solid white 5px;
+  margin-left: 1ch;
+}
+</style>
+
+<p>Test passes if there is a single green rectangle next to ABCDEFGHIJ, and no red.
+
+<aside></aside>
+<div><span>A   <span>  </span>   </span></div>
+<div><span>B  <span>  </span>  </span></div>
+<div><span>C  <span>  </span> </span></div>
+<div><span>D  <span>  </span></span></div>
+<div><span>E <span>  </span>  </span></div>
+<div><span>F <span>  </span> </span></div>
+<div><span>G <span>  </span></span></div>
+<div><span>H<span>  </span> </span></div>
+<div><span>I<span>  </span></span></div>
+<div><span>J<span></span></span></div>

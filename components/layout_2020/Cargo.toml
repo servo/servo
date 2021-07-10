@@ -1,0 +1,50 @@
+[package]
+name = "layout_2020"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+edition = "2018"
+publish = false
+
+[lib]
+name = "layout"
+path = "lib.rs"
+test = false
+doctest = false
+
+[dependencies]
+app_units = "0.7"
+atomic_refcell = "0.1.6"
+canvas_traits = { path = "../canvas_traits" }
+cssparser = "0.28"
+embedder_traits = { path = "../embedder_traits" }
+euclid = "0.20"
+fnv = "1.0"
+fxhash = "0.2"
+gfx = { path = "../gfx" }
+gfx_traits = { path = "../gfx_traits" }
+html5ever = "0.25"
+ipc-channel = "0.14"
+libc = "0.2"
+log = "0.4"
+mitochondria = "1.1.2"
+msg = { path = "../msg" }
+net_traits = { path = "../net_traits" }
+parking_lot = "0.10"
+range = { path = "../range" }
+rayon = "1"
+rayon_croissant = "0.2.0"
+script_layout_interface = { path = "../script_layout_interface" }
+script_traits = { path = "../script_traits" }
+serde = "1.0"
+serde_json = "1.0"
+servo_arc = { path = "../servo_arc" }
+servo_url = { path = "../url" }
+style = { path = "../style", features = ["servo", "servo-layout-2020"] }
+style_traits = { path = "../style_traits" }
+unicode-script = "0.5"
+webrender_api = { git = "https://github.com/servo/webrender" }
+
+[dev-dependencies]
+lazy_static = "1"
+quickcheck = "0.9"

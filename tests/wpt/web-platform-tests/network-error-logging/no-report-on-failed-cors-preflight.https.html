@@ -1,0 +1,26 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>
+    Test that NEL reports are not sent if the CORS preflight fails
+  </title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='./support/nel.sub.js'></script>
+</head>
+<body>
+  <script>
+    nel_test(async t => {
+      // Make a request to a resource whose response headers include a NEL
+      // policy, but where the report uploader will reject the CORS preflight.
+      await fetchResourceWithBasicPolicy('www2');
+      // Because the CORS preflight is rejected, we should never receive a
+      // report about the request.
+      assert_false(await reportExists({
+        url: getURLForResourceWithBasicPolicy('www2'),
+        type: "network-error",
+      }));
+    });
+  </script>
+</body>
+</html>

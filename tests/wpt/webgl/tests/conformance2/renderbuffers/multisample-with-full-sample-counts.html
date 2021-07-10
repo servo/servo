@@ -1,0 +1,121 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="canvas" width="32" height="32" style="width: 32px; height: 32px;"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+var wtu = WebGLTestUtils;
+description(' Test multisample with sample number from 1 to max sample number which also includes the samples that may not be in the supported sample list');
+
+var gl = wtu.create3DContext("canvas", null, 2);
+var size = 32;
+var program;
+
+if (!gl) {
+    testFailed('canvas.getContext() failed');
+} else {
+    program = wtu.setupColorQuad(gl);
+    gl.viewport(0, 0, size, size);
+    var supportedSampleCountArray = gl.getInternalformatParameter(gl.RENDERBUFFER, gl.RGBA8, gl.SAMPLES);
+    var iterationCount = supportedSampleCountArray[0] + 1;
+    for (var i = 1; i < iterationCount; i++)
+    {
+        runTest(gl, i, false);
+        runTest(gl, i, true);
+    }
+}
+
+function runTest(gl, sampleCount, isInverted) {
+    // Setup multi-sample RBO
+    var msColorRbo = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, msColorRbo);
+    gl.renderbufferStorageMultisample(gl.RENDERBUFFER, sampleCount, gl.RGBA8, size, size);
+
+    // Setup multi-sample FBO.
+    var msFbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, msFbo);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, msColorRbo);
+
+    // Setup resolve color RBO.
+    var resolveColorRbo = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, resolveColorRbo);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA8, size, size);
+    // Setup resolve FBO
+    var resolveFbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, resolveFbo);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, resolveColorRbo);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, msFbo);
+    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE) {
+        testFailed("Framebuffer incomplete.");
+        return;
+    }
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.enable(gl.SAMPLE_COVERAGE);
+    var coverageValue = isInverted ? 0.0 : 1.0;
+    gl.sampleCoverage(coverageValue, isInverted);
+
+    var quadColor = [1.0, 0.0, 0.0, 1.0];
+    gl.useProgram(program);
+    wtu.drawFloatColorQuad(gl, quadColor);
+
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, resolveFbo);
+    gl.blitFramebuffer(0, 0, size, size, 0, 0, size, size, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, resolveFbo);
+    wtu.checkCanvasRect(gl, 0, 0, size, size, [255, 0, 0, 255],
+                        "User buffer has been rendered to red with sample = "
+                        + sampleCount + ", coverageValue = " + coverageValue
+                        + " and isInverted = " + isInverted, 3);
+
+    gl.disable(gl.SAMPLE_COVERAGE);
+    gl.deleteRenderbuffer(msColorRbo);
+    gl.deleteRenderbuffer(resolveColorRbo);
+    gl.deleteFramebuffer(msFbo);
+    gl.deleteFramebuffer(resolveFbo);
+}
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

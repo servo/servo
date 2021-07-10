@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset=UTF-8>
+<title>CSS Filter: Establishing containing block for absolutely-positioned elements, on an inline element</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Mozilla Corporation" href="http://mozilla.com/">
+<meta name="flags" content="">
+<style>
+
+#cb {
+    position: relative;
+    filter: brightness(100%);
+}
+
+#abspos {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 10px;
+    height: 10px;
+    background: blue;
+}
+
+</style>
+
+<p>Filler text.</p>
+
+<div>
+    <span id="cb">Blue box should cover top-left corner of this sentence.<span id="abspos"></span></span>
+</div>

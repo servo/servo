@@ -14,16 +14,34 @@ import re
 import subprocess
 import sys
 
-symbol_regex = re.compile(b"D  \*UND\*\t(.*) (.*)$")
-allowed_symbols = frozenset([b'unshare', b'malloc_usable_size', b'__cxa_type_match'])
+symbol_regex = re.compile(br"D  \*UND\*\t(.*) (.*)$")
+allowed_symbols = frozenset([
+    b'unshare',
+    b'malloc_usable_size',
+    b'__cxa_type_match',
+    b'signal',
+    b'tcgetattr',
+    b'tcsetattr',
+    b'__strncpy_chk2',
+    b'rand',
+    b'__read_chk',
+    b'fesetenv',
+    b'srand',
+    b'abs',
+    b'fegetenv',
+    b'sigemptyset',
+    b'AHardwareBuffer_allocate',
+    b'AHardwareBuffer_release',
+    b'getentropy',
+])
 actual_symbols = set()
 
 objdump_output = subprocess.check_output([
     os.path.join(
-        os.environ['ANDROID_NDK'], 'toolchains', 'arm-linux-androideabi-4.9',
+        'android-toolchains', 'ndk', 'toolchains', 'arm-linux-androideabi-4.9',
         'prebuilt', 'linux-x86_64', 'bin', 'arm-linux-androideabi-objdump'),
     '-T',
-    'target/arm-linux-androideabi/debug/libservo.so']
+    'target/android/armv7-linux-androideabi/debug/libsimpleservo.so']
 ).split(b'\n')
 
 for line in objdump_output:

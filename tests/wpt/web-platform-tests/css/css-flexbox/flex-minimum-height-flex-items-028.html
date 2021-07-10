@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="author" title="dgrogan@chromium.org" href="mailto:dgrogan@chromium.org" />
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#min-size-auto" />
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html" />
+<meta name="assert" content="Intermediate column flex item's specified min-height is honored.">
+<link href="support/flexbox.css" rel="stylesheet">
+
+<p>Test passes if there is a filled green square.</p>
+
+<div class="flexbox column">
+  <div class="flexbox column" style="flex: 1 0 0px; min-height: 100px">
+    <div style="flex: 1 0 0px; width: 100px; background: green;"></div>
+  </div>
+</div>

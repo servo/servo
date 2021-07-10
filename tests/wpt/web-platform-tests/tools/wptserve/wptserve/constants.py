@@ -1,29 +1,32 @@
 from . import utils
 
-content_types = utils.invert_dict({"text/html": ["htm", "html"],
-                                   "application/json": ["json"],
-                                   "application/xhtml+xml": ["xht", "xhtm", "xhtml"],
-                                   "application/xml": ["xml"],
-                                   "application/x-xpinstall": ["xpi"],
-                                   "text/javascript": ["js"],
-                                   "text/css": ["css"],
-                                   "text/plain": ["txt", "md"],
-                                   "image/svg+xml": ["svg"],
-                                   "image/gif": ["gif"],
-                                   "image/jpeg": ["jpg", "jpeg"],
-                                   "image/png": ["png"],
-                                   "image/bmp": ["bmp"],
-                                   "text/event-stream": ["event_stream"],
-                                   "text/cache-manifest": ["manifest"],
-                                   "video/mp4": ["mp4", "m4v"],
-                                   "audio/mp4": ["m4a"],
-                                   "audio/mpeg": ["mp3"],
-                                   "video/webm": ["webm"],
-                                   "audio/webm": ["weba"],
-                                   "video/ogg": ["ogg", "ogv"],
-                                   "audio/ogg": ["oga"],
-                                   "audio/x-wav": ["wav"],
-                                   "text/vtt": ["vtt"],})
+content_types = utils.invert_dict({
+    "application/json": ["json"],
+    "application/wasm": ["wasm"],
+    "application/xhtml+xml": ["xht", "xhtm", "xhtml"],
+    "application/xml": ["xml"],
+    "application/x-xpinstall": ["xpi"],
+    "audio/mp4": ["m4a"],
+    "audio/mpeg": ["mp3"],
+    "audio/ogg": ["oga"],
+    "audio/webm": ["weba"],
+    "audio/x-wav": ["wav"],
+    "image/bmp": ["bmp"],
+    "image/gif": ["gif"],
+    "image/jpeg": ["jpg", "jpeg"],
+    "image/png": ["png"],
+    "image/svg+xml": ["svg"],
+    "text/cache-manifest": ["manifest"],
+    "text/css": ["css"],
+    "text/event-stream": ["event_stream"],
+    "text/html": ["htm", "html"],
+    "text/javascript": ["js", "mjs"],
+    "text/plain": ["txt", "md"],
+    "text/vtt": ["vtt"],
+    "video/mp4": ["mp4", "m4v"],
+    "video/ogg": ["ogg", "ogv"],
+    "video/webm": ["webm"],
+})
 
 response_codes = {
     100: ('Continue', 'Request received, please continue'),
@@ -90,3 +93,5 @@ response_codes = {
           'The gateway server did not receive a timely response'),
     505: ('HTTP Version Not Supported', 'Cannot fulfill request.'),
 }
+
+h2_headers = ['method', 'scheme', 'host', 'path', 'authority', 'status']

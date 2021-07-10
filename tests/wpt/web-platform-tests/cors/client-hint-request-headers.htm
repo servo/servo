@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CORS and Client Hints</title>
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=support.js?pipe=sub></script>
+
+<h1>Request headers</h1>
+<div id=log></div>
+<script>
+
+test(function() {
+    var client = new XMLHttpRequest()
+    client.open('GET', CROSSDOMAIN + 'resources/cors-makeheader.py?headers=x-print', false)
+    client.setRequestHeader('x-print', 'unicorn')
+    client.setRequestHeader('y-print', 'unicorn')
+    assert_throws_dom("NetworkError", function() { client.send(null) })
+}, 'Unspecified request headers are disallowed')
+
+test(function() {
+    var client = new XMLHttpRequest()
+    client.open('GET', CROSSDOMAIN + 'resources/cors-makeheader.py?headers=x-print', false)
+    client.setRequestHeader('device-memory', '')
+    assert_throws_dom("NetworkError", function() { client.send(null) })
+}, 'Unextractable device-memory client hint header is disallowed')
+
+test(function() {
+    var client = new XMLHttpRequest()
+    client.open('GET', CROSSDOMAIN + 'resources/cors-makeheader.py?headers=x-print', false)
+    client.setRequestHeader('dpr', '')
+    assert_throws_dom("NetworkError", function() { client.send(null) })
+}, 'Unextractable DPR client hint header is disallowed')
+
+test(function() {
+    var client = new XMLHttpRequest()
+    client.open('GET', CROSSDOMAIN + 'resources/cors-makeheader.py?headers=x-print', false)
+    client.setRequestHeader('width', '')
+    assert_throws_dom("NetworkError", function() { client.send(null) })
+}, 'Unextractable width client hint header is disallowed')
+
+test(function() {
+    var client = new XMLHttpRequest()
+    client.open('GET', CROSSDOMAIN + 'resources/cors-makeheader.py?headers=x-print', false)
+    client.setRequestHeader('viewport-width', '')
+    assert_throws_dom("NetworkError", function() { client.send(null) })
+}, 'Unextractable viewport-width client hint header is disallowed')
+
+</script>

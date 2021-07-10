@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/webxr/resources/webxr_util.js></script>
+  <script>
+    'use strict';
+
+    var same_origin_src = '/webxr/resources/';
+    var cross_origin_https_src = 'https://{{domains[www]}}:{{ports[https][0]}}' +
+      same_origin_src;
+
+    test(t => {
+      forEachWebxrObject((obj, name) => {
+        assert_equals(obj, undefined, name + ' was defined in insecure context.');
+      });
+    }, 'Test webxr not available in insecure context');
+
+    async_test(t => {
+      let frame = document.createElement('iframe');
+      frame.src = cross_origin_https_src + 'webxr_check.html';
+
+      window.addEventListener('message', t.step_func(function handler(evt) {
+          if (evt.source === frame.contentWindow) {
+            document.body.removeChild(frame);
+            window.removeEventListener('message', handler);
+
+            assert_equals(evt.data.definedObjects.length, 0,
+              "Some objects were defined in insecure context: " +
+              evt.data.definedObjects.toString());
+            t.done();
+          }
+      }));
+
+      document.body.appendChild(frame);
+    }, 'Test webxr not available in secure context in insecure context');
+
+  </script>
+</body>

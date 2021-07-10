@@ -4,15 +4,15 @@ def WebIDLTest(parser, harness):
       typedef long? mynullablelong;
       interface Foo {
         const mylong X = 5;
-        const mynullablelong Y = 7;
-        const mynullablelong Z = null;
-        void foo(mylong arg);
+        void foo(optional mynullablelong arg = 7);
+        void bar(optional mynullablelong arg = null);
+        void baz(mylong arg);
       };
     """)
 
     results = parser.finish()
 
-    harness.check(results[2].members[1].type.name, "LongOrNull",
+    harness.check(results[2].members[1].signatures()[0][1][0].type.name, "LongOrNull",
                   "Should expand typedefs")
 
     parser = parser.reset()

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<title>CSS Test: Absolutely positioned children of flexboxes</title>
+<link rel="author" title="Google Inc." href="http://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#abspos-items">
+<link rel="match" href="position-absolute-005-ref.html">
+<meta name="assert" content="Checks that we correctly handle overflow: auto in
+abspos nodes in flexbox">
+
+<style>
+  body {
+    width: 400px;
+    height: 300px;
+  }
+
+  .flexbox {
+    display: flex;
+  }
+
+  .column {
+    flex-direction: column;
+  }
+
+  .flex11a {
+    flex: 1 1 auto;
+  }
+
+  .root {
+    height: 100px;
+    overflow-y: auto;
+    position: relative;
+  }
+
+  #abspos {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 10px;
+  }
+</style>
+
+
+<p>This test should not have a horizontal scrollbar</p>
+
+<div class="flexbox column">
+  <div class="flexbox">
+    <div class="flex11a">
+      <div class="root">
+        <div>
+          <div>
+            <div id="history"></div>
+            <div id="abspos"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+onload = function() {
+  var historyEl = document.getElementById('history');
+  historyEl.offsetWidth;
+  historyEl.innerText = '\n\n\n\n\n\n\n\n';
+};
+</script>

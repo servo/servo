@@ -1,0 +1,439 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Element Reflection for aria-activedescendant and aria-errormessage</title>
+    <link rel=help href="https://wicg.github.io/aom/spec/aria-reflection.html">
+    <link rel="author" title="Meredith Lane" href="meredithl@chromium.org">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+<div id="role" role="button"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("role");
+    assert_equals(element.role, "button");
+    element.role = "checkbox";
+    assert_equals(element.getAttribute("role"), "checkbox");
+}, "role attribute reflects.");
+</script>
+
+<div id="atomic" aria-atomic="true"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("atomic");
+    assert_equals(element.ariaAtomic, "true");
+    element.ariaAtomic = "false";
+    assert_equals(element.getAttribute("aria-atomic"), "false");
+}, "aria-atomic attribute reflects.");
+</script>
+
+<div id="autocomplete" aria-autocomplete="list"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("autocomplete");
+    assert_equals(element.ariaAutoComplete, "list");
+    element.ariaAutoComplete = "inline";
+    assert_equals(element.getAttribute("aria-autocomplete"), "inline");
+}, "aria-autocomplete attribute reflects.");
+</script>
+
+<div id="busy" aria-busy="true"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("busy");
+    assert_equals(element.ariaBusy, "true");
+    element.ariaBusy = "false";
+    assert_equals(element.getAttribute("aria-busy"), "false");
+}, "aria-busy attribute reflects.");
+</script>
+
+<div id="checked" aria-checked="mixed"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("checked");
+    assert_equals(element.ariaChecked, "mixed");
+    element.ariaChecked = "true";
+    assert_equals(element.getAttribute("aria-checked"), "true");
+}, "aria-checked attribute reflects.");
+</script>
+
+<div id="colcount" aria-colcount="5"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("colcount");
+    assert_equals(element.ariaColCount, "5");
+    element.ariaColCount = "6";
+    assert_equals(element.getAttribute("aria-colcount"), "6");
+}, "aria-colcount attribute reflects.");
+</script>
+
+<div id="colindex" aria-colindex="1"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("colindex");
+    assert_equals(element.ariaColIndex, "1");
+    element.ariaColIndex = "2";
+    assert_equals(element.getAttribute("aria-colindex"), "2");
+}, "aria-colindex attribute reflects.");
+</script>
+
+<div id="colspan" aria-colspan="2"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("colspan");
+    assert_equals(element.ariaColSpan, "2");
+    element.ariaColSpan = "3";
+    assert_equals(element.getAttribute("aria-colspan"), "3");
+}, "aria-colspan attribute reflects.");
+</script>
+
+<div id="current" aria-current="page"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("current");
+    assert_equals(element.ariaCurrent, "page");
+    element.ariaCurrent = "step";
+    assert_equals(element.getAttribute("aria-current"), "step");
+}, "aria-current attribute reflects.");
+</script>
+
+<div id="disabled" aria-disabled="true"></div>
+
+<div id="description" aria-description="cold as ice"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("description");
+    assert_equals(element.ariaDescription, "cold as ice");
+    element.ariaDescription = "hot as fire";
+    assert_equals(element.getAttribute("aria-description"), "hot as fire");
+}, "aria-description attribute reflects.");
+</script>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("disabled");
+    assert_equals(element.ariaDisabled, "true");
+    element.ariaDisabled = "false";
+    assert_equals(element.getAttribute("aria-disabled"), "false");
+}, "aria-disabled attribute reflects.");
+</script>
+
+<div id="expanded" aria-expanded="true"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("expanded");
+    assert_equals(element.ariaExpanded, "true");
+    element.ariaExpanded = "false";
+    assert_equals(element.getAttribute("aria-expanded"), "false");
+}, "aria-expanded attribute reflects.");
+</script>
+
+<div id="haspopup" aria-haspopup="menu"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("haspopup");
+    assert_equals(element.ariaHasPopup, "menu");
+    element.ariaHasPopup = "listbox";
+    assert_equals(element.getAttribute("aria-haspopup"), "listbox");
+}, "aria-haspopup attribute reflects.");
+</script>
+
+<div id="hidden" aria-hidden="true" tabindex="-1"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("hidden");
+    assert_equals(element.ariaHidden, "true");
+    element.ariaHidden = "false";
+    assert_equals(element.getAttribute("aria-hidden"), "false");
+}, "aria-hidden attribute reflects.");
+</script>
+
+<div id="keyshortcuts" aria-keyshortcuts="x"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("keyshortcuts");
+    assert_equals(element.ariaKeyShortcuts, "x");
+    element.ariaKeyShortcuts = "y";
+    assert_equals(element.getAttribute("aria-keyshortcuts"), "y");
+}, "aria-keyshortcuts attribute reflects.");
+</script>
+
+<div id="label" aria-label="x"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("label");
+    assert_equals(element.ariaLabel, "x");
+    element.ariaLabel = "y";
+    assert_equals(element.getAttribute("aria-label"), "y");
+}, "aria-label attribute reflects.");
+</script>
+
+<div id="level" aria-level="1"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("level");
+    assert_equals(element.ariaLevel, "1");
+    element.ariaLevel = "2";
+    assert_equals(element.getAttribute("aria-level"), "2");
+}, "aria-level attribute reflects.");
+</script>
+
+<div id="live" aria-live="polite"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("live");
+    assert_equals(element.ariaLive, "polite");
+    element.ariaLive = "assertive";
+    assert_equals(element.getAttribute("aria-live"), "assertive");
+}, "aria-live attribute reflects.");
+</script>
+
+<div id="modal" aria-modal="true"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("modal");
+    assert_equals(element.ariaModal, "true");
+    element.ariaModal = "false";
+    assert_equals(element.getAttribute("aria-modal"), "false");
+}, "aria-modal attribute reflects.");
+</script>
+
+<div id="multiline" aria-multiline="true"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("multiline");
+    assert_equals(element.ariaMultiLine, "true");
+    element.ariaMultiLine = "false";
+    assert_equals(element.getAttribute("aria-multiline"), "false");
+}, "aria-multiline attribute reflects.");
+</script>
+
+<div id="multiselectable" aria-multiselectable="true"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("multiselectable");
+    assert_equals(element.ariaMultiSelectable, "true");
+    element.ariaMultiSelectable = "false";
+    assert_equals(element.getAttribute("aria-multiselectable"), "false");
+}, "aria-multiselectable attribute reflects.");
+</script>
+
+<div id="orientation" aria-orientation="vertical"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("orientation");
+    assert_equals(element.ariaOrientation, "vertical");
+    element.ariaOrientation = "horizontal";
+    assert_equals(element.getAttribute("aria-orientation"), "horizontal");
+}, "aria-orientation attribute reflects.");
+</script>
+
+<div id="placeholder" aria-placeholder="x"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("placeholder");
+    assert_equals(element.ariaPlaceholder, "x");
+    element.ariaPlaceholder = "y";
+    assert_equals(element.getAttribute("aria-placeholder"), "y");
+}, "aria-placeholder attribute reflects.");
+</script>
+
+<div id="posinset" aria-posinset="10"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("posinset");
+    assert_equals(element.ariaPosInSet, "10");
+    element.ariaPosInSet = "11";
+    assert_equals(element.getAttribute("aria-posinset"), "11");
+}, "aria-posinset attribute reflects.");
+</script>
+
+<button id="pressed" aria-pressed="true"></button>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("pressed");
+    assert_equals(element.ariaPressed, "true");
+    element.ariaPressed = "false";
+    assert_equals(element.getAttribute("aria-pressed"), "false");
+}, "aria-pressed attribute reflects.");
+</script>
+
+<div id="readonly" aria-readonly="true"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("readonly");
+    assert_equals(element.ariaReadOnly, "true");
+    element.ariaReadOnly = "false";
+    assert_equals(element.getAttribute("aria-readonly"), "false");
+}, "aria-readonly attribute reflects.");
+</script>
+
+<div id="relevant" aria-relevant="text"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("relevant");
+    assert_equals(element.ariaRelevant, "text");
+    element.ariaRelevant = "removals";
+    assert_equals(element.getAttribute("aria-relevant"), "removals");
+}, "aria-relevant attribute reflects.");
+</script>
+
+<div id="required" aria-required="true"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("required");
+    assert_equals(element.ariaRequired, "true");
+    element.ariaRequired = "false";
+    assert_equals(element.getAttribute("aria-required"), "false");
+}, "aria-required attribute reflects.");
+</script>
+
+<div id="roledescription" aria-roledescription="x"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("roledescription");
+    assert_equals(element.ariaRoleDescription, "x");
+    element.ariaRoleDescription = "y";
+    assert_equals(element.getAttribute("aria-roledescription"), "y");
+}, "aria-roledescription attribute reflects.");
+</script>
+
+<div id="rowcount" aria-rowcount="10"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("rowcount");
+    assert_equals(element.ariaRowCount, "10");
+    element.ariaRowCount = "11";
+    assert_equals(element.getAttribute("aria-rowcount"), "11");
+}, "aria-rowcount attribute reflects.");
+</script>
+
+<div id="rowindex" aria-rowindex="1"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("rowindex");
+    assert_equals(element.ariaRowIndex, "1");
+    element.ariaRowIndex = "2";
+    assert_equals(element.getAttribute("aria-rowindex"), "2");
+}, "aria-rowindex attribute reflects.");
+</script>
+
+<div id="rowspan" aria-rowspan="2"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("rowspan");
+    assert_equals(element.ariaRowSpan, "2");
+    element.ariaRowSpan = "3";
+    assert_equals(element.getAttribute("aria-rowspan"), "3");
+}, "aria-rowspan attribute reflects.");
+</script>
+
+<div id="selected" aria-selected="true"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("selected");
+    assert_equals(element.ariaSelected, "true");
+    element.ariaSelected = "false";
+    assert_equals(element.getAttribute("aria-selected"), "false");
+}, "aria-selected attribute reflects.");
+</script>
+
+<div id="setsize" aria-setsize="10"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("setsize");
+    assert_equals(element.ariaSetSize, "10");
+    element.ariaSetSize = "11";
+    assert_equals(element.getAttribute("aria-setsize"), "11");
+}, "aria-setsize attribute reflects.");
+</script>
+
+<div id="sort" aria-sort="descending"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("sort");
+    assert_equals(element.ariaSort, "descending");
+    element.ariaSort = "ascending";
+    assert_equals(element.getAttribute("aria-sort"), "ascending");
+}, "aria-sort attribute reflects.");
+</script>
+
+<div id="valuemax" aria-valuemax="99"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("valuemax");
+    assert_equals(element.ariaValueMax, "99");
+    element.ariaValueMax = "100";
+    assert_equals(element.getAttribute("aria-valuemax"), "100");
+}, "aria-valuemax attribute reflects.");
+</script>
+
+<div id="valuemin" aria-valuemin="3"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("valuemin");
+    assert_equals(element.ariaValueMin, "3");
+    element.ariaValueMin = "2";
+    assert_equals(element.getAttribute("aria-valuemin"), "2");
+}, "aria-valuemin attribute reflects.");
+</script>
+
+<div id="valuenow" aria-valuenow="50"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("valuenow");
+    assert_equals(element.ariaValueNow, "50");
+    element.ariaValueNow = "51";
+    assert_equals(element.getAttribute("aria-valuenow"), "51");
+}, "aria-valuenow attribute reflects.");
+</script>
+
+<div id="valuetext" aria-valuetext="50%"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("valuetext");
+    assert_equals(element.ariaValueText, "50%");
+    element.ariaValueText = "51%";
+    assert_equals(element.getAttribute("aria-valuetext"), "51%");
+}, "aria-valuetext attribute reflects.");
+</script>
+</html>

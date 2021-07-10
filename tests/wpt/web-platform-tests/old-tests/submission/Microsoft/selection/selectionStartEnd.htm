@@ -2,73 +2,53 @@
 <html>
     <head>
         <title id="desc">HTML5 Selection: Set selectionStart and selectionEnd on a text field</title>
-        <script type="text/javascript">  
-            var testPassed = true;
-            
-            function checkDefaultSelectionAttributes()
-            {
-                var selection = window.getSelection();
-                if (null != selection.anchorNode)
-                {
-                    testPassed = false;
-                }
-                if (0 != selection.anchorOffset)
-                {
-                    testPassed = false;
-                }
-                if (null != selection.focusNode)
-                {
-                    testPassed = false;
-                }
-                if (0 != selection.focusOffset)
-                {
-                    testPassed = false;
-                }
-                if (!selection.isCollapsed)
-                {
-                    testPassed = false;
-                }
-                if (0 != selection.rangeCount)
-                {
-                    testPassed = false;
-                }  
-            }
-            
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="common.js"></script>
+        <script type="text/javascript">
             function RunTest()
             {
-                try
-                {
-                    var input1 = document.getElementById("input1");
-                    var expectedResult = "text";
-                    
-                    input1.selectionStart = 5;
-                    input1.selectionEnd = 9;
-                    
-                    checkDefaultSelectionAttributes();
-                    
-                    var selectionText = input1.value.substring(input1.selectionStart, input1.selectionEnd);
-                    if (expectedResult != selectionText)
-                    {
-                        testPassed = false;
-                    }
-                    
-                    if (testPassed)
-                    {
-                        document.getElementById("testresult").firstChild.data = "PASS";
-                    }
-                }
-                catch (ex)
-                {
-                    document.getElementById("testresult").firstChild.data = "FAIL";
-                }
+                var selection = window.getSelection();
+                var input1 = document.getElementById("input1");
+
+                assert_equals(input1.selectionStart, 0);
+                assert_equals(input1.selectionEnd, 0);
+                checkDefaultSelectionAttributes();
+                assert_equals(selection.toString(), "");
+
+                // only setting selectionStart/End doesn't affect getSelection()
+
+                input1.selectionStart = 5;
+                input1.selectionEnd = 9;
+
+                assert_equals(input1.selectionStart, 5);
+                assert_equals(input1.selectionEnd, 9);
+                checkDefaultSelectionAttributes();
+                assert_equals(selection.toString(), "");
+
+                // select() changes selectionStart/End and getSelection()
+
+                input1.select();
+
+                assert_equals(input1.selectionStart, 0);
+                assert_equals(input1.selectionEnd, input1.value.length);
+                checkSelectionAttributes(document.body, 1, document.body, 1, true, 1);
+                assert_equals(selection.toString(), input1.value);
+
+                // now setting selectionStart/End does affect getSelection()
+
+                input1.selectionStart = 5;
+                input1.selectionEnd = 9;
+
+                assert_equals(input1.selectionStart, 5);
+                assert_equals(input1.selectionEnd, 9);
+                checkSelectionAttributes(document.body, 1, document.body, 1, true, 1);
+                assert_equals(selection.toString(), "text");
             }
         </script>
     </head>
-    <body onload="RunTest();">
-        <input style="WIDTH: 500px" id="input1" value="Some text in an input control" type="text" /> 
+    <body onload="test(RunTest);">
+        <input style="WIDTH: 500px" id="input1" value="Some text in an input control" type="text" />
         <p>Select some text in the input element by setting selectionStart and selectionEnd</p>
-        <p>Test passes if the word "PASS" appears below.</p>
-        <div>Test result: </div>
-        <div id="testresult">FAIL</div>
     </body>
 </html>

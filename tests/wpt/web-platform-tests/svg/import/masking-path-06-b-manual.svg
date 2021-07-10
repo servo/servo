@@ -17,7 +17,7 @@
       <p>
         The intent of this file to test the 'clip' property.  In this test, the clipped objects are
         raster and SVG images.
-        
+
         <!-- ED: The bottom right subtest is the source of the issue, since CSS2.1 changed how 'clip' should be interpreted compared to CSS2.0. -->
       </p>
     </d:testDescription>

@@ -6,18 +6,20 @@ if (matchQuery('?evaluation'))
   self.registration.unregister();
 
 self.addEventListener('install', function(e) {
-    if (matchQuery('?install'))
+    if (matchQuery('?install')) {
+      // Don't do waitUntil(unregister()) as that would deadlock as specified.
       self.registration.unregister();
+    }
   });
 
 self.addEventListener('activate', function(e) {
     if (matchQuery('?activate'))
-      self.registration.unregister();
+      e.waitUntil(self.registration.unregister());
   });
 
 self.addEventListener('message', function(e) {
-    self.registration.unregister()
+    e.waitUntil(self.registration.unregister()
       .then(function(result) {
           e.data.port.postMessage({result: result});
-        });
+        }));
   });

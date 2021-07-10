@@ -1,0 +1,68 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Dispatching PaymentRequestUpdateEvent for "payerdetailschange"</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="helpers.js"></script>
+<script>
+function testImmediateUpdate({ textContent: testName }) {
+  promise_test(async t => {
+    const response = await getPaymentResponse({ requestPayerName: true });
+    const eventPromise = new Promise((resolve, reject) => {
+      response.addEventListener(
+        "payerdetailchange",
+        ev => {
+          // Forces updateWith() to be run in the next event loop tick so that
+          // [[waitForUpdate]] is already true when it runs.
+          t.step_timeout(() => {
+            try {
+              ev.updateWith({});
+              resolve(); // This is bad.
+            } catch (err) {
+              reject(err); // this is good.
+            }
+          });
+        },
+        { once: true }
+      );
+    });
+
+    const retryPromise = response.retry({
+      payer: { name: "Change me!" },
+    });
+    await promise_rejects_dom(
+      t,
+      "InvalidStateError",
+      eventPromise,
+      "The event loop already spun, so [[waitForUpdate]] is now true"
+    );
+    await retryPromise;
+    await response.complete("success");
+  }, testName.trim());
+}
+</script>
+<h2>Handling PaymentResponse.prototype.onpayerdetailchange events</h2>
+<p>
+  The test brings up the Payment Request UI window.
+  When shown the payment sheet, use any details and hit pay.
+</p>
+<p>
+  When asked to retry the payment:
+</p>
+<ol>
+  <li>
+    <p>
+      Change payer's name to anything.
+    </p>
+    <button onclick="testImmediateUpdate(this);">
+      updateWith() must be called immediately, otherwise must throw an InvalidStateError.
+    </button>
+  </li>
+  <li>
+    <button onclick="done();">DONE!</button>
+  </li>
+</ol>
+<small>
+  If you find a buggy test, please <a href="https://github.com/web-platform-tests/wpt/issues">file a bug</a>
+  and tag one of the <a href="https://github.com/web-platform-tests/wpt/blob/master/payment-request/META.yml">owners</a>.
+</small>

@@ -12,11 +12,17 @@
     <script>
 function test_exception(attrName) {
     test(function () {
-        assert_throws(new SyntaxError(), function () {
+        assert_throws_dom("SyntaxError", function () {
             window.performance.mark(attrName);
         })
     }, "window.performance.mark(\"" + attrName + "\") throws a SyntaxError exception.");
 }
+
+test(() => {
+    assert_throws_js(TypeError, function() {
+        window.performance.mark();
+    });
+}, 'window.performance.mark() throws a TypeError exception.')
 
 // loop through mark scenarios
 for (var i in timingAttributes) {

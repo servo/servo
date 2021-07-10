@@ -1,0 +1,27 @@
+<!doctype html>
+<title>MouseEvent.offsetX/Y returns coordinates relative to the root svg</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1684973">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/1508">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-mouseevent-offsetx">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  body { margin: 0 }
+</style>
+<svg width=100 height=100>
+  <rect width=30 height=30 x=50 y=50 fill=green></rect>
+</svg>
+<script>
+let t = async_test();
+let rect = document.querySelector("rect");
+rect.addEventListener("click", t.step_func_done(function(e) {
+  assert_true(e.offsetX >= 50);
+  assert_true(e.offsetY >= 50);
+}))
+
+test_driver.click(rect);
+</script>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>Layout Instability: vertical-rl inline/text movement is detected</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<body style="writing-mode: vertical-rl">
+<div style="height: 200px; font-size: 20px; line-height: 25px">
+  1AAAAAAA<br>
+  2AAAAAAA<br>
+  3AAAAAAA<br>
+  <div id="inline-block" style="display: inline-block; width: 50px">4AAAAAAA</div><br>
+  5AAAAAAA<br>
+  6AAAAAAA<br>
+  7AAAAAAA<br>
+</div>
+<script>
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  // Modify the position of the div.
+  const inline_block = document.querySelector("#inline-block");
+  inline_block.style.width = '100px';
+
+  // The lines below the inline-block are shifted down by 50px.
+  // The implementation may measure the real width of the shifted text
+  // or use the available width (i.e. width of the containing block).
+  // Also tolerate extra 10% error.
+  const text_width = inline_block.offsetWidth;
+  const expectedScoreMin = computeExpectedScore(text_width * (20 * 3 + 50), 50) * 0.9;
+  const expectedScoreMax = computeExpectedScore(200 * (25 * 3 + 50), 50) * 1.1;
+
+  // Observer fires after the frame is painted.
+  assert_equals(watcher.score, 0);
+  await watcher.promise;
+  assert_between_exclusive(watcher.score, expectedScoreMin, expectedScoreMax);
+}, 'Vertical-rl inline flow movement.');
+
+</script>
+</body>

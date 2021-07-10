@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>iframe sensor tester</title>
+<script src="/generic-sensor/resources/generic-sensor-helpers.js"></script>
+<script>
+  let mockBackend = null;
+  let sensor = null;
+  let sensorType = null;
+
+  async function messageHandler(e) {
+    if (e.data.command === 'create_sensor') {
+      if (!sensor) {
+        mockBackend = await initialize_generic_sensor_tests();
+        sensor = new self[e.data.type]();
+        sensorType = e.data.type;
+      }
+
+      return Promise.resolve('success');
+    } else if (e.data.command === 'start_sensor') {
+      if (!sensor) {
+        return Promise.reject('"create_sensor" must be called first');
+      }
+
+      return new Promise(resolve => {
+        sensor.addEventListener('reading', () => {
+          resolve('success');
+        }, { once: true });
+        sensor.start();
+      });
+    } else if (e.data.command === 'is_sensor_suspended') {
+      if (!mockBackend) {
+        return Promise.reject('"create_sensor" must be called first');
+      }
+
+      const mockPlatformSensor = await mockBackend.getSensorProvider().getCreatedSensor(sensorType);
+      return Promise.resolve(!mockPlatformSensor.isReadingData());
+    } else if (e.data.command === 'reset_sensor_backend') {
+      if (sensor) {
+        sensor.stop();
+        await mockBackend.reset();
+
+        sensor = null;
+        mockBackend = null;
+      }
+      return Promise.resolve('success');
+    } else {
+      return Promise.reject(`unknown command "${e.data.command}"`);
+    }
+  }
+
+  window.onmessage = async (e) => {
+    let reply;
+    try {
+      reply = await messageHandler(e);
+    } catch (error) {
+      reply = error;
+    }
+    e.source.postMessage({ command: e.data.command, result: reply }, '*');
+  }
+</script>

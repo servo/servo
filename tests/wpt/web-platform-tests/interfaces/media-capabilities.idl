@@ -1,0 +1,114 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Media Capabilities (https://w3c.github.io/media-capabilities/)
+
+dictionary MediaConfiguration {
+  VideoConfiguration video;
+  AudioConfiguration audio;
+};
+
+dictionary MediaDecodingConfiguration : MediaConfiguration {
+  required MediaDecodingType type;
+  MediaCapabilitiesKeySystemConfiguration keySystemConfiguration;
+};
+
+dictionary MediaEncodingConfiguration : MediaConfiguration {
+  required MediaEncodingType type;
+};
+
+enum MediaDecodingType {
+  "file",
+  "media-source",
+  "webrtc"
+};
+
+enum MediaEncodingType {
+  "record",
+  "webrtc"
+};
+
+dictionary VideoConfiguration {
+  required DOMString contentType;
+  required unsigned long width;
+  required unsigned long height;
+  required unsigned long long bitrate;
+  required double framerate;
+  boolean hasAlphaChannel;
+  HdrMetadataType hdrMetadataType;
+  ColorGamut colorGamut;
+  TransferFunction transferFunction;
+  DOMString scalabilityMode;
+};
+
+enum HdrMetadataType {
+  "smpteSt2086",
+  "smpteSt2094-10",
+  "smpteSt2094-40"
+};
+
+enum ColorGamut {
+  "srgb",
+  "p3",
+  "rec2020"
+};
+
+enum TransferFunction {
+  "srgb",
+  "pq",
+  "hlg"
+};
+
+dictionary AudioConfiguration {
+  required DOMString contentType;
+  DOMString channels;
+  unsigned long long bitrate;
+  unsigned long samplerate;
+  boolean spatialRendering;
+};
+
+dictionary MediaCapabilitiesKeySystemConfiguration {
+    required DOMString keySystem;
+    DOMString initDataType = "";
+    MediaKeysRequirement distinctiveIdentifier = "optional";
+    MediaKeysRequirement persistentState = "optional";
+    sequence<DOMString> sessionTypes;
+    KeySystemTrackConfiguration audio;
+    KeySystemTrackConfiguration video;
+  };
+
+dictionary KeySystemTrackConfiguration {
+    DOMString robustness = "";
+    DOMString? encryptionScheme = null;
+  };
+
+dictionary MediaCapabilitiesInfo {
+  required boolean supported;
+  required boolean smooth;
+  required boolean powerEfficient;
+};
+
+dictionary MediaCapabilitiesDecodingInfo : MediaCapabilitiesInfo {
+  required MediaKeySystemAccess keySystemAccess;
+  MediaDecodingConfiguration configuration;
+};
+
+dictionary MediaCapabilitiesEncodingInfo : MediaCapabilitiesInfo {
+  MediaEncodingConfiguration configuration;
+};
+
+[Exposed=Window]
+partial interface Navigator {
+  [SameObject] readonly attribute MediaCapabilities mediaCapabilities;
+};
+
+[Exposed=Worker]
+partial interface WorkerNavigator {
+  [SameObject] readonly attribute MediaCapabilities mediaCapabilities;
+};
+
+[Exposed=(Window, Worker)]
+interface MediaCapabilities {
+  [NewObject] Promise<MediaCapabilitiesDecodingInfo> decodingInfo(MediaDecodingConfiguration configuration);
+  [NewObject] Promise<MediaCapabilitiesEncodingInfo> encodingInfo(MediaEncodingConfiguration configuration);
+};

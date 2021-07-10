@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<style>
+.container > * {
+    position: absolute;
+}
+.large {
+    width: 50px;
+    height: 50px;
+}
+.small {
+    left: 25px;
+    height: 25px;
+    width: 50px;
+}
+</style>
+<div>The green boxes should be above the orange boxes, which should be above the purple boxes, which are above the salmon boxes.<div>
+<div class="container" style="position:relative">
+    <div class="large" style="z-index: 1; background-color: salmon;"></div>
+    <div class="large" style="z-index: 100; background-color: orange; left: 50px;"></div>
+    <div class="small" style="z-index: 150; background-color: green"></div>
+    <div class="small" style="z-index: 50; background-color: purple; top: 25px;"></div>
+</div>
+<div class="container" style="position:relative; top: 50px">
+    <img class="large" style="z-index: 1; background-color: salmon;"></img>
+    <img class="large" style="z-index: 100; background-color: orange; left: 50px;"></img>
+    <img class="small" style="z-index: 150; background-color: green"></img>
+    <img class="small" style="z-index: 50; background-color: purple; top: 25px;"></img>
+</div>

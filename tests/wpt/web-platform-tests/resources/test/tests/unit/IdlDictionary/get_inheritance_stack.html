@@ -1,0 +1,47 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>IdlDictionary.prototype.get_inheritance_stack()</title>
+</head>
+<body>
+<div id="log"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<script src="../../../idl-helper.js"></script>
+<script>
+    "use strict";
+    test(function() {
+        var stack = dictionaryFrom('dictionary A { };').get_inheritance_stack();
+        assert_array_equals(stack.map(d => d.name), ["A"]);
+    }, 'should return an array that includes itself.');
+
+    test(function() {
+        var d = dictionaryFrom('dictionary A : B { };');
+        assert_throws_js(Error, _ => d.get_inheritance_stack());
+    }, "should throw for dictionaries which inherit from another dictionary which wasn't added to the IdlArray");
+
+    test(function() {
+        var idl = new IdlArray();
+        idl.add_idls('dictionary A : B { };');
+        idl.add_untested_idls('dictionary B : C { }; dictionary C { };');
+        var A = idl.members["A"];
+        assert_array_equals(A.get_inheritance_stack().map(d => d.name), ["A", "B", "C"]);
+    }, 'should return an array of inherited dictionaries in order of inheritance, starting with itself.');
+
+    test(function () {
+      let i = new IdlArray();
+      i.add_untested_idls('dictionary A : B {};');
+      i.assert_throws(new IdlHarnessError('A inherits B, but B is undefined.'), i => i.test());
+    }, 'A : B with B undeclared should throw IdlHarnessError');
+
+    test(function () {
+      let i = new IdlArray();
+      i.add_untested_idls('dictionary A : B {};');
+      i.add_untested_idls('interface B {};');
+      i.assert_throws(new IdlHarnessError('A inherits B, but A is not an interface.'), i => i.test());
+    }, 'dictionary A : B with B interface should throw IdlHarnessError');
+</script>
+</body>
+</html>

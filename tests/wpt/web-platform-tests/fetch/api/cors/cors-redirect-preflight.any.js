@@ -1,3 +1,4 @@
+// META: timeout=long
 // META: script=/common/utils.js
 // META: script=../resources/utils.js
 // META: script=/common/get-host-info.sub.js
@@ -21,7 +22,7 @@ function corsRedirect(desc, redirectUrl, redirectLocation, redirectStatus, expec
   promise_test(function(test) {
     var uuid_token = token();
     return fetch(RESOURCES_DIR + "clean-stash.py?token=" + uuid_token).then(function(resp) {
-      return promise_rejects(test, new TypeError(), fetch(redirectUrl + "?token=" + uuid_token + "&max_age=0" + urlParametersFailure, requestInit));
+      return promise_rejects_js(test, TypeError, fetch(redirectUrl + "?token=" + uuid_token + "&max_age=0" + urlParametersFailure, requestInit));
     });
   }, desc + " (preflight after redirection failure case)");
 }

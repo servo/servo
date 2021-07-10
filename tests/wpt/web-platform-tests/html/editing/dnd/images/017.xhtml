@@ -4,22 +4,22 @@
 <title>Dropping image on horizontal page scrollbar</title>
 <style type="text/css">
 p:first-child
-	{padding-left:1em;}
+  {padding-left:1em;}
 div
-	{position:fixed;
-	bottom:0;
-	left:0;}
+  {position:fixed;
+  bottom:0;
+  left:0;}
 img
-	{width:5px;
-	height:5px;}
+  {width:5px;
+  height:5px;}
 body
-	{width:3000px;}
+  {width:3000px;}
 </style>
 <script type="application/ecmascript">
 function dragImage()
-	{event.dataTransfer.effectAllowed = 'copy';}
+  {event.dataTransfer.effectAllowed = 'copy';}
 function dropImage(event)
-	{document.querySelector('div').firstChild.nodeValue = 'PASS';}
+  {document.querySelector('div').firstChild.nodeValue = 'PASS';}
 </script>
 </head>
 <body ondragenter="event.preventDefault()" ondragover="return false">

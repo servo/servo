@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Test: right float, polygon + shape-margin beyond margin box</title>
+        <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#funcdef-polygon">
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property">
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-margin-property">
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#relation-to-box-model-and-float-behavior">
+        <link rel="match" href="reference/shape-outside-polygon-017-ref.html">
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The test verifies that when a shape-margin is defined that
+                                     extends beyond the margin box, the shape is clipped to the
+                                     box.">
+    </head>
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+    <style>
+    body {
+        margin: 0;
+    }
+    #container {
+        position: absolute;
+        top: 50px;
+        font: 40px/1 Ahem, sans-serif;
+        width: 300px;
+        height: 200px;
+        color: green;
+        text-align: right;
+    }
+    #test-shape {
+        float: right;
+        width: 180px;
+        height: 160px;
+        margin: 10px;
+        shape-margin: 40px;
+        shape-outside: polygon(0px 130px, 0px 180px, 200px 180px, 200px 0px, 160px 0px, 160px 130px);
+    }
+    .line {
+        position: absolute;
+        top: 60px;
+        width: 2px;
+        height: 200px;
+        border-left: 2px solid blue;
+    }
+    .right {
+        left: 220px;
+    }
+    .left {
+        left: 60px;
+    }
+    .failure {
+        position: absolute;
+        width: 40px;
+        height: 40px;
+        background-color: red;
+        z-index: -1;
+    }
+    .square-1 {
+        top: 90px;
+        left: 180px;
+    }
+    .square-2 {
+        top: 170px;
+        left: 60px;
+    }
+    </style>
+    <body>
+    <p>The test passes if there there are two green squares between the blue lines. There should be no red.</p>
+    <div id="container">
+        <div id="test-shape"></div>
+        <br/>
+        X
+        <br/>
+        <br/>
+        X
+    </div>
+    <div class="left line"></div>
+    <div class="right line"></div>
+    <div class="failure square-1"></div>
+    <div class="failure square-2"></div>
+    </body>
+</html>
+

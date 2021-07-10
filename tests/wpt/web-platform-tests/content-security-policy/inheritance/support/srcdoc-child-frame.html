@@ -1,0 +1,19 @@
+<head>
+  <meta http-equiv="Content-Security-Policy" content="img-src 'none'">
+</head>
+<body>
+  <script>
+    var i = document.createElement('iframe');
+    i.srcdoc=`<script>
+                window.addEventListener('securitypolicyviolation', function(e) {
+                  if (e.violatedDirective == 'img-src') {
+                    top.postMessage('img blocked', '*');
+                  }
+                })
+              </scr` + `ipt>
+              <img src='/content-security-policy/support/fail.png'
+                onload='top.postMessage("img loaded", "*")'/>`;
+    i.id = "srcdoc-frame";
+    document.body.appendChild(i);
+  </script>
+</body>

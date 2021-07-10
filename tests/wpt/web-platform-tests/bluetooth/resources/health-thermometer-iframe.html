@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<button>Click me!</button>
+<script>
+let device, gatt;
+
+test_driver.set_test_context(parent);
+
+function requestDeviceWithOptionsAndConnect(options) {
+  return test_driver.click(document.getElementsByTagName("button")[0])
+      .then(() => navigator.bluetooth.requestDevice(options))
+      .then(device => device.gatt.connect());
+}
+
+window.addEventListener('message', (messageEvent) => {
+  switch (messageEvent.data.type) {
+    case 'GetAvailability':
+      navigator.bluetooth.getAvailability().then(
+          availability => parent.postMessage(availability, '*'));
+      break;
+    case 'RequestDevice':
+      test_driver.click(document.getElementsByTagName("button")[0])
+          .then(() => navigator.bluetooth
+              .requestDevice({filters: [{services: ['generic_access']}]}))
+          .then(device => {
+            if (device.constructor.name === 'BluetoothDevice') {
+              parent.postMessage('Success', '*');
+            } else {
+              parent.postMessage(
+                  `FAIL: requestDevice in iframe returned ${device.name}`, '*');
+            }
+          })
+          .catch(err => parent.postMessage(`${err.name}: ${err.message}`, '*'));
+      break;
+    case 'RequestAndConnect':
+      requestDeviceWithOptionsAndConnect(messageEvent.data.options)
+          .then(_ => {
+            gatt = _;
+            device = gatt.device;
+            parent.postMessage('Connected', '*');
+          })
+          .catch(err => {
+            parent.postMessage(`FAIL: ${err}`, '*');
+          });
+      break;
+    case 'DiscoverServices':
+      requestDeviceWithOptionsAndConnect(messageEvent.data.options)
+          .then(gatt => gatt.getPrimaryServices())
+          .then(() => parent.postMessage('DiscoveryComplete', '*'))
+          .catch(err => {
+            parent.postMessage(`FAIL: ${err}`, '*');
+          });
+      break;
+    case 'GetService':
+      if (typeof gatt === 'undefined') {
+        parent.postMessage('FAIL: no GATT server', '*');
+        break;
+      }
+      gatt.getPrimaryService(messageEvent.data.options)
+          .then(() => parent.postMessage('ServiceReceived', '*'))
+          .catch(err => parent.postMessage(`FAIL: ${err}`, '*'));
+      break;
+    default:
+      parent.postMessage(
+          `FAIL: Bad message type: ${messageEvent.data.type}`, '*');
+  }
+});
+</script>

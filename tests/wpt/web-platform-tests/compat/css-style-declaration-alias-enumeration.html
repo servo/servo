@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Aliases enumerated on CSSStyleDeclaration</title>
+<link rel="help" href="https://compat.spec.whatwg.org/#css-simple-aliases">
+<meta name="assert" content="This test verifies that aliases are enumerated on CSSStyleDeclaration" />
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+</body>
+<script>
+
+// Note: This is an arbitrarily chosen simple alias from the spec.
+const ALIAS_SAMPLE = 'webkitTransform';
+
+function find_alias(alias) {
+  for (let prop in document.body.style) {
+    if (prop == alias) {
+      return true;
+    }
+  }
+  return false;
+}
+
+test(() => {
+  assert_true(find_alias(ALIAS_SAMPLE), `Alias ${ALIAS_SAMPLE} seen`);
+});
+</script>

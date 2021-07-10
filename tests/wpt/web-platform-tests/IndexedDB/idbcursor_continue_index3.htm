@@ -40,7 +40,7 @@
             }
 
             // First time checks key equal, second time checks key less than
-            assert_throws("DataError",
+            assert_throws_dom("DataError",
                 function() { cursor.continue(records[0].iKey); });
 
             cursor.continue();

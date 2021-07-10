@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+
+<script>
+let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+let testSessionEnded = function(session, fakeDeviceController, t) {
+  return new Promise((resolve, reject) => {
+    resolve(session.end().then(() => {
+      t.step(() => {
+        assert_throws_dom('InvalidStateError', () => session.updateRenderState({}));
+      });
+    }));
+  });
+};
+
+
+let testBaseLayer = function(session, fakeDeviceController, t, sessionObjects) {
+  return new Promise((resolve, reject) => {
+    navigator.xr.test.simulateUserActivation(() => {
+      navigator.xr.requestSession('inline').then((tempSession) => {
+        t.step(() => {
+          assert_not_equals(session, tempSession);
+          assert_throws_dom('InvalidStateError', () => session.updateRenderState({ baseLayer : new XRWebGLLayer(tempSession, sessionObjects.gl), }));
+        });
+      });
+      resolve();
+    });
+  });
+};
+
+let testFieldOfView = function(session, fakeDeviceController, t) {
+  return new Promise((resolve, reject) => {
+    t.step(() => {
+      assert_throws_dom('InvalidStateError', () => session.updateRenderState({ inlineVerticalFieldOfView : Math.PI, }));
+    });
+    resolve();
+  });
+};
+
+let testNoParams = function(session, fakeDeviceController, t) {
+  return new Promise((resolve, reject) => {
+    try {
+      session.updateRenderState({});
+    } catch (err) {
+      assert_unreached("updateRenderState should not fail (actually not do anything) with no params");
+    }
+    resolve();
+  });
+};
+
+let testParams = function(session, fakeDeviceController, t, sessionObjects) {
+  return new Promise((resolve, reject) => {
+    let gl = sessionObjects.gl;
+    try {
+      gl.makeXRCompatible().then(() => {
+        t.step(() => {
+          let fov = Math.PI;
+          let near = 0.2;
+          let far = 0.8;
+          let layer = new XRWebGLLayer(session, gl);
+          session.updateRenderState({ inlineVerticalFieldOfView: fov, depthNear: near, depthFar: far, baseLayer: layer });
+          // The update can only happen between frame boundaries, updateRenderState only queues changes.
+          assert_not_equals(session.renderState.inlineVerticalFieldOfView, fov);
+          assert_not_equals(session.renderState.depthNear, near);
+          assert_not_equals(session.renderState.depthFar, far);
+          assert_not_equals(session.renderState.baseLayer, layer);
+        });
+      });
+    } catch (err) {
+      assert_unreached("updateRenderState should not fail when all params are specified");
+    }
+    resolve();
+  });
+};
+
+let testName = "updateRenderState handles appropriately ended sessions";
+xr_session_promise_test(testName, testSessionEnded, fakeDeviceInitParams, 'immersive-vr');
+
+testName = "updateRenderState handles appropriately baseLayers created with different sessions";
+xr_session_promise_test(testName, testBaseLayer, fakeDeviceInitParams, 'immersive-vr');
+
+testName = "updateRenderState handles appropriately immersive sessions with specified inlineVerticalFieldOfView";
+xr_session_promise_test(testName, testFieldOfView, fakeDeviceInitParams, 'immersive-vr');
+
+testName = "updateRenderState handles appropriately XRRenderStateInit with no params";
+xr_session_promise_test(testName, testNoParams, fakeDeviceInitParams, 'immersive-vr');
+
+testName = "updateRenderState handles appropriately XRRenderStateInit params";
+xr_session_promise_test(testName, testParams, fakeDeviceInitParams, 'inline');
+
+</script>

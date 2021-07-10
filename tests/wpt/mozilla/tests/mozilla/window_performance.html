@@ -11,19 +11,31 @@ test(function() {
   assert_true(window.performance instanceof Performance, "Should be Performance");
 
   assert_not_equals(window.performance.timing, undefined);
-  assert_true(window.performance.timing instanceof PerformanceTiming, "Should be PerformanceTiming");
 
-  assert_greater_than(window.performance.timing.navigationStart, 0);
+  var entries = window.performance.getEntries();
+  assert_not_equals(entries.length, 0);
+  assert_true(entries[0] instanceof PerformanceNavigationTiming);
+
+  /* PerformanceResourceTiming */
+  var resourceEntries = window.performance.getEntriesByType("resource");
+  assert_not_equals(resourceEntries.length, 0);
+  assert_true(resourceEntries[0] instanceof PerformanceResourceTiming);
+  // no redirects => 0 < startTime == fetchStart
+  assert_greater_than(resourceEntries[0].startTime, 0);
+  assert_equals(resourceEntries[0].startTime, resourceEntries[0].fetchStart);
 
   var last = window.performance.now();
   assert_greater_than(last, 0);
 
-  // Check that window.performance.now() is monotonically increasing
+  // Check that window.performance.now() is monotonically nondecreasing
+  // and eventually increases
+  var before_loop = window.performance.now();
   for (var i = 0; i < 100; i++) {
     var next = window.performance.now();
-    assert_greater_than(next, last);
+    assert_greater_than_equal(next, last);
     last = next;
   }
+  assert_greater_than(last, before_loop, "If this fails, either performance timing is broken, or Servo JS execution has gotten much faster since this test was written.");
 });
 </script>
 </body>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<body onload="setup()">
+<textarea id="ta" dir="rtl">
+
+&#x05d0;a&#x05d1;
+
+</textarea>
+<textarea id="tb">
+
+abc
+
+</textarea>
+
+<div id="coords1"></div>
+<div id="coords2"></div>
+
+<script>
+  function setup() {
+    document.getElementById("ta").selectionStart = 3;
+    document.getElementById("ta").selectionEnd = 3;
+    document.getElementById("coords1").innerHTML = document.getElementById("ta").selectionStart;
+    document.getElementById("tb").selectionStart = 3;
+    document.getElementById("tb").selectionEnd = 3;
+    document.getElementById("coords2").innerHTML = document.getElementById("tb").selectionStart;
+  }
+</script>
+</body>
+</html>

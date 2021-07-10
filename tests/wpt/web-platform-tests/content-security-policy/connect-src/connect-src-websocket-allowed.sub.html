@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncraciws.-->
+    <meta http-equiv="Content-Security-Policy" content="connect-src 'self' ws://{{domains[www1]}}:{{ports[http][0]}}/echo; script-src 'self' 'unsafe-inline';">
+    <title>connect-src-websocket-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["allowed"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+</head>
+
+<body>
+    <script>
+        window.addEventListener('securitypolicyviolation', function(e) {
+            log("violated-directive=" + e.violatedDirective);
+        });
+
+        try {
+            var ws = new WebSocket("ws://{{domains[www1]}}:{{ports[http][0]}}/echo");
+
+            if (ws.readyState == WebSocket.CLOSING || ws.readyState == WebSocket.CLOSED) {
+                log("blocked");
+            } else {
+                log("allowed");
+            }
+        } catch (e) {
+            log("blocked");
+        }
+
+    </script>
+    <div id="log"></div>
+</body>
+
+</html>

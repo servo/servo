@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Images Module Level 3: image-orientation: from-image in embedded content (reference)</title>
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#propdef-image-orientation">
+<style>
+    iframe {
+        display: inline-block;
+        width: 120px;
+        height: 110px;
+        vertical-align: top;
+    }
+    embed {
+        object-fit: none;
+        object-position: top left;
+        image-orientation: from-image;
+    }
+    object {
+        object-fit: none;
+        object-position: top left;
+        image-orientation: from-image;
+    }
+</style>
+</head>
+<body>
+    <p>The images should rotate respecting their EXIF orientation because image
+       documents always respect the orientation, regardless of the image-orientation
+       property.</p>
+    <iframe src="../support/exif-orientation-1-ul-pre-rotated.jpg" frameborder=0></iframe>
+    <embed type="image/jpeg" src="../support/exif-orientation-2-ur-pre-rotated.jpg" width="120" height="110px">
+    <object type="image/jpeg" data="../support/exif-orientation-3-lr-pre-rotated.jpg" width="120" height="110px"></object>
+    <iframe src="../support/exif-orientation-4-lol-pre-rotated.jpg" frameborder=0></iframe>
+    <br>
+    <iframe src="../support/exif-orientation-5-lu-pre-rotated.jpg" frameborder=0></iframe>
+    <embed type="image/jpeg" src="../support/exif-orientation-6-ru-pre-rotated.jpg" width="120" height="110px">
+    <object type="image/jpeg" data="../support/exif-orientation-7-rl-pre-rotated.jpg" width="120" height="110px"></object>
+    <iframe src="../support/exif-orientation-8-llo-pre-rotated.jpg" frameborder=0></iframe>
+    <br>
+    <iframe src="../support/exif-orientation-9-u-pre-rotated.jpg" frameborder=0></iframe>
+</body>
+</html>
+

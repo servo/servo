@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Video track src attribute must match src list - negative test</title>
+    <meta http-equiv="Content-Security-Policy" content="script-src * 'unsafe-inline'; media-src 'self';">
     <script src='/resources/testharness.js'></script>
     <script src='/resources/testharnessreport.js'></script>
 </head>
@@ -13,7 +14,18 @@
     var source_test =
         async_test("Disallowed track element onerror handler fires.");
 
-      var trackURL = location.protocol + "//{{domains[www]}}:{{ports[http][0]}}/media/foo.vtt";
+    var trackURL = location.protocol + "//{{domains[www]}}:{{ports[http][0]}}/media/foo.vtt";
+
+    var t_spv = async_test("Test that securitypolicyviolation events are fired");
+    var test_count = 1;
+    window.addEventListener("securitypolicyviolation", t_spv.step_func(function(e) {
+          assert_equals(e.violatedDirective, "media-src");
+          assert_equals(e.blockedURI, trackURL);
+          if (--test_count <= 0) {
+              t_spv.done();
+          }
+      }));
+
 
     function media_loaded(t) {
      t.step( function () {
@@ -50,14 +62,11 @@
 
         setTimeout(function() {
           if(source_test.phase != source_test.phases.COMPLETE) {
-		source_test.step( function () { assert_unreached("Onerror event never fired for track element."); });
-		source_test.done();
-	   }
+            source_test.step( function () { assert_unreached("Onerror event never fired for track element."); });
+            source_test.done();
+          }
         }, 2 * 1000);
     </script>
-
-  <script async defer src="../support/checkReport.sub.js?reportField=violated-directive&reportValue=media-src%20%27self%27">
-  </script>
 
 </body>
 </html>

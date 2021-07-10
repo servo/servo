@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Test Web NFC Permission.</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id="log"></div>
+
+<script>
+  promise_test(function(test) {
+    return navigator.permissions.query({name:'nfc'}).then(function(result) {
+      assert_true(result instanceof PermissionStatus);
+    });
+  });
+</script>

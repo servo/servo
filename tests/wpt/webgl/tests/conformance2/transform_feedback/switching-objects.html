@@ -1,0 +1,254 @@
+<!--
+
+/*
+** Copyright (c) 2018 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Switching transform feedback objects</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" style="width: 50px; height: 50px;"> </canvas>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">#version 300 es
+in float in_value;
+out float out_value1;
+out float out_value2;
+
+void main() {
+   out_value1 = in_value * 2.;
+   out_value2 = in_value * 4.;
+}
+</script>
+<script id="fshader" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+out vec4 dummy;
+void main() {
+  dummy = vec4(0.);
+}
+</script>
+<script>
+"use strict";
+description("Tests switching transform feedback objects.");
+
+debug("<h3>Setup</h3>")
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, null, 2);
+if (!gl) {
+    testFailed("WebGL context does not exist");
+}
+
+// Setup
+const prog_interleaved = wtu.setupTransformFeedbackProgram(gl, ["vshader", "fshader"],
+    ["out_value1", "out_value2"], gl.INTERLEAVED_ATTRIBS,
+    ["in_value"]);
+const prog_no_varyings = wtu.setupTransformFeedbackProgram(gl, ["vshader", "fshader"],
+    [], gl.INTERLEAVED_ATTRIBS,
+    ["in_value"]);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "shader compilation");
+const vertexBuffer = createBuffer(gl, new Float32Array([1, 2, 3, 4]));
+gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+gl.enableVertexAttribArray(0);
+gl.vertexAttribPointer(0, 1, gl.FLOAT, false, 0, 0);
+gl.useProgram(prog_interleaved);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "vertex buffer and program setup");
+
+const tf1 = gl.createTransformFeedback();
+const tf2 = gl.createTransformFeedback();
+const tfBuffer1 = createBuffer(gl, new Float32Array([0, 0]));
+const tfBuffer2 = createBuffer(gl, new Float32Array([0, 0]));
+gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf1);
+gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, tfBuffer1);
+gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf2);
+gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, tfBuffer2);
+const expected_tf_output = [2, 4];
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "TF object setup");
+
+debug("<h3>Baseline transform feedback success case</h3>");
+
+gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf1);
+gl.beginTransformFeedback(gl.POINTS);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "begin TF");
+gl.drawArrays(gl.POINTS, 0, 1);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "draw");
+gl.endTransformFeedback();
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "end TF");
+
+gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, tfBuffer1);
+wtu.checkFloatBuffer(gl, gl.TRANSFORM_FEEDBACK_BUFFER, expected_tf_output);
+
+debug("<h3>Generic binding is not changed when switching TF object</h3>");
+
+// According to the GL ES spec historically, TRANSFORM_FEEDBACK_BUFFER_BINDING is listed as part
+// of the transform feedback object state. However, many drivers treat it as global context state
+// and not part of the tranform feedback object, which means that it does not change when
+// bindTransformFeedback is called. Khronos has resolved to change the spec to specify the latter
+// behavior: https://gitlab.khronos.org/opengl/API/issues/66 (Khronos private link). This tests
+// for the new behavior.
+
+// Set each buffer to contain its buffer number. We use this to check which
+// buffer is *really* bound at the driver level by reading the buffer contents.
+gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, tfBuffer1);
+gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, new Float32Array([1]), gl.STREAM_READ);
+gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, tfBuffer2);
+gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, new Float32Array([2]), gl.STREAM_READ);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "bufferData");
+
+gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf1);
+checkParameter(gl.TRANSFORM_FEEDBACK_BUFFER_BINDING, tfBuffer2);
+checkIndexedParameter(gl.TRANSFORM_FEEDBACK_BUFFER_BINDING, 0, tfBuffer1);
+wtu.checkFloatBuffer(gl, gl.TRANSFORM_FEEDBACK_BUFFER, [2]);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "readback");
+
+gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, null);
+gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf2);
+checkParameter(gl.TRANSFORM_FEEDBACK_BUFFER_BINDING, null);
+checkIndexedParameter(gl.TRANSFORM_FEEDBACK_BUFFER_BINDING, 0, tfBuffer2);
+
+debug("<h3>Error switching TF object while TF is enabled</h3>");
+
+gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf1);
+gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, tfBuffer1);
+gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, new Float32Array([0, 0]), gl.STREAM_READ);
+gl.beginTransformFeedback(gl.POINTS);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "begin");
+checkParameter(gl.TRANSFORM_FEEDBACK_BINDING, tf1);
+
+gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf2);
+wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "bind while unpaused");
+
+// Check that nothing actually changed and rendering still works
+checkParameter(gl.TRANSFORM_FEEDBACK_BINDING, tf1);
+gl.drawArrays(gl.POINTS, 0, 1);
+gl.endTransformFeedback();
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "transform feedback should complete successfully");
+wtu.checkFloatBuffer(gl, gl.TRANSFORM_FEEDBACK_BUFFER, expected_tf_output);
+
+
+debug("<h3>Successfully switching TF object while TF is paused</h3>");
+
+gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, tfBuffer1);
+gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, new Float32Array([0, 0]), gl.STREAM_READ);
+gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, tfBuffer2);
+gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, new Float32Array([0, 0]), gl.STREAM_READ);
+
+gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf2);
+gl.beginTransformFeedback(gl.POINTS);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "begin on tf2");
+checkParameter(gl.TRANSFORM_FEEDBACK_BINDING, tf2);
+
+gl.pauseTransformFeedback();
+gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf1);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "bind while paused");
+gl.beginTransformFeedback(gl.POINTS);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "begin on tf1");
+checkParameter(gl.TRANSFORM_FEEDBACK_BINDING, tf1);
+gl.drawArrays(gl.POINTS, 0, 1);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "draw should succeed");
+gl.endTransformFeedback();
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "end on tf1");
+gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, tfBuffer1);
+wtu.checkFloatBuffer(gl, gl.TRANSFORM_FEEDBACK_BUFFER, expected_tf_output);
+
+gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf2);
+gl.endTransformFeedback();
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "end on tf2");
+
+debug("<h3>Misc. invalid operations</h3>")
+
+gl.endTransformFeedback();
+wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "endTransformFeedback before begin");
+gl.pauseTransformFeedback();
+wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "pauseTransformFeedback when not active");
+gl.resumeTransformFeedback();
+wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "pauseTransformFeedback when not active");
+
+gl.beginTransformFeedback(gl.POINTS);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "transform feedback should begin successfully");
+gl.drawArrays(gl.TRIANGLE_STRIP, 0, 1);
+wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "wrong primitive mode");
+gl.useProgram(prog_no_varyings);
+wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "switch program while active");
+gl.resumeTransformFeedback();
+wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "resumeTransformFeedback when not paused");
+gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf2);
+wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "bindTransformFeedback when active");
+gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, tfBuffer2);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "bindBuffer(TRANSFORM_FEEDBACK_BUFFER) when active");
+gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, tfBuffer2);
+wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "bindBufferBase(TRANSFORM_FEEDBACK_BUFFER) when active");
+
+gl.pauseTransformFeedback();
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "pause");
+gl.pauseTransformFeedback();
+wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "already paused");
+gl.endTransformFeedback();
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "end while paused");
+
+finishTest();
+
+// Helper functions
+function createBuffer(gl, dataOrSize) {
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, dataOrSize, gl.STATIC_DRAW);
+  gl.bindBuffer(gl.ARRAY_BUFFER, null);
+  return buf;
+}
+
+function checkParameter(param, expected) {
+  const value = gl.getParameter(param);
+  if (value != expected) {
+    testFailed(wtu.glEnumToString(gl, param) + " was " + value + ", but expected " + expected);
+  } else {
+    testPassed(wtu.glEnumToString(gl, param) + " was " + value + ", matching expected " + expected);
+  }
+}
+
+function checkIndexedParameter(param, index, expected) {
+  const value = gl.getIndexedParameter(param, index);
+  if (value != expected) {
+    testFailed(wtu.glEnumToString(gl, param) + "[" + index + "] was " + value + ", but expected " + expected);
+  } else {
+    testPassed(wtu.glEnumToString(gl, param) + "[" + index + "] was " + value + ", matching expected " + expected);
+  }
+}
+
+
+</script>
+
+</body>
+</html>

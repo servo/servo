@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: sequences of spaces and ideographic spaces at the end of line must hang</title>
+<link rel="author" title="Javier Fernandez Garcia-Boente" href="mailto:jfernandez@igalia.com"
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-white-space-pre-line">
+<link rel="match" href="reference/trailing-ideographic-space-003-ref.html">
+<link rel="match" href="reference/trailing-ideographic-space-alt-003-ref.html">
+<meta name="assert" content="An ideographic space (U+3000) at the end of the line must unconditionally hang.">
+<style>
+div {
+  width: 2.5em;
+  white-space: pre-line;
+}
+span { background: blue; } /* If the space is removed instead of hanging, there will be no blue box*/
+</style>
+
+<p>Test passes if the characters below are arranged in a square and if there is a blue rectangle at the end of the first line.
+<div>ああ<span>&#x3000;</span>ああ</div>
+
+<!--
+We're using a 2.5em width and two references, instead of 2em and just the first one,
+because in addition to requiring the spaces to hang,
+the spec allows, but does not require, browsers to visually collapse the advance widths of characters that overflow.
+In browsers that don't do that, the whole sequence of preserved spaces will be visible, and the first ref will be matched.
+In browsers that do, only the first 0.5em worth of space will be preserved, and the second ref will match.
+-->

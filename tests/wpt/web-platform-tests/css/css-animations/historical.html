@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+
+<title>Historical CSS Animation features must be removed</title>
+<link rel="help" href="https://www.w3.org/TR/css-animations-1/#animations">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function isInterfaceNuked(name) {
+  test(function() {
+    assert_equals(window[name], undefined)
+  }, "Historical CSS features must be removed: " + name)
+}
+var nukedInterfaces = [
+  "WebKitAnimationEvent", // Replaced by unprefixed AnimationEvent
+];
+nukedInterfaces.forEach(isInterfaceNuked);
+</script>

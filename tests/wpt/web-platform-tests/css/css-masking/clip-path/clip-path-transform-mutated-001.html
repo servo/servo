@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>CSS Masking: Test clip-path after updating its transform</title>
+<link rel="author" title="Fredrik Söderquist" href="mailto:fs@opera.com">
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-clip-path">
+<link rel="issue" href="https://bugs.chromium.org/p/chromium/issues/detail?id=881700">
+<link rel="match" href="reference/clip-path-transform-mutated-001-ref.html">
+<meta name="assert" content="This test ensures that updating clipPath transform works properly.">
+<script>
+setup({ explicit_done: true });
+</script>
+<style>
+#target {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+  clip-path: url(#clip);
+}
+</style>
+<div id="target"></div>
+<svg>
+  <clipPath id="clip">
+    <rect width="1" height="1"/>
+  </clipPath>
+</svg>
+<script>
+clip.style.transform = 'scale(100, 100)';
+</script>

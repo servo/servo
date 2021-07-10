@@ -1,38 +1,34 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Functions for validating and extracting qualified XML names.
 
-use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::str::DOMString;
-use html5ever_atoms::{Prefix, LocalName, Namespace};
+use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
+use crate::dom::bindings::str::DOMString;
+use html5ever::{LocalName, Namespace, Prefix};
 
 /// Validate a qualified name. See https://dom.spec.whatwg.org/#validate for details.
 pub fn validate_qualified_name(qualified_name: &str) -> ErrorResult {
+    // Step 2.
     match xml_name_type(qualified_name) {
-        XMLName::InvalidXMLName => {
-            // Step 1.
-            Err(Error::InvalidCharacter)
-        },
-        XMLName::Name => {
-            // Step 2.
-            Err(Error::Namespace)
-        },
+        XMLName::InvalidXMLName => Err(Error::InvalidCharacter),
+        XMLName::Name => Err(Error::InvalidCharacter), // see whatwg/dom#671
         XMLName::QName => Ok(()),
     }
 }
 
 /// Validate a namespace and qualified name and extract their parts.
 /// See https://dom.spec.whatwg.org/#validate-and-extract for details.
-pub fn validate_and_extract(namespace: Option<DOMString>,
-                            qualified_name: &str)
-                            -> Fallible<(Namespace, Option<Prefix>, LocalName)> {
+pub fn validate_and_extract(
+    namespace: Option<DOMString>,
+    qualified_name: &str,
+) -> Fallible<(Namespace, Option<Prefix>, LocalName)> {
     // Step 1.
     let namespace = namespace_from_domstring(namespace);
 
     // Step 2.
-    try!(validate_qualified_name(qualified_name));
+    validate_qualified_name(qualified_name)?;
 
     let colon = ':';
 
@@ -76,7 +72,7 @@ pub fn validate_and_extract(namespace: Option<DOMString>,
         (ns, p) => {
             // Step 10.
             Ok((ns, p.map(Prefix::from), LocalName::from(local_name)))
-        }
+        },
     }
 }
 
@@ -95,36 +91,36 @@ pub fn xml_name_type(name: &str) -> XMLName {
     fn is_valid_start(c: char) -> bool {
         match c {
             ':' |
-            'A'...'Z' |
+            'A'..='Z' |
             '_' |
-            'a'...'z' |
-            '\u{C0}'...'\u{D6}' |
-            '\u{D8}'...'\u{F6}' |
-            '\u{F8}'...'\u{2FF}' |
-            '\u{370}'...'\u{37D}' |
-            '\u{37F}'...'\u{1FFF}' |
-            '\u{200C}'...'\u{200D}' |
-            '\u{2070}'...'\u{218F}' |
-            '\u{2C00}'...'\u{2FEF}' |
-            '\u{3001}'...'\u{D7FF}' |
-            '\u{F900}'...'\u{FDCF}' |
-            '\u{FDF0}'...'\u{FFFD}' |
-            '\u{10000}'...'\u{EFFFF}' => true,
+            'a'..='z' |
+            '\u{C0}'..='\u{D6}' |
+            '\u{D8}'..='\u{F6}' |
+            '\u{F8}'..='\u{2FF}' |
+            '\u{370}'..='\u{37D}' |
+            '\u{37F}'..='\u{1FFF}' |
+            '\u{200C}'..='\u{200D}' |
+            '\u{2070}'..='\u{218F}' |
+            '\u{2C00}'..='\u{2FEF}' |
+            '\u{3001}'..='\u{D7FF}' |
+            '\u{F900}'..='\u{FDCF}' |
+            '\u{FDF0}'..='\u{FFFD}' |
+            '\u{10000}'..='\u{EFFFF}' => true,
             _ => false,
         }
     }
 
     fn is_valid_continuation(c: char) -> bool {
         is_valid_start(c) ||
-        match c {
-            '-' |
-            '.' |
-            '0'...'9' |
-            '\u{B7}' |
-            '\u{300}'...'\u{36F}' |
-            '\u{203F}'...'\u{2040}' => true,
-            _ => false,
-        }
+            match c {
+                '-' |
+                '.' |
+                '0'..='9' |
+                '\u{B7}' |
+                '\u{300}'..='\u{36F}' |
+                '\u{203F}'..='\u{2040}' => true,
+                _ => false,
+            }
     }
 
     let mut iter = name.chars();
@@ -140,7 +136,7 @@ pub fn xml_name_type(name: &str) -> XMLName {
                 non_qname_colons = true;
             }
             c
-        }
+        },
     };
 
     for c in iter {

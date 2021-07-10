@@ -12,14 +12,14 @@
 
 function testSetStart(range, node, offset) {
   if (node.nodeType == Node.DOCUMENT_TYPE_NODE) {
-    assert_throws("INVALID_NODE_TYPE_ERR", function() {
+    assert_throws_dom("INVALID_NODE_TYPE_ERR", function() {
       range.setStart(node, offset);
     }, "setStart() to a doctype must throw INVALID_NODE_TYPE_ERR");
     return;
   }
 
   if (offset < 0 || offset > nodeLength(node)) {
-    assert_throws("INDEX_SIZE_ERR", function() {
+    assert_throws_dom("INDEX_SIZE_ERR", function() {
       range.setStart(node, offset);
     }, "setStart() to a too-large offset must throw INDEX_SIZE_ERR");
     return;
@@ -51,14 +51,14 @@ function testSetStart(range, node, offset) {
 
 function testSetEnd(range, node, offset) {
   if (node.nodeType == Node.DOCUMENT_TYPE_NODE) {
-    assert_throws("INVALID_NODE_TYPE_ERR", function() {
+    assert_throws_dom("INVALID_NODE_TYPE_ERR", function() {
       range.setEnd(node, offset);
     }, "setEnd() to a doctype must throw INVALID_NODE_TYPE_ERR");
     return;
   }
 
   if (offset < 0 || offset > nodeLength(node)) {
-    assert_throws("INDEX_SIZE_ERR", function() {
+    assert_throws_dom("INDEX_SIZE_ERR", function() {
       range.setEnd(node, offset);
     }, "setEnd() to a too-large offset must throw INDEX_SIZE_ERR");
     return;
@@ -91,7 +91,7 @@ function testSetEnd(range, node, offset) {
 function testSetStartBefore(range, node) {
   var parent = node.parentNode;
   if (parent === null) {
-    assert_throws("INVALID_NODE_TYPE_ERR", function () {
+    assert_throws_dom("INVALID_NODE_TYPE_ERR", function () {
       range.setStartBefore(node);
     }, "setStartBefore() to a node with null parent must throw INVALID_NODE_TYPE_ERR");
     return;
@@ -108,7 +108,7 @@ function testSetStartBefore(range, node) {
 function testSetStartAfter(range, node) {
   var parent = node.parentNode;
   if (parent === null) {
-    assert_throws("INVALID_NODE_TYPE_ERR", function () {
+    assert_throws_dom("INVALID_NODE_TYPE_ERR", function () {
       range.setStartAfter(node);
     }, "setStartAfter() to a node with null parent must throw INVALID_NODE_TYPE_ERR");
     return;
@@ -125,7 +125,7 @@ function testSetStartAfter(range, node) {
 function testSetEndBefore(range, node) {
   var parent = node.parentNode;
   if (parent === null) {
-    assert_throws("INVALID_NODE_TYPE_ERR", function () {
+    assert_throws_dom("INVALID_NODE_TYPE_ERR", function () {
       range.setEndBefore(node);
     }, "setEndBefore() to a node with null parent must throw INVALID_NODE_TYPE_ERR");
     return;
@@ -142,7 +142,7 @@ function testSetEndBefore(range, node) {
 function testSetEndAfter(range, node) {
   var parent = node.parentNode;
   if (parent === null) {
-    assert_throws("INVALID_NODE_TYPE_ERR", function () {
+    assert_throws_dom("INVALID_NODE_TYPE_ERR", function () {
       range.setEndAfter(node);
     }, "setEndAfter() to a node with null parent must throw INVALID_NODE_TYPE_ERR");
     return;

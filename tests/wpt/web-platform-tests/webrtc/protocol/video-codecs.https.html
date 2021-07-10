@@ -1,0 +1,95 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.createOffer</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+/*
+ * Chromium note: this requires build bots with H264 support. See
+ *   https://bugs.chromium.org/p/chromium/issues/detail?id=840659
+ * for details on how to enable support.
+ */
+// Tests for conformance to RFC 7742,
+// "WebRTC Video Processing and Codec Requirements"
+// The document was formerly known as draft-ietf-rtcweb-video-codecs.
+//
+// This tests that the browser is a WebRTC Browser as defined there.
+
+// TODO: Section 3.2: screen capture video MUST be prepared
+// to handle resolution changes.
+
+// TODO: Section 4: MUST support generating CVO (orientation)
+
+// Section 5: Browsers MUST implement VP8 and H.264 Constrained Baseline
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  const offer = await generateVideoReceiveOnlyOffer(pc);
+  let video_section_found = false;
+  for (let section of offer.sdp.split(/\r\nm=/)) {
+    if (section.search('video') != 0) {
+      continue;
+    }
+    video_section_found = true;
+    // RTPMAP lines have the format a=rtpmap:<pt> <codec>/<clock rate>
+    let rtpmap_regex = /\r\na=rtpmap:(\d+) (\S+)\/\d+\r\n/g;
+    let match = rtpmap_regex.exec(offer.sdp);
+    let payload_type_map = new Array();
+    while (match) {
+      payload_type_map[match[1]] = match[2];
+      match = rtpmap_regex.exec(offer.sdp);
+    }
+    assert_true(payload_type_map.indexOf('VP8') > -1,
+                'VP8 is supported');
+    assert_true(payload_type_map.indexOf('H264') > -1,
+                'H.264 is supported');
+    // TODO: Verify that one of the H.264 PTs supports constrained baseline
+  }
+  assert_true(video_section_found);
+}, 'H.264 and VP8 should be supported in initial offer');
+
+async function negotiateParameters() {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  let [track, streams] = await getTrackFromUserMedia('video');
+  const sender = pc1.addTrack(track);
+  await exchangeOfferAnswer(pc1, pc2);
+  return sender.getParameters();
+}
+
+function parseFmtp(fmtp) {
+  const params = fmtp.split(';');
+  return params.map(param => param.split('='));
+}
+promise_test(async t => {
+  const params = await negotiateParameters();
+  assert_true(!!params.codecs.find(codec => codec.mimeType === 'video/H264'));
+  assert_true(!!params.codecs.find(codec => codec.mimeType === 'video/VP8'));
+}, 'H.264 and VP8 should be negotiated after handshake');
+
+// TODO: Section 6: Recipients MUST be able to decode 320x240@20 fps
+// TODO: Section 6.1: VP8 MUST support RFC 7741 payload formats
+// TODO: Section 6.1: VP8 MUST respect max-fr/max-fs
+// TODO: Section 6.1: VP8 MUST encode and decode square pixels
+// TODO: Section 6.2: H.264 MUST support RFC 6184 payload formats
+// TODO: Section 6.2: MUST support Constrained Baseline level 1.2
+// TODO: Section 6.2: SHOULD support Constrained High level 1.3
+// TODO: Section 6.2: MUST support packetization mode 1.
+promise_test(async t => {
+  const params = await negotiateParameters();
+  const h264 = params.codecs.filter(codec => codec.mimeType === 'video/H264');
+  h264.map(codec => {
+    const codec_params = parseFmtp(codec.sdpFmtpLine);
+    assert_true(!!codec_params.find(x => x[0] === 'profile-level-id'));
+  })
+}, 'All H.264 codecs MUST include profile-level-id');
+
+// TODO: Section 6.2: SHOULD interpret max-mbps, max-smbps, max-fs et al
+// TODO: Section 6.2: MUST NOT include sprop-parameter-sets
+// TODO: Section 6.2: MUST support SEI "filler payload"
+// TODO: Section 6.2: MUST support SEI "full frame freeze"
+// TODO: Section 6.2: MUST be prepared to receive User Data messages
+// TODO: Section 6.2: MUST encode and decode square pixels unless signaled
+</script>

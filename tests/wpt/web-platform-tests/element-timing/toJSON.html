@@ -1,0 +1,45 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Element Timing: toJSON</title>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/element-timing-helpers.js"></script>
+<img elementtiming='img' src="resources/square100.png"/>
+<script>
+  async_test(function (t) {
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    const observer = new PerformanceObserver(
+      t.step_func_done(function(entryList) {
+        assert_equals(entryList.getEntries().length, 1);
+        const entry = entryList.getEntries()[0];
+        assert_equals(typeof(entry.toJSON), 'function');
+        const json = entry.toJSON();
+        assert_equals(typeof(json), 'object');
+        const keys = [
+          // PerformanceEntry
+          'name',
+          'entryType',
+          'startTime',
+          'duration',
+          // PerformanceElementTiming
+          'renderTime',
+          'loadTime',
+          'intersectionRect',
+          'identifier',
+          'naturalWidth',
+          'naturalHeight',
+          'id',
+          'element',
+          'url',
+        ];
+        for (const key of keys) {
+          assert_equals(json[key], entry[key],
+            'PerformanceElementTiming ${key} entry does not match its toJSON value');
+        }
+      })
+    );
+    observer.observe({type: 'element', buffered: true});
+  }, 'Test toJSON() in PerformanceElementTiming.');
+</script>
+</body>

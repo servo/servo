@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Performance topLevelDomComplete</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+async_test(function (t) {
+    window.onload = t.step_func(function (entryList, obs) {
+      var entries = window.performance.getEntries();
+      assert_greater_than(entries.length, 0);
+      var navigation = entries[0];
+      assert_true(navigation instanceof PerformanceNavigationTiming);
+
+      assert_true(navigation.domContentLoadedEventStart <= navigation.topLevelDomComplete);
+      assert_true(navigation.topLevelDomComplete <= navigation.domComplete);
+
+      t.done();
+    });
+}, "top level dom complete");
+</script>
+</body>
+

@@ -4,23 +4,23 @@
 <title>Selection drag and drop from inline element and text/plain aliases</title>
 <style type="text/css">
 div
-	{min-height:40px;
-	width:40px;
-	padding:40px;
-	text-align:center;
-	color:white;
-	background-color:navy;}
+  {min-height:40px;
+  width:40px;
+  padding:40px;
+  text-align:center;
+  color:white;
+  background-color:navy;}
 </style>
 <script type="application/ecmascript">
 function start(event)
-	{event.dataTransfer.effectAllowed = 'copy';
-	event.dataTransfer.setData('Text','PASS');}
+  {event.dataTransfer.effectAllowed = 'copy';
+  event.dataTransfer.setData('Text','PASS');}
 function checkText(event)
-	{var a = event.dataTransfer.getData('text/plain'),
-	b = event.dataTransfer.getData('text'),
-	c = event.dataTransfer.getData('TEXT'),
-	d = event.dataTransfer.getData('TexT');
-	document.querySelector('div').appendChild(document.createTextNode((a == b &amp;&amp; b == c &amp;&amp; c == d &amp;&amp; d == 'PASS')?'PASS':'FAIL'))}
+  {var a = event.dataTransfer.getData('text/plain'),
+  b = event.dataTransfer.getData('text'),
+  c = event.dataTransfer.getData('TEXT'),
+  d = event.dataTransfer.getData('TexT');
+  document.querySelector('div').appendChild(document.createTextNode((a == b &amp;&amp; b == c &amp;&amp; c == d &amp;&amp; d == 'PASS')?'PASS':'FAIL'))}
 </script>
 </head>
 <body onload="window.getSelection().selectAllChildren(document.querySelector('span'))">

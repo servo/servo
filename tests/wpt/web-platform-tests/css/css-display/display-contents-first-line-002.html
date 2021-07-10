@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Display: display:contents and ::first-line inheritance</title>
+<link rel="author" title="Rune Lillesveen" href="mailto:futhark@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#valdef-display-contents">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-line-pseudo">
+<link rel="match" href="display-contents-pass-green-no-red-ref.html">
+<style>
+  span { color: green }
+  .contents { display: contents }
+  #container::first-line { color: red }
+</style>
+<p>You should see the word PASS in green and no red below.</p>
+<div id="container">
+  <span class="contents">P</span><span>ASS</span>
+</div>

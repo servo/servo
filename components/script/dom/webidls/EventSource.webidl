@@ -1,14 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 /*
  * The origin of this IDL file is:
  * https://html.spec.whatwg.org/multipage/#eventsource
  */
 
-[Constructor(DOMString url, optional EventSourceInit eventSourceInitDict),
- Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface EventSource : EventTarget {
+  [Throws] constructor(DOMString url, optional EventSourceInit eventSourceInitDict = {});
   readonly attribute DOMString url;
   readonly attribute boolean withCredentials;
 

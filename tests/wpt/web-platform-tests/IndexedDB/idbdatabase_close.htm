@@ -33,6 +33,7 @@ open_rq.onsuccess = function(e) {
         assert_equals(blocked_fired, 1, 'block event fired #')
         assert_equals(upgradeneeded_fired, 2, 'second upgradeneeded event fired #')
 
+        rq.result.close();
         t.done();
     });
     rq.onerror = fail(t, 'Unexpected database deletion error');

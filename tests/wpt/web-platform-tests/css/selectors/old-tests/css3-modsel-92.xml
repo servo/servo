@@ -1,0 +1,16 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>Type element selector with universal namespace</title>
+  <style type="text/css"><![CDATA[@namespace test url(http://www.example.org/b);
+div.myTest * { background-color : red }
+div.myTest *|testA { background-color : lime }]]></style>
+  <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <meta name="flags" content=" namespace" />
+ </head>
+ <body>
+<div class="myTest">
+<testA xmlns="http://www.example.org/b">This paragraph should have a green background</testA>
+</div>
+</body>
+</html>

@@ -43,7 +43,7 @@
   </defs>
   <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
     <text x="240" y="120" text-anchor="middle">مفتاح معايير الويب</text>
-    <image id="reference" xlink:href="../images/inline2.png" width="200" height="30" transform="translate(120 180)"/>  
+    <image id="reference" xlink:href="../images/inline2.png" width="200" height="30" transform="translate(120 180)"/>
   </g>
   <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
     <text id="revision" x="10" y="340" stroke="none"

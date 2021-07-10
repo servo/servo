@@ -1,1 +1,23 @@
-include ':app'
+include ':servoapp'
+
+def userPropertiesFile = new File('user.properties')
+if (userPropertiesFile.exists()) {
+  println("Loading user.properties")
+    def props = new Properties()
+    userPropertiesFile.withInputStream {
+      props.load(it)
+    }
+  props.each { prop ->
+    println(prop.key + " = " + prop.value)
+      gradle.ext.set(prop.key, prop.value)
+  }
+  if (gradle.hasProperty('servoViewLocal')) {
+    println("Using local build of servoview")
+      include ':servoview-local'
+      project(':servoview-local').projectDir = new File('servoview-local')
+  } else {
+    include ':servoview'
+  }
+} else {
+  include ':servoview'
+}

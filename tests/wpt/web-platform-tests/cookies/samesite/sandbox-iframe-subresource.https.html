@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/cookies/resources/cookie-helper.sub.js"></script>
+</head>
+<body onload="doTests()">
+  <iframe id="if" sandbox="allow-scripts">
+  </iframe>
+  <script>
+  function doTests() {
+    promise_test(async function(t) {
+      var value = "" + Math.random();
+      await resetSameSiteCookies(SECURE_ORIGIN, value);
+      var child = document.getElementById("if");
+      child.src = SECURE_ORIGIN + "/cookies/samesite/resources/iframe-subresource-report.html";
+
+      // the iframe nested inside if should post COOKIES to here.
+      var e = await wait_for_message("COOKIES");
+      // Not testing unspecified here as to not depend on the presence or
+      // absence of upcoming change of behavior.
+      assert_cookie(SECURE_ORIGIN, e.data, "samesite_lax", value, false);
+      assert_cookie(SECURE_ORIGIN, e.data, "samesite_strict", value, false);
+      assert_cookie(SECURE_ORIGIN, e.data, "samesite_none", value, true);
+    }, "SameSite cookies with intervening sandboxed iframe and subresources");
+  }
+  </script>
+</body>

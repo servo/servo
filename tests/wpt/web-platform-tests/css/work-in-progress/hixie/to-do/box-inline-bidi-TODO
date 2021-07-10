@@ -1,2 +1,0 @@
-white-space:normal handling: the formatting chars are zero width, spaces should not collapse through them.
-need to fix existing tests to take that into account

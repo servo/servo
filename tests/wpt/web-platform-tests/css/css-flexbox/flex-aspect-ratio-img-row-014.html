@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>CSS Flexible Box Test: Aspect ratio handling of images</title>
+<link rel="author" title="Sergio Villar Senin" href="mailto:svillar@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#algo-cross-item" />
+<link rel="match" href="reference/flex-aspect-ratio-img-row-014-ref.html" />
+<meta name="assert" content="Test that we compute the correct aspect-ratio based cross size when a percentage main size is specified" />
+
+<style>
+#reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 90px;
+    height: 225px;
+    z-index: -1;
+}
+#constrained-flex {
+    display: flex;
+    width: 300px;
+    border: 1px solid black;
+}
+img {
+    min-width: 0;
+    min-height: 0;
+    width: 30%;
+}
+</style>
+
+<p>Test passes if there is <strong>no red</strong> visible on the page.</p>
+
+<div id="reference-overlapped-red"></div>
+<div id="constrained-flex">
+    <img id="test-flex-item-overlapping-green" src="support/20x50-green.png" />
+</div>

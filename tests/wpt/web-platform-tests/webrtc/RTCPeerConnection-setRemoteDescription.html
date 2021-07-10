@@ -1,0 +1,151 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.setRemoteDescription</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  // The following helper functions are called from RTCPeerConnection-helper.js:
+  //   assert_session_desc_not_similar()
+  //   assert_session_desc_similar()
+
+  /*
+    4.3.2.  Interface Definition
+      [Constructor(optional RTCConfiguration configuration)]
+      interface RTCPeerConnection : EventTarget {
+        Promise<void>                      setRemoteDescription(
+            RTCSessionDescriptionInit description);
+
+        readonly attribute RTCSessionDescription? remoteDescription;
+        readonly attribute RTCSessionDescription? currentRemoteDescription;
+        readonly attribute RTCSessionDescription? pendingRemoteDescription;
+        ...
+      };
+
+    4.6.2.  RTCSessionDescription Class
+      dictionary RTCSessionDescriptionInit {
+        required RTCSdpType type;
+                 DOMString  sdp = "";
+      };
+
+    4.6.1.  RTCSdpType
+      enum RTCSdpType {
+        "offer",
+        "pranswer",
+        "answer",
+        "rollback"
+      };
+   */
+
+  /*
+    4.6.1.  enum RTCSdpType
+   */
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    // SDP is validated after WebIDL validation
+    try {
+      await pc.setRemoteDescription({ type: 'bogus', sdp: 'bogus' });
+      t.unreached_func("Should have rejected.");
+    } catch (e) {
+      assert_throws_js(TypeError, () => { throw e });
+    }
+  }, 'setRemoteDescription with invalid type and invalid SDP should reject with TypeError');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    // SDP is validated after validating type
+    try {
+      await pc.setRemoteDescription({ type: 'answer', sdp: 'invalid' });
+      t.unreached_func("Should have rejected.");
+    } catch (e) {
+      assert_throws_dom('InvalidStateError', () => { throw e });
+    }
+  }, 'setRemoteDescription() with invalid SDP and stable state should reject with InvalidStateError');
+
+  /* Dedicated signalingstate events test. */
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    t.add_cleanup(() => pc2.close());
+
+    let eventCount = 0;
+    const states = [
+      'stable', 'have-local-offer', 'stable', 'have-remote-offer',
+    ];
+    pc.onsignalingstatechange = t.step_func(() =>
+        assert_equals(pc.signalingState, states[++eventCount]));
+
+    const assert_state = state => {
+      assert_equals(state, pc.signalingState);
+      assert_equals(state, states[eventCount]);
+    };
+
+    const offer = await generateAudioReceiveOnlyOffer(pc);
+    assert_state('stable');
+    await pc.setLocalDescription(offer);
+    assert_state('have-local-offer');
+    await pc2.setRemoteDescription(offer);
+    await exchangeAnswer(pc, pc2);
+    assert_state('stable');
+    await exchangeOffer(pc2, pc);
+    assert_state('have-remote-offer');
+  }, 'Negotiation should fire signalingsstate events');
+
+  /* Operations after returning to stable state */
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    t.add_cleanup(() => pc2.close());
+
+    const offer1 = await generateAudioReceiveOnlyOffer(pc2);
+    await pc2.setLocalDescription(offer1);
+    await pc.setRemoteDescription(offer1);
+    await exchangeAnswer(pc2, pc);
+    const offer2 = await generateVideoReceiveOnlyOffer(pc2);
+    await pc2.setLocalDescription(offer2);
+    await pc.setRemoteDescription(offer2);
+    assert_session_desc_not_similar(offer1, offer2);
+    assert_session_desc_similar(pc.remoteDescription, offer2);
+    assert_session_desc_similar(pc.currentRemoteDescription, offer1);
+    assert_session_desc_similar(pc.pendingRemoteDescription, offer2);
+  }, 'Calling setRemoteDescription() again after one round of remote-offer/local-answer should succeed');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    t.add_cleanup(() => pc2.close());
+
+    const offer = await generateAudioReceiveOnlyOffer(pc);
+    await pc.setLocalDescription(offer);
+    await pc2.setRemoteDescription(offer);
+    const answer = await pc2.createAnswer();
+    await pc2.setLocalDescription(answer);
+    await pc.setRemoteDescription(answer);
+    await exchangeOffer(pc2, pc);
+    assert_equals(pc.remoteDescription.sdp, pc.pendingRemoteDescription.sdp);
+    assert_session_desc_similar(pc.remoteDescription, offer);
+    assert_session_desc_similar(pc.currentRemoteDescription, answer);
+  }, 'Switching role from offerer to answerer after going back to stable state should succeed');
+
+  /*
+    TODO
+    4.3.2.  setRemoteDescription
+      - If an a=identity attribute is present in the session description, the browser
+        validates the identity assertion.
+   */
+
+</script>

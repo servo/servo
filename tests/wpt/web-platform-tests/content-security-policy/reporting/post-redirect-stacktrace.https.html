@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<head>
+  <title>Check for post-redirect leak from StackTrace.</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/get-host-info.sub.js"></script>
+  <script src="/common/utils.js"></script>
+</head>
+<body>
+<script>
+
+const CROSS_ORIGIN = get_host_info().HTTPS_REMOTE_ORIGIN;
+const CROSS_SITE = get_host_info().HTTPS_NOTSAMESITE_ORIGIN;
+
+const blank_path = "/common/blank.html"
+const redirect = url => 
+  `/content-security-policy/reporting/support/redirect-throw-function.sub.py?token=${token()}`;
+
+const script_path = "/content-security-policy/reporting/support/throw-function.js"
+const script_ref = "#ref"
+const script_attribute = "?secret=1234";
+
+promise_setup(async () => {
+  await new Promise(r => window.addEventListener("DOMContentLoaded", r));
+});
+
+let loadScript = origin => {
+  let script = document.createElement("script");
+  script.src = origin +
+    redirect(origin + script_path + script_attribute + script_ref);
+  let script_loaded = new Promise(r => script.onload = r);
+  document.head.appendChild(script);
+  return script_loaded;
+}
+
+// Note: .stack properties on errors are unspecified, but are present in most
+// browsers, most of the time. https://github.com/tc39/proposal-error-stacks
+// tracks standardizing them. Tests will pass automatically if the .stack
+// property isn't present.
+let getStack = async (origin) => {
+  await loadScript(origin);
+  try {
+    throw_function();
+  } catch (error) {
+    if (error.stack)
+      return error.stack.toString();
+  }
+  return "";
+};
+
+promise_test(async test => {
+  let data = await getStack(CROSS_ORIGIN);
+  assert_false(data.includes(script_ref), "Ref not leaked");
+  assert_false(data.includes(script_attribute), "Attribute not leaked");
+  assert_false(data.includes(script_path), "Path not leaked");
+}, "StackTrace do not leak cross-origin post-redirect URL");
+
+promise_test(async test => {
+  let data = await getStack(CROSS_SITE);
+  assert_false(data.includes(script_ref), "Ref not leaked");
+  assert_false(data.includes(script_attribute), "Attribute not leaked");
+  assert_false(data.includes(script_path), "Path not leaked");
+}, "StackTrace do not leak cross-site post-redirect URL");
+
+let getCspReport = async (origin) => {
+  // A promise to a future CSP violation.
+  let violation = new Promise(resolve => {
+    const observer = new ReportingObserver(reports => {
+      observer.disconnect();
+      resolve(JSON.stringify(reports));
+    });
+    observer.observe();
+  });
+
+  // This will be blocked by CSP:
+  let script = document.createElement("script");
+  script.src = origin +
+    redirect(origin + script_path + script_attribute + script_ref);
+  script.onload = () => { load_image(); };
+  document.head.appendChild(script);
+
+  return await violation;
+};
+
+// This block is needed to reproduce https://crbug.com/1074316. Without, the
+// next test passes. There is no 'source-file' found in report.
+// TODO(arthursonzogni): Investigate more. Find why this has side effects.
+promise_setup(async test => {
+  await getCspReport(CROSS_ORIGIN);
+}, "prewarm the cache");
+
+promise_test(async test => {
+  let data = await getCspReport(CROSS_ORIGIN);
+  assert_false(data.includes(script_ref), "Ref not leaked");
+  assert_false(data.includes(script_attribute), "Attribute not leaked");
+  assert_false(data.includes(script_path), "Path not leaked");
+}, "CSP report do not leak cross-origin post-redirect URL");
+
+promise_test(async test => {
+  let data = await getCspReport(CROSS_SITE);
+  assert_false(data.includes(script_ref), "Ref not leaked");
+  assert_false(data.includes(script_attribute), "Attribute not leaked");
+  assert_false(data.includes(script_path), "Path not leaked");
+}, "CSP report do not leak cross-site post-redirect URL");
+
+</script>
+</body>

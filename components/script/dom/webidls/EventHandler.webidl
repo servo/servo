@@ -1,6 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 /*
  * The origin of this IDL file is
  * https://html.spec.whatwg.org/multipage/#eventhandler
@@ -25,8 +25,8 @@ callback OnBeforeUnloadEventHandlerNonNull = DOMString? (Event event);
 typedef OnBeforeUnloadEventHandlerNonNull? OnBeforeUnloadEventHandler;
 
 // https://html.spec.whatwg.org/multipage/#globaleventhandlers
-[NoInterfaceObject, Exposed=Window]
-interface GlobalEventHandlers {
+[Exposed=Window]
+interface mixin GlobalEventHandlers {
            attribute EventHandler onabort;
            attribute EventHandler onblur;
            attribute EventHandler oncancel;
@@ -51,6 +51,7 @@ interface GlobalEventHandlers {
            attribute EventHandler onended;
            attribute OnErrorEventHandler onerror;
            attribute EventHandler onfocus;
+           attribute EventHandler onformdata;
            attribute EventHandler oninput;
            attribute EventHandler oninvalid;
            attribute EventHandler onkeydown;
@@ -89,20 +90,35 @@ interface GlobalEventHandlers {
            attribute EventHandler onwaiting;
 };
 
+// https://drafts.csswg.org/css-animations/#interface-globaleventhandlers-idl
+partial interface mixin GlobalEventHandlers {
+           attribute EventHandler onanimationend;
+           attribute EventHandler onanimationiteration;
+};
+
 // https://drafts.csswg.org/css-transitions/#interface-globaleventhandlers-idl
-partial interface GlobalEventHandlers {
+partial interface mixin GlobalEventHandlers {
+           attribute EventHandler ontransitionrun;
            attribute EventHandler ontransitionend;
+           attribute EventHandler ontransitioncancel;
+};
+
+// https://w3c.github.io/selection-api/#extensions-to-globaleventhandlers-interface
+partial interface mixin GlobalEventHandlers {
+          attribute EventHandler onselectstart;
+          attribute EventHandler onselectionchange;
 };
 
 // https://html.spec.whatwg.org/multipage/#windoweventhandlers
-[NoInterfaceObject, Exposed=Window]
-interface WindowEventHandlers {
+[Exposed=Window]
+interface mixin WindowEventHandlers {
            attribute EventHandler onafterprint;
            attribute EventHandler onbeforeprint;
            attribute OnBeforeUnloadEventHandler onbeforeunload;
            attribute EventHandler onhashchange;
            attribute EventHandler onlanguagechange;
            attribute EventHandler onmessage;
+           attribute EventHandler onmessageerror;
            attribute EventHandler onoffline;
            attribute EventHandler ononline;
            attribute EventHandler onpagehide;
@@ -115,8 +131,8 @@ interface WindowEventHandlers {
 };
 
 // https://html.spec.whatwg.org/multipage/#documentandelementeventhandlers
-[NoInterfaceObject, Exposed=Window]
-interface DocumentAndElementEventHandlers {
+[Exposed=Window]
+interface mixin DocumentAndElementEventHandlers {
           attribute EventHandler oncopy;
           attribute EventHandler oncut;
           attribute EventHandler onpaste;

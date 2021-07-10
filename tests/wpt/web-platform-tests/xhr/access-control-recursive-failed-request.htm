@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Recursively repeated CORS requests with failed preflights should never result in unexpected behavior</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+  </head>
+  <body>
+    <script type="text/javascript">
+let requestCount = 0;
+const requestMax = 10;
+
+async_test((test) => {
+  function preflightRequest() {
+    const xhr = new XMLHttpRequest;
+
+    xhr.onload = test.unreached_func("Request succeeded unexpectedly.");
+
+    xhr.onerror = test.step_func(() => {
+      assert_equals(xhr.status, 0);
+      if (++requestCount >= requestMax) {
+        test.done();
+        return;
+      }
+      preflightRequest();
+    });
+
+    xhr.open("GET", get_host_info().HTTP_REMOTE_ORIGIN +
+        "/xhr/resources/access-control-basic-denied.py");
+    xhr.send();
+  }
+
+  preflightRequest();
+});
+    </script>
+  </body>
+</html>

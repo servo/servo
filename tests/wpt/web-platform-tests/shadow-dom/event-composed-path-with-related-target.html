@@ -131,14 +131,12 @@ test(() => {
                                  ['sr2', 'target', 'host1', path],
                                  ['host2', 'host2', 'host1', path],
                                  ['sr1', 'host2', 'host1', path]]);
-}, 'Event path for an event with a relatedTarget. relaterTarget is a shadow-including ancestor of target.');
+}, 'Event path for an event with a relatedTarget. relatedTarget is a shadow-including ancestor of target.');
 
 test(() => {
   let n = createTestTree(test4);
   let log = dispatchEventWithLog(n, n.host1, new FocusEvent('my-focus', { bubbles: true, composed: true, relatedTarget: n.target }));
-  let path = ['host1', 'test4'];
-  assert_event_path_equals(log, [['host1', 'host1', 'host1', path],
-                                 ['test4', 'host1', 'host1', path]]);
+  assert_event_path_equals(log, []);
 }, 'Event path for an event with a relatedTarget. target is a shadow-including ancestor of relatedTarget.');
 </script>
 

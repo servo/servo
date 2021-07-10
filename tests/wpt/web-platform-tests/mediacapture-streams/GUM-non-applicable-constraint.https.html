@@ -1,0 +1,72 @@
+<!doctype html>
+<title>non-applicable constraint in getUserMedia</title>
+<link rel="author" title="Intel" href="http://www.intel.com"/>
+<link rel="help" href="https://w3c.github.io/mediacapture-main/#methods-5">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<p class="instructions">When prompted, accept to share your audio and video stream.</p>
+
+<script>
+
+let video_only_valid_constraints = {
+  width: {min: 0},
+  height: {min: 0},
+  frameRate: {min: 0},
+  aspectRatio: {min: 0},
+  facingMode: {ideal: 'environment'},
+  resizeMode: {ideal: 'none'}
+}
+
+let video_only_invalid_constraints = {
+  width: {min: 100000000},
+  height: {min: 100000000},
+  frameRate: {min: 100000000},
+  aspectRatio: {min: 100000000},
+  facingMode: {exact: 'invalid'},
+  resizeMode: {exact: 'invalid'}
+}
+
+let audio_only_valid_constraints = {
+  volume: {min: 0},
+  sampleRate: {min: 0},
+  sampleSize: {min: 0},
+  echoCancellation: {ideal: true},
+  autoGainControl: {ideal: true},
+  noiseSuppression: {ideal: true},
+  latency: {min: 0},
+  channelCount: {min: 0}
+}
+
+let audio_only_invalid_constraints = {
+  volume: {min: 2},
+  sampleRate: {min: 100000000},
+  sampleSize: {min: 100000000},
+  echoCancellation: {exact: true},
+  autoGainControl: {exact: true},
+  noiseSuppression: {exact: true},
+  latency: {max: 0},
+  channelCount: {max: 0}
+}
+
+promise_test(async () => {
+  let stream = await navigator.mediaDevices.getUserMedia({audio: video_only_valid_constraints})
+  assert_equals(stream.getAudioTracks().length, 1, "the media stream has exactly one audio track");
+}, 'Test that setting video-only valid constraints inside of "audio" is simply ignored');
+
+promise_test(async () => {
+  let stream = await navigator.mediaDevices.getUserMedia({audio: video_only_invalid_constraints})
+  assert_equals(stream.getAudioTracks().length, 1, "the media stream has exactly one audio track");
+}, 'Test that setting video-only invalid constraints inside of "audio" is simply ignored');
+
+promise_test(async () => {
+  let stream = await navigator.mediaDevices.getUserMedia({video: audio_only_valid_constraints})
+  assert_equals(stream.getVideoTracks().length, 1, "the media stream has exactly one video track");
+}, 'Test that setting audio-only valid constraints inside of "video" is simply ignored');
+
+promise_test(async () => {
+  let stream = await navigator.mediaDevices.getUserMedia({video: audio_only_invalid_constraints})
+  assert_equals(stream.getVideoTracks().length, 1, "the media stream has exactly one video track");
+}, 'Test that setting audio-only invalid constraints inside of "video" is simply ignored');
+
+</script>

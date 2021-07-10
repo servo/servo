@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     xmlns:h="http:/www.w3.org/1999/xhtml">
+  <title>&#x3c;pattern&#x3e; (without content) inheriting from a &#x3c;pattern&#x3e; in an invalid context</title>
+  <h:link rel="match" href="reference/green-100x100.svg"/>
+  <pattern id="pattern1" xlink:href="#pattern0" width="1" height="1"/>
+  <rect width="100" height="100" fill="url(#pattern1) green"/>
+  <text>
+    <pattern id="pattern0">
+      <rect width="100" height="100" fill="orange"/>
+    </pattern>
+  </text>
+</svg>

@@ -5,33 +5,6 @@
  * environments, so code should for example not rely on the DOM.
  */
 
-// Returns a promise that fulfills after the provided |promise| is fulfilled.
-// The |test| succeeds only if |promise| rejects with an exception matching
-// |code|. Accepted values for |code| follow those accepted for assert_throws().
-// The optional |description| describes the test being performed.
-//
-// E.g.:
-//   assert_promise_rejects(
-//       new Promise(...), // something that should throw an exception.
-//       'NotFoundError',
-//       'Should throw NotFoundError.');
-//
-//   assert_promise_rejects(
-//       new Promise(...),
-//       new TypeError(),
-//       'Should throw TypeError');
-function assert_promise_rejects(promise, code, description) {
-  return promise.then(
-    function() {
-      throw 'assert_promise_rejects: ' + description + ' Promise did not reject.';
-    },
-    function(e) {
-      if (code !== undefined) {
-        assert_throws(code, function() { throw e; }, description);
-      }
-    });
-}
-
 // Asserts that two objects |actual| and |expected| are weakly equal under the
 // following definition:
 //
@@ -55,7 +28,7 @@ self.assert_object_equals = function(actual, expected, description) {
       assert_equals(actual, expected, prefix);
       return;
     }
-    assert_true(typeof expected === 'object', prefix);
+    assert_equals(typeof expected, 'object', prefix);
     assert_equals(object_stack.indexOf(actual), -1,
                   prefix + ' must not contain cyclic references.');
 
@@ -134,7 +107,7 @@ function assert_array_objects_equals(actual, expected, description) {
 // FIXME: Remove assert_will_be_idl_attribute once we complete the transition
 // of moving the DOM attributes to prototype chains.  (http://crbug.com/43394)
 function assert_will_be_idl_attribute(object, attribute_name, description) {
-  assert_true(typeof object === "object", description);
+  assert_equals(typeof object, "object", description);
 
   assert_true("hasOwnProperty" in object, description);
 

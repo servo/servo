@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../resources/orientation-event-helpers.js"></script>
+<script>
+'use strict';
+
+sensor_test(async (t, sensorProvider) => {
+  const motionData1 = generateMotionData(1, 2, 3,
+                                         4, 5, 6,
+                                         7, 8, 9);
+  setMockMotionData(sensorProvider, motionData1);
+  await Promise.all([
+    waitForEvent(getExpectedMotionEvent(motionData1)),
+    waitForEvent(getExpectedMotionEvent(motionData1))
+  ]);
+
+  const motionData2 = generateMotionData(11, 12, 13,
+                                         14, 15, 16,
+                                         17, 18, 19);
+  setMockMotionData(sensorProvider, motionData2);
+  await waitForEvent(getExpectedMotionEvent(motionData2));
+}, 'Tests using multiple event handlers for the Device Motion API.');
+</script>

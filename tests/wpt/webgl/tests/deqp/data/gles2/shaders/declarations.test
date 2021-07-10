@@ -1,0 +1,140 @@
+group invalid_declarations "Invalid declarations"
+	case attribute_in_vertex_main
+		expect compile_fail
+		vertex ""
+			void main()
+			{
+				attribute mediump float val;
+				gl_Position = vec4(1.0);
+			}
+		""
+		fragment ""
+			void main()
+			{
+				gl_FragColor = vec4(1.0);
+			}
+		""
+	end
+
+	case attribute_in_fragment
+		expect compile_fail
+		vertex ""
+			void main()
+			{
+				gl_Position = vec4(1.0);
+			}
+		""
+		fragment ""
+			attribute mediump float val;
+			void main()
+			{
+				gl_FragColor = vec4(1.0);
+			}
+		""
+	end
+
+	case uniform_in_vertex_main
+		expect compile_fail
+		vertex ""
+			void main()
+			{
+				uniform mediump float val;
+				gl_Position = vec4(1.0);
+			}
+		""
+		fragment ""
+			void main()
+			{
+				gl_FragColor = vec4(1.0);
+			}
+		""
+	end
+
+	case uniform_in_fragment_main
+		expect compile_fail
+		vertex ""
+			void main()
+			{
+				gl_Position = vec4(1.0);
+			}
+		""
+		fragment ""
+			void main()
+			{
+				uniform mediump float val;
+				gl_FragColor = vec4(1.0);
+			}
+		""
+	end
+
+	case varying_in_vertex_main
+		expect compile_fail
+		vertex ""
+			void main()
+			{
+				varying mediump float val;
+				gl_Position = vec4(1.0);
+			}
+		""
+		fragment ""
+			varying mediump float val;
+			void main()
+			{
+				gl_FragColor = vec4(1.0);
+			}
+		""
+	end
+
+	case varying_in_fragment_main
+		expect compile_fail
+		vertex ""
+			varying mediump float val;
+			void main()
+			{
+				gl_Position = vec4(1.0);
+			}
+		""
+		fragment ""
+			void main()
+			{
+				varying mediump float val;
+				gl_FragColor = vec4(1.0);
+			}
+		""
+	end
+
+	case invariant_attribute
+		expect compile_fail
+		vertex ""
+			invariant attribute mediump float val;
+			void main()
+			{
+				gl_Position = vec4(1.0);
+			}
+		""
+		fragment ""
+			void main()
+			{
+				gl_FragColor = vec4(1.0);
+			}
+		""
+	end
+
+	case invariant_uniform
+		expect compile_fail
+		vertex ""
+			invariant uniform mediump float val;
+			void main()
+			{
+				gl_Position = vec4(1.0);
+			}
+		""
+		fragment ""
+			void main()
+			{
+				gl_FragColor = vec4(1.0);
+			}
+		""
+	end
+
+end # invalid_declarations

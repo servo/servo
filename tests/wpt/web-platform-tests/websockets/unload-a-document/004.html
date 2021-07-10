@@ -7,7 +7,7 @@
 <div id=log></div>
 <script>
 var uuid;
-var t = async_test(null, {timeout:15000})
+var t = async_test();
 t.step(function() {uuid = token()});
 var navigate = t.step_func(function() {
   document.getElementsByTagName("iframe")[0].src = 'data:text/html,<body onload="history.back()">';

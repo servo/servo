@@ -1,6 +1,6 @@
 import itertools
 import re
-import types
+import sys
 
 from .logger import get_logger
 
@@ -98,11 +98,21 @@ class Router(object):
         self.doc_root = doc_root
         self.routes = []
         self.logger = get_logger()
+
+        # Add the doc_root to the Python path, so that any Python handler can
+        # correctly locate helper scripts (see RFC_TO_BE_LINKED).
+        #
+        # TODO: In a perfect world, Router would not need to know about this
+        # and the handler itself would take care of it. Currently, however, we
+        # treat handlers like functions and so there's no easy way to do that.
+        if self.doc_root not in sys.path:
+            sys.path.insert(0, self.doc_root)
+
         for route in reversed(routes):
             self.register(*route)
 
     def register(self, methods, path, handler):
-        """Register a handler for a set of paths.
+        r"""Register a handler for a set of paths.
 
         :param methods: Set of methods this should match. "*" is a
                         special value indicating that all methods should
@@ -135,7 +145,7 @@ class Router(object):
                         object and the response object.
 
         """
-        if type(methods) in types.StringTypes or methods in (any_method, "*"):
+        if isinstance(methods, (bytes, str)) or methods is any_method:
             methods = [methods]
         for method in methods:
             self.routes.append((method, compile_path_match(path), handler))

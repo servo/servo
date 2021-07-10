@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+  <html:link rel="help" href="https://www.w3.org/TR/css-masking-1/"/>
+  <html:link rel="help" href="https://crbug.com/1155384"/>
+  <html:link rel="match" href="reference/mask-and-nested-clip-path-ref.svg"/>
+  <mask id="mask">
+    <rect x="0" y="0" width="200" height="200" fill="white" />
+  </mask>
+  <clipPath id="nested-clip-path">
+    <rect x="100" y="0" width="300" height="300" />
+  </clipPath>
+  <clipPath id="clip-path" clip-path="url(#nested-clip-path)">
+    <rect x="0" y="100" width="300" height="300" />
+  </clipPath>
+  <rect x="0" y="0" width="300" height="300" fill="red" mask="url(#mask)" clip-path="url(#clip-path)"/>
+  <rect x="100" y="100" width="100" height="100" fill="green"/>
+</svg>

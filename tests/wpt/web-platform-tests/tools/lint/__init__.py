@@ -1,1 +1,1 @@
-from . import lint
+from . import lint  # noqa: F401

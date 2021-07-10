@@ -1,0 +1,20 @@
+[package]
+name = "metrics_tests"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+edition = "2018"
+
+[lib]
+name = "metrics_tests"
+path = "lib.rs"
+doctest = false
+
+[dependencies]
+gfx_traits = {path = "../../../components/gfx_traits"}
+ipc-channel = "0.14"
+metrics = {path = "../../../components/metrics"}
+msg = {path = "../../../components/msg"}
+profile_traits = {path = "../../../components/profile_traits"}
+servo_url = {path = "../../../components/url"}
+time = "0.1.12"

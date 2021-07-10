@@ -6,7 +6,7 @@
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <!-- Common global functions for referrer-policy tests. -->
-    <script src="/referrer-policy/generic/common.js"></script>
+    <script src="/common/security-features/resources/common.sub.js"></script>
   </head>
   <body>
     <h1>Referrer Policy: CSP 'referrer' directive should not be supported</h1>
@@ -15,14 +15,13 @@
     <pre id="received_message">Running...</pre>
 
     <script>
-      var test = async_test("Image has a referrer despite CSP 'referrer' directive");
-      var urlPath = '/referrer-policy/generic/subresource/image.py?cache_destroyer=' + (new Date()).getTime();
-      var url = location.protocol + "//www1." + location.hostname + ":" + location.port +
-                urlPath;
-      queryImage(url, test.step_func(function(message) {
-        assert_equals(message.referrer, document.location.href);
-        test.done();
-      }), null, 'always', test);
+      promise_test(function() {
+        var urlPath = '/common/security-features/subresource/image.py?cache_destroyer=' + (new Date()).getTime();
+        return requestViaImage(urlPath, null, 'always')
+          .then(function(message) {
+            assert_equals(message.referrer, document.location.href);
+          });
+      }, "Image has a referrer despite CSP 'referrer' directive");
     </script>
 
     <div id="log"></div>

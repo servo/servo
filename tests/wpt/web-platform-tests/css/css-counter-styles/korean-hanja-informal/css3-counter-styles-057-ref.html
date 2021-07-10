@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>korean-hanja-informal, 0-9</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#complex-cjk'>
+<link rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+<meta name='flags' content='font'>
+<meta name="assert" content="Setting list-style-type to korean-hanja-informal will produce list of up to 9 items numbering as described in the CSS3 Counter Styles module.">
+<style type='text/css'>
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+ol li { list-style-type: korean-hanja-informal;  }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, ignoring the suffix.</p>
+
+
+<div class="test"><ol start='0'><div><bdi>零, </bdi>零,</div></ol>
+<ol start='1'><div><bdi>一, </bdi>一,</div></ol>
+<ol start='2'><div><bdi>二, </bdi>二,</div></ol>
+<ol start='3'><div><bdi>三, </bdi>三,</div></ol>
+<ol start='4'><div><bdi>四, </bdi>四,</div></ol>
+<ol start='5'><div><bdi>五, </bdi>五,</div></ol>
+<ol start='6'><div><bdi>六, </bdi>六,</div></ol>
+<ol start='7'><div><bdi>七, </bdi>七,</div></ol>
+<ol start='8'><div><bdi>八, </bdi>八,</div></ol>
+<ol start='9'><div><bdi>九, </bdi>九,</div></ol>
+</div>
+
+
+<!--Notes:
+You will need an appropriate font to run this test.
+
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+
+
+</body>
+</html>

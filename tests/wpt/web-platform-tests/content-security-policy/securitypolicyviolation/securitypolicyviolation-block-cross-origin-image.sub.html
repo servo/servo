@@ -15,9 +15,9 @@
         assert_equals(e.effectiveDirective, "img-src");
         assert_equals(e.originalPolicy, "img-src \'none\'");
         assert_equals(e.disposition, "enforce");
-        assert_equals(e.sourceFile, "");
-        assert_equals(e.lineNumber, 0);
-        assert_equals(e.columnNumber, 0);
+        assert_equals(new URL(e.sourceFile).pathname, "/content-security-policy/securitypolicyviolation/securitypolicyviolation-block-cross-origin-image.sub.html");
+        assert_equals(e.lineNumber, 25);
+        assert_equals(e.columnNumber, 4);
         assert_equals(e.statusCode, 200);
       }));
     

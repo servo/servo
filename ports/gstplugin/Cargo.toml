@@ -1,0 +1,39 @@
+[package]
+name = "servo-gst-plugin"
+description = "A GStreamer plugin that provides servosrc"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+edition = "2018"
+build = "build.rs"
+repository = "https://github.com/servo/servo/"
+publish = false
+
+[lib]
+name = "gstservoplugin"
+crate-type = ["cdylib"]
+path = "lib.rs"
+
+[dependencies]
+crossbeam-channel = "0.4"
+euclid = "0.20"
+glib = "0.9"
+gstreamer = "0.15"
+gstreamer-base = "0.15"
+gstreamer-gl = "0.15"
+gstreamer-gl-sys = { version = "0.8", features = ["wayland"] }
+gstreamer-sys = "0.8"
+gstreamer-video = "0.15"
+lazy_static = "1.4"
+libservo = { path = "../../components/servo" }
+log = "0.4"
+servo-media = { git = "https://github.com/servo/media" }
+sparkle = "0.1"
+surfman = "0.4"
+surfman-chains = "0.6"
+surfman-chains-api = "0.2"
+webxr = { git = "https://github.com/servo/webxr", features = ["glwindow"] }
+
+[build-dependencies]
+gst-plugin-version-helper = "0.2"
+

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8">
+<title>text-align: end, pre, dir=auto on surrounding block</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#text-align-property'>
+<link rel='match' href='reference/text-align-end-ref-017.html'>
+<meta name="assert" content="text-align:end aligns inline-level content to the end edge of the line box – ie. since dir=auto is not inherited by pre, to right in ltr context.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style type='text/css'>
+.test { text-align: end; }
+/* the CSS below is not part of the test */
+.test, .ref { border: 1px solid orange;  margin: 20px; width: 290px; color: orange; font: 24px/24px Ahem; }
+.ref { position: relative;  height: 48px; }
+#rb1 { position: absolute; top: 0; right: 0; background-color: orange; width: 72px;  height: 48px; }
+</style>
+</head>
+<body>
+<div id='instructions'>Test passes if shading in both orange boxes is identical.</div>
+<div dir="auto">
+<pre class="test">XXX
+&rlm;XXX</pre>
+</div>
+<div class="ref"><div id="rb1"></div></div>
+<!-- Notes:
+The &rlm isn't in the Ahem font, so it may cause a spurious effect, such as a thin white line in the middle of a block in IE. This should be ignored. The test needs a RTL character in the Ahem font, so that the &RLM can be removed.
+The rationale for the expected outcome here is described at
+https://drafts.csswg.org/css-writing-modes-3/#valdef-unicode-bidi-plaintext
+"Because the unicode-bidi property does not inherit, setting bidi-override or plaintext on a block box will not affect any descendant blocks. Therefore these values are best used on blocks and inlines that do not contain any block-level structures. "
+-->
+</body>
+</html>

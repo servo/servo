@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<!--
+  Embeds a portal (src specified by query parameter "url") and activates it after
+  receiving a message from the portal.
+-->
+</title>
+<body>
+  <script>
+    var searchParams = new URL(location).searchParams;
+    let portal = document.createElement("portal");
+    portal.src = searchParams.get("url");
+    portal.onmessage = () => { portal.activate(); }
+    document.body.appendChild(portal);
+  </script>
+</body>

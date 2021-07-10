@@ -1,0 +1,322 @@
+<!--
+
+/*
+** Copyright (c) 2018 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL stencil mask/func front-state-back-state equality test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+var wtu = WebGLTestUtils;
+description("Tests that stencil mask/func are validated correctly when the front state and back state differ.");
+
+var gl;
+
+function checkDrawError(errIfMismatch) {
+    wtu.shouldGenerateGLError(gl, errIfMismatch, "wtu.dummySetProgramAndDrawNothing(gl)");
+}
+
+function setStencilMask(mask) {
+    wtu.shouldGenerateGLError(gl, gl.NO_ERROR, "gl.stencilMaskSeparate(gl.FRONT, " + mask[0] + ")");
+    wtu.shouldGenerateGLError(gl, gl.NO_ERROR, "gl.stencilMaskSeparate(gl.BACK,  " + mask[1] + ")");
+}
+
+function testStencilMaskCase(mask, error) {
+    setStencilMask(mask);
+    // If an error is generated, it should be at draw time.
+    checkDrawError(error);
+}
+
+function testStencilMask(errIfMismatch) {
+    testStencilMaskCase([0, 256], gl.NO_ERROR);
+    testStencilMaskCase([1, 256], errIfMismatch);
+    testStencilMaskCase([1, 257], gl.NO_ERROR);
+    testStencilMaskCase([1, 258], errIfMismatch);
+    wtu.shouldGenerateGLError(gl, gl.NO_ERROR, "gl.stencilMask(1023)", "resetting stencilMask");
+}
+
+function setStencilFunc(ref, mask) {
+    wtu.shouldGenerateGLError(gl, gl.NO_ERROR, "gl.stencilFuncSeparate(gl.FRONT, gl.ALWAYS, " + ref[0] + ", " + mask[0] + ")");
+    wtu.shouldGenerateGLError(gl, gl.NO_ERROR, "gl.stencilFuncSeparate(gl.BACK,  gl.ALWAYS, " + ref[1] + ", " + mask[1] + ")");
+}
+
+function testStencilFuncCase(ref, mask, error) {
+    setStencilFunc(ref, mask);
+    // If an error is generated, it should be at draw time.
+    checkDrawError(error);
+}
+
+function testStencilFunc(errIfMismatch) {
+    testStencilFuncCase([ 256,  257], [1023, 1023], gl.NO_ERROR);
+    testStencilFuncCase([ 256,  254], [1023, 1023], errIfMismatch);
+
+    testStencilFuncCase([  -1,    0], [1023, 1023], gl.NO_ERROR);
+    testStencilFuncCase([  -1,  254], [1023, 1023], errIfMismatch);
+
+    testStencilFuncCase([   0,    0], [   1,  257], gl.NO_ERROR);
+    testStencilFuncCase([   0,    0], [   1,  258], errIfMismatch);
+
+    testStencilFuncCase([   1,    1], [1024, 2048], gl.NO_ERROR);
+    testStencilFuncCase([   1,    1], [2048, 1024], gl.NO_ERROR);
+
+    testStencilFuncCase([  -1,   -1], [1023, 1023], gl.NO_ERROR);
+    testStencilFuncCase([  -1,    0], [1023, 1023], gl.NO_ERROR);
+    testStencilFuncCase([   0,   -1], [1023, 1023], gl.NO_ERROR);
+    testStencilFuncCase([   0,    0], [1023, 1023], gl.NO_ERROR);
+
+    testStencilFuncCase([  -1,  255], [1023, 1023], errIfMismatch);
+    testStencilFuncCase([   0,  256], [1023, 1023], errIfMismatch);
+    testStencilFuncCase([   0, 1024], [1023, 1023], errIfMismatch);
+    testStencilFuncCase([   1,  257], [1023, 1023], errIfMismatch);
+    testStencilFuncCase([ 255,   -1], [1023, 1023], errIfMismatch);
+    testStencilFuncCase([ 256,    0], [1023, 1023], errIfMismatch);
+    testStencilFuncCase([1024,    0], [1023, 1023], errIfMismatch);
+    testStencilFuncCase([ 257,    1], [1023, 1023], errIfMismatch);
+
+    wtu.shouldGenerateGLError(gl, gl.NO_ERROR, "gl.stencilFunc(gl.ALWAYS, 0, 1023)", "resetting stencilFunc");
+}
+
+//
+// Tests of the default framebuffer
+//
+
+debug("");
+
+debug("Testing default framebuffer with { stencil: true }");
+gl = wtu.create3DContext(undefined, { stencil: true });
+{
+    gl.enable(gl.STENCIL_TEST);
+    testStencilMaskCase([1, 256], gl.INVALID_OPERATION);
+    testStencilFuncCase([256, 0], [1023, 1023], gl.INVALID_OPERATION);
+}
+
+debug("Testing default framebuffer with { stencil: false }");
+gl = wtu.create3DContext(undefined, { stencil: false });
+{
+    // with { stencil: false }
+    gl.enable(gl.STENCIL_TEST);
+    testStencilMaskCase([1, 256], gl.NO_ERROR);
+    testStencilFuncCase([256, 0], [1023, 1023], gl.NO_ERROR);
+}
+// (continue using this GL context for the other tests)
+
+//
+// Tests with a framebuffer object
+//
+
+const fb = gl.createFramebuffer();
+gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+const colorRB = gl.createRenderbuffer();
+gl.bindRenderbuffer(gl.RENDERBUFFER, colorRB);
+gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA4, 1, 1);
+gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, colorRB);
+
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "initial framebuffer setup")
+
+function runWithStencilSettings(haveDepthBuffer, haveStencilBuffer, enableStencilTest, fn) {
+    let rbo = null;
+    let attachment;
+    if (haveDepthBuffer || haveStencilBuffer) {
+        rbo = gl.createRenderbuffer();
+        gl.bindRenderbuffer(gl.RENDERBUFFER, rbo);
+
+        let internalformat;
+        if (haveDepthBuffer && haveStencilBuffer) {
+            internalformat = gl.DEPTH_STENCIL;
+            attachment = gl.DEPTH_STENCIL_ATTACHMENT;
+        } else if (haveDepthBuffer) {
+            internalformat = gl.DEPTH_COMPONENT16;
+            attachment = gl.DEPTH_ATTACHMENT;
+        } else if (haveStencilBuffer) {
+            internalformat = gl.STENCIL_INDEX8;
+            attachment = gl.STENCIL_ATTACHMENT;
+        }
+        gl.renderbufferStorage(gl.RENDERBUFFER, internalformat, 1, 1);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment, gl.RENDERBUFFER, rbo);
+    }
+    shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "depth/stencil renderbuffer setup")
+
+    if (enableStencilTest) {
+        gl.enable(gl.STENCIL_TEST);
+    } else {
+        gl.disable(gl.STENCIL_TEST);
+    }
+
+    fn();
+
+    if (rbo) {
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment, gl.RENDERBUFFER, null);
+        gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+        gl.deleteRenderbuffer(rbo);
+    }
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "depth/stencil renderbuffer cleanup")
+}
+
+function testStencilSettings(haveDepthBuffer, haveStencilBuffer, enableStencilTest, errIfMismatch) {
+    debug("");
+    debug("With depthbuffer=" + haveDepthBuffer +
+            ", stencilbuffer=" + haveStencilBuffer +
+            ", stencilTest=" + enableStencilTest +
+            ", expecting error=" + wtu.glEnumToString(gl, errIfMismatch) +
+            " for mismatching mask or func settings.");
+
+    runWithStencilSettings(haveDepthBuffer, haveStencilBuffer, enableStencilTest, () => {
+        // Errors should be the same for both mask and func, because stencil test
+        // and stencil write are always enabled/disabled in tandem.
+        testStencilMask(errIfMismatch);
+        testStencilFunc(errIfMismatch);
+    });
+}
+
+debug("");
+debug("Base case checks:");
+testStencilMaskCase([0, 0], gl.NO_ERROR);
+testStencilFuncCase([0, 0], [1023, 1023], gl.NO_ERROR);
+
+//                  haveDepthBuffer
+//                  |      haveStencilBuffer
+//                  |      |      enableStencilTest
+//                  |      |      |      errIfMismatch
+testStencilSettings(false, false, false, gl.NO_ERROR);
+testStencilSettings( true, false, false, gl.NO_ERROR);
+testStencilSettings(false,  true, false, gl.NO_ERROR);
+testStencilSettings( true,  true, false, gl.NO_ERROR);
+
+testStencilSettings(false, false,  true, gl.NO_ERROR);
+testStencilSettings( true, false,  true, gl.NO_ERROR);
+testStencilSettings(false,  true,  true, gl.INVALID_OPERATION);
+testStencilSettings( true,  true,  true, gl.INVALID_OPERATION);
+
+//
+// Tests to make sure the stencil validation check, if cached, is invalidated correctly.
+//
+
+debug("");
+
+debug("Setup for stencil validation cache invalidation tests");
+setStencilMask([1, 258]);
+setStencilFunc([0, 256], [1023, 1023]);
+
+debug("Test with enabling/disabling stencil test");
+runWithStencilSettings(false, true, false, () => {
+    checkDrawError(gl.NO_ERROR);
+    gl.enable(gl.STENCIL_TEST);
+    checkDrawError(gl.INVALID_OPERATION);
+    gl.disable(gl.STENCIL_TEST);
+    checkDrawError(gl.NO_ERROR);
+});
+
+debug("Test with swapping in a new FBO");
+runWithStencilSettings(false, false, true, () => {
+    // no error with no stencil buffer
+    checkDrawError(gl.NO_ERROR);
+
+    // swap in a new FBO with a stencil buffer
+    const fb2 = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb2);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, colorRB);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, colorRB);
+    const rbo = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, rbo);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.STENCIL_INDEX8, 1, 1);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.RENDERBUFFER, rbo);
+    shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+    // this draw sholud detect the new fbo state
+    checkDrawError(gl.INVALID_OPERATION);
+
+    gl.deleteFramebuffer(fb2);
+    gl.deleteRenderbuffer(rbo)
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+});
+
+debug("Test with adding a stencil attachment");
+runWithStencilSettings(false, false, true, () => {
+    // no error with no stencil buffer
+    checkDrawError(gl.NO_ERROR);
+
+    // add a stencil attachment
+    const rbo = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, rbo);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.STENCIL_INDEX8, 1, 1);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.RENDERBUFFER, rbo);
+    shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+    // this draw sholud detect the new fbo state
+    checkDrawError(gl.INVALID_OPERATION);
+
+    gl.deleteRenderbuffer(rbo)
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+});
+
+debug("Test with reallocating the DEPTH_STENCIL attachment from depth to depth+stencil");
+runWithStencilSettings(false, false, true, () => {
+    // attach a depth buffer to the DEPTH_STENCIL attachment
+    const rbo = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, rbo);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, 1, 1);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, rbo);
+    shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+    // this draw is invalid, but it still might trigger caching of the stencil validation
+    checkDrawError(gl.INVALID_FRAMEBUFFER_OPERATION);
+
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_STENCIL, 1, 1);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+    // this draw sholud detect the new fbo state
+    checkDrawError(gl.INVALID_OPERATION);
+
+    gl.deleteRenderbuffer(rbo)
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+});
+
+gl.deleteFramebuffer(fb);
+gl.deleteRenderbuffer(colorRB);
+
+var successfullyParsed = true;
+</script>
+
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

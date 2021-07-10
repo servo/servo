@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>CSS Test: text-decoration propagation into shadow DOM boxes</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor/#line-decoration">
+<link rel="match" href="reference/text-decoration-underline-ref.html">
+<style>
+  #host { text-decoration: underline }
+</style>
+<p>
+  <div id="host">
+    <span>This text should be underlined.</span>
+  </div>
+</p>
+<script>
+  const root = host.attachShadow({mode:"open"});
+  root.appendChild(document.createElement("slot"));
+</script>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Containment Test: Size containment on select</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain-1/#containment-size">
+<link rel="match" href="reference/contain-size-select-001-ref.html">
+<meta name=assert content="<select> elements with 'contain: size' should be treated as having no contents.">
+<style>
+select {
+  color: white;
+  background: white;
+  contain: size;
+}
+</style>
+<p>Test passes if it has the same output than the reference.</p>
+<select>
+  <option>AVeryLongOption</option>
+  <option>Another Option</option>
+</select>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#transforms">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#relative-positioning">
+<link rel="match" href="relpos-inline-ref.html">
+<style>
+  body {
+      margin: 8px;
+  }
+  #target {
+      position: relative;
+      left: -100px;
+      top: 100px;
+      border: 1px solid;
+      background: hotpink;
+  }
+</style>
+<div style="columns:4; column-gap:0; column-fill:auto; line-height:30px; width:600px; height:60px; orphans:1; widows:1;">
+  <br><br><br>
+  <span id="target">
+    line1<br>
+    line2<br>
+    line3<br>
+    line4<br>
+  </span>
+</div>
+<div id="log" style="margin-top:100px;"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> { assert_equals(document.elementFromPoint(58, 153), target); }, "line1");
+  test(()=> { assert_equals(document.elementFromPoint(208, 123), target); }, "line2");
+  test(()=> { assert_equals(document.elementFromPoint(208, 153), target); }, "line3");
+  test(()=> { assert_equals(document.elementFromPoint(358, 123), target); }, "line4");
+  test(()=> { assert_not_equals(document.elementFromPoint(58, 123), target); }, "Above line1");
+  test(()=> { assert_not_equals(document.elementFromPoint(358, 153), target); }, "Below line4");
+  test(()=> { assert_not_equals(document.elementFromPoint(158, 48), target); }, "line1 before offsetting");
+</script>

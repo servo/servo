@@ -1,0 +1,127 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL copy into cube map texture conformance test</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="2" height="2"> </canvas>
+<script>
+"use strict";
+var wtu = WebGLTestUtils;
+var gl;
+
+function runTest() {
+  var width = 16;
+  var height = 16;
+  var level = 0;
+  var cases = [
+    {
+      internalformat: "RGBA8",
+      format: "RGBA",
+      type: "UNSIGNED_BYTE",
+      data: new Uint8Array(width * height * 4)
+    },
+    {
+      internalformat: "RGBA8I",
+      format: "RGBA_INTEGER",
+      type: "BYTE",
+      data: new Int8Array(width * height * 4)
+    },
+    {
+      internalformat: "RGBA8UI",
+      format: "RGBA_INTEGER",
+      type: "UNSIGNED_BYTE",
+      data: new Uint8Array(width * height * 4)
+    }
+  ];
+  if (gl.getExtension("EXT_color_buffer_float")) {
+      cases.push({
+          internalformat: "RGBA32F",
+          format: "RGBA",
+          type: "FLOAT",
+          data: new Float32Array(width * height * 4)
+      });
+  }
+  cases.forEach(function(testcase) {
+    debug("");
+    debug("Testing internalformat: " + testcase.internalformat);
+
+    var internalformat = gl[testcase.internalformat];
+    var format = gl[testcase.format];
+    var type = gl[testcase.type];
+    var texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    var data = testcase.data;
+    gl.texImage2D(gl.TEXTURE_2D, level, internalformat, width, height, 0, format, type, data);
+    var fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, level);
+    shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Setup framebuffer with texture should succeed.");
+
+    var cubeTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, cubeTexture);
+
+    for (var face = gl.TEXTURE_CUBE_MAP_POSITIVE_X; face < gl.TEXTURE_CUBE_MAP_POSITIVE_X + 6; face++) {
+      gl.copyTexImage2D(face, level, internalformat, 0, 0, width, height, 0);
+      wtu.glErrorShouldBe(gl, gl.NO_ERROR, "CopyTexImage2D should succeed.");
+      gl.copyTexSubImage2D(face, level, 0, 0, 0, 0, width, height);
+      wtu.glErrorShouldBe(gl, gl.NO_ERROR, "CopyTexSubImage2D should succeed.");
+    }
+
+    gl.deleteTexture(cubeTexture);
+    gl.deleteTexture(texture);
+    gl.deleteFramebuffer(fbo);
+  });
+}
+
+description();
+debug("This is a regression test for <a href='https://bugs.chromium.org/p/chromium/issues/detail?id=712117'>Chromium Issue 712117</a>");
+
+var canvas = document.getElementById("canvas");
+shouldBeNonNull("gl = wtu.create3DContext(canvas, undefined, 2)");
+
+runTest();
+
+var successfullyParsed = true;
+
+</script>
+<script src="../../../js/js-test-post.js"></script>
+
+</body>
+</html>

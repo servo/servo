@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Tests that cross-origin access is granted to null-origin embedded iframe</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+  </head>
+  <body>
+    <script type="text/javascript">
+const url = get_host_info().HTTP_REMOTE_ORIGIN + "/xhr/resources/access-control-origin-header.py";
+async_test(function(test) {
+  window.addEventListener("message", test.step_func(function(evt) {
+    if (evt.data == "ready") {
+      document.getElementById("frame").contentWindow.postMessage(url, "*");
+    } else {
+      assert_equals(evt.data, "PASS: Cross-domain access allowed.\nHTTP_ORIGIN: null");
+      test.done();
+    }
+  }), false);
+}, "Access granted to null-origin iframe");
+    </script>
+    <iframe id="frame" src='data:text/html,
+    <script>
+(function() {
+  parent.postMessage("ready", "*");
+  window.addEventListener("message", function(evt) {
+    try {
+      const url = evt.data;
+      const xhr = new XMLHttpRequest;
+
+      xhr.open("GET", url, false);
+      xhr.send();
+
+      parent.postMessage(xhr.responseText, "*");
+    } catch(e) {
+      parent.postMessage(e.message, "*");
+    }
+  });
+})();
+    </script>'>
+  </body>
+</html>

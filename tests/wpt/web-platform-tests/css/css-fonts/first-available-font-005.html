@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS fonts test: baseline position with explicit sizing, no space in first font</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-3/#first-available-font">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#first-available-font">
+<link rel="match" href="first-available-font-005-ref.html">
+<meta name="flags" content="">
+<meta name="assert" content="The position of the baseline in an inline-level box whose height is determined by a non-normal value of line-height
+                             does depend on the primary font, which is the first that contains U+0020.">
+<style>
+@font-face {
+  font-family: 'A-no-space';
+  font-style: normal;
+  font-weight: 400;
+  src:  url(/fonts/Revalia.woff) format('woff');
+  unicode-range: U+0061;
+}
+@font-face {
+  font-family: 'B-no-space';
+  font-style: normal;
+  font-weight: 400;
+  src: url(/fonts/AD.woff) format('woff');
+  unicode-range: U+0061;
+}
+@font-face {
+  font-family: 'B';
+  font-style: normal;
+  font-weight: 400;
+  src: url(/fonts/AD.woff) format('woff');
+}
+
+div {
+  position: absolute;
+  line-height: 100px;
+  font-size: 100px;
+  width: 300px; /* plenty of room for the (invisible) text */
+  text-align: right;
+  color: transparent;
+  outline: solid;
+}
+span { /* visible thing aligned to the baseline, and small enough to not influence its position */
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+}
+
+/* white #a is on top of red #b,
+   The first font in their respective lists do no contain U+0020,
+   and therfore the first available font should be the next one, which is the same.
+   Since the baseline should be based on the primary font,
+   their baselines should line up and red #b should be invisible.*/
+#a { font-family: A-no-space, B; }
+#a span { background: red; }
+
+#b { font-family: B-no-space, B; }
+#b span { background: white; }
+
+</style>
+
+<p>Test passes if there is <strong>no red</strong> below.
+
+<div id=a>bb<span></span></div>
+<div id=b>bb<span></span></div>

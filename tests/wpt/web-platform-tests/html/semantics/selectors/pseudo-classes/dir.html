@@ -27,18 +27,59 @@
     &#x202E;<span id=span4>WERBEH</span>&#x202C;
     <span dir="rtl" id=span5>WERBEH</span>
     <span dir="ltr" id=span6>HEBREW</span>
+    <span dir="rtl" id=span7>
+     <input type=tel id=input-tel1>
+     <input type=tel id=input-tel2 dir="invalid">
+    </span>
+    <input type=tel id=input-tel3 dir="rtl">
     <bdo dir="auto" id=bdo3>HEBREW</bdo>
     <bdo dir="auto" id=bdo4>إيان</bdo>
     <bdo dir="ltr" id=bdo5>עברית</bdo>
 
     <script id=script4>
-      testSelectorIdsMatch(":dir(rtl)", ["bdo1", "bdi2", "bdi4", "span2", "span5", "bdo4"], "':dir(rtl)' matches all elements whose directionality is 'rtl'.");
+      const rtlElements = [
+        "bdo1",
+        "bdi2",
+        "bdi4",
+        "span2",
+        "span5",
+        "span7",
+        "input-tel3",
+        "bdo4",
+      ];
 
-      var ltrElements = ["html", "head", "meta", "title", "link1", "link2", "script1", "script2", "script3", "style", "body", "log", "bdo2", "bdi1", "bdi3", "span1", "span3", "span4", "span6", "bdo3", "bdo5", "script4"];
+      testSelectorIdsMatch(":dir(rtl)", rtlElements, "':dir(rtl)' matches all elements whose directionality is 'rtl'.");
+
+      const ltrElements = [
+        "html",
+        "head",
+        "meta",
+        "title",
+        "link1",
+        "link2",
+        "script1",
+        "script2",
+        "script3",
+        "style",
+        "body",
+        "log",
+        "bdo2",
+        "bdi1",
+        "bdi3",
+        "span1",
+        "span3",
+        "span4",
+        "span6",
+        "input-tel1",
+        "input-tel2",
+        "bdo3",
+        "bdo5",
+        "script4",
+      ];
 
       testSelectorIdsMatch(":dir(ltr)", ltrElements, "':dir(ltr)' matches all elements whose directionality is 'ltr'.");
 
-      var bdo = document.createElement("bdo");
+      const bdo = document.createElement("bdo");
       bdo.setAttribute("dir", "ltr");
       testSelectorIdsMatch(":dir(ltr)", ltrElements, "':dir(ltr)' doesn't match elements not in the document.");
     </script>

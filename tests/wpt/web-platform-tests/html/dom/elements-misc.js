@@ -1,4 +1,3 @@
-// Up-to-date as of 2013-04-09.
 var miscElements = {
   // "The root element" section
   html: {
@@ -24,6 +23,11 @@ var miscElements = {
   },
   noscript: {},
 
+  template: {},
+  slot: {
+    name: "string",
+  },
+
   // "Edits" section
   ins: {
     cite: "url",
@@ -40,29 +44,18 @@ var miscElements = {
   },
   summary: {},
   menu: {
-    // Conforming
-    //TODO: check that missing value default is context if parent's type is context
-    type: {type: "enum", keywords:["context", "toolbar"], defaultVal: "toolbar"},
-    label: "string",
-
     // Obsolete
     compact: "boolean",
-  },
-  menuitem: {
-    type: {type: "enum", keywords: ["command", "checkbox", "radio"], defaultVal: "command"},
-    label: "string",
-    icon: "url",
-    disabled: "boolean",
-    checked: "boolean",
-    radiogroup: "string",
-    "default": "boolean",
   },
   dialog: {
     open: "boolean",
   },
 
   // Global attributes should exist even on unknown elements
-  undefinedelement: {},
+  undefinedelement: {
+    enterKeyHint: {type: "enum", keywords: ["enter", "done", "go", "next", "previous", "search", "send"]},
+    inputMode: {type: "enum", keywords: ["none", "text", "tel", "url", "email", "numeric", "decimal", "search"]},
+  },
 };
 
 mergeElements(miscElements);

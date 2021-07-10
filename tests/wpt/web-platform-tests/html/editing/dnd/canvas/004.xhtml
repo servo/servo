@@ -4,32 +4,32 @@
 <title>Drag and drop from object: dropping block element onto canvas</title>
 <style type="text/css">
 object
-	{width:150px;
-	height:150px;
-	border-style:none;}
+  {width:150px;
+  height:150px;
+  border-style:none;}
 </style>
 <script type="application/ecmascript">
 function paint(color)
-	{var canvas = document.querySelector('canvas'),
-	c = canvas.getContext('2d');
-	c.fillStyle = color;
-	c.beginPath();
-	c.moveTo(0,0);
-	c.lineTo(100,0);
-	c.lineTo(100,100);
-	c.lineTo(0,100);
-	c.closePath();
-	c.fill();}
+  {var canvas = document.querySelector('canvas'),
+  c = canvas.getContext('2d');
+  c.fillStyle = color;
+  c.beginPath();
+  c.moveTo(0,0);
+  c.lineTo(100,0);
+  c.lineTo(100,100);
+  c.lineTo(0,100);
+  c.closePath();
+  c.fill();}
 function start(event)
-	{event.dataTransfer.effectAllowed = 'copy';
-	event.dataTransfer.setData('text/plain', 'green');}
+  {event.dataTransfer.effectAllowed = 'copy';
+  event.dataTransfer.setData('text/plain', 'green');}
 </script>
 </head>
 <body onload="paint('gray')">
 <p><object type="application/xhtml+xml" data="data:application/xhtml+xml,%3Chtml%20xmlns%3D%22http%3A//www.w3.org/1999/xhtml%22%3E%3Chead%3E%3Ctitle%3ECanvas%20drag%20and%20drop%3C/title%3E%3Cstyle%20type%3D%22text/css%22%3Ediv%7Bwidth%3A20px%3Bheight%3A20px%3Bbackground-color%3Agreen%3B%7D%3C/style%3E%3Cscript%20type%3D%22application/ecmascript%22%3Efunction%20start%28event%29%7Bevent.dataTransfer.effectAllowed%20%3D%20%27copy%27%3Bevent.dataTransfer.setData%28%27text/plain%27%2C%20%27green%27%29%3B%7D%3C/script%3E%3C/head%3E%3Cbody%3E%3Cdiv%20draggable%3D%22true%22%20ondragstart%3D%22start%28event%29%22/%3E%3C/body%3E%3C/html%3E">Green box</object></p>
 <p>Drag green box above to the gray canvas below. Canvas should turn green when you drop green box on it.</p>
 <p>
-	<canvas width="100" height="100" ondragenter="event.preventDefault()" ondragover="return false" ondrop="paint(event.dataTransfer.getData('text/plain'))">Canvas</canvas>
+  <canvas width="100" height="100" ondragenter="event.preventDefault()" ondragover="return false" ondrop="paint(event.dataTransfer.getData('text/plain'))">Canvas</canvas>
 </p>
 </body>
 </html>

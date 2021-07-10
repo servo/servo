@@ -1,45 +1,50 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::HTMLDialogElementBinding;
-use dom::bindings::codegen::Bindings::HTMLDialogElementBinding::HTMLDialogElementMethods;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
-use dom::bindings::str::DOMString;
-use dom::document::Document;
-use dom::element::Element;
-use dom::eventtarget::EventTarget;
-use dom::htmlelement::HTMLElement;
-use dom::node::{Node, window_from_node};
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::HTMLDialogElementBinding::HTMLDialogElementMethods;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::document::Document;
+use crate::dom::element::Element;
+use crate::dom::eventtarget::EventTarget;
+use crate::dom::htmlelement::HTMLElement;
+use crate::dom::node::{window_from_node, Node};
 use dom_struct::dom_struct;
-use html5ever_atoms::LocalName;
+use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLDialogElement {
     htmlelement: HTMLElement,
-    return_value: DOMRefCell<DOMString>,
+    return_value: DomRefCell<DOMString>,
 }
 
 impl HTMLDialogElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
-                     document: &Document) -> HTMLDialogElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLDialogElement {
         HTMLDialogElement {
-            htmlelement:
-                HTMLElement::new_inherited(local_name, prefix, document),
-            return_value: DOMRefCell::new(DOMString::new()),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
+            return_value: DomRefCell::new(DOMString::new()),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
-               document: &Document) -> Root<HTMLDialogElement> {
-        Node::reflect_node(box HTMLDialogElement::new_inherited(local_name, prefix, document),
-                           document,
-                           HTMLDialogElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLDialogElement> {
+        Node::reflect_node(
+            Box::new(HTMLDialogElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+        )
     }
 }
 
@@ -68,7 +73,10 @@ impl HTMLDialogElementMethods for HTMLDialogElement {
         let win = window_from_node(self);
 
         // Step 1 & 2
-        if element.remove_attribute(&ns!(), &local_name!("open")).is_none() {
+        if element
+            .remove_attribute(&ns!(), &local_name!("open"))
+            .is_none()
+        {
             return;
         }
 
@@ -80,6 +88,8 @@ impl HTMLDialogElementMethods for HTMLDialogElement {
         // TODO: Step 4 implement pending dialog stack removal
 
         // Step 5
-        win.dom_manipulation_task_source().queue_simple_event(target, atom!("close"), &win);
+        win.task_manager()
+            .dom_manipulation_task_source()
+            .queue_simple_event(target, atom!("close"), &win);
     }
 }

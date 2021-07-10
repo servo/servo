@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Test: text-indent Percentage - basic cases</title>
+		<link rel="author" title="Makoto Kikuchi" href="mailto:kikuchi@est.co.jp" />
+		<link rel="help" title="CSS Text Level 3: 10.1. Indent Text: the ‘text-indent’ property" href="http://www.w3.org/TR/css-text-3/#text-indent" />
+		<link rel="match" href="reference/text-indent-percentage-001-ref.xht"/>
+		<meta name="flags" content="ahem" />
+		<meta name="assert" content="Ensure that text-indent +50% adds 50% of its containing block's width in front of the text." />
+		<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+		<style type="text/css"><![CDATA[
+			#parent
+			{
+				font: 16px/1em Ahem;
+				position: relative;
+				width: 400px;
+			}
+			#reference1
+			{
+				color: red;
+				left: 100px; /* see comments for #test1 below */
+				position: absolute;
+				top: 0;
+				z-index: -1;
+			}
+			#reference2
+			{
+				margin-left: 50%;
+			}
+			#test1
+			{
+    			margin-left: -50%; /* -50% * 400px = -200px which makes the inline-size of this block 600px */
+    			text-indent: 50%;  /* 50% * 600px = 300px (which is 100px from the start of #parent due to the negative margin) */
+			}
+			#test2
+			{
+    			text-indent: 50%;
+			}
+		]]></style>
+	</head>
+	<body>
+		<p>Test passes if there is no red visible on the page.</p>
+		<div id="parent">
+			<div id="reference1">X</div>
+			<div id="test1">X</div>
+		</div>
+		<p>Test passes if the following two text blocks look same in terms of margin-left and text-indent respectively.</p>
+		<div id="test2">
+			abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz.<br/>
+			ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ.<br/>
+		</div>
+		<div>
+			<span id="reference2">abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz.</span><br/>
+			ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ.<br/>
+		</div>
+	</body>
+</html>

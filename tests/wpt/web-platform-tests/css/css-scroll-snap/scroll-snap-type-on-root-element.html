@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-type" />
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#principal-flow" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+html {
+  height: 3000px;
+  width: 3000px;
+}
+
+#target {
+  position: absolute;
+  background-color: blue;
+  top: 1000px;
+  left: 100px;
+
+  width: 100vw;
+  height: 100px;
+}
+</style>
+<div id="target"></div>
+<script>
+const documentHeight = document.documentElement.clientHeight;
+
+function cleanup() {
+  document.documentElement.style.scrollSnapType = "none";
+  target.style.scrollSnapAlign = "";
+  document.body.style.writingMode = "";
+  window.scrollTo(0, 0);
+}
+
+test(t => {
+  t.add_cleanup(cleanup);
+  document.documentElement.style.scrollSnapType = "y mandatory";
+  target.style.scrollSnapAlign = "end none";
+
+  window.scrollTo(0, 800);
+
+  // `target y (1000px)` + `target height (100px)` - document height.
+  assert_equals(document.scrollingElement.scrollTop, 1100 - documentHeight);
+  assert_equals(document.scrollingElement.scrollLeft, 0, "x should not snap");
+}, "The scroll-snap-type on the root element is applied");
+
+test(t => {
+  t.add_cleanup(cleanup);
+
+  document.documentElement.style.scrollSnapType = "inline mandatory";
+  document.body.style.writingMode = "vertical-lr";
+  target.style.scrollSnapAlign = "none end";
+
+  window.scrollTo(200, 800);
+
+  // Since inline axis is vertical, scrolling viewport vertically on block
+  // axis should snap.
+  assert_equals(document.scrollingElement.scrollTop, 1100 - documentHeight, "inline should snap");
+  // `target x (100px)`.
+  assert_equals(document.scrollingElement.scrollLeft, 200, "block should not snap");
+}, "The writing-mode (vertical-lr) on the body is used");
+
+test(t => {
+  t.add_cleanup(cleanup);
+
+  document.documentElement.style.scrollSnapType = "inline mandatory";
+  document.body.style.writingMode = "horizontal-tb"; // inline is horizontal
+  target.style.scrollSnapAlign = "none start";
+
+  window.scrollTo(200, 800);
+
+  assert_equals(document.scrollingElement.scrollLeft, 100, "inline should snap");
+  assert_equals(document.scrollingElement.scrollTop, 800, "block should not snap");
+}, "The writing-mode (horizontal-tb) on the body is used ");
+</script>

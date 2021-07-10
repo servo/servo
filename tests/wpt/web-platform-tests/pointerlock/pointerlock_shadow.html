@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name='author' title='Takayoshi Kochi' href='mailto:kochi@chromium.org'>
+<meta name='assert' content='Test for DocumentOrShadowRoot.pointerLockElement.'>
+<link rel='help' href='https://w3c.github.io/pointerlock/#widl-DocumentOrShadowRoot-pointerLockElement'>
+<meta name='timeout' content='long'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src='../shadow-dom/resources/shadow-dom.js'></script>
+</head>
+<body onload="inject_input()">
+<div id='host'>
+  <template data-mode='open' id='root'>
+    <slot></slot>
+  </template>
+  <div id='host2'>
+    <template data-mode='open' id='root2'>
+      <div id='host3'>
+        <template data-mode='open' id='root3'>
+          <canvas id='canvas'></canvas>
+          <div id='host4'>
+            <template data-mode='open' id='root4'>
+              <div></div>
+            </template>
+          </div>
+        </template>
+      </div>
+      <div id='host5'>
+        <template data-mode='open' id='root5'>
+          <div></div>
+        </template>
+      </div>
+    </template>
+  </div>
+</div>
+<div>
+  <h2>Description</h2>
+  <p>Click the button below to trigger pointer lock on an element in a shadow root.</p>
+  <button onclick="run_test()" id="button">Click Me!</button>
+</div>
+</body>
+<script>
+function run_test() {
+    async_test((test) => {
+        document.onpointerlockerror = test.unreached_func('onpointerlockerror is not expected.');
+
+        document.onpointerlockchange = test.step_func(() => {
+            // Not interested in handling before or after exitPointerLock.
+            if (document.pointerLockElement === null)
+                return;
+
+            assert_equals(document.pointerLockElement, ids.host2, 'document.pointerLockElement should be shadow #host2.');
+            assert_equals(ids.root.pointerLockElement, null, '#root\'s shadowRoot.pointerLockElement should be null.');
+            assert_equals(ids.root2.pointerLockElement, ids.host3, '#root2\'s shadowRoot.pointerLockElement should be host3.');
+            assert_equals(ids.root3.pointerLockElement, ids.canvas, '#root3\'s shadowRoot.pointerLockElement should be canvas element.');
+            assert_equals(ids.root4.pointerLockElement, null, '#root4\'s shadowRoot.pointerLockElement should be null.');
+            assert_equals(ids.root5.pointerLockElement, null, '#root5\'s shadowRoot.pointerLockElement should be null.');
+
+            document.exitPointerLock();
+            test.done();
+        });
+
+        var ids = createTestTree(host);
+        document.body.appendChild(ids.host);
+
+        // All pointerLockElement should default to null.
+        test.step(() => {
+            assert_equals(document.pointerLockElement, null);
+            assert_equals(ids.root.pointerLockElement, null);
+            assert_equals(ids.root2.pointerLockElement, null);
+            assert_equals(ids.root3.pointerLockElement, null);
+            assert_equals(ids.root4.pointerLockElement, null);
+            assert_equals(ids.root5.pointerLockElement, null);
+        });
+
+        var canvas = ids.canvas;
+        canvas.requestPointerLock();
+    }, 'Test for pointerLockElement adjustment for Shadow DOM.');
+  }
+
+  function inject_input() {
+      new test_driver.Actions()
+        .pointerMove(0, 0, {origin: button})
+        .pointerDown()
+        .pointerUp()
+        .send();
+  }
+</script>
+</html>

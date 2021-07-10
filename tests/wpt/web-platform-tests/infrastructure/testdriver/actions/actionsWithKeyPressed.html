@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>TestDriver actions: actions with key pressed</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+div#test1, div#test2 {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100px;
+  height: 100px;
+  background-color: blue;
+}
+
+div#test2 {
+  position: fixed;
+  top: 100px;
+  left: 0;
+  width: 100px;
+  height: 100px;
+  background-color: green;
+}
+</style>
+
+<div id="test1">
+</div>
+
+<div id="test2">
+</div>
+
+<script>
+let keys = [];
+
+promise_test(async t => {
+  let test1 = document.getElementById("test1");
+  let test2 = document.getElementById("test2");
+  document.getElementById("test1").addEventListener("click",
+    e => {keys.push(e.getModifierState("Shift"))});
+  document.getElementById("test2").addEventListener("click",
+    e => {keys.push(e.getModifierState("Shift"))});
+
+  let actions = new test_driver.Actions()
+    .keyDown("\uE008")
+    .addTick()
+    .pointerMove(0, 0, {origin: test1})
+    .pointerDown()
+    .pointerUp()
+    .pointerMove(0, 0, {origin: test2})
+    .pointerDown()
+    .pointerUp()
+    .addTick()
+    .keyUp("\uE008")
+    .addTick()
+    .pointerMove(0, 0, {origin: test1})
+    .pointerDown()
+    .pointerUp();
+
+  await actions.send();
+  assert_array_equals(keys, [true, true, false]);
+});
+</script>

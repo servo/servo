@@ -20,7 +20,7 @@
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
       <p>
-      	Load the svg and wait 5 seconds for the animation to run, then compare the image to the reference.
+        Load the svg and wait 5 seconds for the animation to run, then compare the image to the reference.
       </p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">

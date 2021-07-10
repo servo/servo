@@ -1,0 +1,167 @@
+<!--
+
+/*
+** Copyright (c) 2018 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL CopyTexImage from/to the same texture Tests</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="example" width="64" height="64"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+
+var wtu = WebGLTestUtils;
+// https://bugs.chromium.org/p/chromium/issues/detail?id=797235
+description("This test verifies CopyTexImage2D works if source/destination images belong to the same texture");
+debug("");
+
+var gl = wtu.create3DContext("example", undefined, 2);
+
+function enumToString(value) {
+    return wtu.glEnumToString(gl, value);
+}
+
+function checkFramebuffer(expected) {
+    var actual = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    if (expected.indexOf(actual) < 0) {
+        var msg = "checkFramebufferStatus expects [";
+        for (var index = 0; index < expected.length; ++index) {
+            msg += wtu.glEnumToString(gl, expected[index]);
+            if (index + 1 < expected.length)
+                msg += ", ";
+        }
+        msg += "], was " + wtu.glEnumToString(gl, actual);
+        testFailed(msg);
+    } else {
+        var msg = "checkFramebufferStatus got " + wtu.glEnumToString(gl, actual) +
+                  " as expected";
+        testPassed(msg);
+    }
+}
+
+function checkTextureLevelColor(texture, level, level_width, level_height, x, y, width, height, color) {
+    var fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    var color_renderable_tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, color_renderable_tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, level_width, level_height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, color_renderable_tex, 0);
+    checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
+
+    var program = wtu.setupTexturedQuad(gl);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_BASE_LEVEL, level);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAX_LEVEL, level);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+    wtu.clearAndDrawUnitQuad(gl);
+    wtu.checkCanvasRect(gl, x, y, width, height, color);
+
+    gl.deleteTexture(color_renderable_tex);
+    gl.deleteFramebuffer(fbo);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Check texture level color should generate no GL errors.");
+}
+
+function testChangeTargetTextureLevelSize() {
+    debug("");
+    var fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+
+    var texture = gl.createTexture();
+    wtu.fillTexture(gl, texture, 64, 64, [255, 0, 0, 255], 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.RGBA8);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 1);
+    checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
+
+    // fbo source texture is |texture| level 1, 32x32. Target is |texture| level 2, 64x64.
+    // Only one quarter of the target 64x64 will come from the source.
+    // Implementations may insert internal commands before copying over 32x32 in order to
+    // initialize undefined three quarters to 0 as WebGL spec requires. This will actually create
+    // a 64x64 image at level 2 and make the fbo incomplete, thus, the copying will fail.
+    gl.copyTexImage2D(gl.TEXTURE_2D, 2, gl.RGBA8, 0, 0, 64, 64, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "copyTexImage2D should succeed.");
+    checkFramebuffer([gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT]);
+
+    checkTextureLevelColor(texture, 2, 64, 64, 0, 0, 32, 32, [255, 0, 0, 255]);
+    checkTextureLevelColor(texture, 2, 64, 64, 0, 32, 64, 32, [0, 0, 0, 0]);
+    checkTextureLevelColor(texture, 2, 64, 64, 32, 32, 32, 32, [0, 0, 0, 0]);
+
+    gl.deleteFramebuffer(fbo);
+    gl.deleteTexture(texture);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Test should generate no GL errors.");
+}
+
+function testChangeTargetTextureLevelFormat() {
+    debug("");
+    var fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+
+    var texture = gl.createTexture();
+    wtu.fillTexture(gl, texture, 64, 64, [255, 0, 0, 255], 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.RGBA8);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 1);
+    checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
+
+    // Using LUNIMANCE_ALPHA format may trigger implementations' emulation code path
+    // on desktop core profile GL, which might change level 2 image definition first
+    // and make the fbo incomplete, thus, the actual copying will fail.
+    gl.copyTexImage2D(gl.TEXTURE_2D, 2, gl.LUMINANCE_ALPHA, 0, 0, 16, 16, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "copyTexImage2D should succeed.");
+    checkFramebuffer([gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT]);
+
+    checkTextureLevelColor(texture, 2, 16, 16, 0, 0, 16, 16, [255, 255, 255, 255]);
+
+    gl.deleteFramebuffer(fbo);
+    gl.deleteTexture(texture);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Test should generate no GL errors.");
+}
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+    testChangeTargetTextureLevelSize();
+    testChangeTargetTextureLevelFormat();
+}
+
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+
+</body>
+</html>

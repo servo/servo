@@ -1,19 +1,18 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #![allow(dead_code)]
 
-use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::BeforeUnloadEventBinding;
-use dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEventMethods;
-use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
-use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::str::DOMString;
-use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::window::Window;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEventMethods;
+use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
+use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use servo_atoms::Atom;
 
@@ -21,32 +20,31 @@ use servo_atoms::Atom;
 #[dom_struct]
 pub struct BeforeUnloadEvent {
     event: Event,
-    return_value: DOMRefCell<DOMString>,
+    return_value: DomRefCell<DOMString>,
 }
 
 impl BeforeUnloadEvent {
     fn new_inherited() -> BeforeUnloadEvent {
         BeforeUnloadEvent {
             event: Event::new_inherited(),
-            return_value: DOMRefCell::new(DOMString::new()),
+            return_value: DomRefCell::new(DOMString::new()),
         }
     }
 
-    pub fn new_uninitialized(window: &Window) -> Root<BeforeUnloadEvent> {
-        reflect_dom_object(box BeforeUnloadEvent::new_inherited(),
-                           window,
-                           BeforeUnloadEventBinding::Wrap)
+    pub fn new_uninitialized(window: &Window) -> DomRoot<BeforeUnloadEvent> {
+        reflect_dom_object(Box::new(BeforeUnloadEvent::new_inherited()), window)
     }
 
-    pub fn new(window: &Window,
-               type_: Atom,
-               bubbles: EventBubbles,
-               cancelable: EventCancelable) -> Root<BeforeUnloadEvent> {
+    pub fn new(
+        window: &Window,
+        type_: Atom,
+        bubbles: EventBubbles,
+        cancelable: EventCancelable,
+    ) -> DomRoot<BeforeUnloadEvent> {
         let ev = BeforeUnloadEvent::new_uninitialized(window);
         {
             let event = ev.upcast::<Event>();
-            event.init_event(type_, bool::from(bubbles),
-                             bool::from(cancelable));
+            event.init_event(type_, bool::from(bubbles), bool::from(cancelable));
         }
         ev
     }

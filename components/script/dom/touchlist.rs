@@ -1,48 +1,48 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::TouchListBinding;
-use dom::bindings::codegen::Bindings::TouchListBinding::TouchListMethods;
-use dom::bindings::js::{JS, Root};
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::touch::Touch;
-use dom::window::Window;
+use crate::dom::bindings::codegen::Bindings::TouchListBinding::TouchListMethods;
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::touch::Touch;
+use crate::dom::window::Window;
 use dom_struct::dom_struct;
 
 #[dom_struct]
 pub struct TouchList {
     reflector_: Reflector,
-    touches: Vec<JS<Touch>>,
+    touches: Vec<Dom<Touch>>,
 }
 
 impl TouchList {
     fn new_inherited(touches: &[&Touch]) -> TouchList {
         TouchList {
             reflector_: Reflector::new(),
-            touches: touches.iter().map(|touch| JS::from_ref(*touch)).collect(),
+            touches: touches.iter().map(|touch| Dom::from_ref(*touch)).collect(),
         }
     }
 
-    pub fn new(window: &Window, touches: &[&Touch]) -> Root<TouchList> {
-        reflect_dom_object(box TouchList::new_inherited(touches),
-                           window, TouchListBinding::Wrap)
+    pub fn new(window: &Window, touches: &[&Touch]) -> DomRoot<TouchList> {
+        reflect_dom_object(Box::new(TouchList::new_inherited(touches)), window)
     }
 }
 
 impl TouchListMethods for TouchList {
-    /// https://w3c.github.io/touch-events/#widl-TouchList-length
+    /// <https://w3c.github.io/touch-events/#widl-TouchList-length>
     fn Length(&self) -> u32 {
         self.touches.len() as u32
     }
 
-    /// https://w3c.github.io/touch-events/#widl-TouchList-item-getter-Touch-unsigned-long-index
-    fn Item(&self, index: u32) -> Option<Root<Touch>> {
-        self.touches.get(index as usize).map(|js| Root::from_ref(&**js))
+    /// <https://w3c.github.io/touch-events/#widl-TouchList-item-getter-Touch-unsigned-long-index>
+    fn Item(&self, index: u32) -> Option<DomRoot<Touch>> {
+        self.touches
+            .get(index as usize)
+            .map(|js| DomRoot::from_ref(&**js))
     }
 
-    /// https://w3c.github.io/touch-events/#widl-TouchList-item-getter-Touch-unsigned-long-index
-    fn IndexedGetter(&self, index: u32) -> Option<Root<Touch>> {
+    /// <https://w3c.github.io/touch-events/#widl-TouchList-item-getter-Touch-unsigned-long-index>
+    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Touch>> {
         self.Item(index)
     }
 }

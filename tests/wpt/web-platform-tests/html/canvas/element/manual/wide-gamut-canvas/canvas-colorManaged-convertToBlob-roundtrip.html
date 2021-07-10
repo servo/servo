@@ -1,0 +1,157 @@
+<!DOCTYPE HTML>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+// No matter what is the color space and pixel format of the color managed
+// canvas, toBlob() and toDataURL() always create the blob in sRGB color
+// space, and respect the legacy behavior by not including any color space
+// information in the blob/data url.
+
+var opaqueReferencePxiels, transparentReferencePixels;
+
+function testPixels(actualPixels, refPixels, testScenario)
+{
+    // Narrowing down the source of expected error:
+    // - Alpha values should always match.
+    // - Color components should be acceptably close.
+    if (testScenario.canvasColorParam.pixelFormat == 'uint8') {
+        let tolerance_color = 4;
+        for (let i = 0; i < actualPixels.length; i++) {
+            // Alpha channel
+            if (i % 4 == 3)
+                assert_equals(actualPixels[i], refPixels[i]);
+            else
+                assert_approx_equals(actualPixels[i], refPixels[i], tolerance_color);
+        }
+    } else {
+        // For half float backed canvas, we expect the error < 0.01.
+        let tolerance_color = 0.01;
+        for (let i = 0; i < actualPixels.length; i++) {
+            // Alpha channel
+            if (i % 4 == 3)
+                assert_equals(actualPixels[i], refPixels[i]);
+            else
+                assert_approx_equals(actualPixels[i], refPixels[i], tolerance_color);
+        }
+    }
+}
+
+function createCanvas(testScenario)
+{
+    var canvas = document.createElement("canvas");
+    canvas.width = 2;
+    canvas.height = 2;
+    return canvas;
+}
+
+function generateFillStyle(red, green, blue, alpha) {
+    return "rgba(" + red + "," + green + "," + blue + "," + alpha + ")";
+}
+
+function drawPatternOnCanvsa(ctx, alpha, compositeOverBlack) {
+    if (compositeOverBlack) {
+        ctx.fillStyle = generateFillStyle(0, 0, 0, 1);
+        ctx.fillRect(0, 0, 2, 2);
+    }
+    ctx.fillStyle = generateFillStyle(155, 27, 27, alpha);
+    ctx.fillRect(0, 0, 1, 1);
+    ctx.fillStyle = generateFillStyle(27, 155, 27, alpha);
+    ctx.fillRect(1, 0, 1, 1);
+    ctx.fillStyle = generateFillStyle(27, 27, 155, alpha);
+    ctx.fillRect(0, 1, 1, 1);
+    ctx.fillStyle = generateFillStyle(27, 27, 27, alpha);
+    ctx.fillRect(1, 1, 1, 1);
+}
+
+function testScenarioToString(testScenario) {
+    var str = "mimeType: " + testScenario.encodeOptions.type +
+        ", blobPixelFormat: " + testScenario.encodeOptions.pixelFormat +
+        ", source color space: " + testScenario.canvasColorParam.colorSpace +
+        ", pixel format: " + testScenario.canvasColorParam.pixelFormat +
+        ", alpha: " + testScenario.alpha;
+    return str;
+}
+
+function runConvertToBlobTest(testScenario) {
+    var srcCanvas = createCanvas(testScenario);
+    var ctx = srcCanvas.getContext('2d', testScenario.canvasColorParam);
+    var compositeOverBlack = (testScenario.encodeOptions.type == "image/jpeg");
+    drawPatternOnCanvsa(ctx, testScenario.alpha, compositeOverBlack);
+    var refPixels = ctx.getImageData(0, 0, 2, 2, testScenario.imageSetting).data;
+
+    var t = async_test("Test canvas convertToBlob(): " +
+        testScenarioToString(testScenario));
+
+    var image = new Image();
+    image.onload = t.step_func_done(function() {
+        var dstCanvas = createCanvas(testScenario);
+        var dstCtx = dstCanvas.getContext('2d', testScenario.canvasColorParam);
+        dstCtx.drawImage(image, 0, 0);
+        var actualPixels = dstCtx.getImageData(0, 0, 2, 2, testScenario.imageSetting).data;
+        testPixels(actualPixels, refPixels, testScenario);
+    });
+
+    srcCanvas.convertToBlob(testScenario.encodeOptions).then(
+        t.step_func(function(blob) {
+            var urlCreator = window.URL || window.webkitURL;
+            image.src = urlCreator.createObjectURL(blob);
+        }),
+        t.step_func_done(function(e) {
+            assert_false("convertToBlob failed.");
+        })
+    );
+}
+
+function runAllTests() {
+
+    var mimeTypes = ['image/png', 'image/jpeg', 'image/webp'];
+    var blobPixelFormats = ['uint8', 'uint16'];
+
+    var encodeOptionsSet = [];
+    for (var i = 0; i < mimeTypes.length; i++)
+        for (var k = 0; k < blobPixelFormats.length; k++) {
+            var encodeOptions = {};
+            encodeOptions.quality = 1;
+            encodeOptions.type = mimeTypes[i];
+            encodeOptions.pixelFormat = blobPixelFormats[k];
+            encodeOptionsSet.push(encodeOptions);
+        }
+
+    var canvasColorParams = [
+        {colorSpace: 'srgb', pixelFormat: 'uint8'},
+        {colorSpace: 'srgb', pixelFormat: 'float16'},
+    ];
+
+    var imageSettings = [
+        {colorSpace: 'srgb', storageFormat: 'uint8'},
+        {colorSpace: 'srgb', storageFormat: 'float32'},
+    ];
+    var alphaValues = [0.5, 1];
+
+    // The *correct* way to test convertToBlob() is to directly examine the
+    // image file for the expected color space and pixels. Since this is not
+    // easy to do in javascript, we use a round-trip test here and leave the
+    // more thorough testing to unit tests.
+
+    var testScenarioSet = [];
+    for (var i = 0; i < encodeOptionsSet.length; i++)
+        for (var j = 0; j < canvasColorParams.length; j++)
+            for (var k = 0; k < alphaValues.length; k++) {
+                var testScenario = {};
+                testScenario.encodeOptions = encodeOptionsSet[i];
+                testScenario.canvasColorParam = canvasColorParams[j];
+                testScenario.alpha = alphaValues[k];
+                testScenario.imageSetting = imageSettings[j]
+                testScenarioSet.push(testScenario);
+            }
+
+    for (var i = 0; i < testScenarioSet.length; i++)
+        runConvertToBlobTest(testScenarioSet[i]);
+}
+
+test(function() {
+    runAllTests();
+}, "Overall test");
+
+</script>

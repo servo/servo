@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>'grid-template' property</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-get">
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-set">
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#property-stle-value-normalization">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../resources/testhelper.js"></script>
+<script src="resources/testsuite.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+runUnsupportedPropertyTests('grid-template', [
+  'none', '100px 1fr / 50px 1fr', '[linename] 100px / [columnname1] 30% [columname2] 70%',
+  'fit-content(100px) / fit-content(40%)', '"a a a" "b b b"',
+  '[header-top] "a a a" [header-bottom] [main-top] "b b b" 1fr [main-bottom] / auto 1fr auto'
+]);
+
+</script>

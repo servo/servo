@@ -1,0 +1,15 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Deprecation Reporting (https://wicg.github.io/deprecation-reporting/)
+
+[Exposed=(Window,Worker)]
+interface DeprecationReportBody : ReportBody {
+  [Default] object toJSON();
+  readonly attribute DOMString id;
+  readonly attribute object? anticipatedRemoval;
+  readonly attribute DOMString message;
+  readonly attribute DOMString? sourceFile;
+  readonly attribute unsigned long? lineNumber;
+  readonly attribute unsigned long? columnNumber;
+};

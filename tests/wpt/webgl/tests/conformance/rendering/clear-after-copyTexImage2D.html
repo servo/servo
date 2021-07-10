@@ -1,0 +1,87 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL clear after copyTexImage2D with a non-pure color</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="128" height="128"> </canvas>
+<script>
+"use strict";
+// This test verifies a Intel D3D driver bug.
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("canvas", {"antialias" : "true"});
+
+function testClearAfterCopyTexImage2DWithoutPureOneOrZero(clearColor, expectedColor)
+{
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.clearColor(0, 0, 0, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  var width = 16;
+  var height = 16;
+  var texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.copyTexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 0, 0, width, height, 0);
+  gl.clearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  wtu.checkCanvasRect(gl, 0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight, expectedColor);
+
+  gl.bindTexture(gl.TEXTURE_2D, null);
+  gl.deleteTexture(texture);
+}
+
+description("Test that if clear with a color that has non-0/1 RGB components after copyTexImage2D, the final render color should be consistent with the clear color.");
+
+for(var index = 0; index < 3; index++)
+{
+  var clearColor = [0, 0, 0, 1];
+  var expectedColor = [0, 0, 0, 255];
+  clearColor[index] = 0.8;
+  expectedColor[index] = 255 * clearColor[index];
+  testClearAfterCopyTexImage2DWithoutPureOneOrZero(clearColor, expectedColor);
+}
+
+debug("");
+var successfullyParsed = true;
+
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

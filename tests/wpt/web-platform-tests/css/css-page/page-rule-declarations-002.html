@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Paged Media: parsing page properties inside HTML elements</title>
+<link rel="author" title="Felipe Erias Morandeira" href="mailto:felipeerias@gmail.com"/>
+<link rel="help" href="https://drafts.csswg.org/css-page/#using-named-pages"/>
+<meta name="assert" content="Test that page properties of HTML elements are parsed correctly.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+
+<style type="text/css">
+
+    @page {
+        size: a4;
+    }
+    @page small_page {
+        size: a5 portrait;
+    }
+    @page large_page {
+        size: a3 landscape;
+    }
+
+</style>
+<script type="text/javascript">
+
+    test_valid_value("page", "auto");
+    test_valid_value("page", "small_page");
+    test_valid_value("page", "large_page");
+    test_invalid_value("page", "auto small_page");
+    test_invalid_value("page", "large_page auto");
+    test_invalid_value("page", "small_page large_page");
+    test_invalid_value("page", "1cm");
+
+</script>

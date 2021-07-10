@@ -1,0 +1,334 @@
+{
+    "tests": [
+        {
+            "expected": [
+                "<span title='test &#39;with&#39; quote_char'>"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "span",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "title",
+                            "value": "test 'with' quote_char"
+                        }
+                    ]
+                ]
+            ],
+            "description": "quote_char=\"'\"",
+            "options": {
+                "quote_char": "'"
+            }
+        },
+        {
+            "expected": [
+                "<button disabled>"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "button",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "disabled",
+                            "value": "disabled"
+                        }
+                    ]
+                ]
+            ],
+            "description": "quote_attr_values='always'",
+            "options": {
+                "quote_attr_values": "always"
+            }
+        },
+        {
+            "expected": [
+                "<div itemscope>"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "div",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "itemscope",
+                            "value": "itemscope"
+                        }
+                    ]
+                ]
+            ],
+            "description": "quote_attr_values='always' with itemscope",
+            "options": {
+                "quote_attr_values": "always"
+            }
+        },
+        {
+            "expected": [
+                "<div irrelevant>"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "div",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "irrelevant",
+                            "value": "irrelevant"
+                        }
+                    ]
+                ]
+            ],
+            "description": "quote_attr_values='always' with irrelevant",
+            "options": {
+                "quote_attr_values": "always"
+            }
+        },
+        {
+            "expected": [
+                "<div class=\"foo\">"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "div",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "class",
+                            "value": "foo"
+                        }
+                    ]
+                ]
+            ],
+            "description": "non-minimized quote_attr_values='always'",
+            "options": {
+                "quote_attr_values": "always"
+            }
+        },
+        {
+            "expected": [
+                "<div class=foo>"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "div",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "class",
+                            "value": "foo"
+                        }
+                    ]
+                ]
+            ],
+            "description": "non-minimized quote_attr_values='legacy'",
+            "options": {
+                "quote_attr_values": "legacy"
+            }
+        },
+        {
+            "expected": [
+                "<div class=foo>"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "div",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "class",
+                            "value": "foo"
+                        }
+                    ]
+                ]
+            ],
+            "description": "non-minimized quote_attr_values='spec'",
+            "options": {
+                "quote_attr_values": "spec"
+            }
+        },
+        {
+            "expected": [
+                "<img />"
+            ],
+            "input": [
+                [
+                    "EmptyTag",
+                    "img",
+                    {}
+                ]
+            ],
+            "description": "use_trailing_solidus=true with void element",
+            "options": {
+                "use_trailing_solidus": true
+            }
+        },
+        {
+            "expected": [
+                "<div>"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "div",
+                    {}
+                ]
+            ],
+            "description": "use_trailing_solidus=true with non-void element",
+            "options": {
+                "use_trailing_solidus": true
+            }
+        },
+        {
+            "expected": [
+                "<div itemscope=itemscope>"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "div",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "itemscope",
+                            "value": "itemscope"
+                        }
+                    ]
+                ]
+            ],
+            "description": "minimize_boolean_attributes=false",
+            "options": {
+                "minimize_boolean_attributes": false
+            }
+        },
+        {
+            "expected": [
+                "<div irrelevant=irrelevant>"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "div",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "irrelevant",
+                            "value": "irrelevant"
+                        }
+                    ]
+                ]
+            ],
+            "description": "minimize_boolean_attributes=false",
+            "options": {
+                "minimize_boolean_attributes": false
+            }
+        },
+        {
+            "expected": [
+                "<div itemscope=\"\">"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "div",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "itemscope",
+                            "value": ""
+                        }
+                    ]
+                ]
+            ],
+            "description": "minimize_boolean_attributes=false with empty value",
+            "options": {
+                "minimize_boolean_attributes": false
+            }
+        },
+        {
+            "expected": [
+                "<div irrelevant=\"\">"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "div",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "irrelevant",
+                            "value": ""
+                        }
+                    ]
+                ]
+            ],
+            "description": "minimize_boolean_attributes=false with empty value",
+            "options": {
+                "minimize_boolean_attributes": false
+            }
+        },
+        {
+            "expected": [
+                "<a title=\"a&lt;b>c&amp;d\">"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "a",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "title",
+                            "value": "a<b>c&d"
+                        }
+                    ]
+                ]
+            ],
+            "description": "escape less than signs in attribute values",
+            "options": {
+                "escape_lt_in_attrs": true
+            }
+        },
+        {
+            "expected": [
+                "<script>a&lt;b&gt;c&amp;d"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "script",
+                    {}
+                ],
+                [
+                    "Characters",
+                    "a<b>c&d"
+                ]
+            ],
+            "description": "rcdata",
+            "options": {
+                "escape_rcdata": true
+            }
+        }
+    ]
+}

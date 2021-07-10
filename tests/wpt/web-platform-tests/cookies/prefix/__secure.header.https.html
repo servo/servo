@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+<script>
+  ["", "MaxAge=10", "HttpOnly"].forEach(extraParams => {
+    // Without 'secure'
+    set_prefixed_cookie_via_http_test({
+      prefix: "__Secure-",
+      params: "Path=/;" + extraParams,
+      origin: self.origin,
+      shouldExistViaHTTP: false,
+      title: "__Secure: secure origin: Should not set 'Path=/;" + extraParams + "'"
+    });
+
+    // With 'secure'
+    set_prefixed_cookie_via_http_test({
+      prefix: "__Secure-",
+      params: "Secure;Path=/;" + extraParams,
+      origin: self.origin,
+      shouldExistViaHTTP: true,
+      title: "__Secure: secure origin: Should set 'Secure;Path=/;" + extraParams + "'"
+    });
+  });
+
+  // Without 'secure'
+  set_prefixed_cookie_via_http_test({
+    prefix: "__Secure-",
+    // SameSite=None is necessary because cross-site origins cannot set SameSite cookies via fetch.
+    params: "Path=/;SameSite=None;domain=" + CROSS_SITE_HOST,
+    origin: SECURE_CROSS_SITE_ORIGIN,
+    shouldExistViaHTTP: false,
+    title: "__Secure: secure origin: Should not set 'Path=/;domain=" + CROSS_SITE_HOST + "'"
+  });
+
+  // With 'secure'
+  set_prefixed_cookie_via_http_test({
+    prefix: "__Secure-",
+    // SameSite=None is necessary because cross-site origins cannot set SameSite cookies via fetch.
+    params: "Secure;SameSite=None;Path=/;domain=" + CROSS_SITE_HOST,
+    origin: SECURE_CROSS_SITE_ORIGIN,
+    shouldExistViaHTTP: true,
+    title: "__Secure: secure origin: Should set 'Secure;Path=/;domain=" + CROSS_SITE_HOST + "'"
+  });
+</script>

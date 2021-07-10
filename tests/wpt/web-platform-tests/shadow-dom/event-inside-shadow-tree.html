@@ -44,7 +44,7 @@ function testEventInDetachedShadowTree(mode) {
 
         log = dispatchEventWithLog(shadow.target, new Event('foo', {composed: true, bubbles: true}));
 
-        assert_array_equals(log.length, 4, 'EventPath must contain [target, parent, shadow root, shadow host]');
+        assert_equals(log.length, 4, 'EventPath must contain [target, parent, shadow root, shadow host]');
         assert_array_equals(log[0], [shadow.target, shadow.target], 'EventPath[0] must be the target');
         assert_array_equals(log[1], [shadow.parent, shadow.target], 'EventPath[1] must be the parent of the target');
         assert_array_equals(log[2], [shadow.root, shadow.target], 'EventPath[2] must be the shadow root');
@@ -63,7 +63,7 @@ function testEventInShadowTreeInsideDocument(mode) {
 
         log = dispatchEventWithLog(shadow.target, new Event('foo', {composed: true, bubbles: true}));
 
-        assert_array_equals(log.length, 7, 'EventPath must contain [target, parent, shadow root, shadow host, body, html, document]');
+        assert_equals(log.length, 7, 'EventPath must contain [target, parent, shadow root, shadow host, body, html, document]');
         assert_array_equals(log[0], [shadow.target, shadow.target], 'EventPath[0] must be the target');
         assert_array_equals(log[1], [shadow.parent, shadow.target], 'EventPath[1] must be the parent of the target');
         assert_array_equals(log[2], [shadow.root, shadow.target], 'EventPath[2] must be the shadow root');
@@ -101,7 +101,7 @@ function testEventInDetachedNestedShadowTree(innerMode, outerMode) {
 
         log = dispatchEventWithLog(shadow.target, new Event('bar', {composed: true, bubbles: true}));
 
-        assert_array_equals(log.length, 6, 'EventPath must contain [target, inner root, inner host, parent, outer root, outer host]');
+        assert_equals(log.length, 6, 'EventPath must contain [target, inner root, inner host, parent, outer root, outer host]');
         assert_array_equals(log[0], [shadow.target, shadow.target], 'EventPath[0] must be the target');
         assert_array_equals(log[1], [shadow.innerRoot, shadow.target], 'EventPath[1] must be the inner shadow root');
         assert_array_equals(log[2], [shadow.innerHost, shadow.innerHost], 'EventPath[2] must be the inner shadow host');
@@ -124,7 +124,7 @@ function testEventInNestedShadowTreeInsideDocument(innerMode, outerMode) {
 
         log = dispatchEventWithLog(shadow.target, new Event('bar', {composed: true, bubbles: true}));
 
-        assert_array_equals(log.length, 6, 'EventPath must contain [target, inner root, inner host, parent, outer root, outer host]');
+        assert_equals(log.length, 9, 'EventPath must contain [target, inner root, inner host, parent, outer root, outer host]');
         assert_array_equals(log[0], [shadow.target, shadow.target], 'EventPath[0] must be the target');
         assert_array_equals(log[1], [shadow.innerRoot, shadow.target], 'EventPath[1] must be the inner shadow root');
         assert_array_equals(log[2], [shadow.innerHost, shadow.innerHost], 'EventPath[2] must be the inner shadow host');

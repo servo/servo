@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSS Text test: alignement and trailing spaces with white-space:pre-wrap</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="match" href="reference/white-space-pre-wrap-trailing-spaces-001-ref.html">
+<meta name="assert" content="Preserved white space with pre-wrap at the end of a line ending with a forced line break conditionally hangs, so it does affect alignment.">
+
+<style>
+div {
+  white-space: pre-wrap;
+  font-family: monospace;
+}
+div:nth-of-type(2) {
+  width: 7ch;
+  text-align: right;
+}
+div:nth-of-type(3),
+div:nth-of-type(4) {
+  width: 9ch;
+  text-align: center;
+}
+</style>
+
+<p>This test passes if the 4 letters below are verticaly aligned.
+
+<div>    P</div>
+<div>A  </div>
+<div>    S                                </div>
+<div> S </div>

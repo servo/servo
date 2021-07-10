@@ -1,0 +1,77 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>CSS Grid Test: Grid axis fragmentation with column masonry layout</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-2">
+  <link rel="match" href="masonry-fragmentation-005-ref.html">
+  <style>
+html,body {
+  color:black; background-color:white; font:10px/1 monospace; padding:0; margin:0;
+}
+wrapper {
+  display: block;
+  width: 600px;
+  height: 600px;
+  overflow: hidden;
+}
+
+.columns {
+  columns: 3;
+  column-fill: auto;
+  background: lightgrey;
+  margin-bottom: 15px;
+}
+
+.grid {
+  display: grid;
+  grid: 20px auto 30px / masonry;
+  justify-tracks: space-between;
+  border: solid;
+  border-width: 3px 1px 7px 5px;
+  padding: 1px 3px 5px 7px;
+  gap: 1px 5px;
+}
+
+.grid > * {
+  background: cyan;
+  min-width: 20px;
+  min-height: 10px;
+}
+.grid > :nth-child(4n) {
+  background: blue;
+  width: 35px;
+}
+.grid > :nth-child(3n) {
+  background: gray;
+  width: 40px;
+}
+</style>
+</head>
+<body>
+<wrapper style="display:none">
+<div style="display:none">
+<div class="columns">
+  <div class="grid">
+    <x></x><x></x><x></x><x></x><x></x><x></x><x></x><x></x><x></x><x></x><x></x><x></x>
+  </div>
+</div>
+</div>
+<script>
+let wrapper = document.querySelectorAll("wrapper")[0];
+let tmplt = document.querySelectorAll(".columns")[0];
+let heights = [ 90, 68, 48, 38, 28, 18 ];
+for (let h of heights) {
+  let e = tmplt.cloneNode(true);
+  e.style.height = h + "px";
+  wrapper.appendChild(e);
+}
+wrapper.style.display="";
+</script>
+</wrapper>
+</body>
+</html>

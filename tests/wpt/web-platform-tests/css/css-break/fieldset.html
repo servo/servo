@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#possible-breaks">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  fieldset { margin:0; border:none; padding:0; }
+  .block { break-inside:avoid; height:50px; background:green; }
+  .fail { background:red; }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:2; column-fill:auto; width:100px; height:140px; column-gap:0; overflow:hidden;">
+  <fieldset>
+    <div class="block"></div>
+    <div class="block"></div>
+    <div class="block"></div>
+    <div class="block"></div>
+
+    <!-- No room for this - should be clipped: -->
+    <div class="block fail"></div>
+  </fieldset>
+</div>

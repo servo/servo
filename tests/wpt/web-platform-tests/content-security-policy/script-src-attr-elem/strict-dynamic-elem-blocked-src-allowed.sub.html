@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'strict-dynamic' 'nonce-abc';
+    script-src-elem 'nonce-abc';">
+    <script nonce='abc' src="/resources/testharness.js"></script>
+    <script nonce='abc' src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+    <script nonce='abc'>
+      var t = async_test("Should fire a security policy violation event");
+      window.addEventListener('securitypolicyviolation', t.step_func_done(function(e) {
+        assert_equals(e.violatedDirective, "script-src-elem");
+        assert_equals(e.blockedURI, "{{location[scheme]}}://{{location[host]}}/content-security-policy/script-src-attr-elem/support/t_fail.js");
+      }));
+
+      var s = document.createElement('script');
+      s.src = 'support/t_fail.js';
+      document.head.appendChild(s);
+    </script>
+</body>
+
+</html>

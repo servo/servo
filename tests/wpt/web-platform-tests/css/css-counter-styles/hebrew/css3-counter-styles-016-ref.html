@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>hebrew, 10+</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#simple-numeric'>
+<link rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+<meta name='flags' content='font'>
+<meta name="assert" content="list-style: hebrew produces numbers after 9 items per the spec.">
+<style type='text/css'>
+ol li { list-style-type: hebrew;  }
+/* the following CSS is not part of the test */
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, IGNORING the suffix.</p>
+<div class="test">
+<ol start='10'><div><bdi dir=ltr>י. </bdi>י</div></ol>
+<ol start='11'><div><bdi dir=ltr>יא. </bdi>יא</div></ol>
+<ol start='12'><div><bdi dir=ltr>יב. </bdi>יב</div></ol>
+<ol start='13'><div><bdi dir=ltr>יג. </bdi>יג</div></ol>
+<ol start='14'><div><bdi dir=ltr>יד. </bdi>יד</div></ol>
+<ol start='15'><div><bdi dir=ltr>טו. </bdi>טו</div></ol>
+<ol start='16'><div><bdi dir=ltr>טז. </bdi>טז</div></ol>
+<ol start='17'><div><bdi dir=ltr>יז. </bdi>יז</div></ol>
+<ol start='18'><div><bdi dir=ltr>יח. </bdi>יח</div></ol>
+<ol start='43'><div><bdi dir=ltr>מג. </bdi>מג</div></ol>
+<ol start='77'><div><bdi dir=ltr>עז. </bdi>עז</div></ol>
+<ol start='80'><div><bdi dir=ltr>פ. </bdi>פ</div></ol>
+<ol start='99'><div><bdi dir=ltr>צט. </bdi>צט</div></ol>
+<ol start='100'><div><bdi dir=ltr>ק. </bdi>ק</div></ol>
+<ol start='101'><div><bdi dir=ltr>קא. </bdi>קא</div></ol>
+<ol start='222'><div><bdi dir=ltr>רכב. </bdi>רכב</div></ol>
+<ol start='400'><div><bdi dir=ltr>ת. </bdi>ת</div></ol>
+<ol start='401'><div><bdi dir=ltr>תא. </bdi>תא</div></ol>
+<ol start='499'><div><bdi dir=ltr>תצט. </bdi>תצט</div></ol>
+<ol start='500'><div><bdi dir=ltr>תק. </bdi>תק</div></ol>
+<ol start='555'><div><bdi dir=ltr>תקנה. </bdi>תקנה</div></ol>
+<ol start='997'><div><bdi dir=ltr>תתקצז. </bdi>תתקצז</div></ol>
+<ol start='1000'><div><bdi dir=ltr>א׳. </bdi>א׳</div></ol>
+<ol start='1001'><div><bdi dir=ltr>א׳א. </bdi>א׳א</div></ol>
+<ol start='3256'><div><bdi dir=ltr>ג׳רנו. </bdi>ג׳רנו</div></ol>
+<ol start='7998'><div><bdi dir=ltr>ז׳תתקצח. </bdi>ז׳תתקצח</div></ol>
+<ol start='9999'><div><bdi dir=ltr>ט׳תתקצט. </bdi>ט׳תתקצט</div></ol>
+<ol start='10000'><div><bdi dir=ltr>י׳. </bdi>י׳</div></ol>
+<ol start='10997'><div><bdi dir=ltr>י׳תתקצז. </bdi>י׳תתקצז</div></ol>
+</div>
+<!--Notes:
+You will need an appropriate font to run this test.
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+</body>
+</html>

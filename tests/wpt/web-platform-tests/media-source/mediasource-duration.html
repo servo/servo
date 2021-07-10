@@ -265,7 +265,7 @@
               {
                   assert_false(sourceBuffer.updating, "updating");
 
-                  assert_throws("InvalidStateError", function()
+                  assert_throws_dom("InvalidStateError", function()
                   {
                       mediaSource.duration = newDuration;
                   }, "duration");
@@ -301,7 +301,7 @@
                           assert_equals(sourceBufferVideo.buffered.length, 1);
                           assert_less_than(sourceBufferAudio.buffered.start(0), newDuration);
                           assert_greater_than(sourceBufferVideo.buffered.start(0), newDuration);
-                          assert_throws("InvalidStateError", function () { mediaSource.duration = newDuration; });
+                          assert_throws_dom("InvalidStateError", function () { mediaSource.duration = newDuration; });
                           test.done();
                       });
                   });
@@ -345,7 +345,7 @@
                           // Verify the expected error
                           // We assume relocated test video has at least one coded
                           // frame presentation interval which fits in [>2.0,>2.5)
-                          assert_throws("InvalidStateError", function () { mediaSource.duration = newDuration; });
+                          assert_throws_dom("InvalidStateError", function () { mediaSource.duration = newDuration; });
                           test.done();
                       });
                   });

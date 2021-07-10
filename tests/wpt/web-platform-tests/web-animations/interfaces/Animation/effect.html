@@ -1,29 +1,29 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
-<title>Animation.effect tests</title>
-<link rel="help" href="https://w3c.github.io/web-animations/#dom-animation-effect">
+<title>Animation.effect</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#dom-animation-effect">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../testcommon.js"></script>
 <body>
 <div id="log"></div>
 <script>
-"use strict";
+'use strict';
 
-test(function(t) {
-  var anim = new Animation();
-  assert_equals(anim.effect, null, "initial effect is null");
+test(t => {
+  const anim = new Animation();
+  assert_equals(anim.effect, null, 'initial effect is null');
 
-  var newEffect = new KeyframeEffectReadOnly(createDiv(t), null);
+  const newEffect = new KeyframeEffect(createDiv(t), null);
   anim.effect = newEffect;
-  assert_equals(anim.effect, newEffect, "new effect is set");
-}, "effect is set correctly.");
+  assert_equals(anim.effect, newEffect, 'new effect is set');
+}, 'effect is set correctly.');
 
-test(function(t) {
-  var div = createDiv(t);
-  var animation = div.animate({ left: ['100px', '100px'] },
-                              { fill: 'forwards' });
-  var effect = animation.effect;
+test(t => {
+  const div = createDiv(t);
+  const animation = div.animate({ left: ['100px', '100px'] },
+                                { fill: 'forwards' });
+  const effect = animation.effect;
 
   assert_equals(getComputedStyle(div).left, '100px',
                 'animation is initially having an effect');

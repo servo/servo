@@ -1,0 +1,90 @@
+<!doctype html>
+<html>
+  <head>
+    <title>aria-checked=mixed</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_INDETERMINATE"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_CHECKABLE"
+               ],
+               [
+                  "property",
+                  "states",
+                  "doesNotContain",
+                  "STATE_CHECKED"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXValue",
+                  "is",
+                  "2"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "checkable:true"
+               ]
+            ],
+            "MSAA" : [
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_SYSTEM_MIXED"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "Toggle.ToggleState",
+                  "is",
+                  "Indeterminate (2)"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "aria-checked=mixed"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for aria-checked=mixed.</p>
+    <div role='checkbox' id='test' aria-checked='mixed'>content</div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>

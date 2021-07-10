@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/mediacapture-image/resources/imagecapture-helpers.js"></script>
+<script>
+
+const meteringModeNames = ['none', 'manual', 'single-shot', 'continuous'];
+
+// This test verifies that the settings defined in the mock Mojo service
+// implementation are the same as those returned by the corresponding
+// MediaStreamTrack.getSettings(), except for PTZ settings when PTZ
+// permission is denied.
+
+function makeImageCaptureTest(hasPanTiltZoomPermissionGranted) {
+  image_capture_test(async (t, imageCaptureTest) => {
+    const ptzPermission = hasPanTiltZoomPermissionGranted ? 'granted' : 'denied';
+    await test_driver.set_permission({name: 'camera', panTiltZoom: true},
+        ptzPermission, false);
+
+    let mockSettings = imageCaptureTest.mockImageCapture().state();
+
+    // |stream| must be created _after_ |mock| is constructed to give the
+    // latter time to override the bindings.
+    let stream = await navigator.mediaDevices.getUserMedia({video: true});
+    let videoTrack = stream.getVideoTracks()[0];
+
+    // |videoTrack|s settings retrieval, just like the actual capture, is a
+    // process kicked right after creation, we introduce a small delay to
+    // allow for those to be collected.
+    await new Promise(resolve => step_timeout(resolve, 100));
+
+    let settings = videoTrack.getSettings();
+    assert_equals(typeof settings, 'object');
+
+    assert_equals(settings.whiteBalanceMode,
+                  meteringModeNames[mockSettings.currentWhiteBalanceMode],
+                  'whiteBalanceMode');
+    assert_equals(settings.exposureMode,
+                  meteringModeNames[mockSettings.currentExposureMode],
+                  'exposureMode;');
+    assert_equals(settings.focusMode,
+                  meteringModeNames[mockSettings.currentFocusMode],
+                  'focusMode');
+
+    assert_point2d_array_approx_equals(
+        settings.pointsOfInterest, mockSettings.pointsOfInterest, 0.01);
+
+    assert_equals(settings.exposureCompensation,
+                  mockSettings.exposureCompensation.current);
+    assert_equals(settings.exposureTime,
+                  mockSettings.exposureTime.current);
+    assert_equals(settings.colorTemperature,
+                  mockSettings.colorTemperature.current);
+    assert_equals(settings.iso, mockSettings.iso.current);
+
+    assert_equals(settings.brightness, mockSettings.brightness.current);
+    assert_equals(settings.contrast, mockSettings.contrast.current);
+    assert_equals(settings.saturation, mockSettings.saturation.current);
+    assert_equals(settings.sharpness, mockSettings.sharpness.current);
+
+    assert_equals(settings.focusDistance, mockSettings.focusDistance.current);
+
+    if (ptzPermission === 'granted') {
+      assert_equals(settings.pan, mockSettings.pan.current);
+      assert_equals(settings.tilt, mockSettings.tilt.current);
+      assert_equals(settings.zoom, mockSettings.zoom.current);
+    } else if (ptzPermission === 'denied') {
+      assert_false('pan' in settings);
+      assert_false('tilt' in settings);
+      assert_false('zoom' in settings);
+    }
+
+    assert_equals(settings.torch, mockSettings.torch, 'torch');
+  });
+}
+
+generate_tests(makeImageCaptureTest, [
+  [
+    "exercises MediaStreamTrack.getSettings() with PTZ permission denied",
+    false,
+  ],
+  [
+    "exercises MediaStreamTrack.getSettings() with PTZ permission granted",
+    true,
+  ],
+]);
+</script>

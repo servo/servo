@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf8">
+<title>CSS contain-intrinsic-size: fieldset</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="match" href="contain-intrinsic-size-014-ref.html">
+<meta name="assert" content="contain-intrinsic-size sizes fieldsets">
+
+<style>
+fieldset {
+  width: max-content;
+  contain-intrinsic-size: 111px 222px;
+  contain: size;
+}
+</style>
+
+<fieldset>
+  <legend>This is a legend</legend>
+  This is some content.
+</fieldset>

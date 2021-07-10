@@ -1,0 +1,10 @@
+<!doctype html>
+<title>CSS Test: border-collapsed tables don't unconditionally render double borders as solid</title>
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1521066">
+<link rel="help" href="https://drafts.csswg.org/css2/tables.html#collapsing-borders">
+<link rel="mismatch" href="border-collapse-double-border-notref.html">
+<table style="border-collapse: collapse; border-style: double;">
+  <td>Should see a non-solid border</td>
+</table>

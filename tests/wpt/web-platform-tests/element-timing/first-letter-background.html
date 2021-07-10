@@ -1,0 +1,57 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Element Timing: observe element with background image in its first letter</title>
+<body>
+<style>
+#target::first-letter {
+  background-image: url('/images/black-rectangle.png');
+}
+#target {
+  font-size: 12px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/element-timing-helpers.js"></script>
+<script>
+  let beforeRender = performance.now();
+  async_test(function (t) {
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    const div = document.getElementById('target');
+    let textObserved = false;
+    let imageObserved = false;
+    function calculateSize(entry) {
+      const ir = entry.intersectionRect;
+      return (ir.right - ir.left) * (ir.bottom - ir.top);
+    }
+    const observer = new PerformanceObserver(
+      t.step_func(function(entryList) {
+        entryList.getEntries().forEach(entry => {
+          if (entry.name === 'text-paint') {
+            checkTextElement(entry, 'my_div', 'target', beforeRender, div);
+            textObserved = true;
+            const size = calculateSize(entry);
+            // Assume average width is between 4px and 15px.
+            // Therefore, text size must be between 12 * (35*4) and 12 * (35*15).
+            assert_between_inclusive(size, 1680, 6300);
+          }
+          else {
+            assert_equals(entry.name, 'image-paint');
+            const pathname = window.location.origin + '/images/black-rectangle.png';
+            checkElement(entry, pathname, 'my_div', 'target', beforeRender, div);
+            checkNaturalSize(entry, 100, 50);
+            imageObserved = true;
+            const size = calculateSize(entry);
+            // Background image size should only be approximately the size of a single letter.
+            assert_between_inclusive(size, 48, 180);
+          }
+        });
+        if (textObserved && imageObserved)
+          t.done();
+      })
+    );
+    observer.observe({entryTypes: ['element']});
+  }, 'Element with elementtiming attribute and background image in first-letter is observable.');
+</script>
+<div id='target' elementtiming='my_div'>This is some text that I care about</div>
+</body>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     width="800px" height="800px">
+  <title>SVG Painting: parsing stroke-dasharray with valid values</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/painting.html#StrokeDasharrayProperty"/>
+    <h:meta name="assert" content="stroke-dasharray supports the full grammar 'none | dasharray'"/>
+  </metadata>
+  <g id="target"></g>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="/css/support/parsing-testcommon.js"/>
+  <script><![CDATA[
+
+test_valid_value("stroke-dasharray", "none");
+
+// dasharray = [ length-percentage | number ]#*
+test_valid_value("stroke-dasharray", "10px");
+test_valid_value("stroke-dasharray", "20%");
+test_valid_value("stroke-dasharray", "calc(2em + 3ex)");
+
+test_valid_value("stroke-dasharray", "10pt 20% 30pc 40in", "10pt, 20%, 30pc, 40in");
+test_valid_value("stroke-dasharray", "10vmin, 20vmax, 30em, 40ex");
+test_valid_value("stroke-dasharray", "0, 5", ["0, 5", "0px, 5px"]); // Edge/Safari serialize numbers as lengths.
+test_valid_value("stroke-dasharray", "calc(3)");
+test_valid_value("stroke-dasharray", "calc(2 + 1)", "calc(3)");
+test_valid_value("stroke-dasharray", "calc(2 + (7 - 5))", "calc(4)");
+
+  ]]></script>
+</svg>

@@ -1,25 +1,40 @@
 <!DOCTYPE html>
 <html lang=en>
 <meta charset=UTF-8>
-<title>Web tests</title>
+<title>web-platform-tests Runner</title>
 <link rel='stylesheet' href='css/bootstrap.min.css'>
 <link rel='stylesheet' href='css/bootstrap-theme.min.css'>
-<link rel=stylesheet href=runner.css>
-<script src=runner.js></script>
-
+<link rel='stylesheet' href='runner.css'>
+<script src='/common/get-host-info.sub.js'></script>
+<script src='runner.js'></script>
 
 <header class="navbar navbar-inverse navbar-fixed-top">
   <div class="container">
     <div class="navbar-header">
       <a class="navbar-brand" href="#">
-        <img src='logo.svg' width='50' height='50' alt='Logo for the WPT Runner'>
-        Web Platform Tests Runner
+        <img src='/images/wpt-logo/wpt-logo-lightblue-bg.svg' width='50' height='50' style='border-radius: 50%' alt='WPT Logo'>
+        web-platform-tests Runner
       </a>
     </div>
   </div>
 </header>
 
 <div class="container">
+  <div class="alert alert-warning">
+        This runner does not fully support all test types and has a number of
+        <a href="https://github.com/web-platform-tests/wpt/labels/runner">known issues</a>.
+        <span id="runner-contact-info"></span>
+        <code>./wpt run</code> is a more well-supported runner, see the documentation on
+        <a href="https://web-platform-tests.org/running-tests/">running tests</a>.
+        <script>
+        if (location.host == "w3c-test.org") {
+            document.getElementById("runner-contact-info")
+                .innerHTML = ' If this runner isn’t working, contact'
+                    + ' <a href="mailto:mike@w3.org">mike@w3.org</a>. '
+        }
+        </script>
+  </div>
+
   <div id="testControl" class="panel panel-default">
     <div class="panel-body">
       <form id='options' class='horizontal-form' onsubmit='return false;'>
@@ -93,7 +108,7 @@
   <div class="instructions">
     <p>
       To run a set of
-      <a href="https://github.com/w3c/web-platform-tests/blob/master/README.md">web-platform-tests</a>
+      <a href="https://github.com/web-platform-tests/wpt/blob/master/README.md">web-platform-tests</a>
       tests, specify a path value in the <b>Run tests under path</b> field above. Example paths:
     </p>
     <ul>
@@ -135,7 +150,9 @@
           0%
         </div>
       </div>
-      <div id='test_url'></div>
+      <div id="current_test">
+        <label>Current test:</label><a></a>
+      </div>
       <table class='table'>
         <thead>
           <tr>
@@ -193,6 +210,7 @@
           <div class="panel-footer">
             The test has:
             <button class="btn btn-success pass">Passed</button>
+            <button class="btn btn-info skip">Not Run</button>
             <button class="btn btn-danger fail">Failed</button>
           </div>
         </div>

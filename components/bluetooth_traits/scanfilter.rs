@@ -1,6 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::{HashMap, HashSet};
 use std::slice::Iter;
@@ -10,7 +10,7 @@ use std::slice::Iter;
 // That leaves 29 bytes for the name.
 const MAX_NAME_LENGTH: usize = 29;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct ServiceUUIDSequence(Vec<String>);
 
 impl ServiceUUIDSequence {
@@ -26,7 +26,7 @@ impl ServiceUUIDSequence {
 type ManufacturerData = HashMap<u16, (Vec<u8>, Vec<u8>)>;
 type ServiceData = HashMap<String, (Vec<u8>, Vec<u8>)>;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct BluetoothScanfilter {
     name: Option<String>,
     name_prefix: String,
@@ -36,12 +36,13 @@ pub struct BluetoothScanfilter {
 }
 
 impl BluetoothScanfilter {
-    pub fn new(name: Option<String>,
-               name_prefix: String,
-               services: Vec<String>,
-               manufacturer_data: Option<ManufacturerData>,
-               service_data: Option<ServiceData>)
-               -> BluetoothScanfilter {
+    pub fn new(
+        name: Option<String>,
+        name_prefix: String,
+        services: Vec<String>,
+        manufacturer_data: Option<ManufacturerData>,
+        service_data: Option<ServiceData>,
+    ) -> BluetoothScanfilter {
         BluetoothScanfilter {
             name: name,
             name_prefix: name_prefix,
@@ -73,16 +74,16 @@ impl BluetoothScanfilter {
 
     pub fn is_empty_or_invalid(&self) -> bool {
         (self.name.is_none() &&
-         self.name_prefix.is_empty() &&
-         self.get_services().is_empty() &&
-         self.manufacturer_data.is_none() &&
-         self.service_data.is_none()) ||
-        self.get_name().unwrap_or("").len() > MAX_NAME_LENGTH ||
-        self.name_prefix.len() > MAX_NAME_LENGTH
+            self.name_prefix.is_empty() &&
+            self.get_services().is_empty() &&
+            self.manufacturer_data.is_none() &&
+            self.service_data.is_none()) ||
+            self.get_name().unwrap_or("").len() > MAX_NAME_LENGTH ||
+            self.name_prefix.len() > MAX_NAME_LENGTH
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct BluetoothScanfilterSequence(Vec<BluetoothScanfilter>);
 
 impl BluetoothScanfilterSequence {
@@ -99,7 +100,9 @@ impl BluetoothScanfilterSequence {
     }
 
     fn get_services_set(&self) -> HashSet<String> {
-        self.iter().flat_map(|filter| filter.services.get_services_set()).collect()
+        self.iter()
+            .flat_map(|filter| filter.services.get_services_set())
+            .collect()
     }
 
     fn is_empty(&self) -> bool {
@@ -107,16 +110,17 @@ impl BluetoothScanfilterSequence {
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct RequestDeviceoptions {
     filters: BluetoothScanfilterSequence,
     optional_services: ServiceUUIDSequence,
 }
 
 impl RequestDeviceoptions {
-    pub fn new(filters: BluetoothScanfilterSequence,
-               services: ServiceUUIDSequence)
-               -> RequestDeviceoptions {
+    pub fn new(
+        filters: BluetoothScanfilterSequence,
+        services: ServiceUUIDSequence,
+    ) -> RequestDeviceoptions {
         RequestDeviceoptions {
             filters: filters,
             optional_services: services,

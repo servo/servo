@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Structured cloning of SharedArrayBuffers into same-origin-domain windows</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#structuredserialize">
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<script>
+"use strict";
+document.domain = "{{host}}";
+
+async_test(t => {
+  const iframe = document.createElement("iframe");
+  t.add_cleanup(() => iframe.remove());
+  iframe.src = "//{{domains[www1]}}:{{location[port]}}/html/infrastructure/safe-passing-of-structured-data/shared-array-buffers/resources/iframe-domain-failure.sub.html";
+  let domain = null;
+  let childCrossOriginIsolated = null;
+  window.onmessage = t.step_func((e) => {
+    if (e.data.name === "domain") {
+      domain = e.data.value;
+      return;
+    }
+    if (e.data.name === "crossOriginIsolated") {
+      childCrossOriginIsolated = e.data.value;
+      return;
+    }
+    assert_unreached("Got a message event, expected a messageerror event");
+  });
+  window.onmessageerror = t.step_func_done(() => {
+    // crossOriginIsolated is false in the nested frame because the frame is
+    // cross-origin and hence the cross-origin isolated capability is false.
+    assert_equals(childCrossOriginIsolated, false);
+    // But document.domain mutation is no-op because the surrounding agent
+    // cluster's cross-origin isolated is true.
+    assert_equals(domain, "{{domains[www1]}}");
+  });
+  document.body.append(iframe);
+}, "SharedArrayBuffer and a same-origin-domain (but not same-origin) iframe");
+</script>

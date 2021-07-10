@@ -1,0 +1,20 @@
+<!doctype html>
+<title>fieldset content before legend</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<fieldset id=test>
+  X
+  <legend>legend</legend>
+  Y
+</fieldset>
+<fieldset id=ref>
+  <legend>legend</legend>
+  X Y
+</fieldset>
+<script>
+  test(() => {
+    const testElm = document.getElementById('test');
+    const refElm = document.getElementById('ref');
+    assert_equals(testElm.clientHeight, refElm.clientHeight);
+  });
+</script>

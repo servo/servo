@@ -1,0 +1,30 @@
+<!doctype html>
+<title>Clips should be applied before transforms (when fixed positioned too)</title>
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#placement">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1524966">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="match" href="clip-filter-order-ref.html">
+
+<style>
+  body { margin: 0; overflow: hidden; }
+  #testcase {
+    position: fixed;
+    left: -100px;
+    width: 400px;
+    height: 400px;
+    background: green;
+    transform: translateX(110px);
+    clip: rect(0px, 200px, 200px, 0px);
+  }
+</style>
+
+<div>
+  <p>Expected: A green box.<br>
+  There should be no red visible.<br>
+  There should be a crisp, clipped edge around the green box (no blurring).</p>
+</div>
+
+<div id="testcase"><div></div></div>
+
+<div id="padding" style="height: 100vh"></div>

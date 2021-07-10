@@ -1,5 +1,5 @@
 window.requestAnimationFrame(function() {
   /* Generate a slow task. */
-  var begin = window.performance.now();
-  while (window.performance.now() < begin + 51);
+  const begin = window.performance.now();
+  while (window.performance.now() < begin + 60);
 });

@@ -18,7 +18,7 @@ test(function(){
     assert_equals(region.width, 1.5);
 
     [-1, -100, -150, 101, 200, 250].forEach(function (invalid) {
-        assert_throws('IndexSizeError', function() {
+        assert_throws_dom('IndexSizeError', function() {
             region.width = invalid;
         });
     });

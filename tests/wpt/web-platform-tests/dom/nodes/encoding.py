@@ -1,5 +1,10 @@
-from cgi import escape
+try:
+    from cgi import escape
+except ImportError:
+    from html import escape
+
+from wptserve.utils import isomorphic_decode
 
 def main(request, response):
-    label = request.GET.first('label')
-    return """<!doctype html><meta charset="%s">""" % escape(label)
+    label = request.GET.first(b'label')
+    return u"""<!doctype html><meta charset="%s">""" % escape(isomorphic_decode(label))

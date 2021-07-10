@@ -3,7 +3,7 @@ Wai-aria: Tests for the WAI-ARIA Recommendations
 
 The [WAI ARIA Recommendations](https://www.w3.org/TR/wai-aria)
 define extensions to HTML4/5 for support of extended semantics.  These
-semantics make it easier for Assistive Technologies to intepret and
+semantics make it easier for Assistive Technologies to interpret and
 present content to users with varying physical and cognitive abilities.
 
 The purpose of these tests is to help ensure that user agents support the

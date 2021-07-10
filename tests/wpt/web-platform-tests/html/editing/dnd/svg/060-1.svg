@@ -6,7 +6,7 @@
 <script type="application/ecmascript">
 document.querySelector('polygon').addEventListener('dragenter',
 function (event)
-	{window.location = '060.svg'}
+  {window.location = '060.svg'}
 ,false);
 </script>
 </svg>

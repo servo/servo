@@ -1,6 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // This is a Servo-specific interface, used to represent windows
 // that are not similar-origin, so live in another script thread.
@@ -13,7 +13,7 @@
 // way to enforce security policy.
 
 // https://html.spec.whatwg.org/multipage/#window
-[Global, NoInterfaceObject]
+[Global, Exposed=(Window,DissimilarOriginWindow), NoInterfaceObject]
 interface DissimilarOriginWindow : GlobalScope {
   [Unforgeable] readonly attribute WindowProxy window;
   [BinaryName="Self_", Replaceable] readonly attribute WindowProxy self;
@@ -25,7 +25,8 @@ interface DissimilarOriginWindow : GlobalScope {
 
   void close();
   readonly attribute boolean closed;
-  [Throws] void postMessage(any message, DOMString targetOrigin);
+  [Throws] void postMessage(any message, USVString targetOrigin, optional sequence<object> transfer = []);
+  [Throws] void postMessage(any message, optional WindowPostMessageOptions options = {});
   attribute any opener;
   void blur();
   void focus();

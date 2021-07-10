@@ -38,11 +38,6 @@
     property: 'lastModified',
     instance: new File([''], '', {lastModified: 123}),
   },
-  {
-    type: 'File',
-    property: 'lastModifiedDate',
-    instance: new File([''], '', {lastModified: 123}),
-  },
 ].forEach(function(testcase) {
   indexeddb_test(
     (t, db) => {
@@ -59,6 +54,8 @@
         const result = request.result;
         assert_key_equals(result[testcase.property], key,
                           'Property should be used as key');
+      });
+      tx.oncomplete = t.step_func(function() {
         t.done();
       });
     },

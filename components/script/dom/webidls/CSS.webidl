@@ -1,6 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 /*
  * The origin of this IDL file is
  * http://dev.w3.org/csswg/cssom/#the-css-interface
@@ -16,4 +16,9 @@ interface CSS {
 partial interface CSS {
   static boolean supports(DOMString property, DOMString value);
   static boolean supports(DOMString conditionText);
+};
+
+// https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
+partial interface CSS {
+    [SameObject, Pref="dom.worklet.enabled"] static readonly attribute Worklet paintWorklet;
 };

@@ -22,7 +22,7 @@
                 assert_equals(e.effectiveDirective, 'script-src');
             }));
 
-            assert_throws(new Error(),
+            assert_throws_js(Error,
                 function() {
                     try {
                         eval("evalScriptRan = true;");

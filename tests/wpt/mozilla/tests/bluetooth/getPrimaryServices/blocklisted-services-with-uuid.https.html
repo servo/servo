@@ -1,0 +1,16 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(t => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.blocklist);
+    return window.navigator.bluetooth.requestDevice({
+        filters: [{services: [device_information.name]}],
+        optionalServices: [human_interface_device.name]
+    })
+    .then(device => device.gatt.connect())
+    .then(gattServer => promise_rejects_dom(t, 'SecurityError', gattServer.getPrimaryServices(human_interface_device.name)));
+}, 'Request for services. Does not return blocklisted service.');
+</script>

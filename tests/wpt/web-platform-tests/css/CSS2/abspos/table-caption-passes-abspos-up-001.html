@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="David Grogan" href="dgrogan@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS22/tables.html#model">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="flags" content="" />
+<meta name="assert" content="non-containing block caption passes abspos child to its parent" />
+<title>
+Captions and abspos descendants
+</title>
+
+<style>
+caption, div {
+  height:100px;
+  width:50px;
+  background:green;
+}
+#redSquare {
+  height: 100px;
+  width: 100px;
+  background-color: red;
+  position: absolute;
+  z-index: -1;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="redSquare"></div>
+
+<table style="position:relative">
+  <caption>
+    <div style="position:absolute; left:50px;">
+    </div>
+  </caption>
+</table>

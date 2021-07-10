@@ -1,0 +1,74 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+let wrong_manufacturer_data_keys = [{
+    filters: [{
+        manufacturerData: {
+            17:  {},
+            'A': {}
+        }
+    }]
+}, {
+    filters: [{
+        manufacturerData: {
+            17: {},
+            undefined: {}
+        }
+    }]
+}, {
+    filters: [{
+        manufacturerData: {
+            17:   {},
+            null: {}
+        }
+    }]
+}, {
+    filters: [{
+        manufacturerData: {
+            17: {},
+            '': {}
+        }
+    }]
+}, {
+    filters: [{
+        manufacturerData: {
+            17:   {},
+            '-0': {}
+        }
+    }]
+}, {
+    filters: [{
+        manufacturerData: {
+            17:    {},
+            '-17': {}
+        }
+    }]
+}, {
+    filters: [{
+        manufacturerData: {
+            17:    {},
+            65536: {}
+        }
+    }]
+}, {
+    filters: [{
+        manufacturerData: {
+            17:      {},
+            '65536': {}
+        }
+    }]
+}];
+
+promise_test(t => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.glucose_heart_rate);
+    let promises = [];
+    wrong_manufacturer_data_keys.forEach(args => {
+        promises.push(promise_rejects_js(t, TypeError, window.navigator.bluetooth.requestDevice(args)));
+    });
+    return Promise.all(promises);
+}, 'Rejects with TypeError, if a manufacturerData key is not an unsigned short.');
+</script>

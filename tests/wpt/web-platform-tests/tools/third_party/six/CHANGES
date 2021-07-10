@@ -1,0 +1,315 @@
+Changelog for six
+=================
+
+This file lists the changes in each six version.
+
+1.13.0
+------
+
+- Issue #298, pull request #299: Add `six.moves.dbm_ndbm`.
+
+- Issue #155: Add `six.moves.collections_abc`, which aliases the `collections`
+  module on Python 2-3.2 and the `collections.abc` on Python 3.3 and greater.
+
+- Pull request #304: Re-add distutils fallback in `setup.py`.
+
+- Pull request #305: On Python 3.7, `with_metaclass` supports classes using PEP
+  560 features.
+
+1.12.0
+------
+
+- Issue #259, pull request #260: `six.add_metaclass` now preserves
+  `__qualname__` from the original class.
+
+- Pull request #204: Add `six.ensure_binary`, `six.ensure_text`, and
+  `six.ensure_str`.
+
+1.11.0
+------
+
+- Pull request #178: `with_metaclass` now properly proxies `__prepare__` to the
+  underlying metaclass.
+
+- Pull request #191: Allow `with_metaclass` to work with metaclasses implemented
+  in C.
+
+- Pull request #203: Add parse_http_list and parse_keqv_list to moved
+  urllib.request.
+
+- Pull request #172 and issue #171: Add unquote_to_bytes to moved urllib.parse.
+
+- Pull request #167: Add `six.moves.getoutput`.
+
+- Pull request #80: Add `six.moves.urllib_parse.splitvalue`.
+
+- Pull request #75: Add `six.moves.email_mime_image`.
+
+- Pull request #72: Avoid creating reference cycles through tracebacks in
+  `reraise`.
+
+1.10.0
+------
+
+- Issue #122: Improve the performance of `six.int2byte` on Python 3.
+
+- Pull request #55 and issue #99: Don't add the `winreg` module to `six.moves`
+  on non-Windows platforms.
+
+- Pull request #60 and issue #108: Add `six.moves.getcwd` and
+  `six.moves.getcwdu`.
+
+- Pull request #64: Add `create_unbound_method` to create unbound methods.
+
+1.9.0
+-----
+
+- Issue #106: Support the `flush` parameter to `six.print_`.
+
+- Pull request #48 and issue #15: Add the `python_2_unicode_compatible`
+  decorator.
+
+- Pull request #57 and issue #50: Add several compatibility methods for unittest
+  assertions that were renamed between Python 2 and 3.
+
+- Issue #105 and pull request #58: Ensure `six.wraps` respects the *updated* and
+  *assigned* arguments.
+
+- Issue #102: Add `raise_from` to abstract out Python 3's raise from syntax.
+
+- Issue #97: Optimize `six.iterbytes` on Python 2.
+
+- Issue #98: Fix `six.moves` race condition in multi-threaded code.
+
+- Pull request #51: Add `six.view(keys|values|itmes)`, which provide dictionary
+  views on Python 2.7+.
+
+- Issue #112: `six.moves.reload_module` now uses the importlib module on
+  Python 3.4+.
+
+1.8.0
+-----
+
+- Issue #90: Add `six.moves.shlex_quote`.
+
+- Issue #59: Add `six.moves.intern`.
+
+- Add `six.urllib.parse.uses_(fragment|netloc|params|query|relative)`.
+
+- Issue #88: Fix add_metaclass when the class has `__slots__` containing
+  `__weakref__` or `__dict__`.
+
+- Issue #89: Make six use absolute imports.
+
+- Issue #85: Always accept *updated* and *assigned* arguments for `wraps()`.
+
+- Issue #86: In `reraise()`, instantiate the exception if the second argument is
+  `None`.
+
+- Pull request #45: Add `six.moves.email_mime_nonmultipart`.
+
+- Issue #81: Add `six.urllib.request.splittag` mapping.
+
+- Issue #80: Add `six.urllib.request.splituser` mapping.
+
+1.7.3
+-----
+
+- Issue #77: Fix import six on Python 3.4 with a custom loader.
+
+- Issue #74: `six.moves.xmlrpc_server` should map to `SimpleXMLRPCServer` on Python
+  2 as documented not `xmlrpclib`.
+
+1.7.2
+-----
+
+- Issue #72: Fix installing on Python 2.
+
+1.7.1
+-----
+
+- Issue #71: Make the six.moves meta path importer handle reloading of the six
+  module gracefully.
+
+1.7.0
+-----
+
+- Pull request #30: Implement six.moves with a PEP 302 meta path hook.
+
+- Pull request #32: Add six.wraps, which is like functools.wraps but always sets
+  the __wrapped__ attribute.
+
+- Pull request #35: Improve add_metaclass, so that it doesn't end up inserting
+  another class into the hierarchy.
+
+- Pull request #34: Add import mappings for dummy_thread.
+
+- Pull request #33: Add import mappings for UserDict and UserList.
+
+- Pull request #31: Select the implementations of dictionary iterator routines
+  at import time for a 20% speed boost.
+
+1.6.1
+-----
+
+- Raise an AttributeError for six.moves.X when X is a module not available in
+  the current interpreter.
+
+1.6.0
+-----
+
+- Raise an AttributeError for every attribute of unimportable modules.
+
+- Issue #56: Make the fake modules six.moves puts into sys.modules appear not to
+  have a __path__ unless they are loaded.
+
+- Pull request #28: Add support for SplitResult.
+
+- Issue #55: Add move mapping for xmlrpc.server.
+
+- Pull request #29: Add move for urllib.parse.splitquery.
+
+1.5.2
+-----
+
+- Issue #53: Make the fake modules six.moves puts into sys.modules appear not to
+  have a __name__ unless they are loaded.
+
+1.5.1
+-----
+
+- Issue #51: Hack around the Django autoreloader after recent six.moves changes.
+
+1.5.0
+-----
+
+- Removed support for Python 2.4. This is because py.test no longer supports
+  2.4.
+
+- Fix various import problems including issues #19 and #41. six.moves modules
+  are now lazy wrappers over the underlying modules instead of the actual
+  modules themselves.
+
+- Issue #49: Add six.moves mapping for tkinter.ttk.
+
+- Pull request #24: Add __dir__ special method to six.moves modules.
+
+- Issue #47: Fix add_metaclass on classes with a string for the __slots__
+  variable.
+
+- Issue #44: Fix interpretation of backslashes on Python 2 in the u() function.
+
+- Pull request #21: Add import mapping for urllib's proxy_bypass function.
+
+- Issue #43: Add import mapping for the Python 2 xmlrpclib module.
+
+- Issue #39: Add import mapping for the Python 2 thread module.
+
+- Issue #40: Add import mapping for the Python 2 gdbm module.
+
+- Issue #35: On Python versions less than 2.7, print_ now encodes unicode
+  strings when outputing to standard streams. (Python 2.7 handles this
+  automatically.)
+
+1.4.1
+-----
+
+- Issue #32: urllib module wrappings don't work when six is not a toplevel file.
+
+1.4.0
+-----
+
+- Issue #31: Add six.moves mapping for UserString.
+
+- Pull request #12: Add six.add_metaclass, a decorator for adding a metaclass to
+  a class.
+
+- Add six.moves.zip_longest and six.moves.filterfalse, which correspond
+  respectively to itertools.izip_longest and itertools.ifilterfalse on Python 2
+  and itertools.zip_longest and itertools.filterfalse on Python 3.
+
+- Issue #25: Add the unichr function, which returns a string for a Unicode
+  codepoint.
+
+- Issue #26: Add byte2int function, which complements int2byte.
+
+- Add a PY2 constant with obvious semantics.
+
+- Add helpers for indexing and iterating over bytes: iterbytes and indexbytes.
+
+- Add create_bound_method() wrapper.
+
+- Issue #23: Allow multiple base classes to be passed to with_metaclass.
+
+- Issue #24: Add six.moves.range alias. This exactly the same as the current
+  xrange alias.
+
+- Pull request #5: Create six.moves.urllib, which contains abstractions for a
+  bunch of things which are in urllib in Python 3 and spread out across urllib,
+  urllib2, and urlparse in Python 2.
+
+1.3.0
+-----
+
+- Issue #21: Add methods to access the closure and globals of a function.
+
+- In six.iter(items/keys/values/lists), passed keyword arguments through to the
+  underlying method.
+
+- Add six.iterlists().
+
+- Issue #20: Fix tests if tkinter is not available.
+
+- Issue #17: Define callable to be builtin callable when it is available again
+  in Python 3.2+.
+
+- Issue #16: Rename Python 2 exec_'s arguments, so casually calling exec_ with
+  keyword arguments will raise.
+
+- Issue #14: Put the six.moves package in sys.modules based on the name six is
+  imported under.
+
+- Fix Jython detection.
+
+- Pull request #4: Add email_mime_multipart, email_mime_text, and
+  email_mime_base to six.moves.
+
+1.2.0
+-----
+
+- Issue #13: Make iterkeys/itervalues/iteritems return iterators on Python 3
+  instead of iterables.
+
+- Issue #11: Fix maxsize support on Jython.
+
+- Add six.next() as an alias for six.advance_iterator().
+
+- Use the builtin next() function for advance_iterator() where is available
+  (2.6+), not just Python 3.
+
+- Add the Iterator class for writing portable iterators.
+
+1.1.0
+-----
+
+- Add the int2byte function.
+
+- Add compatibility mappings for iterators over the keys, values, and items of a
+  dictionary.
+
+- Fix six.MAXSIZE on platforms where sizeof(long) != sizeof(Py_ssize_t).
+
+- Issue #3: Add six.moves mappings for filter, map, and zip.
+
+1.0.0
+-----
+
+- Issue #2: u() on Python 2.x now resolves unicode escapes.
+
+- Expose an API for adding mappings to six.moves.
+
+1.0 beta 1
+----------
+
+- Reworked six into one .py file.  This breaks imports.  Please tell me if you
+  are interested in an import compatibility layer.

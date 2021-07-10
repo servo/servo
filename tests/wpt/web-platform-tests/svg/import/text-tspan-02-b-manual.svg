@@ -1,5 +1,5 @@
-<svg id="svg-root" width="100%" height="100%" 
-  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg" 
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
   xmlns:xlink="http://www.w3.org/1999/xlink">
   <!--======================================================================-->
   <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
@@ -103,7 +103,6 @@
       <tspan x="20" y="180">text have a specified rotation</tspan>
     </text>
 
-
     <text font-size="35" fill="green" x="20" y="120" rotate="5,15,25,35,45,55" stroke="green" stroke-width="0.5">
       Not
 
@@ -161,17 +160,17 @@
   55    55  55  55   55 55  55   55
       </tspan>
     </text>
-    
+
   </g>
   <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
-  <text id="revision" x="10" y="340" stroke="none" 
+  <text id="revision" x="10" y="340" stroke="none"
     fill="black">$Revision: 1.11 $</text>
   </g>
   <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
   <!-- comment out this watermark once the test is approved --><!--
   <g id="draft-watermark">
     <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
-    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240" 
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
       text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
   </g>-->
 </svg>

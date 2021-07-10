@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<title>Tests passing of data along with portal activation</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/open-blank-host.js"></script>
+<body>
+<canvas id="canvas"></canvas>
+<script>
+function nextMessage(target) {
+  return new Promise((resolve, reject) => {
+    target.addEventListener('message', e => resolve(e), {once: true});
+  });
+}
+
+async function openPortalAndActivate(logic, activateOptions, testWindow) {
+  assert_implements("HTMLPortalElement" in self);
+  const w = testWindow || await openBlankPortalHost();
+  try {
+    const portal = w.document.createElement('portal');
+    portal.src = new URL('resources/portal-activate-data-portal.html?logic=' + encodeURIComponent(logic), location.href);
+    w.document.body.appendChild(portal);
+    assert_equals((await nextMessage(portal)).data, 'ready');
+    await portal.activate(activateOptions);
+    return (await nextMessage(w.portalHost)).data;
+  } finally {
+    w.close();
+  }
+}
+
+promise_test(async () => {
+  const {echo} = await openPortalAndActivate(
+      'return {echo: event.data}',
+      {data: 'banana'});
+  assert_equals(echo, 'banana');
+}, "A string can be passed through activate data.");
+
+promise_test(async () => {
+  let aBuff = new ArrayBuffer(5);
+  let arr = new Int8Array(aBuff);
+  for (var i = 0; i < 5; i++)
+    arr[i] = i;
+  const {array} = await openPortalAndActivate(
+    'return {array: Array.prototype.slice.call(new Int8Array(event.data))}',
+    {data: aBuff, transfer: [aBuff]});
+  assert_equals(arr.length, 0);
+  assert_array_equals(array, [0, 1, 2, 3, 4]);
+}, "An array buffer can be transferred through activate data.");
+
+promise_test(async () => {
+  let canvas = document.getElementById("canvas");
+  let ctx = canvas.getContext("2d");
+  ctx.fillStyle = "green";
+  ctx.fillRect(0, 0, 150, 100);
+  let imageBitmap = await createImageBitmap(canvas, 0, 0, 150, 100);
+  const {height, width} = await openPortalAndActivate(
+    'return {height: event.data.height, width: event.data.width}',
+    {data: imageBitmap, transfer: [imageBitmap]});
+  assert_equals(height, 100);
+  assert_equals(width, 150);
+}, "An image bitmap can be transferred through activate data.");
+
+promise_test(async () => {
+  let {port1, port2} = new MessageChannel();
+  let replyViaPort = nextMessage(port1);
+  port1.start();
+  let ok = await openPortalAndActivate(
+      'let port2 = event.data; port2.postMessage(42); return true;',
+      {data: port2, transfer: [port2]});
+  assert_true(ok);
+  assert_equals((await replyViaPort).data, 42);
+}, "A message port can be passed through activate data.");
+
+promise_test(async t => {
+  const w = await openBlankPortalHost();
+  await promise_rejects_dom(
+      t, 'DataCloneError', w.DOMException,
+      // See https://github.com/whatwg/html/issues/5380 for why not `new SharedArrayBuffer()`
+      openPortalAndActivate('', {data: new WebAssembly.Memory({ shared:true, initial:1, maximum:1 }).buffer}, w));
+}, "A SharedArrayBuffer cannot be passed through activate data.");
+
+promise_test(async t => {
+  await promise_rejects_js(
+      t, Error,
+      openPortalAndActivate('', {data: {get a() { throw new Error; }}}));
+}, "Uncloneable data has its exception propagated.");
+
+promise_test(async t => {
+  const w = await openBlankPortalHost();
+  await promise_rejects_js(
+      t, w.TypeError,
+      openPortalAndActivate('', {data: null, transfer: [null]}, w));
+}, "Errors during transfer list processing are propagated.");
+</script>
+</body>

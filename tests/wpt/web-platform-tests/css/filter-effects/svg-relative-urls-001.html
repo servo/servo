@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Filter Effects: SVG-based filters and relative URLs</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#relative-urls">
+<link rel="help" href="https://crbug.com/405315"/>
+<link rel="match" href="reference/svg-relative-urls-001-ref.html">
+<meta name="assert" content="This test checks that relative SVG filter references in inline styles are correct after an element moves documents.">
+
+<body onload="runTest()">
+
+<iframe src="support/div-with-filter.html"></iframe>
+
+<div style="width: 100px; height: 100px; background-color: red; filter: url(support/hueRotate.svg#MyFilter)"></div>
+
+<script>
+function runTest() {
+  var iframe = document.querySelector('iframe');
+  var div_from_iframe = iframe.contentDocument.querySelector('div');
+  iframe.remove();
+  document.body.appendChild(div_from_iframe);
+}
+</script>
+</body>
+</html>

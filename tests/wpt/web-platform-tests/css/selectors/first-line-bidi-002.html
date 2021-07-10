@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>::first-line selector with bidi content</title>
+<meta name="assert" content="The use of ::first-line should not disrupt bidi layout.">
+<link rel=help href=https://drafts.csswg.org/css-pseudo-4/#first-line-styling>
+<link rel=match href=first-line-bidi-002-ref.html>
+<style>
+body { font: 12px arial, sans-serif; }
+table { font-size: 10px; }
+tr td { margin: 1em 1em; border: 1px solid gray; width: 16em; }
+td:nth-child(1) { text-align: left; }
+td:nth-child(2) { text-align: center; }
+td:nth-child(3) { text-align: right; }
+td p::first-line { color: green; background: pink; }
+th { padding: 1em; }
+td { padding: 2px; }
+td p { margin: 0; }
+xl { float: left; font-size: 2.5em; }
+xr { float: right; font-size: 2.5em; }
+</style>
+<p>In each box, the first-line text should be <span style="color:green; background:pink">green on pink</span>
+and should never project outside the box:</p>
+<!-- Same as first-line-bidi-001 but with dir=rtl on each <p> element -->
+<table>
+<tr><th><code>text-align:left</code></th><th><code>text-align:center</code></th><th><code>text-align:right</code></th></tr>
+<tr>
+  <!-- no padding/indent -->
+  <td>
+    <p dir=rtl><span dir=rtl>الخت العربي</span> one ايك two<br> دو three تين four</p>
+  </td>
+  <td>
+    <p dir=rtl><span dir=rtl>الخت العربي</span> one ايك two<br> دو three تين four</p>
+  </td>
+  <td>
+    <p dir=rtl><span dir=rtl>الخت العربي</span> one ايك two<br> دو three تين four</p>
+  </td>
+</tr>
+
+<tr>
+  <!-- padding-left:1em -->
+  <td>
+    <p dir=rtl style="padding-left:1em"><span dir=rtl>الخت العربي</span> one ايك two<br> دو three تين four</p>
+  </td>
+  <td>
+    <p dir=rtl style="padding-left:1em"><span dir=rtl>الخت العربي</span> one ايك two<br> دو three تين four</p>
+  </td>
+  <td>
+    <p dir=rtl style="padding-left:1em"><span dir=rtl>الخت العربي</span> one ايك two<br> دو three تين four</p>
+  </td>
+</tr>
+
+<tr>
+  <!-- padding-right:1em -->
+  <td>
+    <p dir=rtl style="padding-right:1em"><span dir=rtl>الخت العربي</span> one ايك two<br> دو three تين four</p>
+  </td>
+  <td>
+    <p dir=rtl style="padding-right:1em"><span dir=rtl>الخت العربي</span> one ايك two<br> دو three تين four</p>
+  </td>
+  <td>
+    <p dir=rtl style="padding-right:1em"><span dir=rtl>الخت العربي</span> one ايك two<br> دو three تين four</p>
+  </td>
+</tr>
+
+<tr>
+  <!-- text-indent:2em -->
+  <td>
+    <p dir=rtl style="text-indent:2em"><span dir=rtl>الخت العربي</span> one ايك two<br> دو three تين four</p>
+  </td>
+  <td>
+    <p dir=rtl style="text-indent:2em"><span dir=rtl>الخت العربي</span> one ايك two<br> دو three تين four</p>
+  </td>
+  <td>
+    <p dir=rtl style="text-indent:2em"><span dir=rtl>الخت العربي</span> one ايك two<br> دو three تين four</p>
+  </td>
+</tr>
+
+<tr>
+  <!-- initial with float:left -->
+  <td>
+    <p dir=rtl><xl>A</xl><span dir=rtl>الخت العربي</span> one ايك two<br> دو three تين four</p>
+  </td>
+  <td>
+    <p dir=rtl><xl>A</xl><span dir=rtl>الخت العربي</span> one ايك two<br> دو three تين four</p>
+  </td>
+  <td>
+    <p dir=rtl><xl>A</xl><span dir=rtl>الخت العربي</span> one ايك two<br> دو three تين four</p>
+  </td>
+</tr>
+
+<tr>
+  <!-- initial with float:right -->
+  <td>
+    <p dir=rtl><xr>Z</xr><span dir=rtl>الخت العربي</span> one ايك two<br> دو three تين four</p>
+  </td>
+  <td>
+    <p dir=rtl><xr>Z</xr><span dir=rtl>الخت العربي</span> one ايك two<br> دو three تين four</p>
+  </td>
+  <td>
+    <p dir=rtl><xr>Z</xr><span dir=rtl>الخت العربي</span> one ايك two<br> دو three تين four</p>
+  </td>
+</tr>
+</table>

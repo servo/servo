@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>'cuechange' event on dynamically created track element</title>
+<meta name="timeout" content="long">
+<script src="/common/media.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video>
+<script>
+/**
+ * 'cuechange' event should be correctly dispatched on the dynamically created
+ * track element.
+ */
+promise_test(function(t) {
+  const video = document.querySelector("video");
+  const track = document.createElement("track");
+  track.src = "resources/cues-chrono-order.vtt";
+  track.track.mode = "hidden";
+  video.appendChild(track);
+
+  const cueChangedPromise = new Promise(r => track.oncuechange = r);
+  video.src = getVideoURI("/media/test");
+  // 'TimeMarchesOn' algorithm will be run after calling 'play()', from which
+  // the 'cuechange' event would be dispatched.
+  video.play();
+  return cueChangedPromise;
+});
+</script>
+</video>

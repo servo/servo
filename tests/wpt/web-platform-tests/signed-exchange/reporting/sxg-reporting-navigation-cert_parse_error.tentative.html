@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<title>SXG reporting test of sxg.cert_parse_error for navigation</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/network-error-logging/support/nel.sub.js"></script>
+<script src="../resources/sxg-util.js"></script>
+<body>
+<script>
+const alt_origin = get_host_info().HTTPS_NOTSAMESITE_ORIGIN;
+
+nel_iframe_test(async t => {
+  await loadResourceWithBasicPolicyInIframe();
+  const sxg_url =
+      alt_origin +
+      '/signed-exchange/resources/sxg/sxg-invalid-cert-format-on-alt-origin.sxg?navigation';
+  const cert_url =
+      alt_origin + '/signed-exchange/resources/invalid-cert-format.cbor';
+  const message = await openSXGInIframeAndWaitForMessage(t, sxg_url);
+  assert_equals(message.location,
+                innerURLOrigin() + '/signed-exchange/resources/inner-url.html');
+  assert_true(message.is_fallback);
+  assert_true(await reportsExist([
+    {
+      url: sxg_url,
+      user_agent: navigator.userAgent,
+      type: "network-error",
+      body: {
+        phase: "sxg",
+        // The origin of this SXG's certURL is same as the reporting origin. So
+        // the report must not be downgraded.
+        type: "sxg.cert_parse_error",
+        status_code: 200,
+        referrer: location.origin + '/',
+        sxg: {
+          outer_url: sxg_url,
+          inner_url:
+              innerURLOrigin() + '/signed-exchange/resources/inner-url.html',
+          cert_url: [cert_url]
+        }
+      },
+      metadata: {
+        content_type: "application/reports+json",
+      },
+    },
+    {
+      url: sxg_url,
+      user_agent: navigator.userAgent,
+      type: "network-error",
+      body: {
+        phase: "application",
+        type: "ok",
+        status_code: 200,
+        referrer: location.origin + '/',
+      },
+      metadata: {
+        content_type: "application/reports+json",
+      },
+    },
+    {
+      url: cert_url,
+      user_agent: navigator.userAgent,
+      type: "network-error",
+      body: {
+        phase: "application",
+        type: "ok",
+        status_code: 200,
+      },
+      metadata: {
+        content_type: "application/reports+json",
+      },
+    },
+  ]));
+}, 'SXG reporting test of sxg.cert_parse_error for navigation.');
+</script>
+</body>

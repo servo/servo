@@ -1,9 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://w3c.github.io/gamepad/#gamepad-interface
-[Pref="dom.gamepad.enabled"]
+[Exposed=Window, Pref="dom.gamepad.enabled"]
 interface Gamepad {
     readonly attribute DOMString id;
     readonly attribute long index;
@@ -14,13 +14,16 @@ interface Gamepad {
     [SameObject] readonly attribute GamepadButtonList buttons;
 };
 
-// https://w3c.github.io/gamepad/extensions.html#dom-gamepad
+// https://w3c.github.io/gamepad/extensions.html#partial-gamepad-interface
 partial interface Gamepad {
-  readonly attribute DOMString hand;
-  readonly attribute VRPose? pose;
+  readonly attribute GamepadHand hand;
+  // readonly attribute FrozenArray<GamepadHapticActuator> hapticActuators;
+  readonly attribute GamepadPose? pose;
 };
 
-// https://w3c.github.io/webvr/spec/1.1/#interface-gamepad
-partial interface Gamepad {
-  readonly attribute unsigned long displayId;
+// https://w3c.github.io/gamepad/extensions.html#gamepadhand-enum
+enum GamepadHand {
+  "",  /* unknown, both hands, or not applicable */
+  "left",
+  "right"
 };

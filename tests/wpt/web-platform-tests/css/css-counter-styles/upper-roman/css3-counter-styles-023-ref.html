@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>upper-roman, 0-9</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#simple-numeric'>
+<link rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+<meta name='flags' content='font'>
+<meta name="assert" content="list-style: upper-roman produces numbers up to 9 items per the spec.">
+<style type='text/css'>
+ol li { list-style-type: upper-roman;  }
+/* the following CSS is not part of the test */
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, IGNORING the suffix.</p>
+<div class="test"><ol>
+<div><bdi>I. </bdi>I</div>
+<div><bdi>II. </bdi>II</div>
+<div><bdi>III. </bdi>III</div>
+<div><bdi>IV. </bdi>IV</div>
+<div><bdi>V. </bdi>V</div>
+<div><bdi>VI. </bdi>VI</div>
+<div><bdi>VII. </bdi>VII</div>
+<div><bdi>VIII. </bdi>VIII</div>
+<div><bdi>IX. </bdi>IX</div>
+</ol></div>
+<!--Notes:
+You will need an appropriate font to run this test.
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+</body>
+</html>

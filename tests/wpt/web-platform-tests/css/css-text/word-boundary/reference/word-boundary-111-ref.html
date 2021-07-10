@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test reference</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<style>
+.wrap {
+  font-size: 2em;
+  border: solid black;
+  margin: 5px;
+  width: 30ch;
+}
+.wrap > div {
+  width: 0;
+}
+#ref {
+  border-color: blue;
+}
+</style>
+
+<!--
+This test should pass even in UAs that don't support word-boundary-detection:auto(th)
+since allowing south-east-asian languages to wrap is the default behavior.
+-->
+
+<p>Test passes if the black box is identical to either the blue one.
+
+<div class=wrap>
+  <div lang=th>กรุงเทพ<wbr>คือ<wbr>สวยงาม</div>
+</div>
+<div id=ref class=wrap>
+  <div lang=th>กรุงเทพ<wbr>คือ<wbr>สวยงาม</div>
+</div>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Shapes Module Level 1: parsing shape-outside with valid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-shapes/#shape-outside-property">
+<meta name="assert" content="shape-outside supports the full grammar 'none | [ <basic-shape> || <shape-box> ] | <image>'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("shape-outside", "none");
+
+// <basic-shape>
+test_valid_value("shape-outside", "inset(100%)");
+test_valid_value("shape-outside", "inset(0 1px)", "inset(0px 1px)");
+test_valid_value("shape-outside", "inset(0px 1px 2%)");
+test_valid_value("shape-outside", "inset(0px 1px 2% 3em)");
+test_valid_value("shape-outside", "inset(0px round 100%)");
+test_valid_value("shape-outside", "inset(0px round 0 1px)", "inset(0px round 0px 1px)");
+test_valid_value("shape-outside", "inset(0px round 0px 1px 2%)");
+test_valid_value("shape-outside", "inset(0px round 0px 1px 2% 3em)");
+test_valid_value("shape-outside", "inset(10px round 20% / 0px 1px 2% 3em)");
+
+test_valid_value("shape-outside", "circle()", "circle(at 50% 50%)");
+test_valid_value("shape-outside", "circle(1px)", "circle(1px at 50% 50%)");
+test_valid_value("shape-outside", "circle(closest-side)", "circle(at 50% 50%)");
+test_valid_value("shape-outside", "circle(at 10% 20%)");
+test_valid_value("shape-outside", "circle(farthest-side at center top)", "circle(farthest-side at 50% 0%)");
+test_valid_value("shape-outside", "circle(4% at top right)", "circle(4% at 100% 0%)");
+
+test_valid_value("shape-outside", "ellipse()", "ellipse(at 50% 50%)");
+test_valid_value("shape-outside", "ellipse(3% 2%)", "ellipse(3% 2% at 50% 50%)");
+test_valid_value("shape-outside", "ellipse(closest-side 1px)", "ellipse(closest-side 1px at 50% 50%)");
+test_valid_value("shape-outside", "ellipse(10% closest-side)", "ellipse(10% closest-side at 50% 50%)");
+test_valid_value("shape-outside", "ellipse(closest-side closest-side at 60% 70%)", "ellipse(at 60% 70%)");
+test_valid_value("shape-outside", "ellipse(at 10% 20%)");
+test_valid_value("shape-outside", "ellipse(farthest-side 4% at bottom left)", "ellipse(farthest-side 4% at 0% 100%)");
+
+test_valid_value("shape-outside", "polygon(1% 2%)");
+test_valid_value("shape-outside", "polygon(nonzero, 1px 2px, 3em 4em)", "polygon(1px 2px, 3em 4em)");
+test_valid_value("shape-outside", "polygon(evenodd, 1px 2px, 3em 4em, 5pt 6%)");
+
+// <shape-box>
+test_valid_value("shape-outside", "border-box");
+test_valid_value("shape-outside", "padding-box");
+test_valid_value("shape-outside", "content-box");
+test_valid_value("shape-outside", "margin-box");
+
+// basic-shape> <shape-box>
+test_valid_value("shape-outside", "circle(7% at 8% 9%) border-box");
+
+// <shape-box> <basic-shape>
+test_valid_value("shape-outside", "padding-box inset(10em)", "inset(10em) padding-box");
+test_valid_value("shape-outside", "border-box circle(7% at 8% 9%)", "circle(7% at 8% 9%) border-box");
+test_valid_value("shape-outside", "margin-box ellipse(at 1em 2em)", ["ellipse(at 1em 2em) margin-box", "ellipse(at 1em 2em)"]);
+test_valid_value("shape-outside", "content-box polygon(1% 2%)", "polygon(1% 2%) content-box");
+
+// <image>
+// Spec is silent about url serialization.
+// Blink, Edge, Firefox add quotes. WebKit removes quotes.
+test_valid_value("shape-outside", "url(https://example.com/)", ["url(https://example.com/)", "url(\"https://example.com/\")"]);
+test_valid_value("shape-outside", "url(\"https://example.com/\")", ["url(https://example.com/)", "url(\"https://example.com/\")"]);
+test_valid_value("shape-outside", "cross-fade(url(\"https://example.com/\"), green)");
+test_valid_value("shape-outside", "linear-gradient(yellow, blue)");
+</script>
+</body>
+</html>

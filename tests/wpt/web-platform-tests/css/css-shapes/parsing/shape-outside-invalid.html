@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Shapes Module Level 1: parsing shape-outside with invalid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-shapes/#shape-outside-property">
+<meta name="assert" content="shape-outside supports only the grammar 'none | [ <basic-shape> || <shape-box> ] | <image>'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("shape-outside", "auto");
+test_invalid_value("shape-outside", "ray(0deg)");
+
+test_invalid_value("shape-outside", "inset()");
+test_invalid_value("shape-outside", "inset(123)");
+test_invalid_value("shape-outside", "inset(1% 2% 3% 4% 5%)");
+test_invalid_value("shape-outside", "inset(round 0)");
+test_invalid_value("shape-outside", "inset(0px round)");
+test_invalid_value("shape-outside", "inset(0px round 123)");
+test_invalid_value("shape-outside", "inset(0px round 1% 2% 3% 4% 5%)");
+test_invalid_value("shape-outside", "inset(0px round / 1px)");
+test_invalid_value("shape-outside", "inset(10px round -20px)");
+test_invalid_value("shape-outside", "inset(30% round -40%)");
+
+test_invalid_value("shape-outside", "circle(123)");
+test_invalid_value("shape-outside", "circle(at)");
+test_invalid_value("shape-outside", "circle(10% 20%)");
+test_invalid_value("shape-outside", "circle(-10px at 20px 30px)");
+test_invalid_value("shape-outside", "circle(-10% at 20% 30%)");
+test_invalid_value("shape-outside", "circle(1% 2% at 0% 100%)");
+
+test_invalid_value("shape-outside", "ellipse(farthest-side at)");
+test_invalid_value("shape-outside", "ellipse(1% 2% top right)");
+test_invalid_value("shape-outside", "ellipse(3%)");
+test_invalid_value("shape-outside", "ellipse(3% at 100% 0%)");
+test_invalid_value("shape-outside", "ellipse(closest-side)");
+test_invalid_value("shape-outside", "ellipse(farthest-side at 100% 0%)");
+test_invalid_value("shape-outside", "ellipse(10% -20% at 30% 40%)");
+test_invalid_value("shape-outside", "ellipse(-50px 60px at 70% 80%)");
+
+test_invalid_value("shape-outside", "polygon(1%)");
+
+test_invalid_value("shape-outside", "border-box circle(7% at 8% 9%) border-box");
+
+// <geometry-box> other than <shape-box>
+test_invalid_value("shape-outside", "fill-box");
+test_invalid_value("shape-outside", "stroke-box");
+test_invalid_value("shape-outside", "view-box");
+
+</script>
+</body>
+</html>

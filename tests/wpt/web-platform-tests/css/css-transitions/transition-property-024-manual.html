@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Transitions Test: transition-property - margin-bottom</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/#animation-type">
+<link rel="help" href="https://drafts.csswg.org/css-box-3/#margin-physical">
+<meta name="assert" content="Test checks that the 'margin-bottom' property is animatable.">
+<style>
+  #ref {
+    background-color: blue;
+    height: 100px;
+    width: 100px;
+  }
+  #test {
+    margin-bottom: 1px;
+    transition-duration: 4s;
+    transition-property: margin-bottom;
+    transition-timing-function: linear;
+  }
+</style>
+<body>
+  <p id="test">Click blue square below. Test passes if the blue square moves down gradually not immediately until it stops.</p>
+  <div id="ref"></div>
+  <script>
+    (function() {
+      var ref = document.querySelector("#ref");
+      ref.addEventListener("click", function(evt) {
+        document.querySelector("#test").setAttribute("style", "margin-bottom: 100px;");
+      }, false);
+    })();
+  </script>
+</body>

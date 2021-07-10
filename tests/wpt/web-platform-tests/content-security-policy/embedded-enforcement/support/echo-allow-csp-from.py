@@ -1,10 +1,10 @@
 import json
 def main(request, response):
-    headers = [("Content-Type", "text/html")]
-    if "allow_csp_from" in request.GET:
-        headers.append(("Allow-CSP-From", request.GET["allow_csp_from"]))
-    message = request.GET["id"]
-    return headers, '''
+    headers = [(b"Content-Type", b"text/html")]
+    if b"allow_csp_from" in request.GET:
+        headers.append((b"Allow-CSP-From", request.GET[b"allow_csp_from"]))
+    message = request.GET[b"id"]
+    return headers, b'''
 <!DOCTYPE html>
 <html>
 <head>

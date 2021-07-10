@@ -1,0 +1,33 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Element Timing: check intersectionRect for element in iframe</title>
+<body>
+<style>
+body {
+  margin: 50px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  async_test((t) => {
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    on_event(window, 'message', e => {
+      assert_equals(e.data.length, 1);
+      assert_equals(e.data.entryType, 'element');
+      const rect = e.data.rect;
+      // rect should start at (0,0) even though main frame has a margin.
+      assert_equals(rect.left, 0);
+      assert_equals(rect.right, 100);
+      assert_equals(rect.top, 0);
+      assert_equals(rect.bottom, 100);
+      assert_equals(e.data.naturalWidth, 100);
+      assert_equals(e.data.naturalHeight, 100);
+      assert_equals(e.data.id, 'iframe_img_id');
+      assert_equals(e.data.elementId, 'iframe_img_id');
+      t.done();
+    });
+  }, 'Element Timing entry in iframe has coordinates relative to the iframe.');
+</script>
+<iframe src="resources/iframe-with-square-sends-entry.html"/>
+</body>

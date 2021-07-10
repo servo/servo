@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Mask behaviour when mask image is missing or display:none</title>
+  <link rel="match"  href="display-none-mask-ref.html">
+  <link name="author" title="Timothy Nikkel" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1624532">
+  <link name="author" title="Mike Bremford" href="http://bfo.com"> <!-- edited 202010 -->
+  <link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-mask-image">
+  <link rel="help" href="https://drafts.fxtf.org/css-masking-1/#MaskElement">
+  <link rel="help" href="https://github.com/w3c/fxtf-drafts/issues/245">
+  <meta name="assert" content="A missing or invalid mask image is equivalent to transparent black (i.e. nothing is displayed). A mask with display:none is disabled (which is a change to the specified behaviour as of issue 245)">
+</head>
+
+<body>
+  <svg width="200" height="200">
+    <!-- missing/invalid mask is equivalent to transparent black - nothing displayed -->
+    <foreignObject x="0" y="0" width="200" height="200" style="mask: url('#notfound');">
+      <div style="width: 200px; height: 200px; background: red"></div>
+    </foreignObject>
+  </svg>
+  <svg width="200" height="200">
+    <!-- display:none on mask means mask is not applied (new in https://github.com/w3c/fxtf-drafts/issues/245) -->
+    <foreignObject x="0" y="0" width="200" height="200" style="mask: url('#noneMask');">
+      <div style="width: 200px; height: 200px; background: green"></div>
+    </foreignObject>
+  </svg>
+  <svg width="200" height="200">
+    <foreignObject x="0" y="0" width="200" height="200">
+      <!-- missing/invalid mask is equivalent to transparent black - nothing displayed -->
+      <div style="width: 200px; height: 200px; background: red; mask: url('#notfound');"></div>
+    </foreignObject>
+  </svg>
+  <svg width="200" height="200">
+    <foreignObject x="0" y="0" width="200" height="200">
+      <!-- display:none on mask means mask is not applied (new in https://github.com/w3c/fxtf-drafts/issues/245) -->
+      <div style="width: 200px; height: 200px; background: green; mask: url('#noneMask');"></div>
+    </foreignObject>
+  </svg>
+
+  <svg width="200" height="200" style="display:none">
+    <defs>
+      <mask id="noneMask">
+        <rect x="0" y="0" width="200" height="200" fill="#4d4d4d"></rect>
+      </mask>
+    </defs>
+  </svg>
+
+  <!-- make sure masking actually works -->
+  <svg width="200" height="200">
+    <defs>
+      <mask id="aMask">
+        <rect x="0" y="0" width="100" height="50" fill="#ffffff"></rect>
+        <rect x="0" y="100" width="100" height="50" fill="#ffffff"></rect>
+      </mask>
+    </defs>
+    <foreignObject x="0" y="0" width="200" height="200" style="mask: url('#aMask');">
+      <div style="width: 200px; height: 200px; background: green;"></div>
+    </foreignObject>
+  </svg>
+  <svg width="200" height="200">
+    <foreignObject x="0" y="0" width="200" height="200">
+      <div style="width: 200px; height: 200px; background: green; mask: url('#aMask');"></div>
+    </foreignObject>
+  </svg>
+
+  <!-- make sure masking works on active content -->
+  <svg width="200" height="200">
+    <foreignObject x="0" y="0" width="200" height="200" style="mask: url('#aMask');">
+      <div style="width: 200px; height: 200px; background: green; will-change: transform"></div>
+    </foreignObject>
+  </svg>
+  <svg width="200" height="200">
+    <foreignObject x="0" y="0" width="200" height="200">
+      <div style="width: 200px; height: 200px; background: green; will-change: transform; mask: url('#aMask');"></div>
+    </foreignObject>
+  </svg>
+</body>
+</html>

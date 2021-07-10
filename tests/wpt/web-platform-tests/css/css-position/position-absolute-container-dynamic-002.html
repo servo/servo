@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>CSS Position Absolute: dynamic changes to containing block height</title>
+<link rel="author" href="mailto:atotic@google.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=933054">
+<meta name="assert" content="Chrome regression: abspos descendant responds to containing block size change through line items">
+<style>
+
+#container {
+  position: relative;
+}
+#intermediate {
+  overflow: hidden;
+  width:200px;
+  height:200px;
+  background:red;
+}
+#block {
+  height:200px;
+  background:green;
+}
+#target {
+  position: absolute;
+  width: 200px;
+  height: 100px;
+  background:green;
+}
+</style>
+<!-- Test for crbug.com/933054
+  Relayout optimizations cause OOF descendant not to be
+  repositioned
+-->
+<div id="container">
+  <div id="intermediate">
+    <div id="block"></div>
+    <div id="target"></div>
+  </div>
+</div>
+
+<script>
+document.body.offsetTop;
+test(() => {
+  document.getElementById("block").style.height = "100px";
+  assert_equals(document.querySelector("#target").offsetTop, 100);
+}, '#target static position responded to parent relayout');
+</script>

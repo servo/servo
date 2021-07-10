@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script async defer src='../support/checkReport.sub.js?reportField=blocked-uri&reportValue={{location[scheme]}}%3A%2F%2F{{location[host]}}/common/redirect.py%3Flocation%3Dhttp%253A%252F%252F{{hosts[][]}}%253A{{ports[http][0]}}%252Fcontent-security-policy%252Fsupport%252Ffail.html%253Ft%253D1'></script>
+<iframe src='{{location[scheme]}}://{{location[host]}}/common/redirect.py?location=http%3A%2F%2F{{hosts[][]}}%3A{{ports[http][0]}}%2Fcontent-security-policy%2Fsupport%2Ffail.html%3Ft%3D1' style='display: none;'>
+</body>
+</html>

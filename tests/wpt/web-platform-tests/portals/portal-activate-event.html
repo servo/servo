@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>Tests that the PortalActivateEvent is dispatched when a portal is activated</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  async_test(function(t) {
+    assert_implements("HTMLPortalElement" in self);
+    let test = "eventlistener";
+    var bc = new BroadcastChannel(`test-${test}`);
+    bc.onmessage = t.step_func_done(function(e) {
+      assert_equals(e.data, "passed");
+      bc.close();
+    });
+    const portalUrl = encodeURIComponent(`portal-activate-event-portal.html?test=${test}`);
+    window.open(`resources/portal-embed-and-activate.html?url=${portalUrl}`);
+  }, "Tests that the PortalActivateEvent is dispatched when a portal is activated.");
+
+  async_test(function(t) {
+    assert_implements("HTMLPortalElement" in self);
+    let test = "eventhandler";
+    var bc = new BroadcastChannel(`test-${test}`);
+    bc.onmessage = t.step_func_done(function(e) {
+      assert_equals(e.data, "passed");
+      bc.close();
+    });
+    const portalUrl = encodeURIComponent(`portal-activate-event-portal.html?test=${test}`);
+    window.open(`resources/portal-embed-and-activate.html?url=${portalUrl}`);
+  }, "Tests that the portalactivate event handler is dispatched when a portal is activated.");
+
+  async_test(function(t) {
+    assert_implements("HTMLPortalElement" in self);
+    let test = "bodyeventhandler";
+    var bc = new BroadcastChannel(`test-${test}`);
+    bc.onmessage = t.step_func_done(function(e) {
+      assert_equals(e.data, "passed");
+      bc.close();
+    });
+    const portalUrl = encodeURIComponent(`portal-activate-event-portal.html?test=${test}`);
+    window.open(`resources/portal-embed-and-activate.html?url=${portalUrl}`);
+  }, "Tests that the HTMLBodyElement has the portalactivate event handler.");
+</script>

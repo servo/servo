@@ -24,17 +24,17 @@ window.onload = function() {
   var orange = document.getElementsByTagName('div')[0], fuchsia = document.getElementsByTagName('div')[1];
 
   orange.ondragstart = function(e) {
-		e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.effectAllowed = 'copy';
     e.dataTransfer.setData('extra/data', 'parent bubble');
   };
   fuchsia.ondragenter = fuchsia.ondragover = function(e) {
-   	e.preventDefault();
+    e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
   };
-	fuchsia.ondrop = function(e) {
-   	e.preventDefault();
-	  var passed = ( e.dataTransfer.getData('text/plain') == 'text dummy' ) && ( e.dataTransfer.getData('extra/data') == 'parent bubble' );
-   	document.getElementsByTagName('p')[0].innerHTML = passed ? 'PASS' : 'FAIL';
+  fuchsia.ondrop = function(e) {
+    e.preventDefault();
+    var passed = ( e.dataTransfer.getData('text/plain') == 'text dummy' ) && ( e.dataTransfer.getData('extra/data') == 'parent bubble' );
+    document.getElementsByTagName('p')[0].innerHTML = passed ? 'PASS' : 'FAIL';
   };
   var range = document.createRange();
   range.selectNodeContents(orange);

@@ -1,50 +1,63 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::PromiseNativeHandlerBinding;
-use dom::bindings::js::Root;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::trace::JSTraceable;
-use dom::globalscope::GlobalScope;
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::trace::JSTraceable;
+use crate::dom::globalscope::GlobalScope;
+use crate::realms::InRealm;
+use crate::script_runtime::JSContext as SafeJSContext;
 use dom_struct::dom_struct;
-use heapsize::HeapSizeOf;
-use js::jsapi::{JSContext, HandleValue};
+use js::jsapi::JSContext;
+use js::rust::HandleValue;
+use malloc_size_of::MallocSizeOf;
 
-pub trait Callback: JSTraceable + HeapSizeOf {
-    fn callback(&self, cx: *mut JSContext, v: HandleValue);
+pub trait Callback: JSTraceable + MallocSizeOf {
+    fn callback(&self, cx: SafeJSContext, v: HandleValue, realm: InRealm);
 }
 
 #[dom_struct]
 pub struct PromiseNativeHandler {
     reflector: Reflector,
-    resolve: Option<Box<Callback>>,
-    reject: Option<Box<Callback>>,
+    resolve: Option<Box<dyn Callback>>,
+    reject: Option<Box<dyn Callback>>,
 }
 
 impl PromiseNativeHandler {
-    pub fn new(global: &GlobalScope,
-               resolve: Option<Box<Callback>>,
-               reject: Option<Box<Callback>>)
-               -> Root<PromiseNativeHandler> {
-        reflect_dom_object(box PromiseNativeHandler {
-            reflector: Reflector::new(),
-            resolve: resolve,
-            reject: reject,
-        }, global, PromiseNativeHandlerBinding::Wrap)
+    pub fn new(
+        global: &GlobalScope,
+        resolve: Option<Box<dyn Callback>>,
+        reject: Option<Box<dyn Callback>>,
+    ) -> DomRoot<PromiseNativeHandler> {
+        reflect_dom_object(
+            Box::new(PromiseNativeHandler {
+                reflector: Reflector::new(),
+                resolve: resolve,
+                reject: reject,
+            }),
+            global,
+        )
     }
 
-    fn callback(callback: &Option<Box<Callback>>, cx: *mut JSContext, v: HandleValue) {
+    #[allow(unsafe_code)]
+    fn callback(
+        callback: &Option<Box<dyn Callback>>,
+        cx: *mut JSContext,
+        v: HandleValue,
+        realm: InRealm,
+    ) {
+        let cx = unsafe { SafeJSContext::from_ptr(cx) };
         if let Some(ref callback) = *callback {
-            callback.callback(cx, v)
+            callback.callback(cx, v, realm)
         }
     }
 
-    pub fn resolved_callback(&self, cx: *mut JSContext, v: HandleValue) {
-        PromiseNativeHandler::callback(&self.resolve, cx, v)
+    pub fn resolved_callback(&self, cx: *mut JSContext, v: HandleValue, realm: InRealm) {
+        PromiseNativeHandler::callback(&self.resolve, cx, v, realm)
     }
 
-    pub fn rejected_callback(&self, cx: *mut JSContext, v: HandleValue) {
-        PromiseNativeHandler::callback(&self.reject, cx, v)
+    pub fn rejected_callback(&self, cx: *mut JSContext, v: HandleValue, realm: InRealm) {
+        PromiseNativeHandler::callback(&self.reject, cx, v, realm)
     }
 }

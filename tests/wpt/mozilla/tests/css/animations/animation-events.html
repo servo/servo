@@ -1,0 +1,160 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSS animation event dispatch</title>
+<meta name="timeout" content="long">
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/#event-dispatch"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@keyframes anim {
+  from { margin-left: 0px; }
+  to { margin-left: 100px; }
+}
+</style>
+<div id="log"></div>
+<script>
+'use strict';
+
+// This series of tests is a forked version of the Web Platform Test
+// /css/css-animations/event-dispatch.tentative that do not make use
+// of the Web Animations API, since Servo doesn't yet support Web Animations.
+
+function waitForFrame() {
+  return new Promise(resolve => {
+    window.requestAnimationFrame(resolve);
+  });
+}
+
+// All animation events should be received on the next animation frame.
+const animationEventsTimeout = () => {
+    return new Promise(function(resolve) {
+        setTimeout(resolve, 5000);
+    });
+}
+
+const setupAnimation = (t, animationStyle) => {
+  var div = document.createElement('div');
+  div.setAttribute('style', 'animation: ' + animationStyle);
+  document.body.appendChild(div);
+  if (t && typeof t.add_cleanup === 'function') {
+    t.add_cleanup(function() {
+      if (div.parentNode) {
+        div.remove();
+      }
+    });
+  }
+
+  const watcher = new EventWatcher(t, div, [ 'animationstart',
+                                             'animationiteration',
+                                             'animationend',
+                                             'animationcancel' ],
+                                   animationEventsTimeout);
+
+  return { watcher, div };
+};
+
+promise_test(async t => {
+  const { watcher } = setupAnimation(t, 'anim 100s');
+
+  const events = await watcher.wait_for(
+    ['animationstart' ],
+    {
+      record: 'all',
+    }
+  );
+  assert_equals(events[0].elapsedTime, 0.0);
+}, 'animationstart');
+
+promise_test(async t => {
+  const { watcher } = setupAnimation(t, 'anim 0.1s');
+
+  const events = await watcher.wait_for(
+    ['animationstart', 'animationend'],
+    {
+      record: 'all',
+    }
+  );
+  assert_equals(events[0].elapsedTime, 0);
+  assert_equals(events[0].animationName, "anim");
+
+  assert_approx_equals(events[1].elapsedTime, 0.1, 0.001);
+  assert_equals(events[1].animationName, "anim");
+}, 'animationstart and animationend');
+
+promise_test(async t => {
+  const { watcher } = setupAnimation(t, 'anim 1s 0.5s');
+
+  const events = await watcher.wait_for(
+    ['animationstart', 'animationend'], { record: 'all', }
+  );
+  assert_approx_equals(events[0].elapsedTime, 0, 0.01);
+  assert_equals(events[0].animationName, "anim");
+
+  assert_approx_equals(events[1].elapsedTime, 1, 0.01);
+  assert_equals(events[1].animationName, "anim");
+}, 'animationstart and animationend with positive delay');
+
+promise_test(async t => {
+  const { watcher } = setupAnimation(t, 'anim 100s -99.99s');
+
+  const events = await watcher.wait_for(
+    ['animationstart', 'animationend'], { record: 'all', }
+  );
+  assert_approx_equals(events[0].elapsedTime, 99.99, 0.1);
+  assert_equals(events[0].animationName, "anim");
+
+  assert_approx_equals(events[1].elapsedTime, 99.99, 0.1);
+  assert_equals(events[1].animationName, "anim");
+}, 'animationstart and animationend with negative delay');
+
+promise_test(async t => {
+  const { watcher } = setupAnimation(t, 'anim 100s -200s');
+
+  const events = await watcher.wait_for(
+    ['animationstart', 'animationend'], { record: 'all', }
+  );
+  assert_approx_equals(events[0].elapsedTime, 99.99, 0.1);
+  assert_equals(events[0].animationName, "anim");
+
+  assert_approx_equals(events[1].elapsedTime, 99.99, 0.1);
+  assert_equals(events[1].animationName, "anim");
+}, 'animationstart and animationend with negative delay larger than active duration');
+
+promise_test(async t => {
+  const { watcher, div } = setupAnimation(t, 'anim 100s');
+  await watcher.wait_for('animationstart');
+
+  div.style.animation = "";
+
+  await watcher.wait_for('animationcancel');
+}, 'animationcancel');
+
+promise_test(async t => {
+  const { watcher, div } = setupAnimation(t, 'anim 100s 50s');
+
+  // Wait for two animation frames. One is not enough in some browser engines.
+  await waitForFrame();
+  await waitForFrame();
+
+  div.style.animation = "";
+  const events = await watcher.wait_for(
+    ['animationcancel'], { record: 'all', }
+  );
+
+  assert_equals(events[0].elapsedTime, 0);
+}, 'animationcancel with positive delay');
+
+promise_test(async t => {
+  const { watcher, div } = setupAnimation(t, 'anim 100s -50s');
+  await watcher.wait_for('animationstart');
+
+  div.style.animation = "";
+
+  const events = await watcher.wait_for(
+    ['animationcancel'], { record: 'all', }
+  );
+
+  assert_approx_equals(events[0].elapsedTime, 50, 0.1);
+}, 'animationcancel with negative delay');
+
+</script>

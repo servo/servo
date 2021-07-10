@@ -12,10 +12,10 @@ function testNode(create, type) {
     var node = create()
     assert_equals(node.data, "test")
 
-    assert_throws("INDEX_SIZE_ERR", function() { node.deleteData(5, 10) })
-    assert_throws("INDEX_SIZE_ERR", function() { node.deleteData(5, 0) })
-    assert_throws("INDEX_SIZE_ERR", function() { node.deleteData(-1, 10) })
-    assert_throws("INDEX_SIZE_ERR", function() { node.deleteData(-1, 0) })
+    assert_throws_dom("INDEX_SIZE_ERR", function() { node.deleteData(5, 10) })
+    assert_throws_dom("INDEX_SIZE_ERR", function() { node.deleteData(5, 0) })
+    assert_throws_dom("INDEX_SIZE_ERR", function() { node.deleteData(-1, 10) })
+    assert_throws_dom("INDEX_SIZE_ERR", function() { node.deleteData(-1, 0) })
   }, type + ".deleteData() out of bounds")
 
   test(function() {

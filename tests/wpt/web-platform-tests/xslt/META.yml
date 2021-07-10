@@ -1,0 +1,4 @@
+# NOTE: There is no standard for this API, only:
+# https://wiki.whatwg.org/wiki/DOM_XSLTProcessor
+# and the notes in the HTML5 spec, linked.
+spec: https://html.spec.whatwg.org/multipage/scripting.html#scriptTagXSLT

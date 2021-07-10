@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    var t = async_test('Imported inline CSS is not blocked on pending CSS');
+</script>
+<link rel=stylesheet href="resources/dummy.css?first-preloader-css-import&pipe=trickle(d1)">
+<script>
+    var this_script_is_necessary_to_block_the_inline_style_processing = true;
+</script>
+<style>
+@import url("resources/dummy.css?second-preloader-css-import");
+</style>
+<script>
+    window.addEventListener("load", t.step_func_done(() => {
+        let entries = performance.getEntriesByType('resource');
+        let first;
+        let second;
+        for (entry of entries) {
+            if (entry.name.includes("first")) {
+                first = entry;
+            }
+            if (entry.name.includes("second")) {
+                second = entry;
+            }
+        }
+        assert_true(first.responseEnd > second.startTime, "The second resource start time should not be blocked on the first resource response");
+    }));
+</script>
+

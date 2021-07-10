@@ -1,0 +1,56 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>IdlDictionary.prototype.do_member_unscopable_asserts()</title>
+</head>
+<body>
+<div id="log"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<script src="../../../idl-helper.js"></script>
+<script>
+    'use strict';
+    function mock_interface_A(unscopables) {
+        self.A = function A() {};
+        A.prototype[Symbol.unscopables] = unscopables;
+    }
+
+    test(function() {
+        const i = interfaceFrom('interface A { [Unscopable] attribute any x; };');
+        const member = i.members[0];
+        assert_true(member.isUnscopable);
+        mock_interface_A({ x: true });
+        i.do_member_unscopable_asserts(member);
+    }, 'should not throw for [Unscopable] with property in @@unscopables');
+
+    test(function() {
+        const i = interfaceFrom('interface A { [Unscopable] attribute any x; };');
+        const member = i.members[0];
+        assert_true(member.isUnscopable);
+        mock_interface_A({});
+        // assert_throws_* can't be used because they rethrow AssertionErrors.
+        try {
+            i.do_member_unscopable_asserts(member);
+        } catch(e) {
+            assert_true(e.message.includes('Symbol.unscopables'));
+            return;
+        }
+        assert_unreached('did not throw');
+    }, 'should throw for [Unscopable] with property missing from @@unscopables');
+
+    // This test checks that for attributes/methods which aren't [Unscopable]
+    // in the IDL, we don't assert that @@unscopables is missing the property.
+    // This could miss implementation bugs, but [Unscopable] is so rarely used
+    // that it's fairly unlikely to ever happen.
+    test(function() {
+        const i = interfaceFrom('interface A { attribute any x; };');
+        const member = i.members[0];
+        assert_false(member.isUnscopable);
+        mock_interface_A({ x: true });
+        i.do_member_unscopable_asserts(member);
+    }, 'should not throw if [Unscopable] is used but property is in @@unscopables');
+</script>
+</body>
+</html>

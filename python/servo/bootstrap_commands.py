@@ -13,11 +13,13 @@ import base64
 import json
 import os
 import os.path as path
+import platform
 import re
-import shutil
 import subprocess
 import sys
-import urllib2
+import traceback
+import six.moves.urllib as urllib
+import glob
 
 from mach.decorators import (
     CommandArgument,
@@ -26,23 +28,12 @@ from mach.decorators import (
 )
 
 import servo.bootstrap as bootstrap
-from servo.command_base import CommandBase, BIN_SUFFIX
-from servo.util import delete, download_bytes, download_file, extract, host_triple
+from servo.command_base import CommandBase, cd, check_call
+from servo.util import delete, download_bytes, download_file, extract, check_hash
 
 
 @CommandProvider
 class MachCommands(CommandBase):
-    @Command('env',
-             description='Print environment setup commands',
-             category='bootstrap')
-    def env(self):
-        env = self.build_env()
-        print("export PATH=%s" % env["PATH"])
-        if sys.platform == "darwin":
-            print("export DYLD_LIBRARY_PATH=%s" % env["DYLD_LIBRARY_PATH"])
-        else:
-            print("export LD_LIBRARY_PATH=%s" % env["LD_LIBRARY_PATH"])
-
     @Command('bootstrap',
              description='Install required packages for building.',
              category='bootstrap')
@@ -50,172 +41,172 @@ class MachCommands(CommandBase):
                      action='store_true',
                      help='Boostrap without confirmation')
     def bootstrap(self, force=False):
+        # This entry point isn't actually invoked, ./mach bootstrap is directly
+        # called by mach (see mach_bootstrap.bootstrap_command_only) so that
+        # it can install dependencies without needing mach's dependencies
         return bootstrap.bootstrap(self.context, force=force)
 
-    @Command('bootstrap-rust',
-             description='Download the Rust compiler',
+    @Command('bootstrap-salt',
+             description='Install and set up the salt environment.',
              category='bootstrap')
     @CommandArgument('--force', '-f',
                      action='store_true',
-                     help='Force download even if a copy already exists')
-    @CommandArgument('--target',
-                     action='append',
-                     default=[],
-                     help='Download rust stdlib for specified target')
-    @CommandArgument('--stable',
-                     action='store_true',
-                     help='Use stable rustc version')
-    def bootstrap_rustc(self, force=False, target=[], stable=False):
-        self.set_use_stable_rust(stable)
-        version = self.rust_version()
-        rust_path = self.rust_path()
-        rust_dir = path.join(self.context.sharedir, "rust", rust_path)
-        install_dir = path.join(self.context.sharedir, "rust", version)
-        if not self.config["build"]["llvm-assertions"]:
-            if not self.use_stable_rust():
-                install_dir += "-alt"
+                     help='Boostrap without confirmation')
+    def bootstrap_salt(self, force=False):
+        return bootstrap.bootstrap(self.context, force=force, specific="salt")
 
-        if not force and path.exists(path.join(rust_dir, "rustc", "bin", "rustc" + BIN_SUFFIX)):
-            print("Rust compiler already downloaded.", end=" ")
-            print("Use |bootstrap-rust --force| to download again.")
+    @Command('bootstrap-gstreamer',
+             description='Set up a local copy of the gstreamer libraries (linux only).',
+             category='bootstrap')
+    @CommandArgument('--force', '-f',
+                     action='store_true',
+                     help='Boostrap without confirmation')
+    def bootstrap_gstreamer(self, force=False):
+        return bootstrap.bootstrap(self.context, force=force, specific="gstreamer")
+
+    @Command('bootstrap-android',
+             description='Install the Android SDK and NDK.',
+             category='bootstrap')
+    @CommandArgument('--build',
+                     action='store_true',
+                     help='Install Android-specific dependencies for building')
+    @CommandArgument('--emulator-x86',
+                     action='store_true',
+                     help='Install Android x86 emulator and system image')
+    @CommandArgument('--accept-all-licences',
+                     action='store_true',
+                     help='For non-interactive use')
+    def bootstrap_android(self, build=False, emulator_x86=False, accept_all_licences=False):
+        if not (build or emulator_x86):
+            print("Must specify `--build` or `--emulator-x86` or both.")
+
+        ndk = "android-ndk-r15c-{system}-{arch}"
+        tools = "sdk-tools-{system}-4333796"
+
+        emulator_platform = "android-28"
+        emulator_image = "system-images;%s;google_apis;x86" % emulator_platform
+
+        known_sha1 = {
+            # https://dl.google.com/android/repository/repository2-1.xml
+            "sdk-tools-darwin-4333796.zip": "ed85ea7b59bc3483ce0af4c198523ba044e083ad",
+            "sdk-tools-linux-4333796.zip": "8c7c28554a32318461802c1291d76fccfafde054",
+            "sdk-tools-windows-4333796.zip": "aa298b5346ee0d63940d13609fe6bec621384510",
+
+            # https://developer.android.com/ndk/downloads/older_releases
+            "android-ndk-r15c-windows-x86.zip": "f2e47121feb73ec34ced5e947cbf1adc6b56246e",
+            "android-ndk-r15c-windows-x86_64.zip": "970bb2496de0eada74674bb1b06d79165f725696",
+            "android-ndk-r15c-darwin-x86_64.zip": "ea4b5d76475db84745aa8828000d009625fc1f98",
+            "android-ndk-r15c-linux-x86_64.zip": "0bf02d4e8b85fd770fd7b9b2cdec57f9441f27a2",
+        }
+
+        toolchains = path.join(self.context.topdir, "android-toolchains")
+        if not path.isdir(toolchains):
+            os.makedirs(toolchains)
+
+        def download(target_dir, name, flatten=False):
+            final = path.join(toolchains, target_dir)
+            if path.isdir(final):
+                return
+
+            base_url = "https://dl.google.com/android/repository/"
+            filename = name + ".zip"
+            url = base_url + filename
+            archive = path.join(toolchains, filename)
+
+            if not path.isfile(archive):
+                download_file(filename, url, archive)
+            check_hash(archive, known_sha1[filename], "sha1")
+            print("Extracting " + filename)
+            remove = True  # Set to False to avoid repeated downloads while debugging this script
+            if flatten:
+                extracted = final + "_"
+                extract(archive, extracted, remove=remove)
+                contents = os.listdir(extracted)
+                assert len(contents) == 1
+                os.rename(path.join(extracted, contents[0]), final)
+                os.rmdir(extracted)
+            else:
+                extract(archive, final, remove=remove)
+
+        system = platform.system().lower()
+        machine = platform.machine().lower()
+        arch = {"i386": "x86"}.get(machine, machine)
+        if build:
+            download("ndk", ndk.format(system=system, arch=arch), flatten=True)
+        download("sdk", tools.format(system=system))
+
+        components = []
+        if emulator_x86:
+            components += [
+                "platform-tools",
+                "emulator",
+                "platforms;" + emulator_platform,
+                emulator_image,
+            ]
+        if build:
+            components += [
+                "platform-tools",
+                "platforms;android-18",
+            ]
+
+        sdkmanager = [path.join(toolchains, "sdk", "tools", "bin", "sdkmanager")] + components
+        if accept_all_licences:
+            yes = subprocess.Popen(["yes"], stdout=subprocess.PIPE)
+            process = subprocess.Popen(
+                sdkmanager, stdin=yes.stdout, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            )
+            # Reduce progress bar spam by removing duplicate lines.
+            # Printing the same line again with \r is a no-op in a real terminal,
+            # but each line is shown individually in Taskcluster's log viewer.
+            previous_line = None
+            line = b""
+            while 1:
+                # Read one byte at a time because in Python:
+                # * readline() blocks until "\n", which doesn't come before the prompt
+                # * read() blocks until EOF, which doesn't come before the prompt
+                # * read(n) keeps reading until it gets n bytes or EOF,
+                #   but we don't know reliably how many bytes to read until the prompt
+                byte = process.stdout.read(1)
+                if len(byte) == 0:
+                    print(line)
+                    break
+                line += byte
+                if byte == b'\n' or byte == b'\r':
+                    if line != previous_line:
+                        print(line.decode("utf-8", "replace"), end="")
+                        sys.stdout.flush()
+                    previous_line = line
+                    line = b""
+            exit_code = process.wait()
+            yes.terminate()
+            if exit_code:
+                return exit_code
         else:
-            if path.isdir(rust_dir):
-                shutil.rmtree(rust_dir)
-            os.makedirs(rust_dir)
+            subprocess.check_call(sdkmanager)
 
-            # The nightly Rust compiler is hosted on the nightly server under the date with a name
-            # rustc-nightly-HOST-TRIPLE.tar.gz, whereas the stable compiler is named
-            # rustc-VERSION-HOST-TRIPLE.tar.gz. We just need to pull down and extract it,
-            # giving a directory name that will be the same as the tarball name (rustc is
-            # in that directory).
-            if stable:
-                tarball = "rustc-%s-%s.tar.gz" % (version, host_triple())
-                rustc_url = "https://static-rust-lang-org.s3.amazonaws.com/dist/" + tarball
-            else:
-                tarball = "%s/rustc-nightly-%s.tar.gz" % (version, host_triple())
-                base_url = "https://s3.amazonaws.com/rust-lang-ci/rustc-builds"
-                if not self.config["build"]["llvm-assertions"]:
-                    base_url += "-alt"
-                rustc_url = base_url + "/" + tarball
-            tgz_file = rust_dir + '-rustc.tar.gz'
-
-            download_file("Rust compiler", rustc_url, tgz_file)
-
-            print("Extracting Rust compiler...")
-            extract(tgz_file, install_dir)
-            print("Rust compiler ready.")
-
-        # Each Rust stdlib has a name of the form `rust-std-nightly-TRIPLE.tar.gz` for the nightly
-        # releases, or rust-std-VERSION-TRIPLE.tar.gz for stable releases, with
-        # a directory of the name `rust-std-TRIPLE` inside and then a `lib` directory.
-        # This `lib` directory needs to be extracted and merged with the `rustc/lib`
-        # directory from the host compiler above.
-        nightly_suffix = "" if stable else "-nightly"
-        stable_version = "-{}".format(version) if stable else ""
-        lib_dir = path.join(install_dir,
-                            "rustc{}{}-{}".format(nightly_suffix, stable_version, host_triple()),
-                            "rustc", "lib", "rustlib")
-
-        # ensure that the libs for the host's target is downloaded
-        host_target = host_triple()
-        if host_target not in target:
-            target.append(host_target)
-
-        for target_triple in target:
-            target_lib_dir = path.join(lib_dir, target_triple)
-            if path.exists(target_lib_dir):
-                # No need to check for force. If --force the directory is already deleted
-                print("Rust lib for target {} already downloaded.".format(target_triple), end=" ")
-                print("Use |bootstrap-rust --force| to download again.")
-                continue
-
-            if self.use_stable_rust():
-                std_url = ("https://static-rust-lang-org.s3.amazonaws.com/dist/rust-std-%s-%s.tar.gz"
-                           % (version, target_triple))
-                tgz_file = install_dir + ('rust-std-%s-%s.tar.gz' % (version, target_triple))
-            else:
-                std_url = ("https://s3.amazonaws.com/rust-lang-ci/rustc-builds/%s/rust-std-nightly-%s.tar.gz"
-                           % (version, target_triple))
-                tgz_file = install_dir + ('rust-std-nightly-%s.tar.gz' % target_triple)
-
-            download_file("Host rust library for target %s" % target_triple, std_url, tgz_file)
-            print("Extracting Rust stdlib for target %s..." % target_triple)
-            extract(tgz_file, install_dir)
-            shutil.copytree(path.join(install_dir,
-                                      "rust-std%s%s-%s" % (nightly_suffix, stable_version, target_triple),
-                                      "rust-std-%s" % target_triple, "lib", "rustlib", target_triple),
-                            path.join(install_dir,
-                                      "rustc%s%s-%s" % (nightly_suffix, stable_version, host_triple()),
-                                      "rustc", "lib", "rustlib", target_triple))
-            shutil.rmtree(path.join(install_dir,
-                          "rust-std%s%s-%s" % (nightly_suffix, stable_version, target_triple)))
-
-            print("Rust {} libs ready.".format(target_triple))
-
-    @Command('bootstrap-rust-docs',
-             description='Download the Rust documentation',
-             category='bootstrap')
-    @CommandArgument('--force', '-f',
-                     action='store_true',
-                     help='Force download even if docs already exist')
-    def bootstrap_rustc_docs(self, force=False):
-        self.ensure_bootstrapped()
-        rust_root = self.config["tools"]["rust-root"]
-        docs_dir = path.join(rust_root, "doc")
-        if not force and path.exists(docs_dir):
-            print("Rust docs already downloaded.", end=" ")
-            print("Use |bootstrap-rust-docs --force| to download again.")
-            return
-
-        if path.isdir(docs_dir):
-            shutil.rmtree(docs_dir)
-        docs_name = self.rust_path().replace("rustc-", "rust-docs-")
-        docs_url = ("https://static-rust-lang-org.s3.amazonaws.com/dist/rust-docs-nightly-%s.tar.gz"
-                    % host_triple())
-        tgz_file = path.join(rust_root, 'doc.tar.gz')
-
-        download_file("Rust docs", docs_url, tgz_file)
-
-        print("Extracting Rust docs...")
-        temp_dir = path.join(rust_root, "temp_docs")
-        if path.isdir(temp_dir):
-            shutil.rmtree(temp_dir)
-        extract(tgz_file, temp_dir)
-        shutil.move(path.join(temp_dir, docs_name.split("/")[1],
-                              "rust-docs", "share", "doc", "rust", "html"),
-                    docs_dir)
-        shutil.rmtree(temp_dir)
-        print("Rust docs ready.")
-
-    @Command('bootstrap-cargo',
-             description='Download the Cargo build tool',
-             category='bootstrap')
-    @CommandArgument('--force', '-f',
-                     action='store_true',
-                     help='Force download even if cargo already exists')
-    def bootstrap_cargo(self, force=False):
-        cargo_dir = path.join(self.context.sharedir, "cargo",
-                              self.cargo_build_id())
-        if not force and path.exists(path.join(cargo_dir, "cargo", "bin", "cargo" + BIN_SUFFIX)):
-            print("Cargo already downloaded.", end=" ")
-            print("Use |bootstrap-cargo --force| to download again.")
-            return
-
-        if path.isdir(cargo_dir):
-            shutil.rmtree(cargo_dir)
-        os.makedirs(cargo_dir)
-
-        tgz_file = "cargo-nightly-%s.tar.gz" % host_triple()
-        nightly_url = "https://s3.amazonaws.com/rust-lang-ci/cargo-builds/%s/%s" % \
-            (self.cargo_build_id(), tgz_file)
-
-        download_file("Cargo nightly", nightly_url, tgz_file)
-
-        print("Extracting Cargo nightly...")
-        nightly_dir = path.join(cargo_dir,
-                                path.basename(tgz_file).replace(".tar.gz", ""))
-        extract(tgz_file, cargo_dir, movedir=nightly_dir)
-        print("Cargo ready.")
+        if emulator_x86:
+            avd_path = path.join(toolchains, "avd", "servo-x86")
+            process = subprocess.Popen(stdin=subprocess.PIPE, stdout=subprocess.PIPE, args=[
+                path.join(toolchains, "sdk", "tools", "bin", "avdmanager"),
+                "create", "avd",
+                "--path", avd_path,
+                "--name", "servo-x86",
+                "--package", emulator_image,
+                "--force",
+            ])
+            output = b""
+            while 1:
+                # Read one byte at a time, see comment above.
+                byte = process.stdout.read(1)
+                if len(byte) == 0:
+                    break
+                output += byte
+                # There seems to be no way to disable this prompt:
+                if output.endswith(b"Do you wish to create a custom hardware profile? [no]"):
+                    process.stdin.write("no\n")
+            assert process.wait() == 0
+            with open(path.join(avd_path, "config.ini"), "a") as f:
+                f.write("disk.dataPartition.size=2G\n")
 
     @Command('update-hsts-preload',
              description='Download the HSTS preload list',
@@ -229,7 +220,7 @@ class MachCommands(CommandBase):
 
         try:
             content_base64 = download_bytes("Chromium HSTS preload list", chromium_hsts_url)
-        except urllib2.URLError:
+        except urllib.error.URLError:
             print("Unable to download chromium HSTS preload list; are you connected to the internet?")
             sys.exit(1)
 
@@ -253,7 +244,7 @@ class MachCommands(CommandBase):
 
             with open(path.join(preload_path, preload_filename), 'w') as fd:
                 json.dump(entries, fd, indent=4)
-        except ValueError, e:
+        except ValueError:
             print("Unable to parse chromium HSTS preload list, has the format changed?")
             sys.exit(1)
 
@@ -267,12 +258,12 @@ class MachCommands(CommandBase):
 
         try:
             content = download_bytes("Public suffix list", list_url)
-        except urllib2.URLError:
+        except urllib.error.URLError:
             print("Unable to download the public suffix list; are you connected to the internet?")
             sys.exit(1)
 
-        lines = [l.strip() for l in content.decode("utf8").split("\n")]
-        suffixes = [l for l in lines if not l.startswith("//") and not l == ""]
+        lines = [line.strip() for line in content.decode("utf8").split("\n")]
+        suffixes = [line for line in lines if not line.startswith("//") and not line == ""]
 
         with open(dst_filename, "wb") as fo:
             for suffix in suffixes:
@@ -290,49 +281,211 @@ class MachCommands(CommandBase):
                      default='1',
                      help='Keep up to this many most recent nightlies')
     def clean_nightlies(self, force=False, keep=None):
-        rust_current = self.rust_version()
-        cargo_current = self.cargo_build_id()
-        print("Current Rust version: {}".format(rust_current))
-        print("Current Cargo version: {}".format(cargo_current))
-        to_keep = {
-            'rust': set(),
-            'cargo': set(),
-        }
-        if int(keep) == 1:
-            # Optimize keep=1 case to not invoke git
-            to_keep['rust'].add(rust_current)
-            to_keep['cargo'].add(cargo_current)
-        else:
-            for tool in ["rust", "cargo"]:
-                commit_file = '{}-commit-hash'.format(tool)
-                cmd = subprocess.Popen(
-                    ['git', 'log', '--oneline', '--no-color', '-n', keep, '--patch', commit_file],
-                    stdout=subprocess.PIPE,
-                    universal_newlines=True
-                )
-                stdout, _ = cmd.communicate()
-                for line in stdout.splitlines():
-                    if line.startswith("+") and not line.startswith("+++"):
-                        to_keep[tool].add(line[1:])
+        print("Current Rust version for Servo: {}".format(self.rust_toolchain()))
+        old_toolchains = []
+        keep = int(keep)
+        stdout = subprocess.check_output(['git', 'log', '--format=%H', 'rust-toolchain'])
+        for i, commit_hash in enumerate(stdout.split(), 1):
+            if i > keep:
+                toolchain = subprocess.check_output(
+                    ['git', 'show', '%s:rust-toolchain' % commit_hash])
+                old_toolchains.append(toolchain.strip())
 
         removing_anything = False
-        for tool in ["rust", "cargo"]:
-            base = path.join(self.context.sharedir, tool)
-            for name in os.listdir(base):
-                # We append `-alt` if LLVM assertions aren't enabled,
-                # so use just the commit hash itself.
-                # This may occasionally leave an extra nightly behind
-                # but won't remove too many nightlies.
-                if name.partition('-')[0] not in to_keep[tool]:
+        stdout = subprocess.check_output(['rustup', 'toolchain', 'list'])
+        for toolchain_with_host in stdout.split():
+            for old in old_toolchains:
+                if toolchain_with_host.startswith(old):
                     removing_anything = True
-                    full_path = path.join(base, name)
                     if force:
-                        print("Removing {}".format(full_path))
-                        delete(full_path)
+                        print("Removing {}".format(toolchain_with_host))
+                        check_call(["rustup", "uninstall", toolchain_with_host])
                     else:
-                        print("Would remove {}".format(full_path))
+                        print("Would remove {}".format(toolchain_with_host))
         if not removing_anything:
             print("Nothing to remove.")
         elif not force:
             print("Nothing done. "
                   "Run `./mach clean-nightlies -f` to actually remove.")
+
+    @Command('clean-cargo-cache',
+             description='Clean unused Cargo packages',
+             category='bootstrap')
+    @CommandArgument('--force', '-f',
+                     action='store_true',
+                     help='Actually remove stuff')
+    @CommandArgument('--show-size', '-s',
+                     action='store_true',
+                     help='Show packages size')
+    @CommandArgument('--keep',
+                     default='1',
+                     help='Keep up to this many most recent dependencies')
+    def clean_cargo_cache(self, force=False, show_size=False, keep=None):
+        def get_size(path):
+            if os.path.isfile(path):
+                return os.path.getsize(path) / (1024 * 1024.0)
+            total_size = 0
+            for dirpath, dirnames, filenames in os.walk(path):
+                for f in filenames:
+                    fp = os.path.join(dirpath, f)
+                    total_size += os.path.getsize(fp)
+            return total_size / (1024 * 1024.0)
+
+        removing_anything = False
+        packages = {
+            'crates': {},
+            'git': {},
+        }
+        import toml
+        if os.environ.get("CARGO_HOME", ""):
+            cargo_dir = os.environ.get("CARGO_HOME")
+        else:
+            home_dir = os.path.expanduser("~")
+            cargo_dir = path.join(home_dir, ".cargo")
+        if not os.path.isdir(cargo_dir):
+            return
+        cargo_file = open(path.join(self.context.topdir, "Cargo.lock"))
+        content = toml.load(cargo_file)
+
+        for package in content.get("package", []):
+            source = package.get("source", "")
+            version = package["version"]
+            if source == u"registry+https://github.com/rust-lang/crates.io-index":
+                crate_name = "{}-{}".format(package["name"], version)
+                if not packages["crates"].get(crate_name, False):
+                    packages["crates"][package["name"]] = {
+                        "current": [],
+                        "exist": [],
+                    }
+                packages["crates"][package["name"]]["current"].append(crate_name)
+            elif source.startswith("git+"):
+                name = source.split("#")[0].split("/")[-1].replace(".git", "")
+                branch = ""
+                crate_name = "{}-{}".format(package["name"], source.split("#")[1])
+                crate_branch = name.split("?")
+                if len(crate_branch) > 1:
+                    branch = crate_branch[1].replace("branch=", "")
+                    name = crate_branch[0]
+
+                if not packages["git"].get(name, False):
+                    packages["git"][name] = {
+                        "current": [],
+                        "exist": [],
+                    }
+                packages["git"][name]["current"].append(source.split("#")[1][:7])
+                if branch:
+                    packages["git"][name]["current"].append(branch)
+
+        crates_dir = path.join(cargo_dir, "registry")
+        crates_cache_dir = ""
+        crates_src_dir = ""
+        if os.path.isdir(path.join(crates_dir, "cache")):
+            for p in os.listdir(path.join(crates_dir, "cache")):
+                crates_cache_dir = path.join(crates_dir, "cache", p)
+                crates_src_dir = path.join(crates_dir, "src", p)
+
+        git_dir = path.join(cargo_dir, "git")
+        git_db_dir = path.join(git_dir, "db")
+        git_checkout_dir = path.join(git_dir, "checkouts")
+        if os.path.isdir(git_db_dir):
+            git_db_list = filter(lambda f: not f.startswith('.'), os.listdir(git_db_dir))
+        else:
+            git_db_list = []
+        if os.path.isdir(git_checkout_dir):
+            git_checkout_list = os.listdir(git_checkout_dir)
+        else:
+            git_checkout_list = []
+
+        for d in list(set(git_db_list + git_checkout_list)):
+            crate_name = d.replace("-{}".format(d.split("-")[-1]), "")
+            if not packages["git"].get(crate_name, False):
+                packages["git"][crate_name] = {
+                    "current": [],
+                    "exist": [],
+                }
+            if os.path.isdir(path.join(git_checkout_dir, d)):
+                with cd(path.join(git_checkout_dir, d)):
+                    git_crate_hash = glob.glob('*')
+                if not git_crate_hash or not os.path.isdir(path.join(git_db_dir, d)):
+                    packages["git"][crate_name]["exist"].append(("del", d, ""))
+                    continue
+                for d2 in git_crate_hash:
+                    dep_path = path.join(git_checkout_dir, d, d2)
+                    if os.path.isdir(dep_path):
+                        packages["git"][crate_name]["exist"].append((path.getmtime(dep_path), d, d2))
+            elif os.path.isdir(path.join(git_db_dir, d)):
+                packages["git"][crate_name]["exist"].append(("del", d, ""))
+
+        if crates_src_dir:
+            for d in os.listdir(crates_src_dir):
+                crate_name = re.sub(r"\-\d+(\.\d+){1,3}.+", "", d)
+                if not packages["crates"].get(crate_name, False):
+                    packages["crates"][crate_name] = {
+                        "current": [],
+                        "exist": [],
+                    }
+                packages["crates"][crate_name]["exist"].append(d)
+
+        total_size = 0
+        for packages_type in ["git", "crates"]:
+            sorted_packages = sorted(packages[packages_type])
+            for crate_name in sorted_packages:
+                crate_count = 0
+                existed_crates = packages[packages_type][crate_name]["exist"]
+                for exist in sorted(existed_crates, reverse=True):
+                    current_crate = packages[packages_type][crate_name]["current"]
+                    size = 0
+                    exist_name = path.join(exist[1], exist[2]) if packages_type == "git" else exist
+                    exist_item = exist[2] if packages_type == "git" else exist
+                    if exist_item not in current_crate:
+                        crate_count += 1
+                        if int(crate_count) >= int(keep) or not current_crate or \
+                           exist[0] == "del" or exist[2] == "master":
+                            removing_anything = True
+                            crate_paths = []
+                            if packages_type == "git":
+                                exist_checkout_path = path.join(git_checkout_dir, exist[1])
+                                exist_db_path = path.join(git_db_dir, exist[1])
+                                exist_path = path.join(git_checkout_dir, exist_name)
+
+                                if exist[0] == "del":
+                                    if os.path.isdir(exist_checkout_path):
+                                        crate_paths.append(exist_checkout_path)
+                                    if os.path.isdir(exist_db_path):
+                                        crate_paths.append(exist_db_path)
+                                    crate_count += -1
+                                else:
+                                    crate_paths.append(exist_path)
+
+                                    exist_checkout_list = glob.glob(path.join(exist_checkout_path, '*'))
+                                    if len(exist_checkout_list) <= 1:
+                                        crate_paths.append(exist_checkout_path)
+                                        if os.path.isdir(exist_db_path):
+                                            crate_paths.append(exist_db_path)
+                            else:
+                                crate_paths.append(path.join(crates_cache_dir, "{}.crate".format(exist)))
+                                crate_paths.append(path.join(crates_src_dir, exist))
+
+                            size = sum(get_size(p) for p in crate_paths) if show_size else 0
+                            total_size += size
+                            print_msg = (exist_name, " ({}MB)".format(round(size, 2)) if show_size else "", cargo_dir)
+                            if force:
+                                print("Removing `{}`{} package from {}".format(*print_msg))
+                                for crate_path in crate_paths:
+                                    if os.path.exists(crate_path):
+                                        try:
+                                            delete(crate_path)
+                                        except Exception:
+                                            print(traceback.format_exc())
+                                            print("Delete %s failed!" % crate_path)
+                            else:
+                                print("Would remove `{}`{} package from {}".format(*print_msg))
+
+        if removing_anything and show_size:
+            print("\nTotal size of {} MB".format(round(total_size, 2)))
+
+        if not removing_anything:
+            print("Nothing to remove.")
+        elif not force:
+            print("\nNothing done. "
+                  "Run `./mach clean-cargo-cache -f` to actually remove.")

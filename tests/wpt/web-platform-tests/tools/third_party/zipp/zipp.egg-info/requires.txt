@@ -1,0 +1,14 @@
+
+[:python_version < "3.4"]
+contextlib2
+
+[docs]
+sphinx
+jaraco.packaging>=3.2
+rst.linker>=1.9
+
+[testing]
+pathlib2
+unittest2
+jaraco.itertools
+func-timeout

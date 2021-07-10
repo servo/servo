@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Non-reference case for text-decoration-skip-ink</title>
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+        <style>
+         /*
+            This non-reference case ensures that the test does
+            not frivolously pass if the underline is not rendered at all
+          */
+         div{
+             font: 20px/1 Ahem;
+             color: rgba(255,255,0,0.25);
+         }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if underline is rendered below the text</p>
+        <div>XXXX</div>
+    </body>
+</html>

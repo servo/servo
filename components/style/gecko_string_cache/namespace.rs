@@ -1,23 +1,42 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! A type to represent a namespace.
 
-use gecko_bindings::structs::nsIAtom;
+use crate::gecko_bindings::structs::nsAtom;
+use crate::string_cache::{Atom, WeakAtom};
 use precomputed_hash::PrecomputedHash;
-use std::borrow::{Borrow, Cow};
+use std::borrow::Borrow;
 use std::fmt;
 use std::ops::Deref;
-use string_cache::{Atom, WeakAtom};
 
+/// In Gecko namespaces are just regular atoms, so this is a simple macro to
+/// forward one macro to the other.
 #[macro_export]
 macro_rules! ns {
-    () => { $crate::string_cache::Namespace(atom!("")) }
+    () => {
+        $crate::string_cache::Namespace(atom!(""))
+    };
+    ($s:tt) => {
+        $crate::string_cache::Namespace(atom!($s))
+    };
 }
 
 /// A Gecko namespace is just a wrapped atom.
-#[derive(Debug, PartialEq, Eq, Clone, Default, Hash)]
+#[derive(
+    Clone,
+    Debug,
+    Default,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    PartialEq,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(transparent)]
 pub struct Namespace(pub Atom);
 
 impl PrecomputedHash for Namespace {
@@ -28,18 +47,8 @@ impl PrecomputedHash for Namespace {
 }
 
 /// A Gecko WeakNamespace is a wrapped WeakAtom.
-#[derive(Hash)]
+#[derive(Deref, Hash)]
 pub struct WeakNamespace(WeakAtom);
-
-impl Deref for WeakNamespace {
-    type Target = WeakAtom;
-
-    #[inline]
-    fn deref(&self) -> &WeakAtom {
-        &self.0
-    }
-}
-
 
 impl Deref for Namespace {
     type Target = WeakNamespace;
@@ -47,14 +56,12 @@ impl Deref for Namespace {
     #[inline]
     fn deref(&self) -> &WeakNamespace {
         let weak: *const WeakAtom = &*self.0;
-        unsafe {
-            &*(weak as *const WeakNamespace)
-        }
+        unsafe { &*(weak as *const WeakNamespace) }
     }
 }
 
-impl<'a> From<Cow<'a, str>> for Namespace {
-    fn from(s: Cow<'a, str>) -> Self {
+impl<'a> From<&'a str> for Namespace {
+    fn from(s: &'a str) -> Self {
         Namespace(Atom::from(s))
     }
 }
@@ -75,7 +82,7 @@ impl Borrow<WeakNamespace> for Namespace {
 impl WeakNamespace {
     /// Trivially construct a WeakNamespace.
     #[inline]
-    pub unsafe fn new<'a>(atom: *mut nsIAtom) -> &'a Self {
+    pub unsafe fn new<'a>(atom: *mut nsAtom) -> &'a Self {
         &*(atom as *const WeakNamespace)
     }
 

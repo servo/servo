@@ -4,8 +4,11 @@
 onpagehide = function() {
   onpagehide = null;
   setTimeout(function() {
-               parent.t.done()
+               parent.t.unreached_func('setTimeout survived navigatoin');
              }, 1000);
+}
+if (parent.loaded) {
+  setTimeout(function() { parent.t.done(); }, 2000);
 }
 onload = function() {
   if (!parent.loaded) {

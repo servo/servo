@@ -1,0 +1,37 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>
+  Async Clipboard write ([text/plain ClipboardItem]) ->
+        read ([text/plain ClipboardItem]) tests
+</title>
+<link rel="help" href="https://w3c.github.io/clipboard-apis/#async-clipboard-api">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+async function readWriteTest(textInput) {
+  promise_test(async t => {
+    await test_driver.set_permission({name: 'clipboard-read'}, 'granted');
+    await test_driver.set_permission({name: 'clipboard-write'}, 'granted');
+
+    const blobInput = new Blob([textInput], {type: 'text/plain'});
+    const clipboardItemInput = new ClipboardItem({'text/plain': blobInput});
+
+    await navigator.clipboard.write([clipboardItemInput]);
+    const clipboardItems = await navigator.clipboard.read();
+    assert_equals(clipboardItems.length, 1);
+    const clipboardItemOutput = clipboardItems[0];
+    assert_true(clipboardItemOutput instanceof ClipboardItem);
+    assert_equals(clipboardItemOutput.types.length, 1);
+    const blobOutput = await clipboardItemOutput.getType('text/plain');
+    assert_equals(blobOutput.type, 'text/plain');
+
+    const textOutput = await (new Response(blobOutput)).text();
+    assert_equals(textOutput, textInput);
+  }, 'Verify write and read clipboard given text: ' + textInput);
+}
+
+readWriteTest('Clipboard write ([text/plain ClipboardItem]) -> read ([text/plain ClipboardItem]) test');
+readWriteTest('non-Latin1 text encoding test データ');
+</script>

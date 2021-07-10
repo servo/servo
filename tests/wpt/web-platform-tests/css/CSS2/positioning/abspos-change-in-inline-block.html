@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>Chaning positioned objects in inline-block should not crash</title>
+<link rel="author" href="mailto:kojii@chromium.org">
+<link rel="help" href="https://crbug.com/1102128">
+<style>
+#container {
+  width: 5ch;
+}
+#inline-block {
+  display: inline-block;
+  position: relative;
+  width: 3ch;
+}
+#abs {
+  position: absolute;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <div id="container">
+    <span>
+      <span id="inline-block">
+        <span id="abs"></span>
+      </span>
+    </span>
+    1234
+  </div>
+<script>
+test(() => {
+  document.body.offsetTop;
+  abs.style.top = '10px';
+  document.body.offsetTop;
+}, 'No crash');
+</script>
+</body>

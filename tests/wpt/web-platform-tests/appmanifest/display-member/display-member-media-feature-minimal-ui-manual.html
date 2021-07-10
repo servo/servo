@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>Test "minimal-ui" value of display member + media feature</title>
+<link rel="help" href="https://w3c.github.io/manifest#display-member" />
+<link rel="help" href="https://w3c.github.io/manifest/#dom-displaymodetype-minimal-ui" />
+<link rel="help" href="https://w3c.github.io/manifest/#the-display-mode-media-feature" />
+<link rel="manifest" href="display-member-media-feature-minimal-ui.webmanifest" />
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<h1>Testing support for "minimal-ui" value of display member + media feature</h1>
+<style>
+  .fail {
+    background-color: red;
+  }
+
+  @media all and (display-mode: minimal-ui) {
+    body {
+      background-color: green;
+    }
+  }
+</style>
+<script>
+const minimalUi = matchMedia("(display-mode: minimal-ui)");
+
+minimalUi.onchange = () => {
+  if (minimalUi.matches) {
+    document.body.classList.remove("fail");
+  }
+}
+
+if (!minimalUi.matches) {
+  document.body.classList.add("fail");
+}
+</script>
+<p>
+  To pass, the background color must be green after installing.
+</p>

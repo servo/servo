@@ -23,15 +23,15 @@
 window.onload = function() {
   var orange = document.getElementsByTagName('div')[0], blue = document.getElementsByTagName('div')[1];
   orange.ondragstart = function(e) {
-		e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('Text', 'dummy text');
   };
   blue.ondragenter = blue.ondragover = function(e) {
-   	e.preventDefault();
-		e.dataTransfer.dropEffect = 'move';
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
   };
   blue.ondrop = function(e) {
-   	e.preventDefault();
+    e.preventDefault();
   };
 };
 

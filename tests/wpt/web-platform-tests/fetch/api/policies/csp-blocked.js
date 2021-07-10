@@ -7,7 +7,7 @@ if (this.document === undefined) {
 cspViolationUrl = RESOURCES_DIR + "top.txt";
 
 promise_test(function(test) {
-  return promise_rejects(test, new TypeError(), fetch(cspViolationUrl));
+  return promise_rejects_js(test, TypeError, fetch(cspViolationUrl));
 }, "Fetch is blocked by CSP, got a TypeError");
 
 done();

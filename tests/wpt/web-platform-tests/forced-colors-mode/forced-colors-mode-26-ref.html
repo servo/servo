@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - fill/stroke.
+</title>
+<style>
+  body {
+    forced-color-adjust: none;
+  }
+</style>
+<body>
+  The triangle below should NOT get overridden in forced colors mode.
+  <svg height="200" width="350">
+    <path fill="red" stroke="blue" d="M150 0 L75 200 L225 200 Z" />
+  </svg>
+  The triangle below should be currentColor in forced colors mode.
+  <svg height="200" width="350">
+    <path fill="currentColor" stroke="currentColor" d="M150 0 L75 200 L225 200 Z" />
+  </svg>
+</body>

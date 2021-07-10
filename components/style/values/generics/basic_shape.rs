@@ -1,397 +1,535 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! CSS handling for the [`basic-shape`](https://drafts.csswg.org/css-shapes/#typedef-basic-shape)
 //! types that are generic over their `ToCss` implementations.
 
-use cssparser::Parser;
-use euclid::size::Size2D;
-use parser::{Parse, ParserContext};
-use properties::shorthands::serialize_four_sides;
-use std::ascii::AsciiExt;
-use std::fmt;
-use style_traits::ToCss;
-use values::HasViewportPercentage;
-use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
-use values::generics::BorderRadiusSize;
-use values::specified::url::SpecifiedUrl;
+use crate::values::animated::{Animate, Procedure, ToAnimatedZero};
+use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
+use crate::values::generics::border::GenericBorderRadius;
+use crate::values::generics::position::GenericPosition;
+use crate::values::generics::rect::Rect;
+use crate::values::specified::SVGPathData;
+use crate::Zero;
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ToCss};
 
-/// A generic type used for `border-radius`, `outline-radius` and `inset()` values.
-///
-/// https://drafts.csswg.org/css-backgrounds-3/#border-radius
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct BorderRadius<L> {
-    /// The top left radius.
-    pub top_left: BorderRadiusSize<L>,
-    /// The top right radius.
-    pub top_right: BorderRadiusSize<L>,
-    /// The bottom right radius.
-    pub bottom_right: BorderRadiusSize<L>,
-    /// The bottom left radius.
-    pub bottom_left: BorderRadiusSize<L>,
-}
-
-/// Serialization helper for types of longhands like `border-radius` and `outline-radius`
-pub fn serialize_radius_values<L, W>(dest: &mut W, top_left: &Size2D<L>,
-                                     top_right: &Size2D<L>, bottom_right: &Size2D<L>,
-                                     bottom_left: &Size2D<L>) -> fmt::Result
-    where L: ToCss + PartialEq, W: fmt::Write
-{
-    if top_left.width == top_left.height && top_right.width == top_right.height &&
-       bottom_right.width == bottom_right.height && bottom_left.width == bottom_left.height {
-        serialize_four_sides(dest, &top_left.width, &top_right.width,
-                             &bottom_right.width, &bottom_left.width)
-    } else {
-        serialize_four_sides(dest, &top_left.width, &top_right.width,
-                             &bottom_right.width, &bottom_left.width)?;
-        dest.write_str(" / ")?;
-        serialize_four_sides(dest, &top_left.height, &top_right.height,
-                             &bottom_right.height, &bottom_left.height)
-    }
-}
-
-impl<L: ToCss + PartialEq> ToCss for BorderRadius<L> {
-    #[inline]
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        serialize_radius_values(dest, &self.top_left.0, &self.top_right.0,
-                                &self.bottom_right.0, &self.bottom_left.0)
-    }
-}
-
-impl<L: ToComputedValue> ToComputedValue for BorderRadius<L> {
-    type ComputedValue = BorderRadius<L::ComputedValue>;
-
-    #[inline]
-    fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
-        BorderRadius {
-            top_left: self.top_left.to_computed_value(cx),
-            top_right: self.top_right.to_computed_value(cx),
-            bottom_right: self.bottom_right.to_computed_value(cx),
-            bottom_left: self.bottom_left.to_computed_value(cx),
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        BorderRadius {
-            top_left: ToComputedValue::from_computed_value(&computed.top_left),
-            top_right: ToComputedValue::from_computed_value(&computed.top_right),
-            bottom_right: ToComputedValue::from_computed_value(&computed.bottom_right),
-            bottom_left: ToComputedValue::from_computed_value(&computed.bottom_left),
-        }
-    }
-}
-
-/// https://drafts.csswg.org/css-shapes/#typedef-shape-radius
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+/// <https://drafts.fxtf.org/css-masking-1/#typedef-geometry-box>
 #[allow(missing_docs)]
-pub enum ShapeRadius<L> {
-    Length(L),
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    Parse,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(u8)]
+pub enum ShapeGeometryBox {
+    /// Depending on which kind of element this style value applied on, the
+    /// default value of the reference-box can be different.  For an HTML
+    /// element, the default value of reference-box is border-box; for an SVG
+    /// element, the default value is fill-box.  Since we can not determine the
+    /// default value at parsing time, we keep this value to make a decision on
+    /// it.
+    #[css(skip)]
+    ElementDependent,
+    FillBox,
+    StrokeBox,
+    ViewBox,
+    ShapeBox(ShapeBox),
+}
+
+impl Default for ShapeGeometryBox {
+    fn default() -> Self {
+        Self::ElementDependent
+    }
+}
+
+/// https://drafts.csswg.org/css-shapes-1/#typedef-shape-box
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(
+    Animate,
+    Clone,
+    Copy,
+    ComputeSquaredDistance,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(u8)]
+pub enum ShapeBox {
+    MarginBox,
+    BorderBox,
+    PaddingBox,
+    ContentBox,
+}
+
+impl Default for ShapeBox {
+    fn default() -> Self {
+        ShapeBox::MarginBox
+    }
+}
+
+/// A value for the `clip-path` property.
+#[allow(missing_docs)]
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[animation(no_bound(U))]
+#[repr(u8)]
+pub enum GenericClipPath<BasicShape, U> {
+    #[animation(error)]
+    None,
+    #[animation(error)]
+    Url(U),
+    #[css(function)]
+    Path(Path),
+    Shape(
+        Box<BasicShape>,
+        #[css(skip_if = "is_default")] ShapeGeometryBox,
+    ),
+    #[animation(error)]
+    Box(ShapeGeometryBox),
+}
+
+pub use self::GenericClipPath as ClipPath;
+
+/// A value for the `shape-outside` property.
+#[allow(missing_docs)]
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[animation(no_bound(I))]
+#[repr(u8)]
+pub enum GenericShapeOutside<BasicShape, I> {
+    #[animation(error)]
+    None,
+    #[animation(error)]
+    Image(I),
+    Shape(Box<BasicShape>, #[css(skip_if = "is_default")] ShapeBox),
+    #[animation(error)]
+    Box(ShapeBox),
+}
+
+pub use self::GenericShapeOutside as ShapeOutside;
+
+#[allow(missing_docs)]
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C, u8)]
+pub enum GenericBasicShape<H, V, LengthPercentage, NonNegativeLengthPercentage> {
+    Inset(
+        #[css(field_bound)]
+        #[shmem(field_bound)]
+        InsetRect<LengthPercentage, NonNegativeLengthPercentage>,
+    ),
+    Circle(
+        #[css(field_bound)]
+        #[shmem(field_bound)]
+        Circle<H, V, NonNegativeLengthPercentage>,
+    ),
+    Ellipse(
+        #[css(field_bound)]
+        #[shmem(field_bound)]
+        Ellipse<H, V, NonNegativeLengthPercentage>,
+    ),
+    Polygon(GenericPolygon<LengthPercentage>),
+}
+
+pub use self::GenericBasicShape as BasicShape;
+
+/// <https://drafts.csswg.org/css-shapes/#funcdef-inset>
+#[allow(missing_docs)]
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[css(function = "inset")]
+#[repr(C)]
+pub struct InsetRect<LengthPercentage, NonNegativeLengthPercentage> {
+    pub rect: Rect<LengthPercentage>,
+    #[shmem(field_bound)]
+    pub round: GenericBorderRadius<NonNegativeLengthPercentage>,
+}
+
+/// <https://drafts.csswg.org/css-shapes/#funcdef-circle>
+#[allow(missing_docs)]
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[css(function)]
+#[repr(C)]
+pub struct Circle<H, V, NonNegativeLengthPercentage> {
+    pub position: GenericPosition<H, V>,
+    pub radius: GenericShapeRadius<NonNegativeLengthPercentage>,
+}
+
+/// <https://drafts.csswg.org/css-shapes/#funcdef-ellipse>
+#[allow(missing_docs)]
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[css(function)]
+#[repr(C)]
+pub struct Ellipse<H, V, NonNegativeLengthPercentage> {
+    pub position: GenericPosition<H, V>,
+    pub semiaxis_x: GenericShapeRadius<NonNegativeLengthPercentage>,
+    pub semiaxis_y: GenericShapeRadius<NonNegativeLengthPercentage>,
+}
+
+/// <https://drafts.csswg.org/css-shapes/#typedef-shape-radius>
+#[allow(missing_docs)]
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C, u8)]
+pub enum GenericShapeRadius<NonNegativeLengthPercentage> {
+    Length(NonNegativeLengthPercentage),
+    #[animation(error)]
     ClosestSide,
+    #[animation(error)]
     FarthestSide,
 }
 
-impl<L> Default for ShapeRadius<L> {
-    #[inline]
-    fn default() -> Self { ShapeRadius::ClosestSide }
+pub use self::GenericShapeRadius as ShapeRadius;
+
+/// A generic type for representing the `polygon()` function
+///
+/// <https://drafts.csswg.org/css-shapes/#funcdef-polygon>
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[css(comma, function = "polygon")]
+#[repr(C)]
+pub struct GenericPolygon<LengthPercentage> {
+    /// The filling rule for a polygon.
+    #[css(skip_if = "is_default")]
+    pub fill: FillRule,
+    /// A collection of (x, y) coordinates to draw the polygon.
+    #[css(iterable)]
+    pub coordinates: crate::OwnedSlice<PolygonCoord<LengthPercentage>>,
 }
 
-impl<L: ToCss> ToCss for ShapeRadius<L> {
-    #[inline]
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            ShapeRadius::Length(ref lop) => lop.to_css(dest),
-            ShapeRadius::ClosestSide => dest.write_str("closest-side"),
-            ShapeRadius::FarthestSide => dest.write_str("farthest-side"),
-        }
-    }
-}
+pub use self::GenericPolygon as Polygon;
 
-impl<L: ToComputedValue> ToComputedValue for ShapeRadius<L> {
-    type ComputedValue = ShapeRadius<L::ComputedValue>;
-
-    #[inline]
-    fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
-        match *self {
-            ShapeRadius::Length(ref lop) => ShapeRadius::Length(lop.to_computed_value(cx)),
-            ShapeRadius::ClosestSide => ShapeRadius::ClosestSide,
-            ShapeRadius::FarthestSide => ShapeRadius::FarthestSide,
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        match *computed {
-            ShapeRadius::Length(ref lop) => ShapeRadius::Length(ToComputedValue::from_computed_value(lop)),
-            ShapeRadius::ClosestSide => ShapeRadius::ClosestSide,
-            ShapeRadius::FarthestSide => ShapeRadius::FarthestSide,
-        }
-    }
-}
+/// Coordinates for Polygon.
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C)]
+pub struct PolygonCoord<LengthPercentage>(pub LengthPercentage, pub LengthPercentage);
 
 // https://drafts.csswg.org/css-shapes/#typedef-fill-rule
 // NOTE: Basic shapes spec says that these are the only two values, however
 // https://www.w3.org/TR/SVG/painting.html#FillRuleProperty
 // says that it can also be `inherit`
-define_css_keyword_enum!(FillRule:
-    "nonzero" => NonZero,
-    "evenodd" => EvenOdd
-);
-
-impl ComputedValueAsSpecified for FillRule {}
-
-impl Default for FillRule {
-    #[inline]
-    fn default() -> Self { FillRule::NonZero }
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(u8)]
+pub enum FillRule {
+    Nonzero,
+    Evenodd,
 }
 
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-/// A generic type for representing the `polygon()` function
+/// The path function defined in css-shape-2.
 ///
-/// https://drafts.csswg.org/css-shapes/#funcdef-polygon
-pub struct Polygon<L> {
-    /// The filling rule for a polygon.
+/// https://drafts.csswg.org/css-shapes-2/#funcdef-path
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[css(comma)]
+#[repr(C)]
+pub struct Path {
+    /// The filling rule for the svg path.
+    #[css(skip_if = "is_default")]
+    #[animation(constant)]
     pub fill: FillRule,
-    /// A collection of (x, y) coordinates to draw the polygon.
-    pub coordinates: Vec<(L, L)>,
+    /// The svg path data.
+    pub path: SVGPathData,
 }
 
-impl<L: Parse> Polygon<L> {
-    /// Parse the inner arguments of a `polygon` function.
-    pub fn parse_function_arguments(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        let fill = input.try(|i| -> Result<_, ()> {
-            let fill = FillRule::parse(i)?;
-            i.expect_comma()?;      // only eat the comma if there is something before it
-            Ok(fill)
-        }).ok().unwrap_or_default();
+impl<B, U> ToAnimatedZero for ClipPath<B, U> {
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Err(())
+    }
+}
 
-        let buf = input.parse_comma_separated(|i| {
-            Ok((L::parse(context, i)?, L::parse(context, i)?))
-        })?;
+impl<B, U> ToAnimatedZero for ShapeOutside<B, U> {
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Err(())
+    }
+}
 
+impl<Length, NonNegativeLength> ToCss for InsetRect<Length, NonNegativeLength>
+where
+    Length: ToCss + PartialEq,
+    NonNegativeLength: ToCss + PartialEq + Zero,
+{
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        dest.write_str("inset(")?;
+        self.rect.to_css(dest)?;
+        if !self.round.is_zero() {
+            dest.write_str(" round ")?;
+            self.round.to_css(dest)?;
+        }
+        dest.write_str(")")
+    }
+}
+
+impl<H, V, NonNegativeLengthPercentage> ToCss for Circle<H, V, NonNegativeLengthPercentage>
+where
+    GenericPosition<H, V>: ToCss,
+    NonNegativeLengthPercentage: ToCss + PartialEq,
+{
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        dest.write_str("circle(")?;
+        if self.radius != Default::default() {
+            self.radius.to_css(dest)?;
+            dest.write_str(" ")?;
+        }
+        dest.write_str("at ")?;
+        self.position.to_css(dest)?;
+        dest.write_str(")")
+    }
+}
+
+impl<H, V, NonNegativeLengthPercentage> ToCss for Ellipse<H, V, NonNegativeLengthPercentage>
+where
+    GenericPosition<H, V>: ToCss,
+    NonNegativeLengthPercentage: ToCss + PartialEq,
+{
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        dest.write_str("ellipse(")?;
+        if self.semiaxis_x != Default::default() || self.semiaxis_y != Default::default() {
+            self.semiaxis_x.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.semiaxis_y.to_css(dest)?;
+            dest.write_str(" ")?;
+        }
+        dest.write_str("at ")?;
+        self.position.to_css(dest)?;
+        dest.write_str(")")
+    }
+}
+
+impl<L> Default for ShapeRadius<L> {
+    #[inline]
+    fn default() -> Self {
+        ShapeRadius::ClosestSide
+    }
+}
+
+impl<L> Animate for Polygon<L>
+where
+    L: Animate,
+{
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        if self.fill != other.fill {
+            return Err(());
+        }
+        if self.coordinates.len() != other.coordinates.len() {
+            return Err(());
+        }
+        let coordinates = self
+            .coordinates
+            .iter()
+            .zip(other.coordinates.iter())
+            .map(|(this, other)| {
+                Ok(PolygonCoord(
+                    this.0.animate(&other.0, procedure)?,
+                    this.1.animate(&other.1, procedure)?,
+                ))
+            })
+            .collect::<Result<Vec<_>, _>>()?
+            .into();
         Ok(Polygon {
-            fill: fill,
-            coordinates: buf,
+            fill: self.fill,
+            coordinates,
         })
     }
 }
 
-impl<L: Parse> Parse for Polygon<L> {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        match input.expect_function() {
-            Ok(ref s) if s.eq_ignore_ascii_case("polygon") =>
-                input.parse_nested_block(|i| Polygon::parse_function_arguments(context, i)),
-            _ => Err(())
+impl<L> ComputeSquaredDistance for Polygon<L>
+where
+    L: ComputeSquaredDistance,
+{
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        if self.fill != other.fill {
+            return Err(());
         }
+        if self.coordinates.len() != other.coordinates.len() {
+            return Err(());
+        }
+        self.coordinates
+            .iter()
+            .zip(other.coordinates.iter())
+            .map(|(this, other)| {
+                let d1 = this.0.compute_squared_distance(&other.0)?;
+                let d2 = this.1.compute_squared_distance(&other.1)?;
+                Ok(d1 + d2)
+            })
+            .sum()
     }
 }
 
-impl<L: ToCss> ToCss for Polygon<L> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        dest.write_str("polygon(")?;
-        if self.fill != FillRule::default() {
-            self.fill.to_css(dest)?;
-            dest.write_str(", ")?;
-        }
-
-        for (i, coord) in self.coordinates.iter().enumerate() {
-            if i > 0 {
-                dest.write_str(", ")?;
-            }
-
-            coord.0.to_css(dest)?;
-            dest.write_str(" ")?;
-            coord.1.to_css(dest)?;
-        }
-
-        dest.write_str(")")
-    }
-}
-
-impl<L: ToComputedValue> ToComputedValue for Polygon<L> {
-    type ComputedValue = Polygon<L::ComputedValue>;
-
+impl Default for FillRule {
     #[inline]
-    fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
-        Polygon {
-            fill: self.fill.to_computed_value(cx),
-            coordinates: self.coordinates.iter().map(|c| {
-                (c.0.to_computed_value(cx), c.1.to_computed_value(cx))
-            }).collect(),
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        Polygon {
-            fill: ToComputedValue::from_computed_value(&computed.fill),
-            coordinates: computed.coordinates.iter().map(|c| {
-                (ToComputedValue::from_computed_value(&c.0),
-                 ToComputedValue::from_computed_value(&c.1))
-            }).collect(),
-        }
+    fn default() -> Self {
+        FillRule::Nonzero
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-/// https://drafts.csswg.org/css-shapes/#funcdef-inset
-#[allow(missing_docs)]
-pub struct InsetRect<L> {
-    pub top: L,
-    pub right: L,
-    pub bottom: L,
-    pub left: L,
-    pub round: Option<BorderRadius<L>>,
-}
-
-impl<L: ToCss + PartialEq> ToCss for InsetRect<L> {
-    // XXXManishearth We should try to reduce the number of values printed here
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        dest.write_str("inset(")?;
-        self.top.to_css(dest)?;
-        dest.write_str(" ")?;
-        self.right.to_css(dest)?;
-        dest.write_str(" ")?;
-        self.bottom.to_css(dest)?;
-        dest.write_str(" ")?;
-        self.left.to_css(dest)?;
-        if let Some(ref radius) = self.round {
-            dest.write_str(" round ")?;
-            radius.to_css(dest)?;
-        }
-
-        dest.write_str(")")
-    }
-}
-
-impl<L: ToComputedValue> ToComputedValue for InsetRect<L> {
-    type ComputedValue = InsetRect<L::ComputedValue>;
-
-    #[inline]
-    fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
-        InsetRect {
-            top: self.top.to_computed_value(cx),
-            right: self.right.to_computed_value(cx),
-            bottom: self.bottom.to_computed_value(cx),
-            left: self.left.to_computed_value(cx),
-            round: self.round.as_ref().map(|r| r.to_computed_value(cx)),
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        InsetRect {
-            top: ToComputedValue::from_computed_value(&computed.top),
-            right: ToComputedValue::from_computed_value(&computed.right),
-            bottom: ToComputedValue::from_computed_value(&computed.bottom),
-            left: ToComputedValue::from_computed_value(&computed.left),
-            round: computed.round.as_ref().map(|r| ToComputedValue::from_computed_value(r)),
-        }
-    }
-}
-
-/// A shape source, for some reference box
-///
-/// `clip-path` uses ShapeSource<BasicShape, GeometryBox>,
-/// `shape-outside` uses ShapeSource<BasicShape, ShapeBox>
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub enum ShapeSource<B, T> {
-    Url(SpecifiedUrl),
-    Shape(B, Option<T>),
-    Box(T),
-    None,
-}
-
-impl<B, T> HasViewportPercentage for ShapeSource<B, T> {
-    #[inline]
-    fn has_viewport_percentage(&self) -> bool { false }
-}
-
-impl<B: ToCss, T: ToCss> ToCss for ShapeSource<B, T> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            ShapeSource::Url(ref url) => url.to_css(dest),
-            ShapeSource::Shape(ref shape, Some(ref ref_box)) => {
-                shape.to_css(dest)?;
-                dest.write_str(" ")?;
-                ref_box.to_css(dest)
-            },
-            ShapeSource::Shape(ref shape, None) => shape.to_css(dest),
-            ShapeSource::Box(ref val) => val.to_css(dest),
-            ShapeSource::None => dest.write_str("none"),
-        }
-    }
-}
-
-impl<B: Parse, T: Parse> Parse for ShapeSource<B, T> {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
-            return Ok(ShapeSource::None)
-        }
-
-        if let Ok(url) = input.try(|i| SpecifiedUrl::parse(context, i)) {
-            return Ok(ShapeSource::Url(url))
-        }
-
-        fn parse_component<U: Parse>(context: &ParserContext, input: &mut Parser,
-                                     component: &mut Option<U>) -> bool {
-            if component.is_some() {
-                return false            // already parsed this component
-            }
-
-            *component = input.try(|i| U::parse(context, i)).ok();
-            component.is_some()
-        }
-
-        let mut shape = None;
-        let mut ref_box = None;
-
-        while parse_component(context, input, &mut shape) ||
-              parse_component(context, input, &mut ref_box) {
-            //
-        }
-
-        if let Some(shp) = shape {
-            return Ok(ShapeSource::Shape(shp, ref_box))
-        }
-
-        ref_box.map(|v| ShapeSource::Box(v)).ok_or(())
-    }
-}
-
-impl<B: ToComputedValue, T: ToComputedValue> ToComputedValue for ShapeSource<B, T> {
-    type ComputedValue = ShapeSource<B::ComputedValue, T::ComputedValue>;
-
-    #[inline]
-    fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
-        match *self {
-            ShapeSource::Url(ref url) => ShapeSource::Url(url.to_computed_value(cx)),
-            ShapeSource::Shape(ref shape, ref ref_box) => {
-                ShapeSource::Shape(shape.to_computed_value(cx),
-                                   ref_box.as_ref().map(|ref val| val.to_computed_value(cx)))
-            },
-            ShapeSource::Box(ref ref_box) => ShapeSource::Box(ref_box.to_computed_value(cx)),
-            ShapeSource::None => ShapeSource::None,
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        match *computed {
-            ShapeSource::Url(ref url) => ShapeSource::Url(SpecifiedUrl::from_computed_value(url)),
-            ShapeSource::Shape(ref shape, ref ref_box) => {
-                ShapeSource::Shape(ToComputedValue::from_computed_value(shape),
-                                    ref_box.as_ref().map(|val| ToComputedValue::from_computed_value(val)))
-            },
-            ShapeSource::Box(ref ref_box) => ShapeSource::Box(ToComputedValue::from_computed_value(ref_box)),
-            ShapeSource::None => ShapeSource::None,
-        }
-    }
+#[inline]
+fn is_default<T: Default + PartialEq>(fill: &T) -> bool {
+    *fill == Default::default()
 }

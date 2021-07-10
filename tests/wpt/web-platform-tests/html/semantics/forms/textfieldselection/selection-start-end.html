@@ -41,6 +41,12 @@
     return el;
   }
 
+  function createClonedTextareaWithNoDirtyValueFlag(text) {
+    const textarea = document.createElement("textarea");
+    textarea.textContent = text;
+    return textarea.cloneNode(true);
+  }
+
   function createTestElements(value) {
     return [ createInputElement(value, true),
              createInputElement(value, false),
@@ -50,6 +56,7 @@
              createTextareaElement(value, false),
              createPrefocusedTextareaElement(value, true),
              createPrefocusedTextareaElement(value, false),
+             createClonedTextareaWithNoDirtyValueFlag(value)
            ];
   }
 
@@ -59,10 +66,18 @@
     assert_equals(testValue.length, 10);
   }, "Sanity check for testValue length; if this fails, variou absolute offsets in the test below need to be adjusted to be less than testValue.length");
 
+  for (let prop of ["selectionStart", "selectionEnd"]) {
+    for (let el of createTestElements(testValue)) {
+      if (el.defaultValue !== el.value) {
+        test(function() {
+          assert_equals(el[prop], testValue.length);
+        }, `Initial .value set on ${el.id} should set ${prop} to end of value`);
+      }
+    }
+  }
+
   test(function() {
     for (let el of createTestElements(testValue)) {
-      assert_equals(el.selectionStart, testValue.length,
-                    `Initial .value set on ${el.id} should set selectionStart to end of value`);
       var t = async_test(`onselect should fire when selectionStart is changed on ${el.id}`);
       el.onselect = t.step_func_done(function(e) {
         assert_equals(e.type, "select");
@@ -74,8 +89,6 @@
 
   test(function() {
     for (let el of createTestElements(testValue)) {
-      assert_equals(el.selectionEnd, testValue.length,
-                    `Initial .value set on ${el.id} should set selectionEnd to end of value`);
       var t = async_test(`onselect should fire when selectionEnd is changed on ${el.id}`);
       el.onselect = t.step_func_done(function(e) {
         assert_equals(e.type, "select");
@@ -87,8 +100,6 @@
 
   test(function() {
     for (let el of createTestElements(testValue)) {
-      assert_equals(el.selectionStart, testValue.length,
-                    `Initial .value set on ${el.id} should set selectionStart to end of value`);
       el.selectionStart = 0;
       el.selectionEnd = 5;
       el.selectionStart = 8;
@@ -100,10 +111,6 @@
 
   test(function() {
     for (let el of createTestElements(testValue)) {
-      assert_equals(el.selectionStart, testValue.length,
-                    `Initial .value set on ${el.id} should set selectionStart to end of value`);
-      assert_equals(el.selectionEnd, testValue.length,
-                    `Initial .value set on ${el.id} should set selectionEnd to end of value`);
       el.selectionStart = 8;
       el.selectionEnd = 5;
       assert_equals(el.selectionStart, 5, `selectionStart on ${el.id}`);
@@ -145,4 +152,55 @@
       el.remove();
     }
   }, "selectionEnd edge-case values");
+
+  test(() => {
+    for (const el of createTestElements(testValue)) {
+      el.selectionStart = 200;
+      assert_equals(el.selectionStart, testValue.length);
+      el.remove();
+    }
+  }, "selectionStart should be clamped by the current value length");
+
+  test(() => {
+    for (const el of createTestElements(testValue)) {
+      el.selectionStart = 300;
+      assert_equals(el.selectionEnd, testValue.length);
+      el.remove();
+    }
+  }, "selectionEnd should be clamped by the current value length");
+
+  test(() => {
+    for (const el of createTestElements(testValue)) {
+      el.setSelectionRange(200, 300);
+      assert_equals(el.selectionStart, testValue.length);
+      assert_equals(el.selectionEnd, testValue.length);
+      el.remove();
+    }
+  }, "setSelectionRange should be clamped by the current value length");
+
+  test(() => {
+    for (let el of createTestElements(testValue)) {
+      const start = 1;
+      const end = testValue.length - 1;
+
+      el.setSelectionRange(start, end);
+
+      assert_equals(el.selectionStart, start, `selectionStart on ${el.id}`);
+      assert_equals(el.selectionEnd, end, `selectionEnd on ${el.id}`);
+
+      el.selectionDirection = "backward";
+
+      assert_equals(el.selectionStart, start,
+                    `selectionStart on ${el.id} after setting selectionDirection to "backward"`);
+      assert_equals(el.selectionEnd, end,
+                    `selectionEnd on ${el.id} after setting selectionDirection to "backward"`);
+
+      el.selectionDirection = "forward";
+
+      assert_equals(el.selectionStart, start,
+                    `selectionStart on ${el.id} after setting selectionDirection to "forward"`);
+      assert_equals(el.selectionEnd, end,
+                    `selectionEnd on ${el.id} after setting selectionDirection to "forward"`);
+    }
+  }, "selectionStart and selectionEnd should remain the same when selectionDirection is changed");
 </script>

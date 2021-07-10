@@ -1,6 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 /*
  * The origin of this IDL file is
  * https://dom.spec.whatwg.org/#range
@@ -8,8 +8,9 @@
  * http://dvcs.w3.org/hg/csswg/raw-file/tip/cssom-view/Overview.html#extensions-to-the-range-interface
  */
 
-[Constructor]
+[Exposed=Window]
 interface Range {
+  [Throws] constructor();
   [Pure]
   readonly attribute Node startContainer;
   [Pure]
@@ -47,15 +48,15 @@ interface Range {
   const unsigned short END_TO_START = 3;
   [Pure, Throws]
   short compareBoundaryPoints(unsigned short how, Range sourceRange);
-  [Throws]
+  [CEReactions, Throws]
   void deleteContents();
-  [NewObject, Throws]
+  [CEReactions, NewObject, Throws]
   DocumentFragment extractContents();
-  [NewObject, Throws]
+  [CEReactions, NewObject, Throws]
   DocumentFragment cloneContents();
-  [Throws]
+  [CEReactions, Throws]
   void insertNode(Node node);
-  [Throws]
+  [CEReactions, Throws]
   void surroundContents(Node newParent);
 
   [NewObject]
@@ -76,7 +77,7 @@ interface Range {
 
 // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#extensions-to-the-range-interface
 partial interface Range {
-  [NewObject, Throws]
+  [CEReactions, NewObject, Throws]
   DocumentFragment createContextualFragment(DOMString fragment);
 };
 

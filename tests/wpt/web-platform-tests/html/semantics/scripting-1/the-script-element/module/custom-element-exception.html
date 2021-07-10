@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Handling of exceptions in custom element constructors</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    setup({allow_uncaught_exception: true});
+
+    window.log = [];
+    window.addEventListener("error", ev => log.push(ev.error));
+
+    const test_load = async_test(
+        "Test that exceptions from the constructor of a custom element " +
+        "inside a module are propagated as expected.\n");
+    window.addEventListener("load", test_load.step_func_done(ev => {
+      assert_equals(1, log.length);
+      const exception = log[0];
+      assert_true(exception instanceof Error);
+      assert_equals(exception.message, "custom element error");
+    }));
+</script>
+<script type="module">
+    class XThrower extends HTMLElement {
+      constructor() {
+        super();
+        throw new Error("custom element error");
+      }
+    }
+    customElements.define("x-thrower", XThrower);
+    document.createElement("x-thrower");
+</script>

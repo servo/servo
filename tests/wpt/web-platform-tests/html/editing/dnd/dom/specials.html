@@ -1,25 +1,25 @@
 <!doctype html>
 <html>
-	<head>
-		<title>Exposing drag &amp; drop events on document and window</title>
-		<script type="text/javascript" src="/resources/testharness.js"></script>
-		<script type="text/javascript" src="/resources/testharnessreport.js"></script>
-	</head>
-	<body>
+  <head>
+    <title>Exposing drag &amp; drop events on document and window</title>
+    <script type="text/javascript" src="/resources/testharness.js"></script>
+    <script type="text/javascript" src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
 
-		<div id="log">Enable script and reload</div>
-		<script type="text/javascript">
+    <div id="log">Enable script and reload</div>
+    <script type="text/javascript">
 var allEvents = ['ondragstart','ondrag','ondragover','ondragenter','ondragleave','ondrop','ondragend'];
 var allObjects = [['window',window],['document',document],['HTMLElement',document.createElement('div')]];
 var fails = [];
 for( var i = 0; i < allObjects.length; i++ ) {
-	for( var j = 0; j < allEvents.length; j++ ) {
-		test(function () {
-		  assert_true(allEvents[j] in allObjects[i][1]);
-		}, allEvents[j] + ' in ' + allObjects[i][0]);
-	}
+  for( var j = 0; j < allEvents.length; j++ ) {
+    test(function () {
+      assert_true(allEvents[j] in allObjects[i][1]);
+    }, allEvents[j] + ' in ' + allObjects[i][0]);
+  }
 }
-		</script>
+    </script>
 
-	</body>
+  </body>
 </html>

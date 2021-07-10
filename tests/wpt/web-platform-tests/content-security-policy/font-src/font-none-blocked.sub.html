@@ -13,7 +13,7 @@
       var link = document.createElement('link');
       link.rel="preload";
       link.as="font";
-      link.href="http://{{domains[www]}}:{{ports[http][0]}}/content-security-policy/support/Ahem.ttf";
+      link.href="http://{{domains[www]}}:{{ports[http][0]}}/fonts/Ahem.ttf?font-none-blocked";
       link.onload = t.unreached_func("Should not have loaded the font.");
       link.onerror = t.step_func_done();
       document.getElementsByTagName('head')[0].appendChild(link);

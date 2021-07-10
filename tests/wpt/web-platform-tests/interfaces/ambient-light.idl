@@ -1,0 +1,14 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Ambient Light Sensor (https://w3c.github.io/ambient-light/)
+
+[SecureContext, Exposed=Window]
+interface AmbientLightSensor : Sensor {
+  constructor(optional SensorOptions sensorOptions = {});
+  readonly attribute double? illuminance;
+};
+
+dictionary AmbientLightReadingValues {
+  required double? illuminance;
+};

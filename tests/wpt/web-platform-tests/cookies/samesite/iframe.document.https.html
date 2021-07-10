@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+<!-- We're appending an <iframe> to the document's body, so execute tests after we have a body -->
+<body>
+<script>
+  function create_test(target, expectedDomStatus, title) {
+    promise_test(async t => {
+      let cookieValue = await new Promise((resolve, reject) => {
+        var iframe = document.createElement("iframe");
+
+        window.onmessage = t.step_func(e => {
+          if (e.source == iframe.contentWindow) {
+            document.body.removeChild(iframe);
+            resolve(e.data.value);
+          }
+        });
+
+        iframe.src = target + "/cookies/samesite/resources/iframe.document.html";
+        document.body.appendChild(iframe);
+      });
+
+      await new Promise((resolve, reject) => {
+        var iframe = document.createElement("iframe");
+
+        window.onmessage = t.step_func(e => {
+          if (e.source == iframe.contentWindow) {
+            // Cleanup, then verify cookie state:
+            document.body.removeChild(iframe);
+
+            const cookies = e.data;
+            assert_equals(cookies["dc_samesite_none"], cookieValue, "SameSite=none cookies can be set via document.cookies even by cross-origin documents");
+
+            if (expectedDomStatus === DomSameSiteStatus.SAME_SITE) {
+              assert_equals(cookies["dc_samesite_lax"], cookieValue, "SameSite=lax cookies can be set via document.cookies by same-site documents");
+              assert_equals(cookies["dc_samesite_strict"], cookieValue, "SameSite=strict cookies can be set via document.cookies by same-site documents");
+            } else if (expectedDomStatus === DomSameSiteStatus.CROSS_SITE) {
+              assert_not_equals(cookies["dc_samesite_lax"], cookieValue, "SameSite=lax cookies can be set via document.cookies by same-site documents");
+              assert_not_equals(cookies["dc_samesite_strict"], cookieValue, "SameSite=strict cookies can be set via document.cookies by same-site documents");
+            }
+
+            resolve();
+          }
+        });
+
+        iframe.src = target + "/cookies/resources/postToParent.py";
+        document.body.appendChild(iframe);
+      });
+    }, title);
+  }
+
+  create_test(SECURE_ORIGIN, DomSameSiteStatus.SAME_SITE, "Same-site iframes can set lax/strict cookies via document.cookie");
+  create_test(SECURE_CROSS_SITE_ORIGIN, DomSameSiteStatus.CROSS_SITE, "Cross-site iframe cannot set lax/strict cookies via document.cookie");
+</script>

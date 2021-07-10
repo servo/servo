@@ -3,6 +3,7 @@ name = "jstraceable_derive"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
+edition = "2018"
 publish = false
 
 [lib]
@@ -10,6 +11,6 @@ path = "lib.rs"
 proc-macro = true
 
 [dependencies]
-quote = "0.3"
-syn = "0.11"
-synstructure = "0.5"
+proc-macro2 = "1"
+syn = { version = "1", default-features = false, features = ["clone-impls", "derive", "parsing"] }
+synstructure = "0.12"

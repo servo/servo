@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<title>CSS Position: position:absolute dynamic containing block</title>
+<link rel="author" title="mailto:atotic@google.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#def-cb">
+<meta name="assert" content="Tests changes in containing block for out-of-flow positioned descendants.">
+<style>
+
+#outer {
+  width: 400px;
+  height: 300px;
+  outline: black solid 1px;
+}
+#intermediate {
+  width: 300px;
+  height: 200px;
+  outline: gray solid 1px;
+}
+#target {
+  background: green;
+}
+.abs {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+}
+.fixed {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+}
+.abs-container {
+  position: relative;
+}
+.fixed-container {
+  will-change: transform;
+}
+div {
+  padding: 5px;
+}
+</style>
+<!-- This tests potential caching of out-of-flow positioned descendants. -->
+<div id="outer">
+  <div>
+    <div id="intermediate">
+      <div>
+        <div id="target">TTT</div>
+        <div id="noLayout1"></div>
+      </div>
+      <div id="noLayout2"></div>
+    </div>
+  </div>
+</div>
+<script>
+  let outer = document.querySelector("#outer");
+  let intermediate = document.querySelector("#intermediate");
+  let target = document.querySelector("#target");
+  let padding = 5;
+
+  function cleanup() {
+    outer.className = "";
+    intermediate.className = "";
+    target.className = "";
+    document.body.offsetTop;
+  }
+
+  test( t => {
+    t.add_cleanup(cleanup);
+    outer.classList.add("abs-container");
+    target.classList.add("abs");
+    assert_equals(target.offsetHeight, outer.offsetHeight);
+    intermediate.classList.add("abs-container");
+    assert_equals(target.offsetHeight, intermediate.offsetHeight);
+  }, "abs containing block moves from outer to intermediate" );
+  test( t => {
+    t.add_cleanup(cleanup);
+    target.classList.add("abs");
+    intermediate.classList.add("abs-container");
+    assert_equals(target.offsetHeight, intermediate.offsetHeight);
+    outer.classList.add("abs-container");
+    assert_equals(target.offsetHeight, intermediate.offsetHeight);
+    intermediate.classList.remove("abs-container");
+    assert_equals(target.offsetHeight, outer.offsetHeight);
+  }, "abs containing block moves from intermediate to outer" );
+  test( t => {
+    t.add_cleanup(cleanup);
+    target.classList.add("abs");
+    outer.classList.add("abs-container");
+    assert_equals(target.offsetHeight, outer.offsetHeight);
+    target.classList.remove("abs");
+    assert_equals(target.offsetWidth, intermediate.offsetWidth - 4 * padding);
+  }, "target is no longer absolute");
+  test( t => {
+    t.add_cleanup(cleanup);
+    outer.classList.add("abs-container");
+    assert_equals(target.offsetWidth, intermediate.offsetWidth - 4 * padding);
+    target.classList.add("abs");
+    assert_equals(target.offsetHeight, outer.offsetHeight);
+  }, "target becomes absolute");
+
+ // Repeat same tests with fixed
+  test( t => {
+    t.add_cleanup(cleanup);
+    outer.classList.add("fixed-container");
+    target.classList.add("fixed");
+    assert_equals(target.offsetHeight, outer.offsetHeight);
+    intermediate.classList.add("fixed-container");
+    assert_equals(target.offsetHeight, intermediate.offsetHeight);
+  }, "fixed containing block moves from outer to intermediate" );
+  test( t => {
+    t.add_cleanup(cleanup);
+    target.classList.add("fixed");
+    intermediate.classList.add("fixed-container");
+    assert_equals(target.offsetHeight, intermediate.offsetHeight);
+    outer.classList.add("fixed-container");
+    assert_equals(target.offsetHeight, intermediate.offsetHeight);
+    intermediate.classList.remove("fixed-container");
+    assert_equals(target.offsetHeight, outer.offsetHeight);
+  }, "fixed containing block moves from intermediate to outer" );
+  test( t => {
+    t.add_cleanup(cleanup);
+    target.classList.add("fixed");
+    outer.classList.add("fixed-container");
+    assert_equals(target.offsetHeight, outer.offsetHeight);
+    target.classList.remove("fixed");
+    assert_equals(target.offsetWidth, intermediate.offsetWidth - 4 * padding);
+  }, "target is no longer fixed");
+  test( t => {
+    t.add_cleanup(cleanup);
+    outer.classList.add("fixed-container");
+    assert_equals(target.offsetWidth, intermediate.offsetWidth - 4 * padding);
+    target.classList.add("fixed");
+    assert_equals(target.offsetHeight, outer.offsetHeight);
+  }, "target becomes fixed");
+</script>

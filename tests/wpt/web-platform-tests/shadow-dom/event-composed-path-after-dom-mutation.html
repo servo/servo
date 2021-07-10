@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<title>Shadow DOM: Event.composedPath() should return the same result even if DOM is mutated</title>
+<meta name="author" title="Hayato Ito" href="mailto:hayato@google.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/shadow-dom.js"></script>
+
+<div id="test1">
+  <div id="host">
+    <template id="sr" data-mode="closed">
+      <div id="target"></div>
+    </template>
+  </div>
+</div>
+
+<script>
+async_test((t) => {
+  const n = createTestTree(document.querySelector('#test1'));
+  n.host.addEventListener('my-event', t.step_func((e) => {
+    const path_before = e.composedPath();
+    // Move the target out of a closed shadow tree
+    n.host.append(n.target);
+    const path_after = e.composedPath();
+    assert_array_equals(path_before, path_after);
+    t.done();
+  }));
+  const event = new Event('my-event', { bubbles: true, composed: true });
+  n.target.dispatchEvent(event);
+}, 'Event.composedPath() should return the same result even if DOM is mutated (1/2)');
+</script>
+
+<div id="test2">
+  <div id="host1">
+    <template id="sr1" data-mode="closed">
+      <div id="host2">
+        <template id="sr2" data-mode="open">
+          <div id="target"></div>
+        </template>
+      </div>
+    </template>
+  </div>
+</div>
+
+<script>
+async_test((t) => {
+  const n = createTestTree(document.querySelector('#test2'));
+  n.host1.addEventListener('my-event', t.step_func((e) => {
+    const path_before = e.composedPath();
+    // Move nodes out of a closed shadow tree
+    n.host1.append(n.host2);
+    n.host1.append(n.target);
+    const path_after = e.composedPath();
+    assert_array_equals(path_before, path_after);
+    t.done();
+  }));
+  const event = new Event('my-event', { bubbles: true, composed: true });
+  n.target.dispatchEvent(event);
+}, 'Event.composedPath() should return the same result even if DOM is mutated (2/2)');
+</script>

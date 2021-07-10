@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+  <head>
+    <title>WPT Server checker</title>
+    <meta charset="utf-8" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <meta name="variant" content="">
+    <meta name="variant" content="?wpt_flags=h2">
+    <meta name="variant" content="?wpt_flags=https">
+  </head>
+</body>
+<body>
+<script>
+
+if (location.search == '?wpt_flags=h2') {
+  test(function() {
+      assert_equals(document.location.port, "{{ports[h2][0]}}");
+  }, "h2 port with wpt_flags=h2")
+} else if (location.search == '?wpt_flags=https') {
+  test(function() {
+      assert_equals(document.location.port, "{{ports[https][0]}}");
+  }, "https port with wpt_flags=https")
+} else {
+  test(function() {
+      assert_equals(document.location.port, "{{ports[http][0]}}");
+  }, "http port without flag")
+}
+
+</script>
+</body>
+</html>

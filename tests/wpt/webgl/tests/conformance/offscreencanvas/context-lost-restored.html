@@ -1,0 +1,111 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/tests/canvas-tests-utils.js"></script>
+<script>
+
+function init()
+{
+    description("Tests behavior under a restored context for OffscreenCanvas.");
+
+    if (!window.OffscreenCanvas) {
+      testPassed("No OffscreenCanvas support");
+      finishTest();
+      return;
+    }
+
+    if (!setupTest()) {
+        testFailed("Cannot initialize test");
+        finishTest();
+        return;
+    }
+
+    canvas.addEventListener("webglcontextlost", function(e) {
+        if (!testLostContext(e)) {
+            testFailed("Some test failed");
+            finishTest();
+            return;
+        }
+        // restore the context after this event has exited.
+        setTimeout(function() {
+            // we didn't call prevent default so we should not be able to restore the context
+            if (!compareGLError(gl.INVALID_OPERATION, "WEBGL_lose_context.restoreContext()")) {
+                testFailed("Some test failed");
+                finishTest();
+                return;
+            }
+            testLosingAndRestoringContext().then(function() {
+                testPassed("Test passed");
+                finishTest();
+                return;
+            }, function() {
+                testFailed("Some test failed");
+                finishTest();
+                return;
+            });
+       }, 0);
+    });
+    canvas.addEventListener("webglcontextrestored", function() {
+        testFailed("Some test failed");
+        finishTest();
+        return;
+    });
+    allowRestore = false;
+    contextLostEventFired = false;
+    contextRestoredEventFired = false;
+
+    if (!testOriginalContext()) {
+        testFailed("Some test failed");
+        finishTest();
+        return;
+    }
+    WEBGL_lose_context.loseContext();
+    // The context should be lost immediately.
+    shouldBeTrue("gl.isContextLost()");
+    shouldBe("gl.getError()", "gl.CONTEXT_LOST_WEBGL");
+    shouldBe("gl.getError()", "gl.NO_ERROR");
+    // gl methods should be no-ops
+    shouldBeTrue(compareGLError(gl.NO_ERROR, "gl.blendFunc(gl.TEXTURE_2D, gl.TEXTURE_CUBE_MAP)"));
+    // but the event should not have been fired.
+    shouldBeFalse("contextLostEventFired");
+}
+
+</script>
+</head>
+<body onload="init()">
+<div id="description"></div>
+<div id="console"></div>
+</body>
+</html>

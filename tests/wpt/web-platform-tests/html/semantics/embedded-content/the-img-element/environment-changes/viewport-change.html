@@ -39,7 +39,7 @@ onload = function() {
       var expected = {wide:resolve(img.dataset.wide), narrow:resolve(img.dataset.narrow)};
       var current = iframe.className;
       var next = current === 'wide' ? 'narrow' : 'wide';
-      var expect_change = expected[next].indexOf('broken.png') !== 0 && !('noChange' in img.dataset);
+      var expect_change = expected[next].indexOf('broken.png') === -1 && !('noChange' in img.dataset);
 
       test(function() {
         assert_equals(img.currentSrc, expected[current]);

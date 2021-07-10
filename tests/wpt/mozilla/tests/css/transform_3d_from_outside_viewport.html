@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Ensure that content transformed from outside the viewport is displayed</title>
+    <link rel="match" href="transform_3d_from_outside_viewport_ref.html">
+    <style>
+        #container {
+          left: 0;
+          top: 0;
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          overflow: hidden;
+          perspective: 2000px;
+          perspective-origin: 20% 50%;
+          background: yellow;
+        }
+
+        #transformed {
+          height: 200px;
+          transform: translate3d(0px, 0px, -1300px) rotateY(45deg);
+          background: green;
+        }
+  </style>
+</head>
+
+<body>
+  <div id="container">
+    <div id="transformed"></div>
+  </div>
+</body>
+</html>

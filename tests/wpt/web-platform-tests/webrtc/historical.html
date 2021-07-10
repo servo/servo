@@ -1,0 +1,51 @@
+<!doctype html>
+<title>Historical WebRTC features</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+[
+  'reliable',
+  'maxRetransmitTime',
+].forEach((member) => {
+  test(() => {
+    assert_false(member in RTCDataChannel.prototype);
+  }, `RTCDataChannel member ${member} should not exist`);
+});
+
+[
+  "addStream",
+  "createDTMFSender",
+  "getLocalStreams",
+  "getRemoteStreams",
+  "getStreamById",
+  "onaddstream",
+  "onremovestream",
+  "removeStream",
+  "updateIce",
+].forEach(function(name) {
+  test(function() {
+    assert_false(name in RTCPeerConnection.prototype);
+  }, "RTCPeerConnection member " + name + " should not exist");
+});
+
+[
+  "setDirection",
+].forEach(function(name) {
+  test(function() {
+    assert_false(name in RTCRtpTransceiver.prototype);
+  }, "RTCRtpTransceiver member " + name + " should not exist");
+});
+
+[
+  "DataChannel",
+  "mozRTCIceCandidate",
+  "mozRTCPeerConnection",
+  "mozRTCSessionDescription",
+  "webkitRTCPeerConnection",
+].forEach(function(name) {
+  test(function() {
+    assert_false(name in window);
+  }, name + " interface should not exist");
+});
+</script>

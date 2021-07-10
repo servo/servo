@@ -1,0 +1,64 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta name="variant" content="">
+<meta name="variant" content="?keep-promise">
+<title>Test#add_cleanup with value-returning function</title>
+<script src="../../variants.js"></script>
+<script src="../../../testharness.js"></script>
+<script src="../../../testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+"use strict";
+
+test(function(t) {
+  t.add_cleanup(function() {});
+  t.add_cleanup(function() { return null; });
+  t.add_cleanup(function() {
+    test(
+      function() {},
+      "The test runner is in an unpredictable state #1 ('NOT RUN')"
+    );
+
+    throw new Error();
+  });
+  t.add_cleanup(function() { return 4; });
+  t.add_cleanup(function() { return { then: function() {} }; });
+  t.add_cleanup(function() {});
+}, "Test that returns a value in three \"cleanup\" functions");
+
+test(function() {}, "The test runner is in an unpredictable state #2 ('NOT RUN')");
+</script>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "ERROR",
+    "message": "Test named 'Test that returns a value in three \"cleanup\" functions' specified 6 'cleanup' functions, and 1 failed, and 3 returned a non-undefined value."
+  },
+  "summarized_tests": [
+    {
+      "status_string": "PASS",
+      "name": "Test that returns a value in three \"cleanup\" functions",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "NOTRUN",
+      "name": "The test runner is in an unpredictable state #1 ('NOT RUN')",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "NOTRUN",
+      "name": "The test runner is in an unpredictable state #2 ('NOT RUN')",
+      "message": null,
+      "properties": {}
+    }
+  ],
+  "type": "complete"
+}
+</script>
+</body>
+</html>

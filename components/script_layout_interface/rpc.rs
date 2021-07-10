@@ -1,14 +1,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use PendingImage;
 use app_units::Au;
-use euclid::point::Point2D;
-use euclid::rect::Rect;
+use euclid::default::Rect;
+use euclid::Size2D;
 use script_traits::UntrustedNodeAddress;
-use style::properties::longhands::{margin_top, margin_right, margin_bottom, margin_left, overflow_x};
-use webrender_traits::ClipId;
+use servo_arc::Arc;
+use style::properties::style_structs::Font;
+use style_traits::CSSPixel;
+use webrender_api::ExternalScrollId;
 
 /// Synchronous messages that script can send to layout.
 ///
@@ -25,25 +26,22 @@ pub trait LayoutRPC {
     fn content_boxes(&self) -> ContentBoxesResponse;
     /// Requests the geometry of this node. Used by APIs such as `clientTop`.
     fn node_geometry(&self) -> NodeGeometryResponse;
-    /// Requests the overflow-x and overflow-y of this node. Used by `scrollTop` etc.
-    fn node_overflow(&self) -> NodeOverflowResponse;
     /// Requests the scroll geometry of this node. Used by APIs such as `scrollTop`.
     fn node_scroll_area(&self) -> NodeGeometryResponse;
-    /// Requests the scroll root id of this node. Used by APIs such as `scrollTop`
-    fn node_scroll_root_id(&self) -> NodeScrollRootIdResponse;
-    /// Requests the node containing the point of interest
-    fn hit_test(&self) -> HitTestResponse;
+    /// Requests the scroll id of this node. Used by APIs such as `scrollTop`
+    fn node_scroll_id(&self) -> NodeScrollIdResponse;
     /// Query layout for the resolved value of a given CSS property
     fn resolved_style(&self) -> ResolvedStyleResponse;
+    /// Query layout to get the resolved font style for canvas.
+    fn resolved_font_style(&self) -> Option<Arc<Font>>;
     fn offset_parent(&self) -> OffsetParentResponse;
-    /// Query layout for the resolve values of the margin properties for an element.
-    fn margin_style(&self) -> MarginStyleResponse;
-    /// Requests the list of not-yet-loaded images that were encountered in the last reflow.
-    fn pending_images(&self) -> Vec<PendingImage>;
+    fn text_index(&self) -> TextIndexResponse;
     /// Requests the list of nodes from the given point.
     fn nodes_from_point_response(&self) -> Vec<UntrustedNodeAddress>;
-
-    fn text_index(&self) -> TextIndexResponse;
+    /// Query layout to get the inner text for a given element.
+    fn element_inner_text(&self) -> String;
+    /// Get the dimensions of an iframe's inner window.
+    fn inner_window_dimensions(&self) -> Option<Size2D<f32, CSSPixel>>;
 }
 
 pub struct ContentBoxResponse(pub Option<Rect<Au>>);
@@ -54,13 +52,7 @@ pub struct NodeGeometryResponse {
     pub client_rect: Rect<i32>,
 }
 
-pub struct NodeOverflowResponse(pub Option<Point2D<overflow_x::computed_value::T>>);
-
-pub struct NodeScrollRootIdResponse(pub ClipId);
-
-pub struct HitTestResponse {
-    pub node_address: Option<UntrustedNodeAddress>,
-}
+pub struct NodeScrollIdResponse(pub ExternalScrollId);
 
 pub struct ResolvedStyleResponse(pub String);
 
@@ -75,25 +67,6 @@ impl OffsetParentResponse {
         OffsetParentResponse {
             node_address: None,
             rect: Rect::zero(),
-        }
-    }
-}
-
-#[derive(Clone)]
-pub struct MarginStyleResponse {
-    pub top: margin_top::computed_value::T,
-    pub right: margin_right::computed_value::T,
-    pub bottom: margin_bottom::computed_value::T,
-    pub left: margin_left::computed_value::T,
-}
-
-impl MarginStyleResponse {
-    pub fn empty() -> MarginStyleResponse {
-        MarginStyleResponse {
-            top: margin_top::computed_value::T::Auto,
-            right: margin_right::computed_value::T::Auto,
-            bottom: margin_bottom::computed_value::T::Auto,
-            left: margin_left::computed_value::T::Auto,
         }
     }
 }

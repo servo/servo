@@ -1,0 +1,128 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="variant" content="">
+  <meta name="variant" content="?keep-promise">
+  <title>idlharness: Partial namespace</title>
+  <script src="/resources/test/variants.js"></script>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/WebIDLParser.js"></script>
+  <script src="/resources/idlharness.js"></script>
+</head>
+
+<body>
+  <p>Verify the series of sub-tests that are executed for "partial" namespace objects.</p>
+  <script>
+    "use strict";
+
+    // No original existence
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_idls('partial namespace A {};');
+      idlArray.test();
+    })();
+
+    // Valid exposure (Note: Worker -> {Shared,Dedicated,Service}Worker)
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_untested_idls(`
+        [Exposed=(Worker)]
+        namespace B {};
+
+        [Exposed=(DedicatedWorker, ServiceWorker, SharedWorker)]
+        namespace C {};`);
+      idlArray.add_idls(`
+        [Exposed=(DedicatedWorker, ServiceWorker, SharedWorker)]
+        partial namespace B {};
+
+        [Exposed=(Worker)]
+        partial namespace C {};`);
+      idlArray.collapse_partials();
+    })();
+
+    // Invalid exposure
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_untested_idls(`
+        [Exposed=(Window, ServiceWorker)]
+        namespace D {};`);
+      idlArray.add_idls(`
+        [Exposed=(DedicatedWorker)]
+        partial namespace D {};`);
+      idlArray.collapse_partials();
+    })();
+
+    // Original is an interface, not a namespace.
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_idls(`
+        partial namespace E {};
+        interface E {};`);
+      idlArray.collapse_partials();
+    })();
+  </script>
+  <script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "OK",
+    "message": null
+  },
+  "summarized_tests": [
+    {
+      "name": "Partial namespace A: original namespace defined",
+      "status_string": "FAIL",
+      "properties": {},
+      "message": "assert_true: Original namespace should be defined expected true got false"
+    },
+    {
+      "name": "Partial namespace B: original namespace defined",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Partial namespace B: valid exposure set",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Partial namespace C: original namespace defined",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Partial namespace C: valid exposure set",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Partial namespace D: original namespace defined",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Partial namespace D: valid exposure set",
+      "status_string": "FAIL",
+      "properties": {},
+      "message": "Partial D namespace is exposed to 'DedicatedWorker', the original namespace is not."
+    },
+    {
+      "name": "Partial namespace E: original namespace defined",
+      "status_string": "FAIL",
+      "properties": {},
+      "message": "assert_true: Original E definition should have type namespace expected true got false"
+    }
+  ],
+  "type": "complete"
+}
+</script>
+</body>
+
+</html>

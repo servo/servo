@@ -8,10 +8,13 @@
   <link rel="help" href="http://www.w3.org/TR/html4/present/styles.html#h-14.6"/>
   <!-- There seems to be no spec defining http-equiv="Link" behavior -->
   <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#at-import"/>
+  <link rel="help" href="http://www.w3.org/TR/css-cascade-3/#at-import"/>
+  <link rel="help" href="http://www.w3.org/TR/css-cascade-4/#at-import"/>
   <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#cascading-order"/>
+  <link rel="help" href="http://www.w3.org/TR/css-cascade-3/#cascading"/>
+  <link rel="help" href="http://www.w3.org/TR/css-cascade-4/#cascading"/>
   <meta name="flags" content="http" />
 
-  <meta http-equiv="Link" content='&lt;support/cascade-import-002h.css>; rel="stylesheet"'/>
   <link rel="stylesheet" href="support/cascade-import-002j.css"/>
   <style type="text/css">
    @import url(support/cascade-import-002k.css);
@@ -24,7 +27,6 @@
    .r { color: red; }
   </style>
   <link rel="stylesheet" href="support/cascade-import-002p.css"/>
-  <meta http-equiv="Link" content='&lt;support/cascade-import-002r.css>; rel="stylesheet"'/>
  </head>
  <body>
   <div class="a"> This line should be green. (a) </div>
@@ -33,8 +35,6 @@
   <div class="d"> This line should be green. (d) </div>
   <div class="e"> This line should be green. (e) </div>
   <div class="f"> This line should be green. (f) </div>
-  <div class="g"> This line should be green. (g) </div>
-  <div class="h"> This line should be green. (h) </div>
   <div class="i"> This line should be green. (i) </div>
   <div class="j"> This line should be green. (j) </div>
   <div class="k"> This line should be green. (k) </div>
@@ -43,8 +43,6 @@
   <div class="n"> This line should be green. (n) </div>
   <div class="o"> This line should be green. (o) </div>
   <div class="p"> This line should be green. (p) </div>
-  <div class="q"> This line should be green. (q) </div>
-  <div class="r"> This line should be green. (r) </div>
   <!--
    The cascade is as follows:
       HTTP Link: header
@@ -59,10 +57,6 @@
        @import
    e    Rule
    f   Rule
-      <meta http-equiv="Link">
-       @import
-   g    Rule
-   h   Rule
       <link rel="stylesheet">
        @import
    i    Rule
@@ -80,10 +74,6 @@
    n      Rule
    o    Rule
    p   Rule
-      <meta http-equiv="Link">
-       @import
-   q    Rule
-   r   Rule
   -->
 
 

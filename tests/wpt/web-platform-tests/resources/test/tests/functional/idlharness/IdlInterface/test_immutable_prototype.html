@@ -1,0 +1,297 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="variant" content="">
+  <meta name="variant" content="?keep-promise">
+  <title>idlharness: Immutable prototypes</title>
+  <script src="../../../../variants.js"></script>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/WebIDLParser.js"></script>
+  <script src="/resources/idlharness.js"></script>
+</head>
+<body>
+<script>
+"use strictt";
+
+Object.defineProperty(window, "Foo", {
+    enumerable: false,
+    writable: true,
+    configurable: true,
+    value: function Foo() {}
+  });
+Object.defineProperty(window.Foo, "prototype", {
+    writable: false,
+    value: window.Foo.prototype
+  });
+Foo.prototype[Symbol.toStringTag] = "Foo";
+
+var idlArray = new IdlArray();
+idlArray.add_untested_idls("interface EventTarget {};");
+idlArray.add_idls(
+    "[Global=Window, Exposed=Window]\n" +
+    "interface Window : EventTarget {};\n" +
+
+    "[Global=Window, Exposed=Window, Constructor()]\n" +
+    "interface Foo {};"
+  );
+idlArray.add_objects({
+  Foo: ["new Foo()"],
+  Window: ["window"]
+});
+idlArray.test();
+</script>
+<script type="text/json" id="expected">
+{
+    "summarized_status": {
+        "message": null,
+        "status_string": "OK"
+    },
+    "summarized_tests": [
+        {
+            "name": "Foo interface object length",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Foo interface object name",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Foo interface: existence and properties of interface object",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Foo interface: existence and properties of interface prototype object",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Foo interface: existence and properties of interface prototype object's \"constructor\" property",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Foo interface: existence and properties of interface prototype object's @@unscopables property",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Foo interface: internal [[SetPrototypeOf]] method of global platform object - setting to a new value via Object.setPrototypeOf should throw a TypeError",
+            "status_string": "FAIL",
+            "properties": {},
+            "message": "assert_throws_js: function \"function() {\n            Object.setPrototypeOf(obj, newValue);\n        }\" did not throw"
+        },
+        {
+            "name": "Foo interface: internal [[SetPrototypeOf]] method of global platform object - setting to a new value via Reflect.setPrototypeOf should return false",
+            "status_string": "FAIL",
+            "properties": {},
+            "message": "assert_false: expected false got true"
+        },
+        {
+            "name": "Foo interface: internal [[SetPrototypeOf]] method of global platform object - setting to a new value via __proto__ should throw a TypeError",
+            "status_string": "FAIL",
+            "properties": {},
+            "message": "assert_throws_js: function \"function() {\n            obj.__proto__ = newValue;\n        }\" did not throw"
+        },
+        {
+            "name": "Foo interface: internal [[SetPrototypeOf]] method of global platform object - setting to its original value via Object.setPrototypeOf should not throw",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Foo interface: internal [[SetPrototypeOf]] method of global platform object - setting to its original value via Reflect.setPrototypeOf should return true",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Foo interface: internal [[SetPrototypeOf]] method of global platform object - setting to its original value via __proto__ should not throw",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Foo interface: internal [[SetPrototypeOf]] method of interface prototype object - setting to a new value via Object.setPrototypeOf should throw a TypeError",
+            "status_string": "FAIL",
+            "properties": {},
+            "message": "assert_throws_js: function \"function() {\n            Object.setPrototypeOf(obj, newValue);\n        }\" did not throw"
+        },
+        {
+            "name": "Foo interface: internal [[SetPrototypeOf]] method of interface prototype object - setting to a new value via Reflect.setPrototypeOf should return false",
+            "status_string": "FAIL",
+            "properties": {},
+            "message": "assert_false: expected false got true"
+        },
+        {
+            "name": "Foo interface: internal [[SetPrototypeOf]] method of interface prototype object - setting to a new value via __proto__ should throw a TypeError",
+            "status_string": "FAIL",
+            "properties": {},
+            "message": "assert_throws_js: function \"function() {\n            obj.__proto__ = newValue;\n        }\" did not throw"
+        },
+        {
+            "name": "Foo interface: internal [[SetPrototypeOf]] method of interface prototype object - setting to its original value via Object.setPrototypeOf should not throw",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Foo interface: internal [[SetPrototypeOf]] method of interface prototype object - setting to its original value via Reflect.setPrototypeOf should return true",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Foo interface: internal [[SetPrototypeOf]] method of interface prototype object - setting to its original value via __proto__ should not throw",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Foo must be primary interface of new Foo()",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Stringification of new Foo()",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Stringification of window",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Window interface object length",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Window interface object name",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Window interface: existence and properties of interface object",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Window interface: existence and properties of interface prototype object",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Window interface: existence and properties of interface prototype object's \"constructor\" property",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Window interface: existence and properties of interface prototype object's @@unscopables property",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Window interface: internal [[SetPrototypeOf]] method of global platform object - setting to a new value via Object.setPrototypeOf should throw a TypeError",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Window interface: internal [[SetPrototypeOf]] method of global platform object - setting to a new value via Reflect.setPrototypeOf should return false",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Window interface: internal [[SetPrototypeOf]] method of global platform object - setting to a new value via __proto__ should throw a TypeError",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Window interface: internal [[SetPrototypeOf]] method of global platform object - setting to its original value via Object.setPrototypeOf should not throw",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Window interface: internal [[SetPrototypeOf]] method of global platform object - setting to its original value via Reflect.setPrototypeOf should return true",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Window interface: internal [[SetPrototypeOf]] method of global platform object - setting to its original value via __proto__ should not throw",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Window interface: internal [[SetPrototypeOf]] method of interface prototype object - setting to a new value via Object.setPrototypeOf should throw a TypeError",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Window interface: internal [[SetPrototypeOf]] method of interface prototype object - setting to a new value via Reflect.setPrototypeOf should return false",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Window interface: internal [[SetPrototypeOf]] method of interface prototype object - setting to a new value via __proto__ should throw a TypeError",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Window interface: internal [[SetPrototypeOf]] method of interface prototype object - setting to its original value via Object.setPrototypeOf should not throw",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Window interface: internal [[SetPrototypeOf]] method of interface prototype object - setting to its original value via Reflect.setPrototypeOf should return true",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Window interface: internal [[SetPrototypeOf]] method of interface prototype object - setting to its original value via __proto__ should not throw",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        },
+        {
+            "name": "Window must be primary interface of window",
+            "status_string": "PASS",
+            "properties": {},
+            "message": null
+        }
+    ],
+    "type": "complete"
+}
+</script>
+</body>
+</html>

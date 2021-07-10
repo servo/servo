@@ -1,0 +1,104 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <title>CSS Grid Test: abs.pos. subgrid edge cases</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-2">
+  <link rel="match" href="abs-pos-004-ref.html">
+<style>
+html,body {
+  color:black; background-color:white; font:15px/1 monospace;
+}
+
+.grid {
+  position: relative;
+  display: inline-grid;
+  grid-auto-columns: 10px;
+  grid-auto-rows: 20px;
+  grid-auto-flow: column;
+  border: 1px solid;
+  margin: 1px;
+  vertical-align: top;
+}
+
+.subgrid {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  background: lightgrey;
+}
+.t1 { grid: subgrid / subgrid; }
+.t2 { grid: none / subgrid; }
+.t3 { grid: subgrid / none; }
+
+x {
+  background: lime;
+  grid-area: 1/1/-1/-1;
+}
+fail {
+  background: red;
+}
+
+.a {
+  position: absolute;
+  grid-area: 1/1/-1/-1;
+  inset: 0;
+  background: blue;
+}
+
+.o { overflow: hidden; }
+
+.start .subgrid {
+  grid-column-start: 3;
+}
+.end .subgrid {
+  grid-column-end: 1;
+}
+.start, .end {
+  width: 50px;
+}
+.end {
+  justify-content: end;
+}
+.start > fail, .end > fail {
+  background: initial;
+}
+</style>
+</head>
+<body>
+
+<script>
+function make_grids(items, abspos) {
+  ["", "o", "start", "end"].forEach(function(grid1) {
+    ["", "o"].forEach(function(subgrid1) {
+      ["t1", "t2", "t3"].forEach(function(subgrid2) {
+        let grid = document.createElement('div');
+        for (let i = 0; i < items; ++i) {
+          grid.appendChild(document.createElement('fail'));
+        }
+        grid.className = "grid " + grid1;
+        document.body.appendChild(grid);
+        document.body.offsetHeight;
+        let subgrid = document.createElement('div');
+        subgrid.className = "subgrid " + subgrid1 + " " + subgrid2;
+        let subgridItem = document.createElement('x');
+        if (abspos) {
+          subgridItem.className = "a";
+        }
+        subgrid.appendChild(subgridItem);
+        grid.appendChild(subgrid);
+      })
+    })
+  });
+}
+for (let i = 1; i <= 3; ++i) {
+  make_grids(i, false);
+  make_grids(i, true);
+}
+</script>
+
+</body>
+</html>

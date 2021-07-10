@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     width="300" height="200">
+  <metadata>
+    <h:link rel="help" href="https://www.w3.org/TR/SVG2/painting.html#StrokeDashing"/>
+    <h:link rel="match" href="line-dasharray-ref.svg"/>
+    <h:meta name="assert" content="The ‘pathLength’ attribute on a ‘path’ element affects stroke-dasharray."/>
+  </metadata>
+  <style>
+    line {
+      stroke: blue;
+      stroke-dasharray: 3 1;
+    }
+  </style>
+  <line id="interval" x1="50" y1="100" x2="250" y2="100" pathLength="25"/>
+</svg>

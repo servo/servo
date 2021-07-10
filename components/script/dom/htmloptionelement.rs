@@ -1,64 +1,109 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::attr::Attr;
-use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
-use dom::bindings::codegen::Bindings::HTMLOptionElementBinding;
-use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
-use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementBinding::HTMLSelectElementMethods;
-use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
-use dom::bindings::str::DOMString;
-use dom::characterdata::CharacterData;
-use dom::document::Document;
-use dom::element::{AttributeMutation, Element};
-use dom::htmlelement::HTMLElement;
-use dom::htmlformelement::HTMLFormElement;
-use dom::htmloptgroupelement::HTMLOptGroupElement;
-use dom::htmlscriptelement::HTMLScriptElement;
-use dom::htmlselectelement::HTMLSelectElement;
-use dom::node::{Node, UnbindContext};
-use dom::text::Text;
-use dom::virtualmethods::VirtualMethods;
+use crate::dom::attr::Attr;
+use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementBinding::HTMLSelectElementMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::characterdata::CharacterData;
+use crate::dom::document::Document;
+use crate::dom::element::{AttributeMutation, CustomElementCreationMode, Element, ElementCreator};
+use crate::dom::htmlelement::HTMLElement;
+use crate::dom::htmlformelement::HTMLFormElement;
+use crate::dom::htmloptgroupelement::HTMLOptGroupElement;
+use crate::dom::htmlscriptelement::HTMLScriptElement;
+use crate::dom::htmlselectelement::HTMLSelectElement;
+use crate::dom::node::{BindContext, Node, ShadowIncluding, UnbindContext};
+use crate::dom::text::Text;
+use crate::dom::virtualmethods::VirtualMethods;
+use crate::dom::window::Window;
 use dom_struct::dom_struct;
-use html5ever_atoms::LocalName;
+use html5ever::{LocalName, Prefix, QualName};
 use std::cell::Cell;
-use style::element_state::*;
+use std::convert::TryInto;
+use style::element_state::ElementState;
 use style::str::{split_html_space_chars, str_join};
 
 #[dom_struct]
 pub struct HTMLOptionElement {
     htmlelement: HTMLElement,
 
-    /// https://html.spec.whatwg.org/multipage/#attr-option-selected
+    /// <https://html.spec.whatwg.org/multipage/#attr-option-selected>
     selectedness: Cell<bool>,
 
-    /// https://html.spec.whatwg.org/multipage/#concept-option-dirtiness
+    /// <https://html.spec.whatwg.org/multipage/#concept-option-dirtiness>
     dirtiness: Cell<bool>,
 }
 
 impl HTMLOptionElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
-                     document: &Document) -> HTMLOptionElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLOptionElement {
         HTMLOptionElement {
-            htmlelement:
-                HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
-                                                      local_name, prefix, document),
+            htmlelement: HTMLElement::new_inherited_with_state(
+                ElementState::IN_ENABLED_STATE,
+                local_name,
+                prefix,
+                document,
+            ),
             selectedness: Cell::new(false),
             dirtiness: Cell::new(false),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
-               document: &Document) -> Root<HTMLOptionElement> {
-        Node::reflect_node(box HTMLOptionElement::new_inherited(local_name, prefix, document),
-                           document,
-                           HTMLOptionElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLOptionElement> {
+        Node::reflect_node(
+            Box::new(HTMLOptionElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+        )
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-option
+    #[allow(non_snake_case)]
+    pub fn Option(
+        window: &Window,
+        text: DOMString,
+        value: Option<DOMString>,
+        default_selected: bool,
+        selected: bool,
+    ) -> Fallible<DomRoot<HTMLOptionElement>> {
+        let element = Element::create(
+            QualName::new(None, ns!(html), local_name!("option")),
+            None,
+            &window.Document(),
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Synchronous,
+        );
+
+        let option = DomRoot::downcast::<HTMLOptionElement>(element).unwrap();
+
+        if !text.is_empty() {
+            option.upcast::<Node>().SetTextContent(Some(text))
+        }
+
+        if let Some(val) = value {
+            option.SetValue(val)
+        }
+
+        option.SetDefaultSelected(default_selected);
+        option.set_selectedness(selected);
+        Ok(option)
     }
 
     pub fn set_selectedness(&self, selected: bool) {
@@ -70,20 +115,59 @@ impl HTMLOptionElement {
     }
 
     fn pick_if_selected_and_reset(&self) {
-        if let Some(select) = self.upcast::<Node>().ancestors()
-                .filter_map(Root::downcast::<HTMLSelectElement>)
-                .next() {
+        if let Some(select) = self
+            .upcast::<Node>()
+            .ancestors()
+            .filter_map(DomRoot::downcast::<HTMLSelectElement>)
+            .next()
+        {
             if self.Selected() {
                 select.pick_option(self);
             }
             select.ask_for_reset();
         }
     }
+
+    // https://html.spec.whatwg.org/multipage/#concept-option-index
+    fn index(&self) -> i32 {
+        if let Some(parent) = self.upcast::<Node>().GetParentNode() {
+            if let Some(select_parent) = parent.downcast::<HTMLSelectElement>() {
+                // return index in parent select's list of options
+                return self.index_in_select(select_parent);
+            } else if parent.is::<HTMLOptGroupElement>() {
+                if let Some(grandparent) = parent.GetParentNode() {
+                    if let Some(select_grandparent) = grandparent.downcast::<HTMLSelectElement>() {
+                        // return index in grandparent select's list of options
+                        return self.index_in_select(select_grandparent);
+                    }
+                }
+            }
+        }
+        // "If the option element is not in a list of options,
+        // then the option element's index is zero."
+        // self is neither a child of a select, nor a grandchild of a select
+        // via an optgroup, so it is not in a list of options
+        0
+    }
+
+    fn index_in_select(&self, select: &HTMLSelectElement) -> i32 {
+        match select.list_of_options().position(|n| &*n == self) {
+            Some(index) => index.try_into().unwrap_or(0),
+            None => {
+                // shouldn't happen but not worth a browser panic
+                warn!(
+                    "HTMLOptionElement called index_in_select at a select that did not contain it"
+                );
+                0
+            },
+        }
+    }
 }
 
 // FIXME(ajeffrey): Provide a way of buffering DOMStrings other than using Strings
 fn collect_text(element: &Element, value: &mut String) {
-    let svg_script = *element.namespace() == ns!(svg) && element.local_name() == &local_name!("script");
+    let svg_script =
+        *element.namespace() == ns!(svg) && element.local_name() == &local_name!("script");
     let html_script = element.is::<HTMLScriptElement>();
     if svg_script || html_script {
         return;
@@ -119,14 +203,14 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-option-form
-    fn GetForm(&self) -> Option<Root<HTMLFormElement>> {
-        let parent = self.upcast::<Node>().GetParentNode().and_then(|p|
+    fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
+        let parent = self.upcast::<Node>().GetParentNode().and_then(|p| {
             if p.is::<HTMLOptGroupElement>() {
                 p.upcast::<Node>().GetParentNode()
             } else {
                 Some(p)
             }
-        );
+        });
 
         parent.and_then(|p| p.downcast::<HTMLSelectElement>().and_then(|s| s.GetForm()))
     }
@@ -176,11 +260,16 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
         self.selectedness.set(selected);
         self.pick_if_selected_and_reset();
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-option-index
+    fn Index(&self) -> i32 {
+        self.index()
+    }
 }
 
 impl VirtualMethods for HTMLOptionElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
@@ -197,7 +286,7 @@ impl VirtualMethods for HTMLOptionElement {
                         el.set_disabled_state(false);
                         el.set_enabled_state(true);
                         el.check_parent_disabled_state_for_option();
-                    }
+                    },
                 }
             },
             &local_name!("selected") => {
@@ -220,12 +309,13 @@ impl VirtualMethods for HTMLOptionElement {
         }
     }
 
-    fn bind_to_tree(&self, tree_in_doc: bool) {
+    fn bind_to_tree(&self, context: &BindContext) {
         if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(tree_in_doc);
+            s.bind_to_tree(context);
         }
 
-        self.upcast::<Element>().check_parent_disabled_state_for_option();
+        self.upcast::<Element>()
+            .check_parent_disabled_state_for_option();
 
         self.pick_if_selected_and_reset();
     }
@@ -233,9 +323,12 @@ impl VirtualMethods for HTMLOptionElement {
     fn unbind_from_tree(&self, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(context);
 
-        if let Some(select) = context.parent.inclusive_ancestors()
-                .filter_map(Root::downcast::<HTMLSelectElement>)
-                .next() {
+        if let Some(select) = context
+            .parent
+            .inclusive_ancestors(ShadowIncluding::No)
+            .filter_map(DomRoot::downcast::<HTMLSelectElement>)
+            .next()
+        {
             select.ask_for_reset();
         }
 

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS basic box model: parsing visibility with invalid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-box-3/#propdef-visibility">
+<meta name="assert" content="visibility supports only the grammar 'visible | hidden | collapse'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("visibility", "auto");
+test_invalid_value("visibility", "hidden collapse");
+</script>
+</body>
+</html>

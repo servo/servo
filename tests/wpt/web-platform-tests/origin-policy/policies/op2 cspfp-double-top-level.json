@@ -1,0 +1,21 @@
+{
+  "ids": [
+    "cspfp-double-top-level"
+  ],
+  "content_security": {
+    "policies": [
+      "script-src 'self' 'unsafe-inline'"
+    ]
+  },
+  "content_security": {
+    "policies": [
+      "img-src 'none'"
+    ]
+  },
+  "features": {
+    "policy": "geolocation 'none'"
+  },
+  "features": {
+    "policy": "camera 'none'"
+  }
+}

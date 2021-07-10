@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: white-space: break-spaces</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com" />
+<link rel="help" title="3. White Space and Wrapping: the white-space property" href="https://drafts.csswg.org/css-text-3/#white-space-property">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-white-space-break-spaces">
+<link rel="match" href="reference/white-space-break-spaces-005-ref.html">
+<meta name="flags" content="ahem">
+<meta name="assert" content="If 'white-space' is set to 'break-spaces', collapsing preserved white-spaces' advance width is not allowed, so that they can be wrapped honoring the 'white-space' propery.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+div {
+  font: 10px/1 Ahem;
+}
+.fail {
+  position: absolute;
+  color: red;
+  z-index: -1;
+}
+span { color: green; }
+.test {
+  color: green;
+  width: 100px;
+
+  white-space: break-spaces;
+}
+
+</style>
+<body>
+  <p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
+  <div class="fail">XXXX<span>XXXXXX</span><br><span>XXXXXXXXXX</span><br><span>XXXXXXXXXX</span><br><span>XXXXXXXXXX</span><br><span>XXXXXXXXXX</span><br><span>XXXXXXXXXX</span><br><span>XXXXXXXXXX</span><br><span>XXXXXXXXXX</span><br><span>XXXXXXXXXX</span><br><span>XX</span>XXXX<span>XXXX</span></div>
+  <div class="test">XXXX&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;XXXX</div>
+</body>

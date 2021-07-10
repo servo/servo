@@ -1,0 +1,123 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL: test that length() method called on a complex expression works</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fshaderLengthOfAssignment" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+void main() {
+    int a[3] = int[3](1, 2, 3);
+    int b[3] = int[3](4, 5, 6);
+    int c = (a = b).length();
+    if (c == 3 && a[0] == 4 && a[1] == 5 && a[2] == 6) {
+        my_FragColor = vec4(0, 1, 0, 1);
+    } else {
+        my_FragColor = vec4(1, 0, 0, 1);
+    }
+}
+</script>
+<script id="fshaderLengthOfFunctionCall" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+int sideEffectCounter = 0;
+
+int[2] func() {
+    ++sideEffectCounter;
+    int a[2];
+    return a;
+}
+
+void main() {
+    int b = (func()).length();
+    if (sideEffectCounter == 1 && b == 2) {
+        my_FragColor = vec4(0, 1, 0, 1);
+    } else {
+        my_FragColor = vec4(1, 0, 0, 1);
+    }
+}
+</script>
+<script id="fshaderLengthOfConstructor" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+void main() {
+    int a = (int[1](0)).length();
+    if (a == 1) {
+        my_FragColor = vec4(0, 1, 0, 1);
+    } else {
+        my_FragColor = vec4(1, 0, 0, 1);
+    }
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description();
+debug('length() method is allowed to be called on arbitrary expressions returning arrays. ESSL 3.00 section 5.9 says that length is allowed on "array names", but ESSL 3.20 has newer, clarified wording that says that it is allowed for "arrays". This was always the intent of the spec.');
+GLSLConformanceTester.runRenderTests([
+  {
+    fShaderId: "fshaderLengthOfAssignment",
+    fShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: "Fragment shader which tries to evaluate the length of an assignment operation should succeed."
+  },
+  {
+    fShaderId: "fshaderLengthOfFunctionCall",
+    fShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: "Fragment shader which tries to evaluate the length of a return value should succeed."
+  },
+  {
+    fShaderId: "fshaderLengthOfConstructor",
+    fShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: "Fragment shader which tries to evaluate the length of a newly constructed array should succeed."
+  }
+], 2);
+</script>
+</body>
+</html>
+

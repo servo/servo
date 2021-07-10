@@ -1,12 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 /*
  * The origin of this IDL file is:
  * https://dom.spec.whatwg.org/#interface-node
  */
 
-[Abstract]
+[Exposed=Window, Abstract]
 interface Node : EventTarget {
   const unsigned short ELEMENT_NODE = 1;
   const unsigned short ATTRIBUTE_NODE = 2; // historical
@@ -29,10 +29,13 @@ interface Node : EventTarget {
   readonly attribute USVString baseURI;
 
   [Pure]
+  readonly attribute boolean isConnected;
+
+  [Pure]
   readonly attribute Document? ownerDocument;
 
   [Pure]
-  Node getRootNode();
+  Node getRootNode(optional GetRootNodeOptions options = {});
 
   [Pure]
   readonly attribute Node? parentNode;
@@ -51,12 +54,14 @@ interface Node : EventTarget {
   [Pure]
   readonly attribute Node? nextSibling;
 
-  [Pure]
+  [CEReactions, Pure]
            attribute DOMString? nodeValue;
-  [Pure]
+  [CEReactions, Pure]
            attribute DOMString? textContent;
+  [CEReactions]
   void normalize();
 
+  [CEReactions, Throws]
   Node cloneNode(optional boolean deep = false);
   [Pure]
   boolean isEqualNode(Node? node);
@@ -81,12 +86,16 @@ interface Node : EventTarget {
   [Pure]
   boolean isDefaultNamespace(DOMString? namespace);
 
-  [Throws]
+  [CEReactions, Throws]
   Node insertBefore(Node node, Node? child);
-  [Throws]
+  [CEReactions, Throws]
   Node appendChild(Node node);
-  [Throws]
+  [CEReactions, Throws]
   Node replaceChild(Node node, Node child);
-  [Throws]
+  [CEReactions, Throws]
   Node removeChild(Node child);
+};
+
+dictionary GetRootNodeOptions {
+  boolean composed = false;
 };

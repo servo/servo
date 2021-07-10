@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+        <title>CSS Background and Borders Test: Omitted values for 'border-image-outset' property in the 'border-image' shorthand</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+        <!--
+        Test rehabilitated by Gérard Talbot
+        2020-05-27 and 2020-06-25 and 2020-09-25
+        -->
+        <link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#the-border-image">
+        <link rel="match" href="reference/border-image-shorthand-002-ref.html">
+        <meta name="flags" content="">
+        <meta name="assert" content="This test checks that the omitted 'border-image-outset' value in the shorthand property is set to the initial value.">
+        <style>
+            div
+            {
+                border-color: red;
+                border-style: double;
+                border-width: 20px;
+                height: 100px;
+                margin: 50px;
+                width: 100px;
+            }
+
+            #test
+            {
+                /* We first set border-image-outset to an entirely arbitrary value */
+                border-image-outset: 2;
+                /*
+                and then we check with a shorthand value (which is deliberately
+                omitting the border-image-outset sub-property) if the border-image-outset
+                sub-property gets reset to its initial default value
+                (which is 0 and not 2)
+                */
+                border-image: url("support/9grid40-30-20-10-red-old.png") 40% 15% 20% 5% / 1 stretch;
+            }
+
+            #reference
+            {
+                border-image-outset: 0 0 0 0;
+                border-image-repeat: stretch;
+                border-image-slice: 40% 15% 20% 5%;
+                border-image-source: url("support/9grid40-30-20-10-red-old.png");
+                border-image-width: 1;
+            }
+        </style>
+
+        <p>Test passes if there are 2 identical green squares and <strong>no red</strong>.
+        <div id="test"></div>
+        <div id="reference"></div>

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>css-flexbox: Tests that we correctly size a flex item with a scrollbar and max-height</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#resolve-flexible-lengths">
+<link rel="match" href="reference/item-with-max-height-and-scrollbar-ref.html">
+
+<div style="display: flex; width: 100px; flex-direction: column;">
+  <div style="overflow: scroll; max-height: 100%; min-height: 0; background: green;">
+    <div style="height: 100px; width: 100px;">
+    </div>
+  </div>
+</div>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<meta http-equiv="Content-Security-Policy" content="img-src 'none'">
+
+<script>
+  let message_from = (w, starts_with) => {
+    return new Promise(resolve => {
+      window.addEventListener('message', msg => {
+        if (msg.source == w) {
+          if (!starts_with || msg.data.startsWith(starts_with))
+            resolve(msg.data);
+        }
+      });
+    });
+  };
+
+  const function_messageBack_string = `
+      function messageBack(msg) {
+        opener.postMessage(msg ,"*");
+      }
+  `;
+
+  const img_url = window.origin + "/content-security-policy/support/fail.png";
+  const img_tag_string = `
+      <img src="${img_url}"
+           onload="messageBack('img loaded');"
+           onerror="messageBack('img blocked');"
+      >
+   `;
+
+  let write_img_to_popup = (popup) => {
+    let script = popup.document.createElement('script');
+    script.innerText = function_messageBack_string;
+    popup.document.head.appendChild(script);
+    let div = popup.document.createElement('div');
+    div.innerHTML = img_tag_string;
+    popup.document.body.appendChild(div);
+  };
+
+  const blob_payload = `
+        <!doctype html>
+        <script>${function_messageBack_string}</scr`+`ipt>
+        <div>${img_tag_string}</div>
+  `;
+  let blob_url = URL.createObjectURL(
+    new Blob([blob_payload], { type: 'text/html' }));
+
+  let testCases = [
+    {
+      url: "about:blank",
+      add_img_function: write_img_to_popup,
+      other_origin: window.origin,
+      name: '"about:blank" document is navigated back from history same-origin.',
+    },
+    {
+      url: "about:blank",
+      add_img_function: write_img_to_popup,
+      other_origin: "http://{{hosts[alt][]}}:{{ports[http][0]}}",
+      name: '"about:blank" document is navigated back from history cross-origin.',
+    },
+    {
+      url: blob_url,
+      add_img_function: () => {},
+      other_origin: window.origin,
+      name: 'blob URL document is navigated back from history same-origin.',
+    },
+    {
+      url: blob_url,
+      add_img_function: () => {},
+      other_origin: "http://{{hosts[alt][]}}:{{ports[http][0]}}",
+      name: 'blob URL document is navigated back from history cross-origin.',
+    },
+  ];
+
+  let async_promise_test = (promise, description) => {
+    async_test(test => {
+      promise(test)
+        .then(() => {test.done();})
+        .catch(test.step_func(error => { throw error; }));
+    }, description);
+  };
+
+  testCases.forEach(testCase => {
+    async_promise_test(async t => {
+      // Create a popup.
+      let popup = window.open();
+      t.add_cleanup(popup.close);
+
+      // Perform a real navigation in the popup. This is needed because the
+      // initial empty document is not stored in history (so there is no way of
+      // navigating back to it and test history inheritance).
+      let loaded_1 = message_from(popup);
+      popup.location = testCase.other_origin + "/content-security-policy/inheritance/support/postmessage-opener.html";
+      assert_equals(await loaded_1, "ready",
+                    "Could not open and navigate popup.");
+
+      // Navigate to the local scheme document. We need to wait for the
+      // navigation to succeed.
+      let wait = () => t.step_wait(
+        condition = () => {
+          try {
+            return popup.location.href == testCase.url;
+          } catch {}
+          return false;
+        },
+        description = "Wait for the popup to navigate.",
+        timeout=3000,
+        interval=50);
+
+      let message = message_from(popup);
+      popup.location = testCase.url;
+      await wait();
+
+      testCase.add_img_function(popup);
+      // Check that the local scheme document inherits CSP from the initiator.
+      assert_equals(await message, "img blocked",
+                    "Image should be blocked by CSP inherited from navigation initiator.");
+
+      let loaded_2 = message_from(popup, "ready");
+      let message_2 = message_from(popup, "img");
+      // Navigate to another page, which will navigate back.
+      popup.location = testCase.other_origin + "/content-security-policy/inheritance/support/message-opener-and-navigate-back.html";
+      assert_equals(await loaded_2, "ready",
+                    "Could not navigate popup.");
+
+      // We need to wait for the history navigation to be performed.
+      await wait();
+
+      // Check that the "about:blank" document reloaded from history has the
+      // original CSPs.
+      testCase.add_img_function(popup);
+      assert_equals(await message_2, "img blocked",
+                    "Image should be blocked by CSP reloaded from history.");
+    }, "History navigation: " + testCase.name);
+  });
+</script>

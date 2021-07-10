@@ -8,3 +8,6 @@ publish = false
 [lib]
 path = "lib.rs"
 plugin = true
+
+[features]
+unrooted_must_root_lint = []

@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>IDL-constructed CSSPositionValue serialization tests</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#positionvalue-serialization">
+<meta name="assert" content="Test CSSPositionValues are serialized by concatenating their coordinate values" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/testhelper.js"></script>
+<body>
+<div id="log">
+<script>
+'use strict';
+
+test(() => {
+  assert_equals(new CSSPositionValue(CSS.px(1), CSS.percent(-3.14)).toString(), '1px -3.14%');
+}, 'CSSPositionValue with length and percent serializes by concantenating x and y');
+
+test(() => {
+  let result = CSSStyleValue.parse('object-position', '1px 1px');
+  result.x = CSS.percent(-3.14);
+  assert_equals(result.toString(), '-3.14% 1px');
+}, 'CSSPositionValue from DOMString modified by "x" setter serializes to its new value');
+
+test(() => {
+  let result = CSSStyleValue.parse('object-position', '1px 1px');
+  result.y = CSS.percent(-3.14);
+  assert_equals(result.toString(), '1px -3.14%');
+}, 'CSSPositionValue from DOMString modified by "y" setter serializes to its new value');
+
+test(t => {
+  let result = createInlineStyleMap(t, 'object-position: 1px 1px').get('object-position');
+  result.x = CSS.percent(-3.14);
+  assert_equals(result.toString(), '-3.14% 1px');
+}, 'CSSPositionValue from CSSOM modified by "x" setter serializes to its new value');
+
+test(t => {
+  let result = createInlineStyleMap(t, 'object-position: 1px 1px').get('object-position');
+  result.y = CSS.percent(-3.14);
+  assert_equals(result.toString(), '1px -3.14%');
+}, 'CSSPositionValue from CSSOM modified by "y" setter serializes to its new value');
+
+</script>

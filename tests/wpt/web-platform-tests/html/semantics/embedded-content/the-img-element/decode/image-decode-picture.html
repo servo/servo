@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>HTMLImageElement.prototype.decode(), picture tests.</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/embedded-content.html#dom-img-decode">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<picture>
+<source srcset="/images/green.png">
+<source srcset="/images/blue.png">
+<img id="testimg">
+</picture>
+
+<script>
+"use strict";
+
+promise_test(function() {
+  var picture = document.createElement("picture");
+  var source = document.createElement("source");
+  var img = document.createElement("img");
+
+  picture.appendChild(source);
+  picture.appendChild(img);
+
+  source.srcset = "/images/green.png";
+
+  return img.decode().then(function(arg) {
+    assert_equals(arg, undefined);
+  });
+}, document.title + " Image with PNG source decodes with undefined.");
+
+promise_test(function() {
+  var img = document.getElementById("testimg");
+  return img.decode().then(function(arg) {
+    assert_equals(arg, undefined);
+  });
+}, document.title + " Image with multiple sources decodes with undefined.");
+
+promise_test(function() {
+  var picture = document.createElement("picture");
+  var source = document.createElement("source");
+  var img = document.createElement("img");
+
+  picture.appendChild(source);
+  picture.appendChild(img);
+
+  source.srcset = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIA" +
+                  "AAD91JpzAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH4QUSEioKsy" +
+                  "AgywAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAAAW" +
+                  "SURBVAjXY9y3bx8DAwPL58+fGRgYACktBRltLfebAAAAAElFTkSuQmCC";
+
+  return img.decode().then(function(arg) {
+    assert_equals(arg, undefined);
+  });
+}, document.title + " Image with PNG data URL source decodes with undefined.");
+
+promise_test(function() {
+  var picture = document.createElement("picture");
+  var source = document.createElement("source");
+  var img = document.createElement("img");
+
+  picture.appendChild(source);
+  picture.appendChild(img);
+
+  source.srcset = "/images/green.svg";
+
+  return img.decode().then(function(arg) {
+    assert_equals(arg, undefined);
+  });
+}, document.title + " Image with SVG source decodes with undefined.");
+
+promise_test(function(t) {
+  var picture = document.createElement("picture");
+  var source = document.createElement("source");
+  var img = document.createElement("img");
+
+  picture.appendChild(source);
+  picture.appendChild(img);
+
+  source.srcset = "/non/existent/path.png";
+
+  var promise = img.decode();
+  return promise_rejects_dom(t, "EncodingError", promise);
+}, document.title + " Non-existent source fails decode.");
+
+promise_test(function(t) {
+  var picture = document.createElement("picture");
+  var source = document.createElement("source");
+  var img = document.createElement("img");
+
+  picture.appendChild(source);
+  picture.appendChild(img);
+
+  source.srcset = "data:image/png;base64,iVBO00PDR0BADBEEF00KGg";
+
+  var promise = img.decode();
+  return promise_rejects_dom(t, "EncodingError", promise);
+}, document.title + " Corrupt image in src fails decode.");
+
+promise_test(function(t) {
+  var picture = document.createElement("picture");
+  var source = document.createElement("source");
+  var img = document.createElement("img");
+
+  picture.appendChild(source);
+  picture.appendChild(img);
+
+  var promise = img.decode();
+  return promise_rejects_dom(t, "EncodingError", promise);
+}, document.title + " Image without srcset fails decode.");
+
+promise_test(function() {
+  var picture = document.createElement("picture");
+  var source = document.createElement("source");
+  var img = document.createElement("img");
+
+  picture.appendChild(source);
+  picture.appendChild(img);
+
+  source.srcset = "/images/green.png";
+
+  var first_promise = img.decode();
+  var second_promise = img.decode();
+  assert_not_equals(first_promise, second_promise);
+  return Promise.all([
+    first_promise,
+    second_promise
+  ]);
+}, document.title + " Multiple decodes for images with src succeed.");
+
+</script>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>lower-greek, simple</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#simple-alphabetic'>
+<link rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+<meta name='flags' content='font'>
+<meta name="assert" content="Setting list-style-type to lower-greek will produce list numbering for the basic alphabet as described in the CSS3 Counter Styles module.">
+<style type='text/css'>
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+ol li { list-style-type: lower-greek;  }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, ignoring the suffix.</p>
+
+
+<div class="test"><ol><div><bdi>α. </bdi>α.</div>
+<div><bdi>β. </bdi>β.</div>
+<div><bdi>γ. </bdi>γ.</div>
+<div><bdi>δ. </bdi>δ.</div>
+<div><bdi>ε. </bdi>ε.</div>
+<div><bdi>ζ. </bdi>ζ.</div>
+<div><bdi>η. </bdi>η.</div>
+<div><bdi>θ. </bdi>θ.</div>
+<div><bdi>ι. </bdi>ι.</div>
+<div><bdi>κ. </bdi>κ.</div>
+<div><bdi>λ. </bdi>λ.</div>
+<div><bdi>μ. </bdi>μ.</div>
+<div><bdi>ν. </bdi>ν.</div>
+<div><bdi>ξ. </bdi>ξ.</div>
+<div><bdi>ο. </bdi>ο.</div>
+<div><bdi>π. </bdi>π.</div>
+<div><bdi>ρ. </bdi>ρ.</div>
+<div><bdi>σ. </bdi>σ.</div>
+<div><bdi>τ. </bdi>τ.</div>
+<div><bdi>υ. </bdi>υ.</div>
+<div><bdi>φ. </bdi>φ.</div>
+<div><bdi>χ. </bdi>χ.</div>
+<div><bdi>ψ. </bdi>ψ.</div>
+<div><bdi>ω. </bdi>ω.</div>
+</ol></div>
+
+
+<!--Notes:
+You will need an appropriate font to run this test.
+
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+
+
+</body>
+</html>

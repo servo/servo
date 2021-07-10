@@ -1,0 +1,36 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Largest Contentful Paint: src change triggers new entry.</title>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/largest-contentful-paint-helpers.js"></script>
+<img src='/images/black-rectangle.png' id='image_id'/>
+<script>
+  async_test(function (t) {
+    assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+    let beforeLoad = performance.now();
+    let firstCallback = true;
+    const observer = new PerformanceObserver(
+      t.step_func(function(entryList) {
+        assert_equals(entryList.getEntries().length, 1);
+        const entry = entryList.getEntries()[0];
+        const url = window.location.origin + (firstCallback ? '/images/black-rectangle.png' : '/images/blue.png');
+        // black-rectangle.png is 100 x 50. blue.png is 133 by 106.
+        const size = firstCallback ? 100 * 50 : 133 * 106;
+        checkImage(entry, url, 'image_id', size, beforeLoad);
+        if (firstCallback) {
+          // Set the src to trigger another entry.
+          const img = document.getElementById('image_id');
+          img.src = '/images/blue.png';
+          beforeLoad = performance.now();
+          firstCallback =false;
+        } else {
+          t.done();
+        }
+      })
+    );
+    observer.observe({type: 'largest-contentful-paint', buffered: true});
+  }, 'Largest Contentful Paint: changing src causes a new entry to be dispatched.');
+</script>
+</body>

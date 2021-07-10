@@ -1,0 +1,62 @@
+<!doctype html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>RTCPeerConnection canTrickleIceCandidates tests</title>
+</head>
+<body>
+  <!-- These files are in place when executing on W3C. -->
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script type="text/javascript">
+  // tests support for RTCPeerConnection.canTrickleIceCandidates:
+  // http://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-cantrickleicecandidates
+  const sdp = 'v=0\r\n' +
+      'o=- 166855176514521964 2 IN IP4 127.0.0.1\r\n' +
+      's=-\r\n' +
+      't=0 0\r\n' +
+      'a=ice-options:trickle\r\n' +
+      'm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n' +
+      'c=IN IP4 0.0.0.0\r\n' +
+      'a=rtcp:9 IN IP4 0.0.0.0\r\n' +
+      'a=ice-ufrag:someufrag\r\n' +
+      'a=ice-pwd:somelongpwdwithenoughrandomness\r\n' +
+      'a=fingerprint:sha-256 8C:71:B3:8D:A5:38:FD:8F:A4:2E:A2:65:6C:86:52:BC:E0:6E:94:F2:9F:7C:4D:B5:DF:AF:AA:6F:44:90:8D:F4\r\n' +
+      'a=setup:actpass\r\n' +
+      'a=rtcp-mux\r\n' +
+      'a=mid:mid1\r\n' +
+      'a=sendonly\r\n' +
+      'a=msid:stream1 track1\r\n' +
+      'a=ssrc:1001 cname:some\r\n' +
+      'a=rtpmap:111 opus/48000/2\r\n';
+
+  test(function() {
+    var pc = new RTCPeerConnection();
+    assert_equals(pc.canTrickleIceCandidates, null, 'canTrickleIceCandidates property is null');
+  }, 'canTrickleIceCandidates property is null prior to setRemoteDescription');
+
+  promise_test(function(t) {
+    var pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    return pc.setRemoteDescription(new RTCSessionDescription({type: 'offer', sdp: sdp}))
+    .then(function() {
+      assert_true(pc.canTrickleIceCandidates, 'canTrickleIceCandidates property is true after setRemoteDescription');
+    })
+  }, 'canTrickleIceCandidates property is true after setRemoteDescription with a=ice-options:trickle');
+
+  promise_test(function(t) {
+    var pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    return pc.setRemoteDescription(new RTCSessionDescription({type: 'offer', sdp: sdp.replace('a=ice-options:trickle\r\n', '')}))
+    .then(function() {
+      assert_false(pc.canTrickleIceCandidates, 'canTrickleIceCandidates property is false after setRemoteDescription');
+    })
+  }, 'canTrickleIceCandidates property is false after setRemoteDescription without a=ice-options:trickle');
+</script>
+
+</body>
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSSOM: CSSStyleDeclaration is mutable and immutable in various settings</title>
+        <link rel="author" title="Paul Irish" href="mailto:paul.irish@gmail.com">
+        <link rel="reviewer" title="Ms2ger" href="mailto:ms2ger@gmail.com"> <!-- 2012-06-17 -->
+        <link rel="help" href="http://www.w3.org/TR/cssom-1/#the-cssstyledeclaration-interface">
+
+        <meta name="flags" content="dom">
+
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+
+    <body>
+        <div id="log"></div>
+        <div id="box"></box>
+        <div id="box2"></box>
+        <style id="teststyles">
+            #box2 { width: 15px; }
+        </style>
+        <script>
+
+            test(function(){
+                var elem = document.getElementById('box');
+
+                elem.style.width = '10px';
+                assert_equals(elem.style.width, '10px', 'setting via style property');
+                elem.style.width = '';
+
+                elem.style.cssText = 'width: 10px';
+                assert_equals(elem.style.width, '10px', 'setting via cssText');
+                elem.style.width = '';
+
+            }, 'HTMLElement\'s CSSStyleDeclaration is mutable')
+
+
+            test(function(){
+                var elem = document.getElementById('box');
+                var style = getComputedStyle(elem, 'width');
+
+                assert_throws_dom('NO_MODIFICATION_ALLOWED_ERR', function(){
+                    style.width = '10px';
+                });
+
+            }, 'getComputedStyle\'s CSSStyleDeclaration is not mutable')
+
+
+            test(function(){
+
+                var style = document.getElementById('teststyles').sheet.cssRules[0].style;
+
+                assert_equals(style.width, '15px', 'width value is correct');
+
+                style.width = '25px';
+
+                assert_equals(style.width, '25px', 'width value is mutable');
+
+                var gCSstyle = getComputedStyle(document.getElementById('box2'));
+
+                assert_equals(gCSstyle.width, '25px', 'styleSheet change is live and accesible via getComputedStyle');
+
+            }, 'StyleSheet\'s CSSStyleDeclaration is mutable');
+
+
+        </script>
+
+    </body>
+</html>

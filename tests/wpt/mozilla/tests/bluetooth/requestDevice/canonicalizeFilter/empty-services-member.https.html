@@ -1,0 +1,38 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+
+let test_specs = [{
+    filters: [{ services: [] }]
+}, {
+    filters: [{ services: [], name: 'Name' }]
+}, {
+    filters: [{ services: [], namePrefix: 'Pre' }]
+}, {
+    filters: [{ services: [], name: 'Name', namePrefix: 'Pre' }]
+}, {
+    filters: [{ services: [] }],
+    optionalServices: [heart_rate.name]
+}, {
+    filters: [{ services: [], name: 'Name' }],
+    optionalServices: [heart_rate.name]
+}, {
+    filters: [{ services: [], namePrefix: 'Pre' }],
+    optionalServices: [heart_rate.name]
+}, {
+    filters: [{ services: [], name: 'Name', namePrefix: 'Pre' }],
+    optionalServices: [heart_rate.name]
+}];
+
+promise_test(t => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.empty);
+    let promises = [];
+    test_specs.forEach(args => {
+        promises.push(promise_rejects_js(t, TypeError, window.navigator.bluetooth.requestDevice(args)));
+    });
+    return Promise.all(promises);
+}, 'Services member must contain at least one service.');
+</script>

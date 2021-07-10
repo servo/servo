@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>CSS Test: background-image applicability to ::first-line</title>
+<link rel="help" href="http://www.w3.org/TR/css3-background/#placement">
+<link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-image">
+<link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background-properties">
+<link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-line-pseudo">
+<link rel="match" href="reference/background-image-first-line-ref.html">
+<meta name="flags" content="ahem image">
+<meta name="assert" content="background-image applicability to ::first-line">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style type="text/css">
+#content {
+  color: transparent;
+  font: 100px/1 Ahem;
+}
+#content::first-line {
+  background-image: url("support/cat.png");  /* 98 w. by 99px h. */
+  background-repeat: no-repeat;
+}
+</style>
+<p>Test passes if cat image is visible.</p>
+<div id="content">X</div>
+<script src="/common/reftest-wait.js"></script>
+<script>
+// Some browser may delay one frame to update the background-image in first-line.
+onload = () => {
+  requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+};
+</script>
+</html>

@@ -4,17 +4,17 @@
 <title>Drag and drop to object: dropping block element onto canvas</title>
 <style type="text/css">
 div
-	{width:20px;
-	height:20px;
-	background-color:green;}
+  {width:20px;
+  height:20px;
+  background-color:green;}
 object
-	{width:200px;
-	height:200px;}
+  {width:200px;
+  height:200px;}
 </style>
 <script type="application/ecmascript">
 function start(event)
-	{event.dataTransfer.effectAllowed = 'copy';
-	event.dataTransfer.setData('text/plain', 'green');}
+  {event.dataTransfer.effectAllowed = 'copy';
+  event.dataTransfer.setData('text/plain', 'green');}
 </script>
 </head>
 <body>

@@ -1,4 +1,4 @@
-<script src="test-helpers.sub.js?pipe=sub"></script>
+<script src="test-helpers.sub.js"></script>
 <script>
 
 function xhr_send(method, data) {
@@ -11,11 +11,10 @@ function xhr_send(method, data) {
         resolve();
       };
       xhr.responseType = 'text';
-      xhr.open(method, './dummy?test', true);
+      xhr.open(method, './sample?test', true);
       xhr.send(data);
     });
 }
-
 
 window.addEventListener('message', function(evt) {
     var port = evt.ports[0];

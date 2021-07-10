@@ -1,6 +1,6 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import argparse
 import cStringIO
@@ -8,7 +8,7 @@ import gzip
 import json
 import os
 import requests
-import urlparse
+import six.moves.urllib as urllib
 
 treeherder_base = "https://treeherder.mozilla.org/"
 
@@ -53,7 +53,7 @@ def download(url, prefix, dest, force_suffix=True):
 
 def get_blobber_url(branch, job):
     job_id = job["id"]
-    resp = requests.get(urlparse.urljoin(treeherder_base,
+    resp = requests.get(urllib.parse.urljoin(treeherder_base,
                                          "/api/project/%s/artifact/?job_id=%i&name=Job%%20Info" % (branch,
                                                                                                    job_id)))
     job_data = resp.json()
@@ -71,13 +71,13 @@ def get_blobber_url(branch, job):
 
 
 def get_structured_logs(branch, commit, dest=None):
-    resp = requests.get(urlparse.urljoin(treeherder_base, "/api/project/%s/resultset/?revision=%s" % (branch, commit)))
+    resp = requests.get(urllib.parse.urljoin(treeherder_base, "/api/project/%s/resultset/?revision=%s" % (branch, commit)))
 
     revision_data = resp.json()
 
     result_set = revision_data["results"][0]["id"]
 
-    resp = requests.get(urlparse.urljoin(treeherder_base, "/api/project/%s/jobs/?result_set_id=%s&count=2000&exclusion_profile=false" % (branch, result_set)))
+    resp = requests.get(urllib.parse.urljoin(treeherder_base, "/api/project/%s/jobs/?result_set_id=%s&count=2000&exclusion_profile=false" % (branch, result_set)))
 
     job_data = resp.json()
 

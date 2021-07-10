@@ -1,0 +1,251 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL UniformBlock Buffer Size Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script id='vshader' type='x-shader/x-vertex'>#version 300 es
+layout(location=0) in vec3 p;
+void main()
+{
+    gl_Position = vec4(p.xyz, 1.0);
+}
+</script>
+<script id='fshader' type='x-shader/x-fragment'>#version 300 es
+precision mediump float;
+layout(location=0) out vec4 oColor;
+
+uniform UBOData {
+    float UBORed;
+    float UBOGreen;
+    float UBOBlue;
+};
+
+void main()
+{
+    oColor = vec4(UBORed, UBOGreen, UBOBlue, 1.0);
+}
+</script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" style="width: 50px; height: 50px;"> </canvas>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test verifies an active UniformBlock should be populated with a large enough buffer object");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, null, 2);
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    runDrawArraysTests();
+    runDrawElementsTests();
+}
+
+function runDrawArraysTests() {
+    debug("");
+    debug("Testing drawArrays and drawArraysInstanced");
+
+    var instanceCount = 4;
+
+    var program = wtu.setupProgram(gl, ['vshader', 'fshader']);
+    if (!program) {
+        testFailed("Could not compile shader with uniform blocks without error");
+        return;
+    }
+
+    var blockIndex = gl.getUniformBlockIndex(program, "UBOData");
+    var blockSize = gl.getActiveUniformBlockParameter(program, blockIndex, gl.UNIFORM_BLOCK_DATA_SIZE);
+    var uniformIndices = gl.getUniformIndices(program, ["UBORed", "UBOGreen", "UBOBlue"]);
+    var uniformOffsets = gl.getActiveUniforms(program, uniformIndices, gl.UNIFORM_OFFSET);
+
+    if (uniformOffsets.length < 3) {
+        testFailed("Could not query uniform offsets");
+        return;
+    }
+
+    var uboArray = new ArrayBuffer(blockSize);
+    var uboFloatView = new Float32Array(uboArray);
+    uboFloatView[uniformOffsets[0] / Float32Array.BYTES_PER_ELEMENT] = 1.0; // UBORed
+    uboFloatView[uniformOffsets[1] / Float32Array.BYTES_PER_ELEMENT] = 0.0; // UBOGreen
+    uboFloatView[uniformOffsets[2] / Float32Array.BYTES_PER_ELEMENT] = 0.0; // UBOBlue
+
+    var binding = 1;
+    gl.uniformBlockBinding(program, blockIndex, binding);
+
+    wtu.setupUnitQuad(gl);
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Set up succeeded");
+
+    var buffer = gl.createBuffer();
+    gl.bindBuffer(gl.UNIFORM_BUFFER, buffer);
+
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "drawArrays: UniformBlock is not backed by a buffer");
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "drawArraysInstanced: UniformBlock is not backed by a buffer");
+
+    gl.bindBufferBase(gl.UNIFORM_BUFFER, binding, buffer);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "drawArrays: UniformBlock is backed by a buffer with no data store");
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "drawArraysInstanced: UniformBlock is backed by a buffer with no data store");
+
+    var arrayNotLargeEnough = new ArrayBuffer(blockSize - 1);
+    gl.bufferData(gl.UNIFORM_BUFFER, arrayNotLargeEnough, gl.DYNAMIC_DRAW);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "drawArrays: UniformBlock not populated with a large enough buffer");
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "drawArraysInstanced: UniformBlock not populated with a large enough buffer");
+
+    gl.bufferData(gl.UNIFORM_BUFFER, uboFloatView, gl.DYNAMIC_DRAW);
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawArrays: should be able to draw with sufficient data for UniformBlock");
+    wtu.checkCanvas(gl, [255, 0, 0, 255], "draw call should set canvas to red", 2);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawArraysInstanced: should be able to draw with sufficient data for UniformBlock");
+    wtu.checkCanvas(gl, [255, 0, 0, 255], "draw call should set canvas to red", 2);
+
+    gl.bindBufferRange(gl.UNIFORM_BUFFER, binding, buffer, 0, blockSize -1);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "drawArrays: bindBufferRange set size too small for UniformBlock");
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "drawArraysInstanced: bindBufferRange set size too small for UniformBlock");
+}
+
+function runDrawElementsTests() {
+    debug("");
+    debug("Testing drawElements, drawRangeElements and drawElementsInstanced");
+
+    var instanceCount = 4;
+
+    var program = wtu.setupProgram(gl, ['vshader', 'fshader']);
+    if (!program) {
+        testFailed("Could not compile shader with uniform blocks without error");
+        return;
+    }
+
+    var blockIndex = gl.getUniformBlockIndex(program, "UBOData");
+    var blockSize = gl.getActiveUniformBlockParameter(program, blockIndex, gl.UNIFORM_BLOCK_DATA_SIZE);
+    var uniformIndices = gl.getUniformIndices(program, ["UBORed", "UBOGreen", "UBOBlue"]);
+    var uniformOffsets = gl.getActiveUniforms(program, uniformIndices, gl.UNIFORM_OFFSET);
+
+    if (uniformOffsets.length < 3) {
+        testFailed("Could not query uniform offsets");
+        return;
+    }
+
+    var uboArray = new ArrayBuffer(blockSize);
+    var uboFloatView = new Float32Array(uboArray);
+    uboFloatView[uniformOffsets[0] / Float32Array.BYTES_PER_ELEMENT] = 1.0; // UBORed
+    uboFloatView[uniformOffsets[1] / Float32Array.BYTES_PER_ELEMENT] = 0.0; // UBOGreen
+    uboFloatView[uniformOffsets[2] / Float32Array.BYTES_PER_ELEMENT] = 0.0; // UBOBlue
+
+    var binding = 1;
+    gl.uniformBlockBinding(program, blockIndex, binding);
+
+    wtu.setupIndexedQuad(gl, 1, 0);
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Set up succeeded");
+
+    var buffer = gl.createBuffer();
+    gl.bindBuffer(gl.UNIFORM_BUFFER, buffer);
+
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "drawElements: UniformBlock is not backed by a buffer");
+    gl.drawRangeElements(gl.TRIANGLES, 0, 5, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "drawRangeElements: UniformBlock is not backed by a buffer");
+    gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "drawElementsInstanced: UniformBlock is not backed a buffer");
+
+    gl.bindBufferBase(gl.UNIFORM_BUFFER, binding, buffer);
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "drawElements: UniformBlock is populated with a buffer with no data store");
+    gl.drawRangeElements(gl.TRIANGLES, 0, 5, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "drawRangeElements: UniformBlock is populated with a buffer with no data store");
+    gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "drawElementsInstanced: UniformBlock is populated with a buffer with no data store");
+
+    var arrayNotLargeEnough = new ArrayBuffer(blockSize - 1);
+    gl.bufferData(gl.UNIFORM_BUFFER, arrayNotLargeEnough, gl.DYNAMIC_DRAW);
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "drawElements: UniformBlock not populated with a large enough buffer");
+    gl.drawRangeElements(gl.TRIANGLES, 0, 5, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "drawRangeElements: UniformBlock not populated with a large enough buffer");
+    gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "drawElementsInstanced: UniformBlock not populated with a large enough buffer");
+
+    gl.bufferData(gl.UNIFORM_BUFFER, uboFloatView, gl.DYNAMIC_DRAW);
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawElements: should be able to draw with sufficient data for UniformBlock");
+    wtu.checkCanvas(gl, [255, 0, 0, 255], "draw call should set canvas to red", 2);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawRangeElements(gl.TRIANGLES, 0, 5, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawRangeElements: should be able to draw with sufficient data for UniformBlock");
+    wtu.checkCanvas(gl, [255, 0, 0, 255], "draw call should set canvas to red", 2);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawElementsInstanced: should be able to draw with sufficient data for UniformBlock");
+    wtu.checkCanvas(gl, [255, 0, 0, 255], "draw call should set canvas to red", 2);
+
+    gl.bindBufferRange(gl.UNIFORM_BUFFER, binding, buffer, 0, blockSize -1);
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "drawElements: bindBufferRange set size too small for UniformBlock");
+    gl.drawRangeElements(gl.TRIANGLES, 0, 5, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "drawRangeElements: bindBufferRange set size too small for UniformBlock");
+    gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "drawElementsInstanced: bindBufferRange set size too small for UniformBlock");
+}
+
+debug("");
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

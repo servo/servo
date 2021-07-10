@@ -1,0 +1,88 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Async Clipboard input type validation tests</title>
+<link rel="help" href="https://w3c.github.io/clipboard-apis/#async-clipboard-api">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+test(() => {
+  assert_not_equals(navigator.clipboard, undefined);
+  assert_true(navigator.clipboard instanceof Clipboard);
+  assert_equals(navigator.clipboard, navigator.clipboard);
+}, 'navigator.clipboard exists');
+
+promise_test(async () => {
+  const blob = new Blob(['hello'], {type: 'text/plain'});
+  const item = new ClipboardItem({'text/plain': blob});
+
+  await navigator.clipboard.write([item]);
+}, 'navigator.clipboard.write([text/plain ClipboardItem]) succeeds');
+
+promise_test(async t => {
+  await promise_rejects_js(t, TypeError, navigator.clipboard.write());
+}, 'navigator.clipboard.write() fails (expect [ClipboardItem])');
+
+promise_test(async t => {
+  await promise_rejects_js(t, TypeError, navigator.clipboard.write(null));
+}, 'navigator.clipboard.write(null) fails (expect [ClipboardItem])');
+
+promise_test(async t => {
+  await promise_rejects_js(t, TypeError,
+                         navigator.clipboard.write('Bad string'));
+}, 'navigator.clipboard.write(DOMString) fails (expect [ClipboardItem])');
+
+promise_test(async t => {
+  const blob = new Blob(['hello'], {type: 'text/plain'});
+  await promise_rejects_js(t, TypeError, navigator.clipboard.write(blob));
+}, 'navigator.clipboard.write(Blob) fails (expect [ClipboardItem])');
+
+promise_test(async () => {
+  await navigator.clipboard.writeText('New clipboard text');
+}, 'navigator.clipboard.writeText(DOMString) succeeds');
+
+promise_test(async t => {
+  await promise_rejects_js(t, TypeError,
+                         navigator.clipboard.writeText());
+}, 'navigator.clipboard.writeText() fails (expect DOMString)');
+
+promise_test(async () => {
+  const item = new ClipboardItem({'text/plain': 'test'});
+  await navigator.clipboard.write([item]);
+}, 'navigator.clipboard.write({string : DOMString}) succeeds');
+
+promise_test(async () => {
+  const fetched = await fetch('/clipboard-apis/resources/greenbox.png');
+  const image = await fetched.blob();
+  const item = new ClipboardItem({'image/png': image});
+
+  await navigator.clipboard.write([item]);
+}, 'navigator.clipboard.write({string : image/png Blob}) succeeds');
+
+promise_test(async() => {
+  const fetched = await fetch('/clipboard-apis/resources/greenbox.png');
+  const image = await fetched.blob();
+  const item = new ClipboardItem({
+    'text/plain': new Blob(['first'], {type: 'text/plain'}),
+    'image/png': image});
+
+  await navigator.clipboard.write([item]);
+}, 'navigator.clipboard.write([text + png] succeeds');
+
+promise_test(async t => {
+  const item = new ClipboardItem({'image/png': 'not an image'});
+  await promise_rejects_js(t, TypeError, navigator.clipboard.write([item]));
+}, 'navigator.clipboard.write(image/png DOMString) fails');
+
+promise_test(async () => {
+  const result = await navigator.clipboard.read();
+  assert_true(result instanceof Object);
+  assert_true(result[0] instanceof ClipboardItem);
+}, 'navigator.clipboard.read() succeeds');
+
+promise_test(async () => {
+  const result = await navigator.clipboard.readText();
+  assert_equals(typeof result, 'string');
+}, 'navigator.clipboard.readText() succeeds');
+
+</script>

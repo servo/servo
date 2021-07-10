@@ -18,7 +18,7 @@
           Tests if the color datatype is supported. There are multiple syntaxes for
         specifying the same color, such as #37F and #3377FF.
 For each of the six groups shown here,
-        each of the circles in the group uses one of the syntactical forms 
+        each of the circles in the group uses one of the syntactical forms
         </p>
  <p>
         The first row uses five forms - 3-digit hex, 6-digit hex, rbg() integer form, rgb() percentage form,
@@ -33,12 +33,12 @@ For each of the six groups shown here,
       <p>
         Run the test. No interaction required.
       </p>
-     
+
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
         For each of the six groups of circles shown here, all circles must
-        be identical in color, and the same color as in the reference image. 
+        be identical in color, and the same color as in the reference image.
       </p>
     </d:passCriteria>
   </d:SVGTestCase>
@@ -75,7 +75,7 @@ For each of the six groups shown here,
       <polygon points="345,40 365,60 345,80 325,60" fill="blue"/>
     </g>
     <!-- no names for three digit colors except for 00 and ff -->
-    <!-- 11=17 22=34 33=51 44=68 55=85 66=102 77=119 
+    <!-- 11=17 22=34 33=51 44=68 55=85 66=102 77=119
      88=136 99=153 aa=170 bb=187 cc=204 dd=221 ee=238 -->
     <g>
       <circle cx="75" cy="135" r="20" fill="#a01"/>

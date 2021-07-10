@@ -1,0 +1,4 @@
+spec: https://html.spec.whatwg.org/multipage/web-sockets.html
+suggested_reviewers:
+  - zqzhang
+  - jdm

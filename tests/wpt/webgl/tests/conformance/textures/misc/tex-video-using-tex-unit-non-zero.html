@@ -1,0 +1,236 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Texture uploading from video through tex unit 1 bug</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="example" width="640" height="480"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<img id="src-image">
+<script id="shader-fs" type="x-shader/x-fragment">
+    precision mediump float;
+
+    uniform sampler2D uTexture0;
+    uniform sampler2D uTexture1;
+
+    varying vec2 vUV;
+
+    void main(void) {
+        vec4 texture0Color = texture2D(uTexture0, vUV);
+        vec4 texture1Color = texture2D(uTexture1, vUV);
+
+        gl_FragColor = mix(texture0Color, texture1Color, 0.5);
+    }
+</script>
+<script id="shader-vs" type="x-shader/x-vertex">
+    attribute vec3 aVertexPosition;
+    attribute vec2 aTextureCoord;
+
+    varying vec2 vUV;
+
+    void main(void) {
+        vUV = aTextureCoord;
+        gl_Position = vec4(aVertexPosition, 1.0);
+    }
+</script>
+
+<script>
+"use strict";
+
+function test() {
+  var wtu = WebGLTestUtils;
+  description("Regression test for crbug.com/676719");
+
+  var gl = wtu.create3DContext("example", {preserveDrawingBuffer: true});
+
+  if (!gl) {
+    testFailed("context does not exist");
+    finishTest();
+    return;
+  }
+
+  var program = wtu.setupProgram(gl, ["shader-vs", "shader-fs"],
+                                ["aVertexPosition", "aTextureCoord"], [0, 1]);
+
+  if (!program) {
+    testFailed("program does not exist");
+    finishTest();
+    return;
+  }
+
+  var loc0 = gl.getUniformLocation(program, "uTexture0");
+  var loc1 = gl.getUniformLocation(program, "uTexture1");
+  if (!loc0 || !loc1) {
+    testFailed("Failed to query uniform locations");
+    finishTest();
+    return;
+  }
+  gl.uniform1i(loc0, 0);
+  gl.uniform1i(loc1, 1);
+
+  wtu.setupUnitQuad(gl, 0, 1);
+
+  // Load textures
+  var imageSrc = "data:type/png;base64,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";
+  var imageElement = document.getElementById("src-image");
+  var resourcePath = "../../../resources/";
+
+  var videos = [
+    { src: resourcePath + "red-green.mp4",
+      type: 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"' },
+    { src: resourcePath + "red-green.webmvp8.webm",
+      type: 'video/webm; codecs="vp8, vorbis"' },
+    { src: resourcePath + "red-green.bt601.vp9.webm",
+      type: 'video/webm; codecs="vp9"' },
+    { src: resourcePath + "red-green.theora.ogv",
+      type: 'video/ogg; codecs="theora, vorbis"' },
+  ];
+  var currentVideo = null;
+
+  function runAllTests() {
+    return new Promise(function(resolve, reject) {
+      var videoNdx = 0;
+      var video;
+      function runNextVideo() {
+        if (video) {
+          video.pause();
+        }
+        if (videoNdx == videos.length) {
+          resolve("SUCCESS");
+          return;
+        }
+        var info = videos[videoNdx++];
+        currentVideo = info;
+        debug("");
+        debug("testing: " + info.type);
+        video = document.createElement("video");
+        var canPlay = true;
+        if (!video.canPlayType) {
+          testFailed("video.canPlayType required method missing");
+          runNextVideo();
+          return;
+        }
+        if(!video.canPlayType(info.type).replace(/no/, '')) {
+          debug(info.type + " unsupported");
+          runNextVideo();
+          return;
+        };
+        document.body.appendChild(video);
+        video.type = info.type;
+        video.src = info.src;
+        wtu.startPlayingAndWaitForVideo(video, runTest);
+      }
+      function runTest() {
+        video.pause();
+
+        var texture0 = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texture0);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.bindTexture(gl.TEXTURE_2D, null);
+
+        var texture1 = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texture1);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, imageElement);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.bindTexture(gl.TEXTURE_2D, null);
+
+        // <-- Begin Observed -->
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, texture1);
+
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, texture0);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
+
+        wtu.clearAndDrawUnitQuad(gl, [255, 0, 255, 255]);
+
+        var observedPixels = new Uint8Array(640 * 480 * 4);
+        gl.readPixels(0, 0, 640, 480, gl.RGBA, gl.UNSIGNED_BYTE, observedPixels);
+        // <-- End Observed -->
+
+        // <-- Begin Expected -->
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, texture0);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
+
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, texture1);
+
+        wtu.clearAndDrawUnitQuad(gl, [255, 0, 255, 255]);
+
+        var expectedPixels = new Uint8Array(640 * 480 * 4);
+        gl.readPixels(0, 0, 640, 480, gl.RGBA, gl.UNSIGNED_BYTE, expectedPixels);
+        // <-- End Expected -->
+
+        // Compare results
+        var numDifferentPixels = wtu.comparePixels(observedPixels, expectedPixels, 0, undefined);
+        if (numDifferentPixels) {
+          testFailed("Texture states were incorrect for " + currentVideo.type +
+                    ", rendering was wrong: found " + numDifferentPixels + " differing pixels");
+        } else {
+          testPassed("Texture states were correct, rendering as expected");
+        }
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+        runNextVideo();
+      }
+
+      runNextVideo();
+    });
+  }
+
+  imageElement.onload = function() {
+    runAllTests().then(function(val) {
+      debug("");
+      finishTest();
+    });
+  };
+  imageElement.src = imageSrc;
+}
+test();
+</script>
+
+</body>
+</html>

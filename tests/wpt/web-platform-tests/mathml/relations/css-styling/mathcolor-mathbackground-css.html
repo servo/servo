@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS color</title>
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#types-for-mathml-attribute-values">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#legacy-mathml-style-attributes">
+<link rel="match" href="mathcolor-mathbackground-css-ref.html"/>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<meta name="assert" content="Verify that the mathcolor and mathbackground attributes use the CSS definition of colors.">
+<style>
+  math  {
+    font-family: Ahem;
+    font-size: 20px;
+  }
+</style>
+</style>
+</head>
+<body>
+  <p>Test passes if you see a green rectangle:</p>
+  <p style="color: red">
+    <math mathbackground="rgb(0,255,0)" mathcolor="rgb(0,255,0)">
+      <mtext>X X</mtext>
+    </math>
+  </p>
+</body>
+</html>

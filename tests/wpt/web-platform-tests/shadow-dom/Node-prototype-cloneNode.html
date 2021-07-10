@@ -14,13 +14,13 @@
 
 function testCloneNode(mode) {
     test(function () {
-        assert_throws({'name': 'NotSupportedError'}, function () {
+        assert_throws_dom('NotSupportedError', function () {
             var element = document.createElement('div');
             var shadowRoot = element.attachShadow({mode: mode});
             shadowRoot.cloneNode(false);
         }, 'cloneNode(false) on a shadow root in ' + mode + ' mode must throw a NotSupportedError');
 
-        assert_throws({'name': 'NotSupportedError'}, function () {
+        assert_throws_dom('NotSupportedError', function () {
             var element = document.createElement('div');
             var shadowRoot = element.attachShadow({mode: mode});
             shadowRoot.cloneNode(false);

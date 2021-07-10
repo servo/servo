@@ -1,0 +1,100 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+
+<script>
+"use strict";
+
+var wtu = WebGLTestUtils;
+
+// This declaration needs to be global for "shouldBe" to see it
+var gl;
+
+function init()
+{
+    description('Verify that a WebGL context with alpha:false still works correctly after handling textures with an alpha channel.');
+
+    runTest();
+}
+
+function getWebGL(contextAttribs)
+{
+    return wtu.create3DContext("c", contextAttribs);
+}
+
+function runTest()
+{
+    var buf = new Uint8Array(1 * 1 * 4);
+    shouldBeNonNull("gl = getWebGL({ alpha: false, antialias: false })");
+
+    // Clear to black. Alpha channel of clearColor() is ignored.
+    gl.clearColor(0.0, 0.0, 0.0, 0.7);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    wtu.checkCanvasRect(gl, 0, 0, 1, 1, [0, 0, 0, 255],
+                        "Alpha channel of clearColor should be ignored");
+
+    wtu.waitForComposite(function() {
+        // Make a new framebuffer and attach a texture with an alpha channel.
+        var fbo = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+        var texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+
+        // Clear texture. Note that alpha channel is not 1.0.
+        gl.clearColor(1.0, 0.0, 0.0, 0.5);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        wtu.checkCanvasRect(gl, 0, 0, 1, 1, [255, 0, 0, 128],
+                            "Alpha channel of clearColor should be obeyed for FBO with alpha channel",
+                            1);
+
+        // Bind back buffer and check that its alpha channel is still 1.0.
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        wtu.checkCanvasRect(gl, 0, 0, 1, 1, [0, 0, 0, 255],
+                            "Alpha channel of back buffer should still be 255");
+        finishTest();
+    });
+}
+
+</script>
+</head>
+<body onload="init()">
+<div id="description"></div>
+<div id="console"></div>
+<canvas width="20" height="20" style="border: 1px solid blue;" id="c"></canvas>
+</body>
+</html>

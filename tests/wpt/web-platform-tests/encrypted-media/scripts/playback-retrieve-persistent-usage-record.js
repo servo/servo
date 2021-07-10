@@ -45,7 +45,7 @@ function runTest(config,qualifier) {
             config.messagehandler( event.messageType, event.message ).then(function(response) {
                 return _mediaKeySession.update(response);
             }).then(function() {
-                _video.setMediaKeys(_mediaKeys);
+                return _video.setMediaKeys(_mediaKeys);
             }).catch(onFailure);
         }
 
@@ -70,13 +70,17 @@ function runTest(config,qualifier) {
             _video.setMediaKeys( null );
 
             var win = window.open(config.windowscript);
-            window.addEventListener('message', test.step_func(function(event) {
-                event.data.forEach(test.step_func(function(assertion) {
-                    assert_equals(assertion.actual, assertion.expected, assertion.message);
-                }));
+            assert_not_equals(win, null, "Popup windows not allowed?");
 
-                win.close();
-                test.done();
+            window.addEventListener('message', test.step_func(function(event) {
+                if (event.data.testResult) {
+                    event.data.testResult.forEach(test.step_func(function(assertion) {
+                        assert_equals(assertion.actual, assertion.expected, assertion.message);
+                    }));
+
+                    win.close();
+                    test.done();
+                }
             }));
 
             delete config.video;

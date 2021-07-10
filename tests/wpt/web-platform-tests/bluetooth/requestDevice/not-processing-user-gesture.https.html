@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/bluetooth/resources/bluetooth-test.js"></script>
+<script src="/bluetooth/resources/bluetooth-fake-devices.js"></script>
+<script>
+'use strict';
+const test_desc = 'Requires a user gesture.';
+const expected = new DOMException(
+    'Failed to execute \'requestDevice\' on \'Bluetooth\': ' +
+    'Must be handling a user gesture to show a permission request.',
+    'SecurityError');
+
+bluetooth_test(
+    () => setUpHealthThermometerAndHeartRateDevices().then(
+        () => assert_promise_rejects_with_message(
+            navigator.bluetooth.requestDevice(
+                {filters: [{services: ['heart_rate']}]}),
+            expected, 'User gesture is required')),
+    test_desc);
+</script>

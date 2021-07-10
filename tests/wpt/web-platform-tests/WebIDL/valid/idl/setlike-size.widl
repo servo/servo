@@ -1,0 +1,9 @@
+interface SizeA {
+  readonly setlike<DOMString>;
+  static void size();
+};
+
+interface SizeB {
+  readonly setlike<DOMString>;
+  static readonly attribute long size;
+};

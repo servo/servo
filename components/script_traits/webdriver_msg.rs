@@ -1,89 +1,135 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #![allow(missing_docs)]
 
-use cookie_rs::Cookie;
-use euclid::rect::Rect;
+use cookie::Cookie;
+use euclid::default::Rect;
 use hyper_serde::Serde;
 use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::PipelineId;
-use rustc_serialize::json::{Json, ToJson};
+use msg::constellation_msg::BrowsingContextId;
 use servo_url::ServoUrl;
+use std::collections::HashMap;
+use webdriver::common::{WebElement, WebFrame, WebWindow};
+use webdriver::error::ErrorStatus;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverScriptCommand {
-    AddCookie(#[serde(deserialize_with = "::hyper_serde::deserialize",
-                serialize_with = "::hyper_serde::serialize")]
-              Cookie<'static>,
-              IpcSender<Result<(), WebDriverCookieError>>),
+    AddCookie(
+        #[serde(
+            deserialize_with = "::hyper_serde::deserialize",
+            serialize_with = "::hyper_serde::serialize"
+        )]
+        Cookie<'static>,
+        IpcSender<Result<(), WebDriverCookieError>>,
+    ),
+    DeleteCookies(IpcSender<Result<(), ErrorStatus>>),
     ExecuteScript(String, IpcSender<WebDriverJSResult>),
     ExecuteAsyncScript(String, IpcSender<WebDriverJSResult>),
-    FindElementCSS(String, IpcSender<Result<Option<String>, ()>>),
-    FindElementsCSS(String, IpcSender<Result<Vec<String>, ()>>),
-    FocusElement(String, IpcSender<Result<(), ()>>),
+    FindElementCSS(String, IpcSender<Result<Option<String>, ErrorStatus>>),
+    FindElementLinkText(String, bool, IpcSender<Result<Option<String>, ErrorStatus>>),
+    FindElementTagName(String, IpcSender<Result<Option<String>, ErrorStatus>>),
+    FindElementsCSS(String, IpcSender<Result<Vec<String>, ErrorStatus>>),
+    FindElementsLinkText(String, bool, IpcSender<Result<Vec<String>, ErrorStatus>>),
+    FindElementsTagName(String, IpcSender<Result<Vec<String>, ErrorStatus>>),
+    FindElementElementCSS(
+        String,
+        String,
+        IpcSender<Result<Option<String>, ErrorStatus>>,
+    ),
+    FindElementElementLinkText(
+        String,
+        String,
+        bool,
+        IpcSender<Result<Option<String>, ErrorStatus>>,
+    ),
+    FindElementElementTagName(
+        String,
+        String,
+        IpcSender<Result<Option<String>, ErrorStatus>>,
+    ),
+    FindElementElementsCSS(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
+    FindElementElementsLinkText(
+        String,
+        String,
+        bool,
+        IpcSender<Result<Vec<String>, ErrorStatus>>,
+    ),
+    FindElementElementsTagName(String, String, IpcSender<Result<Vec<String>, ErrorStatus>>),
+    FocusElement(String, IpcSender<Result<(), ErrorStatus>>),
+    ElementClick(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     GetActiveElement(IpcSender<Option<String>>),
     GetCookie(String, IpcSender<Vec<Serde<Cookie<'static>>>>),
     GetCookies(IpcSender<Vec<Serde<Cookie<'static>>>>),
-    GetElementAttribute(String, String, IpcSender<Result<Option<String>, ()>>),
-    GetElementCSS(String, String, IpcSender<Result<String, ()>>),
-    GetElementRect(String, IpcSender<Result<Rect<f64>, ()>>),
-    GetElementTagName(String, IpcSender<Result<String, ()>>),
-    GetElementText(String, IpcSender<Result<String, ()>>),
-    GetFrameId(WebDriverFrameId, IpcSender<Result<Option<PipelineId>, ()>>),
+    GetElementAttribute(
+        String,
+        String,
+        IpcSender<Result<Option<String>, ErrorStatus>>,
+    ),
+    GetElementProperty(
+        String,
+        String,
+        IpcSender<Result<WebDriverJSValue, ErrorStatus>>,
+    ),
+    GetElementCSS(String, String, IpcSender<Result<String, ErrorStatus>>),
+    GetElementRect(String, IpcSender<Result<Rect<f64>, ErrorStatus>>),
+    GetElementTagName(String, IpcSender<Result<String, ErrorStatus>>),
+    GetElementText(String, IpcSender<Result<String, ErrorStatus>>),
+    GetElementInViewCenterPoint(String, IpcSender<Result<Option<(i64, i64)>, ErrorStatus>>),
+    GetBoundingClientRect(String, IpcSender<Result<Rect<f32>, ErrorStatus>>),
+    GetBrowsingContextId(
+        WebDriverFrameId,
+        IpcSender<Result<BrowsingContextId, ErrorStatus>>,
+    ),
     GetUrl(IpcSender<ServoUrl>),
-    IsEnabled(String, IpcSender<Result<bool, ()>>),
-    IsSelected(String, IpcSender<Result<bool, ()>>),
+    GetPageSource(IpcSender<Result<String, ErrorStatus>>),
+    IsEnabled(String, IpcSender<Result<bool, ErrorStatus>>),
+    IsSelected(String, IpcSender<Result<bool, ErrorStatus>>),
     GetTitle(IpcSender<String>),
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverCookieError {
     InvalidDomain,
     UnableToSetCookie,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum WebDriverJSValue {
     Undefined,
     Null,
     Boolean(bool),
     Number(f64),
-    String(String), // TODO: Object and WebElement
+    String(String),
+    Element(WebElement),
+    Frame(WebFrame),
+    Window(WebWindow),
+    ArrayLike(Vec<WebDriverJSValue>),
+    Object(HashMap<String, WebDriverJSValue>),
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverJSError {
-    Timeout,
-    UnknownType,
     /// Occurs when handler received an event message for a layout channel that is not
     /// associated with the current script thread
     BrowsingContextNotFound,
+    JSError,
+    StaleElementReference,
+    Timeout,
+    UnknownType,
 }
 
 pub type WebDriverJSResult = Result<WebDriverJSValue, WebDriverJSError>;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverFrameId {
     Short(u16),
     Element(String),
     Parent,
 }
 
-impl ToJson for WebDriverJSValue {
-    fn to_json(&self) -> Json {
-        match *self {
-            WebDriverJSValue::Undefined => Json::Null,
-            WebDriverJSValue::Null => Json::Null,
-            WebDriverJSValue::Boolean(ref x) => x.to_json(),
-            WebDriverJSValue::Number(ref x) => x.to_json(),
-            WebDriverJSValue::String(ref x) => x.to_json(),
-        }
-    }
-}
-
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum LoadStatus {
     LoadComplete,
     LoadTimeout,

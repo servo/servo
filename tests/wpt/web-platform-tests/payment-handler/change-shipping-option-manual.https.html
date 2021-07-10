@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Tests for PaymentRequestEvent.changeShippingOption()</title>
+
+<link rel="manifest" href="/payment-handler/basic-card.json" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="register-and-activate-service-worker.js"></script>
+<p>If the payment sheet is shown, please authorize the mock payment.</p>
+<script>
+  const methodName = window.location.origin + '/payment-handler/payment-app/';
+  function createRequest() {
+    return new PaymentRequest([{supportedMethods: methodName}], {
+        total: {label: 'Total', amount: {currency: 'USD', value: '0.01'}},
+        shippingOptions: [{
+          id: 'freeShippingOption',
+          label: 'Free global shipping',
+          amount: {
+            currency: 'USD',
+            value: '0',
+          },
+          selected: false,
+        },
+        {
+          id: 'expressShippingOption',
+          label: 'express global shipping',
+          amount: {
+            currency: 'USD',
+            value: '0',
+          },
+          selected: true,
+        }],
+      }, {requestShipping: true});
+  }
+
+  async function completeAppSetUp(registration) {
+    await registration.paymentManager.instruments.clear();
+    await registration.paymentManager.instruments.set('instrument-key', {
+      name: 'Instrument Name',
+      method: methodName,
+    });
+    await navigator.serviceWorker.ready;
+    await registration.paymentManager.enableDelegations(['shippingAddress']);
+  }
+
+  async function runTests(registration) {
+    await completeAppSetUp(registration);
+    promise_test(async (t) => {
+      const request = createRequest();
+      // Intentionally do not respond to the 'shippingoptionchange' event.
+      const response = await test_driver.bless('showing a payment sheet', () =>
+        request.show()
+      );
+      const complete_promise = response.complete('success');
+
+      assert_equals(response.details.changeShippingOptionReturned, null);
+
+      return complete_promise;
+    }, 'If updateWith(details) is not run, changeShippingOption() returns null.');
+
+    promise_test(async (t) => {
+      const request = createRequest();
+      request.addEventListener('shippingoptionchange', (event) => {
+        assert_equals(request.shippingOption, 'freeShippingOption');
+        event.updateWith({
+          total: {label: 'Total', amount: {currency: 'GBP', value: '0.02'}},
+          error: 'Error for test',
+          modifiers: [
+            {
+              supportedMethods: methodName,
+              data: {soup: 'potato'},
+              total: {
+                label: 'Modified total',
+                amount: {currency: 'EUR', value: '0.03'},
+              },
+              additionalDisplayItems: [
+                {
+                  label: 'Modified display item',
+                  amount: {currency: 'INR', value: '0.06'},
+                },
+              ],
+            },
+            {
+              supportedMethods: methodName + '2',
+              data: {soup: 'tomato'},
+              total: {
+                label: 'Modified total #2',
+                amount: {currency: 'CHF', value: '0.07'},
+              },
+              additionalDisplayItems: [
+                {
+                  label: 'Modified display item #2',
+                  amount: {currency: 'CAD', value: '0.08'},
+                },
+              ],
+            },
+          ],
+          displayItems: [
+            {
+              label: 'Display item',
+              amount: {currency: 'CNY', value: '0.04'},
+            },
+          ],
+          shippingOptions: [
+            {
+              id: 'freeShippingOption',
+              label: 'express global shipping',
+              amount: {
+                currency: 'USD',
+                value: '0',
+              },
+              selected: true,
+            }
+          ],
+        });
+      });
+      const response = await test_driver.bless('showing a payment sheet', () =>
+        request.show()
+      );
+      const complete_promise = response.complete('success');
+      const changeShippingOptionReturned =
+        response.details.changeShippingOptionReturned;
+
+      assert_equals(changeShippingOptionReturned.total.currency, 'GBP');
+      assert_equals(changeShippingOptionReturned.total.value, '0.02');
+      assert_equals(changeShippingOptionReturned.total.label, undefined);
+      assert_equals(changeShippingOptionReturned.error, 'Error for test');
+      assert_equals(changeShippingOptionReturned.modifiers.length, 1);
+      assert_equals(changeShippingOptionReturned.displayItems, undefined);
+      assert_equals(changeShippingOptionReturned.shippingOptions.length, 1);
+      assert_equals(changeShippingOptionReturned.paymentMethodErrors, undefined);
+      assert_equals(changeShippingOptionReturned.shippingAddressErrors, undefined);
+
+      const shipping_option = changeShippingOptionReturned.shippingOptions[0];
+      assert_equals(shipping_option.id, 'freeShippingOption' );
+      assert_equals(shipping_option.label, 'express global shipping');
+      assert_equals(shipping_option.amount.currency, 'USD');
+      assert_equals(shipping_option.amount.value, '0');
+      assert_true(shipping_option.selected);
+
+      const modifier = changeShippingOptionReturned.modifiers[0];
+      assert_equals(modifier.supportedMethods, methodName);
+      assert_equals(modifier.data.soup, 'potato');
+      assert_equals(modifier.total.label, '');
+      assert_equals(modifier.total.amount.currency, 'EUR');
+      assert_equals(modifier.total.amount.value, '0.03');
+      assert_equals(modifier.additionalDisplayItems, undefined);
+
+      return complete_promise;
+    }, 'The changeShippingOption() returns some details from the "shippingoptionchange" event\'s updateWith(details) call.');
+  }
+
+  registerAndActiveServiceWorker(
+    'app-change-shipping-option.js',
+    'payment-app/',
+    runTests
+  );
+</script>

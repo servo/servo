@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>writing mode:vertical-lr, default Arabic orientation</title>
+<link rel="author" title="Richard Ishida" href="mailto:ishida@w3.org"/>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#block-flow"/>
+<meta name="assert" content="By default, writing-mode:vertical-lr will display Arabic characters rotated 90° right."/>
+<style type="text/css">
+@font-face {
+    font-family: 'webfont';
+    src: url('/fonts/noto/NotoSansMongolian-regular.woff2') format('woff2');
+    font-weight: normal;
+    font-style: normal;
+	}
+.test, .ref { font-family: webfont, serif; font-size: 24px; float: left; margin-right: 30px; color: #ccc; }
+span[lang=ar] { color: black; }
+</style>
+<!-- this is the test -->
+<style type="text/css">
+.test { writing-mode: vertical-rl; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the text runs vertically and the orientation of the Arabic characters is the same as on the blue background.</p>
+<div class="test" lang="mn">ᠮᠤᠩᠭᠤᠯ <span lang="ar">نشاط التدويل</span> ᠤᠯᠤᠰ</div>
+<div class="ref"><img src="support/mn+arabic.png" alt="ref image"/></div>
+</body>
+</html>

@@ -51,17 +51,30 @@
     }, "JavaScript URLs in iframes should not have a sample.");
 
     async_test(t => {
+      var violations = 0;
       document.addEventListener('securitypolicyviolation', t.step_func(e => {
         if (e.blockedURI != "eval")
           return;
 
         assert_equals(e.sample, "");
-        t.done();
+        violations++
+        if (violations == 3)
+          t.done();
       }));
       try {
         eval("assert_unreached('eval')");
         assert_unreached('eval');
       } catch (e) {
       }
-    }, "eval() should not have a sample.");
+      try {
+        setInterval("assert_unreached('interval')", 1000);
+        assert_unreached('interval');
+      } catch (e) {
+      }
+      try {
+        setTimeout("assert_unreached('timeout')", 1000);
+        assert_unreached('timeout');
+      } catch (e) {
+      }
+    }, "eval()-alikes should not have a sample.");
 </script>

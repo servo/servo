@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Dominik Röttsches" href="drott@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-font-loading/#font-face-load">
+<meta name="assert" content="Ensure that a UA triggered font load (through the use in the test div) leads to rejecting
+                             the promise." />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(function(t) {
+    var testFontFace = new FontFace('TestFontFace', 'local("nonexistentfont-9a1a9f78-c8d4-11e9-af16-448a5b2c326f")');
+    document.fonts.add(testFontFace);
+  return promise_rejects_dom(t, 'NetworkError', testFontFace.loaded);
+})
+</script>
+<body>
+<div style="font-family: TestFontFace;">a</div>
+</html>

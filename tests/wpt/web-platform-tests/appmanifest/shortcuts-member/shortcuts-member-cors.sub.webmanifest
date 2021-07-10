@@ -1,0 +1,14 @@
+{
+    "name": "Shortcut test",
+    "scope": "/",
+    "shortcuts": [{
+        "name": "pass",
+        "short_name": "",
+        "description": "",
+        "url": "shortcut_pass.html",
+        "icons": [{
+            "src": "https://{{host}}:{{ports[https][1]}}/appmanifest/icons-member/pass.png",
+            "sizes": "256x256"
+        }]
+    }]
+}

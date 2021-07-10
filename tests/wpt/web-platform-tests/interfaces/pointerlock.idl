@@ -1,0 +1,28 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Pointer Lock 2.0 (https://w3c.github.io/pointerlock/)
+
+partial interface Element {
+  undefined requestPointerLock();
+};
+
+partial interface Document {
+  attribute EventHandler onpointerlockchange;
+  attribute EventHandler onpointerlockerror;
+  undefined exitPointerLock();
+};
+
+partial interface mixin DocumentOrShadowRoot {
+  readonly attribute Element ? pointerLockElement;
+};
+
+partial interface MouseEvent {
+  readonly attribute long movementX;
+  readonly attribute long movementY;
+};
+
+partial dictionary MouseEventInit {
+  long movementX = 0;
+  long movementY = 0;
+};

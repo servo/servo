@@ -1,0 +1,31 @@
+<!doctype html>
+<html class="reftest-wait">
+
+  <head>
+    <meta charset="utf-8">
+    <title>reftest001</title>
+    <link rel="match" href="test_paint_worklet_timeout_ref.html">
+  </head>
+
+  <body>
+    <!--
+     When the paint worklet script takes too long, we should timeout (before the
+     reftest itself timing out). The result should be the same as having
+     a broken image url as the background of the element in question.
+    -->
+    <button id="btn">Click me!</button>
+    <style>
+      #btn {
+        background-image: paint(testgreen);
+      }
+    </style>
+
+    <script>
+      CSS.paintWorklet.addModule('test_paint_worklet_timeout.js')
+            .then(() => document.documentElement.classList.remove('reftest-wait'));
+    </script>
+
+  </body>
+
+</html>
+

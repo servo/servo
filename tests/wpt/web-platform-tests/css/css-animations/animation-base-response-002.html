@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Test that rem units are responsive to animated font-size on root</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @keyframes font_size_animation {
+    from { font-size: 10px; }
+    to { font-size: 20px; }
+  }
+  :root {
+    font-size: 1px;
+    animation: font_size_animation steps(2, end) 1000s -500s;
+  }
+
+  #target1 {
+    width: 1rem;
+  }
+</style>
+<div id="target1"></div>
+<script>
+test(() => {
+  assert_equals(getComputedStyle(target1).getPropertyValue('width'), '15px');
+}, 'Animated font-size on root affects rem units');
+</script>

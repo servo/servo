@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text 3 test reference</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+
+<style>
+div {
+    font-family: monospace;
+    border: solid blue;
+    font-size: 1.5em;
+    white-space: pre;
+}
+.ref {
+    border-color: orange;
+}
+.w5 { width: 5ch; }
+.w6 { width: 6ch; }
+.w7 { width: 7ch; }
+
+.blue { background: #aaaaff; }
+.red { background: #ffaaaa; }
+.green { background: #aaffaa; }
+</style>
+
+<p>Test passes if each pair of blue / orange boxes are identical (except for the color of their border).
+
+<div class="w5">A<span class=blue> </span>B<span class=red> </span>ا<br>ب</div>
+<div class="w5 ref">A<span class=blue> </span>B<span class=red> </span>ا<br>ب</div>
+
+<hr>
+
+<div class="w6">A<span class=blue> </span>B<span class=red> </span>ا<br>ب</div>
+<div class="w6 ref">A<span class=blue> </span>B<span class=red> </span>ا<br>ب</div>
+
+<hr>
+
+<div class="w7">A<span class=blue> </span>B<span class=red> </span>ا<span class=green> </span>ب</div>
+<div class="w7 ref">A<span class=blue> </span>B<span class=red> </span>ا<span class=green> </span>ب</div>

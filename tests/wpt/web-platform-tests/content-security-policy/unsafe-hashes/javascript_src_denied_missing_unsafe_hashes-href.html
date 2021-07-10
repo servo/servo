@@ -1,0 +1,29 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'nonce-abc'
+    'sha256-3MhWOWQJwDMJCRltopqBmDhP4qq569eTDcH+BpbHp0o=';">
+    <!--
+    'sha256-3MhWOWQJwDMJCRltopqBmDhP4qq569eTDcH+BpbHp0o=' ==> javascript:t1.unreached_func("Should not have run javascript: URL");
+    -->
+    <script src='/resources/testharness.js' nonce='abc'></script>
+    <script src='/resources/testharnessreport.js' nonce='abc'></script>
+</head>
+
+<body>
+    <div id='log'></div>
+    <a href='javascript:t1.unreached_func("Should not have run javascript: URL");' id='test'>
+    <script nonce='abc'>
+        var t1 = async_test("Test that the javascript: src is not allowed to run");
+
+        window.addEventListener('securitypolicyviolation', t1.step_func_done(function(e) {
+            assert_equals(e.violatedDirective, 'script-src-elem');
+            assert_equals(e.blockedURI, 'inline');
+        }));
+
+        document.getElementById('test').click();
+    </script>
+</body>
+
+</html>

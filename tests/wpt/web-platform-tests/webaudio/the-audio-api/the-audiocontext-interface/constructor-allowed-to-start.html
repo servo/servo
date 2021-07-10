@@ -1,0 +1,25 @@
+<!doctype html>
+<title>AudioContext state around "allowed to start" in constructor</title>
+<link rel=help href=https://webaudio.github.io/web-audio-api/#dom-audiocontext-audiocontext>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script>
+setup({ single_test: true });
+test_driver.bless("audio playback", () => {
+  const ctx = new AudioContext();
+  // Immediately after the constructor the state is "suspended" because the
+  // control message to start processing has just been sent, but the state
+  // should change soon.
+  assert_equals(ctx.state, "suspended", "initial state");
+  ctx.onstatechange = () => {
+    assert_equals(ctx.state, "running", "state after statechange event");
+    // Now create another context and ensure it starts out in the "suspended"
+    // state too, ensuring it's not synchronously "running".
+    const ctx2 = new AudioContext();
+    assert_equals(ctx2.state, "suspended", "initial state of 2nd context");
+    done();
+  };
+});
+</script>

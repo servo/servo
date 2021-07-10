@@ -1,0 +1,10 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>getDisplayMedia historical tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+    assert_false('getDisplayMedia' in navigator);
+}, 'navigator.getDisplayMedia should not exist');
+</script>

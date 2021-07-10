@@ -2,14 +2,14 @@
 <title>CSS Text Test: Word Spacing</title>
 <link rel="author" title="Nicholas Nethercote" href="mailto:nnethercote@mozilla.com">
 <link rel="help" href="http://www.w3.org/TR/css-text-3/#word-spacing">
-<link rel="stylesheet" type="text/css" href="support/ahem.css" />
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
 <link rel="match" href="text-word-spacing-ref.html">
 <meta name="flags" content="ahem">
 <meta name="assert" content="Test checks that word-spacing works with percentages.">
 <style>
 @font-face {
   font-family: Ahem;
-  src: url(support/Ahem.ttf);
+  src: url(/fonts/Ahem.ttf);
 }
 /* We use Ahem to avoid very minor differences between the test and the
    reference that occur with certain font+platform combinations. */

@@ -15,7 +15,7 @@ function runTest(config, qualifier)
         var mediaKeySession;
         var messageEventFired = false;
 
-        return navigator.requestMediaKeySystemAccess(config.keysystem, [configuration]).then(function (access) {
+        var p = navigator.requestMediaKeySystemAccess(config.keysystem, [configuration]).then(function (access) {
             initDataType = access.getConfiguration().initDataTypes[0];
             initData = getInitData(config.content, initDataType);
             return access.createMediaKeys();
@@ -34,15 +34,19 @@ function runTest(config, qualifier)
                 + '}]}';
             messageEventFired = true;
             return messageEvent.target.update(stringToUint8Array(jwkSet));
-        }).then(function () {
-            assert_unreached('Error: update() should fail because the processed message has non-ASCII character.');
         }).catch(function (error) {
-            if(messageEventFired){
-                assert_equals(error.name, 'TypeError');
+            // Ensure we reached the update() call we are trying to test.
+            if (!messageEventFired) {
+                assert_unreached(
+                    `Failed to reach the update() call.  Error: '${error.name}' '${error.message}'`);
             }
-            else {
-                assert_unreached('Error: ' + error.name);
-            }
+
+            // Propagate the error on through.
+            throw error;
         });
+
+        return promise_rejects_js(
+            test, TypeError, p,
+            'update() should fail because the processed message has non-ASCII character.');
     }, testname);
 }

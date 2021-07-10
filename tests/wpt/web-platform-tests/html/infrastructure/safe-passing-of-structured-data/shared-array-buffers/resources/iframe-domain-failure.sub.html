@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>A test page that postMessage a SharedArrayBuffer to the parent and also sets document.domain</title>
+
+<script>
+"use strict";
+
+document.domain = "{{host}}";
+parent.postMessage({name: "domain", value: document.domain}, "*");
+parent.postMessage(
+  {name: "crossOriginIsolated", value: self.crossOriginIsolated}, "*");
+parent.postMessage(new SharedArrayBuffer(10), "*");
+</script>

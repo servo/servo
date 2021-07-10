@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<style>
+  .transformed {
+      transform: rotate(25deg);
+      transform-origin: bottom right;
+      background: hotpink;
+  }
+  .child {
+      margin-left: auto;
+      width: 50px;
+      background: lime;
+  }
+  .fake-column {
+      float: left;
+      width: 100px;
+      height: 100px;
+  }
+  .fake-column:not(:last-child) {
+      margin-right: 20px;
+  }
+</style>
+<div style="width:460px; column-gap:20px; margin-top:50px; height:100px; background:yellow;">
+  <div class="fake-column">
+    <div class="transformed" style="margin-top:50px; height:50px;">
+      <div class="child" style="height:50px;"></div>
+    </div>
+  </div>
+  <div class="fake-column">
+    <div class="transformed" style="height:100px;">
+      <div class="child" style="height:100px;"></div>
+    </div>
+  </div>
+  <div class="fake-column">
+    <div class="transformed" style="height:25px;">
+      <div class="child" style="height:100px;"></div>
+    </div>
+  </div>
+  <div class="fake-column">
+    <div class="transformed" style="height:0;">
+      <div class="child" style="height:50px;"></div>
+    </div>
+  </div>
+</div>

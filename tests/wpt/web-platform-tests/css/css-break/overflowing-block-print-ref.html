@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html class="reftest-paged">
+<title>
+  Reference
+</title>
+<style>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    position: absolute;
+    left: 0; right: 0;
+    height: 100%;
+  }
+  div {
+    border: solid orange 10px;
+  }
+  div + div {
+    border: solid transparent 20px;
+  }
+  div > div {
+    border: solid gray 10px;
+    height: 300%;
+  }
+</style>
+<div></div>
+<div>
+  <div></div>
+</div>

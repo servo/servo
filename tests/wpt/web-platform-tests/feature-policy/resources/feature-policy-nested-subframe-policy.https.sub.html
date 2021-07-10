@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<body>
+<script>
+'use strict';
+const same_origin_src = '/feature-policy/resources/feature-policy-allowedfeatures.html';
+const cross_origin_src = 'https://{{domains[www1]}}:{{ports[https][0]}}' + same_origin_src;
+const subframe_header_policy = '?pipe=header(Feature-Policy, fullscreen ';
+const policy_all = '*';
+const policy_self = '\'self\'';
+const policy_none = '\'none\'';
+
+// Messages gathered from subframes. When all subframe messages are gathered,
+// it will be send back to top level frame.
+const subframe_messages = [];
+
+let local_frame_all = document.createElement('iframe');
+let local_frame_self = document.createElement('iframe');
+let local_frame_none = document.createElement('iframe');
+local_frame_all.src = same_origin_src + subframe_header_policy + policy_all + ';)';
+local_frame_self.src = same_origin_src + subframe_header_policy + policy_self + ';)';
+local_frame_none.src = same_origin_src + subframe_header_policy + policy_none + ';)';
+
+let remote_frame_all = document.createElement('iframe');
+let remote_frame_self = document.createElement('iframe');
+let remote_frame_none = document.createElement('iframe');
+remote_frame_all.src = cross_origin_src + subframe_header_policy + policy_all + ';)';
+remote_frame_self.src = cross_origin_src + subframe_header_policy + policy_self + ';)';
+remote_frame_none.src = cross_origin_src + subframe_header_policy + policy_none + ';)';
+
+window.addEventListener('message', function(evt) {
+  if (evt.source === local_frame_all.contentWindow) {
+    subframe_messages.push({frame: 'local', policy: policy_all, allowedfeatures: evt.data});
+  } else if (evt.source === local_frame_self.contentWindow) {
+    subframe_messages.push({frame: 'local', policy: policy_self, allowedfeatures: evt.data});
+  } else if (evt.source === local_frame_none.contentWindow) {
+    subframe_messages.push({frame: 'local', policy: policy_none, allowedfeatures: evt.data});
+  } else if (evt.source === remote_frame_all.contentWindow) {
+    subframe_messages.push({frame: 'remote', policy: policy_all, allowedfeatures: evt.data});
+  } else if (evt.source === remote_frame_self.contentWindow) {
+    subframe_messages.push({frame: 'remote', policy: policy_self, allowedfeatures: evt.data});
+  } else if (evt.source === remote_frame_none.contentWindow) {
+    subframe_messages.push({frame: 'remote', policy: policy_none, allowedfeatures: evt.data});
+  }
+
+  if (subframe_messages.length == 6)
+    parent.postMessage(subframe_messages, '*');
+});
+
+document.body.appendChild(local_frame_all);
+document.body.appendChild(local_frame_self);
+document.body.appendChild(local_frame_none);
+document.body.appendChild(remote_frame_all);
+document.body.appendChild(remote_frame_self);
+document.body.appendChild(remote_frame_none);
+</script>
+</body>
+

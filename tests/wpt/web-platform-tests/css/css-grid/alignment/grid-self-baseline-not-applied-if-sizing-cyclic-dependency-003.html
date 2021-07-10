@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Self-Baseline alignment and sizing cyclic dependency</title>
+<link rel="author" title="Javier Fernandez Garcia-Boente" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#alignment">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#column-align">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#row-align">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-align-items">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-justify-items">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#baseline-alignment">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#valdef-justify-self-baseline">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="../../support/alignment.css">
+<meta name="assert" content="Items not participating in baseline may later participate if there is an extra pass of the track sizing algorithm.">
+<!-- https://github.com/w3c/csswg-drafts/issues/3046 -->
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+.grid {
+  position: relative;
+  display: inline-grid;
+  background: grey;
+  text-orientation: sideways;
+  font-family: Ahem;
+}
+.row { grid: minmax(0px, 1fr) / 50px 50px 100px }
+.column { grid: 50px 50px 100px / minmax(0px, 1fr); }
+.item1 {
+   font-size: 30px;
+   background: blue;
+}
+.item2 {
+  font-size: 20px;
+  background: red;
+}
+.item3 {
+  font-size: 80px;
+  background: green;
+}
+.height50 { height: 50px; }
+.relativeHeight { height: 50%; }
+.relativeWidth  { width: 50%; }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script type="text/javascript">
+  setup({ explicit_done: true });
+</script>
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+
+<pre>flex rows - column-axis baseline - the blue orthogonal item didn't participate in the first iteration</pre>
+<div class="grid row alignItemsBaseline">
+  <div class="item1 verticalLR" data-offset-x="0"   data-offset-y="34" data-expected-width="50"  data-expected-height="30">É</div>
+  <div class="item2"            data-offset-x="50"  data-offset-y="48" data-expected-width="50"  data-expected-height="20">É</div>
+  <div class="item3"            data-offset-x="100" data-offset-y="0"  data-expected-width="100" data-expected-height="80">É</div>
+</div>
+
+<pre>flex row - column-axis baseline - the blue relative sized item didn't participate in the first iterarion</pre>
+<div class="grid row alignItemsBaseline ">
+  <div class="item1 relativeHeight" data-offset-x="0"   data-offset-y="40" data-expected-width="50"  data-expected-height="40"></div>
+  <div class="item2"                data-offset-x="50"  data-offset-y="64" data-expected-width="50"  data-expected-height="20">É</div>
+  <div class="item3 verticalLR"     data-offset-x="100" data-offset-y="0"  data-expected-width="100" data-expected-height="80">É</div>
+</div>
+
+<pre>flex row - both the blue relative sized and red orthogonal didn't participate in the first iteration</pre>
+<div class="grid row alignItemsBaseline">
+  <div class="item1 relativeHeight" data-offset-x="0"   data-offset-y="24" data-expected-width="50"  data-expected-height="40"></div>
+  <div class="item2 verticalLR"     data-offset-x="50"  data-offset-y="44" data-expected-width="50"  data-expected-height="20">É</div>
+  <div class="item3"                data-offset-x="100" data-offset-y="0"  data-expected-width="100" data-expected-height="80">É</div>
+</div>
+
+<pre>flex column - row-axis baseline - the blue orthogonal item didn't participate in the first iteration</pre>
+<div class="grid column justifyItemsBaseline">
+  <div class="item1"            data-offset-x="16" data-offset-y="0"   data-expected-width="30" data-expected-height="50">É</div>
+  <div class="item2 verticalLR" data-offset-x="12" data-offset-y="50"  data-expected-width="20" data-expected-height="50">É</div>
+  <div class="item3 verticalLR" data-offset-x="0"  data-offset-y="100" data-expected-width="80" data-expected-height="100">É</div>
+</div>
+
+<pre>flex column - column-axis baseline - the blue relative sized item didn't participate in the first iterarion</pre>
+<div class="grid column justifyItemsBaseline">
+  <div class="item1 relativeWidth height50" data-offset-x="16" data-offset-y="0"   data-expected-width="40" data-expected-height="50"></div>
+  <div class="item2 verticalLR"             data-offset-x="12" data-offset-y="50"  data-expected-width="20" data-expected-height="50">É</div>
+  <div class="item3 verticalLR"             data-offset-x="0"  data-offset-y="100" data-expected-width="80" data-expected-height="100">É</div>
+</div>
+
+<pre>flex columns - both the blue relative sized and red orthogonal didn't participate in the first iteration</pre>
+<div class="grid column justifyItemsBaseline">
+  <div class="item1 relativeWidth height50" data-offset-x="16" data-offset-y="0"   data-expected-width="40" data-expected-height="50"></div>
+  <div class="item2"                        data-offset-x="16" data-offset-y="50"  data-expected-width="20" data-expected-height="50">É</div>
+  <div class="item3 verticalLR"             data-offset-x="0"  data-offset-y="100" data-expected-width="80" data-expected-height="100">É</div>
+</div>
+
+</body>

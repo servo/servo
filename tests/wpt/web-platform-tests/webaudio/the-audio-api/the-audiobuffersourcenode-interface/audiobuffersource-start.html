@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      audiobuffersource-start.html
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+    <script src="/webaudio/resources/audiobuffersource-testing.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      let audit = Audit.createTaskRunner();
+
+      // The following test cases assume an AudioBuffer of length 8 whose PCM
+      // data is a linear ramp, 0, 1, 2, 3,...
+
+      let tests = [
+
+        {
+          description:
+              'start(when): implicitly play whole buffer from beginning to end',
+          offsetFrame: 'none',
+          durationFrames: 'none',
+          renderFrames: 16,
+          playbackRate: 1,
+          expected: [0, 1, 2, 3, 4, 5, 6, 7, 0, 0, 0, 0, 0, 0, 0, 0]
+        },
+
+        {
+          description:
+              'start(when, 0): play whole buffer from beginning to end explicitly giving offset of 0',
+          offsetFrame: 0,
+          durationFrames: 'none',
+          renderFrames: 16,
+          playbackRate: 1,
+          expected: [0, 1, 2, 3, 4, 5, 6, 7, 0, 0, 0, 0, 0, 0, 0, 0]
+        },
+
+        {
+          description:
+              'start(when, 0, 8_frames): play whole buffer from beginning to end explicitly giving offset of 0 and duration of 8 frames',
+          offsetFrame: 0,
+          durationFrames: 8,
+          renderFrames: 16,
+          playbackRate: 1,
+          expected: [0, 1, 2, 3, 4, 5, 6, 7, 0, 0, 0, 0, 0, 0, 0, 0]
+        },
+
+        {
+          description:
+              'start(when, 4_frames): play with explicit non-zero offset',
+          offsetFrame: 4,
+          durationFrames: 'none',
+          renderFrames: 16,
+          playbackRate: 1,
+          expected: [4, 5, 6, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        },
+
+        {
+          description:
+              'start(when, 4_frames, 4_frames): play with explicit non-zero offset and duration',
+          offsetFrame: 4,
+          durationFrames: 4,
+          renderFrames: 16,
+          playbackRate: 1,
+          expected: [4, 5, 6, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        },
+
+        {
+          description:
+              'start(when, 7_frames): play with explicit non-zero offset near end of buffer',
+          offsetFrame: 7,
+          durationFrames: 1,
+          renderFrames: 16,
+          playbackRate: 1,
+          expected: [7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        },
+
+        {
+          description:
+              'start(when, 8_frames): play with explicit offset at end of buffer',
+          offsetFrame: 8,
+          durationFrames: 0,
+          renderFrames: 16,
+          playbackRate: 1,
+          expected: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        },
+
+        {
+          description:
+              'start(when, 9_frames): play with explicit offset past end of buffer',
+          offsetFrame: 8,
+          durationFrames: 0,
+          renderFrames: 16,
+          playbackRate: 1,
+          expected: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        },
+
+        // When the duration exceeds the buffer, just play to the end of the
+        // buffer. (This is different from the case when we're looping, which is
+        // tested in loop-comprehensive.)
+        {
+          description:
+              'start(when, 0, 15_frames): play with whole buffer, with long duration (clipped)',
+          offsetFrame: 0,
+          durationFrames: 15,
+          renderFrames: 16,
+          playbackRate: 1,
+          expected: [0, 1, 2, 3, 4, 5, 6, 7, 0, 0, 0, 0, 0, 0, 0, 0]
+        },
+
+        // Enable test when AudioBufferSourceNode hack is fixed:
+        // https://bugs.webkit.org/show_bug.cgi?id=77224 { description:
+        // "start(when, 3_frames, 3_frames): play a middle section with explicit
+        // offset and duration",
+        //   offsetFrame: 3, durationFrames: 3, renderFrames: 16, playbackRate:
+        //   1, expected: [4,5,6,7,0,0,0,0,0,0,0,0,0,0,0,0] },
+
+      ];
+
+      let sampleRate = 44100;
+      let buffer;
+      let bufferFrameLength = 8;
+      let testSpacingFrames = 32;
+      let testSpacingSeconds = testSpacingFrames / sampleRate;
+      let totalRenderLengthFrames = tests.length * testSpacingFrames;
+
+      function runLoopTest(context, testNumber, test) {
+        let source = context.createBufferSource();
+
+        source.buffer = buffer;
+        source.playbackRate.value = test.playbackRate;
+
+        source.connect(context.destination);
+
+        // Render each test one after the other, spaced apart by
+        // testSpacingSeconds.
+        let startTime = testNumber * testSpacingSeconds;
+
+        if (test.offsetFrame == 'none' && test.durationFrames == 'none') {
+          source.start(startTime);
+        } else if (test.durationFrames == 'none') {
+          let offset = test.offsetFrame / context.sampleRate;
+          source.start(startTime, offset);
+        } else {
+          let offset = test.offsetFrame / context.sampleRate;
+          let duration = test.durationFrames / context.sampleRate;
+          source.start(startTime, offset, duration);
+        }
+      }
+
+      audit.define(
+          'Tests AudioBufferSourceNode start()', function(task, should) {
+            // Create offline audio context.
+            let context =
+                new OfflineAudioContext(1, totalRenderLengthFrames, sampleRate);
+            buffer = createTestBuffer(context, bufferFrameLength);
+
+            for (let i = 0; i < tests.length; ++i)
+              runLoopTest(context, i, tests[i]);
+
+            context.startRendering().then(function(audioBuffer) {
+              checkAllTests(audioBuffer, should);
+              task.done();
+            });
+          });
+
+      audit.run();
+    </script>
+  </body>
+</html>

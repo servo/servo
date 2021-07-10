@@ -1,0 +1,59 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Test: text-emphasis-position - above right - basic cases Reftest Reference</title>
+		<link rel="author" title="Makoto Kikuchi" href="mailto:kikuchi@est.co.jp" />
+		<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+		<style type="text/css"><![CDATA[
+			.common
+			{
+				line-height: 1em;
+				position: relative;
+			}
+			.margin
+			{
+				margin-top: 0.5em;
+			}
+			.parent
+			{
+				background: yellow;
+				border: solid 1px gray;
+				color: blue;
+				font: 20px/1em ahem;
+				width: 6em;
+			}
+			.refcommon
+			{
+				font-size: 0.5em;
+				left: 0.6em;
+				position: absolute;
+			}
+			.top
+			{
+				top: -1.4em;
+			}
+		]]></style>
+	</head>
+	<body>
+		<div>
+			<p>Test passes if a pair of upper and lower block in the square box is identical.</p>
+			<p>horizontal</p>
+			<div class="parent">
+				<div class="margin">
+					<span class="common">a<span class="refcommon top">&#x25CF;</span></span><span class="common">b<span class="refcommon top">&#x25CF;</span></span><span class="common">c<span class="refcommon top">&#x25CF;</span></span>
+					 de<br />
+					<br />
+				</div>
+			</div>
+			<br />
+			<div class="parent">
+				<div class="margin">
+					<span class="common">a<span class="refcommon top">&#x25CF;</span></span><span class="common">b<span class="refcommon top">&#x25CF;</span></span><span class="common">c<span class="refcommon top">&#x25CF;</span></span>
+					 de<br />
+					<br />
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta name="variant" content="?keep-promise">
+<title>Test#add_cleanup: queuing tests</title>
+<script src="../../variants.js"></script>
+<script src="../../../testharness.js"></script>
+<script src="../../../testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+
+<script>
+"use strict";
+var firstCleaned = false;
+
+promise_test(function(t) {
+  promise_test(function() {
+    assert_true(
+      firstCleaned, "should not execute until first test is complete"
+    );
+
+    return Promise.resolve();
+  }, "test defined when no tests are queued, but one test is executing");
+
+  t.add_cleanup(function() {
+    firstCleaned = true;
+  });
+
+  return Promise.resolve();
+}, "Test with a 'cleanup' function");
+</script>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "message": null,
+    "status_string": "OK"
+  },
+  "summarized_tests": [
+    {
+      "message": null,
+      "name": "Test with a 'cleanup' function",
+      "status_string": "PASS",
+      "properties": {}
+    },
+    {
+      "message": null,
+      "name": "test defined when no tests are queued, but one test is executing",
+      "status_string": "PASS",
+      "properties": {}
+    }
+  ],
+  "type": "complete"
+}
+</script>
+</body>
+</html>

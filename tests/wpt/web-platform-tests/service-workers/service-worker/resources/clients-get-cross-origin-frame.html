@@ -38,16 +38,13 @@ window.addEventListener('message', function(e) {
       })
     .then(function(iframe) {
         add_completion_callback(function() { iframe.remove(); });
-        var channel = new MessageChannel();
-        channel.port1.onmessage = function(e) {
+        navigator.serviceWorker.onmessage = function(e) {
           registration.unregister();
           window.parent.postMessage(
             { type: 'clientId', value: e.data }, host_info['HTTPS_ORIGIN']
           );
         };
-        iframe.contentWindow.navigator.serviceWorker.controller.postMessage(
-            {port:channel.port2, clientIds: cross_origin_client_ids},
-            [channel.port2]);
+        registration.active.postMessage({clientIds: cross_origin_client_ids});
       });
 });
 </script>

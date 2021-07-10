@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Color 4: RGB Channel Rounding</title>
+<link rel="author" title="Chris Nardi" href="mailto:cnardi@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#rgb-functions">
+<meta name="assert" content="Tests if RGB channels indicated as decimals are rounded correctly">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="test" style="color: rgb(45, 23, 27)"></div>
+
+<script>
+    test(function() {
+        var element = document.getElementById('test');
+        color = "rgb(2.5, 3.4, 4.6)";
+        expected = ["rgb(3, 3, 5)", color];
+        element.style.cssText = "color: " + color;
+        assert_in_array(getComputedStyle(element).color, expected);
+    }, 'Tests that RGB channels are rounded appropriately');
+</script>

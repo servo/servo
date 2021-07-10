@@ -13,10 +13,12 @@ async_test(function(t)
     var b = document.getElementById("b");
     document.onfullscreenchange = t.step_func(function()
     {
-        assert_equals(document.fullscreenElement, a, "fullscreen element");
+        assert_equals(document.fullscreenElement, a, "fullscreen element is a");
         trusted_request(t, b, a);
-        document.onfullscreenchange = t.unreached_func("second fullscreenchange event");
-        document.onfullscreenerror = t.step_func_done();
+        document.onfullscreenchange = t.step_func_done(function() {
+            assert_equals(document.fullscreenElement, b, "fullscreen element is b");
+        });
+        document.onfullscreenerror = t.unreached_func("second fullscreenchange event");
     });
     trusted_request(t, a);
 });

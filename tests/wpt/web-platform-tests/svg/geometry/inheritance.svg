@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     width="800px" height="8000px">
+  <title>Inheritance of geometry properties</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/geometry.html"/>
+    <h:meta name="assert" content="None of the geometry properties inherit."/>
+    <h:meta name="assert" content="Properties have initial values according to spec."/>
+  </metadata>
+  <g id="container">
+      <g id="target"></g>
+  </g>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="/css/support/inheritance-testcommon.js"/>
+  <script><![CDATA[
+
+assert_not_inherited('cx', '0px', '-10px');
+assert_not_inherited('cy', '0px', '-10px');
+assert_not_inherited('r', '0px', '10px');
+assert_not_inherited('rx', 'auto', '10px');
+assert_not_inherited('ry', 'auto', '10px');
+assert_not_inherited('x', '0px', '-10px');
+assert_not_inherited('y', '0px', '-10px');
+
+  ]]></script>
+</svg>

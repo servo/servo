@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helper.js"></script>
+
+<script>
+// "bare/..." (i.e. without leading "./") are bare specifiers
+// (not relative paths).
+const importMap = `
+{
+  "imports": {
+    "bare/bare": "./resources/log.js?pipe=sub&name=bare",
+    "bare/cross-origin-bare": "https://{{domains[www1]}}:{{ports[https][0]}}/import-maps/resources/log.js?pipe=sub&name=cross-origin-bare",
+    "bare/to-data": "data:text/javascript,log.push('dataURL')",
+
+    "bare/to-bare": "bare/bare"
+  }
+}
+`;
+
+const tests = {
+  // Arrays of expected results for:
+  // - <script src type="module">,
+  // - <script src> (classic script),
+  // - static import, and
+  // - dynamic import.
+
+  // Bare to HTTP(S).
+  "bare/bare":
+    [Result.URL, Result.URL, "log:bare", "log:bare"],
+  "bare/cross-origin-bare":
+    [Result.URL, Result.URL, "log:cross-origin-bare", "log:cross-origin-bare"],
+
+  // Bare to data:
+  "bare/to-data":
+    [Result.URL, Result.URL, "dataURL", "dataURL"],
+
+  // Bare to bare mapping is disabled.
+  "bare/to-bare":
+    [Result.URL, Result.URL, Result.PARSE_ERROR, Result.PARSE_ERROR],
+};
+
+doTests(importMap, null, tests);
+</script>
+<body>

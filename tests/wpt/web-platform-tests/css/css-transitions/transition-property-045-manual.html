@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Transitions Test: transition-property - z-index</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/#animation-type">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#z-index">
+<meta name="flags" content="ahem">
+<meta name="assert" content="Test checks that the 'z-index' property is animatable.">
+<style>
+  div {
+    height: 100px;
+    width: 100px;
+  }
+  #ref {
+    background-color: red;
+    z-index: 1;
+  }
+  #test {
+    background-color: green;
+    position: relative;
+    top: -100px;
+    transition-duration: 2s;
+    transition-property: z-index;
+    transition-timing-function: linear;
+    z-index: -100;
+  }
+</style>
+<body>
+  <p>Click red square below. Test passes if the color of square changes to green after waiting a moment.</p>
+  <div id="ref"></div>
+  <div id="test"></div>
+  <script>
+    (function() {
+      var test = document.querySelector("#test");
+      document.addEventListener("click", function(evt) {
+        test.setAttribute("style", "z-index: 100;");
+      }, false);
+    })();
+  </script>
+</body>

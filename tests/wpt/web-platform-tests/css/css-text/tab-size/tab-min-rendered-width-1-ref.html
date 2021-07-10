@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSS Text Test: minimum rendered width of tab character</title>
+  <link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+  <style>
+    span { background-color: yellow; display: inline-block; letter-spacing: -.1em; }
+    pre { position: absolute; top: 0; }
+  </style>
+</head>
+<body>
+<pre>
+</pre>
+<pre>
+</pre>
+<script>
+  let pre = document.getElementsByTagName("pre")[0];
+  let test = "";
+  for (i = 7.0; i <= 8.125; i += 0.125) {
+    test += `<span style="width:${i}ch">${i}ch</span>\n`;
+  }
+  pre.innerHTML = test;
+  pre = document.getElementsByTagName("pre")[1];
+  test = "";
+  for (i = 0; i < 5; i++) {
+    test += `\tfoo\n`;
+  }
+  for (i = 0; i < 5; i++) {
+    test += `\t\tfoo\n`;
+  }
+  pre.innerHTML = test;
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Text Decoration Test - text-emphasis</title>
+    <link rel="author" title="TestTWF Tokyo Meetup (Unofficial)" href="mailto:tomoyuki.labs@gmail.com">
+    <link rel="help" href="http://www.w3.org/TR/css-text-decor-3/#text-emphasis-style-property" title="3.1. Emphasis Mark Style: the ‘text-emphasis-style’ property">
+    <link rel="match" href="reference/text-emphasis-style-006.html">
+    <meta name="assert" content="Test checks 'text-emphasis-style: filled dot'">
+    <style>
+span {
+  text-emphasis-style: filled dot;
+}
+    </style>
+  </head>
+  <body>
+    <p>Test passes if a filled dot is above every single character of "Text Sample".</p>
+    <div><span>Text</span> <span>sample</span></div>
+  </body>
+</html>

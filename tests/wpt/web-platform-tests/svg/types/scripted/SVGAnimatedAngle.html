@@ -1,0 +1,33 @@
+<!DOCTYPE HTML>
+<title>SVGAnimatedAngle interface - utilizing the orientAngle property of SVGMarkerElement</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  // This test checks the SVGAnimatedAngle API - utilizing the orientAngle property of SVGMarkerElement.
+
+  var markerElement = document.createElementNS("http://www.w3.org/2000/svg", "marker");
+
+  // Check initial orientAngle value.
+  assert_true(markerElement.orientAngle instanceof SVGAnimatedAngle);
+  assert_true(markerElement.orientAngle.baseVal instanceof SVGAngle);
+  assert_equals(markerElement.orientAngle.baseVal.value, 0);
+
+  // Check that angles are dynamic, caching value in a local variable and modifying it, should take effect.
+  var numRef = markerElement.orientAngle.baseVal;
+  numRef.value = 100;
+  assert_equals(numRef.value, 100);
+  assert_equals(markerElement.orientAngle.baseVal.value, 100);
+
+  // Check that assigning to baseVal has no effect, as no setter is defined.
+  markerElement.orientAngle.baseVal = -1;
+  assert_equals(markerElement.orientAngle.baseVal.value, 100);
+  markerElement.orientAngle.baseVal = 'aString';
+  assert_equals(markerElement.orientAngle.baseVal.value, 100);
+  markerElement.orientAngle.baseVal = markerElement;
+  assert_equals(markerElement.orientAngle.baseVal.value, 100);
+
+  // Check that the orientAngle baseVal type has not been changed.
+  assert_true(markerElement.orientAngle.baseVal instanceof SVGAngle);
+});
+</script>

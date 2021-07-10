@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>WebShare Test: canShare without files</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+      'use strict';
+
+      test(() => {
+        assert_false(navigator.canShare());
+      }, 'canShare with no arguments (same as empty dictionary)');
+
+      test(() => {
+        assert_false(navigator.canShare({}));
+      }, 'canShare with an empty dictionary');
+
+      test(() => {
+        assert_false(navigator.canShare(undefined));
+      }, 'canShare with a undefined argument (same as empty dictionary)');
+
+      test(() => {
+        assert_false(navigator.canShare(null));
+      }, 'canShare with a null argument (same as empty dictionary)');
+
+      test(() => {
+        assert_false(navigator.canShare({unused: 'unexpected field'}));
+      }, 'canShare with a dictionary containing only surplus fields');
+
+      test(() => {
+        // URL is invalid in that the URL Parser returns failure (port is too
+        // large).
+        const url = 'http://example.com:65536';
+        assert_false(navigator.canShare({url}));
+      }, 'canShare with an invalid URL');
+
+      test(() => {
+        assert_false(navigator.canShare({url: 'data:the url'}));
+      }, 'canShare with data URL');
+
+      test(() => {
+        assert_false(navigator.canShare({title: undefined}));
+      }, 'canShare with attribute undefined is equivalent to omitting the attribute');
+
+      test(() => {
+        assert_true(navigator.canShare({title: 'subject'}));
+      }, 'canShare with title');
+
+      test(() => {
+        assert_true(navigator.canShare({text: 'body'}));
+      }, 'canShare with text');
+
+      test(() => {
+        assert_true(navigator.canShare({url: 'https://www.example.com/some/path?some_query#some_fragment'}));
+      }, 'canShare with URL');
+
+      test(() => {
+        assert_true(navigator.canShare({title: null}));
+      }, 'canShare with null attribute');
+
+      test(() => {
+        assert_true(navigator.canShare({text: 123}));
+      }, 'canShare with number');
+
+      test(() => {
+        assert_true(navigator.canShare({url: {toString() { return 'https://example.com/'; }}}));
+      }, 'canShare with object');
+
+      test(() => {
+        assert_true(navigator.canShare({title: 'subject', text: 'body', url: 'https://example.com/', unused: 'unexpected field'}));
+      }, 'canShare with unexpected field');
+
+      test(() => {
+        assert_true(navigator.canShare({url: ''}));
+      }, 'canShare with empty URL');
+
+      test(() => {
+        assert_true(navigator.canShare({url: '//www.example.com/some/path?some_query#some_fragment'}));
+      }, 'canShare with URL having no scheme');
+    </script>
+  </body>
+</html>

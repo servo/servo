@@ -1,0 +1,153 @@
+<!doctype html>
+<meta charset=utf-8>
+<title></title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<form id="form"><input id="form-input" type="text" value="abc" /></form>
+<script>
+  // * Should we test setting the dirty flag in any way that isn't
+  //   setting the value?
+  // * How to simulate users typing?
+
+  test(function() {
+    var el = document.createElement("textarea");
+    assert_equals(el.selectionStart, 0);
+    assert_equals(el.selectionEnd, 0);
+    el.defaultValue = "123";
+    assert_equals(el.value.length, 3);
+    assert_equals(el.selectionStart, 0);
+    assert_equals(el.selectionEnd, 0);
+  }, "Setting defaultValue in a textarea should NOT move the cursor to the end");
+
+  test(function() {
+    var el = document.createElement("textarea");
+    el.value = "abcdef";
+    assert_equals(el.selectionStart, 6);
+    assert_equals(el.selectionEnd, 6);
+    el.defaultValue = "123";
+    assert_equals(el.value.length, 6);
+    assert_equals(el.selectionStart, 6);
+    assert_equals(el.selectionEnd, 6);
+  }, "Setting defaultValue in a textarea with a value should NOT make any difference");
+
+  test(function() {
+    var el = document.createElement("textarea");
+    el.appendChild(document.createTextNode("abcdef"));
+    assert_equals(el.selectionStart, 0);
+    assert_equals(el.selectionEnd, 0);
+    el.textContent = "abcdef123456";
+    assert_equals(el.selectionStart, 0);
+    assert_equals(el.selectionEnd, 0);
+  }, "Setting textContent in a textarea should NOT move selection{Start,End} to the end");
+
+  test(function() {
+    var el = document.createElement("textarea");
+    el.appendChild(document.createTextNode("abcdef"));
+    assert_equals(el.selectionStart, 0);
+    assert_equals(el.selectionEnd, 0);
+    el.appendChild(document.createTextNode("123456"));
+    assert_equals(el.selectionStart, 0);
+    assert_equals(el.selectionEnd, 0);
+  }, "Adding children to a textarea should NOT move selection{Start,End} to the end");
+
+  test(function() {
+    var el = document.createElement("textarea");
+    el.appendChild(document.createTextNode("abcdef"));
+    el.appendChild(document.createTextNode("123"));
+    assert_equals(el.selectionStart, 0);
+    assert_equals(el.selectionEnd, 0);
+
+    el.removeChild(el.firstChild);
+    assert_equals(el.selectionStart, 0);
+    assert_equals(el.selectionEnd, 0);
+  }, "Removing children from a textarea should NOT update selection{Start,End}");
+
+  test(function() {
+    var el = document.createElement("textarea");
+    el.textContent = "abcdef\nwhatevs";
+    el.selectionStart = 3;
+    el.selectionEnd = 5;
+
+    el.firstChild.data = "abcdef\r\nwhatevs";
+    assert_equals(el.selectionStart, 3);
+    assert_equals(el.selectionEnd, 5);
+  }, "Setting the same value (with different newlines) in a textarea should NOT update selection{Start,End}");
+
+  test(function() {
+    var el = document.createElement("textarea");
+    el.textContent = "foobar";
+    el.selectionStart = 3;
+    el.selectionEnd = 5;
+    el.firstChild.remove();
+    assert_equals(el.selectionStart, 0, 'selectionStart after node removal');
+    assert_equals(el.selectionEnd, 0, 'selectionEnd after node removal');
+    el.appendChild(document.createTextNode("foobar"));
+    assert_equals(el.selectionStart, 0, 'selectionStart after appendChild');
+    assert_equals(el.selectionEnd, 0, 'selectionEnd after appendChild');
+
+    el.selectionStart = 3;
+    el.selectionEnd = 5;
+    el.textContent = "foobar2"; // This removes the child node first.
+    assert_equals(el.selectionStart, 0, 'selectionStart after textContent setter');
+    assert_equals(el.selectionEnd, 0, 'selectionEnd after textContent setter');
+
+    el.selectionStart = 3;
+    el.selectionEnd = 5;
+    el.defaultValue = "foobar"; // Same as textContent setter.
+    assert_equals(el.selectionStart, 0, 'selectionStart after defaultValue setter');
+    assert_equals(el.selectionEnd, 0, 'selectionEnd after defaultValue setter');
+
+  }, "Removing child nodes in non-dirty textarea should make selection{Start,End} 0");
+
+  test(function() {
+    var el = document.createElement("textarea");
+    el.defaultValue = "123";
+    assert_equals(el.value.length, 3);
+    el.selectionStart = 3;
+    el.selectionEnd = 3;
+    el.value = "12";
+    assert_equals(el.value.length, 2);
+    assert_equals(el.selectionStart, 2);
+    assert_equals(el.selectionEnd, 2);
+  }, "Setting value to a shorter string than defaultValue should correct the cursor position");
+
+  test(function() {
+    var el = document.createElement("input");
+    el.type = "text";
+    el.value = "http://example.com   ";
+    assert_equals(el.selectionStart, 21);
+    assert_equals(el.selectionEnd, 21);
+    el.type = "url";
+    assert_equals(el.selectionStart, 18);
+    assert_equals(el.selectionEnd, 18);
+  }, "Shortening value by turning the input type into 'url' should correct selection{Start,End}");
+
+  test(function() {
+    var el = document.createElement("input");
+    el.type = "text";
+    el.value = "#123456xx";
+    assert_equals(el.selectionStart, 9);
+    assert_equals(el.selectionEnd, 9);
+    el.type = "color";
+    el.type = "text";
+    // https://html.spec.whatwg.org/C/input.html#the-input-element:attr-input-type-15
+    // 9. If previouslySelectable is false and nowSelectable is true, set the
+    // element's text entry cursor position to the beginning of the text
+    // control, ...
+    assert_equals(el.selectionStart, 0);
+    assert_equals(el.selectionEnd, 0);
+  }, "Shortening value by turning the input type into 'color' and back to 'text' should correct selection{Start,End}");
+
+  test(function() {
+    var form = document.getElementById("form");
+    var el = document.getElementById("form-input");
+
+    el.value = "abcde";
+    assert_equals(el.value.length, 5);
+    form.reset();
+    assert_equals(el.value.length, 3);
+    assert_equals(el.selectionStart, 3);
+    assert_equals(el.selectionEnd, 3);
+  }, "Resetting a value to a shorter string than defaultValue should correct the cursor position");
+</script>

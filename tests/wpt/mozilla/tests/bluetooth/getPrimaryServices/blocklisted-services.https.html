@@ -1,0 +1,26 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(() => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.blocklist);
+    return window.navigator.bluetooth.requestDevice({
+        filters: [{services: [device_information.name]}],
+        optionalServices: [
+            blocklist_test_service_uuid, generic_access.name,
+            heart_rate.name, human_interface_device.name
+        ]
+    })
+    .then(device => device.gatt.connect())
+    .then(gattServer => gattServer.getPrimaryServices())
+    .then(services => {
+        assert_equals(services.length, 4);
+        assert_equals(services[0].uuid, blocklist_test_service_uuid);
+        assert_equals(services[1].uuid, device_information.uuid);
+        assert_equals(services[2].uuid, generic_access.uuid);
+        assert_equals(services[3].uuid, heart_rate.uuid);
+    });
+}, 'Request for services. Does not return blocklisted service.');
+</script>

@@ -1,0 +1,29 @@
+<!doctype HTML>
+<html class=reftest-wait>
+<link rel="author" title="Chris Harrelson" href="mailto:chrishtr@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS2/tables.html#borders">
+<link rel="help" href="https://drafts.csswg.org/css-will-change/#will-change">
+<link rel="match" href="collapsed-border-color-change-with-compositing-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  td { border: 3px solid black; }
+  .composited { will-change: transform; }
+</style>
+<table style="border-collapse: collapse">
+  <tr class=composited>
+    <td id=target style="border-color: red">First</td>
+    <td >Second</td>
+  </tr>
+  <tr class=composited>
+    <td>Third</td>
+    <td>Fourth</td>
+  </tr>
+</table>
+</html>
+<script>
+  onload = () => requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      target.style.borderColor = 'green';
+      document.documentElement.classList.remove('reftest-wait');
+    }));
+</script>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Element ready check with enabled flag not set</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../trusted-click.js"></script>
+<div id="log"></div>
+<iframe></iframe>
+<script>
+// wait for load event to avoid https://bugzil.la/1493878
+window.onload = function() {
+  async_test(function(t) {
+      var iframe = document.querySelector("iframe");
+      document.onfullscreenchange = t.unreached_func("document fullscreenchange event");
+      document.onfullscreenerror = t.unreached_func("document fullscreenerror event");
+      iframe.contentDocument.onfullscreenchange = t.unreached_func("iframe fullscreenchange event");
+      iframe.contentDocument.onfullscreenerror = t.step_func_done();
+      assert_false(iframe.contentDocument.fullscreenEnabled, "fullscreen enabled flag");
+      trusted_request(t, iframe.contentDocument.body, document.body);
+  });
+};
+</script>

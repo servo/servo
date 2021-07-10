@@ -1,0 +1,37 @@
+<!DOCTYPE HTML>
+<title>Reference: A child's ::marker should be excluded when finding the ::first-letter content</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<style>
+body { margin-left: 5em; }
+li { list-style-position: inside }
+li:first-child > * { list-style-type: 'marker '; }
+li:last-child > ::marker { content: 'marker '; }
+span { display:inline list-item; }
+ibi { display:inline flow-root list-item; list-style-position: inside; }
+ibo { display:inline flow-root list-item; list-style-position: outside; }
+first-letter { color:green; }
+</style>
+<ol>
+  <li><span><first-letter>i</first-letter>tem</span>after</li>
+  <li><span><first-letter>i</first-letter>tem</span></span>after</li>
+</ol>
+<ul>
+  <li><span><first-letter>i</first-letter>tem</span>after</li>
+  <li><span><first-letter>i</first-letter>tem</span></span>after</li>
+</ul>
+<ol>
+  <li><ibi>item</ibi>after</li>
+  <li><ibi>item</ibi></ibi>after</li>
+</ol>
+<ul>
+  <li><ibi>item</ibi>after</li>
+  <li><ibi>item</ibi></ibi>after</li>
+</ul>
+<ol>
+  <li><ibo>item</ibo>after</li>
+  <li><ibo>item</ibo></ibo>after</li>
+</ol>
+<ul>
+  <li><ibo>item</ibo>after</li>
+  <li><ibo>item</ibo></ibo>after</li>
+</ul>

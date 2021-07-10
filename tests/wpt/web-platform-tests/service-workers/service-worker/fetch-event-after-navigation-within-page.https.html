@@ -15,6 +15,10 @@ promise_test(function(t) {
 
     return service_worker_unregister_and_register(t, worker, scope)
       .then(function(reg) {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, scope);
+            });
+
           return wait_for_state(t, reg.installing, 'activated');
         })
       .then(function() { return with_iframe(scope); })
@@ -30,7 +34,6 @@ promise_test(function(t) {
       .then(function(response) {
           assert_equals(response, 'intercepted by service worker');
           frame.remove();
-          return service_worker_unregister_and_done(t, scope);
         })
   }, 'Service Worker should respond to fetch event after the hash changes');
 
@@ -43,6 +46,10 @@ promise_test(function(t) {
 
     return service_worker_unregister_and_register(t, worker, scope)
       .then(function(reg) {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, scope);
+            });
+
           return wait_for_state(t, reg.installing, 'activated');
         })
       .then(function() { return with_iframe(scope); })
@@ -58,7 +65,6 @@ promise_test(function(t) {
       .then(function(response) {
           assert_equals(response, 'intercepted by service worker');
           frame.remove();
-          return service_worker_unregister_and_done(t, scope);
         })
   }, 'Service Worker should respond to fetch event after the pushState');
 

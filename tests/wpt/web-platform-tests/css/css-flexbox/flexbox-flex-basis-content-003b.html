@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <title>
+    CSS Test: Testing that used "flex-basis: content" is treated as
+    "max-content" when calculating flex base size
+  </title>
+  <meta charset="utf-8">
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#flex-base-size">
+  <link rel="match" href="flexbox-flex-basis-content-003-ref.html">
+  <style>
+  .container {
+    display: flex;
+    /* flex container has an extremely-constrained width (and items will
+       overflow horizontally). This is intentional, as part of stress-testing
+       item sizing. */
+    width: 1px;
+  }
+
+  .item {
+    /* We give all flex items a used "flex-basis" of "content"
+       (from "flex-basis:auto" and default "width:auto").
+       We also give them zero flex-grow, flex-shrink, and min-main-size, so
+       that the flex base size entirely determines the flex item's size. */
+    flex: 0 0 auto;
+    min-width: 0;
+    border: 2px solid teal;
+  }
+  ib {
+    display: inline-block;
+    background: blue;
+    border: 1px solid gray;
+    width: 15px;
+    height: 10px;
+  }
+  float {
+    float: left;
+    background: fuchsia;
+    border: 1px solid gray;
+    width: 15px;
+    height: 10px;
+  }
+  canvas {
+    background: brown;
+    border: 1px solid gray;
+  }
+  .innerFlex {
+    display: flex;
+  }
+  innerItem {
+    background: salmon;
+    border: 1px solid gray;
+    height: 10px;
+    width: 15px;
+    flex: none;
+  }
+  </style>
+</head>
+<body>
+<!-- The idea of this test is to be sure the UA is using the "max-content" size
+     (and not e.g. the "fit-content size") when resolving the flex base size
+     inside each flex container.  To differentiate between max-content and
+     other intrinsic size possibilities (min-content/fit-content), we:
+       - use flex items with a large difference between its min-content size &
+       its max-content size (e.g. wrappable content).
+       - use a very small container (to compress the size, if the UA incorrectly
+       allows the size to be influenced by the container size).
+-->
+
+<!-- Flex item has several inline-blocks
+     (no spaces, to avoid any text-layout dependency): -->
+<div class="container">
+  <div class="item"><ib></ib><ib></ib><ib></ib></div>
+</div>
+
+<!-- Flex item has several floats: -->
+<div class="container">
+  <div class="item">
+    <float></float>
+    <float></float>
+    <float></float>
+  </div>
+</div>
+
+<!-- Flex item has several inline replaced elements:
+     (no spaces, to avoid any text-layout dependency): -->
+<div class="container">
+  <div class="item">
+    <canvas width="15" height="10"></canvas
+    ><canvas width="15" height="10"></canvas
+    ><canvas width="15" height="10"></canvas>
+  </div>
+</div>
+
+<!-- Flex item *is* a replaced element: -->
+<div class="container">
+  <canvas class="item" width="25" height="10"></canvas>
+</div>
+
+<!-- Flex item is itself a flex container: -->
+<div class="container">
+  <div class="item innerFlex">
+    <innerItem></innerItem>
+    <innerItem></innerItem>
+    <innerItem></innerItem>
+  </div>
+</div>
+
+<!-- Flex item is itself a multi-line flex container: -->
+<div class="container">
+  <div class="item innerFlex" style="flex-wrap: wrap">
+    <innerItem></innerItem>
+    <innerItem></innerItem>
+    <innerItem></innerItem>
+  </div>
+</div>
+
+</body>
+</html>

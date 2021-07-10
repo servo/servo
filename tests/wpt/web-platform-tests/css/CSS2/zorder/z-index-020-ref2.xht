@@ -1,0 +1,102 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>CSS Reference: z-index (option B)</title>
+    <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+    <link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+    <meta name="flags" content="" />
+<style type="text/css">
+.container {
+  z-index:0;
+  position: relative;
+  height: 200px;
+  width: 200px;
+  font-size: 0;
+  line-height: 0;
+  background: silver;
+  border: solid white;
+}
+.container div {
+  height: 80px;
+  width: 80px;
+  padding: 10px;
+}
+
+.control .outline {
+  border: solid fuchsia 5px;
+  width: 110px;
+  height: 85px;
+  padding: 0;
+}
+
+.outline.c1 {
+  margin: 30px 5px 100px;
+}
+.outline.c2 {
+  padding: 0;
+  margin: -20px -45px;
+}
+.outline.c2 > div {
+  margin: -20px 5px 0;
+}
+
+.control div {
+  margin-left: -35px;
+  margin-top: -35px;
+}
+.control > div {
+  margin-left: auto;
+  margin-top: 100px;
+}
+</style>
+</head>
+<body>
+
+<div class="control container">
+  <div style="background: navy">
+    <div style="background: blue">
+       <div style="background: aqua">
+         <div class="outline c2">
+           <div style="background: lime">
+             <div style="background: teal">
+             </div>
+           </div>
+         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p>The pattern above must match one of the two patterns below.</p>
+
+<div class="control container">
+  <div style="background: navy">
+    <div style="background: blue">
+       <div style="background: aqua">
+         <div style="background: lime">
+           <div style="background: teal">
+             <div class="outline c1">
+             </div>
+           </div>
+         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="control container">
+  <div style="background: navy">
+    <div style="background: blue">
+       <div style="background: aqua">
+         <div class="outline c2">
+           <div style="background: lime">
+             <div style="background: teal">
+             </div>
+           </div>
+         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body></html>

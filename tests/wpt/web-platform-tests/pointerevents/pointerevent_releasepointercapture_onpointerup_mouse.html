@@ -1,0 +1,100 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Release capture on pointerup</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <script src="pointerevent_support.js"></script>
+    </head>
+    <body>
+        <h1>Pointer Events Capture Test - release capture on pointerup</h1>
+        <h4>
+            Test Description: This test checks if setCapture/releaseCapture functions works properly. Complete the following actions:
+            <ol>
+                <li> Press and hold left mouse button over "Set Capture" button
+                <li> Release left mouse button anywhere over the document. "lostpointercapture" should be logged inside of the black rectangle immediately after "pointerup"
+            </ol>
+        </h4>
+        Test passes if the proper behavior of the events is observed.
+        <div id="target0" style="background:black; color:white"></div>
+        <br>
+        <input type="button" id="btnCapture" value="Set Capture">
+        <script type='text/javascript'>
+            var isPointerCapture = false;
+            var pointerupGot = false;
+            var count=0;
+            var event_log = [];
+            var actions_promise;
+
+            var detected_pointertypes = {};
+            add_completion_callback(end_of_test);
+            function end_of_test() {
+                showLoggedEvents();
+                showPointerTypes();
+            }
+
+            var target0 = document.getElementById('target0');
+            var captureButton = document.getElementById('btnCapture');
+
+            setup({ explicit_done: true });
+
+            window.onload = function() {
+                on_event(captureButton, 'pointerdown', function(e) {
+                    detected_pointertypes[e.pointerType] = true;
+                    if(isPointerCapture == false) {
+                        isPointerCapture = true;
+                        sPointerCapture(e);
+                        pointerupGot = false;
+                    }
+                });
+
+                on_event(target0, 'gotpointercapture', function(e) {
+                    event_log.push('gotpointercapture@target0');
+                });
+
+                // If the setPointerCapture method has been invoked on the pointer specified by pointerId,
+                // and the releasePointerCapture method has not been invoked,a lostpointercapture event must be
+                // dispatched to the element on which the setPointerCapture method was invoked. Furthermore,
+                // subsequent events for the specified pointer must follow normal hit testing mechanisms for
+                // determining the event target.
+                // TA: 3.7
+                on_event(target0, 'lostpointercapture', function(e) {
+                    test(function() {
+                        assert_true(pointerupGot, "pointerup was received before lostpointercapture")
+                    }, "pointerup was received before lostpointercapture");
+                    event_log.push('lostpointercapture@target0');
+                    isPointerCapture = false;
+                    // Make sure the test finishes after all the input actions are completed.
+                    actions_promise.then( () => {
+                        done();
+                    });
+                });
+
+                on_event(target0, 'pointerup', function(e) {
+                    event_log.push('pointerup@target0');
+                    pointerupGot = true;
+                });
+
+                // Inject mouse inputs.
+                actions_promise = new test_driver.Actions()
+                    .pointerMove(0, 0, {origin: captureButton})
+                    .pointerDown()
+                    .pointerMove(10, 0, {origin: target0})
+                    .pointerUp()
+                    .send();
+            }
+        </script>
+        <h1>Pointer Events Capture Test</h1>
+        <div id="complete-notice">
+            <p>Test complete: Scroll to Summary to view Pass/Fail Results.</p>
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+            <p>The following events were logged: <span id="event-log"></span>.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

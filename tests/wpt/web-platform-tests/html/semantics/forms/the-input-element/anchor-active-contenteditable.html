@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Joey Arhar" href="mailto:jarhar@chromium.org">
+<link rel="help" href="http://crbug.com/1007941">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<!-- This behavior is not explicitly specified. -->
+
+<a id=anchorid href="nonexistant">anchor</a>
+
+<script>
+anchorid.addEventListener('mousedown', () => {
+  anchorid.contentEditable = true;
+});
+
+promise_test(async () => {
+  await test_driver.click(anchorid);
+  assert_equals(document.querySelector(':active'), null);
+}, 'Anchor elements should not stay :active when contentEditable is enabled.');
+</script>

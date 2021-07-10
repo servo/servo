@@ -1,0 +1,36 @@
+<!doctype HTML>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>Content Visibility: cross-origin iframe locking</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="content-visibility-019-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="../resources/utils.js"></script>
+
+<style>
+div {
+  background: blue;
+}
+.hidden {
+  content-visibility: hidden;
+}
+</style>
+
+<div>lorem ipsum</div>
+<iframe id="frame" width=400 height=200 src='https://{{domains[www]}}:{{ports[https][0]}}/wpt_internal/display-lock/css-content-visibility/resources/frame.html'></iframe>
+<div>consectetur adipiscing elit</div>
+
+<script>
+async function runTest() {
+  document.getElementById("frame").classList.add("hidden");
+  requestAnimationFrame(takeScreenshot);
+}
+
+window.onload = () => {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(runTest);
+  });
+};
+</script>
+</html>

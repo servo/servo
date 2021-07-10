@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Backgrounds and Borders: getComputedStyle().borderColor</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#border-color">
+<meta name="assert" content="border-color computed value is the computed colors.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #target {
+    color: lime;
+  }
+</style>
+</head>
+<body>
+<div id="target"></div>
+<script>
+'use strict';
+const currentColor = "rgb(0, 255, 0)";
+const red = "rgb(255, 0, 0)";
+const yellow = "rgb(255, 255, 0)";
+const green = "rgb(0, 128, 0)";
+const blue = "rgb(0, 0, 255)";
+
+test_computed_value("border-color", "currentcolor", currentColor);
+test_computed_value("border-color", "red yellow", red + " " + yellow);
+test_computed_value("border-color", "red yellow currentcolor", red + " " + yellow + " " + currentColor);
+test_computed_value("border-color", "red yellow green blue", red + " " + yellow + " " + green + " " + blue);
+
+test_computed_value("border-top-color", "red", red);
+test_computed_value("border-right-color", "yellow", yellow);
+test_computed_value("border-bottom-color", "green", green);
+test_computed_value("border-left-color", "blue", blue);
+</script>
+</body>
+</html>

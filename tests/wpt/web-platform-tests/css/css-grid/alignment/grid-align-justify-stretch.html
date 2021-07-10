@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout test: stretch value for align and justify properties</title>
+<link rel="author" title="Rossana Monteriso" href="mailto:rmonteriso@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#alignment">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#typedef-self-position">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#distribution-values">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#content-distribution">
+
+<meta name="assert" content="This test checks that the 'stretch' value is applied correctly for 'align' and 'justify' properties for both RTL/LTR directions and horizontal/vertical writing modes.">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/css/support/alignment.css">
+<link rel="stylesheet" href="/css/support/width-keyword-classes.css">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+body {
+    margin: 0;
+}
+
+.grid {
+    grid-template-columns: 100px 100px;
+    grid-template-rows: 200px 200px;
+    margin-bottom: 20px;
+}
+
+.widthAndHeightSet {
+    width: 20px;
+    height: 40px;
+}
+.onlyWidthSet { width: 20px; }
+.onlyHeightSet { height: 40px; }
+.maxHeight { max-height: 160px; }
+.maxWidth { max-width: 90px; }
+.minWidth { min-width: 120px; }
+.minHeight { min-height: 220px; }
+</style>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script type="text/javascript">
+  setup({ explicit_done: true });
+</script>
+
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+
+<div style="position: relative">
+    <div class="grid fit-content" data-expected-width="200" data-expected-height="400">
+        <div class="alignSelfStretch justifySelfStart firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="0" data-expected-height="200"></div>
+        <div class="widthAndHeightSet alignSelfStretch justifySelfStart firstRowSecondColumn" data-offset-x="100" data-offset-y="0" data-expected-width="20" data-expected-height="40"></div>
+        <div class="onlyWidthSet alignSelfStretch justifySelfStart secondRowFirstColumn" data-offset-x="0" data-offset-y="200" data-expected-width="20" data-expected-height="200"></div>
+        <div class="onlyHeightSet alignSelfStretch justifySelfStart secondRowSecondColumn" data-offset-x="100" data-offset-y="200" data-expected-width="0" data-expected-height="40"></div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <div class="grid fit-content" data-expected-width="200" data-expected-height="400">
+        <div class="alignSelfStart justifySelfStretch firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="100" data-expected-height="0"></div>
+        <div class="widthAndHeightSet alignSelfStart justifySelfStretch firstRowSecondColumn" data-offset-x="100" data-offset-y="0" data-expected-width="20" data-expected-height="40"></div>
+        <div class="onlyWidthSet alignSelfStart justifySelfStretch secondRowFirstColumn" data-offset-x="0" data-offset-y="200" data-expected-width="20" data-expected-height="0"></div>
+        <div class="onlyHeightSet alignSelfStart justifySelfStretch secondRowSecondColumn" data-offset-x="100" data-offset-y="200" data-expected-width="100" data-expected-height="40"></div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <div class="grid fit-content" data-expected-width="200" data-expected-height="400">
+        <div class="maxHeight alignSelfStretch justifySelfStart firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="0" data-expected-height="160"></div>
+        <div class="minWidth widthAndHeightSet alignSelfStretch justifySelfStart firstRowSecondColumn" data-offset-x="100" data-offset-y="0" data-expected-width="120" data-expected-height="40"></div>
+        <div class="minHeight onlyWidthSet alignSelfStretch justifySelfStart secondRowFirstColumn" data-offset-x="0" data-offset-y="200" data-expected-width="20" data-expected-height="220"></div>
+        <div class="maxWidth onlyHeightSet alignSelfStretch justifySelfStretch secondRowSecondColumn" data-offset-x="100" data-offset-y="200" data-expected-width="90" data-expected-height="40"></div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <div class="grid fit-content" data-expected-width="200" data-expected-height="400">
+        <div class="alignSelfStretch justifySelfStretch firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="100" data-expected-height="200"></div>
+        <div class="widthAndHeightSet alignSelfStretch justifySelfStretch firstRowSecondColumn" data-offset-x="100" data-offset-y="0" data-expected-width="20" data-expected-height="40"></div>
+        <div class="onlyWidthSet alignSelfStretch justifySelfStretch secondRowFirstColumn" data-offset-x="0" data-offset-y="200" data-expected-width="20" data-expected-height="200"></div>
+        <div class="onlyHeightSet alignSelfStretch justifySelfStretch secondRowSecondColumn" data-offset-x="100" data-offset-y="200" data-expected-width="100" data-expected-height="40"></div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <div class="grid fit-content alignItemsStretch justifyItemsStart" data-expected-width="200" data-expected-height="400">
+        <div class="firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="0" data-expected-height="200"></div>
+        <div class="widthAndHeightSet firstRowSecondColumn" data-offset-x="100" data-offset-y="0" data-expected-width="20" data-expected-height="40"></div>
+        <div class="onlyWidthSet secondRowFirstColumn" data-offset-x="0" data-offset-y="200" data-expected-width="20" data-expected-height="200"></div>
+        <div class="onlyHeightSet secondRowSecondColumn" data-offset-x="100" data-offset-y="200" data-expected-width="0" data-expected-height="40"></div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <div class="grid fit-content alignItemsStart justifyItemsStretch" data-expected-width="200" data-expected-height="400">
+        <div class="firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="100" data-expected-height="0"></div>
+        <div class="widthAndHeightSet firstRowSecondColumn" data-offset-x="100" data-offset-y="0" data-expected-width="20" data-expected-height="40"></div>
+        <div class="onlyWidthSet secondRowFirstColumn" data-offset-x="0" data-offset-y="200" data-expected-width="20" data-expected-height="0"></div>
+        <div class="onlyHeightSet secondRowSecondColumn" data-offset-x="100" data-offset-y="200" data-expected-width="100" data-expected-height="40"></div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <div class="grid fit-content alignItemsStretch justifyItemsStretch" data-expected-width="200" data-expected-height="400">
+        <div class="firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="100" data-expected-height="200"></div>
+        <div class="widthAndHeightSet firstRowSecondColumn" data-offset-x="100" data-offset-y="0" data-expected-width="20" data-expected-height="40"></div>
+        <div class="onlyWidthSet secondRowFirstColumn" data-offset-x="0" data-offset-y="200" data-expected-width="20" data-expected-height="200"></div>
+        <div class="onlyHeightSet secondRowSecondColumn" data-offset-x="100" data-offset-y="200" data-expected-width="100" data-expected-height="40"></div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <div class="grid fit-content alignItemsAuto justifyItemsAuto" data-expected-width="200" data-expected-height="400">
+        <div class="firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="100" data-expected-height="200"></div>
+        <div class="widthAndHeightSet firstRowSecondColumn" data-offset-x="100" data-offset-y="0" data-expected-width="20" data-expected-height="40"></div>
+        <div class="onlyWidthSet secondRowFirstColumn" data-offset-x="0" data-offset-y="200" data-expected-width="20" data-expected-height="200"></div>
+        <div class="onlyHeightSet secondRowSecondColumn" data-offset-x="100" data-offset-y="200" data-expected-width="100" data-expected-height="40"></div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <div class="grid fit-content" data-expected-width="200" data-expected-height="400">
+        <div class="firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="100" data-expected-height="200"></div>
+        <div class="widthAndHeightSet firstRowSecondColumn" data-offset-x="100" data-offset-y="0" data-expected-width="20" data-expected-height="40"></div>
+        <div class="onlyWidthSet secondRowFirstColumn" data-offset-x="0" data-offset-y="200" data-expected-width="20" data-expected-height="200"></div>
+        <div class="onlyHeightSet secondRowSecondColumn" data-offset-x="100" data-offset-y="200" data-expected-width="100" data-expected-height="40"></div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <div class="grid fit-content" data-expected-width="200" data-expected-height="400">
+        <div class="firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="100" data-expected-height="200"></div>
+        <div class="firstRowSecondColumn" data-offset-x="100" data-offset-y="0" data-expected-width="100" data-expected-height="200"></div>
+        <div class="secondRowFirstColumn" data-offset-x="0" data-offset-y="200" data-expected-width="100" data-expected-height="200"></div>
+        <div class="secondRowSecondColumn" data-offset-x="100" data-offset-y="200" data-expected-width="100" data-expected-height="200"></div>
+    </div>
+</div>
+
+<!-- RTL direction (it should not affect the block-flow direction). -->
+<div style="position: relative">
+    <div class="grid fit-content directionRTL alignItemsStretch justifyItemsStretch" data-expected-width="200" data-expected-height="400">
+        <div class="firstRowFirstColumn" data-offset-x="100" data-offset-y="0" data-expected-width="100" data-expected-height="200"></div>
+        <div class="widthAndHeightSet firstRowSecondColumn" data-offset-x="80" data-offset-y="0" data-expected-width="20" data-expected-height="40"></div>
+        <div class="onlyWidthSet secondRowFirstColumn" data-offset-x="180" data-offset-y="200" data-expected-width="20" data-expected-height="200"></div>
+        <div class="onlyHeightSet secondRowSecondColumn" data-offset-x="0" data-offset-y="200" data-expected-width="100" data-expected-height="40"></div>
+    </div>
+</div>
+
+<!-- RTL direction (it should not affect the block-flow) with opposite directions grid container vs grid item. -->
+<div style="position: relative">
+    <div class="grid fit-content alignItemsStretch justifyItemsStretch" data-expected-width="200" data-expected-height="400">
+        <div class="firstRowFirstColumn  directionRTL" data-offset-x="0" data-offset-y="0" data-expected-width="100" data-expected-height="200"></div>
+        <div class="widthAndHeightSet firstRowSecondColumn  directionRTL" data-offset-x="100" data-offset-y="0" data-expected-width="20" data-expected-height="40"></div>
+        <div class="onlyWidthSet secondRowFirstColumn  directionRTL" data-offset-x="0" data-offset-y="200" data-expected-width="20" data-expected-height="200"></div>
+        <div class="onlyHeightSet secondRowSecondColumn  directionRTL" data-offset-x="100" data-offset-y="200" data-expected-width="100" data-expected-height="40"></div>
+    </div>
+</div>
+
+<!-- Vertical RL writing mode. -->
+<div style="position: relative">
+    <div class="grid fit-content verticalRL alignItemsStretch justifyItemsStretch" data-expected-width="400" data-expected-height="200">
+        <div class="firstRowFirstColumn" data-offset-x="200" data-offset-y="0" data-expected-width="200" data-expected-height="100"></div>
+        <div class="widthAndHeightSet firstRowSecondColumn" data-offset-x="380" data-offset-y="100" data-expected-width="20" data-expected-height="40"></div>
+        <div class="onlyWidthSet secondRowFirstColumn" data-offset-x="180" data-offset-y="0" data-expected-width="20" data-expected-height="100"></div>
+        <div class="onlyHeightSet secondRowSecondColumn" data-offset-x="0" data-offset-y="100" data-expected-width="200" data-expected-height="40"></div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <div class="grid fit-content verticalRL" data-expected-width="400" data-expected-height="200">
+        <div class="firstRowFirstColumn" data-offset-x="200" data-offset-y="0" data-expected-width="200" data-expected-height="100"></div>
+        <div class="firstRowSecondColumn" data-offset-x="200" data-offset-y="100" data-expected-width="200" data-expected-height="100"></div>
+        <div class="secondRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="100"></div>
+        <div class="secondRowSecondColumn" data-offset-x="0" data-offset-y="100" data-expected-width="200" data-expected-height="100"></div>
+    </div>
+</div>
+
+<!-- Vertical LR writing mode. -->
+<div style="position: relative">
+    <div class="grid fit-content verticalLR alignItemsStretch justifyItemsStretch" data-expected-width="400" data-expected-height="200">
+        <div class="firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="100"></div>
+        <div class="widthAndHeightSet firstRowSecondColumn" data-offset-x="0" data-offset-y="100" data-expected-width="20" data-expected-height="40"></div>
+        <div class="onlyWidthSet secondRowFirstColumn" data-offset-x="200" data-offset-y="0" data-expected-width="20" data-expected-height="100"></div>
+        <div class="onlyHeightSet secondRowSecondColumn" data-offset-x="200" data-offset-y="100" data-expected-width="200" data-expected-height="40"></div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <div class="grid fit-content verticalLR" data-expected-width="400" data-expected-height="200">
+        <div class="firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="100"></div>
+        <div class="firstRowSecondColumn" data-offset-x="0" data-offset-y="100" data-expected-width="200" data-expected-height="100"></div>
+        <div class="secondRowFirstColumn" data-offset-x="200" data-offset-y="0" data-expected-width="200" data-expected-height="100"></div>
+        <div class="secondRowSecondColumn" data-offset-x="200" data-offset-y="100" data-expected-width="200" data-expected-height="100"></div>
+    </div>
+</div>
+
+</body>

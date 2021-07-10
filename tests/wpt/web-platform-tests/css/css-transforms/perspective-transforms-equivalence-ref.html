@@ -1,0 +1,40 @@
+<!doctype HTML>
+<meta charset="utf8">
+<title>Perspective with transforms equivalencies.</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<style>
+
+#container {
+  transform: translate(-200px, -200px);
+  width: 500px;
+  height: 500px;
+  perspective: 500px;
+}
+
+#container > div {
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transform: translateZ(-250px) rotateZ(45deg);
+}
+
+#container > div > div {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  background-color: rgba(3, 121, 255, 0.3);
+  box-sizing: border-box;
+  border: 3px solid black;
+}
+
+#one { transform: rotateY(90deg)  translateZ(250px); }
+</style>
+
+<div id="container">
+  <div>
+    <div id="one"></div>
+    <div id="one"></div>
+    <div id="one"></div>
+    <div id="one"></div>
+  </div>
+</div>

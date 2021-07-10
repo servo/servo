@@ -1,26 +1,26 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use    app_units::Au;
-use azure::azure_hl::{ AntialiasMode, Color, ColorPattern, CompositionOp };
-use azure::azure_hl::{AntialiasMode, Color,
+use raqote::{GradientStop, Source, SolidSource};
+use raqote::{Source, SolidSource},
 ColorPattern, CompositionOp};
-use euclid::size::Size2D;
-use azure::azure::AzIntSize;
-use azure::azure::{AzIntSize};
+use euclid::Size2D;
+use raqote::Gradient;
+use raqote::{Gradient};
 
-use std;
 
 mod paint_context;
 pub mod display_list;
 mod test::{
 };
 
-extern crate webrender_traits;
+extern crate webrender_api;
 extern crate style_traits;
 
 #[foo = "bar,baz"]
+#[derive(Copy,Debug, ComputeSquaredDistance)]
 impl test {
 
     fn test_fun(y:f32)->f32{
@@ -38,7 +38,7 @@ impl test {
         }
     }
 
-    fn test_fun2(y : &String, z : &Vec<f32>, r: &Root<isize>) -> () {
+    fn test_fun2(y : &String, z : &Vec<f32>, r: &Root<isize>, s: &DomRoot<isize>) -> () {
         let x = true;
         x
             && x;
@@ -72,4 +72,10 @@ impl test {
       } else { // Should not trigger
           "false"
       } // Should not trigger
+
+    if  true { // Double space after keyword
+        42
+    } else {
+        let xif = 42 in {  xif  } // Should not trigger
+    }
 }

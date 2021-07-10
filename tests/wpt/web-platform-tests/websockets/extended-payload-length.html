@@ -20,7 +20,7 @@ async_test(function(t){
         assert_equals(e.data, data);
         t.done();
     });
-}, "Application data is 125 byte which means any 'Extended payload length' field isn't used at all.", {timeout:20000});
+}, "Application data is 125 byte which means any 'Extended payload length' field isn't used at all.");
 
 async_test(function(t){
     var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/echo');
@@ -34,7 +34,7 @@ async_test(function(t){
         assert_equals(e.data, data);
         t.done();
     });
-}, "Application data is 126 byte which starts to use the 16 bit 'Extended payload length' field.", {timeout:20000});
+}, "Application data is 126 byte which starts to use the 16 bit 'Extended payload length' field.");
 
 async_test(function(t){
     var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/echo');
@@ -48,7 +48,7 @@ async_test(function(t){
         assert_equals(e.data, data);
         t.done();
     });
-}, "Application data is 0xFFFF byte which means the upper bound of the 16 bit 'Extended payload length' field.", {timeout:20000});
+}, "Application data is 0xFFFF byte which means the upper bound of the 16 bit 'Extended payload length' field.");
 
 async_test(function(t){
     var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/echo');
@@ -62,6 +62,6 @@ async_test(function(t){
         assert_equals(e.data, data);
         t.done();
     });
-}, "Application data is (0xFFFF + 1) byte which starts to use the 64 bit 'Extended payload length' field", {timeout:20000});
+}, "Application data is (0xFFFF + 1) byte which starts to use the 64 bit 'Extended payload length' field");
 
 </script>

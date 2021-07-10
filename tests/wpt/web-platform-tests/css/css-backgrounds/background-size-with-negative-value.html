@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Backgrounds and Borders Test: background-size - negative value</title>
+    <link rel="author" title="Zhuoyu Qian" href="mailto:zhuoyu.qian@samsung.com">
+    <link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-size" title="3.9. Sizing Images: the 'background-size' property">
+    <link rel="match" href="reference/background-size-002-ref.html">
+    <meta name="flags" content="image">
+    <meta name="assert" content="Check if 'background-size' has the negative values, then such values are not allowed and they will be assumed to be 'auto'.">
+    <style>
+        #ref-overlapped-red {
+            background-color: red;
+            height: 45px;
+            width: 45px;
+        }
+        #test-overlapping-green {
+            background-image: url(support/60x60-green.png);
+            background-repeat: no-repeat;
+            background-size: -1px -1px;
+            bottom: 45px;
+            height: 100px;
+            position: relative;
+            width: 100px;
+        }
+    </style>
+  </head>
+  <body>
+    <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+    <div id="ref-overlapped-red"></div>
+    <div id="test-overlapping-green"></div>
+  </body>
+</html>

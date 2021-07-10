@@ -1,0 +1,151 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>Support for all stats defined in WebRTC Stats</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../webrtc/RTCPeerConnection-helper.js"></script>
+<script src="../webrtc/dictionary-helper.js"></script>
+<script src="../webrtc/RTCStats-helper.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script>
+'use strict';
+
+// inspired from similar test for MTI stats in ../webrtc/RTCPeerConnection-mandatory-getStats.https.html
+
+
+
+// From https://w3c.github.io/webrtc-stats/webrtc-stats.html#rtcstatstype-str*
+
+const dictionaryNames = {
+  "codec": "RTCCodecStats",
+  "inbound-rtp": "RTCInboundRtpStreamStats",
+  "outbound-rtp": "RTCOutboundRtpStreamStats",
+  "remote-inbound-rtp": "RTCRemoteInboundRtpStreamStats",
+  "remote-outbound-rtp": "RTCRemoteOutboundRtpStreamStats",
+  "csrc": "RTCRtpContributingSourceStats",
+  "peer-connection": "RTCPeerConnectionStats",
+  "data-channel": "RTCDataChannelStats",
+  "media-source": {
+    audio: "RTCAudioSourceStats",
+    video: "RTCVideoSourceStats"
+  },
+  "sender": {
+    audio: "RTCAudioSenderStats",
+    video: "RTCVideoSenderStats"
+  },
+  "receiver": {
+    audio: "RTCAudioReceiverStats",
+    video: "RTCVideoReceiverStats",
+  },
+  "transport": "RTCTransportStats",
+  "candidate-pair": "RTCIceCandidatePairStats",
+  "local-candidate": "RTCIceCandidateStats",
+  "remote-candidate": "RTCIceCandidateStats",
+  "certificate": "RTCCertificateStats",
+};
+
+
+async function getAllStats(t, pc) {
+  // Try to obtain as many stats as possible, waiting up to 20 seconds for
+  // roundTripTime which can take several RTCP messages to calculate.
+  let stats;
+  for (let i = 0; i < 20; i++) {
+    stats = await pc.getStats();
+    const values = [...stats.values()];
+    const [audio, video] = ["audio", "video"].map(kind =>
+      values.find(s => s.type == "remote-inbound-rtp" && s.kind == kind));
+    if (audio && "roundTripTime" in audio &&
+        video && "roundTripTime" in video) {
+      return stats;
+    }
+    await new Promise(r => t.step_timeout(r, 1000));
+  }
+  return stats;
+}
+
+
+  promise_test(async t => {
+    // load the IDL to know which members to be looking for
+
+    const idl = await fetch("/interfaces/webrtc-stats.idl").then(r => r.text());
+    // for RTCStats definition
+    const webrtcIdl = await fetch("/interfaces/webrtc.idl").then(r => r.text());
+    const astArray = WebIDL2.parse(idl + webrtcIdl);
+
+    let all = {};
+    for (let type in dictionaryNames) {
+        // TODO: make use of audio/video distinction
+      let dictionaries = dictionaryNames[type].audio ? Object.values(dictionaryNames[type]) : [dictionaryNames[type]];
+      all[type] = [];
+      let i = 0;
+      // Recursively collect members from inherited dictionaries
+      while (i < dictionaries.length) {
+        const dictName = dictionaries[i];
+        const dict = astArray.find(i => i.name === dictName && i.type === "dictionary");
+        if (dict && dict.members) {
+          all[type] = all[type].concat(dict.members.map(m => m.name));
+          if (dict.inheritance) {
+            dictionaries.push(dict.inheritance);
+          }
+        }
+        i++;
+      }
+      // Unique-ify
+      all[type] = [...new Set(all[type])];
+    }
+
+
+  const remaining = JSON.parse(JSON.stringify(all));
+    for (const type in remaining) {
+      remaining[type] = new Set(remaining[type]);
+    }
+
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  const dc1 = pc1.createDataChannel("dummy", {negotiated: true, id: 0});
+  const dc2 = pc2.createDataChannel("dummy", {negotiated: true, id: 0});
+
+  const stream = await getNoiseStream({video: true, audio:true});
+  for (const track of stream.getTracks()) {
+    pc1.addTrack(track, stream);
+    pc2.addTrack(track, stream);
+    t.add_cleanup(() => track.stop());
+  }
+  exchangeIceCandidates(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
+  const stats = await getAllStats(t, pc1);
+
+  // The focus of this test is not API correctness, but rather to provide an
+  // accessible metric of implementation progress by dictionary member. We count
+  // whether we've seen each dictionary's members in getStats().
+
+  test(t => {
+    for (const stat of stats.values()) {
+      if (all[stat.type]) {
+        const memberNames = all[stat.type];
+        const remainingNames = remaining[stat.type];
+        assert_true(memberNames.length > 0, "Test error. No member found.");
+        for (const memberName of memberNames) {
+          if (memberName in stat) {
+            assert_not_equals(stat[memberName], undefined, "Not undefined");
+            remainingNames.delete(memberName);
+          }
+        }
+      }
+    }
+  }, "Validating stats");
+
+  for (const type in all) {
+    for (const memberName of all[type]) {
+      test(t => {
+        assert_true(!remaining[type].has(memberName),
+                    `Is ${memberName} present`);
+      }, `${type}'s ${memberName}`);
+    }
+  }
+}, 'getStats succeeds');
+</script>

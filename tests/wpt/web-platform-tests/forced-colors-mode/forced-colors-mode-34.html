@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test forced colors mode :visited colors with sys colors</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<link rel=match href="forced-colors-mode-34-ref.html">
+<style>
+  a {
+    background-color: white;
+    border: 1px solid;
+    text-decoration: line-through;
+    text-emphasis: '*';
+    -webkit-text-emphasis: '*';
+  }
+  a:visited {
+    background-color: CanvasText;
+    border: GrayText;
+    color: GrayText;
+    text-decoration-color: GrayText;
+    text-emphasis: GrayText;
+    -webkit-text-emphasis: GrayText;
+  }
+</style>
+<a href="">Visited link.</a>

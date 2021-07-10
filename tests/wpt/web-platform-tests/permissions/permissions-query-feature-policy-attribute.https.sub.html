@@ -1,0 +1,75 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Test permissions query againts feature policy allow attribute</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id="log"></div>
+
+<script>
+  "use strict";
+
+  function test_permissions_query(
+    feature_description, test, src, expect_state, allow_attribute) {
+    let frame = document.createElement('iframe');
+    frame.src = src;
+
+    if (typeof allow_attribute !== 'undefined') {
+      frame.allow = allow_attribute;
+    }
+
+    window.addEventListener('message', test.step_func(function handler(evt) {
+      if (evt.source === frame.contentWindow) {
+        assert_equals(evt.data.state, expect_state, feature_description);
+        document.body.removeChild(frame);
+        window.removeEventListener('message', handler);
+        test.done();
+      }
+    }));
+
+    document.body.appendChild(frame);
+  }
+
+  const same_origin_src =
+    "/permissions/feature-policy-permissions-query.html";
+  const cross_origin_src =
+    "https://{{domains[www]}}:{{ports[https][0]}}" + same_origin_src;
+
+   async_test(t => {
+    test_permissions_query(
+      'navigator.permissions.query("geolocation")',
+      t,
+      same_origin_src,
+      "prompt",
+      "geolocation"
+    );
+  }, 'Permissions.state is "prompt" with allow="geolocation" in same-origin iframes.');
+
+  async_test(t => {
+    test_permissions_query(
+      'navigator.permissions.query("geolocation")',
+      t,
+      cross_origin_src,
+      "prompt",
+      "geolocation"
+    );
+  }, 'Permissions.state is "prompt" with allow="geolocation" in cross-origin iframes.');
+
+   async_test(t => {
+    test_permissions_query(
+      'navigator.permissions.query("geolocation")',
+      t,
+      same_origin_src,
+      "prompt"
+    );
+  }, 'Permission.state is "prompt" in same-origin iframes.');
+
+  async_test(t => {
+    test_permissions_query(
+      'navigator.permissions.query("geolocation")',
+      t,
+      cross_origin_src,
+      "denied"
+    );
+  }, 'Permission.state is "denied" in cross-origin iframes.');
+
+</script>

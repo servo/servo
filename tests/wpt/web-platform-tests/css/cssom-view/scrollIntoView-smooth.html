@@ -1,0 +1,101 @@
+<!DOCTYPE HTML>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<title>Check End Position of smooth scrollIntoView</title>
+<div id="container" style="height: 2500px; width: 2500px;">
+  <div id="content" style="height: 500px; width: 500px;margin-left: 1000px; margin-right: 1000px; margin-top: 1000px;margin-bottom: 1000px;background-color: red">
+  </div>
+  <div id="shadow"></div>
+</div>
+<script>
+var content_height = 500;
+var content_width = 500;
+var window_height = document.documentElement.clientHeight;
+var window_width = document.documentElement.clientWidth;
+var content = document.getElementById("content");
+add_completion_callback(() => document.getElementById("container").remove());
+
+function waitForScrollEnd() {
+  var last_changed_frame = 0;
+  var last_x = window.scrollX;
+  var last_y = window.scrollY;
+  return new Promise((resolve, reject) => {
+    function tick(frames) {
+      // We requestAnimationFrame either for 500 frames or until 20 frames with
+      // no change have been observed.
+      if (frames >= 500 || frames - last_changed_frame > 20) {
+        resolve();
+      } else {
+        if (window.scrollX != last_x || window.scrollY != last_y) {
+          last_changed_frame = frames;
+          last_x = window.scrollX;
+          last_y = window.scrollY;
+        }
+        requestAnimationFrame(tick.bind(null, frames + 1));
+      }
+    }
+    tick(0);
+  });
+}
+
+// When testing manually, we need an additional frame at beginning
+// to trigger the effect.
+requestAnimationFrame(() => {
+promise_test(t => {
+  window.scrollTo(0, 0);
+  var expected_x = content.offsetLeft + content_width - window_width;
+  var expected_y = content.offsetTop + content_height - window_height;
+  assert_not_equals(window.scrollX, expected_x, "scrollX");
+  assert_not_equals(window.scrollY, expected_y, "scrollY");
+  content.scrollIntoView({behavior: "smooth", block: "nearest", inline:
+"nearest"});
+  return waitForScrollEnd().then(() => {
+    assert_approx_equals(window.scrollX, expected_x, 1, "scrollX");
+    assert_approx_equals(window.scrollY, expected_y, 1, "scrollY");
+  });
+}, "Smooth scrollIntoView should scroll the element to the 'nearest' position");
+
+promise_test(t => {
+  window.scrollTo(0, 0);
+  var expected_x = content.offsetLeft;
+  var expected_y = content.offsetTop;
+  assert_not_equals(window.scrollX, expected_x, "scrollX");
+  assert_not_equals(window.scrollY, expected_y, "scrollY");
+  content.scrollIntoView({behavior: "smooth", block: "start", inline:
+"start"});
+  return waitForScrollEnd().then(() => {
+    assert_approx_equals(window.scrollX, expected_x, 1, "scrollX");
+    assert_approx_equals(window.scrollY, expected_y, 1, "scrollY");
+  });
+}, "Smooth scrollIntoView should scroll the element to the 'start' position");
+
+promise_test(t => {
+  window.scrollTo(0, 0);
+  var expected_x = content.offsetLeft + (content_width - window_width) / 2;
+  var expected_y = content.offsetTop + (content_height - window_height) / 2;
+  assert_not_equals(window.scrollX, expected_x, "scrollX");
+  assert_not_equals(window.scrollY, expected_y, "scrollY");
+  content.scrollIntoView({behavior: "smooth", block: "center", inline:
+"center"});
+  return waitForScrollEnd().then(() => {
+    assert_approx_equals(window.scrollX, expected_x, 1, "scrollX");
+    assert_approx_equals(window.scrollY, expected_y, 1, "scrollY");
+  });
+}, "Smooth scrollIntoView should scroll the element to the 'center' position");
+
+promise_test(t => {
+  window.scrollTo(0, 0);
+  var expected_x = content.offsetLeft + content_width - window_width;
+  var expected_y = content.offsetTop + content_height - window_height;
+  assert_not_equals(window.scrollX, expected_x, "scrollX");
+  assert_not_equals(window.scrollY, expected_y, "scrollY");
+  content.scrollIntoView({behavior: "smooth", block: "end", inline:
+"end"});
+  return waitForScrollEnd().then(() => {
+    assert_approx_equals(window.scrollX, expected_x, 1, "scrollX");
+    assert_approx_equals(window.scrollY, expected_y, 1, "scrollY");
+  });
+}, "Smooth scrollIntoView should scroll the element to the 'end' position");
+
+});
+</script>

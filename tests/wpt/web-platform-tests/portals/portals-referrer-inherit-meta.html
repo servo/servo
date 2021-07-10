@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta name="referrer" content="no-referrer">
+<body>
+<script>
+promise_test(async () => {
+  assert_implements('HTMLPortalElement' in self, 'HTMLPortalElement is required for this test');
+  let portal = document.createElement('portal');
+  let referrerPromise = new Promise((resolve, reject) => {
+    portal.addEventListener('message', e => resolve(e.data), {once: true});
+  });
+  portal.src = 'resources/postmessage-referrer.sub.html';
+  document.body.appendChild(portal);
+  try {
+    let {httpReferrer, documentReferrer} = await referrerPromise;
+    assert_equals(httpReferrer, 'no-http-referrer', 'No HTTP Referer header should be sent');
+    assert_equals(documentReferrer, 'no-document-referrer', 'No document.referrer should be present');
+  } finally {
+    document.body.removeChild(portal);
+  }
+}, "portal contents should be loaded with no referrer if document requests it");
+</script>
+</body>

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <g id="testmeta">
+    <title>Text: Inline Size — 001</title>
+    <html:link rel="author"
+          title="Tavmjong Bah"
+          href="mailto:tavmjong@free.fr"/>
+    <html:link rel="reviewer"
+          title="NAME_OF_REVIEWER"
+          href="mailto:EMAIL OR http://CONTACT_PAGE" />
+          <!-- YYYY-MM-DD -->
+    <html:link rel="help"
+          href="https://svgwg.org/svg2-draft/text.html#InlineSize"/>
+    <metadata class="flags">TOKENS</metadata>
+    <desc class="assert">TEST ASSERTION</desc>
+  </g>
+
+  <style id="test-font" type="text/css">
+    /* Standard Font (if needed). */
+    @font-face {
+      font-family: FreeSans;
+      src: url("fonts/FreeSans.woff") format("woff"),
+           local("FreeSans");
+    }
+    text { font-family: FreeSans, sans-serif }
+  </style>
+
+  <style id="test-style" type="text/css">
+    /* Style that is being tested (if needed). */
+    text { font-family: FreeSans, sans-serif }
+  </style>
+
+  <defs>
+    <path id="TestPath" d="m 80,100 0,40 m 320,-40 0,40"/>
+  </defs>
+
+  <text id="title" x="240" y="50" style="fill:black; font-size:24px; text-anchor:middle;">Text 'inline-size' — 001</text>
+  <a href="https://svgwg.org/svg2-draft/text.html#InlineSize">
+    <text id="source" x="240" y="70" style="fill:black; font-size:12px; text-anchor:middle;">https://svgwg.org/svg2-draft/text.html#InlineSize</text>
+  </a>
+
+  <g id="test-body-reference" style="font-size:16px;fill:red">
+    <g transform="translate(0,0)">
+      <use xlink:href="#TestPath" style="fill:none;stroke:lightblue"/>
+      <circle cx="80" cy="114.8" r="1,0" style="fill:lightblue"/>
+      <text>
+        <tspan x="80" y="114.8">Lorem ipsum dolor sit amet, consectetur</tspan>
+        <tspan x="80" y="134.8">adipisicing elit,</tspan>
+      </text>
+    </g>
+    <g transform="translate(0,60)">
+      <use xlink:href="#TestPath" style="fill:none;stroke:lightblue"/>
+      <circle cx="240" cy="114.8" r="1,0" style="fill:lightblue"/>
+      <text style="text-anchor:middle">
+        <tspan x="240" y="114.8">Lorem ipsum dolor sit amet, consectetur</tspan>
+        <tspan x="240" y="134.8">adipisicing elit,</tspan>
+      </text>
+    </g>
+    <g transform="translate(0,120)">
+      <use xlink:href="#TestPath" style="fill:none;stroke:lightblue"/>
+      <circle cx="400" cy="114.8" r="1,0" style="fill:lightblue"/>
+      <text style="text-anchor:end">
+        <tspan x="400" y="114.8">Lorem ipsum dolor sit amet, consectetur</tspan>
+        <tspan x="400" y="134.8">adipisicing elit,</tspan>
+      </text>
+    </g>
+  </g>
+
+  <g id="test-body-content" style="font-size:16px;line-spacing:1.25;fill:green">
+    <g transform="translate(0,0)">
+      <text x="80" y="114.8" style="inline-size:320px">Lorem ipsum dolor sit amet, consectetur adipisicing elit,</text>
+    </g>
+    <g transform="translate(0,60)">
+      <text x="240" y="114.8" style="inline-size:320px;text-anchor:middle">Lorem ipsum dolor sit amet, consectetur adipisicing elit,</text>
+    </g>
+    <g transform="translate(0,120)">
+      <text x="400" y="114.8" style="inline-size:320px;text-anchor:end">Lorem ipsum dolor sit amet, consectetur adipisicing elit,</text>
+    </g>
+  </g>
+
+</svg>

@@ -1,0 +1,14 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<meta name="viewport" content="width=device-width">
+
+<title>Long Task Frame</title>
+<body>
+<h1>Long Task plus PostMessage</h1>
+
+<script>
+  const begin = window.performance.now();
+  while (window.performance.now() < begin + 60);
+  window.opener.postMessage('Finished.', '*');
+</script>
+</body>

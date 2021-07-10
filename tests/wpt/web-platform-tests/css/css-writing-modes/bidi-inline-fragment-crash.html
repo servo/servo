@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>CSS Writing Modes Test: many levels of bidi inline fragmentations does not crash</title>
+<link rel="help" href="http://crbug.com/925247">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+span {
+  border: blue solid 2px;
+}
+</style>
+<body>
+<div>
+  <span>
+    1&#x202E;2&#x202D;
+    <span>3&#x202E;4&#x202D;
+      <span>5&#x202E;6&#x202D;
+        <span>7&#x202E;8&#x202D;</span>
+      </span>
+    </span>
+  </span>
+  x
+</div>
+<script>
+test(() => {
+  document.body.offsetTop;
+});
+</script>
+</body>

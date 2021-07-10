@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/shapedetection-helpers.js"></script>
+<body>
+<img id="img" src="/images/green-16x16.png"/>
+</body>
+<script>
+
+detection_test("FaceDetectionTest", async (t, detectionTest) => {
+  const img = document.getElementById("img");
+  const mock = detectionTest.MockFaceDetectionProvider();
+
+  const detectorWithDefault = new FaceDetector();
+  let faceDetectionResult = await detectorWithDefault.detect(img);
+  assert_equals(mock.getMaxDetectedFaces(), 10, "default maxDetectedFaces");
+  assert_equals(mock.getFastMode(), false, "default maxDetectedFaces");
+
+  const detectorWithOptions =
+      new FaceDetector({maxDetectedFaces: 7, fastMode: true});
+  faceDetectionResult = await detectorWithOptions.detect(img);
+  assert_equals(mock.getMaxDetectedFaces(), 7, "maxDetectedFaces");
+  assert_equals(mock.getFastMode(), true, "maxDetectedFaces");
+}, "Test that FaceDetectionOptions are correctly propagated");
+
+detection_test("BarcodeDetectionTest", async (t, detectionTest) => {
+  const img = document.getElementById("img");
+  const mock = detectionTest.MockBarcodeDetectionProvider();
+
+  const detectorWithNoOptions = new BarcodeDetector();
+  let barcodeDetectionResult = await detectorWithNoOptions.detect(img);
+  assert_array_equals(mock.getFormats(), [], "formats");
+
+  const detectorWithOptions = new BarcodeDetector({
+      formats: ["code_128", "qr_code"]});
+  barcodeDetectionResult = await detectorWithOptions.detect(img);
+  assert_array_equals(
+      mock.getFormats(),
+      [BarcodeFormat.CODE_128, BarcodeFormat.QR_CODE],
+      "formats");
+
+  const invalidFormats = [
+    [],
+    ["unknown"],
+    ["foo", "bar"]
+  ];
+
+  invalidFormats.forEach(invalidFormat => {
+    assert_throws_js(TypeError, () => new BarcodeDetector({formats: invalidFormat}));
+  });
+
+}, "Test that BarcodeDetectorOptions are correctly propagated");
+
+</script>

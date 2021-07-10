@@ -1,6 +1,0 @@
-Expires: Mon, 26 Jul 1997 05:00:00 GMT
-Cache-Control: no-store, no-cache, must-revalidate
-Cache-Control: post-check=0, pre-check=0, false
-Pragma: no-cache
-Set-Cookie: injected-inline-script-blocked={{$id:uuid()}}; Path=/content-security-policy/blink-contrib
-Content-Security-Policy: script-src 'self'; connect-src 'self'; report-uri /content-security-policy/support/report.py?op=put&reportID={{$id}}

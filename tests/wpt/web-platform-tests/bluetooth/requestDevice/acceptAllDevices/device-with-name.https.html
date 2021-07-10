@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/bluetooth/resources/bluetooth-test.js"></script>
+<script src="/bluetooth/resources/bluetooth-fake-devices.js"></script>
+<script>
+const test_desc =
+    'A device with name and no UUIDs nearby. Should be found if ' +
+    'acceptAllDevices is true.';
+const name = 'LE Device';
+
+bluetooth_test(
+    () =>
+        setUpPreconnectedDevice({name: name})
+            .then(() => requestDeviceWithTrustedClick({acceptAllDevices: true}))
+            .then(device => assert_equals(device.name, name)),
+    test_desc);
+</script>

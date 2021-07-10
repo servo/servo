@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>CSS Position Absolute: Chrome crash</title>
+<link rel="author" href="mailto:atotic@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=952644">
+<meta name="assert" content="abspos iframe with zoom gets laid out">
+<style>
+  .boundary {
+    overflow: hidden;
+    width: 100px;
+    height: 100px;
+  }
+  .abs {
+    position: absolute;
+    background: green;
+    zoom: 2;
+  }
+</style>
+<!-- Containing block with zoom causes zoomed abspos iframe
+not to be laid out-->
+<div class="boundary">
+  <div id="parent">
+  </div>
+</div>
+<script>
+  document.body.offsetTop;
+  let abs = document.createElement("iframe");
+  abs.classList.add("abs");
+  document.querySelector("#parent").appendChild(abs);
+  test(() => {
+  }, 'test passes if it does not crash');
+</script>

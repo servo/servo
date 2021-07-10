@@ -43,28 +43,28 @@
     </font-face>
   </defs>
   <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
-  	<defs>
-	  	<font-face font-family="FreeSerif" unicode-range="U+0-7F" font-weight="400">
-	      <font-face-src>
-	        <font-face-uri xlink:href="../resources/FreeSerif.svg#FreeSerif"/>
-	      </font-face-src>
-	    </font-face>
-	    <font-face font-family="FreeSerif" unicode-range="U+0-7F" font-weight="700">
-	      <font-face-src>
-	        <font-face-uri xlink:href="../resources/FreeSerifBold.svg#FreeSerifBold"/>
-	      </font-face-src>
-	    </font-face>
-	    <font-face font-family="FreeSerif" unicode-range="U+0-7F" font-weight="400" font-style="italic">
-	      <font-face-src>
-	        <font-face-uri xlink:href="../resources/FreeSerifItalic.svg#FreeSerifItalic"/>
-	      </font-face-src>
-	    </font-face>
-	    <font-face font-family="FreeSerif" unicode-range="U+0-7F" font-weight="700"  font-style="italic">
-	      <font-face-src>
-	        <font-face-uri xlink:href="../resources/FreeSerifBoldItalic.svg#FreeSerifBoldItalic"/>
-	      </font-face-src>
-	    </font-face>
-  	</defs>
+    <defs>
+      <font-face font-family="FreeSerif" unicode-range="U+0-7F" font-weight="400">
+        <font-face-src>
+          <font-face-uri xlink:href="../resources/FreeSerif.svg#FreeSerif"/>
+        </font-face-src>
+      </font-face>
+      <font-face font-family="FreeSerif" unicode-range="U+0-7F" font-weight="700">
+        <font-face-src>
+          <font-face-uri xlink:href="../resources/FreeSerifBold.svg#FreeSerifBold"/>
+        </font-face-src>
+      </font-face>
+      <font-face font-family="FreeSerif" unicode-range="U+0-7F" font-weight="400" font-style="italic">
+        <font-face-src>
+          <font-face-uri xlink:href="../resources/FreeSerifItalic.svg#FreeSerifItalic"/>
+        </font-face-src>
+      </font-face>
+      <font-face font-family="FreeSerif" unicode-range="U+0-7F" font-weight="700"  font-style="italic">
+        <font-face-src>
+          <font-face-uri xlink:href="../resources/FreeSerifBoldItalic.svg#FreeSerifBoldItalic"/>
+        </font-face-src>
+      </font-face>
+    </defs>
     <text x="25" y="20" font-size="16">Basics of tspan: changing visual properties and positioning.</text>
     <!-- From example tspan01 - using tspan to change visual attributes -->
     <g id="tspan01" font-size="16" font-family="FreeSerif, serif">
@@ -76,7 +76,7 @@
       <text x="65.25" y="108" font-size="16">'tspan' changes visual attributes of "not",</text>
       <text x="65.25" y="125.25" font-size="16">to green, bold.</text>
     </g>
-    <!-- From example tspan02 - using tspan's dx and dy attributes 
+    <!-- From example tspan02 - using tspan's dx and dy attributes
                  for incremental positioning adjustments -->
     <g id="tspan02" font-size="16" font-family="FreeSerif, serif">
       <text x="257.5" y="153.75" fill="blue">
@@ -87,7 +87,7 @@
       <text x="238" y="212.25" font-size="16">Using dx,dy, 'tspan' raises "are",</text>
       <text x="238" y="229.5" font-size="16">'tspan' lowers "a peach!"</text>
     </g>
-    <!-- Example tspan03 - using tspan's x and y attributes 
+    <!-- Example tspan03 - using tspan's x and y attributes
                      for multiline text and precise glyph positioning -->
     <g id="tspan03" fill="#000000" font-size="16" font-family="FreeSerif, serif">
       <text fill="rgb(255,164,0)">

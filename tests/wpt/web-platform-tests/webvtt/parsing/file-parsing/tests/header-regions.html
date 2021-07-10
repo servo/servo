@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<title>Tests proper parsing of various regions present in WebVTT header area.</title>
+<script src="/common/media.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const regionDefaults = {
+    width: 100,
+    lines: 3,
+    regionAnchorX: 0,
+    regionAnchorY: 100,
+    viewportAnchorX: 0,
+    viewportAnchorY: 100,
+    scroll: ''
+};
+
+function checkProperties(region, expected, i) {
+    for (var prop in regionDefaults) {
+        if (!(prop in expected))
+            expected[prop] = regionDefaults[prop];
+        assert_equals(region[prop], expected[prop], prop + ' (cue ' + ( i + 1 ) + ')');
+    }
+}
+
+function checkCueRegions(cues) {
+    for (let i = 0; i < cues.length; ++i) {
+        let cue = cues[i];
+        let expected = JSON.parse(cue.text);
+        if (cue.region)
+            checkProperties(cue.region, expected, i);
+        else
+            assert_equals(expected, 'no region');
+    }
+}
+
+async_test(function(t) {
+    var video = document.createElement('video');
+    video.src = getVideoURI('/media/test');
+    var testTrack = document.createElement('track');
+    testTrack.onload = t.step_func_done(function() {
+        var track = testTrack.track;
+        assert_equals(track.cues.length, 9);
+        checkCueRegions(track.cues);
+    });
+    testTrack.src = 'support/header-regions.vtt';
+    testTrack.kind = 'captions';
+    testTrack.default = true;
+    video.appendChild(testTrack);
+});
+</script>

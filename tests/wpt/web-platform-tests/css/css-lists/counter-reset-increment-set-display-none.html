@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Lists: counter-reset, counter-set and counter-increment on display:none</title>
+<link rel="author" title="Rune Lillesveen" href="mailto:futhark@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-lists/#counters-without-boxes">
+<link rel="match" href="counter-7-ref.html">
+<style>
+  .inc { counter-increment: x }
+  .reset-6 { counter-reset: x 6 }
+  .reset-666 { counter-reset: x 666 }
+  .set-666 { counter-set: x 666 }
+  .none { display: none }
+  .result::before { content: counter(x) }
+</style>
+<p>You should see the number 7 below.</p>
+<div>
+  <span class="reset-6"></span>
+  <span class="none reset-666 inc"></span>
+  <span class="none set-666"></span>
+  <span class="inc result"></span>
+</div>

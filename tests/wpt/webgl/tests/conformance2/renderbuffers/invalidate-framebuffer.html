@@ -1,0 +1,175 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Invalidate Framebuffer Against WebGL 2</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="20" height="20"> </canvas>
+<script>
+"use strict";
+description("This tests invalidateFramebuffer and invalidateSubFramebuffer");
+
+debug("");
+debug("Canvas.getContext");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, { depth : true, stencil : false }, 2);
+if (!gl) {
+  testFailed("context does not exist");
+} else {
+  testPassed("context exists");
+
+  debug("");
+  debug("invalidate framebuffer.");
+
+  gl.clearColor(0, 0, 0, 0);
+
+  // setup framebuffer with depth attachment and multi-sampled color attachment
+  var fb_m = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb_m);
+
+  var rb_m = gl.createRenderbuffer();
+  gl.bindRenderbuffer(gl.RENDERBUFFER, rb_m);
+  var samples = gl.getInternalformatParameter(gl.RENDERBUFFER, gl.RGBA8, gl.SAMPLES);
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rb_m);
+  // invalidate the framebuffer when the attachment is incomplete: no storage allocated to the attached renderbuffer
+  invalidateIncompleteAttachment(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0);
+  gl.renderbufferStorageMultisample(gl.RENDERBUFFER, samples[0], gl.RGBA8, canvas.width, canvas.height);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+      "should be no errors after attaching a multi-sampled renderbuffer to fbo.");
+
+  var rb = gl.createRenderbuffer();
+  gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, rb);
+  // invalidate the framebuffer when the attachment is incomplete: no storage allocated to the attached renderbuffer
+  invalidateIncompleteAttachment(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT);
+  gl.renderbufferStorageMultisample(gl.RENDERBUFFER, samples[0], gl.DEPTH_COMPONENT16, canvas.width, canvas.height);
+  gl.clear(gl.DEPTH_BUFFER_BIT);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+      "should be no errors after attaching a renderbuffer to fbo.");
+
+  // in real world case, after some drawing, we can invalidate the depth attachment of the bound fbo
+  invalidation(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.STENCIL_ATTACHMENT);
+
+  // set up framebuffer to blit to and read back from
+  var fb = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  var buffer = gl.createRenderbuffer();
+  gl.bindRenderbuffer(gl.RENDERBUFFER, buffer);
+  gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA8, canvas.width, canvas.height);
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, buffer);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+      "should be no errors after attaching a renderbuffer to fbo.");
+
+  gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fb_m);
+  gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fb);
+  gl.blitFramebuffer(0, 0, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+      "should be no errors after bliting framebuffer.");
+
+  // invalidate the multi-sampled color attachment of the bound read framebuffer after blitFramebuffer.
+  invalidation(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.DEPTH_ATTACHMENT);
+
+  var maxColorAttachments = gl.getParameter(gl.MAX_COLOR_ATTACHMENTS);
+  gl.invalidateSubFramebuffer(gl.READ_FRAMEBUFFER, [gl.COLOR_ATTACHMENT0 + maxColorAttachments], 5, 5, 10, 10);
+  wtu.glErrorShouldBe(gl, [gl.INVALID_OPERATION, gl.INVALID_ENUM],
+      "calling invalidateSubFramebuffer to invalidate a COLOR_ATTACHMENT that exceeds MAX_COLOR_ATTACHMENT should generate INVALID_ENUM or INVALID_OPERATION.");
+  gl.invalidateFramebuffer(gl.READ_FRAMEBUFFER, [gl.COLOR_ATTACHMENT0 + maxColorAttachments]);
+  wtu.glErrorShouldBe(gl, [gl.INVALID_OPERATION, gl.INVALID_ENUM],
+      "calling invalidateFramebuffer to invalidate a COLOR_ATTACHMENT that exceeds MAX_COLOR_ATTACHMENT should generate INVALID_ENUM or INVALID_OPERATION.");
+
+  // invalidate the default framebuffer
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  invalidation(gl.FRAMEBUFFER, gl.DEPTH, gl.STENCIL);
+
+  gl.deleteFramebuffer(fb_m);
+  gl.deleteRenderbuffer(rb_m);
+  gl.deleteRenderbuffer(rb);
+  gl.deleteFramebuffer(fb);
+  gl.deleteRenderbuffer(buffer);
+}
+
+function invalidation(target, valid_attachment, invalid_attachment) {
+  gl.invalidateSubFramebuffer(target, [invalid_attachment], 5, 5, 10, 10);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+      "calling invalidateSubFramebuffer to invalidate a specified attachment that does not exist will be ignored. There should be no errors.");
+  gl.invalidateSubFramebuffer(target, [valid_attachment], 5, 5, 10, 10);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+      "calling invalidateSubFramebuffer should succeed.");
+
+  gl.invalidateSubFramebuffer(target, [valid_attachment], 5, 5, -5, -5);
+  wtu.glErrorShouldBe(gl, gl.INVALID_VALUE,
+      "calling invalidateSubFramebuffer should generate INVALID_VALUE if width < 0 or height < 0.");
+
+  gl.invalidateSubFramebuffer(target, [valid_attachment], -5, -5, 10, 10);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+      "calling invalidateSubFramebuffer should succeed, even the invalidated pixels may be outside of the framebuffer allocated to current context. These pixels are ignored.");
+  gl.invalidateSubFramebuffer(target, [valid_attachment], 5, 5, 20, 20);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+      "calling invalidateSubFramebuffer should succeed, even the invalidated pixels may be outside of the framebuffer allocated to current context. These pixels are ignored.");
+
+  gl.invalidateFramebuffer(target, [invalid_attachment]);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+      "calling invalidateFramebuffer to invalidate a specified attachment that does not exist will be ignored. There should be no errors.");
+  gl.invalidateFramebuffer(target, [valid_attachment]);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+      "calling invalidateFramebuffer should succeed.");
+}
+
+function invalidateIncompleteAttachment(target, incomplete_attachment) {
+  shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)",
+           "gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT");
+  gl.invalidateSubFramebuffer(target, [incomplete_attachment], 5, 5, 10, 10);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+      "calling invalidateSubFramebuffer to invalidate an incomplete attachment will be ignored. There should be no errors");
+  gl.invalidateFramebuffer(target, [incomplete_attachment]);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+      "calling invalidateFramebuffer to invalidate an incomplete attachment will be ignored. There should be no errors.");
+}
+
+debug("");
+var successfullyParsed = true;
+
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

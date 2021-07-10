@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>test reference</title>
+<style type='text/css'>
+
+/* the CSS below is not part of the test */
+.test { font-size: 130%; line-height: 2.5; color: blue; }
+.test div { white-space: nowrap; text-align: center;
+             width: 5em; display: inline-block; }</style>
+<script type='text/javascript'>
+//<![CDATA[
+function setFontFamily () {var fontName = document.getElementById( 'fontName' ).value;	var divs = document.getElementsByTagName('div');	var i = 0; var div;	while (i < divs.length) {	 	div = divs.item(i);		if (div.className == 'test') { 			div.style.fontFamily = fontName; 			}		i++;		}	}
+//]]>
+</script>
+</head>
+<body>
+<p class="instructions">Test passes if the right-hand character in each pair matches the left-hand one.</p>
+
+
+<div class="test">
+<div>A <span>A</span></div>
+<div>B <span>B</span></div>
+<div>C <span>C</span></div>
+<div>D <span>D</span></div>
+<div>E <span>E</span></div>
+<div>F <span>F</span></div>
+<div>G <span>G</span></div>
+<div>H <span>H</span></div>
+<div>I <span>I</span></div>
+<div>J <span>J</span></div>
+<div>K <span>K</span></div>
+<div>L <span>L</span></div>
+<div>M <span>M</span></div>
+<div>N <span>N</span></div>
+<div>O <span>O</span></div>
+<div>P <span>P</span></div>
+<div>Q <span>Q</span></div>
+<div>R <span>R</span></div>
+<div>S <span>S</span></div>
+<div>T <span>T</span></div>
+<div>U <span>U</span></div>
+<div>V <span>V</span></div>
+<div>W <span>W</span></div>
+<div>X <span>X</span></div>
+<div>Y <span>Y</span></div>
+<div>Z <span>Z</span></div>
+<div>À <span>À</span></div>
+<div>Á <span>Á</span></div>
+<div>Â <span>Â</span></div>
+<div>Ã <span>Ã</span></div>
+<div>Ä <span>Ä</span></div>
+<div>Å <span>Å</span></div>
+<div>Æ <span>Æ</span></div>
+<div>Ç <span>Ç</span></div>
+<div>È <span>È</span></div>
+<div>É <span>É</span></div>
+<div>Ê <span>Ê</span></div>
+<div>Ë <span>Ë</span></div>
+<div>Ì <span>Ì</span></div>
+<div>Í <span>Í</span></div>
+<div>Î <span>Î</span></div>
+<div>Ï <span>Ï</span></div>
+<div>Ð <span>Ð</span></div>
+<div>Ñ <span>Ñ</span></div>
+<div>Ò <span>Ò</span></div>
+<div>Ó <span>Ó</span></div>
+<div>Ô <span>Ô</span></div>
+<div>Õ <span>Õ</span></div>
+<div>Ö <span>Ö</span></div>
+<div>Ø <span>Ø</span></div>
+<div>Ù <span>Ù</span></div>
+<div>Ú <span>Ú</span></div>
+<div>Û <span>Û</span></div>
+<div>Ü <span>Ü</span></div>
+<div>Ý <span>Ý</span></div>
+<div>Þ <span>Þ</span></div>
+<div>Ÿ <span>Ÿ</span></div>
+</div>
+
+
+<!--p class="notes">Notes: <br />The <a href='http://www.w3.org/TR/REC-CSS2/text.html#propdef-text-transform'>CSS2 specification</a> only requires that text-transform work for 'the Latin1 repertoire'. It is not clear what characters the term 'Latin1' covers. This test assumes that it means the Basic Latin and Latin-1 Supplement blocks of the Unicode Standard (equivalent to ISO-8859-1). There is one character in this set, ÿ, that only occurs in the lower-case form.</p-->
+<p id='fontChange' style='display: none;' class='notes'>If you are unable to see font glyphs for certain characters using the browsers default font you can apply a specific font by typing its name in the following box: <input class='css' name='fontName' id='fontName' value='' type='text' /> <button class='notes' type='button' onclick='setFontFamily()'>Apply</button></p><script type='text/javascript'>if (document.getElementById) {document.getElementById('fontChange').style.display = 'block'}</script></body>
+</html>

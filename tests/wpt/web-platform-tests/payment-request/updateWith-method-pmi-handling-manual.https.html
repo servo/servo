@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test for validity of payment method identifiers when calling updateWith() method</title>
+<link rel="help" href="https://www.w3.org/TR/payment-request/#updatewith()-method">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+setup({
+  explicit_done: true,
+  explicit_timeout: true,
+  allow_uncaught_exception: true,
+});
+const applePay = Object.freeze({
+  supportedMethods: "https://apple.com/apple-pay",
+  data: {
+    version: 3,
+    merchantIdentifier: "merchant.com.example",
+    countryCode: "US",
+    merchantCapabilities: ["supports3DS"],
+    supportedNetworks: ["visa"],
+  },
+});
+const validMethod = Object.freeze({
+  supportedMethods: "https://:@wpt.fyi:443/payment-request",
+});
+
+const validMethods = Object.freeze([
+  validMethod,
+  applePay,
+  { supportedMethods: "basic-card" },
+]);
+
+const validAmount = Object.freeze({
+  currency: "USD",
+  value: "1.0",
+});
+
+const validTotal = Object.freeze({
+  label: "Default Total",
+  amount: validAmount,
+});
+
+const validShippingOption = Object.freeze({
+  id: "standard",
+  label: "Shipping option",
+  amount: validAmount,
+  selected: true,
+});
+
+const validDetails = Object.freeze({
+  total: validTotal,
+  shippingOptions: [validShippingOption],
+});
+
+const validModifier = Object.freeze({
+  supportedMethods: "basic-card",
+  total: validTotal,
+});
+
+function manualTest(button, { invalidMethod }) {
+  button.disabled = true;
+  promise_test(async t => {
+    const request = new PaymentRequest(validMethods, validDetails, {
+      requestShipping: true,
+    });
+    const listener = ev => {
+      const invalidModifier = Object.assign({}, validModifier, {
+        supportedMethods: invalidMethod,
+      });
+      const invalidDetails = Object.assign({}, validDetails, {
+        modifiers: [validModifier, invalidModifier],
+      });
+      ev.updateWith(invalidDetails);
+    };
+    // We test against a valid and an invalid modifier
+    request.addEventListener("shippingaddresschange", listener, { once: true });
+    const showPromise = request.show();
+    await promise_rejects_js(t, RangeError, showPromise);
+  }, button.textContent.trim());
+}
+</script>
+<h2>updateWith() method: test validity of payment method identifiers.</h2>
+<p>
+  When shown a payment sheet, select a different address.
+</p>
+<ol>
+  <li>
+    <button onclick="manualTest(this, {invalidMethod: 'https://:password@example.com'});">
+      Must throw if the URL has a password.
+    </button>
+  </li>
+  <li>
+    <button onclick="manualTest(this, {invalidMethod: 'https://username@example.com'});">
+      Must throw if the URL has a username.
+    </button>
+  </li>
+  <li>
+    <button onclick="manualTest(this, {invalidMethod: 'https://username:password@example.com/pay'});">
+      Must throw if the URL has a username and a password.
+    </button>
+  </li>
+  <li>
+    <button onclick="manualTest(this, {invalidMethod: 'http://username:password@example.com/pay'});">
+      Must throw if it's http, and has a username and password.
+    </button>
+  </li>
+  <li>
+    <button onclick="manualTest(this, {invalidMethod: 'http://foo.com:100000000/pay'});">
+      Must throw if the URL is invalid (port range).
+    </button>
+  </li>
+  <li>
+    <button onclick="manualTest(this, {invalidMethod: 'basic-💳'});">
+      Must throw if the PMI contains characters that are out of range.
+    </button>
+  </li>
+  <li>
+    <button onclick="manualTest(this, {invalidMethod: 'not-https://wpt.fyi/payment-request'});">
+      Must throw if not https.
+    </button>
+  </li>
+  <li>
+    <button onclick="manualTest(this, {invalidMethod: '¡basic-*-card!'});">
+      Must throw if the standardized PMI contains characters outside the ascii range.
+    </button>
+  </li>
+  <li>
+    <button onclick="manualTest(this, {invalidMethod: 'Basic-Card'});">
+      Must throw if standardized PMI has uppercase characters.
+    </button>
+  </li>
+  <li>
+    <button onclick="done();">Done!</button>
+  </li>
+</ol>
+<small>
+  If you find a buggy test, please <a href="https://github.com/web-platform-tests/wpt/issues">file a bug</a>
+  and tag one of the <a href="https://github.com/web-platform-tests/wpt/blob/master/payment-request/META.yml">suggested reviewers</a>.
+</small>

@@ -1,0 +1,21 @@
+<html>
+  <meta chartset=utf-8>
+  <title>Test reference</title>
+  <link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<style>
+html {
+  direction: rtl;
+}
+body {
+  height: 0;
+}
+html::before {
+  content: "This text must be on the right";
+}
+html::after {
+  content: "This text must be on the left";
+  display: block;
+  direction: ltr;
+}
+</style>
+<body></body>

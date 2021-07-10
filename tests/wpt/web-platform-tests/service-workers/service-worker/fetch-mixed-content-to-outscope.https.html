@@ -7,12 +7,6 @@
 <script src="resources/test-helpers.sub.js?pipe=sub"></script>
 <body></body>
 <script>
-if (window.testRunner) {
-  // In Chromium we need to change the setting to disallow displaying insecure
-  // contents.
-  testRunner.overridePreference('WebKitAllowDisplayingInsecureContent', false);
-}
-
 async_test(function(t) {
     var host_info = get_host_info();
     window.addEventListener('message', t.step_func(on_message), false);

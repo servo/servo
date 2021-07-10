@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/mediacapture-image/resources/imagecapture-helpers.js"></script>
+<body>
+<canvas id='canvas' width=10 height=10/>
+</body>
+<script>
+
+// This test verifies that ImageCapture can get PhotoCapabilities(), with a mock
+// Mojo interface implementation.
+
+image_capture_test(async (t, imageCaptureTest) => {
+  let canvas = document.getElementById('canvas');
+  let context = canvas.getContext('2d');
+  context.fillStyle = 'red';
+  context.fillRect(0, 0, 10, 10);
+  let stream = canvas.captureStream();
+
+  let mockCapabilities = imageCaptureTest.mockImageCapture().state();
+  let capturer = new ImageCapture(stream.getVideoTracks()[0]);
+  assert_equals(typeof capturer.getPhotoCapabilities, 'function');
+
+  let capabilities = await capturer.getPhotoCapabilities();
+
+  assert_equals(capabilities.redEyeReduction, 'controllable',
+                'redEyeReduction');
+
+  assert_equals(capabilities.imageHeight.max, mockCapabilities.height.max);
+  assert_equals(capabilities.imageHeight.min, mockCapabilities.height.min);
+  assert_equals(capabilities.imageHeight.step, mockCapabilities.height.step);
+
+  assert_equals(capabilities.imageWidth.max, mockCapabilities.width.max);
+  assert_equals(capabilities.imageWidth.min, mockCapabilities.width.min);
+  assert_equals(capabilities.imageWidth.step, mockCapabilities.width.step);
+
+  assert_array_equals(capabilities.fillLightMode, [ 'auto', 'flash' ],
+                      'fillLightMode');
+
+}, 'exercises ImageCapture.getPhotoCapabilities()');
+
+promise_test(t => {
+  let canvas = document.getElementById('canvas');
+  let context = canvas.getContext('2d');
+  context.fillStyle = 'red';
+  context.fillRect(0, 0, 10, 10);
+  let stream = canvas.captureStream();
+  let videoTrack = stream.getVideoTracks()[0];
+  videoTrack.stop();
+
+  let capturer = new ImageCapture(videoTrack);
+  assert_equals(videoTrack.readyState, 'ended');
+
+  return promise_rejects_dom(t, 'InvalidStateError', capturer.getPhotoCapabilities())
+
+}, 'getPhotoCapabilities() of an ended Track should throw "InvalidStateError"');
+
+async_test(t => {
+  let canvas = document.getElementById('canvas');
+  let context = canvas.getContext('2d');
+  context.fillStyle = 'red';
+  context.fillRect(0, 0, 10, 10);
+  let stream = canvas.captureStream();
+  let videoTrack = stream.getVideoTracks()[0];
+
+  let capturer = new ImageCapture(videoTrack);
+  capturer.getPhotoCapabilities()
+  .then(t.step_func_done(() => assert_unreached('should throw "OperationError"')))
+  .catch(t.step_func_done(e => assert_equals(e.name, 'OperationError')))
+  videoTrack.stop();
+}, 'throw "OperationError" when the MediaStreamTrack is stopped while getting photo capabilities');
+
+</script>

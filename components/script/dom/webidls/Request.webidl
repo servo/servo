@@ -1,19 +1,18 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://fetch.spec.whatwg.org/#request-class
 
 typedef (Request or USVString) RequestInfo;
 
-[Constructor(RequestInfo input, optional RequestInit init),
- Exposed=(Window,Worker)]
-
+[Exposed=(Window,Worker)]
 interface Request {
+  [Throws] constructor(RequestInfo input, optional RequestInit init = {});
   readonly attribute ByteString method;
   readonly attribute USVString url;
   [SameObject] readonly attribute Headers headers;
-  readonly attribute RequestType type;
+
   readonly attribute RequestDestination destination;
   readonly attribute USVString referrer;
   readonly attribute ReferrerPolicy referrerPolicy;
@@ -22,10 +21,11 @@ interface Request {
   readonly attribute RequestCache cache;
   readonly attribute RequestRedirect redirect;
   readonly attribute DOMString integrity;
+
   [NewObject, Throws] Request clone();
 };
 
-Request implements Body;
+Request includes Body;
 
 dictionary RequestInit {
   ByteString method;
@@ -41,31 +41,21 @@ dictionary RequestInit {
   any window; // can only be set to null
 };
 
-enum RequestType {
-  "",
-  "audio",
-  "font",
-  "image",
-  "script",
-  "style",
-  "track",
-  "video"
-};
-
 enum RequestDestination {
   "",
+  "audio",
   "document",
   "embed",
   "font",
   "image",
   "manifest",
-  "media",
   "object",
   "report",
   "script",
-  "serviceworker",
   "sharedworker",
   "style",
+  "track",
+  "video",
   "worker",
   "xslt"
 };
@@ -105,6 +95,7 @@ enum ReferrerPolicy {
   "origin",
   "origin-when-cross-origin",
   "unsafe-url",
+  "same-origin",
   "strict-origin",
   "strict-origin-when-cross-origin"
 };

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Images Module Level 3: image-orientation does apply to border images</title>
+<link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#propdef-image-orientation">
+<link rel="match" href="reference/image-orientation-border-image-ref.html">
+<style>
+div {
+  width: 100px;
+  height: 50px;
+  border: 10px solid black;
+  border-image: url(support/exif-orientation-2-ur.jpg) 10;
+}
+.no-orient { image-orientation: none; }
+</style>
+<div></div>
+<div class="no-orient"></div>

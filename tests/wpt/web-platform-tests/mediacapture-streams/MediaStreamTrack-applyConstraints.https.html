@@ -1,0 +1,79 @@
+<!doctype html>
+<title>MediaStreamTrack applyConstraints</title>
+<p class="instructions">When prompted, accept to share your video stream.</p>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+  'use strict'
+
+  // https://w3c.github.io/mediacapture-main/#dom-mediastreamtrack-applyconstraints
+
+  promise_test(t => {
+    return navigator.mediaDevices.getUserMedia({ video: true })
+      .then(t.step_func(stream => {
+        return stream.getVideoTracks()[0].applyConstraints(
+          { groupId: { exact: "INVALID" } }).then(
+            t.unreached_func('Accepted invalid groupID'),
+            t.step_func(e => {
+              assert_equals(e.name, 'OverconstrainedError');
+              assert_equals(e.constraint, 'groupId');
+            }));
+      }));
+  }, 'applyConstraints rejects invalid groupID');
+
+  promise_test(t => {
+    return navigator.mediaDevices.getUserMedia({ video: true })
+      .then(t.step_func(stream => {
+        var track = stream.getVideoTracks()[0];
+        var groupId = track.getSettings().groupId;
+        return track.applyConstraints({ groupId: "INVALID" }).then(
+          t.step_func(() => {
+            assert_equals(track.getSettings().groupId, groupId);
+          }));
+      }));
+  }, 'applyConstraints accepts invalid ideal groupID, does not change setting');
+
+  promise_test(t => {
+    return navigator.mediaDevices.getUserMedia({ video: true })
+      .then(t.step_func(stream => {
+        var track = stream.getVideoTracks()[0];
+        var groupId = track.getSettings().groupId;
+        return navigator.mediaDevices.enumerateDevices().then(devices => {
+          var anotherDevice = devices.find(device => {
+            return device.kind == "videoinput" && device.groupId != groupId;
+          });
+          if (anotherDevice !== undefined) {
+            return track.applyConstraints(
+              { groupId: { exact: anotherDevice.groupId } }).then(
+                t.unreached_func(),
+                t.step_func(e => {
+                  assert_equals(e.name, 'OverconstrainedError');
+                  assert_equals(e.constraint, 'groupId');
+                }));
+          }
+        });
+      }));
+  }, 'applyConstraints rejects attempt to switch device using groupId');
+
+  promise_test(async t => {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    const [track] = stream.getVideoTracks();
+    t.add_cleanup(() => track.stop());
+    try {
+      await track.applyConstraints({ resizeMode: { exact: "INVALID" } });
+      t.unreached_func('applyConstraints() must fail with invalid resizeMode')();
+    } catch (e) {
+      assert_equals(e.name, 'OverconstrainedError');
+      assert_equals(e.constraint, 'resizeMode');
+    }
+  }, 'applyConstraints rejects invalid resizeMode');
+
+  promise_test(async t => {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    const [track] = stream.getVideoTracks();
+    t.add_cleanup(() => track.stop());
+    const resizeMode = track.getSettings().resizeMode;
+    await track.applyConstraints({ resizeMode: "INVALID" });
+    assert_equals(track.getSettings().resizeMode, resizeMode);
+  }, 'applyConstraints accepts invalid ideal resizeMode, does not change setting');
+</script>

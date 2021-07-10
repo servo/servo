@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tests the ascent-override and descent-override descriptors of @font-face</title>
+<style>
+.target {
+  position: absolute;
+  font-size: 20px;
+  top: 10px;
+  left: 10px;
+  width: 60px;
+  height: 30px;
+}
+
+.top-aligned {
+  display: inline-block;
+  background-color: green;
+  width: 1em;
+  height: 1em; /* Same as the overridden ascent */
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.character {
+  display: inline-block;
+  background-color: green;
+  width: 1em;  /* Same as an 'X' in Ahem */
+  height: 1em; /* Same as an 'X' in Ahem */
+  position: absolute;
+  top: 0.2em; /* Difference between the overridden ascent and the origianl ascent */
+  left: 1em;
+}
+
+.bottom-aligned {
+  display: inline-block;
+  background-color: green;
+  width: 1em;
+  height: 0.5em; /* Same as the overridden descent */
+  position: absolute;
+  top: 1em; /* Same as the overridden ascent */
+  left: 2em;
+}
+
+</style>
+<div class="target">
+  <span class="top-aligned"></span><span class="character"></span><span class="bottom-aligned"></span>
+</div>

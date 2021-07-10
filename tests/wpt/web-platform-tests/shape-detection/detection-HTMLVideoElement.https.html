@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/shapedetection-helpers.js"></script>
+<script>
+
+// These tests verify that a Detector's detect() works on an HTMLVideoElement.
+const videoElementTests =
+    [
+      {
+        createDetector: () => { return new FaceDetector(); },
+        mockTestName: "FaceDetectionTest",
+        detectionResultTest: FaceDetectorDetectionResultTest,
+        name: "Face - detect(HTMLVideoElement)"
+      },
+      {
+        createDetector: () => { return new BarcodeDetector(); },
+        mockTestName: "BarcodeDetectionTest",
+        detectionResultTest: BarcodeDetectorDetectionResultTest,
+        name: "Barcode - detect(HTMLVideoElement)"
+      },
+      {
+        createDetector: () => { return new TextDetector(); },
+        mockTestName: "TextDetectionTest",
+        detectionResultTest: TextDetectorDetectionResultTest,
+        name: "Text - detect(HTMLVideoElement)"
+      }
+    ];
+
+for (let videoElementTest of videoElementTests) {
+  detection_test(videoElementTest.mockTestName, async (t, detectionTest) => {
+    const video = document.createElement("video");
+    video.src = "/media/white.webm";
+    video.loop = true;
+    video.autoplay = true;
+    const videoWatcher = new EventWatcher(t, video, ["play", "error"]);
+    video.load();
+    await videoWatcher.wait_for("play");
+
+    const detector = videoElementTest.createDetector();
+    const detectionResult = await detector.detect(video);
+    videoElementTest.detectionResultTest(detectionResult, detectionTest);
+  }, videoElementTest.name);
+}
+
+function FaceDetectorDetectionResultTest(detectionResult, mockTest) {
+  const imageReceivedByMock =
+      mockTest.MockFaceDetectionProvider().getFrameData();
+  assert_equals(imageReceivedByMock.byteLength, 307200, "Image length");
+  assert_equals(detectionResult.length, 3, "Number of faces");
+}
+
+function BarcodeDetectorDetectionResultTest(detectionResult, mockTest) {
+  assert_equals(detectionResult.length, 2, "Number of barcodes");
+  assert_equals(detectionResult[0].rawValue, "cats", "barcode 1");
+  assert_equals(detectionResult[0].format, "qr_code", "barcode 1 format");
+  assert_equals(detectionResult[1].rawValue, "dogs", "barcode 2");
+  assert_equals(detectionResult[1].format, "code_128", "barcode 2 format");
+}
+
+function TextDetectorDetectionResultTest(detectionResult, mockTest) {
+  assert_equals(detectionResult.length, 2, "Number of textBlocks");
+  assert_equals(detectionResult[0].rawValue, "cats", "textBlock 1");
+  assert_equals(detectionResult[1].rawValue, "dogs", "textBlock 2");
+}
+
+</script>

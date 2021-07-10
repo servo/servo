@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="author" title="dgrogan@chromium.org" href="mailto:dgrogan@chromium.org" />
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#min-size-auto" />
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="Height of flex item in row flexbox is not ignored when resolving percentages of its descendants to determine content based minimum size suggestion.">
+
+<p>Test passes if there is a filled green square.</p>
+
+<div style="display: flex; width: 0px; height: 20px;">
+  <div style="flex-basis: 50px; height: 100px;">
+    <img src="support/200x200-green.png" style="height: 100%">
+  </div>
+</div>

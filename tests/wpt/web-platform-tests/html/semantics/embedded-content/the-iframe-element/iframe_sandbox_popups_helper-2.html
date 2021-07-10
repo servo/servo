@@ -19,6 +19,7 @@
         var a = document.createElement("a");
         a.href = location.href;
         a.target = "_blank";
+        a.rel = "opener";
         document.body.appendChild(a);
         a.click();
       }

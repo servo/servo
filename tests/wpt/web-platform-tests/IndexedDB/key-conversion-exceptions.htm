@@ -16,12 +16,12 @@ function indexeddb_upgrade_only_test(upgrade_callback, description) {
 function throwing_key(name) {
     var throws = [];
     throws.length = 1;
+    const err = new Error('throwing from getter');
+    err.name = name;
     Object.defineProperty(throws, '0', {get: function() {
-        var err = new Error('throwing from getter');
-        err.name = name;
         throw err;
     }, enumerable: true});
-    return throws;
+    return [throws, err];
 }
 
 var valid_key = [];
@@ -35,27 +35,30 @@ var invalid_key = {};
 function check_method(receiver, method, args) {
     args = args || 1;
     if (args < 2) {
-        assert_throws({name:'getter'}, () => {
-            receiver[method](throwing_key('getter'));
+        const [key, err] = throwing_key('getter');
+        assert_throws_exactly(err, () => {
+            receiver[method](key);
         }, 'key conversion with throwing getter should rethrow');
 
-        assert_throws('DataError', () => {
+        assert_throws_dom('DataError', () => {
             receiver[method](invalid_key);
         }, 'key conversion with invalid key should throw DataError');
     } else {
-        assert_throws({name:'getter 1'}, () => {
-            receiver[method](throwing_key('getter 1'), throwing_key('getter 2'));
+        const [key1, err1] = throwing_key('getter 1');
+        const [key2, err2] = throwing_key('getter 2');
+        assert_throws_exactly(err1, () => {
+            receiver[method](key1, key2);
         }, 'first key conversion with throwing getter should rethrow');
 
-        assert_throws('DataError', () => {
-            receiver[method](invalid_key, throwing_key('getter 2'));
+        assert_throws_dom('DataError', () => {
+            receiver[method](invalid_key, key2);
         }, 'first key conversion with invalid key should throw DataError');
 
-        assert_throws({name:'getter 2'}, () => {
-            receiver[method](valid_key, throwing_key('getter 2'));
+        assert_throws_exactly(err2, () => {
+            receiver[method](valid_key, key2);
         }, 'second key conversion with throwing getter should rethrow');
 
-        assert_throws('DataError', () => {
+        assert_throws_dom('DataError', () => {
             receiver[method](valid_key, invalid_key);
         }, 'second key conversion with invalid key should throw DataError');
     }
@@ -107,8 +110,9 @@ indexeddb_upgrade_only_test((t, db) => {
         assert_not_equals(cursor, null, 'cursor should find a value');
 
         var value = {};
-        value.prop = throwing_key('getter');
-        assert_throws({name: 'getter'}, () => {
+        var err;
+        [value.prop, err] = throwing_key('getter');
+        assert_throws_exactly(err, () => {
             cursor.update(value);
         }, 'throwing getter should rethrow during clone');
 
@@ -118,7 +122,7 @@ indexeddb_upgrade_only_test((t, db) => {
         // are used for key path evaluation.
 
         value.prop = invalid_key;
-        assert_throws('DataError', () => {
+        assert_throws_dom('DataError', () => {
             cursor.update(value);
         }, 'key conversion with invalid key should throw DataError');
     });
@@ -140,18 +144,18 @@ test(t => {
     indexeddb_upgrade_only_test((t, db) => {
         var out_of_line = db.createObjectStore('out-of-line keys');
         var in_line = db.createObjectStore('in-line keys', {keyPath: 'prop'});
-
-        assert_throws({name:'getter'}, () => {
-            out_of_line[method]('value', throwing_key('getter'));
+        var [key, err] = throwing_key('getter');
+        assert_throws_exactly(err, () => {
+            out_of_line[method]('value', key);
         }, 'key conversion with throwing getter should rethrow');
 
-        assert_throws('DataError', () => {
+        assert_throws_dom('DataError', () => {
             out_of_line[method]('value', invalid_key);
         }, 'key conversion with invalid key should throw DataError');
 
         var value = {};
-        value.prop = throwing_key('getter');
-        assert_throws({name:'getter'}, () => {
+        [value.prop, err] = throwing_key('getter');
+        assert_throws_exactly(err, () => {
             in_line[method](value);
         }, 'throwing getter should rethrow during clone');
 
@@ -161,7 +165,7 @@ test(t => {
         // are used for key path evaluation.
 
         value.prop = invalid_key;
-        assert_throws('DataError', () => {
+        assert_throws_dom('DataError', () => {
             in_line[method](value);
         }, 'key conversion with invalid key should throw DataError');
     }, `IDBObjectStore ${method}() method with throwing/invalid keys`);

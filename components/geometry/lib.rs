@@ -1,18 +1,21 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-extern crate app_units;
-extern crate euclid;
-#[macro_use] extern crate heapsize;
+#[macro_use]
+extern crate malloc_size_of_derive;
 
-use app_units::{Au, MAX_AU};
-use euclid::point::Point2D;
-use euclid::rect::Rect;
-use euclid::size::Size2D;
-use std::i32;
+use app_units::{Au, MAX_AU, MIN_AU};
+use euclid::{
+    default::{Point2D, Rect, Size2D},
+    Length,
+};
+use std::f32;
+use webrender_api::units::{FramebufferPixel, LayoutPoint, LayoutRect, LayoutSize};
 
 // Units for use with euclid::length and euclid::scale_factor.
+
+pub type FramebufferUintLength = Length<u32, FramebufferPixel>;
 
 /// A normalized "pixel" at the default resolution for the display.
 ///
@@ -27,28 +30,55 @@ use std::i32;
 ///
 /// The ratio between DeviceIndependentPixel and DevicePixel for a given display be found by calling
 /// `servo::windowing::WindowMethods::hidpi_factor`.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, MallocSizeOf)]
 pub enum DeviceIndependentPixel {}
-
-known_heap_size!(0, DeviceIndependentPixel);
 
 // An Au is an "App Unit" and represents 1/60th of a CSS pixel.  It was
 // originally proposed in 2002 as a standard unit of measure in Gecko.
 // See https://bugzilla.mozilla.org/show_bug.cgi?id=177805 for more info.
 
-#[inline(always)]
-pub fn max_rect() -> Rect<Au> {
-    Rect::new(Point2D::new(Au(i32::MIN / 2), Au(i32::MIN / 2)), Size2D::new(MAX_AU, MAX_AU))
+pub trait MaxRect {
+    fn max_rect() -> Self;
+}
+
+impl MaxRect for Rect<Au> {
+    #[inline]
+    fn max_rect() -> Rect<Au> {
+        Rect::new(
+            Point2D::new(MIN_AU / 2, MIN_AU / 2),
+            Size2D::new(MAX_AU, MAX_AU),
+        )
+    }
+}
+
+impl MaxRect for LayoutRect {
+    #[inline]
+    fn max_rect() -> LayoutRect {
+        LayoutRect::new(
+            LayoutPoint::new(f32::MIN / 2.0, f32::MIN / 2.0),
+            LayoutSize::new(f32::MAX, f32::MAX),
+        )
+    }
 }
 
 /// A helper function to convert a rect of `f32` pixels to a rect of app units.
 pub fn f32_rect_to_au_rect(rect: Rect<f32>) -> Rect<Au> {
-    Rect::new(Point2D::new(Au::from_f32_px(rect.origin.x), Au::from_f32_px(rect.origin.y)),
-              Size2D::new(Au::from_f32_px(rect.size.width), Au::from_f32_px(rect.size.height)))
+    Rect::new(
+        Point2D::new(
+            Au::from_f32_px(rect.origin.x),
+            Au::from_f32_px(rect.origin.y),
+        ),
+        Size2D::new(
+            Au::from_f32_px(rect.size.width),
+            Au::from_f32_px(rect.size.height),
+        ),
+    )
 }
 
 /// A helper function to convert a rect of `Au` pixels to a rect of f32 units.
 pub fn au_rect_to_f32_rect(rect: Rect<Au>) -> Rect<f32> {
-    Rect::new(Point2D::new(rect.origin.x.to_f32_px(), rect.origin.y.to_f32_px()),
-              Size2D::new(rect.size.width.to_f32_px(), rect.size.height.to_f32_px()))
+    Rect::new(
+        Point2D::new(rect.origin.x.to_f32_px(), rect.origin.y.to_f32_px()),
+        Size2D::new(rect.size.width.to_f32_px(), rect.size.height.to_f32_px()),
+    )
 }

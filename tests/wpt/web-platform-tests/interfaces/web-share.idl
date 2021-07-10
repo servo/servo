@@ -1,0 +1,15 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Web Share API (https://w3c.github.io/web-share/)
+
+partial interface Navigator {
+  [SecureContext] Promise<undefined> share(optional ShareData data = {});
+};
+
+dictionary ShareData {
+  sequence<File> files;
+  USVString title;
+  USVString text;
+  USVString url;
+};

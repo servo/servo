@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     width="800px" height="8000px">
+  <title>SVG Scripting and Interactivity: parsing pointer-events with invalid values</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/interact.html#PointerEventsProperty"/>
+    <h:meta name="assert" content="pointer-events supports only the grammar 'auto | bounding-box | visiblePainted | visibleFill | visibleStroke | visible | painted | fill | stroke | all | none'."/>
+  </metadata>
+  <g id="target"></g>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="/css/support/parsing-testcommon.js"/>
+  <script><![CDATA[
+
+test_invalid_value("pointer-events", "markers");
+test_invalid_value("pointer-events", "0");
+test_invalid_value("pointer-events", "visiblePainted visibleFill");
+
+  ]]></script>
+</svg>

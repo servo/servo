@@ -1,0 +1,73 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL swizzled vector l-value dynamic indexing test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<!--
+  The shader first assigns v.x to v.z (1.0)
+  Then v.y to v.y (2.0)
+  Then v.z to v.x (1.0)
+-->
+<script id="fshaderSwizzledLValueIndexing" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+out vec4 my_FragColor;
+void main() {
+    vec3 v = vec3(1.0, 2.0, 3.0);
+    for (int i = 0; i < 3; i++) {
+        v.zyx[i] = v[i];
+    }
+    my_FragColor = distance(v, vec3(1.0, 2.0, 1.0)) < 0.01 ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description("Dynamic indexing of swizzled l-values should work.");
+
+GLSLConformanceTester.runRenderTests([
+{
+  fShaderId: 'fshaderSwizzledLValueIndexing',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Index an l-value swizzled vector'
+},
+], 2);
+</script>
+</body>
+</html>

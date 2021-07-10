@@ -31,7 +31,7 @@
             var cursor = e.target.result;
             assert_true(cursor instanceof IDBCursor);
 
-            assert_throws('DataError', function() { cursor.update(null); });
+            assert_throws_dom('DataError', function() { cursor.update(null); });
             t.done();
         });
     }

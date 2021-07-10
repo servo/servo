@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>CSS Grid Layout Test: Remove a first child in grid items</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-item">
+<link rel="stylesheet" href="/css/support/grid.css"/>
+<link rel="match" href="../reference/grid-item-script-001-ref.html">
+<meta name="assert" content="This test ensures that removing a first child element in grid items doesn't crash.">
+<link rel="stylesheet" href="/css/support/grid.css"/>
+<div class="grid">
+  <svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='190'>
+    <polygon points='100,10 40,180 190,60 10,60 160,180' style='fill:lime;stroke:purple;stroke-width:5;fill-rule:evenodd;'>
+  </svg>
+</div>
+
+<script>
+  var grid = document.getElementsByClassName("grid")[0];
+  grid.offsetTop;
+  while (grid.firstChild)
+    grid.removeChild(grid.firstChild);
+  grid.offsetTop;
+  grid.innerHTML = "Test passes if it doesn't crash.";
+</script>

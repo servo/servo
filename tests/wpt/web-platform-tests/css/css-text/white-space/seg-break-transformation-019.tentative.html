@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: out of flow elements and segment break transformations</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-encoding">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#line-break-transform">
+<link rel=match href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Out-of-flow elements must be ignored for segment break transformations">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+div {
+  font: 20px/1 Ahem;
+  color: green;
+}
+aside {
+  color: transparent;
+}
+#abs { position: absolute; }
+#fixed { position: fixed; }
+#float-r { float: right; }
+#float-l { float: left; margin-left: -3em; }
+#red {
+  width: 100px;
+  height: 100px;
+  background: red;
+  position: absolute;
+  z-index: -1;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.
+
+<div id=red></div>
+
+<div>aa&#x200b;
+bbb</div>
+
+<div>aa&#x200b;<aside id=abs>foo</aside>
+bbb</div>
+
+<div>aa&#x200b;<aside id=fixed>foo</aside>
+bbb</div>
+
+<div>aa&#x200b;<aside id=float-r>foo</aside>
+bbb</div>
+
+<div>aa&#x200b;<aside id=float-l>foo</aside>
+bbb</div>

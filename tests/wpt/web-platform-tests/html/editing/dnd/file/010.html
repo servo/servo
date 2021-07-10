@@ -13,11 +13,11 @@
 window.onload = function() {
   var orange = document.getElementsByTagName('div')[0];
   orange.ondragover = orange.ondragenter = function(e) {
-   	e.preventDefault();
+    e.preventDefault();
     e.dataTransfer.dropEffect = 'none';
   };
-	orange.ondrop = function(e) {
-   	e.preventDefault();
+  orange.ondrop = function(e) {
+    e.preventDefault();
   };
 
 };

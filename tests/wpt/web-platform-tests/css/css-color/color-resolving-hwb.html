@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Color 4: Resolving HWB color values</title>
+<link rel="author" title="Sam Weinig" href="mailto:weinig@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#hwb-to-rgb">
+<meta name="assert" content="Tests if HWB color values are resolved properly">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="parent" style="color: rgb(45, 23, 27)">
+    <div id="inner"></div>
+</div>
+
+<script>
+    function color_test(color, expected, reason) {
+        test(function() {
+            var element = document.getElementById('inner');
+            // Random value not in our test data.
+            fail_value = "rgb(12, 34, 223)"
+            element.style.color = "black";
+            element.style.cssText = "color: " + fail_value + "; color: " + color;
+
+            if (expected === null)
+                assert_equals(getComputedStyle(element).color, fail_value);
+            else
+                assert_equals(getComputedStyle(element).color, expected);
+        }, `${reason}: ${color}`);
+    }
+
+    function expected_value(rgb_channels) {
+        if (rgb_channels === null)
+            return null;
+        else if (rgb_channels.length === 3 || rgb_channels[3] == 1 || rgb_channels[3] === undefined)
+            return "rgb(" + rgb_channels.slice(0, 3).join(", ") + ")";
+        else
+            return "rgba(" + rgb_channels.join(", ") + ")";
+    }
+
+    function hslToRgb(hue, sat, light) {
+      if (light <= .5) {
+        var t2 = light * (sat + 1);
+      } else {
+        var t2 = light + sat - (light * sat);
+      }
+      var t1 = light * 2 - t2;
+      var r = hueToRgb(t1, t2, hue + 2);
+      var g = hueToRgb(t1, t2, hue);
+      var b = hueToRgb(t1, t2, hue - 2);
+      return [r,g,b];
+    }
+
+    function hueToRgb(t1, t2, hue) {
+      if (hue < 0) hue += 6;
+      if (hue >= 6) hue -= 6;
+
+      if (hue < 1) return (t2 - t1) * hue + t1;
+      else if (hue < 3) return t2;
+      else if (hue < 4) return (t2 - t1) * (4 - hue) + t1;
+      else return t1;
+    }
+
+    function hwbToRgb(hue, white, black) {
+      if (white + black >= 1) {
+        let gray = Math.min(Math.max(Math.round(white / (white + black) * 255), 0), 255);
+        return [gray, gray, gray];
+      }
+
+      var rgb = hslToRgb(hue, 1, .5);
+      for (var i = 0; i < 3; i++) {
+        rgb[i] *= (1 - white - black);
+        rgb[i] += white;
+        rgb[i] = Math.min(Math.max(Math.round(rgb[i] * 255), 0), 255);
+      }
+      return rgb;
+    }
+
+    // Test HWB parsing.
+    for (var hue of [0, 30, 60, 90, 120, 180, 210, 240, 270, 300, 330, 360]) {
+        for (var white of [0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1]) {
+            for (var black of [0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1]) {
+                rgb_channels = hwbToRgb(hue / 60, white, black);
+                for (var alpha of [undefined, 0, 0.2, 1]) {
+                    rgb_channels[3] = alpha;
+
+                    // Test hue using angle notation.
+                    let hwb_color_using_degrees = `hwb(${hue}deg ${white * 100}% ${black * 100}%)`;
+                    if (alpha !== undefined) {
+                        hwb_color_using_degrees = `hwb(${hue}deg ${white * 100}% ${black * 100}% / ${alpha})`;
+                    }
+                    color_test(hwb_color_using_degrees, expected_value(rgb_channels), "HWB value should parse and round correctly");
+
+                    // Test hue using number notation.
+                    let hwb_color_using_number = `hwb(${hue} ${white * 100}% ${black * 100}%)`;
+                    if (alpha !== undefined) {
+                        hwb_color_using_number = `hwb(${hue} ${white * 100}% ${black * 100}% / ${alpha})`;
+                    }
+                    color_test(hwb_color_using_number, expected_value(rgb_channels), "HWB value should parse and round correctly");
+                }
+            }
+        }
+    }
+</script>

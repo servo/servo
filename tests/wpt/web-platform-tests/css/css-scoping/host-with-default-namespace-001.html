@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: :host ignores default namespace</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#host-element-in-tree">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#featureless">
+<link rel="help" href="https://bugzil.la/1546375">
+<link rel="match" href="reference/green-box.html">
+<p>Test passes if you see a single 100px by 100px green box below.</p>
+<div id="host"></div>
+<script>
+  document.getElementById("host").attachShadow({ mode: "open" }).innerHTML = `
+    <style>
+      @namespace url(http://www.w3.org/2000/svg);
+      :host { background-color: green; width: 100px; height: 100px; }
+    </style>
+  `;
+</script>

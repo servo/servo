@@ -14,8 +14,8 @@
         The 'SVGSVGElement' interface allows for creation of references to various primitive SVG interface types with explicitly defined default values.
       </p>
       <p>
-        A reference to an 'SVGSVGElement' is obtained through an 'svg' element in the page's markup. Each of the 'CreateSVG*' methods is called from this 
-        reference and initial values are verified. A counter is used to determine whether all conditions are satisfied. The word 'fail' in red via an SVG 
+        A reference to an 'SVGSVGElement' is obtained through an 'svg' element in the page's markup. Each of the 'CreateSVG*' methods is called from this
+        reference and initial values are verified. A counter is used to determine whether all conditions are satisfied. The word 'fail' in red via an SVG
         'text' element is used to indicate failure and the word 'pass' in black is used to indicate passing.
       </p>
     </d:testDescription>
@@ -44,7 +44,7 @@
     <svg id="testSVG" />
     <text id="failText" x="350" y="350" font-size="50" fill="red">FAIL</text>
     <text id="passText" x="350" y="300" font-size="50" display="none">PASS</text>
-    <script type="text/javascript">    
+    <script type="text/javascript">
       <![CDATA[
         try
         {
@@ -76,7 +76,7 @@
             }
 
             var testSVGMatrix = testSVG.createSVGMatrix();
-            if (1 == testSVGMatrix.a && 0 == testSVGMatrix.b && 0 == testSVGMatrix.c  && 1 == testSVGMatrix.d && 0 == testSVGMatrix.e && 0 == testSVGMatrix.f) 
+            if (1 == testSVGMatrix.a && 0 == testSVGMatrix.b && 0 == testSVGMatrix.c  && 1 == testSVGMatrix.d && 0 == testSVGMatrix.e && 0 == testSVGMatrix.f)
             {
                 passCount++;
             }
@@ -108,7 +108,7 @@
         catch(ex)
         {
           alert("ERROR: " + ex.message);
-      
+
         }
         ]]>
 

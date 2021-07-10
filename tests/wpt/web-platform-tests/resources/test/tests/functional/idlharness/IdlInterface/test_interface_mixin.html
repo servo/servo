@@ -1,0 +1,83 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="variant" content="">
+  <title>idlharness: interface mixins</title>
+  <script src="/resources/test/variants.js"></script>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/WebIDLParser.js"></script>
+  <script src="/resources/idlharness.js"></script>
+</head>
+
+<body>
+  <p>Verify the series of sub-tests that are executed for "interface mixin" objects.</p>
+  <script>
+    "use strict";
+
+    // No original existence
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_idls('partial interface mixin A {};');
+      idlArray.test();
+    })();
+
+    // Name clash (partials)
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_idls(`
+        interface mixin B { attribute any F; };
+        partial interface mixin B { attribute any F; };`);
+      idlArray.collapse_partials();
+    })();
+
+    // Name clash (different mixins)
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_untested_idls(`
+        interface mixin C { attribute any F; };
+        interface D { attribute any F; };
+        D includes C;`);
+      idlArray.test();
+    })();
+  </script>
+  <script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "OK",
+    "message": null
+  },
+  "summarized_tests": [
+    {
+      "name": "Partial interface mixin A: original interface mixin defined",
+      "status_string": "FAIL",
+      "properties": {},
+      "message": "assert_true: Original interface mixin should be defined expected true got false"
+    },
+    {
+      "name": "Partial interface mixin B: original interface mixin defined",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Partial interface mixin B: member names are unique",
+      "status_string": "FAIL",
+      "properties": {},
+      "message": "assert_true: member F is unique expected true got false"
+    },
+    {
+      "name": "D includes C: member names are unique",
+      "status_string": "FAIL",
+      "properties": {},
+      "message": "assert_true: member F is unique expected true got false"
+    }
+  ],
+  "type": "complete"
+}
+</script>
+</body>
+
+</html>

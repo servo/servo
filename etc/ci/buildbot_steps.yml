@@ -1,131 +1,47 @@
-mac-rel-wpt1:
+env:
+  RUST_BACKTRACE: '1'
+  RUSTFLAGS: -Dwarnings
+  CARGO_INCREMENTAL: "0"
+  GST_DEBUG: '3'
+  SCCACHE_IDLE_TIMEOUT: "1200"
+  SCCACHE_MAX_FRAME_LENGTH": "100000000"  # 100 MB
+linux-rel-nogate:
+ env:
+   CC: clang-4.0
+   CXX: clang++-4.0
+ commands:
   - ./mach clean-nightlies --keep 3 --force
-  - ./mach build --release
-  - ./mach test-wpt-failure
-  - ./mach test-wpt --release --processes 8 --total-chunks 2 --this-chunk 1 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
-  - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --use-tracker
-  - ./mach test-wpt --release --binary-arg=--multiprocess --processes 8 --log-raw test-wpt-mp.log --log-errorsummary wpt-mp-errorsummary.log eventsource
-  - ./mach build-cef --release
-  - bash ./etc/ci/lockfile_changed.sh
-  - bash ./etc/ci/manifest_changed.sh
+  - ./mach clean-cargo-cache --keep 3 --force
+  - ./etc/ci/clean_build_artifacts.sh
+  - ./mach build --release -p servo
+  - python ./etc/ci/chaos_monkey_test.py
+  - env RUSTFLAGS= bash ./etc/ci/mutation_test.sh
+  - ./etc/ci/clean_build_artifacts.sh
 
-mac-rel-wpt2:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach build --release
-  - ./mach test-wpt --release --processes 8 --total-chunks 2 --this-chunk 2 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
-  - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --use-tracker
-  - ./mach build-geckolib --release
+# Moved to Taskcluster
+linux-dev: []
+mac-dev-unit: []
+windows-msvc-dev: []
+android-mac: []
+android: []
+android-x86: []
+mac-rel-wpt1: []
+mac-rel-wpt2: []
+mac-rel-wpt3: []
+mac-rel-wpt4: []
+mac-rel-css1: []
+mac-rel-css2: []
+android-nightly: []
+windows-msvc-nightly: []
+mac-nightly: []
+magicleap-nightly: []
+magicleap: []
+linux-nightly: []
+linux-rel-wpt: []
+linux-rel-css: []
 
-mac-dev-unit:
-  - ./mach clean-nightlies --keep 3 --force
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build --dev
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach test-unit
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach package --dev
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build-cef
-  - ./mach build-geckolib
-  - bash ./etc/ci/lockfile_changed.sh
-  - bash ./etc/ci/manifest_changed.sh
-
-mac-rel-css:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach build --release
-  - ./mach test-css --release --processes 4 --log-raw test-css.log --log-errorsummary css-errorsummary.log --always-succeed
-  - ./mach filter-intermittents css-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-css-errorsummary.log --use-tracker
-  - bash ./etc/ci/lockfile_changed.sh
-  - bash ./etc/ci/manifest_changed.sh
-
-mac-nightly:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach build --release
-  - ./mach package --release
-  - ./etc/ci/upload_nightly.sh mac
-  - ./etc/ci/upload_nightly.sh macbrew
-
-linux-rel-intermittent:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach build --release
-  - ./etc/ci/check_intermittents.sh --log-raw intermittents.log
-
-mac-rel-intermittent:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach build --release
-  - ./etc/ci/check_intermittents.sh --log-raw intermittents.log
-
-linux-dev:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach test-tidy --no-progress --all
-  - ./mach test-tidy --no-progress --self-test
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build --dev
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach test-compiletest
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach test-unit
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach package --dev
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build-cef
-  - ./mach build-geckolib
-  - ./mach test-stylo
-  - bash ./etc/ci/lockfile_changed.sh
-  - bash ./etc/ci/manifest_changed.sh
-  - bash ./etc/ci/check_no_panic.sh
-
-linux-rel-wpt:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach build --release --with-debug-assertions
-  - ./mach test-wpt-failure
-  - ./mach test-wpt --release --processes 24 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
-  - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --use-tracker
-  - ./mach test-wpt --release --binary-arg=--multiprocess --processes 24 --log-raw test-wpt-mp.log --log-errorsummary wpt-mp-errorsummary.log eventsource
-
-linux-rel-css:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach build --release --with-debug-assertions
-  - ./mach test-css --release --processes 16 --log-raw test-css.log --log-errorsummary css-errorsummary.log --always-succeed
-  - ./mach filter-intermittents css-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-css-errorsummary.log --use-tracker
-  - ./mach build-cef --release --with-debug-assertions
-  - ./mach build-geckolib --release
-  - ./mach test-stylo --release
-  - bash ./etc/ci/lockfile_changed.sh
-  - bash ./etc/ci/manifest_changed.sh
-
-linux-nightly:
-  - ./mach clean-nightlies --keep 3 --force
-  - ./mach build --release
-  - ./mach package --release
-  - ./etc/ci/upload_nightly.sh linux
-
-android:
-  - ./mach clean-nightlies --keep 3 --force
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build --android --dev
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ANDROID_SDK=/home/servo/android/sdk/r25.2.3 ./mach package --android --dev
-  - bash ./etc/ci/lockfile_changed.sh
-  - bash ./etc/ci/manifest_changed.sh
-  - python ./etc/ci/check_dynamic_symbols.py
-
-android-nightly:
-  - ./mach clean-nightlies --keep 3 --force
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build --android --release
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ANDROID_SDK=/home/servo/android/sdk/r25.2.3 ./mach package --android --release
-  - ./etc/ci/upload_nightly.sh android
-
-arm32:
-  - ./mach clean-nightlies --keep 3 --force
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build --rel --target=arm-unknown-linux-gnueabihf
-  - bash ./etc/ci/lockfile_changed.sh
-  - bash ./etc/ci/manifest_changed.sh
-
-arm64:
-  - ./mach clean-nightlies --keep 3 --force
-  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build --rel --target=aarch64-unknown-linux-gnu
-  - bash ./etc/ci/lockfile_changed.sh
-  - bash ./etc/ci/manifest_changed.sh
-
-windows-msvc-dev:
-  - mach.bat clean-nightlies --keep 3 --force
-  - mach.bat build --dev
-  - mach.bat test-unit
-  - mach.bat package --dev
-  - mach.bat build-geckolib
-
-windows-msvc-nightly:
-  - mach.bat clean-nightlies --keep 3 --force
-  - mach.bat build --release
-  - mach.bat package --release
-  - bash -l ./etc/ci/upload_nightly.sh windows-msvc
+# No longer maintained
+arm32: []
+arm64: []
+mac-rel-intermittent: []
+linux-rel-intermittent: []

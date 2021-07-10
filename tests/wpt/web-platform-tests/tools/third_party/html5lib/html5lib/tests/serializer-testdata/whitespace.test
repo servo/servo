@@ -1,0 +1,198 @@
+{
+    "tests": [
+        {
+            "expected": [
+                " foo"
+            ],
+            "input": [
+                [
+                    "Characters",
+                    "\t\r\n\f foo"
+                ]
+            ],
+            "description": "bare text with leading spaces",
+            "options": {
+                "strip_whitespace": true
+            }
+        },
+        {
+            "expected": [
+                "foo "
+            ],
+            "input": [
+                [
+                    "Characters",
+                    "foo \t\r\n\f"
+                ]
+            ],
+            "description": "bare text with trailing spaces",
+            "options": {
+                "strip_whitespace": true
+            }
+        },
+        {
+            "expected": [
+                "foo bar"
+            ],
+            "input": [
+                [
+                    "Characters",
+                    "foo \t\r\n\f bar"
+                ]
+            ],
+            "description": "bare text with inner spaces",
+            "options": {
+                "strip_whitespace": true
+            }
+        },
+        {
+            "expected": [
+                "<pre>\t\r\n\f foo \t\r\n\f bar \t\r\n\f</pre>"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "pre",
+                    {}
+                ],
+                [
+                    "Characters",
+                    "\t\r\n\f foo \t\r\n\f bar \t\r\n\f"
+                ],
+                [
+                    "EndTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "pre"
+                ]
+            ],
+            "description": "text within <pre>",
+            "options": {
+                "strip_whitespace": true
+            }
+        },
+        {
+            "expected": [
+                "<pre>\t\r\n\f fo<span>o \t\r\n\f b</span>ar \t\r\n\f</pre>"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "pre",
+                    {}
+                ],
+                [
+                    "Characters",
+                    "\t\r\n\f fo"
+                ],
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "span",
+                    {}
+                ],
+                [
+                    "Characters",
+                    "o \t\r\n\f b"
+                ],
+                [
+                    "EndTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "span"
+                ],
+                [
+                    "Characters",
+                    "ar \t\r\n\f"
+                ],
+                [
+                    "EndTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "pre"
+                ]
+            ],
+            "description": "text within <pre>, with inner markup",
+            "options": {
+                "strip_whitespace": true
+            }
+        },
+        {
+            "expected": [
+                "<textarea>\t\r\n\f foo \t\r\n\f bar \t\r\n\f</textarea>"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "textarea",
+                    {}
+                ],
+                [
+                    "Characters",
+                    "\t\r\n\f foo \t\r\n\f bar \t\r\n\f"
+                ],
+                [
+                    "EndTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "textarea"
+                ]
+            ],
+            "description": "text within <textarea>",
+            "options": {
+                "strip_whitespace": true
+            }
+        },
+        {
+            "expected": [
+                "<script>\t\r\n\f foo \t\r\n\f bar \t\r\n\f</script>"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "script",
+                    {}
+                ],
+                [
+                    "Characters",
+                    "\t\r\n\f foo \t\r\n\f bar \t\r\n\f"
+                ],
+                [
+                    "EndTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "script"
+                ]
+            ],
+            "description": "text within <script>",
+            "options": {
+                "strip_whitespace": true
+            }
+        },
+        {
+            "expected": [
+                "<style>\t\r\n\f foo \t\r\n\f bar \t\r\n\f</style>"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "style",
+                    {}
+                ],
+                [
+                    "Characters",
+                    "\t\r\n\f foo \t\r\n\f bar \t\r\n\f"
+                ],
+                [
+                    "EndTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "style"
+                ]
+            ],
+            "description": "text within <style>",
+            "options": {
+                "strip_whitespace": true
+            }
+        }
+    ]
+}

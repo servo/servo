@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CSS Containment Test: Layout containment on table-row-group</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain-1/#containment-layout">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name=flags content="ahem">
+<meta name=assert content="Layout containment doesn't apply to table-row-group elements.">
+
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+#wrapper {
+  position: relative;
+  background: red;
+  width: 100px;
+  height: 100px;
+  padding: 25px;
+  box-sizing: border-box;
+}
+#table-row-group {
+  display: table-row-group;
+  contain: layout;
+}
+#abspos {
+  position: absolute;
+  font: 100px/1 Ahem;
+  color: green;
+  top: 0;
+  left: 0;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="wrapper">
+  <div id="table-row-group">
+    <div id="abspos">X</div>
+  </div>
+</div>

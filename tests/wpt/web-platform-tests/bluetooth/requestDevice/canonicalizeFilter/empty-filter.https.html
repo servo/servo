@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/bluetooth/resources/bluetooth-test.js"></script>
+<script src="/bluetooth/resources/bluetooth-fake-devices.js"></script>
+<script>
+'use strict';
+const test_desc = 'A filter must restrict the devices in some way.';
+const expected = new TypeError();
+
+bluetooth_test(
+    () => assert_promise_rejects_with_message(
+        requestDeviceWithTrustedClick({filters: [{}]}), expected),
+    test_desc);
+</script>

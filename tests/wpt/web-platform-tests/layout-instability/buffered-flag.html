@@ -1,0 +1,41 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Layout Instability: PerformanceObserver sees entries with buffered flag</title>
+<body>
+<style>
+#myDiv { position: relative; width: 300px; height: 100px; }
+</style>
+<div id='myDiv'></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<script>
+promise_test(async t => {
+  assert_implements(window.LayoutShift, 'Layout Instability is not supported.');
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  const startTime = performance.now();
+  return new Promise(resolve => {
+    // First observer creates second in callback to ensure the entry has been dispatched by the time
+    // the second observer begins observing.
+    new PerformanceObserver(() => {
+      const endTime = performance.now();
+      // Second observer requires 'buffered: true' to see entries.
+      new PerformanceObserver(t.step_func(list => {
+        assert_equals(list.getEntries().length, 1);
+        const entry = list.getEntries()[0];
+        assert_equals(entry.entryType, "layout-shift");
+        assert_greater_than_equal(entry.startTime, startTime);
+        assert_less_than_equal(entry.startTime, endTime);
+        assert_equals(entry.duration, 0.0);
+        assert_equals(entry.value, computeExpectedScore(300 * (100 + 60),  60));
+        resolve();
+      })).observe({'type': 'layout-shift', buffered: true});
+    }).observe({type: 'layout-shift'});
+    // Modify the position of the div to cause a layout-shift entry.
+    document.getElementById('myDiv').style = "top: 60px";
+  });
+}, 'PerformanceObserver with buffered flag sees previous layout-shift entry.');
+</script>
+</body>

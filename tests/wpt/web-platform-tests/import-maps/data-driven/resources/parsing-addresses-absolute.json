@@ -1,0 +1,65 @@
+{
+  "name": "Absolute URL addresses",
+  "tests": {
+    "should only accept absolute URL addresses with fetch schemes": {
+      "importMap": {
+        "imports": {
+          "about": "about:good",
+          "blob": "blob:good",
+          "data": "data:good",
+          "file": "file:///good",
+          "filesystem": "filesystem:http://example.com/good/",
+          "http": "http://good/",
+          "https": "https://good/",
+          "ftp": "ftp://good/",
+          "import": "import:bad",
+          "mailto": "mailto:bad",
+          "javascript": "javascript:bad",
+          "wss": "wss:bad"
+        }
+      },
+      "importMapBaseURL": "https://base.example/path1/path2/path3",
+      "expectedParsedImportMap": {
+        "imports": {
+          "about": "about:good",
+          "blob": "blob:good",
+          "data": "data:good",
+          "file": "file:///good",
+          "filesystem": "filesystem:http://example.com/good/",
+          "http": "http://good/",
+          "https": "https://good/",
+          "ftp": "ftp://good/",
+          "import": "import:bad",
+          "javascript": "javascript:bad",
+          "mailto": "mailto:bad",
+          "wss": "wss://bad/"
+        },
+        "scopes": {}
+      }
+    },
+    "should parse absolute URLs, ignoring unparseable ones": {
+      "importMap": {
+        "imports": {
+          "unparseable2": "https://example.com:demo",
+          "unparseable3": "http://[www.example.com]/",
+          "invalidButParseable1": "https:example.org",
+          "invalidButParseable2": "https://///example.com///",
+          "prettyNormal": "https://example.net",
+          "percentDecoding": "https://ex%41mple.com/"
+        }
+      },
+      "importMapBaseURL": "https://base.example/path1/path2/path3",
+      "expectedParsedImportMap": {
+        "imports": {
+          "unparseable2": null,
+          "unparseable3": null,
+          "invalidButParseable1": "https://example.org/",
+          "invalidButParseable2": "https://example.com///",
+          "prettyNormal": "https://example.net/",
+          "percentDecoding": "https://example.com/"
+        },
+        "scopes": {}
+      }
+    }
+  }
+}

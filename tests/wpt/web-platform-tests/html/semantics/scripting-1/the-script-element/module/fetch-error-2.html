@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>Handling of fetch errors, 2</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    window.log = [];
+
+    const test_load = async_test(
+        "Test that failure to fetch dependency leads to error event on script.");
+    window.addEventListener("load", test_load.step_func_done(ev => {
+      assert_array_equals(log, ["script"]);
+    }));
+</script>
+<script type="module" src="./fetch-error-2.js" onerror="log.push('script')"></script>

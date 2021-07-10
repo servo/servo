@@ -2,7 +2,7 @@
 
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import argparse
 import json
@@ -29,6 +29,7 @@ def load_data(filename):
             results[key] = round(totals[key] / counts[key])
         return results
 
+
 data1 = load_data(args.file1)
 data2 = load_data(args.file2)
 keys = set(data1.keys()).union(data2.keys())
@@ -38,15 +39,30 @@ GREEN = '\033[92m'
 WARNING = '\033[93m'
 END = '\033[0m'
 
+
+total1 = 0
+total2 = 0
+
+
+def print_line(value1, value2, key):
+    diff = value2 - value1
+    change = diff / value1
+    color = BLUE if value1 <= value2 else GREEN
+    print("{}{:6} {:6} {:+6} {:+8.2%}   {}.{}".format(color, value1, value2, diff, change, key, END))
+
+
 for key in keys:
     value1 = data1.get(key)
     value2 = data2.get(key)
     if value1 and not(value2):
-        print ("{}Test {}: missing from {}.{}".format(WARNING, key, args.file2, END))
+        print("{}Test {}: missing from {}.{}".format(WARNING, key, args.file2, END))
     elif value2 and not(value1):
-        print ("{}Test {}: missing from {}.{}".format(WARNING, key, args.file1, END))
+        print("{}Test {}: missing from {}.{}".format(WARNING, key, args.file1, END))
     elif value1 and value2:
-        diff = value2 - value1
-        change = diff / value1
-        color = BLUE if value1 <= value2 else GREEN
-        print("{}{:6} {:6} {:+6} {:+8.2%}   {}.{}".format(color, value1, value2, diff, change, key, END))
+        total1 += value1
+        total2 += value2
+        print_line(value1, value2, key)
+
+
+print("")
+print_line(total1, total2, "TOTAL")

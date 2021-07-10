@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Interpolated &lt;color&gt; values reach worklet</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-paint-api/">
+<link rel="match" href="parse-input-arguments-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<script src="./resources/utils.js"></script>
+<body>
+<div id="target"></div>
+<script>
+    try {
+      registerAndInterpolateProperty({
+        on: target, from: 'rgb(128, 100, 200)', to: 'red',
+        name: '--prop', syntax: '<color>'
+      });
+
+      expectWorkletValue(target, '--prop', '[CSSStyleValue rgb(192, 50, 100)]');
+    } catch(e) {
+      document.body.textContent = e;
+      takeScreenshot();
+    }
+</script>
+</body>
+</html>

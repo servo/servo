@@ -1,0 +1,22 @@
+[package]
+name = "to_shmem"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+publish = false
+
+[lib]
+name = "to_shmem"
+path = "lib.rs"
+
+[features]
+servo = ["cssparser/serde", "string_cache"]
+gecko = []
+
+[dependencies]
+cssparser = "0.28"
+servo_arc = { path = "../servo_arc" }
+smallbitvec = "2.1.1"
+smallvec = "1.0"
+string_cache = { version = "0.8", optional = true }
+thin-slice = "0.1.0"

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>CSS Cascade: using 'revert' with the 'all' property</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade/#default">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  div {
+    display: inline;
+  }
+  .revert {
+    all: revert;
+  }
+</style>
+<div id=div></div>
+<script>
+  test(function() {
+    let cs = getComputedStyle(div);
+    assert_equals(cs.display, 'inline');
+    div.className = 'revert';
+    assert_equals(cs.display, 'block');
+  }, 'The revert keyword works with the all property');
+</script>

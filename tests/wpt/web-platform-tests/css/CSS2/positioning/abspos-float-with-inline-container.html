@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css2/visudet.html" />
+<link rel="match" href="abspos-float-with-inline-container-ref.html" />
+<meta name="assert" content="A inline-level element can contain a absolute-positioned child within a float." />
+<style>
+#abs {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100px;
+  background: green;
+}
+#float { float: left; }
+span {
+  position: relative;
+  padding-left: 100px;
+}
+</style>
+<p>Test passes if there is green square.</p>
+<div>
+  <span>
+    <div id="float">
+      <div id="abs"></div>
+    </div>
+  </span>
+</div>

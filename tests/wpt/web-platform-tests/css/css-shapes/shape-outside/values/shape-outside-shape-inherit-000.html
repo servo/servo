@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Shape Outside Box Inherit Value</title>
+        <link rel="author" title="Adobe" href="http://html.adobe.com/">
+        <link rel="author" title="Bear Travis" href="mailto:betravis@adobe.com">
+        <link rel="reviewer" title="Alan Stearns" href="mailto:stearns@adobe.com"> <!-- 2014-03-04 -->
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property">
+        <meta name="assert" content="Shape-outside takes can be assigned the 'inherit' value.">
+        <meta name="flags" content="ahem dom">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="support/parsing-utils.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script type="text/javascript">
+            test(function() {
+                var outer = document.createElement("div");
+                var inner = document.createElement("div");
+                outer.appendChild(inner);
+                outer.style.setProperty("shape-outside", "content-box");
+                inner.style.setProperty("shape-outside", "inherit");
+                document.body.appendChild(outer);
+                var inline = inner.style.getPropertyValue("shape-outside");
+                var style = getComputedStyle(inner);
+                var computed = style.getPropertyValue("shape-outside");
+                document.body.removeChild(outer);
+                assert_equals(inline, "inherit");
+                assert_equals(computed, "content-box");
+            }, "shape-outside can be assigned 'inherit' value");
+        </script>
+    </body>
+</html>

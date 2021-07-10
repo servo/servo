@@ -54,7 +54,7 @@ test(function () {
 
 //getter - name
 test(function () {
-  assert_throws(TypeError(), function() { coll1("r1") });
+  assert_throws_js(TypeError, function() { coll1("r1") });
 }, "HTMLFormControlsCollection is not callable");
 
 test(function () {

@@ -1,6 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 /*
  * The origin of this IDL file is
  * https://drafts.fxtf.org/geometry-1/#DOMMatrix
@@ -10,15 +10,13 @@
  * related or neighboring rights to this work.
  */
 
-[Constructor,
- // Constructor(DOMString transformList)
- Constructor(sequence<unrestricted double> numberSequence),
- Exposed=(Window,Worker)]
+[Exposed=(Window,Worker,PaintWorklet)]
 interface DOMMatrixReadOnly {
+    [Throws] constructor(optional (DOMString or sequence<unrestricted double>) init);
 
-    [NewObject, Throws] static DOMMatrixReadOnly fromMatrix(optional DOMMatrixInit other);
-//  [NewObject] static DOMMatrixReadOnly fromFloat32Array(Float32Array array32);
-//  [NewObject] static DOMMatrixReadOnly fromFloat64Array(Float64Array array64);
+    [NewObject, Throws] static DOMMatrixReadOnly fromMatrix(optional DOMMatrixInit other = {});
+    [NewObject, Throws] static DOMMatrixReadOnly fromFloat32Array(Float32Array array32);
+    [NewObject, Throws] static DOMMatrixReadOnly fromFloat64Array(Float64Array array64);
 
     // These attributes are simple aliases for certain elements of the 4x4 matrix
     readonly attribute unrestricted double a;
@@ -58,6 +56,8 @@ interface DOMMatrixReadOnly {
                     optional unrestricted double originX = 0,
                     optional unrestricted double originY = 0,
                     optional unrestricted double originZ = 0);
+    [NewObject] DOMMatrix scaleNonUniform(optional unrestricted double scaleX = 1,
+                                          optional unrestricted double scaleY = 1);
     DOMMatrix scale3d(optional unrestricted double scale = 1,
                       optional unrestricted double originX = 0,
                       optional unrestricted double originY = 0,
@@ -73,15 +73,14 @@ interface DOMMatrixReadOnly {
                               optional unrestricted double angle = 0);
     DOMMatrix skewX(optional unrestricted double sx = 0);
     DOMMatrix skewY(optional unrestricted double sy = 0);
-    [Throws] DOMMatrix multiply(optional DOMMatrixInit other);
+    [Throws] DOMMatrix multiply(optional DOMMatrixInit other = {});
     DOMMatrix flipX();
     DOMMatrix flipY();
     DOMMatrix inverse();
 
-    DOMPoint            transformPoint(optional DOMPointInit point);
-//  Float32Array        toFloat32Array();
-//  Float64Array        toFloat64Array();
-//                      stringifier;
-//                      serializer = { attribute };
-
+    DOMPoint            transformPoint(optional DOMPointInit point = {});
+    Float32Array        toFloat32Array();
+    Float64Array        toFloat64Array();
+//    [Exposed=Window] stringifier;
+    [Default] object toJSON();
 };

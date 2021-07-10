@@ -1,0 +1,9 @@
+<!doctype html>
+<title>Rendering of object element fallback with text-decoration</title>
+<link rel="match" href="object-fallback-text-decoration-ref.html">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#embedded-content-rendering-rules">
+<meta name="assert" content="Checks that text-decoration applies to rendered object fallback.">
+<style>
+  object { text-decoration: underline; }
+</style>
+<object>This text should be underlined.</object>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<script>
+  function postMessageWithMessagePorts() {
+    var channel = new MessageChannel();
+    channel.port1.onmessage = e => {
+      e.ports[0].postMessage("received");
+    }
+    window.portalHost.postMessage("sending port", {transfer: [channel.port2]});
+  }
+
+  function postMessageWithArrayBuffer(array, withTransfer) {
+    var arrayBuffer = new Int8Array(array).buffer;
+    if (withTransfer) {
+      window.portalHost.postMessage({arrayBuffer}, {transfer: [arrayBuffer]});
+    } else {
+      window.portalHost.postMessage({arrayBuffer});
+    }
+  }
+
+  function postMessageAndCatchException(...params) {
+    try {
+      window.portalHost.postMessage(...params);
+    } catch (e) {
+      window.portalHost.postMessage({errorType: e.name});
+    }
+  }
+
+  window.portalHost.addEventListener("message", e => {
+    if (e.data.type) {
+      var type = e.data.type;
+      switch (type) {
+        case "message-port":
+          postMessageWithMessagePorts();
+          return;
+        case "array-buffer-without-transfer":
+          postMessageWithArrayBuffer(e.data.array, false);
+          return;
+        case "array-buffer-with-transfer":
+          postMessageWithArrayBuffer(e.data.array, true);
+          return;
+        case "invalid-message":
+          postMessageAndCatchException(document.body);
+          return;
+        case "invalid-port":
+          postMessageAndCatchException("", {transfer: [null]});
+          return;
+      }
+    }
+    window.portalHost.postMessage(...e.data);
+  });
+</script>

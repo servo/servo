@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<title>Element#requestFullscreen() works properly with a tree of cross-origin iframes</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script>
+promise_test(async function(t)
+{
+  t.add_cleanup(() => { document.exitFullscreen() });
+
+  let fullscreen_events = [];
+  document.onfullscreenchange = () => { fullscreen_events.push(true); };
+  document.onfullscreenerror = () => { fullscreen_events.push(false); };
+
+  iframe_to_fullscreen = "D";
+  let iframes = [
+    {
+      "name": "A",
+      "src": "http://{{hosts[alt][www]}}:{{ports[http][0]}}/fullscreen/api/resources/recursive-iframe-fullscreen.html",
+      "allow_fullscreen": true,
+    },
+    {
+      "name": "B",
+      "src": "http://{{hosts[][www]}}:{{ports[http][0]}}/fullscreen/api/resources/recursive-iframe-fullscreen.html",
+      "allow_fullscreen": true,
+    },
+    {
+      "name": "C",
+      "src": "http://{{hosts[alt][www1]}}:{{ports[http][0]}}/fullscreen/api/resources/recursive-iframe-fullscreen.html",
+      "allow_fullscreen": true,
+    },
+    {
+      "name": "D",
+      "src": "http://{{hosts[alt][www1]}}:{{ports[http][0]}}/fullscreen/api/resources/recursive-iframe-fullscreen.html",
+      "allow_fullscreen": true,
+    },
+    {
+      "name": "E",
+      "src": "http://{{hosts[][www1]}}:{{ports[http][0]}}/fullscreen/api/resources/recursive-iframe-fullscreen.html",
+      "allow_fullscreen": true,
+    }
+  ];
+
+  let expected_events = {
+    "A": [true],
+    "B": [true],
+    "C": [true],
+    "D": [true],
+    "E": [],
+  }
+
+  function ready() {
+    return new Promise((resolve) => {
+      window.addEventListener("message", function ready_listener(e) {
+        if (e.data.action == "ready") {
+          window.removeEventListener("message", ready_listener);
+          resolve();
+        }
+      });
+    })
+  }
+
+  let child_frame = document.createElement("iframe");
+  child_frame.allow = iframes[0].allow_fullscreen ? "fullscreen" : "";
+  child_frame.name = iframes[0].name;
+  child_frame.style.width = "100%";
+  child_frame.style.height = "100%";
+  child_frame.src = iframes[0].src;
+  document.body.appendChild(child_frame);
+  await ready();
+
+  for (let sub_frame of iframes.slice(1)) {
+    child_frame.contentWindow.postMessage({"action": "addIframe", "iframe": sub_frame}, "*");
+    await ready();
+  }
+
+  child_frame.contentWindow.postMessage(
+    {"action": "requestFullscreen", "fullscreen": {"name": iframe_to_fullscreen}}, "*");
+  await ready();
+
+  function test_report(report) {
+    let expected = expected_events[report.frame];
+
+    assert_equals(report.events.length, expected.length, "Number of events");
+    report.events.forEach((value, i) => {
+      assert_equals(value, expected[i], "Event type matches");
+    })
+
+    if (report.events.length) {
+      assert_false(report.fullscreenElementIsNull, "Event fired, fullscreenElement is set");
+    } else {
+      assert_true(report.fullscreenElementIsNull, "No event fired, fullscreenElement is null");
+    }
+  }
+
+  let reports = new Promise(resolve => {
+    let report_count = 0;
+    window.addEventListener('message', e => {
+      if (e.data.action == "report" && e.data.report.api == "fullscreen") {
+        report_count++;
+        test_report(e.data.report);
+        if (report_count == iframes.length) {
+          resolve();
+        }
+      }
+    });
+  });
+  child_frame.contentWindow.postMessage({"action": "requestReport"}, "*");
+  await reports;
+
+  assert_equals(fullscreen_events.length, 1, "1 event in the top-level document");
+  assert_true(fullscreen_events[0], "Top level document event type is correct")
+}, "Element#requestFullscreen() works properly with a tree of cross-origin iframes");
+</script>

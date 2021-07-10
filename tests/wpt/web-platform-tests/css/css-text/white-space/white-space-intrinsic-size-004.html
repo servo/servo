@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: max-content sizing and white-space: pre-wrap</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#propdef-white-space">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<meta name="flags" content="">
+<link rel="match" href="reference/white-space-intrinsic-size-004-ref.html">
+<meta name="assert" content="Preserved spaces at the end of the line do affect the intrinsic max-content size when white-space is pre-wrap, as spaces before a forced break, at the end of un unwrapped line, only hanging conditionally, which does not prevent contributing to the max-content size. The value of overflow-wrap makes no difference.">
+<style>
+aside {
+  float: left;
+  white-space: pre-wrap;
+  background: green;
+}
+aside:last-of-type { overflow-wrap: break-word; }
+div {
+  background: red;
+  color: transparent;
+  font-family: monospace;
+  font-size: 50px;
+  width: 3ch;
+  line-height: 1;
+}
+</style>
+
+<p>Test passes if there is a single green rectangle below and no red.
+<div>
+  <aside>X  </aside>
+  <aside>X  </aside>
+</div>

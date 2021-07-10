@@ -12,7 +12,7 @@ indexeddb_test(
     db.createObjectStore('s');
     txn.onabort = () => {
       setTimeout(t.step_func(() => {
-        assert_throws(
+        assert_throws_dom(
           'InvalidStateError', () => { db.deleteObjectStore('s'); },
           '"running an upgrade transaction" check (InvalidStateError) ' +
           'should precede "not active" check (TransactionInactiveError)');
@@ -30,7 +30,7 @@ indexeddb_test(
 indexeddb_test(
   (t, db, txn) => {
     txn.abort();
-    assert_throws(
+    assert_throws_dom(
       'TransactionInactiveError', () => { db.deleteObjectStore('nope'); },
       '"not active" check (TransactionInactiveError) should precede ' +
       '"name in database" check (NotFoundError)');

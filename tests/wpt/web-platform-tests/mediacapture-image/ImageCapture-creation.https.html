@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+// This test verifies that ImageCapture can be created (or not) with different
+// Media Stream Track types (audio, video).
+
+function makeAsyncTest(modifyTrack, message) {
+  async_test(function(test) {
+
+    const gotStream = test.step_func(function(stream) {
+      assert_equals(stream.getAudioTracks().length, 0);
+      assert_equals(stream.getVideoTracks().length, 1);
+
+      var videoTrack = stream.getVideoTracks()[0];
+      assert_equals(videoTrack.readyState, 'live');
+      assert_true(videoTrack.enabled);
+      assert_false(videoTrack.muted);
+
+      var capturer = new ImageCapture(videoTrack);
+      assert_equals(capturer.track, videoTrack);
+
+      modifyTrack(videoTrack);
+
+      promise_rejects_dom(test,
+                      'InvalidStateError',
+                      capturer.grabFrame(),
+                      'Should throw InvalidStateError.')
+        .then(() => test.done());
+    });
+
+    const onError = test.unreached_func('Error creating MediaStream.');
+    navigator.mediaDevices.getUserMedia({video: true})
+    .then(gotStream)
+    .catch(onError);
+
+  }, message);
+}
+
+var disableTrack = function(videoTrack) {
+  // grabFrame() is rejected if the associated video track is disabled.
+  videoTrack.enabled = false;
+};
+
+var stopTrack = function(videoTrack) {
+  // grabFrame() is rejected if the associated video track is ended.
+  videoTrack.stop();
+  assert_equals(videoTrack.readyState, 'ended');
+};
+
+// Create the rejection tests. Note that grabFrame() would also be rejected if
+// the video Track was muted but that's a read-only property of the Track.
+makeAsyncTest(disableTrack, 'grabFrame() of a disabled Track');
+makeAsyncTest(stopTrack, 'grabFrame() of an ended Track');
+
+
+var testAudio = async_test(function() {
+  navigator.mediaDevices.getUserMedia({audio:true})
+  .then(
+    this.step_func(function(stream) {
+      assert_equals(stream.getAudioTracks().length, 1);
+      assert_equals(stream.getVideoTracks().length, 0);
+      assert_throws_dom("NotSupportedError",
+                        function() {
+                          var capturer = new ImageCapture(stream.getAudioTracks()[0]);
+                        },
+                        'an ImageCapturer can only be created from a video track');
+
+      this.done();
+    }))
+    .catch(
+    this.unreached_func('Error creating MediaStream.'));
+}, 'verifies that an ImageCapture cannot be created out of an Audio Track');
+
+var testParameter = test(function() {
+  const invalidParameters = [
+    "invalid",
+    null,
+    123,
+    {},
+    "",
+    true
+  ];
+  assert_throws_js(TypeError,
+                   function() { var capturer = new ImageCapture(); },
+                   'an ImageCapturer cannot be created with no parameter');
+  invalidParameters.map(parameter => {
+    assert_throws_js(TypeError,
+                     function() { var capturer = new ImageCapture(parameter); },
+                     `an ImageCapturer cannot be created with a ${parameter} parameter`);
+  });
+}, 'throw "TypeError" if parameter is not MediaStreamTrack.');
+
+</script>

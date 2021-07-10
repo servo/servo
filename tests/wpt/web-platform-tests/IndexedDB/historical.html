@@ -63,4 +63,18 @@ test(function() {
   // Replaced circa May 2012 by a DOMString (later, IDBTransactionMode enum).
   assert_false('VERSION_CHANGE' in IDBTransaction);
 }, '"VERSION_CHANGE" should not be supported on IDBTransaction.');
+
+// Gecko-proprietary interfaces.
+var removedFromWindow = [
+  'IDBFileHandle',
+  'IDBFileRequest',
+  'IDBMutableFile',
+];
+
+removedFromWindow.forEach(function(name) {
+  test(function() {
+    assert_false(name in window);
+  }, '"' + name + '" should not be supported');
+});
+
 </script>

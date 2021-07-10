@@ -13,7 +13,7 @@
 window.onload = function() {
   var orange = document.getElementsByTagName('div')[0];
   orange.ondragstart = function(e) {
-		e.dataTransfer.effectAllowed = 'link';
+    e.dataTransfer.effectAllowed = 'link';
     e.dataTransfer.setData('Text', 'dummy text');
   };
 };

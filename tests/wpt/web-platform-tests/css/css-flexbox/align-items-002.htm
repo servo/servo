@@ -1,0 +1,36 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD//XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: A flex container with the 'align-items' property set to 'flex-start'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#align-items-property" />
+        <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#align-items-property" />
+        <link rel="match" href="reference/align-content-001-ref.html" />
+        <meta name="flags" content="">
+        <meta name="assert" content="This test checks that the flex container with 'align-items: flex-start' places each flex item's margin box flush with the cross-start edge of line." />
+        <style type="text/css">
+            #flexbox
+            {
+                background: linear-gradient(to bottom, red 0, red 50px, green 50px, green 100px);
+                align-items: center;
+                align-items: flex-start;
+                display: flex;
+                height: 100px;
+                width: 300px;
+            }
+            div div
+            {
+                background-color: green;
+                height: 51px;
+                width: 150px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div id="flexbox">
+            <div></div>
+            <div></div>
+        </div>
+    </body>
+</html>

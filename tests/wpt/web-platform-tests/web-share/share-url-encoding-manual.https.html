@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>WebShare Test: Share URL with illegal characters (test percent encoding)</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/manual-helper.js"></script>
+  </head>
+  <body>
+    <script>
+        setup({explicit_timeout: true});
+
+        const url = 'http://example.com/foo\\ab%63\r\n\t "<>`{}';
+        // Expect '\' to normalize to '/', "%63" to normalize to 'c', '\r\n\t'
+        // to be removed, and all the other illegal characters to be percent-escaped.
+        const url_encoded = 'http://example.com/foo/abc%20%22%3C%3E%60%7B%7D';
+        setupManualShareTest({title: '', text: '', url: url_encoded});
+        callWhenButtonClicked(() => navigator.share({url}));
+    </script>
+  </body>
+</html>

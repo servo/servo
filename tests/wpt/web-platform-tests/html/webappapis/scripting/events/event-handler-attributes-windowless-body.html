@@ -1,0 +1,71 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<body></body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="resources/event-handler-body.js"></script>
+<script>
+setup({ explicit_done: true });
+const elements = ['body', 'frameset'];
+handlersListPromise.then(({ shadowedHandlers, notShadowedHandlers }) => {
+  elements.forEach(function (elementName) {
+    shadowedHandlers.forEach(function (eventName) {
+      var handlerName = "on" + eventName;
+
+      test(function() {
+        var windowHandler = function () { return "Handler attached to the window"; };
+        window[handlerName] = windowHandler;
+
+        var d = (new DOMParser).parseFromString('', 'text/html');
+        var b = d.createElement(elementName);
+
+        assert_equals(b[handlerName], null);
+
+        window[handlerName] = null;
+      }, "Return null when getting the " + eventName + " event handler of a windowless " + elementName);
+
+      test(function() {
+        var windowHandler = function () { return "Handler attached to the window"; };
+        window[handlerName] = windowHandler;
+
+        var d = (new DOMParser).parseFromString('', 'text/html');
+        var b = d.createElement(elementName);
+        b[handlerName] = function() { return "Handler attached to windowless element"; };
+
+        assert_equals(window[handlerName], windowHandler);
+        assert_equals(b[handlerName], null);
+
+        // Clean up window event handler
+        window[handlerName] = null;
+      }, "Ignore setting of " + eventName + " window event handlers on windowless " + elementName);
+    });
+
+    notShadowedHandlers.forEach(function (eventName) {
+      var handlerName = "on" + eventName;
+
+      test(function() {
+        var windowHandler = function () { return "Handler attached to the window"; };
+        window[handlerName] = windowHandler;
+
+        var d = (new DOMParser).parseFromString('', 'text/html');
+        var b = d.createElement(elementName);
+
+        assert_equals(b[handlerName], null);
+
+        var elementHandler = function () { return "Handler attached to the element"; };
+        b[handlerName] = elementHandler;
+
+        assert_equals(window[handlerName], windowHandler);
+        assert_equals(b[handlerName], elementHandler);
+
+        // Clean up window event handler
+        window[handlerName] = null;
+      }, eventName + " is unaffected on a windowless " + elementName);
+    });
+  });
+
+  done();
+});
+</script>

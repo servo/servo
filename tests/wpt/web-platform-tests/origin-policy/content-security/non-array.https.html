@@ -1,0 +1,16 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>Non-array "content_security/policies" member must be ignored</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/origin-policy-test-runner.js"></script>
+
+<div id="log"></div>
+
+<script>
+"use strict";
+runTestsInSubframe({
+  hostname: "op4",
+  testJS: "resources/allow-unsafe-eval.mjs"
+});
+</script>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<link rel="help" href="https://w3c.github.io/screen-wake-lock/#dom-wakelocksentinel-released">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+promise_test(async t => {
+  await test_driver.set_permission({name: 'screen-wake-lock'}, 'granted', false);
+
+  const lock = await navigator.wakeLock.request("screen");
+  assert_false(lock.released, "lock.release must be false on creation");
+
+  const watcher = new EventWatcher(t, lock, "release");
+
+  lock.release();
+  assert_false(lock.released, "WakeLockSentinel.release does not become true immediately");
+
+  await watcher.wait_for("release");
+  assert_true(lock.released, "lock.release must be true after calling release()");
+}, "Basic WakeLockSentinel.released functionality");
+
+promise_test(async t => {
+  await test_driver.set_permission({ name: 'screen-wake-lock' }, 'granted', false);
+
+  const lock = await navigator.wakeLock.request("screen");
+  assert_false(lock.released, "lock.release must be false on creation");
+
+  return new Promise(resolve => {
+    lock.onrelease = t.step_func(ev => {
+      assert_true(lock.released, "WakeLockSentinel.release is true in an onrelease event handler");
+      resolve();
+    });
+    lock.release();
+    assert_false(lock.released, "WakeLockSentinel.release does not become true immediately")
+  })
+}, "The release attribute inside an event handler");
+</script>

@@ -1,0 +1,206 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+description("Test bufferData/bufferSubData with ArrayBufferView sub source input");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext(undefined, undefined, 2);
+
+function verifyBufferData(testCase, sourceByteOffset, size, data) {
+    var readbackBuffer = new ArrayBuffer(testCase.size * size);
+    var readbackView = new window[testCase.type](readbackBuffer);
+    gl.getBufferSubData(gl.ARRAY_BUFFER, sourceByteOffset, readbackView);
+    var pass = true;
+    var offset = sourceByteOffset / testCase.size;
+    for (var ii = 0; ii < size; ++ii) {
+        if (readbackView[ii] != data[ii]) {
+            testFailed("expected data at " + ii + ": " + data[iit] + ", got " + readbackView[ii]);
+            pass = false;
+        }
+    }
+    if (pass) {
+        testPassed("buffer data uploaded correctly");
+    }
+}
+
+function bufferDataTest(testCases) {
+    for (var idx = 0; idx < testCases.length; ++idx) {
+        var test = testCases[idx];
+        debug("");
+        debug("Test bufferData with " + test.type);
+
+        var buf = gl.createBuffer();
+        shouldBeNonNull(buf);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+        var count = 4;
+        var arrayBuffer = new ArrayBuffer(test.size * count);
+        var view = new window[test.type](arrayBuffer);
+        for (var ii = 0; ii < count; ++ii) {
+            view[ii] = ii;
+        }
+
+        gl.bufferData(gl.ARRAY_BUFFER, view, gl.STATIC_DRAW, 0, count + 1);
+        wtu.glErrorShouldBe(gl, gl.INVALID_VALUE,
+            "calling bufferData when srcOffset + length is larger than source size");
+
+        gl.bufferData(gl.ARRAY_BUFFER, view, gl.STATIC_DRAW, count + 1);
+        wtu.glErrorShouldBe(gl, gl.INVALID_VALUE,
+            "calling bufferData when srcOffset + length is larger than source size");
+
+        gl.bufferData(gl.ARRAY_BUFFER, view, gl.STATIC_DRAW, count - 1, 2);
+        wtu.glErrorShouldBe(gl, gl.INVALID_VALUE,
+            "calling bufferData when srcOffset + length is larger than source size");
+
+        var offset = 2;
+        var size = count - offset;
+        gl.bufferData(gl.ARRAY_BUFFER, view, gl.STATIC_DRAW, offset);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+            "calling bufferData with valid sub source should succeed");
+        verifyBufferData(test, 0, size, view.slice(offset, offset + size));
+
+        offset = 1;
+        size = 1;
+        gl.bufferData(gl.ARRAY_BUFFER, view, gl.STATIC_DRAW, offset, size);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+            "calling bufferData with valid sub source should succeed");
+        verifyBufferData(test, 0, size, view.slice(offset, offset + size));
+
+        gl.bufferData(gl.ARRAY_BUFFER, view, gl.STATIC_DRAW, count);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+            "calling bufferData with valid sub source of size 0 should succeed");
+
+        gl.deleteBuffer(buf);
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "no GL error");
+    }
+}
+
+function bufferSubDataTest(testCases) {
+    for (var idx = 0; idx < testCases.length; ++idx) {
+        var test = testCases[idx];
+        debug("");
+        debug("Test bufferSubData with " + test.type);
+
+        var count = 4;
+        var totalBufferBytes = test.size * count * 2;
+        var buf = gl.createBuffer();
+        shouldBeNonNull(buf);
+        gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+        gl.bufferData(gl.ARRAY_BUFFER, totalBufferBytes, gl.STATIC_DRAW);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+        var arrayBuffer = new ArrayBuffer(test.size * count);
+        var view = new window[test.type](arrayBuffer);
+        for (var ii = 0; ii < count; ++ii) {
+            view[ii] = ii;
+        }
+
+        var sourceByteOffset = test.size * 2;
+
+        gl.bufferSubData(gl.ARRAY_BUFFER, sourceByteOffset, view, 0, count + 1);
+        wtu.glErrorShouldBe(gl, gl.INVALID_VALUE,
+            "calling bufferSubData when srcOffset + length is larger than source size");
+
+        gl.bufferSubData(gl.ARRAY_BUFFER, sourceByteOffset, view, count + 1);
+        wtu.glErrorShouldBe(gl, gl.INVALID_VALUE,
+            "calling bufferSubData when srcOffset + length is larger than source size");
+
+        gl.bufferSubData(gl.ARRAY_BUFFER, sourceByteOffset, view, count - 1, 2);
+        wtu.glErrorShouldBe(gl, gl.INVALID_VALUE,
+            "calling bufferSubData when srcOffset + length is larger than source size");
+
+        var offset = 2;
+        var size = count - offset;
+        gl.bufferSubData(gl.ARRAY_BUFFER, sourceByteOffset, view, offset);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+            "calling bufferSubData with valid sub source should succeed");
+        verifyBufferData(test, sourceByteOffset, size, view.slice(offset, offset + size));
+
+        offset = 1;
+        size = 1;
+        gl.bufferSubData(gl.ARRAY_BUFFER, sourceByteOffset, view, offset, size);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+            "calling bufferSubData with valid sub source should succeed");
+        verifyBufferData(test, sourceByteOffset, size, view.slice(offset, offset + size));
+
+        gl.bufferSubData(gl.ARRAY_BUFFER, sourceByteOffset, view, count);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+            "calling bufferSubData with valid sub source of size 0 should succeed");
+
+        gl.deleteBuffer(buf);
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "no GL error");
+    }
+}
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    var testCases = [
+        {type: "Uint8Array",   size: 1},
+        {type: "Int8Array",    size: 1},
+        {type: "Int16Array",   size: 2},
+        {type: "Uint16Array",  size: 2},
+        {type: "Uint32Array",  size: 4},
+        {type: "Int32Array",   size: 4},
+        {type: "Float32Array", size: 4},
+        {type: "Float64Array", size: 8}
+    ];
+
+    bufferDataTest(testCases);
+    bufferSubDataTest(testCases);
+}
+
+var successfullyParsed = true;
+</script>
+
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

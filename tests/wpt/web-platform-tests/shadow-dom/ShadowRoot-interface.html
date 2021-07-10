@@ -17,11 +17,11 @@ test(function () {
 }, 'Check the existence of ShadowRoot interface');
 
 test(function () {
-    assert_equals(ShadowRoot.prototype.__proto__, DocumentFragment.prototype, 'ShadowRoot must inherit from DocumentFragment');
+    assert_equals(Object.getPrototypeOf(ShadowRoot.prototype), DocumentFragment.prototype, 'ShadowRoot must inherit from DocumentFragment');
 }, 'ShadowRoot must inherit from DocumentFragment');
 
 test(function () {
-    assert_throws({'name': 'TypeError'}, function () { new ShadowRoot(); }, 'new ShadowRoot() must throw a TypeError');
+    assert_throws_js(TypeError, function () { new ShadowRoot(); }, 'new ShadowRoot() must throw a TypeError');
 }, 'ShadowRoot must not be a constructor');
 
 function testActiveElement(mode) {
@@ -94,12 +94,21 @@ function testStyleSheets(mode) {
         var host = document.createElement('div');
         var shadowRoot = host.attachShadow({'mode': mode});
 
-        assert_equals(shadowRoot.styleSheets.length, 0, 'shadowRoot.styleSheets must be empty when the shadow root does not contain any stylesheets');
         shadowRoot.innerHTML = '<span></span><style> a.rule {} </style><style> b.rule {} </style>';
-        assert_equals(shadowRoot.styleSheets.length, 2, 'shadowRoot.styleSheets must contain two items when the shadow root has two style elements');
+        assert_equals(shadowRoot.styleSheets.length, 0, 'shadowRoot.styleSheets must be empty when the shadow root is not connected');
         var styles = shadowRoot.querySelectorAll('style');
+        assert_equals(styles[0].sheet, null, "Sheet should be null in a disconnected tree");
+        assert_equals(styles[1].sheet, null, "Sheet should be null in a disconnected tree");
+
+        document.body.appendChild(host);
+        assert_equals(shadowRoot.styleSheets.length, 2, 'shadowRoot.styleSheets must contain two items when the shadow root has two style elements');
         assert_equals(shadowRoot.styleSheets[0], styles[0].sheet, 'shadowRoot.styleSheets[0] must be the first style element in the shadow root');
         assert_equals(shadowRoot.styleSheets[1], styles[1].sheet, 'shadowRoot.styleSheets[1] must be the second style element in the shadow root');
+
+        host.remove();
+        assert_equals(shadowRoot.styleSheets.length, 0, 'shadowRoot.styleSheets must be empty when the shadow root is not connected');
+        assert_equals(styles[0].sheet, null, "Sheet should be null in a disconnected tree");
+        assert_equals(styles[1].sheet, null, "Sheet should be null in a disconnected tree");
     }, 'ShadowRoot.styleSheets must return a StyleSheetList sequence containing the shadow root style sheets when shadow root is ' + mode + '.');
 }
 

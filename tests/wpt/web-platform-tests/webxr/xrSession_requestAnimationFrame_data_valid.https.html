@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <script src="resources/webxr_test_constants.js"></script>
+
+  <script>
+    const testName = "RequestAnimationFrame resolves with good data";
+
+    const fakeDeviceInitOptions = TRACKED_IMMERSIVE_DEVICE;
+
+    let testSession;
+
+    function checkView(view) {
+      assert_not_equals(view, null);
+      assert_not_equals(view.transform, null);
+
+      let inv_view_transform = view.transform.inverse;
+      assert_not_equals(inv_view_transform, null);
+      assert_not_equals(inv_view_transform.matrix, null);
+      assert_equals(inv_view_transform.matrix.length, 16);
+    }
+
+    let testFunction = function(session, testDeviceController) {
+      testSession = session;
+      return session.requestReferenceSpace('local')
+        .then((referenceSpace) => new Promise((resolve) => {
+
+          function onFrame(time, xrFrame) {
+            assert_true(xrFrame instanceof XRFrame);
+
+            let viewerPose = xrFrame.getViewerPose(referenceSpace);
+
+            assert_not_equals(viewerPose, null);
+            for(let i = 0; i < IDENTITY_MATRIX.length; i++) {
+              assert_equals(viewerPose.transform.matrix[i], IDENTITY_MATRIX[i]);
+            }
+
+            assert_not_equals(viewerPose.views, null);
+            assert_equals(viewerPose.views.length, 2);
+            checkView(viewerPose.views[0]);
+            checkView(viewerPose.views[1]);
+
+            // Test does not complete until the returned promise resolves.
+            resolve();
+          }
+
+          testSession.requestAnimationFrame(onFrame);
+        })
+      );
+    }
+
+    xr_session_promise_test(
+      testName, testFunction, fakeDeviceInitOptions, 'immersive-vr');
+  </script>
+</body>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  var link = document.createElement("link");
+  var values = {
+    "Image": "image",
+    "images": "",
+    "scripT": "script",
+    "style": "style",
+    "": "",
+    "foNt": "font",
+    "foobar": "",
+    "video": "video",
+    "audio": "audio",
+    "track": "track",
+    "fetch": "fetch",
+  };
+  var keys = Object.keys(values);
+  for (var i = 0; i < keys.length; ++i) {
+    link.as = keys[i];
+    assert_equals(link.as, values[keys[i]]);
+  }
+}, "Make sure that the `as` value reflects only known values");
+</script>

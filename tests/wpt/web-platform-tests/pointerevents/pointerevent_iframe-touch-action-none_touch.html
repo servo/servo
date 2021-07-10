@@ -1,0 +1,66 @@
+<html>
+  <head>
+        <title>iframe touch-action:none attribute</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="pointerevent_support.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+  </head>
+  <body onload="run()">
+    <h1>iframe touch-action:none attribute</h1>
+    <h2 id="pointerTypeDescription"></h2>
+    <h4>Test Description: Drag your finger in the green rectangle below then tap the "Done" button.</h4>
+    <br>
+    <iframe id="target"
+            style="touch-action:none;"
+            src="resources/iframe-touch-action-none-subframe.html">
+    </iframe>
+    <input type="button" id="btnDone" value="Done">
+  </body>
+  <script>
+    var event_log = [];
+
+    function resetTestState() {
+        event_log = [];
+    }
+
+    function run() {
+        var test_pointerEvent = setup_pointerevent_test("iframe received pointercancel",
+                                                        ["touch"]);
+        var actions_promise;
+        var target = document.getElementById("target");
+
+        on_event(document.getElementById("btnDone"), "click", () => {
+            test_pointerEvent.step(() => {
+                assert_equals(event_log.join(", "), "pointercancel",
+                              "exactly one pointercancel received");
+            });
+            actions_promise.then(() => test_pointerEvent.done());
+        });
+
+        on_event(window, "message",  function(event) {
+            if (event.source != target.contentWindow) {
+              return;
+            }
+            if (event.data && event.data.type == "subframe-event") {
+              event_log.push(event.data.eventType);
+            }
+        });
+
+        actions_promise = new test_driver.Actions()
+            .addPointer("pointer1", "touch")
+            .pointerMove(0, 0, {origin: target})
+            .pointerDown()
+            .pointerMove(25, 25, {origin: target})
+            .pointerUp()
+            .pointerMove(0, 0, {origin: btnDone})
+            .pointerDown()
+            .pointerUp()
+            .send();
+    }
+  </script>
+</html>

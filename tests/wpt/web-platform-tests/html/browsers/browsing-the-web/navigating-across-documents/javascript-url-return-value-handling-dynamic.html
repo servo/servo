@@ -1,0 +1,51 @@
+<!doctype html>
+<meta charset=UTF-8>
+<title>Test javascript URL string return values in direct and indirect (target) frame contexts.</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+const testInputs = [
+  [0x41],
+  [0x80,0xFF],
+  [0x80,0xFF,0x100],
+  [0xD83D,0xDE0D],
+  [0xDE0D,0x41]
+];
+testInputs.forEach(input => {
+  const javascriptURL = "javascript:[" + input + "].map(b => String.fromCharCode(b)).join('')",
+        output = input.map(b => String.fromCharCode(b)).join("");
+  async_test(t => {
+    const frame = document.createElement("iframe");
+    t.add_cleanup(() => frame.remove());
+    frame.src = javascriptURL;
+    t.step_timeout(() => {
+      assert_equals(frame.contentDocument.body.textContent, output);
+      assert_equals(frame.contentDocument.charset, document.charset);
+      t.done();
+    }, 200);
+    document.body.appendChild(frame);
+  });
+});
+
+testInputs.forEach(input => {
+  const javascriptURL = "javascript:[" + input + "].map(b => String.fromCharCode(b)).join('')",
+        output = input.map(b => String.fromCharCode(b)).join("");
+  async_test(t => {
+    const frame = document.createElement("iframe"),
+          href = document.createElement("a");
+    t.add_cleanup(() => { frame.remove(); href.remove(); });
+    frame.name = "hi" + input;
+    href.target = "hi" + input;
+    href.href = javascriptURL;
+    t.step_timeout(() => {
+      assert_equals(frame.contentDocument.body.textContent, output);
+      assert_equals(frame.contentDocument.charset, document.charset);
+      t.done();
+    }, 200)
+    document.body.appendChild(frame);
+    document.body.appendChild(href);
+    href.click();
+  });
+});
+</script>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://html.spec.whatwg.org/#attr-textarea-wrap">
+<link rel="help" href="https://html.spec.whatwg.org/#enumerated-attribute">
+<meta name="assert" content="textarea@wrap values are ASCII case-insensitive">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<form target="child" method="GET" action="wrap-enumerated-ascii-case-insensitive-child.html">
+  <textarea name="a" wrap="hard" cols="7">hello world</textarea>
+  <textarea name="b" wrap="HaRd" cols="7">hello world</textarea>
+  <textarea name="c" wrap="soft" cols="7">hello world</textarea>
+  <textarea name="d" wrap="SoFt" cols="7">hello world</textarea>
+  <textarea name="e" wrap="ſoft" cols="7">hello world</textarea>
+</form>
+<iframe name="child"></iframe>
+<script>
+// #dom-textarea-wrap reflects the content attribute, but it isn’t a nullable
+// DOMString, nor is it #limited-to-only-known-values, so we can’t just take
+// the shortcut of asserting the IDL attribute like most other attributes
+async_test(function() {
+  // we use a message rather than the iframe’s load event to avoid dealing with
+  // spurious load events that some browsers dispatch on the initial about:blank
+  addEventListener("message", this.step_func_done(event => {
+    const params = new URL(event.data).searchParams;
+
+    // #textarea-wrapping-transformation says that a UA-defined algorithm wraps
+    // values by inserting CRLF pairs, so "hello \r\nworld" and "hello w\r\norld"
+    // are two of many valid outcomes for cols=7
+    assert_true(params.get("a").includes("\r\n"), "lowercase “hard” valid");
+    assert_true(params.get("b").includes("\r\n"), "mixed case “hard” valid");
+    assert_false(params.get("c").includes("\r\n"), "lowercase “soft” valid");
+
+    // vacuous: the invalid value default is currently soft, so even if the UA
+    // treats this as invalid, the observable behaviour would still be correct
+    assert_false(params.get("d").includes("\r\n"), "mixed case “soft” valid");
+
+    // vacuous: the invalid value default is currently soft, so even if the UA
+    // treats this as valid, the observable behaviour would still be correct
+    assert_false(params.get("e").includes("\r\n"), "non-ASCII “soft” invalid");
+  }));
+
+  // we submit the form in GET mode to observe the values [#concept-fe-value] of
+  // the textareas, because IDL gives us the API value [#concept-fe-api-value],
+  // which isn’t subject to hard wrapping [#textarea-wrapping-transformation]
+  document.querySelector("form").submit();
+}, "keywords");
+</script>

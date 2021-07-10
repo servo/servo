@@ -1,0 +1,31 @@
+name: Nightly rustc build
+
+on:
+  schedule:
+    # Run at 5:30 am, daily.
+    - cron: '15 5 * * *'
+  workflow_dispatch:
+
+env:
+  RUST_BACKTRACE: 1
+  SHELL: /bin/bash
+
+jobs:
+  build-linux-with-rust-nightly:
+    name: Build (Linux) + rustc nightly
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Update rustc
+        run: echo nightly > rust-toolchain
+      - name: Bootstrap
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          python3 ./mach bootstrap
+      - name: Release build
+        run: python3 ./mach build --release
+      - name: Unit tests
+        run: python3 ./mach test-unit --release

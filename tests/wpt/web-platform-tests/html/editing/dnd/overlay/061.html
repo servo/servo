@@ -2,28 +2,28 @@
 <title>drag &amp; drop - dragging elements by overflowing children that are positioned outside them</title>
 <style type="text/css">
 div {
-	height: 200px;
-	width: 200px;
-	background: blue;
-	white-space: nowrap;
-	position: relative;
+  height: 200px;
+  width: 200px;
+  background: blue;
+  white-space: nowrap;
+  position: relative;
 }
 span {
-	display: block;
-	top: 0;
-	left: 210px;
-	position: absolute;
-	width: 100px;
-	height: 100px;
-	background: yellow;
+  display: block;
+  top: 0;
+  left: 210px;
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: yellow;
 }
 </style>
 <script type="text/javascript">
 window.onload = function () {
-	document.getElementsByTagName('div')[0].ondragstart = function (e) {
-		e.dataTransfer.effectAllowed = 'copy';
-		e.dataTransfer.setData('text','dummy text');
-	};
+  document.getElementsByTagName('div')[0].ondragstart = function (e) {
+    e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('text','dummy text');
+  };
 };
 </script>
 <div draggable="true"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Drag me</span></div>

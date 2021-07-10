@@ -1,0 +1,36 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: 'contain: paint' with a vertical margin child. Margin collapse should not occur.</title>
+  <link rel="author" title="Kyle Zentner" href="mailto:zentner.kyle@gmail.com">
+  <link rel="help" href="https://drafts.csswg.org/css-contain/#containment-paint">
+  <link rel="match" href="contain-paint-formatting-context-margin-001-ref.html">
+  <style>
+  #a {
+      contain: paint;
+      background: blue;
+      margin: 10px;
+      width: 50px;
+      height: 50px;
+  }
+  #b {
+      width: 50px;
+      height: 40px;
+      background: green;
+      margin-top: 10px;
+  }
+  #c {
+      background: red;
+      width: 50px;
+      height: 10px;
+  }
+  </style>
+</head>
+<body>
+  <div id="a">
+    <div id="b"></div>
+    <div id="c"></div>
+  </div>
+</body>
+</html>

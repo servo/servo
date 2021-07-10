@@ -11,12 +11,11 @@
     function() {
       check_result = t.step_func(
         function() {
-          if (pages.length < 4) {
+          if (pages.length < 3) {
               setTimeout(check_result, 500);
               return
           }
-          //The pass condition here is based on the idea that the spec is wrong and browsers are right
-          assert_array_equals(pages, [2, 3, 2, 3], "Pages opened during history navigation");
+          assert_array_equals(pages, [2, 3, 1], "Pages opened during history navigation");
           t.done();
         }
       )

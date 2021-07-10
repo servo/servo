@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS Cascade: 'revert' appearing in setKeyframes</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade/#default">
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/#dom-keyframeeffect-setkeyframes">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<h1 id=h1></h1>
+<script>
+  test(function() {
+    let original = parseInt(getComputedStyle(h1).marginTop);
+
+    // This test assumes that the UA style sheet sets a non-0px value on
+    // <h1> elements:
+    assert_not_equals(original, 0);
+
+    let animation = h1.animate([
+      { marginTop: `${original*4}px` },
+      { marginTop: `${original*8}px` },
+    ], {
+      duration: 1000000,
+      delay: -500000,
+      easing: 'steps(2, end)'
+    });
+
+    let animated = parseInt(getComputedStyle(h1).marginTop);
+    assert_equals(animated, original*6);
+
+    animation.effect.setKeyframes([
+      { marginTop: 'revert' },
+      { marginTop: `${original*3}px` },
+    ]);
+
+    let animated_revert = parseInt(getComputedStyle(h1).marginTop);
+    assert_equals(animated_revert, original*2);
+  }, 'The revert works when appearing in setKeyframes');
+</script>

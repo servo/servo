@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>
+    CSS Test: Test that "flex-basis" doesn't affect layout of abspos flex child
+  </title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#abspos-items">
+  <link rel="match" href="flexbox-abspos-child-002-ref.html">
+  <style>
+    .flex {
+      display: flex;
+      height: 10px;
+      width: 10px;
+      background: purple;
+      margin-bottom: 5px;
+      position: relative;
+    }
+    .flex > * {
+      position: absolute;
+      background: teal;
+      height: 10px;
+    }
+    .sized {
+      width: 10px;
+    }
+    .implied {
+      left: 0;
+      right: 0;
+    }
+  </style>
+</head>
+<body>
+  <!-- In all cases below, flex-basis should have no effect on layout (because
+       it's on an element that is abspos and hence not a flex item). -->
+
+  <!-- Abspos child has auto width (which should end up 0): -->
+  <div class="flex"><div style="flex-basis: 2px"></div></div>
+  <div class="flex"><div style="flex-basis: 100px"></div></div>
+  <div class="flex"><div style="flex-basis: 80%"></div></div>
+  <div class="flex"><div style="flex-basis: content"></div></div>
+
+  <!-- Abspos child has explicit 10px width: -->
+  <div class="flex"><div class="sized" style="flex-basis: 2px"></div></div>
+  <div class="flex"><div class="sized" style="flex-basis: 100px"></div></div>
+  <div class="flex"><div class="sized" style="flex-basis: 80%"></div></div>
+  <div class="flex"><div class="sized" style="flex-basis: content"></div></div>
+
+  <!-- Abspos child has implicit 10px width (implied by auto width and
+       constrained left/right properties): -->
+  <div class="flex"><div class="implied" style="flex-basis: 2px"></div></div>
+  <div class="flex"><div class="implied" style="flex-basis: 100px"></div></div>
+  <div class="flex"><div class="implied" style="flex-basis: 80%"></div></div>
+  <div class="flex"><div class="implied" style="flex-basis: content"></div></div>
+
+</body>
+</html>

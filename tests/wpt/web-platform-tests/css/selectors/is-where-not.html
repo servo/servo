@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<title>:is() inside :not()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#matches">
+<link rel="help" href="https://drafts.csswg.org/selectors/#negation">
+
+<main id=main>
+  <div id=a><div id=d></div></div>
+  <div id=b><div id=e></div></div>
+  <div id=c><div id=f></div></div>
+</main>
+
+<script>
+  function formatElements(elements) {
+    return elements.map(e => e.id).sort().join();
+  }
+
+  // Test that |selector| returns the given elements in #main.
+  function test_selector(selector, expected) {
+    test(function() {
+      let actual = Array.from(main.querySelectorAll(selector));
+      assert_equals(formatElements(actual), formatElements(expected));
+    }, `${selector} matches expected elements`);
+  }
+
+  test_selector(':not(:is(#a))', [b, c, d, e, f]);
+  test_selector(':not(:where(#b))', [a, c, d, e, f]);
+  test_selector(':not(:where(:root #c))', [a, b, d, e, f]);
+  test_selector(':not(:is(#a, #b))', [c, d, e, f]);
+  test_selector(':not(:is(#b div))', [a, b, c, d, f]);
+  test_selector(':not(:is(#a div, div + div))', [a, e, f]);
+  test_selector(':not(:is(span))', [a, b, c, d, e, f]);
+  test_selector(':not(:is(div))', []);
+  test_selector(':not(:is(*|div))', []);
+  test_selector(':not(:is(*|*))', []);
+  test_selector(':not(:is(*))', []);
+  test_selector(':not(:is(svg|div))', [a, b, c, d, e, f]);
+  test_selector(':not(:is(:not(div)))', [a, b, c, d, e, f]);
+  test_selector(':not(:is(span, b, i))', [a, b, c, d, e, f]);
+  test_selector(':not(:is(span, b, i, div))', []);
+  test_selector(':not(:is(#b ~ div div, * + #c))', [a, b, d, e]);
+  test_selector(':not(:is(div > :not(#e)))', [a, b, c, e]);
+  test_selector(':not(:is(div > :not(:where(#e, #f))))', [a, b, c, e, f]);
+</script>

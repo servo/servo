@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>CSS Grid: width of grid container with scrollbar.</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#overflow">
+<meta name="assert" content="This test ensures that a grid container scrollbar is computed properly during intrinsic width calculation."/>
+
+<link href="/css/support/grid.css" rel="stylesheet"/>
+<link href="/css/support/width-keyword-classes.css" rel="stylesheet"/>
+<style>
+  .grid {
+    overflow-y: scroll;
+    grid-template-columns: repeat(4, 50px);
+  }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.grid')">
+  <div class="grid min-content" data-expected-client-width="200">
+    item
+  </div>
+  <div class="grid max-content" data-expected-client-width="200">
+    item
+  </div>
+</body>

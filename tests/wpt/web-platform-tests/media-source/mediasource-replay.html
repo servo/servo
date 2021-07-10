@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<!-- Copyright © 2019 Igalia S.L -->
+<html>
+<head>
+    <title>MediaSource replay test case.</title>
+    <meta name="timeout" content="long">
+    <meta charset="utf-8">
+    <link rel="author" title="Alicia Boya García" href="mailto:aboya@igalia.com">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="mediasource-util.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+    mediasource_testafterdataloaded(function (test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData) {
+        mediaElement.addEventListener('error', test.unreached_func("Unexpected event 'error'"));
+
+        test.expectEvent(sourceBuffer, 'updateend', 'sourceBuffer');
+
+        sourceBuffer.appendBuffer(mediaData);
+
+        test.waitForExpectedEvents(function () {
+            mediaSource.endOfStream();
+
+            // Start playing near the end.
+            mediaElement.currentTime = 6.2;
+            mediaElement.play();
+            test.expectEvent(mediaElement, 'ended', 'mediaElement');
+        });
+
+        test.waitForExpectedEvents(function () {
+            mediaElement.play();
+            assert_equals(mediaElement.currentTime, 0, "currentTime");
+            // If currentTime is able to advance, the player did not get stuck and it's a pass.
+            test.waitForCurrentTimeChange(mediaElement, test.step_func_done());
+        });
+    }, "Test replaying video after 'ended'");
+</script>
+</body>
+</html>

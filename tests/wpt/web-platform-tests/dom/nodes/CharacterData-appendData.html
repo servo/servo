@@ -60,7 +60,7 @@ function testNode(create, type) {
     var node = create()
     assert_equals(node.data, "test")
 
-    assert_throws(new TypeError(), function() { node.appendData() });
+    assert_throws_js(TypeError, function() { node.appendData() });
     assert_equals(node.data, "test")
   }, type + ".appendData()")
 }

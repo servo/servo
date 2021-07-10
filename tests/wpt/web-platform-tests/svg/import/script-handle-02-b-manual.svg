@@ -25,14 +25,14 @@
         The test shows a target that can be used to generate the various
         kinds of events supported in SVG. Below the
         target, the list of events is shown with red markers next to each.
-      </p>      
+      </p>
       <p>
         If the test passes, all the markers should have turned to green
         after the events have been triggered on the target. If any event
         has not triggered, its marker will remain red.
       </p>
     </d:testDescription>
-    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">      
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
       <p>Load the test. Focus the gray circle, activate it, then move the focus away from the circle.</p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">

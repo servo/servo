@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/cssom-view-1/#dom-element-getclientrects">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <div>
+    <span>test</span>
+    <span id="vertical-align-sub-as-grand-child"
+          title="sub element in a child inline box should not be included">
+      <span>
+        <sub class="not-include" style="vertical-align: sub">subscript</sub>
+      </span>
+    </span>
+    <span>test</span>
+  </div>
+<script>
+testTargetDoesNotInclude('vertical-align-sub-as-grand-child');
+
+function testTargetDoesNotInclude(target) {
+  target = document.getElementById(target);
+  test(() => {
+    let target_rects = target.getClientRects();
+
+    let not_include_rects = [];
+    for (let element of target.querySelectorAll('.not-include')) {
+      for (let rect of element.getClientRects())
+        not_include_rects.push(rect);
+    }
+    for (let rect of target_rects) {
+      for (let not_include_rect of not_include_rects) {
+        assert_rect_not_equals(rect, not_include_rect);
+      }
+    }
+  }, target.title);
+}
+
+function assert_rect_not_equals(rect1, rect2) {
+  assert_false(rectEquals(rect1, rect2),
+               `${rectToString(rect1)} and ${rectToString(rect2)} are not equal`);
+}
+
+function rectEquals(rect1, rect2) {
+  return rect1.x === rect2.x && rect1.y === rect2.y &&
+         rect1.width === rect2.width && rect1.height === rect2.height;
+}
+
+function rectToString(rect) {
+  return `{${rect.x}, ${rect.y} ${rect.width}x${rect.height}}`;
+}
+</script>
+</body>

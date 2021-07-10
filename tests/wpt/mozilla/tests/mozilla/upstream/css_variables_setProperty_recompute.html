@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Calling setProperty on a custom property should recompute its value inherited by children</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+#parent {
+  --foo: bar;
+}
+</style>
+
+<div id="parent">
+  <div id="child">
+  </div>
+</div>
+
+<script>
+test(function () {
+  let parent = document.getElementById("parent");
+  let child = document.getElementById("child");
+
+  parent.style.setProperty("--foo", "old");
+  assert_equals(window.getComputedStyle(child).getPropertyValue("--foo"), "old");
+
+  parent.style.setProperty("--foo", "new");
+  assert_equals(window.getComputedStyle(child).getPropertyValue("--foo"), "new");
+}, "Calling setProperty on a custom property should recompute its value inherited by children");
+</script>

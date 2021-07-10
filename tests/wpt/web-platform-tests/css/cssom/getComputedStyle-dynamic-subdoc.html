@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSSOM: getComputedStyle cross-doc properly reflects media query changes</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<iframe id="frm" style="width: 100px; height: 100px"></iframe>
+<script>
+test(function() {
+  let frm = document.getElementById('frm');
+  let frmDoc = frm.contentWindow.document;
+  frmDoc.open();
+  frmDoc.write('<style>body { color: red } @media all and (min-width: 101px) { body { color: green } }</style><body>Should be green</body>');
+  frmDoc.close();
+
+  document.body.offsetTop;
+
+  assert_equals(
+    getComputedStyle(frmDoc.body).color,
+    "rgb(255, 0, 0)",
+    "Initial color should be red"
+  );
+
+  frm.style.width = "200px";
+
+  assert_equals(
+    getComputedStyle(frmDoc.body).color,
+    "rgb(0, 128, 0)",
+    "style should have been updated to account for media query changes"
+  );
+}, "getComputedStyle cross-doc properly reflects media query changes");
+</script>

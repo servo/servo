@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<body>
+  <canvas id="canvas" width="400" height="800"></canvas>
+</body>
+<script>
+  var canvas = document.getElementById('canvas');
+  canvas.style.width = (canvas.width / 2) + 'px';
+  canvas.style.height = (canvas.height / 2) + 'px';
+  var ctx = canvas.getContext('2d');
+  ctx.scale(2, 2);
+  ctx.fillStyle = 'green';
+  ctx.fillRect(0, 0, 100, 150);
+  ctx.fillStyle = 'red';
+  ctx.fillRect(0, 150, 200, 250);
+</script>

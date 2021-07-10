@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="support/test_utils.sub.js"></script>
+  </head>
+
+  <body>
+    <script>
+      /**
+       * @typedef{TestCase}
+       * @type{object}
+       * @property{string} frame The scheme of the url of the iframe.
+       * @property{string} resource The scheme of the resource in the iframe.
+       * @property{boolean} deleted Whether it is expected that Clear-Site-Data
+       *     will be respected when loading |resource| in |frame|.
+       */
+      var TestCase;
+
+      /** Array<TestCase> Test cases. */
+      var test_cases = [
+        { "frame": "https", "resource": "https", "deleted": true },
+        { "frame": "http", "resource": "https", "deleted": true },
+        { "frame": "https", "resource": "http", "deleted": false },
+        { "frame": "http", "resource": "http", "deleted": false },
+      ];
+
+      /**
+       * @param TestCase test_case The test case that is tested.
+       * @param Dict.<string, boolean> report A map between a datatype name and
+       *     whether it is empty.
+       */
+      function verifyDatatypes(test_case, report) {
+        if (test_case.deleted) {
+          assert_true(
+              report["storage"],
+              "Storage should have been cleared.");
+        } else {
+          assert_false(
+              report["storage"],
+              "Storage should NOT have been cleared.");
+        }
+      }
+
+      test_cases.forEach(function(test_case) {
+        var test_name =
+            test_case.resource + " resource on a " + test_case.frame + " page";
+
+        promise_test(function(test) {
+          return new Promise(function(resolve_test, reject_test) {
+            TestUtils.populateDatatypes()
+                .then(function() {
+                  // Navigate to a page with a resource that is loaded with
+                  // the Clear-Site-Data header, then verify that storage
+                  // has been deleted if and only if the resource was loaded
+                  // via HTTPS.
+                  return new Promise(function(resolve, reject) {
+                    window.addEventListener("message", resolve);
+                    var iframe = document.createElement("iframe");
+                    iframe.src = TestUtils.getPageWithResourceUrl(
+                        test_case.frame, test_case.resource);
+                    document.body.appendChild(iframe);
+                  }).then(function(messageEvent) {
+                    verifyDatatypes(test_case, messageEvent.data);
+                    resolve_test();
+                  });
+                });
+          });
+        }, test_name);
+      });
+    </script>
+  </body>
+</html>

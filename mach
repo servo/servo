@@ -1,12 +1,12 @@
 #!/bin/sh
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 # The beginning of this script is both valid shell and valid python,
 # such that the script starts with the shell and is reexecuted with
 # the right python.
-''':' && if [ ! -z "$MSYSTEM" ] ; then exec python "$0" "$@" ; else which python2.7 > /dev/null 2> /dev/null && exec python2.7 "$0" "$@" || exec python "$0" "$@" ; fi
+''':' && if [ ! -z "$MSYSTEM" ] ; then exec python "$0" "$@" ; else which python3 > /dev/null 2> /dev/null && exec python3 "$0" "$@" || exec python "$0" "$@" ; fi
 '''
 
 from __future__ import print_function, unicode_literals
@@ -15,18 +15,28 @@ from __future__ import print_function, unicode_literals
 import os
 import sys
 
+# Check for the current python version as some users (especially on archlinux)
+# may not have python 2 installed and their /bin/python binary symlinked to
+# python 3.
+if sys.version_info < (3, 5):
+    print("mach does not support python 3 (< 3.5), please install python 3 (>= 3.5)")
+    sys.exit(1)
+
 
 def main(args):
     topdir = os.path.abspath(os.path.dirname(sys.argv[0]))
     sys.path.insert(0, os.path.join(topdir, "python"))
     import mach_bootstrap
-    mach = mach_bootstrap.bootstrap(topdir)
-    sys.exit(mach.run(sys.argv[1:]))
+    if len(sys.argv) > 1 and sys.argv[1] == "bootstrap":
+        sys.exit(mach_bootstrap.bootstrap_command_only(topdir))
+    else:
+        mach = mach_bootstrap.bootstrap(topdir)
+        sys.exit(mach.run(sys.argv[1:]))
 
 
 if __name__ == '__main__':
     sys.dont_write_bytecode = True
-    if sys.platform == 'win32':
+    if sys.platform == 'win32' and sys.version_info < (3, 4):
         # This is a complete hack to work around the fact that Windows
         # multiprocessing needs to import the original module (ie: this
         # file), but only works if it has a .py extension.
@@ -44,6 +54,12 @@ if __name__ == '__main__':
         #
         # See also: http://bugs.python.org/issue19946
         # And: https://bugzilla.mozilla.org/show_bug.cgi?id=914563
+        # XXX In Python 3.4 the multiprocessing module was re-written and the
+        # below code is no longer valid. The Python issue19946 also claims to
+        # be fixed in this version. It's not clear whether this hack is still
+        # needed in 3.4+ or not, but at least some basic mach commands appear
+        # to work without it. So skip it in 3.4+ until we determine it's still
+        # needed.
         import inspect
         from multiprocessing import forking
         global orig_command_line
@@ -90,4 +106,15 @@ if __name__ == '__main__':
         orig_command_line = forking.get_command_line
         forking.get_command_line = my_get_command_line
 
-    main(sys.argv)
+    if os.path.exists('/etc/NIXOS') and not 'IN_NIX_SHELL' in os.environ: # we're on a nixOS system, need to run mach in nix-shell
+        import subprocess
+        from shlex import quote
+        mach_dir = os.path.abspath(os.path.dirname(__file__))
+        print('NOTE: Entering nix-shell etc/shell.nix')
+        try:
+            # sys argv already contains the ./mach part, so we just need to pass it as-is
+            subprocess.Popen(['nix-shell', mach_dir + '/etc/shell.nix', '--run', ' '.join(map(quote, sys.argv))]).wait()
+        except KeyboardInterrupt:
+            sys.exit(0)
+    else:
+        main(sys.argv)

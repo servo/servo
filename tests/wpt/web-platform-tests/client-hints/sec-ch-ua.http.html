@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+  promise_test(t => {
+    return new Promise((resolve, reject) => {
+      var w;
+      window.onmessage = e => {
+        assert_equals(e.data.header, "", "The `Sec-CH-UA` header is not delivered.");
+        w.close();
+        resolve();
+      };
+      w = window.open("./resources/sec-ch-ua.py");
+    });
+  }, "Open HTTP window: no `Sec-CH-UA` header.")
+</script>

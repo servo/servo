@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<title>Test that xr is advertised in the feature list</title>
+<link rel="help" href="https://immersive-web.github.io/webxr/#feature-policy">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(() => {
+    assert_in_array('xr-spatial-tracking', document.featurePolicy.features());
+}, 'document.featurePolicy.features should advertise xr-spatial-tracking.');
+</script>

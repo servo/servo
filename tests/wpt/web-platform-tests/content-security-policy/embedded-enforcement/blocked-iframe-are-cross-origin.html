@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Embedded Enforcement: blocked iframes are cross-origin.</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/testharness-helper.sub.js"></script>
+</head>
+<body>
+<script>
+
+let SecurityError = 18;
+
+promise_test(async () => {
+  let iframe = document.createElement("iframe");
+  let loaded = new Promise(r => iframe.onload = r);
+  iframe.csp = "script-src 'none'";
+  iframe.src = getCrossOrigin() +  "common/blank.html";
+  document.body.appendChild(iframe);
+  await loaded;
+  assert_throws_dom(SecurityError, () => iframe.contentWindow.document);
+}, "Document blocked by embedded enforcement and its parent are cross-origin");
+
+promise_test(async () => {
+  // Create an iframe that would have been same-origin with the blocked iframe
+  // if it wasn't blocked.
+  let helper_frame = document.createElement("iframe");
+  let loaded_helper = new Promise(r => helper_frame.onload = r);
+  helper_frame.src = getCrossOrigin() +
+    "content-security-policy/embedded-enforcement/support/executor.html"
+  document.body.appendChild(helper_frame);
+  await loaded_helper;
+
+  let reply = new Promise(r => window.onmessage = r);
+  helper_frame.contentWindow.postMessage(`
+    let test = function() {
+      if (parent.frames.length != 2)
+        return "Error: Wrong number of iframes";
+
+      if (parent.frames[1] != window)
+        return "Error: Wrong frame index for the second iframe";
+
+      // Try to access frames[0] from frames[1]. This must fail.
+      try {
+        parent.frames[0].contentWindow;
+        return "Error: The error page appears same-origin";
+      } catch(dom_exception) {
+        return dom_exception.code;
+      }
+    };
+    parent.postMessage(test(), '*');
+  `, '*');
+
+  assert_equals((await reply).data, SecurityError);
+}, "Two same-origin iframes must appear as cross-origin when one is blocked");
+
+</script>
+</body>
+</html>

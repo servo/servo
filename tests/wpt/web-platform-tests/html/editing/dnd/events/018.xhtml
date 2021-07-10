@@ -4,19 +4,19 @@
 <title>Link drag and drop: events after dragenter is cancelled</title>
 <script type="application/ecmascript">
 function start(event)
-	{event.preventDefault();}
+  {event.preventDefault();}
 function dragMe(event)
-	{say('FAIL (drag event should not fire if dragstart is cancelled)');}
+  {say('FAIL (drag event should not fire if dragstart is cancelled)');}
 function enterBody(event)
-	{event.preventDefault();
-	say('FAIL (dragover event should not fire if dragstart is cancelled)');}
+  {event.preventDefault();
+  say('FAIL (dragover event should not fire if dragstart is cancelled)');}
 function overBody(event)
-	{event.preventDefault();
-	say('FAIL (dragover event should not fire if dragstart is cancelled)');}
+  {event.preventDefault();
+  say('FAIL (dragover event should not fire if dragstart is cancelled)');}
 function dropIt(event)
-	{say('FAIL (drop event should not fire if dragstart is cancelled)');}
+  {say('FAIL (drop event should not fire if dragstart is cancelled)');}
 function say(it)
-	{document.querySelector('pre').appendChild(document.createTextNode(it + '\n'));}
+  {document.querySelector('pre').appendChild(document.createTextNode(it + '\n'));}
 </script>
 </head>
 <body ondragenter="enterBody(event)" ondragover="overBody(event)" ondrop="dropIt(event)">

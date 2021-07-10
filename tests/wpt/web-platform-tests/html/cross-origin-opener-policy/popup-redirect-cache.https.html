@@ -1,0 +1,71 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name=timeout content=long>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/common.js"></script>
+
+<div id=log></div>
+<script>
+
+function url_test_cache(t, url, channelName, hasOpener) {
+  const bc = new BroadcastChannel(channelName);
+  bc.onmessage = t.step_func(event => {
+    const payload = event.data;
+    validate_results(() => {
+      bc.close()
+      // test the same url for cache
+      url_test(t, url, channelName, hasOpener);
+    }, t, w, channelName, hasOpener, undefined /* OpenerDomAccess */, payload)
+  });
+
+  const w = window.open(url, channelName);
+
+  // The popup is closed by url_test.
+}
+
+// Redirect from hostA to hostB with same coop and coep.
+// Cache the hostA page if redirectCache is true.
+// Cache the hostB page if destCache is true.
+function coop_redirect_cache_test(t, hostA, hostB, coop, coep, redirectCache, destCache, channelName, hasOpener) {
+  let redirectUrl = `${hostA.origin}/html/cross-origin-opener-policy/resources/coop-coep.py`;
+  let redirectCacheString = redirectCache ? "&cache=1" : "";
+  let destCacheString = destCache ? "&cache=1" : "";
+  let destUrl = `${hostB.origin}/html/cross-origin-opener-policy/resources/coop-coep.py?coop=${coop}&coep=${coep}${destCacheString}&channel=${channelName}`;
+  let url = `${redirectUrl}?coop=${coop}&coep=${coep}${redirectCacheString}&redirect=${encodeURIComponent(destUrl)}`;
+
+  url_test_cache(t, url, channelName, hasOpener);
+}
+
+function run_redirect_cache_tests(documentCOOPValueTitle, testArray) {
+  for (const test of tests) {
+    async_test(t => {
+      // Use a consistent channel name for deterministic failure output
+      let channelName = `${test[0].name}_${test[1].name}${test[2] ? "" : "_not"}_cache_redirect${test[3] ? "" : "_not"}_cache_destination`;
+      coop_redirect_cache_test(t, test[0], test[1], "same-origin", "require-corp", test[2], test[3], channelName, test[4]);
+    }, `${documentCOOPValueTitle} document opening popup redirect from ${test[0].origin} to ${test[1].origin} with redirectCache ${test[2]} and destCache ${test[3]}`);
+  }
+}
+
+let tests = [
+  // popup Origin, final Origin, isCacheRedirect, isCacheDestination, hasOpener
+  // Origin A->A->B
+  [SAME_ORIGIN, CROSS_ORIGIN, true, false, false],
+  [SAME_ORIGIN, CROSS_ORIGIN, false, true, false],
+  [SAME_ORIGIN, CROSS_ORIGIN, true, true, false],
+
+  // Origin A->B->B
+  [CROSS_ORIGIN, SAME_ORIGIN, true, false, false],
+  [CROSS_ORIGIN, SAME_ORIGIN, false, true, false],
+  [CROSS_ORIGIN, SAME_ORIGIN, true, true, false],
+
+  // Origin A->B->C
+  [SAME_SITE, CROSS_ORIGIN, true, false, false],
+  [SAME_SITE, CROSS_ORIGIN, false, true, false],
+  [SAME_SITE, CROSS_ORIGIN, true, true, false],
+];
+
+run_redirect_cache_tests("same-origin", tests);
+
+</script>

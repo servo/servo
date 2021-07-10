@@ -66,6 +66,40 @@ Individual test can be run by `python -m pytest <filename>`:
 
 # Advanced Usage
 
+## Reducing variance
+
+Running the same performance test results in a lot of variance, caused
+by the OS the test is running on. Experimentally, the things which
+seem to tame randomness the most are a) disbling CPU frequency
+changes, b) increasing the priority of the tests, c) running one one
+CPU core, d) loading files directly rather than via localhost http,
+and e) serving files from memory rather than from disk.
+
+First run the performance tests normally (this downloads the test suite):
+```
+./mach test-perf
+```
+Disable CPU frequency changes, e.g. on Linux:
+```
+sudo cpupower frequency-set --min 3.5GHz --max 3.5GHz
+```
+Copy the test files to a `tmpfs` file,
+such as `/run/user/`, for example if your `uid` is `1000`:
+```
+cp -r etc/ci/performance /run/user/1000
+```
+Then run the test suite on one core, at high priority, using a `file://` base URL:
+```
+sudo nice --20 chrt -r 99 sudo -u *userid* taskset 1 ./mach test-perf --base file:///run/user/1000/performance/
+```
+These fixes seem to take down the variance for most tests to under 5% for individual
+tests, and under 0.5% total.
+
+(IRC logs:
+ [2017-11-09](https://mozilla.logbot.info/servo/20171109#c13829674) |
+ [2017-11-10](https://mozilla.logbot.info/servo/20171110#c13835736)
+)
+
 ## Test Perfherder Locally
 
 If you want to test the data submission code in `submit_to_perfherder.py` without getting a credential for the production server, you can setup a local treeherder VM. If you don't need to test `submit_to_perfherder.py`, you can skip this step.

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/open-blank-host.js"></script>
+<script>
+  promise_test(async () => {
+    assert_implements("HTMLPortalElement" in self);
+    var win = await openBlankPortalHost();
+    var portal = win.document.createElement("portal");
+    portal.src = new URL("resources/simple-portal.html", location.href)
+
+    await new Promise((resolve, reject) => {
+      portal.onload = resolve;
+      win.document.body.appendChild(portal);
+    });
+
+    return portal.activate();
+  });
+</script>

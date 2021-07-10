@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+<head>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="RTCPeerConnection-helper.js"></script>
+</head>
+<body>
+<script>
+  'use strict';
+
+// This test checks that <video> capture works via PeerConnection.
+
+promise_test(async t => {
+  const sourceVideo = document.createElement('video');
+  sourceVideo.src = "/media/test-v-128k-320x240-24fps-8kfr.webm";
+  sourceVideo.loop = true;
+
+  const onCanPlay = new Promise(r => sourceVideo.oncanplay = r);
+  await onCanPlay;
+
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  // Attach video to pc1.
+  const stream = sourceVideo.captureStream();
+  const tracks = stream.getTracks();
+  pc1.addTrack(tracks[0]);
+
+  const destVideo = document.createElement('video');
+  destVideo.autoplay = true;
+
+  // Setup pc1->pc2.
+  const haveTrackEvent1 = new Promise(r => pc2.ontrack = r);
+  exchangeIceCandidates(pc1, pc2);
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription();
+  await pc1.setRemoteDescription(pc2.localDescription);
+
+  // Display pc2 received track in video element.
+  const onLoadedMetadata = new Promise(r => destVideo.onloadedmetadata = r);
+  destVideo.srcObject = new MediaStream([(await haveTrackEvent1).track]);
+
+  // Start playback and wait for video on the other side.
+  sourceVideo.play();
+  await onLoadedMetadata;
+
+  // Wait until the video has non-zero resolution and some non-black pixels.
+  await new Promise(p => {
+    function checkColor()  {
+        if (destVideo.videoWidth > 0 && getVideoSignal(destVideo) > 0.0)
+          p();
+        else
+          t.step_timeout(checkColor, 0);
+    }
+    checkColor();
+  });
+
+  // Uses Helper.js GetVideoSignal to query |destVideo| pixel value at a certain position.
+  const pixelValue = getVideoSignal(destVideo);
+
+  // Anything non-black means that capture works.
+  assert_not_equals(pixelValue, 0);
+  }, "Capturing a video element and sending it via PeerConnection");
+</script>
+</body>
+</html>

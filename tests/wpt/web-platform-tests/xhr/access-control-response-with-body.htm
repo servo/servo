@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Tests that XHR doesn't prepend the body from CORS preflight response to the actual response</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+  </head>
+  <body>
+    <script type="text/javascript">
+async_test((test) => {
+  const xhr = new XMLHttpRequest;
+
+  xhr.onerror = test.unreached_func("Unexpected error.");
+
+  xhr.onload = test.step_func_done(() => {
+    assert_equals(xhr.status, 200);
+    assert_equals(xhr.responseText, "PASS");
+  });
+
+  xhr.open("GET", get_host_info().HTTP_REMOTE_ORIGIN +
+      "/xhr/resources/access-control-allow-with-body.py");
+  xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+  xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+  xhr.send();
+});
+    </script>
+  </body>
+</html>

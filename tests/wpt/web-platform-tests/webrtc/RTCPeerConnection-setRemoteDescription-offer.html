@@ -1,0 +1,340 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.setRemoteDescription - offer</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // The following helper functions are called from RTCPeerConnection-helper.js:
+  //   assert_session_desc_similar()
+  //   generateAudioReceiveOnlyOffer
+
+  /*
+    4.3.2.  Interface Definition
+      [Constructor(optional RTCConfiguration configuration)]
+      interface RTCPeerConnection : EventTarget {
+        Promise<void>                      setRemoteDescription(
+            RTCSessionDescriptionInit description);
+
+        readonly attribute RTCSessionDescription? remoteDescription;
+        readonly attribute RTCSessionDescription? currentRemoteDescription;
+        readonly attribute RTCSessionDescription? pendingRemoteDescription;
+        ...
+      };
+
+    4.6.2.  RTCSessionDescription Class
+      dictionary RTCSessionDescriptionInit {
+        required RTCSdpType type;
+                 DOMString  sdp = "";
+      };
+
+    4.6.1.  RTCSdpType
+      enum RTCSdpType {
+        "offer",
+        "pranswer",
+        "answer",
+        "rollback"
+      };
+   */
+
+  /*
+    4.3.1.6.  Set the RTCSessionSessionDescription
+      2.2.3.  Otherwise, if description is set as a remote description, then run one of
+              the following steps:
+        - If description is of type "offer", set connection.pendingRemoteDescription
+          attribute to description and signaling state to have-remote-offer.
+   */
+
+  promise_test(t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    pc1.createDataChannel('datachannel');
+
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const states = [];
+    pc2.addEventListener('signalingstatechange', () => states.push(pc2.signalingState));
+
+    return pc1.createOffer()
+     .then(offer => {
+      return pc2.setRemoteDescription(offer)
+      .then(() => {
+        assert_equals(pc2.signalingState, 'have-remote-offer');
+        assert_session_desc_similar(pc2.remoteDescription, offer);
+        assert_session_desc_similar(pc2.pendingRemoteDescription, offer);
+        assert_equals(pc2.currentRemoteDescription, null);
+
+        assert_array_equals(states, ['have-remote-offer']);
+      });
+    });
+  }, 'setRemoteDescription with valid offer should succeed');
+
+  promise_test(t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    pc1.createDataChannel('datachannel');
+
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const states = [];
+    pc2.addEventListener('signalingstatechange', () => states.push(pc2.signalingState));
+
+    return pc1.createOffer()
+    .then(offer => {
+      return pc2.setRemoteDescription(offer)
+      .then(() => pc2.setRemoteDescription(offer))
+      .then(() => {
+        assert_equals(pc2.signalingState, 'have-remote-offer');
+        assert_session_desc_similar(pc2.remoteDescription, offer);
+        assert_session_desc_similar(pc2.pendingRemoteDescription, offer);
+        assert_equals(pc2.currentRemoteDescription, null);
+
+        assert_array_equals(states, ['have-remote-offer']);
+      });
+    });
+  }, 'setRemoteDescription multiple times should succeed');
+
+  promise_test(t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    pc1.createDataChannel('datachannel');
+
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const states = [];
+    pc2.addEventListener('signalingstatechange', () => states.push(pc2.signalingState));
+
+    return pc1.createOffer()
+    .then(offer1 => {
+      return pc1.setLocalDescription(offer1)
+       .then(()=> {
+        return generateAudioReceiveOnlyOffer(pc1)
+        .then(offer2 => {
+          assert_session_desc_not_similar(offer1, offer2);
+
+          return pc2.setRemoteDescription(offer1)
+          .then(() => pc2.setRemoteDescription(offer2))
+          .then(() => {
+            assert_equals(pc2.signalingState, 'have-remote-offer');
+            assert_session_desc_similar(pc2.remoteDescription, offer2);
+            assert_session_desc_similar(pc2.pendingRemoteDescription, offer2);
+            assert_equals(pc2.currentRemoteDescription, null);
+
+            assert_array_equals(states, ['have-remote-offer']);
+          });
+        });
+      });
+    });
+  }, 'setRemoteDescription multiple times with different offer should succeed');
+
+  /*
+    4.3.1.6.  Set the RTCSessionSessionDescription
+      2.1.4.  If the content of description is not valid SDP syntax, then reject p with
+              an RTCError (with errorDetail set to "sdp-syntax-error" and the
+              sdpLineNumber attribute set to the line number in the SDP where the syntax
+              error was detected) and abort these steps.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    return pc.setRemoteDescription({
+      type: 'offer',
+      sdp: 'Invalid SDP'
+    })
+    .then(() => {
+      assert_unreached('Expect promise to be rejected');
+    }, err => {
+      assert_equals(err.errorDetail, 'sdp-syntax-error',
+        'Expect error detail field to set to sdp-syntax-error');
+
+      assert_true(err instanceof RTCError,
+        'Expect err to be instance of RTCError');
+    });
+  }, 'setRemoteDescription(offer) with invalid SDP should reject with RTCError');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+    await pc1.setLocalDescription(await pc1.createOffer());
+    await pc1.setRemoteDescription(await pc2.createOffer());
+    assert_equals(pc1.signalingState, 'have-remote-offer');
+  }, 'setRemoteDescription(offer) from have-local-offer should roll back and succeed');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+    await pc1.setLocalDescription(await pc1.createOffer());
+    const p = pc1.setRemoteDescription(await pc2.createOffer());
+    await new Promise(r => pc1.onsignalingstatechange = r);
+    assert_equals(pc1.signalingState, 'stable');
+    assert_equals(pc1.pendingLocalDescription, null);
+    assert_equals(pc1.pendingRemoteDescription, null);
+    await new Promise(r => pc1.onsignalingstatechange = r);
+    assert_equals(pc1.signalingState, 'have-remote-offer');
+    assert_equals(pc1.pendingLocalDescription, null);
+    assert_equals(pc1.pendingRemoteDescription.type, 'offer');
+    await p;
+  }, 'setRemoteDescription(offer) from have-local-offer fires signalingstatechange twice');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const srdPromise = pc2.setRemoteDescription(await pc1.createOffer({offerToReceiveAudio: true}));
+
+    assert_equals(pc2.signalingState, "stable", "signalingState should not be set synchronously after a call to sRD");
+
+    assert_equals(pc2.pendingRemoteDescription, null, "pendingRemoteDescription should not be set synchronously after a call to sRD");
+    assert_equals(pc2.currentRemoteDescription, null, "currentRemoteDescription should not be set synchronously after a call to sRD");
+
+    const statePromise = new Promise(resolve => {
+      pc2.onsignalingstatechange = () => {
+        resolve(pc2.signalingState);
+      }
+    });
+
+    const raceValue = await Promise.race([statePromise, srdPromise]);
+    assert_equals(raceValue, "have-remote-offer", "signalingstatechange event should fire before sRD resolves");
+    assert_not_equals(pc2.pendingRemoteDescription, null, "pendingRemoteDescription should be updated before the signalingstatechange event");
+    assert_equals(pc2.pendingRemoteDescription.type, "offer");
+    assert_equals(pc2.pendingRemoteDescription.sdp, pc2.remoteDescription.sdp);
+    assert_equals(pc2.currentRemoteDescription, null, "currentRemoteDescription should not be set after a call to sRD(offer)");
+
+    await srdPromise;
+  }, "setRemoteDescription(offer) in stable should update internal state with a queued task, in the right order");
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    await pc2.setLocalDescription(await pc2.createOffer({offerToReceiveAudio: true}));
+
+    // Implicit rollback!
+    const srdPromise = pc2.setRemoteDescription(await pc1.createOffer({offerToReceiveAudio: true}));
+
+    assert_equals(pc2.signalingState, "have-local-offer", "signalingState should not be set synchronously after a call to sRD");
+
+    assert_equals(pc2.pendingRemoteDescription, null, "pendingRemoteDescription should not be set synchronously after a call to sRD");
+    assert_not_equals(pc2.pendingLocalDescription, null, "pendingLocalDescription should not be set synchronously after a call to sRD");
+    assert_equals(pc2.pendingLocalDescription.type, "offer");
+    assert_equals(pc2.pendingLocalDescription.sdp, pc2.localDescription.sdp);
+
+    // First, we should go through stable (the implicit rollback part)
+    const stablePromise = new Promise(resolve => {
+      pc2.onsignalingstatechange = () => {
+        resolve(pc2.signalingState);
+      }
+    });
+
+    let raceValue = await Promise.race([stablePromise, srdPromise]);
+    assert_equals(raceValue, "stable", "signalingstatechange event should fire before sRD resolves");
+    assert_equals(pc2.pendingLocalDescription, null, "pendingLocalDescription should be updated before the signalingstatechange event");
+    assert_equals(pc2.pendingRemoteDescription, null, "pendingRemoteDescription should be updated before the signalingstatechange event");
+
+    const haveRemoteOfferPromise = new Promise(resolve => {
+      pc2.onsignalingstatechange = () => {
+        resolve(pc2.signalingState);
+      }
+    });
+
+    raceValue = await Promise.race([haveRemoteOfferPromise, srdPromise]);
+    assert_equals(raceValue, "have-remote-offer", "signalingstatechange event should fire before sRD resolves");
+    assert_not_equals(pc2.pendingRemoteDescription, null, "pendingRemoteDescription should be updated before the signalingstatechange event");
+    assert_equals(pc2.pendingRemoteDescription.type, "offer");
+    assert_equals(pc2.pendingRemoteDescription.sdp, pc2.remoteDescription.sdp);
+    assert_equals(pc2.pendingLocalDescription, null, "pendingLocalDescription should be updated before the signalingstatechange event");
+
+    await srdPromise;
+  }, "setRemoteDescription(offer) in have-local-offer should update internal state with a queued task, in the right order");
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+    await pc1.setLocalDescription(await pc1.createOffer());
+    const offer = await pc2.createOffer();
+    const p1 = pc1.setLocalDescription({type: 'rollback'});
+    await new Promise(r => pc1.onsignalingstatechange = r);
+    assert_equals(pc1.signalingState, 'stable');
+    const p2 = pc1.addIceCandidate();
+    const p3 = pc1.setRemoteDescription(offer);
+    await promise_rejects_dom(t, 'InvalidStateError', p2);
+    await p1;
+    await p3;
+    assert_equals(pc1.signalingState, 'have-remote-offer');
+  }, 'Naive rollback approach is not glare-proof (control)');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+    await pc1.setLocalDescription(await pc1.createOffer());
+    const p = pc1.setRemoteDescription(await pc2.createOffer());
+    await new Promise(r => pc1.onsignalingstatechange = r);
+    assert_equals(pc1.signalingState, 'stable');
+    await pc1.addIceCandidate();
+    await p;
+    assert_equals(pc1.signalingState, 'have-remote-offer');
+  }, 'setRemoteDescription(offer) from have-local-offer is glare-proof');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+    await pc1.setLocalDescription(await pc1.createOffer());
+    const p = pc1.setRemoteDescription({type: 'offer', sdp: 'Invalid SDP'});
+    await new Promise(r => pc1.onsignalingstatechange = r);
+    assert_equals(pc1.signalingState, 'stable');
+    assert_equals(pc1.pendingLocalDescription, null);
+    assert_equals(pc1.pendingRemoteDescription, null);
+    await promise_rejects_dom(t, 'RTCError', p);
+  }, 'setRemoteDescription(invalidOffer) from have-local-offer does not undo rollback');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    pc1.addTransceiver('video');
+    const offer = await pc1.createOffer();
+    await pc2.setRemoteDescription(offer);
+    assert_equals(pc2.getTransceivers().length, 1);
+    await pc2.setRemoteDescription(offer);
+    assert_equals(pc2.getTransceivers().length, 1);
+    await pc1.setLocalDescription(offer);
+    const answer = await pc2.createAnswer();
+    await pc2.setLocalDescription(answer);
+    await pc1.setRemoteDescription(answer);
+  }, 'repeated sRD(offer) works');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    pc1.addTransceiver('video');
+    await exchangeOfferAnswer(pc1, pc2);
+    await waitForIceGatheringState(pc1, ['complete']);
+    await exchangeOfferAnswer(pc1, pc2);
+    await waitForIceStateChange(pc2, ['connected', 'completed']);
+  }, 'sRD(reoffer) with candidates and without trickle works');
+
+</script>

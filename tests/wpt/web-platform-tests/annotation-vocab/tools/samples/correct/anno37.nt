@@ -1,6 +1,0 @@
-_:b0 <http://www.w3.org/ns/oa#hasSource> <http://example.org/document1> .
-_:b0 <http://www.w3.org/ns/oa#styleClass> "red" .
-<http://example.org/anno37> <http://www.w3.org/ns/oa#styledBy> <http://example.org/style1> .
-<http://example.org/anno37> <http://www.w3.org/ns/oa#hasTarget> _:b0 .
-<http://example.org/anno37> <http://www.w3.org/ns/oa#hasBody> <http://example.org/comment1> .
-<http://example.org/anno37> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/oa#Annotation> .

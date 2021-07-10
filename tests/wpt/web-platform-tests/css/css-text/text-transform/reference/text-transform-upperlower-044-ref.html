@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>CSS3 Text, text transform: Lithuanian, uppercase</title>
+<link rel='author' title='Jonathan Kew' href='mailto:jkew@mozilla.com'>
+<style type='text/css'>
+@font-face {
+	font-family: 'webfont';
+	src: url('/fonts/DoulosSIL-R.woff') format('woff');
+	font-weight: normal;
+	font-style: normal;
+	}
+.test, .ref { font-size: 125%; line-height: 1.5em; font-family: webfont, serif; }
+.test span, .ref span { margin-right: 1em; white-space: nowrap; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if both characters in each pair match. If you are missing a font glyph for a character, ignore that pair, but report which characters were ignored.</p>
+<div class="test" lang="lt">
+  <span>&#x49;&#x300; &#x49;&#x300;</span>
+  <span>&#x49;&#x301; &#x49;&#x301;</span>
+  <span>&#x49;&#x303; &#x49;&#x303;</span>
+  <span>&#x49; &#x49;</span>
+  <span>&#x4A; &#x4A;</span>
+  <span>&#x12E; &#x12E;</span>
+  <span>X&#x307; X&#x307;</span>
+</div>
+<!--Notes:
+The language of the test box is set to Lithuanian (lt)
+-->
+</body>
+</html>

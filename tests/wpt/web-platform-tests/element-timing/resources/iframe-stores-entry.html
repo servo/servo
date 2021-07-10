@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<body>
+<p elementtiming='text'>Text</p>
+<script>
+  const observer = new PerformanceObserver(entryList => {
+    window.parent.triggerTest(entryList.getEntries()[0]);
+  });
+  observer.observe({type: 'element', buffered: true});
+</script>
+</body>
+</html>

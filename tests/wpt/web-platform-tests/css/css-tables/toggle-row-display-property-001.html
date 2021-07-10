@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS2/visuren.html#display-prop">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=764031">
+<link rel="match" href="toggle-row-display-property-001-ref.html">
+<meta name="flags" content="" />
+<meta name="assert" content="After setting display:table-row on tr elements with display:none, the table should look same as if display:none were never used." />
+
+<style>
+td, th {
+  border: 1px solid black;
+}
+tr {
+  display: none;
+}
+</style>
+
+<table id=theTable>
+  <tr>
+    <th colspan="4">This cell must span all columns for repro in chrome</th>
+  </tr>
+  <tr>
+    <td rowspan="3" style="height:200px">A</td>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td>2</td>
+    <td>3</td>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td>2</td>
+    <td>3</td>
+  </tr>
+</table>
+
+<script>
+theTable.offsetTop;
+let rows = document.querySelectorAll('tr');
+for (var i = 0; i < rows.length; i++) {
+  rows[i].style.display = 'table-row';
+}
+</script>

@@ -1,0 +1,151 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Test: text-emphasis - color - basic cases</title>
+		<link rel="author" title="Makoto Kikuchi" href="mailto:kikuchi@est.co.jp" />
+		<link rel="help" href="https://drafts.csswg.org/css-text-decor-3/#text-emphasis-color-property" />
+		<link rel="match" href="reference/text-emphasis-color-001-ref.xht"/>
+		<meta name="flags" content="" />
+		<meta name="assert" content="This property describes the foreground color of the emphasis marks." />
+		<style type="text/css"><![CDATA[
+			.common
+			{
+				line-height: 1em;
+				position: relative;
+			}
+			.emphasis
+			{
+				text-emphasis-style: filled circle;
+			}
+			.parent
+			{
+				border: solid 1px gray;
+				font-size: 2em;
+				width: 10em;
+			}
+			.refcommon
+			{
+				font-size: 0.5em;
+				left: 0em;
+				position: absolute;
+				top: -1.5em;
+			}
+			.black
+			{
+				color: black;
+			}
+			.blue
+			{
+				color: blue;
+			}
+			.green
+			{
+				color: green;
+			}
+			.red
+			{
+				color: red;
+			}
+			.test1
+			{
+				text-emphasis-color: black;
+			}
+			.test2
+			{
+				text-emphasis-color: blue;
+			}
+			.test3
+			{
+				text-emphasis-color: green;
+			}
+			.test4
+			{
+				text-emphasis-color: red;
+			}
+		]]></style>
+		<script type="text/javascript">
+			//	<![CDATA[
+					// Set Font Family to 'IPAMincho'
+					function setFontFamily () {
+						var fontName = 'IPAMincho';
+						var divs = document.getElementsByTagName('div');
+						var i = 0;
+						var div;
+						while (i < divs.length) {
+							div = divs.item(i);
+							if (div.className == 'parent') {
+								div.style.fontFamily = fontName;
+							}
+							i++;
+						}
+					}
+			//	]]>
+		</script>
+	</head>
+	<body>
+		<div>
+			<p>Test passes if each pair of upper and lower "Filler Text" in the square box is identical.</p>
+			black
+			<div class="parent">
+				<div><span class="emphasis test1">Filler</span> Text</div>
+				<br />
+				<div>
+					<span class="common">F<span class="black refcommon">&#x25CF;</span></span><span class="common">i<span class="black refcommon">&#x25CF;</span></span><span class="common">l<span class="black refcommon">&#x25CF;</span></span><span class="common">l<span class="black refcommon">&#x25CF;</span></span><span class="common">e<span class="black refcommon">&#x25CF;</span></span><span class="common">r<span class="black refcommon">&#x25CF;</span></span>
+					Text
+				</div>
+			</div>
+			<br />
+			blue
+			<div class="parent">
+				<div><span class="emphasis test2">Filler</span> Text</div>
+				<br />
+				<div>
+					<span class="common">F<span class="blue refcommon">&#x25CF;</span></span><span class="common">i<span class="blue refcommon">&#x25CF;</span></span><span class="common">l<span class="blue refcommon">&#x25CF;</span></span><span class="common">l<span class="blue refcommon">&#x25CF;</span></span><span class="common">e<span class="blue refcommon">&#x25CF;</span></span><span class="common">r<span class="blue refcommon">&#x25CF;</span></span>
+					Text
+				</div>
+			</div>
+			<br />
+			green
+			<div class="parent">
+				<div><span class="emphasis test3">Filler</span> Text</div>
+				<br />
+				<div>
+					<span class="common">F<span class="green refcommon">&#x25CF;</span></span><span class="common">i<span class="green refcommon">&#x25CF;</span></span><span class="common">l<span class="green refcommon">&#x25CF;</span></span><span class="common">l<span class="green refcommon">&#x25CF;</span></span><span class="common">e<span class="green refcommon">&#x25CF;</span></span><span class="common">r<span class="green refcommon">&#x25CF;</span></span>
+					Text
+				</div>
+			</div>
+			<br />
+			red
+			<div class="parent">
+				<div><span class="emphasis test4">Filler</span> Text</div>
+				<br />
+				<div>
+					<span class="common">F<span class="red refcommon">&#x25CF;</span></span><span class="common">i<span class="red refcommon">&#x25CF;</span></span><span class="common">l<span class="red refcommon">&#x25CF;</span></span><span class="common">l<span class="red refcommon">&#x25CF;</span></span><span class="common">e<span class="red refcommon">&#x25CF;</span></span><span class="common">r<span class="red refcommon">&#x25CF;</span></span>
+					Text
+				</div>
+			</div>
+			<br />
+			current-color
+			<div class="parent">
+				<div><span class="emphasis">Filler</span> Text</div>
+				<br />
+				<div>
+					<span class="common">F<span class="refcommon">&#x25CF;</span></span><span class="common">i<span class="refcommon">&#x25CF;</span></span><span class="common">l<span class="refcommon">&#x25CF;</span></span><span class="common">l<span class="refcommon">&#x25CF;</span></span><span class="common">e<span class="refcommon">&#x25CF;</span></span><span class="common">r<span class="refcommon">&#x25CF;</span></span>
+					Text
+				</div>
+			</div>
+			<p class="fontChange" style="display: block;">
+				If you are unable to see font glyphs for certain characters using the browsers default font, install the <a href="http://ossipedia.ipa.go.jp/ipafont/">IPA Font(http://ossipedia.ipa.go.jp/ipafont/)</a> and apply it.
+				<button type="button" onclick="setFontFamily()">
+					Apply
+				</button>
+			</p>
+			<script type="text/javascript">
+				if (document.getElementById) {
+					document.getElementById('fontChange').style.display = 'block'
+				}
+			</script>
+		</div>
+	</body>
+</html>

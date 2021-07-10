@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Logical Properties and Values: getComputedStyle().minInlineSize</title>
+<link rel="help" href="https://drafts.csswg.org/css-logical/#propdef-min-inline-size">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#min-size-auto">
+<meta name="assert" content="Computed min-inline-size is the specified keyword, or the length-percentage made absolute.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #target {
+    font-size: 40px;
+  }
+  #container {
+    display: flex;
+  }
+  #box {
+    min-inline-size: auto;
+  }
+</style>
+</head>
+<body>
+<div id="target"></div>
+<div id="container">
+  <div id="box"></div>
+</div>
+<script>
+test_computed_value("min-inline-size", "auto", "0px");
+
+test_computed_value("min-inline-size", "10px");
+test_computed_value("min-inline-size", "20%");
+test_computed_value("min-inline-size", "calc(10px + 0.5em)", "30px");
+test_computed_value("min-inline-size", "calc(10px - 0.5em)", "0px");
+test_computed_value("min-inline-size", "calc(20% + 10px)");
+
+test_computed_value("min-inline-size", "min-content");
+test_computed_value("min-inline-size", "max-content");
+
+test(() => {
+  const picture = document.getElementById('box');
+  assert_equals(getComputedStyle(picture).minInlineSize, 'auto');
+}, 'min-inline-size auto computes to auto with flex layout.');
+</script>
+</body>
+</html>

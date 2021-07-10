@@ -1,6 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 /*
  * The origin of this IDL file is
  * https://dom.spec.whatwg.org/#characterdata
@@ -9,9 +9,9 @@
  * liability, trademark and document use rules apply.
  */
 
-[Abstract]
+[Exposed=Window, Abstract]
 interface CharacterData : Node {
-  [Pure, TreatNullAs=EmptyString] attribute DOMString data;
+  [Pure] attribute [TreatNullAs=EmptyString] DOMString data;
   [Pure] readonly attribute unsigned long length;
   [Pure, Throws]
   DOMString substringData(unsigned long offset, unsigned long count);
@@ -24,5 +24,5 @@ interface CharacterData : Node {
   void replaceData(unsigned long offset, unsigned long count, DOMString data);
 };
 
-CharacterData implements ChildNode;
-CharacterData implements NonDocumentTypeChildNode;
+CharacterData includes ChildNode;
+CharacterData includes NonDocumentTypeChildNode;

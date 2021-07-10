@@ -1,0 +1,270 @@
+{
+  "test_description_template": "Upgrade-Insecure-Requests: Expects %(expectation)s for %(subresource)s to %(origin)s origin and %(redirection)s redirection from %(source_scheme)s context.",
+  "test_page_title_template": "Upgrade-Insecure-Requests: %(title)s",
+  "specification": [
+    {
+      // No upgrade-insecure-request
+      "title": "No upgrade-insecure-request",
+      "description": "No upgrade-insecure-request",
+      "specification_url": "https://w3c.github.io/webappsec-upgrade-insecure-requests/",
+      "test_expansion": [
+        {
+          // Without upgrade-insecure-request, all requests are blocked ...
+          "expansion": "default",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "meta",
+          "delivery_value": null,
+          "redirection": "*",
+          "subresource": "*",
+          "origin": "*",
+          "expectation": "blocked"
+        },
+        {
+          // ... except for the secure requests listed here
+          "expansion": "override",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "meta",
+          "delivery_value": null,
+          "redirection": "no-redirect",
+          "subresource": "*",
+          "origin": [
+            "same-https",
+            "cross-https",
+            "same-wss",
+            "cross-wss"
+          ],
+          "expectation": "allowed"
+        }
+      ]
+    },
+    {
+      // With upgrade-insecure-request
+      "title": "With upgrade-insecure-request",
+      "description": "With upgrade-insecure-request",
+      "specification_url": "https://w3c.github.io/webappsec-upgrade-insecure-requests/",
+      "test_expansion": [
+        {
+          // With upgrade-insecure-request, all insecure requests are upgraded and allowed.
+          "expansion": "default",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": "upgrade",
+          "redirection": "*",
+          "subresource": "*",
+          "origin": "*",
+          "expectation": "allowed"
+        }
+      ]
+    }
+  ],
+  "delivery_key": "upgradeInsecureRequests",
+  "excluded_tests": [
+    {
+      // Omit secure requests
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": "*",
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": "no-redirect",
+      "subresource": "*",
+      "origin": [
+        "same-https",
+        "cross-https",
+        "same-wss",
+        "cross-wss"
+      ],
+      "expectation": "allowed"
+    },
+    {
+      // For inheriting tests skip http-rp because we already have <meta> tests
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": [
+        "srcdoc-inherit",
+        "iframe-blank-inherit",
+        "worker-classic-data"
+      ],
+      "delivery_type": "http-rp",
+      "delivery_value": "*",
+      "redirection": "*",
+      "subresource": "*",
+      "origin": "*",
+      "expectation": "*"
+    },
+    {
+      // source_context_list values not yet tested
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": [
+        "req",
+        "srcdoc",
+        "iframe"
+      ],
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": "*",
+      "subresource": "*",
+      "origin": "*",
+      "expectation": "*"
+    },
+    {
+      // source_context_list values not for CSP tests
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": [
+        "worker-classic",
+        "worker-module"
+      ],
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": "*",
+      "subresource": "*",
+      "origin": "*",
+      "expectation": "*"
+    },
+    {
+      // subresource values not yet tested
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": "*",
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": "*",
+      "subresource": [
+        "a-tag",
+        "area-tag",
+        "audio-tag",
+        "beacon",
+        "link-css-tag",
+        "link-prefetch-tag",
+        "object-tag",
+        "picture-tag",
+        "script-tag",
+        "video-tag"
+      ],
+      "origin": "*",
+      "expectation": "*"
+    },
+    {
+      // origins that upgrade-insecure-requests tests don't care
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": "*",
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": "*",
+      "origin": [
+        "same-http",
+        "cross-http",
+        "same-ws",
+        "cross-ws"
+      ],
+      "subresource": "*",
+      "expectation": "*"
+    },
+    {
+      // redirections that upgrade-insecure-requests tests don't care
+      "expansion": "*",
+      "source_scheme": "*",
+      "source_context_list": "*",
+      "delivery_type": "*",
+      "delivery_value": "*",
+      "redirection": [
+        "keep-origin",
+        "swap-origin",
+        "keep-scheme",
+        "swap-scheme"
+      ],
+      "origin": "*",
+      "subresource": "*",
+      "expectation": "*"
+    },
+  ],
+  "source_context_schema": {
+    "supported_delivery_type": {
+      "top": [
+        "http-rp",
+        "meta"
+      ],
+      "iframe": [
+        "http-rp",
+        "meta"
+      ],
+      "iframe-blank": [
+        "meta"
+      ],
+      "srcdoc": [
+        "meta"
+      ],
+      "worker-classic": [
+        "http-rp"
+      ],
+      "worker-module": [
+        "http-rp"
+      ],
+      "worker-classic-data": [],
+      "worker-module-data": [],
+      "sharedworker-classic": [
+        "http-rp"
+      ],
+      "sharedworker-module": [
+        "http-rp"
+      ],
+      "sharedworker-classic-data": [],
+      "sharedworker-module-data": []
+    }
+  },
+  "subresource_schema": {
+    "supported_delivery_type": {
+      "a-tag": [],
+      "area-tag": [],
+      "audio-tag": [],
+      "beacon": [],
+      "fetch": [],
+      "iframe-tag": [],
+      "img-tag": [],
+      "link-css-tag": [],
+      "link-prefetch-tag": [],
+      "object-tag": [],
+      "picture-tag": [],
+      "script-tag": [],
+      "sharedworker-classic": [],
+      "sharedworker-import": [],
+      "sharedworker-import-data": [],
+      "sharedworker-module": [],
+      "video-tag": [],
+      "websocket": [],
+      "worker-classic": [],
+      "worker-import": [],
+      "worker-import-data": [],
+      "worker-module": [],
+      "worklet-animation": [],
+      "worklet-animation-import-data": [],
+      "worklet-audio": [],
+      "worklet-audio-import-data": [],
+      "worklet-layout": [],
+      "worklet-layout-import-data": [],
+      "worklet-paint": [],
+      "worklet-paint-import-data": [],
+      "xhr": []
+    }
+  },
+  "test_expansion_schema": {
+    "delivery_type": [
+      "http-rp",
+      "meta"
+    ],
+    "delivery_value": [
+      null,
+      "upgrade"
+    ],
+    "expectation": [
+      "allowed",
+      "blocked"
+    ]
+  }
+}

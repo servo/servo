@@ -34,7 +34,7 @@
         waiting three seconds, and then immediately perform a first click
         on "fade out", waiting three seconds, and then immediately perform
         a second click on "fade in", you should see the following. After
-        the first click on "fade in", the blue square goes from white to blue. 
+        the first click on "fade in", the blue square goes from white to blue.
         After the first click on "fade out", the blue square goes
         from blue to white. After the second click on "fade in",
         however, the blue square goes from white to blue, and then
@@ -45,16 +45,16 @@
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
       <p>
-      	Click "fade in", wait 3 seconds. Click "fade out", wait 3 seconds. Click "fade in" again, wait 6 seconds.
+        Click "fade in", wait 3 seconds. Click "fade out", wait 3 seconds. Click "fade in" again, wait 6 seconds.
       </p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>The test is passed if:</p>
       <ul>
-      	<li>The first time "fade in" is clicked, a blue rectangle should smoothly fade from white to blue, and two circles should fade from white to gray, all over the course of three seconds</li>
-      	<li>When "fade out" is clicked, the blue rectangle should smoothly fade from blue to white, and the two circles should fade from gray to white, all over the course of three seconds.</li>
-      	<li>When "fade in" is clicked the second time, it should behave as the first time "fade in" was clicked but immediately followed by the "fade out" behaviour described above, so that the shapes all fade in over the course of three seconds, and then out again over the course of three seconds.</li>
-      	<li>The rendered picture matches the reference image, (except
+        <li>The first time "fade in" is clicked, a blue rectangle should smoothly fade from white to blue, and two circles should fade from white to gray, all over the course of three seconds</li>
+        <li>When "fade out" is clicked, the blue rectangle should smoothly fade from blue to white, and the two circles should fade from gray to white, all over the course of three seconds.</li>
+        <li>When "fade in" is clicked the second time, it should behave as the first time "fade in" was clicked but immediately followed by the "fade out" behaviour described above, so that the shapes all fade in over the course of three seconds, and then out again over the course of three seconds.</li>
+        <li>The rendered picture matches the reference image, (except
         for possible variations in the labeling text (per CSS2 rules))
         after activating the link on the fade-in button the first time
         and waiting three seconds for the animation to compete. The picture

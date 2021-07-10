@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>Client Hint/Service Worker interaction</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<script src="resources/util.js"></script>
+<script>
+promise_test((t) =>
+  ch_sw_test(t, 'resources/passthrough-request.js', 'resources/echo-hint-in-html.py', 'PASS'),
+  "Service worker successfully passes hints through to new fetch");
+</script>

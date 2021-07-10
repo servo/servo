@@ -1,0 +1,79 @@
+<!--
+
+/*
+** Copyright (c) 2018 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test bug of TexSubImage3D with canvas</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="example" width="2" height="2" style="width: 2px; height: 2px;"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description(document.title);
+debug("This is a regression test for <a href='https://bugs.chromium.org/p/chromium/issues/detail?id=859400'>Chromium Issue 859400</a>");
+debug("");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("example", undefined, 2);
+
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors from setup.");
+
+function runTest() {
+  var ctx = document.createElement('canvas').getContext("2d");
+  var maxTexSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+  var width = Math.ceil(Math.sqrt(maxTexSize));
+  var height = width;
+  var depth = width + 1;
+  ctx.canvas.width = width;
+  // Set canvas height to a value larger than MAX_TEXTURE_SIZE.
+  // This triggers a validation bug in Chrome.
+  ctx.canvas.height = height * depth;
+
+  var tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D_ARRAY, tex);
+  gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.RGBA8, width, height, depth);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors from TexStorage3D.");
+  gl.texSubImage3D(gl.TEXTURE_2D_ARRAY, 0, 0, 0, 0, width, height, depth,
+                   gl.RGBA, gl.UNSIGNED_BYTE, ctx.canvas);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors from TexSubImage3D.");
+}
+
+runTest();
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+</body>
+</html>

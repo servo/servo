@@ -23,9 +23,9 @@
         onload = t.step_func_done(function(e) {
           var contentEl = document.getElementById("content");
           var marginLeftVal = getComputedStyle(contentEl).getPropertyValue('margin-left');
-          assert_true(marginLeftVal == "2px");
+          assert_equals(marginLeftVal, "2px");
           var marginRightVal = getComputedStyle(contentEl).getPropertyValue('margin-right');
-          assert_true(marginRightVal == "2px");
+          assert_equals(marginRightVal, "2px");
         });
       });
     </script>

@@ -1,0 +1,50 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script>
+// This test is tentative because timing isn't defined:
+// https://github.com/w3c/speech-api/issues/39
+// https://github.com/w3c/speech-api/issues/40
+async_test(t => {
+  assert_false(speechSynthesis.paused, 'initial paused state');
+
+  test_driver.bless('speechSynthesis.speak', t.step_func(() => {
+    const sentence = `long sentence which will take at least a few seconds to
+      utter so that it's possible to pause and resume before the end`;
+    const utter = new SpeechSynthesisUtterance(sentence);
+    t.add_cleanup(() => speechSynthesis.pause());
+    utter.onerror = t.unreached_func('error event');
+
+    speechSynthesis.speak(utter);
+
+    assert_false(speechSynthesis.paused, 'paused state after speak()');
+
+    utter.onstart = t.step_func(() => {
+      utter.onstart = null;
+      assert_false(speechSynthesis.paused, 'paused state at start event');
+
+      speechSynthesis.pause();
+
+      // paused state changes async, right before the pause event
+      assert_false(speechSynthesis.paused, 'paused state after pause()');
+
+      utter.onpause = t.step_func(() => {
+        utter.onpause = null;
+        assert_true(speechSynthesis.paused, 'paused state at pause event');
+
+        speechSynthesis.resume();
+
+        // paused state changes async, right before the resume event
+        assert_true(speechSynthesis.paused, 'paused state after resume()');
+
+        utter.onresume = t.step_func_done(() => {
+          assert_false(speechSynthesis.paused, 'paused state at resume event');
+        });
+      });
+    });
+  }));
+}, 'speechSynthesis.pause() and resume() state and events');
+</script>

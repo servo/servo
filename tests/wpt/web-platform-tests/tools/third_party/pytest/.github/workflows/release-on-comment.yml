@@ -1,0 +1,31 @@
+# part of our release process, see `release-on-comment.py`
+name: release on comment
+
+on:
+  issues:
+    types: [opened, edited]
+  issue_comment:
+    types: [created, edited]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    if: (github.event.comment && startsWith(github.event.comment.body, '@pytestbot please')) || (github.event.issue && !github.event.comment && startsWith(github.event.issue.body, '@pytestbot please'))
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: "3.8"
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install --upgrade setuptools tox
+    - name: Prepare release
+      run: |
+        tox -e release-on-comment -- $GITHUB_EVENT_PATH ${{ secrets.chatops }}

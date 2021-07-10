@@ -8,9 +8,14 @@
 var width = 10;
 var height = 10;
 
-function testCanvas(ctx, r, g, b, a)
+function testCanvas(bitmapCanvas, r, g, b, a)
 {
-    var color = ctx.getImageData(5, 5, 1, 1).data;
+    var myCanvas = document.createElement('canvas');
+    myCanvas.width = width;
+    myCanvas.height = height;
+    var myCtx = myCanvas.getContext('2d');
+    myCtx.drawImage(bitmapCanvas, 0, 0);
+    var color = myCtx.getImageData(5, 5, 1, 1).data;
     assert_array_equals(color, [r, g, b, a]);
 }
 
@@ -23,31 +28,16 @@ promise_test(function() {
         bitmapCtx.transferFromImageBitmap(greenImage);
 
         // Make sure the bitmap renderer canvas is filled correctly.
-        var myCanvas = document.createElement('canvas');
-        myCanvas.width = width;
-        myCanvas.height = height;
-        var myCtx = myCanvas.getContext('2d');
-        myCtx.drawImage(bitmapCanvas, 0, 0);
-        testCanvas(myCtx, 0, 255, 0, 255);
+        testCanvas(bitmapCanvas, 0, 255, 0, 255);
 
         // Test if passing null resets the bitmap renderer canvas.
         // Drawing the resetted canvas cannot change the destination canvas.
         bitmapCtx.transferFromImageBitmap(null);
-        var myCanvas2 = document.createElement('canvas');
-        myCanvas2.width = width;
-        myCanvas2.height = height;
-        var myCtx2 = myCanvas2.getContext('2d');
-        myCtx2.drawImage(bitmapCanvas, 0, 0);
-        testCanvas(myCtx2, 0, 0, 0, 0);
+        testCanvas(bitmapCanvas, 0, 0, 0, 0);
 
         // Test if we can redraw the bitmap canvas correctly after reset.
         bitmapCtx.transferFromImageBitmap(redImage);
-        var myCanvas3 = document.createElement('canvas');
-        myCanvas3.width = width;
-        myCanvas3.height = height;
-        var myCtx3 = myCanvas3.getContext('2d');
-        myCtx3.drawImage(bitmapCanvas, 0, 0);
-        testCanvas(myCtx3, 255, 0, 0, 255);
+        testCanvas(bitmapCanvas, 255, 0, 0, 255);
     }
 
     var greenCanvas = document.createElement('canvas');

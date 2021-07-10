@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 from __future__ import print_function
-from utils.misc import MathMLAssociationCopyright
 import fontforge
 
 font = fontforge.font()
@@ -12,7 +11,7 @@ name = "font-lineheight%d-typolineheight%d" % (winHeight, typoLineHeight)
 font.fontname = name
 font.familyname = name
 font.fullname = name
-font.copyright = MathMLAssociationCopyright
+font.copyright = "Copyright (c) 2016 MathML Association"
 
 glyph = font.createChar(ord(" "), "space")
 glyph.width = 1000

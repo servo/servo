@@ -1,0 +1,137 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+description("Tests deletion behavior for WebGL2 buffer, sampler, vertexArray and transformFeedback objects.");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext(undefined, undefined, 2);
+var shouldGenerateGLError = wtu.shouldGenerateGLError;
+
+debug("");
+debug("buffer deletion");
+
+var bufferBaseUniform = gl.createBuffer();
+shouldBeNonNull("bufferBaseUniform");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, bufferBaseUniform)");
+shouldBe("gl.getParameter(gl.UNIFORM_BUFFER_BINDING)", "bufferBaseUniform");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteBuffer(bufferBaseUniform)");
+shouldBeFalse("gl.isBuffer(bufferBaseUniform)");
+shouldBeNull("gl.getParameter(gl.UNIFORM_BUFFER_BINDING)");
+shouldGenerateGLError(gl, gl.INVALID_OPERATION, "gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, bufferBaseUniform)");
+shouldBeNull("gl.getParameter(gl.UNIFORM_BUFFER_BINDING)");
+
+var bufferBaseTransformFeedback = gl.createBuffer();
+shouldBeNonNull("bufferBaseTransformFeedback");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, bufferBaseTransformFeedback)");
+shouldBe("gl.getParameter(gl.TRANSFORM_FEEDBACK_BUFFER_BINDING)", "bufferBaseTransformFeedback");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteBuffer(bufferBaseTransformFeedback)");
+shouldBeFalse("gl.isBuffer(bufferBaseTransformFeedback)");
+shouldBeNull("gl.getParameter(gl.TRANSFORM_FEEDBACK_BUFFER_BINDING)");
+shouldGenerateGLError(gl, gl.INVALID_OPERATION, "gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, bufferBaseTransformFeedback)");
+shouldBeNull("gl.getParameter(gl.TRANSFORM_FEEDBACK_BUFFER_BINDING)");
+
+var bufferRangeUniform = gl.createBuffer();
+shouldBeNonNull("bufferRangeUniform");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindBufferRange(gl.UNIFORM_BUFFER, 0, bufferRangeUniform, 0, gl.UNIFORM_BUFFER_OFFSET_ALIGNMENT)");
+shouldBe("gl.getParameter(gl.UNIFORM_BUFFER_BINDING)", "bufferRangeUniform");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteBuffer(bufferRangeUniform)");
+shouldBeFalse("gl.isBuffer(bufferRangeUniform)");
+shouldBeNull("gl.getParameter(gl.UNIFORM_BUFFER_BINDING)");
+shouldGenerateGLError(gl, gl.INVALID_OPERATION, "gl.bindBufferRange(gl.UNIFORM_BUFFER, 0, bufferRangeUniform, 0, gl.UNIFORM_BUFFER_OFFSET_ALIGNMENT)");
+shouldBeNull("gl.getParameter(gl.UNIFORM_BUFFER_BINDING)");
+
+var bufferRangeTransformFeedback = gl.createBuffer();
+shouldBeNonNull("bufferRangeTransformFeedback");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindBufferRange(gl.TRANSFORM_FEEDBACK_BUFFER, 0, bufferRangeTransformFeedback, 0, 4)");
+shouldBe("gl.getParameter(gl.TRANSFORM_FEEDBACK_BUFFER_BINDING)", "bufferRangeTransformFeedback");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteBuffer(bufferRangeTransformFeedback)");
+shouldBeFalse("gl.isBuffer(bufferRangeTransformFeedback)");
+shouldBeNull("gl.getParameter(gl.TRANSFORM_FEEDBACK_BUFFER_BINDING)");
+shouldGenerateGLError(gl, gl.INVALID_OPERATION, "gl.bindBufferRange(gl.TRANSFORM_FEEDBACK_BUFFER, 0, bufferRangeTransformFeedback, 0, 4)");
+shouldBeNull("gl.getParameter(gl.TRANSFORM_FEEDBACK_BUFFER_BINDING)");
+
+debug("");
+debug("sampler deletion");
+
+var sampler = gl.createSampler();
+shouldBeNonNull("sampler");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindSampler(0, sampler)");
+shouldBe("gl.getParameter(gl.SAMPLER_BINDING)", "sampler");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteSampler(sampler)");
+shouldBeFalse("gl.isSampler(sampler)");
+shouldBeNull("gl.getParameter(gl.SAMPLER_BINDING)");
+shouldGenerateGLError(gl, gl.INVALID_OPERATION, "gl.bindSampler(0, sampler)");
+shouldBeNull("gl.getParameter(gl.SAMPLER_BINDING)");
+
+debug("");
+debug("vertexArray deletion");
+
+var vertexArray = gl.createVertexArray();
+shouldBeNonNull("vertexArray");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindVertexArray(vertexArray)");
+shouldBe("gl.getParameter(gl.VERTEX_ARRAY_BINDING)", "vertexArray");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteVertexArray(vertexArray)");
+shouldBeFalse("gl.isVertexArray(vertexArray)");
+shouldBeNull("gl.getParameter(gl.VERTEX_ARRAY_BINDING)");
+shouldGenerateGLError(gl, gl.INVALID_OPERATION, "gl.bindVertexArray(vertexArray)");
+shouldBeNull("gl.getParameter(gl.VERTEX_ARRAY_BINDING)");
+
+debug("");
+debug("transformFeedback deletion");
+
+var transformFeedback = gl.createTransformFeedback();
+shouldBeNonNull("transformFeedback");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, transformFeedback)");
+shouldBe("gl.getParameter(gl.TRANSFORM_FEEDBACK_BINDING)", "transformFeedback");
+shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteTransformFeedback(transformFeedback)");
+shouldBeFalse("gl.isTransformFeedback(transformFeedback)");
+shouldBeNull("gl.getParameter(gl.TRANSFORM_FEEDBACK_BINDING)");
+shouldGenerateGLError(gl, gl.INVALID_OPERATION, "gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, transformFeedback)");
+shouldBeNull("gl.getParameter(gl.TRANSFORM_FEEDBACK_BINDING)");
+
+var successfullyParsed = true;
+</script>
+
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

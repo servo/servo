@@ -17,7 +17,7 @@ test(function() {
 
 test(function() {
         var range = document.createRange();
-        assert_throws(new TypeError(), function() {
+        assert_throws_js(TypeError, function() {
                 range.createContextualFragment();
         });
 }, "Must throw TypeError when calling without arguments");

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Media Capture Depth Dictionary Test</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://w3c.github.io/mediacapture-depth/#extensions">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="dictionary-helper.js"></script>
+<meta name="flags" content="interact">
+
+<h2>Preconditions</h2>
+<ol>
+  <li>
+    Use a test device with depth camera(embedded or external).
+  </li>
+  <li>
+    When prompted, accept to share your depth/color(RGB) stream.
+  </li>
+</ol>
+
+<div id="log"></div>
+
+<script>
+
+let advanced_constraints_depth = [{
+  videoKind: "depth",
+}];
+
+let advanced_constraints_color = [{
+  videoKind: "color",
+  }];
+
+function validateMediaTrackCapabilities(capabilities, type) {
+  assert_string_field(capabilities, 'videoKind');
+}
+
+
+function validateMediaTrackConstraintSet(constraints, type) {
+  assert_constrain_string_field(constraints, 'videoKind');
+}
+
+function validateMediaTrackSettings(settings, type) {
+  assert_string_field(settings, 'videoKind');
+  assert_enum_field(settings, 'videoKind', ['color', 'depth'])
+}
+
+function validateMediaTrackSupportedConstraints(supports) {
+  assert_boolean_field(supports, 'videoKind', true);
+}
+
+function runDictionaryTests(type, constraints) {
+  promise_test(t => {
+    return navigator.mediaDevices.getUserMedia({video: {advanced: constraints}})
+    .then(stream => {
+      let capabilities = stream.getTracks()[0].getCapabilities();
+      validateMediaTrackCapabilities(capabilities, type);
+    });
+  }, `MediaTrackCapabilities dictionary of ${type} include attributes are correct`);
+
+  promise_test(t => {
+    return navigator.mediaDevices.getUserMedia({video: {advanced: constraints}})
+    .then(stream => {
+      let constraints = stream.getTracks()[0].getConstraints()["advanced"][0];
+      validateMediaTrackConstraintSet(constraints);
+    });
+  }, `MediaTrackConstraintSet dictionary of ${type} include attributes are correct`);
+
+  promise_test(t => {
+    return navigator.mediaDevices.getUserMedia({video: {advanced: constraints}})
+    .then(stream => {
+      let settings = stream.getTracks()[0].getSettings();
+      validateMediaTrackSettings(settings, type);
+    });
+  }, `MediaTrackSettings dictionary of ${type} include attributes are correct`);
+}
+
+test(() => {
+  let supports = navigator.mediaDevices.getSupportedConstraints();
+  validateMediaTrackSupportedConstraints(supports);
+}, "MediaTrackSupportedConstraints dictionary include attributes are correct");
+
+runDictionaryTests("depth", advanced_constraints_depth);
+runDictionaryTests("color", advanced_constraints_color);
+
+</script>

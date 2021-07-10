@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <title>Mutating the 'pathLength' attribute ('path' element; reference)</title>
+  <path d="M100,100h100v100h-100z" fill="none" stroke="blue"
+        stroke-width="20" stroke-dasharray="50"/>
+</svg>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/feature-policy/resources/featurepolicy.js></script>
+  <script src=util/utils.js></script>
+  <script>
+  "use strict";
+  const relative_path = "/gamepad/feature-policy-gamepad.html";
+  const base_src = "/feature-policy/resources/redirect-on-load.html#";
+  const sub = "https://{{domains[www]}}:{{ports[https][0]}}";
+  const same_origin_src = base_src + relative_path;
+  const cross_origin_src = sub + relative_path;
+  const header = 'Feature-Policy allow="gamepad"';
+
+  async_test((t) => {
+    test_feature_availability(
+      "getGamepads()",
+      t,
+      same_origin_src,
+      expect_feature_available_default
+    );
+  }, header + " allows same-origin by default.");
+
+  async_test((t) => {
+    test_feature_availability(
+      "getGamepads()",
+      t,
+      cross_origin_src,
+      expect_feature_available_default,
+      "gamepad"
+    );
+  }, header + " allows cross-origin with feature allowed.");
+
+  async_test((t) => {
+    test_feature_availability(
+      "getGamepads()",
+      t,
+      cross_origin_src,
+      expect_feature_unavailable_default
+    );
+  }, header + " disallows cross-origin by default.");
+  </script>
+</body>

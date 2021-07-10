@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Test IIRFilter getFrequencyResponse() functionality
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="../../resources/audit-util.js"></script>
+    <script src="../../resources/audit.js"></script>
+    <script src="../../resources/biquad-filters.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      let sampleRate = 48000;
+      // Some short duration; we're not actually looking at the rendered output.
+      let testDurationSec = 0.01;
+
+      // Number of frequency samples to take.
+      let numberOfFrequencies = 1000;
+
+      let audit = Audit.createTaskRunner();
+
+
+      // Compute a set of linearly spaced frequencies.
+      function createFrequencies(nFrequencies, sampleRate) {
+        let frequencies = new Float32Array(nFrequencies);
+        let nyquist = sampleRate / 2;
+        let freqDelta = nyquist / nFrequencies;
+
+        for (let k = 0; k < nFrequencies; ++k) {
+          frequencies[k] = k * freqDelta;
+        }
+
+        return frequencies;
+      }
+
+      audit.define('1-pole IIR', (task, should) => {
+        let context = new OfflineAudioContext(
+            1, testDurationSec * sampleRate, sampleRate);
+
+        let iir = context.createIIRFilter([1], [1, -0.9]);
+        let frequencies =
+            createFrequencies(numberOfFrequencies, context.sampleRate);
+
+        let iirMag = new Float32Array(numberOfFrequencies);
+        let iirPhase = new Float32Array(numberOfFrequencies);
+        let trueMag = new Float32Array(numberOfFrequencies);
+        let truePhase = new Float32Array(numberOfFrequencies);
+
+        // The IIR filter is
+        //   H(z) = 1/(1 - 0.9*z^(-1)).
+        //
+        // The frequency response is
+        //   H(exp(j*w)) = 1/(1 - 0.9*exp(-j*w)).
+        //
+        // Thus, the magnitude is
+        //   |H(exp(j*w))| = 1/sqrt(1.81-1.8*cos(w)).
+        //
+        // The phase is
+        //   arg(H(exp(j*w)) = atan(0.9*sin(w)/(.9*cos(w)-1))
+
+        let frequencyScale = Math.PI / (sampleRate / 2);
+
+        for (let k = 0; k < frequencies.length; ++k) {
+          let omega = frequencyScale * frequencies[k];
+          trueMag[k] = 1 / Math.sqrt(1.81 - 1.8 * Math.cos(omega));
+          truePhase[k] =
+              Math.atan(0.9 * Math.sin(omega) / (0.9 * Math.cos(omega) - 1));
+        }
+
+        iir.getFrequencyResponse(frequencies, iirMag, iirPhase);
+
+        // Thresholds were experimentally determined.
+        should(iirMag, '1-pole IIR Magnitude Response')
+            .beCloseToArray(trueMag, {absoluteThreshold: 2.8611e-6});
+        should(iirPhase, '1-pole IIR Phase Response')
+            .beCloseToArray(truePhase, {absoluteThreshold: 1.7882e-7});
+
+        task.done();
+      });
+
+      audit.define('compare IIR and biquad', (task, should) => {
+        // Create an IIR filter equivalent to the biquad filter. Compute the
+        // frequency response for both and verify that they are the same.
+        let context = new OfflineAudioContext(
+            1, testDurationSec * sampleRate, sampleRate);
+
+        let biquad = context.createBiquadFilter();
+        let coef = createFilter(
+            biquad.type, biquad.frequency.value / (context.sampleRate / 2),
+            biquad.Q.value, biquad.gain.value);
+
+        let iir = context.createIIRFilter(
+            [coef.b0, coef.b1, coef.b2], [1, coef.a1, coef.a2]);
+
+        let frequencies =
+            createFrequencies(numberOfFrequencies, context.sampleRate);
+        let biquadMag = new Float32Array(numberOfFrequencies);
+        let biquadPhase = new Float32Array(numberOfFrequencies);
+        let iirMag = new Float32Array(numberOfFrequencies);
+        let iirPhase = new Float32Array(numberOfFrequencies);
+
+        biquad.getFrequencyResponse(frequencies, biquadMag, biquadPhase);
+        iir.getFrequencyResponse(frequencies, iirMag, iirPhase);
+
+        // Thresholds were experimentally determined.
+        should(iirMag, 'IIR Magnitude Response').beCloseToArray(biquadMag, {
+          absoluteThreshold: 2.7419e-5
+        });
+        should(iirPhase, 'IIR Phase Response').beCloseToArray(biquadPhase, {
+          absoluteThreshold: 2.7657e-5
+        });
+
+        task.done();
+      });
+
+      audit.define(
+          {
+            label: 'getFrequencyResponse',
+            description: 'Test out-of-bounds frequency values'
+          },
+          (task, should) => {
+            let context = new OfflineAudioContext(1, 1, sampleRate);
+            let filter = new IIRFilterNode(
+                context, {feedforward: [1], feedback: [1, -.9]});
+
+            // Frequencies to test.  These are all outside the valid range of
+            // frequencies of 0 to Nyquist.
+            let freq = new Float32Array(2);
+            freq[0] = -1;
+            freq[1] = context.sampleRate / 2 + 1;
+
+            let mag = new Float32Array(freq.length);
+            let phase = new Float32Array(freq.length);
+
+            filter.getFrequencyResponse(freq, mag, phase);
+
+            // Verify that the returned magnitude and phase entries are alL NaN
+            // since the frequencies are outside the valid range
+            for (let k = 0; k < mag.length; ++k) {
+              should(mag[k],
+                  'Magnitude response at frequency ' + freq[k])
+                  .beNaN();
+            }
+
+            for (let k = 0; k < phase.length; ++k) {
+              should(phase[k],
+                  'Phase response at frequency ' + freq[k])
+                  .beNaN();
+            }
+
+            task.done();
+          });
+
+      audit.run();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,29 @@
+<!doctype html>
+<title>WebXR hit-test IDL tests</title>
+<link rel="help" href="https://immersive-web.github.io/hit-test/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+
+<script>
+  'use strict';
+
+  idl_test(
+    ['hit-test'],
+    ['webxr', 'geometry', 'dom'],
+    async idl_array => {
+      idl_array.add_objects({
+        // TODO: XRHitTestSource
+        // TODO: XRTransientInputHitTestSource
+        // TODO: XRHitTestResult
+        // TODO: XRTransientInputHitTestResult
+        XRSession: ['xrSession'],
+        // TODO: XRFrame
+        XRRay: ['new XRRay()'],
+      });
+
+      self.xrSession = await navigator.xr.requestSession("inline");
+    }
+  );
+</script>

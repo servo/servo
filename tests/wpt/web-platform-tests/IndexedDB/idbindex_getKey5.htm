@@ -17,7 +17,7 @@
 
         var index = db.createObjectStore("test", { keyPath: "key" })
                       .createIndex("index", "indexedProperty");
-        assert_throws("DataError",function(){
+        assert_throws_dom("DataError",function(){
             index.getKey(NaN);
         });
         t.done();

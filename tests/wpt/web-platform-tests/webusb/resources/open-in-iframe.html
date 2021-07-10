@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<!-- Intentionally use relative paths here because this file is also used by blink/web_tests/usb/usbDevice-iframe.html. -->
+<script src="../../resources/test-only-api.js"></script>
+<script src="usb-helpers.js"></script>
+<script>
+'use strict';
+window.onmessage = messageEvent => {
+  if (messageEvent.data === 'Ready') {
+    navigator.usb.addEventListener('connect', connectEvent => {
+      connectEvent.device.open().then(() => {
+        parent.postMessage('Success', '*');
+      }).catch(error => {
+        parent.postMessage('FAIL: open rejected ' + error, '*');
+      });
+    });
+    parent.postMessage('Ready', '*');
+  }
+};
+</script>

@@ -2,20 +2,14 @@
 <title>handling for 404 response</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<div id=log></div>
 <script>
-setup({allow_uncaught_exception: true});
-
-async_test(function() {
-  var worker = new Worker('404_worker');
-  worker.onerror = this.step_func(function(e) { this.done(); });
+async_test(t => {
+  const worker = new Worker('404_worker');
+  worker.onerror = e => t.done();
 }, 'worker');
 
-async_test(function() {
-  var shared = new SharedWorker('404_shared');
-  // NOTE: this handler will not fire, as runtime scripting errors
-  // are not forwarded to SharedWorker objects, but instead reported to the user directly.
-  shared.onerror = this.step_func(function(e) { assert_unreached(); }, shared, 'error');
-  step_timeout(this.step_func(function() { this.done(); }), 5000);
+async_test(t => {
+  const shared = new SharedWorker('404_shared');
+  shared.onerror = e => t.done();
 }, 'shared');
 </script>

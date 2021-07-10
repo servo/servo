@@ -99,7 +99,6 @@
         <text x="240" font-family="advance2000" font-size="30">12</text>
       </g>
 
-
       <g transform="translate(0, 80)">
         <text>horiz-adv-x=1000 but ignored</text>
         <use xlink:href="#marker" x="240"/>

@@ -1,0 +1,48 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>LongTask Timing: long task in another window</title>
+<body>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+/* This test should pass even when windows share a single renderer process.
+  This window opens a new window which contains a longtask. We test that the
+  longtask from the new window is not observed by the observer of this window. */
+async_test(t => {
+  assert_implements(window.PerformanceLongTaskTiming, 'Longtasks are not supported.');
+  const observer = new PerformanceObserver(
+      t.step_func(function (entryList) {
+          const entries = entryList.getEntries();
+          let markFound = false;
+          for (let i = 0; i < entries.length; ++i) {
+            const entry = entries[i];
+            // We do not expect to observe longtasks but the work being made in this window may produce a longtask.
+            assert_true(entry.entryType === 'longtask' ||
+              entry.entryType === 'mark');
+            if (entry.entryType === 'mark') {
+              markFound = true;
+              continue;
+            }
+            // If a longtask is observed, it must come from this window.
+            assert_equals(entry.name, 'self');
+          }
+          // If we found the mark, then the other window longtask is done.
+          if (markFound)
+            t.done();
+      })
+  );
+  observer.observe({entryTypes: ['mark', 'longtask']});
+
+  window.onload = () => {
+    // Open a window with a longtask.
+    const other_window = window.open('resources/frame-with-longtask.html');
+    window.addEventListener('message', t.step_func(e => {
+      // Do a mark (after the other window's longtask) to fire the callback.
+      self.performance.mark('mark1');
+    }));
+  };
+}, 'A longtask in a frame from window.open is not reported in original frame');
+</script>
+</body>

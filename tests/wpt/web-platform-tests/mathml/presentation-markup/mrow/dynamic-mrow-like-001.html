@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<title>Dynamic mrow-like elements</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#horizontally-group-sub-expressions-mrow">
+<script src="/mathml/support/mathml-fragments.js"></script>
+<meta name="assert" content="Dynamically set children of mrow-like elements.">
+<style>
+  math {
+      font: 25px/1 Ahem;
+      background: lightblue;
+  }
+  li {
+      padding: 2px;
+  }
+</style>
+<link rel="match" href="dynamic-mrow-like-001-ref.html">
+<script>
+  window.addEventListener("load", function() {
+
+      // force initial layout so we're sure what we're testing against
+      document.documentElement.getBoundingClientRect();
+
+      Array.from(document.getElementsByClassName("testedElement")).forEach(e => {
+          if (e.children.length == 0) {
+              // Add 3 children.
+              let mn = FragmentHelper.createElement("mn");
+              mn.textContent = "X";
+              e.appendChild(mn);
+              mn = FragmentHelper.createElement("mn");
+              mn.textContent = "É";
+              e.appendChild(mn);
+              mn = FragmentHelper.createElement("mn");
+              mn.textContent = "p";
+              e.insertBefore(mn, e.lastElementChild);
+          } else {
+              // Remove last child.
+              e.removeChild(e.lastElementChild);
+          }
+      });
+
+      document.documentElement.classList.remove('reftest-wait');
+  });
+</script>
+</head>
+<body>
+  <ol>
+    <li><math class="testedElement"></math></li>
+    <li><math class="testedElement"><mn>X</mn><mn>p</mn><mn>É</mn></math></li>
+    <li><math><mrow class="testedElement"></mrow></math></li>
+    <li><math><mrow class="testedElement"><mn>X</mn><mn>p</mn><mn>É</mn></mrow></math></li>
+    <li><math><maction class="testedElement"></maction></math></li>
+    <li><math><maction class="testedElement"><mn>X</mn><mn>p</mn><mn>É</mn></maction></math></li>
+    <li><math><merror class="testedElement"></merror></math></li>
+    <li><math><merror class="testedElement"><mn>X</mn><mn>p</mn><mn>É</mn></merror></math></li>
+    <li><math><mphantom class="testedElement"></mphantom></math></li>
+    <li><math><mphantom class="testedElement"><mn>X</mn><mn>p</mn><mn>É</mn></mphantom></math></li>
+    <li><math><mstyle class="testedElement"></mstyle></math></li>
+    <li><math><mstyle class="testedElement"><mn>X</mn><mn>p</mn><mn>É</mn></mstyle></math></li>
+    <li><math><semantics class="testedElement"></semantics></math></li>
+    <li><math><semantics class="testedElement"><mn>X</mn><mn>p</mn><mn>É</mn></semantics></math></li>
+    <li><math><unknown class="testedElement"></unknown></math></li>
+    <li><math><unknown class="testedElement"><mn>X</mn><mn>p</mn><mn>É</mn></unknown></math></li>
+    <li><math><none class="testedElement"></none></math></li>
+    <li><math><none class="testedElement"><mn>X</mn><mn>p</mn><mn>É</mn></none></math></li>
+    <li><math><mprescripts class="testedElement"></mprescripts></math></li>
+    <li><math><mprescripts class="testedElement"><mn>X</mn><mn>p</mn><mn>É</mn></mprescripts></math></li>
+  </ol>
+</body>
+</html>

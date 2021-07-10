@@ -1,0 +1,42 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Morgan Rae Reschenberg" href="mailto:mreschenberg@berkeley.edu">
+  <style>
+  .container {
+    border: 10px solid green;
+    display: inline-block;
+  }
+  .floatLBasic-ref {
+    float: left;
+  }
+  .floatLWidth-ref {
+    float: left;
+    width: 30px;
+  }
+  .flexBaselineCheck {
+    display: flex;
+    align-items: baseline;
+  }
+  fieldset {
+    border: none;
+    color: transparent;
+  }
+  legend, .innerContents {
+    width: 0;
+    height: 0;
+    padding: 0;
+  }
+  </style>
+</head>
+<body>
+  <div class="flexBaselineCheck">
+  outside before<fieldset>
+    <legend>l</legend>
+    <div class="innerContents">i</div>
+  </fieldset>outside after
+  </div>
+</body>
+</html>

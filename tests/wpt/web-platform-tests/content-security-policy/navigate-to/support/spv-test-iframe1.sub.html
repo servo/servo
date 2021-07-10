@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<head>
+  <script>
+    window.onmessage = function(e) {
+      if (e.data == "start_test") {
+        document.getElementById('link').click();
+        location.href = "{{location[server]}}/content-security-policy/navigate-to/support/spv-test-iframe3.sub.html";
+      }
+    }
+    window.addEventListener('securitypolicyviolation', function(e) {
+      top.postMessage({iframe: 'iframe1', violatedDirective: e.violatedDirective}, '*');
+    });
+  </script>
+</head>
+
+<body>
+  <a href="{{location[server]}}/content-security-policy/navigate-to/support/delayed_frame.py" id="link" target="iframe2">dummy link</a>
+  IFRAME 1
+</body>

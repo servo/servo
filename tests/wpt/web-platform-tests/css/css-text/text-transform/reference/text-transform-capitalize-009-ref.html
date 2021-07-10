@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>CSS3 Text, text transform: capitalize, Latin Extended-C</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<style type='text/css'>
+@font-face {
+	font-family: 'webfont';
+	src: url('/fonts/DoulosSIL-R.woff') format('woff');
+	font-weight: normal;
+	font-style: normal;
+	}
+.test, .ref { font-size: 125%; line-height: 1.5em; font-family: 'Doulos SIL', 'Noto Sans', webfont, sans-serif; }
+.test span, .ref span { margin-right: 1em; white-space: nowrap; }
+</style>
+</head>
+<body>
+<p class="instructions">The text is arranged in pairs of three-letter 'words'. Test passes if the words in each pair match<br>
+If you are missing a font glyph for a character, ignore that pair, but report which characters were ignored.</p>
+<div class="test"><span title="U+2C61">&#x2C60;&#x2C61;&#x2C61; &#x2C60;&#x2C61;&#x2C61;</span> <span title="U+2C65">&#x023A;&#x2C65;&#x2C65; &#x023A;&#x2C65;&#x2C65;</span> <span title="U+2C66">&#x023E;&#x2C66;&#x2C66; &#x023E;&#x2C66;&#x2C66;</span> <span title="U+2C68">&#x2C67;&#x2C68;&#x2C68; &#x2C67;&#x2C68;&#x2C68;</span> <span title="U+2C6A">&#x2C69;&#x2C6A;&#x2C6A; &#x2C69;&#x2C6A;&#x2C6A;</span> <span title="U+2C6C">&#x2C6B;&#x2C6C;&#x2C6C; &#x2C6B;&#x2C6C;&#x2C6C;</span> <span title="U+2C73">&#x2C72;&#x2C73;&#x2C73; &#x2C72;&#x2C73;&#x2C73;</span> <span title="U+2C76">&#x2C75;&#x2C76;&#x2C76; &#x2C75;&#x2C76;&#x2C76;</span></div>
+</body>
+</html>

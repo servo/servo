@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<style>
+.flexbox {
+    display: flex;
+}
+.inline-flexbox {
+    display: inline-flex;
+}
+.flex-one {
+    flex: 1;
+}
+.inline-block { display: inline-block; }
+.flexbox, .inline-flexbox { background-color: lightgrey; }
+.border { border: 11px solid pink; }
+.padding { padding: 13px; }
+.margin { margin: 8px 0; }
+.flexbox > div {
+    min-width: 0;
+    min-height: 0;
+}
+</style>
+
+<div>
+Should align with the bottom
+<div class="inline-block border margin padding" style="background-color: pink">
+  <div class="flexbox border margin padding" style="width: 100px; height: 100px; background-color: pink">
+      <div style="width: 200px; overflow: scroll; background-color: lightgrey; margin: 10px 0px; border-top: 10px solid pink;"></div>
+  </div>
+</div>
+of the horizontal scrollbar.
+</div>
+
+<div>
+Should align 10px below the
+<div class="inline-block" style="background-color: pink">
+  <div class="flexbox" style="width: 100px; height: 100px; background-color: pink">
+      <div style="width: 200px; overflow: scroll; background-color: lightgrey; padding-bottom: 10px; margin: 10px 0px; border-top: 10px solid pink; border-bottom: 10px solid pink;"></div>
+  </div>
+</div>
+horizontal scrollbar, if one is visible.
+</div>

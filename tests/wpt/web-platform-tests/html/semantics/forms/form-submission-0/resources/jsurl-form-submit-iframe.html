@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<form id=formid action="form.html"></form>
+<a id=anchorid href="javascript:jsurl()">anchor</a>
+
+<script>
+function jsurl() {
+  formid.submit();
+  return 'jsurl return value';
+}
+</script>

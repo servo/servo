@@ -14,11 +14,11 @@
       <p>
         Specify a series of various red graphics elements. Specify an equivalent series of black graphics elements that are defined to have dimensions
         that are half the size as the red elements. Specify a 'transform' value of 'scale' with only the 'sx' value specified  (i.e., 'scale(2)'). If the 'sy'
-        parameter takes the same value as the 'sx', there will be no red on the page. 
+        parameter takes the same value as the 'sx', there will be no red on the page.
       </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
-			<p>Run the test. No interaction required.</p>
+      <p>Run the test. No interaction required.</p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>

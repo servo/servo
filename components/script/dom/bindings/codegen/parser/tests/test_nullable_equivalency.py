@@ -80,7 +80,7 @@ def checkEquivalent(iface, harness):
     for attr in dir(type1):
         if attr.startswith('_') or \
            attr in ['nullable', 'builtin', 'filename', 'location',
-                    'inner', 'QName', 'getDeps', 'name'] or \
+                    'inner', 'QName', 'getDeps', 'name', 'prettyName'] or \
            (hasattr(type(type1), attr) and not callable(getattr(type1, attr))):
             continue
 

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-text-3">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<style>
+#container {
+  font-size: 100px;
+  width: 33554432px;
+}
+atomic {
+  display: inline-block;
+  width: 1ch;
+}
+left {
+  float: left;
+  width: 33554432px;
+  height: 10px;
+}
+</style>
+<body>
+  <div id="container">
+    <atomic></atomic>
+    0
+    <left></left>
+    <span dir="ltr"><atomic></atomic></span>
+  </div>
+</body>

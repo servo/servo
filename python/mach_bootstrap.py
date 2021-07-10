@@ -1,6 +1,6 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 from __future__ import print_function, unicode_literals
 
@@ -8,15 +8,12 @@ import os
 import platform
 import sys
 from distutils.spawn import find_executable
-from subprocess import PIPE, Popen
+from subprocess import Popen
+import shutil
+from tempfile import TemporaryFile
 
 SEARCH_PATHS = [
     os.path.join("python", "tidy"),
-]
-
-WPT_SEARCH_PATHS = [
-    ".",
-    "harness",
 ]
 
 # Individual files providing mach commands.
@@ -81,14 +78,7 @@ CATEGORIES = {
 # Possible names of executables
 # NOTE: Windows Python doesn't provide versioned executables, so we must use
 # the plain names. On MSYS, we still use Windows Python.
-if sys.platform in ['msys', 'win32']:
-    PYTHON_NAMES = ["python"]
-    VIRTUALENV_NAMES = ["virtualenv"]
-    PIP_NAMES = ["pip"]
-else:
-    PYTHON_NAMES = ["python-2.7", "python2.7", "python2", "python"]
-    VIRTUALENV_NAMES = ["virtualenv-2.7", "virtualenv2.7", "virtualenv2", "virtualenv"]
-    PIP_NAMES = ["pip-2.7", "pip2.7", "pip2", "pip"]
+PYTHON_NAMES = ["python-2.7", "python2.7", "python2", "python"]
 
 
 def _get_exec_path(names, is_valid_path=lambda _path: True):
@@ -106,7 +96,35 @@ def _get_virtualenv_script_dir():
     return "bin"
 
 
-def wpt_path(topdir, paths, is_firefox):
+def _process_exec(args):
+    with TemporaryFile() as out:
+        with TemporaryFile() as err:
+            process = Popen(args, stdout=out, stderr=err)
+            process.wait()
+            if process.returncode:
+                print('"%s" failed with error code %d:' % ('" "'.join(args), process.returncode))
+
+                if sys.version_info >= (3, 0):
+                    stdout = sys.stdout.buffer
+                else:
+                    stdout = sys.stdout
+
+                print('Output:')
+                out.seek(0)
+                stdout.flush()
+                shutil.copyfileobj(out, stdout)
+                stdout.flush()
+
+                print('Error:')
+                err.seek(0)
+                stdout.flush()
+                shutil.copyfileobj(err, stdout)
+                stdout.flush()
+
+                sys.exit(1)
+
+
+def wpt_path(is_firefox, topdir, *paths):
     if is_firefox:
         rel = os.path.join("..", "testing", "web-platform")
     else:
@@ -115,10 +133,29 @@ def wpt_path(topdir, paths, is_firefox):
     return os.path.join(topdir, rel, *paths)
 
 
+def wptrunner_path(is_firefox, topdir, *paths):
+    wpt_root = wpt_path(is_firefox, topdir)
+    if is_firefox:
+        rel = os.path.join(wpt_root, "tests", "tools", "wptrunner")
+    else:
+        rel = os.path.join(wpt_root, "web-platform-tests", "tools", "wptrunner")
+
+    return os.path.join(topdir, rel, *paths)
+
+
+def wptserve_path(is_firefox, topdir, *paths):
+    wpt_root = wpt_path(is_firefox, topdir)
+    if is_firefox:
+        rel = os.path.join(wpt_root, "tests", "tools", "wptserve")
+    else:
+        rel = os.path.join(wpt_root, "web-platform-tests", "tools", "wptserve")
+
+    return os.path.join(topdir, rel, *paths)
+
+
 def _activate_virtualenv(topdir, is_firefox):
-    virtualenv_path = os.path.join(topdir, "python", "_virtualenv")
-    check_exec_path = lambda path: path.startswith(virtualenv_path)
-    python = _get_exec_path(PYTHON_NAMES)   # If there was no python, mach wouldn't have run at all!
+    virtualenv_path = os.path.join(topdir, "python", "_virtualenv%d.%d" % (sys.version_info[0], sys.version_info[1]))
+    python = sys.executable   # If there was no python, mach wouldn't have run at all!
     if not python:
         sys.exit('Failed to find python executable for starting virtualenv.')
 
@@ -126,26 +163,21 @@ def _activate_virtualenv(topdir, is_firefox):
     activate_path = os.path.join(virtualenv_path, script_dir, "activate_this.py")
     need_pip_upgrade = False
     if not (os.path.exists(virtualenv_path) and os.path.exists(activate_path)):
-        virtualenv = _get_exec_path(VIRTUALENV_NAMES)
-        if not virtualenv:
+        import imp
+        try:
+            imp.find_module('virtualenv')
+        except ImportError:
             sys.exit("Python virtualenv is not installed. Please install it prior to running mach.")
 
-        process = Popen(
-            [virtualenv, "-p", python, "--system-site-packages", virtualenv_path],
-            stdout=PIPE,
-            stderr=PIPE
-        )
-        process.wait()
-        if process.returncode:
-            out, err = process.communicate()
-            print('Python virtualenv failed to execute properly:')
-            sys.exit('Output: %s\nError: %s' % (out, err))
+        _process_exec([python, "-m", "virtualenv", "-p", python, "--system-site-packages", virtualenv_path])
+
         # We want to upgrade pip when virtualenv created for the first time
         need_pip_upgrade = True
 
-    execfile(activate_path, dict(__file__=activate_path))
+    exec(compile(open(activate_path).read(), activate_path, 'exec'), dict(__file__=activate_path))
 
-    python = _get_exec_path(PYTHON_NAMES, is_valid_path=check_exec_path)
+    python = _get_exec_path(PYTHON_NAMES,
+                            is_valid_path=lambda path: path.startswith(virtualenv_path))
     if not python:
         sys.exit("Python executable in virtualenv failed to activate.")
 
@@ -157,24 +189,15 @@ def _activate_virtualenv(topdir, is_firefox):
     # and it will check for conflicts.
     requirements_paths = [
         os.path.join("python", "requirements.txt"),
-        wpt_path(topdir, ("harness", "requirements.txt"), is_firefox),
-        wpt_path(topdir, ("harness", "requirements_firefox.txt"), is_firefox),
-        wpt_path(topdir, ("harness", "requirements_servo.txt"), is_firefox),
+        wptrunner_path(is_firefox, topdir, "requirements.txt",),
+        wptrunner_path(is_firefox, topdir, "requirements_firefox.txt"),
+        wptrunner_path(is_firefox, topdir, "requirements_servo.txt"),
     ]
 
     if need_pip_upgrade:
         # Upgrade pip when virtualenv is created to fix the issue
         # https://github.com/servo/servo/issues/11074
-        pip = _get_exec_path(PIP_NAMES, is_valid_path=check_exec_path)
-        if not pip:
-            sys.exit("Python pip is either not installed or not found in virtualenv.")
-
-        process = Popen([pip, "install", "-q", "-I", "-U", "pip"], stdout=PIPE, stderr=PIPE)
-        process.wait()
-        if process.returncode:
-            out, err = process.communicate()
-            print('Pip failed to upgrade itself properly:')
-            sys.exit('Output: %s\nError: %s' % (out, err))
+        _process_exec([python, "-m", "pip", "install", "-I", "-U", "pip"])
 
     for req_rel_path in requirements_paths:
         req_path = os.path.join(topdir, req_rel_path)
@@ -187,16 +210,7 @@ def _activate_virtualenv(topdir, is_firefox):
         except OSError:
             pass
 
-        pip = _get_exec_path(PIP_NAMES, is_valid_path=check_exec_path)
-        if not pip:
-            sys.exit("Python pip is either not installed or not found in virtualenv.")
-
-        process = Popen([pip, "install", "-q", "-I", "-r", req_path], stdout=PIPE, stderr=PIPE)
-        process.wait()
-        if process.returncode:
-            out, err = process.communicate()
-            print('Pip failed to execute properly:')
-            sys.exit('Output: %s\nError: %s' % (out, err))
+        _process_exec([python, "-m", "pip", "install", "-I", "-r", req_path])
 
         open(marker_path, 'w').close()
 
@@ -214,15 +228,45 @@ def _is_windows():
     return sys.platform == 'win32'
 
 
+class DummyContext(object):
+    pass
+
+
+def is_firefox_checkout(topdir):
+    parentdir = os.path.normpath(os.path.join(topdir, '..'))
+    is_firefox = os.path.isfile(os.path.join(parentdir,
+                                             'build/mach_bootstrap.py'))
+    return is_firefox
+
+
+def bootstrap_command_only(topdir):
+    # we should activate the venv before importing servo.boostrap
+    # because the module requires non-standard python packages
+    _activate_virtualenv(topdir, is_firefox_checkout(topdir))
+
+    from servo.bootstrap import bootstrap
+
+    context = DummyContext()
+    context.topdir = topdir
+    force = False
+    if len(sys.argv) == 3 and sys.argv[2] == "-f":
+        force = True
+    bootstrap(context, force)
+    return 0
+
+
 def bootstrap(topdir):
     _ensure_case_insensitive_if_windows()
 
     topdir = os.path.abspath(topdir)
 
+    len(sys.argv) > 1 and sys.argv[1] == "bootstrap"
+
     # We don't support paths with Unicode characters for now
     # https://github.com/servo/servo/issues/10002
     try:
-        topdir.decode('ascii')
+        # Trick to support both python2 and python3
+        topdir.encode().decode('ascii')
     except UnicodeDecodeError:
         print('Cannot run mach in a path with Unicode characters.')
         print('Current path:', topdir)
@@ -235,17 +279,14 @@ def bootstrap(topdir):
         print('Current path:', topdir)
         sys.exit(1)
 
-    # Ensure we are running Python 2.7+. We put this check here so we generate a
+    # Ensure we are running Python 2.7+ or Python 3.5+. We put this check here so we generate a
     # user-friendly error message rather than a cryptic stack trace on module import.
-    if not (3, 0) > sys.version_info >= (2, 7):
-        print('Python 2.7 or above (but not Python 3) is required to run mach.')
+    if sys.version_info < (2, 7) or (sys.version_info >= (3, 0) and sys.version_info < (3, 5)):
+        print('Python2 (>=2.7) or Python3 (>=3.5) is required to run mach.')
         print('You are running Python', platform.python_version())
         sys.exit(1)
 
-    # See if we're inside a Firefox checkout.
-    parentdir = os.path.normpath(os.path.join(topdir, '..'))
-    is_firefox = os.path.isfile(os.path.join(parentdir,
-                                             'build/mach_bootstrap.py'))
+    is_firefox = is_firefox_checkout(topdir)
 
     _activate_virtualenv(topdir, is_firefox)
 
@@ -257,8 +298,11 @@ def bootstrap(topdir):
         raise AttributeError(key)
 
     sys.path[0:0] = [os.path.join(topdir, path) for path in SEARCH_PATHS]
-    sys.path[0:0] = [wpt_path(topdir, (path,), is_firefox)
-                     for path in WPT_SEARCH_PATHS]
+
+    sys.path[0:0] = [wpt_path(is_firefox, topdir),
+                     wptrunner_path(is_firefox, topdir),
+                     wptserve_path(is_firefox, topdir)]
+
     import mach.main
     mach = mach.main.Mach(os.getcwd())
     mach.populate_context_handler = populate_context
@@ -267,6 +311,10 @@ def bootstrap(topdir):
         mach.define_category(category, meta['short'], meta['long'], meta['priority'])
 
     for path in MACH_MODULES:
-        mach.load_commands_from_file(os.path.join(topdir, path))
+        # explicitly provide a module name
+        # workaround for https://bugzilla.mozilla.org/show_bug.cgi?id=1549636
+        file = os.path.basename(path)
+        module_name = os.path.splitext(file)[0]
+        mach.load_commands_from_file(os.path.join(topdir, path), module_name)
 
     return mach

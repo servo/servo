@@ -1,0 +1,35 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>Retry inline floats until they fit -- circle</title>
+<link rel="author" title="Brad Werth" href="mailto:bwerth@mozilla.com">
+<link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/">
+<link rel="match" href="reference/float-retry-push-ref.html">
+<meta name="flags" content="">
+<meta name="assert" content="Test that a too-wide inline block is pushed in the block direction along a shape-outside circle until it fits.">
+<style>
+  body {
+    margin: 0px;
+    line-height: 1;
+  }
+
+  #too-wide {
+    display: inline-block;
+    height: 20px;
+    width: 250px;
+    background: blue;
+  }
+
+  #shape {
+    width: 100px;
+    height: 100px;
+    float: left;
+    shape-outside: circle(70.710678px at 0px 0px);
+    /* 70.710678 = 50 / (sqrt(2) / 2) */
+  }
+</style>
+
+<div style="width: 300px; height: 100px;">
+<div id="shape"></div>
+<span id="too-wide"></span>
+<div>

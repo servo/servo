@@ -1,12 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-[Constructor(optional unrestricted double x = 0, optional unrestricted double y = 0,
-             optional unrestricted double width = 0, optional unrestricted double height = 0),
- Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 // https://drafts.fxtf.org/geometry/#domrect
 interface DOMRectReadOnly {
+  [Throws] constructor(optional unrestricted double x = 0, optional unrestricted double y = 0,
+              optional unrestricted double width = 0, optional unrestricted double height = 0);
   // [NewObject] static DOMRectReadOnly fromRect(optional DOMRectInit other);
 
   readonly attribute unrestricted double x;
@@ -17,6 +17,8 @@ interface DOMRectReadOnly {
   readonly attribute unrestricted double right;
   readonly attribute unrestricted double bottom;
   readonly attribute unrestricted double left;
+
+  [Default] object toJSON();
 };
 
 // https://drafts.fxtf.org/geometry/#dictdef-domrectinit

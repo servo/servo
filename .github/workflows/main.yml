@@ -1,0 +1,1690 @@
+name: CI
+
+on:
+  # Triggers the workflow on push events but only for the master branch
+  push:
+    branches: [ "auto", "try", "try-linux", "try-mac", "try-windows", "try-wpt"]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+env:
+  RUST_BACKTRACE: 1
+  SHELL: /bin/bash
+
+jobs:
+  build-win:
+    name: Build (Windows)
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Copy to C drive
+        run: cp D:\a C:\ -Recurse
+      - name: Bootstrap
+        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+        run: |
+          python -m pip install --upgrade pip virtualenv
+          python mach fetch
+      - name: Release build
+        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+        run: python mach build --release --media-stack=dummy
+      - name: Unit tests
+        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+        run: python mach test-unit --release
+      - name: Smoketest
+        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+        run: python mach smoketest --angle
+
+  build-uwp-x64:
+    name: Build (Windows UWP x64)
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Copy to C drive
+        run: cp D:\a C:\ -Recurse
+      - name: Bootstrap
+        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+        run: |
+          python -m pip install --upgrade pip virtualenv
+          python mach fetch
+      - name: Release build
+        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+        run: python mach build --release --target=x86_64-uwp-windows-msvc
+      - name: Package
+        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+        run: python mach package --release --target=x86_64-uwp-windows-msvc --uwp=x64
+        env:
+          CODESIGN_CERT: ${{ secrets.WINDOWS_CODESIGN_CERT }}
+      - name: Tidy
+        run: python mach test-tidy --force-cpp --no-wpt
+
+  build-uwp-arm64:
+    name: Build (Windows UWP arm64)
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Copy to C drive
+        run: cp D:\a C:\ -Recurse
+      - name: Bootstrap
+        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+        run: |
+          python -m pip install --upgrade pip virtualenv
+          python mach fetch
+      - name: Release build
+        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+        run: python mach build --release --target=aarch64-uwp-windows-msvc
+      - name: Package
+        working-directory: "C:\\a\\${{ github.event.repository.name }}\\${{ github.event.repository.name }}"
+        run: python mach package --release --target=aarch64-uwp-windows-msvc --uwp=arm64
+        env:
+          CODESIGN_CERT: ${{ secrets.WINDOWS_CODESIGN_CERT }}
+
+  build-mac:
+    name: Build (macOS)
+    runs-on: macos-10.15
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Bootstrap
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
+          brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile-build
+          rm -rf /usr/local/etc/openssl
+          rm -rf /usr/local/etc/openssl@1.1
+          brew install openssl@1.1 gnu-tar
+      - name: Release build
+        run: |
+          export OPENSSL_INCLUDE_DIR="$(brew --prefix openssl)/include"
+          export OPENSSL_LIB_DIR="$(brew --prefix openssl)/lib"
+          export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/"
+          export PKG_CONFIG_PATH="$(brew --prefix zlib)/lib/pkgconfig/:$PKG_CONFIG_PATH"
+          python3 ./mach build --release
+      - name: Smoketest
+        run: python3 ./mach smoketest
+      - name: Unit tests
+        run: python3 ./mach test-unit --release
+      - name: Test package
+        run: python3 ./mach package --release
+      - name: Package smoketest
+        run: ./etc/ci/macos_package_smoketest.sh target/release/servo-tech-demo.dmg
+      - name: Package binary
+        run: gtar -czf target.tar.gz target/release/servo target/release/*.dylib resources
+      - name: Archive binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: release-binary-macos
+          path: target.tar.gz
+
+  # mac-wpt1:
+  #   #needs: build-mac
+  #   runs-on: macos-10.15
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: 2
+
+  #     #- name: Download release binary
+  #     #  uses: actions/download-artifact@v2
+  #     #  with:
+  #     #    name: release-binary-macos
+
+  #     - name: Fake build
+  #       run: |
+  #         wget https://joshmatthews.net/release-binary-macos.zip
+  #         unzip release-binary-macos.zip
+
+  #     - name: Prep test environment
+  #       run: |
+  #         brew install gnu-tar
+  #         gtar -xzf target.tar.gz
+  #         python3 -m pip install --upgrade pip virtualenv
+  #         brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
+  #     - name: Smoketest
+  #       run: python3 ./mach smoketest
+  #     - name: Run tests
+  #       run: |
+  #         python3 ./mach test-wpt --release --processes=3 --timeout-multiplier=8 --total-chunks=20 --this-chunk=1 --log-raw=test-wpt.log --log-servojson=wpt-jsonsummary.log --always-succeed | cat
+  #         python3 ./mach filter-intermittents wpt-jsonsummary.log --log-intermittents=intermittents.log --log-filteredsummary=filtered-wpt-summary.log --tracker-api=default --reporter-api=default
+
+  #     - name: Archive logs
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: wpt1-logs-macos
+  #         path: |
+  #           test-wpt.log
+  #           wpt-jsonsummary.log
+  #           filtered-wpt-summary.log
+  #           intermittents.log
+  # mac-wpt2:
+  #   #needs: build-mac
+  #   runs-on: macos-10.15
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: 2
+
+  #     #- name: Download release binary
+  #     #  uses: actions/download-artifact@v2
+  #     #  with:
+  #     #    name: release-binary-macos
+
+  #     - name: Fake build
+  #       run: |
+  #         wget https://joshmatthews.net/release-binary-macos.zip
+  #         unzip release-binary-macos.zip
+
+  #     - name: Prep test environment
+  #       run: |
+  #         brew install gnu-tar
+  #         gtar -xzf target.tar.gz
+  #         python3 -m pip install --upgrade pip virtualenv
+  #         brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
+  #     - name: Smoketest
+  #       run: python3 ./mach smoketest
+  #     - name: Run tests
+  #       run: |
+  #         python3 ./mach test-wpt --release --processes=3 --timeout-multiplier=8 --total-chunks=20 --this-chunk=2 --log-raw=test-wpt.log --log-servojson=wpt-jsonsummary.log --always-succeed | cat
+  #         python3 ./mach filter-intermittents wpt-jsonsummary.log --log-intermittents=intermittents.log --log-filteredsummary=filtered-wpt-summary.log --tracker-api=default --reporter-api=default
+
+  #     - name: Archive logs
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: wpt2-logs-macos
+  #         path: |
+  #           test-wpt.log
+  #           wpt-jsonsummary.log
+  #           filtered-wpt-summary.log
+  #           intermittents.log
+  # mac-wpt3:
+  #   #needs: build-mac
+  #   runs-on: macos-10.15
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: 2
+
+  #     #- name: Download release binary
+  #     #  uses: actions/download-artifact@v2
+  #     #  with:
+  #     #    name: release-binary-macos
+
+  #     - name: Fake build
+  #       run: |
+  #         wget https://joshmatthews.net/release-binary-macos.zip
+  #         unzip release-binary-macos.zip
+
+  #     - name: Prep test environment
+  #       run: |
+  #         brew install gnu-tar
+  #         gtar -xzf target.tar.gz
+  #         python3 -m pip install --upgrade pip virtualenv
+  #         brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
+  #     - name: Smoketest
+  #       run: python3 ./mach smoketest
+  #     - name: Run tests
+  #       run: |
+  #         python3 ./mach test-wpt --release --processes=3 --timeout-multiplier=8 --total-chunks=20 --this-chunk=3 --log-raw=test-wpt.log --log-servojson=wpt-jsonsummary.log --always-succeed | cat
+  #         python3 ./mach filter-intermittents wpt-jsonsummary.log --log-intermittents=intermittents.log --log-filteredsummary=filtered-wpt-summary.log --tracker-api=default --reporter-api=default
+
+  #     - name: Archive logs
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: wpt3-logs-macos
+  #         path: |
+  #           test-wpt.log
+  #           wpt-jsonsummary.log
+  #           filtered-wpt-summary.log
+  #           intermittents.log
+  # mac-wpt4:
+  #   #needs: build-mac
+  #   runs-on: macos-10.15
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: 2
+
+  #     #- name: Download release binary
+  #     #  uses: actions/download-artifact@v2
+  #     #  with:
+  #     #    name: release-binary-macos
+
+  #     - name: Fake build
+  #       run: |
+  #         wget https://joshmatthews.net/release-binary-macos.zip
+  #         unzip release-binary-macos.zip
+
+  #     - name: Prep test environment
+  #       run: |
+  #         brew install gnu-tar
+  #         gtar -xzf target.tar.gz
+  #         python3 -m pip install --upgrade pip virtualenv
+  #         brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
+  #     - name: Smoketest
+  #       run: python3 ./mach smoketest
+  #     - name: Run tests
+  #       run: |
+  #         python3 ./mach test-wpt --release --processes=3 --timeout-multiplier=8 --total-chunks=20 --this-chunk=4 --log-raw=test-wpt.log --log-servojson=wpt-jsonsummary.log --always-succeed | cat
+  #         python3 ./mach filter-intermittents wpt-jsonsummary.log --log-intermittents=intermittents.log --log-filteredsummary=filtered-wpt-summary.log --tracker-api=default --reporter-api=default
+
+  #     - name: Archive logs
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: wpt4-logs-macos
+  #         path: |
+  #           test-wpt.log
+  #           wpt-jsonsummary.log
+  #           filtered-wpt-summary.log
+  #           intermittents.log
+  # mac-wpt5:
+  #   #needs: build-mac
+  #   runs-on: macos-10.15
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: 2
+
+  #     #- name: Download release binary
+  #     #  uses: actions/download-artifact@v2
+  #     #  with:
+  #     #    name: release-binary-macos
+
+  #     - name: Fake build
+  #       run: |
+  #         wget https://joshmatthews.net/release-binary-macos.zip
+  #         unzip release-binary-macos.zip
+
+  #     - name: Prep test environment
+  #       run: |
+  #         brew install gnu-tar
+  #         gtar -xzf target.tar.gz
+  #         python3 -m pip install --upgrade pip virtualenv
+  #         brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
+  #     - name: Smoketest
+  #       run: python3 ./mach smoketest
+  #     - name: Run tests
+  #       run: |
+  #         python3 ./mach test-wpt --release --processes=3 --timeout-multiplier=8 --total-chunks=20 --this-chunk=5 --log-raw=test-wpt.log --log-servojson=wpt-jsonsummary.log --always-succeed | cat
+  #         python3 ./mach filter-intermittents wpt-jsonsummary.log --log-intermittents=intermittents.log --log-filteredsummary=filtered-wpt-summary.log --tracker-api=default --reporter-api=default
+
+  #     - name: Archive logs
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: wpt5-logs-macos
+  #         path: |
+  #           test-wpt.log
+  #           wpt-jsonsummary.log
+  #           filtered-wpt-summary.log
+  #           intermittents.log
+  # mac-wpt6:
+  #   #needs: build-mac
+  #   runs-on: macos-10.15
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: 2
+
+  #     #- name: Download release binary
+  #     #  uses: actions/download-artifact@v2
+  #     #  with:
+  #     #    name: release-binary-macos
+
+  #     - name: Fake build
+  #       run: |
+  #         wget https://joshmatthews.net/release-binary-macos.zip
+  #         unzip release-binary-macos.zip
+
+  #     - name: Prep test environment
+  #       run: |
+  #         brew install gnu-tar
+  #         gtar -xzf target.tar.gz
+  #         python3 -m pip install --upgrade pip virtualenv
+  #         brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
+  #     - name: Smoketest
+  #       run: python3 ./mach smoketest
+  #     - name: Run tests
+  #       run: |
+  #         python3 ./mach test-wpt --release --processes=3 --timeout-multiplier=8 --total-chunks=20 --this-chunk=6 --log-raw=test-wpt.log --log-servojson=wpt-jsonsummary.log --always-succeed | cat
+  #         python3 ./mach filter-intermittents wpt-jsonsummary.log --log-intermittents=intermittents.log --log-filteredsummary=filtered-wpt-summary.log --tracker-api=default --reporter-api=default
+
+  #     - name: Archive logs
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: wpt6-logs-macos
+  #         path: |
+  #           test-wpt.log
+  #           wpt-jsonsummary.log
+  #           filtered-wpt-summary.log
+  #           intermittents.log
+  # mac-wpt7:
+  #   #needs: build-mac
+  #   runs-on: macos-10.15
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: 2
+
+  #     #- name: Download release binary
+  #     #  uses: actions/download-artifact@v2
+  #     #  with:
+  #     #    name: release-binary-macos
+
+  #     - name: Fake build
+  #       run: |
+  #         wget https://joshmatthews.net/release-binary-macos.zip
+  #         unzip release-binary-macos.zip
+
+  #     - name: Prep test environment
+  #       run: |
+  #         brew install gnu-tar
+  #         gtar -xzf target.tar.gz
+  #         python3 -m pip install --upgrade pip virtualenv
+  #         brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
+  #     - name: Smoketest
+  #       run: python3 ./mach smoketest
+  #     - name: Run tests
+  #       run: |
+  #         python3 ./mach test-wpt --release --processes=3 --timeout-multiplier=8 --total-chunks=20 --this-chunk=7 --log-raw=test-wpt.log --log-servojson=wpt-jsonsummary.log --always-succeed | cat
+  #         python3 ./mach filter-intermittents wpt-jsonsummary.log --log-intermittents=intermittents.log --log-filteredsummary=filtered-wpt-summary.log --tracker-api=default --reporter-api=default
+
+  #     - name: Archive logs
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: wpt7-logs-macos
+  #         path: |
+  #           test-wpt.log
+  #           wpt-jsonsummary.log
+  #           filtered-wpt-summary.log
+  #           intermittents.log
+  # mac-wpt8:
+  #   #needs: build-mac
+  #   runs-on: macos-10.15
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: 2
+
+  #     #- name: Download release binary
+  #     #  uses: actions/download-artifact@v2
+  #     #  with:
+  #     #    name: release-binary-macos
+
+  #     - name: Fake build
+  #       run: |
+  #         wget https://joshmatthews.net/release-binary-macos.zip
+  #         unzip release-binary-macos.zip
+
+  #     - name: Prep test environment
+  #       run: |
+  #         brew install gnu-tar
+  #         gtar -xzf target.tar.gz
+  #         python3 -m pip install --upgrade pip virtualenv
+  #         brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
+  #     - name: Smoketest
+  #       run: python3 ./mach smoketest
+  #     - name: Run tests
+  #       run: |
+  #         python3 ./mach test-wpt --release --processes=3 --timeout-multiplier=8 --total-chunks=20 --this-chunk=8 --log-raw=test-wpt.log --log-servojson=wpt-jsonsummary.log --always-succeed | cat
+  #         python3 ./mach filter-intermittents wpt-jsonsummary.log --log-intermittents=intermittents.log --log-filteredsummary=filtered-wpt-summary.log --tracker-api=default --reporter-api=default
+
+  #     - name: Archive logs
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: wpt8-logs-macos
+  #         path: |
+  #           test-wpt.log
+  #           wpt-jsonsummary.log
+  #           filtered-wpt-summary.log
+  #           intermittents.log
+  # mac-wpt9:
+  #   #needs: build-mac
+  #   runs-on: macos-10.15
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: 2
+
+  #     #- name: Download release binary
+  #     #  uses: actions/download-artifact@v2
+  #     #  with:
+  #     #    name: release-binary-macos
+
+  #     - name: Fake build
+  #       run: |
+  #         wget https://joshmatthews.net/release-binary-macos.zip
+  #         unzip release-binary-macos.zip
+
+  #     - name: Prep test environment
+  #       run: |
+  #         brew install gnu-tar
+  #         gtar -xzf target.tar.gz
+  #         python3 -m pip install --upgrade pip virtualenv
+  #         brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
+  #     - name: Smoketest
+  #       run: python3 ./mach smoketest
+  #     - name: Run tests
+  #       run: |
+  #         python3 ./mach test-wpt --release --processes=3 --timeout-multiplier=8 --total-chunks=20 --this-chunk=9 --log-raw=test-wpt.log --log-servojson=wpt-jsonsummary.log --always-succeed | cat
+  #         python3 ./mach filter-intermittents wpt-jsonsummary.log --log-intermittents=intermittents.log --log-filteredsummary=filtered-wpt-summary.log --tracker-api=default --reporter-api=default
+
+  #     - name: Archive logs
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: wpt9-logs-macos
+  #         path: |
+  #           test-wpt.log
+  #           wpt-jsonsummary.log
+  #           filtered-wpt-summary.log
+  #           intermittents.log
+  # mac-wpt10:
+  #   #needs: build-mac
+  #   runs-on: macos-10.15
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: 2
+
+  #     #- name: Download release binary
+  #     #  uses: actions/download-artifact@v2
+  #     #  with:
+  #     #    name: release-binary-macos
+
+  #     - name: Fake build
+  #       run: |
+  #         wget https://joshmatthews.net/release-binary-macos.zip
+  #         unzip release-binary-macos.zip
+
+  #     - name: Prep test environment
+  #       run: |
+  #         brew install gnu-tar
+  #         gtar -xzf target.tar.gz
+  #         python3 -m pip install --upgrade pip virtualenv
+  #         brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
+  #     - name: Smoketest
+  #       run: python3 ./mach smoketest
+  #     - name: Run tests
+  #       run: |
+  #         python3 ./mach test-wpt --release --processes=3 --timeout-multiplier=8 --total-chunks=20 --this-chunk=10 --log-raw=test-wpt.log --log-servojson=wpt-jsonsummary.log --always-succeed | cat
+  #         python3 ./mach filter-intermittents wpt-jsonsummary.log --log-intermittents=intermittents.log --log-filteredsummary=filtered-wpt-summary.log --tracker-api=default --reporter-api=default
+
+  #     - name: Archive logs
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: wpt10-logs-macos
+  #         path: |
+  #           test-wpt.log
+  #           wpt-jsonsummary.log
+  #           filtered-wpt-summary.log
+  #           intermittents.log
+  # mac-wpt11:
+  #   #needs: build-mac
+  #   runs-on: macos-10.15
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: 2
+
+  #     #- name: Download release binary
+  #     #  uses: actions/download-artifact@v2
+  #     #  with:
+  #     #    name: release-binary-macos
+
+  #     - name: Fake build
+  #       run: |
+  #         wget https://joshmatthews.net/release-binary-macos.zip
+  #         unzip release-binary-macos.zip
+
+  #     - name: Prep test environment
+  #       run: |
+  #         brew install gnu-tar
+  #         gtar -xzf target.tar.gz
+  #         python3 -m pip install --upgrade pip virtualenv
+  #         brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
+  #     - name: Smoketest
+  #       run: python3 ./mach smoketest
+  #     - name: Run tests
+  #       run: |
+  #         python3 ./mach test-wpt --release --processes=3 --timeout-multiplier=8 --total-chunks=20 --this-chunk=11 --log-raw=test-wpt.log --log-servojson=wpt-jsonsummary.log --always-succeed | cat
+  #         python3 ./mach filter-intermittents wpt-jsonsummary.log --log-intermittents=intermittents.log --log-filteredsummary=filtered-wpt-summary.log --tracker-api=default --reporter-api=default
+
+  #     - name: Archive logs
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: wpt11-logs-macos
+  #         path: |
+  #           test-wpt.log
+  #           wpt-jsonsummary.log
+  #           filtered-wpt-summary.log
+  #           intermittents.log
+  # mac-wpt12:
+  #   #needs: build-mac
+  #   runs-on: macos-10.15
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: 2
+
+  #     #- name: Download release binary
+  #     #  uses: actions/download-artifact@v2
+  #     #  with:
+  #     #    name: release-binary-macos
+
+  #     - name: Fake build
+  #       run: |
+  #         wget https://joshmatthews.net/release-binary-macos.zip
+  #         unzip release-binary-macos.zip
+
+  #     - name: Prep test environment
+  #       run: |
+  #         brew install gnu-tar
+  #         gtar -xzf target.tar.gz
+  #         python3 -m pip install --upgrade pip virtualenv
+  #         brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
+  #     - name: Smoketest
+  #       run: python3 ./mach smoketest
+  #     - name: Run tests
+  #       run: |
+  #         python3 ./mach test-wpt --release --processes=3 --timeout-multiplier=8 --total-chunks=20 --this-chunk=12 --log-raw=test-wpt.log --log-servojson=wpt-jsonsummary.log --always-succeed | cat
+  #         python3 ./mach filter-intermittents wpt-jsonsummary.log --log-intermittents=intermittents.log --log-filteredsummary=filtered-wpt-summary.log --tracker-api=default --reporter-api=default
+
+  #     - name: Archive logs
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: wpt12-logs-macos
+  #         path: |
+  #           test-wpt.log
+  #           wpt-jsonsummary.log
+  #           filtered-wpt-summary.log
+  #           intermittents.log
+  # mac-wpt13:
+  #   #needs: build-mac
+  #   runs-on: macos-10.15
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: 2
+
+  #     #- name: Download release binary
+  #     #  uses: actions/download-artifact@v2
+  #     #  with:
+  #     #    name: release-binary-macos
+
+  #     - name: Fake build
+  #       run: |
+  #         wget https://joshmatthews.net/release-binary-macos.zip
+  #         unzip release-binary-macos.zip
+
+  #     - name: Prep test environment
+  #       run: |
+  #         brew install gnu-tar
+  #         gtar -xzf target.tar.gz
+  #         python3 -m pip install --upgrade pip virtualenv
+  #         brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
+  #     - name: Smoketest
+  #       run: python3 ./mach smoketest
+  #     - name: Run tests
+  #       run: |
+  #         python3 ./mach test-wpt --release --processes=3 --timeout-multiplier=8 --total-chunks=20 --this-chunk=13 --log-raw=test-wpt.log --log-servojson=wpt-jsonsummary.log --always-succeed | cat
+  #         python3 ./mach filter-intermittents wpt-jsonsummary.log --log-intermittents=intermittents.log --log-filteredsummary=filtered-wpt-summary.log --tracker-api=default --reporter-api=default
+
+  #     - name: Archive logs
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: wpt13-logs-macos
+  #         path: |
+  #           test-wpt.log
+  #           wpt-jsonsummary.log
+  #           filtered-wpt-summary.log
+  #           intermittents.log
+  # mac-wpt14:
+  #   #needs: build-mac
+  #   runs-on: macos-10.15
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: 2
+
+  #     #- name: Download release binary
+  #     #  uses: actions/download-artifact@v2
+  #     #  with:
+  #     #    name: release-binary-macos
+
+  #     - name: Fake build
+  #       run: |
+  #         wget https://joshmatthews.net/release-binary-macos.zip
+  #         unzip release-binary-macos.zip
+
+  #     - name: Prep test environment
+  #       run: |
+  #         brew install gnu-tar
+  #         gtar -xzf target.tar.gz
+  #         python3 -m pip install --upgrade pip virtualenv
+  #         brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
+  #     - name: Smoketest
+  #       run: python3 ./mach smoketest
+  #     - name: Run tests
+  #       run: |
+  #         python3 ./mach test-wpt --release --processes=3 --timeout-multiplier=8 --total-chunks=20 --this-chunk=14 --log-raw=test-wpt.log --log-servojson=wpt-jsonsummary.log --always-succeed | cat
+  #         python3 ./mach filter-intermittents wpt-jsonsummary.log --log-intermittents=intermittents.log --log-filteredsummary=filtered-wpt-summary.log --tracker-api=default --reporter-api=default
+
+  #     - name: Archive logs
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: wpt14-logs-macos
+  #         path: |
+  #           test-wpt.log
+  #           wpt-jsonsummary.log
+  #           filtered-wpt-summary.log
+  #           intermittents.log
+  # mac-wpt15:
+  #   #needs: build-mac
+  #   runs-on: macos-10.15
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: 2
+
+  #     #- name: Download release binary
+  #     #  uses: actions/download-artifact@v2
+  #     #  with:
+  #     #    name: release-binary-macos
+
+  #     - name: Fake build
+  #       run: |
+  #         wget https://joshmatthews.net/release-binary-macos.zip
+  #         unzip release-binary-macos.zip
+
+  #     - name: Prep test environment
+  #       run: |
+  #         brew install gnu-tar
+  #         gtar -xzf target.tar.gz
+  #         python3 -m pip install --upgrade pip virtualenv
+  #         brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
+  #     - name: Smoketest
+  #       run: python3 ./mach smoketest
+  #     - name: Run tests
+  #       run: |
+  #         python3 ./mach test-wpt --release --processes=3 --timeout-multiplier=8 --total-chunks=20 --this-chunk=15 --log-raw=test-wpt.log --log-servojson=wpt-jsonsummary.log --always-succeed | cat
+  #         python3 ./mach filter-intermittents wpt-jsonsummary.log --log-intermittents=intermittents.log --log-filteredsummary=filtered-wpt-summary.log --tracker-api=default --reporter-api=default
+
+  #     - name: Archive logs
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: wpt15-logs-macos
+  #         path: |
+  #           test-wpt.log
+  #           wpt-jsonsummary.log
+  #           filtered-wpt-summary.log
+  #           intermittents.log
+  # mac-wpt16:
+  #   #needs: build-mac
+  #   runs-on: macos-10.15
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: 2
+
+  #     #- name: Download release binary
+  #     #  uses: actions/download-artifact@v2
+  #     #  with:
+  #     #    name: release-binary-macos
+
+  #     - name: Fake build
+  #       run: |
+  #         wget https://joshmatthews.net/release-binary-macos.zip
+  #         unzip release-binary-macos.zip
+
+  #     - name: Prep test environment
+  #       run: |
+  #         brew install gnu-tar
+  #         gtar -xzf target.tar.gz
+  #         python3 -m pip install --upgrade pip virtualenv
+  #         brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
+  #     - name: Smoketest
+  #       run: python3 ./mach smoketest
+  #     - name: Run tests
+  #       run: |
+  #         python3 ./mach test-wpt --release --processes=3 --timeout-multiplier=8 --total-chunks=20 --this-chunk=16 --log-raw=test-wpt.log --log-servojson=wpt-jsonsummary.log --always-succeed | cat
+  #         python3 ./mach filter-intermittents wpt-jsonsummary.log --log-intermittents=intermittents.log --log-filteredsummary=filtered-wpt-summary.log --tracker-api=default --reporter-api=default
+
+  #     - name: Archive logs
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: wpt16-logs-macos
+  #         path: |
+  #           test-wpt.log
+  #           wpt-jsonsummary.log
+  #           filtered-wpt-summary.log
+  #           intermittents.log
+  # mac-wpt17:
+  #   #needs: build-mac
+  #   runs-on: macos-10.15
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: 2
+
+  #     #- name: Download release binary
+  #     #  uses: actions/download-artifact@v2
+  #     #  with:
+  #     #    name: release-binary-macos
+
+  #     - name: Fake build
+  #       run: |
+  #         wget https://joshmatthews.net/release-binary-macos.zip
+  #         unzip release-binary-macos.zip
+
+  #     - name: Prep test environment
+  #       run: |
+  #         brew install gnu-tar
+  #         gtar -xzf target.tar.gz
+  #         python3 -m pip install --upgrade pip virtualenv
+  #         brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
+  #     - name: Smoketest
+  #       run: python3 ./mach smoketest
+  #     - name: Run tests
+  #       run: |
+  #         python3 ./mach test-wpt --release --processes=3 --timeout-multiplier=8 --total-chunks=20 --this-chunk=17 --log-raw=test-wpt.log --log-servojson=wpt-jsonsummary.log --always-succeed | cat
+  #         python3 ./mach filter-intermittents wpt-jsonsummary.log --log-intermittents=intermittents.log --log-filteredsummary=filtered-wpt-summary.log --tracker-api=default --reporter-api=default
+
+  #     - name: Archive logs
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: wpt17-logs-macos
+  #         path: |
+  #           test-wpt.log
+  #           wpt-jsonsummary.log
+  #           filtered-wpt-summary.log
+  #           intermittents.log
+  # mac-wpt18:
+  #   #needs: build-mac
+  #   runs-on: macos-10.15
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: 2
+
+  #     #- name: Download release binary
+  #     #  uses: actions/download-artifact@v2
+  #     #  with:
+  #     #    name: release-binary-macos
+
+  #     - name: Fake build
+  #       run: |
+  #         wget https://joshmatthews.net/release-binary-macos.zip
+  #         unzip release-binary-macos.zip
+
+  #     - name: Prep test environment
+  #       run: |
+  #         brew install gnu-tar
+  #         gtar -xzf target.tar.gz
+  #         python3 -m pip install --upgrade pip virtualenv
+  #         brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
+  #     - name: Smoketest
+  #       run: python3 ./mach smoketest
+  #     - name: Run tests
+  #       run: |
+  #         python3 ./mach test-wpt --release --processes=3 --timeout-multiplier=8 --total-chunks=20 --this-chunk=18 --log-raw=test-wpt.log --log-servojson=wpt-jsonsummary.log --always-succeed | cat
+  #         python3 ./mach filter-intermittents wpt-jsonsummary.log --log-intermittents=intermittents.log --log-filteredsummary=filtered-wpt-summary.log --tracker-api=default --reporter-api=default
+
+  #     - name: Archive logs
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: wpt18-logs-macos
+  #         path: |
+  #           test-wpt.log
+  #           wpt-jsonsummary.log
+  #           filtered-wpt-summary.log
+  #           intermittents.log
+  # mac-wpt19:
+  #   #needs: build-mac
+  #   runs-on: macos-10.15
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: 2
+
+  #     #- name: Download release binary
+  #     #  uses: actions/download-artifact@v2
+  #     #  with:
+  #     #    name: release-binary-macos
+
+  #     - name: Fake build
+  #       run: |
+  #         wget https://joshmatthews.net/release-binary-macos.zip
+  #         unzip release-binary-macos.zip
+
+  #     - name: Prep test environment
+  #       run: |
+  #         brew install gnu-tar
+  #         gtar -xzf target.tar.gz
+  #         python3 -m pip install --upgrade pip virtualenv
+  #         brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
+  #     - name: Smoketest
+  #       run: python3 ./mach smoketest
+  #     - name: Run tests
+  #       run: |
+  #         python3 ./mach test-wpt --release --processes=3 --timeout-multiplier=8 --total-chunks=20 --this-chunk=19 --log-raw=test-wpt.log --log-servojson=wpt-jsonsummary.log --always-succeed | cat
+  #         python3 ./mach filter-intermittents wpt-jsonsummary.log --log-intermittents=intermittents.log --log-filteredsummary=filtered-wpt-summary.log --tracker-api=default --reporter-api=default
+
+  #     - name: Archive logs
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: wpt19-logs-macos
+  #         path: |
+  #           test-wpt.log
+  #           wpt-jsonsummary.log
+  #           filtered-wpt-summary.log
+  #           intermittents.log
+  # mac-wpt20:
+  #   #needs: build-mac
+  #   runs-on: macos-10.15
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: 2
+
+  #     #- name: Download release binary
+  #     #  uses: actions/download-artifact@v2
+  #     #  with:
+  #     #    name: release-binary-macos
+
+  #     - name: Fake build
+  #       run: |
+  #         wget https://joshmatthews.net/release-binary-macos.zip
+  #         unzip release-binary-macos.zip
+
+  #     - name: Prep test environment
+  #       run: |
+  #         brew install gnu-tar
+  #         gtar -xzf target.tar.gz
+  #         python3 -m pip install --upgrade pip virtualenv
+  #         brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
+  #     - name: Smoketest
+  #       run: python3 ./mach smoketest
+  #     - name: Run tests
+  #       run: |
+  #         python3 ./mach test-wpt --release --processes=3 --timeout-multiplier=8 --total-chunks=20 --this-chunk=20 --log-raw=test-wpt.log --log-servojson=wpt-jsonsummary.log --always-succeed | cat
+  #         python3 ./mach filter-intermittents wpt-jsonsummary.log --log-intermittents=intermittents.log --log-filteredsummary=filtered-wpt-summary.log --tracker-api=default --reporter-api=default
+
+  #     - name: Archive logs
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: wpt20-logs-macos
+  #         path: |
+  #           test-wpt.log
+  #           wpt-jsonsummary.log
+  #           filtered-wpt-summary.log
+  #           intermittents.log
+
+  build-linux:
+    name: Build (Linux)
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Bootstrap
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          python3 ./mach bootstrap
+      - name: Release build
+        run: python3 ./mach build --release
+      - name: Lockfile check
+        run: ./etc/ci/lockfile_changed.sh
+      - name: Forbidden panic check
+        run: ./etc/ci/check_no_panic.sh
+      - name: Package binary
+        run: tar -czf target.tar.gz target/release/servo resources
+      - name: Archive binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: release-binary
+          path: target.tar.gz
+
+  linux-wpt-1:
+    name: Linux WPT Tests 1
+    runs-on: ubuntu-20.04
+    needs: ["build-linux"]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - uses: actions/download-artifact@v2
+        with:
+          name: release-binary
+          path: release-binary
+      - name: unPackage binary
+        run: tar -xzf release-binary/target.tar.gz
+      - name: Prep test environment
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          sudo apt install -qy --no-install-recommends libgl1 libssl1.1 libdbus-1-3 libxcb-xfixes0-dev libxcb-shape0-dev libunwind8 libegl1-mesa
+          wget http://mirrors.kernel.org/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
+          sudo apt install ./libffi6_3.2.1-8_amd64.deb
+          python3 ./mach bootstrap-gstreamer
+      - name: Run tests
+        run: |
+          python3 ./mach test-wpt --release --processes $(nproc) --timeout-multiplier 2 --total-chunks 20 --this-chunk 1 --log-raw test-wpt.1.log --log-servojson wpt-jsonsummary.1.log --always-succeed
+          python3 ./mach filter-intermittents wpt-jsonsummary.1.log --log-intermittents=intermittents.1.log --log-filteredsummary=filtered-wpt-summary.1.log --tracker-api=default --reporter-api=default
+      - name: Archive logs
+        uses: actions/upload-artifact@v2
+        with:
+          name: wpt1-logs-linux
+          path: |
+            test-wpt.1.log
+            wpt-jsonsummary.1.log
+            filtered-wpt-summary.1.log
+            intermittents.1.log
+  linux-wpt-2:
+    name: Linux WPT Tests 2
+    runs-on: ubuntu-20.04
+    needs: ["build-linux"]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - uses: actions/download-artifact@v2
+        with:
+          name: release-binary
+          path: release-binary
+      - name: unPackage binary
+        run: tar -xzf release-binary/target.tar.gz
+      - name: Prep test environment
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          sudo apt install -qy --no-install-recommends libgl1 libssl1.1 libdbus-1-3 libxcb-xfixes0-dev libxcb-shape0-dev libunwind8 libegl1-mesa
+          wget http://mirrors.kernel.org/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
+          sudo apt install ./libffi6_3.2.1-8_amd64.deb
+          python3 ./mach bootstrap-gstreamer
+      - name: Run tests
+        run: |
+          python3 ./mach test-wpt --release --processes $(nproc) --timeout-multiplier 2 --total-chunks 20 --this-chunk 2 --log-raw test-wpt.2.log --log-servojson wpt-jsonsummary.2.log --always-succeed
+          python3 ./mach filter-intermittents wpt-jsonsummary.2.log --log-intermittents=intermittents.2.log --log-filteredsummary=filtered-wpt-summary.2.log --tracker-api=default --reporter-api=default
+      - name: Archive logs
+        uses: actions/upload-artifact@v2
+        with:
+          name: wpt2-logs-linux
+          path: |
+            test-wpt.2.log
+            wpt-jsonsummary.2.log
+            filtered-wpt-summary.2.log
+            intermittents.2.log
+  linux-wpt-3:
+    name: Linux WPT Tests 3
+    runs-on: ubuntu-20.04
+    needs: ["build-linux"]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - uses: actions/download-artifact@v2
+        with:
+          name: release-binary
+          path: release-binary
+      - name: unPackage binary
+        run: tar -xzf release-binary/target.tar.gz
+      - name: Prep test environment
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          sudo apt install -qy --no-install-recommends libgl1 libssl1.1 libdbus-1-3 libxcb-xfixes0-dev libxcb-shape0-dev libunwind8 libegl1-mesa
+          wget http://mirrors.kernel.org/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
+          sudo apt install ./libffi6_3.2.1-8_amd64.deb
+          python3 ./mach bootstrap-gstreamer
+      - name: Run tests
+        run: |
+          python3 ./mach test-wpt --release --processes $(nproc) --timeout-multiplier 2 --total-chunks 20 --this-chunk 3 --log-raw test-wpt.3.log --log-servojson wpt-jsonsummary.3.log --always-succeed
+          python3 ./mach filter-intermittents wpt-jsonsummary.3.log --log-intermittents=intermittents.3.log --log-filteredsummary=filtered-wpt-summary.3.log --tracker-api=default --reporter-api=default
+      - name: Archive logs
+        uses: actions/upload-artifact@v2
+        with:
+          name: wpt3-logs-linux
+          path: |
+            test-wpt.3.log
+            wpt-jsonsummary.3.log
+            filtered-wpt-summary.3.log
+            intermittents.3.log
+  linux-wpt-4:
+    name: Linux WPT Tests 4
+    runs-on: ubuntu-20.04
+    needs: ["build-linux"]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - uses: actions/download-artifact@v2
+        with:
+          name: release-binary
+          path: release-binary
+      - name: unPackage binary
+        run: tar -xzf release-binary/target.tar.gz
+      - name: Prep test environment
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          sudo apt install -qy --no-install-recommends libgl1 libssl1.1 libdbus-1-3 libxcb-xfixes0-dev libxcb-shape0-dev libunwind8 libegl1-mesa
+          wget http://mirrors.kernel.org/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
+          sudo apt install ./libffi6_3.2.1-8_amd64.deb
+          python3 ./mach bootstrap-gstreamer
+      - name: Run tests
+        run: |
+          python3 ./mach test-wpt --release --processes $(nproc) --timeout-multiplier 2 --total-chunks 20 --this-chunk 4 --log-raw test-wpt.4.log --log-servojson wpt-jsonsummary.4.log --always-succeed
+          python3 ./mach filter-intermittents wpt-jsonsummary.4.log --log-intermittents=intermittents.4.log --log-filteredsummary=filtered-wpt-summary.4.log --tracker-api=default --reporter-api=default
+      - name: Archive logs
+        uses: actions/upload-artifact@v2
+        with:
+          name: wpt4-logs-linux
+          path: |
+            test-wpt.4.log
+            wpt-jsonsummary.4.log
+            filtered-wpt-summary.4.log
+            intermittents.4.log
+  linux-wpt-5:
+    name: Linux WPT Tests 5
+    runs-on: ubuntu-20.04
+    needs: ["build-linux"]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - uses: actions/download-artifact@v2
+        with:
+          name: release-binary
+          path: release-binary
+      - name: unPackage binary
+        run: tar -xzf release-binary/target.tar.gz
+      - name: Prep test environment
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          sudo apt install -qy --no-install-recommends libgl1 libssl1.1 libdbus-1-3 libxcb-xfixes0-dev libxcb-shape0-dev libunwind8 libegl1-mesa
+          wget http://mirrors.kernel.org/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
+          sudo apt install ./libffi6_3.2.1-8_amd64.deb
+          python3 ./mach bootstrap-gstreamer
+      - name: Run tests
+        run: |
+          python3 ./mach test-wpt --release --processes $(nproc) --timeout-multiplier 2 --total-chunks 20 --this-chunk 5 --log-raw test-wpt.5.log --log-servojson wpt-jsonsummary.5.log --always-succeed
+          python3 ./mach filter-intermittents wpt-jsonsummary.5.log --log-intermittents=intermittents.5.log --log-filteredsummary=filtered-wpt-summary.5.log --tracker-api=default --reporter-api=default
+      - name: Archive logs
+        uses: actions/upload-artifact@v2
+        with:
+          name: wpt5-logs-linux
+          path: |
+            test-wpt.5.log
+            wpt-jsonsummary.5.log
+            filtered-wpt-summary.5.log
+            intermittents.5.log
+  linux-wpt-6:
+    name: Linux WPT Tests 6
+    runs-on: ubuntu-20.04
+    needs: ["build-linux"]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - uses: actions/download-artifact@v2
+        with:
+          name: release-binary
+          path: release-binary
+      - name: unPackage binary
+        run: tar -xzf release-binary/target.tar.gz
+      - name: Prep test environment
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          sudo apt install -qy --no-install-recommends libgl1 libssl1.1 libdbus-1-3 libxcb-xfixes0-dev libxcb-shape0-dev libunwind8 libegl1-mesa
+          wget http://mirrors.kernel.org/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
+          sudo apt install ./libffi6_3.2.1-8_amd64.deb
+          python3 ./mach bootstrap-gstreamer
+      - name: Run tests
+        run: |
+          python3 ./mach test-wpt --release --processes $(nproc) --timeout-multiplier 2 --total-chunks 20 --this-chunk 6 --log-raw test-wpt.6.log --log-servojson wpt-jsonsummary.6.log --always-succeed
+          python3 ./mach filter-intermittents wpt-jsonsummary.6.log --log-intermittents=intermittents.6.log --log-filteredsummary=filtered-wpt-summary.6.log --tracker-api=default --reporter-api=default
+      - name: Archive logs
+        uses: actions/upload-artifact@v2
+        with:
+          name: wpt6-logs-linux
+          path: |
+            test-wpt.6.log
+            wpt-jsonsummary.6.log
+            filtered-wpt-summary.6.log
+            intermittents.6.log
+  linux-wpt-7:
+    name: Linux WPT Tests 7
+    runs-on: ubuntu-20.04
+    needs: ["build-linux"]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - uses: actions/download-artifact@v2
+        with:
+          name: release-binary
+          path: release-binary
+      - name: unPackage binary
+        run: tar -xzf release-binary/target.tar.gz
+      - name: Prep test environment
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          sudo apt install -qy --no-install-recommends libgl1 libssl1.1 libdbus-1-3 libxcb-xfixes0-dev libxcb-shape0-dev libunwind8 libegl1-mesa
+          wget http://mirrors.kernel.org/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
+          sudo apt install ./libffi6_3.2.1-8_amd64.deb
+          python3 ./mach bootstrap-gstreamer
+      - name: Run tests
+        run: |
+          python3 ./mach test-wpt --release --processes $(nproc) --timeout-multiplier 2 --total-chunks 20 --this-chunk 7 --log-raw test-wpt.7.log --log-servojson wpt-jsonsummary.7.log --always-succeed
+          python3 ./mach filter-intermittents wpt-jsonsummary.7.log --log-intermittents=intermittents.7.log --log-filteredsummary=filtered-wpt-summary.7.log --tracker-api=default --reporter-api=default
+      - name: Archive logs
+        uses: actions/upload-artifact@v2
+        with:
+          name: wpt7-logs-linux
+          path: |
+            test-wpt.7.log
+            wpt-jsonsummary.7.log
+            filtered-wpt-summary.7.log
+            intermittents.7.log
+  linux-wpt-8:
+    name: Linux WPT Tests 8
+    runs-on: ubuntu-20.04
+    needs: ["build-linux"]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - uses: actions/download-artifact@v2
+        with:
+          name: release-binary
+          path: release-binary
+      - name: unPackage binary
+        run: tar -xzf release-binary/target.tar.gz
+      - name: Prep test environment
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          sudo apt install -qy --no-install-recommends libgl1 libssl1.1 libdbus-1-3 libxcb-xfixes0-dev libxcb-shape0-dev libunwind8 libegl1-mesa
+          wget http://mirrors.kernel.org/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
+          sudo apt install ./libffi6_3.2.1-8_amd64.deb
+          python3 ./mach bootstrap-gstreamer
+      - name: Run tests
+        run: |
+          python3 ./mach test-wpt --release --processes $(nproc) --timeout-multiplier 2 --total-chunks 20 --this-chunk 8 --log-raw test-wpt.8.log --log-servojson wpt-jsonsummary.8.log --always-succeed
+          python3 ./mach filter-intermittents wpt-jsonsummary.8.log --log-intermittents=intermittents.8.log --log-filteredsummary=filtered-wpt-summary.8.log --tracker-api=default --reporter-api=default
+      - name: Archive logs
+        uses: actions/upload-artifact@v2
+        with:
+          name: wpt8-logs-linux
+          path: |
+            test-wpt.8.log
+            wpt-jsonsummary.8.log
+            filtered-wpt-summary.8.log
+            intermittents.8.log
+  linux-wpt-9:
+    name: Linux WPT Tests 9
+    runs-on: ubuntu-20.04
+    needs: ["build-linux"]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - uses: actions/download-artifact@v2
+        with:
+          name: release-binary
+          path: release-binary
+      - name: unPackage binary
+        run: tar -xzf release-binary/target.tar.gz
+      - name: Prep test environment
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          sudo apt install -qy --no-install-recommends libgl1 libssl1.1 libdbus-1-3 libxcb-xfixes0-dev libxcb-shape0-dev libunwind8 libegl1-mesa
+          wget http://mirrors.kernel.org/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
+          sudo apt install ./libffi6_3.2.1-8_amd64.deb
+          python3 ./mach bootstrap-gstreamer
+      - name: Run tests
+        run: |
+          python3 ./mach test-wpt --release --processes $(nproc) --timeout-multiplier 2 --total-chunks 20 --this-chunk 9 --log-raw test-wpt.9.log --log-servojson wpt-jsonsummary.9.log --always-succeed
+          python3 ./mach filter-intermittents wpt-jsonsummary.9.log --log-intermittents=intermittents.9.log --log-filteredsummary=filtered-wpt-summary.9.log --tracker-api=default --reporter-api=default
+      - name: Archive logs
+        uses: actions/upload-artifact@v2
+        with:
+          name: wpt9-logs-linux
+          path: |
+            test-wpt.9.log
+            wpt-jsonsummary.9.log
+            filtered-wpt-summary.9.log
+            intermittents.9.log
+  linux-wpt-10:
+    name: Linux WPT Tests 10
+    runs-on: ubuntu-20.04
+    needs: ["build-linux"]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - uses: actions/download-artifact@v2
+        with:
+          name: release-binary
+          path: release-binary
+      - name: unPackage binary
+        run: tar -xzf release-binary/target.tar.gz
+      - name: Prep test environment
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          sudo apt install -qy --no-install-recommends libgl1 libssl1.1 libdbus-1-3 libxcb-xfixes0-dev libxcb-shape0-dev libunwind8 libegl1-mesa
+          wget http://mirrors.kernel.org/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
+          sudo apt install ./libffi6_3.2.1-8_amd64.deb
+          python3 ./mach bootstrap-gstreamer
+      - name: Run tests
+        run: |
+          python3 ./mach test-wpt --release --processes $(nproc) --timeout-multiplier 2 --total-chunks 20 --this-chunk 10 --log-raw test-wpt.10.log --log-servojson wpt-jsonsummary.10.log --always-succeed
+          python3 ./mach filter-intermittents wpt-jsonsummary.10.log --log-intermittents=intermittents.10.log --log-filteredsummary=filtered-wpt-summary.10.log --tracker-api=default --reporter-api=default
+      - name: Archive logs
+        uses: actions/upload-artifact@v2
+        with:
+          name: wpt10-logs-linux
+          path: |
+            test-wpt.10.log
+            wpt-jsonsummary.10.log
+            filtered-wpt-summary.10.log
+            intermittents.10.log
+  linux-wpt-11:
+    name: Linux WPT Tests 11
+    runs-on: ubuntu-20.04
+    needs: ["build-linux"]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - uses: actions/download-artifact@v2
+        with:
+          name: release-binary
+          path: release-binary
+      - name: unPackage binary
+        run: tar -xzf release-binary/target.tar.gz
+      - name: Prep test environment
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          sudo apt install -qy --no-install-recommends libgl1 libssl1.1 libdbus-1-3 libxcb-xfixes0-dev libxcb-shape0-dev libunwind8 libegl1-mesa
+          wget http://mirrors.kernel.org/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
+          sudo apt install ./libffi6_3.2.1-8_amd64.deb
+          python3 ./mach bootstrap-gstreamer
+      - name: Run tests
+        run: |
+          python3 ./mach test-wpt --release --processes $(nproc) --timeout-multiplier 2 --total-chunks 20 --this-chunk 11 --log-raw test-wpt.11.log --log-servojson wpt-jsonsummary.11.log --always-succeed
+          python3 ./mach filter-intermittents wpt-jsonsummary.11.log --log-intermittents=intermittents.11.log --log-filteredsummary=filtered-wpt-summary.11.log --tracker-api=default --reporter-api=default
+      - name: Archive logs
+        uses: actions/upload-artifact@v2
+        with:
+          name: wpt11-logs-linux
+          path: |
+            test-wpt.11.log
+            wpt-jsonsummary.11.log
+            filtered-wpt-summary.11.log
+            intermittents.11.log
+  linux-wpt-12:
+    name: Linux WPT Tests 12
+    runs-on: ubuntu-20.04
+    needs: ["build-linux"]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - uses: actions/download-artifact@v2
+        with:
+          name: release-binary
+          path: release-binary
+      - name: unPackage binary
+        run: tar -xzf release-binary/target.tar.gz
+      - name: Prep test environment
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          sudo apt install -qy --no-install-recommends libgl1 libssl1.1 libdbus-1-3 libxcb-xfixes0-dev libxcb-shape0-dev libunwind8 libegl1-mesa
+          wget http://mirrors.kernel.org/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
+          sudo apt install ./libffi6_3.2.1-8_amd64.deb
+          python3 ./mach bootstrap-gstreamer
+      - name: Run tests
+        run: |
+          python3 ./mach test-wpt --release --processes $(nproc) --timeout-multiplier 2 --total-chunks 20 --this-chunk 12 --log-raw test-wpt.12.log --log-servojson wpt-jsonsummary.12.log --always-succeed
+          python3 ./mach filter-intermittents wpt-jsonsummary.12.log --log-intermittents=intermittents.12.log --log-filteredsummary=filtered-wpt-summary.12.log --tracker-api=default --reporter-api=default
+      - name: Archive logs
+        uses: actions/upload-artifact@v2
+        with:
+          name: wpt12-logs-linux
+          path: |
+            test-wpt.12.log
+            wpt-jsonsummary.12.log
+            filtered-wpt-summary.12.log
+            intermittents.12.log
+  linux-wpt-13:
+    name: Linux WPT Tests 13
+    runs-on: ubuntu-20.04
+    needs: ["build-linux"]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - uses: actions/download-artifact@v2
+        with:
+          name: release-binary
+          path: release-binary
+      - name: unPackage binary
+        run: tar -xzf release-binary/target.tar.gz
+      - name: Prep test environment
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          sudo apt install -qy --no-install-recommends libgl1 libssl1.1 libdbus-1-3 libxcb-xfixes0-dev libxcb-shape0-dev libunwind8 libegl1-mesa
+          wget http://mirrors.kernel.org/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
+          sudo apt install ./libffi6_3.2.1-8_amd64.deb
+          python3 ./mach bootstrap-gstreamer
+      - name: Run tests
+        run: |
+          python3 ./mach test-wpt --release --processes $(nproc) --timeout-multiplier 2 --total-chunks 20 --this-chunk 13 --log-raw test-wpt.13.log --log-servojson wpt-jsonsummary.13.log --always-succeed
+          python3 ./mach filter-intermittents wpt-jsonsummary.13.log --log-intermittents=intermittents.13.log --log-filteredsummary=filtered-wpt-summary.13.log --tracker-api=default --reporter-api=default
+      - name: Archive logs
+        uses: actions/upload-artifact@v2
+        with:
+          name: wpt13-logs-linux
+          path: |
+            test-wpt.13.log
+            wpt-jsonsummary.13.log
+            filtered-wpt-summary.13.log
+            intermittents.13.log
+  linux-wpt-14:
+    name: Linux WPT Tests 14
+    runs-on: ubuntu-20.04
+    needs: ["build-linux"]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - uses: actions/download-artifact@v2
+        with:
+          name: release-binary
+          path: release-binary
+      - name: unPackage binary
+        run: tar -xzf release-binary/target.tar.gz
+      - name: Prep test environment
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          sudo apt install -qy --no-install-recommends libgl1 libssl1.1 libdbus-1-3 libxcb-xfixes0-dev libxcb-shape0-dev libunwind8 libegl1-mesa
+          wget http://mirrors.kernel.org/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
+          sudo apt install ./libffi6_3.2.1-8_amd64.deb
+          python3 ./mach bootstrap-gstreamer
+      - name: Run tests
+        run: |
+          python3 ./mach test-wpt --release --processes $(nproc) --timeout-multiplier 2 --total-chunks 20 --this-chunk 14 --log-raw test-wpt.14.log --log-servojson wpt-jsonsummary.14.log --always-succeed
+          python3 ./mach filter-intermittents wpt-jsonsummary.14.log --log-intermittents=intermittents.14.log --log-filteredsummary=filtered-wpt-summary.14.log --tracker-api=default --reporter-api=default
+      - name: Archive logs
+        uses: actions/upload-artifact@v2
+        with:
+          name: wpt14-logs-linux
+          path: |
+            test-wpt.14.log
+            wpt-jsonsummary.14.log
+            filtered-wpt-summary.14.log
+            intermittents.14.log
+  linux-wpt-15:
+    name: Linux WPT Tests 15
+    runs-on: ubuntu-20.04
+    needs: ["build-linux"]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - uses: actions/download-artifact@v2
+        with:
+          name: release-binary
+          path: release-binary
+      - name: unPackage binary
+        run: tar -xzf release-binary/target.tar.gz
+      - name: Prep test environment
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          sudo apt install -qy --no-install-recommends libgl1 libssl1.1 libdbus-1-3 libxcb-xfixes0-dev libxcb-shape0-dev libunwind8 libegl1-mesa
+          wget http://mirrors.kernel.org/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
+          sudo apt install ./libffi6_3.2.1-8_amd64.deb
+          python3 ./mach bootstrap-gstreamer
+      - name: Run tests
+        run: |
+          python3 ./mach test-wpt --release --processes $(nproc) --timeout-multiplier 2 --total-chunks 20 --this-chunk 15 --log-raw test-wpt.15.log --log-servojson wpt-jsonsummary.15.log --always-succeed
+          python3 ./mach filter-intermittents wpt-jsonsummary.15.log --log-intermittents=intermittents.15.log --log-filteredsummary=filtered-wpt-summary.15.log --tracker-api=default --reporter-api=default
+      - name: Archive logs
+        uses: actions/upload-artifact@v2
+        with:
+          name: wpt15-logs-linux
+          path: |
+            test-wpt.15.log
+            wpt-jsonsummary.15.log
+            filtered-wpt-summary.15.log
+            intermittents.15.log
+  linux-wpt-16:
+    name: Linux WPT Tests 16
+    runs-on: ubuntu-20.04
+    needs: ["build-linux"]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - uses: actions/download-artifact@v2
+        with:
+          name: release-binary
+          path: release-binary
+      - name: unPackage binary
+        run: tar -xzf release-binary/target.tar.gz
+      - name: Prep test environment
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          sudo apt install -qy --no-install-recommends libgl1 libssl1.1 libdbus-1-3 libxcb-xfixes0-dev libxcb-shape0-dev libunwind8 libegl1-mesa
+          wget http://mirrors.kernel.org/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
+          sudo apt install ./libffi6_3.2.1-8_amd64.deb
+          python3 ./mach bootstrap-gstreamer
+      - name: Run tests
+        run: |
+          python3 ./mach test-wpt --release --processes $(nproc) --timeout-multiplier 2 --total-chunks 20 --this-chunk 16 --log-raw test-wpt.16.log --log-servojson wpt-jsonsummary.16.log --always-succeed
+          python3 ./mach filter-intermittents wpt-jsonsummary.16.log --log-intermittents=intermittents.16.log --log-filteredsummary=filtered-wpt-summary.16.log --tracker-api=default --reporter-api=default
+      - name: Archive logs
+        uses: actions/upload-artifact@v2
+        with:
+          name: wpt16-logs-linux
+          path: |
+            test-wpt.16.log
+            wpt-jsonsummary.16.log
+            filtered-wpt-summary.16.log
+            intermittents.16.log
+  linux-wpt-17:
+    name: Linux WPT Tests 17
+    runs-on: ubuntu-20.04
+    needs: ["build-linux"]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - uses: actions/download-artifact@v2
+        with:
+          name: release-binary
+          path: release-binary
+      - name: unPackage binary
+        run: tar -xzf release-binary/target.tar.gz
+      - name: Prep test environment
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          sudo apt install -qy --no-install-recommends libgl1 libssl1.1 libdbus-1-3 libxcb-xfixes0-dev libxcb-shape0-dev libunwind8 libegl1-mesa
+          wget http://mirrors.kernel.org/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
+          sudo apt install ./libffi6_3.2.1-8_amd64.deb
+          python3 ./mach bootstrap-gstreamer
+      - name: Run tests
+        run: |
+          python3 ./mach test-wpt --release --processes $(nproc) --timeout-multiplier 2 --total-chunks 20 --this-chunk 17 --log-raw test-wpt.17.log --log-servojson wpt-jsonsummary.17.log --always-succeed
+          python3 ./mach filter-intermittents wpt-jsonsummary.17.log --log-intermittents=intermittents.17.log --log-filteredsummary=filtered-wpt-summary.17.log --tracker-api=default --reporter-api=default
+      - name: Archive logs
+        uses: actions/upload-artifact@v2
+        with:
+          name: wpt17-logs-linux
+          path: |
+            test-wpt.17.log
+            wpt-jsonsummary.17.log
+            filtered-wpt-summary.17.log
+            intermittents.17.log
+  linux-wpt-18:
+    name: Linux WPT Tests 18
+    runs-on: ubuntu-20.04
+    needs: ["build-linux"]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - uses: actions/download-artifact@v2
+        with:
+          name: release-binary
+          path: release-binary
+      - name: unPackage binary
+        run: tar -xzf release-binary/target.tar.gz
+      - name: Prep test environment
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          sudo apt install -qy --no-install-recommends libgl1 libssl1.1 libdbus-1-3 libxcb-xfixes0-dev libxcb-shape0-dev libunwind8 libegl1-mesa
+          wget http://mirrors.kernel.org/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
+          sudo apt install ./libffi6_3.2.1-8_amd64.deb
+          python3 ./mach bootstrap-gstreamer
+      - name: Run tests
+        run: |
+          python3 ./mach test-wpt --release --processes $(nproc) --timeout-multiplier 2 --total-chunks 20 --this-chunk 18 --log-raw test-wpt.18.log --log-servojson wpt-jsonsummary.18.log --always-succeed
+          python3 ./mach filter-intermittents wpt-jsonsummary.18.log --log-intermittents=intermittents.18.log --log-filteredsummary=filtered-wpt-summary.18.log --tracker-api=default --reporter-api=default
+      - name: Archive logs
+        uses: actions/upload-artifact@v2
+        with:
+          name: wpt18-logs-linux
+          path: |
+            test-wpt.18.log
+            wpt-jsonsummary.18.log
+            filtered-wpt-summary.18.log
+            intermittents.18.log
+  linux-wpt-19:
+    name: Linux WPT Tests 19
+    runs-on: ubuntu-20.04
+    needs: ["build-linux"]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - uses: actions/download-artifact@v2
+        with:
+          name: release-binary
+          path: release-binary
+      - name: unPackage binary
+        run: tar -xzf release-binary/target.tar.gz
+      - name: Prep test environment
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          sudo apt install -qy --no-install-recommends libgl1 libssl1.1 libdbus-1-3 libxcb-xfixes0-dev libxcb-shape0-dev libunwind8 libegl1-mesa
+          wget http://mirrors.kernel.org/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
+          sudo apt install ./libffi6_3.2.1-8_amd64.deb
+          python3 ./mach bootstrap-gstreamer
+      - name: Run tests
+        run: |
+          python3 ./mach test-wpt --release --processes $(nproc) --timeout-multiplier 2 --total-chunks 20 --this-chunk 19 --log-raw test-wpt.19.log --log-servojson wpt-jsonsummary.19.log --always-succeed
+          python3 ./mach filter-intermittents wpt-jsonsummary.19.log --log-intermittents=intermittents.19.log --log-filteredsummary=filtered-wpt-summary.19.log --tracker-api=default --reporter-api=default
+      - name: Archive logs
+        uses: actions/upload-artifact@v2
+        with:
+          name: wpt19-logs-linux
+          path: |
+            test-wpt.19.log
+            wpt-jsonsummary.19.log
+            filtered-wpt-summary.19.log
+            intermittents.19.log
+  linux-wpt-20:
+    name: Linux WPT Tests 20
+    runs-on: ubuntu-20.04
+    needs: ["build-linux"]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - uses: actions/download-artifact@v2
+        with:
+          name: release-binary
+          path: release-binary
+      - name: unPackage binary
+        run: tar -xzf release-binary/target.tar.gz
+      - name: Prep test environment
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          sudo apt install -qy --no-install-recommends libgl1 libssl1.1 libdbus-1-3 libxcb-xfixes0-dev libxcb-shape0-dev libunwind8 libegl1-mesa
+          wget http://mirrors.kernel.org/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
+          sudo apt install ./libffi6_3.2.1-8_amd64.deb
+          python3 ./mach bootstrap-gstreamer
+      - name: Run tests
+        run: |
+          python3 ./mach test-wpt --release --processes $(nproc) --timeout-multiplier 2 --total-chunks 20 --this-chunk 20 --log-raw test-wpt.20.log --log-servojson wpt-jsonsummary.20.log --always-succeed
+          python3 ./mach filter-intermittents wpt-jsonsummary.20.log --log-intermittents=intermittents.20.log --log-filteredsummary=filtered-wpt-summary.20.log --tracker-api=default --reporter-api=default
+      - name: Archive logs
+        uses: actions/upload-artifact@v2
+        with:
+          name: wpt20-logs-linux
+          path: |
+            test-wpt.20.log
+            wpt-jsonsummary.20.log
+            filtered-wpt-summary.20.log
+            intermittents.20.log
+
+  build_result:
+    name: homu build finished
+    runs-on: ubuntu-latest
+    needs:
+      - "build-win"
+      - "build-uwp-x64"
+      - "build-uwp-arm64"
+      - "build-linux"
+      - "build-mac"
+      - "linux-wpt-1"
+      - "linux-wpt-2"
+      - "linux-wpt-3"
+      - "linux-wpt-4"
+      - "linux-wpt-5"
+      - "linux-wpt-6"
+      - "linux-wpt-7"
+      - "linux-wpt-8"
+      - "linux-wpt-9"
+      - "linux-wpt-10"
+      - "linux-wpt-11"
+      - "linux-wpt-12"
+      - "linux-wpt-13"
+      - "linux-wpt-14"
+      - "linux-wpt-15"
+      - "linux-wpt-16"
+      - "linux-wpt-17"
+      - "linux-wpt-18"
+      - "linux-wpt-19"
+      - "linux-wpt-20"
+
+    steps:
+      - name: Mark the job as successful
+        run: exit 0
+        if: success()
+      - name: Mark the job as unsuccessful
+        run: exit 1
+        if: "!success()"

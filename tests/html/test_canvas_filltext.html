@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<body>
+<canvas id="tutorial" style="border:1px solid #d3d3d3"></canvas>
+<script type="text/javascript">
+
+canvas = document.getElementById('tutorial');
+canvas.width = 200;
+canvas.height = 200;
+
+var ctx = canvas.getContext('2d');
+ctx.fillText('Test', 10.0, 10.0);
+
+ctx.fillText('Test truncated', 30.0, 20.0, 5.0);
+
+</script>
+</body>
+</html>

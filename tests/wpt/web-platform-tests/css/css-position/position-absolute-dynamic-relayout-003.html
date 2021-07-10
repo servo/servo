@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<link rel="help" href="https://www.w3.org/TR/css-position-3/" />
+<meta name="assert" content="This test checks that a dynamic OOF-positioned change doesn't cause children to paint differently." />
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="display: flex; position: relative; width: 100px; height: 100px;">
+  <div style="order: 2; margin-left: -100px; width: 100px; background: green;"></div>
+  <div style="order: 1; width: 100px; background: red;"></div>
+  <div id="target" style="position: absolute;"></div>
+</div>
+<script>
+  document.body.offsetTop;
+  document.getElementById('target').style.top = '10px';
+</script>

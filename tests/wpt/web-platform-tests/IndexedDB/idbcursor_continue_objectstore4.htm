@@ -40,7 +40,7 @@
 
             case 1:
                 assert_equals(cursor.value.pKey, records[1].pKey, "second cursor pkey");
-                assert_throws("DataError",
+                assert_throws_dom("DataError",
                     function() { cursor.continue(records[2].pKey); });
                 t.done();
                 break;

@@ -1,20 +1,29 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmliframeelement
+[Exposed=Window]
 interface HTMLIFrameElement : HTMLElement {
-           attribute DOMString src;
-  //         attribute DOMString srcdoc;
+  [HTMLConstructor] constructor();
 
-  // https://github.com/servo/servo/issues/14453
-  // attribute DOMString name;
+  [CEReactions]
+           attribute USVString src;
+  [CEReactions]
+           attribute DOMString srcdoc;
 
-           [SameObject, PutForwards=value]
+  [CEReactions]
+  attribute DOMString name;
+
+  [SameObject, PutForwards=value]
            readonly attribute DOMTokenList sandbox;
+  // [CEReactions]
   //         attribute boolean seamless;
+  [CEReactions]
            attribute boolean allowFullscreen;
+  [CEReactions]
            attribute DOMString width;
+  [CEReactions]
            attribute DOMString height;
   readonly attribute Document? contentDocument;
   readonly attribute WindowProxy? contentWindow;
@@ -24,21 +33,17 @@ interface HTMLIFrameElement : HTMLElement {
 
 // https://html.spec.whatwg.org/multipage/#HTMLIFrameElement-partial
 partial interface HTMLIFrameElement {
+  // [CEReactions]
   //         attribute DOMString align;
+  // [CEReactions]
   //         attribute DOMString scrolling;
+  [CEReactions]
            attribute DOMString frameBorder;
+  // [CEReactions]
   //         attribute DOMString longDesc;
 
-  //[TreatNullAs=EmptyString] attribute DOMString marginHeight;
-  //[TreatNullAs=EmptyString] attribute DOMString marginWidth;
+  // [CEReactions, TreatNullAs=EmptyString]
+  // attribute DOMString marginHeight;
+  // [CEReactions, TreatNullAs=EmptyString]
+  // attribute DOMString marginWidth;
 };
-
-partial interface HTMLIFrameElement {
-    [Func="::dom::window::Window::global_is_mozbrowser"]
-    attribute boolean mozbrowser;
-
-    [Func="::dom::window::Window::global_is_mozbrowser"]
-    attribute boolean mozprivatebrowsing;
-};
-
-HTMLIFrameElement implements BrowserElement;

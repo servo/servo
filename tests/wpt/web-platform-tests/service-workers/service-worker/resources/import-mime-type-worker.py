@@ -1,10 +1,10 @@
 def main(request, response):
-    if 'mime' in request.GET:
+    if b'mime' in request.GET:
         return (
-            [('Content-Type', 'application/javascript')],
-            "importScripts('./mime-type-worker.py?mime={0}');".format(request.GET['mime'])
+            [(b'Content-Type', b'application/javascript')],
+            b"importScripts('./mime-type-worker.py?mime=%s');" % request.GET[b'mime']
         )
     return (
-        [('Content-Type', 'application/javascript')],
-        "importScripts('./mime-type-worker.py');"
+        [(b'Content-Type', b'application/javascript')],
+        b"importScripts('./mime-type-worker.py');"
     )

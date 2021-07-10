@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>UTF-8 encoded characters are recognized properly and different encodings (iconv) are not recognized as a WebVTT file</title>
+<script src="track-helpers.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video>
+    <track src="resources/utf8.vtt">
+    <track src="resources/iso2022jp3.vtt">
+</video>
+<script>
+async_test(function(t) {
+    var video = document.querySelector("video");
+
+    var trackElements = document.querySelectorAll("track");
+    for (var i = 0; i < video.textTracks.length; i++)
+        trackElements[i].onload = t.step_func(trackLoaded);
+
+    enableAllTextTracks(video.textTracks);
+
+    var numberOfTracksLoaded = 0;
+    function trackLoaded() {
+        numberOfTracksLoaded++;
+        if (numberOfTracksLoaded != 2)
+            return;
+
+        testTrack0();
+        testTrack1();
+        t.done();
+    }
+
+    function testTrack0() {
+        var expected = [
+            {
+                id : "1",
+                startTime : 0,
+                endTime : 30.5,
+                text : "景気判断"
+            },
+            {
+                id : "2",
+                startTime : 31,
+                endTime : 1200.5,
+                text : "電力不足"
+            }
+        ];
+
+        var cues = video.textTracks[0].cues;
+        assert_equals(cues.length, 2);
+        assert_cues_equal(cues, expected);
+    }
+
+    function testTrack1() {
+        assert_equals(video.textTracks[1].cues.length, 2);
+    }
+});
+</script>

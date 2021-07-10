@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang=en>
+<meta charset=utf-8>
+<title>XMLHttpRequest: upload formdata with blob</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#interface-formdata" data-tested-assertations="following::P[1]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#dom-formdata" data-tested-assertations="following::P[2]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#dom-formdata-append" data-tested-assertations=".. following::P[1]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#dom-formdata-append" data-tested-assertations="following::P[2] following::UL[1]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#dom-XMLHttpRequest-send-FormData" data-tested-assertations="following::DD[1]" />
+<div id="log"></div>
+<script>
+  function do_test (name, fd, expected) {
+    var test = async_test(name);
+    test.step(function() {
+      var client = new XMLHttpRequest();
+      client.onreadystatechange = test.step_func(function () {
+        if (client.readyState !== 4) return;
+        assert_equals(client.responseText, expected);
+        test.done();
+      });
+      client.open("POST", "resources/upload.py");
+      client.send(fd);
+    });
+  }
+
+  function create_formdata () {
+    var fd = new FormData();
+    for (var i = 0; i < arguments.length; i++) {
+      fd.append.apply(fd, arguments[i]);
+    }
+    return fd;
+  }
+
+  do_test("formdata with blob", create_formdata(['key', new Blob(['value'], {type: 'text/x-value'})]), '\nkey=blob:text/x-value:5,');
+  do_test("formdata with named blob", create_formdata(['key', new Blob(['value'], {type: 'text/x-value'}), 'blob.txt']), '\nkey=blob.txt:text/x-value:5,');
+  // If 3rd argument is given and 2nd is not a Blob, formdata.append() should throw
+  var test = async_test('formdata.append() should throw if value is string and file name is given'); // needs to be async just because the others above are
+  test.step(function(){
+    assert_throws_js(TypeError, function(){
+      create_formdata('a', 'b', 'c');
+    });
+  });
+  test.done();
+</script>

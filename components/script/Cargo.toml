@@ -3,6 +3,7 @@ name = "script"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
+edition = "2018"
 publish = false
 
 build = "build.rs"
@@ -13,82 +14,110 @@ path = "lib.rs"
 
 [features]
 debugmozjs = ['js/debugmozjs']
+jitspew = ['js/jitspew']
+profilemozjs = ['js/profilemozjs']
+unrooted_must_root_lint = ["script_plugins/unrooted_must_root_lint"]
+default = ["unrooted_must_root_lint"]
+webgl_backtrace = ["canvas_traits/webgl_backtrace"]
+js_backtrace = []
+refcell_backtrace = ["accountable-refcell"]
+uwp = ["js/uwp"]
+xr-profile = ["webxr-api/profile"]
 
 [build-dependencies]
-cmake = "0.1"
-phf_codegen = "0.7.18"
-phf_shared = "0.7.18"
-serde_json = "0.9"
-
-[target.'cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))'.dependencies]
-tinyfiledialogs = "2.5.9"
+phf_codegen = "0.8"
+phf_shared = "0.8"
+serde_json = "1.0"
 
 [dependencies]
-angle = {git = "https://github.com/servo/angle", branch = "servo"}
-app_units = "0.4"
-audio-video-metadata = "0.1.2"
-atomic_refcell = "0.1"
-base64 = "0.4.1"
-bitflags = "0.7"
-bluetooth_traits = {path = "../bluetooth_traits"}
-byteorder = "1.0"
-canvas_traits = {path = "../canvas_traits"}
-caseless = "0.1.0"
-cookie = "0.6"
-cssparser = "0.13"
-deny_public_fields = {path = "../deny_public_fields"}
-devtools_traits = {path = "../devtools_traits"}
-dom_struct = {path = "../dom_struct"}
-domobject_derive = {path = "../domobject_derive"}
-encoding = "0.2"
-euclid = "0.11"
+accountable-refcell = { version = "0.2.0", optional = true }
+app_units = "0.7"
+arrayvec = "0.5.1"
+backtrace = "0.3"
+base64 = "0.10.1"
+bitflags = "1.0"
+bluetooth_traits = { path = "../bluetooth_traits" }
+canvas_traits = { path = "../canvas_traits" }
+chrono = "0.4"
+content-security-policy = { version = "0.4.0", features = ["serde"] }
+cookie = "0.11"
+crossbeam-channel = "0.4"
+cssparser = "0.28"
+data-url = "0.1.0"
+deny_public_fields = { path = "../deny_public_fields" }
+devtools_traits = { path = "../devtools_traits" }
+dom_struct = { path = "../dom_struct" }
+domobject_derive = { path = "../domobject_derive" }
+embedder_traits = { path = "../embedder_traits" }
+encoding_rs = "0.8"
+enum-iterator = "0.3"
+euclid = "0.20"
 fnv = "1.0"
-gfx_traits = {path = "../gfx_traits"}
-heapsize = "0.3.6"
-heapsize_derive = "0.1"
-html5ever = {version = "0.15", features = ["heap_size", "unstable"]}
-html5ever-atoms = {version = "0.3", features = ["heap_size"]}
-hyper = "0.10"
-hyper_serde = "0.6"
-image = "0.12"
-ipc-channel = "0.7"
-js = {git = "https://github.com/servo/rust-mozjs", features = ["promises"]}
-jstraceable_derive = {path = "../jstraceable_derive"}
-lazy_static = "0.2"
+fxhash = "0.2"
+headers = "0.2"
+html5ever = "0.25"
+http = "0.1"
+hyper = "0.12"
+hyper_serde = "0.11"
+image = "0.23"
+indexmap = { version = "1.0.2", features = ["std"] }
+ipc-channel = "0.14"
+itertools = "0.8"
+js = { package = "mozjs", git = "https://github.com/servo/rust-mozjs" }
+jstraceable_derive = { path = "../jstraceable_derive" }
+keyboard-types = "0.5"
+lazy_static = "1"
 libc = "0.2"
-log = "0.3.5"
-mime = "0.2.1"
-mime_guess = "1.8.0"
-msg = {path = "../msg"}
-net_traits = {path = "../net_traits"}
-num-traits = "0.1.32"
-offscreen_gl_context = "0.8"
-open = "1.1.1"
-parking_lot = "0.3"
-phf = "0.7.18"
-profile_traits = {path = "../profile_traits"}
-range = {path = "../range"}
+log = "0.4"
+malloc_size_of = { path = "../malloc_size_of" }
+malloc_size_of_derive = "0.1"
+media = { path = "../media" }
+metrics = { path = "../metrics" }
+mime = "0.3.13"
+mime_guess = "2.0.0"
+mitochondria = "1.1.2"
+msg = { path = "../msg" }
+net_traits = { path = "../net_traits" }
+num-traits = "0.2"
+parking_lot = "0.10"
+percent-encoding = "2.0"
+phf = "0.8"
+pixels = { path = "../pixels" }
+profile_traits = { path = "../profile_traits" }
 ref_filter_map = "1.0.1"
-ref_slice = "1.0"
-regex = "0.2"
-script_layout_interface = {path = "../script_layout_interface"}
-script_plugins = {path = "../script_plugins"}
-script_traits = {path = "../script_traits"}
+regex = "1.1"
+script_layout_interface = { path = "../script_layout_interface" }
+script_plugins = { path = "../script_plugins" }
+script_traits = { path = "../script_traits" }
 selectors = { path = "../selectors" }
-serde = "0.9"
-servo_atoms = {path = "../atoms"}
-servo_config = {path = "../config"}
-servo_geometry = {path = "../geometry" }
-servo_rand = {path = "../rand"}
-servo_url = {path = "../url"}
-smallvec = "0.3"
-style = {path = "../style"}
-style_traits = {path = "../style_traits"}
-time = "0.1.12"
+serde = { version = "1", features = ["derive"] }
+serde_bytes = "0.11"
+servo-media = { git = "https://github.com/servo/media" }
+servo_allocator = { path = "../allocator" }
+servo_arc = { path = "../servo_arc" }
+servo_atoms = { path = "../atoms" }
+servo_config = { path = "../config" }
+servo_geometry = { path = "../geometry" }
+servo_rand = { path = "../rand" }
+servo_url = { path = "../url" }
+smallvec = { version = "0.6", features = ["std", "union"] }
+sparkle = "0.1"
+style = { path = "../style", features = ["servo"] }
+style_traits = { path = "../style_traits" }
+swapper = "0.1"
+tempfile = "3"
+tendril = { version = "0.4.1", features = ["encoding_rs"] }
+time = "0.1.41"
+unicode-bidi = "0.3.4"
 unicode-segmentation = "1.1.0"
-url = {version = "1.2", features = ["heap_size", "query_encoding"]}
-uuid = {version = "0.4", features = ["v4"]}
-xml5ever = {version = "0.5", features = ["unstable"]}
-webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}
-webvr = {path = "../webvr"}
-webvr_traits = {path = "../webvr_traits"}
+url = "2.0"
+utf-8 = "0.7"
+uuid = { version = "0.8", features = ["v4", "serde"] }
+webdriver = "0.40"
+webgpu = { path = "../webgpu" }
+webrender_api = { git = "https://github.com/servo/webrender" }
+webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
+xml5ever = "0.16"
+
+[target.'cfg(not(target_os = "ios"))'.dependencies]
+mozangle = "0.2"

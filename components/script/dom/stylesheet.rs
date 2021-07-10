@@ -1,15 +1,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::StyleSheetBinding;
-use dom::bindings::codegen::Bindings::StyleSheetBinding::StyleSheetMethods;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::str::DOMString;
-use dom::cssstylesheet::CSSStyleSheet;
-use dom::window::Window;
+use crate::dom::bindings::codegen::Bindings::StyleSheetBinding::StyleSheetMethods;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::Reflector;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::cssstylesheet::CSSStyleSheet;
+use crate::dom::element::Element;
+use crate::dom::medialist::MediaList;
 use dom_struct::dom_struct;
 
 #[dom_struct]
@@ -22,9 +22,11 @@ pub struct StyleSheet {
 
 impl StyleSheet {
     #[allow(unrooted_must_root)]
-    pub fn new_inherited(type_: DOMString,
-                         href: Option<DOMString>,
-                         title: Option<DOMString>) -> StyleSheet {
+    pub fn new_inherited(
+        type_: DOMString,
+        href: Option<DOMString>,
+        title: Option<DOMString>,
+    ) -> StyleSheet {
         StyleSheet {
             reflector_: Reflector::new(),
             type_: type_,
@@ -32,17 +34,7 @@ impl StyleSheet {
             title: title,
         }
     }
-
-    #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, type_: DOMString,
-               href: Option<DOMString>,
-               title: Option<DOMString>) -> Root<StyleSheet> {
-        reflect_dom_object(box StyleSheet::new_inherited(type_, href, title),
-                           window,
-                           StyleSheetBinding::Wrap)
-    }
 }
-
 
 impl StyleSheetMethods for StyleSheet {
     // https://drafts.csswg.org/cssom/#dom-stylesheet-type
@@ -53,6 +45,16 @@ impl StyleSheetMethods for StyleSheet {
     // https://drafts.csswg.org/cssom/#dom-stylesheet-href
     fn GetHref(&self) -> Option<DOMString> {
         self.href.clone()
+    }
+
+    // https://drafts.csswg.org/cssom/#dom-stylesheet-ownernode
+    fn GetOwnerNode(&self) -> Option<DomRoot<Element>> {
+        self.downcast::<CSSStyleSheet>().and_then(|s| s.get_owner())
+    }
+
+    // https://drafts.csswg.org/cssom/#dom-stylesheet-media
+    fn Media(&self) -> DomRoot<MediaList> {
+        self.downcast::<CSSStyleSheet>().unwrap().medialist()
     }
 
     // https://drafts.csswg.org/cssom/#dom-stylesheet-title
@@ -67,6 +69,8 @@ impl StyleSheetMethods for StyleSheet {
 
     // https://drafts.csswg.org/cssom/#dom-stylesheet-disabled
     fn SetDisabled(&self, disabled: bool) {
-        self.downcast::<CSSStyleSheet>().unwrap().set_disabled(disabled)
+        self.downcast::<CSSStyleSheet>()
+            .unwrap()
+            .set_disabled(disabled)
     }
 }

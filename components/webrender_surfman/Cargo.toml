@@ -1,0 +1,17 @@
+[package]
+name = "webrender_surfman"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+edition = "2018"
+publish = false
+
+[lib]
+name = "webrender_surfman"
+path = "lib.rs"
+
+[dependencies]
+euclid = "0.20"
+surfman = "0.4"
+surfman-chains = "0.6"
+

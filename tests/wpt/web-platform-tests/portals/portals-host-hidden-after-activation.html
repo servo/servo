@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  // Waits for 2 messages from portal, one before activation and one after.
+  function waitForMessages() {
+    return new Promise((resolve, reject) => {
+      var results = [];
+      var bc = new BroadcastChannel("portals-host-hidden-after-activation");
+      bc.onmessage = e => {
+        results.push(e.data.hasHost);
+        if (results.length == 2) {
+          bc.close();
+          resolve(results);
+        }
+      };
+    });
+  }
+
+  promise_test(async () => {
+    assert_implements("HTMLPortalElement" in self);
+    const portalUrl = encodeURIComponent("portal-host-hidden-after-activation-portal.html");
+    window.open(`resources/portal-embed-and-activate.html?url=${portalUrl}`);
+    var results = await waitForMessages();
+    assert_true(results[0], "portalHost exposed before calling activate()");
+    assert_false(results[1], "portalHost hidden after receiving portalactivate event");
+  }, "window.portalHost should be null after portal is activated");
+</script>
+</body>

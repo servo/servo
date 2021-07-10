@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>quotachange event on DOMWindow of detached iframe</title>
+<link rel="author" href="jarrydg@chromium.org" title="Jarryd">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="iframe"></iframe>
+<script>
+'use strict';
+
+test(t => {
+  const iframe = document.getElementById('iframe');
+  const frameWindow = iframe.contentWindow;
+  const storageManager = frameWindow.navigator.storage;
+
+  iframe.parentNode.removeChild(iframe);
+  const emptyListener = () => {};
+  storageManager.addEventListener('quotachange', emptyListener);
+  storageManager.removeEventListener('quotachange', emptyListener);
+}, "Add quotachange listener on detached iframe.");
+</script>

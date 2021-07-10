@@ -3,7 +3,7 @@ apiclient
 
 Client class for calling http+json APIs in Python. Requires Python 2.7.
 
-Suports json home pages per:
+Supports json home pages per:
 http://tools.ietf.org/html/draft-nottingham-json-home-03
 
 
@@ -48,7 +48,7 @@ Get a named APIResource.
 
 **APIClient.setVersion(name, version)**
 
-Set the request version identifier for a specific resource. If not set, the default version identifer will be used.
+Set the request version identifier for a specific resource. If not set, the default version identifier will be used.
 
 **APIClient.setAccept(name, mimeType)**
 

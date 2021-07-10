@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Grid: shrink-to-fit behavior on grid containers</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.org">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#intrinsic-sizes">
+<link rel="help" href="https://crbug.com/234204">
+<meta name="assert" content="This test checks that the shrink-to-fit behavior is applied to the float and out-of-flow positioned grid containers.">
+<style>
+.grid {
+    display: grid;
+    grid-template-columns: 200px 200px;
+    grid-template-rows: 200px 200px;
+}
+.container {
+    width: 600px;
+    height: 600px;
+}
+
+#absolutePos {
+   position: absolute;
+}
+
+#fixedPos {
+   position: fixed;
+}
+
+#floatPos {
+   float: left;
+}
+
+#one {
+    color: blue;
+    background: red;
+    grid-column: 1;
+    grid-row: 1;
+}
+
+#two {
+    color: yellow;
+    background: green;
+    grid-column: 2;
+    grid-row: 1;
+}
+#three {
+    color: gray;
+    background: pink;
+    grid-column: 1;
+    grid-row: 2;
+}
+#four {
+    color: orange;
+    background: brown;
+    grid-column: 2;
+    grid-row: 2;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.grid')">
+
+<p>The following grids should be 400px * 400px, except the first one which uses 'relative' positioning.</p>
+
+<div class="container">
+    <div class="grid" id="regularGrid" data-expected-height="400" data-expected-width="600">
+        <div id="one"></div>
+        <div id="two"></div>
+        <div id="three"></div>
+        <div id="four"></div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="grid" id="absolutePos" data-expected-height="400" data-expected-width="400">
+        <div id="one"></div>
+        <div id="two"></div>
+        <div id="three"></div>
+        <div id="four"></div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="grid" id="fixedPos" data-expected-height="400" data-expected-width="400">
+        <div id="one"></div>
+        <div id="two"></div>
+        <div id="three"></div>
+        <div id="four"></div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="grid" id="floatPos" data-expected-height="400" data-expected-width="400">
+        <div id="one"></div>
+        <div id="two"></div>
+        <div id="three"></div>
+        <div id="four"></div>
+    </div>
+</div>
+
+</body>
+</html>

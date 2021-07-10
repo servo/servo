@@ -1,57 +1,71 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Implementation of cookie creation and matching as specified by
 //! http://tools.ietf.org/html/rfc6265
 
-use cookie_rs;
 use hyper_serde::{self, Serde};
-use net_traits::CookieSource;
 use net_traits::pub_domains::is_pub_domain;
+use net_traits::CookieSource;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::net::{Ipv4Addr, Ipv6Addr};
-use time::{Tm, now, at, Duration};
+use time::{at, now, Duration, Tm};
 
 /// A stored cookie that wraps the definition in cookie-rs. This is used to implement
 /// various behaviours defined in the spec that rely on an associated request URL,
 /// which cookie-rs and hyper's header parsing do not support.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Cookie {
-    #[serde(deserialize_with = "hyper_serde::deserialize",
-            serialize_with = "hyper_serde::serialize")]
+    #[serde(
+        deserialize_with = "hyper_serde::deserialize",
+        serialize_with = "hyper_serde::serialize"
+    )]
     pub cookie: cookie_rs::Cookie<'static>,
     pub host_only: bool,
     pub persistent: bool,
-    #[serde(deserialize_with = "hyper_serde::deserialize",
-            serialize_with = "hyper_serde::serialize")]
+    #[serde(
+        deserialize_with = "hyper_serde::deserialize",
+        serialize_with = "hyper_serde::serialize"
+    )]
     pub creation_time: Tm,
-    #[serde(deserialize_with = "hyper_serde::deserialize",
-            serialize_with = "hyper_serde::serialize")]
+    #[serde(
+        deserialize_with = "hyper_serde::deserialize",
+        serialize_with = "hyper_serde::serialize"
+    )]
     pub last_access: Tm,
     pub expiry_time: Option<Serde<Tm>>,
 }
 
 impl Cookie {
-    pub fn from_cookie_string(cookie_str: String, request: &ServoUrl,
-                             source: CookieSource) -> Option<Cookie> {
+    pub fn from_cookie_string(
+        cookie_str: String,
+        request: &ServoUrl,
+        source: CookieSource,
+    ) -> Option<Cookie> {
         cookie_rs::Cookie::parse(cookie_str)
             .ok()
             .map(|cookie| Cookie::new_wrapped(cookie, request, source))
             .unwrap_or(None)
     }
 
-    /// http://tools.ietf.org/html/rfc6265#section-5.3
-    pub fn new_wrapped(mut cookie: cookie_rs::Cookie<'static>, request: &ServoUrl, source: CookieSource)
-                       -> Option<Cookie> {
+    /// <http://tools.ietf.org/html/rfc6265#section-5.3>
+    pub fn new_wrapped(
+        mut cookie: cookie_rs::Cookie<'static>,
+        request: &ServoUrl,
+        source: CookieSource,
+    ) -> Option<Cookie> {
         // Step 3
         let (persistent, expiry_time) = match (cookie.max_age(), cookie.expires()) {
-            (Some(max_age), _) => {
-                (true, Some(at(now().to_timespec() + Duration::seconds(max_age.num_seconds()))))
-            }
+            (Some(max_age), _) => (
+                true,
+                Some(at(
+                    now().to_timespec() + Duration::seconds(max_age.num_seconds())
+                )),
+            ),
             (_, Some(expires)) => (true, Some(expires)),
-            _ => (false, None)
+            _ => (false, None),
         };
 
         let url_host = request.host_str().unwrap_or("").to_owned();
@@ -64,7 +78,7 @@ impl Cookie {
             if domain == url_host {
                 domain = "".to_string();
             } else {
-                return None
+                return None;
             }
         }
 
@@ -82,22 +96,43 @@ impl Cookie {
         };
 
         // Step 7
-        let mut path = cookie.path().unwrap_or("").to_owned();
+        let mut has_path_specified = true;
+        let mut path = cookie
+            .path()
+            .unwrap_or_else(|| {
+                has_path_specified = false;
+                ""
+            })
+            .to_owned();
         if path.chars().next() != Some('/') {
             path = Cookie::default_path(&request.path().to_owned()).to_string();
         }
         cookie.set_path(path);
 
-
         // Step 10
-        if cookie.http_only() && source == CookieSource::NonHTTP {
+        if cookie.http_only().unwrap_or(false) && source == CookieSource::NonHTTP {
+            return None;
+        }
+
+        // https://tools.ietf.org/html/draft-west-cookie-prefixes-04#section-4
+        // Step 1 of cookie prefixes
+        if (cookie.name().starts_with("__Secure-") || cookie.name().starts_with("__Host-")) &&
+            !(cookie.secure().unwrap_or(false) && request.is_secure_scheme())
+        {
+            return None;
+        }
+
+        // Step 2 of cookie prefixes
+        if cookie.name().starts_with("__Host-") &&
+            !(host_only && has_path_specified && cookie.path().unwrap() == "/")
+        {
             return None;
         }
 
         Some(Cookie {
-            cookie: cookie,
-            host_only: host_only,
-            persistent: persistent,
+            cookie,
+            host_only,
+            persistent,
             creation_time: now(),
             last_access: now(),
             expiry_time: expiry_time.map(Serde),
@@ -106,6 +141,10 @@ impl Cookie {
 
     pub fn touch(&mut self) {
         self.last_access = now();
+    }
+
+    pub fn set_expiry_time_negative(&mut self) {
+        self.expiry_time = Some(Serde(now() - Duration::seconds(1)));
     }
 
     // http://tools.ietf.org/html/rfc6265#section-5.1.4
@@ -133,16 +172,16 @@ impl Cookie {
 
         // The cookie-path and the request-path are identical.
         request_path == cookie_path ||
-
-        (request_path.starts_with(cookie_path) && (
-            // The cookie-path is a prefix of the request-path, and the last
-            // character of the cookie-path is %x2F ("/").
-            cookie_path.ends_with("/") ||
+            (request_path.starts_with(cookie_path) &&
+                (
+                    // The cookie-path is a prefix of the request-path, and the last
+                    // character of the cookie-path is %x2F ("/").
+                    cookie_path.ends_with("/") ||
             // The cookie-path is a prefix of the request-path, and the first
             // character of the request-path that is not included in the cookie-
             // path is a %x2F ("/") character.
             request_path[cookie_path.len()..].starts_with("/")
-        ))
+                ))
     }
 
     // http://tools.ietf.org/html/rfc6265#section-5.1.3
@@ -151,10 +190,10 @@ impl Cookie {
         let domain_string = &domain_string.to_lowercase();
 
         string == domain_string ||
-        (string.ends_with(domain_string) &&
-         string.as_bytes()[string.len()-domain_string.len()-1] == b'.' &&
-         string.parse::<Ipv4Addr>().is_err() &&
-         string.parse::<Ipv6Addr>().is_err())
+            (string.ends_with(domain_string) &&
+                string.as_bytes()[string.len() - domain_string.len() - 1] == b'.' &&
+                string.parse::<Ipv4Addr>().is_err() &&
+                string.parse::<Ipv6Addr>().is_err())
     }
 
     // http://tools.ietf.org/html/rfc6265#section-5.4 step 1
@@ -178,10 +217,10 @@ impl Cookie {
             }
         }
 
-        if self.cookie.secure() && !url.is_secure_scheme() {
+        if self.cookie.secure().unwrap_or(false) && !url.is_secure_scheme() {
             return false;
         }
-        if self.cookie.http_only() && source == CookieSource::NonHTTP {
+        if self.cookie.http_only().unwrap_or(false) && source == CookieSource::NonHTTP {
             return false;
         }
 

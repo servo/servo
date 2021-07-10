@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Web NFC: permission</title>
+<link rel="help" href="https://w3c.github.io/web-nfc/"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+
+"use strict";
+
+promise_test(async t => {
+  await test_driver.set_permission({ name: 'nfc' }, 'denied', false);
+
+  const status = await navigator.permissions.query({ name:'nfc' });
+  assert_class_string(status, "PermissionStatus");
+  assert_equals(status.state, "denied");
+}, "Deny nfc permission should work.");
+
+promise_test(async t => {
+  await test_driver.set_permission({ name: 'nfc' }, 'granted', false);
+
+  const status = await navigator.permissions.query({ name: 'nfc' });
+  assert_class_string(status, "PermissionStatus");
+  assert_equals(status.state, "granted");
+}, "Grant nfc permission should work.");
+
+</script>

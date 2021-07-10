@@ -27,7 +27,7 @@
                 if (violation.blockedURI.split('?')[1] !== 'appendChild-reportOnly') {
                     return;
                 }
-                assert_equals(violation.effectiveDirective, 'script-src');
+                assert_equals(violation.effectiveDirective, 'script-src-elem');
                 // Check that the violation comes from the Report-Only policy.
                 assert_equals(violation.originalPolicy, "script-src 'none'");
                 t.done();

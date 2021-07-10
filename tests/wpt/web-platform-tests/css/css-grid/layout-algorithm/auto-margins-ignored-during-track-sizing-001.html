@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS Grid: grid items using 'auto' margins.</title>
+<link rel="author" title="Javier Fernendez" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#auto-margins">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#layout-algorithm">
+<link rel="match" href="references/auto-margins-ignored-during-track-sizing-001-ref.html">
+<meta name="assert" content="This test ensures that 'auto' margin is treated as 0px during the tracks sizing algorithm."/>
+<style>
+body { overflow: hidden; }
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+}
+.margin-center {
+  margin-top: 10px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.i1 { background: magenta;  }
+.i2 { background: cyan; }
+.i3 { background: yellow; }
+.i4 { background: lime; }
+</style>
+<p>This test pass if the 3 items in the first row have the same size filling the whole viewport's width and the item in the second row is centered in the first column.<p>
+<div class="grid">
+  <div class="i1">
+    In a few questions, you will get an expert-designed investment portfolio to fit your financial needs.
+  </div>
+  <div class="i2">
+    Open and fund your account with 10,000 or more and we will put your money to work.
+  </div>
+  <div class="i3">
+    We will take it from here, monitoring your portfolio daily to help keep it on track.
+  </div>
+  <div class="i4 margin-center">Learn More</a>
+</div>

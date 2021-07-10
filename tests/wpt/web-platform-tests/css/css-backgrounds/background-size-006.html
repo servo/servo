@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Backgrounds and Borders Test: background-size - one &lt;length&gt; value</title>
+    <link rel="author" title="Intel" href="http://www.intel.com">
+    <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/"> <!-- 2012-11-09 and 2020-11-18 -->
+    <link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-size" title="3.9 Sizing Images: the 'background-size' property">
+    <link rel="match" href="reference/background-size-006-ref.html">
+    <meta name="flags" content="image">
+    <meta name="assert" content="Check if 'background-size' has only one length value, then such value is the width of the corresponding image and the second value (corresponding to the height of the background image) is assumed to be 'auto'. An 'auto' value for one dimension is resolved by using the image's intrinsic ratio (in this test, the image's intrinsic ratio is 1:1) and (multiplied by) the size of the other dimension. Therefore the used height of the background-size in this test should be 45px.">
+    <style>
+        #ref-overlapped-red {
+            background-color: red;
+            height: 45px;
+            width: 45px;
+        }
+        #test-overlapping-green {
+            background-image: url(support/1x1-green.png);
+            background-repeat: no-repeat;
+            background-size: 45px;
+            bottom: 45px;
+            height: 100px;
+            position: relative;
+            width: 100px;
+        }
+    </style>
+  </head>
+  <body>
+    <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+    <div id="ref-overlapped-red"></div>
+    <div id="test-overlapping-green"></div>
+  </body>
+</html>

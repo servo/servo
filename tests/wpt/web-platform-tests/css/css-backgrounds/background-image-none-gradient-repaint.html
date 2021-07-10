@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Backgrounds and Borders: Repaint gradient change in second layer</title>
+<link rel="author" title="Rune Lillesveen" href="mailto:futhark@chromium.org">
+<link rel="match" href="background-clip-color-repaint-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#layering">
+<style>
+  #box {
+    width: 150px;
+    height: 150px;
+  }
+  .red {
+    background: none, linear-gradient(to right, red, red);
+  }
+  .green {
+    background: none, linear-gradient(to right, green, green);
+  }
+</style>
+<p>There should be a green square below.</p>
+<div id="box" class="red"></div>
+<script>
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){
+      box.className = "green";
+      document.documentElement.classList.remove("reftest-wait");
+    });
+  });
+</script>

@@ -1,0 +1,27 @@
+branches:
+  only:
+    - master
+
+skip_branch_with_pr: true
+
+environment:
+# websockets only works on Python >= 3.6.
+  CIBW_SKIP: cp27-* cp33-* cp34-* cp35-*
+  CIBW_TEST_COMMAND: python -W default -m unittest
+  WEBSOCKETS_TESTS_TIMEOUT_FACTOR: 100
+
+install:
+# Ensure python is Python 3.
+  - set PATH=C:\Python37;%PATH%
+  - cmd: python -m pip install --upgrade cibuildwheel
+# Create file '.cibuildwheel' so that extension build is not optional (c.f. setup.py).
+  - cmd: touch .cibuildwheel
+
+build_script:
+  - cmd: python -m cibuildwheel --output-dir wheelhouse
+# Upload to PyPI on tags
+  - ps: >-
+      if ($env:APPVEYOR_REPO_TAG -eq "true") {
+        Invoke-Expression "python -m pip install twine"
+        Invoke-Expression "python -m twine upload --skip-existing wheelhouse/*.whl"
+      }

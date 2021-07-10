@@ -1,0 +1,16 @@
+<!doctype html>
+<title>::file-selector-button allows to customize the button in &lt;input type=file&gt;</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5049">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#file-selector-button-pseudo">
+<link rel="mismatch" href="file-selector-button-001-notref.html">
+<style>
+#host::part(file-input)::file-selector-button {
+  border: 1px solid green;
+}
+</style>
+<div id="host"></div>
+<script>
+  document.getElementById("host").attachShadow({ mode: "open" }).innerHTML = `
+    <input type=file part=file-input>
+  `;
+</script>

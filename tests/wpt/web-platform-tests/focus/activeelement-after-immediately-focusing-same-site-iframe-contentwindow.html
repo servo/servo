@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>activeElement when immediately focusing same-site iframe's contentWindow</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+setup({explicit_done:true});
+window.onmessage = function(e) {
+    test(function() {
+        assert_equals(e.data, "outerparse,activeElement:BODY,willfocusiframe,didfocusiframe,activeElement:IFRAME,willbluriframe,didbluriframe,activeElement:IFRAME,willspineventloop,", 'Check log');
+    }, "Check result");
+    w.close();
+    done();
+};
+var w = window.open("support/activeelement-after-immediately-focusing-same-site-iframe-outer-contentwindow.html");
+</script>

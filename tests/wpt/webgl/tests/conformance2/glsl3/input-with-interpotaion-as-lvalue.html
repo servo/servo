@@ -1,0 +1,106 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Negative tests for writting to a shader input with interpolation qualifier</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<!--
+According to ESSL 3.00.6 section 4.3.4:
+"Variables declared as in or centroid in may not be written to during shader execution.",
+these tests ensure that a compile error is generated when using a shader input with interpolation qualifier as l-value.
+-->
+<script type="application/javascript">
+"use strict";
+description();
+
+var vertexShaderTemplate = [
+    '#version 300 es',
+    '$(InterpolationQualifier) out float v_float_varying;',
+    'void main()',
+    '{',
+    '    v_float_varying = 1.0;',
+    '    gl_Position = vec4(0.0, 0.0, 0.0, 1.0);',
+    '}'
+].join('\n');
+
+var fragmentShaderTemplate = [
+    '#version 300 es',
+    'precision mediump float;',
+    '$(InterpolationQualifier) in float v_float_varying;',
+    'out vec4 my_color;',
+    'void main()',
+    '{',
+    '    v_float_varying = 1.0;',
+    '    my_color = vec4(1.0, 0.0, 0.0, v_float_varying);',
+    '}'
+].join('\n');
+
+var errorMessageTemplate = "Writting to shader inputs with '$(InterpolationQualifier)' qualifier must fail";
+
+var testDataList = [
+{
+    InterpolationQualifier: 'flat'
+},
+{
+    InterpolationQualifier: 'smooth'
+},
+{
+    InterpolationQualifier: 'centroid'
+}
+];
+
+var wtu = WebGLTestUtils;
+
+var tests = [];
+for (var i = 0; i < testDataList.length; ++i) {
+    tests.push({
+        vShaderSource: wtu.replaceParams(vertexShaderTemplate, testDataList[i]),
+        vShaderSuccess: true,
+        fShaderSource: wtu.replaceParams(fragmentShaderTemplate, testDataList[i]),
+        fShaderSuccess: false,
+        linkSuccess: false,
+        passMsg: wtu.replaceParams(errorMessageTemplate, testDataList[i])
+    });
+}
+
+GLSLConformanceTester.runTests(tests, 2);
+</script>
+</body>
+</html>

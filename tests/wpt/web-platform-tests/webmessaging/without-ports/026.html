@@ -6,9 +6,10 @@
 <script>
 async_test(function() {
    var obj = {};
-   obj.__defineGetter__( "field", function(){ throw new Error("getter_should_propagate_exceptions"); });
+   var err = new Error("getter_should_propagate_exceptions");
+   obj.__defineGetter__( "field", function(){ throw err });
 
-   assert_throws(new Error("getter_should_propagate_exceptions"), function() {
+   assert_throws_exactly(err, function() {
      postMessage(obj, '*');
   });
   this.done();

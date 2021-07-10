@@ -1,13 +1,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! WebIDL constants.
 
-use js::jsapi::{HandleObject, JSContext, JSPROP_ENUMERATE, JSPROP_PERMANENT};
-use js::jsapi::{JSPROP_READONLY, JS_DefineProperty};
+use crate::script_runtime::JSContext;
+use js::jsapi::JSPROP_READONLY;
+use js::jsapi::{JSPROP_ENUMERATE, JSPROP_PERMANENT};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UInt32Value};
-use libc;
+use js::rust::wrappers::JS_DefineProperty;
+use js::rust::HandleObject;
 
 /// Representation of an IDL constant.
 #[derive(Clone)]
@@ -49,18 +51,17 @@ impl ConstantSpec {
 
 /// Defines constants on `obj`.
 /// Fails on JSAPI failure.
-pub unsafe fn define_constants(
-        cx: *mut JSContext,
-        obj: HandleObject,
-        constants: &[ConstantSpec]) {
+pub fn define_constants(cx: JSContext, obj: HandleObject, constants: &[ConstantSpec]) {
     for spec in constants {
-        rooted!(in(cx) let value = spec.get_value());
-        assert!(JS_DefineProperty(cx,
-                                  obj,
-                                  spec.name.as_ptr() as *const libc::c_char,
-                                  value.handle(),
-                                  JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT,
-                                  None,
-                                  None));
+        rooted!(in(*cx) let value = spec.get_value());
+        unsafe {
+            assert!(JS_DefineProperty(
+                *cx,
+                obj,
+                spec.name.as_ptr() as *const libc::c_char,
+                value.handle(),
+                (JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT) as u32
+            ));
+        }
     }
 }

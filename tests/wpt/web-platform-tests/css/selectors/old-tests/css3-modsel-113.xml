@@ -1,0 +1,21 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>Attribute space-separated value selector without declared namespace</title>
+  <style type="text/css"><![CDATA[@namespace a url(http://www.example.org/a);
+@namespace b url(http://www.example.org/b);
+@namespace html url(http://www.w3.org/1999/xhtml);
+*|p, *|address, *|q, *|r { display : block ; margin-bottom : 1em }
+*|p, *|q { background-color : red }
+*|*[|class~="foo"] { background-color : lime }]]></style>
+  <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <meta name="flags" content=" namespace" />
+ </head>
+ <body xmlns:b="http://www.example.org/b">
+<p class="bar foo toto">This paragraph should have a green background.</p>
+<address class="bar foofoo toto">This address should be unstyled.</address>
+<q xmlns="http://www.example.org/a" class="bar foo toto">This paragraph should have a green background.</q>
+<r xmlns="http://www.example.org/b" b:class="bar foo toto">This paragraph should be unstyled.</r>
+</body>
+</html>

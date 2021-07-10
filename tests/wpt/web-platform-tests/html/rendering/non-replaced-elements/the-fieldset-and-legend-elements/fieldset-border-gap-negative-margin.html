@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>fieldset border gap with negative margin</title>
+<link rel=match href=no-red-ref.html>
+<style>
+fieldset { border:none; border-left: 100px solid red; margin: 0; padding: 0; height:100px; }
+legend { padding: 0; margin-left: -100px; width: 100px; height: 100px; transform: rotate(45deg); }
+</style>
+<p>There should be no red.</p>
+<fieldset>
+ <legend></legend>
+</fieldset>

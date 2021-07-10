@@ -1,0 +1,152 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>RTCRtpSender.transport</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="dictionary-helper.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // Spec link: http://w3c.github.io/webrtc-pc/#dom-rtcrtpsender-transport
+  promise_test(async t => {
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+    const stream = await getNoiseStream({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+    const sender = caller.addTrack(track);
+    assert_equals(sender.transport, null);
+  }, 'RTCRtpSender.transport is null when unconnected');
+
+  // Test for the simple/happy path of connecting a single track
+  promise_test(async t => {
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+    const stream = await getNoiseStream({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+    const sender = caller.addTrack(track);
+    const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
+    exchangeIceCandidates(caller, callee);
+    await exchangeOfferAndListenToOntrack(t, caller, callee);
+    assert_not_equals(sender.transport, null);
+    const [transceiver] = caller.getTransceivers();
+    assert_equals(transceiver.sender.transport,
+                  transceiver.receiver.transport);
+    assert_not_equals(sender.transport.iceTransport, null);
+  }, 'RTCRtpSender/receiver.transport has a value when connected');
+
+  // Test with multiple tracks, and checking details of when things show up
+  // for different bundle policies.
+  for (let bundle_policy of ['balanced', 'max-bundle', 'max-compat']) {
+    promise_test(async t => {
+        const caller = new RTCPeerConnection({bundlePolicy: bundle_policy});
+      t.add_cleanup(() => caller.close());
+      const stream = await getNoiseStream(
+          {audio: true, video:true});
+      t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+      const [track1, track2] = stream.getTracks();
+      const sender1 = caller.addTrack(track1);
+      const sender2 = caller.addTrack(track2);
+      const callee = new RTCPeerConnection();
+      t.add_cleanup(() => callee.close());
+      exchangeIceCandidates(caller, callee);
+      const offer = await caller.createOffer();
+      assert_equals(sender1.transport, null);
+      assert_equals(sender2.transport, null);
+      await caller.setLocalDescription(offer);
+      assert_not_equals(sender1.transport, null);
+      assert_not_equals(sender2.transport, null);
+      const [caller_transceiver1, caller_transceiver2] = caller.getTransceivers();
+      assert_equals(sender1.transport, caller_transceiver1.sender.transport);
+      if (bundle_policy == 'max-bundle') {
+        assert_equals(caller_transceiver1.sender.transport,
+                      caller_transceiver2.sender.transport);
+      } else {
+        assert_not_equals(caller_transceiver1.sender.transport,
+                          caller_transceiver2.sender.transport);
+      }
+      await callee.setRemoteDescription(offer);
+      const [callee_transceiver1, callee_transceiver2] = callee.getTransceivers();
+      // According to spec, setRemoteDescription only updates the transports
+      // if the remote description is an answer.
+      assert_equals(callee_transceiver1.receiver.transport, null);
+      assert_equals(callee_transceiver2.receiver.transport, null);
+      const answer = await callee.createAnswer();
+      await callee.setLocalDescription(answer);
+      assert_not_equals(callee_transceiver1.receiver.transport, null);
+      assert_not_equals(callee_transceiver2.receiver.transport, null);
+      // At this point, bundle should have kicked in.
+      assert_equals(callee_transceiver1.receiver.transport,
+                    callee_transceiver2.receiver.transport);
+      await caller.setRemoteDescription(answer);
+      assert_equals(caller_transceiver1.receiver.transport,
+                    caller_transceiver2.receiver.transport);
+    }, 'RTCRtpSender/receiver.transport at the right time, with bundle policy ' + bundle_policy);
+
+    // Do the same test again, with DataChannel in the mix.
+    promise_test(async t => {
+        const caller = new RTCPeerConnection({bundlePolicy: bundle_policy});
+      t.add_cleanup(() => caller.close());
+      const stream = await getNoiseStream(
+          {audio: true, video:true});
+      t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+      const [track1, track2] = stream.getTracks();
+      const sender1 = caller.addTrack(track1);
+      const sender2 = caller.addTrack(track2);
+      caller.createDataChannel('datachannel');
+      const callee = new RTCPeerConnection();
+      t.add_cleanup(() => callee.close());
+      exchangeIceCandidates(caller, callee);
+      const offer = await caller.createOffer();
+      assert_equals(sender1.transport, null);
+      assert_equals(sender2.transport, null);
+      if (caller.sctp) {
+        assert_equals(caller.sctp.transport, null);
+      }
+      await caller.setLocalDescription(offer);
+      assert_not_equals(sender1.transport, null);
+      assert_not_equals(sender2.transport, null);
+      assert_not_equals(caller.sctp.transport, null);
+      const [caller_transceiver1, caller_transceiver2] = caller.getTransceivers();
+      assert_equals(sender1.transport, caller_transceiver1.sender.transport);
+      if (bundle_policy == 'max-bundle') {
+        assert_equals(caller_transceiver1.sender.transport,
+                      caller_transceiver2.sender.transport);
+        assert_equals(caller_transceiver1.sender.transport,
+                      caller.sctp.transport);
+      } else {
+        assert_not_equals(caller_transceiver1.sender.transport,
+                          caller_transceiver2.sender.transport);
+        assert_not_equals(caller_transceiver1.sender.transport,
+                      caller.sctp.transport);
+      }
+      await callee.setRemoteDescription(offer);
+      const [callee_transceiver1, callee_transceiver2] = callee.getTransceivers();
+      // According to spec, setRemoteDescription only updates the transports
+      // if the remote description is an answer.
+      assert_equals(callee_transceiver1.receiver.transport, null);
+      assert_equals(callee_transceiver2.receiver.transport, null);
+      const answer = await callee.createAnswer();
+      await callee.setLocalDescription(answer);
+      assert_not_equals(callee_transceiver1.receiver.transport, null);
+      assert_not_equals(callee_transceiver2.receiver.transport, null);
+      assert_not_equals(callee.sctp.transport, null);
+      // At this point, bundle should have kicked in.
+      assert_equals(callee_transceiver1.receiver.transport,
+                    callee_transceiver2.receiver.transport);
+      assert_equals(callee_transceiver1.receiver.transport,
+                    callee.sctp.transport,
+                    'Callee SCTP transport does not match:');
+      await caller.setRemoteDescription(answer);
+      assert_equals(caller_transceiver1.receiver.transport,
+                    caller_transceiver2.receiver.transport);
+      assert_equals(caller_transceiver1.receiver.transport,
+                    caller.sctp.transport,
+                    'Caller SCTP transport does not match:');
+    }, 'RTCRtpSender/receiver/SCTP transport at the right time, with bundle policy ' + bundle_policy);
+  }
+ </script>

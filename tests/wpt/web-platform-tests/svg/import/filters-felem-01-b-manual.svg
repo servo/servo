@@ -18,17 +18,17 @@
         Test which verifies null filters and filter regions.
       </p>
       <p>
-        Four subtests each consist of a small red circle overdrawn with a larger green circle. 
+        Four subtests each consist of a small red circle overdrawn with a larger green circle.
         Filters are applied to three of the red circles, hiding them and showing the green circle.
       </p>
       <p>
-        The top left subtest has no filter applied to the circle, so the green circle is visible and the red one is not. 
-        The top right subtest applies a filter to the red circle, but there is no corresponding filter element. 
+        The top left subtest has no filter applied to the circle, so the green circle is visible and the red one is not.
+        The top right subtest applies a filter to the red circle, but there is no corresponding filter element.
         Thus, a null filter is applied and the red circle is not shown, allowing the green circle to be seen.
       </p>
       <p>
-        The bottom left subtest applies an empty filter element with the default filterRegion, and the bottom right 
-        subtest applies an empty filter with a non-default filterRegion. In both cases where empty filters are applied, 
+        The bottom left subtest applies an empty filter element with the default filterRegion, and the bottom right
+        subtest applies an empty filter with a non-default filterRegion. In both cases where empty filters are applied,
         the result of the filter is a transparent black offscreen, thus showing the green circle underneath.
       </p>
     </d:testDescription>

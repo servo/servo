@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>'column-span' property</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om/#dom-stylepropertymapreadonly-get">
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om/#dom-stylepropertymap-set">
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om/#reify-stylevalue">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../resources/testhelper.js"></script>
+<script src="resources/testsuite.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+runPropertyTests('column-span', [
+  { syntax: 'none' },
+  { syntax: 'all' },
+]);
+
+</script>

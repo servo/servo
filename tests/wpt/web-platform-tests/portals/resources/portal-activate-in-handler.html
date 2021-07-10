@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+  </head>
+  <body>
+  </body>
+  <script>
+    // This page is reused with a different query parameter indicating which
+    // handler to register and activate a portal from.
+    const handler_name = window.location.search.substring(1);
+
+    const portal_element = document.createElement('portal');
+    portal_element.src = 'simple-portal.html';
+    document.body.appendChild(portal_element);
+
+    let page_loaded = false;
+    let portal_loaded = false;
+
+    function notifyReady() {
+      if (page_loaded && portal_loaded) {
+        window.opener.postMessage('done', '*');
+      }
+    }
+
+    portal_element.addEventListener('load', () => {
+      portal_loaded = true;
+      notifyReady();
+    });
+
+    window.addEventListener('load', () => {
+      page_loaded = true;
+      notifyReady();
+    });
+
+    // This will be used to let the parent page know the handler has run and
+    // |portal_promise| is now valid.
+    window.opener.handler_called_promise = new Promise((resolve) => {
+      window.addEventListener(handler_name, () => {
+        window.opener.portal_promise = portal_element.activate();
+
+        // Let the parent page know it can now look at |portal_promise|.
+        resolve();
+      }, {once: true});
+    });
+
+  </script>
+</html>

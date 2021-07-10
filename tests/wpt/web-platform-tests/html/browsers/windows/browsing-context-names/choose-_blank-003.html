@@ -11,10 +11,10 @@ setup(() => prefixedStorage = new PrefixedLocalStorageTest());
 async_test(t => {
   t.add_cleanup(() => prefixedStorage.cleanup());
   prefixedStorage.onSet('hasOpener', t.step_func_done(e => {
-    assert_equals(e.newValue, 'true');
+    assert_equals(e.newValue, 'false');
   }));
   var a = document.getElementsByTagName('a')[0];
   a.href = prefixedStorage.url(a.href);
   a.click();
-}, 'Context created by link targeting "_blank" should retain opener reference');
+}, 'Context created by link targeting "_blank" should not have opener reference');
 </script>

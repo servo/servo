@@ -1,7 +1,8 @@
 self.testSettingImmutablePrototypeToNewValueOnly =
-  (prefix, target, newValue, newValueString, { isSameOriginDomain }) => {
+  (prefix, target, newValue, newValueString, { isSameOriginDomain },
+   targetGlobal = window) => {
   test(() => {
-    assert_throws(new TypeError, () => {
+    assert_throws_js(TypeError, () => {
       Object.setPrototypeOf(target, newValue);
     });
   }, `${prefix}: setting the prototype to ${newValueString} via Object.setPrototypeOf should throw a TypeError`);
@@ -9,14 +10,21 @@ self.testSettingImmutablePrototypeToNewValueOnly =
   let dunderProtoError = "SecurityError";
   let dunderProtoErrorName = "\"SecurityError\" DOMException";
   if (isSameOriginDomain) {
-    dunderProtoError = new TypeError();
+    // We're going to end up calling the __proto__ setter, which will
+    // enter the Realm of targetGlobal before throwing.
+    dunderProtoError = targetGlobal.TypeError;
     dunderProtoErrorName = "TypeError";
   }
 
   test(() => {
-    assert_throws(dunderProtoError, function() {
+    const func = function() {
       target.__proto__ = newValue;
-    });
+    };
+    if (isSameOriginDomain) {
+      assert_throws_js(dunderProtoError, func);
+    } else {
+      assert_throws_dom(dunderProtoError, func);
+    }
   }, `${prefix}: setting the prototype to ${newValueString} via __proto__ should throw a ${dunderProtoErrorName}`);
 
   test(() => {
@@ -25,8 +33,10 @@ self.testSettingImmutablePrototypeToNewValueOnly =
 };
 
 self.testSettingImmutablePrototype =
-  (prefix, target, originalValue, { isSameOriginDomain }, newValue = {}, newValueString = "an empty object") => {
-  testSettingImmutablePrototypeToNewValueOnly(prefix, target, newValue, newValueString, { isSameOriginDomain });
+  (prefix, target, originalValue, { isSameOriginDomain }, targetGlobal = window) => {
+  const newValue = {};
+  const newValueString = "an empty object";
+  testSettingImmutablePrototypeToNewValueOnly(prefix, target, newValue, newValueString, { isSameOriginDomain }, targetGlobal);
 
   const originalValueString = originalValue === null ? "null" : "its original value";
 
@@ -44,7 +54,7 @@ self.testSettingImmutablePrototype =
     }, `${prefix}: setting the prototype to ${originalValueString} via __proto__ should not throw`);
   } else {
     test(() => {
-      assert_throws("SecurityError", function() {
+      assert_throws_dom("SecurityError", function() {
         target.__proto__ = newValue;
       });
     }, `${prefix}: setting the prototype to ${originalValueString} via __proto__ should throw a "SecurityError" since ` +

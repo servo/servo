@@ -1,16 +1,15 @@
 from __future__ import print_function
 import fontforge
-from misc import MathMLAssociationCopyright
 
 em = 1000
 
-def create(aName):
+def create(aName, aCopyRight):
     print("Generating %s.woff..." % aName, end="")
     mathFont = fontforge.font()
     mathFont.fontname = aName
     mathFont.familyname = aName
     mathFont.fullname = aName
-    mathFont.copyright = MathMLAssociationCopyright
+    mathFont.copyright = aCopyRight
     mathFont.encoding = "UnicodeFull"
 
     # Create a space character. Also force the creation of some MATH subtables
@@ -27,14 +26,14 @@ def create(aName):
     mathFont[ord(" ")].verticalVariants = "space"
     return mathFont
 
-def drawRectangleGlyph(aGlyph, aWidth, aAscent, aDescent):
-    p = aGlyph.glyphPen()
-    p.moveTo(0, -aDescent)
-    p.lineTo(0, aAscent)
-    p.lineTo(aWidth, aAscent)
-    p.lineTo(aWidth, -aDescent)
+def drawRectangleGlyph(glyph, width, ascent, descent = 0, padding_left = 0):
+    p = glyph.glyphPen()
+    p.moveTo(padding_left, -descent)
+    p.lineTo(padding_left, ascent)
+    p.lineTo(padding_left + width, ascent)
+    p.lineTo(padding_left + width, -descent)
     p.closePath();
-    aGlyph.width = aWidth
+    glyph.width = padding_left + width
 
 def createSquareGlyph(aFont, aCodePoint):
     g = aFont.createChar(aCodePoint)

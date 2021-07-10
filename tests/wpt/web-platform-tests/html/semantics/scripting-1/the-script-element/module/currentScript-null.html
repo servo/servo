@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script type="module" src="set-currentScript-on-window.js"></script>
+<script type="module">
+import { currentScriptOnImportedModule } from "./currentscript.js";
+
+test(() => {
+  assert_equals(document.currentScript, null, "document.currentScript on inline scripts should be null");
+  assert_equals(currentScriptOnImportedModule, null, "document.currentScript on imported scripts should be null");
+  assert_equals(window.currentScriptRecorded, null, "document.currentScript on external module scripts should be null");
+}, "currentScript on script type=module should be all null");
+</script>

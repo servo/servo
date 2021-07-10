@@ -6,15 +6,15 @@ def main(request, response):
     location - The resource to redirect to.
     """
     status = 302
-    if "status" in request.GET:
+    if b"status" in request.GET:
         try:
-            status = int(request.GET.first("status"))
+            status = int(request.GET.first(b"status"))
         except ValueError:
             pass
 
     response.status = status
 
-    location = request.GET.first("location")
+    location = request.GET.first(b"location")
 
-    response.headers.set("Location", location)
-    response.headers.set("Timing-Allow-Origin", "*")
+    response.headers.set(b"Location", location)
+    response.headers.set(b"Timing-Allow-Origin", b"*")

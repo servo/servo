@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<script nonce="abc" src="/resources/testharness.js"></script>
+<script nonce="abc" src="/resources/testharnessreport.js"></script>
+<script nonce="abc" src="/preload/resources/preload_helper.js"></script>
+<body>
+<script nonce="abc">
+
+async_test(function(t) {
+    verifyPreloadAndRTSupport();
+    var link = document.createElement("link");
+    link.as = "script";
+    link.rel = "preload";
+    link.href = "resources/dummy.js?with-nonce";
+    link.nonce = "abc";
+    link.onload = link.onerror = t.step_func(function() {
+        t.step_timeout(function() {
+            verifyNumberOfResourceTimingEntries("resources/dummy.js?with-nonce", 1);
+            t.done();
+        }, 0);
+    });
+    document.body.appendChild(link);
+}, "link preload with nonce attribute");
+
+async_test(function(t) {
+    verifyPreloadAndRTSupport();
+    var link = document.createElement("link");
+    link.as = "script";
+    link.rel = "preload";
+    link.href = "resources/dummy.js?without-nonce";
+    link.onload = link.onerror = t.step_func(function() {
+        t.step_timeout(function() {
+            verifyNumberOfResourceTimingEntries("resources/dummy.js?without-nonce", 0);
+            t.done();
+        }, 0);
+    });
+    document.body.appendChild(link);
+}, "link preload without nonce attribute");
+
+</script>
+</body>

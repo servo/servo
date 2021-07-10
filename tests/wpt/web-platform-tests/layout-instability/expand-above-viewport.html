@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<title>Layout Instability: layout shift when content expanded above the viewport</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-adapter.js"></script>
+<script src="resources/util.js"></script>
+<style>
+body {
+  margin: 0;
+  /* To avoid browser automatic scroll offset adjustment for the expansion. */
+  overflow-anchor: none;
+}
+</style>
+<div id="expander" style="height: 50vh"></div>
+<div id="shifted" style="width: 300px; height: 300vh; background: blue"></div>
+<script>
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  const viewHeight = document.documentElement.clientHeight;
+  window.scrollTo(0, viewHeight);
+
+  await waitForAnimationFrames(2);
+
+  // Expander expands to push |shifted| down.
+  expander.style.height = '150vh';
+
+  const expectedScore1 = computeExpectedScore(300 * viewHeight, viewHeight);
+
+  // Observer fires after the frame is painted.
+  cls_expect(watcher, {score: 0});
+  await watcher.promise;
+  cls_expect(watcher, {score: expectedScore1});
+
+  // Expander expands to push |shifted| out of viewport.
+  expander.style.height = '200vh';
+
+  const expectedScore2 = expectedScore1 +
+                         computeExpectedScore(0.5 * 300 * viewHeight, 0.5 * viewHeight);
+  await watcher.promise;
+  cls_expect(watcher, {score: expectedScore2});
+}, "Layout shift when content expanded above the viewport");
+
+</script>

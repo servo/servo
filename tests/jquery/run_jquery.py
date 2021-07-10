@@ -2,17 +2,20 @@
 
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+from __future__ import absolute_import
+from __future__ import print_function
 import os
 import re
 import subprocess
 import sys
-import BaseHTTPServer
-import SimpleHTTPServer
-import SocketServer
+import six.moves.BaseHTTPServer
+import six.moves.SimpleHTTPServer
+import six.moves.socketserver
 import threading
-import urlparse
+import six.moves.urllib.parse
+import six
 
 # List of jQuery modules that will be tested.
 # TODO(gw): Disabled most of them as something has been
@@ -46,7 +49,7 @@ JQUERY_MODULES = [
 TEST_SERVER_PORT = 8192
 
 # A regex for matching console.log output lines from the test runner.
-REGEX_PATTERN = "^\[jQuery test\] \[([0-9]+)/([0-9]+)/([0-9]+)] (.*)"
+REGEX_PATTERN = r"^\[jQuery test\] \[([0-9]+)/([0-9]+)/([0-9]+)] (.*)"
 
 
 # The result of a single test group.
@@ -103,7 +106,7 @@ def run_servo(servo_exe, module):
             break
         line = line.rstrip()
         try:
-            name, test_result = parse_line_to_result(line)
+            name, test_result = parse_line_to_result(line.decode('utf-8'))
             yield name, test_result
         except AttributeError:
             pass
@@ -124,7 +127,7 @@ def read_existing_results(module):
 # Write a set of results to file
 def write_results(module, results):
     with open(module_filename(module), 'w') as file:
-        for result in test_results.itervalues():
+        for result in six.itervalues(test_results):
             file.write(result.text + '\n')
 
 
@@ -135,24 +138,24 @@ def print_usage():
 
 # Run a simple HTTP server to serve up the jQuery test suite
 def run_http_server():
-    class ThreadingSimpleServer(SocketServer.ThreadingMixIn,
-                                BaseHTTPServer.HTTPServer):
+    class ThreadingSimpleServer(six.moves.socketserver.ThreadingMixIn,
+                                six.moves.BaseHTTPServer.HTTPServer):
         allow_reuse_address = True
 
-    class RequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
+    class RequestHandler(six.moves.SimpleHTTPServer.SimpleHTTPRequestHandler):
         # TODO(gw): HACK copy the fixed version from python
         # main repo - due to https://bugs.python.org/issue23112
         def send_head(self):
             path = self.translate_path(self.path)
             f = None
             if os.path.isdir(path):
-                parts = urlparse.urlsplit(self.path)
+                parts = six.moves.urllib.parse.urlsplit(self.path)
                 if not parts.path.endswith('/'):
                     # redirect browser - doing basically what apache does
                     self.send_response(301)
                     new_parts = (parts[0], parts[1], parts[2] + '/',
                                  parts[3], parts[4])
-                    new_url = urlparse.urlunsplit(new_parts)
+                    new_url = six.moves.urllib.parse.urlunsplit(new_parts)
                     self.send_header("Location", new_url)
                     self.end_headers()
                     return None
@@ -180,7 +183,7 @@ def run_http_server():
                 self.send_header("Last-Modified", self.date_time_string(fs.st_mtime))
                 self.end_headers()
                 return f
-            except:
+            except IOError:
                 f.close()
                 raise
 
@@ -191,6 +194,7 @@ def run_http_server():
     while True:
         sys.stdout.flush()
         server.handle_request()
+
 
 if __name__ == '__main__':
     if len(sys.argv) == 4:
@@ -251,6 +255,7 @@ if __name__ == '__main__':
             print("\t{0} tests succeeded of {1} ({2:.2f}%)".format(individual_success,
                                                                    individual_total,
                                                                    100.0 * individual_success / individual_total))
+
             if unexpected_count > 0:
                 sys.exit(1)
         elif cmd == "update":

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' filesystem:; connect-src 'self';">
+    <title>filesystem-urls-match-filesystem</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["PASS (1/1)"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+</head>
+
+<body>
+    <p>
+        filesystem: URLs are same-origin with the page in which they were created, but explicitly do not match the &apos;self&apos; or &apos;*&apos; source in CSP directives because they are more akin to 'unsafe-inline' content, but should match filesystem: source.
+    </p>
+    <script>
+        window.addEventListener('securitypolicyviolation', function(e) {
+            log("Fail");
+        });
+    
+        if(!window.webkitRequestFileSystem) {
+            t_log.set_status(t_log.NOTRUN, "No filesystem:// support, cannot run test.");
+            t_log.phase = t_log.phases.HAS_RESULT;
+            t_log.done();
+            log("PASS (1/1)"); // simulate needed logs to pass test
+        } else {
+            function pass() {
+                log("PASS (1/1)");
+            }
+            window.webkitRequestFileSystem(
+                TEMPORARY, 1024 * 1024 /*1MB*/ , function(fs) {
+                    fs.root.getFile('pass.js', {
+                        create: true
+                    }, function(fileEntry) {
+                        fileEntry.createWriter(function(fileWriter) {
+                            fileWriter.onwriteend = function(e) {
+                                var script = document.createElement('script');
+                                script.src = fileEntry.toURL('application/javascript');
+                                document.body.appendChild(script);
+                            };
+                            // Create a new Blob and write it to pass.js.
+                            var b = new Blob(['pass();'], {
+                                type: 'application/javascript'
+                            });
+                            fileWriter.write(b);
+                        });
+                    });
+                });
+        }
+
+    </script>
+    <div id="log"></div>
+</body>
+
+</html>

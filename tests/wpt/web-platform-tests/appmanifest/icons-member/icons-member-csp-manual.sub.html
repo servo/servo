@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta http-equiv="Content-Security-Policy" content="img-src {{host}}:{{ports[https][1]}}">
+<title>Test that icons member is supported (CSP check)</title>
+<link rel="help" href="https://w3c.github.io/manifest#icons-member" />
+<link rel="manifest" href="icons-member-csp.sub.webmanifest" />
+<h1>Testing support for icons member (CSP check)</h1>
+<script>
+    // Force the port of the origin to be ports[https][0] (likely :8443)
+    // we treat the port ports[https][1] (likely :8444) to be another origin that we fail against
+    if (window.location.origin !== "https://{{host}}:{{ports[https][0]}}") {
+        window.location = new URL(window.location.pathname, "https://{{host}}:{{ports[https][0]}}")
+    }
+</script>
+<p>
+    To pass, the icon must show a white check mark on a green background.
+</p>

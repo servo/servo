@@ -6,6 +6,6 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
     event.respondWith(event.preloadResponse
       .then(
-        _ => new Response('Fail: got a response'),
-        _ => new Response('Done')));
+        _ => new Response('PASS: preloadResponse resolved'),
+        _ => new Response('FAIL: preloadResponse rejected')));
   });

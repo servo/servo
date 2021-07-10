@@ -22,7 +22,7 @@
         and 'height' attributes set to intersect each of the renderable elements. For 'getEnclosureList', the same 'SVGRect' is modified to
         completely enclose all of the renderable elements. For both 'getIntersectionList' and 'getEnclosureList', the returned 'NodeList' element
         is iterated through and each element is verified through their respective 'id' attributes. For the 'use' element, the 'correspondingUseElement'
-        attribute must be used because an 'SVGElementInstance' reference is obtained via 'getEnclosureList' and 'getIntersectionList'. 
+        attribute must be used because an 'SVGElementInstance' reference is obtained via 'getEnclosureList' and 'getIntersectionList'.
         ]]-->
       </p>
     </d:operatorScript>

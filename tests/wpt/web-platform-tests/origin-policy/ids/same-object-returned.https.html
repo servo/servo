@@ -1,0 +1,14 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>originPolicyIds must return the same object each time</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+test(() => {
+  // Failing this test is a common failure mode for FrozenArray attributes,
+  // so let's be sure implementations get it right.
+  assert_equals(window.originPolicyIds, window.originPolicyIds);
+});
+</script>

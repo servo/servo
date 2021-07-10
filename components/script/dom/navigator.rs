@@ -1,33 +1,41 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::NavigatorBinding;
-use dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
-use dom::bindings::js::{MutNullableJS, Root};
-use dom::bindings::reflector::{Reflector, DomObject, reflect_dom_object};
-use dom::bindings::str::DOMString;
-use dom::bluetooth::Bluetooth;
-use dom::gamepadlist::GamepadList;
-use dom::mimetypearray::MimeTypeArray;
-use dom::navigatorinfo;
-use dom::permissions::Permissions;
-use dom::pluginarray::PluginArray;
-use dom::serviceworkercontainer::ServiceWorkerContainer;
-use dom::vr::VR;
-use dom::window::Window;
+use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::utils::to_frozen_array;
+use crate::dom::bluetooth::Bluetooth;
+use crate::dom::gamepadlist::GamepadList;
+use crate::dom::gpu::GPU;
+use crate::dom::mediadevices::MediaDevices;
+use crate::dom::mediasession::MediaSession;
+use crate::dom::mimetypearray::MimeTypeArray;
+use crate::dom::navigatorinfo;
+use crate::dom::permissions::Permissions;
+use crate::dom::pluginarray::PluginArray;
+use crate::dom::serviceworkercontainer::ServiceWorkerContainer;
+use crate::dom::window::Window;
+use crate::dom::xrsystem::XRSystem;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
+use js::jsval::JSVal;
 
 #[dom_struct]
 pub struct Navigator {
     reflector_: Reflector,
-    bluetooth: MutNullableJS<Bluetooth>,
-    plugins: MutNullableJS<PluginArray>,
-    mime_types: MutNullableJS<MimeTypeArray>,
-    service_worker: MutNullableJS<ServiceWorkerContainer>,
-    vr: MutNullableJS<VR>,
-    gamepads: MutNullableJS<GamepadList>,
-    permissions: MutNullableJS<Permissions>,
+    bluetooth: MutNullableDom<Bluetooth>,
+    plugins: MutNullableDom<PluginArray>,
+    mime_types: MutNullableDom<MimeTypeArray>,
+    service_worker: MutNullableDom<ServiceWorkerContainer>,
+    xr: MutNullableDom<XRSystem>,
+    mediadevices: MutNullableDom<MediaDevices>,
+    gamepads: MutNullableDom<GamepadList>,
+    permissions: MutNullableDom<Permissions>,
+    mediasession: MutNullableDom<MediaSession>,
+    gpu: MutNullableDom<GPU>,
 }
 
 impl Navigator {
@@ -38,16 +46,21 @@ impl Navigator {
             plugins: Default::default(),
             mime_types: Default::default(),
             service_worker: Default::default(),
-            vr: Default::default(),
+            xr: Default::default(),
+            mediadevices: Default::default(),
             gamepads: Default::default(),
             permissions: Default::default(),
+            mediasession: Default::default(),
+            gpu: Default::default(),
         }
     }
 
-    pub fn new(window: &Window) -> Root<Navigator> {
-        reflect_dom_object(box Navigator::new_inherited(),
-                           window,
-                           NavigatorBinding::Wrap)
+    pub fn new(window: &Window) -> DomRoot<Navigator> {
+        reflect_dom_object(Box::new(Navigator::new_inherited()), window)
+    }
+
+    pub fn xr(&self) -> Option<DomRoot<XRSystem>> {
+        self.xr.get()
     }
 }
 
@@ -55,6 +68,21 @@ impl NavigatorMethods for Navigator {
     // https://html.spec.whatwg.org/multipage/#dom-navigator-product
     fn Product(&self) -> DOMString {
         navigatorinfo::Product()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-navigator-productsub
+    fn ProductSub(&self) -> DOMString {
+        navigatorinfo::ProductSub()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-navigator-vendor
+    fn Vendor(&self) -> DOMString {
+        navigatorinfo::Vendor()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-navigator-vendorsub
+    fn VendorSub(&self) -> DOMString {
+        navigatorinfo::VendorSub()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-taintenabled
@@ -79,7 +107,7 @@ impl NavigatorMethods for Navigator {
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-useragent
     fn UserAgent(&self) -> DOMString {
-        navigatorinfo::UserAgent()
+        navigatorinfo::UserAgent(self.global().get_user_agent())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-appversion
@@ -88,7 +116,7 @@ impl NavigatorMethods for Navigator {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-navigator-bluetooth
-    fn Bluetooth(&self) -> Root<Bluetooth> {
+    fn Bluetooth(&self) -> DomRoot<Bluetooth> {
         self.bluetooth.or_init(|| Bluetooth::new(&self.global()))
     }
 
@@ -97,14 +125,21 @@ impl NavigatorMethods for Navigator {
         navigatorinfo::Language()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-navigator-languages
+    #[allow(unsafe_code)]
+    fn Languages(&self, cx: JSContext) -> JSVal {
+        to_frozen_array(&[self.Language()], cx)
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-navigator-plugins
-    fn Plugins(&self) -> Root<PluginArray> {
+    fn Plugins(&self) -> DomRoot<PluginArray> {
         self.plugins.or_init(|| PluginArray::new(&self.global()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-mimetypes
-    fn MimeTypes(&self) -> Root<MimeTypeArray> {
-        self.mime_types.or_init(|| MimeTypeArray::new(&self.global()))
+    fn MimeTypes(&self) -> DomRoot<MimeTypeArray> {
+        self.mime_types
+            .or_init(|| MimeTypeArray::new(&self.global()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-javaenabled
@@ -113,10 +148,9 @@ impl NavigatorMethods for Navigator {
     }
 
     // https://w3c.github.io/ServiceWorker/#navigator-service-worker-attribute
-    fn ServiceWorker(&self) -> Root<ServiceWorkerContainer> {
-        self.service_worker.or_init(|| {
-            ServiceWorkerContainer::new(&self.global())
-        })
+    fn ServiceWorker(&self) -> DomRoot<ServiceWorkerContainer> {
+        self.service_worker
+            .or_init(|| ServiceWorkerContainer::new(&self.global()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-cookieenabled
@@ -124,25 +158,51 @@ impl NavigatorMethods for Navigator {
         true
     }
 
-    #[allow(unrooted_must_root)]
-    // https://w3c.github.io/webvr/#interface-navigator
-    fn Vr(&self) -> Root<VR> {
-        self.vr.or_init(|| VR::new(&self.global()))
-    }
-
     // https://www.w3.org/TR/gamepad/#navigator-interface-extension
-    fn GetGamepads(&self) -> Root<GamepadList> {
-        let root = self.gamepads.or_init(|| {
-            GamepadList::new(&self.global(), &[])
-        });
+    fn GetGamepads(&self) -> DomRoot<GamepadList> {
+        let root = self
+            .gamepads
+            .or_init(|| GamepadList::new(&self.global(), &[]));
 
-        let vr_gamepads = self.Vr().get_gamepads();
-        root.add_if_not_exists(&vr_gamepads);
-        // TODO: Add not VR related gamepads
+        // TODO: Add gamepads
         root
     }
     // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension
-    fn Permissions(&self) -> Root<Permissions> {
-        self.permissions.or_init(|| Permissions::new(&self.global()))
+    fn Permissions(&self) -> DomRoot<Permissions> {
+        self.permissions
+            .or_init(|| Permissions::new(&self.global()))
+    }
+
+    /// https://immersive-web.github.io/webxr/#dom-navigator-xr
+    fn Xr(&self) -> DomRoot<XRSystem> {
+        self.xr
+            .or_init(|| XRSystem::new(&self.global().as_window()))
+    }
+
+    /// https://w3c.github.io/mediacapture-main/#dom-navigator-mediadevices
+    fn MediaDevices(&self) -> DomRoot<MediaDevices> {
+        self.mediadevices
+            .or_init(|| MediaDevices::new(&self.global()))
+    }
+
+    /// https://w3c.github.io/mediasession/#dom-navigator-mediasession
+    fn MediaSession(&self) -> DomRoot<MediaSession> {
+        self.mediasession.or_init(|| {
+            // There is a single MediaSession instance per Pipeline
+            // and only one active MediaSession globally.
+            //
+            // MediaSession creation can happen in two cases:
+            //
+            // - If content gets `navigator.mediaSession`
+            // - If a media instance (HTMLMediaElement so far) starts playing media.
+            let global = self.global();
+            let window = global.as_window();
+            MediaSession::new(window)
+        })
+    }
+
+    // https://gpuweb.github.io/gpuweb/#dom-navigator-gpu
+    fn Gpu(&self) -> DomRoot<GPU> {
+        self.gpu.or_init(|| GPU::new(&self.global()))
     }
 }

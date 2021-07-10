@@ -39,7 +39,7 @@
 
       test(
           function() {
-            assert_throws("INDEX_SIZE_ERR", function() {
+            assert_throws_dom("INDEX_SIZE_ERR", function() {
               document.getElementById("assign-negative").minLength = -5;
             });
           }, "Assigning negative integer throws IndexSizeError");

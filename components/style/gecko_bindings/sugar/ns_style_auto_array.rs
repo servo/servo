@@ -1,23 +1,20 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Rust helpers for Gecko's `nsStyleAutoArray`.
 
-use gecko_bindings::bindings::Gecko_EnsureStyleAnimationArrayLength;
-use gecko_bindings::bindings::Gecko_EnsureStyleTransitionArrayLength;
-use gecko_bindings::structs::{StyleAnimation, StyleTransition};
-use gecko_bindings::structs::nsStyleAutoArray;
-use std::iter::{once, Chain, Once, IntoIterator};
+use crate::gecko_bindings::bindings::Gecko_EnsureStyleAnimationArrayLength;
+use crate::gecko_bindings::bindings::Gecko_EnsureStyleTransitionArrayLength;
+use crate::gecko_bindings::structs::nsStyleAutoArray;
+use crate::gecko_bindings::structs::{StyleAnimation, StyleTransition};
+use std::iter::{once, Chain, IntoIterator, Once};
 use std::ops::{Index, IndexMut};
 use std::slice::{Iter, IterMut};
 
 impl<T> Index<usize> for nsStyleAutoArray<T> {
     type Output = T;
     fn index(&self, index: usize) -> &T {
-        if index > self.len() {
-            panic!("out of range")
-        }
         match index {
             0 => &self.mFirstElement,
             _ => &self.mOtherElements[index - 1],
@@ -27,9 +24,6 @@ impl<T> Index<usize> for nsStyleAutoArray<T> {
 
 impl<T> IndexMut<usize> for nsStyleAutoArray<T> {
     fn index_mut(&mut self, index: usize) -> &mut T {
-        if index > self.len() {
-            panic!("out of range")
-        }
         match index {
             0 => &mut self.mFirstElement,
             _ => &mut self.mOtherElements[index - 1],
@@ -61,7 +55,10 @@ impl nsStyleAutoArray<StyleAnimation> {
     /// Ensures that the array has length at least the given length.
     pub fn ensure_len(&mut self, len: usize) {
         unsafe {
-            Gecko_EnsureStyleAnimationArrayLength(self as *mut nsStyleAutoArray<StyleAnimation> as *mut _, len);
+            Gecko_EnsureStyleAnimationArrayLength(
+                self as *mut nsStyleAutoArray<StyleAnimation> as *mut _,
+                len,
+            );
         }
     }
 }
@@ -70,7 +67,10 @@ impl nsStyleAutoArray<StyleTransition> {
     /// Ensures that the array has length at least the given length.
     pub fn ensure_len(&mut self, len: usize) {
         unsafe {
-            Gecko_EnsureStyleTransitionArrayLength(self as *mut nsStyleAutoArray<StyleTransition> as *mut _, len);
+            Gecko_EnsureStyleTransitionArrayLength(
+                self as *mut nsStyleAutoArray<StyleTransition> as *mut _,
+                len,
+            );
         }
     }
 }

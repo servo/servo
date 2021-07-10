@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<title>Reference for position:sticky elements should be rendered at their sticky offset</title>
+
+<style>
+.group {
+  display: inline-block;
+  position: relative;
+  width: 150px;
+  height: 250px;
+}
+
+.inlineGroup {
+  display: inline-block;
+  position: relative;
+  width: 250px;
+  height: 150px;
+}
+
+.scroller {
+  position: relative;
+  width: 100px;
+  height: 200px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.inlineGroup .scroller {
+  position: relative;
+  width: 200px;
+  height: 100px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.contents {
+  height: 500px;
+}
+
+.inlineGroup .contents {
+  height: 100%;
+  width: 500px;
+}
+
+.indicator {
+  background-color: green;
+  position: absolute;
+}
+
+.box {
+  width: 100%;
+  height: 100px;
+}
+
+.inlineGroup .box {
+  height: 100%;
+  width: 100px;
+}
+</style>
+
+<script>
+window.addEventListener('load', function() {
+  document.getElementById('scroller1').scrollTop = 125;
+  document.getElementById('scroller2').scrollTop = 50;
+  document.getElementById('scroller3').scrollLeft = 125;
+  document.getElementById('scroller4').scrollLeft = 75;
+});
+</script>
+
+<div class="group">
+  <div id="scroller1" class="scroller">
+    <div class="contents">
+      <div class="indicator box" style="top: 175px;"></div>
+    </div>
+  </div>
+</div>
+
+<div class="group">
+  <div id="scroller2" class="scroller">
+    <div class="contents">
+      <div class="indicator box" style="top: 125px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Force break to make sure we are within 800px wide. -->
+<div></div>
+
+<div class="inlineGroup">
+  <div id="scroller3" class="scroller">
+    <div class="contents">
+      <div class="indicator box" style="left: 175px;"></div>
+    </div>
+  </div>
+</div>
+
+<div class="inlineGroup">
+  <div id="scroller4" class="scroller">
+    <div class="contents">
+      <div class="indicator box" style="left: 150px;"></div>
+    </div>
+  </div>
+</div>
+
+<div>You should see four green squares above. No red or blue should be visible.</div>

@@ -1,0 +1,14 @@
+<!doctype html>
+<title>Focusable legend</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../common/accesskey.js></script>
+<p>Press the access key combination for "a". <kbd></kbd></p>
+<fieldset>
+ <legend tabindex=0 onclick="fail('unexpected click event on legend')"
+                    onfocus="fail('legend was focused')" accesskey=a>
+  legend
+  <input onfocus="pass()">
+ </legend>
+ <input onfocus="fail('input after legend was focused')">
+</fieldset>

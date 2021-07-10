@@ -27,16 +27,16 @@
 window.onload = function() {
   var blue = document.getElementsByTagName('div')[1], fuchsia = document.getElementsByTagName('div')[2];
   blue.ondragenter = blue.ondragover = function(e) {
-  	//this test assumes the browser will default to opening the file if the page does not want it
-   	e.preventDefault();
-		e.dataTransfer.dropEffect = 'none';
+    //this test assumes the browser will default to opening the file if the page does not want it
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'none';
   };
   fuchsia.ondragenter = fuchsia.ondragover = function(e) {
-   	e.preventDefault();
-		e.dataTransfer.dropEffect = 'copy';
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
   };
   fuchsia.ondrop = function(e) {
-   	e.preventDefault();
+    e.preventDefault();
   };
 };
 

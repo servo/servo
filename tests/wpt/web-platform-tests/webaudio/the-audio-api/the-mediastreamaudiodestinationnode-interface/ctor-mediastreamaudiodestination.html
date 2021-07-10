@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Test Constructor: MediaStreamAudioDestinationNode
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+    <script src="/webaudio/resources/audionodeoptions.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      let context = new AudioContext();
+
+      let audit = Audit.createTaskRunner();
+
+      audit.define('initialize', (task, should) => {
+        // Need AudioContext, not OfflineAudioContext, for these tests.
+        should(() => {
+          context = new AudioContext();
+        }, 'context = new AudioContext()').notThrow();
+        task.done();
+      });
+
+      audit.define('invalid constructor', (task, should) => {
+        testInvalidConstructor(
+            should, 'MediaStreamAudioDestinationNode', context);
+        task.done();
+      });
+
+      audit.define('default constructor', (task, should) => {
+        let prefix = 'node0';
+        let node = testDefaultConstructor(
+            should, 'MediaStreamAudioDestinationNode', context, {
+              prefix: prefix,
+              numberOfInputs: 1,
+              numberOfOutputs: 0,
+              channelCount: 2,
+              channelCountMode: 'explicit',
+              channelInterpretation: 'speakers'
+            });
+
+        testDefaultAttributes(should, node, prefix, []);
+
+        task.done();
+      });
+
+      audit.define('test AudioNodeOptions', (task, should) => {
+        testAudioNodeOptions(
+            should, context, 'MediaStreamAudioDestinationNode', {
+              channelCount: {
+                // An arbitrary but valid, non-default count for this node.
+                value: 7
+              }
+            });
+        task.done();
+      });
+
+      audit.run();
+    </script>
+  </body>
+</html>

@@ -3,10 +3,11 @@
 <head>
 <meta charset="utf-8">
 <title>table axis height</title>
-<link rel="help" href="http://www.mathml-association.org/MathMLinHTML5/S3.html#SS5">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#table-or-matrix-mtable">
 <meta name="assert" content="Element mtable correctly uses the axis height parameter from the MATH table.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/feature-detection.js"></script>
 <style>
   math, mspace {
     font-size: 10px;
@@ -25,12 +26,12 @@
   }
 
   setup({ explicit_done: true });
-  window.addEventListener("load", function() {
-    document.fonts.ready.then(runTests);
-  });
+  window.addEventListener("load", () => { document.fonts.ready.then(runTests); });
 
   function runTests() {
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var v1 = 5000 * emToPx;
       var tableMiddle = (getBox("table").bottom + getBox("table").top) / 2;
       assert_approx_equals(getBox("baseline").bottom - tableMiddle,
@@ -42,10 +43,11 @@
 </script>
 </head>
 <body>
+  <div id="log"></div>
   <p>
     <math style="font-family: axisheight5000-verticalarrow14000">
-      <mspace id="baseline" mathbackground="green" width="50px" height="1px"/>
-      <mtable id="table" mathbackground="blue"><mtr><mtd><mspace width="100px" height="1px"/></mtd></mtr></mtable>
+      <mspace id="baseline" style="background: green" width="50px" height="1px"/>
+      <mtable id="table" style="background: blue"><mtr><mtd><mspace width="100px" height="1px"/></mtd></mtr></mtable>
     </math>
   </p>
 </body>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Background and Borders Test: box-shadow and overlapping of adjacent text</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#shadow-layers" >
+  <link rel="match" href="reference/box-shadow-overlapping-001-ref.html">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+
+  <meta content="" name="flags">
+  <meta content="Box shadows do not affect layout. Box shadows take up no space. Box shadows do not affect or influence normal flow of boxes. Therefore, box shadows can 'collide' with other boxes and can overlap other boxes (inline box or line box) or be overlapped by other boxes. In this test, the text ('PNG') follows a right outer box shadow and therefore overlaps such shadow." name="assert">
+
+  <style>
+  div
+    {
+      background-color: yellow;
+      color: green;
+      float: left;
+      font-family: Ahem;
+      font-size: 100px;
+      line-height: 1;
+    }
+
+  span
+    {
+      box-shadow: 3em 0em red;
+    }
+
+    /*
+
+    omitted colors default to the value of the color property.
+
+    1st <length>
+    Specifies the horizontal offset of the shadow. A positive value
+    draws a shadow that is offset to the right of the box, a negative
+    length to the left.
+
+    2nd <length>
+    Specifies the vertical offset of the shadow. A positive value
+    offsets the shadow down, a negative one up.
+
+    */
+  </style>
+
+  <p>Test passes if there is a filled green rectangle and <strong>no red</strong>.
+
+  <div><span>PED</span>PNG</div>

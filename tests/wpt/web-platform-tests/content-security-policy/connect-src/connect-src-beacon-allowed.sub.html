@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="connect-src 'self' http://{{host}}:{{ports[http][0]}}; script-src 'self' 'unsafe-inline';">
+    <title>connect-src-beacon-allowed</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["Pass"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+    <!-- enforcing policy:
+connect-src 'self' http://{{host}}:{{ports[http][0]}}; script-src 'self' 'unsafe-inline';
+-->
+</head>
+
+<body>
+    <script>
+        window.addEventListener('securitypolicyviolation', function(e) {
+            log("FAIL");
+        });
+
+        if (typeof navigator.sendBeacon != 'function') {
+            t_log.set_status(t_log.NOTRUN, "No navigator.sendBeacon, cannot run test.");
+            t_log.phase = t_log.phases.HAS_RESULT;
+            t_log.done();
+        } else {
+            try {
+                var es = navigator.sendBeacon("http://{{host}}:{{ports[http][0]}}/cors/resources/status.py");
+                log("Pass");
+            } catch (e) {
+                log("Fail");
+            }
+        }
+    </script>
+    <div id="log"></div>
+</body>
+
+</html>

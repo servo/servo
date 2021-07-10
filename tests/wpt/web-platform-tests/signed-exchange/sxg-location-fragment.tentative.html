@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Navigating to a Signed Exchange should preserve URL fragment</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="./resources/sxg-util.js"></script>
+<body>
+<script>
+promise_test(async (t) => {
+  const sxgUrl = get_host_info().HTTPS_ORIGIN + '/signed-exchange/resources/sxg/sxg-location.sxg#fragment';
+  const message = await openSXGInIframeAndWaitForMessage(t, sxgUrl);
+  assert_equals(message.location, innerURLOrigin() + '/signed-exchange/resources/inner-url.html#fragment');
+  assert_false(message.is_fallback);
+}, 'Navigating to a Signed Exchange should preserve URL fragment');
+
+</script>
+</body>

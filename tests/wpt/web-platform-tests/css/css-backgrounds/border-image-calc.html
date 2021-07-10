@@ -1,0 +1,20 @@
+<!doctype html>
+<title>CSS Test: border-image honors calc() lengths / percentages</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://bugzil.la/1517521">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#border-image-width">
+<link rel="match" href="border-image-calc-ref.html">
+<style>
+  #test {
+    background-color: red;
+    border: 100px solid red;
+    border-image-slice: 10;
+    border-image-source: url("support/green_color.png");
+    border-image-width: 100px calc(100px) calc(100%) calc(50% + 50px);
+    height: 0;
+    width: 0;
+  }
+</style>
+<p>Test passes if there is a green 200px times 200px square.</p>
+<div id="test"></div>

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Correctness of worklet animation state when timeline becomes newly
+         active or inactive.</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-animationworklet/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="common.js"></script>
+<style>
+  .scroller {
+    overflow: auto;
+    height: 100px;
+    width: 100px;
+  }
+  .contents {
+    height: 1000px;
+    width: 100%;
+  }
+</style>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+function createScroller(test) {
+  var scroller = createDiv(test);
+  scroller.innerHTML = "<div class='contents'></div>";
+  scroller.classList.add('scroller');
+  return scroller;
+}
+
+function createScrollLinkedWorkletAnimation(test) {
+  const timeline = new ScrollTimeline({
+    scrollSource: createScroller(test),
+    timeRange: 1000
+  });
+  const DURATION = 1000; // ms
+  const KEYFRAMES = { transform: ['translateY(100px)', 'translateY(200px)'] };
+  return new WorkletAnimation('passthrough', new KeyframeEffect(createDiv(test),
+        KEYFRAMES, DURATION), timeline);
+}
+
+setup(setupAndRegisterTests, {explicit_done: true});
+
+function setupAndRegisterTests() {
+  registerPassthroughAnimator().then(() => {
+
+    promise_test(async t => {
+      const animation = createScrollLinkedWorkletAnimation(t);
+      const scroller = animation.timeline.scrollSource;
+      const target = animation.effect.target;
+
+      // There is no direct way to control when local times of composited
+      // animations are synced to the main thread. This test uses another
+      // composited worklet animation with an always active timeline as an
+      // indicator of when the sync is ready. The sync is done when animation
+      // effect's output has changed as a result of advancing the timeline.
+      const animationRef = createScrollLinkedWorkletAnimation(t);
+      const scrollerRef = animationRef.timeline.scrollSource;
+      const targetRef = animationRef.effect.target;
+
+      const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+      const timeRange = animation.timeline.timeRange;
+      scroller.scrollTop = 0.2 * maxScroll;
+
+      // Make the timeline inactive.
+      scroller.style.display = "none"
+      // Force relayout.
+      scroller.scrollTop;
+
+      animation.play();
+      animationRef.play();
+      assert_equals(animation.currentTime, null,
+        'Initial current time must be unresolved in idle state.');
+      assert_equals(animation.startTime, null,
+        'Initial start time must be unresolved in idle state.');
+      waitForAnimationFrameWithCondition(_=> {
+        return animation.playState == "running"
+      });
+      assert_equals(animation.currentTime, null,
+        'Initial current time must be unresolved in playing state.');
+      assert_equals(animation.startTime, null,
+        'Initial start time must be unresolved in playing state.');
+
+      scrollerRef.scrollTop = 0.2 * maxScroll;
+
+      // Wait until local times are synced back to the main thread.
+      await waitForAnimationFrameWithCondition(_ => {
+        return animationRef.effect.getComputedTiming().localTime == 200;
+      });
+
+      assert_equals(animation.effect.getComputedTiming().localTime, null,
+        'The underlying effect local time must be undefined while the ' +
+        'timeline is inactive.');
+
+      // Make the timeline active.
+      scroller.style.display = "";
+      // Wait for new animation frame  which allows the timeline to compute new
+      // current time.
+      await waitForNextFrame();
+
+      assert_times_equal(animation.currentTime, 200,
+        'Current time must be initialized.');
+      assert_times_equal(animation.startTime, 0,
+        'Start time must be initialized.');
+
+      scrollerRef.scrollTop = 0.4 * maxScroll;
+      // Wait until local times are synced back to the main thread.
+      await waitForAnimationFrameWithCondition(_ => {
+        return animationRef.effect.getComputedTiming().localTime == 400;
+      });
+      assert_times_equal(animation.effect.getComputedTiming().localTime, 200,
+        'When the timeline becomes newly active, the underlying effect\'s ' +
+        'timing should be properly updated.');
+
+      // Make the timeline inactive again.
+      scroller.style.display = "none"
+      await waitForNextFrame();
+
+      assert_times_equal(animation.currentTime, 200,
+        'Current time must be the previous current time.');
+      assert_equals(animation.startTime, null,
+        'Initial start time must be unresolved.');
+
+      scrollerRef.scrollTop = 0.6 * maxScroll;
+      // Wait until local times are synced back to the main thread.
+      await waitForAnimationFrameWithCondition(_ => {
+        return animationRef.effect.getComputedTiming().localTime == 600;
+      });
+
+      assert_times_equal(animation.effect.getComputedTiming().localTime, 200,
+        'When the timeline becomes newly inactive, the underlying effect\'s ' +
+        'timing should stay unchanged.');
+    }, 'When timeline time becomes inactive previous current time must be ' +
+       'the current time and start time unresolved');
+    done();
+  });
+}
+</script>
+</body>

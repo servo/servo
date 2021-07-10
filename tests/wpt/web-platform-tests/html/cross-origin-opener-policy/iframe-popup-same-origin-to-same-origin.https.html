@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name=timeout content=long>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/common.js"></script>
+
+<div id=log></div>
+<script>
+// This document has COOP "same-origin". The popup has COOP "same-origin". Therefore there should
+// only be an opener and name if the frameOrigin and popupOrigin are same-origin with this document.
+[
+[SAME_ORIGIN, SAME_ORIGIN, true],
+[SAME_SITE, SAME_ORIGIN, false],
+[CROSS_ORIGIN, SAME_ORIGIN, false],
+[SAME_ORIGIN, SAME_SITE, false],
+[SAME_SITE, SAME_SITE, false],
+[CROSS_ORIGIN, SAME_SITE, false],
+[SAME_ORIGIN, CROSS_ORIGIN, false],
+[SAME_SITE, CROSS_ORIGIN, false],
+[CROSS_ORIGIN, CROSS_ORIGIN, false],
+].forEach(([frameOrigin, popupOrigin, popupHasOpenerAndName]) => {
+    const testTitleStart = "same-origin";
+    const popupCOOP = "same-origin";
+    run_coop_test_iframe(testTitleStart, frameOrigin, popupOrigin, popupCOOP, popupHasOpenerAndName, popupHasOpenerAndName);
+});
+</script>

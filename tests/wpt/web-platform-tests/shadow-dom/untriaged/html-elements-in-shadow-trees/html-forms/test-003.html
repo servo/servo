@@ -21,7 +21,7 @@ policies and contribution forms [3].
 <body>
 <div id="log"></div>
 <script>
-var A_08_02_03_T01 = async_test('A_08_02_03_T01', { timeout: 5000 });
+var A_08_02_03_T01 = async_test('A_08_02_03_T01');
 
 var checkIframeContent = A_08_02_03_T01.step_func(function () {
     // remember value to check before cleaning the context (it'll destroy the iframe)
@@ -51,7 +51,6 @@ A_08_02_03_T01.step(function () {
 
     iframe.src = '../../resources/blank.html';
     iframe.setAttribute('name', 'targetIframe');
-    d.body.appendChild(iframe);
 
     // create form
     var form = d.createElement('form');
@@ -77,11 +76,13 @@ A_08_02_03_T01.step(function () {
     input2.setAttribute('value', 'value2');
     s.appendChild(input2);
 
-    // submit the form
-    form.submit();
-
-    // set timeout to give the iframe time to load content
-    setTimeout(checkIframeContent, 2000);
+    // Wait for the first 'load' event for blank.html.
+    iframe.onload = A_08_02_03_T01.step_func(() => {
+        // Wait for the second 'load' event for the submission.
+        iframe.onload = checkIframeContent;
+        form.submit();
+    });
+    d.body.appendChild(iframe);
 });
 </script>
 </body>

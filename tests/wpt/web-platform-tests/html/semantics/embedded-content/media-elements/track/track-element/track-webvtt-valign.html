@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>Cue vertical alignment (direction) from settings</title>
+<script src="track-helpers.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+check_cues_from_track("resources/valign.vtt", testTrack);
+check_cues_from_track("resources/valign-ltr.vtt", testTrack);
+check_cues_from_track("resources/valign-bad.vtt", function(track) {
+    var expected = [
+        { vertical: "" },
+        { vertical: "" },
+        { vertical: "" }
+    ];
+
+    assert_cues_match(track.cues, expected);
+});
+
+function testTrack(track) {
+    var expected = [
+        { vertical: "rl", align: "center", position: "auto" },
+        { vertical: "lr", align: "center", position: "auto" },
+        { vertical: "rl", align: "start",  position: 0      }
+    ];
+
+    assert_cues_match(track.cues, expected);
+}
+</script>

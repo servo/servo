@@ -1,6 +1,0 @@
-<http://example.org/collection1> <http://www.w3.org/ns/activitystreams#last> <http://example.org/page42> .
-<http://example.org/collection1> <http://www.w3.org/ns/activitystreams#first> <http://example.org/page1> .
-<http://example.org/collection1> <http://www.w3.org/ns/activitystreams#totalItems> "42023"^^<http://www.w3.org/2001/XMLSchema#nonNegativeInteger> .
-<http://example.org/collection1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/activitystreams#OrderedCollection> .
-<http://example.org/collection1> <http://www.w3.org/2000/01/rdf-schema#label> "Steampunk Annotations" .
-<http://example.org/collection1> <http://purl.org/dc/terms/creator> <http://example.com/publisher> .

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>NoModificationAllowedError when mutating read only properties</title>
+<link rel="help" href="https://www.w3.org/TR/cssom-1/#dom-cssstyledeclaration-setpropertyvalue">
+<meta name="assert" content="This test verifies that NoModificationAllowedError is thrown when mutating read only properties" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body></body>
+<script>
+test(function(t) {
+    assert_equals(document.defaultView.getComputedStyle(document.body, null).parentRule, null);
+}, "Computed style parent (should be null)");
+
+test(function(t) {
+    assert_throws_dom("NoModificationAllowedError", function() {
+        document.defaultView.getComputedStyle(document.body, null).color = "blue";
+    });
+}, "Exception thrown when trying to change a computed style declaration via property");
+
+test(function(t) {
+    assert_throws_dom("NoModificationAllowedError", function() {
+        document.defaultView.getComputedStyle(document.body, null).setProperty("color", "blue");
+    });
+}, "Exception thrown when trying to change a computed style declaration via setProperty");
+
+test(function(t) {
+    assert_throws_dom("NoModificationAllowedError", function() {
+        document.defaultView.getComputedStyle(document.body, null).webkitTransition = "";
+    });
+}, "Exception thrown when trying to change a computed style alias via property");
+
+test(function(t) {
+    assert_throws_dom("NoModificationAllowedError", function() {
+        document.defaultView.getComputedStyle(document.body, null).setProperty("webkitTransition", "");
+    });
+}, "Exception thrown when trying to change a computed style alias via setProperty");
+</script>

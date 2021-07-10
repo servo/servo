@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="./resources/intersection-observer-test-utils.js"></script>
+<iframe scrolling="no" frameborder="0" id="iframe"></iframe>
+<script>
+promise_test(async t => {
+  iframe.src =
+    get_host_info().HTTP_NOTSAMESITE_ORIGIN + "/intersection-observer/resources/cross-origin-child-iframe.sub.html";
+
+  const { rootBounds, intersectionRect } = await new Promise(resolve => {
+    window.addEventListener("message", event => resolve(event.data));
+  }, { once: true } );
+
+  // 300px = iframe viewport width
+  // 8px = default body margin
+  // (intersectionRect is in the coordinate space of the target iframe)
+  assert_equals(intersectionRect.top, 8);
+  assert_equals(intersectionRect.left, 200);
+  assert_equals(intersectionRect.right, 300 - 8);
+  assert_equals(intersectionRect.width, 100 - 8);
+  assert_equals(intersectionRect.height, 100);
+
+  assert_equals(rootBounds.left, 0);
+  assert_equals(rootBounds.top, 0);
+  assert_equals(rootBounds.right, document.documentElement.clientWidth);
+  assert_equals(rootBounds.bottom, document.documentElement.clientHeight);
+}, "rootBounds in a same-origin iframe in the case where there is a cross-origin "
++  "iframe in between the top document and the same origin iframe");
+</script>

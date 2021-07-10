@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/media.html#text-track-model">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/media.js"></script>
+<div id="log"></div>
+<script>
+// Media elements have a "list of pending text tracks" which should be populated
+// with text tracks with readyState "loading". When the text track src is
+// invalid or points to a non-existent resource, it shouldn't be possible to
+// block the media element's readyState indefinitely.
+function t(trackSrc) {
+  const track = document.createElement('track');
+  track.src = trackSrc;
+  track.default = true;
+  async_test(t => {
+    const video = document.createElement('video');
+    video.autoplay = true;
+    video.controls = true; // for visual inspection, not part of test
+    video.src = getVideoURI('/media/movie_5');
+    video.appendChild(track);
+    document.body.appendChild(video);
+    // The playing event isn't used because it's fired in Safari even when the
+    // playback doesn't actually start.
+    video.ontimeupdate = t.step_func(() => {
+      if (video.currentTime > 0)
+        t.done();
+    });
+  }, `<video autoplay> with ${track.outerHTML} child`);
+}
+t("invalid://url");
+t("404");
+t("");
+</script>

@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Test for #18357: Panic after setting the rel attribute of a link element with setAttributeNode.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  var link = document.createElement("link");
+  var rel = document.createAttribute("rel");
+  rel.value = "stylesheet";
+  link.setAttributeNode(rel);
+  link.setAttribute("href", "foo");
+  document.head.appendChild(link);
+}, "Doesn't crash when doing setAttributeNode on the rel attribute");
+</script>

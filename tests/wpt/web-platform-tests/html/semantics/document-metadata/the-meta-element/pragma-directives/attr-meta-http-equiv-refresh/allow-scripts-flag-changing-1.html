@@ -9,6 +9,7 @@
 
 <script>
 "use strict";
+setup({ single_test: true });
 
 const sourceIFrame = document.createElement("iframe");
 sourceIFrame.setAttribute("sandbox", "allow-same-origin");
@@ -32,7 +33,10 @@ destIFrame.onload = () => {
   ++destLoadCount;
 
   if (destLoadCount === 2) {
-    assert_unreached("The iframe into which the meta was moved must not refresh");
+    // destIFrame doesn't have the sandboxed automatic features browsing context
+    // flag sets, thus navigated.
+    assert_equals(destIFrame.contentDocument.body.textContent.trim(), "foo");
+    done();
   }
 
   maybeStartTest();
@@ -40,9 +44,6 @@ destIFrame.onload = () => {
 
 function maybeStartTest() {
   if (sourceLoadCount === 1 && destLoadCount === 1) {
-    // Test that no refreshes occur within 3 seconds
-    step_timeout(done, 3000);
-
     const meta = sourceIFrame.contentDocument.querySelector("meta");
     destIFrame.contentDocument.body.appendChild(meta);
   }

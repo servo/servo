@@ -1,0 +1,34 @@
+<!doctype html>
+<html class="reftest">
+<meta charset="utf-8">
+<title>Overflow-clip-margin: is shown with content-visibility: auto</title>
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#propdef-overflow-clip-margin">
+<link rel="author" title="Scott Violet" href="mailto:sky@chromium.org">
+<link rel="match" href="overflow-clip-margin-007-ref.html">
+<style>
+  body {
+    height: 15000px;
+  }
+  .auto {
+    content-visibility: auto;
+    width: 100px;
+    height: 100px;
+    overflow-clip-margin: 10000px;
+    background: lightblue;
+  }
+  .big {
+    width: 10px;
+    height: 20000px;
+    position: relative;
+    top: -10000px;
+    background: green;
+  }
+</style>
+<div class=auto>
+  <div class=big></div>
+</div>
+<script>
+onload = function() {
+  document.documentElement.scrollTop = window.innerHeight * 3;
+}
+</script>

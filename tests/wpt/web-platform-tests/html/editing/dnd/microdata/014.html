@@ -28,16 +28,16 @@
 <script>
 
 function makeEl(eltype,props,contents) {
-	var elem = document.createElement(eltype);
-	for( var i in props ) {
-		if( props.hasOwnProperty(i) ) {
-			elem.setAttribute(i,props[i]);
-		}
-	}
-	if( contents ) {
-		elem.innerHTML = contents;
-	}
-	return elem;
+  var elem = document.createElement(eltype);
+  for( var i in props ) {
+    if( props.hasOwnProperty(i) ) {
+      elem.setAttribute(i,props[i]);
+    }
+  }
+  if( contents ) {
+    elem.innerHTML = contents;
+  }
+  return elem;
 }
 
 var orange, fails = [], doneonce = false;
@@ -45,48 +45,48 @@ window.onload = function() {
   orange = document.getElementsByTagName('div')[0];
 
   orange.ondragstart = function(e) {
-		e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.effectAllowed = 'copy';
     e.dataTransfer.setData('Text', 'dummy text');
-  	var err;
-		if( err = checkprops(e.dataTransfer.getData('application/microdata+json')) ) {
-			fails[fails.length] = e.type + ' ' + err;
-	  }
+    var err;
+    if( err = checkprops(e.dataTransfer.getData('application/microdata+json')) ) {
+      fails[fails.length] = e.type + ' ' + err;
+    }
   };
   orange.nextSibling.ondragenter = orange.nextSibling.ondragleave = orange.nextSibling.ondragover =
   orange.ondrag = orange.ondragend = function(e) {
     if( e.type == 'dragover' || e.type == 'dragenter' ) {
-    	e.preventDefault();
-	    e.dataTransfer.dropEffect = 'copy';
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
     }
     if( e.dataTransfer.getData('application/microdata+json') ) {
-			fails[fails.length] = e.type + ' unexpectedly had microdata (security restriction)';
+      fails[fails.length] = e.type + ' unexpectedly had microdata (security restriction)';
     }
   };
-	orange.nextSibling.ondrop = function(e) {
-  	var err;
-		if( err = checkprops(e.dataTransfer.getData('application/microdata+json')) ) {
-			fails[fails.length] = e.type + ' ' + err;
-	  }
-	  if( e.type != 'drop' ) { return; }
-  	if( doneonce ) { return; }
-  	doneonce = true;
+  orange.nextSibling.ondrop = function(e) {
+    var err;
+    if( err = checkprops(e.dataTransfer.getData('application/microdata+json')) ) {
+      fails[fails.length] = e.type + ' ' + err;
+    }
+    if( e.type != 'drop' ) { return; }
+    if( doneonce ) { return; }
+    doneonce = true;
     setTimeout(function () {
-    	document.getElementsByTagName('p')[0].innerHTML = fails.length ? ( 'FAIL: ' + fails.join('<br>') ) : 'PASS';
-    	fails = [];
+      document.getElementsByTagName('p')[0].innerHTML = fails.length ? ( 'FAIL: ' + fails.join('<br>') ) : 'PASS';
+      fails = [];
     }, 200 );
   };
 
 };
 function checkprops(md) {
-	// http://dev.w3.org/html5/md/#extracting-json
-	//"check if the element is a top-level microdata item, and if it is"
-	//as it has itemprop, it is not a top-level item, and should be ignored
-	var i;
-	if( !md ) { return 'no microdata'; }
-	md = JSON.parse(md);
-	if( !md.items ) { return 'no items'; }
-	if( md.items.length != 0 ) { return md.items.length+' items instead of 0'; }
-	return '';
+  // http://dev.w3.org/html5/md/#extracting-json
+  //"check if the element is a top-level microdata item, and if it is"
+  //as it has itemprop, it is not a top-level item, and should be ignored
+  var i;
+  if( !md ) { return 'no microdata'; }
+  md = JSON.parse(md);
+  if( !md.items ) { return 'no items'; }
+  if( md.items.length != 0 ) { return md.items.length+' items instead of 0'; }
+  return '';
 }
 
 </script>

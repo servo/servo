@@ -1,0 +1,5 @@
+spec: https://wicg.github.io/client-hints-infrastructure/
+suggested_reviewers:
+  - igrigorik
+  - yoavweiss
+  - tarunban

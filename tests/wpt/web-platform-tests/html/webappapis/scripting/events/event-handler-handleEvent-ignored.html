@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>"handleEvent" property of EventHandler should be ignored</title>
+<link rel="help" href="https://html.spec.whatwg.org/#eventhandler">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+"use strict";
+
+test(t => {
+  const handler = Object.create(null, {
+    handleEvent: {
+      get: t.unreached_func('"handleEvent" property should not be looked up'),
+    },
+  });
+
+  const el = document.createElement("div");
+  el.onmouseenter = handler;
+  el.dispatchEvent(new MouseEvent("mouseenter"));
+}, 'plain object "mouseenter" handler');
+
+async_test(t => {
+  const handler = Object.create(Function.prototype, {
+    handleEvent: {
+      get: t.unreached_func('"handleEvent" property should not be looked up'),
+    },
+  });
+  assert_true(handler instanceof Function);
+
+  window.onmessage = handler;
+  window.postMessage({}, "*");
+
+  step_timeout(() => {
+    t.done();
+  }, 50);
+}, 'non-callable "message" handler that is instance of Function');
+</script>

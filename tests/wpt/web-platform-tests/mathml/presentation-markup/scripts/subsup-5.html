@@ -3,10 +3,11 @@
 <head>
 <meta charset="utf-8">
 <title>Subscripts and Superscripts metrics</title>
-<link rel="help" href="http://www.mathml-association.org/MathMLinHTML5/S3.html#SS4">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#subscripts-and-superscripts-msub-msup-msubsup">
 <meta name="assert" content="Verify metrics of scripted elements with tall scripts.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/feature-detection.js"></script>
 <style>
   math, mspace {
     font-size: 10px;
@@ -30,6 +31,8 @@
 
   function runTests() {
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       var e = 1;
        assert_approx_equals(getBox("msubbase").middle, getBox("baseline").bottom, e, "msub base is placed on the baseline");
        assert_approx_equals(getBox("msupbase").middle, getBox("baseline").bottom, e, "msup base is placed on the baseline");
@@ -38,6 +41,8 @@
     }, "Alignment on the baseline with different and large script heights");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       assert_greater_than(getBox("msubsub").top, getBox("msubbase").top, "msub: subscript is below the top of the base");
       assert_less_than(getBox("msupsup").bottom, getBox("msupbase").bottom, "msup: supscript is above the bottom of the base");
       assert_greater_than(getBox("msubsupsub").top, getBox("msubsupbase").top, "msubsup: subscript is below the top of the base");
@@ -49,6 +54,8 @@
     }, "Tall subscripts/superscripts are not placed too high/low");
 
     test(function() {
+      assert_true(MathMLFeatureDetection.has_mspace());
+
       assert_greater_than(getBox("msubsupsub").top, getBox("msubsupsup").bottom, "msubsup: subscript is below the superscript");
       assert_greater_than(getBox("multipresub").top, getBox("multipresup").bottom, "mmultiscripts: presubscript is below the presuperscript");
       assert_greater_than(getBox("multipostsub").top, getBox("multipostsup").bottom, "mmultiscripts: postsubscript is below the postsuperscript");
@@ -59,32 +66,32 @@
 </script>
 </head>
 <body>
+  <div id="log"></div>
   <p>
     <math>
-      <mspace id="baseline" width="30px" height="2px" depth="0px" mathbackground="blue"/>
+      <mspace id="baseline" width="30px" height="2px" depth="0px" style="background: blue"/>
       <msub id="msub">
-        <mspace id="msubbase" width="30px" height="15px" depth="15px" mathbackground="black"/>
-        <mspace id="msubsub" width="10px" height="50px" depth="50px" mathbackground="black"/>
+        <mspace id="msubbase" width="30px" height="15px" depth="15px" style="background: black"/>
+        <mspace id="msubsub" width="10px" height="50px" depth="50px" style="background: black"/>
       </msub>
       <msup id="msup">
-        <mspace id="msupbase" width="30px" height="15px" depth="15px" mathbackground="black"/>
-        <mspace id="msupsup" width="10px" height="75px" depth="75px" mathbackground="black"/>
+        <mspace id="msupbase" width="30px" height="15px" depth="15px" style="background: black"/>
+        <mspace id="msupsup" width="10px" height="75px" depth="75px" style="background: black"/>
       </msup>
       <msubsup id="msubsup">
-        <mspace id="msubsupbase" width="30px" height="15px" depth="15px" mathbackground="black"/>
-        <mspace id="msubsupsub" width="10px" height="50px" depth="50px" mathbackground="black"/>
-        <mspace id="msubsupsup" width="10px" height="75px" depth="75px" mathbackground="black"/>
+        <mspace id="msubsupbase" width="30px" height="15px" depth="15px" style="background: black"/>
+        <mspace id="msubsupsub" width="10px" height="50px" depth="50px" style="background: black"/>
+        <mspace id="msubsupsup" width="10px" height="75px" depth="75px" style="background: black"/>
       </msubsup>
       <mmultiscripts id="multi">
-        <mspace id="multibase" width="30px" height="15px" depth="15px" mathbackground="black"/>
-        <mspace id="multipostsub" width="10px" height="50px" depth="50px" mathbackground="black"/>
-        <mspace id="multipostsup" width="10px" height="75px" depth="75px" mathbackground="black"/>
+        <mspace id="multibase" width="30px" height="15px" depth="15px" style="background: black"/>
+        <mspace id="multipostsub" width="10px" height="50px" depth="50px" style="background: black"/>
+        <mspace id="multipostsup" width="10px" height="75px" depth="75px" style="background: black"/>
         <mprescripts/>
-        <mspace id="multipresub" width="10px" height="50px" depth="50px" mathbackground="black"/>
-        <mspace id="multipresup" width="10px" height="75px" depth="75px" mathbackground="black"/>
+        <mspace id="multipresub" width="10px" height="50px" depth="50px" style="background: black"/>
+        <mspace id="multipresup" width="10px" height="75px" depth="75px" style="background: black"/>
       </mmultiscripts>
     </math>
   </p>
-  <hr/>
 </body>
 </html>

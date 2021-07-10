@@ -26,13 +26,13 @@ You can use and build a release build and a debug build in parallel.
 The servo binary is located in `target/debug/servo` (or `target/release/servo`). You can directly run this binary, but we recommend using `./mach` instead:
 
 ``` shell
-./mach run -d -- http://github.com
+./mach run -d -- https://github.com
 ```
 
 … is equivalent to:
 
 ``` shell
-./target/debug/servo http://github.com
+./target/debug/servo https://github.com
 ```
 
 If you build with `-d`, run with `-d`. If you build with `-r`, run with `-r`.
@@ -60,10 +60,10 @@ This guide only covers the most important options. Be sure to look at all the av
 
 Even if you have never seen any Rust code, it's not too hard to read Servo's code. But there are some basics things one must know:
 
-- [Match](https://doc.rust-lang.org/book/match.html) and [Patterns](https://doc.rust-lang.org/book/patterns.html)
-- [Options](http://rustbyexample.com/std/option.html)
-- [Expression](http://rustbyexample.com/expression.html)
-- [Traits](http://rustbyexample.com/trait.html)
+- [Match](https://doc.rust-lang.org/stable/rust-by-example/flow_control/match.html) and [Patterns](https://doc.rust-lang.org/book/ch18-00-patterns.html)
+- [Options](https://doc.rust-lang.org/stable/rust-by-example/std/option.html)
+- [Expression](https://doc.rust-lang.org/stable/rust-by-example/expression.html)
+- [Traits](https://doc.rust-lang.org/stable/rust-by-example/trait.html)
 - That doesn't sound important, but be sure to understand how `println!()` works, especially the [formatting traits](https://doc.rust-lang.org/std/fmt/#formatting-traits)
 
 This won't be enough to do any serious work at first, but if you want to navigate the code and fix basic bugs, that should do it. It's a good starting point, and as you dig into Servo source code, you'll learn more.
@@ -71,7 +71,7 @@ This won't be enough to do any serious work at first, but if you want to navigat
 For more exhaustive documentation:
 
 - [doc.rust-lang.org](https://doc.rust-lang.org)
-- [rust by example](http://rustbyexample.com)
+- [rust by example](https://doc.rust-lang.org/stable/rust-by-example)
 
 ## Cargo and Crates
 
@@ -96,13 +96,13 @@ source = "git+https://github.com/servo/rust-stb-image#f4c5380cd586bfe16326e05e25
 
 This file should not be edited by hand. In a normal Rust project, to update the git revision, you would use `cargo update -p stb_image`, but in Servo, use `./mach cargo-update -p stb_image`. Other arguments to cargo are also understood, e.g. use --precise '0.2.3' to update that crate to version 0.2.3.
 
-See [Cargo's documentation about Cargo.toml and Cargo.lock files](http://doc.crates.io/guide.html#cargotoml-vs-cargolock).
+See [Cargo's documentation about Cargo.toml and Cargo.lock files](https://doc.rust-lang.org/cargo/guide/cargo-toml-vs-cargo-lock.html).
 
 ## Working on a Crate
 
 As explained above, Servo depends on a lot of libraries, which makes it very modular. While working on a bug in Servo, you'll often end up in one of its dependencies. You will then want to compile your own version of the dependency (and maybe compiling against the HEAD of the library will fix the issue!).
 
-For example, I'm trying to bring some cocoa events to Servo. The Servo window on Desktop is constructed with a library named [Glutin](https://github.com/tomaka/glutin). Glutin itself depends on a cocoa library named [cocoa-rs](http://github.com/servo/cocoa-rs). When building Servo, magically, all these dependencies are downloaded and built for you. But because I want to work on this cocoa event feature, I want Servo to use my own version of *glutin* and *cocoa-rs*.
+For example, I'm trying to bring some cocoa events to Servo. The Servo window on Desktop is constructed with a library named [winit](https://github.com/rust-windowing/winit). winit itself depends on a cocoa library named [cocoa-rs](https://github.com/servo/cocoa-rs). When building Servo, magically, all these dependencies are downloaded and built for you. But because I want to work on this cocoa event feature, I want Servo to use my own version of *winit* and *cocoa-rs*.
 
 This is how my projects are laid out:
 
@@ -119,20 +119,20 @@ Both information can be found using, in this example, `/mach cargo pkgid mozjs_s
 If the output is in the format `https://github.com/servo/mozjs#mozjs_sys:0.0.0`, you are dealing with a git dependency and you will have to edit the `~/my-projects/servo/Cargo.toml` file and add at the bottom:
 
 ``` toml
-[replace]
+[patch]
 "https://github.com/servo/mozjs#mozjs_sys:0.0.0" = { path = '../mozjs' }
 ```
 
 If the output is in the format `https://github.com/rust-lang/crates.io-index#mozjs_sys#0.0.0`, you are dealing with a crates.io dependency and you will have to edit the `~/my-projects/servo/Cargo.toml` in the following way:
 
 ``` toml
-[replace]
+[patch]
 "mozjs_sys:0.0.0" = { path = '../mozjs' }
 ```
 
 Both will tell any cargo project to not use the online version of the dependency, but your local clone.
 
-For more details about overriding dependencies, see [Cargo's documentation](http://doc.crates.io/specifying-dependencies.html#overriding-dependencies).
+For more details about overriding dependencies, see [Cargo's documentation](https://doc.crates.io/specifying-dependencies.html#overriding-dependencies).
 
 ## Debugging
 
@@ -148,12 +148,12 @@ Before starting the debugger right away, you might want to get some information 
 A typical command might be:
 
 ``` shell
-./mach run -d -- -i -y 1 -t 1 --debug dump-layer-tree /tmp/a.html
+./mach run -d -- -i -y 1 --debug dump-style-tree /tmp/a.html
 ```
 
 … to avoid using too many threads and make things easier to understand.
 
-On OSX, you can add some Cocoa-specific debug options:
+On macOS, you can add some Cocoa-specific debug options:
 
 ``` shell
 ./mach run -d -- /tmp/a.html -- -NSShowAllViews YES
@@ -168,10 +168,10 @@ RUST_LOG="debug" ./mach run -d -- /tmp/a.html
 Using `RUST_LOG="debug"` is usually the very first thing you might want to do if you have no idea what to look for. Because this is very verbose, you can combine these with `ts` (`moreutils` package (apt-get, brew)) to add timestamps and `tee` to save the logs (while keeping them in the console):
 
 ```
-RUST_LOG="debug" ./mach run -d -- -i -y 1 -t 1  /tmp/a.html 2>&1 | ts -s "%.S: " | tee /tmp/log.txt
+RUST_LOG="debug" ./mach run -d -- -i -y 1 /tmp/a.html 2>&1 | ts -s "%.S: " | tee /tmp/log.txt
 ```
 
-You can filter by crate or module, for example `RUST_LOG="layout::inline=debug" ./mach run …`. Check the [env_logger](http://doc.rust-lang.org/log/env_logger/index.html) documentation for more details.
+You can filter by crate or module, for example `RUST_LOG="layout::inline=debug" ./mach run …`. Check the [env_logger](https://doc.rust-lang.org/log/env_logger/index.html) documentation for more details.
 
 Use `RUST_BACKTRACE=1` to dump the backtrace when Servo panics.
 
@@ -190,7 +190,7 @@ usually just works. If it doesn't, maybe some of foobar's properties don't imple
 To run the debugger:
 
 ``` shell
-./mach run -d --debug -- -y 1 -t 1 /tmp/a.html
+./mach run -d --debug -- -y 1 /tmp/a.html
 ```
 
 This will start `lldb` on Mac, and `gdb` on Linux.
@@ -214,7 +214,7 @@ And to search for a function's full name/regex:
 (gdb) info functions <name> #gdb
 ```
 
-See this [lldb tutorial](http://lldb.llvm.org/tutorial.html) and this [gdb tutorial](http://www.unknownroad.com/rtfm/gdbtut/gdbtoc.html).
+See this [lldb tutorial](https://lldb.llvm.org/tutorial.html) and this [gdb tutorial](http://www.unknownroad.com/rtfm/gdbtut/gdbtoc.html).
 
 To inspect variables and you are new with lldb, we recommend using the `gui` mode (use left/right to expand variables):
 
@@ -248,6 +248,14 @@ To run a test:
 ./mach test-wpt tests/wpt/yourtest
 ```
 
+For your PR to get accepted, source code also has to satisfy certain tidiness requirements.
+
+To check code tidiness:
+
+```
+./mach test-tidy
+```
+
 ### Updating a test:
 
 In some cases, extensive tests for the feature you're working on already exist under tests/wpt:
@@ -276,25 +284,19 @@ See the [debugging guide](./debugging.md) to get started in how to debug Servo.
 ## Documentation:
 
 - Servo's directory structure: [ORGANIZATION.md](./ORGANIZATION.md)
-- http://doc.servo.org/servo/index.html
+- https://doc.servo.org/servo/index.html
 - https://github.com/servo/servo/wiki
-- http://rustbyexample.com
+- https://rustbyexample.com
 - https://doc.rust-lang.org
-- Cargo & crates: http://doc.crates.io/guide.html
+- Cargo & crates: https://doc.crates.io/guide.html
 - mach help: `./mach --help`
 - servo options: `./mach run -- --help`
 - servo debug options: `./mach run -- --debug help`
 
 ## Ask questions
 
-### IRC
+### [Servo’s Zulip](https://servo.zulipchat.com/)
 
-IRC channels (irc.mozilla.org):
+### Discord servers
 
-- #servo
-- #rust
-- #cargo
-
-### Mailing list
-
-https://lists.mozilla.org/listinfo/dev-servo
+The official [Rust Discord server](https://discordapp.com/invite/rust-lang) is a great place to ask Rust specific questions, including questions related to cargo.

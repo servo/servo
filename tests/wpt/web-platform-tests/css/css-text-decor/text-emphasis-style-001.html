@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Text Decoration Test - text-emphasis</title>
+    <link rel="author" title="Koroki Takanori" href="mailto:tak.koroki@gmail.com">
+    <link rel="help" href="http://www.w3.org/TR/css-text-decor-3/#text-emphasis-style-property" title="3.1. Emphasis Mark Style: the 'text-emphasis-style' property">
+    <link rel="match" href="reference/text-emphasis-style-001-ref.html">
+    <meta name="assert" content="Test checks that 'text-emphasis-style: none' shows no emphasis marks.">
+    <style>
+
+span {
+  /* This style definition will be overwritten by "text-emphasis-style: none;"
+     If the dots appears above the text as emphasis marks, it means "text-emphasis-style: none" is not working. */
+  text-emphasis-style: dot;
+}
+
+#test > .test {
+  text-emphasis-style: none;
+}
+    </style>
+  </head>
+  <body>
+    <p>Test passes if there is no dots above the text of "Text sample".</p>
+    <p id="test">
+      <span class="test">Text</span> <span class="test">sample</span>
+    </p>
+  </body>
+</html>

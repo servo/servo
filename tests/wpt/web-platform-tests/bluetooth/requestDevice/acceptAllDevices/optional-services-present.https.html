@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/bluetooth/resources/bluetooth-test.js"></script>
+<script src="/bluetooth/resources/bluetooth-fake-devices.js"></script>
+<script>
+'use strict';
+const test_desc = 'requestDevice called with acceptAllDevices: true and with ' +
+    'optionalServices. Should get access to services.';
+
+bluetooth_test(
+    () => getTwoHealthThermometerServicesDevice()
+              .then(() => requestDeviceWithTrustedClick({
+                      acceptAllDevices: true,
+                      optionalServices: ['health_thermometer']
+                    }))
+              .then(device => device.gatt.connect())
+              .then(gattServer => gattServer.getPrimaryServices())
+              .then(services => {
+                assert_equals(services.length, 2);
+                services.forEach(service => {
+                  assert_equals(
+                      service.uuid,
+                      BluetoothUUID.getService('health_thermometer'));
+                });
+              }),
+    test_desc);
+</script>

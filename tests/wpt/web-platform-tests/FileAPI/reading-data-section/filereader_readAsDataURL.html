@@ -1,39 +1,51 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>FileAPI Test: filereader_readAsDataURL</title>
-    <link rel="author" title="Intel" href="http://www.intel.com">
-    <link rel="help" href="http://dev.w3.org/2006/webapi/FileAPI/#readAsDataURL">
-    <script src="/resources/testharness.js"></script>
-    <script src="/resources/testharnessreport.js"></script>
-  </head>
-  <body>
-    <div id="log"></div>
+<!doctype html>
+<meta charset="utf-8">
+<title>FileAPI Test: FileReader.readAsDataURL</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://w3c.github.io/FileAPI/#readAsDataURL">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
 
-    <script>
-    async_test(function() {
-      var blob = new Blob(["TEST"]);
-      var reader = new FileReader();
+<script>
+async_test(function(testCase) {
+  var blob = new Blob(["TEST"]);
+  var reader = new FileReader();
 
-      reader.onload = this.step_func(function(evt) {
-        assert_equals(typeof reader.result, "string", "The result is string");
-        assert_equals(reader.result.indexOf("data:"), 0, "The result attribute starts with 'data'");
-        assert_true(reader.result.indexOf("base64") > 0, "The result attribute contains 'base64'");
-        assert_equals(reader.readyState, reader.DONE);
-        this.done();
-      });
+  reader.onload = this.step_func(function(evt) {
+    assert_equals(reader.readyState, reader.DONE);
+    testCase.done();
+  });
+  reader.onloadstart = this.step_func(function(evt) {
+    assert_equals(reader.readyState, reader.LOADING);
+  });
+  reader.onprogress = this.step_func(function(evt) {
+    assert_equals(reader.readyState, reader.LOADING);
+  });
 
-      reader.onloadstart = this.step_func(function(evt) {
-        assert_equals(reader.readyState, reader.LOADING);
-      });
+  reader.readAsDataURL(blob);
+}, 'FileReader readyState during readAsDataURL');
 
-      reader.onprogress = this.step_func(function(evt) {
-        assert_equals(reader.readyState, reader.LOADING);
-      });
+async_test(function(testCase) {
+  var blob = new Blob(["TEST"], { type: 'text/plain' });
+  var reader = new FileReader();
 
-      reader.readAsDataURL(blob);
-    });
-    </script>
-  </body>
-</html>
+  reader.onload = this.step_func(function() {
+    assert_equals(reader.result, "data:text/plain;base64,VEVTVA==");
+    testCase.done();
+  });
+  reader.readAsDataURL(blob);
+}, 'readAsDataURL result for Blob with specified MIME type');
+
+async_test(function(testCase) {
+  var blob = new Blob(["TEST"]);
+  var reader = new FileReader();
+
+  reader.onload = this.step_func(function() {
+    assert_equals(reader.result,
+                  "data:application/octet-stream;base64,VEVTVA==");
+    testCase.done();
+  });
+  reader.readAsDataURL(blob);
+}, 'readAsDataURL result for Blob with unspecified MIME type');
+
+</script>

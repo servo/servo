@@ -1,0 +1,119 @@
+# This is cleanup for update_hosts.yml and killing all Edge and WebDriver
+# processes to leave the agent in a clean state for the next job. This is
+# necessary because the Windows 10 agents aren't reset between each job.
+steps:
+- powershell: |
+    function UninstallEdge($edgePath, $uninstallArgs) {
+      $exitCode = 0
+      try {
+        cmd /c taskkill /f /im msedge* `> nul 2`> nul
+        cmd /c taskkill /f /im setup.exe `> nul 2`> nul
+        if (Test-Path $edgePath) {
+          $installerPath = Get-ChildItem -PATH $edgePath -Filter "setup.exe" -Recurse | Select -First 1 FullName
+          if(-not($installerPath -eq $nul) -and (Test-Path $installerPath.FullName)) {
+            Write-Host "Uninstall: $($installerPath.FullName) $uninstallArgs"
+            $setup = Start-Process "$($installerPath.FullName)" -ArgumentList $uninstallArgs -PassThru -Wait
+            $exitCode = $setup.ExitCode
+            if ($exitCode -ne $exitCodeSuccess) {
+              Write-Host "Uninstall failed with ExitCode=$exitCode"
+            }
+          } else {
+            Write-Host "Failed to find setup.exe under $edgePath"
+          }
+        }
+      } catch [Exception] {
+        Write-Host "Failed to uninstall Edge from $edgePath. ERROR= $($_.Exception.Message)" -ForegroundColor Red
+      }
+      return $exitCode
+    }
+
+    function IsEdgeRunning() {
+      return (Get-Process | Where-Object { $_.Name -eq "msedge" }).Length -gt 0
+    }
+
+    # Uninstall exit code success for Edge
+    $exitCodeSuccess = 19
+    # restore hosts file
+    $hostFile = "$env:systemroot\System32\drivers\etc\hosts"
+    Copy-Item -Path "$hostFile.back" -Destination $hostFile -Force
+
+    # uninstall Edge
+    $stableExitCode = UninstallEdge "$env:localappdata\Microsoft\Edge" "--uninstall --force-uninstall --verbose-logging"
+    # uninstall Edge Beta channel
+    $betaExitCode = UninstallEdge "$env:systemdrive\Program Files (x86)\Microsoft\Edge Beta" "--uninstall --msedge-beta --force-uninstall --verbose-logging"
+    # uninstall Edge Dev channel
+    $devExitCode = UninstallEdge "$env:systemdrive\Program Files (x86)\Microsoft\Edge Dev" "--uninstall --msedge-dev --force-uninstall --verbose-logging"
+    # uninstall Edge Canary channel
+    $canaryExitCode = UninstallEdge "$env:localappdata\Microsoft\Edge SxS" "--uninstall --msedge-sxs --force-uninstall --verbose-logging"
+
+    # Check if Edge is still running and try to close it.
+    # If we fail to close it, then reboot the system
+    # as this lingering process can lead to run instability.
+    if (IsEdgeRunning) {
+      Write-Host "Found Edge process running, try to close it."
+      Stop-Process -Name "msedge" -Force
+      if (IsEdgeRunning) {
+        Write-Host "Failed to close running Edge process, reboot the system." -ForegroundColor Red
+        Restart-Computer -Force
+      }
+    }
+    if (($stableExitCode -ne $exitCodeSuccess) -and
+        ($betaExitCode -ne $exitCodeSuccess) -and
+        ($devExitCode -ne $exitCodeSuccess) -and
+        ($canaryExitCode -ne $exitCodeSuccess)) {
+      Copy-Item -Path "$env:temp\*edge*.log" -Destination $(Build.ArtifactStagingDirectory) -Force
+      Throw "Failed to uninstall Edge."
+    } else {
+      Write-Host "Successfully uninstalled all Edge channels"
+    }
+  displayName: 'Restore hosts file and cleanup test machine'
+  condition: always()
+  errorActionPreference: silentlyContinue
+  ignoreLASTEXITCODE: true
+
+- powershell: |
+    $channels = @('Edge', 'Edge Beta', 'Edge Dev', 'Edge SxS')
+    foreach ($channel in $channels) {
+      Write-Host "Deleting regkeys for $channel folder"
+      Remove-Item -Path "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft $channel" -Recurse -Force -ErrorAction SilentlyContinue
+      Remove-Item -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft $channel" -Recurse -Force -ErrorAction SilentlyContinue
+      Remove-Item -Path "HKLM:SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate" -Recurse -Force -ErrorAction SilentlyContinue
+      Remove-Item -Path "HKLM:SOFTWARE\WOW6432Node\Microsoft\$channel" -Recurse -Force -ErrorAction SilentlyContinue
+      Remove-Item -Path "HKLM:SOFTWARE\Microsoft\EdgeUpdate" -Recurse -Force -ErrorAction SilentlyContinue
+      Remove-Item -Path "HKLM:SOFTWARE\Microsoft\$channel" -Recurse -Force -ErrorAction SilentlyContinue
+      Remove-Item -Path "HKCU:SOFTWARE\Microsoft\EdgeUpdate" -Recurse -Force -ErrorAction SilentlyContinue
+      Remove-Item -Path "HKCU:SOFTWARE\Microsoft\$channel" -Recurse -Force -ErrorAction SilentlyContinue
+
+      Write-Host "Deleting all remaining Edge folders"
+      Remove-Item -Path "$env:localappdata\Microsoft\EdgeUpdate" -Recurse -Force -ErrorAction SilentlyContinue
+      $edgePath = "$env:localappdata\Microsoft\$channel"
+      Remove-Item -Path $edgePath -Recurse -Force -ErrorAction SilentlyContinue
+      $edgePath = "$env:systemdrive\Program Files (x86)\Microsoft\$channel"
+      Remove-Item -Path $edgePath -Recurse -Force -ErrorAction SilentlyContinue
+    }
+  displayName: 'Cleanup Edge registry'
+  condition: always()
+  errorActionPreference: silentlyContinue
+  ignoreLASTEXITCODE: true
+
+- powershell: |
+    ($webdriverFiles = Get-ChildItem -PATH "$env:systemdrive\*msedgedriver.exe" -Recurse) >$null 2>$null
+    Write-Host "Found $($webdriverFiles.Count) msedgedriver binaries"
+    foreach ($file in $webdriverFiles) {
+      Write-Host "Deleting $file"
+      Remove-Item -Path $file.FullName -Force -ErrorAction SilentlyContinue
+    }
+    ($driverNotesFolder = Get-ChildItem -PATH "$env:systemdrive\*Driver_Notes" -Recurse) >$null 2>$null
+    foreach ($file in $driverNotesFolder) {
+      Write-Host "Deleting $file folder"
+      Remove-Item -Path $file.FullName -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    ($zipFile = Get-ChildItem -PATH "$env:systemdrive\*edgedriver_*.zip" -Recurse) >$null 2>$null
+    foreach ($file in $zipFile) {
+      Write-Host "Deleting $file file"
+      Remove-Item -Path $file.FullName -Force -ErrorAction SilentlyContinue
+    }
+  displayName: 'Cleanup Edge driver binaries'
+  condition: always()
+  errorActionPreference: silentlyContinue
+  ignoreLASTEXITCODE: true

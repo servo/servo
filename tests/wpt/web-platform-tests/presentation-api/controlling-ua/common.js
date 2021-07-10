@@ -7,7 +7,7 @@
   // on something that directly or indirectly maps to a resource on the W3C test
   // server.
   var castAppId = '915D2A2C';
-  var castUrl = 'https://google.com/cast#__castAppId__=' + castAppId;
+  var castUrl = 'cast:' + castAppId;
 
   window.presentationUrls = [
     'support/presentation.html',

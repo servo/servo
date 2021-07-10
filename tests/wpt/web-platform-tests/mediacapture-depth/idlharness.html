@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset=utf-8>
+  <title>Media Capture Depth Stream Extensions IDL test</title>
+  <link rel="help" href="https://w3c.github.io/mediacapture-depth/">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/WebIDLParser.js"></script>
+  <script src="/resources/idlharness.js"></script>
+</head>
+
+<body>
+  <script>
+    'use strict';
+
+    idl_test(
+      ['mediacapture-depth'],
+      ['mediacapture-streams'],
+      idl_array => {
+        // No objects, spec defines dictionaries only.
+      }
+    );
+  </script>
+  <div id="log"></div>
+</body>
+
+</html>

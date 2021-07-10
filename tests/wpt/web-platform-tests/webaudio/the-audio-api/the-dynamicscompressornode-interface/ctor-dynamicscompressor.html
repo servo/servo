@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Test Constructor: DynamicsCompressor
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+    <script src="/webaudio/resources/audionodeoptions.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      let context;
+
+      let audit = Audit.createTaskRunner();
+
+      audit.define('initialize', (task, should) => {
+        context = initializeContext(should);
+        task.done();
+      });
+
+      audit.define('invalid constructor', (task, should) => {
+        testInvalidConstructor(should, 'DynamicsCompressorNode', context);
+        task.done();
+      });
+
+      audit.define('default constructor', (task, should) => {
+        let prefix = 'node0';
+        let node =
+            testDefaultConstructor(should, 'DynamicsCompressorNode', context, {
+              prefix: prefix,
+              numberOfInputs: 1,
+              numberOfOutputs: 1,
+              channelCount: 2,
+              channelCountMode: 'clamped-max',
+              channelInterpretation: 'speakers'
+            });
+
+        testDefaultAttributes(should, node, prefix, [
+          {name: 'threshold', value: -24}, {name: 'knee', value: 30},
+          {name: 'ratio', value: 12}, {name: 'reduction', value: 0},
+          {name: 'attack', value: Math.fround(0.003)},
+          {name: 'release', value: 0.25}
+        ]);
+
+        task.done();
+      });
+
+      audit.define('test AudioNodeOptions', (task, should) => {
+        // Can't use testAudioNodeOptions because the constraints for this node
+        // are not supported there.
+
+        // Array of test options to be run.  Each entry is a dictionary where
+        // |testAttribute| is the name of the attribute to be tested,
+        // |testValue| is the value to be used, and |expectedErrorType| is the
+        // error type if the test is expected to throw an error.
+        // |expectedErrorType| should be set only if the test does throw.
+        let testOptions = [
+          // Test channel count
+          {
+            testAttribute: 'channelCount',
+            testValue: 1,
+          },
+          {
+            testAttribute: 'channelCount',
+            testValue: 2,
+          },
+          {
+            testAttribute: 'channelCount',
+            testValue: 0,
+            expectedErrorType: 'NotSupportedError'
+          },
+          {
+            testAttribute: 'channelCount',
+            testValue: 3,
+            expectedErrorType: 'NotSupportedError'
+          },
+          {
+            testAttribute: 'channelCount',
+            testValue: 99,
+            expectedErrorType: 'NotSupportedError'
+          },
+          // Test channel count mode
+          {
+            testAttribute: 'channelCountMode',
+            testValue: 'clamped-max',
+          },
+          {
+            testAttribute: 'channelCountMode',
+            testValue: 'explicit',
+          },
+          {
+            testAttribute: 'channelCountMode',
+            testValue: 'max',
+            expectedErrorType: 'NotSupportedError'
+          },
+          {
+            testAttribute: 'channelCountMode',
+            testValue: 'foobar',
+            expectedErrorType: TypeError
+          },
+          // Test channel interpretation
+          {
+            testAttribute: 'channelInterpretation',
+            testValue: 'speakers',
+          },
+          {
+            testAttribute: 'channelInterpretation',
+            testValue: 'discrete',
+          },
+          {
+            testAttribute: 'channelInterpretation',
+            testValue: 'foobar',
+            expectedErrorType: TypeError
+          }
+        ];
+
+        testOptions.forEach((option) => {
+          let nodeOptions = {};
+          nodeOptions[option.testAttribute] = option.testValue;
+
+          testNode(should, context, {
+            nodeOptions: nodeOptions,
+            testAttribute: option.testAttribute,
+            expectedValue: option.testValue,
+            expectedErrorType: option.expectedErrorType
+          });
+        });
+
+        task.done();
+      });
+
+      audit.define('constructor with options', (task, should) => {
+        let node;
+        let options =
+            {threshold: -33, knee: 15, ratio: 7, attack: 0.625, release: 0.125};
+
+        should(
+            () => {
+              node = new DynamicsCompressorNode(context, options);
+            },
+            'node1 = new DynamicsCompressorNode(c, ' + JSON.stringify(options) +
+                ')')
+            .notThrow();
+        should(
+            node instanceof DynamicsCompressorNode,
+            'node1 instanceof DynamicsCompressorNode')
+            .beEqualTo(true);
+
+        should(node.threshold.value, 'node1.threshold.value')
+            .beEqualTo(options.threshold);
+        should(node.knee.value, 'node1.knee.value').beEqualTo(options.knee);
+        should(node.ratio.value, 'node1.ratio.value').beEqualTo(options.ratio);
+        should(node.attack.value, 'node1.attack.value')
+            .beEqualTo(options.attack);
+        should(node.release.value, 'node1.release.value')
+            .beEqualTo(options.release);
+
+        should(node.channelCount, 'node1.channelCount').beEqualTo(2);
+        should(node.channelCountMode, 'node1.channelCountMode')
+            .beEqualTo('clamped-max');
+        should(node.channelInterpretation, 'node1.channelInterpretation')
+            .beEqualTo('speakers');
+
+        task.done();
+      });
+
+      audit.run();
+
+      // Test possible options for DynamicsCompressor constructor.
+      function testNode(should, context, options) {
+        // Node to be tested
+        let node;
+
+        let createNodeFunction = () => {
+          return () => node =
+                     new DynamicsCompressorNode(context, options.nodeOptions);
+        };
+
+        let message = 'new DynamicsCompressorNode(c, ' +
+            JSON.stringify(options.nodeOptions) + ')';
+
+        if (options.expectedErrorType === TypeError) {
+          should(createNodeFunction(), message)
+              .throw(options.expectedErrorType);
+        } else if (options.expectedErrorType === 'NotSupportedError') {
+          should(createNodeFunction(), message)
+              .throw(DOMException, 'NotSupportedError');
+        } else {
+          should(createNodeFunction(), message).notThrow();
+          should(node[options.testAttribute], 'node.' + options.testAttribute)
+              .beEqualTo(options.expectedValue);
+        }
+      }
+    </script>
+  </body>
+</html>

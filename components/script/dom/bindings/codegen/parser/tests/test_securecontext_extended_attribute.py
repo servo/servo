@@ -288,33 +288,32 @@ def WebIDLTest(parser, harness):
         threw = True
     harness.ok(threw, "[SecureContext] must appear on interfaces that inherit from another [SecureContext] interface")
 
-    # Test 'implements'. The behavior tested here may have to change depending
-    # on the resolution of https://github.com/heycam/webidl/issues/118
+    # Test 'includes'.
     parser = parser.reset()
     parser.parse("""
         [SecureContext]
-        interface TestSecureContextInterfaceThatImplementsNonSecureContextInterface {
+        interface TestSecureContextInterfaceThatIncludesNonSecureContextMixin {
           const octet TEST_CONSTANT = 0;
         };
-        interface TestNonSecureContextInterface {
+        interface mixin TestNonSecureContextMixin {
           const octet TEST_CONSTANT_2 = 0;
           readonly attribute byte testAttribute2;
           void testMethod2(byte foo);
         };
-        TestSecureContextInterfaceThatImplementsNonSecureContextInterface implements TestNonSecureContextInterface;
+        TestSecureContextInterfaceThatIncludesNonSecureContextMixin includes TestNonSecureContextMixin;
      """)
     results = parser.finish()
-    harness.check(len(results[0].members), 4, "TestSecureContextInterfaceThatImplementsNonSecureContextInterface should have two members")
+    harness.check(len(results[0].members), 4, "TestSecureContextInterfaceThatImplementsNonSecureContextInterface should have four members")
     harness.ok(results[0].getExtendedAttribute("SecureContext"),
                "Interface should have [SecureContext] extended attribute")
     harness.ok(results[0].members[0].getExtendedAttribute("SecureContext"),
                "[SecureContext] should propagate from interface to constant members even when other members are copied from a non-[SecureContext] interface")
     harness.ok(results[0].members[1].getExtendedAttribute("SecureContext") is None,
-               "Constants copied from non-[SecureContext] interface should not be [SecureContext]")
+               "Constants copied from non-[SecureContext] mixin should not be [SecureContext]")
     harness.ok(results[0].members[2].getExtendedAttribute("SecureContext") is None,
-               "Attributes copied from non-[SecureContext] interface should not be [SecureContext]")
+               "Attributes copied from non-[SecureContext] mixin should not be [SecureContext]")
     harness.ok(results[0].members[3].getExtendedAttribute("SecureContext") is None,
-               "Methods copied from non-[SecureContext] interface should not be [SecureContext]")
+               "Methods copied from non-[SecureContext] mixin should not be [SecureContext]")
  
     # Test SecureContext and NoInterfaceObject
     parser = parser.reset()

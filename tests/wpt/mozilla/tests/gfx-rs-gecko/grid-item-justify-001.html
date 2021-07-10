@@ -1,0 +1,108 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>CSS Grid Test: justify-self (part 1 of 2)</title>
+  <link rel="author" title="Mats Palmgren" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1151213">
+  <link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-justify-self">
+  <link rel="match" href="grid-item-justify-001-ref.html">
+  <style type="text/css">
+html,body {
+    color:black; background-color:white; font-size:16px; padding:0; margin:0;
+}
+separator { clear:both; display:block; height:6px; }
+
+.grid {
+  display: grid;
+  float: left;
+  position: relative;
+  border: 1px solid;
+  /* border-inline-start: 2px solid lime; */
+  border-inline-start: 2px solid black;
+  grid-template: 3px 20px 2px / 1px 32px 3px;
+  margin-right: 4px;
+}
+
+span {
+  grid-area: 2 / 2; /* the center 32 x 20 pixel area */
+  display: block;
+  width: 13px;
+  height: 9px;
+  background: grey;
+  border-block-start: 2px solid blue;
+  border-inline-start: 2px solid lime;
+  margin: 1px 1px 2px 2px; /* overconstrained - we'll fix that below */
+  align-self: start;
+}
+
+abs1,abs2,abs3,abs4 {
+  position: absolute;
+  top:0;left:0;bottom:0;right:0;
+  background: lightgrey;
+}
+abs1 { grid-area: 1 / 1 / 2 / 4; }
+abs2 { grid-area: 1 / 1 / 4 / 2; }
+abs3 { grid-area: 1 / 3 / 4 / 4; }
+abs4 { grid-area: 3 / 1 / 4 / 4; }
+
+.hl { writing-mode: horizontal-tb; direction:ltr; }
+.hr { writing-mode: horizontal-tb; direction:rtl; }
+.vl { writing-mode: vertical-lr; }
+.vr { writing-mode: vertical-rl; }
+.vlr { writing-mode: vertical-lr; direction:rtl; }
+.vrl { writing-mode: vertical-rl; direction:ltr; }
+
+.jstart { justify-self:start; }
+.jend { justify-self:end; }
+.jflexstart { justify-self:flex-start; }
+.jflexend { justify-self:flex-end; }
+.jselfstart { justify-self:self-start; }
+.jselfend { justify-self:self-end; }
+.jcenter { justify-self:center; }
+.jleft { justify-self:left; }
+.jright { justify-self:right; }
+.jstretch1 { justify-self:stretch; }
+.jstretch2 { justify-self:stretch; width:13px; height:auto; }
+.jstretch3 { justify-self:stretch; height:auto; }
+.jstretch4 { justify-self:stretch; width:auto; }
+.jstretch5 { justify-self:stretch; width:auto; max-width:13px; }
+.jstretch6 { justify-self:stretch; height:auto; max-height:9px; }
+.jstretch7 { justify-self:stretch; width:auto; height:auto; max-width:13px; max-height:9px; }
+.jauto { justify-self:auto; }
+
+</style>
+</head>
+<body>
+
+<script>
+var gridwm = [ "hl", "hr", "vl" ]; // grid-item-justify-002.html tests vr/vlr/vrl
+var wm = [ "hl", "hr", "vl", "vr", "vlr", "vrl" ];
+var test = [ "start", "end", "flexstart", "flexend", "center", "left", "right",
+             "stretch1", "stretch2", "stretch3", "stretch4", "stretch5",
+             "stretch6", "stretch7", "auto" ];
+for (var i = 0; i < gridwm.length; ++i) {
+  for (var j = 0; j < wm.length; ++j) {
+    for (var k = 0; k < test.length; ++k) {
+      var div = document.createElement("div");
+      div.className = "grid " + gridwm[i];
+      var span = document.createElement("span");
+      span.className = wm[j] + " j" + test[k];
+      div.appendChild(span);
+      div.appendChild(document.createElement("abs1"));
+      div.appendChild(document.createElement("abs2"));
+      div.appendChild(document.createElement("abs3"));
+      div.appendChild(document.createElement("abs4"));
+
+      document.body.appendChild(div)
+    }
+    document.body.appendChild(document.createElement("separator"));
+  }
+}
+</script>
+
+
+</body>
+</html>

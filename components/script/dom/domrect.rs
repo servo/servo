@@ -1,15 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::DOMRectBinding;
-use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
-use dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::DOMRectReadOnlyMethods;
-use dom::bindings::error::Fallible;
-use dom::bindings::js::Root;
-use dom::bindings::reflector::reflect_dom_object;
-use dom::domrectreadonly::DOMRectReadOnly;
-use dom::globalscope::GlobalScope;
+use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
+use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::DOMRectReadOnlyMethods;
+use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::domrectreadonly::DOMRectReadOnly;
+use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 
 #[dom_struct]
@@ -24,18 +23,21 @@ impl DOMRect {
         }
     }
 
-    pub fn new(global: &GlobalScope, x: f64, y: f64, width: f64, height: f64) -> Root<DOMRect> {
-        reflect_dom_object(box DOMRect::new_inherited(x, y, width, height),
-                           global,
-                           DOMRectBinding::Wrap)
+    pub fn new(global: &GlobalScope, x: f64, y: f64, width: f64, height: f64) -> DomRoot<DOMRect> {
+        reflect_dom_object(
+            Box::new(DOMRect::new_inherited(x, y, width, height)),
+            global,
+        )
     }
 
-    pub fn Constructor(global: &GlobalScope,
-                       x: f64,
-                       y: f64,
-                       width: f64,
-                       height: f64)
-                       -> Fallible<Root<DOMRect>> {
+    #[allow(non_snake_case)]
+    pub fn Constructor(
+        global: &GlobalScope,
+        x: f64,
+        y: f64,
+        width: f64,
+        height: f64,
+    ) -> Fallible<DomRoot<DOMRect>> {
         Ok(DOMRect::new(global, x, y, width, height))
     }
 }

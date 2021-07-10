@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>Reference for Scroll timeline with WorkletAnimation using the root scroller</title>
+<style>
+  /* Hide scrollbars to avoid unnecessary visual issues related to them */
+  html::-webkit-scrollbar {
+    display: none;
+  }
+
+  html {
+    scrollbar-width: none;
+    min-height: 100%;
+    min-width: 100%;
+    padding-bottom: 100px;
+    padding-right: 100px;
+  }
+
+  #box {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+    transform: translate(0, 100px);
+    opacity: 0.5;
+    will-change: transform; /* force compositing */
+  }
+
+  #covered {
+    width: 100px;
+    height: 100px;
+    background-color: red;
+  }
+</style>
+
+<div id="box"></div>
+<div id="covered"></div>
+
+<script>
+  window.addEventListener('load', function() {
+    // Move the scroller to halfway.
+    const scroller = document.scrollingElement;
+    const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+    scroller.scrollTop = 0.5 * maxScroll;
+  });
+</script>

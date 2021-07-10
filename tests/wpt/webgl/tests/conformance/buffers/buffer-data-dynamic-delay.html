@@ -1,0 +1,135 @@
+<!--
+/*
+** Copyright (c) 2018 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>bufferData with DYNAMIC_DRAW and delay between updating data</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"> </script>
+</head>
+<body>
+<canvas id="canvas" width="50" height="50"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+
+<script id="vshader" type="x-shader/x-vertex">
+    attribute vec2 a_position;
+    attribute vec2 a_color;
+    varying vec2 v_color;
+    void main()
+    {
+        gl_Position = vec4(a_position, 0.0, 1.0);
+        v_color = a_color;
+    }
+</script>
+<script id="fshader" type="x-shader/x-fragment">
+    precision mediump float;
+    varying vec2 v_color;
+    void main()
+    {
+        gl_FragColor = vec4(v_color, 0.0, 1.0);
+    }
+</script>
+
+<script>
+"use strict";
+description("Verifies that bufferData with DYNAMIC_DRAW updates the vertex attribute when there is a significant delay between updating the buffer.");
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("canvas");
+var program = wtu.setupProgram(gl, ["vshader", "fshader"], ["a_position", "a_color"]);
+
+// Initialize position vertex attribute to draw a square covering the entire canvas.
+var positionBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+    -1.0,  1.0,
+     1.0,  1.0,
+    -1.0, -1.0,
+     1.0, -1.0
+    ]), gl.DYNAMIC_DRAW);
+gl.enableVertexAttribArray(0);
+gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+// Initialize color vertex attribute to red.
+var colorBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+    1.0, 0.0,
+    1.0, 0.0,
+    1.0, 0.0,
+    1.0, 0.0,
+    ]), gl.DYNAMIC_DRAW);
+gl.enableVertexAttribArray(1);
+gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 0, 0);
+
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "No error after setup");
+
+// Fill the canvas with red
+gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "No error after first drawArrays");
+
+wtu.checkCanvasRect(gl, 0, 0, 50, 50, [255, 0, 0, 255], "Canvas should be red after the first drawArrays");
+
+// With the buffer set to DYNAMIC_DRAW, Angle internally changes the storage type of the vertex attribute from DYNAMIC to DIRECT
+// if the buffer has not been updated after ~4-5 draw calls. When the buffer is eventually updated, the vertex attribute
+// is updated back to DYNAMIC, but there was a bug in Angle where the data is not marked as dirty. The result is that the
+// vertex data is not updated with the new buffer data. This test verifies that the vertex data is updated.
+var iteration = 0;
+function draw() {
+    // Draw 10 times to ensure that the vertex attribute storage type is changed.
+    if (iteration < 10) {
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 2);
+        requestAnimationFrame(draw);
+    }
+    else {
+        // Update the buffer bound to the color vertex attribute to green and draw.
+        gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+            0.0, 1.0,
+            0.0, 1.0,
+            0.0, 1.0,
+            0.0, 1.0,
+            ]), gl.DYNAMIC_DRAW);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "No error after last drawArrays");
+
+        wtu.checkCanvasRect(gl, 0, 0, 50, 50, [0, 255, 0, 255], "Canvas should be green after 10 frames");
+
+        finishTest();
+    }
+
+    iteration++;
+}
+
+requestAnimationFrame(draw);
+
+</script>
+</body>
+</html>

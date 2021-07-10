@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>HTMLMediaElement.srcObject blob</title>
+<script src='/common/media.js'></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video></video>
+<script>
+  async_test(function(t) {
+    t.step(function() {
+      fetch(getVideoURI('/media/movie_5'))
+        .then(function(response) {
+          return response.blob();
+        })
+        .then(function(blob) {
+          let video = document.querySelector("video");
+          video.srcObject = blob;
+          video.addEventListener('ended', function() {
+            t.done();
+          });
+          video.play().catch(function(error) {
+            assert(false, error);
+          });
+        })
+        .catch(function(error) {
+          assert(false, error);
+        });
+    });
+  });
+</script>
+

@@ -24,7 +24,7 @@
           a red fill and the other to obscure most of the green rectangle.
         </p>
     </d:testDescription>
-    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">      
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
       <p>
         The rendered picture should match the reference image, except for possible
         variations in the labelling text (per CSS2 rules).

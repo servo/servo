@@ -1,0 +1,49 @@
+<!DOCTYPE HTML>
+<html>
+<head onload>
+<meta charset="utf-8" />
+<title>This test validates increasing the buffer size in onresourcetimingbufferfull callback of resource timing.</title>
+<link rel="help" href="http://www.w3.org/TR/resource-timing/#performanceresourcetiming"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/buffer-full-utilities.js"></script>
+</head>
+<body>
+<script>
+const resource_timing_buffer_size = 1;
+let eventFired = false;
+
+setup(() => {
+    // Get the browser into a consistent state.
+    clearBufferAndSetSize(resource_timing_buffer_size);
+    var increase = function() {
+        performance.setResourceTimingBufferSize(resource_timing_buffer_size * 2);
+        eventFired = true;
+    }
+    performance.addEventListener('resourcetimingbufferfull', increase);
+});
+
+let overflowTheBuffer = () => {
+    return new Promise(resolve => {
+        // This resource overflows the entry buffer, and goes into the secondary buffer.
+        appendScript('resources/empty_script.js', resolve);
+    });
+};
+
+let testThatBufferContainsTheRightResources = () => {
+    let entries = performance.getEntriesByType('resource');
+    assert_equals(entries.length, 2,
+                  'Both entries should be stored in resource timing buffer since its increases size once it overflows.');
+    assert_true(entries[0].name.includes('empty.js'), "empty.js is in the entries buffer");
+    assert_true(entries[1].name.includes('empty_script.js'), "empty_script.js is in the entries buffer");
+};
+
+promise_test(async () => {
+    await fillUpTheBufferWithSingleResource("resources/empty.js");
+    await overflowTheBuffer();
+    await waitForEventToFire();
+    testThatBufferContainsTheRightResources();
+}, "Test that increasing the buffer during the callback is enough for entries not to be dropped");
+</script>
+</body>
+</html>

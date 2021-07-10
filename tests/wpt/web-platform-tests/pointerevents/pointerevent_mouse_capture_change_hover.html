@@ -1,0 +1,170 @@
+<!DOCTYPE HTML>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<style>
+body {
+  user-select: none;
+}
+#green:hover {
+  background-color: red;
+}
+#blue:hover {
+  background-color: red;
+}
+#green {
+  background-color: green;
+}
+#blue {
+  background-color: blue;
+}
+div.box {
+  margin: 5px;
+  padding: 20px;
+  width: 50px;
+  height: 50px;
+}
+</style>
+<body onload="run()">
+  <div id="green" class="box"></div>
+  <div id="blue" class="box"></div>
+</body>
+<script>
+var receivedEventList = [];
+var setcapture = "";
+
+let testEventList = ['pointerup', 'pointerdown', 'pointermove', 'gotpointercapture', 'lostpointercapture', "pointerover", "pointerout", "pointerleave", "pointerenter"];
+testEventList.forEach(function(eventName) {
+  green.addEventListener(eventName, logEvent);
+  blue.addEventListener(eventName, logEvent);
+});
+
+function logEvent(event) {
+  receivedEventList.push(event.target.id + " received " + event.type)
+}
+
+function setCaptureGreen(event) {
+  green.setPointerCapture(event.pointerId);
+}
+
+function setCaptureBlue(event) {
+  blue.setPointerCapture(event.pointerId);
+}
+
+function releaseCapture(event) {
+  if (event.target.hasPointerCapture(event.pointerId)) {
+    event.target.releasePointerCapture(event.pointerId);
+  }
+}
+
+function run() {
+  promise_test (async() => {
+    // Move to (0, 0) to reset hovering.
+    await new test_driver.Actions().pointerMove(0, 0).send();
+    receivedEventList = [];
+
+    // pointerdown at green -> set capture to green -> green receive the following moves.
+    document.addEventListener("pointerdown", setCaptureGreen);
+
+    await new test_driver.Actions()
+                         .addPointer("mouse")
+                         .pointerMove(25, 25, {origin: green})
+                         .pointerDown()
+                         .pointerMove(30, 30, {origin: green})
+                         .pointerMove(25, 25, {origin: blue})
+                         .send();
+
+    expectedEventList = ["green received pointerover",
+                         "green received pointerenter",
+                         "green received pointermove",
+                         "green received pointerdown",
+                         "green received gotpointercapture",
+                         "green received pointermove",
+                         "green received pointermove"];
+
+    assert_array_equals(receivedEventList, expectedEventList, "Received events: " + receivedEventList);
+    assert_equals(getComputedStyle(green).backgroundColor, "rgb(255, 0, 0)", "green should be red (hover).");
+    assert_equals(getComputedStyle(blue).backgroundColor, "rgb(0, 0, 255)", "blue should be blue.");
+    document.removeEventListener("pointerdown", setCaptureGreen);
+    // Release mouse button.
+    await new test_driver.Actions().addPointer("mouse").pointerUp().send();
+  }, "Mouse down and capture to green.");
+
+  promise_test (async() => {
+    // Move to (0, 0) to reset hovering.
+    await new test_driver.Actions().addPointer("mouse").pointerMove(0, 0).send();
+    receivedEventList = [];
+
+    // pointerdown at green -> set capture to blue -> blue receive the following moves.
+    document.addEventListener("pointerdown", setCaptureBlue);
+
+    await new test_driver.Actions()
+                         .addPointer("mouse")
+                         .pointerMove(25, 25, {origin: green})
+                         .pointerDown()
+                         .pointerMove(30, 30, {origin: green})
+                         .pointerMove(31, 31, {origin: green})
+                         .send();
+
+    expectedEventList = ["green received pointerover",
+                         "green received pointerenter",
+                         "green received pointermove",
+                         "green received pointerdown",
+                         "green received pointerout",
+                         "green received pointerleave",
+                         "blue received pointerover",
+                         "blue received pointerenter",
+                         "blue received gotpointercapture",
+                         "blue received pointermove",
+                         "blue received pointermove"];
+
+    assert_array_equals(receivedEventList, expectedEventList, "Received events: " + receivedEventList);
+    assert_equals(getComputedStyle(green).backgroundColor, "rgb(0, 128, 0)", "green should be green.");
+    assert_equals(getComputedStyle(blue).backgroundColor, "rgb(255, 0, 0)", "blue should be red (hover).");
+    document.removeEventListener("pointerdown", setCaptureBlue);
+    // Release mouse button.
+    await new test_driver.Actions().addPointer("mouse").pointerUp().send();
+  }, "Mouse down at green and capture to blue.");
+
+  promise_test (async() => {
+    // Move to (0, 0) to reset hovering.
+    await new test_driver.Actions().addPointer("mouse").pointerMove(0, 0).send();
+    receivedEventList = [];
+
+    // pointerdown at green -> set capture to green -> green receive first move -> release capture -> blue receive the next move
+    green.addEventListener("pointerdown", setCaptureGreen);
+    green.addEventListener("pointermove", releaseCapture);
+
+    await new test_driver.Actions()
+                         .addPointer("mouse")
+                         .pointerMove(25, 25, {origin: green})
+                         .pointerDown()
+                         .pointerMove(30, 30, {origin: blue})
+                         .pointerMove(25, 25, {origin: blue})
+                         .send();
+
+    expectedEventList = ["green received pointerover",
+                         "green received pointerenter",
+                         "green received pointermove",
+                         "green received pointerdown",
+                         "green received gotpointercapture",
+                         "green received pointermove",
+                         "green received lostpointercapture",
+                         "green received pointerout",
+                         "green received pointerleave",
+                         "blue received pointerover",
+                         "blue received pointerenter",
+                         "blue received pointermove"]
+
+    assert_array_equals(receivedEventList, expectedEventList, "Received events: " + receivedEventList);
+    assert_equals(getComputedStyle(green).backgroundColor, "rgb(0, 128, 0)", "green should be green.");
+    assert_equals(getComputedStyle(blue).backgroundColor, "rgb(255, 0, 0)", "blue should be red (hover).");
+    green.removeEventListener("pointerdown", setCaptureBlue);
+    green.removeEventListener("pointermove", releaseCapture);
+    // Release mouse button.
+    await new test_driver.Actions().addPointer("mouse").pointerUp().send();
+  }, "Mouse down and capture to green, move to blue and release capture");
+}
+</script>

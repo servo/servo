@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <script src="resources/webxr_test_constants.js"></script>
+  <script>
+    xr_session_promise_test(
+      "Tests requestSession resolves when supported",
+      (session) => {
+        assert_not_equals(session, null);
+      }, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr');
+
+    xr_session_promise_test(
+      "Tests requestSession accepts XRSessionInit dictionary",
+      (session) => {
+        assert_not_equals(session, null);
+      }, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', {});
+
+    xr_session_promise_test(
+      "Tests requestSession ignores unknown optionalFeatures",
+      (session) => {
+        assert_not_equals(session, null);
+      }, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr', {optionalFeatures: ['unicorns']});
+  </script>
+</body>

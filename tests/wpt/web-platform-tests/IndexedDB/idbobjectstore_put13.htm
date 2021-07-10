@@ -18,7 +18,7 @@
         var rq,
           objStore = db.createObjectStore("store");
 
-        assert_throws("DataError",
+        assert_throws_dom("DataError",
             function() { rq = objStore.put(record, { value: 1 }); });
 
         assert_equals(rq, undefined);

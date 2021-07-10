@@ -1,0 +1,19 @@
+<!doctype html>
+<meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin"><!-- should not be supported -->
+<meta charset=utf-8>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/common.js"></script>
+
+<div id=log></div>
+<script>
+
+let tests = [
+  // popup Origin, popup COOP, expect opener
+  [SAME_ORIGIN, "", true],
+];
+
+run_coop_tests("same-origin", tests);
+
+</script>

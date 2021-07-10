@@ -1,0 +1,46 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>
+    Test that include_subdomains policies report DNS failures for subdomains
+  </title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='./support/nel.sub.js'></script>
+</head>
+<body>
+  <script>
+    nel_test(async t => {
+      // Make a request to a resource whose response headers include an
+      // include_subdomains NEL policy.
+      await fetchResourceWithIncludeSubdomainsPolicy();
+      // Make a request to another resource on a nonexistent subdomain of the
+      // above.  Since the subdomain doesn't exist, the request should fail with
+      // a DNS error.
+      await fetchResourceWithNoPolicy('nonexistent').then((response) => {
+        assert_unreached("Request to nonexistent domain should fail");
+      }, (err) => {
+        // Silence the error, since it's expected.
+      });
+      // The include_subdomains policy that we just received should cover the
+      // second request, since include_subdomains policies can report on DNS
+      // errors, so the collector should have received a report about it.
+      assert_true(await reportExists({
+        url: getURLForResourceWithNoPolicy('nonexistent'),
+        user_agent: navigator.userAgent,
+        type: "network-error",
+        body: {
+          method: "GET",
+          sampling_fraction: 1.0,
+          status_code: 0,
+          phase: "dns",
+          type: "dns.name_not_resolved",
+        },
+        metadata: {
+          content_type: "application/reports+json",
+        },
+      }));
+    });
+  </script>
+</body>
+</html>

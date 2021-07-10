@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Page with script</title>
+</head>
+<body>
+    <div>Script Execution: <span id="scriptExecute" style="Color: Red">Blocked</span></div>
+    <script type="text/javascript">
+        document.getElementById("scriptExecute").innerHTML = "Allowed";
+        document.getElementById("scriptExecute").style.color = "Green";
+    </script>
+</body>
+</html>

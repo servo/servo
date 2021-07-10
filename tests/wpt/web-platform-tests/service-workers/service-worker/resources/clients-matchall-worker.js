@@ -13,11 +13,20 @@ self.onmessage = function(e) {
               // In that case, just pretend it's top-level!
               frame_type = 'top-level';
             }
-            message.push([client.visibilityState,
-                          client.focused,
-                          client.url,
-                          client.type,
-                          frame_type]);
+            if (e.data.includeLifecycleState) {
+              message.push({visibilityState: client.visibilityState,
+                            focused: client.focused,
+                            url: client.url,
+                            lifecycleState: client.lifecycleState,
+                            type: client.type,
+                            frameType: frame_type});
+            } else {
+              message.push([client.visibilityState,
+                            client.focused,
+                            client.url,
+                            client.type,
+                            frame_type]);
+            }
           });
         // Sort by url
         if (!e.data.disableSort) {

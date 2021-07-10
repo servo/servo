@@ -43,17 +43,37 @@ const actions = [
   },
   {
     label: "setRangeText()",
-    action: el => el.setRangeText("newmiddle")
+    action: el => el.setRangeText("newmiddle", el.selectionStart, el.selectionEnd, "select")
+  },
+  {
+    label: "selectionStart out of range",
+    action: el => el.selectionStart = 1000
+  },
+  {
+    label: "selectionEnd out of range",
+    action: el => el.selectionEnd = 1000
+  },
+  {
+    label: "setSelectionRange out of range",
+    action: el => el.setSelectionRange(1000, 2000)
   }
 ];
 
-for (const el of els) {
+function initialize(el) {
+  el.value = "foobar";
+  el.setSelectionRange(0, 0);
+  return new Promise(requestAnimationFrame);
+}
+
+els.forEach((el) => {
   const elLabel = el.localName === "textarea" ? "textarea" : "input type " + el.type;
 
-  for (const action of actions) {
+  actions.forEach((action) => {
     // promise_test instead of async_test is important because these need to happen in sequence (to test that events
     // fire if and only if the selection changes).
-    promise_test(t => {
+    promise_test(async t => {
+      await initialize(el);
+
       const watcher = new EventWatcher(t, el, "select");
 
       const promise = watcher.wait_for("select").then(e => {
@@ -79,6 +99,48 @@ for (const el of els) {
         }, 200);
       });
     }, `${elLabel}: ${action.label} a second time (must not fire select)`);
-  }
-}
+
+    promise_test(async t => {
+      const element = el.cloneNode(true);
+
+      element.onselect = e => {
+        element.onselect = null;
+      };
+
+      action.action(element);
+
+      // step_wait properly timeouts before the whole test collapses
+      await t.step_wait(() => !element.onselect, "event didn't fire", 200, 10);
+    }, `${elLabel}: ${action.label} disconnected node`);
+
+    // Intentionally still using promise_test, as assert_unreachable does not
+    // make the test fail inside a listener while t.unreached_func() does.
+    promise_test(async t => {
+      const element = el.cloneNode(true);
+      let fired = false;
+
+      element.onselect = () => fired = true;
+      action.action(element);
+      assert_false(fired, "the select event must not fire synchronously")
+
+      await t.step_wait(() => fired, "event didn't fire", 200, 10);
+    }, `${elLabel}: ${action.label} event queue`);
+
+    promise_test(t => {
+      const element = el.cloneNode(true);
+      assert_equals(element.selectionEnd, 0);
+
+      element.onselect = () => {
+        element.onselect = t.unreached_func("the select event must not fire twice");
+      };
+
+      action.action(element);
+      action.action(element);
+
+      return new Promise(resolve => {
+        t.step_timeout(resolve, 200);
+      });
+    }, `${elLabel}: ${action.label} twice in disconnected node (must fire select only once)`);
+  });
+});
 </script>

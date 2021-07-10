@@ -1,0 +1,212 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Unconsumed Vertex Attributes Out of Bounds Test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"> </script>
+</head>
+<body>
+<canvas id="example" width="50" height="50">
+</canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">
+    void main() { }
+</script>
+
+<script id="vshader_attrib" type="x-shader/x-vertex">
+    attribute vec4 vPosition;
+    void main() {
+        gl_Position = vPosition;
+    }
+</script>
+
+<script id="fshader" type="x-shader/x-fragment">
+    void main() { }
+</script>
+
+<script>
+"use strict";
+description("Test that unconsumed vertex attributes are not read out of bounds");
+// Tests for http://crbug.com/756293 (driver crash on macOS)
+// and a class of similar bugs that could exist on other systems.
+
+var wtu = WebGLTestUtils;
+var contextVersion = wtu.getDefault3DContextVersion();
+var gl = wtu.create3DContext("example");
+var g_program;
+var g_attribLocation;
+
+var numAttribs = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
+var allocatedBuffer;
+var indexBuffer;
+
+function setupBuffers(numVerts) {
+  var vertices = new Float32Array(numVerts * 3);
+  allocatedBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, allocatedBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+  var indices = new Uint16Array(numVerts);
+  for (var ii = 0; ii < numVerts; ++ii) {
+    indices[ii] = ii;
+  }
+
+  indexBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+}
+
+var progNoAttribs = wtu.setupProgram(gl, ['vshader', 'fshader'], [], []);
+var progAttrib1 = wtu.setupProgram(gl, ['vshader_attrib', 'fshader'], ['vPosition'], [1]);
+var progAttrib2 = wtu.setupProgram(gl, ['vshader_attrib', 'fshader'], ['vPosition'], [2]);
+setupBuffers(60000);
+
+var unallocatedBuffer = gl.createBuffer();
+var tests = [];
+
+debug("");
+debug("<u>Tests with one unconsumed attribute<u>");
+
+tests.push({
+  name: "drawArrays",
+  errors: gl.NO_ERROR,
+  draw: function() { gl.drawArrays(gl.TRIANGLES, 0, 3); }
+});
+tests.push({
+  name: "drawElements",
+  errors: gl.NO_ERROR,
+  draw: function() { gl.drawElements(gl.TRIANGLES, 60000, gl.UNSIGNED_SHORT, 0); }
+});
+
+if (contextVersion >= 2) {
+  tests.push({
+    name: "drawArraysInstanced",
+    errors: gl.NO_ERROR,
+    draw: function() { gl.drawArraysInstanced(gl.TRIANGLES, 0, 3, 1); }
+  });
+  tests.push({
+    name: "drawElementsInstanced",
+    errors: gl.NO_ERROR,
+    draw: function() { gl.drawElementsInstanced(gl.TRIANGLES, 60000, gl.UNSIGNED_SHORT, 0, 1); }
+  });
+  tests.push({
+    name: "drawRangeElements",
+    errors: gl.NO_ERROR,
+    draw: function() { gl.drawRangeElements(gl.TRIANGLES, 0, 60000, 60000, gl.UNSIGNED_SHORT, 0, 1); }
+  });
+}
+
+// Run tests
+
+// Bound forever
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+
+for (var attrib = 0; attrib < numAttribs; ++attrib) {
+  debug("Attrib " + attrib + " unconsumed");
+  for (var i = 0; i < tests.length; ++i) {
+    var test = tests[i];
+    gl.useProgram(progNoAttribs);
+
+    gl.enableVertexAttribArray(attrib);
+    gl.bindBuffer(gl.ARRAY_BUFFER, unallocatedBuffer);
+    gl.vertexAttribPointer(attrib, 3, gl.FLOAT, false, 0, 0);
+
+    test.draw();
+
+    gl.disableVertexAttribArray(attrib);
+    wtu.glErrorShouldBe(gl, test.errors, test.name);
+  }
+}
+
+debug("");
+debug("<u>Tests with one consumed attribute and one unconsumed attribute<u>");
+
+var ext = gl.getExtension("ANGLE_instanced_arrays");
+if (!ext) {
+  debug("ANGLE_instanced_arrays not available - skipped");
+} else {
+  tests.push({
+    name: "drawArraysInstancedANGLE",
+    errors: gl.NO_ERROR,
+    draw: function() {
+      ext.drawArraysInstancedANGLE(gl.TRIANGLES, 0, 3, 1);
+    }
+  });
+  tests.push({
+    name: "drawElementsInstancedANGLE",
+    errors: gl.NO_ERROR,
+    draw: function() {
+      ext.drawElementsInstancedANGLE(gl.TRIANGLES, 3, gl.UNSIGNED_SHORT, 0, 1);
+    }
+  });
+}
+
+// Note these don't trigger the macOS driver crash (http://crbug.com/756293)
+// but they still add potentially useful coverage.
+for (var attrib = 0; attrib < numAttribs; ++attrib) {
+  var consumedAttrib = attrib == 1 ? 2 : 1;
+  var prog = consumedAttrib == 1 ? progAttrib1 : progAttrib2;
+  debug("Attrib " + attrib +
+      " unconsumed (attrib " + consumedAttrib + " consumed)");
+
+  for (var i = 0; i < tests.length; ++i) {
+    var test = tests[i];
+    gl.useProgram(prog);
+
+    gl.enableVertexAttribArray(attrib);
+    gl.bindBuffer(gl.ARRAY_BUFFER, unallocatedBuffer);
+    gl.vertexAttribPointer(attrib, 3, gl.FLOAT, false, 0, 0);
+
+    // Needed because ANGLE_instanced_arrays requires at least one consumed
+    // attribute to have divisor=0 (which is the default, so we don't need to
+    // call vertexAttribDivisorANGLE here).
+    gl.enableVertexAttribArray(consumedAttrib);
+    gl.bindBuffer(gl.ARRAY_BUFFER, allocatedBuffer);
+    gl.vertexAttribPointer(consumedAttrib, 3, gl.FLOAT, false, 0, 0);
+
+    test.draw();
+
+    gl.disableVertexAttribArray(attrib);
+    gl.disableVertexAttribArray(consumedAttrib);
+    wtu.glErrorShouldBe(gl, test.errors, test.name);
+  }
+}
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

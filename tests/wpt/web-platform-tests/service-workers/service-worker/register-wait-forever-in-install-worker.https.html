@@ -16,6 +16,10 @@ promise_test(function(t) {
 
     return navigator.serviceWorker.register(bad_script, {scope: scope})
       .then(function(r) {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, scope);
+            });
+
           registration = r;
           assert_equals(registration.installing.scriptURL,
                         normalizeURL(bad_script));
@@ -46,9 +50,6 @@ promise_test(function(t) {
           assert_equals(registration.installing.scriptURL,
                         normalizeURL(good_script));
           return wait_for_state(t, registration.installing, 'activated');
-        })
-      .then(function() {
-          return service_worker_unregister_and_done(t, scope);
         })
   }, 'register worker that calls waitUntil with a promise that never ' +
      'resolves in oninstall');

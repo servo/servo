@@ -4,8 +4,11 @@
         <title>CSS Test: Combining characters and styling</title>
         <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
         <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#ctrlchars" />
+        <link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-letter-pseudo"/>
         <meta name="flags" content="" />
-        <meta name="assert" content="The combined characters are styled as one character." />
+        <meta name="assert" content="The combined characters are styled as one character.
+        (according to css3, the styling of a typographical ccharacter unit split by an element boundary is undefined.
+        However, this test is still fine because ::first-letter selects the whole character unit.)" />
         <style type="text/css">
             div:first-letter
             {

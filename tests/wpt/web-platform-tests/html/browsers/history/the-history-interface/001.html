@@ -44,7 +44,7 @@ function reportload() {
         test(function () {
             assert_equals( history.length, histlength + 1, 'make sure that you loaded the test in a new tab/window' );
         }, 'history.length should update when setting location.hash');
-        test(function () { assert_true( !!history.pushState, 'critical test; ignore any failures after this' ); }, 'history.pushState must exist'); //assert_exists does not allow prototype inheritance
+        test(function () { assert_true( !!history.pushState, 'critical test; ignore any failures after this' ); }, 'history.pushState must exist'); //assert_own_property does not allow prototype inheritance
         test(function () { assert_true( !!iframe.contentWindow.history.pushState, 'critical test; ignore any failures after this' ); }, 'history.pushState must exist within iframes');
         test(function () {
             assert_equals( iframe.contentWindow.history.state, null );
@@ -82,19 +82,19 @@ function reportload() {
     function tests4() {
         test(function () {
             //Firefox 4 beta 11 has a messed up error object, which does not have the right error type or .SECURITY_ERR property
-            assert_throws('SECURITY_ERR',function () { history.pushState('','','//exa mple'); });
+            assert_throws_dom('SECURITY_ERR',function () { history.pushState('','','//exa mple'); });
         }, 'pushState must not be allowed to create invalid URLs');
         test(function () {
-            assert_throws('SECURITY_ERR',function () { history.pushState('','','http://www.example.com/'); });
+            assert_throws_dom('SECURITY_ERR',function () { history.pushState('','','http://www.example.com/'); });
         }, 'pushState must not be allowed to create cross-origin URLs');
         test(function () {
-            assert_throws('SECURITY_ERR',function () { history.pushState('','','about:blank'); });
+            assert_throws_dom('SECURITY_ERR',function () { history.pushState('','','about:blank'); });
         }, 'pushState must not be allowed to create cross-origin URLs (about:blank)');
         test(function () {
-            assert_throws('SECURITY_ERR',function () { history.pushState('','','data:text/html,'); });
+            assert_throws_dom('SECURITY_ERR',function () { history.pushState('','','data:text/html,'); });
         }, 'pushState must not be allowed to create cross-origin URLs (data:URI)');
         test(function () {
-            assert_throws('SECURITY_ERR',function () { iframe.contentWindow.history.pushState('','','http://www.example.com/'); },iframe.contentWindow);
+            assert_throws_dom('SECURITY_ERR', iframe.contentWindow.DOMException, function () { iframe.contentWindow.history.pushState('','','http://www.example.com/'); });
         }, 'security errors are expected to be thrown in the context of the document that owns the history object');
         test(function () {
             iframe.contentWindow.location.hash = 'test2';
@@ -164,26 +164,25 @@ function reportload() {
             assert_equals( iframe.contentWindow.location.href, newURL );
         }, 'pushState must be able to set absolute URLs to the same host');
         test(function () {
-            assert_throws( 'DATA_CLONE_ERR', function () {
+            assert_throws_dom( 'DATA_CLONE_ERR', function () {
                 history.pushState({dummy:function () {}},'');
             } );
         }, 'pushState must not be able to use a function as data');
         test(function () {
-            assert_throws( 'DATA_CLONE_ERR', function () {
+            assert_throws_dom( 'DATA_CLONE_ERR', function () {
                 history.pushState({dummy:window},'');
             } );
         }, 'pushState must not be able to use a DOM node as data');
         test(function () {
             try { a.b = c; } catch(errdata) {
-                assert_throws( 'DATA_CLONE_ERR', function () {
-                    history.pushState({dummy:errdata},'');
-                } );
+                history.pushState({dummy:errdata},'');
+                assert_equals(ReferenceError.prototype, Object.getPrototypeOf(history.state.dummy));
             }
-        }, 'pushState must not be able to use an error object as data');
+        }, 'pushState must be able to use an error object as data');
         test(function () {
-            assert_throws( 'DATA_CLONE_ERR', function () {
+            assert_throws_dom('DATA_CLONE_ERR', iframe.contentWindow.DOMException, function () {
                 iframe.contentWindow.history.pushState(document,'');
-            }, iframe.contentWindow );
+            });
         }, 'security errors are expected to be thrown in the context of the document that owns the history object (2)');
         cloneobj = {
             nulldata: null,
@@ -221,7 +220,7 @@ function reportload() {
             assert_equals( iframe.contentWindow.history.state && iframe.contentWindow.history.state.strdata, 'string data' );
         }, 'history.state should also reference a clone of the original object');
         test(function () {
-            assert_false( cloneobj === iframe.contentWindow.history.state );
+            assert_not_equals( cloneobj, iframe.contentWindow.history.state );
         }, 'history.state should be a clone of the original object, not a reference to it');
         /*
         behaviour is not defined per spec, and no known implementations do this
@@ -250,7 +249,7 @@ function reportload() {
             assert_equals( ev.state.numdata, 1, 'state numeric data was not correct' );
             assert_equals( ev.state.strdata, 'string data', 'state string data was not correct' );
             assert_true( !!ev.state.datedata.getTime, 'state date data was not correct' );
-            assert_exists( ev.state, 'regdata', 'state regex data was not correct' );
+            assert_own_property( ev.state, 'regdata', 'state regex data was not correct' );
             assert_equals( ev.state.regdata.source, 'a', 'state regex pattern data was not correct' );
             assert_true( ev.state.regdata.global, 'state regex flag data was not correct' );
             assert_equals( ev.state.regdata.lastIndex, 0, 'state regex lastIndex data was not correct' );
@@ -266,17 +265,17 @@ function reportload() {
             assert_equals( ev.state.looped, ev.state );
         }, 'state data should cope with circular object references');
         test(function () {
-            assert_false( cloneobj === ev.state );
+            assert_not_equals( cloneobj, ev.state );
         }, 'state data should be a clone of the original object, not a reference to it');
         test(function () {
             assert_equals( iframe.contentWindow.history.state && iframe.contentWindow.history.state.strdata, 'string data' );
         }, 'history.state should also reference a clone of the original object (2)');
         test(function () {
-            assert_false( cloneobj === iframe.contentWindow.history.state );
+            assert_not_equals( cloneobj, iframe.contentWindow.history.state );
         }, 'history.state should be a clone of the original object, not a reference to it (2)');
         test(function () {
-            assert_false( iframe.contentWindow.history.state === ev.state );
-        }, 'history.state should be a separate clone of the object, not a reference to the object passed to the event handler');
+            assert_equals( iframe.contentWindow.history.state, ev.state );
+        }, 'history.state should be identical to the object passed to the event handler unless history.state is updated');
         try {
             iframe.contentWindow.persistval = true;
             iframe.contentWindow.history.pushState('','', location.href.replace(/\/[^\/]*$/,'/blank3.html') );

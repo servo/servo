@@ -1,6 +1,0 @@
--moz-background-inline-policy: each-box;
-
-  The background is tiled in each inline box of the element
-  independently. A no-repeat background image will be rendered once
-  per inline box of the element, rather than only once.
-

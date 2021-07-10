@@ -4,21 +4,21 @@
 <title>Dropping image on vertical page scrollbar</title>
 <style type="text/css">
 p:first-child
-	{padding-left:1em;}
+  {padding-left:1em;}
 div
-	{width:1ex;
-	margin-left:auto;}
+  {width:1ex;
+  margin-left:auto;}
 img
-	{width:5px;
-	height:5px;}
+  {width:5px;
+  height:5px;}
 body
-	{height:3000px;}
+  {height:3000px;}
 </style>
 <script type="application/ecmascript">
 function dragImage()
-	{event.dataTransfer.effectAllowed = 'copy';}
+  {event.dataTransfer.effectAllowed = 'copy';}
 function dropImage(event)
-	{document.querySelector('div').firstChild.nodeValue = 'P A S S';}
+  {document.querySelector('div').firstChild.nodeValue = 'P A S S';}
 </script>
 </head>
 <body ondragenter="event.preventDefault()" ondragover="return false">

@@ -1,0 +1,149 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL WEBGL_draw_buffers FRAMEBUFFER_UNSUPPORTED Test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="2" height="2"> </canvas>
+
+<script>
+"use strict";
+var wtu = WebGLTestUtils;
+var gl;
+var canvas = document.getElementById("canvas");
+var fb1 = null;
+var fb2 = null;
+
+function checkFramebuffer(expected) {
+    var actual = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    if (expected.indexOf(actual) < 0) {
+        var msg = "checkFramebufferStatus expects [";
+        for (var index = 0; index < expected.length; ++index) {
+            msg += wtu.glEnumToString(gl, expected[index]);
+            if (index + 1 < expected.length)
+                msg += ", ";
+        }
+        msg += "], was " + wtu.glEnumToString(gl, actual);
+        testFailed(msg);
+    } else {
+        var msg = "checkFramebufferStatus got " + wtu.glEnumToString(gl, actual) +
+                  " as expected";
+        testPassed(msg);
+    }
+}
+
+function testImageAttachedTwoPoints() {
+    debug("");
+    debug("Checking an image is attached to more than one color attachment in a framebuffer.");
+
+    var tex1 = gl.createTexture();
+    var tex2 = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex1);
+    gl.texImage2D(gl.TEXTURE_2D,
+                  0,                                          // level
+                  gl.RGBA,                                    // internalFormat
+                  1,                                          // width
+                  1,                                          // height
+                  0,                                          // border
+                  gl.RGBA,                                    // format
+                  gl.UNSIGNED_BYTE,                           // type
+                  new Uint8Array(4));                         // data
+    gl.bindTexture(gl.TEXTURE_2D, tex2);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Texture creation should succeed.");
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb1);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, ext.COLOR_ATTACHMENT0_WEBGL, gl.TEXTURE_2D, tex1, 0);
+    checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, ext.COLOR_ATTACHMENT1_WEBGL, gl.TEXTURE_2D, tex2, 0);
+    checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, ext.COLOR_ATTACHMENT2_WEBGL, gl.TEXTURE_2D, tex1, 0);
+    checkFramebuffer([gl.FRAMEBUFFER_UNSUPPORTED]);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb2);
+    var texCube = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, texCube);
+    for (var target = gl.TEXTURE_CUBE_MAP_POSITIVE_X; target < gl.TEXTURE_CUBE_MAP_POSITIVE_X + 6; target++) {
+        gl.texImage2D(target, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+    }
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, ext.COLOR_ATTACHMENT0_WEBGL, gl.TEXTURE_CUBE_MAP_POSITIVE_X, texCube, 0);
+    checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, ext.COLOR_ATTACHMENT1_WEBGL, gl.TEXTURE_CUBE_MAP_POSITIVE_Y, texCube, 0);
+    checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, ext.COLOR_ATTACHMENT2_WEBGL, gl.TEXTURE_CUBE_MAP_POSITIVE_X, texCube, 0);
+    checkFramebuffer([gl.FRAMEBUFFER_UNSUPPORTED]);
+
+    // Clean up
+    gl.deleteTexture(tex1);
+    gl.deleteTexture(tex2);
+    gl.deleteTexture(texCube);
+}
+
+description("This tests FRAMEBUFFER_UNSUPPORTED.");
+
+shouldBeNonNull("gl = wtu.create3DContext(undefined, undefined, 1)");
+fb1 = gl.createFramebuffer();
+fb2 = gl.createFramebuffer();
+
+var ext = gl.getExtension("WEBGL_draw_buffers");
+if (!ext) {
+    testPassed("No WEBGL_draw_buffers support -- this is legal");
+} else {
+    var bufs = [ext.COLOR_ATTACHMENT0_WEBGL, ext.COLOR_ATTACHMENT1_WEBGL, ext.COLOR_ATTACHMENT2_WEBGL];
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb1);
+    ext.drawBuffersWEBGL(bufs);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be able to call drawBuffersWEBGL successfully");
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb2);
+    ext.drawBuffersWEBGL(bufs);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be able to call drawBuffersWEBGL successfully");
+
+    testPassed("Successfully enabled WEBGL_draw_buffers extension");
+    testImageAttachedTwoPoints();
+
+    gl.deleteFramebuffer(fb1);
+    gl.deleteFramebuffer(fb2);
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

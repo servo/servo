@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="timeout" content="long">
+    <title>SpeechRecognition.onresult</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script>
+      var TIMEOUT_OVERRIDE = 60000;  // In milliseconds.
+    </script>
+    <script src="webspeech.js"></script>
+  </head>
+  <body>
+    <b>Instructions:</b>
+    <p>Reload and re-run this test at least 4 times to cover all 4 combinations
+      of these checkboxes:
+    <input type="checkbox" id="continuous">continuous
+    <input type="checkbox" id="interim">interimResults
+    <button id="button" onclick="startButton()">Click and Speak</button>
+    <br>
+    You may also wish to test with various combinations of these:
+    maxAlternatives:
+    <input type="text" value="3" size="2" id="maxAlternatives">,
+    language:
+    <input type="text" value="en-us" size="7" id="language">
+    </p>
+    <div id="results"></div>
+    <div id="log"></div>
+    <div id="notes"></div>
+    <script>
+var audioTest = new CycleTest('onaudio');
+reco.onaudiostart = audioTest.startEvent();
+reco.onaudioend = audioTest.endEvent();
+
+var soundTest = new CycleTest('onsound');
+reco.onsoundstart = soundTest.startEvent();
+reco.onsoundend = soundTest.endEvent();
+
+var speechTest = new CycleTest('onspeech');
+reco.onspeechstart = speechTest.startEvent();
+reco.onspeechend = speechTest.endEvent();
+
+reco.onerror = neverFireEvent('onerror');
+reco.onnomatch = neverFireEvent('onnomatch');
+
+var lastIsFinal = -1;  // Highest results index that has been marked isFinal.
+var lastInterimCount = 0;  // Number of results that are not marked isFinal.
+var resultTest = new CountTest('onresult', 1, 9999);
+
+resultTest.whenDone = function() {
+  assert_equals(lastInterimCount, 0, 'Number of interim results pending');
+};
+
+function appendAlternatives(array, results) {
+  for (var i = 0; i < reco.maxAlternatives; i++) {
+    if (i < results.length) {
+      array[i] += results[i].transcript;
+    } else {
+      array[i] += '<no alternative>';
+      assert_true(i > 0, 'Must return at least one alternative.');
+    }
+  }
+}
+
+reco.onresult = resultTest.test().step_func(function(event) {
+  resultTest.count(1);
+  var final = new Array();
+  var interim = new Array();
+  for (var i = 0; i < reco.maxAlternatives; i++) {
+    final[i] = '';
+    interim[i] = '';
+  }
+  assert_true(event.resultIndex > lastIsFinal, 'resultIndex must not ' +
+      'indicate a change in a result that was previously marked isFinal.');
+  assert_true(event.resultIndex <= event.results.length,
+      'resultIndex must not be greater than results.length.');
+  for (var i = 0; i < event.results.length; ++i) {
+    assert_true(event.results[i].length <= reco.maxAlternatives,
+        'Number of alternatives must not exceed maxAlternatives.');
+    if (event.results[i].isFinal) {
+      appendAlternatives(final, event.results[i]);
+      assert_true(reco.continuous || i < 1,
+          'When SpeechRecognition.continuous is false, no more than one ' +
+          'SpeechRecognitionResult.isFinal true should be returned.');
+      if (i > lastIsFinal) {
+        lastIsFinal = i;
+      }
+    } else {
+      appendAlternatives(interim, event.results[i]);
+      assert_true(i > lastIsFinal, 'A SpeechRecognitionResult was previously ' +
+          'marked isFinal, but now is not marked isFinal.');
+    }
+  lastInterimCount = event.results.length - lastIsFinal - 1;
+  assert_true(reco.interimResults || lastInterimCount == 0,
+      'Should not return interim results when reco.interimResults is false.');
+  }
+  for (var i = 0; i < reco.maxAlternatives; i++) {
+    document.getElementById('final_span_' + i).innerHTML = final[i];
+    document.getElementById('interim_span_' + i).innerHTML = interim[i];
+  }
+});
+
+function configureRecognition() {
+  var continuousBox = document.getElementById('continuous');
+  var interimBox = document.getElementById('interim');
+  var maxAlternativesInput = document.getElementById('maxAlternatives');
+  var langInput = document.getElementById('language');
+  reco.continuous = continuousBox.checked;
+  reco.interimResults = interimBox.checked;
+  reco.maxAlternatives = maxAlternativesInput.value;
+  reco.lang = langInput.value;
+  continuousBox.disabled = true;
+  interimBox.disabled = true;
+  maxAlternativesInput.disabled = true;
+  langInput.disabled = true;
+  test(function() {
+    assert_equals(reco.continuous, continuousBox.checked,
+                  'SpeechRecognition.continuous');
+    assert_equals(reco.interimResults, interim.checked,
+                  'SpeechRecognition.interimResults');
+    assert_equals(reco.maxAlternatives, parseInt(maxAlternativesInput.value),
+                  'SpeechRecognition.maxAlternatives');
+    assert_equals(reco.lang, langInput.value,
+                  'SpeechRecognition.lang');
+  }, 'SpeechRecognition settings');
+}
+
+var clicks = 0;
+function startButton() {
+  var button = document.getElementById('button');
+  if (++clicks == 1) {
+    configureRecognition();
+    if (reco.continuous) {
+      button.innerHTML = 'Click when done speaking';
+    } else {
+      button.hidden = true;
+    }
+    var results_html = '';
+    for (var i = 0; i < reco.maxAlternatives; i++) {
+      results_html += '<div style="border:1px dotted gray; padding:10px; ' +
+          'font-weight:bold">' +
+          '<span id="final_span_' + i + '"></span>' +
+          '<span id="interim_span_' + i + '" style="color:blue"></span>' +
+          '</div>';
+    }
+    results.innerHTML = results_html;
+    reco.start();
+  } else {
+    button.hidden = true;
+    reco.stop();
+  }
+}
+    </script>
+  </body>
+</html>
+

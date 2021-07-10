@@ -1,2 +1,2 @@
 def main(request, response):
-    return [("Content-Type", "application/javascript"), ("Transfer-encoding", "chunked")], "XX\r\n\r\n"
+    return [(b"Content-Type", b"application/javascript"), (b"Transfer-encoding", b"chunked")], b"XX\r\n\r\n"

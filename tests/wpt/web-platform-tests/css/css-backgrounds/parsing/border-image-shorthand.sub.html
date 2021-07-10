@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Backgrounds and Borders Module Level 3: border-image sets longhands</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#border-image">
+<meta name="assert" content="border-image supports the full grammar ' <‘border-image-source’> || <‘border-image-slice’> [ / <‘border-image-width’> | / <‘border-image-width’>? / <‘border-image-outset’> ]? || <‘border-image-repeat’>'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_shorthand_value('border-image', 'none', {
+  'border-image-source': 'none',
+  'border-image-slice': '100%',
+  'border-image-width': '1',
+  'border-image-outset': '0',
+  'border-image-repeat': 'stretch'
+});
+
+test_shorthand_value('border-image', 'url("http://{{host}}/") 1 2 3 4 fill', {
+  'border-image-source': 'url("http://{{host}}/")',
+  'border-image-slice': '1 2 3 4 fill',
+  'border-image-width': '1',
+  'border-image-outset': '0',
+  'border-image-repeat': 'stretch'
+});
+
+test_shorthand_value('border-image', 'repeat round', {
+  'border-image-source': 'none',
+  'border-image-slice': '100%',
+  'border-image-width': '1',
+  'border-image-outset': '0',
+  'border-image-repeat': 'repeat round'
+});
+
+test_shorthand_value('border-image', 'url("http://{{host}}/") fill 1 2% 3 4%', {
+  'border-image-source': 'url("http://{{host}}/")',
+  'border-image-slice': '1 2% 3 4% fill',
+  'border-image-width': '1',
+  'border-image-outset': '0',
+  'border-image-repeat': 'stretch'
+});
+
+test_shorthand_value('border-image', '1 2% 3 4% / 5% / 6', {
+  'border-image-source': 'none',
+  'border-image-slice': '1 2% 3 4%',
+  'border-image-width': '5%',
+  'border-image-outset': '6',
+  'border-image-repeat': 'stretch'
+});
+</script>
+</body>
+</html>

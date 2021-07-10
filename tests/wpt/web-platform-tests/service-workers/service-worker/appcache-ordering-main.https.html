@@ -5,7 +5,6 @@
 <body>
 <script>
 
-var INSTALL_APPCACHE_URL = "resources/appcache-ordering.install.html";
 var IS_APPCACHED_URL = "resources/appcache-ordering.is-appcached.html";
 var SERVICE_WORKER_SCOPE = "resources/appcache-ordering";
 var SERVICE_WORKER_SCRIPT = "resources/empty-worker.js";
@@ -14,31 +13,6 @@ var resolve_install_appcache = undefined;
 var reject_install_appcache = undefined;
 
 var frames = [];
-
-// Called by the INSTALL_APPCACHE_URL child frame.
-function notify_appcache_installed(success) {
-  if (success)
-    resolve_install_appcache();
-  else
-    reject_install_appcache();
-}
-
-function install_appcache() {
-  return new Promise(function(resolve, reject) {
-      var frame = document.createElement('iframe');
-      frames.push(frame);
-      frame.src = INSTALL_APPCACHE_URL;
-      document.body.appendChild(frame);
-      resolve_install_appcache = function() {
-          document.body.removeChild(frame);
-          resolve();
-        };
-      reject_install_appcache = function() {
-          document.body.removeChild(frame);
-          reject();
-        };
-  });
-}
 
 var resolve_is_appcached = undefined;
 
@@ -60,10 +34,10 @@ function is_appcached() {
   });
 }
 
-async_test(function(t) {
-    service_worker_unregister(t, SERVICE_WORKER_SCOPE)
+promise_test(function(t) {
+    return service_worker_unregister(t, SERVICE_WORKER_SCOPE)
       .then(function() {
-          return install_appcache();
+          return install_appcache_ordering_manifest();
         })
       .then(function() {
           return is_appcached();
@@ -74,6 +48,10 @@ async_test(function(t) {
               t, SERVICE_WORKER_SCRIPT, SERVICE_WORKER_SCOPE);
         })
       .then(function(r) {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, SERVICE_WORKER_SCOPE);
+            });
+
           return wait_for_state(t, r.installing, 'activated');
         })
       .then(function() {
@@ -82,9 +60,7 @@ async_test(function(t) {
       .then(function(result) {
           assert_false(result, 'but serviceworkers should take priority');
           frames.forEach(function(f) { f.remove(); });
-          service_worker_unregister_and_done(t, SERVICE_WORKER_SCOPE);
-        })
-      .catch(unreached_rejection(t));
+        });
   }, 'serviceworkers take priority over appcaches');
 
 </script>

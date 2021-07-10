@@ -1,0 +1,58 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Content Security Policy Level 3 (https://w3c.github.io/webappsec-csp/)
+
+[Exposed=Window]
+interface CSPViolationReportBody : ReportBody {
+  readonly attribute USVString documentURL;
+  readonly attribute USVString? referrer;
+  readonly attribute USVString? blockedURL;
+  readonly attribute DOMString effectiveDirective;
+  readonly attribute DOMString originalPolicy;
+  readonly attribute USVString? sourceFile;
+  readonly attribute DOMString? sample;
+  readonly attribute SecurityPolicyViolationEventDisposition disposition;
+  readonly attribute unsigned short statusCode;
+  readonly attribute unsigned long? lineNumber;
+  readonly attribute unsigned long? columnNumber;
+};
+
+enum SecurityPolicyViolationEventDisposition {
+  "enforce", "report"
+};
+
+[Exposed=(Window,Worker)]
+interface SecurityPolicyViolationEvent : Event {
+    constructor(DOMString type, optional SecurityPolicyViolationEventInit eventInitDict = {});
+    readonly    attribute USVString      documentURL;
+    readonly    attribute USVString      documentURI; // historical alias of documentURL
+    readonly    attribute USVString      referrer;
+    readonly    attribute USVString      blockedURL;
+    readonly    attribute USVString      blockedURI; // historical alias of blockedURL
+    readonly    attribute DOMString      effectiveDirective;
+    readonly    attribute DOMString      violatedDirective; // historical alias of effectiveDirective
+    readonly    attribute DOMString      originalPolicy;
+    readonly    attribute USVString      sourceFile;
+    readonly    attribute DOMString      sample;
+    readonly    attribute SecurityPolicyViolationEventDisposition      disposition;
+    readonly    attribute unsigned short statusCode;
+    readonly    attribute unsigned long  lineno;
+    readonly    attribute unsigned long  lineNumber; // historical alias of lineno
+    readonly    attribute unsigned long  colno;
+    readonly    attribute unsigned long  columnNumber; // historical alias of colno
+};
+
+dictionary SecurityPolicyViolationEventInit : EventInit {
+    required USVString      documentURL;
+             USVString      referrer = "";
+             USVString      blockedURL = "";
+    required DOMString      effectiveDirective;
+    required DOMString      originalPolicy;
+             USVString      sourceFile = "";
+             DOMString      sample = "";
+    required SecurityPolicyViolationEventDisposition disposition;
+    required unsigned short statusCode;
+             unsigned long  lineno = 0;
+             unsigned long  colno = 0;
+};

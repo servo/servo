@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<style>
+  a:visited {
+    color:white;
+  }
+</style>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<a id="link" href="./">link</a>
+<script>
+/* This test ensures that an empty page is painted when there is an invisible visited link (that
+would be visible if the link was not visited). It's necessary that whether the page is painted or
+not does not depend on visitedness of the link. Otherwise the paint-timing API could be used to
+sniff whether a link has been visited or not. */
+window.onload = function() {
+  /* Convenience helper to get the link into the browsing history.
+    Using a relative path because some browsers only allow replaceState within the same domain. */
+  current_url = window.location.href;
+  history.replaceState({}, "", "./");
+  history.replaceState({}, "", current_url);
+}
+setup({"hide_test_state": true});
+async_test(function(t) {
+  assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
+  function testPaintEntries() {
+      const bufferedEntries = performance.getEntriesByType('paint');
+      if (bufferedEntries.length < 2) {
+          t.step_timeout(function() {
+              testPaintEntries();
+          }, 20);
+          return;
+      }
+      t.step(function() {
+          assert_equals(bufferedEntries.length, 2, "FP and FCP.");
+          assert_equals(bufferedEntries[0].entryType, "paint");
+          assert_equals(bufferedEntries[0].name, "first-paint");
+          assert_equals(bufferedEntries[1].entryType, "paint");
+          assert_equals(bufferedEntries[1].name, "first-contentful-paint");
+          t.done();
+      });
+  }
+  t.step(function() {
+      testPaintEntries();
+  });
+}, "Visited-attack test to check existence of FP and FCP.");
+</script>
+</body>

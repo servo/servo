@@ -1,45 +1,59 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::attr::Attr;
-use dom::bindings::codegen::Bindings::DOMTokenListBinding;
-use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
-use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::js::{JS, Root};
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::str::DOMString;
-use dom::element::Element;
-use dom::node::window_from_node;
+use crate::dom::attr::Attr;
+use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
+use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::element::Element;
+use crate::dom::node::window_from_node;
 use dom_struct::dom_struct;
-use html5ever_atoms::LocalName;
+use html5ever::LocalName;
 use servo_atoms::Atom;
 use style::str::HTML_SPACE_CHARACTERS;
 
 #[dom_struct]
 pub struct DOMTokenList {
     reflector_: Reflector,
-    element: JS<Element>,
+    element: Dom<Element>,
     local_name: LocalName,
+    supported_tokens: Option<Vec<Atom>>,
 }
 
 impl DOMTokenList {
-    pub fn new_inherited(element: &Element, local_name: LocalName) -> DOMTokenList {
+    pub fn new_inherited(
+        element: &Element,
+        local_name: LocalName,
+        supported_tokens: Option<Vec<Atom>>,
+    ) -> DOMTokenList {
         DOMTokenList {
             reflector_: Reflector::new(),
-            element: JS::from_ref(element),
+            element: Dom::from_ref(element),
             local_name: local_name,
+            supported_tokens: supported_tokens,
         }
     }
 
-    pub fn new(element: &Element, local_name: &LocalName) -> Root<DOMTokenList> {
+    pub fn new(
+        element: &Element,
+        local_name: &LocalName,
+        supported_tokens: Option<Vec<Atom>>,
+    ) -> DomRoot<DOMTokenList> {
         let window = window_from_node(element);
-        reflect_dom_object(box DOMTokenList::new_inherited(element, local_name.clone()),
-                           &*window,
-                           DOMTokenListBinding::Wrap)
+        reflect_dom_object(
+            Box::new(DOMTokenList::new_inherited(
+                element,
+                local_name.clone(),
+                supported_tokens,
+            )),
+            &*window,
+        )
     }
 
-    fn attribute(&self) -> Option<Root<Attr>> {
+    fn attribute(&self) -> Option<DomRoot<Attr>> {
         self.element.get_attribute(&ns!(), &self.local_name)
     }
 
@@ -50,22 +64,54 @@ impl DOMTokenList {
             slice => Ok(Atom::from(slice)),
         }
     }
+
+    // https://dom.spec.whatwg.org/#concept-dtl-update
+    fn perform_update_steps(&self, atoms: Vec<Atom>) {
+        // Step 1
+        if !self.element.has_attribute(&self.local_name) && atoms.len() == 0 {
+            return;
+        }
+        // step 2
+        self.element
+            .set_atomic_tokenlist_attribute(&self.local_name, atoms)
+    }
+
+    // https://dom.spec.whatwg.org/#concept-domtokenlist-validation
+    fn validation_steps(&self, token: &str) -> Fallible<bool> {
+        match &self.supported_tokens {
+            None => Err(Error::Type(
+                "This attribute has no supported tokens".to_owned(),
+            )),
+            Some(supported_tokens) => {
+                let token = Atom::from(token).to_ascii_lowercase();
+                if supported_tokens
+                    .iter()
+                    .any(|supported_token| *supported_token == token)
+                {
+                    return Ok(true);
+                }
+                Ok(false)
+            },
+        }
+    }
 }
 
 // https://dom.spec.whatwg.org/#domtokenlist
 impl DOMTokenListMethods for DOMTokenList {
     // https://dom.spec.whatwg.org/#dom-domtokenlist-length
     fn Length(&self) -> u32 {
-        self.attribute().map_or(0, |attr| {
-            attr.value().as_tokens().len()
-        }) as u32
+        self.attribute()
+            .map_or(0, |attr| attr.value().as_tokens().len()) as u32
     }
 
     // https://dom.spec.whatwg.org/#dom-domtokenlist-item
     fn Item(&self, index: u32) -> Option<DOMString> {
         self.attribute().and_then(|attr| {
             // FIXME(ajeffrey): Convert directly from Atom to DOMString
-            attr.value().as_tokens().get(index as usize).map(|token| DOMString::from(&**token))
+            attr.value()
+                .as_tokens()
+                .get(index as usize)
+                .map(|token| DOMString::from(&**token))
         })
     }
 
@@ -84,12 +130,12 @@ impl DOMTokenListMethods for DOMTokenList {
     fn Add(&self, tokens: Vec<DOMString>) -> ErrorResult {
         let mut atoms = self.element.get_tokenlist_attribute(&self.local_name);
         for token in &tokens {
-            let token = try!(self.check_token_exceptions(&token));
+            let token = self.check_token_exceptions(&token)?;
             if !atoms.iter().any(|atom| *atom == token) {
                 atoms.push(token);
             }
         }
-        self.element.set_atomic_tokenlist_attribute(&self.local_name, atoms);
+        self.perform_update_steps(atoms);
         Ok(())
     }
 
@@ -97,33 +143,36 @@ impl DOMTokenListMethods for DOMTokenList {
     fn Remove(&self, tokens: Vec<DOMString>) -> ErrorResult {
         let mut atoms = self.element.get_tokenlist_attribute(&self.local_name);
         for token in &tokens {
-            let token = try!(self.check_token_exceptions(&token));
-            atoms.iter().position(|atom| *atom == token).map(|index| atoms.remove(index));
+            let token = self.check_token_exceptions(&token)?;
+            atoms
+                .iter()
+                .position(|atom| *atom == token)
+                .map(|index| atoms.remove(index));
         }
-        self.element.set_atomic_tokenlist_attribute(&self.local_name, atoms);
+        self.perform_update_steps(atoms);
         Ok(())
     }
 
     // https://dom.spec.whatwg.org/#dom-domtokenlist-toggle
     fn Toggle(&self, token: DOMString, force: Option<bool>) -> Fallible<bool> {
         let mut atoms = self.element.get_tokenlist_attribute(&self.local_name);
-        let token = try!(self.check_token_exceptions(&token));
+        let token = self.check_token_exceptions(&token)?;
         match atoms.iter().position(|atom| *atom == token) {
             Some(index) => match force {
                 Some(true) => Ok(true),
                 _ => {
                     atoms.remove(index);
-                    self.element.set_atomic_tokenlist_attribute(&self.local_name, atoms);
+                    self.perform_update_steps(atoms);
                     Ok(false)
-                }
+                },
             },
             None => match force {
                 Some(false) => Ok(false),
                 _ => {
                     atoms.push(token);
-                    self.element.set_atomic_tokenlist_attribute(&self.local_name, atoms);
+                    self.perform_update_steps(atoms);
                     Ok(true)
-                }
+                },
             },
         }
     }
@@ -135,11 +184,12 @@ impl DOMTokenListMethods for DOMTokenList {
 
     // https://dom.spec.whatwg.org/#dom-domtokenlist-value
     fn SetValue(&self, value: DOMString) {
-        self.element.set_tokenlist_attribute(&self.local_name, value);
+        self.element
+            .set_tokenlist_attribute(&self.local_name, value);
     }
 
     // https://dom.spec.whatwg.org/#dom-domtokenlist-replace
-    fn Replace(&self, token: DOMString, new_token: DOMString) -> ErrorResult {
+    fn Replace(&self, token: DOMString, new_token: DOMString) -> Fallible<bool> {
         if token.is_empty() || new_token.is_empty() {
             // Step 1.
             return Err(Error::Syntax);
@@ -152,21 +202,37 @@ impl DOMTokenListMethods for DOMTokenList {
         let token = Atom::from(token);
         let new_token = Atom::from(new_token);
         let mut atoms = self.element.get_tokenlist_attribute(&self.local_name);
+        let mut result = false;
         if let Some(pos) = atoms.iter().position(|atom| *atom == token) {
-            if !atoms.contains(&new_token) {
-                atoms[pos] = new_token;
+            if let Some(redundant_pos) = atoms.iter().position(|atom| *atom == new_token) {
+                if redundant_pos > pos {
+                    // The replacement is already in the list, later,
+                    // so we perform the replacement and remove the
+                    // later copy.
+                    atoms[pos] = new_token;
+                    atoms.remove(redundant_pos);
+                } else if redundant_pos < pos {
+                    // The replacement is already in the list, earlier,
+                    // so we remove the index where we'd be putting the
+                    // later copy.
+                    atoms.remove(pos);
+                }
+            // else we are replacing the token with itself, nothing to change
             } else {
-                atoms.remove(pos);
+                // The replacement is not in the list already
+                atoms[pos] = new_token;
             }
+
+            // Step 5.
+            self.perform_update_steps(atoms);
+            result = true;
         }
-        // Step 5.
-        self.element.set_atomic_tokenlist_attribute(&self.local_name, atoms);
-        Ok(())
+        Ok(result)
     }
 
-    // https://dom.spec.whatwg.org/#concept-dtl-serialize
-    fn Stringifier(&self) -> DOMString {
-        self.element.get_string_attribute(&self.local_name)
+    // https://dom.spec.whatwg.org/#dom-domtokenlist-supports
+    fn Supports(&self, token: DOMString) -> Fallible<bool> {
+        self.validation_steps(&token)
     }
 
     // check-tidy: no specs after this line

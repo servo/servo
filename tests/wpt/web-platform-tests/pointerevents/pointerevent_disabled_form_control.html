@@ -1,0 +1,93 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Pointer Events properties tests</title>
+        <meta name="viewport" content="width=device-width">
+        <meta name="variant" content="?mouse">
+        <meta name="variant" content="?touch">
+        <meta name="variant" content="?pen">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <!-- Additional helper script for common checks across event types -->
+        <script type="text/javascript" src="pointerevent_support.js"></script>
+        <script>
+            var inputSource = location.search.substring(1);
+            var detected_pointertypes = {};
+            var detected_eventTypes = {};
+            var eventList = ['pointerout', 'pointerover', 'pointerenter', 'pointermove', 'pointerdown', 'pointerup', 'pointerleave'];
+
+            function resetTestState() {
+                detected_eventTypes = {};
+            }
+            function run() {
+                var test_pointerEvent = setup_pointerevent_test("pointerevent attributes", [inputSource]);
+                var target = document.getElementById("target0");
+                var actions_promise;
+
+                eventList.forEach(function(eventName) {
+                on_event(target, eventName, function (event) {
+                        detected_eventTypes[event.type] = true;
+                        detected_pointertypes[event.pointerType] = true;
+
+                        if (Object.keys(detected_eventTypes).length == eventList.length) {
+                            // Make sure the test finishes after all the input actions are completed.
+                            actions_promise.then( () => {
+                                test_pointerEvent.done();
+                            });
+                        }
+                    });
+                });
+                on_event(target, "click", function (event) {
+                    assert_unreached("click should not fire on disabled element");
+                });
+
+                // Inject inputs.
+                switch (inputSource) {
+                    case "touch":
+                        actions_promise = pointerDragInTarget(inputSource, target, 'right');
+                        break;
+                    case "mouse":
+                    case "pen":
+                        actions_promise = clickInTarget(inputSource, target).then(function() {
+                            return new test_driver.Actions()
+                                .addPointer(inputSource + "Pointer1", inputSource)
+                                .pointerMove(0, 0)
+                                .send();
+                        });
+                        break;
+                }
+            }
+        </script>
+        <style>
+            #target0 {
+            background: purple;
+            border: 1px solid orange;
+            touch-action: none;
+            width: 200px;
+            height: 100px;
+            }
+        </style>
+    </head>
+    <body onload="run()">
+        <h1> Pointer Event: pointerevents fire to disabled form controls</h1>
+        <h2 id="pointerTypeDescription"></h2>
+        <h4>
+            Test Description:
+            Pointerevents are dispatched to disabled form controls.
+        </h4>
+        <div id="instructions">
+            Use the mouse or pen to press on the purple button. Or with touch, tap on the purple box.
+        </div>
+        <button id="target0" disabled>Disabled button</button>
+        <div id="complete-notice">
+            <p>Test complete: Scroll to Summary to view Pass/Fail Results.</p>
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+            <p>Refresh the page to run the tests again with a different pointer type.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

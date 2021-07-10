@@ -1,9 +1,0 @@
-{
-  "@context": "http://www.w3.org/ns/anno.jsonld",
-  "id": ["http://example.org/1", "http://example.org/2"],
-  "type": "Annotation",
-  "label": "bad created",
-  "created": ["2015-01-28T12:00:00Z","2015-01-28T12:00:01Z"],
-  "body": "http://example.org/post1",
-  "target": "http://example.com/page1"
-}

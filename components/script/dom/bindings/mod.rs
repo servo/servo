@@ -1,6 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! The code to expose the DOM to JavaScript through IDL bindings.
 //!
@@ -139,20 +139,23 @@ pub mod constant;
 pub mod conversions;
 pub mod error;
 pub mod guard;
+pub mod htmlconstructor;
 pub mod inheritance;
 pub mod interface;
 pub mod iterable;
-pub mod js;
-pub mod mozmap;
 pub mod namespace;
 pub mod num;
 pub mod proxyhandler;
+pub mod record;
 pub mod refcounted;
 pub mod reflector;
+pub mod root;
+pub mod serializable;
 pub mod settings_stack;
 pub mod str;
 pub mod structuredclone;
 pub mod trace;
+pub mod transferable;
 pub mod utils;
 pub mod weakref;
 pub mod xmlname;
@@ -166,9 +169,6 @@ pub mod codegen {
     }
     pub mod InterfaceObjectMap {
         include!(concat!(env!("OUT_DIR"), "/InterfaceObjectMap.rs"));
-    }
-    pub mod InterfaceTypes {
-        include!(concat!(env!("OUT_DIR"), "/InterfaceTypes.rs"));
     }
     #[allow(dead_code, unused_imports)]
     pub mod InheritTypes {

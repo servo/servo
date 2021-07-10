@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>width, height, inline-size and block-size</title>
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#layout-algorithms">
+<meta name="assert" content="Verify that width, height, inline-size and block-size properties are ignored.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/feature-detection.js"></script>
+<script src="/mathml/support/mathml-fragments.js"></script>
+<script src="/mathml/support/box-comparison.js"></script>
+<script>
+  var epsilon = 1;
+
+  setup({ explicit_done: true });
+  window.addEventListener("load", runTests);
+
+  function runTests() {
+
+    for (tag in MathMLFragments) {
+        if (!FragmentHelper.isValidChildOfMrow(tag) || tag === "mtable")
+            continue;
+
+        test(function() {
+            assert_true(MathMLFeatureDetection[`has_${tag}`](), `${tag} is supported`);
+            var style = "width: 500px; height: 400px;";
+            var s = compareSizeWithAndWithoutStyle(tag, style);
+            assert_approx_equals(s.width_delta, 0, epsilon, "width");
+            assert_approx_equals(s.height_delta, 0, epsilon, "height");
+            assert_approx_equals(s.element_width_delta, 0, epsilon, "element width");
+            assert_approx_equals(s.element_height_delta, 0, epsilon, "element height");
+        }, `width and height properties on ${tag}`);
+
+        test(function() {
+            assert_true(MathMLFeatureDetection[`has_${tag}`](), `${tag} is supported`);
+            var style = "inline-size: 500px; block-size: 400px;";
+            var s = compareSizeWithAndWithoutStyle(tag, style);
+            assert_approx_equals(s.width_delta, 0, epsilon, "width");
+            assert_approx_equals(s.height_delta, 0, epsilon, "height");
+            assert_approx_equals(s.element_width_delta, 0, epsilon, "element width");
+            assert_approx_equals(s.element_height_delta, 0, epsilon, "element height");
+        }, `inline-size and block-size properties on ${tag}`);
+    }
+
+    done();
+  }
+</script>
+</head>
+<body>
+  <div id="log"></div>
+</body>
+</html>

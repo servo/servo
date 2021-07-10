@@ -1,7 +1,0 @@
-{"tests": [
-
-{"description": "invalid lang attribute 'foo'",
-"input": "<link hreflang=foo>",
-"fail-unless": "invalid-lang-code"}
-
-]}

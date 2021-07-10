@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+#background {
+  background-color: yellow;
+  display: inline-block;
+}
+
+.container {
+  font-size: 0px;
+}
+</style>
+</head>
+<body>
+
+<div id="background">
+  <div class="container">
+    <canvas id ="box-1" width="200" height="200"></canvas>
+  </div>
+  <div class="container">
+    <canvas id ="box-2" width="200" height="200"></canvas>
+  </div>
+</div>
+
+<script>
+function drawCanvas(canvasID, color, width) {
+  var canvas = document.getElementById(canvasID);
+  var context = canvas.getContext("2d", {alpha: true});
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = color;
+  context.fillRect(40, 40, width, width);
+};
+
+drawCanvas('box-1', 'rgb(50, 100, 150)', '50');
+drawCanvas('box-2', 'rgb(150, 100, 50)', '100');
+</script>
+</body>
+</html>

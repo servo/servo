@@ -27,7 +27,7 @@
         Note that this test uses the 'onload' event on the root svg element.
       </p>
     </d:testDescription>
-    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">      
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
       <p>
         Run the test. No interaction required.
       </p>

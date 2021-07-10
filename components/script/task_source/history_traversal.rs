@@ -1,20 +1,30 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use script_runtime::{ScriptChan, CommonScriptMsg};
-use script_thread::MainThreadScriptMsg;
-use std::sync::mpsc::Sender;
+use crate::script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
+use crate::script_thread::MainThreadScriptMsg;
+use crate::task::{TaskCanceller, TaskOnce};
+use crate::task_source::{TaskSource, TaskSourceName};
+use crossbeam_channel::Sender;
+use msg::constellation_msg::PipelineId;
 
-#[derive(JSTraceable)]
-pub struct HistoryTraversalTaskSource(pub Sender<MainThreadScriptMsg>);
+#[derive(Clone, JSTraceable)]
+pub struct HistoryTraversalTaskSource(pub Sender<MainThreadScriptMsg>, pub PipelineId);
 
-impl ScriptChan for HistoryTraversalTaskSource {
-    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        self.0.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ())
-    }
+impl TaskSource for HistoryTraversalTaskSource {
+    const NAME: TaskSourceName = TaskSourceName::HistoryTraversal;
 
-    fn clone(&self) -> Box<ScriptChan + Send> {
-        box HistoryTraversalTaskSource((&self.0).clone())
+    fn queue_with_canceller<T>(&self, task: T, canceller: &TaskCanceller) -> Result<(), ()>
+    where
+        T: TaskOnce + 'static,
+    {
+        let msg = MainThreadScriptMsg::Common(CommonScriptMsg::Task(
+            ScriptThreadEventCategory::HistoryEvent,
+            Box::new(canceller.wrap_task(task)),
+            Some(self.1),
+            HistoryTraversalTaskSource::NAME,
+        ));
+        self.0.send(msg).map_err(|_| ())
     }
 }

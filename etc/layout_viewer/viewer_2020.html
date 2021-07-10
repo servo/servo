@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Servo Layout Debugger</title>
+
+    <!-- Bootstrap -->
+    <link href="css/bootstrap.min.css" rel="stylesheet" />
+
+    <!-- Treeview -->
+    <link href="css/bootstrap-treeview.min.css" rel="stylesheet" />
+
+    <!-- JSDiffPatch -->
+    <link href="css/formatters/html.css" rel="stylesheet" />
+
+    <!-- Custom -->
+    <link href="css/main.css" rel="stylesheet" />
+
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="container" role="main">
+      <div class="row">
+        <div class="col-sm-12">
+          <h1>Servo Layout Viewer</h1>
+          <p>
+            Check the
+            <a
+              href="https://github.com/servo/servo/blob/master/etc/layout_viewer/README.md"
+              >README</a
+            >
+            for instructions.
+          </p>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-sm-4">
+          <div class="row">
+            <div class="col-sm-12">
+              <div class="well">
+                <input type="file" />
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-sm-12">
+              <div id="trace-tree"></div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-sm-12">
+              <ul id="trace-list" class="list-group"></ul>
+            </div>
+          </div>
+        </div>
+        <div class="col-sm-8">
+          <div class="row">
+            <div class="col-sm-12">
+              <div class="panel panel-default">
+                <div class="panel-heading">
+                  Box Tree
+                  <a
+                    id="box-tree-collapse"
+                    class="tree-collapse"
+                    data-collapsed="0"
+                  ></a>
+                </div>
+                <div class="panel-body" id="box-tree"></div>
+              </div>
+            </div>
+            <div class="col-sm-12">
+              <div id="box-diffs"></div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-sm-12">
+              <div class="panel panel-default">
+                <div class="panel-heading">
+                  Fragment Tree
+                  <a
+                    id="fragment-tree-collapse"
+                    class="tree-collapse"
+                    data-collapsed="0"
+                  ></a>
+                </div>
+                <div class="panel-body" id="fragment-tree"></div>
+              </div>
+            </div>
+            <div class="col-sm-12">
+              <div id="fragment-diffs"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- jQuery -->
+    <script src="js/jquery.min.js"></script>
+    <!-- Bootstrap -->
+    <script src="js/bootstrap.min.js"></script>
+    <!-- Treeview -->
+    <script src="js/bootstrap-treeview.min.js"></script>
+    <!-- JSDiffPatch -->
+    <script src="js/bundle.min.js"></script>
+    <script src="js/formatters.min.js"></script>
+
+    <script>
+      function get_inner_boxes(box) {
+        const box_type = Object.keys(box)[0];
+        switch (box_type) {
+          case "BlockLevelBoxes":
+            return box.BlockLevelBoxes;
+          case "InlineFormattingContext":
+            return box.InlineFormattingContext.inline_level_boxes;
+          case "InlineBox":
+            return box.InlineBox.children;
+          case "SameFormattingContextBlock":
+          case "Independent":
+          case "Flow":
+          case "OutOfFlowAbsolutelyPositionedBox":
+          case "OutOfFlowFloatBox":
+          case "Atomic":
+            return box[box_type].contents;
+        }
+        return null;
+      }
+
+      function box_tree_from_container(container) {
+        const box_type = Object.keys(container)[0];
+        let inner_boxes = get_inner_boxes(container);
+        let nodes = [];
+        let text = box_type;
+        if (Array.isArray(inner_boxes)) {
+          if (!inner_boxes.length) {
+            nodes = null;
+          } else {
+            for (let box in inner_boxes) {
+              nodes.push(box_tree_from_container(inner_boxes[box]));
+            }
+          }
+        } else if (inner_boxes != null) {
+          nodes.push(box_tree_from_container(inner_boxes));
+        } else {
+          if (box_type == "TextRun") {
+            text += ` (${container.TextRun.text})`;
+          }
+          nodes = null;
+        }
+
+        let info;
+        if (
+          box_type != "BlockLevelBoxes" &&
+          box_type != "InlineFormattingContext"
+        ) {
+          info = Object.assign({}, Object.values(container)[0]);
+          delete info.children;
+          delete info.contents;
+          delete info.tag;
+        }
+
+        return {
+          text,
+          nodes,
+          info
+        };
+      }
+
+      function box_tree_from_bfc(bfc) {
+        const { contains_floats, contents } = bfc;
+        let block_container = Object.values(contents)[0];
+        return {
+          text: "BlockFormattingContext",
+          info: {
+            contains_floats
+          },
+          nodes: [box_tree_from_container(contents)]
+        };
+      }
+
+      function create_fragment_tree(root) {
+        let fragment = Object.values(root)[0];
+        let node = {
+          text: Object.keys(root)[0],
+          id: fragment.debug_id,
+          href: "#diff-" + fragment.debug_id
+        };
+
+        if (fragment.children) {
+          let children = [];
+          for (let i = 0; i < fragment.children.length; ++i) {
+            children.push(create_fragment_tree(fragment.children[i]));
+          }
+
+          if (children.length > 0) {
+            node.nodes = children;
+          }
+        }
+
+        node.info = Object.assign({}, fragment);
+        delete node.info.children;
+        delete node.info.debug_id;
+
+        return node;
+      }
+
+      function flatten_trace(trace_node) {
+        const fragment_tree_root = Object.values(
+          trace_node.fragment_tree.root_fragments
+        )[0];
+        return {
+          fragment_tree: create_fragment_tree(fragment_tree_root),
+          box_tree: box_tree_from_bfc(trace_node.box_tree.root)
+        };
+      }
+
+      function create_trace_tree_node(trace_node) {
+        const trace = flatten_trace(trace_node.pre);
+
+        let tree_node = {
+          text: trace_node.name,
+          icon: "dummy",
+          box_tree: trace.box_tree,
+          fragment_tree: trace.fragment_tree
+        };
+
+        let node = Object.values(trace_node)[0];
+        if (node.children) {
+          let children = [];
+          for (let i = 0; i < node.children.length; ++i) {
+            children.push(create_trace_tree_node(node.children[i]));
+          }
+
+          if (children.length > 0) {
+            tree_node.nodes = children;
+          }
+        }
+
+        return tree_node;
+      }
+
+      function new_data_loaded(data) {
+        jsondiffpatch.formatters.html.hideUnchanged();
+
+        let node_color_hash = {};
+        let tree = [create_trace_tree_node(data)];
+        $("#trace-tree").treeview({ data: tree, levels: 3 });
+        $("#trace-tree").on("nodeSelected", function(event, node) {
+          $("#fragment-diffs").empty();
+          $("#trace-tree")
+            .treeview(true)
+            .revealNode(node);
+
+          const on_tree_node_selected = tree => (event, data) => {
+            $(`#${tree}-diffs`).empty();
+            if (!data.info) return;
+            // XXX(ferjm) no diff for now.
+            const delta = jsondiffpatch
+              .create({
+                objectHash: function(obj) {
+                  return JSON.stringify(obj);
+                }
+              })
+              .diff({}, data.info);
+
+            const json = jsondiffpatch.formatters.html.format(delta, data.info);
+
+            $(`#${tree}-diffs`).append(
+              "<div class='panel panel-default'><div class='panel-heading'>" +
+                data.text +
+                "</div><div class='panel-body'>" +
+                json +
+                "</div></div>"
+            );
+          };
+
+          const on_fragment_tree_node_selected = on_tree_node_selected(
+            "fragment"
+          );
+          const on_box_tree_node_selected = on_tree_node_selected("box");
+
+          $("#fragment-tree").treeview({
+            data: [node.fragment_tree],
+            levels: 100,
+            enableLinks: false,
+            emptyIcon: "glyphicon glyphicon-unchecked hidden-glyphicon",
+            onNodeSelected: on_fragment_tree_node_selected
+          });
+
+          $("#box-tree").treeview({
+            data: [node.box_tree],
+            levels: 100,
+            enableLinks: false,
+            emptyIcon: "glyphicon glyphicon-unchecked hidden-glyphicon",
+            onNodeSelected: on_box_tree_node_selected
+          });
+
+          ["fragment", "box"].forEach(key => {
+            const collapsable = $(`#${key}-tree-collapse`);
+            collapsable.html("Collapse all").on("click", () => {
+              const collapsed = collapsable.data("collapsed");
+              if (collapsed == 0) {
+                $(`#${key}-tree`).treeview("collapseAll");
+              } else {
+                $(`#${key}-tree`).treeview("expandAll");
+              }
+              collapsable.html(collapsed == 0 ? "Expand all" : "Collapse all");
+              collapsable.data("collapsed", collapsed == 0 ? 1 : 0);
+            });
+          });
+        });
+
+        $("#trace-tree")
+          .treeview(true)
+          .selectNode(0);
+      }
+
+      $(document).ready(function() {
+        let upload = document.getElementsByTagName("input")[0];
+        upload.onchange = function(e) {
+          e.preventDefault();
+
+          let file = upload.files[0],
+            reader = new FileReader();
+          reader.onload = function(event) {
+            new_data_loaded(JSON.parse(event.target.result));
+          };
+
+          reader.readAsText(file);
+          return false;
+        };
+      });
+    </script>
+  </body>
+</html>

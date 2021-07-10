@@ -1,0 +1,34 @@
+<!doctype html>
+<title>CSS Test: directionality propagation in Shadow DOM.</title>
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="help" href="https://html.spec.whatwg.org/#the-dir-attribute">
+<link rel="help" href="https://github.com/whatwg/html/issues/3699">
+<link rel="match" href="reference/green-box.html">
+<style>
+  div { width: 100px; }
+</style>
+<p>Test passes if you see a single 100px by 100px green box below.</p>
+<div id="host1"></div>
+<div id="host2" dir="rtl"></div>
+<div id="host3"></div>
+<div id="host4" dir="rtl"></div>
+<script>
+  host1.attachShadow({ mode: "open" }).innerHTML = `
+    <style>:dir(ltr) { background: green; height: 25px; }</style>
+    <div></div>
+  `;
+  host2.attachShadow({ mode: "open" }).innerHTML = `
+    <style>:dir(rtl) { background: green; height: 25px; }</style>
+    <div></div>
+  `;
+  host3.attachShadow({ mode: "open" }).innerHTML = `
+    <style>:dir(rtl) { background: green; height: 25px; }</style>
+    <div></div>
+  `;
+  host4.attachShadow({ mode: "open" }).innerHTML = `
+    <style>span:dir(ltr) { display: block; background: green; height: 25px; }</style>
+    <div dir="ltr"><span></span></div>
+  `;
+  document.body.offsetTop;
+  host3.setAttribute("dir", "rtl");
+</script>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Flexbox Reference: display:table flex items with percent-width cells and content keywords for used flex-basis</title>
+<link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+<style>
+  .container {
+    display: block;
+    width: 200px;
+    border: 1px solid black;
+  }
+  table { width: max-content; }
+  td {
+    background-color: cyan;
+    width: 100%;
+    border: 1px solid gray;
+  }
+
+</style>
+<body>
+  <div class="container">
+    <table><tr><td>1</td><td>2</td></tr></table>
+  </div>
+  <div class="container">
+    <table><tr><td>1</td><td>2</td></tr></table>
+  </div>
+  <div class="container">
+    <table><tr><td>1</td><td>2</td></tr></table>
+  </div>
+  <div class="container">
+    <table><tr><td>1</td><td>2</td></tr></table>
+  </div>
+</body>

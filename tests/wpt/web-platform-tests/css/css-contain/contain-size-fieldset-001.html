@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Containment Test: Size containment on fieldset</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain-1/#containment-size">
+<link rel="match" href="reference/contain-size-fieldset-001-ref.html">
+<meta name=assert content="Size containment does apply to fieldsets, thus their size is the same than if they don't have contents.">
+<style>
+fieldset {
+  contain: size;
+  display: inline-block;
+  color: transparent;
+  border: none;
+  padding: 0;
+}
+</style>
+
+<p>This test passes if it has the same output as the reference. You see the word "before", a small space, and then the word "after".</p>
+before<fieldset><legend>legend</legend></fieldset>after

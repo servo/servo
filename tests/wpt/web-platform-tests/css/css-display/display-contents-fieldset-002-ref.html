@@ -1,0 +1,60 @@
+<!DOCTYPE HTML>
+<html><head>
+<link rel="author" title="Mats Palmgren" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1140160">
+<style>
+fieldset { padding:0; }
+span { display:block; width:10px; height:10px; background:lime; }
+.contents { }
+legend { border: 1px solid; }
+.test2 legend { }
+.test2 legend::after, .test3 legend::after { content:"legend"; }
+.test2 legend.static, .test3 legend.static { display:block; }
+.test2 legend.static::before, .test3 legend.static::before { content:"static "; }
+.test2 legend.static::before { content:"static "; }
+.after::after { content:"::after"; }
+.before::before { content:"::before"; }
+.nb legend.static  { border: 1px solid; }
+.nb legend { border-style:none; }
+</style>
+</head>
+<body>
+<fieldset><div class="test contents"></div></fieldset>
+<fieldset><div class="test contents">x</div></fieldset>
+<fieldset><div class="test contents after"></div></fieldset>
+<fieldset><div class="test contents before"></div></fieldset>
+<fieldset><div class="test contents before after"></div></fieldset>
+<fieldset><span></span></fieldset>
+<fieldset><span></span></fieldset>
+<fieldset><span></span></fieldset>
+<fieldset class="test2"></fieldset>
+<fieldset class="test2 after"></fieldset>
+<fieldset class="test2"><legend class="static"></legend></fieldset>
+<fieldset class="test2"><legend class="static contents"></legend></fieldset>
+<fieldset class="test2"><legend class="static"></legend></fieldset>
+<fieldset class="test2"></fieldset>
+<fieldset class="test3"></fieldset>
+<fieldset class="test2"><legend class="static"></legend></fieldset>
+<fieldset class="test3"><legend class="static"></legend></fieldset>
+<script>
+document.body.offsetHeight;
+var tests = document.querySelectorAll('.test');
+for (i=0; i < tests.length; ++i) {
+  test = tests[i];
+  test.appendChild(document.createElement('span'));
+}
+var tests = document.querySelectorAll('.test2');
+for (i=0; i < tests.length; ++i) {
+  test = tests[i];
+  let span = document.createElement('dummy-inline');
+  span.innerHTML = "legend";
+  test.appendChild(span);
+}
+
+var tests = document.querySelectorAll('.test3');
+for (i=0; i < tests.length; ++i) {
+  test = tests[i];
+  test.appendChild(document.createElement('legend'));
+}
+</script>
+</body>
+</html>

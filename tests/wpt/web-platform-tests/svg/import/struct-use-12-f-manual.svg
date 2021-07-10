@@ -16,12 +16,12 @@
         Tests that recursive 'use' instances do not block rendering.
       </p>
       <p>
-        Various scenarios that directly and indirectly create circular references via the 'use' tag. A 'g' element is used when 
-        structural elements are necessary. None of the 'use' scenarios render anything. 'useLongCycle' tests a chain of recursive 
-        'use' instances that eventually cycles back to the first element. In 'useNested' 'use' elements are nested, with the child 
-        referring to the parent. In 'useNestedGroup' a 'use' instance references a parent 'g' element. In 'useIndirectNestedGroup' 
-        a 'use' instance indirectly references its own parent 'g'. In 'useMultipleIndirectNestedGroup', two 'use' instances 
-        reference their parent 'g' elements, and additional 'use' instances refer to these self-referencing 'use' elements. A green 
+        Various scenarios that directly and indirectly create circular references via the 'use' tag. A 'g' element is used when
+        structural elements are necessary. None of the 'use' scenarios render anything. 'useLongCycle' tests a chain of recursive
+        'use' instances that eventually cycles back to the first element. In 'useNested' 'use' elements are nested, with the child
+        referring to the parent. In 'useNestedGroup' a 'use' instance references a parent 'g' element. In 'useIndirectNestedGroup'
+        a 'use' instance indirectly references its own parent 'g'. In 'useMultipleIndirectNestedGroup', two 'use' instances
+        reference their parent 'g' elements, and additional 'use' instances refer to these self-referencing 'use' elements. A green
         'rect' is used to verify that rendering was processed up to that point.
       </p>
     </d:testDescription>

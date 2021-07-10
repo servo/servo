@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>CSS Variables 1: Test variables in background shorthand.</title>
+<link rel="author" title="Lea Verou" href="mailto:lea@verou.me">
+<link rel="help" href="https://www.w3.org/TR/css-variables-1/#variables-in-shorthands">
+<link rel="match" href="reference/vars-background-shorthand-001-ref.html">
+<style>
+div {
+    width: 50px;
+    height: 50px;
+    padding: 50px;
+    margin: 10px;
+    display: inline-block;
+    background: red;
+}
+
+div#d1 {
+    --foo: green;
+    background: var(--foo);
+}
+
+div#d2 {
+    --foo: green, green;
+    background: linear-gradient(var(--foo));
+}
+
+div#d3 {
+    --foo: linear-gradient(green, green);
+    background: var(--foo);
+}
+
+div#d4 {
+    --foo: center / 0 0;
+    background: green linear-gradient(red, red) var(--foo, );
+}
+</style>
+<p>Test passes if you see four green squares, and no red.</p>
+<div id="d1"></div>
+<div id="d2"></div>
+<div id="d3"></div>
+<div id="d4"></div>
+
+
+

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<style>
+body {
+    margin: 0;
+}
+.inline-flexbox {
+    display: inline-flex;
+    background-color: lightgrey;
+    margin-top: 5px;
+}
+.flexbox {
+    display: flex;
+    background-color: grey;
+    margin-top: 10px;
+}
+.empty {
+    border-style: solid;
+    border-width: 5px 0px 10px;
+    padding: 2px 0px 4px;
+    margin: 10px 0px 20px;
+}
+.column {
+    flex-flow: column;
+}
+.column-reverse {
+    flex-flow: column-reverse;
+}
+</style>
+
+<body style="position: relative">
+
+<!-- If any of the flex items on the flex container's first line participate
+in baseline alignment, the flex container's main-axis baseline is the baseline
+of those flex items. -->
+<div>
+before text
+<div class="inline-flexbox" style="height: 50px;">
+    <div style="align-self: flex-end">below</div>
+    <div style="align-self: baseline; margin-top: 15px">baseline</div>
+    <div style="align-self: flex-start">above</div>
+</div>
+after text
+</div>
+
+<!-- This grid has a baseline item, it's orthogonal but it still participates
+in baseline alignment. -->
+<div>
+before text
+<div class="inline-flexbox" style="height: 40px">
+    <div style="align-self: flex-end">below</div>
+    <div style="align-self: baseline; margin-top: 20px"></div>
+    <div style="align-self: flex-start">above</div>
+</div>
+after text
+</div>
+
+<div>
+before text
+<div class="inline-flexbox">
+    <h2>h2 baseline</h2>
+    <div>above</div>
+</div>
+after text
+</div>
+
+<div>
+before text
+<div class="inline-flexbox">
+    <div>baseline</div>
+    <h2>h2 below</h2>
+</div>
+after text
+</div>
+
+<!-- If the first flex item has an orthogonal baseline, use the synthesized
+baseline (bottom of the content box of the first item). -->
+<div>
+should align with the middle
+<div class="inline-flexbox" style="width: 40px; height: 40px">
+    <div style="writing-mode: vertical-rl; height: 20px; width: 40px; border-bottom: 1px solid black"></div>
+</div>
+of the grey box
+</div>
+
+<!-- If there are no flexitems, align to the bottom of the margin box. -->
+<div>
+should align below the bottom
+<div class="empty inline-flexbox" style="width: 30px; height: 30px">
+</div>
+of the black line
+</div>
+
+<!-- If the griditem has not a natural baseline, align to the bottom of the box. -->
+<div>
+should align with the bottom
+<div class="inline-flexbox" style="width: 40px; height: 40px;">
+    <div style="width: 20px; height: 20px; border: 5px solid; background: red; "></div>
+</div>
+of the red box
+</div>
+
+<!-- cross-axis (column) test cases. -->
+<div>
+before text
+<div class="inline-flexbox column">
+    <div>baseline</div>
+    <div>below</div>
+</div>
+after text
+</div>
+
+<!-- If the first flex item has an orthogonal baseline, use the synthesized
+baseline (bottom of the content box of the first item). -->
+<div>
+should align with the middle
+<div class="inline-flexbox column" style="width: 40px; height: 40px;">
+    <div style="writing-mode: vertical-rl; width: 40px; height: 20px; border-bottom: 1px solid black"></div>
+    <div style="writing-mode: vertical-rl; width: 40px; height: 19px"></div>
+</div>
+of the grey box
+</div>
+
+<!-- More tests on the right side of the page. -->
+<div style="position: absolute; top: 0; left: 400px; width: 360px">
+
+<!-- Ignore absolutely positioned flex items. -->
+<div>
+before text
+<div class="inline-flexbox">
+    <div style="position: absolute">absolute</div>
+    <div style="margin-top: 30px">baseline</div>
+</div>
+after text
+</div>
+
+<!-- We don't participate in baseline alignment if there's an auto margin. -->
+<div>
+before text
+<div class="inline-flexbox" style="height: 40px;">
+    <div>baseline</div>
+    <div style="align-self: baseline; margin-top: auto">below</div>
+</div>
+after text
+</div>
+
+<div>
+before text
+<div style="display: inline-block">
+<div class="inline-flexbox" style="height: 40px;">
+    <div>above</div>
+    <div style="align-self: baseline; margin-top: 10px">baseline</div>
+    <div>above</div>
+</div>
+after
+</div>
+text
+</div>
+
+<!-- The spec is a little unclear what should happen here. For now, align to
+the last line box. -->
+<div>
+before text
+<div style="display: inline-block">
+<div class="flexbox" style="height: 30px;">
+  baseline
+</div>
+</div>
+after text
+</div>
+
+<table style="background-color: lightgrey; margin-top: 5px">
+<tr style="height: 50px">
+  <td style="vertical-align: bottom">bottom</td>
+  <td style="vertical-align: baseline">baseline</td>
+  <td style="vertical-align: top">top</td>
+  <td style="vertical-align: baseline"><div class="flexbox">
+    <h2>h2 baseline</h2>
+    <div>above</div>
+  </div></td>
+</table>
+
+<!-- If a box contributing a baseline has a scrollbar, the box must be treated
+as being in its initial scroll position when computing the baseline. -->
+<div>
+before text
+<div id="flexbox-with-scrollbar" class="inline-flexbox" style="height: 65px; width: 150px">
+    <div id="flexitem-with-scrollbar" style="align-self: baseline; padding-top: 15px; height: 50px; overflow-y: scroll;">
+        The baseline is based on<br>
+        the non-scrolled position;<br>
+        this won't line up.
+    </div>
+</div>
+after text
+</div>
+
+</div>
+
+<script>
+document.getElementById("flexitem-with-scrollbar").scrollTop = 999;
+document.getElementById("flexbox-with-scrollbar").style.width = "auto";
+</script>
+
+</body>
+</html>

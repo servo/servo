@@ -3,6 +3,7 @@
 # Initial code by fantasai, joint copyright 2010 W3C and Microsoft
 # Licensed under BSD 3-Clause: <http://www.w3.org/Consortium/Legal/2008/03-bsd-license>
 
+from __future__ import print_function
 from os.path import basename, exists, join
 import os
 import filecmp
@@ -12,7 +13,7 @@ import codecs
 import collections
 from xml import dom
 import html5lib
-from html5lib import treebuilders, inputstream
+from html5lib import treebuilders
 from lxml import etree
 from lxml.etree import ParseError
 from Utils import getMimeFromExt, escapeToNamedASCII, basepath, isPathInsideBase, relativeURL, assetName
@@ -524,7 +525,8 @@ class FileSource:
   def data(self):
     """Return file contents as a byte string."""
     if (self._data is None):
-      self._data = open(self.sourcepath, 'r').read()
+      with open(self.sourcepath, 'r') as f:
+        self._data = f.read()
     if (self._data.startswith(codecs.BOM_UTF8)):
       self.encoding = 'utf-8-sig' # XXX look for other unicode BOMs
     return self._data
@@ -532,7 +534,7 @@ class FileSource:
   def unicode(self):
     try:
       return self.data().decode(self.encoding)
-    except UnicodeDecodeError, e:
+    except UnicodeDecodeError:
       return None
 
   def parse(self):
@@ -579,8 +581,8 @@ class FileSource:
   def write(self, format):
     """Writes FileSource.data() out to `self.relpath` through Format `format`."""
     data = self.data()
-    f = open(format.dest(self.relpath), 'w')
-    f.write(data)
+    with open(format.dest(self.relpath), 'w') as f:
+      f.write(data)
     if (self.metaSource):
       self.metaSource.write(format) # XXX need to get output path from format, but not let it choose actual format
 
@@ -817,7 +819,8 @@ class ConfigSource(FileSource):
     """Merge contents of all config files represented by this source."""
     data = ''
     for src in self.sourcepath:
-      data += open(src).read()
+      with open(src) as f:
+        data += f.read()
       data += '\n'
     return data
 
@@ -867,35 +870,36 @@ class ReftestManifest(ConfigSource):
     for src in self.sourcepath:
       relbase = basepath(self.relpath)
       srcbase = basepath(src)
-      for line in open(src):
-        strip = self.baseRE.search(line)
-        if strip:
-          striplist.append(strip.group(1))
-        line = self.stripRE.sub('', line)
-        m = self.parseRE.search(line)
-        if m:
-          record = ((join(srcbase, m.group(2)), join(srcbase, m.group(3))), \
-                    (join(relbase, m.group(2)), join(relbase, m.group(3))), \
-                    m.group(1))
-#          for strip in striplist:
-            # strip relrecord
-          if not exists(record[0][0]):
-            raise ReftestFilepathError("Manifest Error in %s: "
-                                       "Reftest test file %s does not exist." \
-                                        % (src, record[0][0]))
-          elif not exists(record[0][1]):
-            raise ReftestFilepathError("Manifest Error in %s: "
-                                       "Reftest reference file %s does not exist." \
-                                       % (src, record[0][1]))
-          elif not isPathInsideBase(record[1][0]):
-            raise ReftestFilepathError("Manifest Error in %s: "
-                                       "Reftest test replath %s not within relpath root." \
-                                       % (src, record[1][0]))
-          elif not isPathInsideBase(record[1][1]):
-            raise ReftestFilepathError("Manifest Error in %s: "
-                                       "Reftest test replath %s not within relpath root." \
-                                       % (src, record[1][1]))
-          yield record
+      with open(src) as f:
+        for line in f:
+          strip = self.baseRE.search(line)
+          if strip:
+            striplist.append(strip.group(1))
+          line = self.stripRE.sub('', line)
+          m = self.parseRE.search(line)
+          if m:
+            record = ((join(srcbase, m.group(2)), join(srcbase, m.group(3))), \
+                      (join(relbase, m.group(2)), join(relbase, m.group(3))), \
+                      m.group(1))
+  #          for strip in striplist:
+              # strip relrecord
+            if not exists(record[0][0]):
+              raise ReftestFilepathError("Manifest Error in %s: "
+                                         "Reftest test file %s does not exist." \
+                                          % (src, record[0][0]))
+            elif not exists(record[0][1]):
+              raise ReftestFilepathError("Manifest Error in %s: "
+                                         "Reftest reference file %s does not exist." \
+                                         % (src, record[0][1]))
+            elif not isPathInsideBase(record[1][0]):
+              raise ReftestFilepathError("Manifest Error in %s: "
+                                         "Reftest test replath %s not within relpath root." \
+                                         % (src, record[1][0]))
+            elif not isPathInsideBase(record[1][1]):
+              raise ReftestFilepathError("Manifest Error in %s: "
+                                         "Reftest test replath %s not within relpath root." \
+                                         % (src, record[1][1]))
+            yield record
 
 import Utils # set up XML catalog
 xhtmlns = '{http://www.w3.org/1999/xhtml}'
@@ -965,7 +969,7 @@ class XMLSource(FileSource):
       if ((not self.metadata) and self.tree and (not self.errors)):
         self.extractMetadata(self.tree)
     except etree.ParseError as e:
-      print "PARSE ERROR: " + self.sourcepath
+      print("PARSE ERROR: " + self.sourcepath)
       self.cacheAsParseError(self.sourcepath, e)
       e.W3CTestLibErrorLocation = self.sourcepath
       self.errors = [str(e)]
@@ -1025,9 +1029,8 @@ class XMLSource(FileSource):
       output = self.unicode()
 
     # write
-    f = open(format.dest(self.relpath), 'w')
-    f.write(output.encode(self.encoding, 'xmlcharrefreplace'))
-    f.close()
+    with open(format.dest(self.relpath), 'w') as f:
+      f.write(output.encode(self.encoding, 'xmlcharrefreplace'))
 
   def compact(self):
     self.tree = None
@@ -1363,10 +1366,8 @@ class HTMLSource(XMLSource):
       if data:
         with warnings.catch_warnings():
           warnings.simplefilter("ignore")
-          htmlStream = html5lib.inputstream.HTMLInputStream(data)
-          if ('utf-8-sig' != self.encoding):  # if we found a BOM, respect it
-            self.encoding = htmlStream.detectEncoding()[0]
-          self.tree = self.__parser.parse(data, encoding = self.encoding)
+          self.tree = self.__parser.parse(data)
+          self.encoding = self.__parser.documentEncoding
           self.injectedTags = {}
       else:
         self.tree = None
@@ -1377,7 +1378,7 @@ class HTMLSource(XMLSource):
       if ((not self.metadata) and self.tree and (not self.errors)):
         self.extractMetadata(self.tree)
     except Exception as e:
-      print "PARSE ERROR: " + self.sourcepath
+      print("PARSE ERROR: " + self.sourcepath)
       e.W3CTestLibErrorLocation = self.sourcepath
       self.errors = [str(e)]
       self.encoding = 'utf-8'

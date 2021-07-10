@@ -10,7 +10,7 @@
 var constants = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'];
 for (var i = 0; i < constants.length; ++i) {
   test(function() {
-    assert_throws(new TypeError(), function(){
+    assert_throws_js(TypeError, function(){
       Object.defineProperty(WebSocket.prototype, constants[i], {
         set: function() { return 'foo'; }
       });

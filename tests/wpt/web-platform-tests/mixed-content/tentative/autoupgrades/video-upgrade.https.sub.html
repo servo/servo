@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Autoupgrade mixed content: Video.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+</head>
+<body>
+  <script>
+    async_test(t => assert_video_loads(t), "Video autoupgraded");
+
+    function assert_video_loads(test) {
+        // Since autoupgrades don't upgrade custom ports, we use the https port with an HTTP scheme. A successful autoupgrade will result in the right URL loading (and no autoupgrade will result in failure).
+        var url = new URL("http://{{host}}:{{ports[https][0]}}/mixed-content/tentative/resources/test.ogv")
+        var i = document.createElement('video');
+        i.oncanplaythrough = test.step_func_done(_ => {
+            assert_equals(Math.floor(i.duration), 300, "Length.");
+        });
+        i.onerror = test.unreached_func("Video should load successfully from " + url);
+        i.src = url;
+    }
+</script>
+</body>
+</html>

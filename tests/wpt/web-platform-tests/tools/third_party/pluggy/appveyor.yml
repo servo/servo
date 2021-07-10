@@ -1,0 +1,38 @@
+environment:
+  matrix:
+  # note: please use "tox --listenvs" to populate the build matrix below
+  - TOXENV: "linting"
+  - TOXENV: "docs"
+  - TOXENV: "py27"
+  - TOXENV: "py34"
+  - TOXENV: "py35"
+  - TOXENV: "py36"
+  - TOXENV: "py37"
+  - TOXENV: "pypy"
+  - TOXENV: "py36-pytestmaster"
+  - TOXENV: "py36-pytestfeatures"
+
+install:
+  - echo Installed Pythons
+  - dir c:\Python*
+
+  # install pypy using choco (redirect to a file and write to console in case
+  # choco install returns non-zero, because choco install python.pypy is too
+  # noisy)
+  # pypy is disabled until #1963 gets fixed
+  - choco install python.pypy > pypy-inst.log 2>&1 || (type pypy-inst.log & exit /b 1)
+  - set PATH=C:\tools\pypy\pypy;%PATH% # so tox can find pypy
+  - echo PyPy installed
+  - pypy --version
+
+  - C:\Python35\python -m pip install -U pip
+  - C:\Python35\python -m pip install -U --force-reinstall setuptools tox
+
+build: false  # Not a C# project, build stuff at the test step instead.
+
+test_script:
+  - C:\Python35\Scripts\tox
+
+# We don't deploy anything on tags with AppVeyor, we use Travis instead, so we
+# might as well save resources
+skip_tags: true

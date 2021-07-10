@@ -35,7 +35,7 @@
         config.video = document.getElementById('videoelement');
 
         function onComplete() {
-            window.opener.postMessage(assertions, '*');
+            window.opener.postMessage({ testResult: assertions }, '*');
         }
 
         function onFailure(error) {
@@ -54,9 +54,10 @@
         .then(function(access) {
             return access.createMediaKeys();
         }).then(function(mediaKeys) {
-            config.video.setMediaKeys(mediaKeys);
+            return config.video.setMediaKeys(mediaKeys);
+        }).then(function() {
             config.video.addEventListener('timeupdate', onTimeupdate, true);
-            _mediaKeySession = mediaKeys.createSession( 'persistent-license' );
+            _mediaKeySession = config.video.mediaKeys.createSession( 'persistent-license' );
             _mediaKeySession.closed.then(onComplete);
             return _mediaKeySession.load(event.data.sessionId);
         }).then(function( success ) {

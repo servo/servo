@@ -48,7 +48,7 @@ test(function() {
     client.open('GET', CROSSDOMAIN + 'resources/cors-makeheader.py?headers=x-print', false)
     client.setRequestHeader('x-print', 'unicorn')
     client.setRequestHeader('y-print', 'unicorn')
-    assert_throws("NetworkError", function() { client.send(null) })
+    assert_throws_dom("NetworkError", function() { client.send(null) })
 }, 'Unspecified request headers are disallowed')
 
 test(function() {
@@ -65,7 +65,7 @@ test(function() {
 
 test(function() {
     var client = new XMLHttpRequest()
-    assert_throws('INVALID_STATE_ERR', function() { client.setRequestHeader('x-print', 'unicorn') })
+    assert_throws_dom('INVALID_STATE_ERR', function() { client.setRequestHeader('x-print', 'unicorn') })
 },
 'INVALID_STATE_ERR on setRequestHeader before open()')
 
@@ -73,7 +73,7 @@ test(function() {
     var client = new XMLHttpRequest()
     client.open('GET', CROSSDOMAIN + 'resources/cors-makeheader.py?headers=,y-lol,x-PriNT,%20,,,Y-PRINT', false)
     client.send()
-    assert_throws('INVALID_STATE_ERR', function() { client.setRequestHeader('x-print', 'unicorn') })
+    assert_throws_dom('INVALID_STATE_ERR', function() { client.setRequestHeader('x-print', 'unicorn') })
 },
 'INVALID_STATE_ERR on setRequestHeader after send()')
 

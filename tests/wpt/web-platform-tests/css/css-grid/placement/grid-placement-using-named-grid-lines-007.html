@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Grid item placement with dynamically named grid lines</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="http://www.w3.org/TR/css-grid-1/#line-placement">
+<link rel="match" href="../../reference/ref-filled-green-300px-square.html">
+<meta name="assert" content="Grid item placement is updated when the names of the grid lines change dynamically.">
+<style>
+.container {
+  display: grid;
+  width: 300px;
+  height: 100px;
+  background: red;
+}
+.container::before {
+  content: "";
+  grid-area: main;
+  background: green;
+}
+.explicit {
+  grid-template-columns: [quux-start] 100% [quux-end];
+  grid-template-rows: [quux-start] 100% [quux-end];
+}
+.explicit.changed {
+  grid-template-columns: [main-start] 100% [main-end];
+  grid-template-rows: [main-start] 100% [main-end];
+}
+.auto-repeat {
+  grid-template-columns: repeat(auto-fill, [quux-start] 100% [quux-end]);
+  grid-template-rows: repeat(auto-fill, [quux-start] 100% [quux-end]);
+}
+.auto-repeat.changed {
+  grid-template-columns: repeat(auto-fill, [main-start] 100% [main-end]);
+  grid-template-rows: repeat(auto-fill, [main-start] 100% [main-end]);
+}
+.implicit {
+  grid-template-columns: 100%;
+  grid-template-rows: 100%;
+  grid-template-areas: "quux";
+}
+.implicit.changed {
+  grid-template-areas: "main";
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="container explicit"></div>
+<div class="container auto-repeat"></div>
+<div class="container implicit"></div>
+<script>
+// Force layout
+document.body.offsetLeft;
+
+// Change the grid line names
+for (let container of document.querySelectorAll(".container")) {
+  container.classList.add("changed");
+}
+</script>

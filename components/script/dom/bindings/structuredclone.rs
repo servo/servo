@@ -1,27 +1,46 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! This module implements structured cloning, as defined by [HTML]
 //! (https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data).
 
-use dom::bindings::conversions::root_from_handleobject;
-use dom::bindings::error::{Error, Fallible};
-use dom::bindings::js::Root;
-use dom::bindings::reflector::DomObject;
-use dom::blob::{Blob, BlobImpl};
-use dom::globalscope::GlobalScope;
-use js::jsapi::{Handle, HandleObject, HandleValue, MutableHandleValue, JSAutoCompartment, JSContext};
+use crate::dom::bindings::conversions::{root_from_object, ToJSValConvertible};
+use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::serializable::{Serializable, StorageKey};
+use crate::dom::bindings::transferable::Transferable;
+use crate::dom::blob::Blob;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::messageport::MessagePort;
+use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
+use crate::script_runtime::JSContext as SafeJSContext;
+use js::glue::CopyJSStructuredCloneData;
+use js::glue::DeleteJSAutoStructuredCloneBuffer;
+use js::glue::GetLengthOfJSStructuredCloneData;
+use js::glue::NewJSAutoStructuredCloneBuffer;
+use js::glue::WriteBytesToJSStructuredCloneData;
+use js::jsapi::CloneDataPolicy;
+use js::jsapi::HandleObject as RawHandleObject;
+use js::jsapi::JSContext;
+use js::jsapi::MutableHandleObject as RawMutableHandleObject;
+use js::jsapi::StructuredCloneScope;
+use js::jsapi::TransferableOwnership;
+use js::jsapi::JS_STRUCTURED_CLONE_VERSION;
+use js::jsapi::{JSObject, JS_ClearPendingException};
 use js::jsapi::{JSStructuredCloneCallbacks, JSStructuredCloneReader, JSStructuredCloneWriter};
-use js::jsapi::{JS_ClearPendingException, JSObject, JS_ReadStructuredClone};
-use js::jsapi::{JS_ReadBytes, JS_WriteBytes};
 use js::jsapi::{JS_ReadUint32Pair, JS_WriteUint32Pair};
-use js::jsapi::{JS_STRUCTURED_CLONE_VERSION, JS_WriteStructuredClone};
-use js::jsapi::{MutableHandleObject, TransferableOwnership};
-use libc::size_t;
+use js::jsval::UndefinedValue;
+use js::rust::wrappers::{JS_ReadStructuredClone, JS_WriteStructuredClone};
+use js::rust::{CustomAutoRooterGuard, HandleValue, MutableHandleValue};
+use msg::constellation_msg::{BlobId, MessagePortId};
+use script_traits::serializable::BlobImpl;
+use script_traits::transferable::MessagePortImpl;
+use script_traits::StructuredSerializedData;
+use std::collections::HashMap;
 use std::os::raw;
 use std::ptr;
-use std::slice;
 
 // TODO: Should we add Min and Max const to https://github.com/servo/rust-mozjs/blob/master/src/consts.rs?
 // TODO: Determine for sure which value Min and Max should have.
@@ -32,126 +51,196 @@ enum StructuredCloneTags {
     /// To support additional types, add new tags with values incremented from the last one before Max.
     Min = 0xFFFF8000,
     DomBlob = 0xFFFF8001,
+    MessagePort = 0xFFFF8002,
     Max = 0xFFFFFFFF,
 }
 
-#[cfg(target_pointer_width = "64")]
-unsafe fn write_length(w: *mut JSStructuredCloneWriter,
-                       length: usize) {
-  let high: u32 = (length >> 32) as u32;
-  let low: u32 = length as u32;
-  assert!(JS_WriteUint32Pair(w, high, low));
+unsafe fn read_blob(
+    owner: &GlobalScope,
+    r: *mut JSStructuredCloneReader,
+    mut sc_holder: &mut StructuredDataHolder,
+) -> *mut JSObject {
+    let mut name_space: u32 = 0;
+    let mut index: u32 = 0;
+    assert!(JS_ReadUint32Pair(
+        r,
+        &mut name_space as *mut u32,
+        &mut index as *mut u32
+    ));
+    let storage_key = StorageKey { index, name_space };
+    if <Blob as Serializable>::deserialize(&owner, &mut sc_holder, storage_key.clone()).is_ok() {
+        let blobs = match sc_holder {
+            StructuredDataHolder::Read { blobs, .. } => blobs,
+            _ => panic!("Unexpected variant of StructuredDataHolder"),
+        };
+        if let Some(blobs) = blobs {
+            let blob = blobs
+                .get(&storage_key)
+                .expect("No blob found at storage key.");
+            return blob.reflector().get_jsobject().get();
+        }
+    }
+    warn!(
+        "Reading structured data for a blob failed in {:?}.",
+        owner.get_url()
+    );
+    ptr::null_mut()
 }
 
-#[cfg(target_pointer_width = "32")]
-unsafe fn write_length(w: *mut JSStructuredCloneWriter,
-                       length: usize) {
-  assert!(JS_WriteUint32Pair(w, length as u32, 0));
+unsafe fn write_blob(
+    owner: &GlobalScope,
+    blob: DomRoot<Blob>,
+    w: *mut JSStructuredCloneWriter,
+    sc_holder: &mut StructuredDataHolder,
+) -> bool {
+    if let Ok(storage_key) = blob.serialize(sc_holder) {
+        assert!(JS_WriteUint32Pair(
+            w,
+            StructuredCloneTags::DomBlob as u32,
+            0
+        ));
+        assert!(JS_WriteUint32Pair(
+            w,
+            storage_key.name_space,
+            storage_key.index
+        ));
+        return true;
+    }
+    warn!(
+        "Writing structured data for a blob failed in {:?}.",
+        owner.get_url()
+    );
+    return false;
 }
 
-#[cfg(target_pointer_width = "64")]
-unsafe fn read_length(r: *mut JSStructuredCloneReader)
-                      -> usize {
-  let mut high: u32 = 0;
-  let mut low: u32 = 0;
-  assert!(JS_ReadUint32Pair(r, &mut high as *mut u32, &mut low as *mut u32));
-  return (low << high) as usize;
-}
-
-#[cfg(target_pointer_width = "32")]
-unsafe fn read_length(r: *mut JSStructuredCloneReader)
-                      -> usize {
-  let mut length: u32 = 0;
-  let mut zero: u32 = 0;
-  assert!(JS_ReadUint32Pair(r, &mut length as *mut u32, &mut zero as *mut u32));
-  return length as usize;
-}
-
-unsafe fn read_blob(cx: *mut JSContext,
-                    r: *mut JSStructuredCloneReader)
-                    -> *mut JSObject {
-    let blob_length = read_length(r);
-    let type_str_length = read_length(r);
-    let mut blob_buffer = vec![0u8; blob_length];
-    assert!(JS_ReadBytes(r, blob_buffer.as_mut_ptr() as *mut raw::c_void, blob_length));
-    let mut type_str_buffer = vec![0u8; type_str_length];
-    assert!(JS_ReadBytes(r, type_str_buffer.as_mut_ptr() as *mut raw::c_void, type_str_length));
-    let type_str = String::from_utf8_unchecked(type_str_buffer);
-    let target_global = GlobalScope::from_context(cx);
-    let blob = Blob::new(&target_global, BlobImpl::new_from_bytes(blob_buffer), type_str);
-    return blob.reflector().get_jsobject().get()
-}
-
-unsafe fn write_blob(blob: Root<Blob>,
-                     w: *mut JSStructuredCloneWriter)
-                     -> Result<(), ()> {
-    let blob_vec = try!(blob.get_bytes());
-    let blob_length = blob_vec.len();
-    let type_string_bytes = blob.type_string().as_bytes().to_vec();
-    let type_string_length = type_string_bytes.len();
-    assert!(JS_WriteUint32Pair(w, StructuredCloneTags::DomBlob as u32, 0));
-    write_length(w, blob_length);
-    write_length(w, type_string_length);
-    assert!(JS_WriteBytes(w, blob_vec.as_ptr() as *const raw::c_void, blob_length));
-    assert!(JS_WriteBytes(w, type_string_bytes.as_ptr() as *const raw::c_void, type_string_length));
-    return Ok(())
-}
-
-unsafe extern "C" fn read_callback(cx: *mut JSContext,
-                                   r: *mut JSStructuredCloneReader,
-                                   tag: u32,
-                                   _data: u32,
-                                   _closure: *mut raw::c_void)
-                                   -> *mut JSObject {
-    assert!(tag < StructuredCloneTags::Max as u32, "tag should be lower than StructuredCloneTags::Max");
-    assert!(tag > StructuredCloneTags::Min as u32, "tag should be higher than StructuredCloneTags::Min");
+unsafe extern "C" fn read_callback(
+    cx: *mut JSContext,
+    r: *mut JSStructuredCloneReader,
+    _policy: *const CloneDataPolicy,
+    tag: u32,
+    _data: u32,
+    closure: *mut raw::c_void,
+) -> *mut JSObject {
+    assert!(
+        tag < StructuredCloneTags::Max as u32,
+        "tag should be lower than StructuredCloneTags::Max"
+    );
+    assert!(
+        tag > StructuredCloneTags::Min as u32,
+        "tag should be higher than StructuredCloneTags::Min"
+    );
     if tag == StructuredCloneTags::DomBlob as u32 {
-        return read_blob(cx, r)
+        let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
+        return read_blob(
+            &GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof)),
+            r,
+            &mut *(closure as *mut StructuredDataHolder),
+        );
     }
-    return ptr::null_mut()
+    return ptr::null_mut();
 }
 
-unsafe extern "C" fn write_callback(_cx: *mut JSContext,
-                                    w: *mut JSStructuredCloneWriter,
-                                    obj: HandleObject,
-                                    _closure: *mut raw::c_void)
-                                    -> bool {
-    if let Ok(blob) = root_from_handleobject::<Blob>(obj) {
-        return write_blob(blob, w).is_ok()
+unsafe extern "C" fn write_callback(
+    cx: *mut JSContext,
+    w: *mut JSStructuredCloneWriter,
+    obj: RawHandleObject,
+    _same_process_scope_required: *mut bool,
+    closure: *mut raw::c_void,
+) -> bool {
+    if let Ok(blob) = root_from_object::<Blob>(*obj, cx) {
+        let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
+        return write_blob(
+            &GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof)),
+            blob,
+            w,
+            &mut *(closure as *mut StructuredDataHolder),
+        );
     }
-    return false
+    return false;
 }
 
-unsafe extern "C" fn read_transfer_callback(_cx: *mut JSContext,
-                                            _r: *mut JSStructuredCloneReader,
-                                            _tag: u32,
-                                            _content: *mut raw::c_void,
-                                            _extra_data: u64,
-                                            _closure: *mut raw::c_void,
-                                            _return_object: MutableHandleObject)
-                                            -> bool {
+unsafe extern "C" fn read_transfer_callback(
+    cx: *mut JSContext,
+    _r: *mut JSStructuredCloneReader,
+    tag: u32,
+    _content: *mut raw::c_void,
+    extra_data: u64,
+    closure: *mut raw::c_void,
+    return_object: RawMutableHandleObject,
+) -> bool {
+    if tag == StructuredCloneTags::MessagePort as u32 {
+        let mut sc_holder = &mut *(closure as *mut StructuredDataHolder);
+        let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
+        let owner = GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof));
+        if let Ok(_) = <MessagePort as Transferable>::transfer_receive(
+            &owner,
+            &mut sc_holder,
+            extra_data,
+            return_object,
+        ) {
+            return true;
+        }
+    }
     false
 }
 
-unsafe extern "C" fn write_transfer_callback(_cx: *mut JSContext,
-                                             _obj: Handle<*mut JSObject>,
-                                             _closure: *mut raw::c_void,
-                                             _tag: *mut u32,
-                                             _ownership: *mut TransferableOwnership,
-                                             _content:  *mut *mut raw::c_void,
-                                             _extra_data: *mut u64)
-                                             -> bool {
+/// <https://html.spec.whatwg.org/multipage/#structuredserializewithtransfer>
+unsafe extern "C" fn write_transfer_callback(
+    cx: *mut JSContext,
+    obj: RawHandleObject,
+    closure: *mut raw::c_void,
+    tag: *mut u32,
+    ownership: *mut TransferableOwnership,
+    _content: *mut *mut raw::c_void,
+    extra_data: *mut u64,
+) -> bool {
+    if let Ok(port) = root_from_object::<MessagePort>(*obj, cx) {
+        *tag = StructuredCloneTags::MessagePort as u32;
+        *ownership = TransferableOwnership::SCTAG_TMO_CUSTOM;
+        let mut sc_holder = &mut *(closure as *mut StructuredDataHolder);
+        if let Ok(data) = port.transfer(&mut sc_holder) {
+            *extra_data = data;
+            return true;
+        }
+    }
     false
 }
 
-unsafe extern "C" fn free_transfer_callback(_tag: u32,
-                                            _ownership: TransferableOwnership,
-                                            _content: *mut raw::c_void,
-                                            _extra_data: u64,
-                                            _closure: *mut raw::c_void) {
+unsafe extern "C" fn free_transfer_callback(
+    _tag: u32,
+    _ownership: TransferableOwnership,
+    _content: *mut raw::c_void,
+    _extra_data: u64,
+    _closure: *mut raw::c_void,
+) {
 }
 
-unsafe extern "C" fn report_error_callback(_cx: *mut JSContext, _errorid: u32) {
+unsafe extern "C" fn can_transfer_callback(
+    cx: *mut JSContext,
+    obj: RawHandleObject,
+    _same_process_scope_required: *mut bool,
+    _closure: *mut raw::c_void,
+) -> bool {
+    if let Ok(_port) = root_from_object::<MessagePort>(*obj, cx) {
+        return true;
+    }
+    false
+}
+
+unsafe extern "C" fn report_error_callback(
+    _cx: *mut JSContext,
+    _errorid: u32,
+    _closure: *mut ::std::os::raw::c_void,
+    _error_message: *const ::std::os::raw::c_char,
+) {
+}
+
+unsafe extern "C" fn sab_cloned_callback(
+    _cx: *mut JSContext,
+    _receiving: bool,
+    _closure: *mut ::std::os::raw::c_void,
+) -> bool {
+    false
 }
 
 static STRUCTURED_CLONE_CALLBACKS: JSStructuredCloneCallbacks = JSStructuredCloneCallbacks {
@@ -161,83 +250,163 @@ static STRUCTURED_CLONE_CALLBACKS: JSStructuredCloneCallbacks = JSStructuredClon
     readTransfer: Some(read_transfer_callback),
     writeTransfer: Some(write_transfer_callback),
     freeTransfer: Some(free_transfer_callback),
+    canTransfer: Some(can_transfer_callback),
+    sabCloned: Some(sab_cloned_callback),
 };
 
-/// A buffer for a structured clone.
-pub enum StructuredCloneData {
-    /// A non-serializable (default) variant
-    Struct(*mut u64, size_t),
-    /// A variant that can be serialized
-    Vector(Vec<u8>)
+/// A data holder for results from, and inputs to, structured-data read/write operations.
+/// https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data
+pub enum StructuredDataHolder {
+    Read {
+        /// A map of deserialized blobs, stored temporarily here to keep them rooted.
+        blobs: Option<HashMap<StorageKey, DomRoot<Blob>>>,
+        /// A vec of transfer-received DOM ports,
+        /// to be made available to script through a message event.
+        message_ports: Option<Vec<DomRoot<MessagePort>>>,
+        /// A map of port implementations,
+        /// used as part of the "transfer-receiving" steps of ports,
+        /// to produce the DOM ports stored in `message_ports` above.
+        port_impls: Option<HashMap<MessagePortId, MessagePortImpl>>,
+        /// A map of blob implementations,
+        /// used as part of the "deserialize" steps of blobs,
+        /// to produce the DOM blobs stored in `blobs` above.
+        blob_impls: Option<HashMap<BlobId, BlobImpl>>,
+    },
+    /// A data holder for transferred and serialized objects.
+    Write {
+        /// Transferred ports.
+        ports: Option<HashMap<MessagePortId, MessagePortImpl>>,
+        /// Serialized blobs.
+        blobs: Option<HashMap<BlobId, BlobImpl>>,
+    },
 }
 
-impl StructuredCloneData {
-    /// Writes a structured clone. Returns a `DataClone` error if that fails.
-    pub fn write(cx: *mut JSContext, message: HandleValue) -> Fallible<StructuredCloneData> {
-        let mut data = ptr::null_mut();
-        let mut nbytes = 0;
-        let result = unsafe {
-            JS_WriteStructuredClone(cx,
-                                    message,
-                                    &mut data,
-                                    &mut nbytes,
-                                    &STRUCTURED_CLONE_CALLBACKS,
-                                    ptr::null_mut(),
-                                    HandleValue::undefined())
+/// Writes a structured clone. Returns a `DataClone` error if that fails.
+pub fn write(
+    cx: SafeJSContext,
+    message: HandleValue,
+    transfer: Option<CustomAutoRooterGuard<Vec<*mut JSObject>>>,
+) -> Fallible<StructuredSerializedData> {
+    unsafe {
+        rooted!(in(*cx) let mut val = UndefinedValue());
+        if let Some(transfer) = transfer {
+            transfer.to_jsval(*cx, val.handle_mut());
+        }
+        let mut sc_holder = StructuredDataHolder::Write {
+            ports: None,
+            blobs: None,
         };
+        let sc_holder_ptr = &mut sc_holder as *mut _;
+
+        let scbuf = NewJSAutoStructuredCloneBuffer(
+            StructuredCloneScope::DifferentProcess,
+            &STRUCTURED_CLONE_CALLBACKS,
+        );
+        let scdata = &mut ((*scbuf).data_);
+        let policy = CloneDataPolicy {
+            allowIntraClusterClonableSharedObjects_: false,
+            allowSharedMemoryObjects_: false,
+        };
+        let result = JS_WriteStructuredClone(
+            *cx,
+            message,
+            scdata,
+            StructuredCloneScope::DifferentProcess,
+            &policy,
+            &STRUCTURED_CLONE_CALLBACKS,
+            sc_holder_ptr as *mut raw::c_void,
+            val.handle(),
+        );
         if !result {
-            unsafe {
-                JS_ClearPendingException(cx);
-            }
+            JS_ClearPendingException(*cx);
             return Err(Error::DataClone);
         }
-        Ok(StructuredCloneData::Struct(data, nbytes))
-    }
 
-    /// Converts a StructuredCloneData to Vec<u8> for inter-thread sharing
-    pub fn move_to_arraybuffer(self) -> Vec<u8> {
-        match self {
-            StructuredCloneData::Struct(data, nbytes) => {
-                unsafe {
-                    slice::from_raw_parts(data as *mut u8, nbytes).to_vec()
-                }
-            }
-            StructuredCloneData::Vector(msg) => msg
-        }
-    }
+        let nbytes = GetLengthOfJSStructuredCloneData(scdata);
+        let mut data = Vec::with_capacity(nbytes);
+        CopyJSStructuredCloneData(scdata, data.as_mut_ptr());
+        data.set_len(nbytes);
 
-    /// Reads a structured clone.
-    ///
-    /// Panics if `JS_ReadStructuredClone` fails.
-    fn read_clone(global: &GlobalScope,
-                  data: *mut u64,
-                  nbytes: size_t,
-                  rval: MutableHandleValue) {
-        let cx = global.get_cx();
-        let globalhandle = global.reflector().get_jsobject();
-        let _ac = JSAutoCompartment::new(cx, globalhandle.get());
-        unsafe {
-            assert!(JS_ReadStructuredClone(cx,
-                                           data,
-                                           nbytes,
-                                           JS_STRUCTURED_CLONE_VERSION,
-                                           rval,
-                                           &STRUCTURED_CLONE_CALLBACKS,
-                                           ptr::null_mut()));
-        }
-    }
+        DeleteJSAutoStructuredCloneBuffer(scbuf);
 
-    /// Thunk for the actual `read_clone` method. Resolves proper variant for read_clone.
-    pub fn read(self, global: &GlobalScope, rval: MutableHandleValue) {
-        match self {
-            StructuredCloneData::Vector(mut vec_msg) => {
-                let nbytes = vec_msg.len();
-                let data = vec_msg.as_mut_ptr() as *mut u64;
-                StructuredCloneData::read_clone(global, data, nbytes, rval);
-            }
-            StructuredCloneData::Struct(data, nbytes) => StructuredCloneData::read_clone(global, data, nbytes, rval)
-        }
+        let (mut blob_impls, mut port_impls) = match sc_holder {
+            StructuredDataHolder::Write { blobs, ports } => (blobs, ports),
+            _ => panic!("Unexpected variant of StructuredDataHolder"),
+        };
+
+        let data = StructuredSerializedData {
+            serialized: data,
+            ports: port_impls.take(),
+            blobs: blob_impls.take(),
+        };
+
+        Ok(data)
     }
 }
 
-unsafe impl Send for StructuredCloneData {}
+/// Read structured serialized data, possibly containing transferred objects.
+/// Returns a vec of rooted transfer-received ports, or an error.
+pub fn read(
+    global: &GlobalScope,
+    mut data: StructuredSerializedData,
+    rval: MutableHandleValue,
+) -> Result<Vec<DomRoot<MessagePort>>, ()> {
+    let cx = global.get_cx();
+    let _ac = enter_realm(&*global);
+    let mut sc_holder = StructuredDataHolder::Read {
+        blobs: None,
+        message_ports: None,
+        port_impls: data.ports.take(),
+        blob_impls: data.blobs.take(),
+    };
+    let sc_holder_ptr = &mut sc_holder as *mut _;
+    unsafe {
+        let scbuf = NewJSAutoStructuredCloneBuffer(
+            StructuredCloneScope::DifferentProcess,
+            &STRUCTURED_CLONE_CALLBACKS,
+        );
+        let scdata = &mut ((*scbuf).data_);
+
+        WriteBytesToJSStructuredCloneData(
+            data.serialized.as_mut_ptr() as *const u8,
+            data.serialized.len(),
+            scdata,
+        );
+
+        let result = JS_ReadStructuredClone(
+            *cx,
+            scdata,
+            JS_STRUCTURED_CLONE_VERSION,
+            StructuredCloneScope::DifferentProcess,
+            rval,
+            &CloneDataPolicy {
+                allowIntraClusterClonableSharedObjects_: false,
+                allowSharedMemoryObjects_: false,
+            },
+            &STRUCTURED_CLONE_CALLBACKS,
+            sc_holder_ptr as *mut raw::c_void,
+        );
+
+        DeleteJSAutoStructuredCloneBuffer(scbuf);
+
+        if result {
+            let (mut message_ports, port_impls) = match sc_holder {
+                StructuredDataHolder::Read {
+                    message_ports,
+                    port_impls,
+                    ..
+                } => (message_ports, port_impls),
+                _ => panic!("Unexpected variant of StructuredDataHolder"),
+            };
+
+            // Any transfer-received port-impls should have been taken out.
+            assert!(port_impls.is_none());
+
+            match message_ports.take() {
+                Some(ports) => return Ok(ports),
+                None => return Ok(Vec::with_capacity(0)),
+            }
+        }
+        Err(())
+    }
+}

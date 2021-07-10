@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<!-- This tests that a navigation initiator that has been replaced by the time
+     the navigation it initiates is blocked, will not receive the SPV event.
+
+     An iframe will navigate another iframe and the navigate itself.
+     The second iframe's navigation response will be delayed by the server but will
+     eventually be blocked by the CSP of the first iframe.
+     By the time this happens the first iframe should be an entirely different
+     document and it should not receive a SPV event -->
+<script>
+  var t = async_test("Test that no spv event is raised");
+  window.onmessage = t.step_func(function(e) {
+    if (e.data == "end_test") t.done();
+    else assert_unreached("Should not have raised a spv event");
+  });
+
+  var frames_loaded_count = 0;
+  var frame_loaded = function() {
+    if (++frames_loaded_count == 2) {
+      // both child frame have loaded we can start the
+      // test now, send a message to iframe1 so it knows to start
+      document.getElementById('iframe1').contentWindow.postMessage('start_test', '*');
+    }
+  }
+  var i1 = document.createElement('iframe');
+  i1.src = "support/spv-test-iframe1.sub.html?report_id={{$id:uuid()}}";
+  i1.id = "iframe1";
+  i1.name = "iframe1";
+  i1.onload = frame_loaded;
+  document.body.appendChild(i1);
+
+  var i2 = document.createElement('iframe');
+  i2.src = "support/spv-test-iframe2.sub.html";
+  i2.id = "iframe2";
+  i2.name = "iframe2";
+  i2.onload = frame_loaded;
+  document.body.appendChild(i2);
+</script>
+
+<script async defer src='../support/checkReport.sub.js?reportExists=false&reportID={{$id}}'></script>
+
+</body>

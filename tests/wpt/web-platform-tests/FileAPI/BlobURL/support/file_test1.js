@@ -1,1 +1,0 @@
-var test_result = 'test1_OK';

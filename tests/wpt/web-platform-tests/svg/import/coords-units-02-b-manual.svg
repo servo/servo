@@ -32,7 +32,7 @@
         Run the test. No interaction required.
       </p>
     </d:operatorScript>
-    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">      
+    <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
         In the first two tests, that validate coordinate processing, the circles
         should have the same center. In the following two tests, the rectangles should have

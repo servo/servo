@@ -1,0 +1,29 @@
+<!doctype html>
+<title>Local Font Access: Chooser</title>
+<meta charset=utf-8>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+  promise_test(async t => {
+    await new Promise(resolve => {
+      window.addEventListener('DOMContentLoaded', resolve);
+    });
+    // Small delay to give chrome's test automation a chance to actually install
+    // itself.
+    await new Promise(resolve => step_timeout(resolve, 100));
+
+    await window.test_driver.bless('show a font chooser.<br />Please select at least one font.');
+    const fonts = await navigator.fonts.query();
+    assert_true(Array.isArray(fonts));
+    assert_greater_than_equal(fonts.length, 1);
+
+    const postscriptName = fonts[0].postscriptName;
+    assert_equals(typeof postscriptName, "string");
+    assert_greater_than(postscriptName.length, 0);
+  }, 'query() with chooser works');
+
+</script>

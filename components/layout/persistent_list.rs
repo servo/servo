@@ -1,6 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! A persistent, thread-safe singly-linked list.
 
@@ -18,7 +18,10 @@ struct PersistentListEntry<T> {
 
 type PersistentListLink<T> = Option<Arc<PersistentListEntry<T>>>;
 
-impl<T> PersistentList<T> where T: Send + Sync {
+impl<T> PersistentList<T>
+where
+    T: Send + Sync,
+{
     #[inline]
     pub fn new() -> PersistentList<T> {
         PersistentList {
@@ -58,7 +61,10 @@ impl<T> PersistentList<T> where T: Send + Sync {
     }
 }
 
-impl<T> Clone for PersistentList<T> where T: Send + Sync {
+impl<T> Clone for PersistentList<T>
+where
+    T: Send + Sync,
+{
     fn clone(&self) -> PersistentList<T> {
         // This establishes the persistent nature of this list: we can clone a list by just cloning
         // its head.
@@ -69,19 +75,22 @@ impl<T> Clone for PersistentList<T> where T: Send + Sync {
     }
 }
 
-pub struct PersistentListIterator<'a,T> where T: 'a + Send + Sync {
+pub struct PersistentListIterator<'a, T>
+where
+    T: Send + Sync,
+{
     entry: Option<&'a PersistentListEntry<T>>,
 }
 
-impl<'a, T> Iterator for PersistentListIterator<'a, T> where T: Send + Sync + 'static {
+impl<'a, T> Iterator for PersistentListIterator<'a, T>
+where
+    T: Send + Sync + 'static,
+{
     type Item = &'a T;
 
     #[inline]
     fn next(&mut self) -> Option<&'a T> {
-        let entry = match self.entry {
-            None => return None,
-            Some(entry) => entry,
-        };
+        let entry = self.entry?;
         let value = &entry.value;
         self.entry = match entry.next {
             None => None,

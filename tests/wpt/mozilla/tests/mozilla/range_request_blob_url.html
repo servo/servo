@@ -1,0 +1,60 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+[{
+  range: "bytes=0-",
+  status: 206,
+  expected: "abcdefghijklmnopqrstuvwxyz"
+}, {
+  range: "bytes=0-9",
+  status: 206,
+  expected: "abcdefghi"
+}, {
+  range: "bytes=1-9",
+  status: 206,
+  expected: "bcdefghi"
+}, {
+  range: "bytes=-10",
+  status: 206,
+  expected: "qrstuvwxyz"
+}, {
+  range: "bytes=0-100",
+  status: 206,
+  expected: "abcdefghijklmnopqrstuvwxyz"
+}, {
+  range: "bytes=100-",
+  status: 416,
+  expected: ""
+}, {
+  range: "bytes=-100",
+  status: 206,
+  expected: "abcdefghijklmnopqrstuvwxyz"
+}].forEach(test => {
+  promise_test(function() {
+    const abc = "abcdefghijklmnopqrstuvwxyz";
+    const blob = new Blob([abc], { "type": "text/plain" });
+    return fetch(URL.createObjectURL(blob), {
+      headers: {
+        "Range": test.range
+      }
+    })
+    .then(response => {
+      assert_equals(response.status, test.status);
+      if (response.status != 206) {
+        return "";
+      }
+      return response.text();
+    })
+    .then(response => {
+      assert_equals(response, test.expected);
+    });
+  });
+});
+
+</script>
+</head>
+</body>
+</html>
+

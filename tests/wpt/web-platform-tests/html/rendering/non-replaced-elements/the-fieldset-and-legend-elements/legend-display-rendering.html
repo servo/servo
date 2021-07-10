@@ -1,0 +1,119 @@
+<!doctype html>
+<title>rendered legend and CSS display rendering</title>
+<link rel=match href=legend-display-rendering-ref.html>
+<style>
+body { margin: 0; }
+fieldset { margin: 0; padding: 0; border: none; }
+legend { width: 600px; box-sizing: border-box; padding: 0; background: #ddd; border: 1px solid; }
+[style="display: table"] span,
+[style="display: inline-table"] span { display: table-cell; }
+[style="display: table-row-group"],
+[style="display: table-header-group"],
+[style="display: table-footer-group"],
+[style="display: table-row"],
+[style="display: table-column-group"],
+[style="display: table-column"] { padding-left: 5em; /* would be ignored if not blockified */ }
+[style="display: table-cell"] { margin-left: 5em; /* would be ignored if not blockified */ }
+.rb { display: ruby-base; }
+.rt { display: ruby-text; }
+[style="display: grid"],
+[style="display: inline-grid"] { grid-template-columns: auto auto; }
+[style="display: flex"] span,
+[style="display: inline-flex"] span { display: block; flex-grow: 1 }
+</style>
+<fieldset>
+ <legend style="display: table"><span>table</span><span>table</span></legend>
+</fieldset>
+
+<fieldset>
+ <legend style="display: table-row-group">table-row-group</legend>
+</fieldset>
+
+<fieldset>
+ <legend style="display: table-header-group">table-header-group</legend>
+</fieldset>
+
+<fieldset>
+ <legend style="display: table-footer-group">table-footer-group</legend>
+</fieldset>
+
+<fieldset>
+ <legend style="display: table-row">table-row</legend>
+</fieldset>
+
+<fieldset>
+ <legend style="display: table-cell">table-cell</legend>
+</fieldset>
+
+<fieldset>
+ <legend style="display: table-column-group">table-column-group</legend>
+</fieldset>
+
+<fieldset>
+ <legend style="display: table-column">table-column</legend>
+</fieldset>
+
+<fieldset>
+ <legend style="display: table-caption">table-caption</legend>
+</fieldset>
+
+<fieldset>
+ <legend style="display: flow">flow</legend>
+</fieldset>
+
+<fieldset>
+ <legend style="display: flow-root">flow-root</legend>
+</fieldset>
+
+<fieldset>
+ <legend style="display: run-in">run-in</legend>
+</fieldset>
+
+<fieldset>
+ <legend style="display: inline">inline</legend>
+</fieldset>
+
+<fieldset>
+ <legend style="display: inline-block">inline-block</legend>
+</fieldset>
+
+<fieldset>
+ <legend style="display: inline-table"><span>inline-table</span><span>inline-table</span></legend>
+</fieldset>
+
+<fieldset>
+ <legend style="display: ruby"><span class=rb>ruby</span><span class=rt>ruby</span></legend>
+</fieldset>
+
+<fieldset>
+ <legend style="display: ruby-base">ruby-base</legend>
+</fieldset>
+
+<fieldset>
+ <legend style="display: ruby-text">ruby-text</legend>
+</fieldset>
+
+<fieldset>
+ <legend style="display: ruby-base-container">ruby-base-container</legend>
+</fieldset>
+
+<fieldset>
+ <legend style="display: ruby-text-container">ruby-text-container</legend>
+</fieldset>
+
+<fieldset>
+ <legend style="display: grid"><span>grid</span><span>grid</span></legend>
+</fieldset>
+
+<fieldset>
+ <legend style="display: inline-grid"><span>inline-grid</span><span>inline-grid</span></legend>
+</fieldset>
+
+<fieldset>
+ <legend style="display: flex"><span>flex</span><span>flex</span></legend>
+</fieldset>
+
+<fieldset>
+ <legend style="display: inline-flex"><span>inline-flex</span><span>inline-flex</span></legend>
+</fieldset>
+

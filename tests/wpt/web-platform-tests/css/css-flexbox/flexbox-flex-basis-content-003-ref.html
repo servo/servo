@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <title>CSS Reftest Reference</title>
+  <meta charset="utf-8">
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <style>
+  .container {
+    clear: both; /* In this reference case, we use floats instead of
+                    flex items (see below), so the container just
+                    needs to reset the float state for each example. */
+  }
+
+  .item {
+    border: 2px solid teal;
+    float: left; /* Use floated elements as a reference for (hopefully)
+                    max-content sized flex items in testcase. */
+  }
+  ib {
+    display: inline-block;
+    background: blue;
+    border: 1px solid gray;
+    width: 15px;
+    height: 10px;
+  }
+  float {
+    float: left;
+    background: fuchsia;
+    border: 1px solid gray;
+    width: 15px;
+    height: 10px;
+  }
+  canvas {
+    background: brown;
+    border: 1px solid gray;
+  }
+  .innerFlex {
+    display: flex;
+  }
+  innerItem {
+    background: salmon;
+    border: 1px solid gray;
+    height: 10px;
+    width: 15px;
+    flex: none;
+  }
+  </style>
+</head>
+<body>
+<!-- In testcase, flex item has several inline-blocks
+     (no spaces, to avoid any text-layout dependency): -->
+<div class="container">
+  <div class="item"><ib></ib><ib></ib><ib></ib></div>
+</div>
+
+<!-- In testcase, flex item has several floats: -->
+<div class="container">
+  <div class="item">
+    <float></float>
+    <float></float>
+    <float></float>
+  </div>
+</div>
+
+<!-- In testcase, flex item has several inline replaced elements:
+     (no spaces, to avoid any text-layout dependency): -->
+<div class="container">
+  <div class="item">
+    <canvas width="15" height="10"></canvas
+    ><canvas width="15" height="10"></canvas
+    ><canvas width="15" height="10"></canvas>
+  </div>
+</div>
+
+<!-- In testcase, flex item *is* a replaced element: -->
+<div class="container">
+  <canvas class="item" width="25" height="10"></canvas>
+</div>
+
+<!-- In testcase, flex item is itself a flex container: -->
+<div class="container">
+  <div class="item innerFlex">
+    <innerItem></innerItem>
+    <innerItem></innerItem>
+    <innerItem></innerItem>
+  </div>
+</div>
+
+<!-- In testcase, flex item is itself a multi-line flex container: -->
+<div class="container">
+  <div class="item innerFlex" style="flex-wrap: wrap">
+    <innerItem></innerItem>
+    <innerItem></innerItem>
+    <innerItem></innerItem>
+  </div>
+</div>
+
+</body>
+</html>

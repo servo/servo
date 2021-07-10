@@ -1,0 +1,184 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL BlitFramebuffer Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="example" width="8" height="8"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+
+var wtu = WebGLTestUtils;
+description("This test verifies the functionality of blitFramebuffer with sRGB framebuffers.");
+
+var gl = wtu.create3DContext("example", undefined, 2);
+
+function checkPixel(color, expectedColor) {
+  var tolerance = 7;
+  return (Math.abs(color[0] - expectedColor[0]) <= tolerance &&
+          Math.abs(color[1] - expectedColor[1]) <= tolerance &&
+          Math.abs(color[2] - expectedColor[2]) <= tolerance &&
+          Math.abs(color[3] - expectedColor[3]) <= tolerance);
+}
+
+var tex_read = gl.createTexture();
+var tex_draw = gl.createTexture();
+var fbo_read = gl.createFramebuffer();
+var fbo_draw = gl.createFramebuffer();
+var size_read = 4;
+var size_draw = 0;
+
+function blitframebuffer_helper(readbufferFormat, drawbufferFormat, filter, data) {
+    // Create read framebuffer and feed data to read buffer
+    gl.bindTexture(gl.TEXTURE_2D, tex_read);
+    gl.texImage2D(gl.TEXTURE_2D, 0, readbufferFormat, size_read, size_read, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo_read);
+    gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex_read, 0);
+
+    // Create draw framebuffer and feed 0 to draw buffer
+    gl.bindTexture(gl.TEXTURE_2D, tex_draw);
+    gl.texImage2D(gl.TEXTURE_2D, 0, drawbufferFormat, size_draw, size_draw, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo_draw);
+    gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex_draw, 0);
+
+    gl.blitFramebuffer(0, 0, size_read, size_read, 0, 0, size_draw, size_draw, gl.COLOR_BUFFER_BIT, filter);
+
+    // Read pixels for comparision
+    var pixels = new Uint8Array(size_draw * size_draw * 4);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo_draw);
+    gl.readPixels(0, 0, size_draw, size_draw, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    return pixels;
+}
+
+function blitframebuffer_filter_srgb(readbufferFormat, drawbufferFormat, filter, minified) {
+    debug("");
+    debug("Test srgb filtering for blitFramebuffer, the current filter is: " + wtu.glEnumToString(gl, filter));
+    var min_mag = minified ? "minified to half the size." : "magnified to double the size.";
+    debug("read buffer format is: " + wtu.glEnumToString(gl, readbufferFormat) + ", draw buffer format is: " + wtu.glEnumToString(gl, drawbufferFormat) + ", minify/magnify: " + min_mag);
+
+    // Initiate data to read framebuffer
+    var src_buffer = new Uint8Array(size_read * size_read * 4);
+    var start = 0;
+    for (var ii = 0; ii < size_read * size_read * 4; ii += 4) {
+        for (var jj = 0; jj < 3; ++jj) {
+          src_buffer[ii + jj] = start;
+        }
+        src_buffer[ii + 3] = 0xff;
+        start += 0x10;
+    }
+
+    // We may need to decode srgb to linear for reference data
+    var ref_buffer = new Uint8Array(size_read * size_read * 4);
+    for (var ii = 0; ii < size_read * size_read * 4; ii += 4) {
+        var color = [src_buffer[ii], src_buffer[ii + 1], src_buffer[ii + 2], src_buffer[ii + 3]];
+        var ref_color;
+        if (readbufferFormat == gl.SRGB8_ALPHA8) {
+            ref_color = wtu.sRGBToLinear(color);
+        } else {
+            ref_color = color;
+        }
+        for (var jj = 0; jj < 4; ++jj) {
+          ref_buffer[ii + jj] = ref_color[jj];
+        }
+    }
+
+    // Blit framebuffer to filter srgb image, but the reference data is always retrieved by blitFramebuffer against linear image
+    size_draw = minified ? size_read / 2 : size_read * 2;
+    var pixels = blitframebuffer_helper(readbufferFormat, drawbufferFormat, filter, src_buffer);
+    var temp = blitframebuffer_helper(gl.RGBA, gl.RGBA, filter, ref_buffer);
+
+    // We may need to encode linear to srgb for reference data
+    var ref_pixels = new Uint8Array(size_draw * size_draw * 4);
+    for (var ii = 0; ii < size_draw * size_draw * 4; ii += 4) {
+        var color = [temp[ii], temp[ii + 1], temp[ii + 2], temp[ii + 3]];
+        var ref_color;
+        if (drawbufferFormat == gl.SRGB8_ALPHA8) {
+            ref_color = wtu.linearToSRGB(color);
+        } else {
+            ref_color = color;
+        }
+        for (var jj = 0; jj < 4; ++jj) {
+          ref_pixels[ii + jj] = ref_color[jj];
+        }
+    }
+
+    // Compare
+    for (var ii = 0; ii < size_draw; ++ii) {
+        for (var jj = 0; jj < size_draw; ++jj) {
+            var index = ii * size_draw * 4 + jj;
+            var color = [pixels[index], pixels[index + 1], pixels[index + 2], pixels[index + 3]];
+            var expectedColor = [ref_pixels[index], ref_pixels[index + 1], ref_pixels[index + 2], ref_pixels[index + 3]];
+            if (checkPixel(color, expectedColor) == true) {
+                testPassed("pixel at [" + jj + ", " + ii + "] is (" + color + "). It is correct!");
+            } else {
+                testFailed("pixel at [" + jj + ", " + ii + "] should be (" + expectedColor + "), but the actual color is (" + color + ")");
+            }
+        }
+    }
+}
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+    var filters = [gl.LINEAR, gl.NEAREST];
+    for (var ii = 0; ii < filters.length; ++ii) {
+        blitframebuffer_filter_srgb(gl.RGBA8, gl.SRGB8_ALPHA8, filters[ii], true);
+        blitframebuffer_filter_srgb(gl.RGBA8, gl.SRGB8_ALPHA8, filters[ii], false);
+        blitframebuffer_filter_srgb(gl.SRGB8_ALPHA8, gl.RGBA8, filters[ii], true);
+        blitframebuffer_filter_srgb(gl.SRGB8_ALPHA8, gl.RGBA8, filters[ii], false);
+        blitframebuffer_filter_srgb(gl.SRGB8_ALPHA8, gl.SRGB8_ALPHA8, filters[ii], true);
+        blitframebuffer_filter_srgb(gl.SRGB8_ALPHA8, gl.SRGB8_ALPHA8, filters[ii], false);
+    }
+}
+
+gl.bindTexture(gl.TEXTURE_2D, null);
+gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+gl.deleteFramebuffer(fbo_read);
+gl.deleteFramebuffer(fbo_draw);
+gl.deleteTexture(tex_read);
+gl.deleteTexture(tex_draw);
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

@@ -21,7 +21,7 @@
         The two circles test whether events are handled in the
         proper order. Events listeners and event attributes are processed
         before hyperlink processing, which is processed before text selection.
-       
+
       </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
@@ -29,9 +29,9 @@
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
-        Clicking on the first circle should change the circle from black to red.  Clicking 
-        on the second circle should take you to another SVG file titled "Hyperlink target for 
-        interact-order-02.svg.  Cliking on the circle in this SVG file should return you to the orginal 
+        Clicking on the first circle should change the circle from black to red.  Clicking
+        on the second circle should take you to another SVG file titled "Hyperlink target for
+        interact-order-02.svg.  Cliking on the circle in this SVG file should return you to the orginal
         two circles.
       </p>
     </d:passCriteria>

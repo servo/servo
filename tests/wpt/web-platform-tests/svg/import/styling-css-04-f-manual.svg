@@ -26,7 +26,7 @@
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
-      The test is passed if a grid of 6x3 squares is shown, the colors in each column 
+      The test is passed if a grid of 6x3 squares is shown, the colors in each column
       are the same and are those of the reference image (blue, green, orange, gold, purple and silver)
       </p>
       <p>

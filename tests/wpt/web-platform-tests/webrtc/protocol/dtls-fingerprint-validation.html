@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>DTLS fingerprint validation</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+</head>
+<body>
+<script>
+
+// Tests that an invalid fingerprint leads to a connectionState 'failed'.
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+  pc1.createDataChannel('datachannel');
+  exchangeIceCandidates(pc1, pc2);
+  const offer = await pc1.createOffer();
+  await pc2.setRemoteDescription(offer);
+  await pc1.setLocalDescription(offer);
+  const answer = await pc2.createAnswer();
+  await pc1.setRemoteDescription(new RTCSessionDescription({
+    type: answer.type,
+    sdp: answer.sdp.replace(/a=fingerprint:sha-256 .*/g,
+      'a=fingerprint:sha-256 00:00:00:00:00:00:00:00:00:00:00:00:00:' +
+      '00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00'),
+  }));
+  await pc2.setLocalDescription(answer);
+
+  await waitForConnectionStateChange(pc1, ['failed']);
+  await waitForConnectionStateChange(pc2, ['failed']);
+}, 'Connection fails if one side provides a wrong DTLS fingerprint');
+</script>
+</body>
+</html>

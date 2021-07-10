@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Resource Timing redirect names</title>
+<link rel="author" title="Google" href="http://www.google.com/" />
+<link rel="help" href="http://www.w3.org/TR/resource-timing/#performanceresourcetiming"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webperftestharness.js"></script>
+<script src="resources/webperftestharnessextension.js"></script>
+<script>
+let iframe;
+const redirect_url = 'common/redirect.py';
+const url_prefix = redirect_url + '?location=/resource-timing/resources/';
+const https_url_prefix = redirect_url + '?location=https://{{hosts[alt][]}}:{{ports[https][0]}}/resource-timing/resources/';
+function setup_iframe() {
+    const iframe_content =
+        '<link rel="stylesheet" href="/' + url_prefix + 'resource_timing_test0.css"></link>' +
+        '<img src="/' + url_prefix + 'blue.png"></img>' +
+        '<iframe src="/' + url_prefix + 'blank_page_green.htm"></iframe>' +
+        '<script src="/' + url_prefix + 'empty_script.js"></scr' + 'ipt>' +
+        '<scr' + 'ipt>' +
+        'const xhr = new XMLHttpRequest;' +
+        'xhr.open("GET", "/' + url_prefix + 'blank_page_green.htm?id=xhr", false);' +
+        'xhr.send();' +
+        'const xhr2 = new XMLHttpRequest;' +
+        'xhr2.open("GET", "/' + https_url_prefix + 'blank_page_green.htm?id=xhr", false);' +
+        'xhr2.send();' +
+        '</scr' + 'ipt>';
+    iframe = document.getElementById('frameContext');
+    iframe.contentWindow.document.write(iframe_content);
+}
+function onload_test() {
+    const context = new PerformanceContext(iframe.contentWindow.performance);
+    const entries = context.getEntriesByType('resource');
+
+    const index = window.location.pathname.lastIndexOf('resource-timing');
+    const pathname = window.location.pathname.substring(0, index) + url_prefix;
+    const https_pathname = window.location.pathname.substring(0, index) + https_url_prefix;
+    let expected_entries = {};
+    expected_entries[pathname + 'resource_timing_test0.css'] = 'link';
+    expected_entries[pathname + 'blue.png'] = 'img';
+    expected_entries[pathname + 'blank_page_green.htm'] = 'iframe';
+    expected_entries[pathname + 'empty_script.js'] = 'script';
+    expected_entries[pathname + 'blank_page_green.htm?id=xhr'] = 'xmlhttprequest';
+    expected_entries[https_pathname + 'blank_page_green.htm?id=xhr'] = 'xmlhttprequest';
+
+    test_resource_entries(entries, expected_entries);
+}
+window.setup_iframe = setup_iframe;
+</script>
+</head>
+<body>
+<h1>Description</h1>
+<p>This test validates that redirects do not alter the URL.</p>
+<div id="log"></div>
+<iframe id="frameContext" onload="onload_test();" src="resources/inject_resource_test.html"></iframe>
+</body>
+</html>

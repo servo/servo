@@ -1,0 +1,147 @@
+<!DOCTYPE HTML>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+// No matter what is the color space and pixel format of the color managed
+// canvas, toBlob() and toDataURL() always create the blob in sRGB color
+// space, and respect the legacy behavior by not including any color space
+// information in the blob/data url.
+
+var opaqueReferencePxiels, transparentReferencePixels;
+
+function testPixels(actualPixels, alpha)
+{
+    if (alpha == 1)
+        assert_array_approx_equals(actualPixels, opaqueReferencePxiels, 1);
+    else
+        assert_array_approx_equals(actualPixels, transparentReferencePixels, 2);
+}
+
+function generateFillStyle(red, green, blue, alpha) {
+    return "rgba(" + red + "," + green + "," + blue + "," + alpha + ")";
+}
+
+function contextDrawHelper(ctx, alpha) {
+    ctx.fillStyle = generateFillStyle(155, 27, 27, alpha);
+    ctx.fillRect(0, 0, 1, 1);
+    ctx.fillStyle = generateFillStyle(27, 155, 27, alpha);
+    ctx.fillRect(1, 0, 1, 1);
+    ctx.fillStyle = generateFillStyle(27, 27, 155, alpha);
+    ctx.fillRect(0, 1, 1, 1);
+    ctx.fillStyle = generateFillStyle(27, 27, 27, alpha);
+    ctx.fillRect(1, 1, 1, 1);
+}
+
+function prepareReferenceExpectedResults() {
+    var canvas1 = document.createElement("canvas");
+    canvas1.width = 2;
+    canvas1.height = 2;
+    var ctx1 = canvas1.getContext('2d');
+    contextDrawHelper(ctx1, 1);
+    opaqueReferencePxiels = ctx1.getImageData(0, 0, 2, 2).data;
+
+    var canvas2 = document.createElement("canvas");
+    canvas2.width = 2;
+    canvas2.height = 2;
+    var ctx2 = canvas2.getContext('2d');
+    contextDrawHelper(ctx2, 0.5);
+    transparentReferencePixels = ctx2.getImageData(0, 0, 2, 2).data;
+}
+
+function createCanvas(testScenario)
+{
+    var canvas = document.createElement("canvas");
+    canvas.width = 2;
+    canvas.height = 2;
+    var ctx = canvas.getContext('2d', {colorSpace: testScenario.colorSpace,
+                                       pixelFormat: testScenario.pixelFormat});
+    contextDrawHelper(ctx, testScenario.alpha);
+    return canvas;
+}
+
+function testScenarioToString(testScenario) {
+    var str = "ImageFormat: " + testScenario.imageFormat +
+        ", source color space: " + testScenario.colorSpace +
+        ", pixel format: " + testScenario.pixelFormat +
+        ", alpha: " + testScenario.alpha;
+    if (testScenario.hasOwnProperty('colorSpaceConversion'))
+        str = str + ", intermediate color space: " +
+                testScenario.colorSpaceConversion;
+    return str;
+}
+
+function runToBlobTest(testScenario) {
+    var srcCanvas = createCanvas(testScenario);
+    var t_blob = async_test("Test if toBlob() respects legacy behavior in \
+        color managed canvas: " + testScenarioToString(testScenario));
+
+    var image = new Image();
+    image.onload = t_blob.step_func_done(function() {
+        var dstCanvas = document.createElement("canvas");
+        dstCanvas.width = 2;
+        dstCanvas.height = 2;
+        var ctx = dstCanvas.getContext('2d');
+        ctx.drawImage(image, 0, 0);
+        var actualPixels = ctx.getImageData(0, 0, 2, 2).data;
+        testPixels(actualPixels, testScenario.alpha);
+    });
+
+    srcCanvas.toBlob(function(blob) {
+        var urlCreator = window.URL || window.webkitURL;
+        image.src = urlCreator.createObjectURL(blob);
+    }, 'image/png', 1);
+}
+
+function runToDataURLTest(testScenario) {
+    var srcCanvas = createCanvas(testScenario);
+    var t_dataURL = async_test("Test if toDataURL() respects legacy behavior \
+        in color managed canvas: " + testScenarioToString(testScenario));
+
+    var image = new Image();
+    image.onload = t_dataURL.step_func_done(function() {
+        var dstCanvas = document.createElement("canvas");
+        dstCanvas.width = 2;
+        dstCanvas.height = 2;
+        var ctx = dstCanvas.getContext('2d');
+        ctx.drawImage(image, 0, 0);
+        var actualPixels = ctx.getImageData(0, 0, 2, 2).data;
+        testPixels(actualPixels, testScenario.alpha);
+    });
+    image.src = srcCanvas.toDataURL();
+}
+
+function runAllTests() {
+    prepareReferenceExpectedResults();
+
+    var imageFormats = ['image/jpeg', 'image/png', 'image/webp'];
+    var colorSpaces = [
+        {colorSpace: 'srgb', pixelFormat: 'uint8'},
+        {colorSpace: 'srgb', pixelFormat: 'float16'},
+    ];
+    var alphaValues = [0.5, 1];
+
+    var testScenarioSet = [];
+    for (var i = 0; i < imageFormats.length; i++)
+        for (var j = 0; j < colorSpaces.length; j++)
+            for (var k = 0; k < alphaValues.length; k++) {
+                var testScenario = {};
+                testScenario.imageFormat = imageFormats[i];
+                testScenario.colorSpace = colorSpaces[j].colorSpace;
+                testScenario.pixelFormat = colorSpaces[j].pixelFormat;
+                testScenario.alpha = alphaValues[k];
+                testScenarioSet.push(testScenario);
+            }
+
+    for (var i = 0; i < testScenarioSet.length; i++)
+        runToBlobTest(testScenarioSet[i]);
+
+    for (var i = 0; i < testScenarioSet.length; i++)
+        runToDataURLTest(testScenarioSet[i]);
+}
+
+test(function() {
+    runAllTests();
+}, "Overall test");
+
+</script>

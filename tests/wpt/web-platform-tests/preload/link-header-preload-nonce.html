@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>Makes sure that Link headers preload resources with CSP nonce</title>
+<script nonce="abc" src="/resources/testharness.js"></script>
+<script nonce="abc" src="/resources/testharnessreport.js"></script>
+<script nonce="abc" src="/preload/resources/preload_helper.js"></script>
+<body>
+<script nonce="abc">
+    setup({single_test: true});
+
+    var iterations = 0;
+
+    function check_finished() {
+        if (numberOfResourceTimingEntries("resources/dummy.js?from-header&without-nonce") == 0 &&
+            numberOfResourceTimingEntries("resources/dummy.js?from-header&with-nonce") == 1) {
+            done();
+        }
+        iterations++;
+        if (iterations == 10) {
+            // At least one is expected to fail, but this should give details to the exact failure(s).
+            verifyNumberOfResourceTimingEntries("resources/dummy.js?from-header&without-nonce", 0);
+            verifyNumberOfResourceTimingEntries("resources/dummy.js?from-header&with-nonce", 1);
+            done();
+        } else {
+            step_timeout(check_finished, 500);
+        }
+    }
+
+    window.addEventListener("load", function() {
+        verifyPreloadAndRTSupport();
+        step_timeout(check_finished, 500);
+    });
+</script>
+</body>

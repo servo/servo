@@ -2,7 +2,8 @@
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
   "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 <svg width="6cm" height="5cm" viewBox="0 0 600 500"
-     xmlns="http://www.w3.org/2000/svg" version="1.1">
+     xmlns="http://www.w3.org/2000/svg" version="1.1"
+     xmlns:xlink="http://www.w3.org/1999/xlink">
   <desc>using SVG as a resource doc should apply this doc's CSP</desc>
 
   <use xlink:href="scripted.svg#postmessagescript" />

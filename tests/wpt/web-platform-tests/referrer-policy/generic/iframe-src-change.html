@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+function nextMessage() {
+  return new Promise((resolve, reject) => {
+    window.addEventListener('message', e => resolve(e.data), {once: true});
+  });
+}
+
+promise_test(async () => {
+  let iframe = document.createElement('iframe');
+  iframe.setAttribute('src', '/common/security-features/subresource/document.py?first')
+  iframe.setAttribute('referrerpolicy', 'no-referrer');
+  document.body.appendChild(iframe);
+
+  try {
+    {
+      let {referrer: documentReferrer, headers: {referer: httpReferrer}} = await nextMessage();
+      assert_equals(httpReferrer, undefined, 'expected no HTTP Referer header on initial load');
+      assert_equals(documentReferrer, undefined, 'expected no document.referrer on initial load');
+    }
+
+    iframe.setAttribute('src', '/common/security-features/subresource/document.py?second');
+
+    {
+      let {referrer: documentReferrer, headers: {referer: httpReferrer}} = await nextMessage();
+      assert_equals(httpReferrer, undefined, 'expected no HTTP Referer header on src change');
+      assert_equals(documentReferrer, undefined, 'expected no document.referrer on src change');
+    }
+  } finally {
+    iframe.remove();
+  }
+}, "Checks that referrerpolicy is respected when an iframe's src changes.");
+</script>
+</body>

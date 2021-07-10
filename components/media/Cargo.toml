@@ -1,0 +1,23 @@
+[package]
+name = "media"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+edition = "2018"
+publish = false
+
+[lib]
+name = "media"
+path = "lib.rs"
+
+[dependencies]
+euclid = "0.20"
+fnv = "1.0"
+ipc-channel = "0.14"
+lazy_static = "1"
+log = "0.4"
+serde = "1.0"
+servo-media = { git = "https://github.com/servo/media" }
+servo_config = { path = "../config" }
+webrender_api = { git = "https://github.com/servo/webrender" }
+webrender_traits = { path = "../webrender_traits" }

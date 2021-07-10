@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>Portals API test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script>
+    test(function() {
+      assert_true(document.createElement('portal') instanceof HTMLPortalElement);
+    }, "portal element exists");
+  </script>
+</body>

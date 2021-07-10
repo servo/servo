@@ -1,0 +1,21 @@
+<title>An out-of-flow imagef in the table cell width calculation quirk</title>
+<link rel="match" href="reference/table-cell-width-calculation-abspos-ref.html">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+table {
+  font-size: 10px;
+  font-family: Ahem;
+}
+img {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: black;
+}
+</style>
+<table>
+  <tr>
+    <td id="td">1234567<img id="img" src=""></td>
+  </tr>
+</table>

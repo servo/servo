@@ -1,12 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use flow::{Flow, FlowClass};
-use flow_ref::FlowRef;
+use crate::flow::{Flow, FlowClass};
+use crate::flow_ref::FlowRef;
 use serde::ser::{Serialize, SerializeSeq, Serializer};
-use serde_json::{Map, Value, to_value};
-use std::collections::{LinkedList, linked_list};
+use serde_json::{to_value, Map, Value};
+use std::collections::{linked_list, LinkedList};
+use std::ops::Deref;
 use std::sync::Arc;
 
 /// This needs to be reworked now that we have dynamically-sized types in Rust.
@@ -24,7 +25,7 @@ pub struct FlowList {
 
 impl Serialize for FlowList {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut serializer = try!(serializer.serialize_seq(Some(self.len())));
+        let mut serializer = serializer.serialize_seq(Some(self.len()))?;
         for f in self.iter() {
             let mut flow_val = Map::new();
             flow_val.insert("class".to_owned(), to_value(f.class()).unwrap());
@@ -37,13 +38,16 @@ impl Serialize for FlowList {
                 FlowClass::TableRow => to_value(f.as_table_row()).unwrap(),
                 FlowClass::TableCell => to_value(f.as_table_cell()).unwrap(),
                 FlowClass::Flex => to_value(f.as_flex()).unwrap(),
-                FlowClass::ListItem | FlowClass::TableColGroup | FlowClass::TableCaption |
-                FlowClass::Multicol | FlowClass::MulticolColumn => {
+                FlowClass::ListItem |
+                FlowClass::TableColGroup |
+                FlowClass::TableCaption |
+                FlowClass::Multicol |
+                FlowClass::MulticolColumn => {
                     Value::Null // Not implemented yet
-                }
+                },
             };
             flow_val.insert("data".to_owned(), data);
-            try!(serializer.serialize_element(&flow_val));
+            serializer.serialize_element(&flow_val)?;
         }
         serializer.end()
     }
@@ -51,6 +55,10 @@ impl Serialize for FlowList {
 
 pub struct MutFlowListIterator<'a> {
     it: linked_list::IterMut<'a, FlowRef>,
+}
+
+pub struct FlowListIterator<'a> {
+    it: linked_list::Iter<'a, FlowRef>,
 }
 
 impl FlowList {
@@ -61,31 +69,16 @@ impl FlowList {
         self.flows.push_back(new_tail);
     }
 
-    pub fn push_back_arc(&mut self, new_head: Arc<Flow>) {
+    pub fn push_back_arc(&mut self, new_head: Arc<dyn Flow>) {
         self.flows.push_back(FlowRef::new(new_head));
     }
 
-    pub fn back(&self) -> Option<&Flow> {
-        self.flows.back().map(|x| &**x)
-    }
-
-    /// Add an element first in the list
-    ///
-    /// O(1)
-    pub fn push_front(&mut self, new_head: FlowRef) {
-        self.flows.push_front(new_head);
-    }
-
-    pub fn push_front_arc(&mut self, new_head: Arc<Flow>) {
+    pub fn push_front_arc(&mut self, new_head: Arc<dyn Flow>) {
         self.flows.push_front(FlowRef::new(new_head));
     }
 
-    pub fn pop_front_arc(&mut self) -> Option<Arc<Flow>> {
+    pub fn pop_front_arc(&mut self) -> Option<Arc<dyn Flow>> {
         self.flows.pop_front().map(FlowRef::into_arc)
-    }
-
-    pub fn front(&self) -> Option<&Flow> {
-        self.flows.front().map(|x| &**x)
     }
 
     /// Create an empty list
@@ -101,8 +94,10 @@ impl FlowList {
     /// SECURITY-NOTE(pcwalton): This does not hand out `FlowRef`s by design. Do not add a method
     /// to do so! See the comment above in `FlowList`.
     #[inline]
-    pub fn iter<'a>(&'a self) -> impl DoubleEndedIterator<Item = &'a Flow> {
-        self.flows.iter().map(|flow| &**flow)
+    pub fn iter<'a>(&'a self) -> FlowListIterator {
+        FlowListIterator {
+            it: self.flows.iter(),
+        }
     }
 
     /// Provide a forward iterator with mutable references
@@ -132,12 +127,6 @@ impl FlowList {
 
     /// O(1)
     #[inline]
-    pub fn is_empty(&self) -> bool {
-        self.flows.is_empty()
-    }
-
-    /// O(1)
-    #[inline]
     pub fn len(&self) -> usize {
         self.flows.len()
     }
@@ -145,21 +134,40 @@ impl FlowList {
     #[inline]
     pub fn split_off(&mut self, i: usize) -> Self {
         FlowList {
-            flows: self.flows.split_off(i)
+            flows: self.flows.split_off(i),
         }
     }
 }
 
+impl<'a> DoubleEndedIterator for FlowListIterator<'a> {
+    fn next_back(&mut self) -> Option<&'a dyn Flow> {
+        self.it.next_back().map(Deref::deref)
+    }
+}
+
 impl<'a> DoubleEndedIterator for MutFlowListIterator<'a> {
-    fn next_back(&mut self) -> Option<&'a mut Flow> {
+    fn next_back(&mut self) -> Option<&'a mut dyn Flow> {
         self.it.next_back().map(FlowRef::deref_mut)
     }
 }
 
-impl<'a> Iterator for MutFlowListIterator<'a> {
-    type Item = &'a mut Flow;
+impl<'a> Iterator for FlowListIterator<'a> {
+    type Item = &'a dyn Flow;
     #[inline]
-    fn next(&mut self) -> Option<&'a mut Flow> {
+    fn next(&mut self) -> Option<&'a dyn Flow> {
+        self.it.next().map(Deref::deref)
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.it.size_hint()
+    }
+}
+
+impl<'a> Iterator for MutFlowListIterator<'a> {
+    type Item = &'a mut dyn Flow;
+    #[inline]
+    fn next(&mut self) -> Option<&'a mut dyn Flow> {
         self.it.next().map(FlowRef::deref_mut)
     }
 
@@ -177,7 +185,7 @@ pub struct FlowListRandomAccessMut<'a> {
 }
 
 impl<'a> FlowListRandomAccessMut<'a> {
-    pub fn get<'b>(&'b mut self, index: usize) -> &'b mut Flow {
+    pub fn get<'b>(&'b mut self, index: usize) -> &'b mut dyn Flow {
         while index >= self.cache.len() {
             match self.iterator.next() {
                 None => panic!("Flow index out of range!"),

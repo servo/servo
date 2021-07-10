@@ -1,0 +1,373 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.ondatachannel</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+// Test is based on the following revision:
+// https://rawgit.com/w3c/webrtc-pc/1cc5bfc3ff18741033d804c4a71f7891242fb5b3/webrtc.html
+
+// The following helper functions are called from RTCPeerConnection-helper.js:
+// exchangeIceCandidates
+// exchangeOfferAnswer
+// createDataChannelPair
+
+/*
+  6.2.  RTCDataChannel
+    When an underlying data transport is to be announced (the other peer created a channel with
+    negotiated unset or set to false), the user agent of the peer that did not initiate the
+    creation process MUST queue a task to run the following steps:
+      2. Let channel be a newly created RTCDataChannel object.
+      7. Set channel's [[ReadyState]] to open (but do not fire the open event, yet).
+      8. Fire a datachannel event named datachannel with channel at the RTCPeerConnection object.
+
+  6.3.  RTCDataChannelEvent
+    Firing a datachannel event named e with an RTCDataChannel channel means that an event with the
+    name e, which does not bubble (except where otherwise stated) and is not cancelable (except
+    where otherwise stated), and which uses the RTCDataChannelEvent interface with the channel
+    attribute set to channel, MUST be created and dispatched at the given target.
+
+    interface RTCDataChannelEvent : Event {
+      readonly attribute RTCDataChannel channel;
+    };
+ */
+promise_test(async (t) => {
+  const resolver = new Resolver();
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+
+  let eventCount = 0;
+
+  pc2.ondatachannel = t.step_func((event) => {
+    eventCount++;
+    assert_equals(eventCount, 1,
+      'Expect data channel event to fire exactly once');
+
+    assert_true(event instanceof RTCDataChannelEvent,
+      'Expect event to be instance of RTCDataChannelEvent');
+
+    assert_equals(event.bubbles, false);
+    assert_equals(event.cancelable, false);
+
+    const dc = event.channel;
+    assert_true(dc instanceof RTCDataChannel,
+      'Expect channel to be instance of RTCDataChannel');
+
+    // The channel should be in the 'open' state already.
+    // See: https://github.com/w3c/webrtc-pc/pull/1851
+    assert_equals(dc.readyState, 'open',
+      'Expect channel ready state to be open');
+
+    resolver.resolve();
+  });
+
+  pc1.createDataChannel('fire-me!');
+
+  exchangeIceCandidates(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
+
+  await resolver;
+}, 'Data channel event should fire when new data channel is announced to the remote peer');
+
+/*
+  Since the channel should be in the 'open' state when dispatching via the 'datachannel' event,
+  we should be able to send data in the event handler.
+ */
+promise_test(async (t) => {
+  const resolver = new Resolver();
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+
+  const message = 'meow meow!';
+
+  pc2.ondatachannel = t.step_func((event) => {
+    const dc2 = event.channel;
+    dc2.send(message);
+  });
+
+  const dc1 = pc1.createDataChannel('fire-me!');
+  dc1.onmessage = t.step_func((event) => {
+    assert_equals(event.data, message,
+      'Received data should be equal to sent data');
+
+    resolver.resolve();
+  });
+
+  exchangeIceCandidates(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
+
+  await resolver;
+}, 'Should be able to send data in a datachannel event handler');
+
+/*
+  6.2.  RTCDataChannel
+    When an underlying data transport is to be announced (the other peer created a channel with
+    negotiated unset or set to false), the user agent of the peer that did not initiate the
+    creation process MUST queue a task to run the following steps:
+      8. Fire a datachannel event named datachannel with channel at the RTCPeerConnection object.
+      9. If the channel's [[ReadyState]] is still open, announce the data channel as open.
+ */
+promise_test(async (t) => {
+  const resolver = new Resolver();
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+
+  pc2.ondatachannel = t.step_func((event) => {
+    const dc = event.channel;
+    dc.onopen = t.step_func(() => {
+      assert_unreached('Open event should not fire');
+    });
+
+    // This should prevent triggering the 'open' event
+    dc.close();
+
+    // Wait a bit to ensure the 'open' event does NOT fire
+    t.step_timeout(() => resolver.resolve(), 500);
+  });
+
+  pc1.createDataChannel('fire-me!');
+
+  exchangeIceCandidates(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
+
+  await resolver;
+}, 'Open event should not be raised when closing the channel in the datachannel event');
+
+// Added this test as a result of the discussion in
+// https://github.com/w3c/webrtc-pc/pull/1851#discussion_r185976747
+promise_test(async (t) => {
+  const resolver = new Resolver();
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+
+  pc2.ondatachannel = t.step_func((event) => {
+    const dc = event.channel;
+    dc.onopen = t.step_func((event) => {
+      resolver.resolve();
+    });
+
+    // This should NOT prevent triggering the 'open' event since it enqueues at least two tasks
+    t.step_timeout(() => {
+      t.step_timeout(() => {
+        dc.close()
+      }, 1);
+    }, 1);
+  });
+
+  pc1.createDataChannel('fire-me!');
+
+  exchangeIceCandidates(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
+
+  await resolver;
+}, 'Open event should be raised when closing the channel in the datachannel event after ' +
+  'enqueuing a task');
+
+
+/*
+  Combination of the two tests above (send and close).
+ */
+promise_test(async (t) => {
+  const resolver = new Resolver();
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+
+  const message = 'meow meow!';
+
+  pc2.ondatachannel = t.step_func((event) => {
+    const dc2 = event.channel;
+    dc2.onopen = t.step_func(() => {
+      assert_unreached('Open event should not fire');
+    });
+
+    // This should send but still prevent triggering the 'open' event
+    dc2.send(message);
+    dc2.close();
+  });
+
+  const dc1 = pc1.createDataChannel('fire-me!');
+  dc1.onmessage = t.step_func((event) => {
+    assert_equals(event.data, message,
+      'Received data should be equal to sent data');
+
+    resolver.resolve();
+  });
+
+  exchangeIceCandidates(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
+
+  await resolver;
+}, 'Open event should not be raised when sending and immediately closing the channel in the ' +
+  'datachannel event');
+
+/*
+  6.2.  RTCDataChannel
+
+    interface RTCDataChannel : EventTarget {
+      readonly attribute USVString           label;
+      readonly attribute boolean             ordered;
+      readonly attribute unsigned short?     maxPacketLifeTime;
+      readonly attribute unsigned short?     maxRetransmits;
+      readonly attribute USVString           protocol;
+      readonly attribute boolean             negotiated;
+      readonly attribute unsigned short?     id;
+      readonly attribute RTCDataChannelState readyState;
+      ...
+    };
+
+    When an underlying data transport is to be announced (the other peer created a channel with
+    negotiated unset or set to false), the user agent of the peer that did not initiate the
+    creation process MUST queue a task to run the following steps:
+      2. Let channel be a newly created RTCDataChannel object.
+      3. Let configuration be an information bundle received from the other peer as a part of the
+         process to establish the underlying data transport described by the WebRTC DataChannel
+         Protocol specification [RTCWEB-DATA-PROTOCOL].
+      4. Initialize channel's [[DataChannelLabel]], [[Ordered]], [[MaxPacketLifeTime]],
+         [[MaxRetransmits]], [[DataChannelProtocol]], and [[DataChannelId]] internal slots to the
+         corresponding values in configuration.
+      5. Initialize channel's [[Negotiated]] internal slot to false.
+      7. Set channel's [[ReadyState]] slot to connecting.
+      8. Fire a datachannel event named datachannel with channel at the RTCPeerConnection object.
+
+    Note: More exhaustive tests are defined in RTCDataChannel-dcep
+ */
+
+promise_test(async (t) => {
+  const resolver = new Resolver();
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+
+  const dc1 = pc1.createDataChannel('test', {
+    ordered: false,
+    maxRetransmits: 1,
+    protocol: 'custom'
+  });
+
+  assert_equals(dc1.label, 'test');
+  assert_equals(dc1.ordered, false);
+  assert_equals(dc1.maxPacketLifeTime, null);
+  assert_equals(dc1.maxRetransmits, 1);
+  assert_equals(dc1.protocol, 'custom');
+  assert_equals(dc1.negotiated, false);
+
+  pc2.ondatachannel = t.step_func((event) => {
+    const dc2 = event.channel;
+    assert_true(dc2 instanceof RTCDataChannel,
+      'Expect channel to be instance of RTCDataChannel');
+
+    assert_equals(dc2.label, 'test');
+    assert_equals(dc2.ordered, false);
+    assert_equals(dc2.maxPacketLifeTime, null);
+    assert_equals(dc2.maxRetransmits, 1);
+    assert_equals(dc2.protocol, 'custom');
+    assert_equals(dc2.negotiated, false);
+    assert_equals(dc2.id, dc1.id);
+
+    resolver.resolve();
+  });
+
+  exchangeIceCandidates(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
+
+  await resolver;
+}, 'In-band negotiated channel created on remote peer should match the same configuration as local ' +
+  'peer');
+
+promise_test(async (t) => {
+  const resolver = new Resolver();
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+
+  const dc1 = pc1.createDataChannel('');
+
+  assert_equals(dc1.label, '');
+  assert_equals(dc1.ordered, true);
+  assert_equals(dc1.maxPacketLifeTime, null);
+  assert_equals(dc1.maxRetransmits, null);
+  assert_equals(dc1.protocol, '');
+  assert_equals(dc1.negotiated, false);
+
+  pc2.ondatachannel = t.step_func((event) => {
+    const dc2 = event.channel;
+    assert_true(dc2 instanceof RTCDataChannel,
+      'Expect channel to be instance of RTCDataChannel');
+
+    assert_equals(dc2.label, '');
+    assert_equals(dc2.ordered, true);
+    assert_equals(dc2.maxPacketLifeTime, null);
+    assert_equals(dc2.maxRetransmits, null);
+    assert_equals(dc2.protocol, '');
+    assert_equals(dc2.negotiated, false);
+    assert_equals(dc2.id, dc1.id);
+
+    resolver.resolve();
+  });
+
+  exchangeIceCandidates(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
+
+  await resolver;
+}, 'In-band negotiated channel created on remote peer should match the same (default) ' +
+  'configuration as local peer');
+
+/*
+  6.2.  RTCDataChannel
+    Dictionary RTCDataChannelInit Members
+      negotiated
+        The default value of false tells the user agent to announce the
+        channel in-band and instruct the other peer to dispatch a corresponding
+        RTCDataChannel object. If set to true, it is up to the application
+        to negotiate the channel and create a RTCDataChannel object with the
+        same id at the other peer.
+ */
+promise_test(async (t) => {
+  const resolver = new Resolver();
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+
+  pc2.ondatachannel = t.unreached_func('datachannel event should not be fired');
+
+  pc1.createDataChannel('test', {
+    negotiated: true,
+    id: 42
+  });
+
+  exchangeIceCandidates(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
+
+  // Wait a bit to ensure the 'datachannel' event does NOT fire
+  t.step_timeout(() => resolver.resolve(), 500);
+  await resolver;
+}, 'Negotiated channel should not fire datachannel event on remote peer');
+
+/*
+  Non-testable
+  6.2.  RTCDataChannel
+    When an underlying data transport is to be announced
+      1.  If the associated RTCPeerConnection object's [[isClosed]] slot
+          is true, abort these steps.
+
+  The above step is not testable because to reach it we would have to
+  close the peer connection just between receiving the in-band negotiated data
+  channel via DCEP and firing the datachannel event.
+ */
+</script>

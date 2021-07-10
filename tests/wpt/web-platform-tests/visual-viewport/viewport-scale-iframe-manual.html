@@ -1,0 +1,77 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Viewport: Scale iframe</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, minimum-scale=1">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="viewport_support.js"></script>
+        <script>
+           setup({explicit_done: true, explicit_timeout: true});
+        </script>
+        <style>
+          iframe {
+            width: 200px;
+            height: 200px;
+          }
+        </style>
+    </head>
+    <body>
+    <h1>Viewport: Scale iframe</h1>
+    <h4>Test Description: Tests the visualViewport.scale property inside an iframe</h4>
+    <h2 style="color: red">THIS IS A MANUAL TEST</h2>
+    <p id="skip">
+        <button id="skipbtn" onclick="skipManualTest();">Skip Test</button>
+    </p>
+    <p id="instruction"></p>
+    <button id="continue">Start Test</button>
+    <p>
+        <iframe srcdoc="<!DOCTYPE html><style>html {background-color: coral;}</style>"></iframe>
+    </p>
+    <div id="log"></div>
+    </body>
+    <script>
+        var continueBtn = document.getElementById("continue");
+
+        function continueTest() {
+          nextStep(function(instructionText) {
+            var instruction = document.getElementById("instruction");
+            continueBtn.innerText = "Continue";
+            instruction.innerText = instructionText;
+          });
+        }
+
+        continueBtn.addEventListener('click', continueTest);
+
+        addManualTestStep(
+            function() {},
+            null,
+            '1. Ensure the browser is at the default pinch and browser zoom ' +
+            'levels (100%). Most browsers: ctrl+0');
+
+        addManualTestStep(
+            showPinchWidget.bind(null, 2.0, 0, 0, continueTest),
+            null,
+            '2.Follow instructions on pinch zoom dialog.');
+
+        addManualTestStep(
+            function() {
+                // Ensure we zoomed in to about what we expect.
+                assert_approx_equals(window.visualViewport.scale, 2.0, 0.2,
+                    "Main window.visualViewport.scale reflects pinch-zoom level");
+
+                assert_equals(frames[0].window.visualViewport.scale, 1.0,
+                    "Iframe scale unchanged even when pinch-zoomed");
+            },
+            'Check iframe scale is unchanged when page is pinch-zoomed',
+            '3. Pinch-zoom back out to the minimum scale');
+
+        addManualTestStep(
+            function() {
+                continueBtn.remove();
+            },
+            null,
+            'Test Complete');
+    </script>
+</html>

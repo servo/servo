@@ -15,7 +15,7 @@
     version="$Revision: 1.7 $" testname="$RCSfile: interact-pevents-05-b.svg,v $">
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/interact.html#PointerEventsProperty">
         <p>
-          Tests when text is considered hit by pointer-events. 
+          Tests when text is considered hit by pointer-events.
           According to SVG 1.1 pointer-events on text is not supposed to use the text boundingbox, instead it should use the 'character cells'.
         </p>
     </d:testDescription>

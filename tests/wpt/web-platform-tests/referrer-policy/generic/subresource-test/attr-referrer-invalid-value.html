@@ -11,7 +11,7 @@
 
     <script>
       test(function () {
-          var elements = ["iframe", "img", "a", "area", "link"];
+          var elements = ["iframe", "img", "a", "area", "link", "script"];
           for (var i = 0; i < elements.length; i++) {
               var elem = document.createElement(elements[i]);
               elem.referrerPolicy = "unsafe-url";

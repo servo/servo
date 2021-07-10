@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/helper.sub.js"></script>
+
+  <meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script';">
+</head>
+<body>
+<script>
+    test(t => {
+      assert_element_accepts_trusted_html_set_ns(window, '0', t, 'a', 'b', RESULTS.HTML);
+    }, "Element.setAttributeNS assigned via policy (successful HTML transformation)");
+
+    test(t => {
+      assert_element_accepts_trusted_script_set_ns(window, '1', t, 'a', 'b', RESULTS.SCRIPT);
+    }, "Element.setAttributeNS assigned via policy (successful Script transformation)");
+
+    test(t => {
+      assert_element_accepts_trusted_script_url_set_ns(window, '2', t, 'a', 'b', RESULTS.SCRIPTURL);
+    }, "Element.setAttributeNS assigned via policy (successful ScriptURL transformation)");
+
+    // Unknown, namespaced attributes should not be TT checked:
+    test(t => {
+      assert_element_accepts_non_trusted_type_set_ns('a', 'b', 'A string', 'A string');
+    }, "Element.setAttributeNS accepts untrusted string for non-specced accessor");
+
+    test(t => {
+      assert_element_accepts_non_trusted_type_set_ns('a', 'b', null, 'null');
+    }, "Element.setAttributeNS accepts null for non-specced accessor");
+
+    // Setup trusted values for use in subsequent tests.
+    const script_url = createScriptURL_policy(window, '5').createScriptURL(INPUTS.ScriptURL);
+    const html = createHTML_policy(window, '6').createHTML(INPUTS.HTML);
+    const script = createScript_policy(window, '7').createScript(INPUTS.Script);
+
+    const xlink = "http://www.w3.org/1999/xlink";
+    const svg = "http://www.w3.org/2000/svg";
+
+    // svg:script xlink:href=... expects a TrustedScriptURL.
+    // Assigning a TrustedScriptURL works.
+    test(t => {
+      let elem = document.createElementNS(svg, "script");
+      elem.setAttributeNS(xlink, "href", script_url);
+      assert_equals("" + RESULTS.ScriptURL,
+                    elem.getAttributeNodeNS(xlink, "href").value);
+    }, "Assigning TrustedScriptURL to <svg:script xlink:href=...> works");
+
+    // Assigning things that ought to not work.
+    test(t => {
+      let elem = document.createElementNS(svg, "script");
+      const values = [ "abc", null, html, script ];
+      for (const v of values) {
+        assert_throws_js(TypeError, _ => {
+          elem.setAttributeNS(xlink, "href", v);
+        });
+      }
+    }, "Blocking non-TrustedScriptURL assignment to <svg:script xlink:href=...> works");
+</script>

@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+    :root {
+        writing-mode: vertical-rl;
+    }
+    p {
+        font-size: 7em;
+        text-shadow: 0.1250em 0.1250em #C0C000C0;
+        position: relative;
+        color: transparent;
+
+        /*
+            https://drafts.csswg.org/css-pseudo-4/#highlight-bounds
+            For text, the corresponding overlay must cover at least
+            the entire em box and may extend further above/below the
+            em box to the line box edges.
+        */
+        line-height: 1;
+    }
+    p > span {
+        color: #E03838C0;
+        text-shadow: none;
+        position: absolute;
+    }
+    p > span > span {
+        color: #707070C0;
+        background: #38E038C0;
+        text-shadow: 0.2500em 0.2500em #3838E0C0;
+        /* force blue to paint over red */
+        position: relative;
+    }
+</style>
+<p><span>q<span>uic</span>k</span>quick

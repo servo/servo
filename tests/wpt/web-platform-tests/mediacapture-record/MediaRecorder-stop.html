@@ -1,0 +1,151 @@
+<!doctype html>
+<html>
+<head>
+    <title>MediaRecorder Stop</title>
+    <link rel="help" href="https://w3c.github.io/mediacapture-record/MediaRecorder.html#mediarecorder">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="utils/sources.js"></script>
+</head>
+<body>
+<script>
+    function recordEvents(target, events) {
+        let arr = [];
+        for (let ev of events) {
+            target.addEventListener(ev, _ => arr.push(ev));
+        }
+        return arr;
+    }
+
+    // This function is used to check that elements of |actual| is a sub
+    // sequence in the |expected| sequence.
+    function assertSequenceIn(actual, expected) {
+      let i = 0;
+      for (event of actual) {
+        const j = expected.slice(i).indexOf(event);
+        assert_greater_than_equal(
+            j, 0, "Sequence element " + event + " is not included in " +
+            expected.slice(i));
+        i = j;
+      }
+      return true;
+    }
+
+    promise_test(async t => {
+        const {stream: video} = createVideoStream(t);
+        const recorder = new MediaRecorder(video);
+        const events = recordEvents(recorder,
+            ["start", "stop", "dataavailable", "pause", "resume", "error"]);
+        assert_equals(video.getVideoTracks().length, 1, "video mediastream starts with one track");
+        recorder.start();
+        assert_equals(recorder.state, "recording", "MediaRecorder has been started successfully");
+        video.getVideoTracks()[0].stop();
+        assert_equals(recorder.state, "recording", "MediaRecorder state should be recording immediately following last track ending");
+        const event = await new Promise(r => recorder.onstop = r);
+
+        assert_equals(event.type, "stop", "the event type should be stop");
+        assert_true(event.isTrusted, "isTrusted should be true when the event is created by C++");
+        assert_equals(recorder.state, "inactive", "MediaRecorder is inactive after stop event");
+
+        // As the test is written, it's not guaranteed that
+        // onstart/ondataavailable is invoked, but it's fine if they are.
+        // The stop element is guaranteed to be in events when we get here.
+        assertSequenceIn(events, ["start", "dataavailable", "stop"]);
+    }, "MediaRecorder will stop recording and fire a stop event when all tracks are ended");
+
+    promise_test(async t => {
+        const {stream: video} = createVideoStream(t);
+        const recorder = new MediaRecorder(video);
+        const events = recordEvents(recorder,
+            ["start", "stop", "dataavailable", "pause", "resume", "error"]);
+        recorder.start();
+        assert_equals(recorder.state, "recording", "MediaRecorder has been started successfully");
+        recorder.stop();
+        assert_equals(recorder.state, "inactive", "MediaRecorder state should be inactive immediately following stop() call");
+
+        const event = await new Promise (r => recorder.onstop = r);
+        assert_equals(event.type, "stop", "the event type should be stop");
+        assert_true(event.isTrusted, "isTrusted should be true when the event is created by C++");
+        assert_equals(recorder.state, "inactive", "MediaRecorder is inactive after stop event");
+
+        // As the test is written, it's not guaranteed that
+        // onstart/ondataavailable is invoked, but it's fine if they are.
+        // The stop element is guaranteed to be in events when we get here.
+        assertSequenceIn(events, ["start", "dataavailable", "stop"]);
+    }, "MediaRecorder will stop recording and fire a stop event when stop() is called");
+
+    promise_test(async t => {
+        const recorder = new MediaRecorder(createVideoStream(t).stream);
+        recorder.stop();
+        await Promise.race([
+            new Promise((_, reject) => recorder.onstop =
+                _ => reject(new Error("onstop should never have been called"))),
+            new Promise(r => t.step_timeout(r, 0))]);
+    }, "MediaRecorder will not fire an exception when stopped after creation");
+
+    promise_test(async t => {
+        const recorder = new MediaRecorder(createVideoStream(t).stream);
+        recorder.start();
+        recorder.stop();
+        const event = await new Promise(r => recorder.onstop = r);
+        recorder.stop();
+        await Promise.race([
+            new Promise((_, reject) => recorder.onstop =
+                _ => reject(new Error("onstop should never have been called"))),
+            new Promise(r => t.step_timeout(r, 0))]);
+    }, "MediaRecorder will not fire an exception when stopped after having just been stopped");
+
+    promise_test(async t => {
+        const {stream} = createVideoStream(t);
+        const recorder = new MediaRecorder(stream);
+        recorder.start();
+        stream.getVideoTracks()[0].stop();
+        const event = await new Promise(r => recorder.onstop = r);
+        recorder.stop();
+        await Promise.race([
+            new Promise((_, reject) => recorder.onstop =
+                _ => reject(new Error("onstop should never have been called"))),
+            new Promise(r => t.step_timeout(r, 0))]);
+    }, "MediaRecorder will not fire an exception when stopped after having just been spontaneously stopped");
+
+    promise_test(async t => {
+        const {stream} = createAudioVideoStream(t);
+        const recorder = new MediaRecorder(stream);
+        const events = [];
+        const startPromise = new Promise(resolve => recorder.onstart = resolve);
+        const stopPromise = new Promise(resolve => recorder.onstop = resolve);
+
+        startPromise.then(() => events.push("start"));
+        stopPromise.then(() => events.push("stop"));
+
+        recorder.start();
+        recorder.stop();
+
+        await stopPromise;
+        assert_array_equals(events, ["start", "stop"]);
+    }, "MediaRecorder will fire start event even if stopped synchronously");
+
+    promise_test(async t => {
+        const {stream} = createAudioVideoStream(t);
+        const recorder = new MediaRecorder(stream);
+        const events = [];
+        const startPromise = new Promise(resolve => recorder.onstart = resolve);
+        const stopPromise = new Promise(resolve => recorder.onstop = resolve);
+        const errorPromise = new Promise(resolve => recorder.onerror = resolve);
+        const dataPromise = new Promise(resolve => recorder.ondataavailable = resolve);
+
+        startPromise.then(() => events.push("start"));
+        stopPromise.then(() => events.push("stop"));
+        errorPromise.then(() => events.push("error"));
+        dataPromise.then(() => events.push("data"));
+
+        recorder.start();
+        stream.removeTrack(stream.getAudioTracks()[0]);
+
+        await stopPromise;
+        assert_array_equals(events, ["start", "error", "data", "stop"]);
+    }, "MediaRecorder will fire start event even if a track is removed synchronously");
+
+</script>
+</body>
+</html>

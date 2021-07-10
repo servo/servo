@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-page-3/#using-named-pages">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  test_invalid_value("page", "not valid");
+  test_invalid_value("page", "not,valid");
+  test_invalid_value("page", "123px");
+  test_invalid_value("page", "calc(10%+1px)");
+</script>

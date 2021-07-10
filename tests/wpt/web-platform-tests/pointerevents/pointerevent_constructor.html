@@ -7,100 +7,94 @@
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
         <!-- Additional helper script for common checks across event types -->
-        <script type="text/javascript" src="pointerevent_support.js"></script>
     </head>
     <body>
     <h1>PointerEvent: Dispatch custom event</h1>
-    <h4>Test Description: This test checks if PointerEvent constructor works properly using synthetic pointerover and pointerout events. For valid results, this test must be run without generating real (trusted) pointerover or pointerout events on the black rectangle below.</h4>
+    <h4>Test Description: This test checks if PointerEvent constructor works properly.</h4>
     <div id="target0"></div>
     <script>
-        var detected_pointertypes = {};
-        add_completion_callback(showPointerTypes);
-
         async_test(function() {
             var target0 = document.getElementById("target0");
             // set values for non-default constructor
-            var testBubbles = true;
-            var testCancelable = true;
-            var testPointerId = 42;
-            var testPointerType = 'pen';
-            var testClientX = 300;
-            var testClientY = 500;
-            var testWidth = 3;
-            var testHeight = 5;
-            var testTiltX = -45;
-            var testTiltY = 30;
-            var testButton = 0;
-            var testButtons = 1;
-            var testPressure = 0.4;
-            var testTangentialPressure = 0.5;
-            var testTwist = 286;
-            var testIsPrimary = true;
-
-            on_event(target0, "pointerover", this.step_func(function(event) {
-                detected_pointertypes[ event.pointerType ] = true;
+            on_event(target0, "pointermove", this.step_func(function(event) {
                 generate_tests(assert_equals, [
-                    ["custom bubbles", event.bubbles, testBubbles],
-                    ["custom cancelable", event.cancelable, testCancelable],
-                    ["custom pointerId", event.pointerId, testPointerId],
-                    ["custom pointerType", event.pointerType, testPointerType],
-                    ["custom button", event.button, testButton],
-                    ["custom buttons", event.buttons, testButtons],
-                    ["custom width", event.width, testWidth],
-                    ["custom height", event.height, testHeight],
-                    ["custom clientX", event.clientX, testClientX],
-                    ["custom clientY", event.clientY, testClientY],
-                    ["custom tiltX", event.tiltX, testTiltX],
-                    ["custom tiltY", event.tiltY, testTiltY],
-                    ["custom twist", event.twist, testTwist],
-                    ["custom isPrimary", event.isPrimary, testIsPrimary]
+                    ["getCoalescedEvents().length", event.getCoalescedEvents().length, 2],
+                    ["getPredictedEvents().length", event.getPredictedEvents().length, 2],
+                    ["event.target", event.target, target0],
+                    ["event.currentTarget", event.currentTarget, target0],
+                    ["event.eventPhase", event.eventPhase, Event.AT_TARGET],
+                    ["event.clientX", event.clientX, 310],
+                    ["getCoalescedEvents()[0].clientX", event.getCoalescedEvents()[0].clientX, 300],
+                    ["getCoalescedEvents()[1].clientX", event.getCoalescedEvents()[1].clientX, 310],
+                    ["getPredictedEvents()[0].clientX", event.getPredictedEvents()[0].clientX, 320],
+                    ["getPredictedEvents()[1].clientX", event.getPredictedEvents()[1].clientX, 330],
                 ]);
-                test(function() {
-                    assert_approx_equals(event.pressure, testPressure, 0.00000001, "custom pressure: ");
-                    assert_approx_equals(event.tangentialPressure, testTangentialPressure, 0.00000001, "custom tangential pressure: ");
-                }, "custom pressure: ");
+                for (var i=0; i<event.getCoalescedEvents().length; i++) {
+                    var coalescedEvent = event.getCoalescedEvents()[i];
+                    generate_tests(assert_equals, [
+                        ["getCoalescedEvents()[" + i + "].pointerId", coalescedEvent.pointerId, event.pointerId],
+                        ["getCoalescedEvents()[" + i + "].pointerType", coalescedEvent.pointerType, event.pointerType],
+                        ["getCoalescedEvents()[" + i + "].isPrimary", coalescedEvent.isPrimary, event.isPrimary],
+                        ["getCoalescedEvents()[" + i + "].getCoalescedEvents().length", coalescedEvent.getCoalescedEvents().length, 0],
+                        ["getCoalescedEvents()[" + i + "].getPredictedEvents().length", coalescedEvent.getPredictedEvents().length, 0],
+                        ["getCoalescedEvents()[" + i + "].target", coalescedEvent.target, target0],
+                        ["getCoalescedEvents()[" + i + "].currentTarget", coalescedEvent.currentTarget, null],
+                        ["getCoalescedEvents()[" + i + "].eventPhase", coalescedEvent.eventPhase, Event.NONE],
+                        ["getCoalescedEvents()[" + i + "].cancelable", coalescedEvent.cancelable, false],
+                        ["getCoalescedEvents()[" + i + "].bubbles", coalescedEvent.bubbles, false],
+                        ["getCoalescedEvents()[" + i + "].offsetX", coalescedEvent.offsetX, event.offsetX + (i==0?-10:0)],
+                        ["getCoalescedEvents()[" + i + "].offsetY", coalescedEvent.offsetY, event.offsetY],
+                    ]);
+                }
+                for (var i=0; i<event.getPredictedEvents().length; i++) {
+                    var predictedEvent = event.getPredictedEvents()[i];
+                    generate_tests(assert_equals, [
+                        ["getPredictedEvents()[" + i + "].pointerId", predictedEvent.pointerId, event.pointerId],
+                        ["getPredictedEvents()[" + i + "].pointerType", predictedEvent.pointerType, event.pointerType],
+                        ["getPredictedEvents()[" + i + "].isPrimary", predictedEvent.isPrimary, event.isPrimary],
+                        ["getPredictedEvents()[" + i + "].getCoalescedEvents().length", predictedEvent.getCoalescedEvents().length, 0],
+                        ["getPredictedEvents()[" + i + "].getPredictedEvents().length", predictedEvent.getPredictedEvents().length, 0],
+                        ["getPredictedEvents()[" + i + "].target", predictedEvent.target, target0],
+                        ["getPredictedEvents()[" + i + "].currentTarget", predictedEvent.currentTarget, null],
+                        ["getPredictedEvents()[" + i + "].eventPhase", predictedEvent.eventPhase, Event.NONE],
+                        ["getPredictedEvents()[" + i + "].cancelable", predictedEvent.cancelable, false],
+                        ["getPredictedEvents()[" + i + "].bubbles", predictedEvent.bubbles, false],
+                        ["getPredictedEvents()[" + i + "].offsetX", predictedEvent.offsetX, event.offsetX + (i==0?10:20)],
+                        ["getPredictedEvents()[" + i + "].offsetY", predictedEvent.offsetY, event.offsetY],
+                    ]);
+                }
             }));
-
             on_event(target0, "pointerout", this.step_func(function(event) {
                 generate_tests(assert_equals, [
-                    ["default pointerId", event.pointerId, 0],
-                    ["default pointerType", event.pointerType, ""],
-                    ["default width", event.width, 1],
-                    ["default height", event.height, 1],
-                    ["default tiltX", event.tiltX, 0],
-                    ["default tiltY", event.tiltY, 0],
-                    ["default pressure", event.pressure, 0],
-                    ["default tangentialPressure", event.tangentialPressure, 0],
-                    ["default twist", event.twist, 0],
-                    ["default isPrimary", event.isPrimary, false]
+                    ["default getCoalescedEvents().length", event.getCoalescedEvents().length, 0],
+                    ["default getPredictedEvents().length", event.getPredictedEvents().length, 0],
                 ]);
             }));
 
             on_event(window, "load", this.step_func_done(function() {
                 assert_not_equals(window.PointerEvent, undefined);
 
-                var pointerEventCustom = new PointerEvent("pointerover",
-                {bubbles: testBubbles,
-                cancelable: testCancelable,
-                pointerId: testPointerId,
-                pointerType: testPointerType,
-                width: testWidth,
-                height: testHeight,
-                clientX: testClientX,
-                clientY: testClientY,
-                tiltX: testTiltX,
-                tiltY: testTiltY,
-                button: testButton,
-                buttons: testButtons,
-                pressure: testPressure,
-                tangentialPressure: testTangentialPressure,
-                twist: testTwist,
-                isPrimary: testIsPrimary
-                });
-                // A PointerEvent created with a PointerEvent constructor must have all its attributes set to the corresponding values provided to the constructor.
-                // For attributes where values are not provided to the constructor, the corresponding default values must be used.
-                // TA: 12.1
-                target0.dispatchEvent(pointerEventCustom);
+                var pointerEventInitDict =
+                {
+                  pointerId: 42,
+                  pointerType: "pen",
+                  isPrimary: true,
+                  clientX: 300,
+                };
+
+                var p1 = new PointerEvent("pointermove", pointerEventInitDict);
+                pointerEventInitDict.clientX += 10;
+                var p2 = new PointerEvent("pointermove", pointerEventInitDict);
+                pointerEventInitDict.clientX += 10;
+                var p3 = new PointerEvent("pointermove", pointerEventInitDict);
+                pointerEventInitDict.clientX += 10;
+                var p4 = new PointerEvent("pointermove", pointerEventInitDict);
+                pointerEventInitDict.coalescedEvents = [p1, p2];
+                pointerEventInitDict.predictedEvents = [p3, p4];
+                pointerEventInitDict.clientX = 310;
+                var event = new PointerEvent("pointermove", pointerEventInitDict);
+                target0.dispatchEvent(event);
+
                 var pointerEventDefault = new PointerEvent("pointerout");
                 target0.dispatchEvent(pointerEventDefault);
             }, "PointerEvent constructor"));

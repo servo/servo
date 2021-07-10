@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#transforms">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visudet.html#abs-non-replaced-height">
+<style>
+  body { overflow:scroll; } /* Auto scrollbars may hide bugs. */
+  #container { columns:2; height:200px; column-fill:auto; background:white; }
+  #abspos { position:absolute; width:50px; bottom:0; background:blue; }
+  #abspos > div { height:10px; background:white; }
+</style>
+<p>There should be two identical blue squares below.</p>
+<div id="container">
+  <div style="position:relative; height:100%;">
+    <div id="abspos" data-offset-y="80" data-expected-height="120">
+      <div style="margin:50px 0;" data-offset-y="50"></div>
+      <div data-offset-y="110"></div>
+    </div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+  checkLayout("[data-offset-y]");
+</script>

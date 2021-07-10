@@ -1,37 +1,42 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
-use dom::abstractworker::{SharedRt, SimpleWorkerErrorHandler};
-use dom::abstractworker::WorkerScriptMsg;
-use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
-use dom::bindings::codegen::Bindings::WorkerBinding;
-use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
-use dom::bindings::error::{Error, ErrorResult, Fallible, ErrorInfo};
-use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
-use dom::bindings::refcounted::Trusted;
-use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::str::DOMString;
-use dom::bindings::structuredclone::StructuredCloneData;
-use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
-use dom::errorevent::ErrorEvent;
-use dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
-use dom::eventtarget::EventTarget;
-use dom::globalscope::GlobalScope;
-use dom::messageevent::MessageEvent;
-use dom::workerglobalscope::prepare_workerscope_init;
+use crate::dom::abstractworker::SimpleWorkerErrorHandler;
+use crate::dom::abstractworker::WorkerScriptMsg;
+use crate::dom::bindings::codegen::Bindings::MessagePortBinding::PostMessageOptions;
+use crate::dom::bindings::codegen::Bindings::WorkerBinding::{WorkerMethods, WorkerOptions};
+use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::USVString;
+use crate::dom::bindings::structuredclone;
+use crate::dom::bindings::trace::RootedTraceableBox;
+use crate::dom::dedicatedworkerglobalscope::{
+    DedicatedWorkerGlobalScope, DedicatedWorkerScriptMsg,
+};
+use crate::dom::eventtarget::EventTarget;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::messageevent::MessageEvent;
+use crate::dom::window::Window;
+use crate::dom::workerglobalscope::prepare_workerscope_init;
+use crate::realms::enter_realm;
+use crate::script_runtime::JSContext;
+use crate::task::TaskOnce;
+use crossbeam_channel::{unbounded, Sender};
+use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg, WorkerId};
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
-use js::jsapi::{HandleValue, JSAutoCompartment, JSContext, NullHandleValue};
+use js::jsapi::{Heap, JSObject, JS_RequestInterruptCallback};
 use js::jsval::UndefinedValue;
-use script_thread::Runnable;
-use script_traits::WorkerScriptLoadOrigin;
+use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
+use script_traits::{StructuredSerializedData, WorkerScriptLoadOrigin};
 use std::cell::Cell;
-use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::{Sender, channel};
+use std::sync::Arc;
+use uuid::Uuid;
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
 
@@ -39,46 +44,47 @@ pub type TrustedWorkerAddress = Trusted<Worker>;
 #[dom_struct]
 pub struct Worker {
     eventtarget: EventTarget,
-    #[ignore_heap_size_of = "Defined in std"]
+    #[ignore_malloc_size_of = "Defined in std"]
     /// Sender to the Receiver associated with the DedicatedWorkerGlobalScope
     /// this Worker created.
-    sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
+    sender: Sender<DedicatedWorkerScriptMsg>,
+    #[ignore_malloc_size_of = "Arc"]
     closing: Arc<AtomicBool>,
-    #[ignore_heap_size_of = "Defined in rust-mozjs"]
-    runtime: Arc<Mutex<Option<SharedRt>>>,
     terminated: Cell<bool>,
 }
 
 impl Worker {
-    fn new_inherited(sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
-                     closing: Arc<AtomicBool>) -> Worker {
+    fn new_inherited(sender: Sender<DedicatedWorkerScriptMsg>, closing: Arc<AtomicBool>) -> Worker {
         Worker {
             eventtarget: EventTarget::new_inherited(),
             sender: sender,
             closing: closing,
-            runtime: Arc::new(Mutex::new(None)),
             terminated: Cell::new(false),
         }
     }
 
-    pub fn new(global: &GlobalScope,
-               sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
-               closing: Arc<AtomicBool>) -> Root<Worker> {
-        reflect_dom_object(box Worker::new_inherited(sender, closing),
-                           global,
-                           WorkerBinding::Wrap)
+    pub fn new(
+        global: &GlobalScope,
+        sender: Sender<DedicatedWorkerScriptMsg>,
+        closing: Arc<AtomicBool>,
+    ) -> DomRoot<Worker> {
+        reflect_dom_object(Box::new(Worker::new_inherited(sender, closing)), global)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-worker
-    #[allow(unsafe_code)]
-    pub fn Constructor(global: &GlobalScope, script_url: DOMString) -> Fallible<Root<Worker>> {
+    #[allow(unsafe_code, non_snake_case)]
+    pub fn Constructor(
+        global: &GlobalScope,
+        script_url: USVString,
+        worker_options: &WorkerOptions,
+    ) -> Fallible<DomRoot<Worker>> {
         // Step 2-4.
         let worker_url = match global.api_base_url().join(&script_url) {
             Ok(url) => url,
             Err(_) => return Err(Error::Syntax),
         };
 
-        let (sender, receiver) = channel();
+        let (sender, receiver) = unbounded();
         let closing = Arc::new(AtomicBool::new(false));
         let worker = Worker::new(global, sender.clone(), closing.clone());
         let worker_ref = Trusted::new(&*worker);
@@ -86,42 +92,74 @@ impl Worker {
         let worker_load_origin = WorkerScriptLoadOrigin {
             referrer_url: None,
             referrer_policy: None,
-            pipeline_id: Some(global.pipeline_id()),
+            pipeline_id: global.pipeline_id(),
         };
 
+        let browsing_context = global
+            .downcast::<Window>()
+            .map(|w| w.window_proxy().browsing_context_id())
+            .or_else(|| {
+                global
+                    .downcast::<DedicatedWorkerGlobalScope>()
+                    .and_then(|w| w.browsing_context())
+            });
+
         let (devtools_sender, devtools_receiver) = ipc::channel().unwrap();
-        let worker_id = global.get_next_worker_id();
+        let worker_id = WorkerId(Uuid::new_v4());
         if let Some(ref chan) = global.devtools_chan() {
             let pipeline_id = global.pipeline_id();
-                let title = format!("Worker for {}", worker_url);
+            let title = format!("Worker for {}", worker_url);
+            if let Some(browsing_context) = browsing_context {
                 let page_info = DevtoolsPageInfo {
                     title: title,
                     url: worker_url.clone(),
                 };
-                let _ = chan.send(ScriptToDevtoolsControlMsg::NewGlobal((pipeline_id, Some(worker_id)),
-                                                                devtools_sender.clone(),
-                                                                page_info));
+                let _ = chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
+                    (browsing_context, pipeline_id, Some(worker_id)),
+                    devtools_sender.clone(),
+                    page_info,
+                ));
+            }
         }
 
-        let init = prepare_workerscope_init(global, Some(devtools_sender));
+        let init = prepare_workerscope_init(global, Some(devtools_sender), Some(worker_id));
 
-        DedicatedWorkerGlobalScope::run_worker_scope(
-            init, worker_url, devtools_receiver, worker.runtime.clone(), worker_ref,
-            global.script_chan(), sender, receiver, worker_load_origin, closing);
+        let (control_sender, control_receiver) = unbounded();
+        let (context_sender, context_receiver) = unbounded();
+
+        let join_handle = DedicatedWorkerGlobalScope::run_worker_scope(
+            init,
+            worker_url,
+            devtools_receiver,
+            worker_ref,
+            global.script_chan(),
+            sender,
+            receiver,
+            worker_load_origin,
+            String::from(&*worker_options.name),
+            worker_options.type_,
+            closing.clone(),
+            global.image_cache(),
+            browsing_context,
+            global.wgpu_id_hub(),
+            control_receiver,
+            context_sender,
+        );
+
+        let context = context_receiver
+            .recv()
+            .expect("Couldn't receive a context for worker.");
+
+        global.track_worker(closing, join_handle, control_sender, context);
 
         Ok(worker)
-    }
-
-    pub fn is_closing(&self) -> bool {
-        self.closing.load(Ordering::SeqCst)
     }
 
     pub fn is_terminated(&self) -> bool {
         self.terminated.get()
     }
 
-    pub fn handle_message(address: TrustedWorkerAddress,
-                          data: StructuredCloneData) {
+    pub fn handle_message(address: TrustedWorkerAddress, data: StructuredSerializedData) {
         let worker = address.root();
 
         if worker.is_terminated() {
@@ -130,10 +168,14 @@ impl Worker {
 
         let global = worker.global();
         let target = worker.upcast();
-        let _ac = JSAutoCompartment::new(global.get_cx(), target.reflector().get_jsobject().get());
-        rooted!(in(global.get_cx()) let mut message = UndefinedValue());
-        data.read(&global, message.handle_mut());
-        MessageEvent::dispatch_jsval(target, &global, message.handle());
+        let _ac = enter_realm(target);
+        rooted!(in(*global.get_cx()) let mut message = UndefinedValue());
+        if let Ok(ports) = structuredclone::read(&global, data, message.handle_mut()) {
+            MessageEvent::dispatch_jsval(target, &global, message.handle(), None, None, ports);
+        } else {
+            // Step 4 of the "port post message steps" of the implicit messageport, fire messageerror.
+            MessageEvent::dispatch_error(target, &global);
+        }
     }
 
     pub fn dispatch_simple_error(address: TrustedWorkerAddress) {
@@ -141,41 +183,59 @@ impl Worker {
         worker.upcast().fire_event(atom!("error"));
     }
 
-    #[allow(unsafe_code)]
-    fn dispatch_error(&self, error_info: ErrorInfo) {
-        let global = self.global();
-        let event = ErrorEvent::new(&global,
-                                    atom!("error"),
-                                    EventBubbles::DoesNotBubble,
-                                    EventCancelable::Cancelable,
-                                    error_info.message.as_str().into(),
-                                    error_info.filename.as_str().into(),
-                                    error_info.lineno,
-                                    error_info.column,
-                                    unsafe { NullHandleValue });
-
-        let event_status = event.upcast::<Event>().fire(self.upcast::<EventTarget>());
-        if event_status == EventStatus::Canceled {
-            return;
-        }
-
-        global.report_an_error(error_info, unsafe { NullHandleValue });
-    }
-}
-
-impl WorkerMethods for Worker {
-    #[allow(unsafe_code)]
-    // https://html.spec.whatwg.org/multipage/#dom-worker-postmessage
-    unsafe fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
-        let data = try!(StructuredCloneData::write(cx, message));
+    /// https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
+    fn post_message_impl(
+        &self,
+        cx: JSContext,
+        message: HandleValue,
+        transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
+    ) -> ErrorResult {
+        let data = structuredclone::write(cx, message, Some(transfer))?;
         let address = Trusted::new(self);
 
         // NOTE: step 9 of https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage
         // indicates that a nonexistent communication channel should result in a silent error.
-        let _ = self.sender.send((address, WorkerScriptMsg::DOMMessage(data)));
+        let _ = self.sender.send(DedicatedWorkerScriptMsg::CommonWorker(
+            address,
+            WorkerScriptMsg::DOMMessage {
+                origin: self.global().origin().immutable().clone(),
+                data,
+            },
+        ));
         Ok(())
     }
+}
 
+impl WorkerMethods for Worker {
+    /// https://html.spec.whatwg.org/multipage/#dom-worker-postmessage
+    fn PostMessage(
+        &self,
+        cx: JSContext,
+        message: HandleValue,
+        transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
+    ) -> ErrorResult {
+        self.post_message_impl(cx, message, transfer)
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#dom-worker-postmessage
+    fn PostMessage_(
+        &self,
+        cx: JSContext,
+        message: HandleValue,
+        options: RootedTraceableBox<PostMessageOptions>,
+    ) -> ErrorResult {
+        let mut rooted = CustomAutoRooter::new(
+            options
+                .transfer
+                .iter()
+                .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
+                .collect(),
+        );
+        let guard = CustomAutoRooterGuard::new(*cx, &mut rooted);
+        self.post_message_impl(cx, message, guard)
+    }
+
+    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#terminate-a-worker
     fn Terminate(&self) {
         // Step 1
@@ -187,64 +247,23 @@ impl WorkerMethods for Worker {
         self.terminated.set(true);
 
         // Step 3
-        if let Some(runtime) = *self.runtime.lock().unwrap() {
-            runtime.request_interrupt();
-        }
+        let cx = self.global().get_cx();
+        unsafe { JS_RequestInterruptCallback(*cx) };
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-worker-onmessage
     event_handler!(message, GetOnmessage, SetOnmessage);
 
+    // https://html.spec.whatwg.org/multipage/#handler-worker-onmessageerror
+    event_handler!(messageerror, GetOnmessageerror, SetOnmessageerror);
+
     // https://html.spec.whatwg.org/multipage/#handler-workerglobalscope-onerror
     event_handler!(error, GetOnerror, SetOnerror);
 }
 
-pub struct WorkerMessageHandler {
-    addr: TrustedWorkerAddress,
-    data: StructuredCloneData,
-}
-
-impl WorkerMessageHandler {
-    pub fn new(addr: TrustedWorkerAddress, data: StructuredCloneData) -> WorkerMessageHandler {
-        WorkerMessageHandler {
-            addr: addr,
-            data: data,
-        }
-    }
-}
-
-impl Runnable for WorkerMessageHandler {
-    fn handler(self: Box<WorkerMessageHandler>) {
-        let this = *self;
-        Worker::handle_message(this.addr, this.data);
-    }
-}
-
-impl Runnable for SimpleWorkerErrorHandler<Worker> {
+impl TaskOnce for SimpleWorkerErrorHandler<Worker> {
     #[allow(unrooted_must_root)]
-    fn handler(self: Box<SimpleWorkerErrorHandler<Worker>>) {
-        let this = *self;
-        Worker::dispatch_simple_error(this.addr);
-    }
-}
-
-pub struct WorkerErrorHandler {
-    address: Trusted<Worker>,
-    error_info: ErrorInfo,
-}
-
-impl WorkerErrorHandler {
-    pub fn new(address: Trusted<Worker>, error_info: ErrorInfo) -> WorkerErrorHandler {
-        WorkerErrorHandler {
-            address: address,
-            error_info: error_info,
-        }
-    }
-}
-
-impl Runnable for WorkerErrorHandler {
-    fn handler(self: Box<Self>) {
-        let this = *self;
-        this.address.root().dispatch_error(this.error_info);
+    fn run_once(self) {
+        Worker::dispatch_simple_error(self.addr);
     }
 }

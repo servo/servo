@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>CSS Test (Transforms): rotateY(180deg) and overflow scroll</title>
+<link rel="help" href="http://www.w3.org/TR/css-transforms-2">
+<link rel="match" href="rotateY-180deg-with-overflow-scroll-ref.html">
+<style>
+.container {
+  transform: rotateY(180deg);
+  width: 100px;
+  height: 100px;
+  overflow: scroll;
+}
+.content {
+  width: 300px;
+  height: 300px;
+}
+</style>
+<div class="container">
+  <div class="content" style="background: green"></div>
+</div>
+<div class="container" style="backface-visibility: hidden">
+  <div class="content" style="background: red"></div>
+</div>

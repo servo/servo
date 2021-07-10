@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Parsing of `-webkit-appearance`</title>
+  <link rel="help" href="https://drafts.csswg.org/css-ui-4/#appearance-switching">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+test(function() {
+  var input = document.createElement('input');
+  input.setAttribute('style', '-webkit-appearance: none;');
+
+  assert_equals(input.style.getPropertyValue('appearance'), 'none');
+}, 'parsing via attribute change steps of CSS declaration block\'s owner node');
+
+test(function() {
+  var input = document.createElement('input');
+  input.style.cssText = '-webkit-appearance: none;';
+
+  assert_equals(input.style.getPropertyValue('appearance'), 'none');
+}, 'parsing via modification of cssText');
+
+test(function(t) {
+  var style = document.createElement('style');
+  style.appendChild(
+    document.createTextNode('#foo { -webkit-appearance: none; }')
+  );
+  document.body.appendChild(style);
+  t.add_cleanup(function() {
+    document.body.removeChild(style);
+  });
+
+  assert_equals(style.sheet.cssRules.length, 1);
+  assert_equals(
+    style.sheet.cssRules[0].style.getPropertyValue('appearance'),
+    'none'
+  );
+}, 'parsing via creation of CSS declaration block');
+</script>
+</body>

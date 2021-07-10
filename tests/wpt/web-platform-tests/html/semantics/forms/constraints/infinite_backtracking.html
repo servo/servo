@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>The infinite pattern validation test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<input type=text id=badinput value="12345678901234567890123456789123456789z" pattern="(\d+)*$">
+<script>
+  test(function(){
+    var elements = document.querySelectorAll(":invalid");
+    assert_array_equals(elements, [document.getElementById('badinput')]);
+  }, "Infinite backtracking pattern terminates");
+</script>

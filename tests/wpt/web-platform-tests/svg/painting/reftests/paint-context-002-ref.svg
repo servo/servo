@@ -1,0 +1,41 @@
+<svg id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <g id="testmeta">
+    <title>Paint: 'paint-order'</title>
+    <html:link rel="author"
+          title="Tavmjong Bah"
+          href="http://tavmjong.free.fr"/>
+  </g>
+
+  <style id="test-font" type="text/css">
+    /* Standard Font (if needed). */
+    @font-face {
+      font-family: FreeSans;
+      src: url("../fonts/FreeSans.woff") format("woff");
+    }
+    text {
+      font-family: FreeSans, sans-serif;
+      text-anchor: middle;
+      fill: black;
+    }
+    #title {
+      font-size: 24px;
+    }
+    .label {
+      font-size: 18px;
+    }
+  </style>
+
+  <defs>
+    <rect id="rectangle" width="120" height="120" />
+  </defs>
+
+  <g id="test-reference" font-size="16" style="fill:lime;stroke:blue;stroke-width:15px">
+    <use xlink:href="#rectangle" transform="translate(60,120)"/>
+    <use xlink:href="#rectangle" transform="translate(300,120)" style="fill:lightblue;stroke:green"/>
+  </g>
+
+</svg>

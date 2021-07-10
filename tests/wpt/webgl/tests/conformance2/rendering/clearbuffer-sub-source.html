@@ -1,0 +1,133 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test clearBuffer functions with optional srcOffset argument</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="20" height="20"> </canvas>
+<script>
+"use strict";
+description("This tests clearBuffer* functions with optional srcOffset argument");
+
+function verifyOnePixel(readFormat, readType, arrayType, expectedColor) {
+  var buffer = new arrayType(4);
+  gl.readPixels(0, 0, 1, 1, readFormat, readType, buffer);
+  if (buffer[0] == expectedColor[0] &&
+      buffer[1] == expectedColor[1] &&
+      buffer[2] == expectedColor[2] &&
+      buffer[3] == expectedColor[3]) {
+    testPassed("clearBuffer sets the renderbuffer with the correct data");
+  } else {
+    testFailed("clearBuffer fails to work. Expected: " + expectedColor + ", got: " + buffer);
+  }
+}
+
+function testClearBuffer(func, format, arrayType, readFormat, readType) {
+  debug("");
+  debug("Testing " + func);
+
+  var fb = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+
+  var renderbuffer = gl.createRenderbuffer();
+  gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, renderbuffer);
+  gl.renderbufferStorage(gl.RENDERBUFFER, format, canvas.width, canvas.height);
+  shouldBe('gl.checkFramebufferStatus(gl.FRAMEBUFFER)', 'gl.FRAMEBUFFER_COMPLETE');
+
+  var srcData = new arrayType([1, 2, 3, 4, 5, 6]);
+  gl[func](gl.COLOR, 0, srcData);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "clearBuffer with no srcOffset should succeed");
+  verifyOnePixel(readFormat, readType, arrayType, [1,2,3,4]);
+
+  gl[func](gl.COLOR, 0, srcData, 0);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "clearBuffer with srcOffset = 0 should succeed");
+  verifyOnePixel(readFormat, readType, arrayType, [1,2,3,4]);
+
+  gl[func](gl.COLOR, 0, srcData, 2);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "clearBuffer with srcOffset = 2 should succeed");
+  verifyOnePixel(readFormat, readType, arrayType, [3,4, 5, 6]);
+
+  gl[func](gl.COLOR, 0, srcData, 4);
+  wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "clearBuffer with srcOffset = 4 should fail: out of bounds");
+
+  gl.deleteFramebuffer(fb);
+  gl.deleteRenderbuffer(renderbuffer);
+}
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, undefined, 2);
+if (!gl) {
+  testFailed("context does not exist");
+} else {
+  testPassed("context exists");
+
+  var testCases = [
+    {
+      func: "clearBufferiv", format: gl.RGBA32I, arrayType: Int32Array,
+      readFormat: gl.RGBA_INTEGER, readType: gl.INT,
+    },
+    {
+      func: "clearBufferuiv", format: gl.RGBA32UI, arrayType: Uint32Array,
+      readFormat: gl.RGBA_INTEGER, readType: gl.UNSIGNED_INT,
+    },
+    {
+      func: "clearBufferfv", format: gl.RGBA32F, arrayType: Float32Array,
+      readFormat: gl.RGBA, readType: gl.FLOAT,
+      extension: "EXT_color_buffer_float",
+    },
+  ];
+
+  for (var tt = 0; tt < testCases.length; ++tt) {
+    var test = testCases[tt];
+    if (test.extension && !gl.getExtension(test.extension))
+      continue;
+    testClearBuffer(test.func, test.format, test.arrayType, test.readFormat, test.readType);
+  }
+}
+
+debug("");
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no error");
+var successfullyParsed = true;
+
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

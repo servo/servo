@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: ::marker supports 'text-combine-upright'</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="match" href="marker-text-combine-upright-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#propdef-text-combine-upright">
+<meta name="assert" content="Checks that 'text-combine-upright' works well in ::marker, and doesn't crash.">
+<style>
+body {
+  writing-mode: vertical-lr;
+}
+ol, ul {
+  display: flow-root;
+}
+ul {
+  list-style-position: inside;
+}
+.decimal {
+  list-style-type: decimal;
+}
+.string {
+  list-style-type: "2. ";
+}
+.content ::marker {
+  content: "3. ";
+}
+.symbol {
+  list-style-type: disc;
+}
+::marker {
+  text-combine-upright: all;
+}
+</style>
+<ol class="decimal"><li>outside decimal</li></ol>
+<ol class="string"><li>outside string</li></ol>
+<ol class="content"><li>outside content</li></ol>
+<ol class="symbol"><li>outside symbol</li></ol>
+
+<ul class="decimal"><li>inside decimal</li></ul>
+<ul class="string"><li>inside string</li></ul>
+<ul class="content"><li>inside content</li></ul>
+<ul class="symbol"><li>inside symbol</li></ul>

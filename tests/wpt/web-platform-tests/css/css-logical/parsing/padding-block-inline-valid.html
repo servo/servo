@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Logical Properties and Values: parsing padding-block and padding-inline with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-logical/#propdef-padding-block">
+<meta name="assert" content="padding-block, padding-inline support the full grammar '<'padding-top'>{1,2}'.">
+<meta name="assert" content="padding-block, padding-inline longhands support the full grammar '<'padding-top'>'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("padding-block-start", "0", "0px");
+test_valid_value("padding-block-start", "calc(20% + 10px)");
+test_valid_value("padding-block-end", "10px");
+test_valid_value("padding-inline-start", "20%");
+test_valid_value("padding-inline-end", "calc(2em + 2ex)");
+
+test_valid_value("padding-block", "10px");
+test_valid_value("padding-block", "10px 20%");
+test_valid_value("padding-inline", "20%");
+test_valid_value("padding-inline", "20% calc(20% + 10px)");
+</script>
+</body>
+</html>

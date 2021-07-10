@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang=en>
+  <meta charset=utf-8>
+  <title>CSS-contain test reference</title>
+  <link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+  <meta name=flags content="ahem">
+
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+article {
+  height: 2.5em;
+  column-gap: 0;
+  columns: 3 1em;
+  width: 3em;
+  column-fill: auto;
+
+  font-size: 40px;
+  font-family: ahem;
+  line-height: 1;
+}
+div {
+  background: orange;
+  padding-top: 5em;
+}
+</style>
+
+<p>This test passes if there is an orange rectangle below. If the shape is not a rectangle, the test fails.
+
+<article>
+<div></div>
+</article>

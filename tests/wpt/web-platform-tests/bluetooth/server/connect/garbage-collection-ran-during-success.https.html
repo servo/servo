@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/bluetooth/resources/bluetooth-test.js"></script>
+<script src="/bluetooth/resources/bluetooth-fake-devices.js"></script>
+<script>
+'use strict';
+const test_desc = 'Garbage Collection ran during a connect call that ' +
+    'succeeds. Should not crash.';
+let device, fake_peripheral;
+
+bluetooth_test(() => getDiscoveredHealthThermometerDevice()
+    .then(_ => ({device, fake_peripheral} = _))
+    .then(() =>
+      fake_peripheral.setNextGATTConnectionResponse({code: HCI_SUCCESS}))
+    // Don't return the promise and let |device| go out of scope
+    // so that it gets garbage collected.
+    .then(() => device.gatt.connect())
+    .then(runGarbageCollection),
+    test_desc);
+</script>

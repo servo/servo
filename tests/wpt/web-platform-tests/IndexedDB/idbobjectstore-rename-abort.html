@@ -40,9 +40,8 @@ promise_test(testCase => {
                 'IDBObjectStore.name should not reflect the rename any more ' +
                 'after the versionchange transaction is aborted');
         const request = indexedDB.open(dbName, 1);
-        return requestWatcher(testCase, request).wait_for('success');
-    }).then(event => {
-        const database = event.target.result;
+        return promiseForRequest(testCase, request);
+    }).then(database => {
         assert_array_equals(
             database.objectStoreNames, ['books'],
             'IDBDatabase.objectStoreNames should not reflect the rename ' +
@@ -107,9 +106,8 @@ promise_test(testCase => {
             'should be empty after the versionchange transaction is aborted ' +
             'returns');
         const request = indexedDB.open(dbName, 1);
-        return requestWatcher(testCase, request).wait_for('success');
-    }).then(event => {
-        const database = event.target.result;
+        return promiseForRequest(testCase, request);
+    }).then(database => {
         assert_array_equals(
             database.objectStoreNames, [],
             'IDBDatabase.objectStoreNames should not reflect the creation or ' +

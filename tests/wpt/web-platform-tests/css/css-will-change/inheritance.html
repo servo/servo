@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Inheritance of CSS will-change property</title>
+<link rel="help" href="https://drafts.csswg.org/css-will-change/#property-index">
+<meta name="assert" content="will-change does not inherit.">
+<meta name="assert" content="will-change has initial value auto.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/inheritance-testcommon.js"></script>
+</head>
+<body>
+<div id="container">
+<div id="target"></div>
+</div>
+<script>
+assert_not_inherited('will-change', 'auto', 'transform');
+</script>
+</body>
+</html>

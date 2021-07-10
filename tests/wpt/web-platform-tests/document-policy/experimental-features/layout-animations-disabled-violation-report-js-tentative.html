@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/document-policy/experimental-features/resources/common.js"></script>
+<title> 'layout-animations' Policy : violation reports from javascript
+</title>
+<body>
+<script>
+  promise_test(async () => {
+    let promise = wait_for_violation_in_file(
+      "layout-animations",
+      "animation-property-height.js");
+    let script = document.createElement("script");
+    script.src = "/document-policy/experimental-features/resources/" +
+                 "animation-property-height.js";
+    document.body.appendChild(script);
+    await promise;
+  },
+  "Verify that when 'layout-animations' is disabled, an 'element.animate' " +
+  "API including a keyframe that uses a blocked property generates violation " +
+  "report (linked scripts).");
+
+  promise_test(async () => {
+    let promise = wait_for_violation_in_file(
+      "layout-animations",
+      "layout-animations-disabled-violation-report-js-tentative.html");
+    let div = document.createElement("div");
+    document.body.appendChild(div);
+    div.animate([{width: "100px"}, {width: "200px"}]);
+    await promise;
+  },
+  "Verify that when 'layout-animations' is disabled, an 'element.animate' " +
+  "API including a keyframe that uses a blocked property generates violation " +
+  "report (inline scripts).");
+</script>
+</body>

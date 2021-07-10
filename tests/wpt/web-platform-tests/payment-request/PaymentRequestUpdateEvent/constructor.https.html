@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<!-- Copyright © 2017 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<meta charset="utf-8">
+<title>Test for PaymentRequestUpdateEvent Constructor</title>
+<link rel="help" href="https://w3c.github.io/browser-payment-api/#constructor">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const applePay = Object.freeze({
+  supportedMethods: "https://apple.com/apple-pay",
+  data: {
+    version: 3,
+    merchantIdentifier: "merchant.com.example",
+    countryCode: "US",
+    merchantCapabilities: ["supports3DS"],
+    supportedNetworks: ["visa"],
+  }
+});
+const basicCard = Object.freeze({ supportedMethods: "basic-card" });
+const defaultMethods = Object.freeze([basicCard, applePay]);
+const defaultDetails = Object.freeze({
+  total: {
+    label: "Total",
+    amount: {
+      currency: "USD",
+      value: "1.00",
+    },
+  },
+});
+
+test(() => {
+  try {
+    new PaymentRequestUpdateEvent("test");
+  } catch (err) {
+    assert_unreached(`Unexpected exception: ${err.message}`);
+  }
+}, "PaymentRequestUpdateEvent can be constructed in secure-context");
+
+test(() => {
+  const ev = new PaymentRequestUpdateEvent("test", {
+    bubbles: true,
+    cancelable: true,
+    composed: true,
+  });
+  assert_false(ev.isTrusted, "constructed in script, so not be trusted");
+  assert_true(ev.bubbles, "set by EventInitDict");
+  assert_true(ev.cancelable, "set by EventInitDict");
+  assert_true(ev.composed, "set by EventInitDict");
+  assert_equals(ev.target, null, "initially null");
+  assert_equals(ev.type, "test");
+}, "PaymentRequestUpdateEvent can be constructed with an EventInitDict, even if not trusted");
+
+test(() => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  const ev = new PaymentRequestUpdateEvent("test");
+  request.addEventListener("test", evt => {
+    assert_equals(ev, evt);
+  });
+  request.dispatchEvent(ev);
+}, "PaymentRequestUpdateEvent can be dispatched, even if not trusted");
+
+</script>

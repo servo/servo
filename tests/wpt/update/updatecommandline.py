@@ -1,6 +1,6 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 def create_parser():
     from wptrunner import wptcommandline
@@ -13,6 +13,8 @@ def create_parser():
     parser.add_argument("--token-file", action="store", type=wptcommandline.abs_path,
                         help="Path to file containing github token")
     parser.add_argument("--token", action="store", help="GitHub token to use")
+    parser.add_argument('--layout-2020', default=False, action="store_true",
+                        help="Use expected results for the 2020 layout engine")
     return parser
 
 
@@ -20,6 +22,8 @@ def check_args(kwargs):
     from wptrunner import wptcommandline
 
     wptcommandline.set_from_config(kwargs)
+    if hasattr(wptcommandline, 'check_paths'):
+        wptcommandline.check_paths(kwargs)
     kwargs["upstream"] = kwargs["upstream"] if kwargs["upstream"] is not None else kwargs["sync"]
 
     if kwargs["upstream"]:

@@ -1,0 +1,557 @@
+{
+ "items": {
+  "reftest": {
+   "webgpu": {
+    "webgpu": {
+     "web-platform": {
+      "reftests": {
+       "canvas_clear.html": [
+        "86a3da939dbe94efbeec04e5d366a40736ca4560",
+        [
+         null,
+         [
+          [
+           "/_webgpu/webgpu/webgpu/web-platform/reftests/ref/canvas_clear-ref.html",
+           "=="
+          ]
+         ],
+         {}
+        ]
+       ],
+       "canvas_complex_bgra8unorm.html": [
+        "1310543648e4fd640b0deb227000731af7b88b00",
+        [
+         null,
+         [
+          [
+           "/_webgpu/webgpu/webgpu/web-platform/reftests/ref/canvas_complex-ref.html",
+           "=="
+          ]
+         ],
+         {}
+        ]
+       ]
+      }
+     }
+    }
+   }
+  },
+  "support": {
+   "LICENSE.txt": [
+    "c7a75d7d221561df02c42470ad5e751324de645d",
+    []
+   ],
+   "README.md": [
+    "ef0dbfee60ce3e787131ca40e5be64952e578e03",
+    []
+   ],
+   "webgpu": {
+    "common": {
+     "framework": {
+      "file_loader.js": [
+       "b6f3d50859515c47f8a9bdf2f2a9c6158fe104e0",
+       []
+      ],
+      "fixture.js": [
+       "fcff2a6bb9fac5fd35d4129f611e3ccb0a4864e3",
+       []
+      ],
+      "gpu": {
+       "device_pool.js": [
+        "f72b6b734c671ff0316fadfec49e0a93bd16fd10",
+        []
+       ],
+       "implementation.js": [
+        "ab118a45444d120e521fbbd3e79d326b0a43beff",
+        []
+       ]
+      },
+      "logging": {
+       "log_message.js": [
+        "8c1007fa822ddfc2a894540ad9ed041db298b972",
+        []
+       ],
+       "logger.js": [
+        "c4e65c746f04e3dfcb8ef2ed4053bef10250f958",
+        []
+       ],
+       "result.js": [
+        "d387dc3e340863c31f6f92d15083544021f7e4c7",
+        []
+       ],
+       "test_case_recorder.js": [
+        "37acb53143c22e9859eb94e1d059916b52274941",
+        []
+       ]
+      },
+      "params_builder.js": [
+       "f585e3a2184fd821e9a4ce4266c1d277b4c5965d",
+       []
+      ],
+      "params_utils.js": [
+       "d4ffd25372d2d3e975c683ca8a17c2c82d5c8687",
+       []
+      ],
+      "query": {
+       "compare.js": [
+        "782088752f9cf68d4b7528cd42c72bc084380be3",
+        []
+       ],
+       "encode_selectively.js": [
+        "cb365deb4bb688e8ae5eebdef24a2ffcb3d857ef",
+        []
+       ],
+       "json_param_value.js": [
+        "921b3ddce6aacde8e3b05d4133dc07ffb90842f8",
+        []
+       ],
+       "parseQuery.js": [
+        "8bfd88bc9b66a41e08b3283b13b65bb3da0c10fe",
+        []
+       ],
+       "query.js": [
+        "0a9742055eb29f987958c1cc4d66a1cf4910f74b",
+        []
+       ],
+       "separators.js": [
+        "8fbaebdf945aaf95301b4d4e213659c152e1b6bc",
+        []
+       ],
+       "stringify_params.js": [
+        "b9c9cde7067b8cfc2fe2ad59d9d3c7fde3d38733",
+        []
+       ],
+       "validQueryPart.js": [
+        "ca21627975fc498f2bff550c9a4e9d064c23af38",
+        []
+       ]
+      },
+      "test_group.js": [
+       "4515bca19b70a701b2c32f2894b61b330d8e95ba",
+       []
+      ],
+      "test_suite_listing.js": [
+       "d387dc3e340863c31f6f92d15083544021f7e4c7",
+       []
+      ],
+      "tree.js": [
+       "87ff0d227e169c75255e0738af90946716f20134",
+       []
+      ],
+      "util": {
+       "async_mutex.js": [
+        "da461048fc495b118def36bff846e02be4268346",
+        []
+       ],
+       "collect_garbage.js": [
+        "d18982a2758e46634995ce7ac692918a0620a800",
+        []
+       ],
+       "stack.js": [
+        "00d08642d1534ea678f101c6d1627c5265df76bc",
+        []
+       ],
+       "timeout.js": [
+        "db1e5cfa1ae71e8c7fded6655b388441f4f851da",
+        []
+       ],
+       "util.js": [
+        "e7479046bee2e30f1116c1ab9f7d1e19ea6d82b4",
+        []
+       ]
+      },
+      "version.js": [
+       "74eef63b8a1fa6042d1d8352b25eaf95d4b25985",
+       []
+      ]
+     },
+     "runtime": {
+      "helper": {
+       "options.js": [
+        "e70671a56319af57068da4c201c4868822da4564",
+        []
+       ],
+       "test_worker-worker.js": [
+        "2402c6c3ab7b978e1e093cc20be9c8cef75b9ca8",
+        []
+       ],
+       "test_worker.js": [
+        "f844920b50dc80340430cf0f42e54369d557a6ca",
+        []
+       ]
+      },
+      "wpt.js": [
+       "5749159538dc7c08dd98f6b966054e2695d77437",
+       []
+      ]
+     }
+    },
+    "webgpu": {
+     "api": {
+      "operation": {
+       "buffers": {
+        "map.spec.js": [
+         "f751b721d5f87013334e9e240ca517c6447a84f5",
+         []
+        ],
+        "map_detach.spec.js": [
+         "aca8dc46e5797b9c31ee682e7ce04d12a2644b79",
+         []
+        ],
+        "map_oom.spec.js": [
+         "205f1147ed2b4304e21f8713126e69227ae48d3b",
+         []
+        ],
+        "mapping_test.js": [
+         "45ce419a69d4accb2ac1b36f82a2065ce16a900e",
+         []
+        ]
+       },
+       "command_buffer": {
+        "basic.spec.js": [
+         "7f4dd29b24ff8280b7aaede344b42bb5edca4d19",
+         []
+        ],
+        "copies.spec.js": [
+         "a6ecc3c9c2973b1f46704f77d255d9f185cabc31",
+         []
+        ],
+        "render": {
+         "basic.spec.js": [
+          "d3913ef5752b277c62e4f451923231c6d55ff947",
+          []
+         ]
+        }
+       },
+       "copyBetweenLinearDataAndTexture.spec.js": [
+        "d2b89189e2c65d50f4f6f0c20f32a7f6512c5b35",
+        []
+       ],
+       "fences.spec.js": [
+        "98f913008b8af33e1dc866f5714388d4ec9e050d",
+        []
+       ],
+       "render_pass": {
+        "storeOp.spec.js": [
+         "83ae8657c1c822b6cfc8f511089de88dfd2d8fdc",
+         []
+        ]
+       },
+       "resource_init": {
+        "copied_texture_clear.spec.js": [
+         "28fb5b368e317ef68ba6a3ec854729c3ca8cfb0e",
+         []
+        ],
+        "texture_zero_init_test.js": [
+         "381d7dcb0a8e9574834629223308c7ef0e375b4b",
+         []
+        ]
+       }
+      },
+      "validation": {
+       "copyBufferToBuffer.spec.js": [
+        "5fd4877383a47b1e3ca27af8e0843781dbf5a443",
+        []
+       ],
+       "copy_between_linear_data_and_texture": {
+        "copyBetweenLinearDataAndTexture.js": [
+         "0db6e68d4af6e395ba07157fd4b1ed0c567fd182",
+         []
+        ],
+        "copyBetweenLinearDataAndTexture_dataRelated.spec.js": [
+         "be1395b664276f13a728a60acee835d96753e6e1",
+         []
+        ],
+        "copyBetweenLinearDataAndTexture_textureRelated.spec.js": [
+         "bef71943fae2bc6f0dcaa4ae53b744190ccdc00c",
+         []
+        ]
+       },
+       "createBindGroup.spec.js": [
+        "fa585038e39ff6208787ee89bc177bdb13cdc385",
+        []
+       ],
+       "createBindGroupLayout.spec.js": [
+        "43fd923687b68d9214305b04ea1573e044245928",
+        []
+       ],
+       "createPipelineLayout.spec.js": [
+        "689ddaec883cd639f6cf94ab4d3005a4c4512db5",
+        []
+       ],
+       "createTexture.spec.js": [
+        "ceff54e136ff321bf22a8647790c3263404f6afc",
+        []
+       ],
+       "createView.spec.js": [
+        "d5b16563c13d9429bb1da58b9c5dd18279904f3d",
+        []
+       ],
+       "error_scope.spec.js": [
+        "64575540e8bde1545565389108067bf4b078cae9",
+        []
+       ],
+       "fences.spec.js": [
+        "b50ebae572d9af8f4edd3f82c051877b6068374e",
+        []
+       ],
+       "queue_submit.spec.js": [
+        "4e77076e35089cbdd9ae1ffe04c8f13fd6663f1d",
+        []
+       ],
+       "render_pass": {
+        "resolve.spec.js": [
+         "78965d9155e999ee19c3e97315502b11676ea838",
+         []
+        ],
+        "storeOp.spec.js": [
+         "e63540a9ca8afdc536200ebcfc8e955674b7a018",
+         []
+        ]
+       },
+       "render_pass_descriptor.spec.js": [
+        "6b2b8c54b784620b65d213b9cddf4b803fbeba3a",
+        []
+       ],
+       "resource_usages": {
+        "textureUsageInRender.spec.js": [
+         "b036245663df8d684067eff7c79861253205dbca",
+         []
+        ]
+       },
+       "setBindGroup.spec.js": [
+        "fca85a83b0e5cf94d7950139c021ca6954e0e2ad",
+        []
+       ],
+       "setBlendColor.spec.js": [
+        "8a302fffd9807b5bf8ae1b6540f9af1b7c4425b8",
+        []
+       ],
+       "setScissorRect.spec.js": [
+        "c049e92e70e3ad9a5f71f88a863e5a86cc74fc4e",
+        []
+       ],
+       "setStencilReference.spec.js": [
+        "f79a24044952c705004d254c81c31fd60967c54e",
+        []
+       ],
+       "setViewport.spec.js": [
+        "e2ef691b821825b9fa3c9fa5072dc734ec34d236",
+        []
+       ],
+       "validation_test.js": [
+        "c6cd14779bbb7b95e37bdb93d3f5be33902be6c2",
+        []
+       ]
+      }
+     },
+     "capability_info.js": [
+      "10a8c5aa4b62c05830eabb33734d866939258ade",
+      []
+     ],
+     "examples.spec.js": [
+      "32825367009ab0c4427821a013e913480ba38863",
+      []
+     ],
+     "gpu_test.js": [
+      "21cb10f1429e495b2f32b1d51a09b8584f63707d",
+      []
+     ],
+     "idl": {
+      "constants": {
+       "flags.spec.js": [
+        "51b80aa8aa23cb987079f6dd228bb0bb68816624",
+        []
+       ]
+      },
+      "idl_test.js": [
+       "3943563d2ac2c779e6cfb0ab033b92bca24e5749",
+       []
+      ]
+     },
+     "listing.js": [
+      "cbb23b30ec894c103a957f944b18be1e019ed571",
+      []
+     ],
+     "util": {
+      "conversion.js": [
+       "bdba99cf7619ec4d66a5890f5566f68bbc6ed82d",
+       []
+      ],
+      "math.js": [
+       "4761467b586691662834dd0fbf3e86643a5eb823",
+       []
+      ],
+      "texture": {
+       "layout.js": [
+        "927798985fc772a4c9e9ea7a62335ab693b43991",
+        []
+       ],
+       "subresource.js": [
+        "889fab16e61f6b811d7475a4b5eb7c56353a8a91",
+        []
+       ],
+       "texelData.js": [
+        "eadaa09633022e6c82355b07a4798c802c56a8e8",
+        []
+       ]
+      }
+     },
+     "web-platform": {
+      "canvas": {
+       "context_creation.spec.js": [
+        "26dc5d8ab6787c628c820f42e43e33603e4cebff",
+        []
+       ]
+      },
+      "copyImageBitmapToTexture.spec.js": [
+       "9df5ff94419baa92ff27f8b39cdc0ee99439dc06",
+       []
+      ],
+      "reftests": {
+       "canvas_clear.js": [
+        "a9149f039424546a9822d090b979fef921fe79c1",
+        []
+       ],
+       "canvas_complex.js": [
+        "f2271d0debafde3681e6a4865ccd5c91817c94f9",
+        []
+       ],
+       "gpu_ref_test.js": [
+        "a45002835df48518eacb8d7887791ee200c3e3c1",
+        []
+       ],
+       "ref": {
+        "canvas_clear-ref.html": [
+         "2e0781186273ac49d6c70b5e5a9c68103aa5f173",
+         []
+        ],
+        "canvas_complex-ref.html": [
+         "3d5b3b3376d23cfdcda57f0c53fc3192e8a77bb6",
+         []
+        ]
+       }
+      }
+     }
+    }
+   }
+  },
+  "testharness": {
+   "webgpu": {
+    "cts.html": [
+     "c5bc2536ab14b1174b7c01f35c85cfc6e62f5418",
+     [
+      "webgpu/cts.html?q=webgpu:api,operation,buffers,map_detach:*",
+      {}
+     ],
+     [
+      "webgpu/cts.html?q=webgpu:api,operation,buffers,map_oom:*",
+      {}
+     ],
+     [
+      "webgpu/cts.html?q=webgpu:api,operation,command_buffer,basic:*",
+      {}
+     ],
+     [
+      "webgpu/cts.html?q=webgpu:api,operation,command_buffer,copies:*",
+      {}
+     ],
+     [
+      "webgpu/cts.html?q=webgpu:api,operation,command_buffer,render,basic:*",
+      {}
+     ],
+     [
+      "webgpu/cts.html?q=webgpu:api,operation,fences:*",
+      {}
+     ],
+     [
+      "webgpu/cts.html?q=webgpu:api,validation,copyBufferToBuffer:*",
+      {}
+     ],
+     [
+      "webgpu/cts.html?q=webgpu:api,validation,copy_between_linear_data_and_texture,copyBetweenLinearDataAndTexture_dataRelated:*",
+      {}
+     ],
+     [
+      "webgpu/cts.html?q=webgpu:api,validation,copy_between_linear_data_and_texture,copyBetweenLinearDataAndTexture_textureRelated:*",
+      {}
+     ],
+     [
+      "webgpu/cts.html?q=webgpu:api,validation,createBindGroup:*",
+      {}
+     ],
+     [
+      "webgpu/cts.html?q=webgpu:api,validation,createPipelineLayout:*",
+      {}
+     ],
+     [
+      "webgpu/cts.html?q=webgpu:api,validation,error_scope:*",
+      {}
+     ],
+     [
+      "webgpu/cts.html?q=webgpu:api,validation,fences:*",
+      {}
+     ],
+     [
+      "webgpu/cts.html?q=webgpu:api,validation,queue_submit:*",
+      {}
+     ],
+     [
+      "webgpu/cts.html?q=webgpu:api,validation,render_pass,resolve:*",
+      {}
+     ],
+     [
+      "webgpu/cts.html?q=webgpu:api,validation,render_pass,storeOp:*",
+      {}
+     ],
+     [
+      "webgpu/cts.html?q=webgpu:api,validation,render_pass_descriptor:*",
+      {}
+     ],
+     [
+      "webgpu/cts.html?q=webgpu:api,validation,resource_usages,textureUsageInRender:*",
+      {}
+     ],
+     [
+      "webgpu/cts.html?q=webgpu:api,validation,setBindGroup:*",
+      {}
+     ],
+     [
+      "webgpu/cts.html?q=webgpu:api,validation,setBlendColor:*",
+      {}
+     ],
+     [
+      "webgpu/cts.html?q=webgpu:api,validation,setScissorRect:*",
+      {}
+     ],
+     [
+      "webgpu/cts.html?q=webgpu:api,validation,setStencilReference:*",
+      {}
+     ],
+     [
+      "webgpu/cts.html?q=webgpu:api,validation,setViewport:*",
+      {}
+     ],
+     [
+      "webgpu/cts.html?q=webgpu:examples:*",
+      {}
+     ],
+     [
+      "webgpu/cts.html?q=webgpu:idl,constants,flags:*",
+      {}
+     ],
+     [
+      "webgpu/cts.html?q=webgpu:web-platform,canvas,context_creation:*",
+      {}
+     ],
+     [
+      "webgpu/cts.html?q=webgpu:web-platform,copyImageBitmapToTexture:*",
+      {}
+     ]
+    ]
+   }
+  }
+ },
+ "url_base": "/_webgpu/",
+ "version": 8
+}

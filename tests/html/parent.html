@@ -1,0 +1,8 @@
+<body>
+<script>
+var iframe = document.createElement('iframe');
+iframe.src = "child.html";
+iframe.onload = function() { iframe.remove(); }
+document.body.appendChild(iframe);
+</script>
+</body>

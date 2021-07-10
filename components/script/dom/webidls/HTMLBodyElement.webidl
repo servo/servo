@@ -1,26 +1,29 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#the-body-element
+[Exposed=Window]
 interface HTMLBodyElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
   // also has obsolete members
 };
-HTMLBodyElement implements WindowEventHandlers;
+HTMLBodyElement includes WindowEventHandlers;
 
 // https://html.spec.whatwg.org/multipage/#HTMLBodyElement-partial
 partial interface HTMLBodyElement {
-    [TreatNullAs=EmptyString] attribute DOMString text;
+  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString text;
 
   // https://github.com/servo/servo/issues/8715
-  //[TreatNullAs=EmptyString] attribute DOMString link;
+  //[CEReactions, TreatNullAs=EmptyString] attribute DOMString link;
 
   // https://github.com/servo/servo/issues/8716
-  //[TreatNullAs=EmptyString] attribute DOMString vLink;
+  //[CEReactions, TreatNullAs=EmptyString] attribute DOMString vLink;
 
   // https://github.com/servo/servo/issues/8717
-  //[TreatNullAs=EmptyString] attribute DOMString aLink;
+  //[CEReactions, TreatNullAs=EmptyString] attribute DOMString aLink;
 
-    [TreatNullAs=EmptyString] attribute DOMString bgColor;
-  attribute DOMString background;
+  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString bgColor;
+  [CEReactions] attribute DOMString background;
 };

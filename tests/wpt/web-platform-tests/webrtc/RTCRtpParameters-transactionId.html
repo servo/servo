@@ -1,0 +1,151 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCRtpParameters transactionId</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="dictionary-helper.js"></script>
+<script src="RTCRtpParameters-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  // The following helper functions are called from RTCRtpParameters-helper.js:
+  //   doOfferAnswerExchange
+  //   validateSenderRtpParameters
+
+  /*
+    5.1.  RTCPeerConnection Interface Extensions
+      partial interface RTCPeerConnection {
+        RTCRtpTransceiver           addTransceiver((MediaStreamTrack or DOMString) trackOrKind,
+                                                   optional RTCRtpTransceiverInit init);
+        ...
+      };
+
+      dictionary RTCRtpTransceiverInit {
+        RTCRtpTransceiverDirection         direction = "sendrecv";
+        sequence<MediaStream>              streams;
+        sequence<RTCRtpEncodingParameters> sendEncodings;
+      };
+
+      addTransceiver
+        2.  If the dictionary argument is present, and it has a sendEncodings member,
+            let sendEncodings be that list of RTCRtpEncodingParameters objects, or an
+            empty list otherwise.
+        7.  Create an RTCRtpSender with track, streams and sendEncodings and let
+            sender be the result.
+
+    5.2.  RTCRtpSender Interface
+      interface RTCRtpSender {
+        Promise<void>           setParameters(optional RTCRtpParameters parameters);
+        RTCRtpParameters        getParameters();
+      };
+
+      dictionary RTCRtpParameters {
+        DOMString                                 transactionId;
+        sequence<RTCRtpEncodingParameters>        encodings;
+        sequence<RTCRtpHeaderExtensionParameters> headerExtensions;
+        RTCRtcpParameters                         rtcp;
+        sequence<RTCRtpCodecParameters>           codecs;
+      };
+
+      getParameters
+        - transactionId is set to a new unique identifier, used to match this
+          getParameters call to a setParameters call that may occur later.
+   */
+
+  /*
+    5.2.  getParameters
+      - transactionId is set to a new unique identifier, used to match this
+        getParameters call to a setParameters call that may occur later.
+   */
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const { sender } = pc.addTransceiver('audio');
+    await doOfferAnswerExchange(t, pc);
+
+    const param1 = sender.getParameters();
+    const param2 = sender.getParameters();
+
+    validateSenderRtpParameters(param1);
+    validateSenderRtpParameters(param2);
+
+    assert_not_equals(param1.transactionId, param2.transactionId);
+  }, `sender.getParameters() should return different transaction IDs for each call`);
+
+  /*
+    5.2.  setParameters
+      7.  If parameters.encodings.length is different from N, or if any parameter
+          in the parameters argument, marked as a Read-only parameter, has a value
+          that is different from the corresponding parameter value returned from
+          sender.getParameters(), abort these steps and return a promise rejected
+          with a newly created InvalidModificationError. Note that this also applies
+          to transactionId.
+   */
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const { sender } = pc.addTransceiver('audio');
+    await doOfferAnswerExchange(t, pc);
+
+    const param = sender.getParameters();
+    validateSenderRtpParameters(param);
+
+    const { transactionId } = param;
+    param.transactionId = `${transactionId}-modified`;
+
+    return promise_rejects_dom(t, 'InvalidModificationError',
+      sender.setParameters(param));
+  }, `sender.setParameters() with transaction ID different from last getParameters() should reject with InvalidModificationError`);
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const { sender } = pc.addTransceiver('audio');
+    await doOfferAnswerExchange(t, pc);
+
+    const param = sender.getParameters();
+    validateSenderRtpParameters(param);
+
+    param.transactionId = undefined;
+
+    return promise_rejects_js(t, TypeError,
+      sender.setParameters(param));
+  }, `sender.setParameters() with transaction ID unset should reject with TypeError`);
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const { sender } = pc.addTransceiver('audio');
+    await doOfferAnswerExchange(t, pc);
+
+    const param = sender.getParameters();
+    validateSenderRtpParameters(param);
+
+    return sender.setParameters(param)
+    .then(() =>
+      promise_rejects_dom(t, 'InvalidStateError',
+        sender.setParameters(param)));
+  }, `setParameters() twice with the same parameters should reject with InvalidStateError`);
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const { sender } = pc.addTransceiver('audio');
+    await doOfferAnswerExchange(t, pc);
+
+    const param1 = sender.getParameters();
+    const param2 = sender.getParameters();
+
+    validateSenderRtpParameters(param1);
+    validateSenderRtpParameters(param2);
+
+    assert_not_equals(param1.transactionId, param2.transactionId);
+
+    return promise_rejects_dom(t, 'InvalidModificationError',
+      sender.setParameters(param1));
+  }, `setParameters() with parameters older than last getParameters() should reject with InvalidModificationError`);
+
+</script>

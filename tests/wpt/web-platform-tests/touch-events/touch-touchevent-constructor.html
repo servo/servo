@@ -4,7 +4,7 @@
 <title>Touch and TouchEvent Constructor Tests</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="touch-support.js"></script>
+<script src="support/touch.js"></script>
 </head>
 <body>
 <div id="target0"></div>
@@ -13,14 +13,14 @@ test(function() {
     var testIdentifier = 0;
     var testTarget = document.getElementById('target0');
 
-    assert_throws(new TypeError(), function() {new Touch();}, "Touch constructor with no argument");
-    assert_throws(new TypeError(), function() {new Touch(null);}, "Touch constructor with null argument");
-    assert_throws(new TypeError(), function() {new Touch(undefined);}, "Touch constructor with undefined argument");
-    assert_throws(new TypeError(), function() {new Touch({});}, "Touch constructor with empty object");
-    assert_throws(new TypeError(), function() {new Touch({
+    assert_throws_js(TypeError, function() {new Touch();}, "Touch constructor with no argument");
+    assert_throws_js(TypeError, function() {new Touch(null);}, "Touch constructor with null argument");
+    assert_throws_js(TypeError, function() {new Touch(undefined);}, "Touch constructor with undefined argument");
+    assert_throws_js(TypeError, function() {new Touch({});}, "Touch constructor with empty object");
+    assert_throws_js(TypeError, function() {new Touch({
         identifier: testIdentifier
     });}, "Touch constructor with only identifier");
-    assert_throws(new TypeError(), function() {new Touch({
+    assert_throws_js(TypeError, function() {new Touch({
         target: testTarget
     });}, "Touch constructor with only target");
 }, "Touch constructor with insufficient properties");
@@ -29,15 +29,15 @@ test(function() {
     var testIdentifier = 0;
     var testTarget = document.getElementById('target0');
 
-    assert_throws(new TypeError(), function() {new Touch({
+    assert_throws_js(TypeError, function() {new Touch({
         identifier: testIdentifier,
         target: null
     });}, "Touch constructor with null target");
-    assert_throws(new TypeError(), function() {new Touch({
+    assert_throws_js(TypeError, function() {new Touch({
         identifier: testIdentifier,
         target: undefined
     });}, "Touch constructor with undefined target");
-    assert_throws(new TypeError(), function() {new Touch({
+    assert_throws_js(TypeError, function() {new Touch({
         identifier: testIdentifier,
         target: location
     });}, "Touch constructor with Location target");

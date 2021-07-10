@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>HTML Test: The embed element represents a document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta name="assert" content="Ensure document finishes load when focus is attempted before the embed is finished loading">
+
+<style>
+.hidden { content-visibility: hidden; }
+</style>
+<body>
+  <script>
+  async_test(t => {
+    window.onload = () => t.done();
+  }, "ensure onload happens");
+  </script>
+  <div class=hidden>
+    <embed id=target src="embed-iframe.html">
+  </div>
+  <script>
+    // Ensure we process style in the hidden object, which normally delays
+    // load until the embed object is finished loading.
+    target.focus();
+  </script>
+</body>

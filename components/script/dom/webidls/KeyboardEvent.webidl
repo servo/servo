@@ -1,14 +1,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 /*
  * The origin of this IDL file is
  * https://w3c.github.io/uievents/#interface-keyboardevent
  *
  */
 
-[Constructor(DOMString typeArg, optional KeyboardEventInit keyboardEventInitDict)]
+[Exposed=Window]
 interface KeyboardEvent : UIEvent {
+    [Throws] constructor(DOMString typeArg, optional KeyboardEventInit keyboardEventInitDict = {});
     // KeyLocationCode
     const unsigned long DOM_KEY_LOCATION_STANDARD = 0x00;
     const unsigned long DOM_KEY_LOCATION_LEFT = 0x01;

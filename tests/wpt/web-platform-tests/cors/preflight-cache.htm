@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
 <title>CORS - preflight cache</title>
+<meta name="timeout" content="long">
 <meta name=author title="Odin Hørthe Omdal" href="mailto:odiho@opera.com">
 
 <script src=/resources/testharness.js></script>
@@ -63,6 +64,15 @@ test(function() {
     var time = new Date().getTime()
     var client = new XMLHttpRequest()
 
+    var id = did_preflight(true, client, {extra:'max_age='})
+    did_preflight(false, client, {extra:'max_age=', token: id})
+},
+'age = blank, should be cached')
+
+test(function() {
+    var time = new Date().getTime()
+    var client = new XMLHttpRequest()
+
     var id = did_preflight(true, client, {extra:'max_age=0'})
     did_preflight(true, client, {extra:'max_age=0', token: id})
 },
@@ -78,7 +88,7 @@ test(function() {
 'age = -1, should not be cached');
 
 (function() {
-    var test = async_test("preflight first request, second from cache, wait, third should preflight again", { timeout: 6000 }),
+    var test = async_test("preflight first request, second from cache, wait, third should preflight again"),
         time = new Date().getTime(),
         dothing = function (url, msg, set_request, func) {
             client = new XMLHttpRequest(),

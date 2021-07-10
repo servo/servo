@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>A "metadata" track does not load automatically, but it does load when the mode is changed</title>
+<script src="/common/media.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video>
+    <track kind="metadata" src="resources/metadata.vtt">
+</video>
+<script>
+async_test(function(t) {
+    var video = document.querySelector("video");
+
+    // Check initial metadata track state.
+    var track = document.querySelectorAll("track")[0];
+    assert_equals(track.readyState, HTMLTrackElement.NONE);
+    assert_equals(video.textTracks[0].mode, "disabled");
+
+    video.src = getVideoURI("/media/test");
+    video.oncanplaythrough = t.step_func(canplaythrough);
+    track.onload = t.step_func_done(trackLoaded);
+
+    function trackLoaded() {
+        assert_equals(track.readyState, HTMLTrackElement.LOADED);
+        assert_equals(track.track.mode, "hidden");
+        assert_equals(video.textTracks[0].cues.length, 12);
+        assert_equals(video.textTracks[0].cues[11].startTime, 22);
+    }
+
+    function canplaythrough() {
+        assert_equals(track.readyState, HTMLTrackElement.NONE);
+        assert_equals(video.textTracks[0].mode, "disabled");
+        assert_equals(video.textTracks[0].cues, null);
+        // Change metadata track mode so it loads.
+        video.textTracks[0].mode = "hidden";
+    }
+});
+</script>

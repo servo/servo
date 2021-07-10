@@ -35,8 +35,11 @@ var origin = get_host_info().HTTP_ORIGIN + "/";
 corsPreflightReferrer("Referrer policy: no-referrer", corsUrl, "no-referrer", undefined, "");
 corsPreflightReferrer("Referrer policy: no-referrer", corsUrl, "no-referrer", "myreferrer", "");
 
-corsPreflightReferrer("Referrer policy: \"\"", corsUrl, "", undefined, location.toString())
-corsPreflightReferrer("Referrer policy: \"\"", corsUrl, "", "myreferrer", new URL("myreferrer", location).toString());
+corsPreflightReferrer("Referrer policy: \"\"", corsUrl, "", undefined, origin);
+corsPreflightReferrer("Referrer policy: \"\"", corsUrl, "", "myreferrer", origin);
+
+corsPreflightReferrer("Referrer policy: no-referrer-when-downgrade", corsUrl, "no-referrer-when-downgrade", undefined, location.toString())
+corsPreflightReferrer("Referrer policy: no-referrer-when-downgrade", corsUrl, "no-referrer-when-downgrade", "myreferrer", new URL("myreferrer", location).toString());
 
 corsPreflightReferrer("Referrer policy: origin", corsUrl, "origin", undefined, origin);
 corsPreflightReferrer("Referrer policy: origin", corsUrl, "origin", "myreferrer", origin);

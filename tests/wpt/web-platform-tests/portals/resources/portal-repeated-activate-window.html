@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<body>
+  <portal src="simple-portal-adopts-and-activates-predecessor.html">
+  <script>
+    function activate() {
+      var portal = document.querySelector("portal");
+      portal.activate().then(() => document.body.removeChild(portal));
+    }
+
+    var count = 0;
+    window.onportalactivate = e => {
+      ++count;
+      if (count == 1) {
+        e.adoptPredecessor().activate();
+      } else {
+        window.opener.postMessage("done", "*");
+      }
+    };
+  </script>
+</body>

@@ -1,0 +1,61 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Layout Instability: observe after user input</title>
+<body>
+<style>
+#myDiv { position: relative; width: 300px; height: 100px; }
+
+/* Disable the button's focus ring, which otherwise expands its visual rect by
+ * 1px on all sides, triggering a layout shift event.
+ */
+#button { outline: none; }
+</style>
+<div id='myDiv'></div>
+<button id='button'>Generate a 'click' event</button>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=resources/util.js></script>
+<script src=/event-timing/resources/event-timing-test-utils.js></script>
+<script>
+let timeAfterClick;
+
+promise_test(async t => {
+  assert_implements(window.LayoutShift, 'Layout Instability is not supported.');
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  const startTime = performance.now();
+  return new Promise(resolve => {
+    const observer = new PerformanceObserver(
+      t.step_func(entryList => {
+        const endTime = performance.now();
+        assert_equals(entryList.getEntries().length, 1);
+        const entry = entryList.getEntries()[0];
+        assert_equals(entry.entryType, "layout-shift");
+        assert_equals(entry.name, "");
+        assert_greater_than_equal(entry.startTime, startTime);
+        assert_less_than_equal(entry.startTime, endTime);
+        assert_equals(entry.duration, 0.0);
+        // The layout shift value should be:
+        // 300 * (100 + 60) * (60 / maxDimension) / viewport size.
+        assert_equals(entry.value, computeExpectedScore(300 * (100 + 60), 60));
+        // We should see that there was a click input entry.
+        assert_equals(entry.hadRecentInput, true);
+        assert_greater_than_equal(timeAfterClick, entry.lastInputTime);
+        resolve();
+      })
+    );
+    observer.observe({entryTypes: ['layout-shift']});
+    // User input event
+    clickAndBlockMain('button').then(() => {
+      timeAfterClick = performance.now();
+      // Modify the position of the div.
+      document.getElementById('myDiv').style = "top: 60px";
+    });
+  });
+}, 'Layout shift right after user input is observable via PerformanceObserver.');
+</script>
+
+</body>

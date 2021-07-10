@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name=timeout content=long>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/common.js"></script>
+
+<div id=log></div>
+<script>
+[
+[SAME_ORIGIN, SAME_ORIGIN, "", true, true],
+[SAME_SITE, SAME_ORIGIN, "", true, true],
+[CROSS_ORIGIN, SAME_ORIGIN, "", true, true],
+[SAME_ORIGIN, SAME_SITE, "", true, true],
+[SAME_SITE, SAME_SITE, "", true, true],
+[CROSS_ORIGIN, SAME_SITE, "", true, true],
+[SAME_ORIGIN, CROSS_ORIGIN, "", true, true],
+[SAME_SITE, CROSS_ORIGIN, "", true, true],
+[CROSS_ORIGIN, CROSS_ORIGIN, "", true, true],
+].forEach( value => {
+    run_coop_test_iframe("unsafe-none", value[0], value[1], value[2], value[3], value[4]);
+});
+
+</script>

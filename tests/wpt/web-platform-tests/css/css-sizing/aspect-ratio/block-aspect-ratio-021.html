@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: abspos div inline size with max-height</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5257">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="A max-height constraint should be transferred through the aspect-ratio to apply to the inline size">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<!-- Due to the transferred max-height, this should not be 200px wide -->
+<div style="max-height: 100px; aspect-ratio: 1/1; width: max-content; background: green;">
+  <div style="width: 200px"></div>
+</div>

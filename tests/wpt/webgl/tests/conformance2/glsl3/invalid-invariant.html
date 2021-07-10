@@ -1,0 +1,111 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Negative tests for the use of the invariant qualifier and pragma</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vertexShaderInvariant" type="text/something-not-javascript">#version 300 es
+precision mediump float;
+invariant out vec4 v_varying;
+
+void main()
+{
+    v_varying = vec4(0.0, 0.0, 0.0, 1.0);
+    gl_Position = v_varying;
+}
+</script>
+<script id="fragmentShaderVariant" type="text/something-not-javascript">#version 300 es
+precision mediump float;
+
+in vec4 v_varying;
+out vec4 my_color;
+
+void main()
+{
+    my_color = v_varying;
+}
+</script>
+<script id="fragmentShaderInputInvariant" type="text/something-not-javascript">#version 300 es
+precision mediump float;
+
+invariant in vec4 v_varying;
+out vec4 my_color;
+
+void main()
+{
+    my_color = v_varying;
+}
+</script>
+<script id="fragmentShaderGlobalInvariant" type="text/something-not-javascript">#version 300 es
+#pragma STDGL invariant(all)
+precision mediump float;
+
+in vec4 v_varying;
+out vec4 my_color;
+
+void main()
+{
+    my_color = v_varying;
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description();
+GLSLConformanceTester.runTests([
+  {
+    vShaderId: "vertexShaderInvariant",
+    vShaderSuccess: true,
+    fShaderId: "fragmentShaderGlobalInvariant",
+    fShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "fragment shader with global invariant pragma must fail",
+  },
+  {
+    vShaderId: "vertexShaderInvariant",
+    vShaderSuccess: true,
+    fShaderId: "fragmentShaderInputInvariant",
+    fShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "fragment shader with an input variable which is invariant must fail",
+  },
+], 2);
+</script>
+</body>
+</html>

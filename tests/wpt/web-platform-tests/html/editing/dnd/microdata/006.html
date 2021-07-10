@@ -28,73 +28,73 @@
 <script>
 
 function makeEl(eltype,props,contents) {
-	var elem = document.createElement(eltype);
-	for( var i in props ) {
-		if( props.hasOwnProperty(i) ) {
-			elem.setAttribute(i,props[i]);
-		}
-	}
-	if( contents ) {
-		elem.innerHTML = contents;
-	}
-	return elem;
+  var elem = document.createElement(eltype);
+  for( var i in props ) {
+    if( props.hasOwnProperty(i) ) {
+      elem.setAttribute(i,props[i]);
+    }
+  }
+  if( contents ) {
+    elem.innerHTML = contents;
+  }
+  return elem;
 }
 
 var orange, fails = [], doneonce = false;
 window.onload = function() {
   orange = document.getElementsByTagName('div')[0];
 
-	orange.appendChild( makeEl('div',{itemprop:'foo',itemscope:'itemscope',itemtype:'http://example.com/',id:'id2',itemid:'http://example.com/bar'},'') );
+  orange.appendChild( makeEl('div',{itemprop:'foo',itemscope:'itemscope',itemtype:'http://example.com/',id:'id2',itemid:'http://example.com/bar'},'') );
 
   orange.ondragstart = function(e) {
-		e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.effectAllowed = 'copy';
     e.dataTransfer.setData('Text', 'dummy text');
-  	var err;
-		if( err = checkprops(e.dataTransfer.getData('application/microdata+json')) ) {
-			fails[fails.length] = e.type + ' ' + err;
-	  }
+    var err;
+    if( err = checkprops(e.dataTransfer.getData('application/microdata+json')) ) {
+      fails[fails.length] = e.type + ' ' + err;
+    }
   };
   orange.nextSibling.ondragenter = orange.nextSibling.ondragleave = orange.nextSibling.ondragover =
   orange.ondrag = orange.ondragend = function(e) {
     if( e.type == 'dragover' || e.type == 'dragenter' ) {
-    	e.preventDefault();
-	    e.dataTransfer.dropEffect = 'copy';
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
     }
     if( e.dataTransfer.getData('application/microdata+json') ) {
-			fails[fails.length] = e.type + ' unexpectedly had microdata (security restriction)';
+      fails[fails.length] = e.type + ' unexpectedly had microdata (security restriction)';
     }
   };
-	orange.nextSibling.ondrop = function(e) {
-  	var err;
-		if( err = checkprops(e.dataTransfer.getData('application/microdata+json')) ) {
-			fails[fails.length] = e.type + ' ' + err;
-	  }
-	  if( e.type != 'drop' ) { return; }
-  	if( doneonce ) { return; }
-  	doneonce = true;
+  orange.nextSibling.ondrop = function(e) {
+    var err;
+    if( err = checkprops(e.dataTransfer.getData('application/microdata+json')) ) {
+      fails[fails.length] = e.type + ' ' + err;
+    }
+    if( e.type != 'drop' ) { return; }
+    if( doneonce ) { return; }
+    doneonce = true;
     setTimeout(function () {
-    	document.getElementsByTagName('p')[0].innerHTML = fails.length ? ( 'FAIL: ' + fails.join('<br>') ) : 'PASS';
-    	fails = [];
+      document.getElementsByTagName('p')[0].innerHTML = fails.length ? ( 'FAIL: ' + fails.join('<br>') ) : 'PASS';
+      fails = [];
     }, 200 );
   };
 
 };
 function checkprops(md) {
-	var i;
-	if( !md ) { return 'no microdata'; }
-	md = JSON.parse(md);
-	if( !md.items ) { return 'no items'; }
-	if( md.items.length != 1 ) { return md.items.length+' items instead of 1'; }
-	if( md.items[0].type != orange.getAttribute('itemtype') ) { return 'items[0].type <i>'+md.items[0].type+'</i> instead of <i>'+orange.getAttribute('itemtype')+'</i>'; }
-	if( md.items[0].id != orange.getAttribute('itemid') ) { return 'items[0].id <i>'+md.items[0].id+'</i> instead of <i>'+orange.getAttribute('itemid')+'</i>'; }
-	if( !md.items[0].properties ) { return 'no properties'; }
-	if( !md.items[0].properties.foo ) { return 'no properties.foo'; }
-	if( md.items[0].properties.foo.length != 1 ) { return 'properties.foo length '+md.items[0].properties.foo.length+' instead of 1'; }
-	if( !md.items[0].properties.foo[0] ) { return 'properties.foo[0] <i>'+md.items[0].properties.foo[0]+'</i> instead of <i>{...}</i>'; }
-	if( md.items[0].properties.foo[0].type != orange.firstChild.getAttribute('itemtype') ) { return 'items[0].properties.foo[0].type <i>'+md.items[0].properties.foo[0].type+'</i> instead of <i>'+orange.firstChild.getAttribute('itemtype')+'</i>'; }
-	if( md.items[0].properties.foo[0].id != orange.firstChild.getAttribute('itemid') ) { return 'items[0].properties.foo[0].id <i>'+md.items[0].properties.foo[0].id+'</i> instead of <i>'+orange.firstChild.getAttribute('itemid')+'</i>'; }
-	if( !md.items[0].properties.foo[0].properties ) { return 'properties.foo[0].properties <i>'+md.items[0].properties.foo[0].properties+'</i> instead of <i>{}</i>'; }
-	return '';
+  var i;
+  if( !md ) { return 'no microdata'; }
+  md = JSON.parse(md);
+  if( !md.items ) { return 'no items'; }
+  if( md.items.length != 1 ) { return md.items.length+' items instead of 1'; }
+  if( md.items[0].type != orange.getAttribute('itemtype') ) { return 'items[0].type <i>'+md.items[0].type+'</i> instead of <i>'+orange.getAttribute('itemtype')+'</i>'; }
+  if( md.items[0].id != orange.getAttribute('itemid') ) { return 'items[0].id <i>'+md.items[0].id+'</i> instead of <i>'+orange.getAttribute('itemid')+'</i>'; }
+  if( !md.items[0].properties ) { return 'no properties'; }
+  if( !md.items[0].properties.foo ) { return 'no properties.foo'; }
+  if( md.items[0].properties.foo.length != 1 ) { return 'properties.foo length '+md.items[0].properties.foo.length+' instead of 1'; }
+  if( !md.items[0].properties.foo[0] ) { return 'properties.foo[0] <i>'+md.items[0].properties.foo[0]+'</i> instead of <i>{...}</i>'; }
+  if( md.items[0].properties.foo[0].type != orange.firstChild.getAttribute('itemtype') ) { return 'items[0].properties.foo[0].type <i>'+md.items[0].properties.foo[0].type+'</i> instead of <i>'+orange.firstChild.getAttribute('itemtype')+'</i>'; }
+  if( md.items[0].properties.foo[0].id != orange.firstChild.getAttribute('itemid') ) { return 'items[0].properties.foo[0].id <i>'+md.items[0].properties.foo[0].id+'</i> instead of <i>'+orange.firstChild.getAttribute('itemid')+'</i>'; }
+  if( !md.items[0].properties.foo[0].properties ) { return 'properties.foo[0].properties <i>'+md.items[0].properties.foo[0].properties+'</i> instead of <i>{}</i>'; }
+  return '';
 }
 
 </script>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Transforms: Dynamically translate gradient background on root element</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-transforms/#transform-rendering">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=988446">
+<link rel="match" href="transform-translate-background-001-ref.html">
+<meta name="assert" content="Checks that the linear gradient is modified when you dynamically translate the root element. The test passes if you see only green.">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  html {
+    background: linear-gradient(to bottom, red 0%, red 50%, green 50%, green 100%);
+  }
+</style>
+<div style="height: 400vh;"></div>
+<script>
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.documentElement.style.transform = "translate(0, -250vh)";
+    takeScreenshot();
+  }));
+</script>
+</html>

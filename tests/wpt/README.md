@@ -1,4 +1,4 @@
-This folder contains the web platform tests, CSS WG tests, and the
+This folder contains the web platform tests and the
 code required to integrate them with Servo. 
 To learn how to write tests, go [here](http://web-platform-tests.org/writing-tests/index.html).
 
@@ -9,15 +9,9 @@ In particular, this folder contains:
 
 * `config.ini`: some configuration for the web-platform-tests.
 * `include.ini`: the subset of web-platform-tests we currently run.
-* `config_css.ini`: some configuration for the CSSWG tests.
-* `include_css.ini`: the subset of the CSSWG tests we currently run.
-* `run_wpt.py`: glue code to run the web-platform-tests in Servo.
-* `run_css.py`: glue code to run the CSSWG tests in Servo.
-* `run.py`: common code used by `run_wpt.py` and `run_css.py`.
+* `run.py`: run the web-platform-tests in Servo.
 * `web-platform-tests`: copy of the web-platform-tests.
 * `metadata`: expected failures for the web-platform-tests we run.
-* `css-tests`: copy of the built CSSWG tests.
-* `metadata-css`: expected failures for the CSSWG tests we run.
 * `mozilla`: web-platform-tests that cannot be upstreamed.
 
 Running the tests
@@ -27,8 +21,6 @@ The simplest way to run the web-platform-tests in Servo is `./mach
 test-wpt` in the root directory. This will run the subset of
 JavaScript tests defined in `include.ini` and log the output to
 stdout.
-
-Similarly the CSSWG tests can be run using `./mach test-css`.
 
 A subset of tests may be run by providing positional arguments to the
 mach command, either as filesystem paths or as test urls e.g.
@@ -56,17 +48,19 @@ test with `mach test-wpt --release`
 Running the tests without mach
 ------------------------------
 
-When avoiding `mach` for some reason, one can run either `run_wpt.py`
-ir `run_css.py` directly. However, this requires that all the
-dependencies for `wptrunner` are avaliable in the current python
-environment.
+When avoiding `mach` for some reason, one can run `run.py`
+directly. However, this requires that all the dependencies for
+`wptrunner` are avaliable in the current python environment.
 
 Running the tests manually
 --------------------------
 
+(See also [the relevant section of the upstream README][upstream-running].)
+
 It can be useful to run a test without the interference of the test runner, for
-example when using a debugger such as `gdb`. In that case, start the server by
-first adding the following to the system's hosts file:
+example when using a debugger such as `gdb`.
+
+To do this, first add the following to the system's hosts file:
 
     127.0.0.1   www.web-platform.test
     127.0.0.1   www1.web-platform.test
@@ -75,8 +69,38 @@ first adding the following to the system's hosts file:
     127.0.0.1   xn--n8j6ds53lwwkrqhv28a.web-platform.test
     127.0.0.1   xn--lve-6lad.web-platform.test
 
-and then running `python serve` from `tests/wpt/web-platform-tests`.
-Then navigate Servo to `http://web-platform.test:8000/path/to/test`.
+Then, navigate to `tests/wpt/web-platform-tests`. Next, create a directory,
+e.g. `local-resources/`, to contain a local copy of the
+`resources/testharnessreport.js` file. The version in the repository is
+actually a Python format string that has substitution done on it by
+`harness/wptrunner/environment.py` to configure test output. Then, place a
+modified copy of the `testharnessreport.js` file in that directory, removing
+the format string variable:
+
+    mkdir local-resources
+    cp resources/testharnessreport.js local-resources/
+    $EDITOR local-resources/testharnessreport.js
+    # Replace `output:%(output)d` with `output:1` or `output:0`.
+
+Now create a configuration file at `config.json` for the web-platform-tests
+server (configuration options you don't specify will be loaded from the
+defaults at `config.default.json`) with the following contents:
+
+    {"aliases": [
+      {"url-path": "/resources/testharnessreport.js",
+       "local-dir": "local-resources"
+      }
+     ]
+    }
+
+Finally, you can run `python serve` from `tests/wpt/web-platform-tests`.
+Then navigate Servo to `http://web-platform.test:8000/path/to/test` or
+`https://web-platform.test:8443/path/to/test`.
+
+To prevent browser SSL warnings when running HTTPS tests locally,
+you will need to run Servo with `--certificate-path resources/cert-wpt-only`.
+
+[upstream-running]: https://github.com/w3c/web-platform-tests#running-the-tests
 
 Running the tests in Firefox
 ----------------------------
@@ -105,9 +129,6 @@ example by running `./mach test-wpt --log-raw /tmp/servo.log`. Once the
 log is saved, run from the root directory:
 
     ./mach update-wpt /tmp/servo.log
-
-For CSSWG tests a similar prcedure works, with `./mach test-css` and
-`./mach update-css`.
 
 Writing new tests
 =================
@@ -138,11 +159,6 @@ web-platform-tests may be edited in-place and the changes committed to
 the servo tree. These changes will be upstreamed when the tests are
 next synced.
 
-For CSS tests this kind of in-place update is not possible because the
-tests have a build step before they are pulled into the servo
-repository. Therefore corrections must be submitted directly to the
-source repository.
-
 Updating the upstream tests
 ===========================
 
@@ -154,22 +170,7 @@ commands. e.g. to update the web-platform-tests:
     ./mach update-wpt update.log
 
 This should create two commits in your servo repository with the
-updated tests and updated metadata. The same process works for the
-CSSWG tests, using the `update-css` and `test-css` mach commands.
-
-Updating the test harness
-=========================
-
-The easiest way to update the test harness is using git:
-
-    cd tests/wpt/harness
-    git init .
-    git remote add origin https://github.com/w3c/wptrunner
-    git fetch origin
-    git checkout -f origin/master
-    cd ../../..
-
-At this point you should commit the updated files in the *servo* git repository.
+updated tests and updated metadata.
 
 Servo-specific tests
 ====================
@@ -185,13 +186,14 @@ Analyzing reftest results
 Reftest results can be analyzed from a raw log file. To generate this run
 with the `--log-raw` option e.g.
 
-    ./mach test-css --log-raw css.log
+    ./mach test-wpt --log-raw wpt.log
 
 This file can then be fed into the
-[reftest analyzer](http://hoppipolla.co.uk/410/reftest-analyser-structured.xhtml)
+[reftest analyzer](https://hg.mozilla.org/mozilla-central/raw-file/tip/layout/tools/reftest/reftest-analyzer-structured.xhtml)
 which will show all failing tests (not just those with unexpected results).
-Note that this ingests logs in a different format to original version of the
-tool written for gecko reftests.
+Note that this ingests logs in a different format to [original version of the
+tool](https://hg.mozilla.org/mozilla-central/raw-file/tip/layout/tools/reftest/reftest-analyzer.xhtml)
+written for gecko reftests.
 
 The reftest analyzer allows pixel-level comparison of the test and reference
 screenshots. Tests that both fail and have an unexpected result are marked

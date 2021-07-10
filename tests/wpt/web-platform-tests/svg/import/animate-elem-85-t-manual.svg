@@ -15,9 +15,9 @@
     version="$Revision: 1.8 $" testname="$RCSfile: animate-elem-85-t.svg,v $">
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
         <p>
-          The first subtest tests animateColor with 'to' and 'from' values including 
+          The first subtest tests animateColor with 'to' and 'from' values including
           currentColor. The second subtest checks that the value of currentColor is the
-           current animated value of the color property, by animating the color property 
+           current animated value of the color property, by animating the color property
            at the same time as animating fill with a 'from' or 'to' value of currentColor.
         </p>
         <!-- moved from accepted to issue pending verification of correct behaviour for lower rect on second subtest -->
@@ -31,9 +31,9 @@
         The first subtest is passed if all
          four  rectangles at the top  smoothly animate from black to green over 5 seconds.
         During this time the bottom two rectangles must be blue.</p>
-        <p>The second subtest, which starts after the first one completes,  is passed if 
-        the bottom two rectangles  smoothly animate from green (at five seconds), through 
-        dark cyan (at 7.5 seconds), to cyan (at 10 seconds and above). Colored circles 
+        <p>The second subtest, which starts after the first one completes,  is passed if
+        the bottom two rectangles  smoothly animate from green (at five seconds), through
+        dark cyan (at 7.5 seconds), to cyan (at 10 seconds and above). Colored circles
         indicate the appropriate colors at these times.
       </p>
     </d:passCriteria>
@@ -75,8 +75,8 @@
       <animateColor attributeName="color" to="cyan" from="blue" begin="5s" dur="5s" fill="freeze"/>
     </rect>
     <!--
-            color     fill      
-      4s    #000000   #0000ff   
+            color     fill
+      4s    #000000   #0000ff
       5s    #0000ff   #008000
       7.5s  #0080ff   #008080
       10s   #00ffff   #00ffff

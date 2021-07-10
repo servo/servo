@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>CSS Masking: Test clip-path property when the page is zoomed</title>
+<link rel="author" title="Noam Rosenthal" href="mailto:noam@webkit.org">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-2/#funcdef-path">
+<link rel="match" href="reference/clip-path-path-with-zoom-ref.html">
+<meta name="assert" content="The path gets zoomed together with the content">
+<style>
+  #red {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    background: red;
+  }
+  #rect {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+    clip-path: path(nonzero, 'M0 0, L100 0, L0 100, L 0 0');
+    zoom: 2;
+  }
+</style>
+<div id="red"></div>
+<div id="rect"></div>

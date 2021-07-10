@@ -1,0 +1,12 @@
+version: 2
+
+python:
+   version: 3.7
+   install:
+      - requirements: doc/en/requirements.txt
+      - method: pip
+        path: .
+
+formats:
+  - epub
+  - pdf

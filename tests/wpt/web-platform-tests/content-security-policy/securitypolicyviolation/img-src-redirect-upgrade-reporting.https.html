@@ -1,0 +1,31 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./support/testharness-helper.sub.js"></script>
+<body></body>
+<script>
+    function waitForViolation(el, t, policy, blockedURI) {
+      return new Promise(resolve => {
+        el.addEventListener('securitypolicyviolation', e => {
+          if (e.originalPolicy == policy && e.blockedURI == blockedURI)
+            resolve(e);
+          else
+            t.unreached_func("Unexpected violation event for " + e.blockedURI)();
+        });
+      });
+    }
+
+    async_test(t => {
+      var i = document.createElement("img");
+      var redirect = generateCrossOriginRedirectImage();
+      i.src = redirect.url;
+
+      // Report-only policy should trigger a violation on the redirected request.
+      waitForViolation(window, t, "img-src https:", new URL(redirect.url, window.location).href).then(t.step_func(e => {
+        t.done();
+      }));
+
+      document.body.appendChild(i);
+    }, "Image that redirects to http:// URL prohibited by Report-Only must generate a violation report, even with upgrade-insecure-requests");
+</script>
+</html>

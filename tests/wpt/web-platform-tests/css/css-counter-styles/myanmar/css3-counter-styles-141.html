@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>myanmar, 10+</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#simple-numeric'>
+<link rel='match' href='css3-counter-styles-141-ref.html'>
+<meta name="assert" content="list-style-type: myanmar produces numbers after 9 per the spec.">
+<style type='text/css'>
+ol li { list-style-type: myanmar;  }
+/* the following CSS is not part of the test */
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; list-style-position: inside; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, IGNORING the suffix.</p>
+<div class="test">
+<ol start="10"><li title="10">၁၀</li></ol>
+<ol start="11"><li title="11">၁၁</li></ol>
+<ol start="12"><li title="12">၁၂</li></ol>
+<ol start="43"><li title="43">၄၃</li></ol>
+<ol start="77"><li title="77">၇၇</li></ol>
+<ol start="80"><li title="80">၈၀</li></ol>
+<ol start="99"><li title="99">၉၉</li></ol>
+<ol start="100"><li title="100">၁၀၀</li></ol>
+<ol start="101"><li title="101">၁၀၁</li></ol>
+<ol start="222"><li title="222">၂၂၂</li></ol>
+<ol start="540"><li title="540">၅၄၀</li></ol>
+<ol start="999"><li title="999">၉၉၉</li></ol>
+<ol start="1000"><li title="1000">၁၀၀၀</li></ol>
+<ol start="1005"><li title="1005">၁၀၀၅</li></ol>
+<ol start="1060"><li title="1060">၁၀၆၀</li></ol>
+<ol start="1065"><li title="1065">၁၀၆၅</li></ol>
+<ol start="1800"><li title="1800">၁၈၀၀</li></ol>
+<ol start="1860"><li title="1860">၁၈၆၀</li></ol>
+<ol start="1865"><li title="1865">၁၈၆၅</li></ol>
+<ol start="5865"><li title="5865">၅၈၆၅</li></ol>
+<ol start="7005"><li title="7005">၇၀၀၅</li></ol>
+<ol start="7800"><li title="7800">၇၈၀၀</li></ol>
+<ol start="7864"><li title="7864">၇၈၆၄</li></ol>
+<ol start="9999"><li title="9999">၉၉၉၉</li></ol>
+</div>
+<!--Notes:
+You will need an appropriate font to run this test.
+The test relies on the start attribute working.
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+<head>
+  <title>MediaRecorder Disabled Tracks</title>
+  <link rel="help" href="https://w3c.github.io/mediacapture-record/MediaRecorder.html#mediarecorder">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<script>
+
+  // This test verifies that MediaStream with disabled tracks can be correctly
+  // recorded. See crbug.com/878255 for more context.
+
+  [ ["video-only",  {video: true,  audio: false}],
+    ["audio-only",  {video: false, audio: true}],
+    ["audio-video", {video: true,  audio: true}]]
+  .forEach( function(args) {
+    async_test(function(test) {
+      let recorder;
+      const recorderOnDataAvailable = test.step_func(function(event) {
+        if (recorder.state != "recording")
+          return;
+
+        recorder.onstop = recorderOnStopExpected;
+        recorder.stop();
+      });
+
+      const recorderOnStopExpected = test.step_func_done();
+      const recorderOnStopUnexpected = test.unreached_func('Recording stopped.');
+      const recorderOnError = test.unreached_func('Recording error.');
+
+      const gotStream = test.step_func(function(stream) {
+        for (track of stream.getTracks())
+          track.enabled = false;
+
+        recorder = new MediaRecorder(stream);
+
+        assert_equals(recorder.state, "inactive");
+        recorder.ondataavailable = recorderOnDataAvailable;
+        recorder.onstop = recorderOnStopUnexpected;
+        recorder.onerror = recorderOnError;
+        recorder.start();
+
+        assert_equals(recorder.state, "recording");
+        recorder.requestData();
+      });
+
+      const onError = test.unreached_func('Error creating MediaStream.');
+      navigator.mediaDevices.getUserMedia(args[1]).then(gotStream, onError);
+    }, args[0]);
+  });
+
+</script>

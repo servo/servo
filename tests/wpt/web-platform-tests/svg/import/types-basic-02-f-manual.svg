@@ -45,22 +45,22 @@
         #swUnit       { stroke-width: 20px }
         #swUpperCaseUnit { stroke-width: 20PX }
       </style>
-      
+
       <g id="references" fill="none" stroke="red" stroke-width="19">
         <circle r="40" transform="translate(100 100)"/>
         <circle r="40" transform="translate(240 100)"/>
         <circle r="40" transform="translate(380 100)"/>
-        
+
         <circle r="40" transform="translate(100 240)"/>
         <circle r="40" transform="translate(240 240)"/>
         <circle r="40" transform="translate(380 240)"/>
       </g>
-      
+
       <!-- "For length values in SVG-specific properties and their corresponding presentation attributes, the length unit identifier is optional." -->
       <circle r="40" id="swNoUnit" fill="none" stroke="lime" transform="translate(100 100)"/>
       <circle r="40" id="swUnit" fill="none" stroke="lime" transform="translate(240 100)"/>
       <circle r="40" id="swPresAttr" fill="none" stroke="lime" stroke-width="20" transform="translate(380 100)"/>
-            
+
       <!-- "In presentation attributes for all properties, whether defined in this specification or in CSS2, the length identifier, if specified, must be in lower case." -->
       <g stroke-width="20">
         <circle r="40" id="swUpperCaseUnitPresAttr" stroke-width="10PX" fill="none" stroke="lime" transform="translate(100 240)"/>
@@ -68,7 +68,7 @@
 
       <!-- Test that units are case-insensitive when specified in CSS -->
       <circle r="40" id="swUpperCaseUnit" fill="none" stroke="lime" transform="translate(240 240)"/>
-      <circle r="40" id="swUpperCaseUnitInline" style="stroke-width:20PX" fill="none" stroke="lime" transform="translate(380 240)"/>      
+      <circle r="40" id="swUpperCaseUnitInline" style="stroke-width:20PX" fill="none" stroke="lime" transform="translate(380 240)"/>
   </g>
   <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
     <text id="revision" x="10" y="340" stroke="none"

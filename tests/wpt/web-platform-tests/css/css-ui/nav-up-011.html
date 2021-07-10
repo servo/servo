@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>CSS Basic User Interface Test: Directional Focus Navigation - named target frame for 'nav-up'</title>
+<link rel="author" title="Jorrit Vermeiren" href="mailto:jorritv@opera.com">
+<link rel="author" title="Daniel Glazman" href="mailto:d.glazman@partner.samsung.com">
+<link rel="contributor" title="Daniel Glazman" href="mailto:d.glazman@partner.samsung.com">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#nav-dir">
+<meta name="flags" content="interact">
+<meta name="assert" content="Test checks that a named target frame value is respected for 'nav-up'.">
+<style>
+    #start {
+        nav-up: #finish "frame";
+    }
+</style>
+<body>
+    <p>First, use directional navigation to navigate the focus to the "START" link below.</p>
+    <!-- In Opera 12.16, directional navigation may be done using Shift+<arrow key>.
+         In the SmartTV emulator, use the keypad in the GUI. -->
+    <p>Test passes if navigating up once moves the focus to the "FINISH" link.</p>
+
+    <p><a href="" id="finish">ignore</a></p>
+    <p><a href="" id="start">START</a></p>
+
+    <iframe src="support/nav-up-011-frame.html" name="frame"></iframe>
+</body>

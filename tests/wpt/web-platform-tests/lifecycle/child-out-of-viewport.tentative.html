@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Child frame marked as frozen</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div style="width: 200px; height: 4000px"></div>
+<script>
+async_test((t) => {
+
+  var child = document.createElement('iframe');
+
+  var loaded = false;
+  var frozen = false;
+
+  window.addEventListener('message', t.step_func((e) => {
+    if (e.data == "load") {
+      loaded = true;
+    } else if (e.data == "freeze") {
+      assert_true(loaded);
+      frozen = true;
+      child.scrollIntoView();
+    } else if (e.data == "resume") {
+      assert_true(loaded);
+      assert_true(frozen);
+      t.done();
+    }
+  }));
+
+  child.allow = "execution-while-out-of-viewport 'none'";
+  child.src = "resources/subframe.html";
+  document.body.appendChild(child);
+}, "Child frame frozen");
+
+</script>
+</body>

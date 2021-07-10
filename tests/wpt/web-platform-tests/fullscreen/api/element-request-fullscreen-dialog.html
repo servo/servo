@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>Element#requestFullscreen() for dialog element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<div id="log"></div>
+<dialog></dialog>
+<script>
+async_test(t => {
+  var dialog = document.querySelector("dialog");
+  assert_true(dialog instanceof HTMLDialogElement);
+  document.onfullscreenchange = t.unreached_func("fullscreenchange event");
+  document.onfullscreenerror = t.step_func_done();
+
+  test_driver.bless("Initiate fullscreen", () => dialog.requestFullscreen().catch(() => {}));
+});
+</script>

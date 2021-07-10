@@ -9,11 +9,12 @@ var t = async_test();
 
 onload = t.step_func(() => {
   var iframe = document.querySelector("iframe");
+  var promiseBeforeNav = iframe.contentWindow.Promise;
   var documentBeforeNav = iframe.contentDocument;
 
   iframe.onload = t.step_func(() => {
     var p = documentBeforeNav.exitFullscreen();
-    assert_true(p instanceof Promise, 'exitFullscreen() returns promise');
+    assert_true(p instanceof promiseBeforeNav, 'exitFullscreen() returns promise');
     // The promise should already be rejected, so its reject callback should be
     // invoked before a second promise's callback.
     p.catch(t.step_func_done());

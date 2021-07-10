@@ -1,0 +1,80 @@
+<!doctype html>
+<meta charset="utf8">
+<link rel="help" href="https://w3c.github.io/payment-request/#user-aborts-the-payment-request-algorithm">
+<title>
+  User aborts the payment request algorithm.
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+setup({ explicit_done: true, explicit_timeout: true });
+
+const validAmount = Object.freeze({
+  currency: "USD",
+  value: "1.0",
+});
+const validTotal = Object.freeze({
+  label: "Total due",
+  amount: validAmount,
+});
+const applePay = Object.freeze({
+  supportedMethods: "https://apple.com/apple-pay",
+  data: {
+    version: 3,
+    merchantIdentifier: "merchant.com.example",
+    countryCode: "US",
+    merchantCapabilities: ["supports3DS"],
+    supportedNetworks: ["visa"],
+  }
+});
+const validMethod = Object.freeze({
+  supportedMethods: "basic-card",
+});
+const validMethods = Object.freeze([validMethod, applePay]);
+const validDetails = Object.freeze({
+  total: validTotal,
+});
+
+test(() => {
+  try {
+    new PaymentRequest(validMethods, validDetails);
+  } catch (err) {
+    done();
+    throw err;
+  }
+}, "Can construct a payment request (smoke test).");
+
+async function runAbortTest(button) {
+  button.disabled = true;
+  const { textContent: testName } = button;
+  promise_test(async t => {
+    const request = new PaymentRequest(validMethods, validDetails);
+    // Await the user to abort
+    await promise_rejects_dom(t, "AbortError", request.show());
+    // [[state]] is now closed
+    await promise_rejects_dom(t, "InvalidStateError", request.show());
+  }, testName.trim());
+}
+</script>
+<h2>
+   User aborts the payment request algorithm.
+</h2>
+<p>
+  Click on each button in sequence from top to bottom without refreshing the page.
+  Each button will bring up the Payment Request UI window.
+</p>
+<p>
+  When presented with the payment sheet, abort the payment request
+  (e.g., by hitting the esc key or pressing a UA provided button).
+</p>
+<ol>
+  <li>
+    <button onclick="runAbortTest(this); done();">
+      If the user aborts, the UA must run the user aborts the payment request algorithm.
+    </button>
+  </li>
+</ol>
+<small>
+  If you find a buggy test, please <a href="https://github.com/web-platform-tests/wpt/issues">file a bug</a>
+  and tag one of the <a href="https://github.com/web-platform-tests/wpt/blob/master/payment-request/META.yml">suggested reviewers</a>.
+</small>

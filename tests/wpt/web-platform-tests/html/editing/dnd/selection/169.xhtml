@@ -4,16 +4,16 @@
 <title>Moving text from text input to contenteditable element</title>
 <style type="text/css">
 div[contenteditable]
-	{width:300px;
-	height:100px;
-	margin-top:20px;
-	padding:10px;
-	color:white;
-	background-color:navy;}
+  {width:300px;
+  height:100px;
+  margin-top:20px;
+  padding:10px;
+  color:white;
+  background-color:navy;}
 </style>
 <script type="application/ecmascript">
 function check()
-	{document.querySelector('p').firstChild.nodeValue = (document.querySelector('input').value == '' &amp;&amp; document.querySelector('div').firstChild.nodeValue == 'Drag me')?'PASS':('FAIL(' + div[0].firstChild.nodeValue + ')');}
+  {document.querySelector('p').firstChild.nodeValue = (document.querySelector('input').value == '' &amp;&amp; document.querySelector('div').firstChild.nodeValue == 'Drag me')?'PASS':('FAIL(' + div[0].firstChild.nodeValue + ')');}
 </script>
 </head>
 <body onload="document.querySelector('input').select()">

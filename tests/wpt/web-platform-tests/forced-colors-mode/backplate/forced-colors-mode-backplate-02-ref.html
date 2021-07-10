@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>
+  Forced colors mode - backplate reference.
+  Tests that the backplate feature with a varying number of line breaks.
+</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  body {
+    background-image: url("../resources/test-image.jpg");
+    font-family: Ahem;
+    font-size: 10px;
+    forced-color-adjust: none; /* This turns the backplate feature off in
+                                  forced colors mode. The backplate is
+                                  simulated in testing using a Canvas
+                                  background-color behind the text.
+                                */
+    line-height: 10px;
+    text-align: justify;
+    width: 100px;
+  }
+  div {
+    background-color: Canvas;
+  }
+</style>
+<body>
+  <div>
+   This text <br> should have <br> its own backplate <br> in forced colors mode.
+  </div>
+  <br>
+  <div>
+    This text should have its own backplate in forced colors mode:
+    <br>
+    two br tags indicates a new paragraph.
+    <br>
+    This text should share a backplate with the above text:
+    <br>
+    one br tag used.
+  </div>
+  <br>
+  <br>
+  <br>
+  <div>
+    This text should have its own backplate in forced colors mode:
+    <br>
+    four br tags indicates a new paragraph.
+  </div>
+</body>

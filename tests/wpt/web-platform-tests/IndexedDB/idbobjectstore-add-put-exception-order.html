@@ -17,7 +17,7 @@
       db.deleteObjectStore('s2');
 
       setTimeout(t.step_func(() => {
-        assert_throws(
+        assert_throws_dom(
           'InvalidStateError', () => { store2[method]('key', 'value'); },
           '"has been deleted" check (InvalidStateError) should precede ' +
           '"not active" check (TransactionInactiveError)');
@@ -38,7 +38,7 @@
       const store = tx.objectStore('s');
 
       setTimeout(t.step_func(() => {
-        assert_throws(
+        assert_throws_dom(
           'TransactionInactiveError', () => { store[method]('key', 'value'); },
           '"not active" check (TransactionInactiveError) should precede ' +
           '"read only" check (ReadOnlyError)');
@@ -58,7 +58,7 @@
       const tx = db.transaction('s', 'readonly');
       const store = tx.objectStore('s');
 
-      assert_throws(
+      assert_throws_dom(
         'ReadOnlyError', () => { store[method]({}, 'value'); },
         '"read only" check (ReadOnlyError) should precede ' +
         'key/data check (DataError)');

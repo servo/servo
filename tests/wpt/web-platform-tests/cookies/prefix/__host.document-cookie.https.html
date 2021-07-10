@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+<script>
+  ["", "MaxAge=10"].forEach(extraParams => {
+    // Without 'secure'
+    set_prefixed_cookie_via_dom_test({
+      prefix: "__Host-",
+      params: "Path=/;" + extraParams,
+      shouldExistInDOM: false,
+      shouldExistViaHTTP: false,
+      title: "__Host: Secure origin: Does not set 'Path=/;" + extraParams + "'"
+    });
+
+    // With 'secure'
+    set_prefixed_cookie_via_dom_test({
+      prefix: "__Host-",
+      params: "Secure; Path=/;" + extraParams,
+      shouldExistInDOM: true,
+      shouldExistViaHTTP: true,
+      title: "__Host: Secure origin: Does set 'Secure; Path=/;" + extraParams + "'"
+    });
+
+    // With 'domain'
+    set_prefixed_cookie_via_dom_test({
+      prefix: "__Host-",
+      params: "Secure; Path=/; Domain=" + document.location.hostname + "; " + extraParams,
+      shouldExistInDOM: false,
+      shouldExistViaHTTP: false,
+      title: "__Host: Secure origin: Does not set 'Secure; Path=/; Domain=" + document.location.hostname + "; " + extraParams + "'"
+    });
+  });
+
+  set_prefixed_cookie_via_dom_test({
+    prefix: "__Host-",
+    params: "Secure; Path=/cookies/resources/list.py",
+    shouldExistInDOM: false,
+    shouldExistViaHTTP: false,
+    title: "__Host: Secure origin: Does not set 'Secure; Path=/cookies/resources/list.py'"
+  });
+</script>

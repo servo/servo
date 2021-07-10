@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Cascade: "color" property preceded by "all: initial"</title>
+  <link rel="help" href="https://www.w3.org/TR/css-cascade-4/#all-shorthand">
+  <link rel="match" href="reference/ref-green-text.html">
+  <meta name="flags" content="">
+  <meta name="assert" content="Own 'color', preceded by 'all: initial', overrides inherited 'color'.">
+  <style>
+    .outer {
+      color: red;
+    }
+
+    .inner {
+      all: initial;
+      color: green;
+    }
+  </style>
+</head>
+<body>
+  <p class="outer"><span class="inner">Test passes if this text is green.</span></p>
+</body>
+</html>

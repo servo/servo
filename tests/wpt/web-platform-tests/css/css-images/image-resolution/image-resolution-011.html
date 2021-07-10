@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Images Module Level 4: image-resolution set manually applies to background images and filters are unaffected</title>
+<link rel="author" title="Mike Bremford" href="http://bfo.com/">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#propdef-image-resolution">
+<link rel="match" href="reference/100x100-blue-blur4px.html">
+<style>
+div {
+    width: 100px;
+    height: 100px;
+    /* Not exactly an image-resolution test, but confirming that background-size is applied before filter */
+    background: url("../support/swatch-blue.png") top left / 100px 100px no-repeat;
+    filter: blur(4px);
+}
+</style>
+</head>
+<body>
+  <div></div>
+</body>
+</html>

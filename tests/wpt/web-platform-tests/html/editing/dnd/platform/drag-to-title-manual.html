@@ -1,0 +1,16 @@
+<!doctype html>
+<title>Dropping onto the title bar and UI</title>
+<script type="text/javascript">
+window.onload = function () {
+  document.getElementsByTagName('ul')[0].ondragstart = function () {
+    e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('text','c');
+  };
+};
+</script>
+<ul draggable="true">
+  <li>Drag this text upwards to the browser window's title bar.</li>
+  <li>Release the drag. Fail if the drag placeholder does not disappear.</li>
+  <li>Start dragging again over a blank part of the page (below the text). Fail if the placeholder starts following the mouse again.</li>
+  <li>Release the drag over the browser's UI (e.g. the address bar). Fail if the browser crashes.</li>
+</ul>

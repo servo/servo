@@ -1,18 +1,18 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use ipc_channel::ipc::IpcSender;
 use servo_url::ServoUrl;
 
-#[derive(Copy, Clone, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum StorageType {
     Session,
     Local,
 }
 
 /// Request operations on the storage data associated with a particular url
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum StorageThreadMsg {
     /// gets the number of key/value pairs present in the associated storage data
     Length(IpcSender<usize>, ServoUrl, StorageType),
@@ -27,7 +27,13 @@ pub enum StorageThreadMsg {
     GetItem(IpcSender<Option<String>>, ServoUrl, StorageType, String),
 
     /// sets the value of the given key in the associated storage data
-    SetItem(IpcSender<Result<(bool, Option<String>), ()>>, ServoUrl, StorageType, String, String),
+    SetItem(
+        IpcSender<Result<(bool, Option<String>), ()>>,
+        ServoUrl,
+        StorageType,
+        String,
+        String,
+    ),
 
     /// removes the key/value pair for the given key in the associated storage data
     RemoveItem(IpcSender<Option<String>>, ServoUrl, StorageType, String),

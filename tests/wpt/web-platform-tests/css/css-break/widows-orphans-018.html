@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Fragmentation level 3 Test: 'orphans', 'widows' and content distribution in columns</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-break-3/#widows-orphans">
+  <link rel="match" href="reference/widows-orphans-009-ref.html">
+
+  <!--
+  Date created: December 16th 2020
+  Last modified: December 16th 2020
+  -->
+
+  <!--
+
+  Bug 137367: Implement orphans and widows
+  https://bugzilla.mozilla.org/show_bug.cgi?id=137367
+
+  -->
+
+  <meta name="flags" content="">
+  <meta name="assert" content="When column boxes are filled sequentially, their content should be distributed and fragmented in accordance with the 'orphans' and the 'widows' declarations. In this test, the 3rd column box is going to get only 1 line box which is insufficient to honor 'widows: 3'. If a class B break point would occur between the '6' and the '7' so that 3 line boxes would be at the top of the 3rd column box, then this would leave only 2 line boxes in the 2nd column box and this would violate the 'orphans: 3' constraint. For that reason, a class B break must not happen in the 2nd column between the '6' and the '7'. On the other hand, a class B break can occur between the '7' and the '8' in the 2nd column box and doing so does not violate the 'orphans: 3' constraint.">
+
+  <style>
+  div
+    {
+      border: orange solid 4px;
+      font-size: 20px;
+      line-height: 1.3; /* computes to 26px */
+      height: 104px; /* Therefore, exactly 4 line boxes */
+      margin-bottom: 1em;
+      padding: 0.5em; /* computes to 10px */
+      width: 460px;
+
+      columns: 4 auto;
+
+      column-fill: auto;
+
+      column-gap: 1em; /* computes to 20px */
+
+      column-rule: blue solid 4px;
+    }
+
+  div#test
+    {
+      orphans: 3;
+      widows: 3;
+    }
+
+  div#reference
+    {
+      orphans: 1;
+      widows: 1;
+    }
+  </style>
+
+  <p>Test passes if the digits inside both orange-bordered rectangles are <strong>distributed identically</strong>.
+
+  <div id="test">1<br>2<br>3<br>4<br>5<br>6<br>7<br>8<br>9</div>
+
+  <div id="reference">1<br>2<br>3<br>4<br>5<br>6<br>7<br><br>8<br>9</div>
+
+  <!--          Same as div#test except 1 extra br here   ^    -->

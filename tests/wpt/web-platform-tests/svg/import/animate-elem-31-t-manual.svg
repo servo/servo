@@ -18,9 +18,9 @@
         The purpose of this test is to test animation of the display attribute.
       </p>
       <p>
-        The test shows two gray rectangles which are filled with colored circles during the length of the animation (8 sec). 
+        The test shows two gray rectangles which are filled with colored circles during the length of the animation (8 sec).
         The circles in the top rectangle are displayed/hidden by animating the display attribute.
-        The circles in the bottom rectangle are serving as the reference and are displayed/hidden by animating the visibility attribute. 
+        The circles in the bottom rectangle are serving as the reference and are displayed/hidden by animating the visibility attribute.
         A correct implementation should display/hide circles with the same color from the top and bottom rectangle at the same time.
       </p>
       <p>

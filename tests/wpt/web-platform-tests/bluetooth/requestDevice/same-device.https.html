@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/bluetooth/resources/bluetooth-test.js"></script>
+<script src="/bluetooth/resources/bluetooth-fake-devices.js"></script>
+<script>
+'use strict';
+const test_desc = 'Returned device should always be the same.';
+let devices = [];
+let push = device => devices.push(device);
+
+bluetooth_test(
+    () => setUpHealthThermometerAndHeartRateDevices()
+              .then(
+                  () => requestDeviceWithTrustedClick(
+                      {filters: [{services: [heart_rate.alias]}]}))
+              .then(push)
+              .then(
+                  () => requestDeviceWithTrustedClick(
+                      {filters: [{services: [heart_rate.name]}]}))
+              .then(push)
+              .then(
+                  () => requestDeviceWithTrustedClick(
+                      {filters: [{services: [heart_rate.uuid]}]}))
+              .then(push)
+              .then(() => {
+                assert_equals(devices[0], devices[1]);
+                assert_equals(devices[1], devices[2]);
+              }),
+    test_desc);
+</script>

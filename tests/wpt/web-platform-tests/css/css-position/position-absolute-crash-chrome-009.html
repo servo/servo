@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://crbug.com/974760">
+<meta name="assert" content="fixed children inside inline container do not crash">
+<style>
+#container {
+  position: relative;
+  overflow: auto;
+  width: 200px;
+  height: 200px;
+}
+#inline-fixed-container {
+  filter:url("");
+}
+#fixed-container {
+  position: fixed;
+}
+#target {
+  position: fixed;
+}
+</style>
+<div id="container">
+  <span id="inline-fixed-container">
+    <div id="fixed-container">
+      <div id="target"></div>
+    </div>
+  </span>
+</div>
+<script>
+test(() => {
+  document.body.offsetTop;
+  document.querySelector("#target").appendChild(
+    document.createTextNode("foo"));
+  document.body.offsetTop;
+}, 'this test passes if it does not crash');
+</script>

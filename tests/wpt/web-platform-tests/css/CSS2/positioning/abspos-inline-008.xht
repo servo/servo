@@ -1,0 +1,17 @@
+<!DOCTYPE HTML>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Absolutely positioned descendant under relative positioned inline with negative offset</title>
+  <link rel="author" title="Tien-Ren Chen" href="mailto:trchen@chromium.org"/>
+  <link rel="help" href="https://www.w3.org/TR/CSS2/visudet.html#abs-non-replaced-width"/>
+  <link rel="match" href="../../reference/ref-filled-green-100px-square-only.html"/>
+ </head>
+ <body>
+  <p>Test passes if there is a filled green square.</p>
+  <div style="position:relative; left:100px; width:100px;">
+   <span style="position:relative; left:-100px;">
+    <div style="position:absolute; display:inline-block; width:100px; height:100px; background:green;"></div>
+   </span>
+  </div>
+ </body>
+</html>

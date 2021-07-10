@@ -3,23 +3,18 @@ name = "profile_traits"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
+edition = "2018"
 publish = false
 
 [lib]
 name = "profile_traits"
 path = "lib.rs"
 
-[features]
-energy-profiling = ["energymon", "energy-monitor"]
-
 [dependencies]
-energy-monitor = {version = "0.2.0", optional = true}
-energymon = {git = "https://github.com/energymon/energymon-rust.git", optional = true}
-ipc-channel = "0.7"
-log = "0.3.5"
-serde = "0.9"
-serde_derive = "0.9"
-servo_config = {path = "../config"}
-signpost = {git = "https://github.com/pcwalton/signpost.git"}
-time = "0.1.12"
-
+crossbeam-channel = "0.4"
+ipc-channel = "0.14"
+log = "0.4"
+serde = "1.0"
+servo_config = { path = "../config" }
+signpost = { git = "https://github.com/pcwalton/signpost.git" }
+time = "0.1.41"

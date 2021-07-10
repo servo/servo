@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-multicol-1/#filling-columns">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#widows-orphans">
+<meta name="assert" content="Make sure that orphans and widows handling inside an inner balanced multicol container doesn't get messed up by the constraining height of an outer multicol container">
+<p>There should be three columns below. The text in each column should match the
+  column number that the text actually ends up in.</p>
+<div style="columns:2; height:250px; line-height:50px; column-fill:auto;">
+  <div style="columns:3; column-rule:solid;" id="inner">
+    1<br>1<br>2<br>2<br>3<br>3<br>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> {
+      assert_equals(inner.offsetHeight, 100);
+  }, "Check that orphans and widows don't make a multicol container taller than necessary");
+</script>

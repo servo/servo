@@ -1,0 +1,12 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>valid embed contextmenu</title>
+ </head>
+ <body>
+  <embed contextmenu='foo'/>
+  <!-- Since contextmenu is no longer a global attribute,
+       it is allowed on embed like any other unknown attribute,
+       and shouldn't give a warning or error about not matching
+       the ID of a <menu type='context'> etc. -->
+ </body>
+</html>

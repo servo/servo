@@ -6,15 +6,14 @@
 <div id="log"></div>
 <script>
 test(function () {
-  var e = document.createEvent('PopStateEvent');
-  var eProto = Object.getPrototypeOf(e);
-  assert_equals(eProto, PopStateEvent.prototype);
-}, 'document.createEvent');
-
-test(function () {
   assert_false('initPopStateEvent' in PopStateEvent.prototype,
                'There should be no PopStateEvent#initPopStateEvent');
 }, 'initPopStateEvent');
+
+test(function () {
+  var popStateEvent = new PopStateEvent("popstate");
+  assert_equals(popStateEvent.state, null, "the PopStateEvent.state");
+}, "Initial value of PopStateEvent.state must be null");
 
 test(function () {
   var state = history.state;

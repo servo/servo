@@ -1,0 +1,222 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>CSS Variables Allowed Syntax</title>
+  <link rel="author" title="L. David Baron" href="https://dbaron.org/">
+  <link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+  <link rel="help" href="http://www.w3.org/TR/css3-conditional/#the-cssgroupingrule-interface">
+  <meta name="assert" content="requirements in definition of insertRule">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+<style id="style">
+@media print {}
+</style>
+</head>
+<body>
+<div id=log></div>
+<div id="test"></div>
+<script>
+
+  var sheet = document.getElementById("style").sheet;
+
+  var grouping_rule = sheet.cssRules[0];
+
+  test(function() {
+         assert_equals(grouping_rule.type, CSSRule.MEDIA_RULE,
+                       "Rule type of @media rule");
+       },
+       "rule_type");
+
+  test(function() {
+         assert_equals(grouping_rule.cssRules.length, 0,
+                       "Starting cssRules.length of @media rule");
+       },
+       "rule_length");
+
+  test(function() {
+         assert_throws_dom("HIERARCHY_REQUEST_ERR",
+                           function() {
+                             grouping_rule.insertRule("@import url(foo.css);", 0);
+                           },
+                           "inserting a disallowed rule should throw HIERARCHY_REQUEST_ERR");
+       },
+       "insert_import_throws");
+
+  test(function() {
+         assert_throws_dom("INDEX_SIZE_ERR",
+                           function() {
+                             grouping_rule.insertRule("p { color: green }", 1);
+                           },
+                           "inserting at a bad index throws INDEX_SIZE_ERR");
+       },
+       "insert_index_throws1");
+  test(function() {
+         grouping_rule.insertRule("p { color: green }", 0);
+         assert_equals(grouping_rule.cssRules.length, 1,
+                       "Modified cssRules.length of @media rule");
+         grouping_rule.insertRule("p { color: blue }", 1);
+         assert_equals(grouping_rule.cssRules.length, 2,
+                       "Modified cssRules.length of @media rule");
+         grouping_rule.insertRule("p { color: aqua }", 1);
+         assert_equals(grouping_rule.cssRules.length, 3,
+                       "Modified cssRules.length of @media rule");
+         assert_throws_dom("INDEX_SIZE_ERR",
+                           function() {
+                             grouping_rule.insertRule("p { color: green }", 4);
+                           },
+                           "inserting at a bad index throws INDEX_SIZE_ERR");
+         assert_equals(grouping_rule.cssRules.length, 3,
+                       "Modified cssRules.length of @media rule");
+       },
+       "insert_index_throws2");
+
+  test(function() {
+         while (grouping_rule.cssRules.length > 0) {
+           grouping_rule.deleteRule(0);
+         }
+         grouping_rule.insertRule("@media print {}", 0);
+         assert_equals(grouping_rule.cssRules.length, 1,
+                       "Modified cssRules.length of @media rule");
+         assert_equals(grouping_rule.cssRules[0].type, CSSRule.MEDIA_RULE,
+                       "inserting syntactically correct media rule succeeds");
+       },
+       "insert_media_succeed");
+  test(function() {
+         while (grouping_rule.cssRules.length > 0) {
+           grouping_rule.deleteRule(0);
+         }
+         grouping_rule.insertRule("p { color: yellow }", 0);
+         assert_equals(grouping_rule.cssRules.length, 1,
+                       "Modified cssRules.length of @media rule");
+         assert_equals(grouping_rule.cssRules[0].type, CSSRule.STYLE_RULE,
+                       "inserting syntactically correct style rule succeeds");
+       },
+       "insert_style_succeed");
+  test(function() {
+         while (grouping_rule.cssRules.length > 0) {
+           grouping_rule.deleteRule(0);
+         }
+         assert_throws_dom("SYNTAX_ERR",
+                           function() {
+                             grouping_rule.insertRule("@media bad syntax;", 0);
+                           },
+                           "inserting syntactically invalid rule throws syntax error");
+         assert_equals(grouping_rule.cssRules.length, 0,
+                       "Modified cssRules.length of @media rule");
+       },
+       "insert_bad_media_throw");
+  test(function() {
+         while (grouping_rule.cssRules.length > 0) {
+           grouping_rule.deleteRule(0);
+         }
+         assert_throws_dom("SYNTAX_ERR",
+                           function() {
+                             grouping_rule.insertRule("", 0);
+                           },
+                           "inserting empty rule throws syntax error");
+         assert_equals(grouping_rule.cssRules.length, 0,
+                       "Modified cssRules.length of @media rule");
+       },
+       "insert_empty_throw");
+  test(function() {
+         while (grouping_rule.cssRules.length > 0) {
+           grouping_rule.deleteRule(0);
+         }
+         assert_throws_dom("SYNTAX_ERR",
+                           function() {
+                             grouping_rule.insertRule("@media print {} foo", 0);
+                           },
+                           "inserting rule with garbage afterwards throws syntax error");
+         assert_equals(grouping_rule.cssRules.length, 0,
+                       "Modified cssRules.length of @media rule");
+       },
+       "insert_garbage_after_media_throw");
+  test(function() {
+         while (grouping_rule.cssRules.length > 0) {
+           grouping_rule.deleteRule(0);
+         }
+         assert_throws_dom("SYNTAX_ERR",
+                           function() {
+                             grouping_rule.insertRule("p { color: yellow } foo", 0);
+                           },
+                           "inserting rule with garbage afterwards throws syntax error");
+         assert_equals(grouping_rule.cssRules.length, 0,
+                       "Modified cssRules.length of @media rule");
+       },
+       "insert_garbage_after_style_throw");
+  test(function() {
+         while (grouping_rule.cssRules.length > 0) {
+           grouping_rule.deleteRule(0);
+         }
+         assert_throws_dom("SYNTAX_ERR",
+                           function() {
+                             grouping_rule.insertRule("@media print {} @media print {}", 0);
+                           },
+                           "inserting multiple rules throws syntax error");
+         assert_equals(grouping_rule.cssRules.length, 0,
+                       "Modified cssRules.length of @media rule");
+       },
+       "insert_two_media_throw");
+  test(function() {
+         while (grouping_rule.cssRules.length > 0) {
+           grouping_rule.deleteRule(0);
+         }
+         assert_throws_dom("SYNTAX_ERR",
+                           function() {
+                             grouping_rule.insertRule("p { color: yellow } @media print {}", 0);
+                           },
+                           "inserting multiple rules throws syntax error");
+         assert_equals(grouping_rule.cssRules.length, 0,
+                       "Modified cssRules.length of @media rule");
+       },
+       "insert_style_media_throw");
+  test(function() {
+         while (grouping_rule.cssRules.length > 0) {
+           grouping_rule.deleteRule(0);
+         }
+         assert_throws_dom("SYNTAX_ERR",
+                           function() {
+                             grouping_rule.insertRule("@media print {} p { color: yellow }", 0);
+                           },
+                           "inserting multiple rules throws syntax error");
+         assert_equals(grouping_rule.cssRules.length, 0,
+                       "Modified cssRules.length of @media rule");
+       },
+       "insert_media_style_throw");
+  test(function() {
+         while (grouping_rule.cssRules.length > 0) {
+           grouping_rule.deleteRule(0);
+         }
+         assert_throws_dom("SYNTAX_ERR",
+                           function() {
+                             grouping_rule.insertRule("p { color: yellow } p { color: yellow }", 0);
+                           },
+                           "inserting multiple rules throws syntax error");
+         assert_equals(grouping_rule.cssRules.length, 0,
+                       "Modified cssRules.length of @media rule");
+       },
+       "insert_two_style_throw");
+
+  test(function() {
+         while (grouping_rule.cssRules.length > 0) {
+           grouping_rule.deleteRule(0);
+         }
+         var res = grouping_rule.insertRule("p { color: green }", 0);
+         assert_equals(res, 0, "return value should be index");
+         assert_equals(grouping_rule.cssRules.length, 1,
+                       "Modified cssRules.length of @media rule");
+         res = grouping_rule.insertRule("p { color: green }", 0);
+         assert_equals(res, 0, "return value should be index");
+         assert_equals(grouping_rule.cssRules.length, 2,
+                       "Modified cssRules.length of @media rule");
+         res = grouping_rule.insertRule("p { color: green }", 2);
+         assert_equals(res, 2, "return value should be index");
+         assert_equals(grouping_rule.cssRules.length, 3,
+                       "Modified cssRules.length of @media rule");
+       },
+       "insert_retval");
+
+
+</script>
+</body>
+</html>

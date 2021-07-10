@@ -11,12 +11,14 @@
         <style type="text/css">
             :first-child
             {
-                color: green;
+                /* This needs to be a non-inherited property, as :root always matches :first-child */
+                border: 10px solid blue;
             }
         </style>
     </head>
     <body>
         <div>Filler Text</div>
-        <p>Test passes if the "Filler Text" above is green.</p>
+        <p>Test passes if there is a blue border around the viewport and
+          around "Filler Text" above.</p>
     </body>
 </html>

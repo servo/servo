@@ -220,7 +220,7 @@
         function testEventInsideNestedShadowsUnderAnotherShadow(outerUpperMode, outerLowerMode, innerMode) {
             test(function () {
                 var shadow = createNestedShadowTreesWithSlots(innerMode, outerUpperMode, outerLowerMode);
-                shadow.deepestNodeInLightDOM = shadow.target; // Needed for dispatchEventWithLog to attach event listeners. 
+                shadow.deepestNodeInLightDOM = shadow.target; // Needed for dispatchEventWithLog to attach event listeners.
                 shadow.target = shadow.innerSlot;
 
                 log = dispatchEventWithLog(shadow, new Event('foo', {bubbles: true, composed: true}));

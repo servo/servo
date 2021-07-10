@@ -1,0 +1,11 @@
+*.pyc
+*.egg-info
+.cache
+.coverage*
+.hypothesis
+.pytest_cache
+.tox
+build
+dist
+docs/_build/
+htmlcov

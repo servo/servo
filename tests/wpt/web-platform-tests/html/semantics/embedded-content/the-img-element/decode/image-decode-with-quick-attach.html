@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>HTMLImageElement.prototype.decode(), attach to DOM before promise resolves.</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/embedded-content.html#dom-img-decode">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body></body>
+
+<script>
+"use strict";
+
+promise_test(function() {
+  const img = new Image();
+  img.src = "/images/green.png";
+  const promise = img.decode().then(function(arg) {
+    assert_equals(arg, undefined);
+  });
+  // Don't wait for the promise to resolve before attaching the image.
+  // The promise should still resolve successfully.
+  document.body.appendChild(img);
+  return promise;
+}, document.title);
+</script>

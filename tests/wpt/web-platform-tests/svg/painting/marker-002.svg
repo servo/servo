@@ -1,0 +1,67 @@
+<svg width="500" height="500"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+    <!--
+    Tests the rendering of markers, specifically property inheritance. For the four
+    tests, there should be two identical paths with markers drawn.
+
+    The top two tests examine the rendering of markers when the marker and the path
+    referencing it share the same parent and all painting properties are specfied
+    on that parent. The first test show inheritance of the 'fill' property and the
+    second the inheritance of the 'paint' property. In both tests, the marker is
+    painting using the same properties as the referencing object. Because of
+    scaling transformations on the marker, the stroke on the second test is thinner
+    than on the referencing object.
+
+    The third and fourth tests examine the rendering of markers in a situation
+    where the marker and referencing path do NOT share the same parent and painting
+    properties are specified both on the parent of the marked path and on the
+    contents of the marker itself. In both cases, the marker's parent specifies
+    fill="green" stroke="blue" stroke-width="8". For the third test, the marker
+    contents override with stroke="black". For the fourth test, the marker contents
+    override with fill="black". In neither case should you see fill="orange" or
+    stroke="blue" or "stroke="purple" on the markers as these properties are
+    specified on the ancestor of the referencing object or the referencing object
+    itself and thus shouldn't affect the marker.
+    -->
+    <html:link rel="help" href="https://www.w3.org/TR/2016/CR-SVG2-20160915/painting.html#Markers"/>
+    <html:link rel="match" href="marker-002-ref.svg"/>
+    <html:meta name="assert" content="Tests property inheritance when rendering markers."/>
+    <g fill="green">
+      <text x="125" y="30" font-size="14" fill="black">Marker Rendering Properties</text>
+      <!-- Fill property -->
+      <g fill="black" stroke="none" stroke-width="8">
+        <marker id="marker1" viewBox="0 0 10 10" markerWidth="2" markerHeight="2" refX="5" refY="5" markerUnits="strokeWidth">
+          <rect width="10" height="10"/>
+        </marker>
+        <text x="100" y="140" font-size="10" fill="black" stroke="none">Fill Property</text>
+        <path marker-start="url(#marker1)" marker-mid="url(#marker1)" marker-end="url(#marker1)" d="M 30 60 L 80 60 L 80 110 Z"/>
+      </g>
+      <!-- Stroke property -->
+      <g fill="none" stroke="black" stroke-width="4">
+        <marker id="marker2" viewBox="0 0 20 20" markerWidth="4" markerHeight="4" refX="10" refY="10" markerUnits="strokeWidth">
+          <rect width="20" height="20"/>
+        </marker>
+        <text x="340" y="140" font-size="10" fill="black" stroke="none">Stroke Property</text>
+        <path marker-start="url(#marker2)" marker-mid="url(#marker2)" marker-end="url(#marker2)" d="M 270 60 L 320 60 L 320 110 Z"/>
+      </g>
+      <!-- Define marker element with parents setting painting properties -->
+      <g fill="green" stroke="blue" stroke-width="8">
+        <marker id="marker3" viewBox="0 0 20 20" markerWidth="4" markerHeight="4" refX="10" refY="10" markerUnits="strokeWidth">
+          <rect width="20" height="20" stroke="black"/>
+        </marker>
+        <marker id="marker4" viewBox="0 0 10 10" markerWidth="4" markerHeight="4" refX="5" refY="5" markerUnits="strokeWidth">
+          <rect width="10" height="10" fill="black" stroke-width="4"/>
+        </marker>
+      </g>
+      <!-- Parent and specified properties -->
+      <g fill="orange" stroke="blue">
+        <text x="90" y="270" font-size="10" fill="black" stroke="none">Mixed Properties</text>
+        <path stroke="purple" stroke-width="4" marker-start="url(#marker3)" marker-mid="url(#marker3)" marker-end="url(#marker3)" d="M 30 190 L 80 190 L 80 240 Z"/>
+      </g>
+      <g fill="orange" stroke="green">
+        <text x="340" y="270" font-size="10" fill="black" stroke="none">Mixed Properties</text>
+        <path stroke="purple" stroke-width="4" marker-start="url(#marker4)" marker-mid="url(#marker4)" marker-end="url(#marker4)" d="M 270 190 L 320 190 L 320 240 Z"/>
+      </g>
+    </g>
+</svg>

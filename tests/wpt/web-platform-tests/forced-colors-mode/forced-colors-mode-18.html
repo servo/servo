@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - svg.
+  Only foreignObject svg elements should have styles
+  overridden in forced colors mode.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<link rel=match href="forced-colors-mode-18-ref.html">
+<body>
+  <svg height="600" width="600" style="color: orange">
+    <text x="0" y="15" fill="red" stroke="blue">
+      This text should have a red fill and blue stroke color in
+      forced colors mode.
+    </text>
+    <rect x="0" height="60" y="30" width="180" style="fill: red; stroke: blue;"/>
+    <foreignObject x="20" y="100" width="160" height="160" style="color: blue;">
+      <div xmlns="http://www.w3.org/1999/xhtml">
+        This text should be CanvasText in forced colors mode.
+      </div>
+      <svg height="20" width="20">
+        <rect x="0" height="20" y="0" width="20" style="fill: green; stroke: purple;"/>
+      </svg>
+    </foreignObject>
+  </svg>
+</body>

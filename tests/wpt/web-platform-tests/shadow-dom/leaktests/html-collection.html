@@ -29,10 +29,10 @@ function fillTemplate(root, prefix) {
     var tmpl = document.getElementById('collection-template');
     root.appendChild(document.importNode(tmpl.content, true));
     for (var i = 0; i < root.childNodes.length; ++i) {
-	var el = root.childNodes[i];
-	if (el.nodeType != 1)
-	    continue;
-	el.id = prefix + el.tagName.toLowerCase();
+        var el = root.childNodes[i];
+        if (el.nodeType != 1)
+            continue;
+        el.id = prefix + el.tagName.toLowerCase();
     }
 }
 

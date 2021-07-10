@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+body { height: 2000px; }
+#scroller { overflow: scroll; width: 500px; height: 300px; }
+.anchor {
+  position: relative; height: 100px; width: 150px;
+  background-color: #afa; border: 1px solid gray;
+}
+#forceScrolling { height: 500px; background-color: #fcc; }
+
+</style>
+<div id="scroller">
+  <div id="innerChanger"></div>
+  <div id="innerAnchor" class="anchor"></div>
+  <div id="forceScrolling"></div>
+</div>
+<div id="outerChanger"></div>
+<div id="outerAnchor" class="anchor"></div>
+<script>
+
+// Test that we ignore the clipped content when computing visibility otherwise
+// we may end up with an anchor that we think is in the viewport but is not.
+
+test(() => {
+  document.querySelector("#scroller").scrollTop = 100;
+  document.scrollingElement.scrollTop = 350;
+
+  document.querySelector("#innerChanger").style.height = "200px";
+  document.querySelector("#outerChanger").style.height = "150px";
+
+  assert_equals(document.querySelector("#scroller").scrollTop, 300);
+  assert_equals(document.scrollingElement.scrollTop, 500);
+}, "Anchor selection with nested scrollers.");
+
+</script>

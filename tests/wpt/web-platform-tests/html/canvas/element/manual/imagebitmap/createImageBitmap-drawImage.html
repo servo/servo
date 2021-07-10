@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<title>createImageBitmap + drawImage test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/canvas/resources/canvas-tests.js"></script>
+<script src="/common/media.js"></script>
+<script src="common.sub.js"></script>
+<link rel="stylesheet" href="/html/canvas/resources/canvas-tests.css">
+<body>
+<script>
+function testCanvasDisplayingPattern(canvas, width, height)
+{
+    var tolerance = 10; // for creating ImageBitmap from a video, the tolerance needs to be high
+    const check = (x, y, r, g, b, a) =>
+        _assertPixelApprox(canvas, x,y, r,g,b,a, `${x},${y}`, `${r},${g},${b},${a}`, tolerance);
+    check(1 * width / 4, 1 * height / 4, 255,0,0,255);
+    check(3 * width / 4, 1 * height / 4, 0,255,0,255);
+    check(1 * width / 4, 3 * height / 4, 0,0,255,255);
+    check(3 * width / 4, 3 * height / 4, 0,0,0,255);
+}
+
+function testDrawImageBitmap(source, args = [], { resizeWidth = 20, resizeHeight = 20 } = {})
+{
+    var canvas = document.createElement("canvas");
+    canvas.width = resizeWidth;
+    canvas.height = resizeHeight;
+    var ctx = canvas.getContext("2d");
+    return createImageBitmap(source, ...args).then(imageBitmap => {
+        assert_equals(imageBitmap.width, resizeWidth);
+        assert_equals(imageBitmap.height, resizeHeight);
+        ctx.drawImage(imageBitmap, 0, 0);
+        testCanvasDisplayingPattern(canvas, resizeWidth, resizeHeight);
+    });
+}
+
+for (let { name, factory } of imageSourceTypes) {
+    promise_test(function() {
+        return factory().then(function(img) {
+            return testDrawImageBitmap(img);
+        });
+    }, `createImageBitmap from ${name}, and drawImage on the created ImageBitmap`);
+
+    promise_test(function() {
+        return factory().then(function(img) {
+            const options = { resizeWidth: 10, resizeHeight: 10 };
+            return testDrawImageBitmap(img, [options], options);
+        });
+    }, `createImageBitmap from ${name} scaled down, and drawImage on the created ImageBitmap`);
+
+    promise_test(function() {
+        return factory().then(function(img) {
+            const options = { resizeWidth: 40, resizeHeight: 40 };
+            return testDrawImageBitmap(img, [options], options);
+        });
+    }, `createImageBitmap from ${name} scaled up, and drawImage on the created ImageBitmap`);
+
+    promise_test(function() {
+        return factory().then(function(img) {
+            const options = { resizeWidth: 10, resizeHeight: 40 };
+            return testDrawImageBitmap(img, [options], options);
+        });
+    }, `createImageBitmap from ${name} resized, and drawImage on the created ImageBitmap`);
+
+    promise_test(function() {
+        return factory().then(function(img) {
+            return testDrawImageBitmap(img, [20, 20, -20, -20]);
+        });
+    }, `createImageBitmap from ${name} with negative sw/sh, and drawImage on the created ImageBitmap`);
+}
+</script>
+</body>
+</html>

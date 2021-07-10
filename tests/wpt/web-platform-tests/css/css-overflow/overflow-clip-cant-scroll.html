@@ -1,0 +1,46 @@
+<!doctype html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Overflow: clip can not be scrolled</title>
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#valdef-overflow-clip">
+<link rel="author" title="Scott Violet" href="mailto:sky@chromium.org">
+<link rel="match" href="overflow-clip-cant-scroll-ref.html">
+<style>
+  .parent {
+    width: 100px;
+    height: 100px;
+    overflow: clip;
+  }
+
+  .child1, .child2 {
+    width: 100px;
+    height: 100px;
+    flex: none;
+  }
+
+  .child1 {
+    background-color: green;
+  }
+
+  .child2 {
+    background-color: red;
+  }
+</style>
+<p>You should see two green squares (no red).
+<div id="parent1" class="parent" style="display: flex">
+  <div class="child1"></div>
+  <div class="child2"></div>
+</div>
+
+<div id="parent2" class="parent">
+  <div class="child1"></div>
+  <div class="child2"></div>
+</div>
+
+<script>
+onload = function() {
+  document.getElementById("parent1").scrollLeft = 100;
+  document.getElementById("parent2").scrollTop = 100;
+  document.documentElement.removeAttribute("class");
+}
+</script>

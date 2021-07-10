@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <title>When multiple report-uri endpoints for multiple policies are specified, each gets a report</title>
+    <!-- CSP headers
+Content-Security-Policy-Report-Only: img-src http://* https://*; default-src 'self'; script-src 'self' 'unsafe-inline'; report-uri /reporting/resources/report.py?op=put&reportID={{$id}}
+
+Content-Security-Policy-Report-Only: img-src http://*; default-src 'self'; script-src 'self' 'unsafe-inline'; report-uri /reporting/resources/report.py?op=put&reportID={{$id}}
+-->
+</head>
+<body>
+    <img src="ftp://blah.test" />
+
+    <script async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=img-src%20http%3A%2F%2F%2A%20https%3A%2F%2F%2A&testName=1-Violation%20report%20status%20OK'></script>
+    <script async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=img-src%20http%3A%2F%2F%2A&reportCookieName=multiple-report-policies-2&testName=2-Violation%20report%20status%20OK'></script>
+</body>
+</html>

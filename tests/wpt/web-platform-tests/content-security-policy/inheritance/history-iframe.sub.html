@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<meta http-equiv="Content-Security-Policy" content="img-src 'none'">
+<body>
+<script>
+  let message_from = (w, starts_with) => {
+    return new Promise(resolve => {
+      window.addEventListener('message', msg => {
+        if (msg.source == w) {
+          if (!starts_with || msg.data.startsWith(starts_with))
+            resolve(msg.data);
+        }
+      });
+    });
+  };
+
+  const function_messageBack_string = `
+    function messageBack(msg) {
+      top.postMessage(msg ,"*");
+    }
+  `;
+
+  const img_url = window.origin + "/content-security-policy/support/fail.png";
+  const img_tag_string = `
+    <img src="${img_url}"
+         onload="messageBack('img loaded');"
+         onerror="messageBack('img blocked');"
+    >
+   `;
+
+  const html_test_payload = `
+    <!doctype html>
+    <script>${function_messageBack_string}</scr`+`ipt>
+    <div>${img_tag_string}</div>
+  `;
+  let blob_url = URL.createObjectURL(
+    new Blob([html_test_payload], { type: 'text/html' }));
+
+  let write_img_to_about_blank = async (t, iframe) => {
+    await t.step_wait(
+      condition = () => {
+        try {
+          return iframe.contentWindow.location.href == "about:blank";
+        } catch {}
+        return false;
+      },
+      description = "Wait for the iframe to navigate.",
+      timeout=6000,
+      interval=50);
+
+    let script = iframe.contentDocument.createElement('script');
+    script.innerText = function_messageBack_string;
+    iframe.contentDocument.head.appendChild(script);
+    let div = iframe.contentDocument.createElement('div');
+    div.innerHTML = img_tag_string;
+    iframe.contentDocument.body.appendChild(div);
+  };
+
+  let testCases = [
+    {
+      url: "about:blank",
+      other_origin: window.origin,
+      name: '"about:blank" document is navigated back from history same-origin.',
+    },
+    {
+      url: "about:blank",
+      other_origin: "http://{{hosts[alt][]}}:{{ports[http][0]}}",
+      name: '"about:blank" document is navigated back from history cross-origin.',
+    },
+    {
+      url: blob_url,
+      other_origin: window.origin,
+      name: 'blob URL document is navigated back from history same-origin.',
+    },
+    {
+      url: blob_url,
+      other_origin: "http://{{hosts[alt][]}}:{{ports[http][0]}}",
+      name: 'blob URL document is navigated back from history cross-origin.',
+    },
+    {
+      url: `data:text/html,${html_test_payload}`,
+      other_origin: window.origin,
+      name: 'data URL document is navigated back from history same-origin.',
+    },
+    {
+      url: `data:text/html,${html_test_payload}`,
+      other_origin: "http://{{hosts[alt][]}}:{{ports[http][0]}}",
+      name: 'data URL document is navigated back from history cross-origin.',
+    },
+    {
+      srcdoc: `${html_test_payload}`,
+      other_origin: window.origin,
+      name: 'srcdoc iframe is navigated back from history same-origin.',
+    },
+    {
+      srcdoc: `${html_test_payload}`,
+      other_origin: "http://{{hosts[alt][]}}:{{ports[http][0]}}",
+      name: 'srcdoc iframe is navigated back from history cross-origin.',
+    },
+  ];
+
+  testCases.forEach(testCase => {
+    promise_test(async t => {
+      // Create an iframe.
+      let iframe = document.createElement('iframe');
+      document.body.appendChild(iframe);
+
+      // Perform a real navigation in the iframe. This is needed because the
+      // initial empty document is not stored in history (so there is no way of
+      // navigating back to it and test history inheritance).
+      let loaded_1 = message_from(iframe.contentWindow);
+      iframe.contentWindow.location = testCase.other_origin + "/content-security-policy/inheritance/support/postmessage-top.html";
+      assert_equals(await loaded_1, "ready",
+                    "Could not navigate iframe.");
+
+      // Navigate to the local scheme document.
+      let message = message_from(iframe.contentWindow);
+      if (testCase.url)
+        iframe.contentWindow.location = testCase.url;
+      else
+        iframe.srcdoc = testCase.srcdoc;
+
+      // If the local scheme document is "about:blank", we need to write its
+      // content now.
+      if (testCase.url === "about:blank")
+        await write_img_to_about_blank(t, iframe);
+
+      // Check that the local scheme document inherits CSP from the initiator.
+      assert_equals(await message, "img blocked",
+                    "Image should be blocked by CSP inherited from navigation initiator.");
+
+      // Navigate to another page, which will navigate back.
+      let loaded_2 = message_from(iframe.contentWindow, "ready");
+      let message_2 = message_from(iframe.contentWindow, "img");
+      iframe.contentWindow.location = testCase.other_origin + "/content-security-policy/inheritance/support/message-top-and-navigate-back.html";
+      assert_equals(await loaded_2, "ready",
+                    "Could not navigate iframe.");
+
+      // If the local scheme document is "about:blank", we need to write its
+      // content again.
+      if (testCase.url === "about:blank")
+        await write_img_to_about_blank(t, iframe);
+
+      // Check that the local scheme document reloaded from history still has
+      // the original CSPs.
+      assert_equals(await message_2, "img blocked",
+                    "Image should be blocked by CSP reloaded from history.");
+    }, "History navigation in iframe: " + testCase.name);
+  });
+</script>
+</body>

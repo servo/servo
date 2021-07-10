@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/paths.html#TheDProperty"/>
+    <h:meta name="assert" content="computed d is serialized using absolute commands"/>
+  </metadata>
+  <path id="target"></path>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <script><![CDATA[
+  test(function() {
+    var target = document.getElementById('target');
+
+    target.style.d = 'path("m 10 20 q 30 60 40 50 q 100 70 90 80")';
+    assert_equals(target.style.d, 'path("m 10 20 q 30 60 40 50 q 100 70 90 80")');
+    assert_equals(getComputedStyle(target).d, 'path("M 10 20 Q 40 80 50 70 Q 150 140 140 150")');
+
+    target.style.d = "path('M 0 0 L 100 100 m 0 100 l 100 0 Z l 160 20 Z')";
+    assert_equals(target.style.d, 'path("M 0 0 L 100 100 m 0 100 l 100 0 Z l 160 20 Z")');
+    assert_equals(getComputedStyle(target).d, 'path("M 0 0 L 100 100 M 100 200 L 200 200 Z L 260 220 Z")');
+
+    target.style.d = 'path("m 10 20   l 20 30   Z   l 50 60   Z   m 70 80   l 90 60   Z   t 70 120")';
+    assert_equals(target.style.d, 'path("m 10 20 l 20 30 Z l 50 60 Z m 70 80 l 90 60 Z t 70 120")');
+    assert_equals(getComputedStyle(target).d, 'path("M 10 20 L 30 50 Z L 60 80 Z M 80 100 L 170 160 Z T 150 220")');
+
+    target.style.d = 'path("m 10.0 170.0 h 90.00 v 30.00 m 0 0 s 1 2 3 4 z c 9 8 7 6 5 4")';
+    assert_equals(target.style.d, 'path("m 10 170 h 90 v 30 m 0 0 s 1 2 3 4 Z c 9 8 7 6 5 4")');
+    assert_equals(getComputedStyle(target).d, 'path("M 10 170 H 100 V 200 M 100 200 S 101 202 103 204 Z C 109 208 107 206 105 204")');
+
+    target.style.d = '  path(  "m 10 20 a 10 20 30 1 0 40 50 a 110 120 30 1 1 140 50"  )  ';
+    assert_equals(target.style.d, 'path("m 10 20 a 10 20 30 1 0 40 50 a 110 120 30 1 1 140 50")');
+    assert_equals(getComputedStyle(target).d, 'path("M 10 20 A 10 20 30 1 0 50 70 A 110 120 30 1 1 190 120")');
+  });
+  ]]></script>
+</svg>

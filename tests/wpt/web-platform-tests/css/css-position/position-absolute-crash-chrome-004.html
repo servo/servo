@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>CSS Position Absolute: Chrome crash</title>
+<link rel="author" href="mailto:atotic@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=946986">
+<meta name="assert" content="Nested abs/fixed/flex do not crash">
+<style>
+  body { overflow: scroll;}
+  .container {
+    position: relative;
+    contain: paint;
+  }
+  .flex {
+    display: flex;
+  }
+  .fixed {
+    position: fixed;
+  }
+  .abs {
+    position: absolute;
+  }
+</style>
+<!-- LayoutNG currently does not support display:flex.
+  Propagation of descendants across flex boundaries is error prone -->
+<div id="one" class="container" style="">
+  <div class="flex">
+    <div class="abs">
+      <div class="flex">
+        <div id="fixed1" class="fixed">
+          <div id="fixed2" class="fixed"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+test(() => {
+}, 'test passes if it does not crash');
+</script>
+

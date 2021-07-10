@@ -37,6 +37,7 @@ async_test(function(t) {
   // fetch the resource" or "once the entire media resource has been fetched"
   v.preload = 'none';
   v.src = getAudioURI('/media/sound_5');
+  v.onerror = t.unreached_func();
   v.onsuspend = t.step_func(function() {
     v.onsuspend = null;
     assert_equals(v.networkState, v.NETWORK_IDLE);
@@ -47,6 +48,7 @@ async_test(function(t) {
 async_test(function(t) {
   var v = document.createElement('video');
   v.src = 'resources/delayed-broken-video.py';
+  v.onerror = t.unreached_func();
   v.onloadstart = t.step_func(function() {
     v.onloadstart = null;
     assert_equals(v.networkState, v.NETWORK_LOADING);

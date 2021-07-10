@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/bluetooth/resources/bluetooth-test.js"></script>
+<script src="/bluetooth/resources/bluetooth-fake-devices.js"></script>
+<script>
+'use strict';
+const test_desc = 'Request for services. Should return right number of ' +
+    'services.';
+
+bluetooth_test(() => getTwoHealthThermometerServicesDevice({
+  filters: [{services: ['health_thermometer']}]
+})
+    .then(({device}) => Promise.all([
+      device.gatt.getPrimaryServices(health_thermometer.alias),
+      device.gatt.getPrimaryServices(health_thermometer.name),
+      device.gatt.getPrimaryServices(health_thermometer.uuid)]))
+    .then(services_arrays => services_arrays.forEach(services => {
+        assert_equals(services.length, 2);
+        services.forEach(service => {
+          assert_equals(service.uuid,
+              BluetoothUUID.getService('health_thermometer'));
+          assert_true(service.isPrimary);
+        });
+    })), test_desc);
+</script>

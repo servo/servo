@@ -1,8 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use blob_url_store::{BlobBuf, BlobURLStoreError};
+use crate::blob_url_store::{BlobBuf, BlobURLStoreError};
+use embedder_traits::FilterPattern;
 use ipc_channel::ipc::IpcSender;
 use num_traits::ToPrimitive;
 use std::cmp::{max, min};
@@ -15,10 +16,24 @@ use uuid::Uuid;
 /// File manager store entry's origin
 pub type FileOrigin = String;
 
+/// A token modulating access to a file for a blob URL.
+pub enum FileTokenCheck {
+    /// Checking against a token not required,
+    /// used for accessing a file
+    /// that isn't linked to from a blob URL.
+    NotRequired,
+    /// Checking against token required.
+    Required(Uuid),
+    /// Request should always fail,
+    /// used for cases when a check is required,
+    /// but no token could be acquired.
+    ShouldFail,
+}
+
 /// Relative slice positions of a sequence,
 /// whose semantic should be consistent with (start, end) parameters in
-/// https://w3c.github.io/FileAPI/#dfn-slice
-#[derive(Clone, Deserialize, Serialize)]
+/// <https://w3c.github.io/FileAPI/#dfn-slice>
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct RelativePos {
     /// Relative to first byte if non-negative,
     /// relative to one past last byte if negative,
@@ -59,7 +74,7 @@ impl RelativePos {
     }
 
     /// Compute absolute range by giving the total size
-    /// https://w3c.github.io/FileAPI/#slice-method-algo
+    /// <https://w3c.github.io/FileAPI/#slice-method-algo>
     pub fn to_abs_range(&self, size: usize) -> Range<usize> {
         let size = size as i64;
 
@@ -89,14 +104,6 @@ impl RelativePos {
             end: (start + span).to_usize().unwrap(),
         }
     }
-
-    /// Inverse operation of to_abs_range
-    pub fn from_abs_range(range: Range<usize>, size: usize) -> RelativePos {
-        RelativePos {
-            start: range.start as i64,
-            end: Some(size as i64 - range.end as i64),
-        }
-    }
 }
 
 /// Response to file selection request
@@ -110,29 +117,42 @@ pub struct SelectedFile {
     pub type_string: String,
 }
 
-/// Filter for file selection;
-/// the `String` content is expected to be extension (e.g, "doc", without the prefixing ".")
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct FilterPattern(pub String);
-
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum FileManagerThreadMsg {
     /// Select a single file. Last field is pre-selected file path for testing
-    SelectFile(Vec<FilterPattern>, IpcSender<FileManagerResult<SelectedFile>>, FileOrigin, Option<String>),
+    SelectFile(
+        Vec<FilterPattern>,
+        IpcSender<FileManagerResult<SelectedFile>>,
+        FileOrigin,
+        Option<String>,
+    ),
 
     /// Select multiple files. Last field is pre-selected file paths for testing
-    SelectFiles(Vec<FilterPattern>, IpcSender<FileManagerResult<Vec<SelectedFile>>>, FileOrigin, Option<Vec<String>>),
+    SelectFiles(
+        Vec<FilterPattern>,
+        IpcSender<FileManagerResult<Vec<SelectedFile>>>,
+        FileOrigin,
+        Option<Vec<String>>,
+    ),
 
     /// Read FileID-indexed file in chunks, optionally check URL validity based on boolean flag
-    ReadFile(IpcSender<FileManagerResult<ReadFileProgress>>, Uuid, bool, FileOrigin),
+    ReadFile(
+        IpcSender<FileManagerResult<ReadFileProgress>>,
+        Uuid,
+        FileOrigin,
+    ),
 
-    /// Add an entry as promoted memory-based blob and send back the associated FileID
-    /// as part of a valid/invalid Blob URL depending on the boolean flag
-    PromoteMemory(BlobBuf, bool, IpcSender<Result<Uuid, BlobURLStoreError>>, FileOrigin),
+    /// Add an entry as promoted memory-based blob
+    PromoteMemory(Uuid, BlobBuf, bool, FileOrigin),
 
     /// Add a sliced entry pointing to the parent FileID, and send back the associated FileID
     /// as part of a valid Blob URL
-    AddSlicedURLEntry(Uuid, RelativePos, IpcSender<Result<Uuid, BlobURLStoreError>>, FileOrigin),
+    AddSlicedURLEntry(
+        Uuid,
+        RelativePos,
+        IpcSender<Result<Uuid, BlobURLStoreError>>,
+        FileOrigin,
+    ),
 
     /// Decrease reference count and send back the acknowledgement
     DecRef(Uuid, FileOrigin, IpcSender<Result<(), BlobURLStoreError>>),

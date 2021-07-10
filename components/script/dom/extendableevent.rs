@@ -1,40 +1,43 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::codegen::Bindings::ExtendableEventBinding;
-use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
-use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::str::DOMString;
-use dom::event::Event;
-use dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
+use crate::dom::bindings::codegen::Bindings::EventBinding::{self, EventMethods};
+use crate::dom::bindings::codegen::Bindings::ExtendableEventBinding;
+use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::event::Event;
+use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
-use js::jsapi::{HandleValue, JSContext};
+use js::rust::HandleValue;
 use servo_atoms::Atom;
 
 // https://w3c.github.io/ServiceWorker/#extendable-event
 #[dom_struct]
 pub struct ExtendableEvent {
     event: Event,
-    extensions_allowed: bool
+    extensions_allowed: bool,
 }
 
+#[allow(non_snake_case)]
 impl ExtendableEvent {
     pub fn new_inherited() -> ExtendableEvent {
         ExtendableEvent {
             event: Event::new_inherited(),
-            extensions_allowed: true
+            extensions_allowed: true,
         }
     }
-    pub fn new(worker: &ServiceWorkerGlobalScope,
-               type_: Atom,
-               bubbles: bool,
-               cancelable: bool)
-               -> Root<ExtendableEvent> {
-        let ev = reflect_dom_object(box ExtendableEvent::new_inherited(), worker, ExtendableEventBinding::Wrap);
+    pub fn new(
+        worker: &ServiceWorkerGlobalScope,
+        type_: Atom,
+        bubbles: bool,
+        cancelable: bool,
+    ) -> DomRoot<ExtendableEvent> {
+        let ev = reflect_dom_object(Box::new(ExtendableEvent::new_inherited()), worker);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);
@@ -42,17 +45,21 @@ impl ExtendableEvent {
         ev
     }
 
-    pub fn Constructor(worker: &ServiceWorkerGlobalScope,
-                       type_: DOMString,
-                       init: &ExtendableEventBinding::ExtendableEventInit) -> Fallible<Root<ExtendableEvent>> {
-        Ok(ExtendableEvent::new(worker,
-                                Atom::from(type_),
-                                init.parent.bubbles,
-                                init.parent.cancelable))
+    pub fn Constructor(
+        worker: &ServiceWorkerGlobalScope,
+        type_: DOMString,
+        init: &ExtendableEventBinding::ExtendableEventInit,
+    ) -> Fallible<DomRoot<ExtendableEvent>> {
+        Ok(ExtendableEvent::new(
+            worker,
+            Atom::from(type_),
+            init.parent.bubbles,
+            init.parent.cancelable,
+        ))
     }
 
     // https://w3c.github.io/ServiceWorker/#wait-until-method
-    pub fn WaitUntil(&self, _cx: *mut JSContext, _val: HandleValue) -> ErrorResult {
+    pub fn WaitUntil(&self, _cx: JSContext, _val: HandleValue) -> ErrorResult {
         // Step 1
         if !self.extensions_allowed {
             return Err(Error::InvalidState);
@@ -65,5 +72,13 @@ impl ExtendableEvent {
     // https://dom.spec.whatwg.org/#dom-event-istrusted
     pub fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
+    }
+}
+
+impl Default for ExtendableEventBinding::ExtendableEventInit {
+    fn default() -> ExtendableEventBinding::ExtendableEventInit {
+        ExtendableEventBinding::ExtendableEventInit {
+            parent: EventBinding::EventInit::default(),
+        }
     }
 }

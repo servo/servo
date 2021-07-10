@@ -1,0 +1,169 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Test invalid attribute parsing</title>
+    <meta name=help href="https://tools.ietf.org/html/rfc6265#section-5.2">
+    <meta name="timeout" content="long">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/cookies/resources/cookie-test.js"></script>
+  </head>
+  <body>
+    <div id=log></div>
+    <script>
+      // These tests ensure that invalid attributes don't affect
+      // cookie parsing. `Path` isn't important to the tests where it appears,
+      // but it's used to be able to place the invalid attribute in different
+      // locations.
+      const invalidAttributeTests = [
+      {
+        cookie: "test=1; lol; Path=/",
+        expected: "test=1",
+        name: "Set cookie with invalid attribute",
+        defaultPath: false
+      },
+      {
+        cookie: "test=2; Path=/; lol",
+        expected: "test=2",
+        name: "Set cookie ending with invalid attribute.",
+        defaultPath: false
+      },
+      {
+        cookie: "test=3; Path=/; 'lol'",
+        expected: "test=3",
+        name: "Set cookie ending with quoted invalid attribute.",
+        defaultPath: false
+      },
+      {
+        cookie: 'test=4; Path=/; "lol"',
+        expected: "test=4",
+        name: "Set cookie ending with double-quoted invalid attribute.",
+        defaultPath: false
+      },
+      {
+        cookie: "test=5; Path=/; lol=",
+        expected: "test=5",
+        name: "Set cookie ending with invalid attribute equals.",
+        defaultPath: false
+      },
+      {
+        cookie: 'test=6; lol="aaa;bbb"; Path=/',
+        expected: "test=6",
+        name: "Set cookie with two invalid attributes (lol=\"aaa and bbb).",
+        defaultPath: false
+      },
+      {
+        cookie: 'test=7; Path=/; lol="aaa;bbb"',
+        expected: "test=7",
+        name: "Set cookie ending with two invalid attributes (lol=\"aaa and bbb).",
+        defaultPath: false
+      },
+      {
+        cookie: 'test=8; "Secure"',
+        expected: "test=8",
+        // This gets parsed as an unrecognized \"Secure\" attribute, not a valid
+        // Secure attribute. That's why it gets set on an non-secure origin.
+        name: "Set cookie for quoted Secure attribute",
+      },
+      {
+        cookie: "test=9; Secure qux",
+        expected: "test=9",
+        // This should be parsed as an unrecognized "Secure qux" attribute
+        // and ignored. That is, the cookie will not be Secure.
+        name: "Set cookie for Secure qux",
+      },
+      {
+        cookie: "test=10; b,az=qux",
+        expected: "test=10",
+        name: "Ignore invalid attribute name with comma",
+      },
+      {
+        cookie: "test=11; baz=q,ux",
+        expected: "test=11",
+        name: "Ignore invalid attribute value with comma",
+      },
+      {
+        cookie: "  test  = 12  ;foo;;;   bar",
+        expected: "test=12",
+        name: "Set cookie ignoring multiple invalid attributes, whitespace, and semicolons",
+      },
+      {
+        cookie: "  test=== 13  ;foo;;;   bar",
+        expected: "test=== 13",
+        name: "Set cookie with multiple '='s in its value, ignoring multiple invalid attributes, whitespace, and semicolons",
+      },
+      {
+        cookie: "test=14; version=1;",
+        expected: "test=14",
+        name: "Set cookie with (invalid) version=1 attribute",
+      },
+      {
+        cookie: "test=15; version=1000;",
+        expected: "test=15",
+        name: "Set cookie with (invalid) version=1000 attribute",
+      },
+      {
+        cookie: "test=16; customvalue='1000 or more';",
+        expected: "test=16",
+        name: "Set cookie ignoring anything after ; (which looks like an invalid attribute)",
+      },
+      {
+        cookie: "test=17; customvalue='1000 or more'",
+        expected: "test=17",
+        name: "Set cookie ignoring anything after ; (which looks like an invalid attribute, with no trailing semicolon)",
+      },
+      {
+        cookie: "test=18; foo=bar, a=b",
+        expected: "test=18",
+        name: "Ignore keys after semicolon",
+      },
+      {
+        cookie: "test=19;max-age=3600, c=d;path=/",
+        expected: "test=19",
+        name: "Ignore attributes after semicolon",
+        defaultPath: false,
+      },
+      {
+        cookie: ["testA=20", "=", "testb=20"],
+        expected: "testA=20; testb=20",
+        name: "Ignore `Set-Cookie: =`",
+      },
+      {
+        cookie: ["test=21", ""],
+        expected: "test=21",
+        name: "Ignore empty cookie string",
+      },
+      {
+        cookie: ["test22", "="],
+        expected: "test22",
+        name: "Ignore `Set-Cookie: =` with other `Set-Cookie` headers",
+      },
+      {
+        cookie: ["testA23", "; testB23"],
+        expected: "testA23",
+        name: "Ignore name- and value-less `Set-Cookie: ; bar`",
+      },
+      {
+        cookie: ["test24", "   "],
+        expected: "test24",
+        name: "Ignore name- and value-less `Set-Cookie:    `",
+      },
+      {
+        cookie: ["test25", "\t"],
+        expected: "test25",
+        name: "Ignore name- and value-less `Set-Cookie: \\t`",
+      },
+      {
+        cookie: "test=26; domain=.parser.test; ;; ;=; ,,, ===,abc,=; abracadabra! max-age=20;=;;",
+        expected: "",
+        name: "Ignore cookie with domain that won't domain match (along with other invalid noise)",
+      },
+    ];
+
+    for (const test of invalidAttributeTests) {
+      httpCookieTest(test.cookie, test.expected, test.name, test.defaultPath);
+    }
+    </script>
+  </body>
+</html>

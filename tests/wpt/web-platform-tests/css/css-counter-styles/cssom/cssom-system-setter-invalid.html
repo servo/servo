@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>CSSCounterStyleRule system setter with invalid values</title>
+<link rel="help" href="https://www.w3.org/TR/css-counter-styles-3/#the-csscounterstylerule-interface">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="match" href="cssom-system-setter-ref.html">
+<style id="sheet">
+@counter-style foo {
+  system: fixed;
+  symbols: A B C;
+}
+</style>
+
+<ol style="list-style-type: foo; list-style-position: inside">
+  <li></li>
+  <li></li>
+  <li></li>
+</ol>
+
+<script>
+// Force layout update before changing the rule
+document.body.offsetWidth;
+
+const sheet = document.getElementById('sheet');
+const foo_rule = sheet.sheet.rules[0];
+
+// Values with syntax errors should be ignored
+foo_rule.system = '123';
+foo_rule.system = 'extends none';
+foo_rule.system = 'extends decimal decimal';
+
+// Values changing algorithm should be ignored
+foo_rule.system = 'numeric';
+foo_rule.system = 'extends lower-roman';
+</script>

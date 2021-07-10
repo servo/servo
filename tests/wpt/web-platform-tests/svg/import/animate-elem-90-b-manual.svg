@@ -15,8 +15,8 @@
     version="$Revision: 1.3 $" testname="$RCSfile: animate-elem-90-b.svg,v $">
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
         <p>
-          Test that the class attribute is animatable and that style 
-	sheets select on the animated value.
+          Test that the class attribute is animatable and that style
+  sheets select on the animated value.
 <!-- not clear whether to link to dev.w3.org or to /TR
 http://dev.w3.org/SVG/profiles/1.1F2/publish/styling.html#ClassAttribute
 -->
@@ -29,28 +29,28 @@ http://dev.w3.org/SVG/profiles/1.1F2/publish/styling.html#ClassAttribute
         and 'animate'. It requires that CSS style sheets are supported.
       </p>
       <p>
-        The test shows a circle which is initially hidden, becomes visible and blue at 
-	3s, abruptly changing to dark red at 5s. Two overlapping animations both animate the 
-	class attribute. The class attribute, as a string value, does not support 
-	linear interpolation so a discrete animation is produced, changing from the 
-	start to the end value midway through the animation duration.
+        The test shows a circle which is initially hidden, becomes visible and blue at
+  3s, abruptly changing to dark red at 5s. Two overlapping animations both animate the
+  class attribute. The class attribute, as a string value, does not support
+  linear interpolation so a discrete animation is produced, changing from the
+  start to the end value midway through the animation duration.
       </p>
       <p>
-	The first animation starts at 2s and lasts for 4s so  the mid point is at 3s.
-	The second animation starts at 3s and lasts for 4s so the midpoint is at 5s.
+  The first animation starts at 2s and lasts for 4s so  the mid point is at 3s.
+  The second animation starts at 3s and lasts for 4s so the midpoint is at 5s.
         The file includes various guides that can be used to verify the
         correctness of the animation. The value of the class attribute
-	at 02 is "start" so the first CSS rule matches. At 3s it becomes "midway" 
-	so the second rule matches. At 5s it becomes "final midway" so the second and 
-	third rules match; the third rule has higher specificity so determines the fill color.
-        
+  at 02 is "start" so the first CSS rule matches. At 3s it becomes "midway"
+  so the second rule matches. At 5s it becomes "final midway" so the second and
+  third rules match; the third rule has higher specificity so determines the fill color.
+
       </p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
-        The color of the large circle must match the colour of the smaller guide 
-	boxes on the left  at times 0s, 3s and 5s. If the text "CSS not supported"
-	is visible, the test does not apply.
+        The color of the large circle must match the colour of the smaller guide
+  boxes on the left  at times 0s, 3s and 5s. If the text "CSS not supported"
+  is visible, the test does not apply.
       </p>
     </d:passCriteria>
   </d:SVGTestCase>
@@ -62,10 +62,10 @@ http://dev.w3.org/SVG/profiles/1.1F2/publish/styling.html#ClassAttribute
       </font-face-src>
     </font-face>
     <style type="text/css">
-	.start {visibility: hidden }
-	.midway {visibility: visible; fill: rgb(0,0,255); }
-	#test-body-content .final {fill: rgb(128,0,0); }
-	.hideme {display: none;}
+  .start {visibility: hidden }
+  .midway {visibility: visible; fill: rgb(0,0,255); }
+  #test-body-content .final {fill: rgb(128,0,0); }
+  .hideme {display: none;}
     </style>
   </defs>
   <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">

@@ -17,15 +17,15 @@
         honored.
       </p>
       <p>
-	      Once the test is loaded, two rectangles are presented,
-	      the upper indicating the result of a sub-test that checks
-	      whether the 'type' attribute on a 'style' element correctly
-	      defaults to "text/css", and the lower indicating the result
-	      of a sub-test that checks whether a bogus value for 'type'
-	      does not cause the 'style' element contents to be interpreted
-	      as CSS.  Each rectangle is green if the sub-test is passed
-	      or red if it failed.
-    	</p>
+        Once the test is loaded, two rectangles are presented,
+        the upper indicating the result of a sub-test that checks
+        whether the 'type' attribute on a 'style' element correctly
+        defaults to "text/css", and the lower indicating the result
+        of a sub-test that checks whether a bogus value for 'type'
+        does not cause the 'style' element contents to be interpreted
+        as CSS.  Each rectangle is green if the sub-test is passed
+        or red if it failed.
+      </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
       <p>

@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Lists: </title>
+<link rel="author" title="Anthony Ramine" href="mailto:n.oxyde@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-lists/#counter-functions">
+<link rel="match" href="counter-7-ref.html">
+<style>
+    div::after { content: " is not " counter(inherit) }
+</style>
+<p>You should see the number 7 below.</p>
+<div>7</div>

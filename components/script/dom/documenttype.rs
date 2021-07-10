@@ -1,16 +1,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::DocumentTypeBinding;
-use dom::bindings::codegen::Bindings::DocumentTypeBinding::DocumentTypeMethods;
-use dom::bindings::codegen::UnionTypes::NodeOrString;
-use dom::bindings::error::ErrorResult;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
-use dom::bindings::str::DOMString;
-use dom::document::Document;
-use dom::node::Node;
+use crate::dom::bindings::codegen::Bindings::DocumentTypeBinding::DocumentTypeMethods;
+use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
+use crate::dom::bindings::error::ErrorResult;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::document::Document;
+use crate::dom::node::Node;
 use dom_struct::dom_struct;
 
 // https://dom.spec.whatwg.org/#documenttype
@@ -24,11 +23,12 @@ pub struct DocumentType {
 }
 
 impl DocumentType {
-    fn new_inherited(name: DOMString,
-                     public_id: Option<DOMString>,
-                     system_id: Option<DOMString>,
-                     document: &Document)
-                     -> DocumentType {
+    fn new_inherited(
+        name: DOMString,
+        public_id: Option<DOMString>,
+        system_id: Option<DOMString>,
+        document: &Document,
+    ) -> DocumentType {
         DocumentType {
             node: Node::new_inherited(document),
             name: name,
@@ -37,14 +37,18 @@ impl DocumentType {
         }
     }
     #[allow(unrooted_must_root)]
-    pub fn new(name: DOMString,
-               public_id: Option<DOMString>,
-               system_id: Option<DOMString>,
-               document: &Document)
-               -> Root<DocumentType> {
-        Node::reflect_node(box DocumentType::new_inherited(name, public_id, system_id, document),
-                           document,
-                           DocumentTypeBinding::Wrap)
+    pub fn new(
+        name: DOMString,
+        public_id: Option<DOMString>,
+        system_id: Option<DOMString>,
+        document: &Document,
+    ) -> DomRoot<DocumentType> {
+        Node::reflect_node(
+            Box::new(DocumentType::new_inherited(
+                name, public_id, system_id, document,
+            )),
+            document,
+        )
     }
 
     #[inline]

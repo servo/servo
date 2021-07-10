@@ -1,6 +1,0 @@
-
-   generic { background: green; border: lime 1em solid; margin: 1em; padding: 1em; color: yellow; }
-   generic { display: inline; line-height: 7em; }
-   a[*|href] { color: inherit; background: transparent; text-decoration: underline; cursor: pointer; }
-   * { margin: 1em; padding: 1em; }
-   root { padding: 0; margin: 0; background: transparent; background: green; }

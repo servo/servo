@@ -117,7 +117,10 @@ promise_test(function(test) {
 
 promise_test(function(test) {
     var transaction = create_unique_transaction();
-    return self.caches.has('foo')
+    return self.caches.delete('foo')
+      .then(function() {
+          return self.caches.has('foo');
+        })
       .then(function(has_foo) {
           assert_false(has_foo, "The cache should not exist.");
           return self.caches.match(transaction.request, {cacheName: 'foo'});

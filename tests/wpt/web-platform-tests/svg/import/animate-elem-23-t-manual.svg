@@ -34,19 +34,19 @@
       </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
-	    <p>
+      <p>
         Run the test. No interaction required.
       </p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
-      	The test is passed if:
+        The test is passed if:
       </p>
       <ul>
-				<li>From time t=0 seconds to t=3 seconds the large rectangle is filled with black</li>
-				<li>At t=3 seconds a blue circle appears inside the black rectangle</li>
-				<li>Between time t=3 seconds and t=6 seconds the fill of the circle is animated between blue and bluegreen</li>
-				<li>Between time t=6 seconds and t=9 seconds the fill of the circle is animated between bluegreen and green</li>   
+        <li>From time t=0 seconds to t=3 seconds the large rectangle is filled with black</li>
+        <li>At t=3 seconds a blue circle appears inside the black rectangle</li>
+        <li>Between time t=3 seconds and t=6 seconds the fill of the circle is animated between blue and bluegreen</li>
+        <li>Between time t=6 seconds and t=9 seconds the fill of the circle is animated between bluegreen and green</li>
       </ul>
     </d:passCriteria>
   </d:SVGTestCase>

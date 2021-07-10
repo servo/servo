@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>CSS Lists: dynamic update test for 'counter-set'</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.org">
+  <link rel="help" href="https://drafts.csswg.org/css-lists/#propdef-counter-set">
+  <link rel="match" href="counter-set-002-ref.html">
+</head>
+<body>
+<noscript>Test not run - javascript required.</noscript>
+<ol>
+<li></li>
+<li id="item" style="counter-increment: list-item 3"></li>
+<li></li>
+<style>
+.f {
+  display: list-item;
+}
+</style>
+<fieldset id="item4" class="f" style="counter-set: list-item 42"></fieldset>
+<li></li>
+</ol>
+
+<script>
+document.body.offsetTop;
+document.getElementById('item').style= '';
+document.getElementById('item4').style= '';
+</script>
+</body>
+</html>

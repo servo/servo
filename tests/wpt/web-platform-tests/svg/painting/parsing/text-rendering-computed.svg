@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     width="800px" height="800px">
+  <title>SVG Painting: getComputedStyle().textRendering</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/painting.html#TextRenderingProperty"/>
+    <h:meta name="assert" content="text-rendering computed value is as specified."/>
+  </metadata>
+  <g id="target"></g>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="/css/support/computed-testcommon.js"/>
+  <script><![CDATA[
+
+test_computed_value("text-rendering", "auto");
+test_computed_value("text-rendering", "optimizespeed");
+test_computed_value("text-rendering", "optimizelegibility");
+test_computed_value("text-rendering", "geometricprecision");
+
+  ]]></script>
+</svg>

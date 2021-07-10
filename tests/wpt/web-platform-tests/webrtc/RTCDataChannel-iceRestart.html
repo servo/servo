@@ -1,0 +1,76 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>RTCDataChannel interactions with ICE restart</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+async function checkCanPassData(channel1, channel2) {
+  channel1.send('hello');
+  const message = await awaitMessage(channel2);
+  assert_equals(message, 'hello');
+}
+
+async function pingPongData(channel1, channel2, size=1) {
+  channel1.send('hello');
+  const request = await awaitMessage(channel2);
+  assert_equals(request, 'hello');
+  const response = 'x'.repeat(size);
+  channel2.send(response);
+  const responseReceived = await awaitMessage(channel1);
+  assert_equals(response, responseReceived);
+}
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  const [channel1, channel2] = await createDataChannelPair(t, {}, pc1, pc2);
+  channel2.addEventListener('error', t.unreached_func());
+  channel2.addEventListener('error', t.unreached_func());
+
+  await checkCanPassData(channel1, channel2);
+  await checkCanPassData(channel2, channel1);
+
+  pc1.restartIce();
+  await exchangeOfferAnswer(pc1, pc2);
+
+  await checkCanPassData(channel1, channel2);
+  await checkCanPassData(channel2, channel1);
+  channel1.close();
+  channel2.close();
+}, `Data channel remains usable after ICE restart`);
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  const [channel1, channel2] = await createDataChannelPair(t, {}, pc1, pc2);
+  channel2.addEventListener('error', t.unreached_func());
+  channel2.addEventListener('error', t.unreached_func());
+
+  await pingPongData(channel1, channel2);
+  pc1.restartIce();
+
+  await pc1.setLocalDescription();
+  await pingPongData(channel1, channel2);
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pingPongData(channel1, channel2);
+  await pc2.setLocalDescription(await pc2.createAnswer());
+  await pingPongData(channel1, channel2);
+  await pc1.setRemoteDescription(pc2.localDescription);
+  await pingPongData(channel1, channel2);
+  channel1.close();
+  channel2.close();
+}, `Data channel remains usable at each step of an ICE restart`);
+
+
+
+</script>

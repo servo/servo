@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<body>
+  <script>
+    var portal = document.createElement("portal");
+    portal.src = "portal-post-message-before-activate-portal.html";
+    document.body.appendChild(portal);
+
+    portal.onload = () => {
+      portal.postMessage("message");
+      portal.activate();
+    }
+  </script>
+</body>

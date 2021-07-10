@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Inheritance of CSS Text properties</title>
+<link rel="help" href="https://drafts.csswg.org/css-text/#property-index">
+<meta name="assert" content="Properties inherit according to the spec.">
+<meta name="assert" content="Properties have initial values according to the spec.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/inheritance-testcommon.js"></script>
+</head>
+<body>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+assert_inherited('hanging-punctuation', 'none', 'first last');
+assert_inherited('hyphens', 'manual', 'none');
+assert_inherited('letter-spacing', 'normal', '10px');
+assert_inherited('line-break', 'auto', 'strict');
+assert_inherited('overflow-wrap', 'normal', 'break-word');
+assert_inherited('tab-size', '8', '10px');
+assert_inherited('text-align-all', 'start', 'right');
+assert_inherited('text-align-last', 'auto', 'right');
+assert_inherited('text-indent', '0px', '10px');
+assert_inherited('text-justify', 'auto', 'inter-character');
+assert_inherited('text-transform', 'none', 'uppercase');
+assert_inherited('white-space', 'normal', 'pre-wrap');
+assert_inherited('word-break', 'normal', 'break-all');
+assert_inherited('word-spacing', '0px', '10px');
+assert_inherited('word-wrap', 'normal', 'break-word');
+</script>
+</body>
+</html>

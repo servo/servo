@@ -1,0 +1,51 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection Simulcast Tests - setParameters/active</title>
+<meta name="timeout" content="long">
+<script src="../third_party/sdp/sdp.js"></script>
+<script src="simulcast.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async function queryReceiverStats(pc) {
+  const inboundStats = [];
+  await Promise.all(pc.getReceivers().map(async receiver => {
+    const receiverStats = await receiver.getStats();
+    receiverStats.forEach(stat => {
+      if (stat.type === 'inbound-rtp') {
+        inboundStats.push(stat);
+      }
+    });
+  }));
+  return inboundStats.map(s => s.framesDecoded);
+}
+
+promise_test(async t => {
+  const rids = [0, 1, 2];
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  await negotiateSimulcastAndWaitForVideo(t, rids, pc1, pc2);
+
+  // Deactivate all senders.
+  const parameters = pc1.getSenders()[0].getParameters();
+  parameters.encodings.forEach(e => {
+    e.active = false;
+  });
+  await pc1.getSenders()[0].setParameters(parameters);
+
+  // Assert (almost) no new frames are received.
+  // Without any action we would expect to have received around 30fps.
+  await new Promise(resolve => t.step_timeout(resolve, 100)); // Wait a bit.
+  const initialStats = await queryReceiverStats(pc2);
+  await new Promise(resolve => t.step_timeout(resolve, 1000)); // Wait more.
+  const subsequentStats = await queryReceiverStats(pc2);
+
+  subsequentStats.forEach((framesDecoded, idx) => {
+    assert_equals(framesDecoded, initialStats[idx]);
+  });
+}, 'Simulcast setParameters active=false stops sending frames');
+</script>

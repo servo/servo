@@ -24,9 +24,9 @@
         */
         function testEventAtB1aWithB1a(mode) {
             test(function () {
-                var nodes = createTestTree(mode);
+                var nodes = createFixedTestTree(mode);
 
-                log = dispatchEventWithLog(nodes, nodes.B1a, new MouseEvent('foo', {bubbles: true, composed: true, relatedTarget: nodes.B1}));
+                log = dispatchEventWithEventLog(nodes, nodes.B1a, new MouseEvent('foo', {bubbles: true, composed: true, relatedTarget: nodes.B1}));
 
                 assert_array_equals(log.eventPath,
                     ['B1a', 'B1c-S', 'B1-SR', 'B1', 'B-SR'], 'The event path must be correct.');
@@ -50,9 +50,9 @@
         */
         function testEventAtB1aWithB1b1(mode) {
             test(function () {
-                var nodes = createTestTree(mode);
+                var nodes = createFixedTestTree(mode);
 
-                log = dispatchEventWithLog(nodes, nodes.B1a, new MouseEvent('foo', {bubbles: true, composed: true, relatedTarget: nodes.B1b1}));
+                log = dispatchEventWithEventLog(nodes, nodes.B1a, new MouseEvent('foo', {bubbles: true, composed: true, relatedTarget: nodes.B1b1}));
 
                 assert_array_equals(log.eventPath,
                     ['B1a', 'B1c-S', 'B1-SR', 'B1', 'B-SR'], 'The event path must be correct.');
@@ -76,9 +76,9 @@
         */
         function testEventAtB1b1WithB1a(mode) {
             test(function () {
-                var nodes = createTestTree(mode);
+                var nodes = createFixedTestTree(mode);
 
-                log = dispatchEventWithLog(nodes, nodes.B1b1, new MouseEvent('foo', {bubbles: true, composed: true, relatedTarget: nodes.B1a}));
+                log = dispatchEventWithEventLog(nodes, nodes.B1b1, new MouseEvent('foo', {bubbles: true, composed: true, relatedTarget: nodes.B1a}));
 
                 assert_array_equals(log.eventPath,
                     ['B1b1', 'B1b-SR', 'B1b', 'B1-SR', 'B1', 'B-SR'], 'The event path must be correct.');
@@ -102,9 +102,9 @@
         */
         function testEventAtB1aWithD1(mode) {
             test(function () {
-                var nodes = createTestTree(mode);
+                var nodes = createFixedTestTree(mode);
 
-                log = dispatchEventWithLog(nodes, nodes.B1a, new MouseEvent('foo', {bubbles: true, composed: true, relatedTarget: nodes.D1}));
+                log = dispatchEventWithEventLog(nodes, nodes.B1a, new MouseEvent('foo', {bubbles: true, composed: true, relatedTarget: nodes.D1}));
 
                 assert_array_equals(log.eventPath,
                     ['B1a', 'B1c-S', 'B1-SR', 'B1', 'B-SR', 'B', 'A2-S', 'A-SR', 'A'], 'The event path must be correct.');
@@ -128,9 +128,9 @@
         */
         function testEventAtD1WithB1a(mode) {
             test(function () {
-                var nodes = createTestTree(mode);
+                var nodes = createFixedTestTree(mode);
 
-                log = dispatchEventWithLog(nodes, nodes.D1, new MouseEvent('foo', {bubbles: true, composed: true, relatedTarget: nodes.B1a}));
+                log = dispatchEventWithEventLog(nodes, nodes.D1, new MouseEvent('foo', {bubbles: true, composed: true, relatedTarget: nodes.B1a}));
 
                 assert_array_equals(log.eventPath,
                     ['D1', 'D-SR', 'D', 'B', 'A2-S', 'A-SR', 'A'], 'The event path must be correct.');
@@ -154,9 +154,9 @@
         */
         function testEventAtB1aWithA1a(mode) {
             test(function () {
-                var nodes = createTestTree(mode);
+                var nodes = createFixedTestTree(mode);
 
-                log = dispatchEventWithLog(nodes, nodes.B1a, new MouseEvent('foo', {bubbles: true, composed: true, relatedTarget: nodes.A1a}));
+                log = dispatchEventWithEventLog(nodes, nodes.B1a, new MouseEvent('foo', {bubbles: true, composed: true, relatedTarget: nodes.A1a}));
 
                 assert_array_equals(log.eventPath,
                     ['B1a', 'B1c-S', 'B1-SR', 'B1', 'B-SR', 'B', 'A2-S', 'A-SR', 'A'], 'The event path must be correct.');
@@ -180,9 +180,9 @@
         */
         function testEventAtA1aWithB1a(mode) {
             test(function () {
-                var nodes = createTestTree(mode);
+                var nodes = createFixedTestTree(mode);
 
-                log = dispatchEventWithLog(nodes, nodes.A1a, new MouseEvent('foo', {bubbles: true, composed: true, relatedTarget: nodes.B1a}));
+                log = dispatchEventWithEventLog(nodes, nodes.A1a, new MouseEvent('foo', {bubbles: true, composed: true, relatedTarget: nodes.B1a}));
 
                 assert_array_equals(log.eventPath,
                     ['A1a', 'A1-SR', 'A1', 'A-SR', 'A'], 'The event path must be correct.');
@@ -208,10 +208,10 @@
         */
         function testEventAtB1aWithDetachedA1a(mode) {
             test(function () {
-                var nodes = createTestTree(mode);
+                var nodes = createFixedTestTree(mode);
 
                 nodes['A-SR'].removeChild(nodes.A1);
-                log = dispatchEventWithLog(nodes, nodes.B1a, new MouseEvent('foo', {bubbles: true, composed: true, relatedTarget: nodes.A1a}));
+                log = dispatchEventWithEventLog(nodes, nodes.B1a, new MouseEvent('foo', {bubbles: true, composed: true, relatedTarget: nodes.A1a}));
 
                 assert_array_equals(log.eventPath,
                     ['B1a', 'B1c-S', 'B1-SR', 'B1', 'B-SR', 'B', 'A2-S', 'A-SR', 'A'], 'The event path must be correct.');
@@ -237,10 +237,10 @@
         */
         function testEventAtA1aWithDetachedB1a(mode) {
             test(function () {
-                var nodes = createTestTree(mode);
+                var nodes = createFixedTestTree(mode);
 
                 nodes['A-SR'].removeChild(nodes.A1);
-                log = dispatchEventWithLog(nodes, nodes.A1a, new MouseEvent('foo', {bubbles: true, composed: true, relatedTarget: nodes.B1a}));
+                log = dispatchEventWithEventLog(nodes, nodes.A1a, new MouseEvent('foo', {bubbles: true, composed: true, relatedTarget: nodes.B1a}));
 
                 assert_array_equals(log.eventPath,      ['A1a', 'A1-SR', 'A1'], 'The event path must be correct.');
                 assert_array_equals(log.relatedTargets, ['B',   'B',     'B' ], 'The related targets must be correct.');

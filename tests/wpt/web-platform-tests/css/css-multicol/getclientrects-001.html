@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://developer.mozilla.org/en-US/docs/Web/API/Element/getClientRects">
+<link rel="help" href="https://drafts.csswg.org/css-multicol/">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  .multicol {
+      visibility: hidden;
+      position: absolute;
+      left: 100px;
+      top: 50px;
+      columns: 3;
+      column-gap: 10px;
+      inline-size: 290px;
+      font: 20px/1 Ahem;
+      orphans: 1;
+      widows: 1;
+  }
+  #horizontalTbLtr {
+      writing-mode: horizontal-tb;
+  }
+  #verticalLrLtr {
+      writing-mode: vertical-lr;
+  }
+  #verticalRlLtr {
+      writing-mode: vertical-rl;
+  }
+  #horizontalTbRtl {
+      writing-mode: horizontal-tb;
+      direction: rtl;
+  }
+  #verticalLrRtl {
+      writing-mode: vertical-lr;
+      direction: rtl;
+  }
+  #verticalRlRtl {
+      writing-mode: vertical-rl;
+      direction: rtl;
+  }
+</style>
+<div class="multicol" id="horizontalTbLtr">
+  <br>
+  <span>XXXX XXXX XXXX XXXX</span>
+</div>
+<div class="multicol" id="verticalLrLtr">
+  <br>
+  <span>XXXX XXXX XXXX XXXX</span>
+</div>
+<div class="multicol" id="verticalRlLtr">
+  <br>
+  <span>XXXX XXXX XXXX XXXX</span>
+</div>
+<div class="multicol" id="horizontalTbRtl" >
+  <br>
+  <span>XXXX XXXX XXXX XXXX</span>
+</div>
+<div class="multicol" id="verticalLrRtl">
+  <br>
+  <span>XXXX XXXX XXXX XXXX</span>
+</div>
+<div class="multicol" id="verticalRlRtl">
+  <br>
+  <span>XXXX XXXX XXXX XXXX</span>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> {
+      var span = document.querySelector("#horizontalTbLtr span");
+      var rects = span.getClientRects();
+      assert_equals(rects.length, 4);
+      assert_equals(rects[0].left, 100);
+      assert_equals(rects[0].top, 70);
+      assert_equals(rects[1].left, 200);
+      assert_equals(rects[1].top, 50);
+      assert_equals(rects[2].left, 200);
+      assert_equals(rects[2].top, 70);
+      assert_equals(rects[3].left, 300);
+      assert_equals(rects[3].top, 50);
+  }, "horizontal-tb ltr");
+
+  test(()=> {
+      var span = document.querySelector("#verticalLrLtr span");
+      var rects = span.getClientRects();
+      assert_equals(rects.length, 4);
+      assert_equals(rects[0].left, 120);
+      assert_equals(rects[0].top, 50);
+      assert_equals(rects[1].left, 100);
+      assert_equals(rects[1].top, 150);
+      assert_equals(rects[2].left, 120);
+      assert_equals(rects[2].top, 150);
+      assert_equals(rects[3].left, 100);
+      assert_equals(rects[3].top, 250);
+  }, "vertical-lr ltr");
+
+  test(()=> {
+      var span = document.querySelector("#verticalRlLtr span");
+      var rects = span.getClientRects();
+      assert_equals(rects.length, 4);
+      assert_equals(rects[0].left, 100);
+      assert_equals(rects[0].top, 50);
+      assert_equals(rects[1].left, 120);
+      assert_equals(rects[1].top, 150);
+      assert_equals(rects[2].left, 100);
+      assert_equals(rects[2].top, 150);
+      assert_equals(rects[3].left, 120);
+      assert_equals(rects[3].top, 250);
+  }, "vertical-rl ltr");
+  test(()=> {
+      var span = document.querySelector("#horizontalTbRtl span");
+      var rects = span.getClientRects();
+      assert_equals(rects.length, 4);
+      assert_equals(rects[0].left, 310);
+      assert_equals(rects[0].top, 70);
+      assert_equals(rects[1].left, 210);
+      assert_equals(rects[1].top, 50);
+      assert_equals(rects[2].left, 210);
+      assert_equals(rects[2].top, 70);
+      assert_equals(rects[3].left, 110);
+      assert_equals(rects[3].top, 50);
+  }, "horizontal-tb rtl");
+  test(()=> {
+      var span = document.querySelector("#verticalLrRtl span");
+      var rects = span.getClientRects();
+      assert_equals(rects.length, 4);
+      assert_equals(rects[0].left, 120);
+      assert_equals(rects[0].top, 260);
+      assert_equals(rects[1].left, 100);
+      assert_equals(rects[1].top, 160);
+      assert_equals(rects[2].left, 120);
+      assert_equals(rects[2].top, 160);
+      assert_equals(rects[3].left, 100);
+      assert_equals(rects[3].top, 60);
+  }, "vertical-lr rtl");
+  test(()=> {
+      var span = document.querySelector("#verticalRlRtl span");
+      var rects = span.getClientRects();
+      assert_equals(rects.length, 4);
+      assert_equals(rects[0].left, 100);
+      assert_equals(rects[0].top, 260);
+      assert_equals(rects[1].left, 120);
+      assert_equals(rects[1].top, 160);
+      assert_equals(rects[2].left, 100);
+      assert_equals(rects[2].top, 160);
+      assert_equals(rects[3].left, 120);
+      assert_equals(rects[3].top, 60);
+  }, "vertical-rl rtl");
+</script>

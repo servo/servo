@@ -17,8 +17,8 @@
       </p>
       <p>
         <!--[[
-        Specify a 'stop-color' attribute equal to 'red' on a 'g' element ancestor of a 'rect' element. Specify a 'linearGradient' with a single 
-        'stop' that has a 'stop-color' of 'inherit'. Reference the 'linearGradient' from the 'rect' element and verify that the 'rect' is not red. 
+        Specify a 'stop-color' attribute equal to 'red' on a 'g' element ancestor of a 'rect' element. Specify a 'linearGradient' with a single
+        'stop' that has a 'stop-color' of 'inherit'. Reference the 'linearGradient' from the 'rect' element and verify that the 'rect' is not red.
         Repeat the same process with a sibling 'rect' element referencing a 'radialGradient' element.
         ]]-->
       </p>
@@ -29,7 +29,7 @@
       </p>
       <p>
         <!--[[
-        
+
         ]]-->
       </p>
     </d:operatorScript>
@@ -64,7 +64,7 @@
         <rect x="30" y="30" width="100" height="100" fill="url(#testLinear)" stop-color="inherit" />
         <rect x="150" y="30" width="100" height="100" fill="url(#testRadial)" stop-color="inherit" />
     </g>
-    
+
   </g>
   <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
     <text id="revision" x="10" y="340" stroke="none"

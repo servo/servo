@@ -16,10 +16,10 @@
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/metadata.html#Example">
         <p>
           Check that metadata in a variety of namespaces, inside a metadata
-          element, does not affect rendering in any way. The file is not valid to 
+          element, does not affect rendering in any way. The file is not valid to
           the SVG 1.1 DTD, but is well formed.
         </p>
-        <p>The diagram on the table is, by the way, a visualization of the 
+        <p>The diagram on the table is, by the way, a visualization of the
         RDF metadata in the graphic.</p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
@@ -44,15 +44,15 @@
   </defs>
   <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
   <metadata>
-    <rdf:RDF 
+    <rdf:RDF
       xmlns:prism="http://prismstandard.org/namespaces/1.0/basic/"
       xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
       xmlns:dc="http://purl.org/dc/elements/1.1/"
       xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#">
-      <!-- The empty value for the rdf:about attribute means it is describing  
+      <!-- The empty value for the rdf:about attribute means it is describing
             the file this is contained in. -->
          <rdf:Description rdf:about="">
-           <dc:description>Line drawing of woman in antique attire, 
+           <dc:description>Line drawing of woman in antique attire,
              which looks legal or perhaps mystical.</dc:description>
            <dc:format>image/svg+xml</dc:format>
            <dc:subject>Sibyll Trelawney</dc:subject>

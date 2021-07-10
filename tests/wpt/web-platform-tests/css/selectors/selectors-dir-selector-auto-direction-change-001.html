@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+<head>
+    <title>CSS Selectors Level 4 Test: Check for correctly updating :dir=auto when the the directionality is changed in a display:none subtree </title>
+    <meta charset="utf8">
+    <link rel="author" title="Miyoung Shin" href="mailto:myid.shin@igalia.com">
+    <link rel="help" href="http://www.w3.org/TR/selectors4/#dir-pseudo">
+    <link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+    <style>
+        #target {
+          width: 100px;
+          height: 100px;
+          background-color: red;
+        }
+        :dir(ltr) + #target {
+          background-color: green;
+        }
+    </style>
+</head>
+
+<body>
+    <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+    <div dir="auto" style="display:none">
+        <div>
+          <div id="inner">رسمية</div>
+        </div>
+    </div>
+    <div id="target"></div>
+    <script>
+        inner.offsetTop;
+        inner.firstChild.data = "LTR";
+    </script>
+</body>
+</html>

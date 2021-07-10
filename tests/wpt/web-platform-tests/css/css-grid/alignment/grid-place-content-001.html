@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Grid containers support 'place-content'</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-align" title="10.5. Aligning the Grid: the 'justify-content' and 'align-content' properties">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#align-justify-content" title="5.1. The 'justify-content' and 'align-content' Properties">
+<meta name="assert" content="This test checks that the 'justify-content' and 'align-content' properties, set using their 'place-content' shorthand, work well in grid containers.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+.grid {
+  display: inline-grid;
+  position: relative;
+  vertical-align: top;
+  border: 10px solid black;
+  margin: 5px;
+  font: 40px/1 Ahem;
+  color: cyan;
+}
+.small {
+  padding: 40px;
+}
+.big {
+  padding: 0px;
+}
+.content-box.small {
+  width: 0px;
+  height: 0px;
+}
+.content-box.big {
+  width: 80px;
+  height: 80px;
+}
+.border-box {
+  box-sizing: border-box;
+  width: 100px;
+  height: 100px;
+}
+.start {
+  place-content: start;
+}
+.center {
+  place-content: center;
+}
+.end {
+  place-content: end;
+}
+.space-between {
+  place-content: space-between;
+}
+.space-around {
+  place-content: space-around;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<div id="log"></div>
+
+<h3>Small content area</h3>
+
+<pre>box-sizing: content-box</pre>
+
+<div class="grid small content-box start">
+  <div data-offset-x="40" data-offset-y="40">X</div>
+</div>
+<div class="grid small content-box center">
+  <div data-offset-x="20" data-offset-y="20">X</div>
+</div>
+<div class="grid small content-box end">
+  <div data-offset-x="0" data-offset-y="0">X</div>
+</div>
+<div class="grid small content-box space-between">
+  <div data-offset-x="40" data-offset-y="40">X</div>
+</div>
+<div class="grid small content-box space-around">
+  <div data-offset-x="20" data-offset-y="20">X</div>
+</div>
+
+<pre>box-sizing: border-box</pre>
+
+<div class="grid small border-box start">
+  <div data-offset-x="40" data-offset-y="40">X</div>
+</div>
+<div class="grid small border-box center">
+  <div data-offset-x="20" data-offset-y="20">X</div>
+</div>
+<div class="grid small border-box end">
+  <div data-offset-x="0" data-offset-y="0">X</div>
+</div>
+<div class="grid small border-box space-between">
+  <div data-offset-x="40" data-offset-y="40">X</div>
+</div>
+<div class="grid small border-box space-around">
+  <div data-offset-x="20" data-offset-y="20">X</div>
+</div>
+
+<h3>Big content area</h3>
+
+<pre>box-sizing: content-box</pre>
+
+<div class="grid big content-box start">
+  <div data-offset-x="0" data-offset-y="0">X</div>
+</div>
+<div class="grid big content-box center">
+  <div data-offset-x="20" data-offset-y="20">X</div>
+</div>
+<div class="grid big content-box end">
+  <div data-offset-x="40" data-offset-y="40">X</div>
+</div>
+<div class="grid big content-box space-between">
+  <div data-offset-x="0" data-offset-y="0">X</div>
+</div>
+<div class="grid big content-box space-around">
+  <div data-offset-x="20" data-offset-y="20">X</div>
+</div>
+
+<pre>box-sizing: border-box</pre>
+
+<div class="grid border-box start">
+  <div data-offset-x="0" data-offset-y="0">X</div>
+</div>
+<div class="grid big border-box center">
+  <div data-offset-x="20" data-offset-y="20">X</div>
+</div>
+<div class="grid big border-box end">
+  <div data-offset-x="40" data-offset-y="40">X</div>
+</div>
+<div class="grid big border-box space-between">
+  <div data-offset-x="0" data-offset-y="0">X</div>
+</div>
+<div class="grid big border-box space-around">
+  <div data-offset-x="20" data-offset-y="20">X</div>
+</div>
+
+<script>
+document.fonts.ready.then(() => {
+  checkLayout('.grid');
+});
+</script>

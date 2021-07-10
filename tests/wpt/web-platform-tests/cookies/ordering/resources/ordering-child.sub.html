@@ -1,0 +1,74 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Test cookie ordering</title>
+    <meta name=help href="https://tools.ietf.org/html/draft-ietf-httpbis-rfc6265bis-07#section-5.5">
+    <meta name="timeout" content="long">
+    <script src="/resources/testharness.js"></script>
+    <script src="/cookies/resources/cookie-test.js"></script>
+  </head>
+  <body>
+    <div id=log></div>
+    <script>
+      const host = "{{host}}";
+      const wwwHost = "{{domains[www]}}";
+
+      const orderingTests = [
+      {
+          cookie: [
+            "testA=1",
+            "testB=1; path=/cookies",
+            "testC=1; path=/",
+            "testD=1; path=/cooking",
+            `testE=1; domain=.${host}; path=/`,
+            `testF=1; domain=.${host}; path=/cookies/attributes`,
+          ],
+          expected: "testF=1; testB=1; testC=1; testE=1",
+          name: "Cookies with longer path attribute values are ordered before shorter ones",
+          location: "/cookies/attributes/resources/path/one.html",
+        },
+        {
+          cookie: [
+            "testA=2",
+            "testB=2; path=/cookies/attributes/resources",
+            "testC=2; path=/",
+            "testD=2; path=/cooking",
+            `testE=2; domain=.${host}`,
+            `testF=2; domain=.${host}; path=/cookies/attributes`,
+            `testG=2; domain=.${host}; path=/cookies/attributes/resources/path`,
+            "testH=2; path=/cookies",
+          ],
+          expected: "testG=2; testB=2; testF=2; testH=2; testC=2",
+          name: "Cookies with longer path attribute values are ordered before shorter ones (2)",
+          location: "/cookies/attributes/resources/path/one.html",
+        },
+        {
+          cookie: [
+            "testA=3; path=/cookies/attributes/resources/path",
+            "testB=3; path=/cookies/attributes/resources/path/one.html",
+            "testC=3; path=/cookies/attributes",
+          ],
+          expected: "testB=3; testA=3; testC=3",
+          name: "Cookies with longer paths are listed before cookies with shorter paths",
+          location: "/cookies/attributes/resources/path/one.html",
+        },
+        {
+          cookie: [
+            "testZ=4; path=/cookies",
+            "testB=4; path=/cookies/attributes/resources/path",
+            "testA=4; path=/cookies",
+          ],
+          expected: "testB=4; testZ=4; testA=4",
+          name: "For equal length paths, list the cookie with an earlier creation time first",
+          location: "/cookies/attributes/resources/path/one.html",
+        },
+      ];
+
+      for (const test of orderingTests) {
+        httpRedirectCookieTest(test.cookie, test.expected, test.name,
+                               test.location);
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>WebShare Test: Simple share</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/manual-helper.js"></script>
+  </head>
+  <body>
+    <script>
+        setup({explicit_timeout: true});
+
+        const url = 'https://www.example.com/some/path?some_query#some_fragment';
+        setupManualShareTest({title: 'the title', text: 'the message', url});
+        callWhenButtonClicked(() => navigator.share(
+              {title: 'the title', text: 'the message', url})).then(
+              result => {
+                // Check that promise resolved with undefined. This is guarded
+                // by an if statement because we do not want it to register as a
+                // test if it passes (since this is a manual test).
+                if (result !== undefined) {
+                  assert_equals(result, undefined);
+                }
+              });
+    </script>
+  </body>
+</html>

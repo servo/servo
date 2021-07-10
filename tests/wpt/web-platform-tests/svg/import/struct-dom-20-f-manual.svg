@@ -13,7 +13,7 @@
     version="$Revision: 1.2 $" testname="$RCSfile: struct-dom-20-f.svg,v $">
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/struct.html#InterfaceSVGElementInstance">
       <p>
-        Test SVGElementInstance and EventTarget.dispatchEvent. 
+        Test SVGElementInstance and EventTarget.dispatchEvent.
       </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
@@ -45,8 +45,8 @@
         <use id="defsuse1" xlink:href="#defscircle4" transform="translate(-600, 0)" onclick="verifyDefs4(evt)"/>
       </g>
       <circle id="defscircle4" cx="1000" cy="180" r="25" fill="red"/>
-      
-      <script><![CDATA[        
+
+      <script><![CDATA[
         function verifyDefs3(e)
         {
           var instance = document.getElementById("use3").instanceRoot;
@@ -58,7 +58,7 @@
             dc3instance.correspondingElement.setAttribute("fill", "lime");
           }
         }
-        
+
         function verifyDefs4(e)
         {
           var useElement = document.getElementById("use3");
@@ -73,7 +73,7 @@
             document.getElementById("defscircle4").setAttribute("fill", "lime");
           }
         }
-        
+
         function verify(e)
         {
           var c = document.getElementById("circle");
@@ -83,17 +83,17 @@
             c.setAttribute("fill", "lime");
           }
         }
-        
+
         function dispatchMouseClick(target)
         {
            var mouseevent = document.createEvent("MouseEvents");
-           mouseevent.initMouseEvent("click", 
+           mouseevent.initMouseEvent("click",
                                       true,                 // canbubble
                                       true,                 // cancellable
                                       document.defaultView, // the AbstractView
                                       1,                    // mouseclick count
                                       0,                    // screen x coordinate
-                                      0,                    // screen y coordinate 
+                                      0,                    // screen y coordinate
                                       0,                    // client x coordinate
                                       0,                    // client y coordinate
                                       false,                // ctrlKey
@@ -104,7 +104,7 @@
                                       null);                // related target
            target.dispatchEvent(mouseevent);
         }
-        
+
         function runTest()
         {
           // test bubbling click
@@ -112,7 +112,7 @@
             var instanceCircle = document.getElementById("use3").instanceRoot.firstChild.nextSibling;
             dispatchMouseClick(instanceCircle);
           } catch(e) {}
-          
+
           // test nested use with bubbling click
           try {
             var nestedUseInstance = document.getElementById("use3").instanceRoot.childNodes.item(3);
@@ -122,7 +122,7 @@
         }
       ]]></script>
     </defs>
-    
+
     <use id="use3" xlink:href="#defsg1"/>
   </g>
   <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">

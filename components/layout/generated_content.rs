@@ -1,6 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! The generated content assignment phase.
 //!
@@ -8,32 +8,50 @@
 //! done in parallel and is therefore a sequential pass that runs on as little of the flow tree
 //! as possible.
 
-use context::{LayoutContext, with_thread_local_font_context};
-use flow::{self, AFFECTS_COUNTERS, Flow, HAS_COUNTER_AFFECTING_CHILDREN, ImmutableFlowUtils};
-use flow::InorderFlowTraversal;
-use fragment::{Fragment, GeneratedContentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
-use gfx::display_list::OpaqueNode;
+use crate::context::{with_thread_local_font_context, LayoutContext};
+use crate::display_list::items::OpaqueNode;
+use crate::flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
+use crate::fragment::{
+    Fragment, GeneratedContentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo,
+};
+use crate::text::TextRunScanner;
+use crate::traversal::InorderFlowTraversal;
 use script_layout_interface::wrapper_traits::PseudoElementType;
 use smallvec::SmallVec;
 use std::collections::{HashMap, LinkedList};
-use std::sync::Arc;
-use style::computed_values::{display, list_style_type};
-use style::computed_values::content::ContentItem;
-use style::properties::ServoComputedValues;
+use style::computed_values::list_style_type::T as ListStyleType;
+use style::properties::ComputedValues;
 use style::selector_parser::RestyleDamage;
-use style::servo::restyle_damage::RESOLVE_GENERATED_CONTENT;
-use text::TextRunScanner;
+use style::servo::restyle_damage::ServoRestyleDamage;
+use style::values::generics::counters::ContentItem;
+use style::values::specified::list::{QuotePair, Quotes};
+
+lazy_static! {
+    static ref INITIAL_QUOTES: style::ArcSlice<QuotePair> = style::ArcSlice::from_iter_leaked(
+        vec![
+            QuotePair {
+                opening: "\u{201c}".to_owned().into(),
+                closing: "\u{201d}".to_owned().into(),
+            },
+            QuotePair {
+                opening: "\u{2018}".to_owned().into(),
+                closing: "\u{2019}".to_owned().into(),
+            },
+        ]
+        .into_iter()
+    );
+}
 
 // Decimal styles per CSS-COUNTER-STYLES § 6.1:
-static DECIMAL: [char; 10] = [ '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' ];
+static DECIMAL: [char; 10] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 // TODO(pcwalton): `decimal-leading-zero`
-static ARABIC_INDIC: [char; 10] = [ '٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩' ];
+static ARABIC_INDIC: [char; 10] = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
 // TODO(pcwalton): `armenian`, `upper-armenian`, `lower-armenian`
-static BENGALI: [char; 10] = [ '০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯' ];
-static CAMBODIAN: [char; 10] = [ '០', '១', '២', '៣', '៤', '៥', '៦', '៧', '៨', '៩' ];
+static BENGALI: [char; 10] = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+static CAMBODIAN: [char; 10] = ['០', '១', '២', '៣', '៤', '៥', '៦', '៧', '៨', '៩'];
 // TODO(pcwalton): Suffix for CJK decimal.
-static CJK_DECIMAL: [char; 10] = [ '〇', '一', '二', '三', '四', '五', '六', '七', '八', '九' ];
-static DEVANAGARI: [char; 10] = [ '०', '१', '२', '३', '४', '५', '६', '७', '८', '९' ];
+static CJK_DECIMAL: [char; 10] = ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+static DEVANAGARI: [char; 10] = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
 // TODO(pcwalton): `georgian`
 static GUJARATI: [char; 10] = ['૦', '૧', '૨', '૩', '૪', '૫', '૬', '૭', '૮', '૯'];
 static GURMUKHI: [char; 10] = ['੦', '੧', '੨', '੩', '੪', '੫', '੬', '੭', '੮', '੯'];
@@ -53,45 +71,39 @@ static TIBETAN: [char; 10] = ['༠', '༡', '༢', '༣', '༤', '༥', '༦', '
 // Alphabetic styles per CSS-COUNTER-STYLES § 6.2:
 static LOWER_ALPHA: [char; 26] = [
     'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's',
-    't', 'u', 'v', 'w', 'x', 'y', 'z'
+    't', 'u', 'v', 'w', 'x', 'y', 'z',
 ];
 static UPPER_ALPHA: [char; 26] = [
     'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S',
-    'T', 'U', 'V', 'W', 'X', 'Y', 'Z'
+    'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
 ];
 static CJK_EARTHLY_BRANCH: [char; 12] = [
-    '子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'
+    '子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥',
 ];
-static CJK_HEAVENLY_STEM: [char; 10] = [
-    '甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'
-];
+static CJK_HEAVENLY_STEM: [char; 10] = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
 static LOWER_GREEK: [char; 24] = [
     'α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'θ', 'ι', 'κ', 'λ', 'μ', 'ν', 'ξ', 'ο', 'π', 'ρ', 'σ', 'τ',
-    'υ', 'φ', 'χ', 'ψ', 'ω'
+    'υ', 'φ', 'χ', 'ψ', 'ω',
 ];
 static HIRAGANA: [char; 48] = [
-    'あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ', 'さ', 'し', 'す', 'せ', 'そ',
-    'た', 'ち', 'つ', 'て', 'と', 'な', 'に', 'ぬ', 'ね', 'の', 'は', 'ひ', 'ふ', 'へ', 'ほ',
-    'ま', 'み', 'む', 'め', 'も', 'や', 'ゆ', 'よ', 'ら', 'り', 'る', 'れ', 'ろ',
-    'わ', 'ゐ', 'ゑ', 'を', 'ん'
+    'あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ', 'さ', 'し', 'す', 'せ', 'そ', 'た',
+    'ち', 'つ', 'て', 'と', 'な', 'に', 'ぬ', 'ね', 'の', 'は', 'ひ', 'ふ', 'へ', 'ほ', 'ま', 'み',
+    'む', 'め', 'も', 'や', 'ゆ', 'よ', 'ら', 'り', 'る', 'れ', 'ろ', 'わ', 'ゐ', 'ゑ', 'を', 'ん',
 ];
 static HIRAGANA_IROHA: [char; 47] = [
-    'い', 'ろ', 'は', 'に', 'ほ', 'へ', 'と', 'ち', 'り', 'ぬ', 'る', 'を', 'わ', 'か', 'よ',
-    'た', 'れ', 'そ', 'つ', 'ね', 'な', 'ら', 'む', 'う', 'ゐ', 'の', 'お', 'く', 'や', 'ま',
-    'け', 'ふ', 'こ', 'え', 'て', 'あ', 'さ', 'き', 'ゆ', 'め', 'み', 'し', 'ゑ',
-    'ひ', 'も', 'せ', 'す'
+    'い', 'ろ', 'は', 'に', 'ほ', 'へ', 'と', 'ち', 'り', 'ぬ', 'る', 'を', 'わ', 'か', 'よ', 'た',
+    'れ', 'そ', 'つ', 'ね', 'な', 'ら', 'む', 'う', 'ゐ', 'の', 'お', 'く', 'や', 'ま', 'け', 'ふ',
+    'こ', 'え', 'て', 'あ', 'さ', 'き', 'ゆ', 'め', 'み', 'し', 'ゑ', 'ひ', 'も', 'せ', 'す',
 ];
 static KATAKANA: [char; 48] = [
-    'ア', 'イ', 'ウ', 'エ', 'オ', 'カ', 'キ', 'ク', 'ケ', 'コ', 'サ', 'シ', 'ス', 'セ', 'ソ',
-    'タ', 'チ', 'ツ', 'テ', 'ト', 'ナ', 'ニ', 'ヌ', 'ネ', 'ノ', 'ハ', 'ヒ', 'フ', 'ヘ', 'ホ',
-    'マ', 'ミ', 'ム', 'メ', 'モ', 'ヤ', 'ユ', 'ヨ', 'ラ', 'リ', 'ル', 'レ', 'ロ',
-    'ワ', 'ヰ', 'ヱ', 'ヲ', 'ン'
+    'ア', 'イ', 'ウ', 'エ', 'オ', 'カ', 'キ', 'ク', 'ケ', 'コ', 'サ', 'シ', 'ス', 'セ', 'ソ', 'タ',
+    'チ', 'ツ', 'テ', 'ト', 'ナ', 'ニ', 'ヌ', 'ネ', 'ノ', 'ハ', 'ヒ', 'フ', 'ヘ', 'ホ', 'マ', 'ミ',
+    'ム', 'メ', 'モ', 'ヤ', 'ユ', 'ヨ', 'ラ', 'リ', 'ル', 'レ', 'ロ', 'ワ', 'ヰ', 'ヱ', 'ヲ', 'ン',
 ];
 static KATAKANA_IROHA: [char; 47] = [
-    'イ', 'ロ', 'ハ', 'ニ', 'ホ', 'ヘ', 'ト', 'チ', 'リ', 'ヌ', 'ル', 'ヲ', 'ワ', 'カ', 'ヨ',
-    'タ', 'レ', 'ソ', 'ツ', 'ネ', 'ナ', 'ラ', 'ム', 'ウ', 'ヰ', 'ノ', 'オ', 'ク', 'ヤ', 'マ',
-    'ケ', 'フ', 'コ', 'エ', 'テ', 'ア', 'サ', 'キ', 'ユ', 'メ', 'ミ', 'シ', 'ヱ',
-    'ヒ', 'モ', 'セ', 'ス'
+    'イ', 'ロ', 'ハ', 'ニ', 'ホ', 'ヘ', 'ト', 'チ', 'リ', 'ヌ', 'ル', 'ヲ', 'ワ', 'カ', 'ヨ', 'タ',
+    'レ', 'ソ', 'ツ', 'ネ', 'ナ', 'ラ', 'ム', 'ウ', 'ヰ', 'ノ', 'オ', 'ク', 'ヤ', 'マ', 'ケ', 'フ',
+    'コ', 'エ', 'テ', 'ア', 'サ', 'キ', 'ユ', 'メ', 'ミ', 'シ', 'ヱ', 'ヒ', 'モ', 'セ', 'ス',
 ];
 
 /// The generated content resolution traversal.
@@ -120,7 +132,7 @@ impl<'a> ResolveGeneratedContent<'a> {
 
 impl<'a> InorderFlowTraversal for ResolveGeneratedContent<'a> {
     #[inline]
-    fn process(&mut self, flow: &mut Flow, level: u32) {
+    fn process(&mut self, flow: &mut dyn Flow, level: u32) {
         let mut mutator = ResolveGeneratedContentFragmentMutator {
             traversal: self,
             level: level,
@@ -131,14 +143,18 @@ impl<'a> InorderFlowTraversal for ResolveGeneratedContent<'a> {
     }
 
     #[inline]
-    fn should_process(&mut self, flow: &mut Flow) -> bool {
-        flow::base(flow).restyle_damage.intersects(RESOLVE_GENERATED_CONTENT) ||
-            flow::base(flow).flags.intersects(AFFECTS_COUNTERS | HAS_COUNTER_AFFECTING_CHILDREN)
+    fn should_process_subtree(&mut self, flow: &mut dyn Flow) -> bool {
+        flow.base()
+            .restyle_damage
+            .intersects(ServoRestyleDamage::RESOLVE_GENERATED_CONTENT) ||
+            flow.base().flags.intersects(
+                FlowFlags::AFFECTS_COUNTERS | FlowFlags::HAS_COUNTER_AFFECTING_CHILDREN,
+            )
     }
 }
 
 /// The object that mutates the generated content fragments.
-struct ResolveGeneratedContentFragmentMutator<'a,'b:'a> {
+struct ResolveGeneratedContentFragmentMutator<'a, 'b: 'a> {
     /// The traversal.
     traversal: &'a mut ResolveGeneratedContent<'b>,
     /// The level we're at in the flow tree.
@@ -149,7 +165,7 @@ struct ResolveGeneratedContentFragmentMutator<'a,'b:'a> {
     incremented: bool,
 }
 
-impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
+impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
     fn mutate_fragment(&mut self, fragment: &mut Fragment) {
         // We only reset and/or increment counters once per flow. This avoids double-incrementing
         // counters on list items (once for the main fragment and once for the marker).
@@ -158,8 +174,8 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
         }
 
         let mut list_style_type = fragment.style().get_list().list_style_type;
-        if fragment.style().get_box().display != display::T::list_item {
-            list_style_type = list_style_type::T::none
+        if !fragment.style().get_box().display.is_list_item() {
+            list_style_type = ListStyleType::None
         }
 
         let mut new_info = None;
@@ -168,78 +184,97 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
                 if let SpecificFragmentInfo::GeneratedContent(ref mut info) = fragment.specific {
                     info
                 } else {
-                    return
+                    return;
                 };
 
             match **info {
                 GeneratedContentInfo::ListItem => {
-                    new_info = self.traversal.list_item.render(self.traversal.layout_context,
-                                                               fragment.node,
-                                                               fragment.pseudo.clone(),
-                                                               fragment.style.clone(),
-                                                               list_style_type,
-                                                               RenderingMode::Suffix(".\u{00a0}"))
-                }
+                    new_info = self.traversal.list_item.render(
+                        self.traversal.layout_context,
+                        fragment.node,
+                        fragment.pseudo.clone(),
+                        fragment.style.clone(),
+                        list_style_type,
+                        RenderingMode::Suffix(".\u{00a0}"),
+                    )
+                },
                 GeneratedContentInfo::Empty |
                 GeneratedContentInfo::ContentItem(ContentItem::String(_)) => {
                     // Nothing to do here.
-                }
-                GeneratedContentInfo::ContentItem(ContentItem::Counter(ref counter_name,
-                                                                       counter_style)) => {
+                },
+                GeneratedContentInfo::ContentItem(ContentItem::Counter(
+                    ref counter_name,
+                    counter_style,
+                )) => {
                     let temporary_counter = Counter::new();
-                    let counter = self.traversal
-                                      .counters
-                                      .get(&*counter_name)
-                                      .unwrap_or(&temporary_counter);
-                    new_info = counter.render(self.traversal.layout_context,
-                                              fragment.node,
-                                              fragment.pseudo.clone(),
-                                              fragment.style.clone(),
-                                              counter_style,
-                                              RenderingMode::Plain)
-                }
-                GeneratedContentInfo::ContentItem(ContentItem::Counters(ref counter_name,
-                                                                        ref separator,
-                                                                        counter_style)) => {
+                    let counter = self
+                        .traversal
+                        .counters
+                        .get(&*counter_name.0)
+                        .unwrap_or(&temporary_counter);
+                    new_info = counter.render(
+                        self.traversal.layout_context,
+                        fragment.node,
+                        fragment.pseudo.clone(),
+                        fragment.style.clone(),
+                        counter_style,
+                        RenderingMode::Plain,
+                    )
+                },
+                GeneratedContentInfo::ContentItem(ContentItem::Counters(
+                    ref counter_name,
+                    ref separator,
+                    counter_style,
+                )) => {
                     let temporary_counter = Counter::new();
-                    let counter = self.traversal
-                                      .counters
-                                      .get(&*counter_name)
-                                      .unwrap_or(&temporary_counter);
-                    new_info = counter.render(self.traversal.layout_context,
-                                              fragment.node,
-                                              fragment.pseudo,
-                                              fragment.style.clone(),
-                                              counter_style,
-                                              RenderingMode::All(&separator));
-                }
+                    let counter = self
+                        .traversal
+                        .counters
+                        .get(&*counter_name.0)
+                        .unwrap_or(&temporary_counter);
+                    new_info = counter.render(
+                        self.traversal.layout_context,
+                        fragment.node,
+                        fragment.pseudo,
+                        fragment.style.clone(),
+                        counter_style,
+                        RenderingMode::All(&separator),
+                    );
+                },
                 GeneratedContentInfo::ContentItem(ContentItem::OpenQuote) => {
-                    new_info = render_text(self.traversal.layout_context,
-                                           fragment.node,
-                                           fragment.pseudo,
-                                           fragment.style.clone(),
-                                           self.quote(&*fragment.style, false));
+                    new_info = render_text(
+                        self.traversal.layout_context,
+                        fragment.node,
+                        fragment.pseudo,
+                        fragment.style.clone(),
+                        self.quote(&*fragment.style, false),
+                    );
                     self.traversal.quote += 1
-                }
+                },
                 GeneratedContentInfo::ContentItem(ContentItem::CloseQuote) => {
                     if self.traversal.quote >= 1 {
                         self.traversal.quote -= 1
                     }
 
-                    new_info = render_text(self.traversal.layout_context,
-                                           fragment.node,
-                                           fragment.pseudo,
-                                           fragment.style.clone(),
-                                           self.quote(&*fragment.style, true));
-                }
+                    new_info = render_text(
+                        self.traversal.layout_context,
+                        fragment.node,
+                        fragment.pseudo,
+                        fragment.style.clone(),
+                        self.quote(&*fragment.style, true),
+                    );
+                },
                 GeneratedContentInfo::ContentItem(ContentItem::NoOpenQuote) => {
                     self.traversal.quote += 1
-                }
+                },
                 GeneratedContentInfo::ContentItem(ContentItem::NoCloseQuote) => {
                     if self.traversal.quote >= 1 {
                         self.traversal.quote -= 1
                     }
-                }
+                },
+                GeneratedContentInfo::ContentItem(ContentItem::Url(..)) => {
+                    unreachable!("Servo doesn't parse content: url(..) yet")
+                },
             }
         };
 
@@ -249,20 +284,23 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
             // so that it isn't processed again on the next layout.  FIXME (mbrubeck): When
             // processing an inline flow, this traversal should be allowed to insert or remove
             // fragments.  Then we can just remove these fragments rather than adding placeholders.
-            None => SpecificFragmentInfo::GeneratedContent(box GeneratedContentInfo::Empty)
+            None => SpecificFragmentInfo::GeneratedContent(Box::new(GeneratedContentInfo::Empty)),
         };
     }
 
     fn reset_and_increment_counters_as_necessary(&mut self, fragment: &mut Fragment) {
         let mut list_style_type = fragment.style().get_list().list_style_type;
-        if !self.is_block || fragment.style().get_box().display != display::T::list_item {
-            list_style_type = list_style_type::T::none
+        if !self.is_block || !fragment.style().get_box().display.is_list_item() {
+            list_style_type = ListStyleType::None
         }
 
         match list_style_type {
-            list_style_type::T::disc | list_style_type::T::none | list_style_type::T::circle |
-            list_style_type::T::square | list_style_type::T::disclosure_open |
-            list_style_type::T::disclosure_closed => {}
+            ListStyleType::Disc |
+            ListStyleType::None |
+            ListStyleType::Circle |
+            ListStyleType::Square |
+            ListStyleType::DisclosureOpen |
+            ListStyleType::DisclosureClosed => {},
             _ => self.traversal.list_item.increment(self.level, 1),
         }
 
@@ -272,46 +310,54 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
         }
         self.traversal.list_item.truncate_to_level(self.level);
 
-        for &(ref counter_name, value) in &fragment.style().get_counters().counter_reset.0 {
+        for pair in &*fragment.style().get_counters().counter_reset {
+            let counter_name = &*pair.name.0;
             if let Some(ref mut counter) = self.traversal.counters.get_mut(counter_name) {
-                 counter.reset(self.level, value);
-                 continue
+                counter.reset(self.level, pair.value);
+                continue;
             }
 
             let mut counter = Counter::new();
-            counter.reset(self.level, value);
-            self.traversal.counters.insert((*counter_name).clone(), counter);
+            counter.reset(self.level, pair.value);
+            self.traversal
+                .counters
+                .insert(counter_name.to_owned(), counter);
         }
 
-        for &(ref counter_name, value) in &fragment.style().get_counters().counter_increment.0 {
+        for pair in &*fragment.style().get_counters().counter_increment {
+            let counter_name = &*pair.name.0;
             if let Some(ref mut counter) = self.traversal.counters.get_mut(counter_name) {
-                counter.increment(self.level, value);
-                continue
+                counter.increment(self.level, pair.value);
+                continue;
             }
 
             let mut counter = Counter::new();
-            counter.increment(self.level, value);
-            self.traversal.counters.insert((*counter_name).clone(), counter);
+            counter.increment(self.level, pair.value);
+            self.traversal
+                .counters
+                .insert(counter_name.to_owned(), counter);
         }
 
         self.incremented = true
     }
 
-    fn quote(&self, style: &ServoComputedValues, close: bool) -> String {
-        let quotes = &style.get_list().quotes;
-        if quotes.0.is_empty() {
-            return String::new()
+    fn quote(&self, style: &ComputedValues, close: bool) -> String {
+        let quotes = match style.get_list().quotes {
+            Quotes::Auto => &*INITIAL_QUOTES,
+            Quotes::QuoteList(ref list) => &list.0,
+        };
+        if quotes.is_empty() {
+            return String::new();
         }
-        let &(ref open_quote, ref close_quote) =
-            if self.traversal.quote as usize >= quotes.0.len() {
-                quotes.0.last().unwrap()
-            } else {
-                &quotes.0[self.traversal.quote as usize]
-            };
-        if close {
-            close_quote.clone()
+        let pair = if self.traversal.quote as usize >= quotes.len() {
+            quotes.last().unwrap()
         } else {
-            open_quote.clone()
+            &quotes[self.traversal.quote as usize]
+        };
+        if close {
+            pair.closing.to_string()
+        } else {
+            pair.opening.to_string()
         }
     }
 }
@@ -324,9 +370,7 @@ struct Counter {
 
 impl Counter {
     fn new() -> Counter {
-        Counter {
-            values: Vec::new(),
-        }
+        Counter { values: Vec::new() }
     }
 
     fn reset(&mut self, level: u32, value: i32) {
@@ -334,7 +378,7 @@ impl Counter {
         if let Some(ref mut existing_value) = self.values.last_mut() {
             if level == existing_value.level {
                 existing_value.value = value;
-                return
+                return;
             }
         }
 
@@ -354,7 +398,7 @@ impl Counter {
     fn increment(&mut self, level: u32, amount: i32) {
         if let Some(ref mut value) = self.values.last_mut() {
             value.value += amount;
-            return
+            return;
         }
 
         self.values.push(CounterValue {
@@ -363,14 +407,15 @@ impl Counter {
         })
     }
 
-    fn render(&self,
-              layout_context: &LayoutContext,
-              node: OpaqueNode,
-              pseudo: PseudoElementType<()>,
-              style: Arc<ServoComputedValues>,
-              list_style_type: list_style_type::T,
-              mode: RenderingMode)
-              -> Option<SpecificFragmentInfo> {
+    fn render(
+        &self,
+        layout_context: &LayoutContext,
+        node: OpaqueNode,
+        pseudo: PseudoElementType,
+        style: crate::ServoArc<ComputedValues>,
+        list_style_type: ListStyleType,
+        mode: RenderingMode,
+    ) -> Option<SpecificFragmentInfo> {
         let mut string = String::new();
         match mode {
             RenderingMode::Plain => {
@@ -379,7 +424,7 @@ impl Counter {
                     None => 0,
                 };
                 push_representation(value, list_style_type, &mut string)
-            }
+            },
             RenderingMode::Suffix(suffix) => {
                 let value = match self.values.last() {
                     Some(ref value) => value.value,
@@ -387,7 +432,7 @@ impl Counter {
                 };
                 push_representation(value, list_style_type, &mut string);
                 string.push_str(suffix)
-            }
+            },
             RenderingMode::All(separator) => {
                 let mut first = true;
                 for value in &self.values {
@@ -397,7 +442,7 @@ impl Counter {
                     first = false;
                     push_representation(value.value, list_style_type, &mut string)
                 }
-            }
+            },
         }
 
         if string.is_empty() {
@@ -427,21 +472,26 @@ struct CounterValue {
 }
 
 /// Creates fragment info for a literal string.
-fn render_text(layout_context: &LayoutContext,
-               node: OpaqueNode,
-               pseudo: PseudoElementType<()>,
-               style: Arc<ServoComputedValues>,
-               string: String)
-               -> Option<SpecificFragmentInfo> {
+fn render_text(
+    layout_context: &LayoutContext,
+    node: OpaqueNode,
+    pseudo: PseudoElementType,
+    style: crate::ServoArc<ComputedValues>,
+    string: String,
+) -> Option<SpecificFragmentInfo> {
     let mut fragments = LinkedList::new();
-    let info = SpecificFragmentInfo::UnscannedText(
-        box UnscannedTextFragmentInfo::new(string, None));
-    fragments.push_back(Fragment::from_opaque_node_and_style(node,
-                                                             pseudo,
-                                                             style.clone(),
-                                                             style,
-                                                             RestyleDamage::rebuild_and_reflow(),
-                                                             info));
+    let info = SpecificFragmentInfo::UnscannedText(Box::new(UnscannedTextFragmentInfo::new(
+        string.into_boxed_str(),
+        None,
+    )));
+    fragments.push_back(Fragment::from_opaque_node_and_style(
+        node,
+        pseudo,
+        style.clone(),
+        style,
+        RestyleDamage::rebuild_and_reflow(),
+        info,
+    ));
     // FIXME(pcwalton): This should properly handle multiple marker fragments. This could happen
     // due to text run splitting.
     let fragments = with_thread_local_font_context(layout_context, |font_context| {
@@ -456,85 +506,71 @@ fn render_text(layout_context: &LayoutContext,
 
 /// Appends string that represents the value rendered using the system appropriate for the given
 /// `list-style-type` onto the given string.
-fn push_representation(value: i32, list_style_type: list_style_type::T, accumulator: &mut String) {
+fn push_representation(value: i32, list_style_type: ListStyleType, accumulator: &mut String) {
     match list_style_type {
-        list_style_type::T::none => {}
-        list_style_type::T::disc |
-        list_style_type::T::circle |
-        list_style_type::T::square |
-        list_style_type::T::disclosure_open |
-        list_style_type::T::disclosure_closed => {
-            accumulator.push(static_representation(list_style_type))
-        }
-        list_style_type::T::decimal => push_numeric_representation(value, &DECIMAL, accumulator),
-        list_style_type::T::arabic_indic => {
+        ListStyleType::None => {},
+        ListStyleType::Disc |
+        ListStyleType::Circle |
+        ListStyleType::Square |
+        ListStyleType::DisclosureOpen |
+        ListStyleType::DisclosureClosed => accumulator.push(static_representation(list_style_type)),
+        ListStyleType::Decimal => push_numeric_representation(value, &DECIMAL, accumulator),
+        ListStyleType::ArabicIndic => {
             push_numeric_representation(value, &ARABIC_INDIC, accumulator)
-        }
-        list_style_type::T::bengali => push_numeric_representation(value, &BENGALI, accumulator),
-        list_style_type::T::cambodian | list_style_type::T::khmer => {
+        },
+        ListStyleType::Bengali => push_numeric_representation(value, &BENGALI, accumulator),
+        ListStyleType::Cambodian | ListStyleType::Khmer => {
             push_numeric_representation(value, &CAMBODIAN, accumulator)
-        }
-        list_style_type::T::cjk_decimal => {
-            push_numeric_representation(value, &CJK_DECIMAL, accumulator)
-        }
-        list_style_type::T::devanagari => {
-            push_numeric_representation(value, &DEVANAGARI, accumulator)
-        }
-        list_style_type::T::gujarati => push_numeric_representation(value, &GUJARATI, accumulator),
-        list_style_type::T::gurmukhi => push_numeric_representation(value, &GURMUKHI, accumulator),
-        list_style_type::T::kannada => push_numeric_representation(value, &KANNADA, accumulator),
-        list_style_type::T::lao => push_numeric_representation(value, &LAO, accumulator),
-        list_style_type::T::malayalam => {
-            push_numeric_representation(value, &MALAYALAM, accumulator)
-        }
-        list_style_type::T::mongolian => {
-            push_numeric_representation(value, &MONGOLIAN, accumulator)
-        }
-        list_style_type::T::myanmar => push_numeric_representation(value, &MYANMAR, accumulator),
-        list_style_type::T::oriya => push_numeric_representation(value, &ORIYA, accumulator),
-        list_style_type::T::persian => push_numeric_representation(value, &PERSIAN, accumulator),
-        list_style_type::T::telugu => push_numeric_representation(value, &TELUGU, accumulator),
-        list_style_type::T::thai => push_numeric_representation(value, &THAI, accumulator),
-        list_style_type::T::tibetan => push_numeric_representation(value, &TIBETAN, accumulator),
-        list_style_type::T::lower_alpha => {
+        },
+        ListStyleType::CjkDecimal => push_numeric_representation(value, &CJK_DECIMAL, accumulator),
+        ListStyleType::Devanagari => push_numeric_representation(value, &DEVANAGARI, accumulator),
+        ListStyleType::Gujarati => push_numeric_representation(value, &GUJARATI, accumulator),
+        ListStyleType::Gurmukhi => push_numeric_representation(value, &GURMUKHI, accumulator),
+        ListStyleType::Kannada => push_numeric_representation(value, &KANNADA, accumulator),
+        ListStyleType::Lao => push_numeric_representation(value, &LAO, accumulator),
+        ListStyleType::Malayalam => push_numeric_representation(value, &MALAYALAM, accumulator),
+        ListStyleType::Mongolian => push_numeric_representation(value, &MONGOLIAN, accumulator),
+        ListStyleType::Myanmar => push_numeric_representation(value, &MYANMAR, accumulator),
+        ListStyleType::Oriya => push_numeric_representation(value, &ORIYA, accumulator),
+        ListStyleType::Persian => push_numeric_representation(value, &PERSIAN, accumulator),
+        ListStyleType::Telugu => push_numeric_representation(value, &TELUGU, accumulator),
+        ListStyleType::Thai => push_numeric_representation(value, &THAI, accumulator),
+        ListStyleType::Tibetan => push_numeric_representation(value, &TIBETAN, accumulator),
+        ListStyleType::LowerAlpha => {
             push_alphabetic_representation(value, &LOWER_ALPHA, accumulator)
-        }
-        list_style_type::T::upper_alpha => {
+        },
+        ListStyleType::UpperAlpha => {
             push_alphabetic_representation(value, &UPPER_ALPHA, accumulator)
-        }
-        list_style_type::T::cjk_earthly_branch => {
+        },
+        ListStyleType::CjkEarthlyBranch => {
             push_alphabetic_representation(value, &CJK_EARTHLY_BRANCH, accumulator)
-        }
-        list_style_type::T::cjk_heavenly_stem => {
+        },
+        ListStyleType::CjkHeavenlyStem => {
             push_alphabetic_representation(value, &CJK_HEAVENLY_STEM, accumulator)
-        }
-        list_style_type::T::lower_greek => {
+        },
+        ListStyleType::LowerGreek => {
             push_alphabetic_representation(value, &LOWER_GREEK, accumulator)
-        }
-        list_style_type::T::hiragana => {
-            push_alphabetic_representation(value, &HIRAGANA, accumulator)
-        }
-        list_style_type::T::hiragana_iroha => {
+        },
+        ListStyleType::Hiragana => push_alphabetic_representation(value, &HIRAGANA, accumulator),
+        ListStyleType::HiraganaIroha => {
             push_alphabetic_representation(value, &HIRAGANA_IROHA, accumulator)
-        }
-        list_style_type::T::katakana => {
-            push_alphabetic_representation(value, &KATAKANA, accumulator)
-        }
-        list_style_type::T::katakana_iroha => {
+        },
+        ListStyleType::Katakana => push_alphabetic_representation(value, &KATAKANA, accumulator),
+        ListStyleType::KatakanaIroha => {
             push_alphabetic_representation(value, &KATAKANA_IROHA, accumulator)
-        }
+        },
     }
 }
 
 /// Returns the static character that represents the value rendered using the given list-style, if
 /// possible.
-pub fn static_representation(list_style_type: list_style_type::T) -> char {
+pub fn static_representation(list_style_type: ListStyleType) -> char {
     match list_style_type {
-        list_style_type::T::disc => '•',
-        list_style_type::T::circle => '◦',
-        list_style_type::T::square => '▪',
-        list_style_type::T::disclosure_open => '▾',
-        list_style_type::T::disclosure_closed => '‣',
+        ListStyleType::Disc => '•',
+        ListStyleType::Circle => '◦',
+        ListStyleType::Square => '▪',
+        ListStyleType::DisclosureOpen => '▾',
+        ListStyleType::DisclosureClosed => '‣',
         _ => panic!("No static representation for this list-style-type!"),
     }
 }
@@ -565,7 +601,7 @@ fn push_numeric_representation(value: i32, system: &[char], accumulator: &mut St
     // Step 1.
     if abs_value == 0 {
         accumulator.push(system[0]);
-        return
+        return;
     }
 
     // Step 2.

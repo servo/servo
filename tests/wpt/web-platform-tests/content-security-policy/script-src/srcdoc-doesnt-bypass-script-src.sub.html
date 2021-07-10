@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'nonce-abc'; connect-src 'self';">
+    <title>srcdoc-doesnt-bypass-script-src</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["violated-directive=script-src-elem"]'></script>
+</head>
+
+<body>
+
+    <script nonce='abc'>
+        window.onmessage = function(e) {
+          log(e.data);
+        }
+
+        var i = document.createElement('iframe');
+        i.addEventListener('securitypolicyviolation', function(e) {
+            log("violated-directive=" + e.violatedDirective);
+        });
+
+        i.srcdoc = "<sc" + "ript nonce='abc'>" +
+                     "window.addEventListener('securitypolicyviolation', function(e) {" +
+                       "window.parent.postMessage('violated-directive=' + e.violatedDirective, '*');});" +
+                   "</scr" + "ipt>" +
+                   "<scr" + "ipt>window.parent.log('FAIL')</scr" + "ipt>";
+        document.body.appendChild(i);
+    </script>
+    <div id="log"></div>
+</body>
+
+</html>

@@ -15,36 +15,34 @@
   <div id="log"></div>
   <script>
 test(function() {
-  var t = async_test("setting src attribute on autoplay audio should trigger loadstart then progress event", {timeout:5000});
+  var t = async_test("setting src attribute on autoplay audio should trigger loadstart then progress event");
   var a = document.getElementById("a");
   var found_loadstart = false;
-  a.addEventListener("loadstart", function() {
+  a.addEventListener("error", t.unreached_func());
+  a.addEventListener("loadstart", t.step_func(function() {
     found_loadstart = true;
-  });
-  a.addEventListener("progress", function() {
-    t.step(function() {
-     assert_true(found_loadstart);
-    });
+  }));
+  a.addEventListener("progress", t.step_func(function() {
+    assert_true(found_loadstart);
     t.done();
     a.pause();
-  }, false);
+  }), false);
   a.src = getAudioURI("/media/sound_5") + "?" + new Date() + Math.random();
 }, "audio events - loadstart, then progress");
 
 test(function() {
-  var t = async_test("setting src attribute on autoplay video should trigger loadstart then progress event", {timeout:5000});
+  var t = async_test("setting src attribute on autoplay video should trigger loadstart then progress event");
   var v = document.getElementById("v");
   var found_loadstart = false;
-  v.addEventListener("loadstart", function() {
+  v.addEventListener("error", t.unreached_func());
+  v.addEventListener("loadstart", t.step_func(function() {
     found_loadstart = true;
-  });
-  v.addEventListener("progress", function() {
-    t.step(function() {
-     assert_true(found_loadstart);
-    });
+  }));
+  v.addEventListener("progress", t.step_func(function() {
+    assert_true(found_loadstart);
     t.done();
     v.pause();
-  }, false);
+  }), false);
   v.src = getVideoURI("/media/movie_5") + "?" + new Date() + Math.random();
 }, "video events - loadstart, then progress");
   </script>

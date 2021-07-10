@@ -1,0 +1,20 @@
+WEBVTT
+Cues settings may only be separated by spaces or tabs, but illegal characters
+between settings are ignored.
+
+1
+00:00:00.000 --> 00:00:30.500 - line:43% position:10% -
+Bear is Coming!!!!! Bad separator ignored.
+
+2
+00:00:31.000 --> 00:01:00.500 --> position:50% Vertical:lr align:end
+I said Bear is coming!!!! Bad separator and setting ignored.
+
+3
+00:01:01.000 --> 00:02:00.500 <align:end> <position:90%>
+I said Bear is coming now!!!! Bad setting markup. Not ignored because the settings are
+not delimited by spaces or tabs.
+
+4
+00:02:01.000 --> 100:20:00.500 / vertical:lr | position:90%
+I said Bear is coming now!!!! Bad separator ignored.

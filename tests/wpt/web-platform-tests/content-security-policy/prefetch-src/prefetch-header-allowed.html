@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!-- Headers:
+    Content-Security-Policy: prefetch-src 'self'
+    Link: </content-security-policy/support/pass.png>;rel=prefetch
+  -->
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/content-security-policy/support/testharness-helper.js'></script>
+  <script src='/content-security-policy/support/prefetch-helper.js'></script>
+  <script>
+    async_test(t => {
+      let url = window.origin + '/content-security-policy/support/pass.png';
+      assert_no_csp_event_for_url(t, url);
+
+      waitUntilResourceDownloaded(url)
+        .then(t.step_func_done()); 
+    }, 'Prefetch via `Link` header succeeds when allowed by prefetch-src');
+  </script>
+</head>
+<body>
+</body>
+</html>
+

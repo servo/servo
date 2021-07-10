@@ -1,0 +1,18 @@
+name: epochs
+on:
+  schedule:
+    # Trigger 10 minutes past every 3rd hour. 10 minutes is a safety margin
+    # for any manifest workflow to finish, see tools/wpt/revlist.py.
+    - cron: 10 */3 * * *
+jobs:
+  update:
+    runs-on: ubuntu-18.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+    - name: Run epochs_update.sh
+      # Use a conditional step instead of a conditional job to work around #20700.
+      if: github.repository == 'web-platform-tests/wpt'
+      run: ./tools/ci/epochs_update.sh
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

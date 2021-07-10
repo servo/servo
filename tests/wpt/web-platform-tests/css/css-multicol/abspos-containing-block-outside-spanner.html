@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>Abspos elements nested inside a column spanner</title>
+<link rel="help" href="href=https://drafts.csswg.org/css-multicol/">
+<link rel="match" href="abspos-containing-block-outside-spanner-ref.html">
+<br><br><br><br><br>
+<p>There should be no red.</p>
+<div style="position:absolute; top:0; left:0; background-color:red; height:100px; width:100px;"></div>
+<div style="position:absolute; bottom:0; right:0; background-color:red; height:100px; width:100px;"></div>
+<div style="columns:3; column-gap:1em; width:20em;">
+    <div style="position:relative;">
+        <div style="column-span:all; height:50px;">
+            <div style="position:absolute; top:0; left:0; background-color:green; height:100px; width:100px;"></div>
+            <div style="position:absolute; bottom:0; right:0; background-color:green; height:100px; width:100px;"></div>
+        </div>
+    </div>
+</div>

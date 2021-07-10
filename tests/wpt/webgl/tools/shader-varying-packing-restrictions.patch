@@ -1,0 +1,54 @@
+diff --git a/tests/wpt/webgl/tests/conformance/glsl/misc/shader-varying-packing-restrictions.html b/tests/wpt/webgl/tests/conformance/glsl/misc/shader-varying-packing-restrictions.html
+index 8a7fd1a420..d289bbeabb 100644
+--- a/tests/wpt/webgl/tests/conformance/glsl/misc/shader-varying-packing-restrictions.html
++++ b/tests/wpt/webgl/tests/conformance/glsl/misc/shader-varying-packing-restrictions.html
+@@ -135,7 +135,8 @@ for (var ii = 0; ii < varyingTypes.length; ++ii) {
+     fShaderSource: wtu.replaceParams(fArrayTestSource, {numTestType: minVars, fcode: fcode}, info),
+     fShaderSuccess: true,
+     linkSuccess: true,
+-    passMsg: "shaders with varying array of " + info.type + " with " + minVars + " elements (the minimum required) should succeed",
++    // Try to use deterministic test names
++    passMsg: "shaders with varying array of " + info.type + " with the minimum number of elements should succeed",
+   });
+ 
+   // Test array[max + 1] accessing last element. WebGL requires this to fail.
+@@ -147,7 +148,8 @@ for (var ii = 0; ii < varyingTypes.length; ++ii) {
+     fShaderSource: wtu.replaceParams(fArrayTestSource, {numTestType: numVars + 1, fcode: fcode}, info),
+     fShaderSuccess: false,
+     linkSuccess: false,
+-    passMsg: "shaders with varying array of " + info.type + " with " + (numVars + 1) + " elements (one past maximum) accessing last element should fail",
++    // Try to use deterministic test names
++    passMsg: "shaders with varying array of " + info.type + " with one more than the maximum number of elements accessing last element should fail",
+   });
+ 
+   // Test array[max + 1] accessing first element. WebGL requires this to fail but ES allows truncating array.
+@@ -159,7 +161,8 @@ for (var ii = 0; ii < varyingTypes.length; ++ii) {
+     fShaderSource: wtu.replaceParams(fArrayTestSource, {numTestType: numVars + 1, fcode: fcode}, info),
+     fShaderSuccess: false,
+     linkSuccess: false,
+-    passMsg: "shaders with varying array of " + info.type + " with " + (numVars + 1) + " elements (one past maximum) accessing first element should fail",
++    // Try to use deterministic test names
++    passMsg: "shaders with varying array of " + info.type + " with one more than the maximum number of elements accessing first element should fail",
+   });
+ 
+   // Note: We can't test max varyings as actual GL drivers are only required to be able to
+@@ -189,7 +192,8 @@ for (var ii = 0; ii < varyingTypes.length; ++ii) {
+     fShaderSource: wtu.replaceParams(fVaryingTestSource, generateCode(numMax + 1), info),
+     fShaderSuccess: false,
+     linkSuccess: false,
+-    passMsg: "shaders with " + (numMax + 1) + " varyings of " + info.type + " (one past maximum) should fail",
++    // Try to use deterministic test names
++    passMsg: "shaders with one more than the maximum number of varyings of " + info.type + " should fail",
+   });
+ 
+   // Test required varyings of type.
+@@ -199,7 +203,8 @@ for (var ii = 0; ii < varyingTypes.length; ++ii) {
+     fShaderSource: wtu.replaceParams(fVaryingTestSource, generateCode(minVars), info),
+     fShaderSuccess: true,
+     linkSuccess: true,
+-    passMsg: "shaders with " + minVars + " varyings of " + info.type + " (the minimum required) should succeed",
++    // Try to use deterministic test names
++    passMsg: "shaders with the minimum number of varyings of " + info.type + " should succeed",
+   });
+ }
+ 

@@ -4,13 +4,13 @@
 <title>Setting drag image during drag and drop of selection</title>
 <style type="text/css">
 span
-	{color:green;
-	background-color:yellow;}
+  {color:green;
+  background-color:yellow;}
 </style>
 <script type="application/ecmascript">
 function start(event)
-	{event.dataTransfer.effectAllowed = 'copy';
-	event.dataTransfer.setDragImage(document.querySelector('span'), 1, 1);}
+  {event.dataTransfer.effectAllowed = 'copy';
+  event.dataTransfer.setDragImage(document.querySelector('span'), 1, 1);}
 </script>
 </head>
 <body onload="window.getSelection().selectAllChildren(document.querySelector('p'))">

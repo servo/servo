@@ -16,6 +16,10 @@ async_test(function(t) {
 
     open.onupgradeneeded = t.step_func(function() {
         var db = open.result;
+        t.add_cleanup(function() {
+            db.close();
+            indexedDB.deleteDatabase(db.name);
+        });
         var store = db.createObjectStore('store');
         store.put('a', 1).onerror = t.unreached_func('put should not fail');
         var request = store.openCursor();
@@ -25,7 +29,7 @@ async_test(function(t) {
             assert_class_string(cursor, 'IDBCursorWithValue',
                 'result should be a cursor');
 
-            assert_throws('InvalidAccessError', function() {
+            assert_throws_dom('InvalidAccessError', function() {
                 cursor.continuePrimaryKey(2, 2);
             }, 'continuePrimaryKey() should throw if source is not an index');
         });
@@ -60,6 +64,10 @@ async_test(function(t) {
 
         open.onupgradeneeded = t.step_func(function() {
             var db = open.result;
+            t.add_cleanup(function() {
+                db.close();
+                indexedDB.deleteDatabase(db.name);
+            });
             var store = db.createObjectStore('store', {keyPath: 'pk'});
             var index = store.createIndex('index', 'ik', {multiEntry: true});
             store.put({pk: 'a', ik: [1,2,3]}).onerror =
@@ -79,7 +87,7 @@ async_test(function(t) {
                 assert_equals(cursor.primaryKey, testcase.expected_primaryKey,
                     'primaryKey should match');
 
-                assert_throws('InvalidAccessError', function() {
+                assert_throws_dom('InvalidAccessError', function() {
                     cursor.continuePrimaryKey(
                         testcase.continue_key,
                         testcase.continue_primaryKey);

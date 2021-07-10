@@ -1,0 +1,58 @@
+<!DOCTYPE HTML>
+<title>auxclick is a PointerEvent</title>
+<meta name="variant" content="?mouse">
+<meta name="variant" content="?pen">
+<link rel="help" href="https://github.com/w3c/pointerevents/pull/317">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<input id="target" style="margin: 20px">
+
+<script>
+'use strict';
+let target = document.getElementById("target");
+let pointerId = 0;
+let pointerType = "";
+let inputSource = location.search.substring(1);
+
+target.addEventListener("pointerdown", (e)=>{
+  pointerId = e.pointerId;
+  pointerType = e.pointerType;
+});
+
+function testFunction(test){
+  return test.step_func(e=>{
+    assert_equals(e.constructor, window.PointerEvent, "auxclick should use a PointerEvent constructor");
+    assert_true(e instanceof PointerEvent, "auxclick should be a PointerEvent");
+    assert_equals(e.pointerId, pointerId, "auxclick's pointerId should match the pointerId of the pointer event that triggers it");
+    assert_equals(e.pointerType, pointerType, "axclick's pointerType should match the pointerType of the pointer event that triggers it");
+  });
+}
+
+function run_test(pointerType){
+  promise_test((test) => new Promise((resolve, reject) => {
+    const testPointer = pointerType + "TestPointer";
+    let auxclickFunc = testFunction(test);
+    test.add_cleanup(() => {
+      target.removeEventListener("auxclick", auxclickFunc);
+      pointerId = 0;
+      pointerType = "";
+    });
+    target.addEventListener("auxclick", auxclickFunc);
+    let eventWatcher = new EventWatcher(test, target, ["auxclick"]);
+    let actions = new test_driver.Actions();
+    actions = actions
+      .addPointer(testPointer, pointerType)
+      .pointerMove(0,0, {origin:target, sourceName:testPointer})
+      .pointerDown({button:actions.ButtonType.MIDDLE, sourceName:testPointer})
+      .pointerUp({button:actions.ButtonType.MIDDLE, sourceName:testPointer});
+    Promise.all([eventWatcher.wait_for("auxclick"), actions.send()]).then(()=>resolve());
+  }), "auxclick using " + pointerType + " is a PointerEvent");
+}
+
+run_test(inputSource);
+// TODO(crbug.com/1150441): Add test for auxclick from touch.Note: Calling run_test("touch") here times out.
+</script>

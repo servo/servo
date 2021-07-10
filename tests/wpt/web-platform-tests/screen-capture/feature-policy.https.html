@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<body>
+  <button id="button">User gesture</button>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/common/get-host-info.sub.js"></script>
+  <script src="/feature-policy/resources/featurepolicy.js"></script>
+  <script>
+  'use strict';
+
+  async function getDisplayMedia(constraints) {
+    const p = new Promise(r => button.onclick = r);
+    await test_driver.click(button);
+    await p;
+    return navigator.mediaDevices.getDisplayMedia(constraints);
+  }
+
+  async function testGDM({audio, video}) {
+    let stream;
+    try {
+      stream = await getDisplayMedia({audio, video});
+      if (stream.getVideoTracks().length == 0) {
+        throw {name: `requested video track must be present with ` +
+                     `audio ${audio} and video ${video}, or fail`};
+      }
+    } finally {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    }
+  }
+
+  const cross_domain = get_host_info().HTTPS_REMOTE_ORIGIN;
+  run_all_fp_tests_allow_self(
+    cross_domain,
+    'display-capture',
+    'NotAllowedError',
+    async () => {
+      await testGDM({video: true});
+      await testGDM({audio: true, video: true});
+      await testGDM({audio: true});
+    }
+  );
+  </script>
+</body>

@@ -1,0 +1,152 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Pointer Events properties tests</title>
+        <meta name="timeout" content="long">
+        <meta name="viewport" content="width=device-width">
+        <meta name="variant" content="?mouse">
+        <meta name="variant" content="?touch">
+        <meta name="variant" content="?pen">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <!-- Additional helper script for common checks across event types -->
+        <script type="text/javascript" src="pointerevent_support.js"></script>
+        <style>
+          #testContainer {
+            touch-action: none;
+            user-select: none;
+            position: relative;
+          }
+          #box1 {
+            top: 30px;
+            left: 50px;
+            background: black;
+          }
+          #box2 {
+            top: 70px;
+            left: 250px;
+            background: red;
+          }
+          #innerFrame {
+            top: 10px;
+            left: 100px;
+          }
+          #square2 {
+            visibility: block;
+          }
+        </style>
+        <script>
+            var inputSource = location.search.substring(1);
+            var expectedPointerId = NaN;
+            var lastScreenX = null;
+            var lastScreenY = null;
+            var actionsPromise;
+
+            function resetTestState() {
+                lastScreenX = null;
+                lastScreenY = null;
+            }
+
+            var nonPointermoveEventList = [
+                  "pointerover",
+                  "pointerenter",
+                  "pointerdown",
+                  "pointerup",
+                  "pointerout",
+                  "pointerleave",
+                  "gotpointercapture",
+                  "lostpointercapture"];
+
+            function injectInput(pointerType) {
+                var pointerId = pointerType + "Pointer1";
+                return new test_driver.Actions()
+                                     .addPointer(pointerId, pointerType)
+                                     .pointerMove(0, 0, {origin: box1})
+                                     .pointerDown()
+                                     .pointerMove(20, 30, {origin: box1})
+                                     .pointerMove(50, 40, {origin: box1})
+                                     .pointerMove(80, 30, {origin: box1})
+                                     .pointerMove(110, 20, {origin: box1})
+                                     .pointerMove(0, 0, {origin: box2})
+                                     .pointerUp()
+                                     .send();
+            }
+
+            function run() {
+                var test_pointerEvent = setup_pointerevent_test("pointerevent attributes", [inputSource]);
+
+                [document, document.getElementById('innerFrame').contentDocument].forEach(function(element) {
+                  nonPointermoveEventList.forEach(function(eventName) {
+                    on_event(element, eventName, function (event) {
+                      if (lastScreenX && lastScreenY) {
+                        test_pointerEvent.step(function() {
+                          assert_equals(event.movementX, 0, "movementX should be 0 for event other than pointermove.");
+                          assert_equals(event.movementY, 0, "movementY should be 0 for event other than pointermove.");
+                        });
+                        // Reset when entering the new frame.
+                        if (event.type == "pointerenter") {
+                          lastScreenX = null;
+                          lastScreenY = null;
+                        }
+                      }
+                    });
+                  });
+
+                  on_event(element, 'pointermove', function (event) {
+                    test_pointerEvent.step(function() {
+                      if (lastScreenX && lastScreenY) {
+                        assert_equals(event.movementX, event.screenX - lastScreenX, "movementX should be the delta between current event's and last event's screenX");
+                        assert_equals(event.movementY, event.screenY - lastScreenY, "movementY should be the delta between current event's and last event's screenY");
+                      }
+                    });
+                    lastScreenX = event.screenX;
+                    lastScreenY = event.screenY;
+                  });
+                });
+                on_event(document.querySelector('#box1'), 'pointerdown', function(event) {
+                  event.target.releasePointerCapture(event.pointerId);
+                  test_pointerEvent.step(function() {
+                      assert_equals(event.pointerType, expectedPointerType, "Use the instructed pointer type.");
+                  });
+                  lastScreenX = event.screenX;
+                  lastScreenY = event.screenY;
+                });
+                on_event(document.querySelector('#box2'), 'pointerup', function(event) {
+                  // Make sure the test finishes after all the input actions are completed.
+                  actionsPromise.then( () => {
+                    test_pointerEvent.done();
+                  });
+                });
+
+                // Inject input
+                actionsPromise = injectInput(inputSource);
+            }
+
+        </script>
+    </head>
+    <body onload="run()">
+        <h1>Pointer Events movementX/Y attribute test</h1>
+        <h2 id="pointerTypeDescription"></h2>
+        <h4>
+            Test Description: This test checks the movementX/Y properties of pointer events.
+            <ol>
+                 <li>Press down on the black square.</li>
+                 <li>Move your pointer  slowly along a straight line to the red square.</li>
+                 <li>Release the pointer when you are over the red square.</li>
+            </ol>
+
+            Test passes if the proper behavior of the events is observed.
+        </h4>
+        <div id="testContainer">
+            <div id="box1" class="square"></div>
+            <div id="box2" class="square"></div>
+            <iframe id="innerFrame" src="resources/pointerevent_movementxy-iframe.html"></iframe>
+        </div>
+        <div class="spacer"></div>
+    </body>
+</html>
+

@@ -1,5 +1,5 @@
-<svg id="svg-root" width="100%" height="100%" 
-  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg" 
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
   xmlns:xlink="http://www.w3.org/1999/xlink">
   <!--======================================================================-->
   <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
@@ -76,7 +76,7 @@
           more faded for each instance further to the right.
           <ul>
             <li>
-              The first image (left most) must be a rect filled with a linear gradient that 
+              The first image (left most) must be a rect filled with a linear gradient that
               transitions from solid green to transparent green.
             </li>
             <li>The second image (second from the left) must be identical to the first image.</li>
@@ -142,7 +142,7 @@
       <image x="126" y="51" width="98" height="98" xlink:href="../images/DisplaceChecker.png"/>
       <image x="241" y="51" width="98" height="98" xlink:href="../images/DisplaceChecker.png"/>
       <image x="356" y="51" width="98" height="98" xlink:href="../images/DisplaceChecker.png"/>
-            
+
       <rect fill="url(#test_linear_gradient)" stroke="black" x="10" y="50" width="100" height="100"/>
       <rect fill="url(#test_linear_gradient)" stroke="black" x="125" y="50" width="100" height="100" filter="url(#convolve-without-bias)"/>
       <rect fill="url(#test_linear_gradient)" stroke="black" x="240" y="50" width="100" height="100" filter="url(#convolve-with-bias05)"/>
@@ -157,7 +157,7 @@
   <!-- comment out this watermark once the test is approved -->
   <g id="draft-watermark">
     <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
-    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240" 
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
       text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
   </g>
 </svg>

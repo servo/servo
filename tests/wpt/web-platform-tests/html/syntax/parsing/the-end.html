@@ -29,12 +29,28 @@ async_test(function() {
 }, "load");
 
 async_test(function() {
-  var seen = false;
-  document.addEventListener("DOMContentLoaded", this.step_func(function() {
-    seen = true;
+  window.addEventListener("pageshow", this.step_func_done(function(e) {
+    assert_equals(e.type, "pageshow");
+    assert_false(e.bubbles, "bubbles should be false");
+    assert_false(e.cancelable, "cancelable should be false");
+    assert_equals(e.target, document, "target should be document");
+    assert_true(e.isTrusted, "isTrusted should be true");
+    assert_class_string(e, "PageTransitionEvent");
   }));
-  window.addEventListener("load", this.step_func_done(function() {
-    assert_true(seen, "DOMContentLoaded should be fired before load");
+}, "pageshow");
+
+async_test(function() {
+  var seen_dcl = false;
+  var seen_load = false;
+  document.addEventListener("DOMContentLoaded", this.step_func(function() {
+    seen_dcl = true;
+  }));
+  window.addEventListener("load", this.step_func(function() {
+    seen_load = true;
+    assert_true(seen_dcl, "DOMContentLoaded should be fired before load");
+  }));
+  window.addEventListener("pageshow", this.step_func_done(function() {
+    assert_true(seen_load, "load should be fired before pageshow")
   }));
 }, "order");
 </script>

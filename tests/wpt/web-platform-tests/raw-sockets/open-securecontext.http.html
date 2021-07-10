@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Sockets test: Open from non-secure context</title>
+    <link rel="help" href="https://github.com/WICG/raw-sockets/blob/master/docs/explainer.md#security-considerations">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+        test(() => {
+          assert_false('openTCPSocket' in navigator, 'navigator has attribute \'openTCPSocket\'.');
+        }, 'navigator.openTCPSocket must be undefined in non-secure context');
+
+        test(() => {
+          assert_false('openUDPSocket' in navigator, 'navigator has attribute \'openUDPSocket\'.');
+        }, 'navigator.openUDPSocket must be undefined in non-secure context');
+    </script>
+  </body>
+</html>

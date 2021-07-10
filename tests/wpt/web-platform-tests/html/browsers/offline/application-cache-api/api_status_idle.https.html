@@ -1,0 +1,23 @@
+<!DOCTYPE HTML>
+<html manifest="../resources/manifest/clock.manifest">
+  <head>
+    <title>Offline Application Cache - API_status_IDLE</title>
+    <meta name="timeout" content="long">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      var t = async_test("idle status test"),
+          cache = window.applicationCache;
+
+      setTimeout(function(){
+        t.step(function() {
+          assert_equals(cache.status, cache.IDLE, "cache.status should equals cache.IDLE");
+        });
+        t.done();
+      }, 3000);
+    </script>
+  </body>
+</html>

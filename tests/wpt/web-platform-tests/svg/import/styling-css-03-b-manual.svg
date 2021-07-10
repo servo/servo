@@ -18,7 +18,7 @@
           Test ancestor, child and sibling selectors.
         </p>
     </d:testDescription>
-    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">      
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
       <p>
         Run the test. No interaction required.
       </p>
@@ -40,7 +40,7 @@
         this makes the rectangle in the second test green. The first-child pseudoclass matches
         circles which are the first child of elements of class 'mummy' and if correctly
         selected this circle will be filled green. (The circle in the upper test is not
-        the first child). 
+        the first child).
         -->
   </d:SVGTestCase>
   <title id="test-title">$RCSfile: styling-css-03-b.svg,v $</title>

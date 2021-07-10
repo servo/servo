@@ -1,0 +1,43 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/test/tests/unit/helpers.js"></script>
+<title>assert_implements unittests</title>
+<script>
+'use strict';
+
+test(() => {
+  // All values in JS that are not falsy are truthy, so we just check some
+  // common cases here.
+  assert_implements(true, 'true is a truthy value');
+  assert_implements(5, 'positive integeter is a truthy value');
+  assert_implements(-5, 'negative integeter is a truthy value');
+  assert_implements('foo', 'non-empty string is a truthy value');
+}, 'truthy values');
+
+test_failure(() => {
+  assert_implements(false);
+}, 'false is a falsy value');
+
+test_failure(() => {
+  assert_implements(0);
+}, '0 is a falsy value');
+
+test_failure(() => {
+  assert_implements('');
+}, 'empty string is a falsy value');
+
+test_failure(() => {
+  assert_implements(null);
+}, 'null is a falsy value');
+
+test_failure(() => {
+  assert_implements(undefined);
+}, 'undefined is a falsy value');
+
+test_failure(() => {
+  assert_implements(NaN);
+}, 'NaN is a falsy value');
+</script>

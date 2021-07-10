@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>JavaScript: the Trust Token API Fetch method correctly validates its parameters</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  'use strict';
+
+  test(() => {
+    assert_throws_js(TypeError, () => {
+      new Request('https://example.com', {
+        trustToken: {}
+      });
+    });
+  }, 'Trust Tokens fetches require present `type` values.');
+
+  test(() => {
+    assert_throws_js(TypeError, () => {
+      new Request('https://example.com', {
+        trustToken: {
+          type: "invalid"
+        }
+      });
+    });
+  }, 'Trust Tokens fetches require valid `type` values.');
+
+  test(() => {
+    assert_throws_js(TypeError, () => {
+      new Request('https://example.com', {
+        trustToken: {
+          type: "token-request",
+          signRequestData: "not a member of the signRequestData enum"
+        }
+      });
+    });
+  }, 'Trust Tokens fetches require valid `signRequestData` values, if provided.');
+
+  test(() => {
+    assert_throws_js(TypeError, () => {
+      new Request('https://example.com', {
+        trustToken: {
+          type: "token-request",
+          refreshPolicy: "not a member of the refreshPolicy enum",
+        }
+      });
+    });
+  }, 'Trust Tokens fetches require valid `refreshPolicy:` values, if provided.');
+
+  test(() => {
+    assert_throws_js(TypeError, () => {
+      new Request('https://example.com', {
+        trustToken: {
+          type: "send-redemption-record",
+          issuers: []
+        }
+      });
+    });
+  }, 'Trust Tokens signing operations require at least one issuer URL');
+
+  test(() => {
+    assert_throws_js(TypeError, () => {
+      new Request('https://example.com', {
+        trustToken: {
+          type: "send-redemption-record",
+          issuers: [3]
+        }
+      });
+    });
+  }, 'Trust Tokens signing operations require string issuer URLs, if provided.');
+
+  test(() => {
+    assert_throws_js(TypeError, () => {
+      new Request('https://example.com', {
+        trustToken: {
+          type: "send-redemption-record",
+          issuers: ["not a valid URL"]
+        }
+      });
+    });
+  }, 'Trust Tokens signing operations require valid issuer URLs, if provided.');
+
+  test(() => {
+    assert_throws_js(TypeError, () => {
+      new Request('https://example.com', {
+        trustToken: {
+          type: "send-redemption-record",
+          issuers: ["http://not-secure.com"]
+        }
+      });
+    });
+  }, 'Trust Tokens fetches require secure issuer URLs, if provided.');
+
+  test(() => {
+    new Request('https://example.com', {
+      trustToken: {
+        type: "send-redemption-record",
+        issuers: ["http://localhost"]
+      }
+    });
+  }, 'Since localhost URLs are potentially trustworthy, setting an issuer to localhost should succeed.');
+</script>

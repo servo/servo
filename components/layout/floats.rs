@@ -1,37 +1,36 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use app_units::Au;
-use block::FormattingContextType;
-use flow::{self, CLEARS_LEFT, CLEARS_RIGHT, Flow, ImmutableFlowUtils};
-use persistent_list::PersistentList;
+use crate::block::FormattingContextType;
+use crate::flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
+use crate::persistent_list::PersistentList;
+use app_units::{Au, MAX_AU};
 use std::cmp::{max, min};
 use std::fmt;
-use std::i32;
-use style::computed_values::float;
+use style::computed_values::float::T as StyleFloat;
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
-use style::values::computed::LengthOrPercentageOrAuto;
+use style::values::computed::Size;
 
 /// The kind of float: left or right.
-#[derive(Clone, Serialize, Debug, Copy)]
+#[derive(Clone, Copy, Debug, Serialize)]
 pub enum FloatKind {
     Left,
-    Right
+    Right,
 }
 
 impl FloatKind {
-    pub fn from_property(property: float::T) -> Option<FloatKind> {
+    pub fn from_property(property: StyleFloat) -> Option<FloatKind> {
         match property {
-            float::T::none => None,
-            float::T::left => Some(FloatKind::Left),
-            float::T::right => Some(FloatKind::Right),
+            StyleFloat::None => None,
+            StyleFloat::Left => Some(FloatKind::Left),
+            StyleFloat::Right => Some(FloatKind::Right),
         }
     }
 }
 
 /// The kind of clearance: left, right, or both.
-#[derive(Copy, Clone)]
+#[derive(Clone, Copy)]
 pub enum ClearType {
     Left,
     Right,
@@ -79,9 +78,14 @@ impl FloatList {
 
 impl fmt::Debug for FloatList {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f, "max_block_start={:?} floats={}", self.max_block_start, self.floats.len()));
+        write!(
+            f,
+            "max_block_start={:?} floats={}",
+            self.max_block_start,
+            self.floats.len()
+        )?;
         for float in self.floats.iter() {
-            try!(write!(f, " {:?}", float));
+            write!(f, " {:?}", float)?;
         }
         Ok(())
     }
@@ -96,22 +100,29 @@ pub struct PlacementInfo {
     /// The maximum inline-end position of the float, generally determined by the containing block.
     pub max_inline_size: Au,
     /// The kind of float.
-    pub kind: FloatKind
+    pub kind: FloatKind,
 }
 
 impl fmt::Debug for PlacementInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f,
-               "size={:?} ceiling={:?} max_inline_size={:?} kind={:?}",
-               self.size,
-               self.ceiling,
-               self.max_inline_size,
-               self.kind)
+        write!(
+            f,
+            "size={:?} ceiling={:?} max_inline_size={:?} kind={:?}",
+            self.size, self.ceiling, self.max_inline_size, self.kind
+        )
     }
 }
 
-fn range_intersect(block_start_1: Au, block_end_1: Au, block_start_2: Au, block_end_2: Au) -> (Au, Au) {
-    (max(block_start_1, block_start_2), min(block_end_1, block_end_2))
+fn range_intersect(
+    block_start_1: Au,
+    block_end_1: Au,
+    block_start_2: Au,
+    block_end_2: Au,
+) -> (Au, Au) {
+    (
+        max(block_start_1, block_start_2),
+        min(block_end_1, block_end_2),
+    )
 }
 
 /// Encapsulates information about floats. This is optimized to avoid allocation if there are
@@ -163,8 +174,12 @@ impl Floats {
     /// with inline-size small enough that it doesn't collide with any floats. max_x is the
     /// inline-size beyond which floats have no effect. (Generally this is the containing block
     /// inline-size.)
-    pub fn available_rect(&self, block_start: Au, block_size: Au, max_x: Au)
-                          -> Option<LogicalRect<Au>> {
+    pub fn available_rect(
+        &self,
+        block_start: Au,
+        block_size: Au,
+        max_x: Au,
+    ) -> Option<LogicalRect<Au>> {
         let list = &self.list;
         let block_start = block_start - self.offset.block;
 
@@ -187,30 +202,38 @@ impl Floats {
 
             debug!("float_pos: {:?}, float_size: {:?}", float_pos, float_size);
             match float.kind {
-                FloatKind::Left if float_pos.i + float_size.inline > max_inline_start &&
+                FloatKind::Left
+                    if float_pos.i + float_size.inline > max_inline_start &&
                         float_pos.b + float_size.block > block_start &&
-                        float_pos.b < block_start + block_size => {
+                        float_pos.b < block_start + block_size =>
+                {
                     max_inline_start = float_pos.i + float_size.inline;
 
                     l_block_start = Some(float_pos.b);
                     l_block_end = Some(float_pos.b + float_size.block);
 
-                    debug!("available_rect: collision with inline_start float: new \
-                            max_inline_start is {:?}",
-                           max_inline_start);
+                    debug!(
+                        "available_rect: collision with inline_start float: new \
+                         max_inline_start is {:?}",
+                        max_inline_start
+                    );
                 }
-                FloatKind::Right if float_pos.i < min_inline_end &&
-                       float_pos.b + float_size.block > block_start &&
-                       float_pos.b < block_start + block_size => {
+                FloatKind::Right
+                    if float_pos.i < min_inline_end &&
+                        float_pos.b + float_size.block > block_start &&
+                        float_pos.b < block_start + block_size =>
+                {
                     min_inline_end = float_pos.i;
 
                     r_block_start = Some(float_pos.b);
                     r_block_end = Some(float_pos.b + float_size.block);
-                    debug!("available_rect: collision with inline_end float: new min_inline_end \
-                            is {:?}",
-                            min_inline_end);
+                    debug!(
+                        "available_rect: collision with inline_end float: new min_inline_end \
+                         is {:?}",
+                        min_inline_end
+                    );
                 }
-                FloatKind::Left | FloatKind::Right => {}
+                FloatKind::Left | FloatKind::Right => {},
             }
         }
 
@@ -218,25 +241,28 @@ impl Floats {
         // If there are floats on both sides, take the intersection of the
         // two areas. Also make sure we never return a block-start smaller than the
         // given upper bound.
-        let (block_start, block_end) = match (r_block_start,
-                                              r_block_end,
-                                              l_block_start,
-                                              l_block_end) {
-            (Some(r_block_start), Some(r_block_end), Some(l_block_start), Some(l_block_end)) => {
-                range_intersect(max(block_start, r_block_start),
-                                r_block_end,
-                                max(block_start, l_block_start),
-                                l_block_end)
-            }
-            (None, None, Some(l_block_start), Some(l_block_end)) => {
-                (max(block_start, l_block_start), l_block_end)
-            }
-            (Some(r_block_start), Some(r_block_end), None, None) => {
-                (max(block_start, r_block_start), r_block_end)
-            }
-            (None, None, None, None) => return None,
-            _ => panic!("Reached unreachable state when computing float area")
-        };
+        let (block_start, block_end) =
+            match (r_block_start, r_block_end, l_block_start, l_block_end) {
+                (
+                    Some(r_block_start),
+                    Some(r_block_end),
+                    Some(l_block_start),
+                    Some(l_block_end),
+                ) => range_intersect(
+                    max(block_start, r_block_start),
+                    r_block_end,
+                    max(block_start, l_block_start),
+                    l_block_end,
+                ),
+                (None, None, Some(l_block_start), Some(l_block_end)) => {
+                    (max(block_start, l_block_start), l_block_end)
+                },
+                (Some(r_block_start), Some(r_block_end), None, None) => {
+                    (max(block_start, r_block_start), r_block_end)
+                },
+                (None, None, None, None) => return None,
+                _ => panic!("Reached unreachable state when computing float area"),
+            };
 
         // FIXME(eatkinson): This assertion is too strong and fails in some cases. It is OK to
         // return negative inline-sizes since we check against that inline-end away, but we should
@@ -245,11 +271,13 @@ impl Floats {
 
         assert!(block_start <= block_end, "Float position error");
 
-        Some(LogicalRect::new(self.writing_mode,
-                              max_inline_start + self.offset.inline,
-                              block_start + self.offset.block,
-                              min_inline_end - max_inline_start,
-                              block_end - block_start))
+        Some(LogicalRect::new(
+            self.writing_mode,
+            max_inline_start + self.offset.inline,
+            block_start + self.offset.block,
+            min_inline_end - max_inline_start,
+            block_end - block_start,
+        ))
     }
 
     /// Adds a new float to the list.
@@ -261,7 +289,7 @@ impl Floats {
                 Some(max_block_start) => max(info.ceiling, max_block_start + self.offset.block),
             },
             max_inline_size: info.max_inline_size,
-            kind: info.kind
+            kind: info.kind,
         };
 
         debug!("add_float: added float with info {:?}", new_info);
@@ -272,7 +300,7 @@ impl Floats {
                 self.place_between_floats(&new_info).start - self.offset,
                 info.size,
             ),
-            kind: info.kind
+            kind: info.kind,
         };
 
         self.list.floats = self.list.floats.prepend_elem(new_float);
@@ -285,8 +313,12 @@ impl Floats {
     /// Given the three sides of the bounding rectangle in the block-start direction, finds the
     /// largest block-size that will result in the rectangle not colliding with any floats. Returns
     /// `None` if that block-size is infinite.
-    fn max_block_size_for_bounds(&self, inline_start: Au, block_start: Au, inline_size: Au)
-                                 -> Option<Au> {
+    fn max_block_size_for_bounds(
+        &self,
+        inline_start: Au,
+        block_start: Au,
+        inline_size: Au,
+    ) -> Option<Au> {
         let list = &self.list;
 
         let block_start = block_start - self.offset.block;
@@ -295,10 +327,11 @@ impl Floats {
 
         for float in list.floats.iter() {
             if float.bounds.start.b + float.bounds.size.block > block_start &&
-                   float.bounds.start.i + float.bounds.size.inline > inline_start &&
-                   float.bounds.start.i < inline_start + inline_size {
-               let new_y = float.bounds.start.b;
-               max_block_size = Some(min(max_block_size.unwrap_or(new_y), new_y));
+                float.bounds.start.i + float.bounds.size.inline > inline_start &&
+                float.bounds.start.i < inline_start + inline_size
+            {
+                let new_y = float.bounds.start.b;
+                max_block_size = Some(min(max_block_size.unwrap_or(new_y), new_y));
             }
         }
 
@@ -319,85 +352,88 @@ impl Floats {
                         Au(0),
                         info.ceiling,
                         info.max_inline_size,
-                        Au(i32::MAX))
-                }
+                        MAX_AU,
+                    );
+                },
                 FloatKind::Right => {
                     return LogicalRect::new(
                         self.writing_mode,
                         info.max_inline_size - info.size.inline,
                         info.ceiling,
                         info.max_inline_size,
-                        Au(i32::MAX))
-                }
+                        MAX_AU,
+                    );
+                },
             }
         }
 
         // Can't go any higher than previous floats or previous elements in the document.
         let mut float_b = info.ceiling;
         loop {
-            let maybe_location = self.available_rect(float_b,
-                                                     info.size.block,
-                                                     info.max_inline_size);
-            debug!("place_float: got available rect: {:?} for block-pos: {:?}",
-                   maybe_location,
-                   float_b);
+            let maybe_location =
+                self.available_rect(float_b, info.size.block, info.max_inline_size);
+            debug!(
+                "place_float: got available rect: {:?} for block-pos: {:?}",
+                maybe_location, float_b
+            );
             match maybe_location {
                 // If there are no floats blocking us, return the current location
                 // TODO(eatkinson): integrate with overflow
                 None => {
                     return match info.kind {
-                        FloatKind::Left => {
-                            LogicalRect::new(
-                                self.writing_mode,
-                                Au(0),
-                                float_b,
-                                info.max_inline_size,
-                                Au(i32::MAX))
-                        }
-                        FloatKind::Right => {
-                            LogicalRect::new(
-                                self.writing_mode,
-                                info.max_inline_size - info.size.inline,
-                                float_b,
-                                info.max_inline_size,
-                                Au(i32::MAX))
-                        }
-                    }
-                }
+                        FloatKind::Left => LogicalRect::new(
+                            self.writing_mode,
+                            Au(0),
+                            float_b,
+                            info.max_inline_size,
+                            MAX_AU,
+                        ),
+                        FloatKind::Right => LogicalRect::new(
+                            self.writing_mode,
+                            info.max_inline_size - info.size.inline,
+                            float_b,
+                            info.max_inline_size,
+                            MAX_AU,
+                        ),
+                    };
+                },
                 Some(rect) => {
-                    assert!(rect.start.b + rect.size.block != float_b,
-                            "Non-terminating float placement");
+                    assert_ne!(
+                        rect.start.b + rect.size.block,
+                        float_b,
+                        "Non-terminating float placement"
+                    );
 
                     // Place here if there is enough room
                     if rect.size.inline >= info.size.inline {
-                        let block_size = self.max_block_size_for_bounds(rect.start.i,
-                                                                        rect.start.b,
-                                                                        rect.size.inline);
-                        let block_size = block_size.unwrap_or(Au(i32::MAX));
+                        let block_size = self.max_block_size_for_bounds(
+                            rect.start.i,
+                            rect.start.b,
+                            rect.size.inline,
+                        );
+                        let block_size = block_size.unwrap_or(MAX_AU);
                         return match info.kind {
-                            FloatKind::Left => {
-                                LogicalRect::new(
-                                    self.writing_mode,
-                                    rect.start.i,
-                                    float_b,
-                                    rect.size.inline,
-                                    block_size)
-                            }
-                            FloatKind::Right => {
-                                LogicalRect::new(
-                                    self.writing_mode,
-                                    rect.start.i + rect.size.inline - info.size.inline,
-                                    float_b,
-                                    rect.size.inline,
-                                    block_size)
-                            }
-                        }
+                            FloatKind::Left => LogicalRect::new(
+                                self.writing_mode,
+                                rect.start.i,
+                                float_b,
+                                rect.size.inline,
+                                block_size,
+                            ),
+                            FloatKind::Right => LogicalRect::new(
+                                self.writing_mode,
+                                rect.start.i + rect.size.inline - info.size.inline,
+                                float_b,
+                                rect.size.inline,
+                                block_size,
+                            ),
+                        };
                     }
 
                     // Try to place at the next-lowest location.
                     // Need to be careful of fencepost errors.
                     float_b = rect.start.b + rect.size.block;
-                }
+                },
             }
         }
     }
@@ -412,8 +448,8 @@ impl Floats {
                 (ClearType::Both, _) => {
                     let b = self.offset.block + float.bounds.start.b + float.bounds.size.block;
                     clearance = max(clearance, b);
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
         clearance
@@ -432,7 +468,7 @@ impl Floats {
 /// This is used for two purposes: (a) determining whether we can lay out blocks in parallel; (b)
 /// guessing the inline-sizes of block formatting contexts in an effort to lay them out in
 /// parallel.
-#[derive(Copy, Clone)]
+#[derive(Clone, Copy)]
 pub struct SpeculatedFloatPlacement {
     /// The estimated inline size (an upper bound) of the left floats flowing through this flow.
     pub left: Au,
@@ -458,19 +494,19 @@ impl SpeculatedFloatPlacement {
 
     /// Given the speculated inline size of the floats out for the inorder predecessor of this
     /// flow, computes the speculated inline size of the floats flowing in.
-    pub fn compute_floats_in(&mut self, flow: &mut Flow) {
-        let base_flow = flow::base(flow);
-        if base_flow.flags.contains(CLEARS_LEFT) {
+    pub fn compute_floats_in(&mut self, flow: &mut dyn Flow) {
+        let base_flow = flow.base();
+        if base_flow.flags.contains(FlowFlags::CLEARS_LEFT) {
             self.left = Au(0)
         }
-        if base_flow.flags.contains(CLEARS_RIGHT) {
+        if base_flow.flags.contains(FlowFlags::CLEARS_RIGHT) {
             self.right = Au(0)
         }
     }
 
     /// Given the speculated inline size of the floats out for this flow's last child, computes the
     /// speculated inline size of the floats out for this flow.
-    pub fn compute_floats_out(&mut self, flow: &mut Flow) {
+    pub fn compute_floats_out(&mut self, flow: &mut dyn Flow) {
         if flow.is_block_like() {
             let block_flow = flow.as_block();
             if block_flow.formatting_context_type() != FormattingContextType::None {
@@ -487,53 +523,67 @@ impl SpeculatedFloatPlacement {
                     }
                 }
 
-                self.left = max(self.left, block_flow.base.speculated_float_placement_in.left);
-                self.right = max(self.right, block_flow.base.speculated_float_placement_in.right);
+                self.left = max(
+                    self.left,
+                    block_flow.base.speculated_float_placement_in.left,
+                );
+                self.right = max(
+                    self.right,
+                    block_flow.base.speculated_float_placement_in.right,
+                );
             }
         }
 
-        let base_flow = flow::base(flow);
+        let base_flow = flow.base();
         if !base_flow.flags.is_float() {
-            return
+            return;
         }
 
         let mut float_inline_size = base_flow.intrinsic_inline_sizes.preferred_inline_size;
         if float_inline_size == Au(0) {
             if flow.is_block_like() {
-                // Hack: If the size of the float is a percentage, then there's no way we can guess
-                // at its size now. So just pick an arbitrary nonzero value (in this case, 1px) so
-                // that the layout traversal logic will know that objects later in the document
+                // Hack: If the size of the float is not fixed, then there's no
+                // way we can guess at its size now. So just pick an arbitrary
+                // nonzero value (in this case, 1px) so that the layout
+                // traversal logic will know that objects later in the document
                 // might flow around this float.
-                if let LengthOrPercentageOrAuto::Percentage(percentage) =
-                        flow.as_block().fragment.style.content_inline_size() {
-                    if percentage > 0.0 {
-                        float_inline_size = Au::from_px(1)
-                    }
+                let inline_size = flow.as_block().fragment.style.content_inline_size();
+                let fixed = match inline_size {
+                    Size::Auto => false,
+                    Size::LengthPercentage(ref lp) => {
+                        lp.0.is_definitely_zero() || lp.0.maybe_to_used_value(None).is_some()
+                    },
+                };
+                if !fixed {
+                    float_inline_size = Au::from_px(1)
                 }
             }
         }
 
         match base_flow.flags.float_kind() {
-            float::T::none => {}
-            float::T::left => self.left = self.left + float_inline_size,
-            float::T::right => self.right = self.right + float_inline_size,
+            StyleFloat::None => {},
+            StyleFloat::Left => self.left = self.left + float_inline_size,
+            StyleFloat::Right => self.right = self.right + float_inline_size,
         }
     }
 
     /// Given a flow, computes the speculated inline size of the floats in of its first child.
-    pub fn compute_floats_in_for_first_child(parent_flow: &mut Flow) -> SpeculatedFloatPlacement {
+    pub fn compute_floats_in_for_first_child(
+        parent_flow: &mut dyn Flow,
+    ) -> SpeculatedFloatPlacement {
         if !parent_flow.is_block_like() {
-            return flow::base(parent_flow).speculated_float_placement_in
+            return parent_flow.base().speculated_float_placement_in;
         }
 
         let parent_block_flow = parent_flow.as_block();
         if parent_block_flow.formatting_context_type() != FormattingContextType::None {
-            return SpeculatedFloatPlacement::zero()
+            return SpeculatedFloatPlacement::zero();
         }
 
         let mut placement = parent_block_flow.base.speculated_float_placement_in;
-        let speculated_inline_content_edge_offsets =
-            parent_block_flow.fragment.guess_inline_content_edge_offsets();
+        let speculated_inline_content_edge_offsets = parent_block_flow
+            .fragment
+            .guess_inline_content_edge_offsets();
 
         if speculated_inline_content_edge_offsets.start > Au(0) {
             placement.left = if placement.left > speculated_inline_content_edge_offsets.start {
@@ -553,4 +603,3 @@ impl SpeculatedFloatPlacement {
         placement
     }
 }
-

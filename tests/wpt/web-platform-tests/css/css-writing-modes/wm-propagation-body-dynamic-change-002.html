@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS-Writing Modes Test: propagation of the writing-mode property from body to root</title>
+  <link rel="author" title="Ting-Yu Lin" href="tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+  <link rel=help href="https://drafts.csswg.org/css-writing-modes-3/#principal-flow">
+  <link rel="match" href="wm-propagation-body-dynamic-change-002-ref.html">
+  <meta name=assert content="The writing mode of the newly inserted body must be propagated to the root.">
+
+  <script>
+  function runTest() {
+    document.body.offsetHeight;
+
+    var newBody = document.createElement("body");
+    newBody.id = "new-body";
+    var oldBody = document.getElementById("old-body");
+
+    /* Insert a new <body> before the old one, which should become the primary <body>. */
+    document.documentElement.insertBefore(newBody, oldBody);
+  }
+  </script>
+
+  <style>
+  #new-body {
+    /* This writing-mode should propagate to the root element. */
+    writing-mode: vertical-rl;
+    margin: 0;
+  }
+
+  #old-body {
+    writing-mode: horizontal-tb;
+    inline-size: 100px;
+  }
+
+  div {
+    background-color: blue;
+    height: 100px;
+    width: 100px;
+  }
+  </style>
+
+  <body id="old-body" onload="runTest();">
+    <div></div>
+    <p>Test passes if you see a blue square in the upper-right corner of the page</p>
+  </body>
+</html>

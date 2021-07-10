@@ -15,7 +15,7 @@
               mediaElement.addEventListener('error', test.unreached_func("Unexpected event 'error'"));
               assert_equals(mediaSource.readyState, 'open');
 
-              assert_throws(new TypeError(),
+              assert_throws_js(TypeError,
                   function() { mediaSource.endOfStream('garbage'); },
                   'endOfStream(\'garbage\') throws TypeError');
 
@@ -28,7 +28,7 @@
               mediaElement.addEventListener('error', test.unreached_func("Unexpected event 'error'"));
               assert_equals(mediaSource.readyState, 'open');
 
-              assert_throws(new TypeError(),
+              assert_throws_js(TypeError,
                   function() { mediaSource.endOfStream(''); },
                   'endOfStream(\'\') throws TypeError');
 
@@ -41,7 +41,7 @@
               mediaElement.addEventListener('error', test.unreached_func("Unexpected event 'error'"));
               assert_equals(mediaSource.readyState, 'open');
 
-              assert_throws(new TypeError(),
+              assert_throws_js(TypeError,
                   function() { mediaSource.endOfStream(null); },
                   'endOfStream(null) throws TypeError');
 

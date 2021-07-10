@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>Handling of instantiation errors, 1</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    setup({allow_uncaught_exception: true});
+
+    const test_load = async_test(
+        "Test that missing exports lead to SyntaxError events on window and " +
+        "load events on script");
+
+    window.log = [];
+    window.addEventListener("error", ev => {
+      test_load.step(() => assert_equals(ev.error.constructor, SyntaxError));
+      log.push(ev.message);
+    });
+
+    window.addEventListener("load", test_load.step_func_done(ev => {
+      const msg = log[0];
+      assert_array_equals(log, [msg, 1, msg, 2, msg, 3, msg, 4, msg, 5]);
+    }));
+
+    function unreachable() { log.push("unexpected"); }
+</script>
+<script type="module" src="./missing-export.js"
+    onerror="unreachable()" onload="log.push(1)"></script>
+<script type="module" src="./missing-export.js"
+    onerror="unreachable()" onload="log.push(2)"></script>
+<script type="module" src="./missing-export-nested.js"
+    onerror="unreachable()" onload="log.push(3)"></script>
+<script type="module" src="./missing-export.js"
+    onerror="unreachable()" onload="log.push(4)"></script>
+<script type="module" src="./missing-export-nested.js"
+    onerror="unreachable()" onload="log.push(5)"></script>

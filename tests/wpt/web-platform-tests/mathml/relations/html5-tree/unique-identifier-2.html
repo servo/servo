@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <title>Unique Identifier</title>
-<link rel="help" href="http://www.mathml-association.org/MathMLinHTML5/S2.html#SS1.SSS2">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#attributes-common-to-html-and-mathml-elements">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#dom-and-javascript">
 <meta name="assert" content="Verify whether the getElementById() works for MathML elements.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -12,13 +13,14 @@
   window.addEventListener("DOMContentLoaded", function() {
     var mtext = document.getElementById("MTEXT");
     test(function() {
-      assert_equals(mtext, document.body.firstElementChild.lastElementChild);
+      assert_equals(mtext, document.body.lastElementChild.lastElementChild);
     }, "getElementById()");
     done();
   });
 </script>
 </head>
 <body>
+  <div id="log"></div>
   <math>
     <mtext id="MTEXT_"></mtext>
     <mtext id="MTEX"></mtext>

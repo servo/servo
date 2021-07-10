@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>No spacing in elements</title>
+<meta name="assert" content="Spacing is not added around operators when an element does not use mrow layout. However, when the element is embellished, spacing of the core mo is added around it.">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#embellished-operators">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#fractions-mfrac">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#horizontally-group-sub-expressions-mrow">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#prescripts-and-tensor-indices-mmultiscripts">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#radicals-msqrt-mroot">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#subscripts-and-superscripts-msub-msup-msubsup">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#underscripts-and-overscripts-munder-mover-munderover">
+<script src="/mathml/support/feature-detection.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<script type="text/javascript">
+  setup({ explicit_done: true });
+  window.addEventListener("load", () => { document.fonts.ready.then(runTests); });
+  function runTests()
+  {
+      Array.from(document.getElementsByClassName("testedElement")).forEach((e) => {
+          test(function() {
+              assert_true(MathMLFeatureDetection.has_operator_spacing());
+              let box = e.getBoundingClientRect();
+              let spacing = 100;
+              assert_less_than_equal(box.width, spacing);
+          }, `Spacing inside <${e.tagName}>.`);
+
+          test(function() {
+              assert_true(MathMLFeatureDetection.has_operator_spacing());
+              let box = e.parentNode.getBoundingClientRect();
+              let spacing = 100;
+              if (e.classList.contains("embellished"))
+                  assert_greater_than_equal(box.width, spacing * 2);
+              else
+                  assert_less_than_equal(box.width, spacing);
+          }, `Spacing around <${e.tagName}>.`);
+      });
+      done();
+  }
+</script>
+<style>
+  .testedElement {
+      background: lightgreen;
+  }
+  math {
+      background: lightblue;
+  }
+  math, math * {
+      font: 25px/1 Ahem;
+  }
+</style>
+</head>
+<body>
+  <div id="log"></div>
+  <p>
+    <math>
+      <mfrac class="testedElement embellished">
+        <mo lspace="100px" rspace="100px">X</mo>
+        <mo lspace="100px" rspace="100px">X</mo>
+      </mfrac>
+    </math>
+  </p>
+  <p>
+    <math>
+      <msub class="testedElement embellished">
+        <mo lspace="100px" rspace="100px">X</mo>
+        <mo lspace="100px" rspace="100px">X</mo>
+      </msub>
+    </math>
+  </p>
+  <p>
+    <math>
+      <msup class="testedElement embellished">
+        <mo lspace="100px" rspace="100px">X</mo>
+        <mo lspace="100px" rspace="100px">X</mo>
+      </msup>
+    </math>
+  </p>
+  <p>
+    <math>
+      <msubsup class="testedElement embellished">
+        <mo lspace="100px" rspace="100px">X</mo>
+        <mo lspace="100px" rspace="100px">X</mo>
+        <mo lspace="100px" rspace="100px">X</mo>
+      </msubsup>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mmultiscripts class="testedElement embellished">
+        <mo lspace="100px" rspace="100px">X</mo>
+        <mo lspace="100px" rspace="100px">X</mo>
+        <mo lspace="100px" rspace="100px">X</mo>
+        <mprescripts/>
+        <mo lspace="100px" rspace="100px">X</mo>
+        <mo lspace="100px" rspace="100px">X</mo>
+      </mmultiscripts>
+    </math>
+  </p>
+  <p>
+    <math>
+      <munder class="testedElement embellished">
+        <mo lspace="100px" rspace="100px">X</mo>
+        <mo lspace="100px" rspace="100px">X</mo>
+      </munder>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mover class="testedElement embellished">
+        <mo lspace="100px" rspace="100px">X</mo>
+        <mo lspace="100px" rspace="100px">X</mo>
+      </mover>
+    </math>
+  </p>
+  <p>
+    <math>
+      <munderover class="testedElement embellished">
+        <mo lspace="100px" rspace="100px">X</mo>
+        <mo lspace="100px" rspace="100px">X</mo>
+        <mo lspace="100px" rspace="100px">X</mo>
+      </munderover>
+    </math>
+  </p>
+  <p>
+    <math>
+      <mroot class="testedElement">
+        <mtext>X</mtext>
+        <mo lspace="100px" rspace="100px">X</mo>
+      </mroot>
+    </math>
+  </p>
+</body>
+</html>

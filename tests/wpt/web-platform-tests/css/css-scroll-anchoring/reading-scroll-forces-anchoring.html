@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body { height: 1000px }
+div { height: 100px }
+</style>
+<div id="block1">abc</div>
+<div id="block2">def</div>
+<script>
+  // This test verifies that reading window.scrollY forces any pending scroll
+  // anchoring adjustment to occur before computing the return value.
+  async_test((t) => {
+    scrollTo(0, 150);
+    requestAnimationFrame(() => {
+      step_timeout(() => {
+        // Queue scroll anchoring adjustment.
+        document.querySelector("#block1").style.height = "200px";
+
+        // Reading scrollY should force both the layout and the adjustment to
+        // occur synchronously.
+        var y = scrollY;
+
+        assert_equals(y, 250);
+        t.done();
+      }, 0);
+    });
+  }, 'Reading scroll position forces scroll anchoring adjustment.');
+</script>

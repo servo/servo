@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>writing mode:vertical-rl, Latin wrapping</title>
+<link rel="author" title="Richard Ishida" href="mailto:ishida@w3.org"/>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#block-flow"/>
+<meta name="assert" content="By default, writing-mode:vertical-rl will wrap Latin text across a line break such that the first word in memory is on the right."/>
+<style type="text/css">
+.test, .ref { font-size: 24px; float: left; margin-right: 30px; height: 200px; color: #ccc; }
+span[lang=en] { color: black; }
+</style>
+<!-- this is the test -->
+<style type="text/css">
+.test { writing-mode: vertical-rl; }
+</style>
+<script>
+function setMargin (height) {
+	document.getElementById('test').style.height = height+'px'
+	}
+</script>
+</head>
+<body>
+<p class="instructions">Test passes if the two Latin words on the left are displayed in the same relative positions around a line break as on the blue background.</p>
+<p class="instructions">Use this control to set the line length, if necessary: <input type="text" value="200" style="width: 30px; text-align:right;" onChange="setMargin(this.value);"/>px</p>
+<div id="test" class="test" lang="zh-hans">国际化活动<span lang="en">W3C i18n</span>万维网联盟</div>
+<div class="ref"><img src="support/zh_en_wrap.png" alt="ref image"/></div>
+</body>
+</html>

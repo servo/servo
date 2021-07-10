@@ -1,0 +1,120 @@
+<!doctype html>
+<title>Calc rounds to integer</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<link rel=author title="Tab Atkins-Bittner" href="https://www.xanthir.com/contact/">
+<link rel="help" href="https://drafts.csswg.org/css-values/#calc-range">
+<link rel="help" href="https://drafts.csswg.org/css-easing/#funcdef-step-easing-function-steps">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#column-span">
+<link rel="help" href="https://drafts.csswg.org/css-lists/#propdef-counter-reset">
+<link rel="help" href="https://drafts.csswg.org/css-lists/#propdef-counter-increment">
+<link rel="help" href="https://drafts.csswg.org/css-lists/#propdef-counter-set">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-feature-settings-prop">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#propdef-grid-template-rows">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#propdef-grid-row">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#propdef-hyphenate-limit-chars">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#propdef-hyphenate-limit-lines">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#propdef-initial-letter">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#propdef-max-lines">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#propdef-order">
+<link rel="help" href="https://drafts.csswg.org/css-break-4/#propdef-orphans">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#propdef-text-combine-upright">
+<link rel="help" href="https://drafts.csswg.org/css-break-4/#propdef-widows">
+<link rel="help" href="https://drafts.csswg.org/css2/#propdef-z-index">
+<!--
+  Verifying that, per V&U, a calc() that results in a non-integer value
+  gets rounded to the nearest integer
+  when used in a place that requires <integer> specifically.
+  This tests both straight-up decimal-point values,
+  and scinot, which is defined to parse as <number-token>.
+-->
+<body>
+
+<script>
+
+runTests("animation-timing-function", "steps(xxx)");
+runTests("column-span");
+runTests("counter-increment", "foo xxx");
+runTests("counter-reset", "foo xxx");
+runTests("counter-set", "foo xxx");
+runTests("font-feature-settings", '"fooo" xxx');
+runTests("grid-row");
+runTests("grid-template-rows", "repeat(xxx, 10px)");
+runTests("hyphenate-limit-chars");
+runTests("hyphenate-limit-lines");
+runTests("initial-letter", "1.1 xxx");
+runTests("max-lines");
+runTests("order");
+runTests("orphans");
+runTests("text-combine-upright", "digits xxx");
+runTests("transition-timing-function", "steps(xxx)");
+runTests("widows");
+runTests("z-index");
+
+
+function runTests(prop, valPattern="xxx") {
+    const el = document.body;
+
+    // Don't spuriously fail bc the prop or val isn't supported.
+    if(!verifySupport(el, prop, valPattern)) return;
+
+    const validValues = [
+        "10",
+        "calc(10)",
+        "calc(10.1)",
+        "calc(1e1)",
+        "calc(1.1e1)",
+    ];
+    const invalidValues = [
+        "1e1",
+        "1.1e1",
+        "10.1",
+    ];
+    for(let testVal of validValues) {
+        testInt(el, prop, testVal, valPattern);
+    }
+    for(let testVal of invalidValues) {
+        testIntInvalid(el, prop, testVal, valPattern);
+    }
+}
+
+function verifySupport(el, prop, valPattern) {
+    let testVal = "10";
+    if(valPattern !== undefined) {
+        testVal = valPattern.replace("xxx", testVal);
+    }
+    el.removeAttribute("style");
+    const nullVal = getComputedStyle(el)[prop];
+    el.style.setProperty(prop, testVal);
+    return getComputedStyle(el)[prop] != nullVal;
+}
+
+function testInt(el, prop, testVal, valPattern) {
+    // to avoid needing to specify serialization,
+    // just test whether it parses at all
+    if(valPattern !== undefined) {
+        testVal = valPattern.replace("xxx", testVal);
+    }
+    test(()=>{
+        el.removeAttribute("style");
+        const nullVal = getComputedStyle(el)[prop];
+        el.style.setProperty(prop, testVal);
+        assert_not_equals(getComputedStyle(el)[prop], nullVal);
+    }, `${prop} should accept "${testVal}"`)
+}
+
+function testIntInvalid(el, prop, testVal, valPattern) {
+    // similarly, just verify it doesn't parse at all
+    if(valPattern !== undefined) {
+        testVal = valPattern.replace("xxx", testVal);
+    }
+    test(()=>{
+        el.removeAttribute("style");
+        const nullVal = getComputedStyle(el)[prop];
+        el.style.setProperty(prop, testVal);
+        assert_equals(getComputedStyle(el)[prop], nullVal);
+    }, `${prop} should not accept "${testVal}"`)
+}
+
+</script>

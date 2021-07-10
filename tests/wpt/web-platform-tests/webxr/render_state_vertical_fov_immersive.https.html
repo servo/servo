@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+
+<script>
+let testName = "inlineVerticalFieldOfView is set appropriately on immersively sessions";
+
+let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+let testFunction = function(session, fakeDeviceController, t) {
+  return new Promise((resolve, reject) => {
+      // inlineVerticalFieldOfView should be null for immersive sessions;
+      t.step(() => {
+        assert_equals(session.renderState.inlineVerticalFieldOfView, null);
+      });
+
+      // Trying to set it should throw an exception
+      try {
+        session.updateRenderState({
+          inlineVerticalFieldOfView: 1.0
+        });
+
+        t.step(() => {
+          assert_unreached("Should not be able to set inlineVerticalFieldOfView on immersive sessions");
+        });
+      } catch(err) {
+        t.step(() => {
+          assert_equals(err.name, "InvalidStateError");
+        });
+      }
+
+      resolve();
+  });
+};
+
+xr_session_promise_test(
+  testName, testFunction, fakeDeviceInitParams, 'immersive-vr');
+
+</script>

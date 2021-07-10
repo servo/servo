@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Inheritance of CSS Basic User Interface properties</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui/#property-index">
+<meta name="assert" content="Properties inherit or not according to the spec.">
+<meta name="assert" content="Properties have initial values according to the spec.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/inheritance-testcommon.js"></script>
+</head>
+<body>
+<div id="reference"></div>
+<div id="container">
+  <div id="target"></div>
+</div>
+<style>
+#reference {
+  border-style: dotted; /* Avoid border-top-width computed style 0 */
+  border-top-width: medium;
+  color: lime;
+  background: blue;
+}
+
+#container, #target {
+  outline-style: dotted; /* Avoid outline-width computed style 0 */
+  color: lime;
+  background: blue;
+}
+</style>
+<script>
+const mediumWidth = getComputedStyle(reference).borderTopWidth; // e.g. 3px
+const currentColor = getComputedStyle(reference).color;
+
+assert_not_inherited('appearance', 'none', 'auto');
+assert_inherited('caret-color', currentColor, 'rgba(42, 53, 64, 0.75)');
+assert_inherited('caret-shape', 'auto', 'bar');
+assert_inherited('cursor', 'auto', 'pointer');
+assert_not_inherited('nav-down', 'auto', '#foo');
+assert_not_inherited('nav-left', 'auto', '#foo');
+assert_not_inherited('nav-right', 'auto', '#foo');
+assert_not_inherited('nav-up', 'auto', '#foo');
+if (CSS.supports('outline-color', 'invert'))
+  assert_not_inherited('outline-color', 'invert', 'rgba(42, 53, 64, 0.75)');
+else
+  assert_not_inherited('outline-color', currentColor, 'rgba(42, 53, 64, 0.75)');
+assert_not_inherited('outline-offset', '0px', '10px');
+assert_not_inherited('outline-style', 'none', 'auto');
+assert_not_inherited('outline-width', mediumWidth, '10px');
+assert_not_inherited('resize', 'none', 'vertical');
+assert_not_inherited('user-select', 'auto', 'none');
+</script>
+</body>
+</html>

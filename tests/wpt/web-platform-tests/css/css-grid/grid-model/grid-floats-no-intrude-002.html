@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Grid Layout Test: floats do not protrude content onto grid items</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-containers">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=430100">
+<link rel="match" href="grid-floats-no-intrude-002-ref.html">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/css/support/width-keyword-classes.css">
+<meta name="assert" content="Test that a grid item sets a new formatting context for its content, preventing any 'float' protruding content on the adjoining grid item." />
+
+<style>
+.grid {
+  grid-auto-columns: minmax(50px, max-content);
+  grid-auto-rows: minmax(50px, max-content);
+}
+
+.floatChild {
+  float: left;
+  clear: both;
+}
+</style>
+</head>
+
+<body>
+
+<div>This test checks that grid item sets a new formatting context for its content, preventing any 'float' protruding content on the adjoining grid item ('Float' text shouldn't overflow the first row).</div>
+
+<div class="grid fit-content">
+  <div class="firstRowFirstColumn">
+    <div class="floatChild">Float</div>
+    <div class="floatChild">Float</div>
+    <div class="floatChild">Float</div>
+    <div class="floatChild">Float</div>
+  </div>
+  <div class="firstRowSecondColumn"></div>
+  <div class="secondRowFirstColumn"></div>
+  <div class="secondRowSecondColumn"></div>
+</div>
+
+</body>
+</html>

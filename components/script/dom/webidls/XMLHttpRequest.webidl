@@ -1,6 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 /*
  * The origin of this IDL file is
  * https://xhr.spec.whatwg.org/#interface-xmlhttprequest
@@ -12,8 +12,11 @@
  * http://www.openwebfoundation.org/legal/the-owf-1-0-agreements/owfa-1-0.
  */
 
+// https://fetch.spec.whatwg.org/#typedefdef-xmlhttprequestbodyinit
+typedef (Blob or BufferSource or FormData or DOMString or URLSearchParams) XMLHttpRequestBodyInit;
+
 // https://fetch.spec.whatwg.org/#bodyinit
-typedef (Blob or /*BufferSource or */ FormData or DOMString or URLSearchParams) BodyInit;
+typedef (ReadableStream or XMLHttpRequestBodyInit) BodyInit;
 
 enum XMLHttpRequestResponseType {
   "",
@@ -21,11 +24,12 @@ enum XMLHttpRequestResponseType {
   "blob",
   "document",
   "json",
-  "text"
+  "text",
 };
 
-[Constructor, Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface XMLHttpRequest : XMLHttpRequestEventTarget {
+  [Throws] constructor();
   // event handler
   attribute EventHandler onreadystatechange;
 
@@ -53,7 +57,7 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
            attribute boolean withCredentials;
   readonly attribute XMLHttpRequestUpload upload;
   [Throws]
-  void send(optional (Document or BodyInit)? data = null);
+  void send(optional (Document or XMLHttpRequestBodyInit)? data = null);
   void abort();
 
   // response

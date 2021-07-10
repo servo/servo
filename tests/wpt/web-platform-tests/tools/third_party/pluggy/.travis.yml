@@ -1,0 +1,81 @@
+dist: xenial
+language: python
+
+stages:
+- name: test
+  if: tag IS NOT present
+- name: deploy
+  if: repo = pytest-dev/pluggy AND tag IS present
+
+jobs:
+  include:
+    - python: '3.6'
+      env: TOXENV=linting
+      cache:
+        directories:
+          - $HOME/.cache/pre-commit
+    - python: '3.6'
+      env: TOXENV=docs
+    - python: '2.7'
+      env: TOXENV=py27-coverage
+    - python: '3.4'
+      env: TOXENV=py34-coverage
+    - python: '3.5'
+      env: TOXENV=py35-coverage
+    - python: '3.6'
+      env: TOXENV=py36-coverage
+    - python: 'pypy2.7-6.0'
+      env: TOXENV=pypy-coverage
+    - python: 'pypy3.5-6.0'
+      env: TOXENV=pypy3-coverage
+    - python: '3.7'
+      env: TOXENV=py37-coverage
+    - python: '3.8-dev'
+      env: TOXENV=py38-coverage
+    - python: '3.6'
+      env: TOXENV=py36-pytestmaster-coverage
+    - python: '3.6'
+      env: TOXENV=py36-pytestfeatures-coverage
+    - python: '3.6'
+      env: TOXENV=benchmark
+    - python: '3.7'
+      env: TOXENV=py37-pytestmaster-coverage
+    - python: '3.7'
+      env: TOXENV=py37-pytestfeatures-coverage
+
+    - stage: deploy
+      python: '3.6'
+      env:
+      install: pip install -U setuptools setuptools_scm
+      script: skip
+      deploy:
+        provider: pypi
+        user: nicoddemus
+        distributions: sdist bdist_wheel
+        skip_upload_docs: true
+        password:
+          secure: PDvQCKfXrF1V/tdwEOfeDEjDs6vJ9gKWo4yrMUmBx1JL5plHZaqfHLftlGMoHekaQTHcfyYYbxignFw5IGsn97/nFKKWDPNBfZA+3RJJmeJfz2NQunYkSnoqtBtfEtWHzFPdkCm0w/CN9C8IpRjhvLnFTUQzil6iMy6wZG276gU=
+        on:
+          tags: true
+          repo: pytest-dev/pluggy
+
+install:
+  - pip install -U pip
+  - pip install -U --force-reinstall setuptools tox
+
+script:
+  - tox
+
+after_script:
+  - |
+    if [[ "${TOXENV%-coverage}" != "$TOXENV" ]]; then
+      bash <(curl -s https://codecov.io/bash) -Z -X gcov -X coveragepy -X search -X xcode -X gcovout -X fix -f coverage.xml -n $TOXENV
+    fi
+
+notifications:
+  irc:
+    channels:
+      - "chat.freenode.net#pytest"
+    on_success: change
+    on_failure: change
+    skip_join: true

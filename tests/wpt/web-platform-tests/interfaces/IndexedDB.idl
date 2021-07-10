@@ -1,0 +1,226 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Indexed Database API 3.0 (https://w3c.github.io/IndexedDB/)
+
+[Exposed=(Window,Worker)]
+interface IDBRequest : EventTarget {
+  readonly attribute any result;
+  readonly attribute DOMException? error;
+  readonly attribute (IDBObjectStore or IDBIndex or IDBCursor)? source;
+  readonly attribute IDBTransaction? transaction;
+  readonly attribute IDBRequestReadyState readyState;
+
+  // Event handlers:
+  attribute EventHandler onsuccess;
+  attribute EventHandler onerror;
+};
+
+enum IDBRequestReadyState {
+  "pending",
+  "done"
+};
+
+[Exposed=(Window,Worker)]
+interface IDBOpenDBRequest : IDBRequest {
+  // Event handlers:
+  attribute EventHandler onblocked;
+  attribute EventHandler onupgradeneeded;
+};
+
+[Exposed=(Window,Worker)]
+interface IDBVersionChangeEvent : Event {
+  constructor(DOMString type, optional IDBVersionChangeEventInit eventInitDict = {});
+  readonly attribute unsigned long long oldVersion;
+  readonly attribute unsigned long long? newVersion;
+};
+
+dictionary IDBVersionChangeEventInit : EventInit {
+  unsigned long long oldVersion = 0;
+  unsigned long long? newVersion = null;
+};
+
+partial interface mixin WindowOrWorkerGlobalScope {
+  [SameObject] readonly attribute IDBFactory indexedDB;
+};
+
+[Exposed=(Window,Worker)]
+interface IDBFactory {
+  [NewObject] IDBOpenDBRequest open(DOMString name,
+                                    optional [EnforceRange] unsigned long long version);
+  [NewObject] IDBOpenDBRequest deleteDatabase(DOMString name);
+
+  Promise<sequence<IDBDatabaseInfo>> databases();
+
+  short cmp(any first, any second);
+};
+
+dictionary IDBDatabaseInfo {
+  DOMString name;
+  unsigned long long version;
+};
+
+[Exposed=(Window,Worker)]
+interface IDBDatabase : EventTarget {
+  readonly attribute DOMString name;
+  readonly attribute unsigned long long version;
+  readonly attribute DOMStringList objectStoreNames;
+
+  [NewObject] IDBTransaction transaction((DOMString or sequence<DOMString>) storeNames,
+                                         optional IDBTransactionMode mode = "readonly",
+                                         optional IDBTransactionOptions options = {});
+  undefined close();
+
+  [NewObject] IDBObjectStore createObjectStore(
+    DOMString name,
+    optional IDBObjectStoreParameters options = {});
+  undefined deleteObjectStore(DOMString name);
+
+  // Event handlers:
+  attribute EventHandler onabort;
+  attribute EventHandler onclose;
+  attribute EventHandler onerror;
+  attribute EventHandler onversionchange;
+};
+
+enum IDBTransactionDurability { "default", "strict", "relaxed" };
+
+dictionary IDBTransactionOptions {
+  IDBTransactionDurability durability = "default";
+};
+
+dictionary IDBObjectStoreParameters {
+  (DOMString or sequence<DOMString>)? keyPath = null;
+  boolean autoIncrement = false;
+};
+
+[Exposed=(Window,Worker)]
+interface IDBObjectStore {
+  attribute DOMString name;
+  readonly attribute any keyPath;
+  readonly attribute DOMStringList indexNames;
+  [SameObject] readonly attribute IDBTransaction transaction;
+  readonly attribute boolean autoIncrement;
+
+  [NewObject] IDBRequest put(any value, optional any key);
+  [NewObject] IDBRequest add(any value, optional any key);
+  [NewObject] IDBRequest delete(any query);
+  [NewObject] IDBRequest clear();
+  [NewObject] IDBRequest get(any query);
+  [NewObject] IDBRequest getKey(any query);
+  [NewObject] IDBRequest getAll(optional any query,
+                                optional [EnforceRange] unsigned long count);
+  [NewObject] IDBRequest getAllKeys(optional any query,
+                                    optional [EnforceRange] unsigned long count);
+  [NewObject] IDBRequest count(optional any query);
+
+  [NewObject] IDBRequest openCursor(optional any query,
+                                    optional IDBCursorDirection direction = "next");
+  [NewObject] IDBRequest openKeyCursor(optional any query,
+                                       optional IDBCursorDirection direction = "next");
+
+  IDBIndex index(DOMString name);
+
+  [NewObject] IDBIndex createIndex(DOMString name,
+                                   (DOMString or sequence<DOMString>) keyPath,
+                                   optional IDBIndexParameters options = {});
+  undefined deleteIndex(DOMString name);
+};
+
+dictionary IDBIndexParameters {
+  boolean unique = false;
+  boolean multiEntry = false;
+};
+
+[Exposed=(Window,Worker)]
+interface IDBIndex {
+  attribute DOMString name;
+  [SameObject] readonly attribute IDBObjectStore objectStore;
+  readonly attribute any keyPath;
+  readonly attribute boolean multiEntry;
+  readonly attribute boolean unique;
+
+  [NewObject] IDBRequest get(any query);
+  [NewObject] IDBRequest getKey(any query);
+  [NewObject] IDBRequest getAll(optional any query,
+                                optional [EnforceRange] unsigned long count);
+  [NewObject] IDBRequest getAllKeys(optional any query,
+                                    optional [EnforceRange] unsigned long count);
+  [NewObject] IDBRequest count(optional any query);
+
+  [NewObject] IDBRequest openCursor(optional any query,
+                                    optional IDBCursorDirection direction = "next");
+  [NewObject] IDBRequest openKeyCursor(optional any query,
+                                       optional IDBCursorDirection direction = "next");
+};
+
+[Exposed=(Window,Worker)]
+interface IDBKeyRange {
+  readonly attribute any lower;
+  readonly attribute any upper;
+  readonly attribute boolean lowerOpen;
+  readonly attribute boolean upperOpen;
+
+  // Static construction methods:
+  [NewObject] static IDBKeyRange only(any value);
+  [NewObject] static IDBKeyRange lowerBound(any lower, optional boolean open = false);
+  [NewObject] static IDBKeyRange upperBound(any upper, optional boolean open = false);
+  [NewObject] static IDBKeyRange bound(any lower,
+                                       any upper,
+                                       optional boolean lowerOpen = false,
+                                       optional boolean upperOpen = false);
+
+  boolean includes(any key);
+};
+
+[Exposed=(Window,Worker)]
+interface IDBCursor {
+  readonly attribute (IDBObjectStore or IDBIndex) source;
+  readonly attribute IDBCursorDirection direction;
+  readonly attribute any key;
+  readonly attribute any primaryKey;
+  [SameObject] readonly attribute IDBRequest request;
+
+  undefined advance([EnforceRange] unsigned long count);
+  undefined continue(optional any key);
+  undefined continuePrimaryKey(any key, any primaryKey);
+
+  [NewObject] IDBRequest update(any value);
+  [NewObject] IDBRequest delete();
+};
+
+enum IDBCursorDirection {
+  "next",
+  "nextunique",
+  "prev",
+  "prevunique"
+};
+
+[Exposed=(Window,Worker)]
+interface IDBCursorWithValue : IDBCursor {
+  readonly attribute any value;
+};
+
+[Exposed=(Window,Worker)]
+interface IDBTransaction : EventTarget {
+  readonly attribute DOMStringList objectStoreNames;
+  readonly attribute IDBTransactionMode mode;
+  readonly attribute IDBTransactionDurability durability;
+  [SameObject] readonly attribute IDBDatabase db;
+  readonly attribute DOMException? error;
+
+  IDBObjectStore objectStore(DOMString name);
+  undefined commit();
+  undefined abort();
+
+  // Event handlers:
+  attribute EventHandler onabort;
+  attribute EventHandler oncomplete;
+  attribute EventHandler onerror;
+};
+
+enum IDBTransactionMode {
+  "readonly",
+  "readwrite",
+  "versionchange"
+};

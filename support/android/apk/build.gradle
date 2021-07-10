@@ -1,17 +1,85 @@
-// Top-level build file where you can add configuration options common to all sub-projects/modules.
+import org.apache.tools.ant.taskdefs.condition.Os
+
 buildscript {
     repositories {
         jcenter()
+        google()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.2.3'
+        classpath 'com.android.tools.build:gradle:3.1.3'
     }
 }
 
 allprojects {
     repositories {
         jcenter()
+        flatDir {
+            dirs rootDir.absolutePath + "/../../../target/android/aar"
+        }
+        google()
+    }
+}
+
+// Utility methods
+String getTargetDir(boolean debug, String arch) {
+    def basePath = project.rootDir.getParentFile().getParentFile().getParentFile().absolutePath
+    return basePath + '/target/android/' + getSubTargetDir(debug, arch)
+}
+
+String getSubTargetDir(boolean debug, String arch) {
+    return getRustTarget(arch) + '/' + (debug ? 'debug' : 'release')
+}
+
+String getJniLibsPath(boolean debug, String arch) {
+    return getTargetDir(debug, arch) + '/apk/jniLibs'
+}
+
+static String getRustTarget(String arch) {
+    switch (arch.toLowerCase()) {
+        case 'arm' : return 'arm-linux-androideabi'
+        case 'armv7' : return 'armv7-linux-androideabi'
+        case 'arm64' : return 'aarch64-linux-android'
+        case 'x86' : return 'i686-linux-android'
+        default: throw new GradleException("Invalid target architecture " + arch)
+    }
+}
+
+static String getNDKAbi(String arch) {
+    switch (arch.toLowerCase()) {
+        case 'arm' : return 'armeabi'
+        case 'armv7' : return 'armeabi-v7a'
+        case 'arm64' : return 'arm64-v8a'
+        case 'x86' : return 'x86'
+        default: throw new GradleException("Invalid target architecture " + arch)
+    }
+}
+
+String getNdkDir() {
+    // Read environment variable used in rust build system
+    String ndkDir = System.getenv('ANDROID_NDK')
+    if (ndkDir == null) {
+        ndkDir = System.getenv('ANDROID_NDK_HOME')
+    }
+    if (ndkDir == null) {
+        ndkDir = System.getenv('ANDROID_NDK_ROOT')
+    }
+    if (ndkDir == null) {
+        // Fallback to ndkDir in local.properties
+        def rootDir = project.rootDir
+        def localProperties = new File(rootDir, "local.properties")
+        Properties properties = new Properties()
+        localProperties.withInputStream { instr ->
+            properties.load(instr)
+        }
+
+        ndkDir = properties.getProperty('ndk.dir')
     }
 
-    buildDir = rootDir.absolutePath + "/../../../target/gradle"
+    def cmd = Os.isFamily(Os.FAMILY_WINDOWS) ? 'ndk-build.cmd' : 'ndk-build'
+    def ndkbuild = new File(ndkDir + '/' + cmd)
+    if (!ndkbuild.exists()) {
+        throw new GradleException("Please set a valid NDK_HOME environment variable" +
+                "or ndk.dir path in local.properties file");
+    }
+    return ndkbuild.absolutePath
 }

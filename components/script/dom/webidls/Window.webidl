@@ -1,20 +1,21 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#window
-[PrimaryGlobal]
+[Global=Window, Exposed=Window /*, LegacyUnenumerableNamedProperties */]
 /*sealed*/ interface Window : GlobalScope {
   // the current browsing context
   [Unforgeable] readonly attribute WindowProxy window;
   [BinaryName="Self_", Replaceable] readonly attribute WindowProxy self;
   [Unforgeable] readonly attribute Document document;
 
-  // https://github.com/servo/servo/issues/14453
-  // attribute DOMString name;
+  attribute DOMString name;
 
-  [/*PutForwards=href, */Unforgeable] readonly attribute Location location;
+  [PutForwards=href, Unforgeable] readonly attribute Location location;
   readonly attribute History history;
+  [Pref="dom.customelements.enabled"]
+  readonly attribute CustomElementRegistry customElements;
   //[Replaceable] readonly attribute BarProp locationbar;
   //[Replaceable] readonly attribute BarProp menubar;
   //[Replaceable] readonly attribute BarProp personalbar;
@@ -23,24 +24,24 @@
   //[Replaceable] readonly attribute BarProp toolbar;
   attribute DOMString status;
   void close();
-  //readonly attribute boolean closed;
-  //void stop();
+  readonly attribute boolean closed;
+  void stop();
   //void focus();
   //void blur();
 
   // other browsing contexts
   [Replaceable] readonly attribute WindowProxy frames;
-  //[Replaceable] readonly attribute unsigned long length;
+  [Replaceable] readonly attribute unsigned long length;
   // Note that this can return null in the case that the browsing context has been discarded.
   // https://github.com/whatwg/html/issues/2115
   [Unforgeable] readonly attribute WindowProxy? top;
-  //         attribute any opener;
+  attribute any opener;
   // Note that this can return null in the case that the browsing context has been discarded.
   // https://github.com/whatwg/html/issues/2115
-  readonly attribute WindowProxy? parent;
+  [Replaceable] readonly attribute WindowProxy? parent;
   readonly attribute Element? frameElement;
-  //WindowProxy open(optional DOMString url = "about:blank", optional DOMString target = "_blank",
-  //                 optional DOMString features = "", optional boolean replace = false);
+  [Throws] WindowProxy? open(optional USVString url = "", optional DOMString target = "_blank",
+                             optional DOMString features = "");
   //getter WindowProxy (unsigned long index);
 
   // https://github.com/servo/servo/issues/14453
@@ -54,52 +55,23 @@
   // user prompts
   void alert(DOMString message);
   void alert();
-  //boolean confirm(optional DOMString message = "");
-  //DOMString? prompt(optional DOMString message = "", optional DOMString default = "");
+  boolean confirm(optional DOMString message = "");
+  DOMString? prompt(optional DOMString message = "", optional DOMString default = "");
   //void print();
   //any showModalDialog(DOMString url, optional any argument);
 
   unsigned long requestAnimationFrame(FrameRequestCallback callback);
   void cancelAnimationFrame(unsigned long handle);
 
-  //void postMessage(any message, DOMString targetOrigin, optional sequence<Transferable> transfer);
   [Throws]
-  void postMessage(any message, DOMString targetOrigin);
+  void postMessage(any message, USVString targetOrigin, optional sequence<object> transfer = []);
+  [Throws]
+  void postMessage(any message, optional WindowPostMessageOptions options = {});
 
   // also has obsolete members
 };
-Window implements GlobalEventHandlers;
-Window implements WindowEventHandlers;
-
-[NoInterfaceObject]
-interface WindowProxy {};
-
-// https://html.spec.whatwg.org/multipage/#timers
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface WindowTimers {
-  long setTimeout(Function handler, optional long timeout = 0, any... arguments);
-  long setTimeout(DOMString handler, optional long timeout = 0, any... arguments);
-  void clearTimeout(optional long handle = 0);
-  long setInterval(Function handler, optional long timeout = 0, any... arguments);
-  long setInterval(DOMString handler, optional long timeout = 0, any... arguments);
-  void clearInterval(optional long handle = 0);
-};
-Window implements WindowTimers;
-
-// https://html.spec.whatwg.org/multipage/#atob
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface WindowBase64 {
-  [Throws]
-  DOMString btoa(DOMString btoa);
-  [Throws]
-  DOMString atob(DOMString atob);
-};
-Window implements WindowBase64;
-
-// https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/NavigationTiming/Overview.html#sec-window.performance-attribute
-partial interface Window {
-  [Replaceable] readonly attribute Performance performance;
-};
+Window includes GlobalEventHandlers;
+Window includes WindowEventHandlers;
 
 // https://html.spec.whatwg.org/multipage/#Window-partial
 partial interface Window {
@@ -130,7 +102,7 @@ dictionary ScrollToOptions : ScrollOptions {
 // http://dev.w3.org/csswg/cssom-view/#extensions-to-the-window-interface
 partial interface Window {
   [Exposed=(Window), NewObject] MediaQueryList matchMedia(DOMString query);
-  [SameObject] readonly attribute Screen screen;
+  [SameObject, Replaceable] readonly attribute Screen screen;
 
   // browsing context
   void moveTo(long x, long y);
@@ -139,36 +111,39 @@ partial interface Window {
   void resizeBy(long x, long y);
 
   // viewport
-  readonly attribute long innerWidth;
-  readonly attribute long innerHeight;
+  [Replaceable] readonly attribute long innerWidth;
+  [Replaceable] readonly attribute long innerHeight;
 
   // viewport scrolling
-  readonly attribute long scrollX;
-  readonly attribute long pageXOffset;
-  readonly attribute long scrollY;
-  readonly attribute long pageYOffset;
-  void scroll(optional ScrollToOptions options);
+  [Replaceable] readonly attribute long scrollX;
+  [Replaceable] readonly attribute long pageXOffset;
+  [Replaceable] readonly attribute long scrollY;
+  [Replaceable] readonly attribute long pageYOffset;
+  void scroll(optional ScrollToOptions options = {});
   void scroll(unrestricted double x, unrestricted double y);
-  void scrollTo(optional ScrollToOptions options);
+  void scrollTo(optional ScrollToOptions options = {});
   void scrollTo(unrestricted double x, unrestricted double y);
-  void scrollBy(optional ScrollToOptions options);
+  void scrollBy(optional ScrollToOptions options = {});
   void scrollBy(unrestricted double x, unrestricted double y);
 
   // client
-  readonly attribute long screenX;
-  readonly attribute long screenY;
-  readonly attribute long outerWidth;
-  readonly attribute long outerHeight;
-  readonly attribute double devicePixelRatio;
+  [Replaceable] readonly attribute long screenX;
+  [Replaceable] readonly attribute long screenY;
+  [Replaceable] readonly attribute long outerWidth;
+  [Replaceable] readonly attribute long outerHeight;
+  [Replaceable] readonly attribute double devicePixelRatio;
 };
 
 // Proprietary extensions.
 partial interface Window {
+  [Pref="dom.servo_helpers.enabled"]
   void debug(DOMString arg);
+  [Pref="dom.servo_helpers.enabled"]
   void gc();
+  [Pref="dom.servo_helpers.enabled"]
   void trap();
-  [Func="Window::global_is_mozbrowser", Throws]
-  void openURLInDefaultBrowser(DOMString href);
+  [Pref="dom.servo_helpers.enabled"]
+  void js_backtrace();
 };
 
 // WebDriver extensions
@@ -179,18 +154,16 @@ partial interface Window {
 };
 
 // https://html.spec.whatwg.org/multipage/#dom-sessionstorage
-[NoInterfaceObject]
-interface WindowSessionStorage {
+interface mixin WindowSessionStorage {
   readonly attribute Storage sessionStorage;
 };
-Window implements WindowSessionStorage;
+Window includes WindowSessionStorage;
 
 // https://html.spec.whatwg.org/multipage/#dom-localstorage
-[NoInterfaceObject]
-interface WindowLocalStorage {
+interface mixin WindowLocalStorage {
   readonly attribute Storage localStorage;
 };
-Window implements WindowLocalStorage;
+Window includes WindowLocalStorage;
 
 // http://w3c.github.io/animation-timing/#framerequestcallback
 callback FrameRequestCallback = void (DOMHighResTimeStamp time);
@@ -200,4 +173,23 @@ partial interface Window {
    [Pref="dom.bluetooth.testing.enabled", Exposed=Window]
    readonly attribute TestRunner testRunner;
    //readonly attribute EventSender eventSender;
+};
+
+partial interface Window {
+   [Pref="css.animations.testing.enabled"]
+   readonly attribute unsigned long runningAnimationCount;
+};
+
+// https://w3c.github.io/selection-api/#dom-document
+partial interface Window {
+   Selection? getSelection();
+};
+
+// https://dom.spec.whatwg.org/#interface-window-extensions
+partial interface Window {
+  [Replaceable] readonly attribute any event; // historical
+};
+
+dictionary WindowPostMessageOptions : PostMessageOptions {
+   USVString targetOrigin = "/";
 };

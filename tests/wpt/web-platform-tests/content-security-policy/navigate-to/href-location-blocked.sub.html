@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+<script>
+  var t = async_test("Test that the child iframe navigation is not allowed");
+  window.onmessage = t.step_func_done(function(e) {
+    assert_equals(e.data.result, 'fail');
+    assert_equals(e.data.violatedDirective, 'navigate-to');
+  });
+
+  window.open("support/href_location_navigation.sub.html?csp=navigate-to%20%27none%27&report_id={{$id:uuid()}}&target=post_message_to_frame_owner.html", "_blank");
+</script>
+
+<script async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=navigate-to%20%27none%27&reportID={{$id}}'></script>
+</body>

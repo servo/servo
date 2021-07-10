@@ -1,4 +1,0 @@
-set -ex
-
-./manifest
-./lint

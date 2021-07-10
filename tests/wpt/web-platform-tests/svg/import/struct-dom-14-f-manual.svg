@@ -30,8 +30,8 @@
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
         The test is passed if there is a green rect visible,
-        and there is a yellow or dark green circle in the middle. 
-        If there's any red visible the test has failed. 
+        and there is a yellow or dark green circle in the middle.
+        If there's any red visible the test has failed.
       </p>
     </d:passCriteria>
   </d:SVGTestCase>
@@ -57,11 +57,11 @@
         <![CDATA[
         function runTest()
         {
-          try 
+          try
           {
             var use = document.getElementById("use1");
             var instanceroot = use.instanceRoot;
-            
+
             if (instanceroot.firstChild.correspondingElement !== instanceroot.childNodes.item(0).correspondingElement)
               throw("failed");
             if (instanceroot.firstChild.nextSibling.correspondingElement !== instanceroot.childNodes.item(1).correspondingElement)
@@ -71,8 +71,8 @@
 
             // indicate test passed
             document.getElementById("status").setAttribute("fill", "lime");
-              
-            // This is an optional part of the test, which indicates whether SVGElementInstance(List) follows the normal DOM NodeList conventions and 
+
+            // This is an optional part of the test, which indicates whether SVGElementInstance(List) follows the normal DOM NodeList conventions and
             // whether the returned objects are actually the same objects as those that the SVGElementInstance traversal attributes return.
             if (instanceroot.firstChild !== instanceroot.childNodes.item(0))
               throw("failed");
@@ -80,8 +80,8 @@
               throw("failed");
             if (instanceroot.lastChild !== instanceroot.childNodes.item(instanceroot.childNodes.length-1))
               throw("failed");
-            
-            // indicate status of the optional part of the test 
+
+            // indicate status of the optional part of the test
             document.getElementById("optional").setAttribute("fill", "green");
           }
           catch(e)

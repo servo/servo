@@ -1,0 +1,36 @@
+﻿<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: interacting with the ellipsis</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#text-overflow">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="flags" content="ahem interact dom">
+<meta name="assert" content="Ellipsing must not prevent dispatching of pointer events.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+#test {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-left: -100px;
+  width: 2.5em;
+  height: 1em;
+  white-space: pre;
+  font: 100px/1 Ahem;
+  color: blue;
+}
+#discard {
+  float: left;
+}
+</style>
+
+<div id=discard>First, click the blue box. </div>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="test" onclick="green()">   </div>
+<script>
+function green() {
+	document.getElementById("test").style.color="green";
+	document.getElementById("discard").remove();
+	document.children[0].className="";
+}
+</script>

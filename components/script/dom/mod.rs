@@ -1,6 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! The implementation of the DOM.
 //!
@@ -30,10 +30,10 @@
 //! For more information, see:
 //!
 //! * rooting pointers on the stack:
-//!   the [`Root`](bindings/js/struct.Root.html) smart pointer;
-//! * tracing pointers in member fields: the [`JS`](bindings/js/struct.JS.html),
-//!   [`MutNullableJS`](bindings/js/struct.MutNullableJS.html) and
-//!   [`MutJS`](bindings/js/struct.MutJS.html) smart pointers and
+//!   the [`Root`](bindings/root/struct.Root.html) smart pointer;
+//! * tracing pointers in member fields: the [`Dom`](bindings/root/struct.Dom.html),
+//!   [`MutNullableDom`](bindings/root/struct.MutNullableDom.html) and
+//!   [`MutDom`](bindings/root/struct.MutDom.html) smart pointers and
 //!   [the tracing implementation](bindings/trace/index.html);
 //! * rooting pointers from across thread boundaries or in channels: the
 //!   [`Trusted`](bindings/refcounted/struct.Trusted.html) smart pointer;
@@ -44,7 +44,7 @@
 //! Rust does not support struct inheritance, as would be used for the
 //! object-oriented DOM APIs. To work around this issue, Servo stores an
 //! instance of the superclass in the first field of its subclasses. (Note that
-//! it is stored by value, rather than in a smart pointer such as `JS<T>`.)
+//! it is stored by value, rather than in a smart pointer such as `Dom<T>`.)
 //!
 //! This implies that a pointer to an object can safely be cast to a pointer
 //! to all its classes.
@@ -94,7 +94,7 @@
 //! DOM objects of type `T` in Servo have two constructors:
 //!
 //! * a `T::new_inherited` static method that returns a plain `T`, and
-//! * a `T::new` static method that returns `Root<T>`.
+//! * a `T::new` static method that returns `DomRoot<T>`.
 //!
 //! (The result of either method can be wrapped in `Result`, if that is
 //! appropriate for the type in question.)
@@ -123,7 +123,7 @@
 //!
 //! Reflectors are JavaScript objects, and as such can be freely aliased. As
 //! Rust does not allow mutable aliasing, mutable borrows of DOM objects are
-//! not allowed. In particular, any mutable fields use `Cell` or `DOMRefCell`
+//! not allowed. In particular, any mutable fields use `Cell` or `DomRefCell`
 //! to manage their mutability.
 //!
 //! `Reflector` and `DomObject`
@@ -195,29 +195,40 @@
 //! =================================
 //!
 //! Layout code can access the DOM through the
-//! [`LayoutJS`](bindings/js/struct.LayoutJS.html) smart pointer. This does not
+//! [`LayoutDom`](bindings/root/struct.LayoutDom.html) smart pointer. This does not
 //! keep the DOM object alive; we ensure that no DOM code (Garbage Collection
 //! in particular) runs while the layout thread is accessing the DOM.
 //!
-//! Methods accessible to layout are implemented on `LayoutJS<Foo>` using
+//! Methods accessible to layout are implemented on `LayoutDom<Foo>` using
 //! `LayoutFooHelpers` traits.
 
 #[macro_use]
 pub mod macros;
 
 pub mod types {
-    #[cfg(not(target_env = "msvc"))]
     include!(concat!(env!("OUT_DIR"), "/InterfaceTypes.rs"));
-    #[cfg(target_env = "msvc")]
-    include!(concat!(env!("OUT_DIR"), "/build/InterfaceTypes.rs"));
 }
 
 pub mod abstractworker;
 pub mod abstractworkerglobalscope;
 pub mod activation;
+pub mod analysernode;
+pub mod animationevent;
 pub mod attr;
+pub mod audiobuffer;
+pub mod audiobuffersourcenode;
+pub mod audiocontext;
+pub mod audiodestinationnode;
+pub mod audiolistener;
+pub mod audionode;
+pub mod audioparam;
+pub mod audioscheduledsourcenode;
+pub mod audiotrack;
+pub mod audiotracklist;
+pub mod baseaudiocontext;
 pub mod beforeunloadevent;
 pub mod bindings;
+pub mod biquadfilternode;
 pub mod blob;
 pub mod bluetooth;
 pub mod bluetoothadvertisingevent;
@@ -229,15 +240,20 @@ pub mod bluetoothremotegattdescriptor;
 pub mod bluetoothremotegattserver;
 pub mod bluetoothremotegattservice;
 pub mod bluetoothuuid;
-pub mod browsingcontext;
+pub mod broadcastchannel;
 pub mod canvasgradient;
 pub mod canvaspattern;
 pub mod canvasrenderingcontext2d;
+pub mod cdatasection;
+pub mod channelmergernode;
+pub mod channelsplitternode;
 pub mod characterdata;
 pub mod client;
 pub mod closeevent;
 pub mod comment;
+pub mod compositionevent;
 pub mod console;
+pub mod constantsourcenode;
 mod create;
 pub mod crypto;
 pub mod css;
@@ -254,14 +270,17 @@ pub mod cssrulelist;
 pub mod cssstyledeclaration;
 pub mod cssstylerule;
 pub mod cssstylesheet;
+pub mod cssstylevalue;
 pub mod csssupportsrule;
 pub mod cssviewportrule;
+pub mod customelementregistry;
 pub mod customevent;
 pub mod dedicatedworkerglobalscope;
 pub mod dissimilaroriginlocation;
 pub mod dissimilaroriginwindow;
 pub mod document;
 pub mod documentfragment;
+pub mod documentorshadowroot;
 pub mod documenttype;
 pub mod domexception;
 pub mod domimplementation;
@@ -273,8 +292,10 @@ pub mod dompointreadonly;
 pub mod domquad;
 pub mod domrect;
 pub mod domrectreadonly;
+pub mod domstringlist;
 pub mod domstringmap;
 pub mod domtokenlist;
+pub mod dynamicmoduleowner;
 pub mod element;
 pub mod errorevent;
 pub mod event;
@@ -282,24 +303,58 @@ pub mod eventsource;
 pub mod eventtarget;
 pub mod extendableevent;
 pub mod extendablemessageevent;
+pub mod fakexrdevice;
+pub mod fakexrinputcontroller;
 pub mod file;
 pub mod filelist;
 pub mod filereader;
 pub mod filereadersync;
 pub mod focusevent;
-pub mod forcetouchevent;
 pub mod formdata;
+pub mod formdataevent;
+pub mod gainnode;
 pub mod gamepad;
 pub mod gamepadbutton;
 pub mod gamepadbuttonlist;
 pub mod gamepadevent;
 pub mod gamepadlist;
+pub mod gamepadpose;
 pub mod globalscope;
+pub mod gpu;
+pub mod gpuadapter;
+pub mod gpubindgroup;
+pub mod gpubindgrouplayout;
+pub mod gpubuffer;
+pub mod gpubufferusage;
+pub mod gpucanvascontext;
+pub mod gpucolorwrite;
+pub mod gpucommandbuffer;
+pub mod gpucommandencoder;
+pub mod gpucomputepassencoder;
+pub mod gpucomputepipeline;
+pub mod gpudevice;
+pub mod gpudevicelostinfo;
+pub mod gpumapmode;
+pub mod gpuoutofmemoryerror;
+pub mod gpupipelinelayout;
+pub mod gpuqueue;
+pub mod gpurenderbundle;
+pub mod gpurenderbundleencoder;
+pub mod gpurenderpassencoder;
+pub mod gpurenderpipeline;
+pub mod gpusampler;
+pub mod gpushadermodule;
+pub mod gpushaderstage;
+pub mod gpuswapchain;
+pub mod gputexture;
+pub mod gputextureusage;
+pub mod gputextureview;
+pub mod gpuuncapturederrorevent;
+pub mod gpuvalidationerror;
 pub mod hashchangeevent;
 pub mod headers;
 pub mod history;
 pub mod htmlanchorelement;
-pub mod htmlappletelement;
 pub mod htmlareaelement;
 pub mod htmlaudioelement;
 pub mod htmlbaseelement;
@@ -336,6 +391,7 @@ pub mod htmllielement;
 pub mod htmllinkelement;
 pub mod htmlmapelement;
 pub mod htmlmediaelement;
+pub mod htmlmenuelement;
 pub mod htmlmetaelement;
 pub mod htmlmeterelement;
 pub mod htmlmodelement;
@@ -347,6 +403,7 @@ pub mod htmloptionscollection;
 pub mod htmloutputelement;
 pub mod htmlparagraphelement;
 pub mod htmlparamelement;
+pub mod htmlpictureelement;
 pub mod htmlpreelement;
 pub mod htmlprogresselement;
 pub mod htmlquoteelement;
@@ -358,9 +415,7 @@ pub mod htmlstyleelement;
 pub mod htmltablecaptionelement;
 pub mod htmltablecellelement;
 pub mod htmltablecolelement;
-pub mod htmltabledatacellelement;
 pub mod htmltableelement;
-pub mod htmltableheadercellelement;
 pub mod htmltablerowelement;
 pub mod htmltablesectionelement;
 pub mod htmltemplateelement;
@@ -371,28 +426,62 @@ pub mod htmltrackelement;
 pub mod htmlulistelement;
 pub mod htmlunknownelement;
 pub mod htmlvideoelement;
+pub mod identityhub;
+pub mod imagebitmap;
 pub mod imagedata;
+pub mod inputevent;
 pub mod keyboardevent;
 pub mod location;
+pub mod mediadeviceinfo;
+pub mod mediadevices;
+pub mod mediaelementaudiosourcenode;
 pub mod mediaerror;
+pub mod mediafragmentparser;
 pub mod medialist;
+pub mod mediametadata;
 pub mod mediaquerylist;
 pub mod mediaquerylistevent;
+pub mod mediasession;
+pub mod mediastream;
+pub mod mediastreamaudiodestinationnode;
+pub mod mediastreamaudiosourcenode;
+pub mod mediastreamtrack;
+pub mod mediastreamtrackaudiosourcenode;
+pub mod messagechannel;
 pub mod messageevent;
+pub mod messageport;
 pub mod mimetype;
 pub mod mimetypearray;
 pub mod mouseevent;
 pub mod mutationobserver;
 pub mod mutationrecord;
 pub mod namednodemap;
+pub mod navigationpreloadmanager;
 pub mod navigator;
 pub mod navigatorinfo;
 pub mod node;
 pub mod nodeiterator;
 pub mod nodelist;
+pub mod offlineaudiocompletionevent;
+pub mod offlineaudiocontext;
+pub mod offscreencanvas;
+pub mod offscreencanvasrenderingcontext2d;
+pub mod oscillatornode;
 pub mod pagetransitionevent;
+pub mod paintrenderingcontext2d;
+pub mod paintsize;
+pub mod paintworkletglobalscope;
+pub mod pannernode;
 pub mod performance;
-pub mod performancetiming;
+pub mod performanceentry;
+pub mod performancemark;
+pub mod performancemeasure;
+pub mod performancenavigation;
+pub mod performancenavigationtiming;
+pub mod performanceobserver;
+pub mod performanceobserverentrylist;
+pub mod performancepainttiming;
+pub mod performanceresourcetiming;
 pub mod permissions;
 pub mod permissionstatus;
 pub mod plugin;
@@ -402,20 +491,39 @@ pub mod processinginstruction;
 pub mod progressevent;
 pub mod promise;
 pub mod promisenativehandler;
+pub mod promiserejectionevent;
 pub mod radionodelist;
 pub mod range;
+pub mod raredata;
+pub mod readablestream;
 pub mod request;
 pub mod response;
+pub mod rtcdatachannel;
+pub mod rtcdatachannelevent;
+pub mod rtcerror;
+pub mod rtcerrorevent;
+pub mod rtcicecandidate;
+pub mod rtcpeerconnection;
+pub mod rtcpeerconnectioniceevent;
+pub(crate) mod rtcrtpsender;
+pub(crate) mod rtcrtptransceiver;
+pub mod rtcsessiondescription;
+pub mod rtctrackevent;
 pub mod screen;
+pub mod selection;
 pub mod serviceworker;
 pub mod serviceworkercontainer;
 pub mod serviceworkerglobalscope;
 pub mod serviceworkerregistration;
 pub mod servoparser;
+pub mod shadowroot;
+pub mod stereopannernode;
 pub mod storage;
 pub mod storageevent;
+pub mod stylepropertymapreadonly;
 pub mod stylesheet;
 pub mod stylesheetlist;
+pub mod submitevent;
 pub mod svgelement;
 pub mod svggraphicselement;
 pub mod svgsvgelement;
@@ -424,12 +532,22 @@ pub mod testbindingiterable;
 pub mod testbindingpairiterable;
 pub mod testbindingproxy;
 pub mod testrunner;
+pub mod testworklet;
+pub mod testworkletglobalscope;
 pub mod text;
+pub mod textcontrol;
 pub mod textdecoder;
 pub mod textencoder;
+pub mod textmetrics;
+pub mod texttrack;
+pub mod texttrackcue;
+pub mod texttrackcuelist;
+pub mod texttracklist;
+pub mod timeranges;
 pub mod touch;
 pub mod touchevent;
 pub mod touchlist;
+pub mod trackevent;
 pub mod transitionevent;
 pub mod treewalker;
 pub mod uievent;
@@ -440,16 +558,14 @@ pub mod userscripts;
 pub mod validation;
 pub mod validitystate;
 pub mod values;
+pub mod vertexarrayobject;
+pub mod videotrack;
+pub mod videotracklist;
 pub mod virtualmethods;
-pub mod vr;
-pub mod vrdisplay;
-pub mod vrdisplaycapabilities;
-pub mod vrdisplayevent;
-pub mod vreyeparameters;
-pub mod vrfieldofview;
-pub mod vrframedata;
-pub mod vrpose;
-pub mod vrstageparameters;
+pub mod vttcue;
+pub mod vttregion;
+pub mod webgl2renderingcontext;
+pub mod webgl_extensions;
 pub mod webgl_validations;
 pub mod webglactiveinfo;
 pub mod webglbuffer;
@@ -457,19 +573,67 @@ pub mod webglcontextevent;
 pub mod webglframebuffer;
 pub mod webglobject;
 pub mod webglprogram;
+pub mod webglquery;
 pub mod webglrenderbuffer;
 pub mod webglrenderingcontext;
+pub mod webglsampler;
 pub mod webglshader;
 pub mod webglshaderprecisionformat;
+pub mod webglsync;
 pub mod webgltexture;
+pub mod webgltransformfeedback;
 pub mod webgluniformlocation;
+pub mod webglvertexarrayobject;
+pub mod webglvertexarrayobjectoes;
 pub mod websocket;
+pub mod wheelevent;
 pub mod window;
+pub mod windowproxy;
 pub mod worker;
 pub mod workerglobalscope;
 pub mod workerlocation;
 pub mod workernavigator;
+pub mod worklet;
+pub mod workletglobalscope;
 pub mod xmldocument;
 pub mod xmlhttprequest;
 pub mod xmlhttprequesteventtarget;
 pub mod xmlhttprequestupload;
+pub mod xmlserializer;
+pub mod xrcompositionlayer;
+pub mod xrcubelayer;
+pub mod xrcylinderlayer;
+pub mod xrequirectlayer;
+pub mod xrframe;
+pub mod xrhand;
+pub mod xrhittestresult;
+pub mod xrhittestsource;
+pub mod xrinputsource;
+pub mod xrinputsourcearray;
+pub mod xrinputsourceevent;
+pub mod xrinputsourceschangeevent;
+pub mod xrjointpose;
+pub mod xrjointspace;
+pub mod xrlayer;
+pub mod xrlayerevent;
+pub mod xrmediabinding;
+pub mod xrpose;
+pub mod xrprojectionlayer;
+pub mod xrquadlayer;
+pub mod xrray;
+pub mod xrreferencespace;
+pub mod xrrenderstate;
+pub mod xrrigidtransform;
+pub mod xrsession;
+pub mod xrsessionevent;
+pub mod xrspace;
+pub mod xrsubimage;
+pub mod xrsystem;
+pub mod xrtest;
+pub mod xrview;
+pub mod xrviewerpose;
+pub mod xrviewport;
+pub mod xrwebglbinding;
+pub mod xrwebgllayer;
+pub mod xrwebglsubimage;
+pub use self::webgl_extensions::ext::*;

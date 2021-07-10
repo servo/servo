@@ -1,0 +1,131 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSS transition event dispatch</title>
+<link rel="help" href="https://drafts.csswg.org/css-transitions-2/#event-dispatch">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+'use strict';
+
+// This series of tests is a forked version of the Web Platform Test
+// /css/css-transitions/event-dispatch.tentative that do not make use
+// of the Web Animations API, since Servo doesn't yet support Web Animations.
+
+
+// All transition events should be received on the next animation frame.
+function transitionEventsTimeout() {
+  return new Promise(function(resolve) {
+      return new Promise(resolve => {
+        window.requestAnimationFrame(resolve);
+      });
+   });
+};
+
+const setupTransition = (t, transitionStyle) => {
+  var div = document.createElement('div');
+  div.setAttribute('style', 'transition: ' + transitionStyle);
+  document.body.appendChild(div);
+  if (t && typeof t.add_cleanup === 'function') {
+    t.add_cleanup(function() {
+      if (div.parentNode) {
+        div.remove();
+      }
+    });
+  }
+  const watcher = new EventWatcher(t, div, [ 'transitionrun',
+                                             'transitionstart',
+                                             'transitionend',
+                                             'transitioncancel' ],
+                                   transitionEventsTimeout);
+  getComputedStyle(div).marginLeft;
+
+  div.style.marginLeft = '100px';
+
+  return { watcher, div };
+};
+
+promise_test(async t => {
+  const { watcher } = setupTransition(t, 'margin-left 100s 100s');
+  const events = await watcher.wait_for(
+    ['transitionrun' ],
+    {
+      record: 'all',
+    }
+  );
+  assert_equals(events[0].elapsedTime, 0.0);
+}, 'transitionrun');
+
+promise_test(async t => {
+  const { watcher } = setupTransition(t, 'margin-left 100s');
+  const events = await watcher.wait_for(
+    ['transitionrun', 'transitionstart', ],
+    {
+      record: 'all',
+    }
+  );
+  assert_equals(events[0].elapsedTime, 0.0);
+  assert_equals(events[1].elapsedTime, 0.0);
+}, 'transitionrun, transitionstart');
+
+promise_test(async t => {
+  const { watcher, div } = setupTransition(t, 'margin-left 0.1s');
+
+  const events = await watcher.wait_for(
+    ['transitionrun', 'transitionstart', 'transitionend'],
+    {
+      record: 'all',
+    }
+  );
+  assert_equals(events[0].elapsedTime, 0);
+  assert_equals(events[0].propertyName, "margin-left");
+
+  assert_equals(events[1].elapsedTime, 0);
+  assert_equals(events[1].propertyName, "margin-left");
+
+  assert_approx_equals(events[2].elapsedTime, 0.1, 0.01);
+  assert_equals(events[2].propertyName, "margin-left");
+
+}, 'transitionrun, transitionstart, transitionend');
+
+promise_test(async t => {
+  const { watcher, div } = setupTransition(t, 'margin-left 1s 0.5s');
+
+  const events = await watcher.wait_for(
+    ['transitionrun', 'transitionstart', 'transitionend'],
+    {
+      record: 'all',
+    }
+  );
+
+  assert_equals(events[0].elapsedTime, 0);
+  assert_equals(events[0].propertyName, "margin-left");
+
+  assert_equals(events[1].elapsedTime, 0);
+  assert_equals(events[1].propertyName, "margin-left");
+
+  assert_equals(events[2].elapsedTime, 1);
+  assert_equals(events[2].propertyName, "margin-left");
+}, 'transitionrun, transitionstart, transitionend with positive delay');
+
+
+promise_test(async t => {
+  const { watcher, div } = setupTransition(t, 'margin-left 100s -99.99s');
+
+  const events = await watcher.wait_for(
+    ['transitionrun', 'transitionstart', 'transitionend'],
+    {
+      record: 'all',
+    }
+  );
+  assert_approx_equals(events[0].elapsedTime, 99.99, 0.1);
+  assert_equals(events[0].propertyName, "margin-left");
+
+  assert_approx_equals(events[1].elapsedTime, 99.99, 0.1);
+  assert_equals(events[1].propertyName, "margin-left");
+
+  assert_approx_equals(events[2].elapsedTime, 99.99, 0.1);
+  assert_equals(events[2].propertyName, "margin-left");
+}, 'transitionrun, transitionstart, transitionend with negative delay');
+
+</script>

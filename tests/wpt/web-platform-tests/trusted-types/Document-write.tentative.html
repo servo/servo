@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.sub.js"></script>
+<body>
+<script>
+  // TrustedHTML assignments do not throw.
+  test(t => {
+    let p = createHTML_policy(window, 1);
+    let html = p.createHTML(INPUTS.HTML);
+    document.write(html);
+    assert_true(document.body.innerText.indexOf(RESULTS.HTML) !== -1);
+  }, "document.write with html assigned via policy (successful transformation).");
+</script>

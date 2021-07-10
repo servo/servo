@@ -1,17 +1,17 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::codegen::Bindings::PageTransitionEventBinding;
-use dom::bindings::codegen::Bindings::PageTransitionEventBinding::PageTransitionEventMethods;
-use dom::bindings::error::Fallible;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
-use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::str::DOMString;
-use dom::event::Event;
-use dom::window::Window;
+use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
+use crate::dom::bindings::codegen::Bindings::PageTransitionEventBinding;
+use crate::dom::bindings::codegen::Bindings::PageTransitionEventBinding::PageTransitionEventMethods;
+use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::event::Event;
+use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use servo_atoms::Atom;
 use std::cell::Cell;
@@ -31,18 +31,17 @@ impl PageTransitionEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &Window) -> Root<PageTransitionEvent> {
-        reflect_dom_object(box PageTransitionEvent::new_inherited(),
-                           window,
-                           PageTransitionEventBinding::Wrap)
+    pub fn new_uninitialized(window: &Window) -> DomRoot<PageTransitionEvent> {
+        reflect_dom_object(Box::new(PageTransitionEvent::new_inherited()), window)
     }
 
-    pub fn new(window: &Window,
-               type_: Atom,
-               bubbles: bool,
-               cancelable: bool,
-               persisted: bool)
-               -> Root<PageTransitionEvent> {
+    pub fn new(
+        window: &Window,
+        type_: Atom,
+        bubbles: bool,
+        cancelable: bool,
+        persisted: bool,
+    ) -> DomRoot<PageTransitionEvent> {
         let ev = PageTransitionEvent::new_uninitialized(window);
         ev.persisted.set(persisted);
         {
@@ -52,15 +51,19 @@ impl PageTransitionEvent {
         ev
     }
 
-    pub fn Constructor(window: &Window,
-                       type_: DOMString,
-                       init: &PageTransitionEventBinding::PageTransitionEventInit)
-                       -> Fallible<Root<PageTransitionEvent>> {
-        Ok(PageTransitionEvent::new(window,
-                              Atom::from(type_),
-                              init.parent.bubbles,
-                              init.parent.cancelable,
-                              init.persisted))
+    #[allow(non_snake_case)]
+    pub fn Constructor(
+        window: &Window,
+        type_: DOMString,
+        init: &PageTransitionEventBinding::PageTransitionEventInit,
+    ) -> Fallible<DomRoot<PageTransitionEvent>> {
+        Ok(PageTransitionEvent::new(
+            window,
+            Atom::from(type_),
+            init.parent.bubbles,
+            init.parent.cancelable,
+            init.persisted,
+        ))
     }
 }
 

@@ -1,0 +1,522 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL2 texture unpack parameters with FLIP_Y / PREMULTIPLY_ALPHA conformance test.</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="example" width="4" height="4"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+
+var wtu = WebGLTestUtils;
+var __verbose__ = false;
+
+// Some drivers (for example, NVIDIA Linux) incorrectly require padding for
+// the last row. The below flag is only for testing convenience. Browsers should
+// work around the bug.
+var __apply_alignment_workaround__ = false;
+
+function setupArrayBuffer(size, initData) {
+  var array = new Uint8Array(size);
+  if (initData) {
+    for (var ii = 0; ii < size; ++ii) {
+      array[ii] = ii % 255;
+    }
+  }
+  return array;
+}
+
+function calculatePaddingBytes(bytesPerPixel, alignment, width) {
+  var padding = 0;
+  switch (alignment) {
+    case 1:
+    case 2:
+    case 4:
+    case 8:
+      padding = (bytesPerPixel * width) % alignment;
+      if (padding > 0)
+        padding = alignment - padding;
+      return padding;
+    default:
+      testFailed("should not reach here");
+      return;
+  }
+}
+
+function computeImageSizes2D(width, height, testCase) {
+  // Assume RGBA8/UNSIGNED_BYTE
+  var bytesPerPixel = 4;
+  var actualWidth = testCase.rowLength == 0 ? width : testCase.rowLength;
+  var padding = calculatePaddingBytes(bytesPerPixel, testCase.alignment, actualWidth);
+  var bytesPerRow = actualWidth * bytesPerPixel + padding;
+  var bytesLastRow = bytesPerPixel * width;
+  var size = bytesPerRow * (height - 1) + bytesLastRow;
+  var skipSize = 0;
+  if (testCase.skipPixels > 0)
+    skipSize += bytesPerPixel * testCase.skipPixels;
+  if (testCase.skipRows > 0)
+    skipSize += bytesPerRow * testCase.skipRows;
+  return {size: size,
+          bytesPerRow: bytesPerRow,
+          bytesLastRow: bytesLastRow,
+          padding: padding,
+          skipSize: skipSize,
+          totalSize: size + skipSize};
+}
+
+function copyData(srcData, srcIndex, dstData, dstIndex, size, premultiply_alpha) {
+  for (var ii = 0; ii < size / 4; ++ii) {
+    var factor = 1.0;
+    if (premultiply_alpha)
+      factor = srcData[srcIndex + ii * 4 + 3] / 255.0;
+    dstData[dstIndex + ii * 4] = srcData[srcIndex + ii * 4] * factor;
+    dstData[dstIndex + ii * 4 + 1] = srcData[srcIndex + ii * 4 + 1] * factor;
+    dstData[dstIndex + ii * 4 + 2] = srcData[srcIndex + ii * 4 + 2] * factor;
+    dstData[dstIndex + ii * 4 + 3] = srcData[srcIndex + ii * 4 + 3];
+  }
+}
+
+function unpackPixels(srcData, width, height, imageSizes, flip_y, premultiply_alpha) {
+  var bytesPerPixel = 4;
+  var unpackedSize = width * height * bytesPerPixel;
+  var dstData = setupArrayBuffer(unpackedSize, false);
+  var srcIndex = imageSizes.skipSize;
+  var dstIndex = 0;
+  var inc = width * bytesPerPixel;
+  if (flip_y)
+    dstIndex += (height - 1) * inc;
+  for (var y = 0; y < height; ++y) {
+    copyData(srcData, srcIndex, dstData, dstIndex, width * bytesPerPixel, premultiply_alpha);
+    srcIndex += imageSizes.bytesPerRow;
+    if (flip_y)
+      dstIndex -= inc;
+    else
+      dstIndex += inc;
+  }
+  if (flip_y)
+    dstIndex += height * inc;
+  return dstData;
+}
+
+function getPixelsFromTexture2D(gl, tex, xoffset, yoffset, width, height) {
+  var fbo = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+  var bytesPerReadbackPixel = 4;
+  var readbackBuffer = setupArrayBuffer(width * height * bytesPerReadbackPixel, false);
+  gl.readPixels(xoffset, yoffset, width, height, gl.RGBA, gl.UNSIGNED_BYTE, readbackBuffer);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "read back texture pixels should succeed");
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.deleteFramebuffer(fbo);
+  return readbackBuffer;
+}
+
+function comparePixels(buffer1, buffer2, tolerance) {
+  if (buffer1.length != buffer2.length || buffer1.length % 4 != 0) {
+    testFailed("compare pixels: invalid buffer size");
+    return;
+  }
+  var count = 0;
+  for (var ii = 0; ii < buffer1.length / 4; ++ii) {
+    var distance = 0;
+    for (var jj = 0; jj < 4; ++jj) {
+      var diff = buffer1[ii * 4 + jj] - buffer2[ii * 4 + jj];
+      distance += diff * diff;
+    }
+    if (Math.sqrt(diff) > tolerance) {
+      if (__verbose__) {
+        debug("Pixel " + ii + ": expected (" +
+              [buffer1[ii * 4], buffer1[ii * 4 + 1], buffer1[ii * 4 + 2], buffer1[ii * 4 + 3]] + "), got (" +
+              [buffer2[ii * 4], buffer2[ii * 4 + 1], buffer2[ii * 4 + 2], buffer2[ii * 4 + 3]] + ")");
+      }
+      count++;
+    }
+  }
+  if (count > 0) {
+    testFailed("compare pixels: " + count + " pixels differ");
+  } else {
+    testPassed("compare pixels: as expected");
+  }
+}
+
+function runTestIteration2D(gl, testCase, flip_y, premultiply_alpha) {
+  debug("");
+  debug("Texture upload with : flip_y = " + flip_y + ", premultiply_alpha = " + premultiply_alpha +
+        ", alignment = " + testCase.alignment + ", rowLength = " + testCase.rowLength +
+        ", skipPixels = " + testCase.skipPixels + ", skipRows = " + testCase.skipRows);
+  debug("TexImage2D : size = (" + testCase.width + ", " + testCase.height + ")");
+  gl.pixelStorei(gl.UNPACK_ALIGNMENT, testCase.alignment);
+  gl.pixelStorei(gl.UNPACK_ROW_LENGTH, testCase.rowLength);
+  gl.pixelStorei(gl.UNPACK_SKIP_PIXELS, testCase.skipPixels);
+  gl.pixelStorei(gl.UNPACK_SKIP_ROWS, testCase.skipRows);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, flip_y);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, premultiply_alpha);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Set up pixel store parameters should succeed");
+
+  var tol = 3;
+
+  var tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+
+  var imageSizes = computeImageSizes2D(testCase.width, testCase.height, testCase);
+  var bufferSize = imageSizes.totalSize;
+  var array;
+
+  // Verify buffer with less than enough size will fail.
+  array = setupArrayBuffer(bufferSize - 1, false);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, testCase.width, testCase.height, 0,
+                gl.RGBA, gl.UNSIGNED_BYTE, array);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "buffer too small");
+
+  if (__apply_alignment_workaround__)
+    bufferSize += imageSizes.padding;
+  array = setupArrayBuffer(bufferSize, true);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, testCase.width, testCase.height, 0,
+                gl.RGBA, gl.UNSIGNED_BYTE, array);
+  if (testCase.validUnpackParams2D) {
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texImage2D with correct buffer size should succeed");
+  } else {
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "invalid unpack params combination");
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, testCase.width, testCase.height, 0,
+                  gl.RGBA, gl.UNSIGNED_BYTE, null);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "unpack param constraints do not apply if no data are uploaded.");
+    return;
+  }
+
+  var buffer1 = unpackPixels(array, testCase.width, testCase.height, imageSizes, flip_y, premultiply_alpha);
+  var buffer2 = getPixelsFromTexture2D(gl, tex, 0, 0, testCase.width, testCase.height);
+  comparePixels(buffer1, buffer2, tol);
+
+  var subWidth = testCase.width - testCase.xoffset;
+  var subHeight = testCase.height - testCase.yoffset;
+  debug("TexSubImage2D : offset = (" + testCase.xoffset + ", " + testCase.yoffset +
+        "), size = (" + subWidth + ", " + subHeight + ")");
+  imageSizes = computeImageSizes2D(subWidth, subHeight, testCase);
+  bufferSize = imageSizes.totalSize;
+
+  array = setupArrayBuffer(bufferSize - 1, false);
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, testCase.xoffset, testCase.yoffset,
+                   subWidth, subHeight, gl.RGBA, gl.UNSIGNED_BYTE, array);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "buffer too small");
+
+  if (__apply_alignment_workaround__)
+    bufferSize += imageSizes.padding;
+  array = setupArrayBuffer(bufferSize, true);
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, testCase.xoffset, testCase.yoffset, subWidth, subHeight,
+                   gl.RGBA, gl.UNSIGNED_BYTE, array);
+  if (testCase.validUnpackParamsForSub2D) {
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texSubImage2D with correct buffer size should succeed");
+  } else {
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "invalid unpack params combination");
+    return;
+  }
+
+  var buffer1 = unpackPixels(array, subWidth, subHeight, imageSizes, flip_y, premultiply_alpha);
+  var buffer2 = getPixelsFromTexture2D(
+      gl, tex, testCase.xoffset, testCase.yoffset, subWidth, subHeight);
+  comparePixels(buffer1, buffer2, tol);
+
+  gl.bindTexture(gl.TEXTURE_2D, null);
+  gl.deleteTexture(tex);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "no error");
+}
+
+function runTests(gl) {
+  var testCases = [
+    { width: 5, height: 7, xoffset: 2, yoffset: 3,
+      alignment: 1, rowLength: 0, skipPixels: 0, skipRows: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true },
+    { width: 5, height: 7, xoffset: 2, yoffset: 3,
+      alignment: 2, rowLength: 0, skipPixels: 0, skipRows: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true },
+    { width: 6, height: 7, xoffset: 2, yoffset: 3,
+      alignment: 4, rowLength: 0, skipPixels: 0, skipRows: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true },
+    { width: 5, height: 8, xoffset: 2, yoffset: 3,
+      alignment: 8, rowLength: 0, skipPixels: 0, skipRows: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true },
+
+    // ROW_LENGTH == width
+    { width: 10, height: 9, xoffset: 2, yoffset: 3,
+      alignment: 4, rowLength: 10, skipPixels: 0, skipRows: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true },
+
+    // ROW_LENGTH < width
+    { width: 5, height: 7, xoffset: 2, yoffset: 3,
+      alignment: 1, rowLength: 4, skipPixels: 0, skipRows: 0,
+      validUnpackParams2D: false },
+    { width: 5, height: 7, xoffset: 2, yoffset: 3,
+      alignment: 2, rowLength: 4, skipPixels: 0, skipRows: 0,
+      validUnpackParams2D: false },
+    { width: 5, height: 7, xoffset: 2, yoffset: 3,
+      alignment: 4, rowLength: 4, skipPixels: 0, skipRows: 0,
+      validUnpackParams2D: false },
+    { width: 5, height: 7, xoffset: 2, yoffset: 3,
+      alignment: 8, rowLength: 4, skipPixels: 0, skipRows: 0,
+      validUnpackParams2D: false },
+
+    // ROW_LENGTH > width
+    { width: 5, height: 7, xoffset: 2, yoffset: 3,
+      alignment: 1, rowLength: 6, skipPixels: 0, skipRows: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true },
+    { width: 5, height: 7, xoffset: 2, yoffset: 3,
+      alignment: 2, rowLength: 7, skipPixels: 0, skipRows: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true },
+    { width: 5, height: 7, xoffset: 2, yoffset: 3,
+      alignment: 4, rowLength: 8, skipPixels: 0, skipRows: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true },
+    { width: 5, height: 7, xoffset: 2, yoffset: 3,
+      alignment: 8, rowLength: 9, skipPixels: 0, skipRows: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true },
+
+    // IMAGE_HEIGHT == height
+    { width: 6, height: 7, xoffset: 2, yoffset: 3,
+      alignment: 8, rowLength: 0, skipPixels: 0, skipRows: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true },
+
+    // IMAGE_HEIGHT < height
+    { width: 5, height: 7, xoffset: 2, yoffset: 3,
+      alignment: 1, rowLength: 0, skipPixels: 0, skipRows: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true },
+    { width: 5, height: 7, xoffset: 2, yoffset: 3,
+      alignment: 2, rowLength: 0, skipPixels: 0, skipRows: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true },
+    { width: 5, height: 7, xoffset: 2, yoffset: 3,
+      alignment: 4, rowLength: 0, skipPixels: 0, skipRows: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true },
+    { width: 5, height: 7, xoffset: 2, yoffset: 3,
+      alignment: 8, rowLength: 0, skipPixels: 0, skipRows: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true },
+
+    // IMAGE_HEIGHT > height
+    { width: 5, height: 7, xoffset: 2, yoffset: 3,
+      alignment: 1, rowLength: 0, skipPixels: 0, skipRows: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true },
+    { width: 6, height: 7, xoffset: 2, yoffset: 2,
+      alignment: 2, rowLength: 0, skipPixels: 0, skipRows: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true },
+    { width: 7, height: 7, xoffset: 2, yoffset: 4,
+      alignment: 4, rowLength: 0, skipPixels: 0, skipRows: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true },
+    { width: 8, height: 7, xoffset: 2, yoffset: 3,
+      alignment: 8, rowLength: 0, skipPixels: 0, skipRows: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true },
+
+    // SKIP parameters
+    { width: 5, height: 7, xoffset: 2, yoffset: 3,
+      alignment: 1, rowLength: 0, skipPixels: 10, skipRows: 0,
+      validUnpackParams2D: false },
+    { width: 5, height: 7, xoffset: 2, yoffset: 3,
+      alignment: 2, rowLength: 0, skipPixels: 2, skipRows: 8,
+      validUnpackParams2D: false },
+    { width: 5, height: 7, xoffset: 2, yoffset: 3,
+      alignment: 4, rowLength: 0, skipPixels: 3, skipRows: 5,
+      validUnpackParams2D: false },
+    { width: 5, height: 7, xoffset: 2, yoffset: 3,
+      alignment: 8, rowLength: 0, skipPixels: 7, skipRows: 0,
+      validUnpackParams2D: false },
+
+    // all mixed.
+    { width: 5, height: 7, xoffset: 2, yoffset: 3,
+      alignment: 1, rowLength: 6, skipPixels: 3, skipRows: 5,
+      validUnpackParams2D: false },
+    { width: 5, height: 7, xoffset: 2, yoffset: 3,
+      alignment: 2, rowLength: 4, skipPixels: 7, skipRows: 2,
+      validUnpackParams2D: false },
+    { width: 5, height: 7, xoffset: 2, yoffset: 3,
+      alignment: 4, rowLength: 10, skipPixels: 0, skipRows: 3,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true },
+    { width: 1, height: 1, xoffset: 0, yoffset: 0,
+      alignment: 2, rowLength: 3, skipPixels: 3, skipRows: 5,
+      validUnpackParams2D: false },
+    { width: 17, height: 6, xoffset: 12, yoffset: 3,
+      alignment: 2, rowLength: 4, skipPixels: 1, skipRows: 4,
+      validUnpackParams2D: false },
+    { width: 8, height: 17, xoffset: 2, yoffset: 13,
+      alignment: 4, rowLength: 9, skipPixels: 0, skipRows: 3,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true },
+  ];
+
+  var groups = [
+    // { flip_y: false,  premultiply_alpha: false },
+    { flip_y: true,  premultiply_alpha: false },
+    { flip_y: false, premultiply_alpha: true },
+    { flip_y: true,  premultiply_alpha: true },
+  ];
+
+  for (var jj = 0; jj < groups.length; ++jj) {
+    var group = groups[jj];
+    for (var ii = 0; ii < testCases.length; ++ii) {
+      var testCase = testCases[ii];
+      runTestIteration2D(gl, testCase, group.flip_y, group.premultiply_alpha);
+    }
+  }
+}
+
+function runNegativeTests(gl) {
+  debug("");
+  debug("Test tex{Sub}Image2D from pbo fails with FLIP_Y = true or PREMULTIPLY_ALPHA = true");
+
+  var width = 16, height = 16, depth = 2;
+
+  // Restore default values.
+  gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
+  gl.pixelStorei(gl.UNPACK_ROW_LENGTH, 0);
+  gl.pixelStorei(gl.UNPACK_IMAGE_HEIGHT, 0);
+  gl.pixelStorei(gl.UNPACK_SKIP_PIXELS, 0);
+  gl.pixelStorei(gl.UNPACK_SKIP_ROWS, 0);
+  gl.pixelStorei(gl.UNPACK_SKIP_IMAGES, 0);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+
+  var tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+
+  var bufferSize = width * height * 4; // RGBA8
+  var buffer = gl.createBuffer();
+  gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, buffer);
+  gl.bufferData(gl.PIXEL_UNPACK_BUFFER, bufferSize, gl.DYNAMIC_DRAW);
+
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texImage2D from pbo works with default pixel store settings");
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texSubImage2D from pbo works with default pixel store settings");
+
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "texImage2D from pbo with FLIP_Y=true should fail");
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "texSubImage2D from pbo with FLIP_Y=true should fail");
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "texImage2D from pbo with PREMULTIPLY_ALPHA=true should fail");
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "texSubImage2D from pbo with PREMULTIPLY_ALPHA=true should fail");
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+
+  debug("");
+  debug("Test tex{Sub}Image3D from pbo fails with FLIP_Y = true or PREMULTIPLY_ALPHA = true");
+
+  gl.deleteTexture(tex);
+  tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_3D, tex);
+
+  bufferSize = width * height * depth * 4; // RGBA8
+  gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, buffer);
+  gl.bufferData(gl.PIXEL_UNPACK_BUFFER, bufferSize, gl.DYNAMIC_DRAW);
+
+  gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGBA8, width, height, depth, 0, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texImage3D from pbo works with default pixel store settings");
+  gl.texSubImage3D(gl.TEXTURE_3D, 0, 0, 0, 0, width, height, depth, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texSubImage3D from pbo works with default pixel store settings");
+
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGBA8, width, height, depth, 0, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "texImage3D from pbo with FLIP_Y=true should fail");
+  gl.texSubImage3D(gl.TEXTURE_3D, 0, 0, 0, 0, width, height, depth, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "texSubImage3D from pbo with FLIP_Y=true should fail");
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+  gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGBA8, width, height, depth, 0, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "texImage3D from pbo with PREMULTIPLY_ALPHA=true should fail");
+  gl.texSubImage3D(gl.TEXTURE_3D, 0, 0, 0, 0, width, height, depth, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "texSubImage3D from pbo with PREMULTIPLY_ALPHA=true should fail");
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+
+  debug("");
+  debug("Test tex{Sub}Image3D from client array fails with FLIP_Y = true or PREMULTIPLY_ALPHA = true");
+
+  gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, null);
+  gl.deleteBuffer(buffer);
+  buffer = null;
+  var array = setupArrayBuffer(bufferSize, false);
+
+  gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGBA8, width, height, depth, 0, gl.RGBA, gl.UNSIGNED_BYTE, array);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texImage3D from client array works with default pixel store settings");
+  gl.texSubImage3D(gl.TEXTURE_3D, 0, 0, 0, 0, width, height, depth, gl.RGBA, gl.UNSIGNED_BYTE, array);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texSubImage3D from client array works with default pixel store settings");
+
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGBA8, width, height, depth, 0, gl.RGBA, gl.UNSIGNED_BYTE, array);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "texImage3D from client array with FLIP_Y=true should fail");
+  gl.texSubImage3D(gl.TEXTURE_3D, 0, 0, 0, 0, width, height, depth, gl.RGBA, gl.UNSIGNED_BYTE, array);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "texSubImage3D from client array with FLIP_Y=true should fail");
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+  gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGBA8, width, height, depth, 0, gl.RGBA, gl.UNSIGNED_BYTE, array);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "texImage3D from pbo with PREMULTIPLY_ALPHA=true should fail");
+  gl.texSubImage3D(gl.TEXTURE_3D, 0, 0, 0, 0, width, height, depth, gl.RGBA, gl.UNSIGNED_BYTE, array);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "texSubImage3D from pbo with PREMULTIPLY_ALPHA=true should fail");
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+}
+
+function runRegressionTests(gl) {
+  debug("");
+  debug("The following test serves as a regression test for crbug.com/774174");
+  var array = new Uint16Array(32);
+  gl.pixelStorei(gl.UNPACK_ROW_LENGTH, 4);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 6);
+  var tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texSubImage2D(gl.TEXTURE_2D, 4, 7, 5, 8, 5, gl.RGB, gl.UNSIGNED_SHORT_5_5_5_1, array);
+  // At this point, the Chrome ASAN build used to crash.
+  testPassed("The regression test for crbug.com/774174 doesn't crash");
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "Calling texSubImage2D without initializing the texture is illegal");
+  gl.pixelStorei(gl.UNPACK_ROW_LENGTH, 0);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+}
+
+var gl = wtu.create3DContext("example", undefined, 2);
+if (!gl) {
+  testFailed("Fail to get a WebGL context");
+} else {
+  runTests(gl);
+  runNegativeTests(gl);
+  runRegressionTests(gl);
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+</body>
+</html>

@@ -1,5 +1,0 @@
-@media tv { p { color: yellow; background: red; } }
-@media handheld { p { color: white; background: green; } }
-@media screen { p { color: yellow; background: red; } }
-@media print { p { color: yellow; background: red; } }
-@media projection { p { color: yellow; background: red; } }

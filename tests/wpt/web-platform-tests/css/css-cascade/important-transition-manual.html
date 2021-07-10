@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Cascade: Author !important vs. Transitions</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+  <link rel="help" href="https://www.w3.org/TR/css-cascade-3/#cascade-sort">
+  <style>
+  .container { padding: 1em 0; border-style: dotted none; border-width: 1px; }
+  .container > div { width: 5em; text-align: center; border: solid; transition: all 3s; }
+
+  .container   > .ref  { border-color: blue ;           color: navy   ;           background: aqua ;           margin:   0.25em ;           }
+  :hover       > .ref  { border-color: aqua ;           color: orange ;           background: teal ;           margin-left: 40% ;           }
+
+  :not(:hover) > .test { border-color: blue !important; color: navy   !important; background: aqua ;                                        }
+  div          > .test {                                                                                       margin:   0.25em !important; }
+  :hover       > .test { border-color: aqua !important; color: orange ;           background: teal !important; margin-left: 40% !important; }
+  </style>
+
+<p>Test passes if the two boxes transition identically when hovering with a mouse below.
+
+<div class=container>
+  <div class=test>Box 1</div>
+  <div class=ref>Box 2</div>
+</div>

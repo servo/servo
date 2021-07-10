@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>CSSOM: CSSPageRule tests</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#the-csspagerule-interface" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @page {}
+</style>
+<script>
+  const sheet = document.styleSheets[0];
+  const rule = sheet.cssRules[0];
+
+  test(() => {
+    assert_true(!!rule);
+    assert_equals(rule.type, CSSRule.PAGE_RULE);
+  }, "Sanity checks");
+
+  test(() => {
+    assert_equals(rule.selectorText, "");
+  }, "Page selector is initially the empty string");
+
+  test(() => {
+    rule.selectorText = ":left";
+    assert_equals(rule.selectorText, ":left");
+  }, "Set selectorText to :left pseudo page");
+
+  test(() => {
+    rule.selectorText = "named";
+    assert_equals(rule.selectorText, "named");
+  }, "Set selectorText to named page");
+
+  test(() => {
+    rule.selectorText = "named:first";
+    assert_equals(rule.selectorText, "named:first");
+  }, "Set selectorText to named page with :first pseudo page");
+
+  test(() => {
+    assert_equals(rule.parentStyleSheet, sheet);
+    sheet.deleteRule(0);
+    assert_equals(rule.parentStyleSheet, null);
+    rule.selectorText = "pagename";
+  }, "Set selectorText to named page after rule was removed");
+</script>

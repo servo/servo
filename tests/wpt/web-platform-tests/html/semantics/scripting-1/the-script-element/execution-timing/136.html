@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html><head>
+  <title>scheduler: DOM added external SVG script, force-async? </title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="testlib/testlib.js"></script>
+</head>
+<div id="log"></div>
+<script>
+  var t = async_test();
+</script>
+<svg>
+<script>
+
+var s1 = document.createElement("script");
+s1.src = "scripts/include-1.js";
+s1.async = false;
+
+var s = document.createElementNS("http://www.w3.org/2000/svg", "script");
+s.setAttributeNS("http://www.w3.org/1999/xlink", "href", "scripts/include-2.js?pipe=trickle(d2)");
+
+document.getElementsByTagName("svg")[0].appendChild(s);
+document.getElementsByTagName("svg")[0].appendChild(s1);
+
+</script>
+</svg>
+<script>
+onload = t.step_func(function() {
+  <!-- assumes that the SVg script should be async -->
+  assert_array_equals(eventOrder, ["external script #1", "external script #2"]);
+  t.done();
+});
+</script>

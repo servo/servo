@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script nonce="abc" src="/resources/testharness.js"></script>
+  <script nonce="abc" src="/resources/testharnessreport.js"></script>
+  <meta http-equiv="Content-Security-Policy"
+        content="require-trusted-types-for 'script'">
+</head>
+<body>
+<script>
+  let policy = trustedTypes.createPolicy("p", { createScript: s => s });
+  const args = ["a", "b", "c = 5", "return (a+b)*c;"];
+  const arg_max = 2 ** args.length -1;
+
+  // Call 'new Function(...args)', but with a subet of args being Strings,
+  // and a subset being TrustedScript. We use a bitmask to determine which
+  // argument gets to be trusted or not.
+  function new_function_with_maybe_trusted_args(mask) {
+    let maybe_trusted_args = args.map((value, arg_nr) => {
+      return (mask & (2**arg_nr)) ? policy.createScript(value) : value;
+    });
+    return new Function(...maybe_trusted_args);
+  }
+
+  // Generate all combinations of String/TrustedScript, except for the one
+  // where all argumentes are TrustedScript.
+  for (let mask = 0; mask < arg_max; mask++) {
+    test(t => {
+      assert_throws_js(EvalError,
+                       _ => new_function_with_maybe_trusted_args(mask));
+    }, "Function constructor with mixed plain and trusted strings, mask #" + mask);
+  }
+
+  // Now do one with all trusted arguments.
+  test(t => {
+    const f = new_function_with_maybe_trusted_args(arg_max);
+    assert_equals(f(1,2,3), 9);
+    assert_equals(f(1,2), 15);
+  }, "Function constructor with mixed plain and trusted strings, mask #" + arg_max);
+</script>
+

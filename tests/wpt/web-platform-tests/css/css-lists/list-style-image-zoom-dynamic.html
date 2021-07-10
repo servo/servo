@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Test: Image list markers with dynamic zoom</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-lists/#image-markers">
+<link rel="match" href="list-style-image-zoom-dynamic-ref.html">
+<meta name="assert" content="Checks that, if the non-standard 'zoom' property is supported, list marker images are correctly updated when the 'zoom' value changes dynamically.">
+<style>
+.zoom {
+  zoom: 2;
+}
+ol {
+  list-style-position: inside;
+}
+.gradient {
+  list-style-image: linear-gradient(blue, cyan);
+}
+.image {
+  list-style-image: url("/css/support/blue-100.png");
+}
+.svg {
+  list-style-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' style='background: blue'></svg>");
+}
+</style>
+<ol>
+  <li class="gradient">text</li>
+  <li class="image">text</li>
+  <li class="svg">text</li>
+</ol>
+<script src="/common/reftest-wait.js"></script>
+<script>
+// Use a "load" event listener to ensure the images have been loaded.
+addEventListener("load", () => {
+  document.body.offsetLeft;
+  document.body.classList.add("zoom");
+  takeScreenshot();
+}, {once: true});
+</script>
+</html>

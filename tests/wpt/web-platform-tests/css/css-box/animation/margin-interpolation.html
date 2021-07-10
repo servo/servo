@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>margin interpolation</title>
+<link rel="help" href="https://www.w3.org/TR/CSS2/box.html#margin-properties">
+<meta name="assert" content="margin supports animation">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<style>
+.parent {
+  margin: 10px;
+  border: solid;
+  display: inline-block;
+}
+
+.target {
+  width: 40px;
+  height: 40px;
+  background-color: black;
+  display: inline-block;
+  margin: 30px;
+  opacity: 0.5;
+}
+
+.expected {
+  background-color: green;
+}
+</style>
+
+<body>
+<template id="target-template">
+  <div>
+    <div class="target"></div>
+  </div>
+</template>
+
+<script>
+test_interpolation({
+  property: 'margin',
+  from: neutralKeyframe,
+  to: '20px',
+}, [
+  {at: -0.3, expect: '33px'},
+  {at: 0, expect: '30px'},
+  {at: 0.3, expect: '27px'},
+  {at: 0.6, expect: '24px'},
+  {at: 1, expect: '20px'},
+  {at: 1.5, expect: '15px'},
+]);
+
+test_interpolation({
+  property: 'margin',
+  from: 'initial',
+  to: '20px',
+}, [
+  {at: -0.3, expect: '-6px'},
+  {at: 0, expect: '0px'},
+  {at: 0.3, expect: '6px'},
+  {at: 0.6, expect: '12px'},
+  {at: 1, expect: '20px'},
+  {at: 1.5, expect: '30px'},
+]);
+
+test_interpolation({
+  property: 'margin',
+  from: 'inherit',
+  to: '20px',
+}, [
+  {at: -0.3, expect: '7px'},
+  {at: 0, expect: '10px'},
+  {at: 0.3, expect: '13px'},
+  {at: 0.6, expect: '16px'},
+  {at: 1, expect: '20px'},
+  {at: 1.5, expect: '25px'},
+]);
+
+test_interpolation({
+  property: 'margin',
+  from: 'unset',
+  to: '20px',
+}, [
+  {at: -0.3, expect: '-6px'},
+  {at: 0, expect: '0px'},
+  {at: 0.3, expect: '6px'},
+  {at: 0.6, expect: '12px'},
+  {at: 1, expect: '20px'},
+  {at: 1.5, expect: '30px'},
+]);
+
+test_interpolation({
+  property: 'margin',
+  from: '0px',
+  to: '10px'
+}, [
+  {at: -0.3, expect: '-3px'},
+  {at: 0, expect: '0px'},
+  {at: 0.3, expect: '3px'},
+  {at: 0.6, expect: '6px'},
+  {at: 1, expect: '10px'},
+  {at: 1.5, expect: '15px'}
+]);
+
+test_interpolation({
+  property: 'margin',
+  from: '20px 40px 60px 80px',
+  to: '30px 50px 70px 90px'
+}, [
+  {at: -0.3, expect: '17px 37px 57px 77px'},
+  {at: 0, expect: '20px 40px 60px 80px'},
+  {at: 0.3, expect: '23px 43px 63px 83px'},
+  {at: 0.6, expect: '26px 46px 66px 86px'},
+  {at: 1, expect: '30px 50px 70px 90px'},
+  {at: 1.5, expect: '35px 55px 75px 95px'}
+]);
+</script>
+</body>

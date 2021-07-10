@@ -1,0 +1,159 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCTrackEvent constructor</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  /*
+    5.7.  RTCTrackEvent
+      [Constructor(DOMString type, RTCTrackEventInit eventInitDict)]
+      interface RTCTrackEvent : Event {
+        readonly attribute RTCRtpReceiver           receiver;
+        readonly attribute MediaStreamTrack         track;
+        [SameObject]
+        readonly attribute FrozenArray<MediaStream> streams;
+        readonly attribute RTCRtpTransceiver        transceiver;
+      };
+
+      dictionary RTCTrackEventInit : EventInit {
+        required RTCRtpReceiver        receiver;
+        required MediaStreamTrack      track;
+                 sequence<MediaStream> streams = [];
+        required RTCRtpTransceiver     transceiver;
+      };
+   */
+
+  test(t => {
+    const pc = new RTCPeerConnection();
+    const transceiver = pc.addTransceiver('audio');
+    const { receiver } = transceiver;
+    const { track } = receiver;
+
+    const trackEvent = new RTCTrackEvent('track', {
+      receiver, track, transceiver
+    });
+
+    assert_equals(trackEvent.receiver, receiver);
+    assert_equals(trackEvent.track, track);
+    assert_array_equals(trackEvent.streams, []);
+    assert_equals(trackEvent.streams, trackEvent.streams, '[SameObject]');
+    assert_equals(trackEvent.transceiver, transceiver);
+
+    assert_equals(trackEvent.type, 'track');
+    assert_false(trackEvent.bubbles);
+    assert_false(trackEvent.cancelable);
+
+  }, `new RTCTrackEvent() with valid receiver, track, transceiver should succeed`);
+
+  test(t => {
+    const pc = new RTCPeerConnection();
+    const transceiver = pc.addTransceiver('audio');
+    const { receiver } = transceiver;
+    const { track } = receiver;
+
+    const stream = new MediaStream([track]);
+
+    const trackEvent = new RTCTrackEvent('track', {
+      receiver, track, transceiver,
+      streams: [stream]
+    });
+
+    assert_equals(trackEvent.receiver, receiver);
+    assert_equals(trackEvent.track, track);
+    assert_array_equals(trackEvent.streams, [stream]);
+    assert_equals(trackEvent.transceiver, transceiver);
+
+  }, `new RTCTrackEvent() with valid receiver, track, streams, transceiver should succeed`);
+
+  test(t => {
+    const pc = new RTCPeerConnection();
+    const transceiver = pc.addTransceiver('audio');
+    const { receiver } = transceiver;
+    const { track } = receiver;
+
+    const stream1 = new MediaStream([track]);
+    const stream2 = new MediaStream([track]);
+
+    const trackEvent = new RTCTrackEvent('track', {
+      receiver, track, transceiver,
+      streams: [stream1, stream2]
+    });
+
+    assert_equals(trackEvent.receiver, receiver);
+    assert_equals(trackEvent.track, track);
+    assert_array_equals(trackEvent.streams, [stream1, stream2]);
+    assert_equals(trackEvent.transceiver, transceiver);
+
+  }, `new RTCTrackEvent() with valid receiver, track, multiple streams, transceiver should succeed`);
+
+  test(t => {
+    const pc = new RTCPeerConnection();
+    const transceiver = pc.addTransceiver('audio');
+    const receiver = pc.addTransceiver('audio').receiver;
+    const track =  pc.addTransceiver('audio').receiver.track;
+
+    const stream = new MediaStream();
+
+    const trackEvent = new RTCTrackEvent('track', {
+      receiver, track, transceiver,
+      streams: [stream]
+    });
+
+    assert_equals(trackEvent.receiver, receiver);
+    assert_equals(trackEvent.track, track);
+    assert_array_equals(trackEvent.streams, [stream]);
+    assert_equals(trackEvent.transceiver, transceiver);
+
+  }, `new RTCTrackEvent() with unrelated receiver, track, streams, transceiver should succeed`);
+
+  test(t => {
+    const pc = new RTCPeerConnection();
+    const transceiver = pc.addTransceiver('audio');
+    const { receiver } = transceiver;
+    const { track } = receiver;
+
+    assert_throws_js(TypeError, () =>
+      new RTCTrackEvent('track', {
+        receiver, track
+      }));
+
+  }, `new RTCTrackEvent() with no transceiver should throw TypeError`);
+
+  test(t => {
+    const pc = new RTCPeerConnection();
+    const transceiver = pc.addTransceiver('audio');
+    const { receiver } = transceiver;
+
+    assert_throws_js(TypeError, () =>
+      new RTCTrackEvent('track', {
+        receiver, transceiver
+      }));
+
+  }, `new RTCTrackEvent() with no track should throw TypeError`);
+
+  test(t => {
+    const pc = new RTCPeerConnection();
+    const transceiver = pc.addTransceiver('audio');
+    const { receiver } = transceiver;
+    const { track } = receiver;
+
+    assert_throws_js(TypeError, () =>
+      new RTCTrackEvent('track', {
+        track, transceiver
+      }));
+
+  }, `new RTCTrackEvent() with no receiver should throw TypeError`);
+
+  /*
+    Coverage Report
+      Interface tests are counted as 1 trivial test
+
+      Tested         1
+      Total          1
+   */
+</script>

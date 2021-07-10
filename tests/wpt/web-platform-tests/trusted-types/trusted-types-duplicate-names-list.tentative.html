@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <meta http-equiv="Content-Security-Policy" content="trusted-types a b c*">
+</head>
+<body>
+<script>
+test(t => {
+  trustedTypes.createPolicy("a", {}),
+  assert_throws_js(TypeError,
+                   _ => trustedTypes.createPolicy("a", {}),
+                   "Duplicate name");
+
+  trustedTypes.createPolicy("b", {}),
+
+  assert_throws_js(TypeError,
+                   _ => trustedTypes.createPolicy("d", {}),
+                   "Invalid name.");
+}, "TrustedTypePolicyFactory and policy list in CSP.");
+
+</script>
+</body>

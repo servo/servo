@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["PASS2"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+</head>
+
+<body>
+    <p>This test passes if it does alert pass.</p>
+
+    <script>
+       window.onmessage = function(e) {
+           log(e.data);
+       }
+    </script>
+
+    <iframe src="support/sandboxed-post-message-to-parent.sub.html?sandbox="
+            onload="log('PASS2')"></iframe>
+</body>
+
+</html>

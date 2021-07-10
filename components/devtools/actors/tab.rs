@@ -1,169 +1,103 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! Liberally derived from the [Firefox JS implementation]
-//! (http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/webbrowser.js).
-//! Connection point for remote devtools that wish to investigate a particular tab's contents.
-//! Supports dynamic attaching and detaching which control notifications of navigation, etc.
-
-use actor::{Actor, ActorMessageStatus, ActorRegistry};
-use actors::console::ConsoleActor;
-use devtools_traits::DevtoolScriptControlMsg::{self, WantsLiveNotifications};
-use protocol::JsonPacketStream;
+use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
+use crate::actors::root::RootActor;
+use crate::protocol::JsonPacketStream;
+use crate::StreamId;
 use serde_json::{Map, Value};
 use std::net::TcpStream;
 
 #[derive(Serialize)]
-struct TabTraits;
-
-#[derive(Serialize)]
-struct TabAttachedReply {
-    from: String,
-    #[serde(rename = "type")]
-    type_: String,
-    threadActor: String,
-    cacheDisabled: bool,
-    javascriptEnabled: bool,
-    traits: TabTraits,
+pub struct TabDescriptorTraits {
+    getFavicon: bool,
+    hasTabInfo: bool,
+    watcher: bool,
 }
 
 #[derive(Serialize)]
-struct TabDetachedReply {
-    from: String,
-    #[serde(rename = "type")]
-    type_: String,
-}
-
-#[derive(Serialize)]
-struct ReconfigureReply {
-    from: String
-}
-
-#[derive(Serialize)]
-struct ListFramesReply {
-    from: String,
-    frames: Vec<FrameMsg>,
-}
-
-#[derive(Serialize)]
-struct FrameMsg {
-    id: u32,
-    url: String,
-    title: String,
-    parentID: u32,
-}
-
-#[derive(Serialize)]
-pub struct TabActorMsg {
+pub struct TabDescriptorActorMsg {
     actor: String,
     title: String,
     url: String,
     outerWindowID: u32,
-    consoleActor: String,
-    inspectorActor: String,
-    timelineActor: String,
-    profilerActor: String,
-    performanceActor: String,
+    browsingContextId: u32,
+    traits: TabDescriptorTraits,
 }
 
-pub struct TabActor {
-    pub name: String,
-    pub title: String,
-    pub url: String,
-    pub console: String,
-    pub inspector: String,
-    pub timeline: String,
-    pub profiler: String,
-    pub performance: String,
-    pub thread: String,
+#[derive(Serialize)]
+struct GetTargetReply {
+    from: String,
+    frame: BrowsingContextActorMsg,
 }
 
-impl Actor for TabActor {
+pub struct TabDescriptorActor {
+    name: String,
+    browsing_context_actor: String,
+}
+
+impl Actor for TabDescriptorActor {
     fn name(&self) -> String {
         self.name.clone()
     }
 
-    fn handle_message(&self,
-                      registry: &ActorRegistry,
-                      msg_type: &str,
-                      msg: &Map<String, Value>,
-                      stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
+    fn handle_message(
+        &self,
+        registry: &ActorRegistry,
+        msg_type: &str,
+        _msg: &Map<String, Value>,
+        stream: &mut TcpStream,
+        _id: StreamId,
+    ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
-            "reconfigure" => {
-                if let Some(options) = msg.get("options").and_then(|o| o.as_object()) {
-                    if let Some(val) = options.get("performReload") {
-                        if val.as_bool().unwrap_or(false) {
-                            let console_actor = registry.find::<ConsoleActor>(&self.console);
-                            let _ = console_actor.script_chan.send(
-                                DevtoolScriptControlMsg::Reload(console_actor.pipeline));
-                        }
-                    }
-                }
-                stream.write_json_packet(&ReconfigureReply { from: self.name() });
-                ActorMessageStatus::Processed
-            }
-
-            // https://wiki.mozilla.org/Remote_Debugging_Protocol#Listing_Browser_Tabs
-            // (see "To attach to a _tabActor_")
-            "attach" => {
-                let msg = TabAttachedReply {
+            "getTarget" => {
+                let frame = registry
+                    .find::<BrowsingContextActor>(&self.browsing_context_actor)
+                    .encodable();
+                let _ = stream.write_json_packet(&GetTargetReply {
                     from: self.name(),
-                    type_: "tabAttached".to_owned(),
-                    threadActor: self.thread.clone(),
-                    cacheDisabled: false,
-                    javascriptEnabled: true,
-                    traits: TabTraits,
-                };
-                let console_actor = registry.find::<ConsoleActor>(&self.console);
-                console_actor.streams.borrow_mut().push(stream.try_clone().unwrap());
-                stream.write_json_packet(&msg);
-                console_actor.script_chan.send(
-                    WantsLiveNotifications(console_actor.pipeline, true)).unwrap();
+                    frame,
+                });
                 ActorMessageStatus::Processed
-            }
-
-            //FIXME: The current implementation won't work for multiple connections. Need to ensure 105
-            //       that the correct stream is removed.
-            "detach" => {
-                let msg = TabDetachedReply {
-                    from: self.name(),
-                    type_: "detached".to_owned(),
-                };
-                let console_actor = registry.find::<ConsoleActor>(&self.console);
-                console_actor.streams.borrow_mut().pop();
-                stream.write_json_packet(&msg);
-                console_actor.script_chan.send(
-                    WantsLiveNotifications(console_actor.pipeline, false)).unwrap();
-                ActorMessageStatus::Processed
-            }
-
-            "listFrames" => {
-                let msg = ListFramesReply {
-                    from: self.name(),
-                    frames: vec!(),
-                };
-                stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
-            }
-
-            _ => ActorMessageStatus::Ignored
+            },
+            _ => ActorMessageStatus::Ignored,
         })
     }
 }
 
-impl TabActor {
-    pub fn encodable(&self) -> TabActorMsg {
-        TabActorMsg {
+impl TabDescriptorActor {
+    pub(crate) fn new(
+        actors: &mut ActorRegistry,
+        browsing_context_actor: String,
+    ) -> TabDescriptorActor {
+        let name = actors.new_name("tabDescription");
+        let root = actors.find_mut::<RootActor>("root");
+        root.tabs.push(name.clone());
+        TabDescriptorActor {
+            name: name,
+            browsing_context_actor,
+        }
+    }
+
+    pub fn encodable(&self, registry: &ActorRegistry) -> TabDescriptorActorMsg {
+        let ctx_actor = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
+
+        let title = ctx_actor.title.borrow().clone();
+        let url = ctx_actor.url.borrow().clone();
+
+        TabDescriptorActorMsg {
+            title,
+            url,
             actor: self.name(),
-            title: self.title.clone(),
-            url: self.url.clone(),
-            outerWindowID: 0, //FIXME: this should probably be the pipeline id
-            consoleActor: self.console.clone(),
-            inspectorActor: self.inspector.clone(),
-            timelineActor: self.timeline.clone(),
-            profilerActor: self.profiler.clone(),
-            performanceActor: self.performance.clone(),
+            browsingContextId: ctx_actor.browsing_context_id.index.0.get(),
+            outerWindowID: ctx_actor.active_pipeline.get().index.0.get(),
+            traits: TabDescriptorTraits {
+                getFavicon: false,
+                hasTabInfo: true,
+                watcher: false,
+            },
         }
     }
 }

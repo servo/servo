@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Values and Units Test: attr() function with valid and invalid data types</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link href="http://www.w3.org/TR/css3-values/#attr-notation" rel="help">
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+
+  <meta name="flags" content="invalid">
+  <meta content="When the data type of an attr() function is invalid or when the fallback value does not match the data type, then the attr() function generates an invalid declaration." name="assert">
+
+  <style>
+  div
+    {
+      height: 50px;
+      position: relative;
+      width: 50px;
+    }
+
+  div#valid1
+    {
+      background-color: green;
+      width: attr(attr-test-valid1 length);
+    }
+
+  div#invalid1
+    {
+      background-color: green;
+      width: 100px;
+      width: attr(attr-test-invalid1 number, 0);
+    }
+
+    /*
+    '0' can be both a number and a length. But here,
+    in this sub-test, the width CSS property requires
+    a length type and not a number type. So, the
+    attr() function generates an invalid declaration.
+    */
+
+  div#reference-overlapped-red
+    {
+      background-color: red;
+      bottom: 100px;
+      height: 100px;
+      width: 100px;
+      z-index: -1;
+    }
+
+  div#invalid2
+    {
+      background-color: red;
+      bottom: 100px;
+      width: 0px;
+      width: attr(attr-test-invalid2 length, 100);
+    }
+
+    /*
+    '100' is not a valid length value.
+    So, the attr() function generates an invalid
+    declaration.
+    */
+
+  div#invalid3
+    {
+      background-color: red;
+      bottom: 100px;
+      width: 0px;
+      width: attr(attr-test-invalid3 number, 100px);
+    }
+
+    /*
+    number type is not a valid length value.
+    So, the attr() function generates an invalid
+    declaration.
+    */
+  </style>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.
+
+  <div id="valid1" attr-test-valid1="100px"></div>
+
+  <div id="invalid1" attr-test-invalid1="foo"></div>
+
+  <div id="reference-overlapped-red"></div>
+
+  <div id="invalid2" attr-test-invalid2="bar"></div>
+
+  <div id="invalid3" attr-test-invalid3="baz"></div>

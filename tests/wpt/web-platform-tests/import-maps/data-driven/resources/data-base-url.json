@@ -1,0 +1,17 @@
+{
+  "importMap": {
+    "imports": {
+      "foo/": "data:text/javascript,foo/"
+    }
+  },
+  "importMapBaseURL": "https://example.com/app/index.html",
+  "baseURL": "https://example.com/js/app.mjs",
+  "name": "data: base URL (?)",
+  "tests": {
+    "should favor the most-specific key": {
+      "expectedResults": {
+        "foo/bar": null
+      }
+    }
+  }
+}

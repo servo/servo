@@ -91,17 +91,3 @@ function CreateWebSocket(isSecure, isProtocol, isProtocols) {
     }
     return wsocket;
 }
-
-function CreateControlWebSocket(isSecure) {
-    IsWebSocket();
-    var url;
-    if (isSecure) {
-        url = "wss://" + __SERVER__NAME + ":" + __SECURE__PORT + "/control";
-    }
-    else {
-        url = "ws://" + __SERVER__NAME + ":" + __PORT + "/control";
-    }
-
-    return new WebSocket(url);
-}
-

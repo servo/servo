@@ -111,7 +111,7 @@ def WebIDLTest(parser, harness):
         """)
 
         results = parser.finish()
-    except Exception,x:
+    except Exception as x:
         threw = True
     harness.ok(threw,
                "Should have thrown when shadowing unforgeable attribute on "
@@ -130,7 +130,7 @@ def WebIDLTest(parser, harness):
         """)
 
         results = parser.finish()
-    except Exception,x:
+    except Exception as x:
         threw = True
     harness.ok(threw,
                "Should have thrown when shadowing unforgeable operation on "
@@ -141,16 +141,16 @@ def WebIDLTest(parser, harness):
             interface Child : Parent {
             };
             interface Parent {};
-            interface Consequential {
+            interface mixin Mixin {
               [Unforgeable] readonly attribute long foo;
             };
-            Parent implements Consequential;
+            Parent includes Mixin;
         """)
 
     results = parser.finish()
     harness.check(len(results), 4,
                   "Should be able to inherit from an interface with a "
-                  "consequential interface with [Unforgeable] properties.")
+                  "mixin with [Unforgeable] properties.")
 
     parser = parser.reset();
     threw = False
@@ -160,10 +160,10 @@ def WebIDLTest(parser, harness):
               void foo();
             };
             interface Parent {};
-            interface Consequential {
+            interface mixin Mixin {
               [Unforgeable] readonly attribute long foo;
             };
-            Parent implements Consequential;
+            Parent includes Mixin;
         """)
 
         results = parser.finish()
@@ -182,14 +182,14 @@ def WebIDLTest(parser, harness):
             };
             interface Parent : GrandParent {};
             interface GrandParent {};
-            interface Consequential {
+            interface mixin Mixin {
               [Unforgeable] readonly attribute long foo;
             };
-            GrandParent implements Consequential;
-            interface ChildConsequential {
+            GrandParent includes Mixin;
+            interface mixin ChildMixin {
               void foo();
             };
-            Child implements ChildConsequential;
+            Child includes ChildMixin;
         """)
 
         results = parser.finish()
@@ -208,14 +208,14 @@ def WebIDLTest(parser, harness):
             };
             interface Parent : GrandParent {};
             interface GrandParent {};
-            interface Consequential {
+            interface mixin Mixin {
               [Unforgeable] void foo();
             };
-            GrandParent implements Consequential;
-            interface ChildConsequential {
+            GrandParent includes Mixin;
+            interface mixin ChildMixin {
               void foo();
             };
-            Child implements ChildConsequential;
+            Child includes ChildMixin;
         """)
 
         results = parser.finish()

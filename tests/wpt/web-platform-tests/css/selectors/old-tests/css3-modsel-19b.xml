@@ -1,0 +1,13 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>:active pseudo-class on controls</title>
+  <style type="text/css"><![CDATA[button:active { background: green; color: white; }]]></style>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <meta name="flags" content=" interact" />
+ </head>
+ <body>
+<p><button>Activating (e.g. holding the mouse button down on) this button should make it go green.</button></p>
+</body>
+</html>

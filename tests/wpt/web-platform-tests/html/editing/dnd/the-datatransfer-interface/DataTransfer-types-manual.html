@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>DataTransferItem Test: types - files</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dnd.html#dom-datatransfer-types"/>
+<meta name="flags" content="interact">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<p><div id="div" style="border: 2px green solid; width: 200px; height: 200px;"></div></p>
+
+<h2>Test steps:</h2>
+<p>Drag a file enter the green box, then drop file out</p>
+
+<script>
+
+let div = document.getElementById("div");
+
+setup({explicit_done: true});
+setup({explicit_timeout: true});
+
+on_event(div, "dragenter", evt => {
+  let type = evt.dataTransfer.types[0];
+  test(() => {
+    assert_equals(type, "Files");
+  }, "Check if one of the types will be the string 'Files' when drag a file");
+  done();
+});
+
+</script>

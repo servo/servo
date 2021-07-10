@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<!-- Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/ -->
+<html>
+  <meta charset="utf-8">
+  <title>CSS Flexbox Test: Test for pagination of a nested float element with clearance in a flex item in a printing context</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-break/#possible-breaks">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1559961">
+  <link rel="match" href="break-nested-float-in-flex-item-print-ref.html">
+
+  <style>
+  @page { size:5in 3in; margin:0.5in; }
+
+  html, body {
+    margin: 0;
+  }
+  #flex {
+    display: flex;
+    flex-wrap: nowrap;
+    flex-direction: column;
+  }
+  #target {
+    float: left;
+    background: green;
+    width: 2in;
+    height: 6in; /* Expected to cover 3 pages. */
+  }
+  </style>
+
+  <body>
+    <div id="flex">
+      <div>
+        <div>
+          <div>
+            <!-- target needs to be deeply nested under a flex item. -->
+            <div id="target"></div>
+            <div style="clear:both"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

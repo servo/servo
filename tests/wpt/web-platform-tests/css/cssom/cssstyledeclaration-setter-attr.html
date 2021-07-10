@@ -1,0 +1,18 @@
+<!doctype html>
+<title>CSSOM test: declaration block after setting via CSSOM</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-setproperty">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<script>
+test(function() {
+  let element = document.createElement("div");
+  element.style.setProperty("doesntexist", "0");
+  assert_false(element.hasAttribute("style"));
+}, "Setting an invalid property via the declaration setter doesn't create a declaration");
+test(function() {
+  let element = document.createElement("div");
+  element.style.setProperty("width", "-100");
+  assert_false(element.hasAttribute("style"));
+}, "Setting an invalid value via the declaration setter doesn't create a declaration");
+</script>

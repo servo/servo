@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(drawSRGBThenGetImageData_e_sRGB, 'tests drawing SRGB color on e-sRGB \
+canvas and getting e-sRGB image data.');
+test(putImageData_e_sRGBThenGetImageData_e_sRGB_InRange, 'tests putting and \
+getting in-range e-sRGB image data on e-sRGB canvas.');
+test(putImageData_e_sRGBThenGetImageData_e_sRGB_OutOfRange, 'tests putting and \
+getting out-of-range e-sRGB image data on e-sRGB canvas.');
+test(putImageDataSRGBThenGetImageData_e_sRGB, 'tests putting SRGB image data \
+on e-sRGB canvas and getting e-sRGB image data.');
+
+function assert_array_approx_equals(actual, expected, epsilon)
+{
+  assert_equals(actual.length, expected.length);
+  for (var i=0; i < actual.length; i++)
+    assert_approx_equals(actual[i], expected[i], epsilon);
+}
+
+function drawSRGBThenGetImageData_e_sRGB() {
+    var canvas = document.createElement('canvas');
+    canvas.width = 10;
+    canvas.height = 10;
+    var ctx = canvas.getContext('2d',
+        {colorSpace: 'srgb', pixelFormat:'float16'});
+    ctx.fillStyle = 'rgba(51, 102, 153, 0.8)';
+    ctx.fillRect(0, 0, 10, 10);
+    var pixel = ctx.getImageData(5, 5, 1, 1, {colorSpace: 'srgb', storageFormat:'float32'}).data;
+    // Check against the same color in e-sRGB. 0.01 protects the test against
+    // color conversion deviations.
+    assert_array_approx_equals(pixel, [0.2, 0.4, 0.6, 0.8], 0.01);
+}
+
+function putImageData_e_sRGBThenGetImageData_e_sRGB_InRange() {
+    var canvas = document.createElement('canvas');
+    canvas.width = 10;
+    canvas.height = 10;
+    var ctx = canvas.getContext('2d',
+        {colorSpace: 'srgb', pixelFormat:'float16'})
+    var imageData = ctx.createImageData(1, 1,
+        {colorSpace: 'srgb', storageFormat:'float32'});
+    imageData.data[0] = 0.2;
+    imageData.data[1] = 0.4;
+    imageData.data[2] = 0.6;
+    imageData.data[3] = 0.8;
+    ctx.putImageData(imageData, 5, 5);
+    var pixel = ctx.getImageData(5, 5, 1, 1, {colorSpace: 'srgb', storageFormat:'float32'}).data;
+    // Check against the same color in e-sRGB. 0.001 protects the test against
+    // rounding errors.
+    assert_array_approx_equals(pixel, [0.2, 0.4, 0.6, 0.8], 0.01);
+}
+
+function putImageData_e_sRGBThenGetImageData_e_sRGB_OutOfRange() {
+    var canvas = document.createElement('canvas');
+    canvas.width = 10;
+    canvas.height = 10;
+    var ctx = canvas.getContext('2d',
+        {colorSpace: 'srgb', pixelFormat:'float16'})
+    var imageData = ctx.createImageData(1, 1,
+        {colorSpace: 'srgb', storageFormat:'float32'});
+    imageData.data[0] = 1.3;
+    imageData.data[1] = -1.13;
+    imageData.data[2] = 0.7;
+    imageData.data[3] = 1.8;
+    ctx.putImageData(imageData, 5, 5);
+    var pixel = ctx.getImageData(5, 5, 1, 1, {colorSpace: 'srgb', storageFormat:'float32'}).data;
+    // Check against the same color in e-sRGB. 0.001 protects the test against
+    // rounding errors.
+    assert_array_approx_equals(pixel, [1.3, -1.13, 0.7, 1.8], 0.01);
+}
+
+function putImageDataSRGBThenGetImageData_e_sRGB() {
+    var canvas = document.createElement('canvas');
+    canvas.width = 10;
+    canvas.height = 10;
+    var ctx = canvas.getContext('2d',
+        {colorSpace: 'srgb', pixelFormat:'float16'});
+    var dataSRGB = new Uint8ClampedArray(4);
+    var imageData = ctx.createImageData(1, 1,
+        {colorSpace: 'srgb', storageFormat:'uint8'});
+    imageData.data[0] = 51;
+    imageData.data[1] = 102;
+    imageData.data[2] = 153;
+    imageData.data[3] = 204;
+    ctx.putImageData(imageData, 5, 5);
+    var pixel = ctx.getImageData(5, 5, 1, 1, {colorSpace: 'srgb', storageFormat:'float32'}).data;
+    // Check against the same color in e-sRGB. 0.01 protects the test against
+    // color conversion deviations.
+    assert_array_approx_equals(pixel, [0.2, 0.4, 0.6, 0.8], 0.01);
+}
+</script>
+</body>

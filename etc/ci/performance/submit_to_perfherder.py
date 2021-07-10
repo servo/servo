@@ -2,7 +2,7 @@
 
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import argparse
 from functools import partial, reduce
@@ -19,8 +19,8 @@ from runner import format_result_summary
 
 
 def geometric_mean(iterable):
-        filtered = list(filter(lambda x: x > 0, iterable))
-        return (reduce(operator.mul, filtered)) ** (1.0 / len(filtered))
+    filtered = list(filter(lambda x: x > 0, iterable))
+    return (reduce(operator.mul, filtered)) ** (1.0 / len(filtered))
 
 
 def format_testcase_name(name):

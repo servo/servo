@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>(Test #1) CSSOM - CSSStyleRule.selectorText Modification Restyle - Test #1</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-cssstylerule-selectortext">
+<link rel="match" href="selectorText-modification-restyle-001-ref.html">
+
+<style>
+@namespace bogus url(http://example.com/bogus);
+
+bogus|div {
+  color: green;
+}
+</style>
+
+<body>
+<div>I should be green.</div>
+<script>
+// Remove the "bogus" namespace--now it should apply to the div above.
+// We also expect to see a restyle.
+document.querySelector("style").sheet.cssRules[1].selectorText = "div";
+</script>
+</body>

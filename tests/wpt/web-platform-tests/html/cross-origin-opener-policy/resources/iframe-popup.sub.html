@@ -1,0 +1,11 @@
+<!doctype html>
+<meta charset=utf-8>
+
+<script>
+const popup_origin = new URL(location).searchParams.get("popup_origin");
+const channelName = new URL(location).searchParams.get("channel");
+const popup_coop  = new URL(location).searchParams.get("popup_coop");
+const url = `${popup_origin}/html/cross-origin-opener-policy/resources/coop-coep.py?coop=${encodeURIComponent(popup_coop)}&coep=&channel=${channelName}`;
+
+window.open(url, channelName);
+</script>

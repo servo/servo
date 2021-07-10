@@ -4,28 +4,28 @@
 <title>Selection drag and drop: removing dropzone attribute ondragstart</title>
 <style type="text/css">
 div
-	{display:inline-block;
-	vertical-align:top;
-	background-color:maroon;
-	color:white;
-	padding:20px;
-	width:100px;
-	height:100px;}
+  {display:inline-block;
+  vertical-align:top;
+  background-color:maroon;
+  color:white;
+  padding:20px;
+  width:100px;
+  height:100px;}
 div:nth-child(2)
-	{background-color:purple;}
+  {background-color:purple;}
 div:nth-child(3)
-	{background-color:fuchsia;}
+  {background-color:fuchsia;}
 </style>
 <script type="application/ecmascript">
 function selectText()
-	{window.getSelection().selectAllChildren(document.querySelector('p'))}
+  {window.getSelection().selectAllChildren(document.querySelector('p'))}
 function dropSelection(event,element)
-	{document.querySelectorAll('div')[element].appendChild(document.createTextNode(' FAIL '));
-	selectText();}
+  {document.querySelectorAll('div')[element].appendChild(document.createTextNode(' FAIL '));
+  selectText();}
 function start(event)
-	{for(var i = 0; i != 3; i++)
-		{document.querySelectorAll('div')[i].removeAttribute('dropzone')}
-	}
+  {for(var i = 0; i != 3; i++)
+    {document.querySelectorAll('div')[i].removeAttribute('dropzone')}
+  }
 </script>
 </head>
 <body onload="selectText()">

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="iso-8859-1" ?>
+<svg viewBox="0 0 500 300" xmlns="http://www.w3.org/2000/svg">
+<rect x="0" y="0" width="500" height="300" fill="#fff" />
+
+<g stroke-width="10" transform="translate(-30)">
+    <circle cx="80" cy="50" r="35" fill="#084" stroke="none"/>
+    <circle cx="80" cy="50" r="20" fill="#080" stroke="#FF0"/>
+    <circle cx="80" cy="120" r="35" fill="#004" stroke="none"/>
+    <circle cx="80" cy="120" r="20" fill="#080" stroke="#FF0"/>
+    <circle cx="80" cy="190" r="35" fill="#088" stroke="none"/>
+    <circle cx="80" cy="190" r="20" fill="#080" stroke="#FF0"/>
+    <circle cx="80" cy="260" r="35" fill="#008" stroke="none"/>
+    <circle cx="80" cy="260" r="20" fill="#080" stroke="#FF0"/>
+</g>
+
+<g stroke-width="10" transform="translate(170)">
+    <circle cx="80" cy="50" r="35" fill="#085" stroke="none"/>
+    <circle cx="80" cy="50" r="20" fill="#080" stroke="#FF0"/>
+    <circle cx="80" cy="120" r="35" fill="#005" stroke="none"/>
+    <circle cx="80" cy="120" r="20" fill="#080" stroke="#FF0"/>
+    <circle cx="80" cy="190" r="35" fill="#689" stroke="none"/>
+    <circle cx="80" cy="190" r="20" fill="#080" stroke="#FF0"/>
+    <circle cx="80" cy="260" r="35" fill="#609" stroke="none"/>
+    <circle cx="80" cy="260" r="20" fill="#080" stroke="#FF0"/>
+</g>
+
+<g stroke-width="10" transform="translate(370)">
+    <circle cx="80" cy="50" r="35" fill="#084" stroke="none"/>
+    <circle cx="80" cy="50" r="20" fill="#080" stroke="#FF0"/>
+    <circle cx="80" cy="120" r="35" fill="#084" stroke="none"/>
+    <circle cx="80" cy="120" r="20" fill="#080" stroke="#FF0"/>
+    <circle cx="80" cy="190" r="35" fill="#088" stroke="none"/>
+    <circle cx="80" cy="190" r="20" fill="#080" stroke="#FF0"/>
+    <circle cx="80" cy="260" r="35" fill="#088" stroke="none"/>
+    <circle cx="80" cy="260" r="20" fill="#080" stroke="#FF0"/>
+</g>
+</svg>

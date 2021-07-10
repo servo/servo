@@ -14,16 +14,16 @@
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/[chapter]#[section]">
       <p>
         The first row tests that alpha PNG images are correctly displayed as part of an SVG image,
-        ignoring the background colour in the image which is only used to display the 
+        ignoring the background colour in the image which is only used to display the
         PNG image stand-alone.
         </p>
-        <p>The second row tests indexed PNG transparency (tRNs), again checking that 
+        <p>The second row tests indexed PNG transparency (tRNs), again checking that
         the background color is ignored when displayed as part of an SVG image.
         </p>
         <p>
-        This test uses the 
+        This test uses the
         <a href="http://www.schaik.com/pngsuite/">PNG Group test suite</a>
-        created by Willem van Schaik.    
+        created by Willem van Schaik.
       </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
@@ -48,77 +48,77 @@
     </font-face>
   </defs>
   <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
-  
+
     <!-- something to show transparency -->
     <rect x="16" y="32" width="368" height="8" fill="#3C3"/>
     <rect x="16" y="48" width="368" height="8" fill="#9F9"/>
 
     <!-- 8 bit grayscale, alpha, no background chunk, interlaced  -->
     <image xlink:href="../images/PngSuite/bgai4a08.png" x="16" y="32" width="32" height="32"/>
-    
+
     <!-- 16 bit grayscale, alpha, no background chunk, interlaced  -->
     <image xlink:href="../images/PngSuite/bgai4a16.png" x="64" y="32" width="32" height="32"/>
-    
+
     <!-- 8 bits rgb color, alpha, no background chunk  -->
     <image xlink:href="../images/PngSuite/bgan6a08.png" x="112" y="32" width="32" height="32"/>
-    
+
     <!-- 16 bits rgb color, alpha, no background chunk  -->
     <image xlink:href="../images/PngSuite/bgan6a16.png" x="160" y="32" width="32" height="32"/>
-    
+
     <!-- 8 bit grayscale, alpha, black background chunk -->
     <image xlink:href="../images/PngSuite/bgbn4a08.png" x="208" y="32" width="32" height="32"/>
-  
+
     <!-- 16 bit grayscale, alpha, gray background chunk  -->
     <image xlink:href="../images/PngSuite/bggn4a16.png" x="256" y="32" width="32" height="32"/>
-    
+
     <!-- 8 bits rgb color, alpha, white background chunk  -->
     <image xlink:href="../images/PngSuite/bgwn6a08.png" x="304" y="32" width="32" height="32"/>
-    
+
     <!-- 16 bits rgb color, alpha, yellow background chunk  -->
     <image xlink:href="../images/PngSuite/bgyn6a16.png" x="352" y="32" width="32" height="32"/>
-    
+
     <text x="16" y="100" font-size="16" fill="#3C3">Background color, with alpha</text>
-    
+
     <!-- something to show transparency -->
     <rect x="16" y="132" width="464" height="8" fill="#9F9"/>
     <rect x="16" y="148" width="464" height="8" fill="#3C3"/>
 
     <!-- transparent, black background chunk  -->
     <image xlink:href="../images/PngSuite/tbbn1g04.png" x="16" y="132" width="32" height="32"/>
-    
+
     <!-- transparent, blue background chunk  -->
     <image xlink:href="../images/PngSuite/tbbn2c16.png" x="64" y="132" width="32" height="32"/>
-    
+
     <!-- transparent, black background chunk  -->
     <image xlink:href="../images/PngSuite/tbbn3p08.png" x="112" y="132" width="32" height="32"/>
-    
+
     <!-- transparent, green background chunk  -->
     <image xlink:href="../images/PngSuite/tbgn2c16.png" x="160" y="132" width="32" height="32"/>
-    
+
     <!-- transparent, light-gray background chunk  -->
     <image xlink:href="../images/PngSuite/tbgn3p08.png" x="208" y="132" width="32" height="32"/>
-  
+
     <!-- transparent, red background chunk  -->
     <image xlink:href="../images/PngSuite/tbrn2c08.png" x="256" y="132" width="32" height="32"/>
-    
+
     <!-- transparent, white background chunk  -->
     <image xlink:href="../images/PngSuite/tbwn1g16.png" x="304" y="132" width="32" height="32"/>
-    
+
     <!-- transparent, white background chunk  -->
     <image xlink:href="../images/PngSuite/tbwn3p08.png" x="352" y="132" width="32" height="32"/>
-    
+
     <!-- transparent, yellow background chunk -->
     <image xlink:href="../images/PngSuite/tbyn3p08.png" x="400" y="132" width="32" height="32"/>
-    
+
     <!-- transparent, but no background chunk -->
     <image xlink:href="../images/PngSuite/tp1n3p08.png" x="448" y="132" width="32" height="32"/>
-    
+
     <text x="16" y="200" font-size="16" fill="#3C3">Background color, with transparency</text>
-    
+
         <text x="16" y="260" font-size="24" fill="#3C3">Handling bKGd and tRNs</text>
-    
+
     <!--
-    <image xlink:href="../images/PngSuite/" x="" y="" width="32" height="32"/> 
+    <image xlink:href="../images/PngSuite/" x="" y="" width="32" height="32"/>
     -->
 
   </g>

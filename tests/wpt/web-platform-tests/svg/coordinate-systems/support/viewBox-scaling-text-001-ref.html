@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <title>Reference case for text scaled via SVG viewBox</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <style>
+    svg {
+      width: 100px;
+      height: 100px;
+      background: lightgray;
+      overflow: visible;
+    }
+    text {
+      font: 100px/1 monospace;
+    }
+  </style>
+</head>
+<body>
+  <svg>
+    <text x="0" y="100">X̂̂̂̂̂̂</text>
+  </svg>
+</body>

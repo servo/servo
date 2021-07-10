@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<title>scroll-padding does not propagate body to viewport</title>
+<link rel='author' title='Elika J. Etemad' href='http://fantasai.inkedblade.net/contact'>
+<link rel='help' href='https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-type'>
+<link rel='help' href='https://drafts.csswg.org/css-scroll-snap-1/#scroll-padding'>
+<link rel='match' href='scroll-snap-root-002-ref.html'>
+<meta name='assert'
+      content="Test passes if scroll-snap-padding on body is not applied to viewport.">
+
+<style type='text/css'>
+html, body { margin: 0; padding: 0; }
+
+:root {
+  scroll-snap-type: block mandatory;
+  overflow: hidden; /* hide scrollbars for reftest analysis */
+}
+
+body {
+  scroll-padding: 25%;
+}
+
+#fail {
+  height: 120vh;
+  font: bold 2em;
+  background: red;
+}
+
+#target {
+  margin: 120vh 0;
+  scroll-snap-align: end;
+  border-bottom: solid orange thick;
+}
+</style>
+
+<div id="fail">FAIL</div>
+
+<div id="target">
+  <div>Test passes if the orange stripe below is exactly at the bottom of the viewport.</div>
+</div>
+
+<script>
+  document.getElementById('target').scrollIntoView();
+</script>

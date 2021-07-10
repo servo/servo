@@ -1,0 +1,29 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content Visibility: hidden element shifted down (reference)</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+
+<style>
+#container {
+  width: 150px;
+  height: 150px;
+  border: 1px solid blue;
+}
+#spacer {
+  width: 100px;
+  height: 100px;
+  background: lightgreen;
+}
+#checker {
+  width: 100px;
+  height: 50px;
+  background: green;
+}
+</style>
+
+<div id="spacer"></div>
+<div id="container"></div>
+<div id="checker"></div>
+</html>

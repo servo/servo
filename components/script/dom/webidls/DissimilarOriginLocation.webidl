@@ -1,6 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 
 // This is a Servo-specific interface, used to represent locations
@@ -14,7 +14,8 @@
 // way to enforce security policy.
 
 // https://html.spec.whatwg.org/multipage/#location
-[Unforgeable, NoInterfaceObject] interface DissimilarOriginLocation {
+[Exposed=(Window,DissimilarOriginWindow), Unforgeable, NoInterfaceObject]
+interface DissimilarOriginLocation {
   [Throws] attribute USVString href;
   [Throws] void assign(USVString url);
   [Throws] void replace(USVString url);

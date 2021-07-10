@@ -27,7 +27,7 @@
 
           mediasource_test(function(test, mediaElement, mediaSource)
           {
-              assert_throws(new TypeError(),
+              assert_throws_js(TypeError,
                           function() { mediaSource.removeSourceBuffer(null); },
                           "removeSourceBuffer() threw an exception when passed null.");
               test.done();
@@ -40,7 +40,7 @@
 
               mediaSource.removeSourceBuffer(sourceBuffer);
 
-              assert_throws("NotFoundError",
+              assert_throws_dom("NotFoundError",
                   function() { mediaSource.removeSourceBuffer(sourceBuffer); },
                   "removeSourceBuffer() threw an exception for a SourceBuffer that was already removed.");
 
@@ -70,10 +70,10 @@
                   assert_not_equals(sourceBuffer1, sourceBuffer2, "SourceBuffers are different instances");
                   assert_equals(mediaSource1.sourceBuffers[0], sourceBuffer1);
                   assert_equals(mediaSource2.sourceBuffers[0], sourceBuffer2);
-                  assert_throws("NotFoundError",
+                  assert_throws_dom("NotFoundError",
                       function() { mediaSource1.removeSourceBuffer(sourceBuffer2); },
                       "MediaSource1.removeSourceBuffer() threw an exception for SourceBuffer2");
-                  assert_throws("NotFoundError",
+                  assert_throws_dom("NotFoundError",
                       function() { mediaSource2.removeSourceBuffer(sourceBuffer1); },
                       "MediaSource2.removeSourceBuffer() threw an exception for SourceBuffer1");
                   mediaSource1.removeSourceBuffer(sourceBuffer1);

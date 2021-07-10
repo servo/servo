@@ -1,0 +1,44 @@
+<!doctype html>
+<style>
+  body {
+    --peek: LightGreen;
+  }
+  .bg {
+    background-color: var(--peek);
+    background-image: linear-gradient(45deg, orange 0px, orange 10px, gainsboro 3px, gainsboro 25%, rgba(160,160,160,0.5) 25%, rgba(160,160,160,0.5) 50%, silver 50%, silver 75%, darkgray 75%, darkgray 220px, blue 220px);
+    background-repeat: no-repeat;
+    background-size: 50px 230px;
+  }
+  main * {
+    box-sizing: border-box;
+  }
+  .td {
+    width: 50px;
+    height: 50px;
+    position:absolute;
+    border: 4px solid black;
+  }
+</style>
+
+<main>
+<div style="position: relative;border: 10px solid yellow; width:290px; height: 290px">
+  <!-- row 1 -->
+  <div class="td bg" style="top:20px;left:20px;height:230px"></div>
+  <div class="td bg" style="top:20px;left:80px;"></div>
+  <div class="td" style="top:20px; left: 140px;"></div>
+  <div class="td" style="top:20px; left: 200px;"></div>
+  <!-- row 2
+    additional -4 offsets on background-position are for borders.
+    columns do not have borders.
+  -->
+  <div class="td bg" style="top:80px;left:80px;width:110px;height:110px;background-position-y:-64px;background-position-x:-4px"></div>
+  <div class="td" style="top:80px; left: 200px;"></div>
+  <!-- row 3 -->
+  <div class="td" style="top:140px; left: 200px;"></div>
+  <!-- row 4 -->
+  <div class="td bg" style="top:200px;left:80px;background-position-y:-180px"></div>
+  <div class="td" style="top:200px; left: 140px;"></div>
+  <div class="td" style="top:200px; left: 200px;"></div>
+</div>
+
+</main>

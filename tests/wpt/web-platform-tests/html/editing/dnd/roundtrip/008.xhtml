@@ -4,21 +4,21 @@
 <title>Drag and drop roundtrip with text/uri-list data</title>
 <style type="text/css">
 div[ondragenter]
-	{width:40px;
-	min-height:40px;
-	margin-top:20px;
-	padding:40px;
-	color:white;
-	background-color:navy;}
+  {width:40px;
+  min-height:40px;
+  margin-top:20px;
+  padding:40px;
+  color:white;
+  background-color:navy;}
 </style>
 </head>
 <body>
 <div
-	draggable="true"
-	ondragstart="event.dataTransfer.effectAllowed = 'copy';event.dataTransfer.setData('text/uri-list','data:text/plain,PASS')"
-	ondragenter="event.preventDefault()"
-	ondragover="return false"
-	ondrop="document.querySelector('div').appendChild(document.createTextNode(event.dataTransfer.getData('text/uri-list').substr(16,4) + ' '))"
+  draggable="true"
+  ondragstart="event.dataTransfer.effectAllowed = 'copy';event.dataTransfer.setData('text/uri-list','data:text/plain,PASS')"
+  ondragenter="event.preventDefault()"
+  ondragover="return false"
+  ondrop="document.querySelector('div').appendChild(document.createTextNode(event.dataTransfer.getData('text/uri-list').substr(16,4) + ' '))"
 />
 <p>Drag blue box outside browser window and then drag it back and drop on itself. You should see word PASS once you drop it.</p>
 </body>

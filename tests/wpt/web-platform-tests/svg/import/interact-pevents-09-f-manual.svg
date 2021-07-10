@@ -33,8 +33,8 @@
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
         The test is passed if the following conditions are met:
-     	</p>
-     	<ul>
+       </p>
+       <ul>
         <li>In the first row of squares, the fill and stroke of squares 1, 3 and 4 only must trigger a pale red rectangle to appear
         over the squares on mouseover.</li>
         <li>In the second row of squares, the fill only of all squares must trigger a pale red rectangle to appear
@@ -63,7 +63,7 @@
       {
         document.getElementById(id).setAttribute("fill-opacity", "0.4");
       }
-      
+
       function hide(id)
       {
         document.getElementById(id).setAttribute("fill-opacity", "0");
@@ -170,5 +170,5 @@
     <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
     <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
       text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
-  </g>--> 
+  </g>-->
 </svg>

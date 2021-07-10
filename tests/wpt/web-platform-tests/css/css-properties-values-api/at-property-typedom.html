@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1/#css-style-value-reification">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/utils.js"></script>
+<div id=div></div>
+<script>
+
+test(() => {
+  let name = generate_name();
+  with_style_node(`div { ${name}: 100px; }`, () => {
+    // Before registering the property, ${name} should reify as a
+    // a token sequence.
+    assert_equals(div.computedStyleMap().get(name).constructor.name, 'CSSUnparsedValue');
+    assert_equals(div.computedStyleMap().get(name).toString(), ' 100px');
+
+    with_at_property({
+      name: name,
+      syntax: '"<length>"',
+      inherits: false,
+      initialValue: '0px'
+    }, () => {
+      // After registering, it should reify as a <length>.
+      assert_equals(div.computedStyleMap().get(name).constructor.name, 'CSSUnitValue');
+      assert_equals(div.computedStyleMap().get(name).value, 100);
+      assert_equals(div.computedStyleMap().get(name).unit, 'px');
+    });
+
+    // After @property is removed, the computed value is once again a token
+    // sequence.
+    assert_equals(div.computedStyleMap().get(name).constructor.name, 'CSSUnparsedValue');
+    assert_equals(div.computedStyleMap().get(name).toString(), ' 100px');
+  });
+}, 'Properties declared with @property reify correctly');
+
+test(() => {
+  let name = generate_name();
+  // 0 is valid as a both <length> and <integer>, which reify differently.
+  with_style_node(`div { ${name}: 0; }`, () => {
+    with_at_property({
+      name: name,
+      syntax: '"<length>"',
+      inherits: false,
+      initialValue: '1000px'
+    }, () => {
+      assert_equals(div.computedStyleMap().get(name).constructor.name, 'CSSUnitValue');
+      assert_equals(div.computedStyleMap().get(name).value, 0);
+      assert_equals(div.computedStyleMap().get(name).unit, 'px');
+
+      with_at_property({
+        name: name,
+        syntax: '"<integer>"',
+        inherits: false,
+        initialValue: '1000'
+      }, () => {
+        assert_equals(div.computedStyleMap().get(name).constructor.name, 'CSSUnitValue');
+        assert_equals(div.computedStyleMap().get(name).value, 0);
+        assert_equals(div.computedStyleMap().get(name).unit, 'number');
+      });
+    });
+  });
+}, 'Re-declaring a property with a different type affects reification');
+
+</script>

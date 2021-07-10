@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>CSS Logical Properties: computed style listing</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-logical/#margin-properties">
+<meta name="assert" content="This test checks that the logical properties are properly exposed in a computed CSSStyleDeclaration." />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<script>
+function hasProperty(object, property) {
+  // This checks the [[HasProperty]] internal method.
+  return property in object;
+}
+
+function hasPropertyValue(object, property) {
+  // This checks the [[Get]] internal method.
+  return object[property] !== undefined;
+}
+
+function hasPropertyDescriptor(object, property) {
+  // This checks [[GetOwnProperty]], iterating the prototype chain.
+  while (object) {
+    if (Reflect.getOwnPropertyDescriptor(object, property)) {
+      return true;
+    }
+    object = Reflect.getPrototypeOf(object);
+  }
+  return false;
+}
+
+function hasPropertyKey(object, property) {
+  // This checks [[OwnPropertyKeys]], iterating the prototype chain.
+  while (object) {
+    if (Reflect.ownKeys(object).includes(property)) {
+      return true;
+    }
+    object = Reflect.getPrototypeOf(object);
+  }
+  return false;
+}
+
+function hasItem(object, item) {
+  // This checks the CSSStyleDeclaration::item WebIDL getter.
+  for (let i = 0; i < object.length; ++i) {
+    if (object.item(i) === item) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function check(property) {
+  const cs = getComputedStyle(document.body);
+  const camelCase = property.replace(/-(.)/g, (_, b) => b.toUpperCase());
+  test(function() {
+    assert_true(hasProperty(cs, property) || hasProperty(cs, camelCase),
+      `The computed style has the property ${property} or ${camelCase}.`);
+    assert_true(hasPropertyValue(cs, property) || hasPropertyValue(cs, camelCase),
+      `The computed style has a value for for the property ${property} or ${camelCase}.`);
+    assert_true(hasPropertyDescriptor(cs, property) || hasPropertyDescriptor(cs, camelCase),
+      `The computed style has a property descriptor for ${property} or ${camelCase}.`);
+    assert_true(hasPropertyKey(cs, property) || hasPropertyKey(cs, camelCase),
+      `The computed style contains ${property} or ${camelCase} in the property list.`);
+    assert_true(hasItem(cs, property) || hasItem(cs, camelCase),
+      `The computed style contains the item ${property} or ${camelCase}.`);
+  }, property);
+}
+
+check("border-block-end-color");
+check("border-block-end-style");
+check("border-block-end-width");
+check("border-block-start-color");
+check("border-block-start-style");
+check("border-block-start-width");
+check("border-inline-end-color");
+check("border-inline-end-style");
+check("border-inline-end-width");
+check("border-inline-start-color");
+check("border-inline-start-style");
+check("border-inline-start-width");
+
+check("inset-block-start");
+check("inset-block-end");
+check("inset-inline-start");
+check("inset-inline-end");
+
+check("margin-block-start");
+check("margin-block-end");
+check("margin-inline-start");
+check("margin-inline-end");
+
+check("padding-block-start");
+check("padding-block-end");
+check("padding-inline-start");
+check("padding-inline-end");
+
+check("block-size");
+check("inline-size");
+check("max-block-size");
+check("max-inline-size");
+check("min-block-size");
+check("min-inline-size");
+</script>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS 2.1 Test Suite: handling of blocks inside inlines</title>
+<link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu">
+<link rel="author" title="Mozilla Corporation" href="http://mozilla.com/">
+<link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level">
+<link rel="match" href="whitespace-present-1-ref.html">
+<style>
+  body > span { border: 3px solid blue }
+</style>
+<script>
+function doIt() {
+  var t = document.createTextNode("   ");
+  var d = document.getElementById("d");
+  d.parentNode.insertBefore(t, d);
+}
+</script>
+<body onload="doIt()">
+  <span>
+    <div>One</div><div id="d">Two</div>
+  </span>
+</body>

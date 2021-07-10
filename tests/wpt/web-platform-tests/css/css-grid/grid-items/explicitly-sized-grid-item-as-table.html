@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>CSS Grid Layout Test: Explicitly sized grid item as table with narrow contents</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-grid-1/#grid-track-concept" title="3.2. Grid Tracks and Cells">
+<meta name="assert" content="A grid item as a table uses the sizing algorithm of the grid">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<div style="display:grid; grid-template-columns:50% 50%; width:200px;">
+  <div style="display:table; background:green;">
+    <div style="width:10px; height:100px;"></div>
+  </div>
+</div>

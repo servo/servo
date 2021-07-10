@@ -1,0 +1,38 @@
+<!doctype HTML>
+
+<title>CSS Test (Transforms): Transformed tr with percent height abspos child reference.</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<style>
+.table {
+  width: 100px;
+  height: 100px;
+  background-color: lightblue;
+}
+.tr {
+  height: 50px;
+  background-color: lightgrey;
+}
+.contblock {
+  transform: translateX(10px);
+  width: 200px;
+  height: 200px;
+  background-color: lightyellow;
+}
+.abspos {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: 100%;
+  height: 100%;
+  background-color: blue;
+}
+</style>
+
+<div class="contblock">
+  <div class="table">
+    <div class="tr" style="width: 50px;"></div>
+    <div class="tr" style="width: 100px; transform: translateX(10px)">
+      <div class="abspos"></div>
+    </div>
+  </div>
+</div>

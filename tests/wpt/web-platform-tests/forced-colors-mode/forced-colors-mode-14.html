@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>
+  Forced colors mode - active selection.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<link rel=match href="forced-colors-mode-14-ref.html">
+<style>
+  br::selection {
+    background-color: transparent;
+    forced-color-adjust: none;
+  }
+  span {
+    /* inline-block to ensure the selection bounding rectangle matches that of the
+       span. This allows us to test selection using a reference test. */
+    display: inline-block;
+  }
+  .select::selection {
+    background-color: rgba(255, 0, 0, 0.99); /* alpha < 1 so that we don't blend the background color with white. */
+    color: blue;
+  }
+  #adjust-none::selection {
+    forced-color-adjust: none;
+  }
+</style>
+<body>
+  <span class="select">AAA</span>
+  <br>
+  <span class="select" id="adjust-none">AAA</span>
+</body>
+
+<script>
+  var node1 = document.getElementsByClassName('select')[0].firstChild;
+  var node2 = document.getElementsByClassName('select')[1].firstChild;
+  var range = document.createRange();
+  range.setStart(node1, 0);
+  range.setEnd(node2, node2.length);
+  window.getSelection().addRange(range);
+</script>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+
+<title>Allow trailing empty entry in value list</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://svgwg.org/specs/animations/#ValuesAttribute">
+<link rel="author" title="Edvard Thörnros" href="mailto:edvardt@opera.com">
+
+<svg viewbox="0 0 100 100">
+  <path fill="#1EB287">
+    <animate attributeName="d"
+             dur="1s"
+             repeatCount="indefinite"
+             values="M 0,0 L 50, 0 L 100,100 Z;
+                     M 100,0 L 0, 100 L 50, 0 Z; "/>
+  </path>
+</svg>
+
+<script>
+  async_test(function(t) {
+    window.onload = t.step_func(function() {
+      window.requestAnimationFrame(t.step_func_done(function() {
+        let path = document.querySelector("path");
+        assert_not_equals(window.getComputedStyle(path).d, "none");
+      }));
+    });
+  });
+</script>

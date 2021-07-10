@@ -1,0 +1,29 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Media Capture Depth Stream Extensions (https://w3c.github.io/mediacapture-depth/)
+
+partial dictionary MediaTrackSupportedConstraints {
+    // Applies to both depth stream track and color stream track:
+    boolean videoKind = true;
+};
+
+partial dictionary MediaTrackCapabilities {
+    // Applies to both depth stream track and color stream track:
+    DOMString videoKind;
+};
+
+partial dictionary MediaTrackConstraintSet {
+    // Applies to both depth stream track and color stream track:
+    ConstrainDOMString videoKind;
+};
+
+partial dictionary MediaTrackSettings {
+    // Applies to both depth stream track and color stream track:
+    DOMString           videoKind;
+};
+
+enum VideoKindEnum {
+    "color",
+    "depth"
+};

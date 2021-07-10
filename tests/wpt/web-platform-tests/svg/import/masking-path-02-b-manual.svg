@@ -23,12 +23,12 @@
       <p>
         The test at the top shows a pink rectangle that has been clipped by a
         rectangular clipping path. The clipping path is defined using clipPathUnits=objectBoundingBox.
-        
+
       </p>
       <p>
         The example at the bottom a rotated blue rectangle that has been clipped by a
         rectangular clipping path. The clipping path is defined using clipPathUnits=userSpaceOnUse.
-        
+
       </p>
       <p>
         The rendered picture should match the reference image exactly, except for possible

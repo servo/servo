@@ -1,0 +1,46 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Screen Capture (https://w3c.github.io/mediacapture-screen-share/)
+
+partial interface MediaDevices {
+  Promise<MediaStream> getDisplayMedia(optional DisplayMediaStreamConstraints constraints = {});
+};
+
+dictionary DisplayMediaStreamConstraints {
+  (boolean or MediaTrackConstraints) video = true;
+  (boolean or MediaTrackConstraints) audio = false;
+};
+
+partial dictionary MediaTrackSupportedConstraints {
+  boolean displaySurface = true;
+  boolean logicalSurface = true;
+  boolean cursor = true;
+  boolean restrictOwnAudio = true;
+};
+
+partial dictionary MediaTrackConstraintSet {
+  ConstrainDOMString displaySurface;
+  ConstrainBoolean logicalSurface;
+  ConstrainDOMString cursor;
+  ConstrainBoolean restrictOwnAudio;
+};
+
+partial dictionary MediaTrackSettings {
+  DOMString displaySurface;
+  boolean logicalSurface;
+  DOMString cursor;
+};
+
+enum DisplayCaptureSurfaceType {
+  "monitor",
+  "window",
+  "application",
+  "browser"
+};
+
+enum CursorCaptureConstraint {
+  "never",
+  "always",
+  "motion"
+};

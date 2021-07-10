@@ -39,7 +39,7 @@ A_05_05_02_T01.step(unit(function (ctx) {
     roots.volumeShadowRoot.addEventListener('mouseover',
             A_05_05_02_T01.step_func(function(event) {
             invoked = true;
-            assert_true(event.relatedTarget === roots.volumeShadowRoot,
+            assert_equals(event.relatedTarget, roots.volumeShadowRoot,
                     'Wrong relatedTarget');
         }), false);
 

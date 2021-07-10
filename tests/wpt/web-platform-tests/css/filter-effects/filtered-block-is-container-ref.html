@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Filter: Filtered block establishes a containing block reference.</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+
+<style>
+#scroller {
+  width: 500px;
+  height: 500px;
+  overflow: scroll
+}
+.spacer {
+  width: 1000px;
+  height: 500px;
+  background-color: lightgreen;
+}
+#transform {
+  /* no-op transform */
+  transform: translateX(0px);
+  width: 100px;
+  height: 50px;
+  background-color: lightblue;
+}
+#fixed, #absolute {
+  width: 100px;
+  height: 100px;
+}
+#fixed {
+  position: fixed;
+  top: 100px;
+  left: 150px;
+  background-color: green;
+}
+#absolute {
+  position: absolute;
+  top: 200px;
+  left: 300px;
+  background-color: blue;
+}
+</style>
+
+<div id="scroller">
+  <div class="spacer">
+  </div>
+  <div id="transform">
+    <div id="fixed"></div>
+    <div id="absolute"></div>
+  </div>
+  <div class="spacer">
+  </div>
+</div>
+
+<script>
+window.onload = function() {
+  document.getElementById("scroller").scrollTo(50, 250);
+}
+</script>
+
+
+

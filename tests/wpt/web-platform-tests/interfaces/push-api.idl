@@ -1,0 +1,95 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Push API (https://w3c.github.io/push-api/)
+
+[SecureContext]
+partial interface ServiceWorkerRegistration {
+  readonly attribute PushManager pushManager;
+};
+
+[Exposed=(Window,Worker), SecureContext]
+interface PushManager {
+  [SameObject] static readonly attribute FrozenArray<DOMString> supportedContentEncodings;
+
+  Promise<PushSubscription> subscribe(optional PushSubscriptionOptionsInit options = {});
+  Promise<PushSubscription?> getSubscription();
+  Promise<PushPermissionState> permissionState(optional PushSubscriptionOptionsInit options = {});
+};
+
+[Exposed=(Window,Worker), SecureContext]
+interface PushSubscriptionOptions {
+  readonly attribute boolean userVisibleOnly;
+  [SameObject] readonly attribute ArrayBuffer? applicationServerKey;
+};
+
+dictionary PushSubscriptionOptionsInit {
+  boolean userVisibleOnly = false;
+  (BufferSource or DOMString)? applicationServerKey = null;
+};
+
+[Exposed=(Window,Worker), SecureContext]
+interface PushSubscription {
+  readonly attribute USVString endpoint;
+  readonly attribute DOMTimeStamp? expirationTime;
+  [SameObject] readonly attribute PushSubscriptionOptions options;
+  ArrayBuffer? getKey(PushEncryptionKeyName name);
+  Promise<boolean> unsubscribe();
+
+  PushSubscriptionJSON toJSON();
+};
+
+dictionary PushSubscriptionJSON {
+  USVString endpoint;
+  DOMTimeStamp? expirationTime;
+  record<DOMString, USVString> keys;
+};
+
+enum PushEncryptionKeyName {
+  "p256dh",
+  "auth"
+};
+
+[Exposed=ServiceWorker, SecureContext]
+interface PushMessageData {
+  ArrayBuffer arrayBuffer();
+  Blob blob();
+  any json();
+  USVString text();
+};
+
+[Exposed=ServiceWorker, SecureContext]
+partial interface ServiceWorkerGlobalScope {
+  attribute EventHandler onpush;
+  attribute EventHandler onpushsubscriptionchange;
+};
+
+[Exposed=ServiceWorker, SecureContext]
+interface PushEvent : ExtendableEvent {
+  constructor(DOMString type, optional PushEventInit eventInitDict = {});
+  readonly attribute PushMessageData? data;
+};
+
+typedef (BufferSource or USVString) PushMessageDataInit;
+
+dictionary PushEventInit : ExtendableEventInit {
+  PushMessageDataInit data;
+};
+
+[Exposed=ServiceWorker, SecureContext]
+interface PushSubscriptionChangeEvent : ExtendableEvent {
+  constructor(DOMString type, optional PushSubscriptionChangeEventInit eventInitDict = {});
+  readonly attribute PushSubscription? newSubscription;
+  readonly attribute PushSubscription? oldSubscription;
+};
+
+dictionary PushSubscriptionChangeEventInit : ExtendableEventInit {
+  PushSubscription newSubscription = null;
+  PushSubscription oldSubscription = null;
+};
+
+enum PushPermissionState {
+  "denied",
+  "granted",
+  "prompt",
+};

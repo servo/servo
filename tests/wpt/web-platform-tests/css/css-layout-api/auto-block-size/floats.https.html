@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#interaction-sizing">
+<link rel="match" href="auto-block-size-floats-ref.html">
+<meta name="assert" content="This test checks that if the layout() is a float, the flow layout respects the auto-block-size." />
+
+<style>
+.test {
+  background: red;
+}
+
+@supports (display: layout(block-size-100)) {
+  .test {
+    display: layout(block-size-100);
+    background: green;
+  }
+}
+
+.container {
+  width: 150px;
+  border: solid 2px;
+}
+
+.left {
+  float: left;
+  width: 100px;
+  writing-mode: horizontal-tb;
+}
+
+.right {
+  float: right;
+  height: 100px;
+  writing-mode: vertical-rl;
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<!-- Tests that floats using an auto block size get positioned correctly. -->
+<div class="container">
+  <div class="left test"></div>
+  <div class="right test"></div>
+</div>
+
+<script id="code" type="text/worklet">
+registerLayout('block-size-100', class {
+  async intrinsicSizes() {}
+  async layout() {
+    return {autoBlockSize: 100};
+  }
+});
+</script>
+
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, document.getElementById('code').textContent);
+</script>
+</html>

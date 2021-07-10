@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<title>createImageBitmap + drawImage test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/canvas/resources/canvas-tests.js"></script>
+<script src="/common/media.js"></script>
+<script src="common.sub.js"></script>
+<link rel="stylesheet" href="/html/canvas/resources/canvas-tests.css">
+<body>
+<script>
+function testCanvasDisplayingPattern(canvas, width, height, flipped)
+{
+    var tolerance = 10; // for creating ImageBitmap from a video, the tolerance needs to be high
+    const check = (x, y, r, g, b, a) =>
+        _assertPixelApprox(canvas, x,y, r,g,b,a, `${x},${y}`, `${r},${g},${b},${a}`, tolerance);
+    if (flipped) {
+        check(1 * width / 4, 3 * height / 4, 255,0,0,255);
+        check(3 * width / 4, 3 * height / 4, 0,255,0,255);
+        check(1 * width / 4, 1 * height / 4, 0,0,255,255);
+        check(3 * width / 4, 1 * height / 4, 0,0,0,255);
+    } else {
+        check(1 * width / 4, 1 * height / 4, 255,0,0,255);
+        check(3 * width / 4, 1 * height / 4, 0,255,0,255);
+        check(1 * width / 4, 3 * height / 4, 0,0,255,255);
+        check(3 * width / 4, 3 * height / 4, 0,0,0,255);
+    }
+}
+
+function testDrawImageBitmap(source, args = [], flipped, { resizeWidth = 20, resizeHeight = 20 } = {})
+{
+    var canvas = document.createElement("canvas");
+    canvas.width = resizeWidth;
+    canvas.height = resizeHeight;
+    var ctx = canvas.getContext("2d");
+    return createImageBitmap(source, ...args).then(imageBitmap => {
+        assert_equals(imageBitmap.width, resizeWidth);
+        assert_equals(imageBitmap.height, resizeHeight);
+        ctx.drawImage(imageBitmap, 0, 0);
+        testCanvasDisplayingPattern(canvas, resizeWidth, resizeHeight, flipped);
+    });
+}
+
+for (let { name, factory } of imageSourceTypes) {
+    promise_test(function() {
+        return factory().then(function(img) {
+            const options = { imageOrientation: 'none' };
+            return testDrawImageBitmap(img, [options], false);
+        });
+    }, `createImageBitmap from ${name} imageOrientation: "none", and drawImage on the created ImageBitmap`);
+
+    promise_test(function() {
+        return factory().then(function(img) {
+            const options = { imageOrientation: 'flipY' };
+            return testDrawImageBitmap(img, [options], true);
+        });
+    }, `createImageBitmap from ${name} imageOrientation: "flipY", and drawImage on the created ImageBitmap`);
+
+}
+</script>
+</body>
+</html>

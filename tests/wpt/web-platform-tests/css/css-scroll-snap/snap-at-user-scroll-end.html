@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-type" />
+<title>Tests that window should snap at user scroll end.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="support/common.js"></script>
+<style>
+html {
+  margin: 0px;
+  scroll-snap-type: both mandatory;
+}
+#content {
+  width: 2000px;
+  height: 2000px;
+  padding: 0px;
+  margin: 0px;
+}
+#target {
+  position: relative;
+  left: 400px;
+  top: 400px;
+  width: 400px;
+  height: 400px;
+  background-color: lightblue;
+  overflow: hidden;
+  scroll-snap-align: start;
+}
+#i1 {
+  color: red;
+  font-weight: bold;
+}
+</style>
+
+<div id="content">
+  <div id="target">
+    <h1>CSSScrollSnap</h1>
+    <h4>Tests that the window can snap at user scroll end.</h4>
+    <ol>
+      <li id="i1" style="color: red">
+        Scroll the page vertically and horizontally.
+        Keep scrolling until background has turned yellow.</li>
+      <li id="i2"> Press the button "Done"</li>
+    </ol>
+    <input type="button" id="btn" value="DONE" style="width: 100px; height: 50px;"/>
+  </div>
+</div>
+
+<script>
+var snap_test = async_test('Tests that window should snap at user scroll end.');
+var body = document.body;
+var button = document.getElementById("btn");
+var target = document.getElementById("target");
+var instruction1 = document.getElementById("i1");
+var instruction2 = document.getElementById("i2");
+var scrolled_x = false;
+var scrolled_y = false;
+var start_x = window.scrollX;
+var start_y = window.scrollY;
+var actions_promise;
+
+scrollTop = () => window.scrollY;
+
+window.onscroll = function() {
+  if (scrolled_x && scrolled_y) {
+    body.style.backgroundColor = "yellow";
+    instruction1.style.color = "black";
+    instruction1.style.fontWeight = "normal";
+    instruction2.style.color = "red";
+    instruction2.style.fontWeight = "bold";
+    return;
+  }
+
+  scrolled_x |= window.scrollX != start_x;
+  scrolled_y |= window.scrollY != start_y;
+}
+
+button.onclick = function() {
+  if (!scrolled_x || !scrolled_y)
+    return;
+
+  snap_test.step(() => {
+    assert_equals(window.scrollX, target.offsetLeft,
+          "window.scrollX should be at snapped position.");
+    assert_equals(window.scrollY, target.offsetTop,
+          "window.scrollY should be at snapped position.");
+  });
+
+  // To make the test result visible.
+  var content = document.getElementById("content");
+  body.removeChild(content);
+  actions_promise.then( () => {
+    snap_test.done();
+  });
+}
+
+// Inject scroll actions.
+const pos_x = 20;
+const pos_y = 20;
+const scroll_delta_x = 100;
+const scroll_delta_y = 100;
+actions_promise = new test_driver.Actions()
+    .scroll(pos_x, pos_y, scroll_delta_x, scroll_delta_y)
+    .send().then(() => {
+  return waitForAnimationEnd(scrollTop);
+}).then(() => {
+  return test_driver.click(button);
+});
+</script>

@@ -1,0 +1,28 @@
+<!doctype html>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>CSS Text 3 test: trailing collapsible spaces and bidi</title>
+<link rel="author" title="Jose Dapena Paz" href="mailto:jdapena@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-white-space-pre-wrap">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="match" href="reference/eol-spaces-bidi-003-ref.html">
+<link rel="match" href="reference/eol-spaces-bidi-alt-003-ref.html">
+<meta name="assert" content="Hanging space between OP and D should take paragraph direction and show in the end of the line (blue box to the left)">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<style>
+  div {
+      direction: rtl;
+
+      font: 20px/1 Ahem;
+      margin-left: 20px;
+      background: green;
+
+      width: 4ch;
+      white-space: pre-wrap;
+  }
+  span {
+      background: blue;
+  }
+</style>
+<p>Test passes if a blue box (the white space) is visible at the left start in first line.</p>
+<div>ب <span>OP</span><span> </span>D</div>

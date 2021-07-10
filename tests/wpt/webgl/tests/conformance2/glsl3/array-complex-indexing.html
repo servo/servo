@@ -1,0 +1,110 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL Indexing complex array expressions</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<!--
+Array indexing is detailed in the ESSL 3.00 spec section 5.9
+ESSL 3.00 revisions after 3.00.4 changed the definition from 'subscripted array names' to 'subscripted arrays'
+-->
+<script id="fshader-assignment" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+out vec4 color;
+
+void main() {
+  float a[2] = float[2](0.0, 0.0);
+  float b[2] = float[2](2.0, 1.0);
+  float c = (a = b)[0];
+  color = (c == 2.0) ? vec4(0, 1.0, 0, 1.0) : vec4(1.0, 0, 0, 1.0);
+}
+</script>
+<script id="fshader-function" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+out vec4 color;
+bool hasRan = false;
+
+float[2] functionReturnArray() {
+  hasRan = true;
+  return float[2](2.0, 1.0);
+}
+
+void main() {
+  float c = (functionReturnArray())[0];
+  color = ((c == 2.0) && hasRan) ? vec4(0, 1.0, 0, 1.0) : vec4(1.0, 0, 0, 1.0);
+}
+</script>
+<script id="fshader-array-initialization" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+out vec4 color;
+
+void main() {
+  float a = (float[3](2.0, 1.0, 0.0))[0];
+  color = (a == 2.0) ? vec4(0, 1.0, 0, 1.0) : vec4(1.0, 0, 0, 1.0);
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description("Indexing complex array expressions");
+debug("");
+
+GLSLConformanceTester.runRenderTests([
+{
+  fShaderId: 'fshader-assignment',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Test indexing a variable assignment: (a = b)[0]'
+},
+{
+  fShaderId: 'fshader-function',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Test indexing a function return with a side-effect: (functionReturnArray())[0]'
+},
+{
+  fShaderId: 'fshader-array-initialization',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Test indexing an array initialization: (float[3](2.0, 1.0, 0.0))[0]'
+},
+], 2);
+
+</script>
+</body>
+</html>

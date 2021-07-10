@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Selectors Level 4 Test: Check for correctly updating :dir matching on dir attribute change from default(ltr) to rtl</title>
+    <link rel="author" title="Miyoung Shin" href="mailto:myid.shin@igalia.com">
+    <link rel="help" href="http://www.w3.org/TR/selectors4/#dir-pseudo">
+    <link rel="match" href="selectors-dir-selector-change-001-ref.html">
+    <style type="text/css">
+        #x:dir(rtl) + span { background-color: lime }
+        #outer { direction:ltr }
+    </style>
+</head>
+<body>
+    <div id="outer" style="-webkit-locale: 'en'">
+        <div>
+            <div id="x"></div>
+            <span>The background color should be lime</span>
+        </div>
+    </div>
+    <script>
+        outer.offsetTop;
+        outer.setAttribute("dir", "rtl");
+    </script>
+</body>
+</html>

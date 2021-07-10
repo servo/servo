@@ -1,0 +1,109 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Short-circuiting logic operator with side effects inside if statement without braces should work</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fshaderIf" type="x-shader/x-fragment">
+precision mediump float;
+uniform bool uFalse;
+
+float wrong = 0.0;
+
+bool foo() {
+    wrong += 1.0;
+    return !uFalse;
+}
+
+bool bar() {
+    return !uFalse;
+}
+
+void main() {
+    // No braces here - that can affect whether the contents of the if get parsed as a block or a statement.
+    if (uFalse)
+        foo() && bar();
+    gl_FragColor = vec4(0.0, 1.0 - wrong, 0.0, 1.0);
+}
+</script>
+<script id="fshaderFor" type="x-shader/x-fragment">
+precision mediump float;
+
+float wrong = 0.0;
+
+bool foo() {
+    wrong += 1.0;
+    return false;
+}
+
+bool bar() {
+    return false;
+}
+
+void main() {
+    // No braces here - that can affect whether the contents of the for get parsed as a block or a statement.
+    for (int i = 0; i < 0; ++i)
+        foo() && bar();
+    gl_FragColor = vec4(0.0, 1.0 - wrong, 0.0, 1.0);
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description("Short-circuiting logic operator with side effects inside if/for statement without braces should work.");
+debug("");
+
+GLSLConformanceTester.runRenderTests([
+{
+  fShaderId: 'fshaderIf',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Short-circuiting operator inside if statement without braces',
+  uniforms: [{name: "uFalse", functionName: "uniform1i", value: 0}]
+},
+{
+  fShaderId: 'fshaderFor',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Short-circuiting operator inside for statement without braces'
+}
+]);
+</script>
+</body>
+</html>
+

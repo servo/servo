@@ -1,0 +1,138 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL uniform blocks containing arrays conformance tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script id="vshader" type="x-shader/x-vertex">#version 300 es
+in vec4 vPosition;
+void main() {
+    gl_Position = vPosition;
+}
+</script>
+<script id="fshaderArraysOfStructs" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+out vec4 my_FragColor;
+struct light_t {
+    vec4 intensity;
+};
+const int maxLights = 2;
+layout(std140) uniform lightData { light_t lights[maxLights]; };
+vec4 processLight(vec4 lighting, light_t light)
+{
+    return lighting + light.intensity;
+}
+void main()
+{
+    vec4 lighting = vec4(0, 1, 0, 1);
+    for (int n = 0; n < maxLights; n++)
+        lighting = processLight(lighting, lights[n]);
+    my_FragColor = lighting;
+}
+</script>
+<script id="fshaderArraysOfStructsContainingArrays" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+out vec4 my_FragColor;
+struct light_t {
+    vec4 intensity[3];
+};
+const int maxLights = 2;
+layout(std140) uniform lightData { light_t lights[maxLights]; };
+vec4 processLight(vec4 lighting, light_t light)
+{
+    return lighting + light.intensity[1];
+}
+void main()
+{
+    vec4 lighting = vec4(0, 1, 0, 1);
+    for (int n = 0; n < maxLights; n++)
+        lighting = processLight(lighting, lights[n]);
+    my_FragColor = lighting;
+}
+</script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description();
+
+// GLSL ES 3.00.6 section 4.3.7:
+// "Otherwise, built-in types, previously declared structures, and arrays of these are allowed as the type of a declarator in the same manner they are allowed outside a block."
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext(undefined, undefined, 2);
+
+function runTest(fragShader, bufferFloatCount, shaderBlockDescription) {
+    debug('');
+    debug('Testing fragment shader with an uniform block containing ' + shaderBlockDescription);
+    var program = wtu.setupProgram(gl, ['vshader', fragShader], ['vPosition'], undefined, true);
+    if (!program) {
+        testFailed("Loading program failed");
+        return;
+    }
+    var blockIndex = gl.getUniformBlockIndex(program, "lightData");
+
+    var uniformBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.UNIFORM_BUFFER, uniformBuffer);
+    gl.bufferData(gl.UNIFORM_BUFFER, new Float32Array(bufferFloatCount), gl.DYNAMIC_READ);
+
+    gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, uniformBuffer);
+    gl.uniformBlockBinding(program, blockIndex, 0);
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "No errors from uniform buffer setup");
+
+    wtu.clearAndDrawUnitQuad(gl);
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "No errors from draw");
+
+    wtu.checkCanvas(gl, [0, 255, 0, 255], 'should be green', 1);
+}
+
+if (!gl) {
+    testFailed("WebGL context creation failed");
+} else {
+    wtu.setupUnitQuad(gl);
+    runTest("fshaderArraysOfStructs", 2 * 4, 'arrays of structs');
+    runTest("fshaderArraysOfStructsContainingArrays", 2 * 3 * 4, 'arrays of structs containing arrays');
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Clicking on a div element that has no click event handler fires a click event</title>
+    <link rel="author" title="Chris Rebert" href="http://chrisrebert.com">
+    <link rel="help" href="https://w3c.github.io/uievents/#event-type-click">
+    <link rel="help" href="https://dom.spec.whatwg.org/#concept-event-dispatch">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <style>
+#square {
+  width: 100px;
+  height: 100px;
+  background-color: blue;
+  color: white;
+  /* Center the "Click me" text */
+  line-height: 100px;
+  text-align: center;
+}
+    </style>
+  </head>
+  <body>
+    <p>Click on the blue square below.</p>
+    <div id="square">Click me</div>
+    <script>
+setup({explicit_timeout: true});
+promise_test(async function(t) {
+  document.addEventListener('click', function (event) {
+    var square = document.getElementById('square');
+    t.step(function () {
+      assert_equals(event.target, square, 'target of click event must be the test square');
+      assert_equals(event.eventPhase, Event.BUBBLING_PHASE, 'click event must propagate to the document object during the Bubbling Phase');
+      square.textContent = 'PASS';
+      square.style.backgroundColor = 'green';
+      t.done();
+    });
+  }, false);
+
+  await test_driver.click(square);
+}, "Clicking on a div element and having a click event listener on only document");
+    </script>
+  </body>
+</html>

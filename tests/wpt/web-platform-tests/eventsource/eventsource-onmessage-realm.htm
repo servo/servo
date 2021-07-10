@@ -5,14 +5,14 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
-<iframe src="eventsource-onmessage-realm-support.htm"></iframe>
+<iframe src="resources/eventsource-onmessage-realm.htm"></iframe>
 
 <script>
 "use strict";
 
 async_test(t => {
   window.onload = t.step_func(() => {
-    const source = new frames[0].EventSource("resources/message.py");
+    const source = new frames[0].EventSource("message.py");
     t.add_cleanup(() => {
       source.close();
     });

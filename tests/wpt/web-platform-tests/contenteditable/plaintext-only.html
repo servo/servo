@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>contenteditable="plaintext-only" should exist</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="txt" contenteditable="plaintext-only"></div>
+<script>
+test(function() {
+    const txt = document.getElementById('txt');
+    assert_true(txt.isContentEditable);
+    assert_equals(txt.contentEditable, 'plaintext-only');
+}, 'plaintext-only is an accepted attribute value for contenteditable');
+test(function() {
+    const txt = document.createElement('div');
+    assert_false(txt.isContentEditable);
+    txt.contentEditable = 'plaintext-only';
+    assert_true(txt.isContentEditable);
+    assert_equals(txt.contentEditable, 'plaintext-only');
+}, 'plaintext-only can be assigned to contenteditable dynamically');
+</script>

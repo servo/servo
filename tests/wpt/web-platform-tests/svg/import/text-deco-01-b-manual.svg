@@ -24,23 +24,23 @@
       </p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
-    	<p>The test has passed if:</p>
+      <p>The test has passed if:</p>
       <ul>
-      	<li>
-        	The first line of text has no decoration.
-     		</li>
-	      <li>
-	        The second line of text has a line through it.
-	      </li>
-	      <li>
-	        The third line of text is underlined.
-	      </li>
-	      <li>
-	        The fourth line of text has a blue underline with a green stroke under
-	        all characters, except the word "different" which has a yellow underline
-	        with a green stroke.
-	      </li>
-	    </ul>
+        <li>
+          The first line of text has no decoration.
+         </li>
+        <li>
+          The second line of text has a line through it.
+        </li>
+        <li>
+          The third line of text is underlined.
+        </li>
+        <li>
+          The fourth line of text has a blue underline with a green stroke under
+          all characters, except the word "different" which has a yellow underline
+          with a green stroke.
+        </li>
+      </ul>
     </d:passCriteria>
   </d:SVGTestCase>
   <title id="test-title">$RCSfile: text-deco-01-b.svg,v $</title>

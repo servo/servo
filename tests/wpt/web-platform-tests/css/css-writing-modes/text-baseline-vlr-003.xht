@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Writing Modes Test: text baseline alignment - central alignment with vertical layout</title>
+    <link rel="author" title="Hajime Shiozawa" href="mailto:hajime.shiozawa@gmail.com" />
+    <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2015-09-26 -->
+    <link rel="help" title="4.2. Text Baseline" href="http://www.w3.org/TR/css-writing-modes-3/#text-baselines" />
+    <link rel="match" href="text-baseline-vrl-002-ref.xht" />
+    <meta name="assert" content="This test checks the generation of text baseline. When 'writing-mode' is 'vertical-lr' and when 'text-orientation' is 'mixed', then the central baseline is used as the dominant baseline." />
+    <meta name="flags" content="ahem" />
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+    <style type="text/css"><![CDATA[
+    div#lr-mixed
+    {
+      color: orange;
+      font: 60px/1.5 Ahem; /* computes to 60px/90px */
+      writing-mode: vertical-lr;
+      text-orientation: mixed;
+    }
+
+    span#blue120
+    {
+      color: blue;
+      font-size: 2em; /* computes to 120px */
+    }
+
+    span#orange30
+    {
+      font-size: 0.5em; /* computes to 30px */
+    }
+    ]]></style>
+
+  </head>
+
+  <body>
+
+  <p>Test passes if 2 orange squares are centered with respect to a blue square.</p>
+
+  <div id="lr-mixed">A<span id="blue120">B</span><span id="orange30">O</span></div>
+
+  </body>
+</html>

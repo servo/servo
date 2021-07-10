@@ -1,18 +1,29 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlframeelement
+[Exposed=Window]
 interface HTMLFrameElement : HTMLElement {
-  //         attribute DOMString name;
-  //         attribute DOMString scrolling;
-  //         attribute DOMString src;
-  //         attribute DOMString frameBorder;
-  //         attribute DOMString longDesc;
-  //         attribute boolean noResize;
-  //readonly attribute Document? contentDocument;
-  //readonly attribute WindowProxy? contentWindow;
+  [HTMLConstructor] constructor();
 
-  //[TreatNullAs=EmptyString] attribute DOMString marginHeight;
-  //[TreatNullAs=EmptyString] attribute DOMString marginWidth;
+  // [CEReactions]
+  //          attribute DOMString name;
+  // [CEReactions]
+  //          attribute DOMString scrolling;
+  // [CEReactions]
+  //          attribute DOMString src;
+  // [CEReactions]
+  //          attribute DOMString frameBorder;
+  // [CEReactions]
+  //          attribute DOMString longDesc;
+  // [CEReactions]
+  //          attribute boolean noResize;
+  // readonly attribute Document? contentDocument;
+  // readonly attribute WindowProxy? contentWindow;
+
+  // [CEReactions, TreatNullAs=EmptyString]
+  // attribute DOMString marginHeight;
+  // [CEReactions, TreatNullAs=EmptyString]
+  // attribute DOMString marginWidth;
 };

@@ -1,14 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::ProcessingInstructionBinding;
-use dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
-use dom::bindings::js::Root;
-use dom::bindings::str::DOMString;
-use dom::characterdata::CharacterData;
-use dom::document::Document;
-use dom::node::Node;
+use crate::dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::characterdata::CharacterData;
+use crate::dom::document::Document;
+use crate::dom::node::Node;
 use dom_struct::dom_struct;
 
 /// An HTML processing instruction node.
@@ -19,19 +18,28 @@ pub struct ProcessingInstruction {
 }
 
 impl ProcessingInstruction {
-    fn new_inherited(target: DOMString, data: DOMString, document: &Document) -> ProcessingInstruction {
+    fn new_inherited(
+        target: DOMString,
+        data: DOMString,
+        document: &Document,
+    ) -> ProcessingInstruction {
         ProcessingInstruction {
             characterdata: CharacterData::new_inherited(data, document),
-            target: target
+            target: target,
         }
     }
 
-    pub fn new(target: DOMString, data: DOMString, document: &Document) -> Root<ProcessingInstruction> {
-        Node::reflect_node(box ProcessingInstruction::new_inherited(target, data, document),
-                           document, ProcessingInstructionBinding::Wrap)
+    pub fn new(
+        target: DOMString,
+        data: DOMString,
+        document: &Document,
+    ) -> DomRoot<ProcessingInstruction> {
+        Node::reflect_node(
+            Box::new(ProcessingInstruction::new_inherited(target, data, document)),
+            document,
+        )
     }
 }
-
 
 impl ProcessingInstruction {
     pub fn target(&self) -> &DOMString {

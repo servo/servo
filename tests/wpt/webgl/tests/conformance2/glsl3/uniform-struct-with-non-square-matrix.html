@@ -1,0 +1,74 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL uniform struct with a non-square matrix test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fshaderUniformStructWithNonSquareMatrixAndBoolean" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+out highp vec4 my_color;
+struct S
+{
+    mat2x4 m;
+    bool b;
+};
+uniform S uni;
+void main()
+{
+    my_color = vec4(0, 1, 0, 1);
+    if (!uni.b) { my_color.g = 0.0; }
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description();
+
+GLSLConformanceTester.runRenderTests([
+{
+  fShaderId: 'fshaderUniformStructWithNonSquareMatrixAndBoolean',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Set a boolean member in a uniform struct that also contains a non-square-matrix',
+  uniforms: [{name: "uni.b", functionName: "uniform1i", value: 1}]
+},
+], 2);
+</script>
+</body>
+</html>
+

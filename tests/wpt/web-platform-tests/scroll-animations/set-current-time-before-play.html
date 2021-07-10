@@ -1,0 +1,68 @@
+<html class="reftest-wait">
+<title>Setting current time before play should not timeout</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations/">
+<meta name="assert" content="Regression test to make sure the ready promise is correctly resolved">
+<link rel="match" href="animation-ref.html">
+
+<script src="/web-animations/testcommon.js"></script>
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+  #box {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+  }
+
+  #covered {
+    width: 100px;
+    height: 100px;
+    background-color: red;
+  }
+
+  #scroller {
+    overflow: auto;
+    height: 100px;
+    width: 100px;
+    will-change: transform; /* force compositing */
+  }
+
+  #contents {
+    height: 1000px;
+    width: 100%;
+  }
+</style>
+
+<div id="box"></div>
+<div id="covered"></div>
+<div id="scroller">
+  <div id="contents"></div>
+</div>
+
+<script>
+  const box = document.getElementById('box');
+  const effect = new KeyframeEffect(box,
+    [
+    { transform: 'translateY(0)', opacity: 1},
+    { transform: 'translateY(200px)', opacity: 0}
+    ], {
+      duration: 1000,
+    }
+  );
+
+  const scroller = document.getElementById('scroller');
+  const timeline = new ScrollTimeline({ scrollSource: scroller, timeRange: 1000, orientation: 'block' });
+  const animation = new Animation(effect, timeline);
+  animation.currentTime = 0;
+  animation.play();
+
+  animation.ready.then(() => {
+    // Move the scroller to the halfway point.
+    const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+    scroller.scrollTop = 0.5 * maxScroll;
+
+    waitForAnimationFrames(2).then(_ => {
+        takeScreenshot();
+    });
+  });
+</script>

@@ -27,7 +27,7 @@
     {
         test(function()
         {
-            assert_throws("SYNTAX_ERR", function()
+            assert_throws_dom("SYNTAX_ERR", TARGET.contentWindow.DOMException, function()
             {
                 TARGET.contentWindow.postMessage(DATA, DATA);
             });

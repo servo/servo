@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>CSS Box Alignment: place-items shorthand - invalid values</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com" />
+<link rel="help" href="http://www.w3.org/TR/css3-align/#place-items-property" />
+<meta name="assert" content="Check that place-items's invalid values are properly detected at parsing time." />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-align/resources/alignment-parsing-utils.js"></script>
+<div id="log"></div>
+<script>
+    function checkInvalidValues(value)
+    {
+       checkPlaceShorthandInvalidValues("place-items", "align-items", "justify-items", value);
+    }
+
+    test(function() {
+        checkInvalidValues("center end start")
+    }, "Verify fallback values are invalid");
+
+    test(function() {
+        checkInvalidValues("left")
+        checkInvalidValues("left start")
+        checkInvalidValues("right center")
+    }, "Verify 'left' and 'right' values are invalid for block/cross axis alignment");
+
+    test(function() {
+        checkInvalidValues("10px left")
+        checkInvalidValues("right 10%")
+    }, "Verify numeric values are invalid");
+
+    test(function() {
+        checkInvalidValues("")
+    }, "Verify empty declaration is invalid");
+</script>

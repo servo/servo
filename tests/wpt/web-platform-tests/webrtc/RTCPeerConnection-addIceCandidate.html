@@ -1,0 +1,631 @@
+<!doctype html>
+<title>Test RTCPeerConnection.prototype.addIceCandidate</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // SDP copied from JSEP Example 7.1
+  // It contains two media streams with different ufrags
+  // to test if candidate is added to the correct stream
+  const sdp = `v=0
+o=- 4962303333179871722 1 IN IP4 0.0.0.0
+s=-
+t=0 0
+a=ice-options:trickle
+a=group:BUNDLE a1 v1
+a=group:LS a1 v1
+m=audio 10100 UDP/TLS/RTP/SAVPF 96 0 8 97 98
+c=IN IP4 203.0.113.100
+a=mid:a1
+a=sendrecv
+a=rtpmap:96 opus/48000/2
+a=rtpmap:0 PCMU/8000
+a=rtpmap:8 PCMA/8000
+a=rtpmap:97 telephone-event/8000
+a=rtpmap:98 telephone-event/48000
+a=maxptime:120
+a=extmap:1 urn:ietf:params:rtp-hdrext:sdes:mid
+a=extmap:2 urn:ietf:params:rtp-hdrext:ssrc-audio-level
+a=msid:47017fee-b6c1-4162-929c-a25110252400 f83006c5-a0ff-4e0a-9ed9-d3e6747be7d9
+a=ice-ufrag:ETEn
+a=ice-pwd:OtSK0WpNtpUjkY4+86js7ZQl
+a=fingerprint:sha-256 19:E2:1C:3B:4B:9F:81:E6:B8:5C:F4:A5:A8:D8:73:04:BB:05:2F:70:9F:04:A9:0E:05:E9:26:33:E8:70:88:A2
+a=setup:actpass
+a=dtls-id:1
+a=rtcp:10101 IN IP4 203.0.113.100
+a=rtcp-mux
+a=rtcp-rsize
+m=video 10102 UDP/TLS/RTP/SAVPF 100 101
+c=IN IP4 203.0.113.100
+a=mid:v1
+a=sendrecv
+a=rtpmap:100 VP8/90000
+a=rtpmap:101 rtx/90000
+a=fmtp:101 apt=100
+a=extmap:1 urn:ietf:params:rtp-hdrext:sdes:mid
+a=rtcp-fb:100 ccm fir
+a=rtcp-fb:100 nack
+a=rtcp-fb:100 nack pli
+a=msid:47017fee-b6c1-4162-929c-a25110252400 f30bdb4a-5db8-49b5-bcdc-e0c9a23172e0
+a=ice-ufrag:BGKk
+a=ice-pwd:mqyWsAjvtKwTGnvhPztQ9mIf
+a=fingerprint:sha-256 19:E2:1C:3B:4B:9F:81:E6:B8:5C:F4:A5:A8:D8:73:04:BB:05:2F:70:9F:04:A9:0E:05:E9:26:33:E8:70:88:A2
+a=setup:actpass
+a=dtls-id:1
+a=rtcp:10103 IN IP4 203.0.113.100
+a=rtcp-mux
+a=rtcp-rsize
+`;
+
+  const sessionDesc = { type: 'offer', sdp };
+
+  // valid candidate attributes
+  const sdpMid1 = 'a1';
+  const sdpMLineIndex1 = 0;
+  const usernameFragment1 = 'ETEn';
+
+  const sdpMid2 = 'v1';
+  const sdpMLineIndex2 = 1;
+  const usernameFragment2 = 'BGKk';
+
+  const mediaLine1 = 'm=audio';
+  const mediaLine2 = 'm=video';
+
+  const candidateStr1 = 'candidate:1 1 udp 2113929471 203.0.113.100 10100 typ host';
+  const candidateStr2 = 'candidate:1 2 udp 2113929470 203.0.113.100 10101 typ host';
+  const invalidCandidateStr = '(Invalid) candidate \r\n string';
+
+  const candidateLine1 = `a=${candidateStr1}`;
+  const candidateLine2 = `a=${candidateStr2}`;
+  const endOfCandidateLine = 'a=end-of-candidates';
+
+  // Copied from MDN
+  function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function is_candidate_line_between(sdp, beforeMediaLine, candidateLine, afterMediaLine) {
+    const line1 = escapeRegExp(beforeMediaLine);
+    const line2 = escapeRegExp(candidateLine);
+    const line3 = escapeRegExp(afterMediaLine);
+
+    const regex = new RegExp(`${line1}[^]+${line2}[^]+${line3}`);
+    return regex.test(sdp);
+  }
+
+  // Check that a candidate line is found after the first media line
+  // but before the second, i.e. it belongs to the first media stream
+  function assert_candidate_line_between(sdp, beforeMediaLine, candidateLine, afterMediaLine) {
+    assert_true(is_candidate_line_between(sdp, beforeMediaLine, candidateLine, afterMediaLine),
+      `Expect candidate line to be found between media lines ${beforeMediaLine} and ${afterMediaLine}`);
+  }
+
+  // Check that a candidate line is found after the second media line
+  // i.e. it belongs to the second media stream
+  function is_candidate_line_after(sdp, beforeMediaLine, candidateLine) {
+    const line1 = escapeRegExp(beforeMediaLine);
+    const line2 = escapeRegExp(candidateLine);
+
+    const regex = new RegExp(`${line1}[^]+${line2}`);
+
+    return regex.test(sdp);
+  }
+
+  function assert_candidate_line_after(sdp, beforeMediaLine, candidateLine) {
+    assert_true(is_candidate_line_after(sdp, beforeMediaLine, candidateLine),
+      `Expect candidate line to be found after media line ${beforeMediaLine}`);
+  }
+
+  /*
+    4.4.2.  addIceCandidate
+      4.  Return the result of enqueuing the following steps:
+        1.  If remoteDescription is null return a promise rejected with a
+            newly created InvalidStateError.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    return promise_rejects_dom(t, 'InvalidStateError',
+      pc.addIceCandidate({
+        candidate: candidateStr1,
+        sdpMid: sdpMid1,
+        sdpMLineIndex: sdpMLineIndex1,
+        usernameFragment: usernameFragment1
+      }));
+  }, 'Add ICE candidate before setting remote description should reject with InvalidStateError');
+
+  /*
+    Success cases
+   */
+
+  // All of these should work, because all of these end up being equivalent to the
+  // same thing; an end-of-candidates signal for all levels/mids/ufrags.
+  [
+    // This is just the default. Everything else here is equivalent to this.
+    {
+      candidate: '',
+      sdpMid: null,
+      sdpMLineIndex: null,
+      usernameFragment: undefined
+    },
+    // The arg is optional, so when passing undefined we'll just get the default
+    undefined,
+    // The arg is optional, but not nullable, so we get the default again
+    null,
+    // Members in the dictionary take their default values
+    {}
+  ].forEach(init => {
+    promise_test(async t => {
+      const pc = new RTCPeerConnection();
+
+      t.add_cleanup(() => pc.close());
+
+      await pc.setRemoteDescription(sessionDesc);
+      await pc.addIceCandidate(init);
+    }, `addIceCandidate(${JSON.stringify(init)}) works`);
+    promise_test(async t => {
+      const pc = new RTCPeerConnection();
+
+      t.add_cleanup(() => pc.close());
+
+      await pc.setRemoteDescription(sessionDesc);
+      await pc.addIceCandidate(init);
+      assert_candidate_line_between(pc.remoteDescription.sdp,
+        mediaLine1, endOfCandidateLine, mediaLine2);
+      assert_candidate_line_after(pc.remoteDescription.sdp,
+        mediaLine2, endOfCandidateLine);
+    }, `addIceCandidate(${JSON.stringify(init)}) adds a=end-of-candidates to both m-sections`);
+  });
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    await pc.setRemoteDescription(sessionDesc);
+    await pc.setLocalDescription(await pc.createAnswer());
+    await pc.addIceCandidate({});
+    assert_candidate_line_between(pc.remoteDescription.sdp,
+      mediaLine1, endOfCandidateLine, mediaLine2);
+    assert_candidate_line_after(pc.remoteDescription.sdp,
+      mediaLine2, endOfCandidateLine);
+  }, 'addIceCandidate({}) in stable should work, and add a=end-of-candidates to both m-sections');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    await pc.setRemoteDescription(sessionDesc);
+    await pc.addIceCandidate({
+      usernameFragment: usernameFragment1,
+      sdpMid: sdpMid1
+    });
+    assert_candidate_line_between(pc.remoteDescription.sdp,
+      mediaLine1, endOfCandidateLine, mediaLine2);
+    assert_false(is_candidate_line_after(pc.remoteDescription.sdp,
+      mediaLine2, endOfCandidateLine));
+  }, 'addIceCandidate({usernameFragment: usernameFragment1, sdpMid: sdpMid1}) should work, and add a=end-of-candidates to the first m-section');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    await pc.setRemoteDescription(sessionDesc);
+    await pc.addIceCandidate({
+      usernameFragment: usernameFragment2,
+      sdpMLineIndex: 1
+    });
+    assert_false(is_candidate_line_between(pc.remoteDescription.sdp,
+      mediaLine1, endOfCandidateLine, mediaLine2));
+    assert_true(is_candidate_line_after(pc.remoteDescription.sdp,
+      mediaLine2, endOfCandidateLine));
+  }, 'addIceCandidate({usernameFragment: usernameFragment2, sdpMLineIndex: 1}) should work, and add a=end-of-candidates to the first m-section');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    await pc.setRemoteDescription(sessionDesc);
+    await promise_rejects_dom(t, 'OperationError',
+      pc.addIceCandidate({usernameFragment: "no such ufrag"}));
+  }, 'addIceCandidate({usernameFragment: "no such ufrag"}) should not work');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    await pc.setRemoteDescription(sessionDesc)
+    await pc.addIceCandidate({
+      candidate: candidateStr1,
+      sdpMid: sdpMid1,
+      sdpMLineIndex: sdpMLineIndex1,
+      usernameFragement: usernameFragment1
+    });
+    assert_candidate_line_after(pc.remoteDescription.sdp,
+                                mediaLine1, candidateStr1);
+  }, 'Add ICE candidate after setting remote description should succeed');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    return pc.setRemoteDescription(sessionDesc)
+    .then(() => pc.addIceCandidate(new RTCIceCandidate({
+      candidate: candidateStr1,
+      sdpMid: sdpMid1,
+      sdpMLineIndex: sdpMLineIndex1,
+      usernameFragement: usernameFragment1
+    })));
+  }, 'Add ICE candidate with RTCIceCandidate should succeed');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+    return pc.setRemoteDescription(sessionDesc)
+      .then(() => pc.addIceCandidate({
+        candidate: candidateStr1,
+        sdpMid: sdpMid1 }));
+  }, 'Add candidate with only valid sdpMid should succeed');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    return pc.setRemoteDescription(sessionDesc)
+      .then(() => pc.addIceCandidate(new RTCIceCandidate({
+        candidate: candidateStr1,
+        sdpMid: sdpMid1 })));
+  }, 'Add candidate with only valid sdpMid and RTCIceCandidate should succeed');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    return pc.setRemoteDescription(sessionDesc)
+      .then(() => pc.addIceCandidate({
+        candidate: candidateStr1,
+        sdpMLineIndex: sdpMLineIndex1 }));
+  }, 'Add candidate with only valid sdpMLineIndex should succeed');
+
+  /*
+    4.4.2.  addIceCandidate
+      4.6.2.  If candidate is applied successfully, the user agent MUST queue
+              a task that runs the following steps:
+        2.  If connection.pendingRemoteDescription is non-null, and represents
+            the ICE generation for which candidate was processed, add
+            candidate to connection.pendingRemoteDescription.
+        3.  If connection.currentRemoteDescription is non-null, and represents
+            the ICE generation for which candidate was processed, add
+            candidate to connection.currentRemoteDescription.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    return pc.setRemoteDescription(sessionDesc)
+    .then(() => pc.addIceCandidate({
+      candidate: candidateStr1,
+      sdpMid: sdpMid1,
+      sdpMLineIndex: sdpMLineIndex1,
+      usernameFragement: usernameFragment1
+    }))
+    .then(() => {
+      assert_candidate_line_between(pc.remoteDescription.sdp,
+        mediaLine1, candidateLine1, mediaLine2);
+    });
+  }, 'addIceCandidate with first sdpMid and sdpMLineIndex add candidate to first media stream');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    return pc.setRemoteDescription(sessionDesc)
+    .then(() => pc.addIceCandidate({
+      candidate: candidateStr2,
+      sdpMid: sdpMid2,
+      sdpMLineIndex: sdpMLineIndex2,
+      usernameFragment: usernameFragment2
+    }))
+    .then(() => {
+      assert_candidate_line_after(pc.remoteDescription.sdp,
+        mediaLine2, candidateLine2);
+    });
+  }, 'addIceCandidate with second sdpMid and sdpMLineIndex should add candidate to second media stream');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    return pc.setRemoteDescription(sessionDesc)
+    .then(() => pc.addIceCandidate({
+      candidate: candidateStr1,
+      sdpMid: sdpMid1,
+      sdpMLineIndex: sdpMLineIndex1,
+      usernameFragment: null
+    }))
+    .then(() => {
+      assert_candidate_line_between(pc.remoteDescription.sdp,
+        mediaLine1, candidateLine1, mediaLine2);
+    });
+  }, 'Add candidate for first media stream with null usernameFragment should add candidate to first media stream');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    return pc.setRemoteDescription(sessionDesc)
+    .then(() => pc.addIceCandidate({
+      candidate: candidateStr1,
+      sdpMid: sdpMid1,
+      sdpMLineIndex: sdpMLineIndex1,
+      usernameFragement: usernameFragment1
+    }))
+    .then(() => pc.addIceCandidate({
+      candidate: candidateStr2,
+      sdpMid: sdpMid2,
+      sdpMLineIndex: sdpMLineIndex2,
+      usernameFragment: usernameFragment2
+    }))
+    .then(() => {
+      assert_candidate_line_between(pc.remoteDescription.sdp,
+        mediaLine1, candidateLine1, mediaLine2);
+
+      assert_candidate_line_after(pc.remoteDescription.sdp,
+        mediaLine2, candidateLine2);
+    });
+  }, 'Adding multiple candidates should add candidates to their corresponding media stream');
+
+  /*
+    4.4.2.  addIceCandidate
+      4.6.  If candidate.candidate is an empty string, process candidate as an
+            end-of-candidates indication for the corresponding media description
+            and ICE candidate generation.
+        2.  If candidate is applied successfully, the user agent MUST queue
+            a task that runs the following steps:
+          2.  If connection.pendingRemoteDescription is non-null, and represents
+              the ICE generation for which candidate was processed, add
+              candidate to connection.pendingRemoteDescription.
+          3.  If connection.currentRemoteDescription is non-null, and represents
+              the ICE generation for which candidate was processed, add
+              candidate to connection.currentRemoteDescription.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    return pc.setRemoteDescription(sessionDesc)
+    .then(() => pc.addIceCandidate({
+      candidate: candidateStr1,
+      sdpMid: sdpMid1,
+      sdpMLineIndex: sdpMLineIndex1,
+      usernameFragement: usernameFragment1
+    }))
+    .then(() => pc.addIceCandidate({
+      candidate: '',
+      sdpMid: sdpMid1,
+      sdpMLineIndex: sdpMLineIndex1,
+      usernameFragement: usernameFragment1
+    }))
+    .then(() => {
+      assert_candidate_line_between(pc.remoteDescription.sdp,
+        mediaLine1, candidateLine1, mediaLine2);
+
+      assert_candidate_line_between(pc.remoteDescription.sdp,
+        mediaLine1, endOfCandidateLine, mediaLine2);
+    });
+  }, 'Add with empty candidate string (end of candidates) should succeed');
+
+  /*
+    4.4.2.  addIceCandidate
+      3.  If both sdpMid and sdpMLineIndex are null, return a promise rejected
+          with a newly created TypeError.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    return pc.setRemoteDescription(sessionDesc)
+    .then(() =>
+      promise_rejects_js(t, TypeError,
+        pc.addIceCandidate({
+          candidate: candidateStr1,
+          sdpMid: null,
+          sdpMLineIndex: null
+        })));
+  }, 'Add candidate with both sdpMid and sdpMLineIndex manually set to null should reject with TypeError');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    await pc.setRemoteDescription(sessionDesc);
+    promise_rejects_js(t, TypeError,
+      pc.addIceCandidate({candidate: candidateStr1}));
+  }, 'addIceCandidate with a candidate and neither sdpMid nor sdpMLineIndex should reject with TypeError');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    return pc.setRemoteDescription(sessionDesc)
+    .then(() =>
+      promise_rejects_js(t, TypeError,
+        pc.addIceCandidate({
+          candidate: candidateStr1
+        })));
+  }, 'Add candidate with only valid candidate string should reject with TypeError');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    return pc.setRemoteDescription(sessionDesc)
+    .then(() =>
+      promise_rejects_js(t, TypeError,
+        pc.addIceCandidate({
+          candidate: invalidCandidateStr,
+          sdpMid: null,
+          sdpMLineIndex: null
+        })));
+  }, 'Add candidate with invalid candidate string and both sdpMid and sdpMLineIndex null should reject with TypeError');
+
+  /*
+    4.4.2.  addIceCandidate
+      4.3.  If candidate.sdpMid is not null, run the following steps:
+        1.  If candidate.sdpMid is not equal to the mid of any media
+            description in remoteDescription , reject p with a newly
+            created OperationError and abort these steps.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    return pc.setRemoteDescription(sessionDesc)
+    .then(() =>
+      promise_rejects_dom(t, 'OperationError',
+        pc.addIceCandidate({
+          candidate: candidateStr1,
+          sdpMid: 'invalid',
+          sdpMLineIndex: sdpMLineIndex1,
+          usernameFragement: usernameFragment1
+        })));
+  }, 'Add candidate with invalid sdpMid should reject with OperationError');
+
+  /*
+    4.4.2.  addIceCandidate
+      4.4.  Else, if candidate.sdpMLineIndex is not null, run the following
+          steps:
+        1.  If candidate.sdpMLineIndex is equal to or larger than the
+            number of media descriptions in remoteDescription , reject p
+            with a newly created OperationError and abort these steps.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    return pc.setRemoteDescription(sessionDesc)
+    .then(() =>
+      promise_rejects_dom(t, 'OperationError',
+        pc.addIceCandidate({
+          candidate: candidateStr1,
+          sdpMLineIndex: 2,
+          usernameFragement: usernameFragment1
+        })));
+  }, 'Add candidate with invalid sdpMLineIndex should reject with OperationError');
+
+  // There is an "Else" for the statement:
+  // "Else, if candidate.sdpMLineIndex is not null, ..."
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    return pc.setRemoteDescription(sessionDesc)
+    .then(() => pc.addIceCandidate({
+      candidate: candidateStr1,
+      sdpMid: sdpMid1,
+      sdpMLineIndex: 2,
+      usernameFragement: usernameFragment1
+    }));
+  }, 'Invalid sdpMLineIndex should be ignored if valid sdpMid is provided');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    return pc.setRemoteDescription(sessionDesc)
+    .then(() => pc.addIceCandidate({
+      candidate: candidateStr2,
+      sdpMid: sdpMid2,
+      sdpMLineIndex: sdpMLineIndex2,
+      usernameFragment: null
+    }))
+    .then(() => {
+      assert_candidate_line_after(pc.remoteDescription.sdp,
+        mediaLine2, candidateLine2);
+    });
+  }, 'Add candidate for media stream 2 with null usernameFragment should succeed');
+
+  /*
+    4.3.2.  addIceCandidate
+      4.5.  If candidate.usernameFragment is neither undefined nor null, and is not equal
+            to any usernameFragment present in the corresponding media description of an
+            applied remote description, reject p with a newly created
+            OperationError and abort these steps.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    return pc.setRemoteDescription(sessionDesc)
+    .then(() =>
+      promise_rejects_dom(t, 'OperationError',
+        pc.addIceCandidate({
+          candidate: candidateStr1,
+          sdpMid: sdpMid1,
+          sdpMLineIndex: sdpMLineIndex1,
+          usernameFragment: 'invalid'
+        })));
+  }, 'Add candidate with invalid usernameFragment should reject with OperationError');
+
+  /*
+    4.4.2.  addIceCandidate
+      4.6.1.  If candidate could not be successfully added the user agent MUST
+             queue a task that runs the following steps:
+        2.  Reject p with a DOMException object whose name attribute has
+            the value OperationError and abort these steps.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    return pc.setRemoteDescription(sessionDesc)
+    .then(() =>
+      promise_rejects_dom(t, 'OperationError',
+        pc.addIceCandidate({
+          candidate: invalidCandidateStr,
+          sdpMid: sdpMid1,
+          sdpMLineIndex: sdpMLineIndex1,
+          usernameFragement: usernameFragment1
+        })));
+  }, 'Add candidate with invalid candidate string should reject with OperationError');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    return pc.setRemoteDescription(sessionDesc)
+    .then(() =>
+      promise_rejects_dom(t, 'OperationError',
+        pc.addIceCandidate({
+          candidate: candidateStr2,
+          sdpMid: sdpMid2,
+          sdpMLineIndex: sdpMLineIndex2,
+          usernameFragment: usernameFragment1
+        })));
+  }, 'Add candidate with sdpMid belonging to different usernameFragment should reject with OperationError');
+</script>

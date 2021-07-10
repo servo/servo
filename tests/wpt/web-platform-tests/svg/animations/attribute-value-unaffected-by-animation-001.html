@@ -1,0 +1,34 @@
+<!doctype html>
+<title>An animation of an attribute ('class') does not change the DOM attribute value</title>
+<link rel="help" href="https://www.w3.org/TR/2001/REC-smil-animation-20010904/#BasicAnim">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .animated {
+      fill: blue;
+  }
+</style>
+<svg>
+  <rect class="base">
+    <set attributeName="class" to="animated"/>
+  </rect>
+  <rect>
+    <set attributeName="class" to="animated"/>
+  </rect>
+</svg>
+<script>
+  async_test(t => {
+    onload = t.step_func(() => {
+      requestAnimationFrame(t.step_func_done(() => {
+        let rects = document.getElementsByTagName('rect');
+        assert_true(rects[0].hasAttribute('class'));
+        assert_equals(rects[0].getAttribute('class'), 'base');
+        assert_equals(getComputedStyle(rects[0]).getPropertyValue('fill'), 'rgb(0, 0, 255)');
+
+        assert_false(rects[1].hasAttribute('class'));
+        assert_equals(rects[1].getAttribute('class'), null);
+        assert_equals(getComputedStyle(rects[0]).getPropertyValue('fill'), 'rgb(0, 0, 255)');
+      }));
+    });
+  });
+</script>

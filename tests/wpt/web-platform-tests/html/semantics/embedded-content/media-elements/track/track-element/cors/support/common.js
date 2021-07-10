@@ -12,7 +12,7 @@ setup(function(){
 }, {timeout:10000, explicit_done:true});
 
 onload = function() {
-    (async_test(document.title, {timeout:10000})).step(function() {
+    (async_test()).step(function() {
         // fail early if track isn't supported
         assert_true('HTMLTrackElement' in window, 'track not supported');
         window.corsMode = document.title.match(/^track CORS: (No CORS|Anonymous|Use Credentials)/)[1];

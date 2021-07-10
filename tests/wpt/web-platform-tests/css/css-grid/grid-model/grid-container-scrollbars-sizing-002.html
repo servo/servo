@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>CSS Grid Layout Test: Intrinsic logical width with scrollbars</title>
+<link rel="author" title="Sunil Ratnu" href="mailto:sunil.ratnu@samsung.com">
+<link rel="issue" href="https://codereview.chromium.org/535913002"/>
+<link rel="help" href="https://drafts.csswg.org/css-grid/#overflow"/>
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/css/support/width-keyword-classes.css">
+<link rel="match" href="../reference/grid-container-scrollbars-sizing-002-ref.html">
+<meta name="assert" content="This test ensures that the grid container considers the scrollbars when computing the intrinsic logical widths."/>
+
+<style>
+.grid, .inline-grid {
+  overflow: scroll;
+}
+.gridItem {
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+</style>
+<body>
+<div class='grid fit-content'>
+  <span class='gridItem'></span>
+</div>
+<div class='grid fit-content' style='overflow-y: hidden'>
+  <span class='gridItem'></span>
+</div>
+<div class='inline-grid fit-content'>
+  <span class='gridItem'></span>
+</div>
+<div class='inline-grid fit-content' style='overflow-y: hidden'>
+  <span class='gridItem'></span>
+</div>
+</body>

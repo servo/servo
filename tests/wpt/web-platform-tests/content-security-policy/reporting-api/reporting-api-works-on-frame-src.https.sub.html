@@ -1,0 +1,22 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Test that reports using the report-api service are sent when there's a violation</title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+  <script>
+    async_test(function(t2) {
+      window.addEventListener("securitypolicyviolation", t2.step_func(function(e) {
+        assert_equals(e.blockedURI, "{{location[scheme]}}://{{location[host]}}/content-security-policy/support/fail.html");
+        assert_equals(e.violatedDirective, "frame-src");
+        t2.done();
+      }));
+    }, "Event is fired");
+  </script>
+  <iframe src="../support/fail.html"></iframe>
+
+  <script async defer src='../support/checkReport.sub.js?reportField=effectiveDirective&reportValue=frame-src%20%27none%27'></script>
+</body>
+</html>

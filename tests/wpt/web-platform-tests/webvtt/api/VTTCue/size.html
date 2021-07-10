@@ -15,7 +15,7 @@ test(function(){
     }
 
     [-1, -100, -101, 101, 200, 201].forEach(function(invalid) {
-        assert_throws('IndexSizeError', function() {
+        assert_throws_dom('IndexSizeError', function() {
             cue.size = invalid;
         });
     });

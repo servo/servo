@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Text: 'hyphens: auto' with a valid 'lang' attribute specification</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-text-3/#hyphenation">
+  <link rel="match" href="reference/hyphens-auto-010M-ref.html">
+  <link rel="match" href="reference/hyphens-auto-010H-ref.html">
+
+  <!--
+  User agents may use U+2010 HYPHEN <https://codepoints.net/U+2010>
+  when the font has the glyph, or
+  may use U+002D HYPHEN-MINUS <https://codepoints.net/U+002d>
+  otherwise. Some fonts will display slightly different glyphs for
+  these code points. Therefore these 2 reference files.
+  The M-ref.html reference file means the hyphen-Minus character U+002D.
+  The H-ref.html reference file means the Hyphen character U+2010.
+  -->
+
+  <meta content="" name="flags">
+  <meta content="When 'hyphens' is set to 'auto' and when 'lang' attribute is also set to a valid value, then words may be broken at hyphenation opportunities determined automatically by an hyphenation resource appropriate to the language of the text involved.">
+
+  <style>
+  div
+    {
+      border: black solid 2px;
+      font-family: monospace;
+      font-size: 32px;
+      hyphens: auto;
+      width: 6ch;
+    }
+  </style>
+
+ <body lang="en">
+
+  <div>regulation implementation now</div>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+customElements.define('custom-input', class extends HTMLElement {
+  static get formAssociated() {return true;}
+});
+</script>
+
+<form>
+  <custom-input id="custom-1" name="alone"></custom-input>
+  <custom-input id="custom-2" name="group"></custom-input>
+  <custom-input id="custom-3" name="group"></custom-input>
+</form>
+
+<script>
+test(() => {
+  const formElements = document.forms[0].elements;
+  assert_equals(formElements['invalid'],undefined);
+  assert_equals(formElements['alone'],document.getElementById('custom-1'),'Single input should be returned as-is');
+  assert_true(formElements['group'] instanceof RadioNodeList,'Repeated names should result in RadioNodeList');
+  const expected = [document.getElementById('custom-2'),
+    document.getElementById('custom-3')];
+  assert_array_equals(formElements['group'],expected,'Repeated names should be contained in RadioNodeList, in tree order');
+}, 'Form associated custom elements should work with document.forms.elements.namedItem()');
+
+</script>
+</body>

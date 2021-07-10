@@ -1,0 +1,9 @@
+{
+  "ids": [
+    "cspfp-non-object"
+  ],
+  "content_security": [
+    "script-src 'self' 'unsafe-inline'"
+  ],
+  "features": "camera 'none'"
+}

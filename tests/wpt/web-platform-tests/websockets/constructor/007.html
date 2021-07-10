@@ -8,7 +8,7 @@
 <div id=log></div>
 <script>
 test(function() {
-  assert_throws("SyntaxError", function() {
+  assert_throws_dom("SyntaxError", function() {
     new WebSocket(SCHEME_DOMAIN_PORT + '/empty-message',
                   'a' + String.fromCharCode(0) + 'b')
   })

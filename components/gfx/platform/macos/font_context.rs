@@ -1,12 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use heapsize::HeapSizeOf;
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 
 #[derive(Clone, Debug)]
 pub struct FontContextHandle {
-    ctx: ()
+    ctx: (),
 }
 
 impl FontContextHandle {
@@ -16,8 +16,8 @@ impl FontContextHandle {
     }
 }
 
-impl HeapSizeOf for FontContextHandle {
-    fn heap_size_of_children(&self) -> usize {
+impl MallocSizeOf for FontContextHandle {
+    fn size_of(&self, _: &mut MallocSizeOfOps) -> usize {
         0
     }
 }

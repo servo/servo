@@ -1,0 +1,543 @@
+<!--
+
+/*
+** Copyright (c) 2018 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL WEBGL_multiview Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/tests/webgl_multiview_util.js"></script>
+<script id="macroFragmentShader" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+out vec4 my_FragColor;
+void main() {
+#ifdef GL_OVR_multiview
+    my_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+#else
+    // Error expected
+    #error no GL_OVR_multiview;
+#endif
+}
+</script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+
+let wtu = WebGLTestUtils;
+let gl = wtu.create3DContext(null, null, 2);
+let ext = null;
+
+function runExtensionDisabledTest()
+{
+    debug("");
+    debug("Testing queries with extension disabled");
+
+    let maxViews = gl.getParameter(0x9631);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "Can't query MAX_VIEWS_OVR without enabling WEBGL_multiview");
+
+    let baseViewIndex = gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.BACK, 0x9630);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "Can't query FRAMEBUFFER_ATTACHMENT_TEXTURE_BASE_VIEW_INDEX_OVR without enabling WEBGL_multiview");
+    let numViews = gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.BACK, 0x9632);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "Can't query FRAMEBUFFER_ATTACHMENT_TEXTURE_NUM_VIEWS_OVR without enabling WEBGL_multiview");
+}
+
+function runQueryTest()
+{
+    debug("");
+    debug("Testing querying MAX_VIEWS_OVR");
+
+    let maxViews = gl.getParameter(ext.MAX_VIEWS_OVR);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from querying MAX_VIEWS_OVR");
+    if (typeof maxViews != 'number') {
+        testFailed("Type of the value of MAX_VIEWS_OVR should be number, was " + (typeof maxViews));
+    }
+    if (maxViews < 2) {
+        testFailed("Value of MAX_VIEWS_OVR should be at least two, was: " + maxViews);
+    }
+}
+
+function runDefaultFramebufferQueryTest()
+{
+    debug("");
+    debug("Testing querying base view index and num views on the default framebuffer");
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    let baseViewIndex = gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.BACK, ext.FRAMEBUFFER_ATTACHMENT_TEXTURE_BASE_VIEW_INDEX_OVR);
+    let numViews = gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.BACK, ext.FRAMEBUFFER_ATTACHMENT_TEXTURE_NUM_VIEWS_OVR);
+    if (baseViewIndex != 0) {
+        testFailed('Unexpected baseViewIndex ' + baseViewIndex + ' on the default framebuffer');
+    } else {
+        testPassed('baseViewIndex on the default framebuffer was 0');
+    }
+    if (numViews != 0) {
+        testFailed('Unexpected numViews ' + numViews + ' on the default framebuffer');
+    } else {
+        testPassed('numViews on the default framebuffer was 0');
+    }
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from framebuffer queries on the default framebuffer");
+}
+
+function runInvalidTextureTypeTest()
+{
+    debug("");
+    debug("Testing invalid texture types");
+    let tex2D = createTextureWithNearestFiltering(gl.TEXTURE_2D);
+    gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA8, 128, 128);
+    ext.framebufferTextureMultiviewWEBGL(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, tex2D, 0, 0, 1);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "should not be possible to create a multiview framebuffer against a 2D texture");
+
+    let texCube = createTextureWithNearestFiltering(gl.TEXTURE_CUBE_MAP);
+    gl.texStorage2D(gl.TEXTURE_CUBE_MAP, 1, gl.RGBA8, 128, 128);
+    ext.framebufferTextureMultiviewWEBGL(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, texCube, 0, 0, 1);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "should not be possible to create a multiview framebuffer against a cube map texture");
+
+    let tex3D = createTextureWithNearestFiltering(gl.TEXTURE_3D);
+    gl.texStorage3D(gl.TEXTURE_3D, 1, gl.RGBA8, 128, 128, 2);
+    ext.framebufferTextureMultiviewWEBGL(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, tex3D, 0, 0, 2);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "should not be possible to create a multiview framebuffer against a 3D texture");
+}
+
+/**
+ * If allocateStorage is true, the test will allocate texture storage. If it is false, attachments are done without allocations.
+ */
+function runFramebufferQueryTest(allocateStorage)
+{
+    debug("");
+    debug("Testing querying attachment object type, baseViewIndex, numViews and framebuffer status. Texture storage is " + (allocateStorage ? "allocated" : "not allocated") + ".");
+
+    let checkQueryResult = function(actual, expected, name) {
+        if (actual != expected) {
+            testFailed('Unexpected ' + name + ': ' + actual + ' when it was set to ' + expected);
+        }  else {
+            testPassed(name + ' was ' + actual + ' when queried from the framebuffer');
+        }
+    }
+
+    let setupAndQuery = function(colorTex, levelSet, baseViewIndexSet, numViewsSet) {
+        ext.framebufferTextureMultiviewWEBGL(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex, levelSet, baseViewIndexSet, numViewsSet);
+        let objectType = gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE);
+        if (objectType != gl.TEXTURE) {
+            testFailed('Unexpected FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE ' + wtu.glEnumToString(gl, objectType) + ', should be TEXTURE');
+        } else {
+            testPassed('FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE was TEXTURE');
+        }
+
+        let level = gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL);
+        checkQueryResult(level, levelSet, "level");
+
+        let textureName = gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME);
+        checkQueryResult(textureName, colorTex, "texture object");
+
+        let baseViewIndex = gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, ext.FRAMEBUFFER_ATTACHMENT_TEXTURE_BASE_VIEW_INDEX_OVR);
+        checkQueryResult(baseViewIndex, baseViewIndexSet, "baseViewIndex");
+
+        let numViews = gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, ext.FRAMEBUFFER_ATTACHMENT_TEXTURE_NUM_VIEWS_OVR);
+        checkQueryResult(numViews, numViewsSet, "numViews");
+
+        let layer = gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER);
+        checkQueryResult(layer, baseViewIndexSet, "texture layer (should match baseViewIndex)");
+    }
+
+    let setupSecondAttachmentAndQueryStatus = function(colorTex2, baseViewIndex, numViews, expectedStatus, msg) {
+        ext.framebufferTextureMultiviewWEBGL(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, colorTex2, 0, baseViewIndex, numViews);
+        let status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+        if (status != expectedStatus) {
+            testFailed('Framebuffer status: ' + wtu.glEnumToString(gl, status) + ' did not match with the expected value: ' + wtu.glEnumToString(gl, expectedStatus) + ' - ' + msg);
+        }  else {
+            testPassed('Framebuffer status: ' + wtu.glEnumToString(gl, status) + ' matched with the expected value - ' + msg);
+        }
+    }
+
+    let maxViews = gl.getParameter(ext.MAX_VIEWS_OVR);
+
+    let fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    let baseViewIndex = gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, ext.FRAMEBUFFER_ATTACHMENT_TEXTURE_BASE_VIEW_INDEX_OVR);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "Querying baseViewIndex from a nonexistent attachment");
+    if (baseViewIndex != null) {
+        testFailed('Unexpected baseViewIndex ' + baseViewIndex + ' on a framebuffer without attachments');
+    }  else {
+        testPassed('Querying baseViewIndex returned null on a framebuffer without attachments');
+    }
+    let numViews = gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, ext.FRAMEBUFFER_ATTACHMENT_TEXTURE_NUM_VIEWS_OVR);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "Querying numViews from a nonexistent attachment");
+    if (numViews != null) {
+        testFailed('Unexpected numViews ' + numViews + ' on a framebuffer without attachments');
+    } else {
+        testPassed('Querying numViews returned null on a framebuffer without attachments');
+    }
+
+    let colorTex = createTextureWithNearestFiltering(gl.TEXTURE_2D_ARRAY);
+    if (allocateStorage) {
+        gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 2, gl.RGBA8, 128, 128, maxViews);
+    }
+    setupAndQuery(colorTex, 0, 0, maxViews);
+    setupAndQuery(colorTex, 1, 0, 2);
+    setupAndQuery(colorTex, 0, 1, maxViews - 1);
+
+    // Test matching and mismatching attachments for framebuffer status.
+    let colorTex2 = createTextureWithNearestFiltering(gl.TEXTURE_2D_ARRAY);
+    if (allocateStorage) {
+        gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.RGBA8, 128, 128, maxViews);
+    }
+    setupSecondAttachmentAndQueryStatus(colorTex2, 1, maxViews - 1, allocateStorage ? gl.FRAMEBUFFER_COMPLETE : gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT, 'matching baseViewIndex and numViews on different attachments');
+    if (allocateStorage) {
+        setupSecondAttachmentAndQueryStatus(colorTex2, 0, maxViews - 1, ext.FRAMEBUFFER_INCOMPLETE_VIEW_TARGETS_OVR, 'baseViewIndex mismatch');
+        ext.framebufferTextureMultiviewWEBGL(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex, 0, 0, maxViews);
+        setupSecondAttachmentAndQueryStatus(colorTex2, 0, maxViews - 1, ext.FRAMEBUFFER_INCOMPLETE_VIEW_TARGETS_OVR, 'numViews mismatch');
+    }
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from framebuffer queries");
+}
+
+function runInvalidViewsTest()
+{
+    debug("");
+    debug("Testing invalid out-of-range values for baseViewIndex and numViews");
+
+    let maxViews = gl.getParameter(ext.MAX_VIEWS_OVR);
+    let maxLayers = gl.getParameter(gl.MAX_ARRAY_TEXTURE_LAYERS);
+
+    let fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fb);
+    let colorTex = createTextureWithNearestFiltering(gl.TEXTURE_2D_ARRAY);
+    // Don't allocate storage since it's not needed for the validation.
+    ext.framebufferTextureMultiviewWEBGL(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex, 0, 0, maxViews + 1);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "Specified too many views");
+    ext.framebufferTextureMultiviewWEBGL(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex, 0, 0, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "Specified zero views");
+    ext.framebufferTextureMultiviewWEBGL(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex, 0, -1, 2);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "Specified negative baseViewIndex");
+
+    let colorTex2 = createTextureWithNearestFiltering(gl.TEXTURE_2D_ARRAY);
+    ext.framebufferTextureMultiviewWEBGL(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex2, 0, maxLayers - maxViews + 1, maxViews);
+    // baseViewIndex + numViews  =  (maxLayers - maxViews + 1) + maxViews  =  maxLayers + 1
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "Specified so many views that baseViewIndex + numViews is greater than MAX_ARRAY_TEXTURE_LAYERS");
+    ext.framebufferTextureMultiviewWEBGL(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex2, 0, maxLayers - maxViews, maxViews);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "baseViewIndex + numViews is exactly MAX_ARRAY_TEXTURE_LAYERS");
+}
+
+function runDetachTest()
+{
+    debug("");
+    debug("Testing detaching multiview attachments");
+
+    let maxViews = gl.getParameter(ext.MAX_VIEWS_OVR);
+    let maxLayers = gl.getParameter(gl.MAX_ARRAY_TEXTURE_LAYERS);
+
+    let fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fb);
+    let colorTex = createTextureWithNearestFiltering(gl.TEXTURE_2D_ARRAY);
+    ext.framebufferTextureMultiviewWEBGL(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex, 0, 0, maxViews);
+    ext.framebufferTextureMultiviewWEBGL(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, null, 0, maxLayers + 1, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "baseViewIndex and numViews are not validated when detaching");
+    let objectType = gl.getFramebufferAttachmentParameter(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE);
+    if (objectType != gl.NONE) {
+        testFailed('Unexpected FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE ' + wtu.glEnumToString(gl, objectType) + ' after detach, should be NONE');
+    } else {
+        testPassed('FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE was NONE after detach');
+    }
+
+    ext.framebufferTextureMultiviewWEBGL(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex, 0, 0, maxViews);
+    gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, null, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Can detach with framebufferTexture2D as well.");
+    objectType = gl.getFramebufferAttachmentParameter(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE);
+    if (objectType != gl.NONE) {
+        testFailed('Unexpected FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE ' + wtu.glEnumToString(gl, objectType) + ' after detach, should be NONE');
+    } else {
+        testPassed('FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE was NONE after detach');
+    }
+}
+
+function runShaderCompileTest(extensionEnabled)
+{
+    debug("");
+    debug("Testing shader compiles with extension " + (extensionEnabled ? "enabled" : "disabled"));
+
+    var macroFragmentProgram = wtu.setupProgram(gl, [wtu.simpleVertexShaderESSL300, "macroFragmentShader"], undefined, undefined, true);
+    if (extensionEnabled) {
+        if (macroFragmentProgram) {
+            testPassed("GL_OVR_multiview defined in shaders when extension is enabled");
+        } else {
+            testFailed("GL_OVR_multiview not defined in shaders when extension is enabled");
+        }
+    } else {
+        if (macroFragmentProgram) {
+            testFailed("GL_OVR_multiview defined in shaders when extension is disabled");
+        } else {
+            testPassed("GL_OVR_multiview not defined in shaders when extension disabled");
+        }
+    }
+
+    if (!extensionEnabled) {
+        let multiviewShaders = [
+          getMultiviewPassthroughVertexShader(2),
+          getMultiviewColorFragmentShader()
+        ];
+        let testProgram = wtu.setupProgram(gl, multiviewShaders, ['a_position'], [0], true);
+        if (testProgram) {
+            testFailed("Compilation of shaders using extension functionality succeeded when the extension is disabled, should fail.");
+        } else {
+            testPassed("Compilation of shaders using extension functionality should fail when the extension is disabled.");
+        }
+    }
+}
+
+function runClearTest()
+{
+    debug("");
+    debug("Testing that calling clear() clears all views");
+
+    let width = 256;
+    let height = 256;
+
+    let views = gl.getParameter(ext.MAX_VIEWS_OVR);
+
+    let fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    let colorTex = createTextureWithNearestFiltering(gl.TEXTURE_2D_ARRAY);
+    gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.RGBA8, width, height, views);
+    ext.framebufferTextureMultiviewWEBGL(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex, 0, 0, views);
+
+    gl.viewport(0, 0, width, height);
+
+    gl.clearColor(0, 1, 1, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from clear");
+
+    let readFb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFb);
+    for (let viewIndex = 0; viewIndex < views; ++viewIndex) {
+        gl.framebufferTextureLayer(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex, 0, viewIndex);
+        let expectedColor = [0, 255, 255, 255];
+        wtu.checkCanvasRect(gl, 0, 0, width, height, expectedColor, 'view ' + viewIndex + ' should be cyan');
+    }
+}
+
+function runFragmentShaderRenderTest()
+{
+    debug("");
+    debug("Testing rendering with different colors in fragment shader");
+
+    let width = 256;
+    let height = 256;
+
+    let views = gl.getParameter(ext.MAX_VIEWS_OVR);
+
+    let multiviewShaders = [
+      getMultiviewPassthroughVertexShader(views),
+      getMultiviewColorFragmentShader()
+    ];
+    let testProgram = wtu.setupProgram(gl, multiviewShaders, ['a_position'], [0], true);
+    if (!testProgram) {
+        testFailed("Compilation with extension enabled failed.");
+        return;
+    }
+
+    let fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    let colorTex = createTextureWithNearestFiltering(gl.TEXTURE_2D_ARRAY);
+    gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.RGBA8, width, height, views);
+    ext.framebufferTextureMultiviewWEBGL(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex, 0, 0, views);
+
+    gl.viewport(0, 0, width, height);
+    wtu.drawUnitQuad(gl);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from draw");
+
+    let readFb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFb);
+    for (let viewIndex = 0; viewIndex < views; ++viewIndex) {
+        gl.framebufferTextureLayer(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex, 0, viewIndex);
+        let expectedColor = getExpectedColor(viewIndex);
+        wtu.checkCanvasRect(gl, 0, 0, width, height, expectedColor, 'view ' + viewIndex + ' should be colored ' + expectedColor);
+    }
+}
+
+function runVertexShaderRenderTest()
+{
+    debug("");
+    debug("Testing rendering with different colors in fragment shader, different offsets in vertex shader");
+
+    let width = 256;
+    let height = 256;
+
+    let views = gl.getParameter(ext.MAX_VIEWS_OVR);
+
+    let multiviewShaders = [
+      getMultiviewOffsetVertexShader(views),
+      getMultiviewColorFragmentShader()
+    ];
+
+    let testProgram = wtu.setupProgram(gl, multiviewShaders, ['a_position'], [0], true);
+    if (!testProgram) {
+        testFailed("Compilation with extension enabled failed.");
+        return;
+    }
+
+    let fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    let colorTex = createTextureWithNearestFiltering(gl.TEXTURE_2D_ARRAY);
+    gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.RGBA8, width, height, views);
+    ext.framebufferTextureMultiviewWEBGL(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex, 0, 0, views);
+
+    gl.viewport(0, 0, width, height);
+    wtu.drawUnitQuad(gl);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from draw");
+
+    let readFb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFb);
+    for (let viewIndex = 0; viewIndex < views; ++viewIndex) {
+        gl.framebufferTextureLayer(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex, 0, viewIndex);
+        let expectedColor = getExpectedColor(viewIndex);
+
+        checkVerticalStrip(width, height, views, viewIndex, expectedColor, 'view ' + viewIndex);
+    }
+}
+
+function runRealisticUseCaseRenderTest()
+{
+    debug("");
+    debug("Testing rendering with a different transformation matrix chosen from a uniform array according to ViewID");
+
+    let width = 256;
+    let height = 256;
+
+    let views = gl.getParameter(ext.MAX_VIEWS_OVR);
+
+    let multiviewShaders = [
+      getMultiviewRealisticUseCaseVertexShader(views),
+      getMultiviewColorFragmentShader()
+    ];
+
+    let testProgram = wtu.setupProgram(gl, multiviewShaders, ['a_position'], [0], true);
+    if (!testProgram) {
+        testFailed("Compilation with extension enabled failed.");
+        return;
+    }
+
+    let fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    let colorTex = createTextureWithNearestFiltering(gl.TEXTURE_2D_ARRAY);
+    gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.RGBA8, width, height, views);
+    ext.framebufferTextureMultiviewWEBGL(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex, 0, 0, views);
+
+    gl.viewport(0, 0, width, height);
+
+    let transformLocation = gl.getUniformLocation(testProgram, 'transform');
+    let transformData = new Float32Array (views * 16);
+    for (let viewIndex = 0; viewIndex < views; ++viewIndex) {
+        let scaleX = 1.0 / views;
+        // offsetX is the position of the left edge of the quad we want to get in normalized device coordinates
+        let offsetX = viewIndex / views * 2.0 - 1.0;
+
+        setupTranslateAndScaleXMatrix(transformData, viewIndex * 16, scaleX, offsetX);
+    }
+    gl.uniformMatrix4fv(transformLocation, false, transformData);
+
+    wtu.drawUnitQuad(gl);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from draw");
+
+    let readFb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFb);
+    for (let viewIndex = 0; viewIndex < views; ++viewIndex) {
+        gl.framebufferTextureLayer(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex, 0, viewIndex);
+        let expectedColor = getExpectedColor(viewIndex);
+
+        checkVerticalStrip(width, height, views, viewIndex, expectedColor, 'view ' + viewIndex);
+    }
+}
+
+function runUniqueObjectTest()
+{
+    debug("");
+    debug("Testing that getExtension() returns the same object each time");
+    gl.getExtension("WEBGL_multiview").myProperty = 2;
+    webglHarnessCollectGarbage();
+    shouldBe('gl.getExtension("WEBGL_multiview").myProperty', '2');
+}
+
+description("This test verifies the functionality of the WEBGL_multiview extension, if it is available.");
+
+debug("");
+
+if (!gl) {
+  testFailed("WebGL context does not exist");
+} else {
+  testPassed("WebGL context exists");
+
+  runExtensionDisabledTest();
+
+  runShaderCompileTest(false);
+
+  debug("");
+
+  if (!gl.getExtension("WEBGL_multiview")) {
+      testPassed("No WEBGL_multiview support -- this is legal");
+  } else {
+      testPassed("Successfully enabled WEBGL_multiview extension");
+      ext = gl.getExtension('WEBGL_multiview');
+
+      runShaderCompileTest(true);
+
+      runQueryTest();
+
+      runDefaultFramebufferQueryTest();
+
+      runInvalidTextureTypeTest();
+
+      runFramebufferQueryTest(true);
+      runFramebufferQueryTest(false);
+
+      runInvalidViewsTest();
+
+      runDetachTest();
+
+      runClearTest();
+
+      wtu.setupUnitQuad(gl, 0, 1);
+
+      runFragmentShaderRenderTest();
+      runVertexShaderRenderTest();
+      runRealisticUseCaseRenderTest();
+      runUniqueObjectTest();
+  }
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

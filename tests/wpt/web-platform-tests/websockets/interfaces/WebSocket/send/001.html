@@ -9,7 +9,7 @@
 <script>
 test(function(t) {
   var ws = new WebSocket(SCHEME_DOMAIN_PORT+'/');
-  assert_throws(new TypeError(), function(){ws.send()});
+  assert_throws_js(TypeError, function(){ws.send()});
 });
 </script>
 

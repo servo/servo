@@ -1,0 +1,234 @@
+<!doctype html>
+<title>RTCIceCandidate constructor</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+  'use strict';
+
+  const candidateString = 'candidate:1905690388 1 udp 2113937151 192.168.0.1 58041 typ host generation 0 ufrag thC8 network-cost 50';
+  const candidateString2 = 'candidate:435653019 2 tcp 1845501695 192.168.0.196 4444 typ srflx raddr www.example.com rport 22222 tcptype active';
+  const arbitraryString = '<arbitrary string[0] content>;';
+
+  test(t => {
+    // The argument for RTCIceCandidateInit is optional (w3c/webrtc-pc #1153 #1166),
+    // but the constructor throws because both sdpMid and sdpMLineIndex are null by default.
+    // Note that current browsers pass this test but may throw TypeError for
+    // different reason, i.e. they don't accept empty argument.
+    // Further tests below are used to differentiate the errors.
+    assert_throws_js(TypeError, () => new RTCIceCandidate());
+  }, 'new RTCIceCandidate()');
+
+  test(t => {
+    // All fields in RTCIceCandidateInit are optional,
+    // but the constructor throws because both sdpMid and sdpMLineIndex are null by default.
+    // Note that current browsers pass this test but may throw TypeError for
+    // different reason, i.e. they don't allow undefined candidate string.
+    // Further tests below are used to differentiate the errors.
+    assert_throws_js(TypeError, () => new RTCIceCandidate({}));
+  }, 'new RTCIceCandidate({})');
+
+  test(t => {
+    // Checks that manually filling the default values for RTCIceCandidateInit
+    // still throws because both sdpMid and sdpMLineIndex are null
+    assert_throws_js(TypeError,
+      () => new RTCIceCandidate({
+        candidate: '',
+        sdpMid: null,
+        sdpMLineIndex: null,
+        usernameFragment: undefined
+      }));
+  }, 'new RTCIceCandidate({ ... }) with manually filled default values');
+
+  test(t => {
+    // Checks that explicitly setting both sdpMid and sdpMLineIndex null should throw
+    assert_throws_js(TypeError,
+      () => new RTCIceCandidate({
+        sdpMid: null,
+        sdpMLineIndex: null
+      }));
+  }, 'new RTCIceCandidate({ sdpMid: null, sdpMLineIndex: null })');
+
+  test(t => {
+    // Throws because both sdpMid and sdpMLineIndex are null by default
+    assert_throws_js(TypeError,
+      () => new RTCIceCandidate({
+        candidate: ''
+      }));
+  }, `new RTCIceCandidate({ candidate: '' })`);
+
+  test(t => {
+    // Throws because the candidate field is not nullable
+    assert_throws_js(TypeError,
+      () => new RTCIceCandidate({
+        candidate: null
+      }));
+  }, `new RTCIceCandidate({ candidate: null })`);
+
+  test(t => {
+    // Throws because both sdpMid and sdpMLineIndex are null by default
+    assert_throws_js(TypeError,
+      () => new RTCIceCandidate({
+        candidate: candidateString
+      }));
+  }, 'new RTCIceCandidate({ ... }) with valid candidate string only');
+
+  test(t => {
+    const candidate = new RTCIceCandidate({ sdpMid: 'audio' });
+
+    assert_equals(candidate.candidate, '', 'candidate');
+    assert_equals(candidate.sdpMid, 'audio', 'sdpMid');
+    assert_equals(candidate.sdpMLineIndex, null, 'sdpMLineIndex');
+    assert_equals(candidate.usernameFragment, null, 'usernameFragment');
+  }, `new RTCIceCandidate({ sdpMid: 'audio' })`);
+
+  test(t => {
+    const candidate = new RTCIceCandidate({ sdpMLineIndex: 0 });
+
+    assert_equals(candidate.candidate, '', 'candidate');
+    assert_equals(candidate.sdpMid, null, 'sdpMid');
+    assert_equals(candidate.sdpMLineIndex, 0, 'sdpMLineIndex');
+    assert_equals(candidate.usernameFragment, null, 'usernameFragment');
+  }, 'new RTCIceCandidate({ sdpMLineIndex: 0 })');
+
+  test(t => {
+    const candidate = new RTCIceCandidate({
+      sdpMid: 'audio',
+      sdpMLineIndex: 0
+    });
+
+    assert_equals(candidate.candidate, '', 'candidate');
+    assert_equals(candidate.sdpMid, 'audio', 'sdpMid');
+    assert_equals(candidate.sdpMLineIndex, 0, 'sdpMLineIndex');
+    assert_equals(candidate.usernameFragment, null, 'usernameFragment');
+  }, `new RTCIceCandidate({ sdpMid: 'audio', sdpMLineIndex: 0 })`);
+
+  test(t => {
+    const candidate = new RTCIceCandidate({
+      candidate: '',
+      sdpMid: 'audio'
+    });
+
+    assert_equals(candidate.candidate, '', 'candidate');
+    assert_equals(candidate.sdpMid, 'audio', 'sdpMid');
+    assert_equals(candidate.sdpMLineIndex, null, 'sdpMLineIndex');
+    assert_equals(candidate.usernameFragment, null, 'usernameFragment');
+  }, `new RTCIceCandidate({ candidate: '', sdpMid: 'audio' }`);
+
+  test(t => {
+    const candidate = new RTCIceCandidate({
+      candidate: '',
+      sdpMLineIndex: 0
+    });
+
+    assert_equals(candidate.candidate, '', 'candidate');
+    assert_equals(candidate.sdpMid, null, 'sdpMid', 'sdpMid');
+    assert_equals(candidate.sdpMLineIndex, 0, 'sdpMLineIndex');
+    assert_equals(candidate.usernameFragment, null, 'usernameFragment');
+  }, `new RTCIceCandidate({ candidate: '', sdpMLineIndex: 0 }`);
+
+  test(t => {
+    const candidate = new RTCIceCandidate({
+      candidate: candidateString,
+      sdpMid: 'audio'
+    });
+
+    assert_equals(candidate.candidate, candidateString, 'candidate');
+    assert_equals(candidate.sdpMid, 'audio', 'sdpMid');
+    assert_equals(candidate.sdpMLineIndex, null, 'sdpMLineIndex');
+    assert_equals(candidate.usernameFragment, null, 'usernameFragment');
+  }, 'new RTCIceCandidate({ ... }) with valid candidate string and sdpMid');
+
+  test(t =>{
+    // candidate string is not validated in RTCIceCandidate
+    const candidate = new RTCIceCandidate({
+      candidate: arbitraryString,
+      sdpMid: 'audio'
+    });
+
+    assert_equals(candidate.candidate, arbitraryString, 'candidate');
+    assert_equals(candidate.sdpMid, 'audio', 'sdpMid');
+    assert_equals(candidate.sdpMLineIndex, null, 'sdpMLineIndex');
+    assert_equals(candidate.usernameFragment, null, 'usernameFragment');
+  }, 'new RTCIceCandidate({ ... }) with invalid candidate string and sdpMid');
+
+  test(t => {
+    const candidate = new RTCIceCandidate({
+      candidate: candidateString,
+      sdpMid: 'video',
+      sdpMLineIndex: 1,
+      usernameFragment: 'test'
+    });
+
+    assert_equals(candidate.candidate, candidateString, 'candidate');
+    assert_equals(candidate.sdpMid, 'video', 'sdpMid');
+    assert_equals(candidate.sdpMLineIndex, 1, 'sdpMLineIndex');
+    assert_equals(candidate.usernameFragment, 'test', 'usernameFragment');
+
+    // The following fields should match those in the candidate field
+    assert_equals(candidate.foundation, '1905690388', 'foundation');
+    assert_equals(candidate.component, 'rtp', 'component');
+    assert_equals(candidate.priority, 2113937151, 'priority');
+    assert_equals(candidate.address, '192.168.0.1', 'address');
+    assert_equals(candidate.protocol, 'udp', 'protocol');
+    assert_equals(candidate.port, 58041, 'port');
+    assert_equals(candidate.type, 'host', 'type');
+    assert_equals(candidate.tcpType, null, 'tcpType');
+    assert_equals(candidate.relatedAddress, null, 'relatedAddress');
+    assert_equals(candidate.relatedPort, null, 'relatedPort');
+  }, 'new RTCIceCandidate({ ... }) with nondefault values for all fields');
+
+  test(t => {
+    const candidate = new RTCIceCandidate({
+      candidate: candidateString2,
+      sdpMid: 'video',
+      sdpMLineIndex: 1,
+      usernameFragment: 'user1'
+    });
+
+    assert_equals(candidate.candidate, candidateString2, 'candidate');
+    assert_equals(candidate.sdpMid, 'video', 'sdpMid');
+    assert_equals(candidate.sdpMLineIndex, 1, 'sdpMLineIndex');
+    assert_equals(candidate.usernameFragment, 'user1', 'usernameFragment');
+
+    // The following fields should match those in the candidate field
+    assert_equals(candidate.foundation, '435653019', 'foundation');
+    assert_equals(candidate.component, 'rtcp', 'component');
+    assert_equals(candidate.priority, 1845501695, 'priority');
+    assert_equals(candidate.address, '192.168.0.196', 'address');
+    assert_equals(candidate.protocol, 'tcp', 'protocol');
+    assert_equals(candidate.port, 4444, 'port');
+    assert_equals(candidate.type, 'srflx', 'type');
+    assert_equals(candidate.tcpType, 'active', 'tcpType');
+    assert_equals(candidate.relatedAddress, 'www.example.com', 'relatedAddress');
+    assert_equals(candidate.relatedPort, 22222, 'relatedPort');
+  }, 'new RTCIceCandidate({ ... }) with nondefault values for all fields, tcp candidate');
+
+  test(t => {
+    // sdpMid is not validated in RTCIceCandidate
+    const candidate = new RTCIceCandidate({
+      sdpMid: arbitraryString
+    });
+
+    assert_equals(candidate.candidate, '', 'candidate');
+    assert_equals(candidate.sdpMid, arbitraryString, 'sdpMid');
+    assert_equals(candidate.sdpMLineIndex, null, 'sdpMLineIndex');
+    assert_equals(candidate.usernameFragment, null, 'usernameFragment');
+  }, 'new RTCIceCandidate({ ... }) with invalid sdpMid');
+
+
+  test(t => {
+    // Some arbitrary large out of bound line index that practically
+    // do not reference any m= line in SDP.
+    // However sdpMLineIndex is not validated in RTCIceCandidate
+    // and it has no knowledge of the SDP it is associated with.
+    const candidate = new RTCIceCandidate({
+      sdpMLineIndex: 65535
+    });
+
+    assert_equals(candidate.candidate, '', 'candidate');
+    assert_equals(candidate.sdpMid, null, 'sdpMid');
+    assert_equals(candidate.sdpMLineIndex, 65535, 'sdpMLineIndex');
+    assert_equals(candidate.usernameFragment, null, 'usernameFragment');
+  }, 'new RTCIceCandidate({ ... }) with invalid sdpMLineIndex');
+
+</script>

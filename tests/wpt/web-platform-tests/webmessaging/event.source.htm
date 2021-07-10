@@ -42,7 +42,7 @@
             ActualResult.push(e.origin, "AccessCookieDenied");
         }
 
-        assert_true(e.source === TARGET.contentWindow);
+        assert_equals(e.source, TARGET.contentWindow);
         assert_array_equals(ActualResult, ExpectedResult, "ActualResult");
         t.done();
     });

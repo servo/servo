@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>RTCPeerConnection Insertable Streams - Legacy API</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../webrtc/RTCPeerConnection-helper.js"></script>
+<script src="./RTCPeerConnection-insertable-streams.js"></script>
+</head>
+<body>
+<script>
+async function testNormalDataFlowWithInsertableStreamsForOtherKind(t, normalKind) {
+  const flowAudio = (normalKind == 'audio');
+  const pcConfig = flowAudio
+    ? {forceEncodedVideoInsertableStreams:true}
+    : {forceEncodedAudioInsertableStreams:true};
+  const caller = new RTCPeerConnection(pcConfig);
+  t.add_cleanup(() => caller.close());
+  const callee = new RTCPeerConnection(pcConfig);
+  t.add_cleanup(() => callee.close());
+
+  const stream = await navigator.mediaDevices.getUserMedia(
+    {audio: flowAudio, video: !flowAudio});
+  const track = stream.getTracks()[0];
+  t.add_cleanup(() => track.stop());
+
+  const sender = caller.addTrack(track, stream);
+  const ontrackPromise = new Promise((resolve,reject) => {
+    callee.ontrack =  t.step_func(async e => {
+      let numGetStats = 0;
+      const intervalId = window.setInterval(async ()=> {
+        let statsReport = await callee.getStats();
+        statsReport.forEach(report => {
+          if (report.type == 'inbound-rtp' &&
+              report.kind == normalKind &&
+              report.bytesReceived > 0) {
+            clearInterval(intervalId);
+            resolve();
+            return;
+          }
+        });
+        if (++numGetStats >= 60) {
+          clearInterval(intervalId);
+          reject('No bytes received.');
+          return;
+        }
+      }, 50);
+    });
+  });
+
+  exchangeIceCandidates(caller, callee);
+  await exchangeOfferAnswer(caller, callee);
+
+  return ontrackPromise;
+}
+
+promise_test(t => {
+  return testNormalDataFlowWithInsertableStreamsForOtherKind(t, 'audio');
+}, 'Legacy: Audio flows when insertable streams is enabled for video and disabled for audio.');
+
+promise_test(t => {
+  return testNormalDataFlowWithInsertableStreamsForOtherKind(t, 'video');
+}, 'Legacy: Video flows when insertable streams is enabled for audio and disabled for audio.');
+
+promise_test(async t => {
+  const caller = new RTCPeerConnection({encodedInsertableStreams:true});
+  t.add_cleanup(() => caller.close());
+  const callee = new RTCPeerConnection({encodedInsertableStreams:true});
+  t.add_cleanup(() => callee.close());
+
+  const stream = await navigator.mediaDevices.getUserMedia({video:true});
+  const videoTrack = stream.getVideoTracks()[0];
+  t.add_cleanup(() => videoTrack.stop());
+
+  const videoSender = caller.addTrack(videoTrack)
+  const senderStreams = videoSender.createEncodedStreams();
+  const senderReader = senderStreams.readable.getReader();
+  const senderWriter = senderStreams.writable.getWriter();
+
+  let sentFrameInfo = null;
+  const ontrackPromise = new Promise(resolve => {
+    callee.ontrack = t.step_func(async e => {
+      const videoReceiver = e.receiver;
+
+      const receiverStreams = videoReceiver.createEncodedStreams();
+      const receiverReader = receiverStreams.readable.getReader();
+      receiverReader.read().then(t.step_func(receivedResult => {
+        assert_true(areFrameInfosEqual(receivedResult.value, sentFrameInfo));
+        verifyNonstandardAdditionalDataIfPresent(receivedResult.value);
+        resolve();
+      }));
+    });
+  });
+
+  exchangeIceCandidates(caller, callee);
+  await exchangeOfferAnswer(caller, callee);
+
+  // Pass frames as they come from the encoder.
+  const result = await senderReader.read();
+  verifyNonstandardAdditionalDataIfPresent(result.value);
+  sentFrameInfo = {
+    timestamp: result.value.timestamp,
+    type: result.value.type,
+    data: result.value.data,
+    metadata: result.value.getMetadata(),
+    getMetadata() { return this.metadata; }
+  }
+  senderWriter.write(result.value);
+
+  return ontrackPromise;
+}, 'Legacy API works');
+
+</script>
+</body>
+</html>

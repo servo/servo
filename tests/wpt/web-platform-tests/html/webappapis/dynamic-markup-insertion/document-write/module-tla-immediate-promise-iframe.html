@@ -1,0 +1,10 @@
+<!doctype html>
+<script type=module>
+await new Promise(resolve => {
+  document.write("document.write body contents\n");
+  document.close();
+  window.parent.document.dispatchEvent(new CustomEvent("documentWriteDone"));
+  resolve();
+});
+</script>
+Initial body contents

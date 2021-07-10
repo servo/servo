@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Container height calculation with fractional line height and fractional child height</title>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visudet.html#line-height" title="10.8 Line height calculations: the 'line-height' and 'vertical-align' properties">
+<link rel="match" href="../../reference/nothing.html">
+<style>
+  .container { float:left; overflow:auto; width:50px; }
+  .container > span { display:inline-block; width:10px; }
+</style>
+<p>There should be nothing below.</p>
+
+<!-- None of these should not trigger a vertical scrollbar, because the height
+     of the overflow:auto container is auto, so it should make room for
+     whatever's inside. -->
+
+<div class="container" style="line-height:19.75px;">
+  <span style="height:100.25px;"></span>
+</div>
+
+<div class="container" style="line-height:19.75px;">
+  <span style="height:100.75px;"></span>
+</div>
+
+<div class="container" style="line-height:19.25px;">
+  <span style="height:100.25px;"></span>
+</div>
+
+<div class="container" style="line-height:19.25px;">
+  <span style="height:100.75px;"></span>
+</div>

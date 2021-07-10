@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Auto repeat tracks with min and max sizes</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#auto-repeat">
+<meta name="assert" content="This test checks that auto repeat tracks don't overflow the grid container size when max size is definite, even if min size is bigger than that.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<style>
+.grid {
+  position: relative;
+  display: grid;
+  grid: repeat(auto-fill, 50px) / repeat(auto-fill, 100px);
+  max-width: 100px;
+  min-width: 250px;
+  max-height: 50px;
+  min-height: 125px;
+  float: left;
+}
+.border {
+  border: 10px solid;
+}
+.border-box {
+  box-sizing: border-box;
+}
+.item {
+  background: lime;
+  /* Place item on the last cell. */
+  grid-column: -2;
+  grid-row: -2;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.grid');">
+
+<div id="log"></div>
+
+<div class="grid" data-expected-width="250" data-expected-height="125">
+  <div class="item" data-offset-x="100" data-offset-y="50" data-expected-width="100" data-expected-height="50"></div>
+</div>
+
+<div class="grid" style="width: 200px; height: 100px;" data-expected-width="250" data-expected-height="125">
+  <div class="item" data-offset-x="100" data-offset-y="50" data-expected-width="100" data-expected-height="50"></div>
+</div>
+
+<div class="grid" style="width: min-content; height: min-content;" data-expected-width="250" data-expected-height="125">
+  <div class="item" data-offset-x="100" data-offset-y="50" data-expected-width="100" data-expected-height="50"></div>
+</div>
+
+<div class="grid" style="width: max-content; height: max-content;" data-expected-width="250" data-expected-height="125">
+  <div class="item" data-offset-x="100" data-offset-y="50" data-expected-width="100" data-expected-height="50"></div>
+</div>
+
+</body>

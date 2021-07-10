@@ -42,7 +42,7 @@
       }, "Indeterminate progress bar should have value 0");
 
       test(function() {
-        assert_array_equals(largerthanmax.value, 1);
+        assert_equals(largerthanmax.value, 1);
       }, "Value must equal max if the parsed value is larger than max");
 
       test(function() {
@@ -50,7 +50,7 @@
       }, "Max must be 1 by default");
 
       test(function() {
-        assert_array_equals(largerthanmax.max, 1);
+        assert_equals(largerthanmax.max, 1);
       }, "Max must be 1 by default, even if value is specified");
 
       test(function() {

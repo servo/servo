@@ -28,10 +28,10 @@
       <p>
         The test has passed if:
       </p>
-			<ul>
-				<li>There is no red visible.</li>
-				<li>Each of the nine small rectangles are green.</li>
-			</ul>
+      <ul>
+        <li>There is no red visible.</li>
+        <li>Each of the nine small rectangles are green.</li>
+      </ul>
     </d:passCriteria>
   </d:SVGTestCase>
   <title id="test-title">$RCSfile: masking-path-08-b.svg,v $</title>
@@ -45,86 +45,85 @@
     </font-face>
   </defs>
   <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
-	
-		<defs>
-			<clipPath id="emptyclip">
-			</clipPath>
-			<clipPath id="hiddenclip">
-				<rect width="100" height="100" visibility="hidden"/>
-			</clipPath>
-			<clipPath id="displayclip">
-				<rect width="100" height="100" display="none"/>
-			</clipPath>
-			<clipPath id="opacityclip">
-				<rect width="100" height="100" opacity="0"/>
-			</clipPath>
-			<clipPath id="strokefillclip">
-				<rect width="100" height="100" stroke="none" fill="none"/>
-			</clipPath>
-			<clipPath id="strokewidthclip">
-				<rect x="40" y="40" width="20" height="20" stroke="black" stroke-width="80"/>
-			</clipPath>
-			<clipPath id="strokeopacityclip">
-				<rect x="40" y="40" width="20" height="20" stroke="black" stroke-opacity="0" stroke-width="80"/>
-			</clipPath>
-			<clipPath id="fillopacityclip">
-				<rect width="100" height="100" fill-opacity="0"/>
-			</clipPath>
-		</defs>
-		
-		<text x="240" y="50" text-anchor="middle">Establishing a new clipping path</text>
-		
-		<g transform="scale(0.5) translate(320 200)">
-			<rect width="100" height="100" fill="lime"/>
-			<rect width="100" height="100" fill="red" clip-path="url(#emptyclip)"/>
 
-			<g transform="translate(110 0)">
-				<rect width="100" height="100" fill="lime"/>
-				<rect width="100" height="100" fill="red" clip-path="url(#hiddenclip)"/>
-			</g>
-			
-			<g transform="translate(220 0)">
-				<rect width="100" height="100" fill="lime"/>
-				<rect width="100" height="100" fill="red" clip-path="url(#displayclip)"/>
-			</g>
+    <defs>
+      <clipPath id="emptyclip">
+      </clipPath>
+      <clipPath id="hiddenclip">
+        <rect width="100" height="100" visibility="hidden"/>
+      </clipPath>
+      <clipPath id="displayclip">
+        <rect width="100" height="100" display="none"/>
+      </clipPath>
+      <clipPath id="opacityclip">
+        <rect width="100" height="100" opacity="0"/>
+      </clipPath>
+      <clipPath id="strokefillclip">
+        <rect width="100" height="100" stroke="none" fill="none"/>
+      </clipPath>
+      <clipPath id="strokewidthclip">
+        <rect x="40" y="40" width="20" height="20" stroke="black" stroke-width="80"/>
+      </clipPath>
+      <clipPath id="strokeopacityclip">
+        <rect x="40" y="40" width="20" height="20" stroke="black" stroke-opacity="0" stroke-width="80"/>
+      </clipPath>
+      <clipPath id="fillopacityclip">
+        <rect width="100" height="100" fill-opacity="0"/>
+      </clipPath>
+    </defs>
 
-			<!-- This has an intentionally broken clip-path url -->
-			<g transform="translate(0 110)">
-				<rect x="0.5" y="0.5" width="99" height="99" fill="red"/>
-				<rect width="100" height="100" fill="lime" clip-path="url(#unknown)"/>
-			</g>
-			
-			<g transform="translate(110 110)">
-				<rect x="0.5" y="0.5" width="99" height="99" fill="red"/>
-				<rect width="100" height="100" fill="lime" clip-path="url(#opacityclip)"/>
-			</g>
-			
-			<g transform="translate(220 110)">
-				<rect x="0.5" y="0.5" width="99" height="99" fill="red"/>
-				<rect width="100" height="100" fill="lime" clip-path="url(#strokefillclip)"/>
-			</g>
-			
-			<g transform="translate(0 220)">
-				<rect width="100" height="100" fill="lime"/>
-				<rect width="100" height="100" fill="red" clip-path="url(#strokewidthclip)"/>
-				<rect x="39" y="39" width="22" height="22" fill="lime"/>
-			</g>
-			
-			<g transform="translate(110 220)">
-				<rect width="100" height="100" fill="lime"/>
-				<rect width="100" height="100" fill="red" clip-path="url(#strokeopacityclip)"/>
-				<rect x="39" y="39" width="22" height="22" fill="lime"/>
-			</g>
-			
-			<g transform="translate(220 220)">
-				<rect x="0.5" y="0.5" width="99" height="99" fill="red"/>
-				<rect width="100" height="100" fill="lime" clip-path="url(#fillopacityclip)"/>
-			</g>
-			
-			<rect width="320" height="320" fill="none" stroke="black"/>
-		</g>
-		
-		
+    <text x="240" y="50" text-anchor="middle">Establishing a new clipping path</text>
+
+    <g transform="scale(0.5) translate(320 200)">
+      <rect width="100" height="100" fill="lime"/>
+      <rect width="100" height="100" fill="red" clip-path="url(#emptyclip)"/>
+
+      <g transform="translate(110 0)">
+        <rect width="100" height="100" fill="lime"/>
+        <rect width="100" height="100" fill="red" clip-path="url(#hiddenclip)"/>
+      </g>
+
+      <g transform="translate(220 0)">
+        <rect width="100" height="100" fill="lime"/>
+        <rect width="100" height="100" fill="red" clip-path="url(#displayclip)"/>
+      </g>
+
+      <!-- This has an intentionally broken clip-path url -->
+      <g transform="translate(0 110)">
+        <rect x="0.5" y="0.5" width="99" height="99" fill="red"/>
+        <rect width="100" height="100" fill="lime" clip-path="url(#unknown)"/>
+      </g>
+
+      <g transform="translate(110 110)">
+        <rect x="0.5" y="0.5" width="99" height="99" fill="red"/>
+        <rect width="100" height="100" fill="lime" clip-path="url(#opacityclip)"/>
+      </g>
+
+      <g transform="translate(220 110)">
+        <rect x="0.5" y="0.5" width="99" height="99" fill="red"/>
+        <rect width="100" height="100" fill="lime" clip-path="url(#strokefillclip)"/>
+      </g>
+
+      <g transform="translate(0 220)">
+        <rect width="100" height="100" fill="lime"/>
+        <rect width="100" height="100" fill="red" clip-path="url(#strokewidthclip)"/>
+        <rect x="39" y="39" width="22" height="22" fill="lime"/>
+      </g>
+
+      <g transform="translate(110 220)">
+        <rect width="100" height="100" fill="lime"/>
+        <rect width="100" height="100" fill="red" clip-path="url(#strokeopacityclip)"/>
+        <rect x="39" y="39" width="22" height="22" fill="lime"/>
+      </g>
+
+      <g transform="translate(220 220)">
+        <rect x="0.5" y="0.5" width="99" height="99" fill="red"/>
+        <rect width="100" height="100" fill="lime" clip-path="url(#fillopacityclip)"/>
+      </g>
+
+      <rect width="320" height="320" fill="none" stroke="black"/>
+    </g>
+
   </g>
   <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
     <text id="revision" x="10" y="340" stroke="none"

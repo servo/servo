@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Selection.modify() inside contenteditable</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div contenteditable id="host">Editable</div>
+<div>Non-editable</div>
+<script>
+const selection = getSelection();
+test(() => {
+  selection.collapse(host);
+  selection.modify('extend', 'forward', 'word');
+  selection.modify('extend', 'forward', 'word');
+  assert_equals(selection.focusNode.parentElement, host);
+}, "Selection.modify() must not select outside of the host");
+</script>

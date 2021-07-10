@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Box Alignment Level 3: parsing justify-items with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-justify-items">
+<meta name="assert" content="justify-items supports only the grammar 'normal | stretch | <baseline-position> | <overflow-position>? [ <self-position> | left | right ] | legacy | legacy && [ left | right | center ]'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("justify-items", "auto");
+test_invalid_value("justify-items", "baseline last");
+test_invalid_value("justify-items", "center baseline");
+test_invalid_value("justify-items", "first");
+test_invalid_value("justify-items", "flex-start flex-end");
+test_invalid_value("justify-items", "last");
+test_invalid_value("justify-items", "normal baseline");
+test_invalid_value("justify-items", "safe");
+test_invalid_value("justify-items", "self-end unsafe");
+test_invalid_value("justify-items", "space-around");
+test_invalid_value("justify-items", "space-between");
+test_invalid_value("justify-items", "space-evenly");
+test_invalid_value("justify-items", "start safe");
+test_invalid_value("justify-items", "unsafe");
+</script>
+</body>
+</html>

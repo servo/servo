@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox Test: align-self - flex-end</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#align-items-property" title="8.3. Cross-axis Alignment: the 'align-items' and 'align-self' properties">
+<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#align-items-property" />
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="flags" content="">
+<meta name="assert" content="The 'align-self' property set 'flex-end' aligns the flex items to the end edge of cross axis">
+<style>
+  #test {
+    background-color: red;
+    display: flex;
+    height: 100px;
+    width: 100px;
+  }
+  #test div {
+    align-self: flex-end;
+    background-color: green;
+    height: 50px;
+    width: 25px;
+  }
+  #cover {
+    background-color: green;
+    height: 50px;
+    margin-top: -100px;
+    width: 100px;
+  }
+</style>
+<body>
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <div id="test">
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+  </div>
+  <div id="cover"></div>
+</body>

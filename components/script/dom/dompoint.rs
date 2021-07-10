@@ -1,14 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::DOMPointBinding::{DOMPointInit, DOMPointMethods, Wrap};
-use dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::DOMPointReadOnlyMethods;
-use dom::bindings::error::Fallible;
-use dom::bindings::js::Root;
-use dom::bindings::reflector::reflect_dom_object;
-use dom::dompointreadonly::{DOMPointReadOnly, DOMPointWriteMethods};
-use dom::globalscope::GlobalScope;
+use crate::dom::bindings::codegen::Bindings::DOMPointBinding::{DOMPointInit, DOMPointMethods};
+use crate::dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::DOMPointReadOnlyMethods;
+use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::dompointreadonly::{DOMPointReadOnly, DOMPointWriteMethods};
+use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 
 // http://dev.w3.org/fxtf/geometry/Overview.html#dompoint
@@ -17,6 +17,7 @@ pub struct DOMPoint {
     point: DOMPointReadOnly,
 }
 
+#[allow(non_snake_case)]
 impl DOMPoint {
     fn new_inherited(x: f64, y: f64, z: f64, w: f64) -> DOMPoint {
         DOMPoint {
@@ -24,20 +25,26 @@ impl DOMPoint {
         }
     }
 
-    pub fn new(global: &GlobalScope, x: f64, y: f64, z: f64, w: f64) -> Root<DOMPoint> {
-        reflect_dom_object(box DOMPoint::new_inherited(x, y, z, w), global, Wrap)
+    pub fn new(global: &GlobalScope, x: f64, y: f64, z: f64, w: f64) -> DomRoot<DOMPoint> {
+        reflect_dom_object(Box::new(DOMPoint::new_inherited(x, y, z, w)), global)
     }
 
-    pub fn Constructor(global: &GlobalScope,
-                       x: f64,
-                       y: f64,
-                       z: f64,
-                       w: f64)
-                       -> Fallible<Root<DOMPoint>> {
+    pub fn Constructor(
+        global: &GlobalScope,
+        x: f64,
+        y: f64,
+        z: f64,
+        w: f64,
+    ) -> Fallible<DomRoot<DOMPoint>> {
         Ok(DOMPoint::new(global, x, y, z, w))
     }
 
-    pub fn new_from_init(global: &GlobalScope, p: &DOMPointInit) -> Root<DOMPoint> {
+    // https://drafts.fxtf.org/geometry/#dom-dompoint-frompoint
+    pub fn FromPoint(global: &GlobalScope, init: &DOMPointInit) -> DomRoot<Self> {
+        Self::new_from_init(global, init)
+    }
+
+    pub fn new_from_init(global: &GlobalScope, p: &DOMPointInit) -> DomRoot<DOMPoint> {
         DOMPoint::new(global, p.x, p.y, p.z, p.w)
     }
 }

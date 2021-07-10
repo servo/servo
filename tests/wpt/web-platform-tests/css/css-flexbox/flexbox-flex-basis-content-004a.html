@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <title>
+    CSS Test: Testing that explicit "flex-basis: content" is treated as
+    "max-content" when calculating flex base size
+  </title>
+  <meta charset="utf-8">
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#flex-base-size">
+  <link rel="match" href="flexbox-flex-basis-content-004-ref.html">
+  <style>
+  .container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    /* flex container has an extremely-constrained height (and items will
+       overflow vertically). This is intentional, as part of stress-testing
+       item sizing. We add a large margin-bottom so that overflowing
+       items don't overlap between examples. */
+    height: 1px;
+    margin-bottom: 49px;
+  }
+
+  .item {
+    /* We give all flex items "flex-basis: content".
+       We also give them zero flex-grow, flex-shrink, and min-main-size, so
+       that the flex base size entirely determines the flex item's size. */
+    flex: 0 0 content;
+    min-height: 0;
+    border: 2px solid teal;
+  }
+  ib {
+    display: inline-block;
+    background: blue;
+    border: 1px solid gray;
+    width: 15px;
+    height: 10px;
+  }
+  float {
+    float: left;
+    background: fuchsia;
+    border: 1px solid gray;
+    width: 15px;
+    height: 10px;
+  }
+  canvas {
+    background: brown;
+    border: 1px solid gray;
+  }
+  .innerFlex {
+    display: flex;
+    flex-direction: column;
+  }
+  innerItem {
+    background: salmon;
+    border: 1px solid gray;
+    height: 10px;
+    width: 15px;
+    flex: none;
+  }
+  </style>
+</head>
+<body>
+<!-- This test exists for symmetry with the previous set of tests
+     (flexbox-flex-basis-content-003*). Those previous tests check how
+     "flex-basis:content" is resolved to a flex base size, in the inline axis,
+     when the container's size is constrained in that axis. This test does the
+     same, but for the *block* axis, using flex-direction:column. As with the
+     previous set of tests, the expectation here is that we should use the
+     item's max-content size as its flex base size. Note that there's a bit
+     less subtlety here because intrinsic sizes (min-content, max-content) are
+     typically all the same in the block axis.
+-->
+
+<!-- Flex item has several inline-blocks
+     (no spaces, to avoid any text-layout dependency): -->
+<div class="container">
+  <div class="item"><ib></ib><ib></ib><ib></ib></div>
+</div>
+
+<!-- Flex item has several floats: -->
+<div class="container">
+  <div class="item">
+    <float></float>
+    <float></float>
+    <float></float>
+  </div>
+</div>
+
+<!-- Flex item has several inline replaced elements:
+     (no spaces, to avoid any text-layout dependency): -->
+<div class="container">
+  <div class="item">
+    <canvas width="15" height="10"></canvas
+    ><canvas width="15" height="10"></canvas
+    ><canvas width="15" height="10"></canvas>
+  </div>
+</div>
+
+<!-- Flex item *is* a replaced element: -->
+<div class="container">
+  <canvas class="item" width="25" height="10"></canvas>
+</div>
+
+<!-- Flex item is itself a flex container: -->
+<div class="container">
+  <div class="item innerFlex">
+    <innerItem></innerItem>
+    <innerItem></innerItem>
+    <innerItem></innerItem>
+  </div>
+</div>
+
+<!-- Flex item is itself a multi-line flex container: -->
+<div class="container">
+  <div class="item innerFlex" style="flex-wrap: wrap">
+    <innerItem></innerItem>
+    <innerItem></innerItem>
+    <innerItem></innerItem>
+  </div>
+</div>
+
+</body>
+</html>

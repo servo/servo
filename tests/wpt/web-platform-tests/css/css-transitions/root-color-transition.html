@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html id=html class="reftest-wait">
+  <title>Verifies that 'color' stays the color it's transitioned to on :root</title>
+  <link rel="help" href="https://crbug.com/1087188">
+  <link rel="match" href="root-color-transition-ref.html">
+  <script src="support/helper.js"></script>
+  <h1 id=h1>PASS if green</h1>
+  <style>
+    html {
+      color: red;
+      transition: color 1s linear;
+    }
+    html.green {
+      color: green;
+    }
+  </style>
+  <script>
+    getComputedStyle(h1).color;
+
+    async function run() {
+      let transitionEnd = new Promise((resolve) => {
+        html.addEventListener('transitionend', resolve);
+      });
+      // Trigger transition:
+      html.classList.toggle('green');
+
+      const transition = html.getAnimations()[0];
+      await transition.ready;
+      await waitForFrame();
+
+      // Expedite transition, but let it finish naturally.
+      transition.currentTime = transition.effect.getTiming().duration - 1;
+      await transitionEnd;
+
+      await waitForFrame();
+    }
+
+    run().then(() => html.classList.toggle('reftest-wait'));
+  </script>
+</html>

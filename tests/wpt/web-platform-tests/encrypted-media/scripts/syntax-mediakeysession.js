@@ -57,7 +57,14 @@ function runTest(config) {
             func: function (mk6, type) {
                 return mk6.createSession().generateRequest(type, new Uint8Array(0));
             }
-        }
+        },
+        // Using an empty type should return a 'TypeError'.
+        {
+            exception: 'TypeError',
+            func: function (mk7, type) {
+                return mk7.createSession().generateRequest('', initData);
+            }
+        },
     ];
     function generateRequestTestExceptions(){
         return new Promise(function(resolve, reject){

@@ -1,0 +1,113 @@
+<!doctype html>
+<link rel="author" title="Aleks Totic" href="mailto:atotic@chromium.org">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/129">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1003373">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+.container {
+  --size: 100px;
+  --padding-size: 30px;
+  --too-big-size: calc(var(--size) - var(--padding-size) + 1px);
+  --just-right-size: calc(var(--size) - var(--padding-size));
+  overflow:auto;
+  width: var(--size);
+  height: var(--size);
+  padding-right: var(--padding-size);
+  padding-bottom: var(--padding-size);
+  background: #DDD;
+  box-sizing: border-box;
+  display: inline-block;
+}
+.big {
+  width: var(--too-big-size);
+  height: var(--too-big-size);
+  background: green;
+}
+.small {
+  width: var(--just-right-size);
+  height: var(--just-right-size);
+  background: yellow;
+}
+.bigfont {
+  font-size: var(--too-big-size);
+  font-family: Ahem;
+  line-height: 1;
+  color:green;
+}
+.smallfont {
+  font-size: var(--just-right-size);
+  font-family: Ahem;
+  line-height: 1;
+  color:yellow;
+}
+.red {
+  background:red;
+}
+
+</style>
+<body onload="runTest()">
+<p><span style="background:green">green</span> blocks get scrollbars, <span style="background:yellow">yellow</span> do not.</p>
+<p>Block child gets only block padding.</p>
+<div class="container" data-scrollbar="v">
+  <div class="big"></div>
+</div>
+<div class="container" data-scrollbar="">
+  <div class="small"></div>
+</div>
+
+<p>Inline child gets block and inline padding.</p>
+<div class="container bigfont" data-scrollbar="hv">
+  <span>X</span>
+</div>
+<div class="container" style="font:36px/1 Ahem;color:green" data-scrollbar="hv">
+  <span>XX</span><br>XX
+</div>
+<div class="container smallfont" data-scrollbar="">
+  <span>X</span>
+</div>
+
+<p>Inline block child gets block and inline padding.</p>
+<div class="container" data-scrollbar="hv">
+  <div class="big" style="display:inline-block;vertical-align:bottom;"></div>
+</div>
+<div class="container" data-scrollbar="">
+  <div class="small" style="display:inline-block;vertical-align:bottom;"></div>
+</div>
+
+<p>Padding applies to linebox, not linebox overflow.</p>
+<div class="container" data-scrollbar="">
+  <div class="small" style="display:inline-block;vertical-align:bottom">
+    <div style="height:90px;width:80px;background: rgba(0,0,255,0.3)"></div>
+  </div>
+</div>
+<script>
+  function hasHorizontalScrollbar(el) {
+    return (el.offsetHeight - el.clientHeight) > 0;
+  }
+  function hasVerticalScrollbar(el) {
+    return (el.offsetWidth - el.clientWidth) > 0;
+  }
+  // Tests needs to be run after load.
+  function runTest() {
+    test(()=> {
+      let i=0;
+      for (el of Array.from(document.querySelectorAll(".container"))) {
+        i++;
+        el.classList.toggle("red");
+        let expected = el.getAttribute("data-scrollbar");
+        if (expected.match(/h/))
+          assert_true(hasHorizontalScrollbar(el), `horizontal scrollbar ${i}`);
+        else
+          assert_false(hasHorizontalScrollbar(el), `horizontal scrollbar ${i}`);
+        if (expected.match(/v/))
+          assert_true(hasVerticalScrollbar(el), `vertical scrollbar ${i}`);
+        else
+          assert_false(hasVerticalScrollbar(el), `vertical scrollbar ${i}`);
+        el.classList.toggle("red");
+      }
+    }, "Container padding is applied approriately to block/inline children.");
+  }
+</script>
+</body>

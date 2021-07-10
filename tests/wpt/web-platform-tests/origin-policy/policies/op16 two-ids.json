@@ -1,0 +1,16 @@
+{
+  "ids": [
+    "1",
+    "2"
+  ],
+  "ids": [
+    "3",
+    "4"
+  ],
+  "content_security": {
+    "policies": [
+      "script-src 'self' 'unsafe-inline'",
+      "img-src 'none'"
+    ]
+  }
+}

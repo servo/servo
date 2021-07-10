@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>NDEFReader.scan with an focused iframe</title>
+<link rel="help" href="https://w3c.github.io/web-nfc/"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/nfc-helpers.js"></script>
+<body>
+<script>
+
+nfc_test(async (t, mockNFC) => {
+  const ndef = new NDEFReader();
+  const controller = new AbortController();
+  const ndefWatcher = new EventWatcher(t, ndef, ["reading", "readingerror"]);
+
+  const promise = ndefWatcher.wait_for("reading").then(event => {
+    assert_true(event instanceof NDEFReadingEvent);
+    controller.abort();
+  });
+  await ndef.scan({ signal: controller.signal });
+
+  const iframe = document.createElement('iframe');
+  iframe.src = 'resources/support-iframe.html';
+
+  const iframeLoadWatcher = new EventWatcher(t, iframe, 'load');
+  document.body.appendChild(iframe);
+  await iframeLoadWatcher.wait_for('load');
+  // Focus on iframe.
+  iframe.contentWindow.document.getElementById('foo').focus();
+  assert_true(iframe.contentDocument.hasFocus(), 'iframe gains the focus');
+  // Suspend NFC operations is async in blink, use setTimeout as a workaround.
+  // TODO(wanming.lin@intel.com): find a good way to eliminate this race
+  // condition.
+  await new Promise(resolve => t.step_timeout(resolve, 0));
+  mockNFC.setReadingMessage(createMessage([createTextRecord(test_text_data)]));
+  await promise;
+
+  // Remove iframe from main document.
+  iframe.parentNode.removeChild(iframe);
+}, 'Test that NDEFReader.scan is not suspended if iframe gains focus.');
+
+</script>
+</body>

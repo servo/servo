@@ -1,0 +1,119 @@
+<!doctype html>
+<html>
+  <head>
+    <title>aria-atomic=true</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "atomic:true"
+               ],
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "container-atomic:true"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXARIAAtomic",
+                  "is",
+                  "YES"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "atomic:true"
+               ],
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "container-atomic:true"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "AriaProperties.atomic",
+                  "is",
+                  "true"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      },
+      {
+         "element" : "child",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "container-atomic:true"
+               ],
+               [
+                  "relation",
+                  "RELATION_MEMBER_OF",
+                  "is",
+                  "[test]"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "container-atomic:true"
+               ],
+               [
+                  "relation",
+                  "IA2_RELATION_MEMBER_OF",
+                  "is",
+                  "[test]"
+               ]
+            ]
+         },
+         "title" : "step 2",
+         "type" : "test"
+      }
+   ],
+   "title" : "aria-atomic=true"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for aria-atomic=true.</p>
+    <div role='group' id='test' aria-atomic='true' aria-live='polite'>
+    <div role='group' id='child'>content</div>
+  </div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>

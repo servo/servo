@@ -1,0 +1,13 @@
+[package]
+name = "script_plugins_tests"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+edition = "2018"
+
+[lib]
+path = "lib.rs"
+test = false
+
+[dependencies]
+script_plugins = {path = "../../../components/script_plugins"}

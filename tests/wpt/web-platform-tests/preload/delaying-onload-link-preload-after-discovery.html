@@ -11,8 +11,8 @@
 <script>
     window.addEventListener("load", t.step_func(function() {
         verifyPreloadAndRTSupport();
-        verifyNumberOfDownloads("resources/dummy.js?pipe=trickle(d5)", 1);
-        verifyNumberOfDownloads("resources/square.png?pipe=trickle(d5)", 1);
+        verifyLoadedAndNoDoubleDownload("resources/dummy.js?pipe=trickle(d5)");
+        verifyLoadedAndNoDoubleDownload("resources/square.png?pipe=trickle(d5)");
         t.done();
     }));
     var script = document.createElement("script");

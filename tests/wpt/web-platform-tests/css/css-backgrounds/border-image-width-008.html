@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>border-image-width has the same effect as a border-width and the image is displayed even if border-width is zero</title>
+<link rel="match" href="border-image-width-008-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#propdef-border-image-width">
+<style>
+    #test {
+        width: 400px;
+        height: 300px;
+        border-style: solid;
+        /* Note: Chrome does not display an image if border-width is 0 */
+        border-width: 0px;
+        border-image-source: url("support/border.png");
+        border-image-width: 40px 40px 20px 0px;
+        border-image-slice: 27;
+    }
+</style>
+<body>
+    <div id="test"></div>
+</body>

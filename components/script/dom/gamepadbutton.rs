@@ -1,13 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::GamepadButtonBinding;
-use dom::bindings::codegen::Bindings::GamepadButtonBinding::GamepadButtonMethods;
-use dom::bindings::js::Root;
-use dom::bindings::num::Finite;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::globalscope::GlobalScope;
+use crate::dom::bindings::codegen::Bindings::GamepadButtonBinding::GamepadButtonMethods;
+use crate::dom::bindings::num::Finite;
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use std::cell::Cell;
 
@@ -19,6 +18,8 @@ pub struct GamepadButton {
     value: Cell<f64>,
 }
 
+// TODO: support gamepad discovery
+#[allow(dead_code)]
 impl GamepadButton {
     pub fn new_inherited(pressed: bool, touched: bool) -> GamepadButton {
         Self {
@@ -29,10 +30,11 @@ impl GamepadButton {
         }
     }
 
-    pub fn new(global: &GlobalScope, pressed: bool, touched: bool) -> Root<GamepadButton> {
-        reflect_dom_object(box GamepadButton::new_inherited(pressed, touched),
-                           global,
-                           GamepadButtonBinding::Wrap)
+    pub fn new(global: &GlobalScope, pressed: bool, touched: bool) -> DomRoot<GamepadButton> {
+        reflect_dom_object(
+            Box::new(GamepadButton::new_inherited(pressed, touched)),
+            global,
+        )
     }
 }
 
@@ -53,6 +55,8 @@ impl GamepadButtonMethods for GamepadButton {
     }
 }
 
+// TODO: support gamepad discovery
+#[allow(dead_code)]
 impl GamepadButton {
     pub fn update(&self, pressed: bool, touched: bool) {
         self.pressed.set(pressed);

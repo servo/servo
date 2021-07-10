@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Color 4: Specifying Lab and LCH</title>
+<link rel="author" title="Chris Lilley" href="mailto:chris@w3.org">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#specifying-lab-lch">
+<link rel="match" href="lab-005-ref.html">
+<meta name="assert" content="lab() with no alpha, negative a axis">
+<style>
+    .test { background-color: red; width: 12em; height: 6em; margin-top: 0; }
+    .ref { background-color: rgb(10.7906% 75.5567% 66.3982%); width: 12em; height: 6em; margin-bottom: 0; } /* lab(70% -45 0) converted to sRGB */
+    .test { background-color: lab(70% -45 0); }
+</style>
+<body>
+    <p>Test passes if you see a single square, and not two rectangles of different colors.</p>
+    <div class="ref"></div>
+    <div class="test"></div>
+</body>

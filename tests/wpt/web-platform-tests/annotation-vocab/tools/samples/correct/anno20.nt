@@ -1,6 +1,0 @@
-<http://example.net/review1> <http://purl.org/dc/terms/rights> <http://creativecommons.org/licenses/by/4.0/> .
-<http://example.org/anno20> <http://www.w3.org/ns/oa#hasTarget> <http://example.com/product1> .
-<http://example.org/anno20> <http://www.w3.org/ns/oa#hasBody> <http://example.net/review1> .
-<http://example.org/anno20> <http://www.w3.org/ns/oa#canonical> <urn:uuid:dbfb1861-0ecf-41ad-be94-a584e5c4f1df> .
-<http://example.org/anno20> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/oa#Annotation> .
-<http://example.org/anno20> <http://www.w3.org/ns/oa#via> <http://other.example.org/anno1> .

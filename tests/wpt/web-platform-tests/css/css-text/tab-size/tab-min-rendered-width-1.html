@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSS Text Test: minimum rendered width of tab character</title>
+  <link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+  <link rel="reviewer" title="Xidorn Quan" href="https://www.upsuper.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+  <link rel="match" href="tab-min-rendered-width-1-ref.html">
+  <meta name="assert" content="If [rendered width of tab would be] less than 0.5ch, then the subsequent tab stop is used instead.">
+  <style>
+    span { background-color: yellow; display: inline-block; letter-spacing: -.1em; }
+    pre { position: absolute; top: 0; }
+  </style>
+</head>
+<body>
+<pre>
+</pre>
+<script>
+  let pre = document.getElementsByTagName("pre")[0];
+  let test = "";
+  for (i = 7.0; i <= 8.125; i += 0.125) {
+    test += `<span style="width:${i}ch">${i}ch</span>&#9;foo\n`;
+  }
+  pre.innerHTML = test;
+</script>
+</body>
+</html>

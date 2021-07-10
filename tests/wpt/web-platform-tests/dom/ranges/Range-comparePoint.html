@@ -41,7 +41,7 @@ for (var i = 0; i < testPoints.length; i++) {
       // throw a "WrongDocumentError" exception and terminate these
       // steps."
       if (furthestAncestor(node) !== furthestAncestor(range.startContainer)) {
-        assert_throws("WRONG_DOCUMENT_ERR", function() {
+        assert_throws_dom("WRONG_DOCUMENT_ERR", function() {
           range.comparePoint(node, offset);
         }, "Must throw WrongDocumentError if node and range have different roots");
         return;
@@ -50,7 +50,7 @@ for (var i = 0; i < testPoints.length; i++) {
       // "If node is a doctype, throw an "InvalidNodeTypeError" exception
       // and terminate these steps."
       if (node.nodeType == Node.DOCUMENT_TYPE_NODE) {
-        assert_throws("INVALID_NODE_TYPE_ERR", function() {
+        assert_throws_dom("INVALID_NODE_TYPE_ERR", function() {
           range.comparePoint(node, offset);
         }, "Must throw InvalidNodeTypeError if node is a doctype");
         return;
@@ -59,7 +59,7 @@ for (var i = 0; i < testPoints.length; i++) {
       // "If offset is greater than node's length, throw an
       // "IndexSizeError" exception and terminate these steps."
       if (normalizedOffset > nodeLength(node)) {
-        assert_throws("INDEX_SIZE_ERR", function() {
+        assert_throws_dom("INDEX_SIZE_ERR", function() {
           range.comparePoint(node, offset);
         }, "Must throw IndexSizeError if offset is greater than  length");
         return;

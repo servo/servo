@@ -26,6 +26,31 @@ def WebIDLTest(parser, harness):
     harness.check(dict2.members[1].identifier.name, "child",
                   "'a' really comes before 'c'")
 
+    # Test partial dictionary.
+    parser = parser.reset();
+    parser.parse("""
+      dictionary A {
+        long c;
+        long g;
+      };
+      partial dictionary A {
+        long h;
+        long d;
+      };
+    """)
+    results = parser.finish()
+
+    dict1 = results[0];
+    harness.check(len(dict1.members), 4, "Dict1 has four members")
+    harness.check(dict1.members[0].identifier.name, "c",
+                  "c should be first")
+    harness.check(dict1.members[1].identifier.name, "d",
+                  "d should come after c")
+    harness.check(dict1.members[2].identifier.name, "g",
+                  "g should come after d")
+    harness.check(dict1.members[3].identifier.name, "h",
+                  "h should be last")
+
     # Now reset our parser
     parser = parser.reset()
     threw = False
@@ -41,6 +66,24 @@ def WebIDLTest(parser, harness):
         threw = True
 
     harness.ok(threw, "Should not allow name duplication in a dictionary")
+
+    # Test no name duplication across normal and partial dictionary.
+    parser = parser.reset();
+    threw = False
+    try:
+        parser.parse("""
+          dictionary A {
+            long prop = 5;
+          };
+          partial dictionary A {
+            long prop;
+          };
+        """)
+        results = parser.finish()
+    except:
+        threw = True
+
+    harness.ok(threw, "Should not allow name duplication across normal and partial dictionary")
 
     # Now reset our parser again
     parser = parser.reset()
@@ -131,6 +174,22 @@ def WebIDLTest(parser, harness):
             dictionary A {
             };
             interface X {
+              void doFoo(optional A arg);
+            };
+        """)
+        results = parser.finish()
+    except:
+        threw = True
+
+    harness.ok(threw, "Trailing dictionary arg must have a default value")
+
+    parser = parser.reset()
+    threw = False
+    try:
+        parser.parse("""
+            dictionary A {
+            };
+            interface X {
               void doFoo((A or DOMString) arg);
             };
         """)
@@ -148,6 +207,23 @@ def WebIDLTest(parser, harness):
             dictionary A {
             };
             interface X {
+              void doFoo(optional (A or DOMString) arg);
+            };
+        """)
+        results = parser.finish()
+    except:
+        threw = True
+
+    harness.ok(threw,
+               "Trailing union arg containing a dictionary must have a default value")
+
+    parser = parser.reset()
+    threw = False
+    try:
+        parser.parse("""
+            dictionary A {
+            };
+            interface X {
               void doFoo(A arg1, optional long arg2);
             };
         """)
@@ -156,6 +232,22 @@ def WebIDLTest(parser, harness):
         threw = True
 
     harness.ok(threw, "Dictionary arg followed by optional arg must be optional")
+
+    parser = parser.reset()
+    threw = False
+    try:
+        parser.parse("""
+            dictionary A {
+            };
+            interface X {
+              void doFoo(optional A arg1, optional long arg2);
+            };
+        """)
+        results = parser.finish()
+    except:
+        threw = True
+
+    harness.ok(threw, "Dictionary arg followed by optional arg must have default value")
 
     parser = parser.reset()
     threw = False
@@ -193,6 +285,24 @@ def WebIDLTest(parser, harness):
                "be optional")
 
     parser = parser.reset()
+    threw = False
+    try:
+        parser.parse("""
+            dictionary A {
+            };
+            interface X {
+              void doFoo(optional (A or DOMString) arg1, optional long arg2);
+            };
+        """)
+        results = parser.finish()
+    except:
+        threw = True
+
+    harness.ok(threw,
+               "Union arg containing dictionary followed by optional arg must "
+               "have a default value")
+
+    parser = parser.reset()
     parser.parse("""
             dictionary A {
             };
@@ -210,14 +320,36 @@ def WebIDLTest(parser, harness):
             dictionary A {
             };
             interface X {
-              void doFoo(optional A? arg1);
+              void doFoo(optional A? arg1 = {});
             };
         """)
         results = parser.finish()
-    except:
-        threw = True
+    except Exception as x:
+        threw = x
 
-    harness.ok(threw, "Dictionary arg must not be nullable")
+    harness.ok(threw, "Optional dictionary arg must not be nullable")
+    harness.ok("nullable" in str(threw),
+               "Must have the expected exception for optional nullable dictionary arg")
+
+    parser = parser.reset()
+    threw = False
+    try:
+        parser.parse("""
+            dictionary A {
+              required long x;
+            };
+            interface X {
+              void doFoo(A? arg1);
+            };
+        """)
+        results = parser.finish()
+    except Exception as x:
+        threw = x
+
+    harness.ok(threw, "Required dictionary arg must not be nullable")
+    harness.ok("nullable" in str(threw),
+               "Must have the expected exception for required nullable "
+               "dictionary arg")
 
     parser = parser.reset()
     threw = False
@@ -226,14 +358,54 @@ def WebIDLTest(parser, harness):
             dictionary A {
             };
             interface X {
-              void doFoo(optional (A or long)? arg1);
+              void doFoo(optional (A or long)? arg1 = {});
+            };
+        """)
+        results = parser.finish()
+    except Exception as x:
+        threw = x
+
+    harness.ok(threw, "Dictionary arg must not be in an optional nullable union")
+    harness.ok("nullable" in str(threw),
+               "Must have the expected exception for optional nullable union "
+               "arg containing dictionary")
+
+    parser = parser.reset()
+    threw = False
+    try:
+        parser.parse("""
+            dictionary A {
+              required long x;
+            };
+            interface X {
+              void doFoo((A or long)? arg1);
+            };
+        """)
+        results = parser.finish()
+    except Exception as x:
+        threw = x
+
+    harness.ok(threw, "Dictionary arg must not be in a required nullable union")
+    harness.ok("nullable" in str(threw),
+               "Must have the expected exception for required nullable union "
+               "arg containing dictionary")
+
+    parser = parser.reset()
+    threw = False
+    try:
+        parser.parse("""
+            dictionary A {
+            };
+            interface X {
+              void doFoo(sequence<A?> arg1);
             };
         """)
         results = parser.finish()
     except:
         threw = True
 
-    harness.ok(threw, "Dictionary arg must not be in a nullable union")
+    harness.ok(not threw,
+               "Nullable union should be allowed in a sequence argument")
 
     parser = parser.reset()
     threw = False
@@ -283,7 +455,7 @@ def WebIDLTest(parser, harness):
         dictionary A {
         };
         interface X {
-          void doFoo(optional A arg);
+          void doFoo(optional A arg = {});
         };
     """)
     results = parser.finish()
@@ -294,11 +466,22 @@ def WebIDLTest(parser, harness):
         dictionary A {
         };
         interface X {
-          void doFoo(optional (A or DOMString) arg);
+          void doFoo(optional (A or DOMString) arg = {});
         };
     """)
     results = parser.finish()
     harness.ok(True, "Union arg containing a dictionary should actually parse")
+
+    parser = parser.reset()
+    parser.parse("""
+        dictionary A {
+        };
+        interface X {
+          void doFoo(optional (A or DOMString) arg = "abc");
+        };
+    """)
+    results = parser.finish()
+    harness.ok(True, "Union arg containing a dictionary with string default should actually parse")
 
     parser = parser.reset()
     threw = False
@@ -553,3 +736,17 @@ def WebIDLTest(parser, harness):
         threw = True
 
     harness.ok(threw, "Only unrestricted values can be initialized to NaN")
+
+    parser = parser.reset();
+    threw = False
+    try:
+        parser.parse("""
+            dictionary Foo {
+              long module;
+            };
+        """)
+        results = parser.finish()
+    except:
+        threw = True
+
+    harness.ok(not threw, "Should be able to use 'module' as a dictionary member name")

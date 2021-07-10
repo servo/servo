@@ -14,7 +14,7 @@
 
 test(function () {
     assert_true('HTMLSlotElement' in window, 'HTMLSlotElement must be defined on window');
-    assert_equals(HTMLSlotElement.prototype.__proto__, HTMLElement.prototype, 'HTMLSlotElement should inherit from HTMLElement');
+    assert_equals(Object.getPrototypeOf(HTMLSlotElement.prototype), HTMLElement.prototype, 'HTMLSlotElement should inherit from HTMLElement');
     assert_true(document.createElement('slot') instanceof HTMLSlotElement, 'slot element should be an instance of HTMLSlotElement');
     assert_true(document.createElement('slot') instanceof HTMLElement, 'slot element should be an instance of HTMLElement');
 }, 'HTMLSlotElement must be defined on window');

@@ -1,0 +1,43 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Selection across multiple contenteditable</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<button id="button"></button>
+<div contenteditable id="host1"></div>
+<div contenteditable id="host2"></div>
+<div contenteditable id="host3">
+  <div contenteditable="false">
+    <div contenteditable id="host4"></div>
+  </div>
+</div>
+<script>
+function clearFocus() {
+  // Move focus from editable host to a button to remove selection limiter
+  button.focus();
+}
+test(() => {
+  clearFocus();
+  getSelection().collapse(host1);
+  assert_equals(document.activeElement, host1);
+  getSelection().collapse(host2);
+  assert_equals(document.activeElement, host2);
+}, "Selection.collapse() must succeed across siblings");
+
+test(() => {
+  clearFocus();
+  getSelection().collapse(host4);
+  assert_equals(document.activeElement, host4);
+  getSelection().collapse(host3);
+  assert_equals(document.activeElement, host3);
+}, "Selection.collapse() must succeed for the ancestor");
+
+
+test(() => {
+  clearFocus();
+  getSelection().collapse(host3);
+  assert_equals(document.activeElement, host3);
+  getSelection().collapse(host4);
+  assert_equals(document.activeElement, host4);
+}, "Selection.collapse() must succeed for the descendant");
+</script>

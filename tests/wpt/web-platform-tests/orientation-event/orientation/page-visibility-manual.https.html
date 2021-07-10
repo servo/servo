@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+promise_test(t => {
+  return new Promise((resolve, reject) => {
+    document.addEventListener("visibilitychange", () => {
+      assert_true(document.hidden, "document is hidden");
+      window.addEventListener(
+          'deviceorientation',
+          event => {
+            if (document.hidden) {
+              reject();
+            } else {
+              resolve();
+            }
+          },
+          { once: true });
+    }, { once: true });
+  });
+}, 'Tests to check that deviceorientation events are not fired when the page is not visible.');
+</script>
+
+<p>Switch the page to the background, then switch back to it.</p>

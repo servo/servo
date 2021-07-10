@@ -1,18 +1,19 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Memory profiling functions.
 
+use crate::time::duration_from_seconds;
 use ipc_channel::ipc::{self, IpcReceiver};
 use ipc_channel::router::ROUTER;
-use profile_traits::mem::{ProfilerChan, ProfilerMsg, ReportKind, Reporter, ReporterRequest};
 use profile_traits::mem::ReportsChan;
+use profile_traits::mem::{ProfilerChan, ProfilerMsg, ReportKind, Reporter, ReporterRequest};
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::thread;
-use time::duration_from_seconds;
+use std::time::Instant;
 
 pub struct Profiler {
     /// The port through which messages are received.
@@ -20,6 +21,9 @@ pub struct Profiler {
 
     /// Registered memory reporters.
     reporters: HashMap<String, Reporter>,
+
+    /// Instant at which this profiler was created.
+    created: Instant,
 }
 
 const JEMALLOC_HEAP_ALLOCATED_STR: &'static str = "jemalloc-heap-allocated";
@@ -32,22 +36,26 @@ impl Profiler {
         // Create the timer thread if a period was provided.
         if let Some(period) = period {
             let chan = chan.clone();
-            thread::Builder::new().name("Memory profiler timer".to_owned()).spawn(move || {
-                loop {
+            thread::Builder::new()
+                .name("Memory profiler timer".to_owned())
+                .spawn(move || loop {
                     thread::sleep(duration_from_seconds(period));
                     if chan.send(ProfilerMsg::Print).is_err() {
                         break;
                     }
-                }
-            }).expect("Thread spawning failed");
+                })
+                .expect("Thread spawning failed");
         }
 
         // Always spawn the memory profiler. If there is no timer thread it won't receive regular
         // `Print` events, but it will still receive the other events.
-        thread::Builder::new().name("Memory profiler".to_owned()).spawn(move || {
-            let mut mem_profiler = Profiler::new(port);
-            mem_profiler.start();
-        }).expect("Thread spawning failed");
+        thread::Builder::new()
+            .name("Memory profiler".to_owned())
+            .spawn(move || {
+                let mut mem_profiler = Profiler::new(port);
+                mem_profiler.start();
+            })
+            .expect("Thread spawning failed");
 
         let mem_profiler_chan = ProfilerChan(chan);
 
@@ -55,12 +63,17 @@ impl Profiler {
         // be unregistered, because as long as the memory profiler is running the system memory
         // reporter can make measurements.
         let (system_reporter_sender, system_reporter_receiver) = ipc::channel().unwrap();
-        ROUTER.add_route(system_reporter_receiver.to_opaque(), box |message| {
-            let request: ReporterRequest = message.to().unwrap();
-            system_reporter::collect_reports(request)
-        });
-        mem_profiler_chan.send(ProfilerMsg::RegisterReporter("system".to_owned(),
-                                                             Reporter(system_reporter_sender)));
+        ROUTER.add_route(
+            system_reporter_receiver.to_opaque(),
+            Box::new(|message| {
+                let request: ReporterRequest = message.to().unwrap();
+                system_reporter::collect_reports(request)
+            }),
+        );
+        mem_profiler_chan.send(ProfilerMsg::RegisterReporter(
+            "system".to_owned(),
+            Reporter(system_reporter_sender),
+        ));
 
         mem_profiler_chan
     }
@@ -69,14 +82,15 @@ impl Profiler {
         Profiler {
             port: port,
             reporters: HashMap::new(),
+            created: Instant::now(),
         }
     }
 
     pub fn start(&mut self) {
         while let Ok(msg) = self.port.recv() {
-           if !self.handle_msg(msg) {
-               break
-           }
+            if !self.handle_msg(msg) {
+                break;
+            }
         }
     }
 
@@ -87,8 +101,7 @@ impl Profiler {
                 let name_clone = name.clone();
                 match self.reporters.insert(name, reporter) {
                     None => true,
-                    Some(_) => panic!(format!("RegisterReporter: '{}' name is already in use",
-                                              name_clone)),
+                    Some(_) => panic!("RegisterReporter: '{}' name is already in use", name_clone),
                 }
             },
 
@@ -96,8 +109,7 @@ impl Profiler {
                 // Panic if it hasn't previously been registered.
                 match self.reporters.remove(&name) {
                     Some(_) => true,
-                    None =>
-                        panic!(format!("UnregisterReporter: '{}' name is unknown", &name)),
+                    None => panic!("UnregisterReporter: '{}' name is unknown", &name),
                 }
             },
 
@@ -106,12 +118,13 @@ impl Profiler {
                 true
             },
 
-            ProfilerMsg::Exit => false
+            ProfilerMsg::Exit => false,
         }
     }
 
     fn handle_print_msg(&self) {
-        println!("Begin memory reports");
+        let elapsed = self.created.elapsed();
+        println!("Begin memory reports {}", elapsed.as_secs());
         println!("|");
 
         // Collect reports from memory reporters.
@@ -143,17 +156,20 @@ impl Profiler {
                         ReportKind::ExplicitJemallocHeapSize |
                         ReportKind::ExplicitSystemHeapSize |
                         ReportKind::ExplicitNonHeapSize |
-                        ReportKind::ExplicitUnknownLocationSize =>
-                            report.path.insert(0, String::from("explicit")),
+                        ReportKind::ExplicitUnknownLocationSize => {
+                            report.path.insert(0, String::from("explicit"))
+                        },
                         ReportKind::NonExplicitSize => {},
                     }
 
                     // Update the reported fractions of the heaps, when appropriate.
                     match report.kind {
-                        ReportKind::ExplicitJemallocHeapSize =>
-                            jemalloc_heap_reported_size += report.size,
-                        ReportKind::ExplicitSystemHeapSize =>
-                            system_heap_reported_size += report.size,
+                        ReportKind::ExplicitJemallocHeapSize => {
+                            jemalloc_heap_reported_size += report.size
+                        },
+                        ReportKind::ExplicitSystemHeapSize => {
+                            system_heap_reported_size += report.size
+                        },
                         _ => {},
                     }
 
@@ -176,12 +192,16 @@ impl Profiler {
 
         // Compute and insert the heap-unclassified values.
         if let Some(jemalloc_heap_allocated_size) = jemalloc_heap_allocated_size {
-            forest.insert(&path!["explicit", "jemalloc-heap-unclassified"],
-                          jemalloc_heap_allocated_size - jemalloc_heap_reported_size);
+            forest.insert(
+                &path!["explicit", "jemalloc-heap-unclassified"],
+                jemalloc_heap_allocated_size - jemalloc_heap_reported_size,
+            );
         }
         if let Some(system_heap_allocated_size) = system_heap_allocated_size {
-            forest.insert(&path!["explicit", "system-heap-unclassified"],
-                          system_heap_allocated_size - system_heap_reported_size);
+            forest.insert(
+                &path!["explicit", "system-heap-unclassified"],
+                system_heap_allocated_size - system_heap_reported_size,
+            );
         }
 
         forest.print();
@@ -216,7 +236,7 @@ impl ReportsTree {
             size: 0,
             count: 0,
             path_seg: path_seg,
-            children: vec![]
+            children: vec![],
         }
     }
 
@@ -243,7 +263,7 @@ impl ReportsTree {
                     t.children.len() - 1
                 },
             };
-            let tmp = t;    // this temporary is needed to satisfy the borrow checker
+            let tmp = t; // this temporary is needed to satisfy the borrow checker
             t = &mut tmp.children[i];
         }
 
@@ -280,9 +300,18 @@ impl ReportsTree {
         }
 
         let mebi = 1024f64 * 1024f64;
-        let count_str = if self.count > 1 { format!(" [{}]", self.count) } else { "".to_owned() };
-        println!("|{}{:8.2} MiB -- {}{}",
-                 indent_str, (self.size as f64) / mebi, self.path_seg, count_str);
+        let count_str = if self.count > 1 {
+            format!(" [{}]", self.count)
+        } else {
+            "".to_owned()
+        };
+        println!(
+            "|{}{:8.2} MiB -- {}{}",
+            indent_str,
+            (self.size as f64) / mebi,
+            self.path_seg,
+            count_str
+        );
 
         for child in &self.children {
             child.print(depth + 1);
@@ -308,7 +337,8 @@ impl ReportsForest {
         let (head, tail) = path.split_first().unwrap();
         // Get the right tree, creating it if necessary.
         if !self.trees.contains_key(head) {
-            self.trees.insert(head.clone(), ReportsTree::new(head.clone()));
+            self.trees
+                .insert(head.clone(), ReportsTree::new(head.clone()));
         }
         let t = self.trees.get_mut(head).unwrap();
 
@@ -353,8 +383,11 @@ impl ReportsForest {
 //---------------------------------------------------------------------------
 
 mod system_reporter {
+    use super::{JEMALLOC_HEAP_ALLOCATED_STR, SYSTEM_HEAP_ALLOCATED_STR};
+    #[cfg(target_os = "linux")]
+    use libc::c_int;
     #[cfg(not(target_os = "windows"))]
-    use libc::{c_char, c_int, c_void, size_t};
+    use libc::{c_void, size_t};
     use profile_traits::mem::{Report, ReportKind, ReporterRequest};
     #[cfg(not(target_os = "windows"))]
     use std::ffi::CString;
@@ -362,9 +395,8 @@ mod system_reporter {
     use std::mem::size_of;
     #[cfg(not(target_os = "windows"))]
     use std::ptr::null_mut;
-    use super::{JEMALLOC_HEAP_ALLOCATED_STR, SYSTEM_HEAP_ALLOCATED_STR};
     #[cfg(target_os = "macos")]
-    use task_info::task_basic_info::{virtual_size, resident_size};
+    use task_info::task_basic_info::{resident_size, virtual_size};
 
     /// Collects global measurements from the OS and heap allocators.
     pub fn collect_reports(request: ReporterRequest) {
@@ -397,7 +429,10 @@ mod system_reporter {
             // directly from the jemalloc documentation.
 
             // "Total number of bytes allocated by the application."
-            report(path![JEMALLOC_HEAP_ALLOCATED_STR], jemalloc_stat("stats.allocated"));
+            report(
+                path![JEMALLOC_HEAP_ALLOCATED_STR],
+                jemalloc_stat("stats.allocated"),
+            );
 
             // "Total number of bytes in active pages allocated by the application.
             // This is a multiple of the page size, and greater than or equal to
@@ -414,20 +449,20 @@ mod system_reporter {
     }
 
     #[cfg(target_os = "linux")]
-    extern {
+    extern "C" {
         fn mallinfo() -> struct_mallinfo;
     }
 
     #[cfg(target_os = "linux")]
     #[repr(C)]
     pub struct struct_mallinfo {
-        arena:    c_int,
-        ordblks:  c_int,
-        smblks:   c_int,
-        hblks:    c_int,
-        hblkhd:   c_int,
-        usmblks:  c_int,
-        fsmblks:  c_int,
+        arena: c_int,
+        ordblks: c_int,
+        smblks: c_int,
+        hblks: c_int,
+        hblkhd: c_int,
+        usmblks: c_int,
+        fsmblks: c_int,
         uordblks: c_int,
         fordblks: c_int,
         keepcost: c_int,
@@ -458,11 +493,7 @@ mod system_reporter {
     }
 
     #[cfg(not(target_os = "windows"))]
-    extern {
-        #[cfg_attr(any(target_os = "macos", target_os = "android"), link_name = "je_mallctl")]
-        fn mallctl(name: *const c_char, oldp: *mut c_void, oldlenp: *mut size_t,
-                   newp: *mut c_void, newlen: size_t) -> c_int;
-    }
+    use servo_allocator::jemalloc_sys::mallctl;
 
     #[cfg(not(target_os = "windows"))]
     fn jemalloc_stat(value_name: &str) -> Option<usize> {
@@ -483,15 +514,26 @@ mod system_reporter {
         // Using the same values for the `old` and `new` parameters is enough
         // to get the statistics updated.
         let rv = unsafe {
-            mallctl(epoch_c_name.as_ptr(), epoch_ptr, &mut epoch_len, epoch_ptr,
-                       epoch_len)
+            mallctl(
+                epoch_c_name.as_ptr(),
+                epoch_ptr,
+                &mut epoch_len,
+                epoch_ptr,
+                epoch_len,
+            )
         };
         if rv != 0 {
             return None;
         }
 
         let rv = unsafe {
-            mallctl(value_c_name.as_ptr(), value_ptr, &mut value_len, null_mut(), 0)
+            mallctl(
+                value_c_name.as_ptr(),
+                value_ptr,
+                &mut value_len,
+                null_mut(),
+                0,
+            )
         };
         if rv != 0 {
             return None;
@@ -505,16 +547,9 @@ mod system_reporter {
         None
     }
 
-    // Like std::macros::try!, but for Option<>.
-    macro_rules! option_try(
-        ($e:expr) => (match $e { Some(e) => e, None => return None })
-    );
-
     #[cfg(target_os = "linux")]
     fn page_size() -> usize {
-        unsafe {
-            ::libc::sysconf(::libc::_SC_PAGESIZE) as usize
-        }
+        unsafe { ::libc::sysconf(::libc::_SC_PAGESIZE) as usize }
     }
 
     #[cfg(target_os = "linux")]
@@ -522,11 +557,11 @@ mod system_reporter {
         use std::fs::File;
         use std::io::Read;
 
-        let mut f = option_try!(File::open("/proc/self/statm").ok());
+        let mut f = File::open("/proc/self/statm").ok()?;
         let mut contents = String::new();
-        option_try!(f.read_to_string(&mut contents).ok());
-        let s = option_try!(contents.split_whitespace().nth(field));
-        let npages = option_try!(s.parse::<usize>().ok());
+        f.read_to_string(&mut contents).ok()?;
+        let s = contents.split_whitespace().nth(field)?;
+        let npages = s.parse::<usize>().ok()?;
         Some(npages * page_size())
     }
 
@@ -563,10 +598,10 @@ mod system_reporter {
     #[cfg(target_os = "linux")]
     fn resident_segments() -> Vec<(String, usize)> {
         use regex::Regex;
-        use std::collections::HashMap;
         use std::collections::hash_map::Entry;
+        use std::collections::HashMap;
         use std::fs::File;
-        use std::io::{BufReader, BufRead};
+        use std::io::{BufRead, BufReader};
 
         // The first line of an entry in /proc/<pid>/smaps looks just like an entry
         // in /proc/<pid>/maps:
@@ -586,14 +621,19 @@ mod system_reporter {
         };
 
         let seg_re = Regex::new(
-            r"^[:xdigit:]+-[:xdigit:]+ (....) [:xdigit:]+ [:xdigit:]+:[:xdigit:]+ \d+ +(.*)").unwrap();
+            r"^[:xdigit:]+-[:xdigit:]+ (....) [:xdigit:]+ [:xdigit:]+:[:xdigit:]+ \d+ +(.*)",
+        )
+        .unwrap();
         let rss_re = Regex::new(r"^Rss: +(\d+) kB").unwrap();
 
         // We record each segment's resident size.
         let mut seg_map: HashMap<String, usize> = HashMap::new();
 
         #[derive(PartialEq)]
-        enum LookingFor { Segment, Rss }
+        enum LookingFor {
+            Segment,
+            Rss,
+        }
         let mut looking_for = LookingFor::Segment;
 
         let mut curr_seg_name = String::new();
@@ -645,7 +685,9 @@ mod system_reporter {
                         curr_seg_name.clone()
                     };
                     match seg_map.entry(seg_name) {
-                        Entry::Vacant(entry) => { entry.insert(rss); },
+                        Entry::Vacant(entry) => {
+                            entry.insert(rss);
+                        },
                         Entry::Occupied(mut entry) => *entry.get_mut() += rss,
                     }
                 }

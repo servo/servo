@@ -1,0 +1,173 @@
+<!--
+
+/*
+** Copyright (c) 2018 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Multiple WebGL2 Context sharing texture2darray/texture3d data bug test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas1" width="64" height="64"> </canvas>
+<canvas id="canvas2" width="64" height="64"> </canvas>
+<div id="console"></div>
+
+<!-- WebGL 2 Shaders -->
+<script id="vs" type="x-shader/x-vertex">#version 300 es
+precision mediump float;
+in vec4 a_position;
+in vec2 a_coord;
+out vec2 v_coord;
+void main() {
+    gl_Position = a_position;
+    v_coord = a_coord;
+}
+</script>
+
+<script id="fs_texture_3d" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+in vec2 v_coord;
+uniform mediump sampler3D u_sampler;
+out vec4 o_color;
+void main () {
+    o_color = texture(u_sampler, vec3(v_coord, 0.0));
+}
+</script>
+
+<script id="fs_texture_2d_array" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+in vec2 v_coord;
+uniform mediump sampler2DArray u_sampler;
+out vec4 o_color;
+void main () {
+    o_color = texture(u_sampler, vec3(v_coord, 0.0));
+}
+</script>
+
+<script>
+"use strict";
+description("This test verifies that 2 different contexts both using 2d array texture or 3d texture does not share the texture data among them due to context save/restore bug. https://bugs.chromium.org/p/chromium/issues/detail?id=788448");
+debug("");
+
+function render(gl, width, height, expectedColor, msg) {
+    wtu.setupUnitQuad(gl, 0, 1);
+    wtu.clearAndDrawUnitQuad(gl);
+    wtu.checkCanvasRect(gl, 0, 0, width, height, expectedColor, msg);
+}
+
+function StateSetup(gl, texture_type, texture_color, width, height) {
+
+    // create a buffer to hold texture data
+    const depth = 4;
+    var size = width * height * depth * 4;
+    var buf = new Uint8Array(size);
+    for (var i = 0; i < size; i += 4) {
+        buf[i + 0] = texture_color[0];
+        buf[i + 1] = texture_color[1];
+        buf[i + 2] = texture_color[2];
+        buf[i + 3] = texture_color[3];
+    }
+    gl.viewport(0, 0, width, height);
+
+    // choose texture type and fragment shader type
+    var tex_type = gl.TEXTURE_2D;
+    var fragment_shader =  "", vertex_shader = "vs";
+    if(texture_type === "3d") {
+      tex_type = gl.TEXTURE_3D, fragment_shader = "fs_texture_3d";
+    } else if(texture_type === "2d_array") {
+      tex_type = gl.TEXTURE_2D_ARRAY, fragment_shader = "fs_texture_2d_array";
+    } else {
+      testFailed("Texture type must be 3d or 2darray");
+    }
+
+    var program = wtu.setupProgram(gl, [vertex_shader, fragment_shader], ['a_position', 'a_coord'], [0, 1]);
+
+    // create a texture
+    var texture = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0);
+
+    // program texture parameters
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(tex_type, texture);
+    gl.texImage3D(tex_type, 0, gl.RGBA, width, height, depth, 0, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    gl.texParameteri(tex_type, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(tex_type, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+    // bind sampler to the texture
+    var samplerLoc = gl.getUniformLocation(program, "u_sampler");
+    gl.uniform1i(samplerLoc, 0);
+
+    // flush all gl commands
+    gl.flush();
+}
+
+var wtu = WebGLTestUtils;
+var canvas1 = document.getElementById("canvas1");
+var gl1 = wtu.create3DContext(canvas1, null, 2); //context1
+
+var canvas2 = document.getElementById("canvas2");
+var gl2 = wtu.create3DContext(canvas2, null, 2); // context2
+
+if (gl1 && gl2)
+{
+  testPassed("Created 2 WebGL2 context successfully");
+  var red = [255, 0, 0, 255], green = [0,255,0,255], blue = [0,0,255,255];
+  var width = 64, height = 64;
+  var texture_type = "3d", texture_color = green;
+  StateSetup(gl1,texture_type, texture_color, width, height);// context1 state setup
+  texture_color = red;
+  StateSetup(gl2, texture_type, texture_color, width, height);// context2 state setup
+  render(gl1, width, height, green, "Result pixels rendering from context1 with 3d texture should be green");// render context1
+
+  texture_type = "2d_array", texture_color = blue;
+  StateSetup(gl1, texture_type, texture_color, width, height);// context1 state setup
+  texture_color = green;
+  StateSetup(gl2, texture_type, texture_color, width, height);// context2 state setup
+  render(gl1, width, height, blue, "Result pixels rendering from context1 with 2darray texture should be blue");//render context1
+}
+else if(!gl1)
+{
+  testFailed("Fail to get 1st WebGL2 context");
+}
+else
+{
+  testFailed("Fail to get 2nd WebGL2 context");
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

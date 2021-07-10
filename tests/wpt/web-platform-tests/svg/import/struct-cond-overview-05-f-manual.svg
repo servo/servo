@@ -14,8 +14,8 @@
         Elements whose parent elements have failing conditional processing attributes are able to be referenced and rendered by 'use' elements.
       </p>
       <p>
-        Define three 'rect' elements that have a 'g' parent with either an invalid 'requiredFeature', 'requiredExtension', or 'systemLanguage'. 
-        Then define three 'use' elements that reference the 'rect' elements. Verify that the 'use' elements render. 
+        Define three 'rect' elements that have a 'g' parent with either an invalid 'requiredFeature', 'requiredExtension', or 'systemLanguage'.
+        Then define three 'use' elements that reference the 'rect' elements. Verify that the 'use' elements render.
       </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">

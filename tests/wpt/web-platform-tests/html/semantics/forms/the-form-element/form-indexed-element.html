@@ -36,7 +36,7 @@ test(function(){
   delete form[0];
   assert_equals(form[0], old_item);
 
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     "use strict";
     delete form[0];
   });

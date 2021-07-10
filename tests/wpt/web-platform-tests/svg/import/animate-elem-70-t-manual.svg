@@ -127,7 +127,6 @@
           </rect>
         </g>
 
-
         <g id="setFour" transform="translate(0, 125)">
           <use xlink:href="#shadow" x="0"/>
           <use xlink:href="#shadow" x="80"/>

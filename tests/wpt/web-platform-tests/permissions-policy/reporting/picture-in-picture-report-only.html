@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src='/common/media.js'></script>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src='../resources/picture-in-picture.js'></script>
+  </head>
+  <body>
+    <script>
+const check_report_format = ([reports, observer]) => {
+  const report = reports[0];
+  assert_equals(report.type, "permissions-policy-violation");
+  assert_equals(report.body.featureId, "picture-in-picture");
+  assert_equals(report.body.disposition, "report");
+};
+
+const loadVideo = () => new Promise(resolve => {
+    const video = document.createElement('video');
+    video.src = getVideoURI('/media/movie_5');
+    video.addEventListener('loadedmetadata', () => {
+      resolve(video);
+    }, { once: true });
+});
+
+promise_pip_test(async (t) => {
+  const report = new Promise(resolve => {
+    new ReportingObserver((reports, observer) => resolve([reports, observer]),
+                          {types: ['permissions-policy-violation']}).observe();
+  });
+  const videoElement = await loadVideo();
+  await test_driver.bless('picture-in-picture');
+  await videoElement.requestPictureInPicture();
+  check_report_format(await report);
+}, "Picture-in-Picture report only mode");
+    </script>
+  </body>
+</html>

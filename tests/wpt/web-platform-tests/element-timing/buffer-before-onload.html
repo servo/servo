@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<meta charset=utf-8 />
+<title>Element Timing: buffer elements before onload</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="resources/element-timing-helpers.js"></script>
+<body>
+<img src=resources/slow-image.py?name=square20.png&sleep=500>
+<script>
+  /*
+  In this test, a slow image is added to the frame to delay onload. The entry
+  is available from the observer with the buffered flag set to true.
+  */
+  async_test(function(t) {
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    beforeRender = performance.now();
+    const img = document.createElement('img');
+    img.src = 'resources/square20.jpg';
+    img.setAttribute('elementtiming', 'my_image');
+    img.setAttribute('id', 'my_id');
+    document.body.appendChild(img);
+
+    // this PerformanceObserver should be notified about the previously
+    // buffered element entry
+    new PerformanceObserver(t.step_func((entryList, observer) => {
+      assert_equals(entryList.getEntries().length, 1);
+      entryList.getEntries().forEach(entry => {
+        assert_equals(entry.entryType, "element");
+        const pathname = window.location.origin + '/element-timing/resources/square20.jpg';
+        checkElement(entry, pathname, 'my_image', 'my_id', beforeRender, img);
+        checkNaturalSize(entry, 20, 20);
+        observer.disconnect();
+        t.done();
+      });
+    })).observe({
+      type: "element",
+      buffered: true
+    });
+  }, "Element Timing: image loads before onload available from buffered flag.");
+
+</script>
+</body>
+</html>

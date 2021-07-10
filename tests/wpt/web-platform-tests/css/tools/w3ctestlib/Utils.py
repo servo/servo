@@ -20,7 +20,7 @@ def assetName(path):
 def basepath(path):
   """ Returns the path part of os.path.split.
   """
-  return os.path.split(path)[0]
+  return os.path.dirname(path)
 
 def isPathInsideBase(path, base=''):
   path = os.path.normpath(path)
@@ -86,7 +86,7 @@ def listfiles(path, ext = None):
     _,_,files = os.walk(path).next()
     if (ext):
       files = [fileName for fileName in files if fileName.endswith(ext)]
-  except StopIteration, e:
+  except StopIteration:
     files = []
   return files
 
@@ -95,7 +95,7 @@ def listdirs(path):
   """
   try:
     _,dirs,_ = os.walk(path).next()
-  except StopIteration, e:
+  except StopIteration:
     dirs = []
   return dirs
 

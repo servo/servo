@@ -1,0 +1,5 @@
+#testElement
+{
+    --color: green;
+    color: var(--color);
+}

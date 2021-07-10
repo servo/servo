@@ -1,0 +1,81 @@
+<!doctype html>
+<meta charset=utf-8>
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<body>
+<script>
+
+// This test makes a frame controlled by AppCache, then registers a service
+// worker that calls claim() to control the frame. AppCache should be completely
+// bypassed once the service worker claims the frame.
+
+const fetch_text = async frame => {
+  const response = await
+    frame.contentWindow.fetch('appcache-ordering.is-appcached.js');
+  return await response.text();
+};
+
+const check_is_appcached = async frame => {
+  // This should FALLBACK to ordering.is_appcached.js as in the manifest
+  // if the appcache is effective.
+  const response = await
+    frame.contentWindow.fetch('appcache-ordering.is-appcached404.js');
+  return await response.ok;
+};
+
+promise_test(async t => {
+  const scope = 'resources/';
+  const script = 'resources/claim-worker.js';
+
+  await install_appcache_ordering_manifest();
+
+  // Create the test iframe.
+  const frame = await with_iframe('resources/blank.html');
+  t.add_cleanup(async () => {
+    if (frame) frame.remove();
+    return service_worker_unregister(t, scope);
+  });
+
+  // Check that the appcache controls the frame.
+  assert_equals(await check_is_appcached(frame), true,
+                'AppCache should be present');
+
+  // Check the controller and test with fetch.
+  assert_equals(frame.contentWindow.navigator.controller, undefined,
+                'Should have no controller.');
+  assert_equals(await fetch_text(frame), 'var is_appcached = true;\n',
+                'fetch() should not be intercepted.');
+
+  // Register a service worker.
+  let registration = await service_worker_unregister_and_register(t, script, scope);
+  const worker = registration.installing;
+  await wait_for_state(t, worker, 'activated');
+
+  // Let the service worker claim the iframe.
+  const channel = new MessageChannel();
+  const check_message = new Promise(resolve => {
+    channel.port1.onmessage = async e => {
+      assert_equals(e.data, 'PASS', 'Worker call to claim() should fulfill.');
+      resolve();
+    };
+  });
+  worker.postMessage({port: channel.port2}, [channel.port2]);
+  await check_message;
+
+  // Check that the appcache does NOT control the frame.
+  assert_equals(await check_is_appcached(frame), false,
+                'AppCache should not be present');
+
+  // Check the controller and test with fetch.
+  registration = await
+    frame.contentWindow.navigator.serviceWorker.getRegistration(scope);
+  assert_equals(frame.contentWindow.navigator.serviceWorker.controller,
+                registration.active, 'iframe should be claimed.');
+  assert_equals(await fetch_text(frame), 'Intercepted!',
+                'fetch() should be intercepted.');
+}, 'fetch() should be intercepted after the client is claimed.')
+
+</script>
+</body>

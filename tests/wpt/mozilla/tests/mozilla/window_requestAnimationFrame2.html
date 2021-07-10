@@ -6,18 +6,19 @@
   </head>
   <body>
     <script>
-    var stepCalled = false;
-    function step() {
-        if (stepCalled) {
-          setTimeout(done, 0);
-        } else {
-          stepCalled = true;
-          window.requestAnimationFrame(step);
+      setup({allow_uncaught_exception: true});
+      async_test(function(t) {
+        var throwDidNotInterrupt = false;
+        function step() {
+          window.requestAnimationFrame(t.step_func(function() {
+            assert_true(throwDidNotInterrupt, "rAF should not throw errors");
+            t.done();
+          }));
+          throw new Error();
         }
-        throw new Error();
-    }
-    window.requestAnimationFrame(step);
-    assert_equals(true, true, "rAF should not throw errors");
+        window.requestAnimationFrame(step);
+        throwDidNotInterrupt = true;
+      });
     </script>
   </body>
 </html>

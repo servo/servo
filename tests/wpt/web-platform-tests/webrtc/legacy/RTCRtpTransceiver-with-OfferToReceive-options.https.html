@@ -1,0 +1,169 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCRtpTransceiver with OfferToReceive legacy options</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  const stopTracks = (...streams) => {
+    streams.forEach(stream => stream.getTracks().forEach(track => track.stop()));
+  };
+
+  // comparable() - produces copy of object that is JSON comparable.
+  // o = original object (required)
+  // t = template of what to examine. Useful if o is non-enumerable (optional)
+
+  const comparable = (o, t = o) => {
+    if (typeof o != 'object' || !o) {
+      return o;
+    }
+    if (Array.isArray(t) && Array.isArray(o)) {
+      return o.map((n, i) => comparable(n, t[i]));
+    }
+    return Object.keys(t).sort()
+        .reduce((r, key) => (r[key] = comparable(o[key], t[key]), r), {});
+  };
+
+  const stripKeyQuotes = s => s.replace(/"(\w+)":/g, "$1:");
+
+  const hasProps = (observed, expected) => {
+    const observable = comparable(observed, expected);
+    assert_equals(stripKeyQuotes(JSON.stringify(observable)),
+       stripKeyQuotes(JSON.stringify(comparable(expected))));
+  };
+
+  const checkAddTransceiverWithStream = async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const audioStream = await navigator.mediaDevices.getUserMedia({audio: true});
+    const videoStream = await navigator.mediaDevices.getUserMedia({video: true});
+    t.add_cleanup(() => stopTracks(audioStream, videoStream));
+
+    const audio = audioStream.getAudioTracks()[0];
+    const video = videoStream.getVideoTracks()[0];
+
+    pc.addTransceiver(audio, {streams: [audioStream]});
+    pc.addTransceiver(video, {streams: [videoStream]});
+
+    hasProps(pc.getTransceivers(),
+      [
+        {
+          receiver: {track: {kind: "audio"}},
+          sender: {track: audio},
+          direction: "sendrecv",
+          mid: null,
+          currentDirection: null,
+          stopped: false
+        },
+        {
+          receiver: {track: {kind: "video"}},
+          sender: {track: video},
+          direction: "sendrecv",
+          mid: null,
+          currentDirection: null,
+          stopped: false
+        }
+      ]);
+
+    const offer = await pc.createOffer();
+    assert_true(offer.sdp.includes("a=msid:" + audioStream.id),
+      "offer contains the expected audio msid");
+    assert_true(offer.sdp.includes("a=msid:" + videoStream.id),
+      "offer contains the expected video msid");
+  };
+
+  const checkAddTransceiverWithOfferToReceive = async (t, kinds) => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const propsToSet = kinds.map(kind => {
+      if (kind == "audio") {
+        return "offerToReceiveAudio";
+      } else if (kind == "video") {
+        return "offerToReceiveVideo";
+      }
+    });
+
+    const options = {};
+
+    for (const prop of propsToSet) {
+      options[prop] = true;
+    }
+
+    let offer = await pc.createOffer(options);
+
+    const expected = [];
+
+    if (options.offerToReceiveAudio) {
+      expected.push(
+        {
+          receiver: {track: {kind: "audio"}},
+          sender: {track: null},
+          direction: "recvonly",
+          mid: null,
+          currentDirection: null,
+          stopped: false
+        });
+    }
+
+    if (options.offerToReceiveVideo) {
+      expected.push(
+        {
+          receiver: {track: {kind: "video"}},
+          sender: {track: null},
+          direction: "recvonly",
+          mid: null,
+          currentDirection: null,
+          stopped: false
+        });
+    }
+
+    hasProps(pc.getTransceivers(), expected);
+
+    // Test offerToReceive: false
+    for (const prop of propsToSet) {
+      options[prop] = false;
+    }
+
+    // Check that sendrecv goes to sendonly
+    for (const transceiver of pc.getTransceivers()) {
+      transceiver.direction = "sendrecv";
+    }
+
+    for (const transceiverCheck of expected) {
+      transceiverCheck.direction = "sendonly";
+    }
+
+    offer = await pc.createOffer(options);
+    hasProps(pc.getTransceivers(), expected);
+
+    // Check that recvonly goes to inactive
+    for (const transceiver of pc.getTransceivers()) {
+      transceiver.direction = "recvonly";
+    }
+
+    for (const transceiverCheck of expected) {
+      transceiverCheck.direction = "inactive";
+    }
+
+    offer = await pc.createOffer(options);
+    hasProps(pc.getTransceivers(), expected);
+  };
+
+const tests = [
+  checkAddTransceiverWithStream,
+  function checkAddTransceiverWithOfferToReceiveAudio(t) {
+    return checkAddTransceiverWithOfferToReceive(t, ["audio"]);
+  },
+  function checkAddTransceiverWithOfferToReceiveVideo(t) {
+    return checkAddTransceiverWithOfferToReceive(t, ["video"]);
+  },
+  function checkAddTransceiverWithOfferToReceiveBoth(t) {
+    return checkAddTransceiverWithOfferToReceive(t, ["audio", "video"]);
+  }
+].forEach(test => promise_test(test, test.name));
+
+</script>

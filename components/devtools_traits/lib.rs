@@ -1,6 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! This module contains shared types and messages for use by devtools/script.
 //! The traits are here instead of in script so that the devtools crate can be
@@ -8,44 +8,39 @@
 
 #![crate_name = "devtools_traits"]
 #![crate_type = "rlib"]
-
 #![allow(non_snake_case)]
 #![deny(unsafe_code)]
 
 #[macro_use]
 extern crate bitflags;
-extern crate heapsize;
-#[macro_use] extern crate heapsize_derive;
-extern crate hyper;
-extern crate ipc_channel;
-extern crate msg;
-#[macro_use] extern crate serde_derive;
-extern crate servo_url;
-extern crate time;
+#[macro_use]
+extern crate malloc_size_of_derive;
+#[macro_use]
+extern crate serde;
 
-use hyper::header::Headers;
-use hyper::method::Method;
+use http::method::Method;
+use http::HeaderMap;
 use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use servo_url::ServoUrl;
 use std::net::TcpStream;
-use time::Duration;
-use time::Tm;
+use time::{self, Duration, Tm};
+use uuid::Uuid;
 
 // Information would be attached to NewGlobal to be received and show in devtools.
 // Extend these fields if we need more information.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct DevtoolsPageInfo {
     pub title: String,
     pub url: ServoUrl,
 }
 
-#[derive(Debug, Deserialize, HeapSizeOf, Serialize, Clone)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct CSSError {
     pub filename: String,
-    pub line: usize,
-    pub column: usize,
-    pub msg: String
+    pub line: u32,
+    pub column: u32,
+    pub msg: String,
 }
 
 /// Messages to instruct the devtools server to update its known actors/state
@@ -70,14 +65,27 @@ pub enum ChromeToDevtoolsControlMsg {
     NetworkEvent(String, NetworkEvent),
 }
 
+/// The state of a page navigation.
+#[derive(Debug, Deserialize, Serialize)]
+pub enum NavigationState {
+    /// A browsing context is about to navigate to a given URL.
+    Start(ServoUrl),
+    /// A browsing context has completed navigating to the provided pipeline.
+    Stop(PipelineId, DevtoolsPageInfo),
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 /// Events that the devtools server must act upon.
 pub enum ScriptToDevtoolsControlMsg {
     /// A new global object was created, associated with a particular pipeline.
     /// The means of communicating directly with it are provided.
-    NewGlobal((PipelineId, Option<WorkerId>),
-              IpcSender<DevtoolScriptControlMsg>,
-              DevtoolsPageInfo),
+    NewGlobal(
+        (BrowsingContextId, PipelineId, Option<WorkerId>),
+        IpcSender<DevtoolScriptControlMsg>,
+        DevtoolsPageInfo,
+    ),
+    /// The given browsing context is performing a navigation.
+    Navigate(BrowsingContextId, NavigationState),
     /// A particular page has invoked the console API.
     ConsoleAPI(PipelineId, ConsoleMessage, Option<WorkerId>),
     /// An animation frame with the given timestamp was processed in a script thread.
@@ -86,6 +94,12 @@ pub enum ScriptToDevtoolsControlMsg {
 
     /// Report a CSS parse error for the given pipeline
     ReportCSSError(PipelineId, CSSError),
+
+    /// Report a page error for the given pipeline
+    ReportPageError(PipelineId, PageError),
+
+    /// Report a page title change
+    TitleChanged(PipelineId, String),
 }
 
 /// Serialized JS return values
@@ -144,7 +158,7 @@ pub struct TimelineMarker {
     pub end_stack: Option<Vec<()>>,
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum TimelineMarkerType {
     Reflow,
     DOMEvent,
@@ -200,14 +214,16 @@ pub enum DevtoolScriptControlMsg {
     GetChildren(PipelineId, String, IpcSender<Option<Vec<NodeInfo>>>),
     /// Retrieve the computed layout properties of the given node in the given pipeline.
     GetLayout(PipelineId, String, IpcSender<Option<ComputedNodeLayout>>),
-    /// Retrieve all stored console messages for the given pipeline.
-    GetCachedMessages(PipelineId, CachedConsoleMessageTypes, IpcSender<Vec<CachedConsoleMessage>>),
     /// Update a given node's attributes with a list of modifications.
     ModifyAttribute(PipelineId, String, Vec<Modification>),
     /// Request live console messages for a given pipeline (true if desired, false otherwise).
     WantsLiveNotifications(PipelineId, bool),
     /// Request live notifications for a given set of timeline events for a given pipeline.
-    SetTimelineMarkers(PipelineId, Vec<TimelineMarkerType>, IpcSender<Option<TimelineMarker>>),
+    SetTimelineMarkers(
+        PipelineId,
+        Vec<TimelineMarkerType>,
+        IpcSender<Option<TimelineMarker>>,
+    ),
     /// Withdraw request for live timeline notifications for a given pipeline.
     DropTimelineMarkers(PipelineId, Vec<TimelineMarkerType>),
     /// Request a callback directed at the given actor name from the next animation frame
@@ -223,16 +239,17 @@ pub struct Modification {
     pub newValue: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum LogLevel {
     Log,
     Debug,
     Info,
     Warn,
     Error,
+    Clear,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ConsoleMessage {
     pub message: String,
     pub logLevel: LogLevel,
@@ -243,13 +260,13 @@ pub struct ConsoleMessage {
 
 bitflags! {
     #[derive(Deserialize, Serialize)]
-    pub flags CachedConsoleMessageTypes: u8 {
-        const PAGE_ERROR  = 1 << 0,
-        const CONSOLE_API = 1 << 1,
+    pub struct CachedConsoleMessageTypes: u8 {
+        const PAGE_ERROR  = 1 << 0;
+        const CONSOLE_API = 1 << 1;
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PageError {
     #[serde(rename = "_type")]
     pub type_: String,
@@ -290,7 +307,7 @@ pub enum CachedConsoleMessage {
 pub struct HttpRequest {
     pub url: ServoUrl,
     pub method: Method,
-    pub headers: Headers,
+    pub headers: HeaderMap,
     pub body: Option<Vec<u8>>,
     pub pipeline_id: PipelineId,
     pub startedDateTime: Tm,
@@ -302,7 +319,7 @@ pub struct HttpRequest {
 
 #[derive(Debug, PartialEq)]
 pub struct HttpResponse {
-    pub headers: Option<Headers>,
+    pub headers: Option<HeaderMap>,
     pub status: Option<(u16, Vec<u8>)>,
     pub body: Option<Vec<u8>>,
     pub pipeline_id: PipelineId,
@@ -342,7 +359,7 @@ impl StartedTimelineMarker {
 /// library, which definitely can't have any dependencies on `serde`. But `serde` can't implement
 /// `Deserialize` and `Serialize` itself, because `time::PreciseTime` is opaque! A Catch-22. So I'm
 /// duplicating the definition here.
-#[derive(Debug, Copy, Clone, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct PreciseTime(u64);
 
 impl PreciseTime {
@@ -355,5 +372,5 @@ impl PreciseTime {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
-pub struct WorkerId(pub u32);
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+pub struct WorkerId(pub Uuid);

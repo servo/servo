@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/common/get-host-info.sub.js></script>
+  <script src=/feature-policy/resources/featurepolicy.js></script>
+  <script>
+  'use strict';
+
+  async function gUM({audio, video}) {
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({audio, video});
+      // getUserMedia must guarantee the number of tracks requested or fail.
+      if ((audio && stream.getAudioTracks().length == 0) ||
+          (video && stream.getVideoTracks().length == 0)) {
+        throw {name: `All requested devices must be present with ` +
+                     `audio ${audio} and video ${video}, or fail`};
+      }
+    } finally {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    }
+  }
+
+  async function must_disallow_gUM({audio, video}) {
+    try {
+      await gUM({audio, video});
+    } catch (e) {
+      if (e.name == 'NotAllowedError') {
+        return;
+      }
+      throw e;
+    }
+    throw {name: `audio ${audio} and video ${video} constraints must not be ` +
+                 `allowed.`};
+  }
+
+  const cross_domain = get_host_info().HTTPS_REMOTE_ORIGIN;
+  run_all_fp_tests_allow_self(
+    cross_domain,
+    'microphone',
+    'NotAllowedError',
+    async () => {
+      await gUM({audio: true});
+      if (window.location.href.includes(cross_domain)) {
+        await must_disallow_gUM({video: true});
+        await must_disallow_gUM({audio: true, video: true});
+      }
+    }
+  );
+
+  run_all_fp_tests_allow_self(
+    cross_domain,
+    'camera',
+    'NotAllowedError',
+    async () => {
+      await gUM({video: true});
+      if (window.location.href.includes(cross_domain)) {
+        await must_disallow_gUM({audio: true});
+        await must_disallow_gUM({audio: true, video: true});
+      }
+    }
+  );
+
+  run_all_fp_tests_allow_self(
+    cross_domain,
+    'camera;microphone',
+    'NotAllowedError',
+    async () => {
+      await gUM({audio: true, video: true});
+      await gUM({audio: true});
+      await gUM({video: true});
+    }
+  );
+  </script>
+</body>
+

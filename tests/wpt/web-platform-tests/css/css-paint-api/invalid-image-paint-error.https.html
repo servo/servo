@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.css-houdini.org/css-paint-api/">
+<link rel="match" href="invalid-image-paint-error-ref.html">
+<style>
+    #output {
+        width: 100px;
+        height: 100px;
+        background-image: paint(errorIndicator), paint(successIndicator);
+    }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<body>
+<div id="output"></div>
+
+<script id="code" type="text/worklet">
+registerPaint('errorIndicator', class {
+    paint(ctx, geom) {
+        ctx.fillStyle = 'red';
+        ctx.fillRect(0, 0, geom.width, geom.height);
+        throw Error('failed!');
+    }
+});
+registerPaint('successIndicator', class {
+    paint(ctx, geom) {
+        ctx.fillStyle = 'green';
+        ctx.fillRect(0, 0, geom.width, geom.height);
+    }
+});
+</script>
+
+<script>
+    importWorkletAndTerminateTestAfterAsyncPaint(CSS.paintWorklet, document.getElementById('code').textContent);
+</script>
+</body>
+</html>

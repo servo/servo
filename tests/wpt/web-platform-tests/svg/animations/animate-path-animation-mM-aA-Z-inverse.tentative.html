@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>Path animation where coordinate modes of start and end differ (m-M, a-A and Z)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+<script src="support/animated-path-helpers.js"></script>
+<svg></svg>
+<script>
+var rootSVGElement = document.querySelector("svg");
+
+// Setup test document
+var path = createSVGElement("path");
+path.setAttribute("id", "path");
+path.setAttribute("d", 'm -70 30 a 160 170 60 1 1 60 40 m 120 70 a 180 190 120 1 1 100 150 Z m 120 -60');
+path.setAttribute("fill", "green");
+path.setAttribute("transform", "translate(50, 50)");
+
+var animate = createSVGElement("animate");
+animate.setAttribute("id", "animation");
+animate.setAttribute("attributeName", "d");
+animate.setAttribute("from", 'm -70 30 a 160 170 60 1 1 60 40 m 120 70 a 180 190 120 1 1 100 150 Z m 120 -60');
+animate.setAttribute("to", 'M -80 40 A 150 160 30 1 1 0 100 M 40 60 A 170 180 90 1 1 300 200 Z M 300 100');
+animate.setAttribute("begin", "0s");
+animate.setAttribute("dur", "4s");
+path.appendChild(animate);
+rootSVGElement.appendChild(path);
+
+// Setup animation test
+function sample1() {
+  // Check initial/end conditions
+  assert_animated_path_equals(
+    path, "m -70 30 a 160 170 60 1 1 60 40 m 120 70 a 180 190 120 1 1 100 150 Z m 120 -60");
+}
+
+function sample2() {
+  assert_animated_path_equals(
+    path, "M -72.5 32.5 A 157.5 167.5 52.5 1 1 -7.5 77.5 M 92.5 120 A 177.5 187.5 112.5 1 1 232.5 267.5 Z M 247.5 85");
+}
+
+function sample3() {
+  assert_animated_path_equals(
+    path, "M -77.5 37.5 A 152.5 162.5 37.5 1 1 -2.5 92.5 M 57.5 80 A 172.5 182.5 97.5 1 1 277.5 222.5 Z M 282.5 95");
+}
+
+function sample4() {
+  assert_animated_path_equals(
+    path, "M -79.9975 39.9975 A 150.003 160.003 30.0075 1 1 -0.00249481 99.9925 M 40.0175 60.02 A 170.003 180.003 90.0075 1 1 299.977 200.022 Z M 299.982 99.995");
+}
+
+smil_async_test(t => {
+  const expectedValues = [
+    // [animationId, time, sampleCallback]
+    ["animation", 0.0,   sample1],
+    ["animation", 1.0,   sample2],
+    ["animation", 3.0,   sample3],
+    ["animation", 3.999, sample4],
+    ["animation", 4.001, sample1]
+  ];
+  runAnimationTest(t, expectedValues);
+});
+</script>

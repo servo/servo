@@ -1,0 +1,96 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="c" width="16" height="16"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description('Tests canvas remains unchanged after it is used in webgl texutre');
+
+debug("This is a regression test for <a href='https://bugs.chromium.org/p/chromium/issues/detail?id=446380'>Chromium Issue 446380</a>");
+debug("");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("c", undefined, 2);
+
+function checkSourceCanvasImageData(imageDataBefore, imageDataAfter) {
+  if (imageDataBefore.length != imageDataAfter.length) {
+    testFailed("The size of image data in source canvas become different after it is used in webgl texture.");
+    return;
+  }
+  for (var i = 0; i < imageDataAfter.length; i++) {
+    if (imageDataBefore[i] != imageDataAfter[i]) {
+      testFailed("Pixel values in source canvas have changed after canvas used in webgl texture.");
+      return;
+    }
+  }
+  testPassed("Pixel values in source canvas remain unchanged after canvas used in webgl texture.");
+}
+
+function runTest(width, height) {
+  var canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  var ctx = canvas.getContext("2d");
+  ctx.fillStyle = "rgba(1, 63, 127, 1)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  var refCanvas = document.createElement("canvas");
+  refCanvas.width = width;
+  refCanvas.height = height;
+  var refCtx = refCanvas.getContext("2d");
+  refCtx.fillStyle = "rgba(1, 63, 127, 1)";
+  refCtx.fillRect(0, 0, canvas.width, canvas.height);
+  // A refCanvas with same data as canvas is used to get original image data, since
+  // getImageData may change hardware accelerated status of canvas and we don't want to
+  // omit testing for hardware accelerated canvas.
+  var imageDataBefore = refCtx.getImageData(0, 0, refCanvas.width, refCanvas.height);
+  var tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "TexImage2D should succeed");
+  checkSourceCanvasImageData(imageDataBefore, ctx.getImageData(0, 0, canvas.width, canvas.height));
+  gl.deleteTexture(tex);
+}
+
+runTest(2, 2);
+runTest(257, 257);
+
+finishTest();
+</script>
+</body>
+</html>

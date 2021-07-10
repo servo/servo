@@ -1,0 +1,25 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>Origin policy must include valid IDs and exclude non-strings and invalid strings</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/origin-policy-test-runner.js"></script>
+
+<div id="log"></div>
+
+<script>
+"use strict";
+runTestsInSubframe({
+  hostname: "op15",
+  testJS: "../content-security/resources/disallow-unsafe-eval-disallow-images.mjs",
+  expectedIds: [
+    "my-policy-1",
+    "my-policy-2",
+    "~",
+    " ",
+    "!\"#$%&'()*+,-./:;<=>?@{|}~",
+    "azAZ",
+    "my~policy"
+  ]
+});
+</script>

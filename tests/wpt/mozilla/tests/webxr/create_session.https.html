@@ -1,0 +1,24 @@
+<html>
+    <head>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="./resources/webxr-util.js"></script>
+    </head>
+    <body>
+        <script>
+          async_test(function(t) {
+              navigator.xr.test.simulateDeviceConnection({
+              supportedModes: ["immersive-vr"],
+              views: TEST_VIEWS,
+              viewerOrigin: {position: [0.5, 0.1, 0.1], orientation: [1, 0, 0, 1] }
+            }).then((m) => {
+                let sessionPromise;
+                navigator.xr.test.simulateUserActivation(() => {
+                  sessionPromise = navigator.xr.requestSession("immersive-vr")
+                });
+                return sessionPromise;
+              }).then(() => t.done());
+          });
+        </script>
+    </body>
+</html>

@@ -1,14 +1,18 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 /*
 
 /* https://heycam.github.io/webidl/#es-DOMException
  * https://heycam.github.io/webidl/#es-DOMException-constructor-object
  */
 
-[ExceptionClass, Exposed=(Window,Worker)]
+[
+  ExceptionClass,
+  Exposed=(Window,Worker,Worklet,DissimilarOriginWindow)
+]
 interface DOMException {
+  [Throws] constructor(optional DOMString message="", optional DOMString name="Error");
   const unsigned short INDEX_SIZE_ERR = 1;
   const unsigned short DOMSTRING_SIZE_ERR = 2; // historical
   const unsigned short HIERARCHY_REQUEST_ERR = 3;
@@ -43,6 +47,4 @@ interface DOMException {
 
   // A custom message set by the thrower.
   readonly attribute DOMString message;
-
-  stringifier;
 };

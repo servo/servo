@@ -1,0 +1,92 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>copyTexImage2D should not crash</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas"></canvas>
+<div id="console"></div>
+
+<script>
+"use strict";
+description("Draw into source of copyTexSubImage2D shouldn't crash: regression test for https://crbug.com/707445");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+canvas.width = 16;
+canvas.height = 16;
+var gl = wtu.create3DContext(canvas);
+
+function runTest() {
+    // Setup/clear source texture
+    let tex1 = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex1);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 16, 16, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    let fb1 = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb1);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex1, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // Setup/clear destination texture
+    let tex2 = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex2);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 16, 16, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    let fb2 = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb2);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex2, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // Copy from source to destination texture
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb1);
+    gl.bindTexture(gl.TEXTURE_2D, tex2);
+    gl.copyTexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 0, 0, 16, 16, 0);
+
+    // Draw into source texture
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb2);
+    let program = wtu.setupColorQuad(gl); // Used as a trivial shader; any shader will work.
+    gl.useProgram(program);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+}
+
+runTest();
+
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+
+</body>
+</html>

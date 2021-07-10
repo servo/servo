@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test reference</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<style>
+div {
+  font-size: 2em;
+  border: solid black;
+  margin: 5px;
+  width: 30ch;
+}
+#ref1 {
+  border-color: blue;
+}
+#ref2 {
+  border-color: orange;
+}
+u {  background: silver; }
+b {  background: green; }
+em { background: gray; }
+</style>
+
+<p>Test passes if the black box is identical to either the blue or orange one.
+
+<div id=ref1 lang=ja>東京<b><u>へ</u>　<em>行きましょ</em></b>う。</div>
+<div lang=ja>東京　<b><u>へ</u>　<em>行きましょ</em></b>う。</div>
+<div id=ref2 lang=ja>東京　<b><u>へ</u>　<em>行きましょ</em></b>う。</div>

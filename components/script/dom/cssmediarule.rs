@@ -1,64 +1,72 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use cssparser::Parser;
-use dom::bindings::codegen::Bindings::CSSMediaRuleBinding;
-use dom::bindings::codegen::Bindings::CSSMediaRuleBinding::CSSMediaRuleMethods;
-use dom::bindings::js::{MutNullableJS, Root};
-use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::str::DOMString;
-use dom::cssconditionrule::CSSConditionRule;
-use dom::cssrule::SpecificCSSRule;
-use dom::cssstylesheet::CSSStyleSheet;
-use dom::medialist::MediaList;
-use dom::window::Window;
+use crate::dom::bindings::codegen::Bindings::CSSMediaRuleBinding::CSSMediaRuleMethods;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::cssconditionrule::CSSConditionRule;
+use crate::dom::cssrule::SpecificCSSRule;
+use crate::dom::cssstylesheet::CSSStyleSheet;
+use crate::dom::medialist::MediaList;
+use crate::dom::window::Window;
+use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
-use std::sync::Arc;
-use style::media_queries::parse_media_query_list;
-use style::parser::{LengthParsingMode, ParserContext};
+use servo_arc::Arc;
+use style::media_queries::MediaList as StyleMediaList;
+use style::parser::ParserContext;
 use style::shared_lock::{Locked, ToCssWithGuard};
-use style::stylesheets::{CssRuleType, MediaRule};
-use style_traits::ToCss;
+use style::stylesheets::{CssRuleType, MediaRule, Origin};
+use style_traits::{ParsingMode, ToCss};
 
 #[dom_struct]
 pub struct CSSMediaRule {
     cssconditionrule: CSSConditionRule,
-    #[ignore_heap_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Arc"]
     mediarule: Arc<Locked<MediaRule>>,
-    medialist: MutNullableJS<MediaList>,
+    medialist: MutNullableDom<MediaList>,
 }
 
 impl CSSMediaRule {
-    fn new_inherited(parent_stylesheet: &CSSStyleSheet, mediarule: Arc<Locked<MediaRule>>)
-                     -> CSSMediaRule {
+    fn new_inherited(
+        parent_stylesheet: &CSSStyleSheet,
+        mediarule: Arc<Locked<MediaRule>>,
+    ) -> CSSMediaRule {
         let guard = parent_stylesheet.shared_lock().read();
         let list = mediarule.read_with(&guard).rules.clone();
         CSSMediaRule {
             cssconditionrule: CSSConditionRule::new_inherited(parent_stylesheet, list),
             mediarule: mediarule,
-            medialist: MutNullableJS::new(None),
+            medialist: MutNullableDom::new(None),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
-               mediarule: Arc<Locked<MediaRule>>) -> Root<CSSMediaRule> {
-        reflect_dom_object(box CSSMediaRule::new_inherited(parent_stylesheet, mediarule),
-                           window,
-                           CSSMediaRuleBinding::Wrap)
+    pub fn new(
+        window: &Window,
+        parent_stylesheet: &CSSStyleSheet,
+        mediarule: Arc<Locked<MediaRule>>,
+    ) -> DomRoot<CSSMediaRule> {
+        reflect_dom_object(
+            Box::new(CSSMediaRule::new_inherited(parent_stylesheet, mediarule)),
+            window,
+        )
     }
 
-    fn medialist(&self) -> Root<MediaList> {
+    fn medialist(&self) -> DomRoot<MediaList> {
         self.medialist.or_init(|| {
             let guard = self.cssconditionrule.shared_lock().read();
-            MediaList::new(self.global().as_window(),
-                           self.cssconditionrule.parent_stylesheet(),
-                           self.mediarule.read_with(&guard).media_queries.clone())
+            MediaList::new(
+                self.global().as_window(),
+                self.cssconditionrule.parent_stylesheet(),
+                self.mediarule.read_with(&guard).media_queries.clone(),
+            )
         })
     }
 
-    /// https://drafts.csswg.org/css-conditional-3/#the-cssmediarule-interface
+    /// <https://drafts.csswg.org/css-conditional-3/#the-cssmediarule-interface>
     pub fn get_condition_text(&self) -> DOMString {
         let guard = self.cssconditionrule.shared_lock().read();
         let rule = self.mediarule.read_with(&guard);
@@ -66,15 +74,25 @@ impl CSSMediaRule {
         list.to_css_string().into()
     }
 
-    /// https://drafts.csswg.org/css-conditional-3/#the-cssmediarule-interface
+    /// <https://drafts.csswg.org/css-conditional-3/#the-cssmediarule-interface>
     pub fn set_condition_text(&self, text: DOMString) {
-        let mut input = Parser::new(&text);
+        let mut input = ParserInput::new(&text);
+        let mut input = Parser::new(&mut input);
         let global = self.global();
-        let win = global.as_window();
-        let url = win.get_url();
-        let context = ParserContext::new_for_cssom(&url, win.css_error_reporter(), Some(CssRuleType::Media),
-                                                   LengthParsingMode::Default);
-        let new_medialist = parse_media_query_list(&context, &mut input);
+        let window = global.as_window();
+        let url = window.get_url();
+        let quirks_mode = window.Document().quirks_mode();
+        let context = ParserContext::new(
+            Origin::Author,
+            &url,
+            Some(CssRuleType::Media),
+            ParsingMode::DEFAULT,
+            quirks_mode,
+            window.css_error_reporter(),
+            None,
+        );
+
+        let new_medialist = StyleMediaList::parse(&context, &mut input);
         let mut guard = self.cssconditionrule.shared_lock().write();
 
         // Clone an Arc because we can’t borrow `guard` twice at the same time.
@@ -90,19 +108,22 @@ impl CSSMediaRule {
 
 impl SpecificCSSRule for CSSMediaRule {
     fn ty(&self) -> u16 {
-        use dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
+        use crate::dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
         CSSRuleConstants::MEDIA_RULE
     }
 
     fn get_css(&self) -> DOMString {
         let guard = self.cssconditionrule.shared_lock().read();
-        self.mediarule.read_with(&guard).to_css_string(&guard).into()
+        self.mediarule
+            .read_with(&guard)
+            .to_css_string(&guard)
+            .into()
     }
 }
 
 impl CSSMediaRuleMethods for CSSMediaRule {
     // https://drafts.csswg.org/cssom/#dom-cssgroupingrule-media
-    fn Media(&self) -> Root<MediaList> {
+    fn Media(&self) -> DomRoot<MediaList> {
         self.medialist()
     }
 }

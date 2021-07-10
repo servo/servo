@@ -11,8 +11,15 @@
     var el = document.createElement("textarea");
     assert_equals(el.selectionStart, 0, "initial selectionStart");
     assert_equals(el.selectionEnd, 0, "initial selectionEnd");
-    assert_equals(el.selectionDirection, "none", "initial selectionDirection");
+    // The initial selection direction must be "none" if the platform supports that
+    // direction, or "forward" otherwise.
+    assert_in_array(el.selectionDirection, ["none", "forward"]);
 
+    const initialDirection = el.selectionDirection;
+    el.selectionDirection = "none";
+    assert_equals(el.selectionDirection, initialDirection);
+
+    el.value = "foo";
     el.selectionStart = 1;
     el.selectionEnd = 1;
     el.selectionDirection = "forward";

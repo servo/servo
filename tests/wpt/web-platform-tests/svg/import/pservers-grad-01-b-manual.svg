@@ -23,14 +23,14 @@
         reference to the first gradient, without modifying any attribute.
         </p>
     </d:testDescription>
-    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">            
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
       <p>
 Run the test. No interaction required.
       </p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
-        The test is passed if there are two rectangles, both with a blue to lime gradient. 
+        The test is passed if there are two rectangles, both with a blue to lime gradient.
       </p>
     </d:passCriteria>
   </d:SVGTestCase>

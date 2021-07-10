@@ -47,7 +47,7 @@
             var testElement = document.getElementById("test");
             var svgList = testElement.requiredExtensions;
             var passingTests = 0;
-             
+
             try
             {
                 svgList.getItem(5);
@@ -94,7 +94,7 @@
         {
 
             alert("ERROR: " + ex.message);
-      
+
         }]]>
     </script>
   </g>

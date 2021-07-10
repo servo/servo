@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Updating font-display value while loading</title>
+<script>
+
+window.onload = () => {
+    const displayValues = [ 'auto', 'block', 'swap', 'fallback', 'optional' ];
+
+    for (let value of displayValues) {
+        let face = new FontFace(value,
+                                'url("/fonts/Ahem.ttf?pipe=trickle(d5)")',
+                                {display: value});
+        document.fonts.add(face);
+        face.load();
+    }
+
+    setTimeout(() => {
+        document.documentElement.classList.remove("reftest-wait");
+    }, 200);
+};
+
+</script>
+<table>
+  <tr>
+    <th>auto</th>
+    <th>block</th>
+    <th>swap</th>
+    <th>fallback</th>
+    <th>optional</th>
+  </tr>
+  <tr>
+    <td>from auto</td>
+    <td style="font-family: auto">a</td>
+    <td style="font-family: block">a</td>
+    <td style="font-family: swap">a</td>
+    <td style="font-family: fallback">a</td>
+    <td style="font-family: optional">a</td>
+  </tr>
+  <tr>
+    <td>from block</td>
+    <td style="font-family: auto">a</td>
+    <td style="font-family: block">a</td>
+    <td style="font-family: swap">a</td>
+    <td style="font-family: fallback">a</td>
+    <td style="font-family: optional">a</td>
+  </tr>
+  <tr>
+    <td>from swap</td>
+    <td style="font-family: auto">a</td>
+    <td style="font-family: block">a</td>
+    <td style="font-family: swap">a</td>
+    <td style="font-family: fallback">a</td>
+    <td style="font-family: optional">a</td>
+  </tr>
+  <tr>
+    <td>from fallback</td>
+    <td style="font-family: auto">a</td>
+    <td style="font-family: block">a</td>
+    <td style="font-family: swap">a</td>
+    <td style="font-family: fallback">a</td>
+    <td style="font-family: optional">a</td>
+  </tr>
+  <tr>
+    <td>from optional</td>
+    <td style="font-family: auto">a</td>
+    <td style="font-family: block">a</td>
+    <td style="font-family: swap">a</td>
+    <td style="font-family: fallback">a</td>
+    <td style="font-family: optional">a</td>
+  </tr>
+</table>
+</html>

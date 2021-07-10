@@ -1,0 +1,81 @@
+<!doctype html>
+<meta charset=utf-8>
+<title></title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const offer = await pc.createOffer();
+
+  assert_equals(pc.pendingLocalDescription, null,
+                'pendingLocalDescription is null before setLocalDescription');
+  const promise = pc.setLocalDescription(offer);
+  assert_equals(pc.pendingLocalDescription, null,
+                'pendingLocalDescription is still null while promise pending');
+  await promise;
+  assert_not_equals(pc.pendingLocalDescription, null,
+                    'pendingLocalDescription is not null after await');
+}, "pendingLocalDescription is surfaced at the right time");
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const offer = await pc.createOffer();
+
+  assert_equals(pc.pendingRemoteDescription, null,
+                'pendingRemoteDescription is null before setRemoteDescription');
+  const promise = pc.setRemoteDescription(offer);
+  assert_equals(pc.pendingRemoteDescription, null,
+                'pendingRemoteDescription is still null while promise pending');
+  await promise;
+  assert_not_equals(pc.pendingRemoteDescription, null,
+                    'pendingRemoteDescription is not null after await');
+}, "pendingRemoteDescription is surfaced at the right time");
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  const offer = await pc1.createOffer();
+  await pc1.setLocalDescription(offer);
+  await pc2.setRemoteDescription(offer);
+  const answer = await pc2.createAnswer();
+
+  assert_equals(pc2.currentLocalDescription, null,
+                'currentLocalDescription is null before setLocalDescription');
+  const promise = pc2.setLocalDescription(answer);
+  assert_equals(pc2.currentLocalDescription, null,
+                'currentLocalDescription is still null while promise pending');
+  await promise;
+  assert_not_equals(pc2.currentLocalDescription, null,
+                    'currentLocalDescription is not null after await');
+}, "currentLocalDescription is surfaced at the right time");
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  const offer = await pc1.createOffer();
+  await pc1.setLocalDescription(offer);
+  await pc2.setRemoteDescription(offer);
+  const answer = await pc2.createAnswer();
+
+  assert_equals(pc1.currentRemoteDescription, null,
+                'currentRemoteDescription is null before setRemoteDescription');
+  const promise = pc1.setRemoteDescription(answer);
+  assert_equals(pc1.currentRemoteDescription, null,
+                'currentRemoteDescription is still null while promise pending');
+  await promise;
+  assert_not_equals(pc1.currentRemoteDescription, null,
+                    'currentRemoteDescription is not null after await');
+}, "currentRemoteDescription is surfaced at the right time");
+
+</script>

@@ -1,0 +1,89 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCError and RTCErrorInit</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+test(() => {
+  const error = new RTCError({errorDetail:'data-channel-failure'}, 'message');
+  assert_equals(error.message, 'message');
+  assert_equals(error.errorDetail, 'data-channel-failure');
+}, 'RTCError constructor with errorDetail and message');
+
+test(() => {
+  const error = new RTCError({errorDetail:'data-channel-failure'});
+  assert_equals(error.message, '');
+}, 'RTCError constructor\'s message argument is optional');
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new RTCError();
+  });
+  assert_throws_js(TypeError, () => {
+    new RTCError({});  // {errorDetail} is missing.
+  });
+}, 'RTCError constructor throws TypeError if arguments are missing');
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new RTCError({errorDetail:'invalid-error-detail'}, 'message');
+  });
+}, 'RTCError constructor throws TypeError if the errorDetail is invalid');
+
+test(() => {
+  const error = new RTCError({errorDetail:'data-channel-failure'}, 'message');
+  assert_equals(error.name, 'OperationError');
+}, 'RTCError.name is \'OperationError\'');
+
+test(() => {
+  const error = new RTCError({errorDetail:'data-channel-failure'}, 'message');
+  assert_equals(error.code, 0);
+}, 'RTCError.code is 0');
+
+test(() => {
+  const error = new RTCError({errorDetail:'data-channel-failure'}, 'message');
+  assert_throws_js(TypeError, () => {
+    error.errorDetail = 'dtls-failure';
+  });
+}, 'RTCError.errorDetail is readonly.');
+
+test(() => {
+  // Infers what are valid RTCErrorInit objects by passing them to the RTCError
+  // constructor.
+  assert_throws_js(TypeError, () => {
+    new RTCError({}, 'message');
+  });
+  new RTCError({errorDetail:'data-channel-failure'}, 'message');
+}, 'RTCErrorInit.errorDetail is the only required attribute');
+
+// All of these are number types (long or unsigned long).
+const nullableAttributes = ['sdpLineNumber',
+                            'httpRequestStatusCode',
+                            'sctpCauseCode',
+                            'receivedAlert',
+                            'sentAlert'];
+
+nullableAttributes.forEach(attribute => {
+  test(() => {
+    const error = new RTCError({errorDetail:'data-channel-failure'}, 'message');
+    assert_equals(error[attribute], null);
+  }, 'RTCError.' + attribute + ' is null by default');
+
+  test(() => {
+    const error = new RTCError(
+        {errorDetail:'data-channel-failure', [attribute]: 0}, 'message');
+    assert_equals(error[attribute], 0);
+  }, 'RTCError.' + attribute + ' is settable by constructor');
+
+  test(() => {
+    const error = new RTCError({errorDetail:'data-channel-failure'}, 'message');
+    assert_throws_js(TypeError, () => {
+      error[attribute] = 42;
+    });
+  }, 'RTCError.' + attribute + ' is readonly');
+});
+
+</script>

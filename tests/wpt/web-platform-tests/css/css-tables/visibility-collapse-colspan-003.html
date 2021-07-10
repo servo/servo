@@ -1,0 +1,38 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: Overflow clipping in cells that span columns</title>
+<link rel="author" title="Joy Yu" href="mailto:joysyu@mit.edu">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#visibility-collapse-cell-rendering">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#computing-the-table-width">
+<link rel="match" href="visibility-collapse-colspan-003-ref.html">
+<style>
+  .firstCol {
+    width: 65px;
+  }
+  .thirdCol {
+    width: 160px;
+  }
+</style>
+<table>
+  <col style="background-color:red;">
+  <col style="background-color: blue; visibility:collapse;">
+  <col style="background-color: green;">
+  <tr>
+    <td class="firstCol">Row 1</td>
+    <td>Row 1 wordword</td>
+    <td class="thirdCol">Row 1 wordwordword</td>
+  </tr>
+  <tr>
+    <td class="firstCol">Row 2</td>
+    <td>Row 2 wordwordword</td>
+    <td class="thirdCol">Row 2 wordword</td>
+  </tr>
+  <tr>
+    <td class="firstCol">Row 3</td>
+    <td>Row 3 word</td>
+    <td class="thirdCol">Row 3 wordwordwordword</td>
+  </tr>
+  <tr>
+    <td colspan="3">superlongwordsuperlongwordsuper&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;shouldbeclipped</td>
+  </tr>
+</table>

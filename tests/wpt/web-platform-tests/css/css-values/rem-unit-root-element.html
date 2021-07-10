@@ -1,0 +1,26 @@
+<!doctype html>
+<title>CSS Values and Units Test: rem units on the root element</title>
+<link rel="help" href="https://drafts.csswg.org/css-values/#rem">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  :root {
+    font-size: 50px;
+    margin-left: 2rem;
+    padding-top: 2rem;
+    line-height: 2rem;
+  }
+</style>
+<script>
+  let rootStyle = getComputedStyle(document.documentElement);
+  test(() => assert_equals(rootStyle.marginLeft, "100px"), "rem based margin.");
+  test(() => assert_equals(rootStyle.paddingTop, "100px"), "rem based padding.");
+  test(() => assert_equals(rootStyle.lineHeight, "100px"), "rem based line-height.");
+
+  test(() => {
+    document.documentElement.style.fontSize = "initial";
+    let initialFontSize = parseInt(getComputedStyle(document.documentElement).fontSize);
+    document.documentElement.style.fontSize = "3rem";
+    assert_equals(getComputedStyle(document.documentElement).fontSize, 3*initialFontSize + "px");
+  }, "Check that rem font-size is based on the initial font-size.");
+</script>

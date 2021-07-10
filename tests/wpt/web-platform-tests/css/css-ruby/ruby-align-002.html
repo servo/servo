@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Tests for ruby-align</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#ruby-align-property">
+<link rel="match" href="ruby-align-002-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<link rel="stylesheet" href="support/ruby-common.css">
+<style>
+  ruby { line-height: 0; }
+  rt { font-size: 100%; }
+  rb { font-size: 0; }
+  rb > div { width: 160px; }
+</style>
+<body style="font: 16px/3 Ahem">
+<ruby style="ruby-align: start">
+  <rb><div></div><rt>X X X</rt>
+</ruby><br>
+<ruby style="ruby-align: center">
+  <rb><div></div><rt>X X X</rt>
+</ruby><br>
+<ruby style="ruby-align: space-between">
+  <rb><div></div><rt>X X X</rt>
+</ruby><br>
+<ruby style="ruby-align: space-around">
+  <rb><div></div><rt>X X X</rt>
+</ruby>

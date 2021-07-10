@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+promise_test(async () => {
+  assert_implements('HTMLPortalElement' in self, 'HTMLPortalElement is required for this test');
+  let portal = document.createElement('portal');
+  let referrerPromise = new Promise((resolve, reject) => {
+    portal.addEventListener('message', e => resolve(e.data), {once: true});
+  });
+  portal.src = 'resources/postmessage-referrer.sub.html';
+  document.body.appendChild(portal);
+  try {
+    let {httpReferrer, documentReferrer} = await referrerPromise;
+    assert_equals(httpReferrer, location.href, 'HTTP Referer header should be sent by default');
+    assert_equals(documentReferrer, location.href, 'document.referrer should be present by default');
+  } finally {
+    document.body.removeChild(portal);
+  }
+}, "portal contents should be loaded with referrer");
+
+promise_test(async () => {
+  assert_implements('HTMLPortalElement' in self, 'HTMLPortalElement is required for this test');
+  let portal = document.createElement('portal');
+  portal.referrerPolicy = 'no-referrer';
+  let referrerPromise = new Promise((resolve, reject) => {
+    portal.addEventListener('message', e => resolve(e.data), {once: true});
+  });
+  portal.src = 'resources/postmessage-referrer.sub.html';
+  document.body.appendChild(portal);
+  try {
+    let {httpReferrer, documentReferrer} = await referrerPromise;
+    assert_equals(httpReferrer, 'no-http-referrer', 'No HTTP Referer header should be sent');
+    assert_equals(documentReferrer, 'no-document-referrer', 'No document.referrer should be present');
+  } finally {
+    document.body.removeChild(portal);
+  }
+}, "portal contents should be loaded with no referrer if referrerpolicy=no-referrer");
+
+promise_test(async () => {
+  assert_implements('HTMLPortalElement' in self, 'HTMLPortalElement is required for this test');
+  let portal = document.createElement('portal');
+  portal.referrerPolicy = 'origin';
+  let referrerPromise = new Promise((resolve, reject) => {
+    portal.addEventListener('message', e => resolve(e.data), {once: true});
+  });
+  portal.src = 'resources/postmessage-referrer.sub.html';
+  document.body.appendChild(portal);
+  try {
+    let {httpReferrer, documentReferrer} = await referrerPromise;
+    assert_equals(httpReferrer, location.origin + '/', 'HTTP Referer header should contain origin');
+    assert_equals(documentReferrer, location.origin + '/', 'document.referrer should contain origin');
+  } finally {
+    document.body.removeChild(portal);
+  }
+}, "portal contents should be loaded with origin only if referrerpolicy=origin");
+
+// This is not exhaustive coverage of all possible policies, which are tested elsewhere.
+</script>
+</body>

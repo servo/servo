@@ -1,0 +1,16 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>CSP via origin policy must trigger a securitypolicyviolation event even when the CSP is report-only</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/origin-policy-test-runner.js"></script>
+
+<div id="log"></div>
+
+<script>
+"use strict";
+runTestsInSubframe({
+  hostname: "op7",
+  testJS: "resources/trigger-violation-report-report-only.mjs"
+});
+</script>

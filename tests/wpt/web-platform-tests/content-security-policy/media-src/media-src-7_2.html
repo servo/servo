@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Audio element src attribute must match src list - positive test</title>
+    <meta http-equiv="Content-Security-Policy" content="script-src * 'unsafe-inline'; media-src 'self';">
     <script src='/resources/testharness.js'></script>
     <script src='/resources/testharnessreport.js'></script>
 </head>
@@ -12,9 +13,15 @@
   <script>
     var src_test = async_test("In-policy audio src");
     var source_test = async_test("In-policy audio source element");
+    var t_spv = async_test("Should not fire policy violation events");
+    var test_count = 2;
+    window.addEventListener("securitypolicyviolation", t_spv.unreached_func("Should not have fired any event"));
 
     function media_loaded(t) {
       t.done();
+      if (--test_count <= 0) {
+        t_spv.done();
+      }
     }
 
     function media_error_handler(t) {
@@ -36,9 +43,6 @@
            onerror="media_error_handler(src_test)"
            onloadeddata="media_loaded(src_test)"
            src="/media/sound_5.oga">
-
-  <script async defer src="../support/checkReport.sub.js?reportExists=false">
-  </script>
 
 </body>
 </html>

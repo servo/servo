@@ -58,7 +58,7 @@
         <feComposite operator="arithmetic" in="SourceGraphic" in2="bird" k1="0" k2="0.25" k3="0.75" k4="0"/>
       </filter>
     </defs>
-    
+
     <image width="120" height="80" xlink:href="../images/tree.jpg" filter="url(#dissolve1)" transform="translate(100 80)"/>
     <image width="120" height="80" xlink:href="../images/tree.jpg" filter="url(#dissolve2)" transform="translate(250 80)"/>
     <image width="120" height="80" xlink:href="../images/tree.jpg" filter="url(#dissolve3)" transform="translate(100 190)"/>

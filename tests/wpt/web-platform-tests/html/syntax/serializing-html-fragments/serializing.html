@@ -15,6 +15,7 @@
 <span><a b='"'></a></span>
 <span><a b="<"></a></span>
 <span><a b=">"></a></span>
+<span><a href="javascript:&quot;&lt;>&quot;"></a></span>
 <span><svg xlink:href="a"></svg></span>
 <span><svg xmlns:svg="test"></svg></span>
 <span>a</span>
@@ -25,6 +26,7 @@
 <span>&quot;</span>
 <span><style><&></style></span>
 <span><script type="test"><&></script></span>
+<script type="test"><&></script>
 <span><xmp><&></xmp></span>
 <span><iframe><&></iframe></span>
 <span><noembed><&></noembed></span>
@@ -37,7 +39,7 @@
 <!-- TODO: template element -->
 <script>
 
-var test_data = document.getElementById("test").getElementsByTagName("span");
+var test_data = document.getElementById("test").children;
 var expected = [
 ["", "<span></span>"],
 ["<a></a>", "<span><a></a></span>"],
@@ -48,6 +50,7 @@ var expected = [
 ["<a b=\"&quot;\"></a>", "<span><a b=\"&quot;\"></a></span>"],
 ["<a b=\"<\"></a>", "<span><a b=\"<\"></a></span>"],
 ["<a b=\">\"></a>", "<span><a b=\">\"></a></span>"],
+["<a href=\"javascript:&quot;<>&quot;\"></a>", "<span><a href=\"javascript:&quot;<>&quot;\"></a></span>"],
 ["<svg xlink:href=\"a\"></svg>", "<span><svg xlink:href=\"a\"></svg></span>"],
 ["<svg xmlns:svg=\"test\"></svg>", "<span><svg xmlns:svg=\"test\"></svg></span>"],
 ["a", "<span>a</span>"],
@@ -58,6 +61,7 @@ var expected = [
 ["\"", "<span>\"</span>"],
 ["<style><&></style>", "<span><style><&></style></span>"],
 ["<script type=\"test\"><&><\/script>", "<span><script type=\"test\"><&><\/script></span>"],
+["<&>", "<script type=\"test\"><&><\/script>"],
 ["<xmp><&></xmp>", "<span><xmp><&></xmp></span>"],
 ["<iframe><&></iframe>", "<span><iframe><&></iframe></span>"],
 ["<noembed><&></noembed>", "<span><noembed><&></noembed></span>"],
@@ -178,7 +182,7 @@ var text_tests = [
 
 var void_elements = [
   "area", "base", "basefont", "bgsound", "br", "col", "embed",
-  "frame", "hr", "img", "input", "keygen", "link", "menuitem",
+  "frame", "hr", "img", "input", "keygen", "link",
   "meta", "param", "source", "track", "wbr"
 ];
 

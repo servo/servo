@@ -1,42 +1,49 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![deny(unsafe_code)]
-
-use app_units::Au;
-use block::AbsoluteAssignBSizesTraversal;
-use context::LayoutContext;
-use display_list_builder::{DisplayListBuildState, InlineFlowDisplayListBuilding};
-use euclid::{Point2D, Size2D};
-use floats::{FloatKind, Floats, PlacementInfo};
-use flow::{self, BaseFlow, Flow, FlowClass, ForceNonfloatedFlag, IS_ABSOLUTELY_POSITIONED};
-use flow::{CONTAINS_TEXT_OR_REPLACED_FRAGMENTS, EarlyAbsolutePositionInfo, MutableFlowUtils};
-use flow::OpaqueFlow;
-use flow_ref::FlowRef;
-use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
-use fragment::IS_ELLIPSIS;
-use fragment::SpecificFragmentInfo;
-use gfx::display_list::OpaqueNode;
+use crate::block::AbsoluteAssignBSizesTraversal;
+use crate::context::{LayoutContext, LayoutFontContext};
+use crate::display_list::items::{DisplayListSection, OpaqueNode};
+use crate::display_list::{
+    BorderPaintingMode, DisplayListBuildState, StackingContextCollectionState,
+};
+use crate::floats::{FloatKind, Floats, PlacementInfo};
+use crate::flow::{BaseFlow, Flow, FlowClass, ForceNonfloatedFlag};
+use crate::flow::{EarlyAbsolutePositionInfo, FlowFlags, GetBaseFlow, OpaqueFlow};
+use crate::flow_ref::FlowRef;
+use crate::fragment::FragmentFlags;
+use crate::fragment::SpecificFragmentInfo;
+use crate::fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
+use crate::layout_debug;
+use crate::model::IntrinsicISizesContribution;
+use crate::text;
+use crate::traversal::PreorderFlowTraversal;
+use crate::ServoArc;
+use app_units::{Au, MIN_AU};
+use euclid::default::{Point2D, Rect, Size2D};
 use gfx::font::FontMetrics;
-use gfx::font_context::FontContext;
 use gfx_traits::print_tree::PrintTree;
-use layout_debug;
-use model::IntrinsicISizesContribution;
 use range::{Range, RangeIndex};
 use script_layout_interface::wrapper_traits::PseudoElementType;
-use std::{fmt, i32, isize, mem};
+use servo_geometry::MaxRect;
 use std::cmp::max;
 use std::collections::VecDeque;
 use std::sync::Arc;
-use style::arc_ptr_eq;
-use style::computed_values::{display, overflow_x, position, text_align, text_justify};
-use style::computed_values::{vertical_align, white_space};
+use std::{fmt, i32, isize, mem};
+use style::computed_values::display::T as Display;
+use style::computed_values::overflow_x::T as StyleOverflow;
+use style::computed_values::position::T as Position;
+use style::computed_values::text_align::T as TextAlign;
+use style::computed_values::text_justify::T as TextJustify;
+use style::computed_values::white_space::T as WhiteSpace;
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
-use style::properties::{longhands, ServoComputedValues};
-use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPOSITION, RESOLVE_GENERATED_CONTENT};
-use text;
-use unicode_bidi;
+use style::properties::ComputedValues;
+use style::servo::restyle_damage::ServoRestyleDamage;
+use style::values::computed::box_::VerticalAlign;
+use style::values::generics::box_::VerticalAlignKeyword;
+use style::values::specified::text::TextOverflowSide;
+use unicode_bidi as bidi;
 
 /// `Line`s are represented as offsets into the child list, rather than
 /// as an object that "owns" fragments. Choosing a different set of line
@@ -63,7 +70,7 @@ use unicode_bidi;
 /// with a float or a horizontal wall of the containing block. The block-start
 /// inline-start corner of the green zone is the same as that of the line, but
 /// the green zone can be taller and wider than the line itself.
-#[derive(Serialize, Debug, Clone)]
+#[derive(Clone, Debug, Serialize)]
 pub struct Line {
     /// A range of line indices that describe line breaks.
     ///
@@ -95,7 +102,7 @@ pub struct Line {
     /// The bidirectional embedding level runs for this line, in visual order.
     ///
     /// Can be set to `None` if the line is 100% left-to-right.
-    pub visual_runs: Option<Vec<(Range<FragmentIndex>, u8)>>,
+    pub visual_runs: Option<Vec<(Range<FragmentIndex>, bidi::Level)>>,
 
     /// The bounds are the exact position and extents of the line with respect
     /// to the parent box.
@@ -103,7 +110,7 @@ pub struct Line {
     /// For example, for the HTML below...
     ///
     /// ~~~html
-    /// <div><span>I <span>like      truffles, <img></span></div>
+    /// <div><span>I like      truffles, <img></span></div>
     /// ~~~
     ///
     /// ...the bounds would be:
@@ -174,12 +181,16 @@ impl Line {
     ///
     /// FIXME(pcwalton): this assumes that the tallest fragment in the line determines the line
     /// block-size. This might not be the case with some weird text fonts.
-    fn new_metrics_for_fragment(&self, new_fragment: &Fragment, layout_context: &LayoutContext)
-                                -> LineMetrics {
+    fn new_metrics_for_fragment(
+        &self,
+        new_fragment: &Fragment,
+        layout_context: &LayoutContext,
+    ) -> LineMetrics {
         if !new_fragment.is_vertically_aligned_to_top_or_bottom() {
             let fragment_inline_metrics =
                 new_fragment.aligned_inline_metrics(layout_context, &self.minimum_metrics, None);
-            self.metrics.new_metrics_for_fragment(&fragment_inline_metrics)
+            self.metrics
+                .new_metrics_for_fragment(&fragment_inline_metrics)
         } else {
             self.metrics
         }
@@ -188,15 +199,19 @@ impl Line {
     /// Returns the new block size that this line would have if `new_fragment` were added to it.
     /// `new_inline_metrics` represents the new inline metrics that this line would have; it can
     /// be computed with `new_inline_metrics()`.
-    fn new_block_size_for_fragment(&self,
-                                   new_fragment: &Fragment,
-                                   new_line_metrics: &LineMetrics,
-                                   layout_context: &LayoutContext)
-                                   -> Au {
+    fn new_block_size_for_fragment(
+        &self,
+        new_fragment: &Fragment,
+        new_line_metrics: &LineMetrics,
+        layout_context: &LayoutContext,
+    ) -> Au {
         let new_block_size = if new_fragment.is_vertically_aligned_to_top_or_bottom() {
-            max(new_fragment.aligned_inline_metrics(layout_context, &self.minimum_metrics, None)
-                            .space_needed(),
-                self.minimum_metrics.space_needed())
+            max(
+                new_fragment
+                    .aligned_inline_metrics(layout_context, &self.minimum_metrics, None)
+                    .space_needed(),
+                self.minimum_metrics.space_needed(),
+            )
         } else {
             new_line_metrics.space_needed()
         };
@@ -235,8 +250,11 @@ struct LineBreaker {
 
 impl LineBreaker {
     /// Creates a new `LineBreaker` with a set of floats and the indentation of the first line.
-    fn new(float_context: Floats, first_line_indentation: Au, minimum_line_metrics: &LineMetrics)
-           -> LineBreaker {
+    fn new(
+        float_context: Floats,
+        first_line_indentation: Au,
+        minimum_line_metrics: &LineMetrics,
+    ) -> LineBreaker {
         LineBreaker {
             new_fragments: Vec::new(),
             work_list: VecDeque::new(),
@@ -259,20 +277,21 @@ impl LineBreaker {
     }
 
     /// Reinitializes the pending line to blank data.
-    fn reset_line(&mut self) -> Line {
+    fn reset_line(&mut self) {
         self.last_known_line_breaking_opportunity = None;
-        mem::replace(&mut self.pending_line,
-                     Line::new(self.floats.writing_mode, &self.minimum_metrics))
+        // https://github.com/rust-lang/rust/issues/49282
+        self.pending_line = Line::new(self.floats.writing_mode, &self.minimum_metrics);
     }
 
     /// Reflows fragments for the given inline flow.
-    fn scan_for_lines(&mut self,
-                      flow: &mut InlineFlow,
-                      layout_context: &LayoutContext) {
+    fn scan_for_lines(&mut self, flow: &mut InlineFlow, layout_context: &LayoutContext) {
         self.reset_scanner();
 
         // Create our fragment iterator.
-        debug!("LineBreaker: scanning for lines, {} fragments", flow.fragments.len());
+        debug!(
+            "LineBreaker: scanning for lines, {} fragments",
+            flow.fragments.len()
+        );
         let mut old_fragments = mem::replace(&mut flow.fragments, InlineFragments::new());
         let old_fragment_iter = old_fragments.fragments.into_iter();
 
@@ -293,27 +312,36 @@ impl LineBreaker {
         // (because we split fragments on level run boundaries during flow
         // construction), so we can build a level array with just one entry per
         // fragment.
-        let levels: Vec<u8> = self.new_fragments.iter().map(|fragment| match fragment.specific {
-            SpecificFragmentInfo::ScannedText(ref info) => info.run.bidi_level,
-            _ => para_level
-        }).collect();
+        let levels: Vec<bidi::Level> = self
+            .new_fragments
+            .iter()
+            .map(|fragment| match fragment.specific {
+                SpecificFragmentInfo::ScannedText(ref info) => info.run.bidi_level,
+                _ => para_level,
+            })
+            .collect();
 
         let mut lines = mem::replace(&mut self.lines, Vec::new());
 
         // If everything is LTR, don't bother with reordering.
-        let has_rtl = levels.iter().cloned().any(unicode_bidi::is_rtl);
-
-        if has_rtl {
+        if bidi::level::has_rtl(&levels) {
             // Compute and store the visual ordering of the fragments within the
             // line.
             for line in &mut lines {
                 let range = line.range.begin().to_usize()..line.range.end().to_usize();
-                let runs = unicode_bidi::visual_runs(range, &levels);
-                line.visual_runs = Some(runs.iter().map(|run| {
-                    let start = FragmentIndex(run.start as isize);
-                    let len = FragmentIndex(run.len() as isize);
-                    (Range::new(start, len), levels[run.start])
-                }).collect());
+                // FIXME: Update to use BidiInfo::visual_runs, as this algorithm needs access to
+                // the original text and original BidiClass of its characters.
+                #[allow(deprecated)]
+                let runs = bidi::deprecated::visual_runs(range, &levels);
+                line.visual_runs = Some(
+                    runs.iter()
+                        .map(|run| {
+                            let start = FragmentIndex(run.start as isize);
+                            let len = FragmentIndex(run.len() as isize);
+                            (Range::new(start, len), levels[run.start])
+                        })
+                        .collect(),
+                );
             }
         }
 
@@ -324,11 +352,13 @@ impl LineBreaker {
     }
 
     /// Reflows the given fragments, which have been plucked out of the inline flow.
-    fn reflow_fragments<'a, I>(&mut self,
-                               mut old_fragment_iter: I,
-                               flow: &'a InlineFlow,
-                               layout_context: &LayoutContext)
-        where I: Iterator<Item=Fragment>,
+    fn reflow_fragments<'a, I>(
+        &mut self,
+        mut old_fragment_iter: I,
+        flow: &'a InlineFlow,
+        layout_context: &LayoutContext,
+    ) where
+        I: Iterator<Item = Fragment>,
     {
         loop {
             // Acquire the next fragment to lay out from the work list or fragment list, as
@@ -339,8 +369,8 @@ impl LineBreaker {
             };
 
             // Do not reflow truncated fragments. Reflow the original fragment only.
-            let fragment = if fragment.flags.contains(IS_ELLIPSIS) {
-                continue
+            let fragment = if fragment.flags.contains(FragmentFlags::IS_ELLIPSIS) {
+                continue;
             } else if let SpecificFragmentInfo::TruncatedFragment(info) = fragment.specific {
                 info.full
             } else {
@@ -352,8 +382,10 @@ impl LineBreaker {
         }
 
         if !self.pending_line_is_empty() {
-            debug!("LineBreaker: partially full line {} at end of scanning; committing it",
-                    self.lines.len());
+            debug!(
+                "LineBreaker: partially full line {} at end of scanning; committing it",
+                self.lines.len()
+            );
             self.flush_current_line()
         }
     }
@@ -361,12 +393,13 @@ impl LineBreaker {
     /// Acquires a new fragment to lay out from the work list or fragment list as appropriate.
     /// Note that you probably don't want to call this method directly in order to be incremental-
     /// reflow-safe; try `next_unbroken_fragment` instead.
-    fn next_fragment<I>(&mut self,
-                        old_fragment_iter: &mut I)
-                        -> Option<Fragment>
-        where I: Iterator<Item=Fragment>,
+    fn next_fragment<I>(&mut self, old_fragment_iter: &mut I) -> Option<Fragment>
+    where
+        I: Iterator<Item = Fragment>,
     {
-        self.work_list.pop_front().or_else(|| old_fragment_iter.next())
+        self.work_list
+            .pop_front()
+            .or_else(|| old_fragment_iter.next())
     }
 
     /// Acquires a new fragment to lay out from the work list or fragment list,
@@ -374,15 +407,11 @@ impl LineBreaker {
     /// this method does is to return the next fragment to lay out, undoing line
     /// break operations that any previous reflows may have performed. You
     /// probably want to be using this method instead of `next_fragment`.
-    fn next_unbroken_fragment<I>(&mut self,
-                                 old_fragment_iter: &mut I)
-                                 -> Option<Fragment>
-        where I: Iterator<Item=Fragment>,
+    fn next_unbroken_fragment<I>(&mut self, old_fragment_iter: &mut I) -> Option<Fragment>
+    where
+        I: Iterator<Item = Fragment>,
     {
-        let mut result = match self.next_fragment(old_fragment_iter) {
-            None => return None,
-            Some(fragment) => fragment,
-        };
+        let mut result = self.next_fragment(old_fragment_iter)?;
 
         loop {
             let candidate = match self.next_fragment(old_fragment_iter) {
@@ -391,34 +420,41 @@ impl LineBreaker {
             };
 
             let need_to_merge = match (&mut result.specific, &candidate.specific) {
-                (&mut SpecificFragmentInfo::ScannedText(ref mut result_info),
-                 &SpecificFragmentInfo::ScannedText(ref candidate_info)) => {
+                (
+                    &mut SpecificFragmentInfo::ScannedText(ref mut result_info),
+                    &SpecificFragmentInfo::ScannedText(ref candidate_info),
+                ) => {
                     result.margin.inline_end == Au(0) &&
-                    candidate.margin.inline_start == Au(0) &&
-                    result.border_padding.inline_end == Au(0) &&
-                    candidate.border_padding.inline_start == Au(0) &&
-                    result_info.selected() == candidate_info.selected() &&
-                    arc_ptr_eq(&result_info.run, &candidate_info.run) &&
-                        inline_contexts_are_equal(&result.inline_context,
-                                                  &candidate.inline_context)
-                }
+                        candidate.margin.inline_start == Au(0) &&
+                        result.border_padding.inline_end == Au(0) &&
+                        candidate.border_padding.inline_start == Au(0) &&
+                        result_info.selected() == candidate_info.selected() &&
+                        Arc::ptr_eq(&result_info.run, &candidate_info.run) &&
+                        inline_contexts_are_equal(
+                            &result.inline_context,
+                            &candidate.inline_context,
+                        )
+                },
                 _ => false,
             };
 
-
             if need_to_merge {
                 result.merge_with(candidate);
-                continue
+                continue;
             }
 
             self.work_list.push_front(candidate);
-            return Some(result)
+            return Some(result);
         }
     }
 
     /// Commits a line to the list.
     fn flush_current_line(&mut self) {
-        debug!("LineBreaker: flushing line {}: {:?}", self.lines.len(), self.pending_line);
+        debug!(
+            "LineBreaker: flushing line {}: {:?}",
+            self.lines.len(),
+            self.pending_line
+        );
         self.strip_trailing_whitespace_from_pending_line_if_necessary();
         self.lines.push(self.pending_line.clone());
         self.cur_b = self.pending_line.bounds.start.b + self.pending_line.bounds.size.block;
@@ -429,10 +465,10 @@ impl LineBreaker {
     /// flushing it.
     fn strip_trailing_whitespace_from_pending_line_if_necessary(&mut self) {
         if self.pending_line.range.is_empty() {
-            return
+            return;
         }
         let last_fragment_index = self.pending_line.range.end() - FragmentIndex(1);
-        let mut fragment = &mut self.new_fragments[last_fragment_index.get() as usize];
+        let fragment = &mut self.new_fragments[last_fragment_index.get() as usize];
 
         let old_fragment_inline_size = fragment.border_box.size.inline;
 
@@ -445,16 +481,19 @@ impl LineBreaker {
     /// Computes the position of a line that has only the provided fragment. Returns the bounding
     /// rect of the line's green zone (whose origin coincides with the line's origin) and the
     /// actual inline-size of the first fragment after splitting.
-    fn initial_line_placement(&self,
-                              flow: &InlineFlow,
-                              first_fragment: &Fragment,
-                              ceiling: Au)
-                              -> (LogicalRect<Au>, Au) {
-        debug!("LineBreaker: trying to place first fragment of line {}; fragment size: {:?}, \
-                splittable: {}",
-               self.lines.len(),
-               first_fragment.border_box.size,
-               first_fragment.can_split());
+    fn initial_line_placement(
+        &self,
+        flow: &InlineFlow,
+        first_fragment: &Fragment,
+        ceiling: Au,
+    ) -> (LogicalRect<Au>, Au) {
+        debug!(
+            "LineBreaker: trying to place first fragment of line {}; fragment size: {:?}, \
+             splittable: {}",
+            self.lines.len(),
+            first_fragment.border_box.size,
+            first_fragment.can_split()
+        );
 
         // Initially, pretend a splittable fragment has zero inline-size. We will move it later if
         // it has nonzero inline-size and that causes problems.
@@ -466,9 +505,11 @@ impl LineBreaker {
 
         // Try to place the fragment between floats.
         let line_bounds = self.floats.place_between_floats(&PlacementInfo {
-            size: LogicalSize::new(self.floats.writing_mode,
-                                   placement_inline_size,
-                                   first_fragment.border_box.size.block),
+            size: LogicalSize::new(
+                self.floats.writing_mode,
+                placement_inline_size,
+                first_fragment.border_box.size.block,
+            ),
             ceiling: ceiling,
             max_inline_size: flow.base.position.size.inline,
             kind: FloatKind::Left,
@@ -504,33 +545,37 @@ impl LineBreaker {
     /// So we'll try to move the line whenever we can, but break if we have to.
     ///
     /// Returns false if and only if we should break the line.
-    fn avoid_floats(&mut self,
-                    flow: &InlineFlow,
-                    in_fragment: Fragment,
-                    new_block_size: Au)
-                    -> bool {
+    fn avoid_floats(
+        &mut self,
+        flow: &InlineFlow,
+        in_fragment: Fragment,
+        new_block_size: Au,
+    ) -> bool {
         debug!("LineBreaker: entering float collision avoider!");
 
         // First predict where the next line is going to be.
         let (next_line, first_fragment_inline_size) =
-            self.initial_line_placement(flow,
-                                        &in_fragment,
-                                        self.pending_line.bounds.start.b);
+            self.initial_line_placement(flow, &in_fragment, self.pending_line.bounds.start.b);
         let next_green_zone = next_line.size;
 
         let new_inline_size = self.pending_line.bounds.size.inline + first_fragment_inline_size;
 
         // Now, see if everything can fit at the new location.
         if next_green_zone.inline >= new_inline_size && next_green_zone.block >= new_block_size {
-            debug!("LineBreaker: case=adding fragment collides vertically with floats: moving \
-                    line");
+            debug!(
+                "LineBreaker: case=adding fragment collides vertically with floats: moving \
+                 line"
+            );
 
             self.pending_line.bounds.start = next_line.start;
             self.pending_line.green_zone = next_green_zone;
 
-            debug_assert!(!self.pending_line_is_empty(), "Non-terminating line breaking");
+            debug_assert!(
+                !self.pending_line_is_empty(),
+                "Non-terminating line breaking"
+            );
             self.work_list.push_front(in_fragment);
-            return true
+            return true;
         }
 
         debug!("LineBreaker: case=adding fragment collides vertically with floats: breaking line");
@@ -540,13 +585,14 @@ impl LineBreaker {
 
     /// Tries to append the given fragment to the line, splitting it if necessary. Commits the
     /// current line if needed.
-    fn reflow_fragment(&mut self,
-                       mut fragment: Fragment,
-                       flow: &InlineFlow,
-                       layout_context: &LayoutContext) {
+    fn reflow_fragment(
+        &mut self,
+        mut fragment: Fragment,
+        flow: &InlineFlow,
+        layout_context: &LayoutContext,
+    ) {
         // Undo any whitespace stripping from previous reflows.
         fragment.reset_text_range_and_inline_size();
-
         // Determine initial placement for the fragment if we need to.
         //
         // Also, determine whether we can legally break the line before, or
@@ -558,32 +604,50 @@ impl LineBreaker {
             self.pending_line.green_zone = line_bounds.size;
             false
         } else {
-            fragment.white_space().allow_wrap()
+            // In case of Foo<span style="...">bar</span>, the line breaker will
+            // set the "suppress line break before" flag for the second fragment.
+            //
+            // In case of Foo<span>bar</span> the second fragment ("bar") will
+            // start _within_ a glyph run, so we also avoid breaking there
+            //
+            // is_on_glyph_run_boundary does a binary search, but this is ok
+            // because the result will be cached and reused in
+            // `calculate_split_position` later
+            if fragment.suppress_line_break_before() || !fragment.is_on_glyph_run_boundary() {
+                false
+            } else {
+                fragment.white_space().allow_wrap()
+            }
         };
 
-        debug!("LineBreaker: trying to append to line {} \
-                (fragment size: {:?}, green zone: {:?}): {:?}",
-               self.lines.len(),
-               fragment.border_box.size,
-               self.pending_line.green_zone,
-               fragment);
+        debug!(
+            "LineBreaker: trying to append to line {} \
+             (fragment size: {:?}, green zone: {:?}): {:?}",
+            self.lines.len(),
+            fragment.border_box.size,
+            self.pending_line.green_zone,
+            fragment
+        );
 
         // NB: At this point, if `green_zone.inline <
         // self.pending_line.bounds.size.inline` or `green_zone.block <
         // self.pending_line.bounds.size.block`, then we committed a line that
         // overlaps with floats.
         let green_zone = self.pending_line.green_zone;
-        let new_line_metrics = self.pending_line.new_metrics_for_fragment(&fragment,
-                                                                          layout_context);
-        let new_block_size = self.pending_line.new_block_size_for_fragment(&fragment,
-                                                                           &new_line_metrics,
-                                                                           layout_context);
+        let new_line_metrics = self
+            .pending_line
+            .new_metrics_for_fragment(&fragment, layout_context);
+        let new_block_size = self.pending_line.new_block_size_for_fragment(
+            &fragment,
+            &new_line_metrics,
+            layout_context,
+        );
         if new_block_size > green_zone.block {
             // Uh-oh. Float collision imminent. Enter the float collision avoider!
             if !self.avoid_floats(flow, fragment, new_block_size) {
                 self.flush_current_line();
             }
-            return
+            return;
         }
 
         // Record the last known good line break opportunity if this is one.
@@ -607,30 +671,32 @@ impl LineBreaker {
         // horizontally. We'll try to place the whole fragment on this line and break somewhere if
         // it doesn't fit.
         let indentation = self.indentation_for_pending_fragment();
-        let new_inline_size = self.pending_line.bounds.size.inline +
-            fragment.margin_box_inline_size() + indentation;
+        let new_inline_size =
+            self.pending_line.bounds.size.inline + fragment.margin_box_inline_size() + indentation;
         if new_inline_size <= green_zone.inline {
             debug!("LineBreaker: fragment fits without splitting");
             self.push_fragment_to_line(layout_context, fragment, line_flush_mode);
-            return
+            return;
         }
 
         // If the wrapping mode prevents us from splitting, then back up and split at the last
         // known good split point.
         if !fragment.white_space().allow_wrap() {
-            debug!("LineBreaker: fragment can't split; falling back to last known good split point");
+            debug!(
+                "LineBreaker: fragment can't split; falling back to last known good split point"
+            );
             self.split_line_at_last_known_good_position(layout_context, fragment, line_flush_mode);
             return;
         }
 
         // Split it up!
-        let available_inline_size = green_zone.inline -
-                                    self.pending_line.bounds.size.inline -
-                                    indentation;
+        let available_inline_size =
+            green_zone.inline - self.pending_line.bounds.size.inline - indentation;
         let inline_start_fragment;
         let inline_end_fragment;
-        let split_result = match fragment.calculate_split_position(available_inline_size,
-                                                                   self.pending_line_is_empty()) {
+        let split_result = match fragment
+            .calculate_split_position(available_inline_size, self.pending_line_is_empty())
+        {
             None => {
                 // We failed to split. Defer to the next line if we're allowed to; otherwise,
                 // rewind to the last line breaking opportunity.
@@ -639,21 +705,25 @@ impl LineBreaker {
                     self.work_list.push_front(fragment);
                     self.flush_current_line();
                 } else {
-                    self.split_line_at_last_known_good_position(layout_context,
-                                                                fragment,
-                                                                LineFlushMode::No);
+                    self.split_line_at_last_known_good_position(
+                        layout_context,
+                        fragment,
+                        LineFlushMode::No,
+                    );
                 }
-                return
-            }
+                return;
+            },
             Some(split_result) => split_result,
         };
 
-        inline_start_fragment = split_result.inline_start.as_ref().map(|x| {
-            fragment.transform_with_split_info(x, split_result.text_run.clone())
-        });
-        inline_end_fragment = split_result.inline_end.as_ref().map(|x| {
-            fragment.transform_with_split_info(x, split_result.text_run.clone())
-        });
+        inline_start_fragment = split_result
+            .inline_start
+            .as_ref()
+            .map(|x| fragment.transform_with_split_info(x, split_result.text_run.clone(), true));
+        inline_end_fragment = split_result
+            .inline_end
+            .as_ref()
+            .map(|x| fragment.transform_with_split_info(x, split_result.text_run.clone(), false));
 
         // Push the first fragment onto the line we're working on and start off the next line with
         // the second fragment. If there's no second fragment, the next line will start off empty.
@@ -662,77 +732,90 @@ impl LineBreaker {
                 inline_start_fragment.border_padding.inline_end = Au(0);
                 if let Some(ref mut inline_context) = inline_start_fragment.inline_context {
                     for node in &mut inline_context.nodes {
-                        node.flags.remove(LAST_FRAGMENT_OF_ELEMENT);
+                        node.flags
+                            .remove(InlineFragmentNodeFlags::LAST_FRAGMENT_OF_ELEMENT);
                     }
                 }
-                inline_start_fragment.border_box.size.inline += inline_start_fragment.border_padding.inline_start;
+                inline_start_fragment.border_box.size.inline +=
+                    inline_start_fragment.border_padding.inline_start;
 
                 inline_end_fragment.border_padding.inline_start = Au(0);
                 if let Some(ref mut inline_context) = inline_end_fragment.inline_context {
                     for node in &mut inline_context.nodes {
-                        node.flags.remove(FIRST_FRAGMENT_OF_ELEMENT);
+                        node.flags
+                            .remove(InlineFragmentNodeFlags::FIRST_FRAGMENT_OF_ELEMENT);
                     }
                 }
-                inline_end_fragment.border_box.size.inline += inline_end_fragment.border_padding.inline_end;
+                inline_end_fragment.border_box.size.inline +=
+                    inline_end_fragment.border_padding.inline_end;
 
-                self.push_fragment_to_line(layout_context,
-                                           inline_start_fragment,
-                                           LineFlushMode::Flush);
+                self.push_fragment_to_line(
+                    layout_context,
+                    inline_start_fragment,
+                    LineFlushMode::Flush,
+                );
                 self.work_list.push_front(inline_end_fragment)
             },
             (Some(fragment), None) => {
                 self.push_fragment_to_line(layout_context, fragment, line_flush_mode);
-            }
+            },
             (None, Some(fragment)) => {
                 // Yes, this can happen!
                 self.flush_current_line();
                 self.work_list.push_front(fragment)
-            }
-            (None, None) => {}
+            },
+            (None, None) => {},
         }
     }
 
     /// Pushes a fragment to the current line unconditionally, possibly truncating it and placing
     /// an ellipsis based on the value of `text-overflow`. If `flush_line` is `Flush`, then flushes
     /// the line afterward;
-    fn push_fragment_to_line(&mut self,
-                             layout_context: &LayoutContext,
-                             fragment: Fragment,
-                             line_flush_mode: LineFlushMode) {
+    fn push_fragment_to_line(
+        &mut self,
+        layout_context: &LayoutContext,
+        fragment: Fragment,
+        line_flush_mode: LineFlushMode,
+    ) {
         let indentation = self.indentation_for_pending_fragment();
         if self.pending_line_is_empty() {
             debug_assert!(self.new_fragments.len() <= (isize::MAX as usize));
-            self.pending_line.range.reset(FragmentIndex(self.new_fragments.len() as isize),
-                                          FragmentIndex(0));
+            self.pending_line.range.reset(
+                FragmentIndex(self.new_fragments.len() as isize),
+                FragmentIndex(0),
+            );
         }
 
         // Determine if an ellipsis will be necessary to account for `text-overflow`.
         let available_inline_size = self.pending_line.green_zone.inline -
-            self.pending_line.bounds.size.inline - indentation;
+            self.pending_line.bounds.size.inline -
+            indentation;
 
-        let ellipsis = match (&fragment.style().get_text().text_overflow.first,
-            fragment.style().get_box().overflow_x) {
-            (&longhands::text_overflow::Side::Clip, _) | (_, overflow_x::T::visible) => None,
-            (&longhands::text_overflow::Side::Ellipsis, _) => {
+        let ellipsis = match (
+            &fragment.style().get_text().text_overflow.second,
+            fragment.style().get_box().overflow_x,
+        ) {
+            (&TextOverflowSide::Clip, _) | (_, StyleOverflow::Visible) => None,
+            (&TextOverflowSide::Ellipsis, _) => {
                 if fragment.margin_box_inline_size() > available_inline_size {
                     Some("…".to_string())
                 } else {
                     None
                 }
             },
-            (&longhands::text_overflow::Side::String(ref string), _) => {
+            (&TextOverflowSide::String(ref string), _) => {
                 if fragment.margin_box_inline_size() > available_inline_size {
                     Some(string.to_string())
                 } else {
                     None
                 }
-            }
+            },
         };
 
         if let Some(string) = ellipsis {
             let ellipsis = fragment.transform_into_ellipsis(layout_context, string);
-            let truncated = fragment.truncate_to_inline_size(available_inline_size -
-                                                             ellipsis.margin_box_inline_size());
+            let truncated = fragment
+                .truncate_to_inline_size(available_inline_size - ellipsis.margin_box_inline_size());
             self.push_fragment_to_line_ignoring_text_overflow(truncated, layout_context);
             self.push_fragment_to_line_ignoring_text_overflow(ellipsis, layout_context);
         } else {
@@ -746,44 +829,51 @@ impl LineBreaker {
 
     /// Pushes a fragment to the current line unconditionally, without placing an ellipsis in the
     /// case of `text-overflow: ellipsis`.
-    fn push_fragment_to_line_ignoring_text_overflow(&mut self,
-                                                    fragment: Fragment,
-                                                    layout_context: &LayoutContext) {
+    fn push_fragment_to_line_ignoring_text_overflow(
+        &mut self,
+        fragment: Fragment,
+        layout_context: &LayoutContext,
+    ) {
         let indentation = self.indentation_for_pending_fragment();
         self.pending_line.range.extend_by(FragmentIndex(1));
 
         if !fragment.is_inline_absolute() && !fragment.is_hypothetical() {
             self.pending_line.bounds.size.inline = self.pending_line.bounds.size.inline +
-                fragment.margin_box_inline_size() + indentation;
-            self.pending_line.metrics = self.pending_line.new_metrics_for_fragment(&fragment,
-                                                                                   layout_context);
-            self.pending_line.bounds.size.block =
-                self.pending_line.new_block_size_for_fragment(&fragment,
-                                                              &self.pending_line.metrics,
-                                                              layout_context);
+                fragment.margin_box_inline_size() +
+                indentation;
+            self.pending_line.metrics = self
+                .pending_line
+                .new_metrics_for_fragment(&fragment, layout_context);
+            self.pending_line.bounds.size.block = self.pending_line.new_block_size_for_fragment(
+                &fragment,
+                &self.pending_line.metrics,
+                layout_context,
+            );
         }
 
         self.new_fragments.push(fragment);
     }
 
-    fn split_line_at_last_known_good_position(&mut self,
-                                              layout_context: &LayoutContext,
-                                              cur_fragment: Fragment,
-                                              line_flush_mode: LineFlushMode) {
-        let last_known_line_breaking_opportunity =
-            match self.last_known_line_breaking_opportunity {
-                None => {
-                    // No line breaking opportunity exists at all for this line. Overflow.
-                    self.push_fragment_to_line(layout_context, cur_fragment, line_flush_mode);
-                    return;
-                }
-                Some(last_known_line_breaking_opportunity) => last_known_line_breaking_opportunity,
-            };
+    fn split_line_at_last_known_good_position(
+        &mut self,
+        layout_context: &LayoutContext,
+        cur_fragment: Fragment,
+        line_flush_mode: LineFlushMode,
+    ) {
+        let last_known_line_breaking_opportunity = match self.last_known_line_breaking_opportunity {
+            None => {
+                // No line breaking opportunity exists at all for this line. Overflow.
+                self.push_fragment_to_line(layout_context, cur_fragment, line_flush_mode);
+                return;
+            },
+            Some(last_known_line_breaking_opportunity) => last_known_line_breaking_opportunity,
+        };
 
         self.work_list.push_front(cur_fragment);
-        for fragment_index in (last_known_line_breaking_opportunity.get()..
-                               self.pending_line.range.end().get()).rev() {
-            debug_assert!(fragment_index == (self.new_fragments.len() as isize) - 1);
+        for fragment_index in
+            (last_known_line_breaking_opportunity.get()..self.pending_line.range.end().get()).rev()
+        {
+            debug_assert_eq!(fragment_index, (self.new_fragments.len() as isize) - 1);
             self.work_list.push_front(self.new_fragments.pop().unwrap());
         }
 
@@ -800,7 +890,9 @@ impl LineBreaker {
         // point. Unfortunately, the existing splitting API (`calculate_split_position`)
         // has no concept of "split right before the last non-whitespace position". We'll
         // need to add that feature to the API to handle this case correctly.
-        self.pending_line.range.extend_to(last_known_line_breaking_opportunity);
+        self.pending_line
+            .range
+            .extend_to(last_known_line_breaking_opportunity);
         self.flush_current_line();
     }
 
@@ -820,7 +912,7 @@ impl LineBreaker {
 }
 
 /// Represents a list of inline fragments, including element ranges.
-#[derive(Serialize, Clone)]
+#[derive(Clone, Serialize)]
 pub struct InlineFragments {
     /// The fragments themselves.
     pub fragments: Vec<Fragment>,
@@ -829,9 +921,7 @@ pub struct InlineFragments {
 impl InlineFragments {
     /// Creates an empty set of inline fragments.
     pub fn new() -> InlineFragments {
-        InlineFragments {
-            fragments: vec![],
-        }
+        InlineFragments { fragments: vec![] }
     }
 
     /// Returns the number of inline fragments.
@@ -856,8 +946,12 @@ impl InlineFragments {
     }
 }
 
+#[allow(unsafe_code)]
+unsafe impl crate::flow::HasBaseFlow for InlineFlow {}
+
 /// Flows for inline layout.
 #[derive(Serialize)]
+#[repr(C)]
 pub struct InlineFlow {
     /// Data common to all flows.
     pub base: BaseFlow,
@@ -889,8 +983,15 @@ impl InlineFlow {
             first_line_indentation: Au(0),
         };
 
-        if flow.fragments.fragments.iter().any(Fragment::is_unscanned_generated_content) {
-            flow.base.restyle_damage.insert(RESOLVE_GENERATED_CONTENT);
+        if flow
+            .fragments
+            .fragments
+            .iter()
+            .any(Fragment::is_unscanned_generated_content)
+        {
+            flow.base
+                .restyle_damage
+                .insert(ServoRestyleDamage::RESOLVE_GENERATED_CONTENT);
         }
 
         flow
@@ -898,98 +999,126 @@ impl InlineFlow {
 
     /// Sets fragment positions in the inline direction based on alignment for one line. This
     /// performs text justification if mandated by the style.
-    fn set_inline_fragment_positions(fragments: &mut InlineFragments,
-                                     line: &Line,
-                                     line_align: text_align::T,
-                                     indentation: Au,
-                                     is_last_line: bool) {
+    fn set_inline_fragment_positions(
+        fragments: &mut InlineFragments,
+        line: &Line,
+        line_align: TextAlign,
+        indentation: Au,
+        is_last_line: bool,
+    ) {
         // Figure out how much inline-size we have.
         let slack_inline_size = max(Au(0), line.green_zone.inline - line.bounds.size.inline);
 
         // Compute the value we're going to use for `text-justify`.
         if fragments.fragments.is_empty() {
-            return
+            return;
         }
-        let text_justify = fragments.fragments[0].style().get_inheritedtext().text_justify;
+        let text_justify = fragments.fragments[0]
+            .style()
+            .get_inherited_text()
+            .text_justify;
 
         // Translate `left` and `right` to logical directions.
         let is_ltr = fragments.fragments[0].style().writing_mode.is_bidi_ltr();
         let line_align = match (line_align, is_ltr) {
-            (text_align::T::left, true) |
-            (text_align::T::servo_left, true) |
-            (text_align::T::right, false) |
-            (text_align::T::servo_right, false) => text_align::T::start,
-            (text_align::T::left, false) |
-            (text_align::T::servo_left, false) |
-            (text_align::T::right, true) |
-            (text_align::T::servo_right, true) => text_align::T::end,
-            _ => line_align
+            (TextAlign::Left, true) |
+            (TextAlign::ServoLeft, true) |
+            (TextAlign::Right, false) |
+            (TextAlign::ServoRight, false) => TextAlign::Start,
+            (TextAlign::Left, false) |
+            (TextAlign::ServoLeft, false) |
+            (TextAlign::Right, true) |
+            (TextAlign::ServoRight, true) => TextAlign::End,
+            _ => line_align,
         };
 
         // Set the fragment inline positions based on that alignment, and justify the text if
         // necessary.
         let mut inline_start_position_for_fragment = line.bounds.start.i + indentation;
         match line_align {
-            text_align::T::justify if !is_last_line && text_justify != text_justify::T::none => {
+            TextAlign::Justify if !is_last_line && text_justify != TextJustify::None => {
                 InlineFlow::justify_inline_fragments(fragments, line, slack_inline_size)
-            }
-            text_align::T::justify | text_align::T::start => {}
-            text_align::T::center | text_align::T::servo_center => {
-                inline_start_position_for_fragment = inline_start_position_for_fragment +
-                    slack_inline_size.scale_by(0.5)
-            }
-            text_align::T::end => {
-                inline_start_position_for_fragment = inline_start_position_for_fragment +
-                    slack_inline_size
-            }
-            text_align::T::left |
-            text_align::T::servo_left |
-            text_align::T::right |
-            text_align::T::servo_right => unreachable!()
+            },
+            TextAlign::Justify | TextAlign::Start => {},
+            TextAlign::Center | TextAlign::ServoCenter => {
+                inline_start_position_for_fragment =
+                    inline_start_position_for_fragment + slack_inline_size.scale_by(0.5)
+            },
+            TextAlign::End => {
+                inline_start_position_for_fragment =
+                    inline_start_position_for_fragment + slack_inline_size
+            },
+            TextAlign::Left | TextAlign::ServoLeft | TextAlign::Right | TextAlign::ServoRight => {
+                unreachable!()
+            },
         }
 
         // Lay out the fragments in visual order.
         let run_count = match line.visual_runs {
             Some(ref runs) => runs.len(),
-            None => 1
+            None => 1,
         };
         for run_idx in 0..run_count {
             let (range, level) = match line.visual_runs {
                 Some(ref runs) if is_ltr => runs[run_idx],
                 Some(ref runs) => runs[run_count - run_idx - 1], // reverse order for RTL runs
-                None => (line.range, 0)
+                None => (line.range, bidi::Level::ltr()),
             };
+
+            struct MaybeReverse<I> {
+                iter: I,
+                reverse: bool,
+            }
+
+            impl<I: DoubleEndedIterator> Iterator for MaybeReverse<I> {
+                type Item = I::Item;
+
+                fn next(&mut self) -> Option<I::Item> {
+                    if self.reverse {
+                        self.iter.next_back()
+                    } else {
+                        self.iter.next()
+                    }
+                }
+
+                fn size_hint(&self) -> (usize, Option<usize>) {
+                    self.iter.size_hint()
+                }
+            }
+
             // If the bidi embedding direction is opposite the layout direction, lay out this
             // run in reverse order.
-            let reverse = unicode_bidi::is_ltr(level) != is_ltr;
-            let fragment_indices = if reverse {
-                (range.end().get() - 1..range.begin().get() - 1).step_by(-1)
-            } else {
-                (range.begin().get()..range.end().get()).step_by(1)
+            let fragment_indices = MaybeReverse {
+                iter: range.begin().get()..range.end().get(),
+                reverse: level.is_ltr() != is_ltr,
             };
 
             for fragment_index in fragment_indices {
                 let fragment = fragments.get_mut(fragment_index as usize);
-                inline_start_position_for_fragment = inline_start_position_for_fragment +
-                    fragment.margin.inline_start;
+                inline_start_position_for_fragment =
+                    inline_start_position_for_fragment + fragment.margin.inline_start;
 
                 let border_start = if fragment.style.writing_mode.is_bidi_ltr() == is_ltr {
                     inline_start_position_for_fragment
                 } else {
-                    line.green_zone.inline - inline_start_position_for_fragment
-                                           - fragment.margin.inline_end
-                                           - fragment.border_box.size.inline
+                    line.green_zone.inline -
+                        inline_start_position_for_fragment -
+                        fragment.margin.inline_end -
+                        fragment.border_box.size.inline
                 };
-                fragment.border_box = LogicalRect::new(fragment.style.writing_mode,
-                                                       border_start,
-                                                       fragment.border_box.start.b,
-                                                       fragment.border_box.size.inline,
-                                                       fragment.border_box.size.block);
+                fragment.border_box = LogicalRect::new(
+                    fragment.style.writing_mode,
+                    border_start,
+                    fragment.border_box.start.b,
+                    fragment.border_box.size.inline,
+                    fragment.border_box.size.block,
+                );
                 fragment.update_late_computed_inline_position_if_necessary();
 
                 if !fragment.is_inline_absolute() {
                     inline_start_position_for_fragment = inline_start_position_for_fragment +
-                        fragment.border_box.size.inline + fragment.margin.inline_end;
+                        fragment.border_box.size.inline +
+                        fragment.margin.inline_end;
                 }
             }
         }
@@ -997,12 +1126,14 @@ impl InlineFlow {
 
     /// Justifies the given set of inline fragments, distributing the `slack_inline_size` among all
     /// of them according to the value of `text-justify`.
-    fn justify_inline_fragments(fragments: &mut InlineFragments,
-                                line: &Line,
-                                slack_inline_size: Au) {
+    fn justify_inline_fragments(
+        fragments: &mut InlineFragments,
+        line: &Line,
+        slack_inline_size: Au,
+    ) {
         // Fast path.
         if slack_inline_size == Au(0) {
-            return
+            return;
         }
 
         // First, calculate the number of expansion opportunities (spaces, normally).
@@ -1011,26 +1142,29 @@ impl InlineFlow {
             let fragment = fragments.get(fragment_index.to_usize());
             let scanned_text_fragment_info = match fragment.specific {
                 SpecificFragmentInfo::ScannedText(ref info) if !info.range.is_empty() => info,
-                _ => continue
+                _ => continue,
             };
             let fragment_range = scanned_text_fragment_info.range;
 
-            for slice in scanned_text_fragment_info.run.character_slices_in_range(&fragment_range) {
+            for slice in scanned_text_fragment_info
+                .run
+                .character_slices_in_range(&fragment_range)
+            {
                 expansion_opportunities += slice.glyphs.space_count_in_range(&slice.range)
             }
         }
 
         if expansion_opportunities == 0 {
-            return
+            return;
         }
 
         // Then distribute all the space across the expansion opportunities.
         let space_per_expansion_opportunity = slack_inline_size / expansion_opportunities as i32;
         for fragment_index in line.range.each_index() {
             let fragment = fragments.get_mut(fragment_index.to_usize());
-            let mut scanned_text_fragment_info = match fragment.specific {
+            let scanned_text_fragment_info = match fragment.specific {
                 SpecificFragmentInfo::ScannedText(ref mut info) if !info.range.is_empty() => info,
-                _ => continue
+                _ => continue,
             };
             let fragment_range = scanned_text_fragment_info.range;
             let run = Arc::make_mut(&mut scanned_text_fragment_info.run);
@@ -1038,30 +1172,38 @@ impl InlineFlow {
 
             // Recompute the fragment's border box size.
             let new_inline_size = run.advance_for_range(&fragment_range);
-            let new_size = LogicalSize::new(fragment.style.writing_mode,
-                                            new_inline_size,
-                                            fragment.border_box.size.block);
-            fragment.border_box = LogicalRect::from_point_size(fragment.style.writing_mode,
-                                                               fragment.border_box.start,
-                                                               new_size);
+            let new_size = LogicalSize::new(
+                fragment.style.writing_mode,
+                new_inline_size,
+                fragment.border_box.size.block,
+            );
+            fragment.border_box = LogicalRect::from_point_size(
+                fragment.style.writing_mode,
+                fragment.border_box.start,
+                new_size,
+            );
         }
     }
 
     /// Sets final fragment positions in the block direction for one line.
-    fn set_block_fragment_positions(fragments: &mut InlineFragments,
-                                    line: &Line,
-                                    minimum_line_metrics: &LineMetrics,
-                                    layout_context: &LayoutContext) {
+    fn set_block_fragment_positions(
+        fragments: &mut InlineFragments,
+        line: &Line,
+        minimum_line_metrics: &LineMetrics,
+        layout_context: &LayoutContext,
+    ) {
         for fragment_index in line.range.each_index() {
             let fragment = fragments.get_mut(fragment_index.to_usize());
             let line_metrics = LineMetrics::for_line_and_fragment(line, fragment, layout_context);
-            let inline_metrics = fragment.aligned_inline_metrics(layout_context,
-                                                                 minimum_line_metrics,
-                                                                 Some(&line_metrics));
+            let inline_metrics = fragment.aligned_inline_metrics(
+                layout_context,
+                minimum_line_metrics,
+                Some(&line_metrics),
+            );
 
             // Align the top of the fragment's border box with its ascent above the baseline.
-            fragment.border_box.start.b = line.bounds.start.b + line_metrics.space_above_baseline -
-                inline_metrics.ascent;
+            fragment.border_box.start.b =
+                line.bounds.start.b + line_metrics.space_above_baseline - inline_metrics.ascent;
 
             // CSS 2.1 § 10.8: "The height of each inline-level box in the line box is
             // calculated. For replaced elements, inline-block elements, and inline-table
@@ -1087,100 +1229,131 @@ impl InlineFlow {
     /// Computes the minimum metrics for each line. This is done during flow construction.
     ///
     /// `style` is the style of the block.
-    pub fn minimum_line_metrics(&self, font_context: &mut FontContext, style: &ServoComputedValues)
-                                -> LineMetrics {
-        InlineFlow::minimum_line_metrics_for_fragments(&self.fragments.fragments,
-                                                       font_context,
-                                                       style)
+    pub fn minimum_line_metrics(
+        &self,
+        font_context: &mut LayoutFontContext,
+        style: &ComputedValues,
+    ) -> LineMetrics {
+        InlineFlow::minimum_line_metrics_for_fragments(
+            &self.fragments.fragments,
+            font_context,
+            style,
+        )
     }
 
     /// Computes the minimum line metrics for the given fragments. This is typically done during
     /// flow construction.
     ///
     /// `style` is the style of the block that these fragments belong to.
-    pub fn minimum_line_metrics_for_fragments(fragments: &[Fragment],
-                                              font_context: &mut FontContext,
-                                              style: &ServoComputedValues)
-                                              -> LineMetrics {
+    pub fn minimum_line_metrics_for_fragments(
+        fragments: &[Fragment],
+        font_context: &mut LayoutFontContext,
+        style: &ComputedValues,
+    ) -> LineMetrics {
         // As a special case, if this flow contains only hypothetical fragments, then the entire
         // flow is hypothetical and takes up no space. See CSS 2.1 § 10.3.7.
         if fragments.iter().all(Fragment::is_hypothetical) {
-            return LineMetrics::new(Au(0), Au(0))
+            return LineMetrics::new(Au(0), Au(0));
         }
 
         let font_style = style.clone_font();
         let font_metrics = text::font_metrics_for_style(font_context, font_style);
         let line_height = text::line_height_from_style(style, &font_metrics);
-        let inline_metrics = InlineMetrics::from_font_metrics(&font_metrics, line_height);
+        let inline_metrics = if fragments.iter().any(Fragment::is_text_or_replaced) {
+            InlineMetrics::from_font_metrics(&font_metrics, line_height)
+        } else {
+            InlineMetrics::new(Au(0), Au(0), Au(0))
+        };
 
-        let mut line_metrics = LineMetrics::new(Au(0), Au(i32::MIN));
+        let mut line_metrics = LineMetrics::new(Au(0), MIN_AU);
         let mut largest_block_size_for_top_fragments = Au(0);
         let mut largest_block_size_for_bottom_fragments = Au(0);
 
-        // We use `vertical_align::T::baseline` here because `vertical-align` must not apply to
-        // the inside of inline blocks.
-        update_line_metrics_for_fragment(&mut line_metrics,
-                                         &inline_metrics,
-                                         style.get_box().display,
-                                         vertical_align::T::baseline,
-                                         &mut largest_block_size_for_top_fragments,
-                                         &mut largest_block_size_for_bottom_fragments);
+        // We use `VerticalAlign::baseline()` here because `vertical-align` must
+        // not apply to the inside of inline blocks.
+        update_line_metrics_for_fragment(
+            &mut line_metrics,
+            &inline_metrics,
+            style.get_box().display,
+            &VerticalAlign::baseline(),
+            &mut largest_block_size_for_top_fragments,
+            &mut largest_block_size_for_bottom_fragments,
+        );
 
         // According to CSS 2.1 § 10.8, `line-height` of any inline element specifies the minimal
         // height of line boxes within the element.
-        for inline_context in fragments.iter()
-                                       .filter_map(|fragment| fragment.inline_context.as_ref()) {
+        for inline_context in fragments
+            .iter()
+            .filter_map(|fragment| fragment.inline_context.as_ref())
+        {
             for node in &inline_context.nodes {
                 let font_style = node.style.clone_font();
                 let font_metrics = text::font_metrics_for_style(font_context, font_style);
                 let line_height = text::line_height_from_style(&*node.style, &font_metrics);
                 let inline_metrics = InlineMetrics::from_font_metrics(&font_metrics, line_height);
 
-                update_line_metrics_for_fragment(&mut line_metrics,
-                                                 &inline_metrics,
-                                                 node.style.get_box().display,
-                                                 node.style.get_box().vertical_align,
-                                                 &mut largest_block_size_for_top_fragments,
-                                                 &mut largest_block_size_for_bottom_fragments);
-
+                update_line_metrics_for_fragment(
+                    &mut line_metrics,
+                    &inline_metrics,
+                    node.style.get_box().display,
+                    &node.style.get_box().vertical_align,
+                    &mut largest_block_size_for_top_fragments,
+                    &mut largest_block_size_for_bottom_fragments,
+                );
             }
         }
 
-        line_metrics.space_above_baseline =
-            max(line_metrics.space_above_baseline,
-                largest_block_size_for_bottom_fragments - max(line_metrics.space_below_baseline,
-                                                              Au(0)));
-        line_metrics.space_below_baseline =
-            max(line_metrics.space_below_baseline,
-                largest_block_size_for_top_fragments - line_metrics.space_above_baseline);
+        line_metrics.space_above_baseline = max(
+            line_metrics.space_above_baseline,
+            largest_block_size_for_bottom_fragments - max(line_metrics.space_below_baseline, Au(0)),
+        );
+        line_metrics.space_below_baseline = max(
+            line_metrics.space_below_baseline,
+            largest_block_size_for_top_fragments - line_metrics.space_above_baseline,
+        );
 
         return line_metrics;
 
-        fn update_line_metrics_for_fragment(line_metrics: &mut LineMetrics,
-                                            inline_metrics: &InlineMetrics,
-                                            display_value: display::T,
-                                            vertical_align_value: vertical_align::T,
-                                            largest_block_size_for_top_fragments: &mut Au,
-                                            largest_block_size_for_bottom_fragments: &mut Au) {
+        fn update_line_metrics_for_fragment(
+            line_metrics: &mut LineMetrics,
+            inline_metrics: &InlineMetrics,
+            display_value: Display,
+            vertical_align_value: &VerticalAlign,
+            largest_block_size_for_top_fragments: &mut Au,
+            largest_block_size_for_bottom_fragments: &mut Au,
+        ) {
+            // FIXME(emilio): This should probably be handled.
+            let vertical_align_value = match vertical_align_value {
+                VerticalAlign::Keyword(kw) => kw,
+                VerticalAlign::Length(..) => {
+                    *line_metrics = line_metrics.new_metrics_for_fragment(inline_metrics);
+                    return;
+                },
+            };
+
             match (display_value, vertical_align_value) {
-                (display::T::inline, vertical_align::T::top) |
-                (display::T::block, vertical_align::T::top) |
-                (display::T::inline_flex, vertical_align::T::top) |
-                (display::T::inline_block, vertical_align::T::top) if
-                        inline_metrics.space_above_baseline >= Au(0) => {
+                (Display::Inline, VerticalAlignKeyword::Top) |
+                (Display::Block, VerticalAlignKeyword::Top) |
+                (Display::InlineFlex, VerticalAlignKeyword::Top) |
+                (Display::InlineBlock, VerticalAlignKeyword::Top)
+                    if inline_metrics.space_above_baseline >= Au(0) =>
+                {
                     *largest_block_size_for_top_fragments = max(
                         *largest_block_size_for_top_fragments,
-                        inline_metrics.space_above_baseline + inline_metrics.space_below_baseline)
-                }
-                (display::T::inline, vertical_align::T::bottom) |
-                (display::T::block, vertical_align::T::bottom) |
-                (display::T::inline_flex, vertical_align::T::bottom) |
-                (display::T::inline_block, vertical_align::T::bottom) if
-                        inline_metrics.space_below_baseline >= Au(0) => {
+                        inline_metrics.space_above_baseline + inline_metrics.space_below_baseline,
+                    )
+                },
+                (Display::Inline, VerticalAlignKeyword::Bottom) |
+                (Display::Block, VerticalAlignKeyword::Bottom) |
+                (Display::InlineFlex, VerticalAlignKeyword::Bottom) |
+                (Display::InlineBlock, VerticalAlignKeyword::Bottom)
+                    if inline_metrics.space_below_baseline >= Au(0) =>
+                {
                     *largest_block_size_for_bottom_fragments = max(
                         *largest_block_size_for_bottom_fragments,
-                        inline_metrics.space_above_baseline + inline_metrics.space_below_baseline)
-                }
+                        inline_metrics.space_above_baseline + inline_metrics.space_below_baseline,
+                    )
+                },
                 _ => *line_metrics = line_metrics.new_metrics_for_fragment(inline_metrics),
             }
         }
@@ -1196,20 +1369,22 @@ impl InlineFlow {
         self.base.restyle_damage = damage;
     }
 
-    fn containing_block_range_for_flow_surrounding_fragment_at_index(&self,
-                                                                     fragment_index: FragmentIndex)
-                                                                     -> Range<FragmentIndex> {
+    fn containing_block_range_for_flow_surrounding_fragment_at_index(
+        &self,
+        fragment_index: FragmentIndex,
+    ) -> Range<FragmentIndex> {
         let mut start_index = fragment_index;
         while start_index > FragmentIndex(0) &&
-                self.fragments
-                    .fragments[(start_index - FragmentIndex(1)).get() as usize]
-                    .is_positioned() {
+            self.fragments.fragments[(start_index - FragmentIndex(1)).get() as usize]
+                .is_positioned()
+        {
             start_index = start_index - FragmentIndex(1)
         }
 
         let mut end_index = fragment_index + FragmentIndex(1);
         while end_index < FragmentIndex(self.fragments.fragments.len() as isize) &&
-                self.fragments.fragments[end_index.get() as usize].is_positioned() {
+            self.fragments.fragments[end_index.get() as usize].is_positioned()
+        {
             end_index = end_index + FragmentIndex(1)
         }
 
@@ -1217,29 +1392,32 @@ impl InlineFlow {
     }
 
     fn containing_block_range_for_flow(&self, opaque_flow: OpaqueFlow) -> Range<FragmentIndex> {
-        match self.fragments.fragments.iter().position(|fragment| {
-            match fragment.specific {
+        match self
+            .fragments
+            .fragments
+            .iter()
+            .position(|fragment| match fragment.specific {
                 SpecificFragmentInfo::InlineAbsolute(ref inline_absolute) => {
                     OpaqueFlow::from_flow(&*inline_absolute.flow_ref) == opaque_flow
-                }
+                },
                 SpecificFragmentInfo::InlineAbsoluteHypothetical(
-                        ref inline_absolute_hypothetical) => {
-                    OpaqueFlow::from_flow(&*inline_absolute_hypothetical.flow_ref) == opaque_flow
-                }
+                    ref inline_absolute_hypothetical,
+                ) => OpaqueFlow::from_flow(&*inline_absolute_hypothetical.flow_ref) == opaque_flow,
                 _ => false,
-            }
-        }) {
+            }) {
             Some(index) => {
                 let index = FragmentIndex(index as isize);
                 self.containing_block_range_for_flow_surrounding_fragment_at_index(index)
-            }
+            },
             None => {
                 // FIXME(pcwalton): This is quite wrong. We should only return the range
                 // surrounding the inline fragments that constitute the containing block. But this
                 // suffices to get Google looking right.
-                Range::new(FragmentIndex(0),
-                           FragmentIndex(self.fragments.fragments.len() as isize))
-            }
+                Range::new(
+                    FragmentIndex(0),
+                    FragmentIndex(self.fragments.fragments.len() as isize),
+                )
+            },
         }
     }
 
@@ -1252,13 +1430,32 @@ impl InlineFlow {
     // Returns the last line that doesn't consist entirely of hypothetical boxes.
     fn last_line_containing_real_fragments(&self) -> Option<&Line> {
         for line in self.lines.iter().rev() {
-            if (line.range.begin().get()..line.range.end().get()).any(|index| {
-                !self.fragments.fragments[index as usize].is_hypothetical()
-            }) {
-                return Some(line)
+            if (line.range.begin().get()..line.range.end().get())
+                .any(|index| !self.fragments.fragments[index as usize].is_hypothetical())
+            {
+                return Some(line);
             }
         }
         None
+    }
+
+    fn build_display_list_for_inline_fragment_at_index(
+        &mut self,
+        state: &mut DisplayListBuildState,
+        index: usize,
+    ) {
+        let fragment = self.fragments.fragments.get_mut(index).unwrap();
+        let stacking_relative_border_box = self
+            .base
+            .stacking_relative_border_box_for_display_list(fragment);
+        fragment.build_display_list(
+            state,
+            stacking_relative_border_box,
+            BorderPaintingMode::Separate,
+            DisplayListSection::Content,
+            self.base.clip,
+            None,
+        );
     }
 }
 
@@ -1278,47 +1475,45 @@ impl Flow for InlineFlow {
     fn bubble_inline_sizes(&mut self) {
         self.update_restyle_damage();
 
-        let _scope = layout_debug_scope!("inline::bubble_inline_sizes {:x}",
-                                         self.base.debug_id());
+        let _scope = layout_debug_scope!("inline::bubble_inline_sizes {:x}", self.base.debug_id());
 
         let writing_mode = self.base.writing_mode;
         for kid in self.base.child_iter_mut() {
-            flow::mut_base(kid).floats = Floats::new(writing_mode);
+            kid.mut_base().floats = Floats::new(writing_mode);
         }
 
-        self.base.flags.remove(CONTAINS_TEXT_OR_REPLACED_FRAGMENTS);
+        self.base
+            .flags
+            .remove(FlowFlags::CONTAINS_TEXT_OR_REPLACED_FRAGMENTS);
 
         let mut intrinsic_sizes_for_flow = IntrinsicISizesContribution::new();
         let mut intrinsic_sizes_for_inline_run = IntrinsicISizesContribution::new();
         let mut intrinsic_sizes_for_nonbroken_run = IntrinsicISizesContribution::new();
         for fragment in &mut self.fragments.fragments {
             let intrinsic_sizes_for_fragment = fragment.compute_intrinsic_inline_sizes().finish();
-            match fragment.style.get_inheritedtext().white_space {
-                white_space::T::nowrap => {
-                    intrinsic_sizes_for_nonbroken_run.union_nonbreaking_inline(
-                        &intrinsic_sizes_for_fragment)
-                }
-                white_space::T::pre => {
-                    intrinsic_sizes_for_nonbroken_run.union_nonbreaking_inline(
-                        &intrinsic_sizes_for_fragment);
+            match fragment.style.get_inherited_text().white_space {
+                WhiteSpace::Nowrap => intrinsic_sizes_for_nonbroken_run
+                    .union_nonbreaking_inline(&intrinsic_sizes_for_fragment),
+                WhiteSpace::Pre => {
+                    intrinsic_sizes_for_nonbroken_run
+                        .union_nonbreaking_inline(&intrinsic_sizes_for_fragment);
 
                     // Flush the intrinsic sizes we've been gathering up in order to handle the
                     // line break, if necessary.
                     if fragment.requires_line_break_afterward_if_wrapping_on_newlines() {
-                        intrinsic_sizes_for_inline_run.union_inline(
-                            &intrinsic_sizes_for_nonbroken_run.finish());
+                        intrinsic_sizes_for_inline_run
+                            .union_inline(&intrinsic_sizes_for_nonbroken_run.finish());
                         intrinsic_sizes_for_nonbroken_run = IntrinsicISizesContribution::new();
-                        intrinsic_sizes_for_flow.union_block(
-                            &intrinsic_sizes_for_inline_run.finish());
+                        intrinsic_sizes_for_flow
+                            .union_block(&intrinsic_sizes_for_inline_run.finish());
                         intrinsic_sizes_for_inline_run = IntrinsicISizesContribution::new();
                     }
-                }
-                white_space::T::pre_wrap |
-                white_space::T::pre_line => {
+                },
+                WhiteSpace::PreWrap | WhiteSpace::PreLine => {
                     // Flush the intrinsic sizes we were gathering up for the nonbroken run, if
                     // necessary.
-                    intrinsic_sizes_for_inline_run.union_inline(
-                        &intrinsic_sizes_for_nonbroken_run.finish());
+                    intrinsic_sizes_for_inline_run
+                        .union_inline(&intrinsic_sizes_for_nonbroken_run.finish());
                     intrinsic_sizes_for_nonbroken_run = IntrinsicISizesContribution::new();
 
                     intrinsic_sizes_for_nonbroken_run.union_inline(&intrinsic_sizes_for_fragment);
@@ -1326,29 +1521,33 @@ impl Flow for InlineFlow {
                     // Flush the intrinsic sizes we've been gathering up in order to handle the
                     // line break, if necessary.
                     if fragment.requires_line_break_afterward_if_wrapping_on_newlines() {
-                        intrinsic_sizes_for_inline_run.union_inline(
-                            &intrinsic_sizes_for_nonbroken_run.finish());
+                        intrinsic_sizes_for_inline_run
+                            .union_inline(&intrinsic_sizes_for_nonbroken_run.finish());
                         intrinsic_sizes_for_nonbroken_run = IntrinsicISizesContribution::new();
-                        intrinsic_sizes_for_flow.union_block(
-                            &intrinsic_sizes_for_inline_run.finish());
+                        intrinsic_sizes_for_flow
+                            .union_block(&intrinsic_sizes_for_inline_run.finish());
                         intrinsic_sizes_for_inline_run = IntrinsicISizesContribution::new();
                     }
-                }
-                white_space::T::normal => {
+                },
+                WhiteSpace::Normal => {
                     // Flush the intrinsic sizes we were gathering up for the nonbroken run, if
                     // necessary.
-                    intrinsic_sizes_for_inline_run.union_inline(
-                        &intrinsic_sizes_for_nonbroken_run.finish());
+                    intrinsic_sizes_for_inline_run
+                        .union_inline(&intrinsic_sizes_for_nonbroken_run.finish());
                     intrinsic_sizes_for_nonbroken_run = IntrinsicISizesContribution::new();
 
                     intrinsic_sizes_for_nonbroken_run.union_inline(&intrinsic_sizes_for_fragment);
-                }
+                },
             }
 
-            fragment.restyle_damage.remove(BUBBLE_ISIZES);
+            fragment
+                .restyle_damage
+                .remove(ServoRestyleDamage::BUBBLE_ISIZES);
 
             if fragment.is_text_or_replaced() {
-                self.base.flags.insert(CONTAINS_TEXT_OR_REPLACED_FRAGMENTS);
+                self.base
+                    .flags
+                    .insert(FlowFlags::CONTAINS_TEXT_OR_REPLACED_FRAGMENTS);
             }
         }
 
@@ -1370,7 +1569,10 @@ impl Flow for InlineFlow {
         // TODO: Combine this with `LineBreaker`'s walk in the fragment list, or put this into
         // `Fragment`.
 
-        debug!("InlineFlow::assign_inline_sizes: floats in: {:?}", self.base.floats);
+        debug!(
+            "InlineFlow::assign_inline_sizes: floats in: {:?}",
+            self.base.floats
+        );
 
         let inline_size = self.base.block_container_inline_size;
         let container_mode = self.base.block_container_writing_mode;
@@ -1380,11 +1582,11 @@ impl Flow for InlineFlow {
         {
             let this = &mut *self;
             for fragment in this.fragments.fragments.iter_mut() {
-                let border_collapse = fragment.style.get_inheritedtable().border_collapse;
-                fragment.compute_border_and_padding(inline_size, border_collapse);
+                fragment.compute_border_and_padding(inline_size);
                 fragment.compute_block_direction_margins(inline_size);
                 fragment.compute_inline_direction_margins(inline_size);
-                fragment.assign_replaced_inline_size_if_necessary(inline_size, container_block_size);
+                fragment
+                    .assign_replaced_inline_size_if_necessary(inline_size, container_block_size);
             }
         }
 
@@ -1392,7 +1594,7 @@ impl Flow for InlineFlow {
         // sizes down to them.
         let block_container_explicit_block_size = self.base.block_container_explicit_block_size;
         for kid in self.base.child_iter_mut() {
-            let kid_base = flow::mut_base(kid);
+            let kid_base = kid.mut_base();
 
             kid_base.block_container_inline_size = inline_size;
             kid_base.block_container_writing_mode = container_mode;
@@ -1401,9 +1603,10 @@ impl Flow for InlineFlow {
     }
 
     /// Calculate and set the block-size of this flow. See CSS 2.1 § 10.6.1.
+    /// Note that we do not need to do in-order traversal because the children
+    /// are always block formatting context.
     fn assign_block_size(&mut self, layout_context: &LayoutContext) {
-        let _scope = layout_debug_scope!("inline::assign_block_size {:x}",
-                                         self.base.debug_id());
+        let _scope = layout_debug_scope!("inline::assign_block_size {:x}", self.base.debug_id());
 
         // Divide the fragments into lines.
         //
@@ -1416,7 +1619,10 @@ impl Flow for InlineFlow {
         // the line's own block-size.
         //
         // TODO(pcwalton): Cache the line scanner?
-        debug!("assign_block_size_inline: floats in: {:?}", self.base.floats);
+        debug!(
+            "assign_block_size_inline: floats in: {:?}",
+            self.base.floats
+        );
 
         // Assign the block-size and late-computed inline-sizes for the inline fragments.
         for fragment in &mut self.fragments.fragments {
@@ -1437,9 +1643,11 @@ impl Flow for InlineFlow {
         };
 
         // Perform line breaking.
-        let mut scanner = LineBreaker::new(self.base.floats.clone(),
-                                           indentation,
-                                           &self.minimum_line_metrics);
+        let mut scanner = LineBreaker::new(
+            self.base.floats.clone(),
+            indentation,
+            &self.minimum_line_metrics,
+        );
         scanner.scan_for_lines(self, layout_context);
 
         // Now, go through each line and lay out the fragments inside.
@@ -1447,17 +1655,21 @@ impl Flow for InlineFlow {
         for (line_index, line) in self.lines.iter_mut().enumerate() {
             // Lay out fragments in the inline direction, and justify them if
             // necessary.
-            InlineFlow::set_inline_fragment_positions(&mut self.fragments,
-                                                      line,
-                                                      self.base.flags.text_align(),
-                                                      indentation,
-                                                      line_index + 1 == line_count);
+            InlineFlow::set_inline_fragment_positions(
+                &mut self.fragments,
+                line,
+                self.base.flags.text_align(),
+                indentation,
+                line_index + 1 == line_count,
+            );
 
             // Compute the final positions in the block direction of each fragment.
-            InlineFlow::set_block_fragment_positions(&mut self.fragments,
-                                                     line,
-                                                     &self.minimum_line_metrics,
-                                                     layout_context);
+            InlineFlow::set_block_fragment_positions(
+                &mut self.fragments,
+                line,
+                &self.minimum_line_metrics,
+                layout_context,
+            );
 
             // This is used to set the block-start position of the next line in
             // the next iteration of the loop. We're no longer on the first
@@ -1465,25 +1677,12 @@ impl Flow for InlineFlow {
             indentation = Au(0)
         }
 
-        // Assign block sizes for any inline-block descendants.
-        let thread_id = self.base.thread_id;
-        for kid in self.base.child_iter_mut() {
-            if flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) ||
-                    flow::base(kid).flags.is_float() {
-                continue
-            }
-            let content_box = flow::base(kid).position;
-            kid.assign_block_size_for_inorder_child_if_necessary(layout_context,
-                                                                 thread_id,
-                                                                 content_box);
-        }
-
-        if self.contains_positioned_fragments() {
+        if self.is_absolute_containing_block() {
             // Assign block-sizes for all flows in this absolute flow tree.
             // This is preorder because the block-size of an absolute flow may depend on
             // the block-size of its containing block, which may also be an absolute flow.
-            (&mut *self as &mut Flow).traverse_preorder_absolute_flows(
-                &mut AbsoluteAssignBSizesTraversal(layout_context.shared_context()));
+            let assign_abs_b_sizes = AbsoluteAssignBSizesTraversal(layout_context.shared_context());
+            assign_abs_b_sizes.traverse_absolute_flows(&mut *self);
         }
 
         self.base.position.size.block = match self.last_line_containing_real_fragments() {
@@ -1491,42 +1690,45 @@ impl Flow for InlineFlow {
             None => Au(0),
         };
 
-        self.base.floats = scanner.floats.clone();
+        self.base.floats = scanner.floats;
         let writing_mode = self.base.floats.writing_mode;
-        self.base.floats.translate(LogicalSize::new(writing_mode,
-                                                    Au(0),
-                                                    -self.base.position.size.block));
+        self.base.floats.translate(LogicalSize::new(
+            writing_mode,
+            Au(0),
+            -self.base.position.size.block,
+        ));
 
-        let containing_block_size = LogicalSize::new(writing_mode,
-                                                    Au(0),
-                                                    self.base.position.size.block);
-        self.mutate_fragments(&mut |f: &mut Fragment| {
-            match f.specific {
-                SpecificFragmentInfo::InlineBlock(ref mut info) => {
-                    let block = FlowRef::deref_mut(&mut info.flow_ref);
-                    flow::mut_base(block).early_absolute_position_info = EarlyAbsolutePositionInfo {
-                        relative_containing_block_size: containing_block_size,
-                        relative_containing_block_mode: writing_mode,
-                    };
-                }
-                SpecificFragmentInfo::InlineAbsolute(ref mut info) => {
-                    let block = FlowRef::deref_mut(&mut info.flow_ref);
-                    flow::mut_base(block).early_absolute_position_info = EarlyAbsolutePositionInfo {
-                        relative_containing_block_size: containing_block_size,
-                        relative_containing_block_mode: writing_mode,
-                    };
-                }
-                _ => (),
-            }
+        let containing_block_size =
+            LogicalSize::new(writing_mode, Au(0), self.base.position.size.block);
+        self.mutate_fragments(&mut |f: &mut Fragment| match f.specific {
+            SpecificFragmentInfo::InlineBlock(ref mut info) => {
+                let block = FlowRef::deref_mut(&mut info.flow_ref);
+                block.mut_base().early_absolute_position_info = EarlyAbsolutePositionInfo {
+                    relative_containing_block_size: containing_block_size,
+                    relative_containing_block_mode: writing_mode,
+                };
+            },
+            SpecificFragmentInfo::InlineAbsolute(ref mut info) => {
+                let block = FlowRef::deref_mut(&mut info.flow_ref);
+                block.mut_base().early_absolute_position_info = EarlyAbsolutePositionInfo {
+                    relative_containing_block_size: containing_block_size,
+                    relative_containing_block_mode: writing_mode,
+                };
+            },
+            _ => (),
         });
 
-        self.base.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
+        self.base
+            .restyle_damage
+            .remove(ServoRestyleDamage::REFLOW_OUT_OF_FLOW | ServoRestyleDamage::REFLOW);
         for fragment in &mut self.fragments.fragments {
-            fragment.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
+            fragment
+                .restyle_damage
+                .remove(ServoRestyleDamage::REFLOW_OUT_OF_FLOW | ServoRestyleDamage::REFLOW);
         }
     }
 
-    fn compute_absolute_position(&mut self, _: &LayoutContext) {
+    fn compute_stacking_relative_position(&mut self, _: &LayoutContext) {
         // First, gather up the positions of all the containing blocks (if any).
         //
         // FIXME(pcwalton): This will get the absolute containing blocks inside `...` wrong in the
@@ -1541,47 +1743,55 @@ impl Flow for InlineFlow {
         for (fragment_index, fragment) in self.fragments.fragments.iter().enumerate() {
             match fragment.specific {
                 SpecificFragmentInfo::InlineAbsolute(_) => {
-                    let containing_block_range =
-                        self.containing_block_range_for_flow_surrounding_fragment_at_index(
-                            FragmentIndex(fragment_index as isize));
+                    let containing_block_range = self
+                        .containing_block_range_for_flow_surrounding_fragment_at_index(
+                            FragmentIndex(fragment_index as isize),
+                        );
                     let first_fragment_index = containing_block_range.begin().get() as usize;
                     debug_assert!(first_fragment_index < self.fragments.fragments.len());
                     let first_fragment = &self.fragments.fragments[first_fragment_index];
                     let padding_box_origin = (first_fragment.border_box -
-                                              first_fragment.style.logical_border_width()).start;
+                        first_fragment.style.logical_border_width())
+                    .start;
                     containing_block_positions.push(
-                        padding_box_origin.to_physical(self.base.writing_mode, container_size));
-                }
+                        padding_box_origin.to_physical(self.base.writing_mode, container_size),
+                    );
+                },
                 SpecificFragmentInfo::InlineBlock(_) if fragment.is_positioned() => {
-                    let containing_block_range =
-                        self.containing_block_range_for_flow_surrounding_fragment_at_index(
-                            FragmentIndex(fragment_index as isize));
+                    let containing_block_range = self
+                        .containing_block_range_for_flow_surrounding_fragment_at_index(
+                            FragmentIndex(fragment_index as isize),
+                        );
                     let first_fragment_index = containing_block_range.begin().get() as usize;
                     debug_assert!(first_fragment_index < self.fragments.fragments.len());
                     let first_fragment = &self.fragments.fragments[first_fragment_index];
                     let padding_box_origin = (first_fragment.border_box -
-                                              first_fragment.style.logical_border_width()).start;
+                        first_fragment.style.logical_border_width())
+                    .start;
                     containing_block_positions.push(
-                        padding_box_origin.to_physical(self.base.writing_mode, container_size));
-                }
-                _ => {}
+                        padding_box_origin.to_physical(self.base.writing_mode, container_size),
+                    );
+                },
+                _ => {},
             }
         }
 
         // Then compute the positions of all of our fragments.
         let mut containing_block_positions = containing_block_positions.iter();
         for fragment in &mut self.fragments.fragments {
-            let stacking_relative_border_box =
-                fragment.stacking_relative_border_box(&self.base.stacking_relative_position,
-                                                      &self.base
-                                                           .early_absolute_position_info
-                                                           .relative_containing_block_size,
-                                                      self.base
-                                                          .early_absolute_position_info
-                                                          .relative_containing_block_mode,
-                                                      CoordinateSystem::Parent);
+            let stacking_relative_border_box = fragment.stacking_relative_border_box(
+                &self.base.stacking_relative_position,
+                &self
+                    .base
+                    .early_absolute_position_info
+                    .relative_containing_block_size,
+                self.base
+                    .early_absolute_position_info
+                    .relative_containing_block_mode,
+                CoordinateSystem::Parent,
+            );
             let stacking_relative_content_box =
-                fragment.stacking_relative_content_box(&stacking_relative_border_box);
+                fragment.stacking_relative_content_box(stacking_relative_border_box);
 
             let is_positioned = fragment.is_positioned();
             match fragment.specific {
@@ -1594,19 +1804,20 @@ impl Flow for InlineFlow {
                     let stacking_relative_position = self.base.stacking_relative_position;
                     if is_positioned {
                         let padding_box_origin = containing_block_positions.next().unwrap();
-                        block_flow.base
-                                  .late_absolute_position_info
-                                  .stacking_relative_position_of_absolute_containing_block =
-                            stacking_relative_position + *padding_box_origin;
+                        block_flow
+                            .base
+                            .late_absolute_position_info
+                            .stacking_relative_position_of_absolute_containing_block =
+                            *padding_box_origin + stacking_relative_position;
                     }
 
                     block_flow.base.stacking_relative_position =
-                        stacking_relative_content_box.origin;
+                        stacking_relative_content_box.origin.to_vector();
 
                     // Write the clip in our coordinate system into the child flow. (The kid will
                     // fix it up to be in its own coordinate system if necessary.)
                     block_flow.base.clip = self.base.clip.clone()
-                }
+                },
                 SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut info) => {
                     let flow = FlowRef::deref_mut(&mut info.flow_ref);
                     let block_flow = flow.as_mut_block();
@@ -1614,11 +1825,11 @@ impl Flow for InlineFlow {
                         self.base.late_absolute_position_info;
 
                     block_flow.base.stacking_relative_position =
-                        stacking_relative_border_box.origin;
+                        stacking_relative_border_box.origin.to_vector();
 
                     // As above, this is in our coordinate system for now.
                     block_flow.base.clip = self.base.clip.clone()
-                }
+                },
                 SpecificFragmentInfo::InlineAbsolute(ref mut info) => {
                     let flow = FlowRef::deref_mut(&mut info.flow_ref);
                     let block_flow = flow.as_mut_block();
@@ -1627,88 +1838,175 @@ impl Flow for InlineFlow {
 
                     let stacking_relative_position = self.base.stacking_relative_position;
                     let padding_box_origin = containing_block_positions.next().unwrap();
-                    block_flow.base
-                              .late_absolute_position_info
-                              .stacking_relative_position_of_absolute_containing_block =
-                        stacking_relative_position + *padding_box_origin;
+                    block_flow
+                        .base
+                        .late_absolute_position_info
+                        .stacking_relative_position_of_absolute_containing_block =
+                        *padding_box_origin + stacking_relative_position;
 
                     block_flow.base.stacking_relative_position =
-                        stacking_relative_border_box.origin;
+                        stacking_relative_border_box.origin.to_vector();
 
                     // As above, this is in our coordinate system for now.
                     block_flow.base.clip = self.base.clip.clone()
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
-
-        self.base.restyle_damage.remove(REPOSITION)
     }
 
     fn update_late_computed_inline_position_if_necessary(&mut self, _: Au) {}
 
     fn update_late_computed_block_position_if_necessary(&mut self, _: Au) {}
 
-    fn collect_stacking_contexts(&mut self, state: &mut DisplayListBuildState) {
-        self.collect_stacking_contexts_for_inline(state);
+    fn collect_stacking_contexts(&mut self, state: &mut StackingContextCollectionState) {
+        self.base.stacking_context_id = state.current_stacking_context_id;
+        self.base.clipping_and_scrolling = Some(state.current_clipping_and_scrolling);
+        self.base.clip = state
+            .clip_stack
+            .last()
+            .cloned()
+            .unwrap_or_else(Rect::max_rect);
+
+        let previous_cb_clipping_and_scrolling = state.containing_block_clipping_and_scrolling;
+
+        for fragment in self.fragments.fragments.iter_mut() {
+            // If a particular fragment would establish a stacking context but has a transform
+            // applied that causes it to take up no space, we can skip it entirely.
+            if fragment.has_non_invertible_transform() {
+                continue;
+            }
+            state.containing_block_clipping_and_scrolling = previous_cb_clipping_and_scrolling;
+
+            let abspos_containing_block = fragment.style.get_box().position != Position::Static;
+            if abspos_containing_block {
+                state.containing_block_clipping_and_scrolling =
+                    state.current_clipping_and_scrolling;
+            }
+
+            // We clear this here, but it might be set again if we create a stacking context for
+            // this fragment.
+            fragment.established_reference_frame = None;
+
+            if !fragment.collect_stacking_contexts_for_blocklike_fragment(state) {
+                if !fragment.establishes_stacking_context() {
+                    fragment.stacking_context_id = state.current_stacking_context_id;
+                } else {
+                    fragment.create_stacking_context_for_inline_block(&self.base, state);
+                }
+            }
+
+            // Reset the containing block clipping and scrolling before each loop iteration,
+            // so we don't pollute subsequent fragments.
+            state.containing_block_clipping_and_scrolling = previous_cb_clipping_and_scrolling;
+        }
     }
 
     fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
-        self.build_display_list_for_inline(state);
+        debug!(
+            "Flow: building display list for {} inline fragments",
+            self.fragments.len()
+        );
+
+        // We iterate using an index here, because we want to avoid doing a doing
+        // a double-borrow of self (one mutable for the method call and one immutable
+        // for the self.fragments.fragment iterator itself).
+        for index in 0..self.fragments.fragments.len() {
+            let (establishes_stacking_context, stacking_context_id) = {
+                let fragment = self.fragments.fragments.get(index).unwrap();
+                (
+                    self.base.stacking_context_id != fragment.stacking_context_id,
+                    fragment.stacking_context_id,
+                )
+            };
+
+            let parent_stacking_context_id = state.current_stacking_context_id;
+            if establishes_stacking_context {
+                state.current_stacking_context_id = stacking_context_id;
+            }
+
+            self.build_display_list_for_inline_fragment_at_index(state, index);
+
+            if establishes_stacking_context {
+                state.current_stacking_context_id = parent_stacking_context_id
+            }
+        }
+
+        if !self.fragments.fragments.is_empty() {
+            self.base
+                .build_display_items_for_debugging_tint(state, self.fragments.fragments[0].node);
+        }
     }
 
-    fn repair_style(&mut self, _: &Arc<ServoComputedValues>) {}
+    fn repair_style(&mut self, _: &ServoArc<ComputedValues>) {}
 
     fn compute_overflow(&self) -> Overflow {
         let mut overflow = Overflow::new();
         let flow_size = self.base.position.size.to_physical(self.base.writing_mode);
-        let relative_containing_block_size =
-            &self.base.early_absolute_position_info.relative_containing_block_size;
+        let relative_containing_block_size = &self
+            .base
+            .early_absolute_position_info
+            .relative_containing_block_size;
         for fragment in &self.fragments.fragments {
             overflow.union(&fragment.compute_overflow(&flow_size, &relative_containing_block_size))
         }
         overflow
     }
 
-    fn iterate_through_fragment_border_boxes(&self,
-                                             iterator: &mut FragmentBorderBoxIterator,
-                                             level: i32,
-                                             stacking_context_position: &Point2D<Au>) {
+    fn iterate_through_fragment_border_boxes(
+        &self,
+        iterator: &mut dyn FragmentBorderBoxIterator,
+        level: i32,
+        stacking_context_position: &Point2D<Au>,
+    ) {
         // FIXME(#2795): Get the real container size.
         for fragment in &self.fragments.fragments {
             if !iterator.should_process(fragment) {
-                continue
+                continue;
             }
 
             let stacking_relative_position = &self.base.stacking_relative_position;
-            let relative_containing_block_size =
-                &self.base.early_absolute_position_info.relative_containing_block_size;
-            let relative_containing_block_mode =
-                self.base.early_absolute_position_info.relative_containing_block_mode;
-            iterator.process(fragment,
-                             level,
-                             &fragment.stacking_relative_border_box(stacking_relative_position,
-                                                                    relative_containing_block_size,
-                                                                    relative_containing_block_mode,
-                                                                    CoordinateSystem::Own)
-                                      .translate(stacking_context_position))
+            let relative_containing_block_size = &self
+                .base
+                .early_absolute_position_info
+                .relative_containing_block_size;
+            let relative_containing_block_mode = self
+                .base
+                .early_absolute_position_info
+                .relative_containing_block_mode;
+            iterator.process(
+                fragment,
+                level,
+                &fragment
+                    .stacking_relative_border_box(
+                        stacking_relative_position,
+                        relative_containing_block_size,
+                        relative_containing_block_mode,
+                        CoordinateSystem::Own,
+                    )
+                    .translate(stacking_context_position.to_vector()),
+            )
         }
     }
 
-    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
+    fn mutate_fragments(&mut self, mutator: &mut dyn FnMut(&mut Fragment)) {
         for fragment in &mut self.fragments.fragments {
             (*mutator)(fragment)
         }
     }
 
     fn contains_positioned_fragments(&self) -> bool {
-        self.fragments.fragments.iter().any(|fragment| fragment.is_positioned())
+        self.fragments
+            .fragments
+            .iter()
+            .any(|fragment| fragment.is_positioned())
     }
 
     fn contains_relatively_positioned_fragments(&self) -> bool {
-        self.fragments.fragments.iter().any(|fragment| {
-            fragment.style.get_box().position == position::T::relative
-        })
+        self.fragments
+            .fragments
+            .iter()
+            .any(|fragment| fragment.style.get_box().position == Position::Relative)
     }
 
     fn generated_containing_block_size(&self, for_flow: OpaqueFlow) -> LogicalSize<Au> {
@@ -1716,12 +2014,12 @@ impl Flow for InlineFlow {
         for index in self.containing_block_range_for_flow(for_flow).each_index() {
             let fragment = &self.fragments.fragments[index.get() as usize];
             if fragment.is_absolutely_positioned() {
-                continue
+                continue;
             }
-            containing_block_size.inline = containing_block_size.inline +
-                fragment.border_box.size.inline;
-            containing_block_size.block = max(containing_block_size.block,
-                                              fragment.border_box.size.block);
+            containing_block_size.inline =
+                containing_block_size.inline + fragment.border_box.size.inline;
+            containing_block_size.block =
+                max(containing_block_size.block, fragment.border_box.size.block);
         }
         containing_block_size
     }
@@ -1735,27 +2033,29 @@ impl Flow for InlineFlow {
 
 impl fmt::Debug for InlineFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f,
-               "{:?}({:x}) {:?}",
-               self.class(),
-               self.base.debug_id(),
-               flow::base(self))
+        write!(
+            f,
+            "{:?}({:x}) {:?}",
+            self.class(),
+            self.base.debug_id(),
+            self.base()
+        )
     }
 }
 
 #[derive(Clone)]
 pub struct InlineFragmentNodeInfo {
     pub address: OpaqueNode,
-    pub style: Arc<ServoComputedValues>,
-    pub selected_style: Arc<ServoComputedValues>,
-    pub pseudo: PseudoElementType<()>,
+    pub style: ServoArc<ComputedValues>,
+    pub selected_style: ServoArc<ComputedValues>,
+    pub pseudo: PseudoElementType,
     pub flags: InlineFragmentNodeFlags,
 }
 
 bitflags! {
-    pub flags InlineFragmentNodeFlags: u8 {
-        const FIRST_FRAGMENT_OF_ELEMENT = 0x01,
-        const LAST_FRAGMENT_OF_ELEMENT = 0x02,
+    pub struct InlineFragmentNodeFlags: u8 {
+        const FIRST_FRAGMENT_OF_ELEMENT = 0x01;
+        const LAST_FRAGMENT_OF_ELEMENT = 0x02;
     }
 }
 
@@ -1774,36 +2074,38 @@ pub struct InlineFragmentContext {
 
 impl InlineFragmentContext {
     pub fn new() -> InlineFragmentContext {
-        InlineFragmentContext {
-            nodes: vec!(),
-        }
+        InlineFragmentContext { nodes: vec![] }
     }
 
     #[inline]
     pub fn contains_node(&self, node_address: OpaqueNode) -> bool {
-        self.nodes.iter().position(|node| node.address == node_address).is_some()
+        self.nodes
+            .iter()
+            .position(|node| node.address == node_address)
+            .is_some()
     }
 
     fn ptr_eq(&self, other: &InlineFragmentContext) -> bool {
         if self.nodes.len() != other.nodes.len() {
-            return false
+            return false;
         }
         for (this_node, other_node) in self.nodes.iter().zip(&other.nodes) {
             if this_node.address != other_node.address {
-                return false
+                return false;
             }
         }
         true
     }
 }
 
-fn inline_contexts_are_equal(inline_context_a: &Option<InlineFragmentContext>,
-                             inline_context_b: &Option<InlineFragmentContext>)
-                             -> bool {
+fn inline_contexts_are_equal(
+    inline_context_a: &Option<InlineFragmentContext>,
+    inline_context_b: &Option<InlineFragmentContext>,
+) -> bool {
     match (inline_context_a, inline_context_b) {
         (&Some(ref inline_context_a), &Some(ref inline_context_b)) => {
             inline_context_a.ptr_eq(inline_context_b)
-        }
+        },
         (&None, &None) => true,
         (&Some(_), &None) | (&None, &Some(_)) => false,
     }
@@ -1858,13 +2160,13 @@ impl InlineMetrics {
     }
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 enum LineFlushMode {
     No,
     Flush,
 }
 
-#[derive(Copy, Clone, Debug, Serialize)]
+#[derive(Clone, Copy, Debug, Serialize)]
 pub struct LineMetrics {
     pub space_above_baseline: Au,
     pub space_below_baseline: Au,
@@ -1882,27 +2184,33 @@ impl LineMetrics {
     /// with a fragment with the given metrics.
     fn new_metrics_for_fragment(&self, fragment_inline_metrics: &InlineMetrics) -> LineMetrics {
         LineMetrics {
-            space_above_baseline: max(self.space_above_baseline,
-                                      fragment_inline_metrics.space_above_baseline),
-            space_below_baseline: max(self.space_below_baseline,
-                                      fragment_inline_metrics.space_below_baseline),
+            space_above_baseline: max(
+                self.space_above_baseline,
+                fragment_inline_metrics.space_above_baseline,
+            ),
+            space_below_baseline: max(
+                self.space_below_baseline,
+                fragment_inline_metrics.space_below_baseline,
+            ),
         }
     }
 
-    fn for_line_and_fragment(line: &Line, fragment: &Fragment, layout_context: &LayoutContext)
-                             -> LineMetrics {
+    fn for_line_and_fragment(
+        line: &Line,
+        fragment: &Fragment,
+        layout_context: &LayoutContext,
+    ) -> LineMetrics {
         if !fragment.is_hypothetical() {
             let space_above_baseline = line.metrics.space_above_baseline;
             return LineMetrics {
                 space_above_baseline: space_above_baseline,
                 space_below_baseline: line.bounds.size.block - space_above_baseline,
-            }
+            };
         }
 
         let hypothetical_line_metrics = line.new_metrics_for_fragment(fragment, layout_context);
-        let hypothetical_block_size = line.new_block_size_for_fragment(fragment,
-                                                                       &hypothetical_line_metrics,
-                                                                       layout_context);
+        let hypothetical_block_size =
+            line.new_block_size_for_fragment(fragment, &hypothetical_line_metrics, layout_context);
         let hypothetical_space_above_baseline = hypothetical_line_metrics.space_above_baseline;
         LineMetrics {
             space_above_baseline: hypothetical_space_above_baseline,
@@ -1915,4 +2223,3 @@ impl LineMetrics {
         self.space_above_baseline + self.space_below_baseline
     }
 }
-

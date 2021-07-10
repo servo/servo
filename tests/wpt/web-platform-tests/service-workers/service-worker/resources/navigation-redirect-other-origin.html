@@ -4,7 +4,7 @@
 <script>
 var host_info = get_host_info();
 var SCOPE = 'navigation-redirect-scope1.py';
-var SCRIPT = 'navigation-redirect-worker.js';
+var SCRIPT = 'redirect-worker.js';
 
 var registration;
 var worker;
@@ -33,11 +33,28 @@ function send_result(message_id, result) {
       host_info['HTTPS_ORIGIN']);
 }
 
-function get_intercepted_urls(worker) {
+function get_request_infos(worker) {
+  return new Promise(function(resolve) {
+    var channel = new MessageChannel();
+    channel.port1.onmessage = (msg) => {
+      resolve(msg.data.requestInfos);
+    };
+    worker.postMessage({command: 'getRequestInfos', port: channel.port2},
+                       [channel.port2]);
+  });
+}
+
+function get_clients(worker, actual_ids) {
   return new Promise(function(resolve) {
       var channel = new MessageChannel();
-      channel.port1.onmessage = function(msg) { resolve(msg.data.urls); };
-      worker.postMessage({port: channel.port2}, [channel.port2]);
+      channel.port1.onmessage = (msg) => {
+        resolve(msg.data.clients);
+      };
+      worker.postMessage({
+        command: 'getClients',
+        actual_ids,
+        port: channel.port2
+      }, [channel.port2]);
     });
 }
 
@@ -48,14 +65,20 @@ function on_message(e) {
     console.error('invalid origin: ' + e.origin);
     return;
   }
-  if (e.data.message == 'wait_for_worker') {
+  const command = e.data.message.command;
+  if (command == 'wait_for_worker') {
     wait_for_worker_promise.then(function() { send_result(e.data.id, 'ok'); });
-  } else if (e.data.message == 'get_intercepted_urls') {
-    get_intercepted_urls(worker)
-      .then(function(urls) {
-          send_result(e.data.id, urls);
+  } else if (command == 'get_request_infos') {
+    get_request_infos(worker)
+      .then(function(data) {
+          send_result(e.data.id, data);
         });
-  } else if (e.data.message == 'unregister') {
+  } else if (command == 'get_clients') {
+    get_clients(worker, e.data.message.actual_ids)
+      .then(function(data) {
+          send_result(e.data.id, data);
+        });
+  } else if (command == 'unregister') {
     registration.unregister()
       .then(function() {
           send_result(e.data.id, 'ok');

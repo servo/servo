@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+        <head>
+                <title> adding several types of scripts through the DOM and removing some of them confuses scheduler </title>
+                <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="testlib/testlib.js"></script>
+                <script type="text/javascript">
+                        var head = document.getElementsByTagName('head')[0];
+                        function createScript(url, contents) {
+                                props = {};
+                                if (url) {
+                                    props.src = url;
+                                }
+                                return testlib.addScript(contents, props, head, false);
+                        }
+                        var t = async_test()
+
+                        function test() {
+                                var script = createScript('data:text\/javascript,log("Script %231 ran")');
+                                var script2 = createScript('','log("Script #2 ran")');
+                                if(script2) {
+                                    head.removeChild(script2);
+                                }
+                                var script3 = createScript('data:text\/javascript, log("Script %233 ran"); createScript(\'\', \'log("Script %234 ran")\')');
+                                if(script3) {
+                                    head.removeChild(script3);
+                                }
+                                setTimeout(t.step_func(function(){
+                                               assert_array_equals(eventOrder, ['Script #2 ran', 'Script #1 ran', 'Script #3 ran','Script #4 ran']);
+                                               t.done();
+                                           }), 400);
+
+                        };
+                        onload = t.step_func(test)
+                </script>
+        </head>
+        <body>
+                <div id="log">FAILED (This TC requires JavaScript enabled)</div>
+        </body>
+</html*>

@@ -1,10 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://w3c.github.io/uievents/#interface-uievent
-[Constructor(DOMString type, optional UIEventInit eventInitDict)]
+[Exposed=Window]
 interface UIEvent : Event {
+  [Throws] constructor(DOMString type, optional UIEventInit eventInitDict = {});
   //  readonly    attribute WindowProxy? view;
   readonly attribute Window? view;
     readonly    attribute long         detail;

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="UTF-8">
+<title>Selectors Level 4: :scope without scoping</title>
+<link rel="author" title="Xidorn Quan" href="mailto:me@upsuper.org">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#scope-pseudo">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  div {
+    width: 100px;
+    height: 100px;
+    background: red;
+  }
+  :scope > body > div {
+    background: green;
+  }
+</style>
+<body>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div></div>
+</body>
+</html>

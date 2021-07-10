@@ -1,0 +1,32 @@
+diff --git a/tests/wpt/webgl/tests/conformance/extensions/webgl-compressed-texture-s3tc.html b/tests/wpt/webgl/tests/conformance/extensions/webgl-compressed-texture-s3tc.html
+index 308e8577a8..ea56180224 100644
+--- a/tests/wpt/webgl/tests/conformance/extensions/webgl-compressed-texture-s3tc.html
++++ b/tests/wpt/webgl/tests/conformance/extensions/webgl-compressed-texture-s3tc.html
+@@ -695,13 +695,6 @@ function compareRect(width, height, channels, expectedData, filteringMode) {
+     gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, actual);
+     wtu.glErrorShouldBe(gl, gl.NO_ERROR, "reading back pixels");
+ 
+-    var div = document.createElement("div");
+-    div.className = "testimages";
+-    insertImg(div, "expected", makeImage(width, height, expectedData, channels == 4));
+-    insertImg(div, "actual", makeImage(width, height, actual, channels == 4));
+-    div.appendChild(document.createElement('br'));
+-    document.getElementById("console").appendChild(div);
+-
+     var failed = false;
+     for (var yy = 0; yy < height; ++yy) {
+         for (var xx = 0; xx < width; ++xx) {
+@@ -715,6 +708,13 @@ function compareRect(width, height, channels, expectedData, filteringMode) {
+             for (var jj = 0; jj < 4; ++jj) {
+                 if (actual[offset + jj] != expected[jj]) {
+                     failed = true;
++                    var div = document.createElement("div");
++                    div.className = "testimages";
++                    insertImg(div, "expected", makeImage(width, height, expectedData, channels == 4));
++                    insertImg(div, "actual", makeImage(width, height, actual, channels == 4));
++                    div.appendChild(document.createElement('br'));
++                    document.getElementById("console").appendChild(div);
++
+                     var was = actual[offset + 0].toString();
+                     for (var j = 1; j < 4; ++j) {
+                         was += "," + actual[offset + j];

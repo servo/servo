@@ -1,0 +1,67 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSSPositionValue Error Handling</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#positionvalue-objects">
+<meta name="assert" content="Test CSSPositionValue constructor and attributes error handling" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="log">
+<script>
+'use strict';
+
+const gTestArguments = [
+  {
+    description: 'a keyword',
+    value: 'auto',
+  },
+  {
+    description: 'a double',
+    value: 3.14,
+  },
+  {
+    description: 'a unitless zero',
+    value: 0,
+  },
+  {
+    description: 'a string length',
+    value: '10px',
+  },
+  {
+    description: 'a number CSSUnitValue',
+    value: CSS.number(10),
+  },
+  {
+    description: 'a time CSSUnitValue',
+    value: CSS.s(10),
+  },
+  {
+    description: 'a CSSMathValue of angle type',
+    value: new CSSMathSum(CSS.deg(1)),
+  },
+];
+
+for (const {value, description} of gTestArguments) {
+  test(() => {
+    assert_throws_js(TypeError, () => new CSSPositionValue(value, CSS.px(0)));
+    assert_throws_js(TypeError, () => new CSSPositionValue(CSS.px(0), value));
+  }, `Constructing a CSSPositionValue with ${description} throws a TypeError`);
+
+  test(() => {
+    let position = new CSSPositionValue(CSS.px(0), CSS.px(0));
+    assert_throws_js(TypeError, () => position.x = value);
+
+    assert_equals(position.x.value, 0,
+        'X member should not have changed');
+  }, `Updating CSSPositionValue.x with ${description} throws a TypeError`);
+
+  test(() => {
+    let position = new CSSPositionValue(CSS.px(0), CSS.px(0));
+    assert_throws_js(TypeError, () => position.y = value);
+
+    assert_equals(position.y.value, 0,
+        'Y member should not have changed');
+  }, `Updating CSSPositionValue.y with ${description} throws a TypeError`);
+}
+
+</script>

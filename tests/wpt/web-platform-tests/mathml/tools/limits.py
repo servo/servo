@@ -6,7 +6,8 @@ import fontforge
 nArySumCodePoint = 0x2211 # largeop operator
 
 v = 3 * mathfont.em
-f = mathfont.create("limits-lowerlimitbaselinedropmin%d" % v)
+f = mathfont.create("limits-lowerlimitbaselinedropmin%d" % v,
+                    "Copyright (c) 2016 MathML Association")
 mathfont.createSquareGlyph(f, nArySumCodePoint)
 f.math.LowerLimitBaselineDropMin = v
 f.math.LowerLimitGapMin = 0
@@ -23,7 +24,8 @@ f.math.UpperLimitGapMin = 0
 mathfont.save(f)
 
 v = 11 * mathfont.em
-f = mathfont.create("limits-lowerlimitgapmin%d" % v)
+f = mathfont.create("limits-lowerlimitgapmin%d" % v,
+                    "Copyright (c) 2016 MathML Association")
 mathfont.createSquareGlyph(f, nArySumCodePoint)
 f.math.LowerLimitBaselineDropMin = 0
 f.math.LowerLimitGapMin = v
@@ -40,7 +42,8 @@ f.math.UpperLimitGapMin = 0
 mathfont.save(f)
 
 v = 5 * mathfont.em
-f = mathfont.create("limits-upperlimitbaselinerisemin%d" % v)
+f = mathfont.create("limits-upperlimitbaselinerisemin%d" % v,
+                    "Copyright (c) 2016 MathML Association")
 mathfont.createSquareGlyph(f, nArySumCodePoint)
 f.math.LowerLimitBaselineDropMin = 0
 f.math.LowerLimitGapMin = 0
@@ -57,7 +60,8 @@ f.math.UpperLimitGapMin = 0
 mathfont.save(f)
 
 v = 7 * mathfont.em
-f = mathfont.create("limits-upperlimitgapmin%d" % v)
+f = mathfont.create("limits-upperlimitgapmin%d" % v,
+                    "Copyright (c) 2016 MathML Association")
 mathfont.createSquareGlyph(f, nArySumCodePoint)
 f.math.LowerLimitBaselineDropMin = 0
 f.math.LowerLimitGapMin = 0

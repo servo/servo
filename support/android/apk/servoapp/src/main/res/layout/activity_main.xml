@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="org.mozilla.servo.MainActivity">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/backbutton"
+                style="@android:style/Widget.Material.Button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="onBackClicked"
+                android:text="Back"
+                android:textSize="10sp" />
+
+            <Button
+                android:id="@+id/forwardbutton"
+                style="@android:style/Widget.Material.Button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="onForwardClicked"
+                android:text="Fwd"
+                android:textSize="10sp" />
+
+            <EditText
+                android:id="@+id/urlfield"
+                style="@android:style/Widget.Material.EditText"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:ems="10"
+                android:hint="URL or Search"
+                android:inputType="textUri"
+                android:selectAllOnFocus="true"
+                android:singleLine="true"
+                android:imeOptions="actionDone"/>
+
+            <ProgressBar
+                android:id="@+id/progressbar"
+                style="@android:style/Widget.ProgressBar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:indeterminate="true" />
+
+            <Button
+                android:id="@+id/stopbutton"
+                style="@android:style/Widget.Material.Button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="onStopClicked"
+                android:text="Stop"
+                android:textSize="10sp" />
+
+            <Button
+                android:id="@+id/reloadbutton"
+                style="@android:style/Widget.Material.Button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="onReloadClicked"
+                android:text="Rld"
+                android:textSize="10sp" />
+
+            <TextView
+                android:id="@+id/redrawing"
+                android:layout_width="70dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:fontFamily="monospace"
+                android:text="idle"
+                android:textAlignment="center"
+                android:textSize="10sp"
+                android:visibility="visible" />
+
+        </LinearLayout>
+
+        <org.mozilla.servoview.ServoView
+            android:id="@+id/servoview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:focusable="true"/>
+
+    </LinearLayout>
+</android.support.constraint.ConstraintLayout>

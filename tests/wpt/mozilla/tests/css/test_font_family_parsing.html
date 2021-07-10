@@ -127,17 +127,6 @@ var testFontFamilyLists = [
 
 ];
 
-if (window.SpecialPowers && SpecialPowers.getBoolPref("layout.css.unset-value.enabled")) {
-  testFontFamilyLists.push(
-    { namelist: "unset", invalid: true, fontonly: true, single: true },
-    { namelist: "unset, simple", invalid: true },
-    { namelist: "simple, unset", invalid: true },
-    { namelist: "simple, unset bongo" },
-    { namelist: "simple, bongo unset" },
-    { namelist: "simple unset", single: true },
-    { namelist: "unset simple", single: true });
-}
-
 var gTest = 0;
 
 /* strip out just values */

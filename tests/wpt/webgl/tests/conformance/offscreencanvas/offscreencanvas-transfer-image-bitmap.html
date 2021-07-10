@@ -1,0 +1,73 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test for OffscreenCanvas TransferToImageBitmap</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/tests/tex-image-and-sub-image-utils.js"></script>
+<script src="../../js/tests/offscreencanvas-transfer-image-bitmap.js"></script>
+</head>
+<body>
+  <div id="description"></div>
+  <div id="console"></div>
+  <script id='myWorker' type='text/worker'>
+  self.onmessage = function(e) {
+      var canvas = new OffscreenCanvas(128, 128);
+      var gl = canvas.getContext("webgl");
+      gl.clearColor(1.0, 1.0, 0.0, 1.0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      var image = canvas.transferToImageBitmap();
+
+      self.postMessage({ bitmap: image },
+                       [ image ]);
+  };
+  </script>
+  <script>
+    "use strict";
+    description("This test ensures that the transferToImageBitmap function of OffscreenCanvas webgl context is functional.");
+    if (!window.OffscreenCanvas) {
+        testPassed("No OffscreenCanvas support");
+        finishTest();
+    } else {
+      var blob = new Blob([document.getElementById('myWorker').textContent]);
+      var worker = new Worker(URL.createObjectURL(blob));
+
+      worker.onmessage = function(msg) {
+          testTransferToImageBitmap("webgl", msg.data.bitmap);
+          finishTest();
+      }
+      worker.postMessage("Start Worker");
+    }
+  </script>
+</body>
+</html>

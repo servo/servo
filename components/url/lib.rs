@@ -1,36 +1,42 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #![deny(unsafe_code)]
-
 #![crate_name = "servo_url"]
 #![crate_type = "rlib"]
 
-#[macro_use] extern crate heapsize;
-#[macro_use] extern crate heapsize_derive;
+#[macro_use]
+extern crate malloc_size_of;
+#[macro_use]
+extern crate malloc_size_of_derive;
+#[macro_use]
 extern crate serde;
-#[macro_use] extern crate serde_derive;
-extern crate servo_rand;
-extern crate url;
-extern crate url_serde;
-extern crate uuid;
 
 pub mod origin;
 
-pub use origin::{OpaqueOrigin, ImmutableOrigin, MutableOrigin};
+pub use crate::origin::{ImmutableOrigin, MutableOrigin, OpaqueOrigin};
 
+use std::collections::hash_map::DefaultHasher;
 use std::fmt;
+use std::hash::Hasher;
 use std::net::IpAddr;
-use std::ops::{Range, RangeFrom, RangeTo, RangeFull, Index};
+use std::ops::{Index, Range, RangeFrom, RangeFull, RangeTo};
 use std::path::Path;
 use std::sync::Arc;
-use url::{Url, Position};
+use to_shmem::{SharedMemoryBuilder, ToShmem};
+use url::{Position, Url};
 
 pub use url::Host;
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, HeapSizeOf)]
-pub struct ServoUrl(Arc<Url>);
+#[derive(Clone, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
+pub struct ServoUrl(#[ignore_malloc_size_of = "Arc"] Arc<Url>);
+
+impl ToShmem for ServoUrl {
+    fn to_shmem(&self, _builder: &mut SharedMemoryBuilder) -> to_shmem::Result<Self> {
+        unimplemented!("If servo wants to share stylesheets across processes, ToShmem for Url must be implemented")
+    }
+}
 
 impl ServoUrl {
     pub fn from_url(url: Url) -> Self {
@@ -38,11 +44,16 @@ impl ServoUrl {
     }
 
     pub fn parse_with_base(base: Option<&Self>, input: &str) -> Result<Self, url::ParseError> {
-        Url::options().base_url(base.map(|b| &*b.0)).parse(input).map(Self::from_url)
+        Url::options()
+            .base_url(base.map(|b| &*b.0))
+            .parse(input)
+            .map(Self::from_url)
     }
 
     pub fn into_string(self) -> String {
-        Arc::try_unwrap(self.0).unwrap_or_else(|s| (*s).clone()).into_string()
+        Arc::try_unwrap(self.0)
+            .unwrap_or_else(|s| (*s).clone())
+            .into_string()
     }
 
     pub fn into_url(self) -> Url {
@@ -84,6 +95,20 @@ impl ServoUrl {
     pub fn is_secure_scheme(&self) -> bool {
         let scheme = self.scheme();
         scheme == "https" || scheme == "wss"
+    }
+
+    /// <https://fetch.spec.whatwg.org/#local-scheme>
+    pub fn is_local_scheme(&self) -> bool {
+        let scheme = self.scheme();
+        scheme == "about" || scheme == "blob" || scheme == "data"
+    }
+
+    pub fn chrome_rules_enabled(&self) -> bool {
+        self.is_chrome()
+    }
+
+    pub fn is_chrome(&self) -> bool {
+        self.scheme() == "chrome"
     }
 
     pub fn as_str(&self) -> &str {
@@ -151,7 +176,47 @@ impl ServoUrl {
     }
 
     pub fn from_file_path<P: AsRef<Path>>(path: P) -> Result<Self, ()> {
-        Ok(Self::from_url(try!(Url::from_file_path(path))))
+        Ok(Self::from_url(Url::from_file_path(path)?))
+    }
+
+    /// <https://w3c.github.io/webappsec-secure-contexts/#potentially-trustworthy-url>
+    pub fn is_potentially_trustworthy(&self) -> bool {
+        // Step 1
+        if self.as_str() == "about:blank" || self.as_str() == "about:srcdoc" {
+            return true;
+        }
+        // Step 2
+        if self.scheme() == "data" {
+            return true;
+        }
+        // Step 3
+        self.is_origin_trustworthy()
+    }
+
+    /// <https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustworthy>
+    pub fn is_origin_trustworthy(&self) -> bool {
+        // Step 1
+        if !self.origin().is_tuple() {
+            return false;
+        }
+
+        // Step 3
+        if self.scheme() == "https" || self.scheme() == "wss" {
+            true
+        // Steps 4-5
+        } else if self.host().is_some() {
+            let host = self.host_str().unwrap();
+            // Step 4
+            if let Ok(ip_addr) = host.parse::<IpAddr>() {
+                ip_addr.is_loopback()
+            // Step 5
+            } else {
+                host == "localhost" || host.ends_with(".localhost")
+            }
+        // Step 6
+        } else {
+            self.scheme() == "file"
+        }
     }
 }
 
@@ -163,6 +228,13 @@ impl fmt::Display for ServoUrl {
 
 impl fmt::Debug for ServoUrl {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        if self.0.as_str().len() > 40 {
+            let mut hasher = DefaultHasher::new();
+            hasher.write(self.0.as_str().as_bytes());
+            let truncated: String = self.0.as_str().chars().take(40).collect();
+            let result = format!("{}... ({:x})", truncated, hasher.finish());
+            return result.fmt(formatter);
+        }
         self.0.fmt(formatter)
     }
 }
@@ -198,21 +270,5 @@ impl Index<Range<Position>> for ServoUrl {
 impl From<Url> for ServoUrl {
     fn from(url: Url) -> Self {
         ServoUrl::from_url(url)
-    }
-}
-
-impl serde::Serialize for ServoUrl {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where S: serde::Serializer,
-    {
-        url_serde::serialize(&*self.0, serializer)
-    }
-}
-
-impl serde::Deserialize for ServoUrl {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where D: serde::Deserializer,
-    {
-        url_serde::deserialize(deserializer).map(Self::from_url)
     }
 }

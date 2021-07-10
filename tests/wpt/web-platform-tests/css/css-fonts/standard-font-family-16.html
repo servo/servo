@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Myles C. Maxfield" href="mailto:mmaxfield@apple.com"/>
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#standard-font-families"/>
+<link rel="mismatch" href="standard-font-family-16-notref.html"/>
+<meta name="assert" content="ui-rounded in @font-face works"/>
+<style>
+@font-face {
+    font-family: "AppleSystemUIRounded";
+    src: local("ui-rounded");
+}
+</style>
+</head>
+<body>
+<div>
+<div style="display: inline-block; font: 72px 'AppleSystemUIRounded';">HeJllo</div>
+</div>
+</body>
+</html>

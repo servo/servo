@@ -1,0 +1,25 @@
+[package]
+name = "embedder_traits"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+edition = "2018"
+publish = false
+
+[lib]
+name = "embedder_traits"
+path = "lib.rs"
+
+[dependencies]
+crossbeam-channel = "0.4"
+ipc-channel = "0.14"
+keyboard-types = "0.5"
+lazy_static = "1"
+log = "0.4"
+msg = { path = "../msg" }
+num-derive = "0.3"
+num-traits = "0.2"
+serde = "1.0"
+servo_url = { path = "../url" }
+webrender_api = { git = "https://github.com/servo/webrender" }
+webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }

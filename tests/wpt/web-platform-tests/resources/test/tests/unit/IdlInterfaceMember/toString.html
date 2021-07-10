@@ -1,0 +1,36 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>IdlInterfaceMember.prototype.toString()</title>
+</head>
+<body>
+<div id="log"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<script src="../../../idl-helper.js"></script>
+<script>
+"use strict";
+const tests = [
+    ["long x", "long"],
+    ["long? x", "long?"],
+    ["Promise<long> x", "Promise<long>"],
+    ["Promise<long?> x", "Promise<long?>"],
+    ["sequence<long> x", "sequence<long>"],
+    ["(long or DOMString) x", "(long or DOMString)"],
+    ["long x, boolean y", "long, boolean"],
+    ["long x, optional boolean y", "long, optional boolean"],
+    ["long... args", "long..."],
+    ["sequence<long>... args", "sequence<long>..."],
+    ["(long or DOMString)... args", "(long or DOMString)..."],
+];
+for (const [input, output] of tests) {
+    test(function() {
+        var m = memberFrom(`void foo(${input})`);
+        assert_equals(m.toString(), `foo(${output})`);
+    }, `toString for ${input}`);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+                      "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>test reference</title>
+  <style type="text/css">
+    div {
+      margin: 1em;
+      font-family: monospace;
+      page-break-inside: avoid;
+    }
+    div p {
+      margin: 0;
+    }
+
+    .control span {
+      background: blue;
+      color: blue;
+    }
+    .test span {
+      background: orange;
+      color: orange;
+    }
+    .ws-pre p {
+      white-space: pre;
+    }
+  </style>
+ </head>
+ <body>
+   <p>In each of the following pairs, the blue and orange bars must have equal lengths.</p>
+
+   <!-- ZERO-WIDTH SPACE -->
+   <div class="ws-normal">
+     <p class="control"><span>A&#x200B;&#x200B;&#x200B;&#x200B;B</span></p>
+     <p class="test"><span>A&#x200B;&#x200B;&#x200B;&#x200B;B</span></p>
+   </div>
+   <div class="ws-pre">
+     <p class="control"><span>A&#x200B;&#x200B;&#x200B;&#x200B;B</span></p>
+     <p class="test"><span>A&#x200B;&#x200B;&#x200B;&#x200B;B</span></p>
+   </div>
+
+   <!-- ZERO-WIDTH NO-BREAK SPACE -->
+   <div class="ws-normal">
+     <p class="control"><span>A&#xFEFF;&#xFEFF;&#xFEFF;&#xFEFF;B</span></p>
+     <p class="test"><span>A&#xFEFF;&#xFEFF;&#xFEFF;&#xFEFF;B</span></p>
+   </div>
+   <div class="ws-pre">
+     <p class="control"><span>A&#xFEFF;&#xFEFF;&#xFEFF;&#xFEFF;B</span></p>
+     <p class="test"><span>A&#xFEFF;&#xFEFF;&#xFEFF;&#xFEFF;B</span></p>
+   </div>
+
+   <!-- ZERO-WIDTH NON-JOINER -->
+   <div class="ws-normal">
+     <p class="control"><span>A&#x200C;&#x200C;&#x200C;&#x200C;B</span></p>
+     <p class="test"><span>A&#x200C;&#x200C;&#x200C;&#x200C;B</span></p>
+   </div>
+   <div class="ws-pre">
+     <p class="control"><span>A&#x200C;&#x200C;&#x200C;&#x200C;B</span></p>
+     <p class="test"><span>A&#x200C;&#x200C;&#x200C;&#x200C;B</span></p>
+   </div>
+
+   <!-- ZERO-WIDTH JOINER -->
+   <div class="ws-normal">
+     <p class="control"><span>A&#x200D;&#x200D;&#x200D;&#x200D;B</span></p>
+     <p class="test"><span>A&#x200D;&#x200D;&#x200D;&#x200D;B</span></p>
+   </div>
+   <div class="ws-pre">
+     <p class="control"><span>A&#x200D;&#x200D;&#x200D;&#x200D;B</span></p>
+     <p class="test"><span>A&#x200D;&#x200D;&#x200D;&#x200D;B</span></p>
+   </div>
+
+ </body>
+</html>

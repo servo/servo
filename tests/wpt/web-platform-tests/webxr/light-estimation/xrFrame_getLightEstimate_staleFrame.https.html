@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="../resources/webxr_util.js"></script>
+  <script src="../resources/webxr_test_constants.js"></script>
+
+  <script>
+    let testName =  "Cannot get XrLightEstimate from stale frame";
+    let testFunction = (session, controller, t) => new Promise((resolve) => {
+      let lightProbe = null;
+      let staleFrame = null;
+
+      function onFrame(time, frame) {
+        // Try to get the light estimate (even if it's null), it shouldn't throw.
+        let estimate = frame.getLightEstimate(lightProbe);
+        staleFrame = frame;
+
+        t.step_timeout(afterFrame, 10);
+      }
+
+      function afterFrame() {
+        t.step(() => {
+          // Attempting to call a method on the frame outside the callback that
+          // originally provided it should cause it to throw an exception.
+          assert_throws_dom('InvalidStateError', () => staleFrame.getLightEstimate(lightProbe));
+        });
+
+        resolve();
+      }
+
+      // Request a default lightProbe
+      let probeInit = {reflectionFormat: session.preferredReflectionFormat};
+      session.requestLightProbe(probeInit).then((probe) => {
+        lightProbe = probe;
+        session.requestAnimationFrame(onFrame);
+      });
+    });
+
+    xr_session_promise_test(
+      testName,
+      testFunction,
+      IMMERSIVE_AR_DEVICE,
+      'immersive-ar', {'requiredFeatures': ['light-estimation']});
+
+  </script>
+</body>

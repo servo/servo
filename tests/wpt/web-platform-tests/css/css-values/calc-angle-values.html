@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Values and Units Test: calc() function with angle values</title>
+
+  <!--
+
+  Original test is:
+
+  https://chromium.googlesource.com/chromium/src/+/c825d655f6aaf73484f9d56e9012793f5b9668cc/third_party/WebKit/LayoutTests/css3/calc/calc-with-time-angle-and-frequency-values.html
+
+  Issue 917718: [css-values] calc-with-time-angle-and-frequency-values
+  test is highly unreliable, transition-delay testing causes side effects
+  https://bugs.chromium.org/p/chromium/issues/detail?id=917718
+
+  -->
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-values-3/#calc-computed-value">
+  <link rel="help" href="https://www.w3.org/TR/css-values-3/#angles">
+
+  <meta content="This test checks that additions, substractions, multiplications and divisions in calc() function when applied to angle units." name="assert">
+
+  <script src="/resources/testharness.js"></script>
+
+  <script src="/resources/testharnessreport.js"></script>
+
+  <div id="log"></div>
+
+  <div id="target"></div>
+
+  <script>
+  function startTesting()
+  {
+
+    var targetElement = document.getElementById("target");
+
+    function compareValueCloseTo(property_name, calcValue, epsilon, expectedValue, description)
+    {
+
+    test(function()
+      {
+
+      targetElement.style.setProperty(property_name, "initial");
+
+      /*
+      Since we are running many consecutive tests on the same
+      element, then it is necessary to reset its property
+      to an initial value before actually re-testing it.
+      */
+
+      targetElement.style.setProperty(property_name, calcValue);
+
+      var computedCalcValue = getComputedStyle(targetElement)[property_name];
+
+      /*
+      We first strip out the word "matrix" with the
+      opening parenthesis "(" and the closing
+      parenthesis ")"
+      */
+
+      computedCalcValue = computedCalcValue.replace("matrix(", "").replace(")", "");
+
+      /*
+      Then, we split the string at each comma ","
+      and store the resulting 6 sub-strings into
+      tableSplitComputedCalcValue
+      */
+
+      var tableSplitCalcValue = computedCalcValue.split(",");
+
+      /*
+      We convert the 6 sub-strings into numerical floating values
+      so that mathematical operations (substraction, absolute value,
+      comparison) can be performed.
+      */
+
+      tableSplitCalcValue[0] = parseFloat(tableSplitCalcValue[0]);
+      tableSplitCalcValue[1] = parseFloat(tableSplitCalcValue[1]);
+      tableSplitCalcValue[2] = parseFloat(tableSplitCalcValue[2]);
+      tableSplitCalcValue[3] = parseFloat(tableSplitCalcValue[3]);
+      tableSplitCalcValue[4] = parseFloat(tableSplitCalcValue[4]);
+      tableSplitCalcValue[5] = parseFloat(tableSplitCalcValue[5]);
+
+      /*
+      Now, we execute the same steps with the expectedValue
+      */
+
+      targetElement.style.setProperty(property_name, expectedValue);
+
+      var computedExpectedValue = getComputedStyle(targetElement)[property_name];
+
+      /*
+      We first strip out the word "matrix" with the
+      opening parenthesis "(" and the closing
+      parenthesis ")"
+      */
+
+      computedExpectedValue = computedExpectedValue.replace("matrix(", "").replace(")", "");
+
+      /*
+      Then, we split the string at each comma ","
+      and store the resulting 6 sub-strings into
+      tableSplitComputedCalcValue
+      */
+
+      var tableSplitExpectedValue = computedExpectedValue.split(",");
+
+      /*
+      We convert the 6 sub-strings into numerical floating values
+      so that mathematical operations (substraction, absolute value,
+      comparison) can be performed.
+      */
+
+      tableSplitExpectedValue[0] = parseFloat(tableSplitExpectedValue[0]);
+      tableSplitExpectedValue[1] = parseFloat(tableSplitExpectedValue[1]);
+      tableSplitExpectedValue[2] = parseFloat(tableSplitExpectedValue[2]);
+      tableSplitExpectedValue[3] = parseFloat(tableSplitExpectedValue[3]);
+      tableSplitExpectedValue[4] = parseFloat(tableSplitExpectedValue[4]);
+      tableSplitExpectedValue[5] = parseFloat(tableSplitExpectedValue[5]);
+
+      assert_array_approx_equals(tableSplitCalcValue, tableSplitExpectedValue, epsilon);
+
+      /*
+      In this mega-test of 27 sub-tests, we intentionally
+      set the tolerance precision (epsilon) to a rather big
+      value (0.0001 === 100 millionths). The reason for this
+      is we want to verify if browsers and CSS-capable
+      applications do the right calculations. We do not want
+      to penalize browsers and CSS-capable applications that
+      have modest precision (not capable of a 1 millionth
+      level precision).
+     */
+
+    } , description);
+
+  }
+
+    /*
+
+    deg
+       Degrees. There are 360 degrees in a full circle.
+
+    grad
+       Gradians, also known as "gons" or "grades". There are 400 gradians in a full circle.
+
+    rad
+       Radians. There are 2π radians in a full circle.
+
+    1rad == 57.295779513°
+    https://www.rapidtables.com/convert/number/radians-to-degrees.html
+
+    π == Math.PI == 3.141592653589793
+
+    turn
+       Turns. There is 1 turn in a full circle.
+
+   */
+
+
+   /* Addition of angle units */
+
+
+ /* compareValueCloseTo(property_name, calcValue, epsilon, expectedValue, description)  */
+
+    compareValueCloseTo("transform", "rotate(calc(45deg + 45deg))", 0.0001, "rotate(90deg)", "addition of 2 angle units: deg plus deg");
+
+    compareValueCloseTo("transform", "rotate(calc(45deg + 1rad))", 0.0001, "rotate(102.29578deg)", "addition of 2 angle units: deg plus rad");
+    /*
+    1 radian == 57.295779513 degrees
+    The original test was using the slightly imprecise rotate(102.3deg)
+    */
+
+    compareValueCloseTo("transform", "rotate(calc(20deg + 200grad))", 0.0001, "rotate(200deg)", "addition of 2 angle units: deg plus grad");
+
+    compareValueCloseTo("transform", "rotate(calc(200deg + 0.5turn))", 0.0001, "rotate(380deg)", "addition of 2 angle units: deg plus turn");
+
+    compareValueCloseTo("transform", "rotate(calc(45rad + 45rad))", 0.0001, "rotate(90rad)", "addition of 2 angle units: rad plus rad");
+
+    compareValueCloseTo("transform", "rotate(calc(1rad + 40grad))", 0.0001, "rotate(93.29578deg)", "addition of 2 angle units: rad plus grad");
+
+    /*
+    1 radian == 57.295779513 degrees; 40 gradians is 36 degrees.
+    */
+
+    compareValueCloseTo("transform", "rotate(calc(1rad + 0.5turn))", 0.0001, "rotate(237.29578deg)", "addition of 2 angle units: rad plus turn");
+
+    compareValueCloseTo("transform", "rotate(calc(45grad + 45grad))", 0.0001, "rotate(90grad)", "addition of 2 angle units: grad plus grad");
+
+    compareValueCloseTo("transform", "rotate(calc(10grad + 0.5turn))", 0.0001, "rotate(189deg)", "addition of 2 angle units: grad plus turn");
+
+    /*
+    10 gradians is 9 degrees.
+    */
+
+ /* compareValueCloseTo(property_name, calcValue, epsilon, expectedValue, description)  */
+
+
+   /* Substraction of angle unit */
+
+ /* compareValueCloseTo(property_name, calcValue, epsilon, expectedValue, description)  */
+
+    compareValueCloseTo("transform", "rotate(calc(45deg - 15deg))", 0.0001, "rotate(30deg)", "substraction of angle unit: deg minus deg");
+
+    compareValueCloseTo("transform", "rotate(calc(90deg - 1rad))", 0.0001, "rotate(32.70422deg)", "substraction of angle unit: deg minus rad");
+
+    /*
+    1 radian == 57.295779513 degrees
+    */
+
+    compareValueCloseTo("transform", "rotate(calc(38deg - 20grad))", 0.0001, "rotate(20deg)", "substraction of angle unit: deg minus grad");
+
+    compareValueCloseTo("transform", "rotate(calc(360deg - 0.5turn))", 0.0001, "rotate(180deg)", "substraction of angle unit: deg minus turn");
+
+    compareValueCloseTo("transform", "rotate(calc(45rad - 15rad))", 0.0001, "rotate(30rad)", "substraction of angle unit: rad minus rad");
+
+    compareValueCloseTo("transform", "rotate(calc(30rad - 10grad))", 0.0001, "rotate(1709.87339deg)", "substraction of angle unit: rad minus grad");
+
+    /*
+    30 radians is 1718.8733854 degrees ; 10 gradians is 9 degrees.
+    */
+
+    compareValueCloseTo("transform", "rotate(calc(4rad - 0.1turn))", 0.0001, "rotate(193.18312deg)", "substraction of angle unit: rad minus turn");
+
+    /*
+    4 radians is 229.183118052 degrees ; 0.1 turn is 36 degrees.
+    */
+
+    compareValueCloseTo("transform", "rotate(calc(45grad - 15grad))", 0.0001, "rotate(30grad)", "substraction of angle unit: grad minus grad");
+
+    compareValueCloseTo("transform", "rotate(calc(100grad - 0.25turn))", 0.0001, "rotate(0deg)", "substraction of angle unit: grad minus turn");
+
+
+   /* Multiplication of angle unit */
+
+ /* compareValueCloseTo(property_name, calcValue, epsilon, expectedValue, description)  */
+
+    compareValueCloseTo("transform", "rotate(calc(45deg * 2))", 0.0001, "rotate(90deg)", "multiplication of angle unit: deg multiplied by int");
+
+    compareValueCloseTo("transform", "rotate(calc(2 * 45rad))", 0.0001, "rotate(90rad)", "multiplication of angle unit: int multiplied by rad");
+
+    compareValueCloseTo("transform", "rotate(calc(45grad * 2))", 0.0001, "rotate(90grad)", "multiplication of angle unit: grad multiplied by int");
+
+    compareValueCloseTo("transform", "rotate(calc(2 * 45turn))", 0.0001, "rotate(90turn)", "multiplication of angle unit: int multiplied by turn");
+
+
+   /* Division of angle unit */
+
+ /* compareValueCloseTo(property_name, calcValue, epsilon, expectedValue, description)  */
+
+    compareValueCloseTo("transform", "rotate(calc(90deg / 2))", 0.0001, "rotate(45deg)", "division of angle unit: deg divided by int");
+
+    compareValueCloseTo("transform", "rotate(calc(90rad / 2))", 0.0001, "rotate(45rad)", "division of angle unit: rad divided by int");
+
+    compareValueCloseTo("transform", "rotate(calc(90grad / 2))", 0.0001, "rotate(45grad)", "division of angle unit: grad divided by int");
+
+    compareValueCloseTo("transform", "rotate(calc(90turn / 2))", 0.0001, "rotate(45turn)", "division of angle unit: turn divided by int");
+
+ /* compareValueCloseTo(property_name, calcValue, epsilon, expectedValue, description)  */
+
+    /*
+
+    deg
+       Degrees. There are 360 degrees in a full circle.
+
+    grad
+       Gradians, also known as "gons" or "grades". There are 400 gradians in a full circle.
+
+    rad
+       Radians. There are 2π radians in a full circle.
+
+    1rad == 57.295779513°
+    https://www.rapidtables.com/convert/number/radians-to-degrees.html
+
+    π == Math.PI == 3.141592653589793
+
+    turn
+       Turns. There is 1 turn in a full circle.
+
+   */
+
+
+
+  /* Testing conversion of angle unit  */
+
+ /* compareValueCloseTo(property_name, calcValue, epsilon, expectedValue, description)  */
+
+    compareValueCloseTo("transform", "rotate(calc(50grad)", 0.0001, "rotate(45deg)", "conversion of angle unit: grad into deg");
+
+  }
+
+  startTesting();
+
+  </script>

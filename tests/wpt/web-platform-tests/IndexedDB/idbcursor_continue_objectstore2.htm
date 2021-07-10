@@ -29,7 +29,7 @@
             var cursor = e.target.result;
 
             assert_true(cursor instanceof IDBCursor, "cursor exists");
-            assert_throws("DataError",
+            assert_throws_dom("DataError",
                 function() { cursor.continue(document); });
 
             t.done();

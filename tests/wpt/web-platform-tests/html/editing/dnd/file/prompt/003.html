@@ -10,13 +10,13 @@
 
 <script>
 window.onload = function() {
-	if( location.protocol != 'ftp:' ) {
-		document.getElementsByTagName('p')[0].innerHTML = 'This test should be loaded over ftp.';
-		return;
-	}
-	var orange = document.getElementsByTagName('div')[0];
-	orange.ondragover = orange.ondragenter = orange.ondrop = function(e) {
-   	e.preventDefault();
+  if( location.protocol != 'ftp:' ) {
+    document.getElementsByTagName('p')[0].innerHTML = 'This test should be loaded over ftp.';
+    return;
+  }
+  var orange = document.getElementsByTagName('div')[0];
+  orange.ondragover = orange.ondragenter = orange.ondrop = function(e) {
+    e.preventDefault();
   };
   document.getElementsByTagName('span')[0].innerHTML = location.hostname;
 };

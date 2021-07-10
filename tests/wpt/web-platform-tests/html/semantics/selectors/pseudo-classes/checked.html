@@ -20,7 +20,8 @@
 <input type=radio id=radio2>
 <form>
   <p><input type=submit contextmenu=formmenu id="submitbutton"></p>
-  <menu type=popup id=formmenu>
+  <menu type=context id=formmenu>
+    <!-- historical; these should *not* match -->
     <menuitem type=checkbox checked default id=menuitem1>
     <menuitem type=checkbox default id=menuitem2>
     <menuitem type=checkbox id=menuitem3>
@@ -30,14 +31,14 @@
 </form>
 
 <script>
-  testSelectorIdsMatch(":checked", ["option1", "checkbox1", "radio1", "menuitem1", "menuitem4"], "':checked' matches checked <input>/<menuitem> in checkbox and radio button states, selected <option>s");
+  testSelectorIdsMatch(":checked", ["option1", "checkbox1", "radio1"], "':checked' matches checked <input>s in checkbox and radio button states, selected <option>s");
 
   document.getElementById("checkbox1").removeAttribute("type");  // change type of input
   document.getElementById("radio1").removeAttribute("type");  // change type of input
-  testSelectorIdsMatch(":checked", ["option1", "menuitem1", "menuitem4"], "':checked' should no longer match <input>s whose type checkbox/radio has been removed");
+  testSelectorIdsMatch(":checked", ["option1"], "':checked' should no longer match <input>s whose type checkbox/radio has been removed");
 
   document.getElementById("option2").selected = "selected";  // select option2
   document.getElementById("checkbox2").click();  // check chekbox2
   document.getElementById("radio2").click();  // check radio2
-  testSelectorIdsMatch(":checked", ["option2", "checkbox2", "radio2", "menuitem1", "menuitem4"], "':checked' matches clicked checkbox and radio buttons");
+  testSelectorIdsMatch(":checked", ["option2", "checkbox2", "radio2"], "':checked' matches clicked checkbox and radio buttons");
 </script>

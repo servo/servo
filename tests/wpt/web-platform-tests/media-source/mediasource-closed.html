@@ -22,7 +22,7 @@
           test(function ()
           {
               var mediaSource = new MediaSource();
-              assert_throws("InvalidStateError",
+              assert_throws_dom("InvalidStateError",
                   function() { mediaSource.addSourceBuffer(MediaSourceUtil.VIDEO_ONLY_TYPE); },
                   "addSourceBuffer() throws an exception when closed.");
           }, "Test addSourceBuffer() while closed.");
@@ -37,7 +37,7 @@
                   assert_equals(mediaSource.sourceBuffers.length, 0, "sourceBuffers is empty");
                   assert_equals(mediaSource.activeSourceBuffers.length, 0, "activeSourceBuffers is empty");
                   assert_equals(mediaSource.readyState, "closed", "readyState is 'closed'");
-                  assert_throws("NotFoundError",
+                  assert_throws_dom("NotFoundError",
                       function() { mediaSource.removeSourceBuffer(sourceBuffer); },
                       "removeSourceBuffer() throws an exception when closed.");
                   test.done();
@@ -50,7 +50,7 @@
           test(function ()
           {
               var mediaSource = new MediaSource();
-              assert_throws("InvalidStateError",
+              assert_throws_dom("InvalidStateError",
                   function() { mediaSource.endOfStream(); },
                   "endOfStream() throws an exception when closed.");
           }, "Test endOfStream() while closed.");
@@ -58,7 +58,7 @@
           test(function ()
           {
               var mediaSource = new MediaSource();
-              assert_throws("InvalidStateError",
+              assert_throws_dom("InvalidStateError",
                   function() { mediaSource.endOfStream("decode"); },
                   "endOfStream(decode) throws an exception when closed.");
           }, "Test endOfStream(decode) while closed.");
@@ -66,7 +66,7 @@
           test(function ()
           {
               var mediaSource = new MediaSource();
-              assert_throws("InvalidStateError",
+              assert_throws_dom("InvalidStateError",
                   function() { mediaSource.endOfStream("network"); },
                   "endOfStream(network) throws an exception when closed.");
           }, "Test endOfStream(network) while closed.");
@@ -74,7 +74,7 @@
           test(function ()
           {
               var mediaSource = new MediaSource();
-              assert_throws("InvalidStateError",
+              assert_throws_dom("InvalidStateError",
                   function() { mediaSource.duration = 10; },
                   "Setting duration throws an exception when closed.");
           }, "Test setting duration while closed.");
@@ -88,7 +88,7 @@
               mediaSource.addEventListener("sourceclose", test.step_func(function (event)
               {
                   assert_equals(mediaSource.readyState, "closed", "readyState is 'closed'");
-                  assert_throws("InvalidStateError",
+                  assert_throws_dom("InvalidStateError",
                       function() { mediaSource.duration = 10; },
                       "Setting duration when closed throws an exception");
                   test.done();
@@ -125,7 +125,7 @@
               mediaSource.addEventListener("sourceclose", test.step_func(function (event)
               {
                   assert_equals(mediaSource.readyState, "closed", "readyState is closed");
-                  assert_throws("InvalidStateError",
+                  assert_throws_dom("InvalidStateError",
                     function() { sourceBuffer.abort(); },
                     "sourceBuffer.abort() throws INVALID_STATE_ERROR");
                   test.done();

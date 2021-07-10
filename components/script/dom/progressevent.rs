@@ -1,17 +1,17 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::codegen::Bindings::ProgressEventBinding;
-use dom::bindings::codegen::Bindings::ProgressEventBinding::ProgressEventMethods;
-use dom::bindings::error::Fallible;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
-use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::str::DOMString;
-use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::globalscope::GlobalScope;
+use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
+use crate::dom::bindings::codegen::Bindings::ProgressEventBinding;
+use crate::dom::bindings::codegen::Bindings::ProgressEventBinding::ProgressEventMethods;
+use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
+use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use servo_atoms::Atom;
 
@@ -20,7 +20,7 @@ pub struct ProgressEvent {
     event: Event,
     length_computable: bool,
     loaded: u64,
-    total: u64
+    total: u64,
 }
 
 impl ProgressEvent {
@@ -29,34 +29,50 @@ impl ProgressEvent {
             event: Event::new_inherited(),
             length_computable: length_computable,
             loaded: loaded,
-            total: total
+            total: total,
         }
     }
-    pub fn new_uninitialized(global: &GlobalScope) -> Root<ProgressEvent> {
-        reflect_dom_object(box ProgressEvent::new_inherited(false, 0, 0),
-                           global,
-                           ProgressEventBinding::Wrap)
-    }
-    pub fn new(global: &GlobalScope, type_: Atom,
-               can_bubble: EventBubbles, cancelable: EventCancelable,
-               length_computable: bool, loaded: u64, total: u64) -> Root<ProgressEvent> {
-        let ev = reflect_dom_object(box ProgressEvent::new_inherited(length_computable, loaded, total),
-                                    global,
-                                    ProgressEventBinding::Wrap);
+    pub fn new(
+        global: &GlobalScope,
+        type_: Atom,
+        can_bubble: EventBubbles,
+        cancelable: EventCancelable,
+        length_computable: bool,
+        loaded: u64,
+        total: u64,
+    ) -> DomRoot<ProgressEvent> {
+        let ev = reflect_dom_object(
+            Box::new(ProgressEvent::new_inherited(
+                length_computable,
+                loaded,
+                total,
+            )),
+            global,
+        );
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bool::from(can_bubble), bool::from(cancelable));
         }
         ev
     }
-    pub fn Constructor(global: &GlobalScope,
-                       type_: DOMString,
-                       init: &ProgressEventBinding::ProgressEventInit)
-                       -> Fallible<Root<ProgressEvent>> {
+
+    #[allow(non_snake_case)]
+    pub fn Constructor(
+        global: &GlobalScope,
+        type_: DOMString,
+        init: &ProgressEventBinding::ProgressEventInit,
+    ) -> Fallible<DomRoot<ProgressEvent>> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
-        let ev = ProgressEvent::new(global, Atom::from(type_), bubbles, cancelable,
-                                    init.lengthComputable, init.loaded, init.total);
+        let ev = ProgressEvent::new(
+            global,
+            Atom::from(type_),
+            bubbles,
+            cancelable,
+            init.lengthComputable,
+            init.loaded,
+            init.total,
+        );
         Ok(ev)
     }
 }

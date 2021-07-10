@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Inheritance of CSS Flexible Box Layout properties</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#property-index">
+<link rel="help" href="https://drafts.csswg.org/css-align/#property-index">
+<meta name="assert" content="Properties do not inherit, according to the spec.">
+<meta name="assert" content="Properties have initial values according to the spec.">
+<meta name="assert" content="align-content, align-items, justify-content have initial value 'normal' as specified in CSS Box Alignment.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/inheritance-testcommon.js"></script>
+<style>
+  #container, #target {
+    display: flex;
+  }
+</style>
+</head>
+<body>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+assert_not_inherited('align-content', 'normal', 'center'); // initial value was "stretch" in flexbox-1
+assert_not_inherited('align-items', 'normal', 'center'); // initial value was "stretch" in flexbox-1
+assert_not_inherited('align-self', 'auto', 'stretch');
+assert_not_inherited('flex-basis', 'auto', '10px');
+assert_not_inherited('flex-direction', 'row', 'column');
+assert_not_inherited('flex-grow', '0', '2');
+assert_not_inherited('flex-shrink', '1', '3');
+assert_not_inherited('flex-wrap', 'nowrap', 'wrap-reverse');
+assert_not_inherited('justify-content', 'normal', 'center'); // initial value was "flex-start" in flexbox-1
+assert_not_inherited('order', '0', '2');
+</script>
+</body>
+</html>

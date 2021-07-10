@@ -2,7 +2,6 @@ def WebIDLTest(parser, harness):
     threw = False
     try:
         parser.parse("""
-            interface _Promise {};
             interface A {
               legacycaller Promise<any> foo();
             };
@@ -18,7 +17,6 @@ def WebIDLTest(parser, harness):
     threw = False
     try:
         parser.parse("""
-            interface _Promise {};
             interface A {
               Promise<any> foo();
               long foo(long arg);
@@ -35,7 +33,6 @@ def WebIDLTest(parser, harness):
     threw = False
     try:
         parser.parse("""
-            interface _Promise {};
             interface A {
               long foo(long arg);
               Promise<any> foo();
@@ -49,8 +46,35 @@ def WebIDLTest(parser, harness):
                "non-Promise return types.")
 
     parser = parser.reset()
+    threw = False
+    try:
+        parser.parse("""
+            interface A {
+              Promise<any>? foo();
+            };
+        """)
+        results = parser.finish();
+    except:
+        threw = True
+    harness.ok(threw,
+               "Should not allow nullable Promise return values.")
+
+    parser = parser.reset()
+    threw = False
+    try:
+        parser.parse("""
+            interface A {
+              void foo(Promise<any>? arg);
+            };
+        """)
+        results = parser.finish();
+    except:
+        threw = True
+    harness.ok(threw,
+               "Should not allow nullable Promise arguments.")
+
+    parser = parser.reset()
     parser.parse("""
-        interface _Promise {};
         interface A {
           Promise<any> foo();
           Promise<any> foo(long arg);
@@ -61,3 +85,73 @@ def WebIDLTest(parser, harness):
     harness.ok(True,
                "Should allow overloads which only have Promise and return "
                "types.")
+
+    parser = parser.reset()
+    threw = False
+    try:
+        parser.parse("""
+            interface A {
+              attribute Promise<any> attr;
+            };
+        """)
+        results = parser.finish();
+    except:
+        threw = True
+    harness.ok(threw,
+               "Should not allow writable Promise-typed attributes.")
+
+    parser = parser.reset()
+    threw = False
+    try:
+        parser.parse("""
+            interface A {
+              [LenientSetter] readonly attribute Promise<any> attr;
+            };
+        """)
+        results = parser.finish();
+    except:
+        threw = True
+    harness.ok(threw,
+               "Should not allow [LenientSetter] Promise-typed attributes.")
+
+    parser = parser.reset()
+    threw = False
+    try:
+        parser.parse("""
+            interface A {
+              [PutForwards=bar] readonly attribute Promise<any> attr;
+            };
+        """)
+        results = parser.finish();
+    except:
+        threw = True
+    harness.ok(threw,
+               "Should not allow [PutForwards] Promise-typed attributes.")
+
+    parser = parser.reset()
+    threw = False
+    try:
+        parser.parse("""
+            interface A {
+              [Replaceable] readonly attribute Promise<any> attr;
+            };
+        """)
+        results = parser.finish();
+    except:
+        threw = True
+    harness.ok(threw,
+               "Should not allow [Replaceable] Promise-typed attributes.")
+
+    parser = parser.reset()
+    threw = False
+    try:
+        parser.parse("""
+            interface A {
+              [SameObject] readonly attribute Promise<any> attr;
+            };
+        """)
+        results = parser.finish();
+    except:
+        threw = True
+    harness.ok(threw,
+               "Should not allow [SameObject] Promise-typed attributes.")

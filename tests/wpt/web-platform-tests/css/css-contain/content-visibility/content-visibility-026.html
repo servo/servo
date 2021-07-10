@@ -1,0 +1,115 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content Visibility: containment added</title>
+<link rel="author" title="Rakina Zata Amni" href="mailto:rakina@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="content-visibility visible does not add containment">
+<meta name="assert" content="content-visibility hidden adds containment">
+<meta name="assert" content="content-visibility auto adds containment">
+<meta name="assert" content="content-visibility auto visibility switches after rAF callbacks of the frame that produces the painted output">
+
+<style>
+.auto {
+  content-visibility: auto;
+}
+.hidden {
+  content-visibility: hidden;
+}
+.spacer {
+  height: 10000px;
+}
+</style>
+<div id="container"></div>
+<div id="onscreen_container"></div>
+<div class=spacer></div>
+<div id="offscreen_container"></div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+function setUp(container) {
+  container.style = "";
+  container.classList = "";
+  assert_equals(getComputedStyle(container).contain, "none");
+}
+
+test(() => {
+  setUp(container);
+  container.classList.add("hidden");
+  assert_equals(getComputedStyle(container).contain, "size layout style paint");
+}, "content-visibility: hidden adds contain: size layout style;");
+
+async_test((t) => {
+  setUp(onscreen_container);
+  setUp(offscreen_container);
+
+  function runTest() {
+    onscreen_container.classList.add("auto");
+    offscreen_container.classList.add("auto");
+
+    t.step(() => assert_equals(getComputedStyle(onscreen_container).contain, "size layout style paint", "initial onscreen"));
+    t.step(() => assert_equals(getComputedStyle(offscreen_container).contain, "size layout style paint", "initial offscreen"));
+    // Considering this as frame 1, at the end of the frame intersection observation will happen
+    // and determine that on-screen is visible and off-screen is not. The on-screen switch will
+    // happen synchronously since this is the first time we check, so for the remainder of the
+    // frames, on-screen should not have a size containment.
+
+    // For off-screen container:
+    // At frame 2, we verify that it has size containment.
+    // At frame 3, we scroll it into view and verify it has size containment. At the end of the frame
+    //    we will determine that it is visible and schedule a visibility switch to happen at the next
+    //    frame (at post-rAF timing).
+    // At frame 4, we still have size containment until after rAF callbacks.
+    // At frame 5, the container is no longer size-contained since it is visible.
+    requestAnimationFrame(() => {
+      // Frame 2 checks:
+      t.step(() => assert_equals(getComputedStyle(onscreen_container).contain, "layout style paint", "frame 2 onscreen"));
+      t.step(() => assert_equals(getComputedStyle(offscreen_container).contain, "size layout style paint", "frame 2 offscreen"));
+
+      requestAnimationFrame(() => {
+        window.scrollBy(0, 10000);
+
+        // Frame 3 checks:
+        t.step(() => assert_equals(getComputedStyle(offscreen_container).contain, "size layout style paint", "frame 3"));
+
+        requestAnimationFrame(() => {
+          // Frame 4 checks:
+          t.step(() => assert_equals(getComputedStyle(offscreen_container).contain, "size layout style paint", "frame 4"));
+
+          requestAnimationFrame(() => {
+            // Frame 5 checks:
+            t.step(() => assert_equals(getComputedStyle(offscreen_container).contain, "layout style paint", "frame 5"));
+            t.done();
+          });
+        });
+      });
+    });
+  }
+  // rAF to ensure we know where we are in the lifecycle.
+  requestAnimationFrame(runTest);
+}, "content-visibility: auto adds contain: size layout style paint;");
+
+test(() => {
+  setUp(container);
+  container.classList.add("auto");
+  container.style = "contain: style;";
+  assert_equals(getComputedStyle(container).contain, "size layout style paint");
+  container.style = "contain: style layout;";
+  assert_equals(getComputedStyle(container).contain, "size layout style paint");
+  container.style = "";
+  assert_equals(getComputedStyle(container).contain, "size layout style paint");
+}, "content-visibility: auto adds contain: size layout style paint, can't be overridden");
+
+test(() => {
+  setUp(container);
+  container.classList.add("auto");
+  container.style = "contain: paint;";
+  assert_equals(getComputedStyle(container).contain, "size layout style paint");
+  container.style = "contain: strict;";
+  assert_equals(getComputedStyle(container).contain, "size layout style paint");
+  container.style = "contain: content;";
+  assert_equals(getComputedStyle(container).contain, "size layout style paint");
+}, "content-visibility keeps all containment even when shorthands are specified");
+</script>

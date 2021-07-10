@@ -1,9 +1,0 @@
-clear on inline
-run-in past out-of-flow
-inline-block baseline
-big line-heights and small floats (they should stack, not separate)
-
-Things to test for linking stylesheets:
-  <link media="screenball" rel="stylesheet" href="...">
-  <link type="text/css" href="..."> <!-- no rel -->
-  <link type="bogus-test/css-bogus" rel="stylesheet" href="...">

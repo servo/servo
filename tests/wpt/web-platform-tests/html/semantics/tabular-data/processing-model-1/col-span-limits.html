@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<title>Limits on col/colgroup.span</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+  div.square {
+    height:20px;
+    width:20px;
+    border:1px solid lime;
+  }
+  main table {
+    border-collapse:collapse;
+    border:1px solid blue;
+  }
+  main table col {
+    border-left:2px solid black;
+  }
+</style>
+<div id=log></div>
+<main>
+<table id=table1>
+  <col span=1000>
+  <tr>
+    <td colspan=999><div class="square"></div></td>
+    <td><div class="square"></div></td>
+  </tr>
+  <tr>
+    <td colspan=1000><div class="square"></div></td>
+  </tr>
+</table>
+<br>
+These two must look the same, each having 2 cells in one row:
+<table id=table2>
+  <col span=1000>
+  <tr>
+    <td colspan=1000><div class="square"></div></td>
+    <td><div class="square"></div></td>
+  </tr>
+</table>
+<br>
+<table id=table3>
+  <col span=1001>
+  <tr>
+    <td colspan=1000><div class="square"></div></td>
+    <td><div class="square"></div></td>
+  </tr>
+</table>
+</main>
+
+<script>
+test(() => {
+    assert_equals(table1.offsetWidth, 53);
+}, "col span of 1000 must work");
+
+test(() => {
+    assert_equals(table2.offsetWidth, 51, "table2 width");
+    assert_equals(table3.offsetWidth, 51, "table3 width");
+}, "col span of 1001 must be treated as 1000");
+</script>

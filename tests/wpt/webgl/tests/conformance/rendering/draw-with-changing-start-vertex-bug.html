@@ -1,0 +1,135 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+This bug would occur after the app would render several times with the
+same vertex attributes and buffers, but using a different start offset.
+One of the buffers would likely have to be DYNAMIC.
+
+See http://anglebug.com/1327 and http://crbug.com/594509
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Draw with changing start vertex test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="canvas" width="16" height="16"> </canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">
+attribute mediump vec4 position;
+attribute mediump vec4 test;
+attribute mediump vec4 expected;
+varying mediump vec4 color;
+void main(void)
+{
+    gl_Position = position;
+    vec4 threshold = max(abs(expected) * 0.01, 1.0 / 64.0);
+    color = vec4(lessThanEqual(abs(test - expected), threshold));
+}
+</script>
+
+<script id="fshader" type="x-shader/x-fragment">
+varying mediump vec4 color;
+void main(void)
+{
+    gl_FragColor = color;
+}
+</script>
+
+<script>
+"use strict";
+description("Test calling drawArrays with repeatedly with a different start vertex");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas1");
+var gl = wtu.create3DContext(canvas);
+
+var program = wtu.setupProgram(gl, ["vshader", "fshader"], ["position", "test", "expected"]);
+
+var vertexCount = 24;
+var testData = new Float32Array(vertexCount);
+
+for (var index = 0; index < vertexCount; ++index) {
+    testData[index] = index;
+}
+
+var quadData = new Float32Array(14)
+quadData[0] = -1.0; quadData[1] = 1.0;
+quadData[2] = -1.0; quadData[3] = -1.0;
+quadData[4] = 1.0;  quadData[5] = -1.0;
+quadData[6] = -1.0; quadData[7] = 1.0;
+quadData[8] = 1.0;  quadData[9] = -1.0;
+quadData[10] = 1.0; quadData[11] = 1.0;
+quadData[12] = 0.0; quadData[13] = 0.0;
+
+var quadBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+gl.bufferData(gl.ARRAY_BUFFER, quadData, gl.STATIC_DRAW);
+gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+gl.enableVertexAttribArray(0);
+
+// Must be STATIC to trigger the bug.
+var testBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, testBuffer);
+gl.bufferData(gl.ARRAY_BUFFER, testData, gl.STATIC_DRAW);
+gl.vertexAttribPointer(1, 1, gl.FLOAT, false, 0, 0);
+gl.enableVertexAttribArray(1);
+
+// Must be DYNAMIC to trigger the bug.
+var expectedBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, expectedBuffer);
+gl.bufferData(gl.ARRAY_BUFFER, testData, gl.DYNAMIC_DRAW);
+gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 0, 0);
+gl.enableVertexAttribArray(2);
+
+function check() {
+    wtu.checkCanvas(gl, [255, 255, 255, 255], "should be white");
+}
+
+gl.drawArrays(gl.TRIANGLES, 0, 6);
+check()
+
+gl.drawArrays(gl.TRIANGLES, 0, 6);
+check()
+
+gl.drawArrays(gl.TRIANGLES, 1, 6);
+check()
+
+debug("");
+var successfullyParsed = true;
+</script>
+
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

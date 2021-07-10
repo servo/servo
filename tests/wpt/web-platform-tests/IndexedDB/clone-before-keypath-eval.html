@@ -63,8 +63,8 @@ indexeddb_test(
     const tx = db.transaction('store', 'readwrite');
     const store = tx.objectStore('store');
     const obj = new ProbeObject();
-    assert_throws('DataError', () => { store.put(obj); },
-                  'put() should throw if primary key cannot be injected');
+    assert_throws_dom('DataError', () => { store.put(obj); },
+                      'put() should throw if primary key cannot be injected');
     assert_equals(
         obj.invalid_id_count, 1,
         'put() operation should access primary key property once');

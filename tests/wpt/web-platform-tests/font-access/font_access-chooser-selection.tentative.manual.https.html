@@ -1,0 +1,44 @@
+<!doctype html>
+<title>Local Font Access: Chooser, Selection Options</title>
+<meta charset=utf-8>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/test-expectations.js"></script>
+
+<script>
+    (async () => {
+      await new Promise(resolve => {
+        window.addEventListener('DOMContentLoaded', resolve);
+      });
+
+      // Small delay to give chrome's test automation a chance to actually install
+      // itself.
+      await new Promise(resolve => step_timeout(resolve, 100));
+
+      promise_test(async t => {
+        await window.test_driver.bless('show a font chooser.<br />Please select all the fonts that shows up.');
+        // Arial is considered to be web-safe.
+        const fonts = await navigator.fonts.query({select: ['ArialMT']});
+        assert_true(Array.isArray(fonts));
+        assert_equals(fonts.length, 1);
+
+        const postscriptName = fonts[0].postscriptName;
+        assert_equals(typeof postscriptName, "string");
+        assert_greater_than(postscriptName.length, 0);
+      }, 'query() with selection works');
+
+      promise_test(async t => {
+        await window.test_driver.bless('show a font chooser.<br />Please select all the fonts that shows up.');
+        const fonts = await navigator.fonts.query({select: []});
+        assert_true(Array.isArray(fonts));
+        assert_greater_than_equal(fonts.length, 1);
+
+        const postscriptName = fonts[0].postscriptName;
+        assert_equals(typeof postscriptName, "string");
+        assert_greater_than(postscriptName.length, 0);
+      }, 'query() with empty selection bag works');
+    })();
+</script>

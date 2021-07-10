@@ -1,0 +1,132 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>CSSOM - CSSStyleSheet interface</title>
+    <link rel="help" href="https://drafts.csswg.org/cssom/#the-cssstylesheet-interface">
+    <link rel="help" href="https://drafts.csswg.org/cssom/#legacy-css-style-sheet-members">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style id="my-stylesheet">
+        body { width: 50%; }
+        #foo { height: 100px; }
+    </style>
+    <style id="empty-stylesheet"></style>
+
+    <script>
+    var styleSheet, emptyStyleSheet;
+
+    setup(function() {
+        styleSheet = document.styleSheets[0];
+        styleSheet.cssRules[0].randomProperty = 1;
+        styleSheet.cssRules[1].randomProperty = 2;
+        emptyStyleSheet = document.styleSheets[1];
+    });
+
+    test(function() {
+        assert_equals(styleSheet, document.getElementById("my-stylesheet").sheet, "CSSStyleSheet and LinkStyle's sheet attribute");
+        assert_equals(styleSheet.cssRules.length, 2, "CSSStyleSheet cssRules attribute");
+        assert_equals(styleSheet.cssRules[0].cssText, "body { width: 50%; }", "CSSStyleSheet cssRules attribute");
+        assert_equals(styleSheet.cssRules[1].cssText, "#foo { height: 100px; }", "CSSStyleSheet cssRules attribute");
+        assert_equals(styleSheet.cssRules[2], undefined, "CSSStyleSheet cssRules attribute");
+
+        assert_equals(emptyStyleSheet, document.getElementById("empty-stylesheet").sheet, "CSSStyleSheet and LinkStyle's sheet attribute");
+        assert_equals(emptyStyleSheet.cssRules.length, 0, "CSSStyleSheet cssRules attribute");
+    }, "preconditions");
+
+    test(function() {
+        styleSheet.insertRule("#bar { margin: 10px; }", 1);
+        assert_equals(styleSheet.cssRules.length, 3, "CSSStyleSheet cssRules attribute after insertRule function");
+        assert_equals(styleSheet.cssRules[0].cssText, "body { width: 50%; }", "CSSStyleSheet cssRules attribute");
+        assert_equals(styleSheet.cssRules[1].cssText, "#bar { margin: 10px; }", "CSSStyleSheet cssRules attribute after insertRule function");
+        assert_equals(styleSheet.cssRules[2].cssText, "#foo { height: 100px; }", "CSSStyleSheet cssRules attribute after insertRule function");
+        assert_equals(styleSheet.cssRules[0].randomProperty, 1, "[SameObject] cssRules attribute after insertRule function");
+        assert_equals(styleSheet.cssRules[2].randomProperty, 2, "[SameObject] cssRules attribute after insertRule function");
+    }, 'insertRule with #bar selector');
+
+    test(function() {
+        assert_throws_js(TypeError, function() { styleSheet.insertRule() });
+    }, 'insertRule with no argument throws');
+
+    test(function() {
+        assert_throws_dom("IndexSizeError", function() {
+            styleSheet.insertRule("#bar { margin: 10px; }", styleSheet.cssRules.length + 1)
+        });
+    }, 'insertRule with index greater than length throws');
+
+    test(function() {
+        styleSheet.deleteRule(1);
+        assert_equals(styleSheet.cssRules.length, 2, "CSSStyleSheet cssRules attribute after deleteRule function");
+        assert_equals(styleSheet.cssRules[0].cssText, "body { width: 50%; }", "CSSStyleSheet cssRules attribute after deleteRule function");
+        assert_equals(styleSheet.cssRules[1].cssText, "#foo { height: 100px; }", "CSSStyleSheet cssRules attribute after deleteRule function");
+        assert_equals(styleSheet.cssRules[2], undefined, "CSSStyleSheet cssRules attribute after deleteRule function");
+        assert_equals(styleSheet.cssRules[0].randomProperty, 1, "[SameObject] cssRules attribute after deleteRule function");
+        assert_equals(styleSheet.cssRules[1].randomProperty, 2, "[SameObject] cssRules attribute after deleteRule function");
+    }, 'deleteRule(1)');
+
+    test(function() {
+        assert_throws_js(TypeError, function() { styleSheet.deleteRule() });
+    }, 'deleteRule with no argument throws');
+
+    test(function() {
+        assert_throws_dom("IndexSizeError", function() { emptyStyleSheet.deleteRule(0) });
+    }, 'deleteRule on empty style sheet throws');
+
+    test(function() {
+        styleSheet.removeRule();
+        assert_equals(styleSheet.cssRules.length, 1, "CSSStyleSheet cssRules attribute after removeRule function");
+        assert_equals(styleSheet.cssRules[0].cssText, "#foo { height: 100px; }", "CSSStyleSheet cssRules attribute after removeRule function");
+    }, 'removeRule with no argument removes first rule');
+
+    test(function() {
+        assert_throws_dom("IndexSizeError", function() { emptyStyleSheet.removeRule(0) });
+    }, 'removeRule on empty style sheet throws');
+
+    test(function() {
+        assert_equals(styleSheet.addRule("@media all", "#foo { color: red }"), -1);
+        assert_equals(styleSheet.cssRules.length, 2, "CSSStyleSheet cssRules attribute after addRule function");
+        assert_true(styleSheet.cssRules[1] instanceof CSSMediaRule, "CSSStyleSheet addRule does some silly string concatenation");
+    }, 'addRule with @media rule');
+
+    test(function() {
+        styleSheet.removeRule(1);
+        assert_equals(styleSheet.cssRules.length, 1, "CSSStyleSheet cssRules attribute after removeRule function with index");
+        assert_equals(styleSheet.cssRules[0].cssText, "#foo { height: 100px; }", "CSSStyleSheet cssRules attribute after deleteRule function with index");
+    }, 'removeRule(1)');
+
+    test(function() {
+        assert_equals(styleSheet.addRule("#foo", "color: red"), -1);
+        assert_equals(styleSheet.cssRules.length, 2, "CSSStyleSheet cssRules attribute after addRule function with simple selector");
+        assert_equals(styleSheet.cssRules[1].cssText, "#foo { color: red; }", "CSSStyleSheet cssRules attribute after addRule function without index appends to the end");
+
+        assert_equals(styleSheet.addRule("#foo", "color: blue", 0), -1);
+        assert_equals(styleSheet.cssRules.length, 3, "CSSStyleSheet cssRules attribute after addRule function with simple selector with index");
+        assert_equals(styleSheet.cssRules[0].cssText, "#foo { color: blue; }", "addRule function with index performs an insertion");
+    }, 'addRule with #foo selectors');
+
+    test(function() {
+        assert_equals(styleSheet.addRule(), -1);
+        assert_equals(styleSheet.cssRules.length, 4, "CSSStyleSheet cssRules attribute after addRule function without arguments");
+        assert_equals(styleSheet.cssRules[3].cssText, "undefined { }", "addRule arguments default to undefined");
+    }, 'addRule with no argument adds "undefined" selector');
+
+    test(function() {
+        assert_throws_dom("IndexSizeError", function() {
+            styleSheet.addRule("#foo", "color: red", styleSheet.cssRules.length + 1);
+        });
+    }, 'addRule with index greater than length throws');
+
+    test(function() {
+        assert_equals(styleSheet.cssRules, styleSheet.rules);
+    }, "cssRules and rules are the same object");
+
+    test(function() {
+        assert_equals(styleSheet.cssRules, styleSheet.cssRules);
+    }, "cssRules returns the same object twice");
+
+    test(function() {
+        assert_equals(styleSheet.rules, styleSheet.rules);
+    }, "rules returns the same object twice");
+    </script>
+</head>
+</html>

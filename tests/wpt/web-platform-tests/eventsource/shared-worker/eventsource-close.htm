@@ -1,18 +1,4 @@
-<!--
-onconnect = function(e) {
-try {
-  var port = e.ports[0]
-  var source = new EventSource("../resources/message.py")
-  source.onopen = function(e) {
-    this.close()
-    port.postMessage([true, this.readyState])
-  }
-} catch(e) {
-  port.postMessage([false, String(e)])
-}
-}
-/*-->
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <title>shared worker - EventSource: close()</title>
@@ -24,7 +10,7 @@ try {
     <script>
       var test = async_test();
       test.step(function() {
-        var worker = new SharedWorker('#')
+        var worker = new SharedWorker('eventsource-close.js')
         worker.port.onmessage = function(e) {
           test.step(function() {
             assert_true(e.data[0], e.data[1])
@@ -36,4 +22,3 @@ try {
     </script>
   </body>
 </html>
-<!--*/ //-->

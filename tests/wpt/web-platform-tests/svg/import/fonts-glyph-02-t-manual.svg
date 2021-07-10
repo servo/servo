@@ -15,14 +15,14 @@
     version="$Revision: 1.8 $" testname="$RCSfile: fonts-glyph-02-t.svg,v $">
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/fonts.html#GlyphElement">
       <p>
-        The first subtest tests the arabic-form attribute on the glyph element, 
-	the second subtest is the same, but with glyphs for the letter khah.
+        The first subtest tests the arabic-form attribute on the glyph element,
+  the second subtest is the same, but with glyphs for the letter khah.
         It should match the reference image.
       </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
       <p>
-	Run the test. No interaction required.
+  Run the test. No interaction required.
       </p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
@@ -32,9 +32,9 @@
         and then an 'upward triangle' in this order. Remembering
         that arabic text is right to left.
       </p>
-			<p>The second subtest must produce the isolated, initial, medial, final and 
-	 			glyphs of the letter khah. Again in the writing direction, from right to left.
-	 		</p>
+      <p>The second subtest must produce the isolated, initial, medial, final and
+         glyphs of the letter khah. Again in the writing direction, from right to left.
+       </p>
     </d:passCriteria>
   </d:SVGTestCase>
   <title id="test-title">$RCSfile: fonts-glyph-02-t.svg,v $</title>

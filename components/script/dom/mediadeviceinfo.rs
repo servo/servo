@@ -1,0 +1,85 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use crate::dom::bindings::codegen::Bindings::MediaDeviceInfoBinding::MediaDeviceInfoMethods;
+use crate::dom::bindings::codegen::Bindings::MediaDeviceInfoBinding::MediaDeviceKind;
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::globalscope::GlobalScope;
+use dom_struct::dom_struct;
+use servo_media::streams::device_monitor::MediaDeviceKind as ServoMediaDeviceKind;
+
+#[dom_struct]
+pub struct MediaDeviceInfo {
+    reflector_: Reflector,
+    device_id: DOMString,
+    kind: MediaDeviceKind,
+    label: DOMString,
+    group_id: DOMString,
+}
+
+impl MediaDeviceInfo {
+    fn new_inherited(
+        device_id: &str,
+        kind: MediaDeviceKind,
+        label: &str,
+        group_id: &str,
+    ) -> MediaDeviceInfo {
+        MediaDeviceInfo {
+            reflector_: Reflector::new(),
+            device_id: DOMString::from(device_id),
+            kind,
+            label: DOMString::from(label),
+            group_id: DOMString::from(group_id),
+        }
+    }
+
+    pub fn new(
+        global: &GlobalScope,
+        device_id: &str,
+        kind: MediaDeviceKind,
+        label: &str,
+        group_id: &str,
+    ) -> DomRoot<MediaDeviceInfo> {
+        reflect_dom_object(
+            Box::new(MediaDeviceInfo::new_inherited(
+                device_id, kind, label, group_id,
+            )),
+            global,
+        )
+    }
+}
+
+impl MediaDeviceInfoMethods for MediaDeviceInfo {
+    /// https://w3c.github.io/mediacapture-main/#dom-mediadeviceinfo-deviceid
+    fn DeviceId(&self) -> DOMString {
+        self.device_id.clone()
+    }
+
+    /// https://w3c.github.io/mediacapture-main/#dom-mediadeviceinfo-kind
+    fn Kind(&self) -> MediaDeviceKind {
+        self.kind
+    }
+
+    /// https://w3c.github.io/mediacapture-main/#dom-mediadeviceinfo-label
+    fn Label(&self) -> DOMString {
+        self.label.clone()
+    }
+
+    /// https://w3c.github.io/mediacapture-main/#dom-mediadeviceinfo-groupid
+    fn GroupId(&self) -> DOMString {
+        self.group_id.clone()
+    }
+}
+
+impl From<ServoMediaDeviceKind> for MediaDeviceKind {
+    fn from(kind: ServoMediaDeviceKind) -> MediaDeviceKind {
+        match kind {
+            ServoMediaDeviceKind::AudioInput => MediaDeviceKind::Audioinput,
+            ServoMediaDeviceKind::AudioOutput => MediaDeviceKind::Audiooutput,
+            ServoMediaDeviceKind::VideoInput => MediaDeviceKind::Videoinput,
+        }
+    }
+}

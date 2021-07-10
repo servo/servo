@@ -1,0 +1,18 @@
+<!doctype html>
+<title>Test for a Chrome crash when adopting a node into another document</title>
+<link rel="help" href="https://crbug.com/981384">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="d1"></div>
+<div id="d2"></div>
+<script>
+  test(() => {
+    d1.appendChild(document.createElement("iframe"));
+    d2.remove();
+    const adopted_div = d1;
+    const popup = window.open();
+    assert_equals(adopted_div.ownerDocument, document);
+    popup.document.body.appendChild(document.body);
+    assert_equals(adopted_div.ownerDocument, popup.document);
+  }, "Check that removing a node and then adopting its parent into a different window/document doesn't crash.");
+</script>

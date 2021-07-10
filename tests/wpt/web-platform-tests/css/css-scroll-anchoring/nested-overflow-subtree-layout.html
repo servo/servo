@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <title>Test that subtree layout with nested overflow preserves scroll anchoring.</title>
+  <link rel="author" title="Chris Harrelson" href="mailto:chrishtr@chromium.org">
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/">
+  <link rel="match" href="nested-overflow-subtree-layout-ref.html">
+  <script src="/common/reftest-wait.js"></script>
+</head>
+<style>
+#outer {
+  overflow: hidden;
+  width: 500px;
+  height: 500px;
+}
+#inner {
+  overflow: auto;
+  position: relative;
+  width: 500px;
+  height: 2000px;
+}
+p {
+
+  font: 48pt monospace;
+}
+</style>
+</head>
+<body>
+<div id="outer">
+  <div id="inner">
+    <p>Anchor</p>
+  </div>
+</div>
+<script>
+const outer = document.querySelector("#outer");
+const inner = document.querySelector("#inner");
+
+onload = () => {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      outer.scrollTo(0, 70);
+      requestAnimationFrame(() => {
+          const elem = document.createElement("p");
+          elem.textContent = "FAIL";
+          inner.insertBefore(elem, inner.firstChild);
+          takeScreenshot();
+      });
+    });
+  });
+};
+</script>

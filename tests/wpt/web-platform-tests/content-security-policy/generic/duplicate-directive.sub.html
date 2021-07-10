@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-inline'; script-src 'none'; connect-src 'self';">    
+    <title>duplicate-directive</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="../support/logTest.sub.js?logs=[]"></script>
+    <script src='../support/alertAssert.sub.js?alerts=["PASS (1/1)"]'></script>
+    <script>
+        window.addEventListener('securitypolicyviolation', function(e) {
+            alert_assert("FAIL");
+        });
+        alert_assert('PASS (1/1)');
+    </script>
+</head>
+
+<body>
+    <p>
+        This tests the effect of duplicated directives. It passes if the alert_assert() is executed.
+    </p>
+    <div id="log"></div>
+</body>
+
+</html>

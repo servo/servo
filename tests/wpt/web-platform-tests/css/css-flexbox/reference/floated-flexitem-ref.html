@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<style>
+#flexbox {
+  background-color: lightgrey;
+}
+#flexbox > * {
+  border: 1px solid green;
+  vertical-align: top;
+}
+</style>
+<body>
+<p>
+This example is from the spec. There should be four flex items. Anonymous item 3 shouldn't have
+a green border because the anonymous block is the flex item.
+</p>
+<div id="flexbox">
+    <div style="display: inline-block">block</div><div
+      style="display: inline-block">float</div><div
+      style="display: inline-block; border: 0">anonymous item 3</div><div
+      style="display: inline-block">
+        item 4<br>
+        item 4<br>
+        item 4
+    </div>
+</div>
+</body>
+</html>

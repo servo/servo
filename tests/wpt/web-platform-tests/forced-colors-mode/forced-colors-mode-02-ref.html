@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - style overrides for text reference.</title>
+<style>
+  body {
+    background-color: lightblue;
+  }
+  #a {
+    background-color: Canvas;
+    border: 25px solid CanvasText;
+    box-shadow: 2px 2px Canvas;
+    color: CanvasText;
+    forced-color-adjust: none;
+    margin: 25px;
+    padding: 25px;
+    text-shadow: 1px 1px Canvas;
+    width: 300px;
+  }
+  #b {
+    background-color: lightgreen;
+    border: 25px solid green;
+    box-shadow: 2px 2px purple;
+    color: orange;
+    forced-color-adjust: none;
+    margin: 25px;
+    padding: 25px;
+    text-shadow: 1px 1px gray;
+    width: 300px;
+  }
+</style>
+<body>
+  <div id="a">
+    The colors and shadows of this text and text box should be overridden when in
+    forced colors mode (forced-color-adjust is set to auto.)
+  </div>
+  <div id="b">
+    The colors and shadows of this text and text box should NOT be overridden when in
+    forced colors mode (forced-color-adjust is set to none.)
+  </div>
+</body>

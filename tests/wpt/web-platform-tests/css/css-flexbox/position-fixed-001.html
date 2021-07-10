@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Flexbox: flex-direction: column in fixed-positioned flexboxes.</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#flex-direction-property">
+<link rel="help" href="https://drafts.csswg.org/css-position/#position-property">
+<link rel="match" href="reference/position-fixed-001-ref.html">
+<link rel="help" href="https://crbug.com/604346"/>
+<meta name="assert" content="This test ensures that widths are always definite for inner flexboxes that are nested inside fixed-positioned flexboxes using 'flex-direction: column'."/>
+
+<style>
+.fixed-pos{
+  position: fixed;
+  background: red;
+}
+
+.inner {
+  width: 100%;
+  background: green;
+}
+
+.flexbox {
+  display: flex;
+}
+
+.column {
+  flex-direction: column;
+}
+</style>
+
+<body>
+
+<p>You should see no red.</p>
+
+<div class="fixed-pos" >
+  <div class="flexbox column">
+
+    <div class="flexbox">
+      <div class="inner">
+        XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      </div>
+    </div>
+
+    <div class="flexbox">
+      <div class="inner">
+        YYYY
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,18 @@
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+"use strict";
+
+Promise.resolve().then(async () => {
+  try {
+    await test_driver.set_permission(
+        { name: 'screen-wake-lock' }, 'granted', false);
+
+    const wakeLock = await navigator.wakeLock.request("screen");
+    await wakeLock.release();
+    window.parent.postMessage({ enabled: true }, "*");
+  } catch (e) {
+    window.parent.postMessage({ enabled: false }, "*");
+  }
+});
+</script>

@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>data: as script src should run with a policy that specifies data: as an allowed source but not 'unsafe-inline'</title>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' data:;">
     <script src='/resources/testharness.js'></script>
     <script src='/resources/testharnessreport.js'></script>
 </head>
@@ -14,7 +15,5 @@
     <script src="data:text/javascript;charset=utf-8;base64,ZGF0YVNjcmlwdFJhbiA9IHRydWU7"></script>
 
     <script src="10_1_support_2.js"></script>
-
-    <script async defer src='../support/checkReport.sub.js?reportExists=false'></script>
 </body>
 </html>

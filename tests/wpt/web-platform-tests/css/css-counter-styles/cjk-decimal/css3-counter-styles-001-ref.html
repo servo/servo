@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>cjk-decimal, 0-9</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#simple-numeric'>
+<link rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+<meta name='flags' content='font'>
+<meta name="assert" content="list-style-type: cjk-decimal produces numbers up to 9 items per the spec.">
+<style type='text/css'>
+ol li { list-style-type: cjk-decimal;  }
+/* the following CSS is not part of the test */
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, IGNORING the suffix.</p>
+<div class='test'><ol>
+<div><bdi>一、</bdi>一</div>
+<div><bdi>二、</bdi>二</div>
+<div><bdi>三、</bdi>三</div>
+<div><bdi>四、</bdi>四</div>
+<div><bdi>五、</bdi>五</div>
+<div><bdi>六、</bdi>六</div>
+<div><bdi>七、</bdi>七</div>
+<div><bdi>八、</bdi>八</div>
+<div><bdi>九、</bdi>九</div>
+</ol></div>
+<!--Notes:
+You will need an appropriate font to run this test.
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+</body>
+</html>

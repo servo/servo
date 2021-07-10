@@ -1,0 +1,4 @@
+<root>
+ <fail> This is an invalid byte in UTF-8: ¿ </fail>
+ <test/> <!-- shouldn't ever be parsed, as the parser should abort at the first sign of non-well-formedness -->
+</root>

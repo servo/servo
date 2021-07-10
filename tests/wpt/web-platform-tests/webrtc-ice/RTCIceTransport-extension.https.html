@@ -1,0 +1,362 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCIceTransport-extensions.https.html</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCIceTransport-extension-helper.js"></script>
+<script>
+'use strict';
+
+// These tests are based on the following extension specification:
+// https://w3c.github.io/webrtc-ice/
+
+// The following helper functions are called from
+// RTCIceTransport-extension-helper.js:
+//   makeIceTransport
+//   makeGatherAndStartTwoIceTransports
+
+const ICE_UFRAG = 'u'.repeat(4);
+const ICE_PWD = 'p'.repeat(22);
+
+test(() => {
+  const iceTransport = new RTCIceTransport();
+}, 'RTCIceTransport constructor does not throw');
+
+test(() => {
+  const iceTransport = new RTCIceTransport();
+  assert_equals(iceTransport.role, null, 'Expect role to be null');
+  assert_equals(iceTransport.state, 'new', `Expect state to be 'new'`);
+  assert_equals(iceTransport.gatheringState, 'new',
+    `Expect gatheringState to be 'new'`);
+  assert_array_equals(iceTransport.getLocalCandidates(), [],
+    'Expect no local candidates');
+  assert_array_equals(iceTransport.getRemoteCandidates(), [],
+    'Expect no remote candidates');
+  assert_equals(iceTransport.getSelectedCandidatePair(), null,
+    'Expect no selected candidate pair');
+  assert_not_equals(iceTransport.getLocalParameters(), null,
+    'Expect local parameters generated');
+  assert_equals(iceTransport.getRemoteParameters(), null,
+    'Expect no remote parameters');
+}, 'RTCIceTransport initial properties are set');
+
+test(t => {
+  const iceTransport = makeIceTransport(t);
+  assert_throws_js(TypeError, () =>
+    iceTransport.gather({ iceServers: null }));
+}, 'gather() with { iceServers: null } should throw TypeError');
+
+test(t => {
+  const iceTransport = makeIceTransport(t);
+  iceTransport.gather({ iceServers: undefined });
+}, 'gather() with { iceServers: undefined } should succeed');
+
+test(t => {
+  const iceTransport = makeIceTransport(t);
+  iceTransport.gather({ iceServers: [{
+    urls: ['turns:turn.example.org', 'turn:turn.example.net'],
+    username: 'user',
+    credential: 'cred',
+  }] });
+}, 'gather() with one turns server, one turn server, username, credential' +
+    ' should succeed');
+
+test(t => {
+  const iceTransport = makeIceTransport(t);
+  iceTransport.gather({ iceServers: [{
+    urls: ['stun:stun1.example.net', 'stun:stun2.example.net'],
+  }] });
+}, 'gather() with 2 stun servers should succeed');
+
+test(t => {
+  const iceTransport = makeIceTransport(t);
+  iceTransport.stop();
+  assert_throws_dom('InvalidStateError', () => iceTransport.gather({}));
+}, 'gather() throws if closed');
+
+test(t => {
+  const iceTransport = makeIceTransport(t);
+  iceTransport.gather({});
+  assert_equals(iceTransport.gatheringState, 'gathering');
+}, `gather() transitions gatheringState to 'gathering'`);
+
+test(t => {
+  const iceTransport = makeIceTransport(t);
+  iceTransport.gather({});
+  assert_throws_dom('InvalidStateError', () => iceTransport.gather({}));
+}, 'gather() throws if called twice');
+
+promise_test(async t => {
+  const iceTransport = makeIceTransport(t);
+  const watcher = new EventWatcher(t, iceTransport, 'gatheringstatechange');
+  iceTransport.gather({});
+  await watcher.wait_for('gatheringstatechange');
+  assert_equals(iceTransport.gatheringState, 'complete');
+}, `eventually transition gatheringState to 'complete'`);
+
+promise_test(async t => {
+  const iceTransport = makeIceTransport(t);
+  const watcher = new EventWatcher(t, iceTransport,
+      [ 'icecandidate', 'gatheringstatechange' ]);
+  iceTransport.gather({});
+  let candidate;
+  do {
+    (({ candidate } = await watcher.wait_for('icecandidate')));
+  } while (candidate !== null);
+  assert_equals(iceTransport.gatheringState, 'gathering');
+  await watcher.wait_for('gatheringstatechange');
+  assert_equals(iceTransport.gatheringState, 'complete');
+}, 'onicecandidate fires with null candidate before gatheringState' +
+    ` transitions to 'complete'`);
+
+promise_test(async t => {
+  const iceTransport = makeIceTransport(t);
+  const watcher = new EventWatcher(t, iceTransport, 'icecandidate');
+  iceTransport.gather({});
+  const { candidate } = await watcher.wait_for('icecandidate');
+  assert_not_equals(candidate.candidate, '');
+  assert_array_equals(iceTransport.getLocalCandidates(), [candidate]);
+}, 'gather() returns at least one host candidate');
+
+promise_test(async t => {
+  const iceTransport = makeIceTransport(t);
+  const watcher = new EventWatcher(t, iceTransport, 'icecandidate');
+  iceTransport.gather({ gatherPolicy: 'relay' });
+  const { candidate } = await watcher.wait_for('icecandidate');
+  assert_equals(candidate, null);
+  assert_array_equals(iceTransport.getLocalCandidates(), []);
+}, `gather() returns no candidates with { gatherPolicy: 'relay'} and no turn` +
+    ' servers');
+
+const dummyRemoteParameters = {
+  usernameFragment: ICE_UFRAG,
+  password: ICE_PWD,
+};
+
+test(() => {
+  const iceTransport = new RTCIceTransport();
+  iceTransport.stop();
+  assert_throws_dom('InvalidStateError',
+    () => iceTransport.start(dummyRemoteParameters));
+  assert_equals(iceTransport.getRemoteParameters(), null);
+}, `start() throws if closed`);
+
+test(() => {
+  const iceTransport = new RTCIceTransport();
+  assert_throws_js(TypeError, () => iceTransport.start({}));
+  assert_throws_js(TypeError,
+    () => iceTransport.start({ usernameFragment: ICE_UFRAG }));
+  assert_throws_js(TypeError,
+    () => iceTransport.start({ password: ICE_PWD }));
+  assert_equals(iceTransport.getRemoteParameters(), null);
+}, 'start() throws if usernameFragment or password not set');
+
+test(() => {
+  const TEST_CASES = [
+    {usernameFragment: '2sh', description: 'less than 4 characters long'},
+    {
+      usernameFragment: 'x'.repeat(257),
+      description: 'greater than 256 characters long',
+    },
+    {usernameFragment: '123\n', description: 'illegal character'},
+  ];
+  for (const {usernameFragment, description} of TEST_CASES) {
+    const iceTransport = new RTCIceTransport();
+    assert_throws_dom(
+      'SyntaxError',
+      () => iceTransport.start({ usernameFragment, password: ICE_PWD }),
+      `illegal usernameFragment (${description}) should throw a SyntaxError`);
+  }
+}, 'start() throws if usernameFragment does not conform to syntax');
+
+test(() => {
+  const TEST_CASES = [
+    {password: 'x'.repeat(21), description: 'less than 22 characters long'},
+    {
+      password: 'x'.repeat(257),
+      description: 'greater than 256 characters long',
+    },
+    {password: ('x'.repeat(21) + '\n'), description: 'illegal character'},
+  ];
+  for (const {password, description} of TEST_CASES) {
+    const iceTransport = new RTCIceTransport();
+    assert_throws_dom(
+      'SyntaxError',
+      () => iceTransport.start({ usernameFragment: ICE_UFRAG, password }),
+      `illegal password (${description}) should throw a SyntaxError`);
+  }
+}, 'start() throws if password does not conform to syntax');
+
+const assert_ice_parameters_equals = (a, b) => {
+  assert_equals(a.usernameFragment, b.usernameFragment,
+      'usernameFragments are equal');
+  assert_equals(a.password, b.password, 'passwords are equal');
+};
+
+test(t => {
+  const iceTransport = makeIceTransport(t);
+  iceTransport.start(dummyRemoteParameters);
+  assert_equals(iceTransport.state, 'new');
+  assert_ice_parameters_equals(iceTransport.getRemoteParameters(),
+      dummyRemoteParameters);
+}, `start() does not transition state to 'checking' if no remote candidates ` +
+    'added');
+
+test(t => {
+  const iceTransport = makeIceTransport(t);
+  iceTransport.start(dummyRemoteParameters);
+  assert_equals(iceTransport.role, 'controlled');
+}, `start() with default role sets role attribute to 'controlled'`);
+
+test(t => {
+  const iceTransport = makeIceTransport(t);
+  iceTransport.start(dummyRemoteParameters, 'controlling');
+  assert_equals(iceTransport.role, 'controlling');
+}, `start() sets role attribute to 'controlling'`);
+
+const candidate1 = new RTCIceCandidate({
+  candidate: 'candidate:1 1 udp 2113929471 203.0.113.100 10100 typ host',
+  sdpMid: '',
+});
+
+test(() => {
+  const iceTransport = new RTCIceTransport();
+  iceTransport.stop();
+  assert_throws_dom('InvalidStateError',
+    () => iceTransport.addRemoteCandidate(candidate1));
+  assert_array_equals(iceTransport.getRemoteCandidates(), []);
+}, 'addRemoteCandidate() throws if closed');
+
+test(() => {
+  const iceTransport = new RTCIceTransport();
+  assert_throws_dom('OperationError',
+    () => iceTransport.addRemoteCandidate(
+      new RTCIceCandidate({ candidate: 'invalid', sdpMid: '' })));
+  assert_array_equals(iceTransport.getRemoteCandidates(), []);
+}, 'addRemoteCandidate() throws on invalid candidate');
+
+test(t => {
+  const iceTransport = makeIceTransport(t);
+  iceTransport.addRemoteCandidate(candidate1);
+  iceTransport.start(dummyRemoteParameters);
+  assert_equals(iceTransport.state, 'checking');
+  assert_array_equals(iceTransport.getRemoteCandidates(), [candidate1]);
+}, `start() transitions state to 'checking' if one remote candidate had been ` +
+    'added');
+
+test(t => {
+  const iceTransport = makeIceTransport(t);
+  iceTransport.start(dummyRemoteParameters);
+  iceTransport.addRemoteCandidate(candidate1);
+  assert_equals(iceTransport.state, 'checking');
+  assert_array_equals(iceTransport.getRemoteCandidates(), [candidate1]);
+}, `addRemoteCandidate() transitions state to 'checking' if start() had been ` +
+    'called before');
+
+test(t => {
+  const iceTransport = makeIceTransport(t);
+  iceTransport.start(dummyRemoteParameters);
+  assert_throws_dom('InvalidStateError',
+    () => iceTransport.start(dummyRemoteParameters, 'controlling'));
+}, 'start() throws if later called with a different role');
+
+test(t => {
+  const iceTransport = makeIceTransport(t);
+  iceTransport.start({
+    usernameFragment: '1'.repeat(4),
+    password: '1'.repeat(22),
+  });
+  iceTransport.addRemoteCandidate(candidate1);
+  const changedRemoteParameters = {
+    usernameFragment: '2'.repeat(4),
+    password: '2'.repeat(22),
+  };
+  iceTransport.start(changedRemoteParameters);
+  assert_equals(iceTransport.state, 'new');
+  assert_array_equals(iceTransport.getRemoteCandidates(), []);
+  assert_ice_parameters_equals(iceTransport.getRemoteParameters(),
+      changedRemoteParameters);
+}, `start() flushes remote candidates and transitions state to 'new' if ` +
+   'later called with different remote parameters');
+
+promise_test(async t => {
+  const [ localTransport, remoteTransport ] =
+      makeGatherAndStartTwoIceTransports(t);
+  const localWatcher = new EventWatcher(t, localTransport, 'statechange');
+  const remoteWatcher = new EventWatcher(t, remoteTransport, 'statechange');
+  await Promise.all([
+    localWatcher.wait_for('statechange').then(() => {
+      assert_equals(localTransport.state, 'connected');
+    }),
+    remoteWatcher.wait_for('statechange').then(() => {
+      assert_equals(remoteTransport.state, 'connected');
+    }),
+  ]);
+}, 'Two RTCIceTransports connect to each other');
+
+['controlling', 'controlled'].forEach(role => {
+  promise_test(async t => {
+    const [ localTransport, remoteTransport ] =
+        makeAndGatherTwoIceTransports(t);
+    localTransport.start(remoteTransport.getLocalParameters(), role);
+    remoteTransport.start(localTransport.getLocalParameters(), role);
+    const localWatcher = new EventWatcher(t, localTransport, 'statechange');
+    const remoteWatcher = new EventWatcher(t, remoteTransport, 'statechange');
+    await Promise.all([
+      localWatcher.wait_for('statechange').then(() => {
+        assert_equals(localTransport.state, 'connected');
+      }),
+      remoteWatcher.wait_for('statechange').then(() => {
+        assert_equals(remoteTransport.state, 'connected');
+      }),
+    ]);
+  }, `Two RTCIceTransports configured with the ${role} role resolve the ` +
+      'conflict in band and still connect.');
+});
+
+promise_test(async t => {
+  async function waitForSelectedCandidatePairChangeThenConnected(t, transport,
+      transportName) {
+    const watcher = new EventWatcher(t, transport,
+        [ 'statechange', 'selectedcandidatepairchange' ]);
+    await watcher.wait_for('selectedcandidatepairchange');
+    const selectedCandidatePair = transport.getSelectedCandidatePair();
+    assert_not_equals(selectedCandidatePair, null,
+        `${transportName} selected candidate pair should not be null once ` +
+        'the selectedcandidatepairchange event fires');
+    assert_true(
+        transport.getLocalCandidates().some(
+            ({ candidate }) =>
+                candidate === selectedCandidatePair.local.candidate),
+        `${transportName} selected candidate pair local should be in the ` +
+        'list of local candidates');
+    assert_true(
+        transport.getRemoteCandidates().some(
+            ({ candidate }) =>
+                candidate === selectedCandidatePair.remote.candidate),
+        `${transportName} selected candidate pair local should be in the ` +
+        'list of remote candidates');
+    await watcher.wait_for('statechange');
+    assert_equals(transport.state, 'connected',
+        `${transportName} state should be 'connected'`);
+  }
+  const [ localTransport, remoteTransport ] =
+      makeGatherAndStartTwoIceTransports(t);
+  await Promise.all([
+    waitForSelectedCandidatePairChangeThenConnected(t, localTransport,
+        'local transport'),
+    waitForSelectedCandidatePairChangeThenConnected(t, remoteTransport,
+        'remote transport'),
+  ]);
+}, 'Selected candidate pair changes once the RTCIceTransports connect.');
+
+promise_test(async t => {
+  const [ transport, ] = makeGatherAndStartTwoIceTransports(t);
+  const watcher = new EventWatcher(t, transport, 'selectedcandidatepairchange');
+  await watcher.wait_for('selectedcandidatepairchange');
+  transport.stop();
+  assert_equals(transport.getSelectedCandidatePair(), null);
+}, 'getSelectedCandidatePair() returns null once the RTCIceTransport is ' +
+    'stopped.');
+
+</script>

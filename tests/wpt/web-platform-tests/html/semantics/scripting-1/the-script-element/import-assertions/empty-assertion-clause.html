@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>Handling of empty import assertion clause</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    window.log = [];
+
+    window.addEventListener("error", ev => log.push(ev.error));
+
+    const test_load = async_test(
+        "Test that no error occurs when an empty import assertion clause is provided.");
+    window.addEventListener("load", test_load.step_func_done(ev => {
+      assert_array_equals(window.log, ["hello", "empty-assertion-clause"]);
+    }));
+
+    function unreachable() { log.push("unexpected"); }
+</script>
+<script type="module" src="./empty-assertion-clause.js" onerror="unreachable()"></script>

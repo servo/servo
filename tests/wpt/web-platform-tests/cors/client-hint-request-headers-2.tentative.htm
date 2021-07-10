@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CORS and Client Hints, potentially</title>
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=support.js?pipe=sub></script>
+
+<h1>Request headers</h1>
+<div id=log></div>
+<script>
+
+test(function() {
+    var client = new XMLHttpRequest()
+    client.open('GET', CROSSDOMAIN + 'resources/cors-makeheader.py?headers=x-print,', false)
+    client.setRequestHeader('x-print', 'unicorn')
+    client.setRequestHeader('content-type', 'text/plain')
+    client.setRequestHeader('accept', 'test')
+    client.setRequestHeader('accept-language', 'nn')
+    client.setRequestHeader('content-language', 'nn')
+    client.setRequestHeader('save-data', 'on')
+    client.setRequestHeader('device-memory', '1.0')
+    client.setRequestHeader('dpr', '2.0')
+    client.setRequestHeader('width', '35')
+    client.setRequestHeader('viewport-width', '42')
+    client.send(null)
+
+    const res = JSON.parse(client.response)
+    assert_equals(res['x-print'], 'unicorn')
+    assert_equals(res['content-type'], 'text/plain')
+    assert_equals(res['accept'], 'test')
+    assert_equals(res['accept-language'], 'nn')
+    assert_equals(res['content-language'], 'nn')
+    assert_equals(res['save-data'], 'on')
+    assert_equals(res['device-memory'], '1.0')
+    assert_equals(res['dpr'], '2.0')
+    assert_equals(res['width'], '35')
+    assert_equals(res['viewport-width'], '42')
+}, 'Client hint headers are simple headers')
+
+</script>

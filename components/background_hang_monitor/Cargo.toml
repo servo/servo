@@ -1,0 +1,32 @@
+[package]
+name = "background_hang_monitor"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+publish = false
+edition = "2018"
+
+[lib]
+name = "background_hang_monitor"
+path = "lib.rs"
+test = false
+doctest = false
+
+[dependencies]
+backtrace = "0.3"
+crossbeam-channel = "0.4"
+ipc-channel = "0.14"
+libc = "0.2"
+log = "0.4"
+msg = { path = "../msg" }
+serde_json = "1.0"
+
+[dev-dependencies]
+lazy_static = "1.0"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+mach = "0.3"
+
+[target.'cfg(all(target_os = "linux", not(any(target_arch = "arm", target_arch = "aarch64"))))'.dependencies]
+nix = "0.14"
+unwind-sys = "0.1.1"

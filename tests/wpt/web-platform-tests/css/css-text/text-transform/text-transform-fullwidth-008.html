@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: text-transform:fullwidth and trailing spaces</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#text-transform-property">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="match" href="reference/text-transform-fullwidth-008-ref.html">
+<meta name="assert" content="full-width does transforms U+0020 spaces to U+3000 after phase 1, but before phase 2, so that end-of-line transformed spaces get the same treatment as natural ones: hang when white-space is normal.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+div {
+  font: 20px/1 Ahem;
+  margin: 1em 0;
+}
+.pre {
+  white-space: pre;
+}
+#test, #ref {
+  width: 2em;
+  text-align: right;
+}
+span {
+  text-transform: full-width;
+}
+#test2, #ref2 {
+  width: min-content;
+  margin-left: 1em;
+  background: black;
+}
+</style>
+
+<p>Test passes if all black boxes below have the same width and height and are aligned vertically.
+<div class=pre> x<br> x</div>
+<div id=ref>x&#x3000;x</div>
+<div id=test>x<span> </span>x</div>
+<div id=ref2>x&#x3000;x</div>
+<div id=test2>x<span> </span>x</div>

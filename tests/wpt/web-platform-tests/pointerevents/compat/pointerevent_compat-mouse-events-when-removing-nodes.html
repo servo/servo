@@ -1,0 +1,111 @@
+<!DOCTYPE HTML>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script type="text/javascript" src="../pointerevent_support.js"></script>
+<!-- There are significant differences in how browsers fire pointer events and
+compat mouse events when elements are removed from the dom.
+There is a discussion about the order of pointer events and mouse compat events
+for this scenario in the pointer event working group (See link below)-->
+<link rel="help" href="https://github.com/w3c/pointerevents/issues/285">
+<style>
+div.box {
+  margin: 5px;
+  padding: 20px;
+  float: left;
+  background-color:green;
+}
+#grey {
+  width: 50px;
+  height: 50px;
+}
+</style>
+
+<h1>Verifies the compatibility mouse events are sent correctly when the node is deleted on pointer event handler.</h1>
+
+<div id="grey" class="box" style="background-color:grey">
+</div>
+<button id="done">Done</button>
+
+<div id="console"></div>
+
+<script>
+
+var receivedEvents = [];
+var done_clicked = false;
+
+var eventList = ["mousedown", "mouseup", "mousemove",
+                 "pointerdown", "pointerup", "pointermove"];
+
+
+var removeNodeEvent = "";
+
+var greyDiv = document.getElementById("grey");
+eventList.forEach(function(eventName) {
+  greyDiv.addEventListener(eventName, function(event) {
+    if (event.eventPhase == Event.AT_TARGET) {
+      receivedEvents.push(event.type+"@grey");
+    }
+  });
+});
+
+function createGreenBoxAndAddListeners() {
+  var greenDiv = document.createElement("div");
+  greenDiv.setAttribute("class", "box");
+  greenDiv.id = "green";
+  greyDiv.innerHTML = "";
+  greyDiv.appendChild(greenDiv);
+  eventList.forEach(function(eventName) {
+    greenDiv.addEventListener(eventName, function(event) {
+      if (event.eventPhase == Event.AT_TARGET) {
+        receivedEvents.push(event.type+"@green");
+        if (event.type == removeNodeEvent) {
+          greenDiv.parentNode.removeChild(greenDiv);
+        }
+      }
+    });
+  });
+}
+
+var done_button = document.getElementById("done");
+done_button.addEventListener("click",()=>done_clicked=true);
+
+function performActions() {
+  var rect = document.getElementById("green").getBoundingClientRect();
+  var x1 = Math.ceil(rect.left + 5);
+  var y1 = Math.ceil(rect.top + 5);
+
+  return new test_driver.Actions()
+              .pointerMove(0, 0)
+              .pointerMove(x1, y1)
+              .pointerDown()
+              .pointerUp()
+              .send()
+              .then(()=> test_driver.click(done_button));
+}
+
+function testScenario(targetEvent, expectedEvents, description) {
+  promise_test(async () => {
+    receivedEvents = [];
+    removeNodeEvent = targetEvent;
+    createGreenBoxAndAddListeners();
+
+    await performActions();
+    assert_array_equals(receivedEvents, expectedEvents);
+  }, description);
+}
+
+testScenario("", ["pointermove@green", "mousemove@green", "pointerdown@green", "mousedown@green", "pointerup@green", "mouseup@green"],
+              "Compat mouse events with no node removal");
+
+testScenario("pointermove", ["pointermove@green", "mousemove@grey", "pointerdown@grey", "mousedown@grey", "pointerup@grey", "mouseup@grey"],
+              "Compat mouse events with node removal on pointermove");
+
+testScenario("pointerdown", ["pointermove@green", "mousemove@green", "pointerdown@green", "mousedown@grey", "pointerup@grey", "mouseup@grey"],
+              "Compat mouse events with node removal on pointerdown");
+
+testScenario("pointerup", ["pointermove@green", "mousemove@green", "pointerdown@green", "mousedown@green", "pointerup@green", "mouseup@grey"],
+              "Compat mouse events with node removal on pointerup");
+</script>

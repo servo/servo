@@ -1,22 +1,22 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use actor::{Actor, ActorMessageStatus, ActorRegistry};
-use actors::timeline::HighResolutionStamp;
+use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actors::timeline::HighResolutionStamp;
+use crate::StreamId;
 use devtools_traits::DevtoolScriptControlMsg;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use serde_json::{Map, Value};
 use std::mem;
 use std::net::TcpStream;
-use time::precise_time_ns;
 
 pub struct FramerateActor {
     name: String,
     pipeline: PipelineId,
     script_sender: IpcSender<DevtoolScriptControlMsg>,
-    start_time: Option<u64>,
+
     is_recording: bool,
     ticks: Vec<HighResolutionStamp>,
 }
@@ -26,33 +26,36 @@ impl Actor for FramerateActor {
         self.name.clone()
     }
 
-
-    fn handle_message(&self,
-                      _registry: &ActorRegistry,
-                      _msg_type: &str,
-                      _msg: &Map<String, Value>,
-                      _stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
+    fn handle_message(
+        &self,
+        _registry: &ActorRegistry,
+        _msg_type: &str,
+        _msg: &Map<String, Value>,
+        _stream: &mut TcpStream,
+        _id: StreamId,
+    ) -> Result<ActorMessageStatus, ()> {
         Ok(ActorMessageStatus::Ignored)
     }
 }
 
 impl FramerateActor {
     /// return name of actor
-    pub fn create(registry: &ActorRegistry,
-                  pipeline_id: PipelineId,
-                  script_sender: IpcSender<DevtoolScriptControlMsg>) -> String {
+    pub fn create(
+        registry: &ActorRegistry,
+        pipeline_id: PipelineId,
+        script_sender: IpcSender<DevtoolScriptControlMsg>,
+    ) -> String {
         let actor_name = registry.new_name("framerate");
         let mut actor = FramerateActor {
             name: actor_name.clone(),
             pipeline: pipeline_id,
             script_sender: script_sender,
-            start_time: None,
             is_recording: false,
             ticks: Vec::new(),
         };
 
         actor.start_recording();
-        registry.register_later(box actor);
+        registry.register_later(Box::new(actor));
         actor_name
     }
 
@@ -60,8 +63,7 @@ impl FramerateActor {
         self.ticks.push(HighResolutionStamp::wrap(tick));
 
         if self.is_recording {
-            let msg = DevtoolScriptControlMsg::RequestAnimationFrame(self.pipeline,
-                                                                     self.name());
+            let msg = DevtoolScriptControlMsg::RequestAnimationFrame(self.pipeline, self.name());
             self.script_sender.send(msg).unwrap();
         }
     }
@@ -75,11 +77,9 @@ impl FramerateActor {
             return;
         }
 
-        self.start_time = Some(precise_time_ns());
         self.is_recording = true;
 
-        let msg = DevtoolScriptControlMsg::RequestAnimationFrame(self.pipeline,
-                                                                 self.name());
+        let msg = DevtoolScriptControlMsg::RequestAnimationFrame(self.pipeline, self.name());
         self.script_sender.send(msg).unwrap();
     }
 
@@ -88,9 +88,7 @@ impl FramerateActor {
             return;
         }
         self.is_recording = false;
-        self.start_time = None;
     }
-
 }
 
 impl Drop for FramerateActor {

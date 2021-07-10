@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>Subresource signed exchange prefetch.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="../resources/sxg-util.js"></script>
+<body>
+<script>
+promise_test(async (t) => {
+  const iframe_path =  get_host_info().HTTPS_ORIGIN + '/signed-exchange/resources/sxg-subresource-iframe.html';
+  const wait_message = (new Promise((resolve) => {
+    const on_message = (event) => {
+      window.removeEventListener('message', on_message);
+      resolve(event.data);
+    };
+    window.addEventListener('message', on_message);
+  }));
+  withIframe(iframe_path);
+  const message = await wait_message;
+  assert_equals(message, 'from signed exchange');
+}, 'Subresource signed exchange prefetch.');
+</script>
+</body>

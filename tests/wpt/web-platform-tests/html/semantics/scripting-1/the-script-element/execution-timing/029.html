@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html><head>
+        <title> scheduler: javascript: URL in HREF</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="testlib/testlib.js"></script>
+</head>
+<body>
+
+        <div id="log">FAILED (This TC requires JavaScript enabled)</div>
+        <p><a href="javascript:log('JS URL')"></a></p>
+        <script>log('inline script #1');
+                window.addEventListener("beforeunload", function( event ) {
+                        log('beforeunload event');
+                });
+                if(document.links[0].click){
+                        document.links[0].click();
+                }else{
+                        var evt = document.createEvent("MouseEvents");
+                        evt.initMouseEvent("click", true, true, window,
+                        0, 0, 0, 0, 0, false, false, false, false, 0, null);
+                        document.links[0].dispatchEvent(evt);
+                }
+                log('end script #1');
+        </script>
+
+        <script type="text/javascript">
+        log( 'inline script #2' );
+        var t = async_test()
+
+        function final_test() {
+                // The JS URL part is required to run in an additional task,
+                // altough that is not fully consistently implemented,
+                // see https://github.com/whatwg/html/issues/3730#issuecomment-492071447
+                assert_any(assert_array_equals, eventOrder, [
+                  ['inline script #1', 'end script #1', 'beforeunload event', 'inline script #2', 'JS URL'],
+                  ['inline script #1', 'end script #1', 'inline script #2', 'beforeunload event', 'JS URL']]);
+                t.done();
+        }
+
+        function test_on_load() {
+                // When the page loads, a task to run the navigate steps
+                // previously enqueued as part of following-hyperlinks,
+                // should have run, and have enqueued another task to execute the JS URL.
+                assert_any(assert_array_equals, eventOrder, [
+                  ['inline script #1', 'end script #1', 'beforeunload event', 'inline script #2'],
+                  ['inline script #1', 'end script #1', 'inline script #2', 'beforeunload event']]);
+                t.step_timeout(final_test, 1000)
+        }
+        onload = t.step_func(test_on_load);
+        </script>
+
+</body></html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>flex-basis interpolation</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#flex-basis-property">
+<meta name="assert" content="flex-basis supports animation by computed value type">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<style>
+.parent {
+  flex-basis: 3%;
+}
+.target {
+  flex-basis: 1%;
+}
+</style>
+
+<body></body>
+
+<script>
+test_interpolation({
+  property: 'flex-basis',
+  from: neutralKeyframe,
+  to: '2%',
+}, [
+  {at: -0.3, expect: '0.7%'},
+  {at: 0, expect: '1%'},
+  {at: 0.3, expect: '1.3%'},
+  {at: 0.6, expect: '1.6%'},
+  {at: 1, expect: '2%'},
+  {at: 1.5, expect: '2.5%'},
+]);
+
+test_no_interpolation({
+  property: 'flex-basis',
+  from: 'initial',
+  to: '2%',
+});
+
+test_interpolation({
+  property: 'flex-basis',
+  from: 'inherit',
+  to: '2%',
+}, [
+  {at: -0.3, expect: '3.3%'},
+  {at: 0, expect: '3%'},
+  {at: 0.3, expect: '2.7%'},
+  {at: 0.6, expect: '2.4%'},
+  {at: 1, expect: '2%'},
+  {at: 1.5, expect: '1.5%'},
+]);
+
+test_no_interpolation({
+  property: 'flex-basis',
+  from: 'unset',
+  to: '2%',
+});
+
+test_interpolation({
+  property: 'flex-basis',
+  from: '0px',
+  to: '100px'
+}, [
+  {at: -0.3, expect: '0px'},
+  {at: 0, expect: '0px'},
+  {at: 0.4, expect: '40px'},
+  {at: 0.6, expect: '60px'},
+  {at: 1, expect: '100px'},
+  {at: 1.5, expect: '150px'}
+]);
+
+test_interpolation({
+  property: 'flex-basis',
+  from: '0%',
+  to: '100%'
+}, [
+  {at: -0.3, expect: '0%'},
+  {at: 0, expect: '0%'},
+  {at: 0.4, expect: '40%'},
+  {at: 0.6, expect: '60%'},
+  {at: 1, expect: '100%'},
+  {at: 1.5, expect: '150%'}
+]);
+</script>
+

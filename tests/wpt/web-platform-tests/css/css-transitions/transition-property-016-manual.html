@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Transitions Test: transition-property - bottom</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/#animation-type">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#position-props">
+<meta name="assert" content="Test checks that the 'bottom' property is animatable.">
+<style>
+  #test {
+    background-color: blue;
+    bottom: -100px;
+    height: 100px;
+    position: relative;
+    transition-duration: 2s;
+    transition-property: bottom;
+    transition-timing-function: linear;
+    width: 100px;
+  }
+</style>
+<body>
+  <p>Click the blue square below. Test passes if blue square moves up gradually not immediately until it stops.</p>
+  <div id="test"></div>
+  <script>
+    (function() {
+      var div = document.querySelector("#test");
+      div.addEventListener("click", function(evt) {
+        div.setAttribute("style", "bottom: 10px;");
+      }, false);
+    })();
+  </script>
+</body>

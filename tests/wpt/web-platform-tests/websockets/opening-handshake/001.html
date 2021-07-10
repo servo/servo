@@ -15,5 +15,5 @@ async_test(function(t) {
     t.step_timeout(() => t.done(), 50);
   });
    ws.onmessage = ws.onopen = t.unreached_func();
-}, null, {timeout:9900});
+});
 </script>

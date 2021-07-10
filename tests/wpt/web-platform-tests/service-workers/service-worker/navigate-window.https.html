@@ -94,9 +94,9 @@ function validate_window(win, url, opts) {
         resultList.sort(compare_urls);
 
         for (var i = 0; i < resultList.length; ++i) {
-          assert_equals(expected[i].url, resultList[i].url,
+          assert_equals(resultList[i].url, expected[i].url,
                         'client should have expected url');
-          assert_equals(expected[i].frameType, resultList[i].frameType,
+          assert_equals(resultList[i].frameType, expected[i].frameType,
                         'client should have expected frame type');
         }
         return win;

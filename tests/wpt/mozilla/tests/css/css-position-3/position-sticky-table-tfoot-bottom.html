@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<title>position:sticky bottom constraint should behave correctly for &lt;tfoot&gt; elements</title>
+<link rel="match" href="position-sticky-table-tfoot-bottom-ref.html" />
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
+<meta name="assert" content="This test checks that the position:sticky bottom constraint behaves correctly for &lt;tfoot&gt; elements" />
+
+<style>
+table {
+  border-collapse:collapse;
+}
+
+td, th {
+  padding: 0;
+}
+
+td > div, th > div {
+  height: 50px;
+  width: 50px;
+}
+
+.group {
+  display: inline-block;
+  position: relative;
+  width: 150px;
+  height: 200px;
+}
+
+.scroller {
+  position: relative;
+  width: 100px;
+  height: 150px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.prepadding {
+  height: 100px;
+}
+
+.postpadding {
+  height: 250px;
+}
+
+.indicator {
+  position: absolute;
+  background-color: red;
+  left: 0;
+  height: 50px;
+  width: 50px;
+}
+
+.sticky {
+  position: sticky;
+  bottom: 25px;
+  background-color: green;
+}
+</style>
+
+<script>
+window.addEventListener('load', function() {
+  document.getElementById('scroller1').scrollTop = 0;
+  document.getElementById('scroller2').scrollTop = 75;
+  document.getElementById('scroller3').scrollTop = 200;
+});
+</script>
+
+<div class="group">
+  <div id="scroller1" class="scroller">
+    <div class="indicator" style="top: 100px;"></div>
+    <div class="prepadding"></div>
+    <table>
+      <tbody>
+        <tr><td><div></div></td></tr>
+        <tr><td><div></div></td></tr>
+        <tr><td><div></div></td></tr>
+      </tbody>
+      <tfoot class="sticky">
+        <tr><th><div></div></th></tr>
+      </tfoot>
+    </table>
+    <div class="postpadding"></div>
+  </div>
+</div>
+
+<div class="group">
+  <div id="scroller2" class="scroller">
+    <div class="indicator" style="top: 150px;"></div>
+    <div class="prepadding"></div>
+    <table>
+      <tbody>
+        <tr><td><div></div></td></tr>
+        <tr><td><div></div></td></tr>
+        <tr><td><div></div></td></tr>
+      </tbody>
+      <tfoot class="sticky">
+        <tr><th><div></div></th></tr>
+      </tfoot>
+    </table>
+    <div class="postpadding"></div>
+  </div>
+</div>
+
+<div class="group">
+  <div id="scroller3" class="scroller">
+    <div class="indicator" style="top: 250px;"></div>
+    <div class="prepadding"></div>
+    <table>
+      <tbody>
+        <tr><td><div></div></td></tr>
+        <tr><td><div></div></td></tr>
+        <tr><td><div></div></td></tr>
+      </tbody>
+      <tfoot class="sticky">
+        <tr><th><div></div></th></tr>
+      </tfoot>
+    </table>
+    <div class="postpadding"></div>
+  </div>
+</div>
+
+<div>You should see three green boxes above. No red should be visible.</div>

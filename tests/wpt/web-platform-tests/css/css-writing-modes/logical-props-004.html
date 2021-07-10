@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>writing-modes and logical props: colgroup</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://www.w3.org/TR/css-logical-1/#box">
+<link rel="help" href="https://www.w3.org/TR/css-writing-modes-3/#placement">
+<link rel="help" href="https://www.w3.org/TR/css-writing-modes-3/#block-flow">
+<link rel="match" href="reference/logical-props-001-ref.html">
+<meta name="assert" content="The logical properties on table column groups are resolved taking the writing mode of the element into account,
+                            even though the writing mode property does not apply to that element.">
+<style>
+table { border-collapse: collapse; }
+td {
+  padding: 0;
+  height: 100px;
+  width: 100px;
+}
+colgroup {
+  writing-mode: vertical-rl;
+  border-inline-start: 5px green solid;
+}
+
+.red {
+  position: absolute;
+  width: 100px;
+  height: 5px;
+  background: red;
+  z-index: -1;
+}
+
+</style>
+<body>
+  <p>Test passes if there is a <strong>horizontal green stripe</strong> below and <strong>no red</strong>.
+  <div class=red></div>
+  <table><colgroup><tbody><tr><td>&nbsp;</td></tr></tbody></table>
+</body>

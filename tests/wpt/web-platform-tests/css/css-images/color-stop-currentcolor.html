@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Test: 'color-stop' on linear-gradient respects 'currentcolor'</title>
+    <link rel="author" title="Dan Glastonbury" href="mailto:dglastonbury@mozilla.com" />
+    <link rel="help" href="https://www.w3.org/TR/css3-images/#color-stop-syntax" />
+    <link rel="help" href="https://www.w3.org/TR/css-color-3/#currentcolor" />
+    <link rel="match" href="color-stop-currentcolor-ref.html" />
+    <style type="text/css">
+     body {
+         background: linear-gradient(to right, currentcolor, limegreen);
+     }
+
+     div {
+         width: 100vw;
+         height: 100vh;
+         color: limegreen;
+         background: inherit;
+     }
+    </style>
+  </head>
+  <body>
+    <!-- content of test -->
+    <div>
+  </body>
+</html>

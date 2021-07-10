@@ -1,0 +1,27 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>CSS Content Visibility: hidden container is not breakable</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="content-visibility-003-ref.html">
+<meta name="assert" content="content-visibility container is not breakable">
+
+<style>
+#container {
+  border-top: solid green 50px;
+  border-bottom: solid green 50px;
+  content-visibility: hidden;
+}
+#parent {
+  columns: 2;
+  height: 0px;
+  width: 200px;
+  column-gap: 0;
+}
+</style>
+
+<div id="parent">
+  <div id="container">Text</div>
+</div>
+</html>

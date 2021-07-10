@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#dom-layoutfragment-data">
+<link rel="match" href="green-square-ref.html">
+<meta name="assert" content="This test checks that a SharedArrayBuffer can't be passed to the parent layout." />
+<style>
+.test {
+  background: red;
+  width: 100px;
+}
+
+.child {
+  height: 100px;
+}
+
+@supports (display: layout(fallback-sab)) {
+  .test {
+    display: layout(fallback-sab);
+    background: green;
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div class="test">
+  <div class="child"></div>
+</div>
+
+<script id="code" type="text/worklet">
+registerLayout('fallback-sab', class {
+  async intrinsicSizes() {}
+  async layout(children, edges, constraints, styleMap) {
+    const childFragments = await Promise.all(children.map(child => child.layoutNextFragment()));
+
+    // See https://github.com/whatwg/html/issues/5380 for why not `new SharedArrayBuffer()`
+    return {autoBlockSize: 0, childFragments, data: {sab: new WebAssembly.Memory({ shared:true, initial:1, maximum:1 }).buffer }};
+  }
+});
+</script>
+
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, document.getElementById('code').textContent);
+</script>
+</html>

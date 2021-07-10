@@ -30,7 +30,7 @@ function test_xpath_succeeds(path, expected, resolver) {
 
 function test_xpath_throws(path, error_code, resolver) {
   resolver = resolver ? resolver : null;
-  assert_throws(error_code, function() {document.evaluate(path, document, resolver, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null)})
+  assert_throws_dom(error_code, function() {document.evaluate(path, document, resolver, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null)})
 }
 
 function ns_resolver(x) {

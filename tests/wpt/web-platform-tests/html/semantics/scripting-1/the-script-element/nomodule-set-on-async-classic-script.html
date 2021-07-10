@@ -11,31 +11,27 @@
 </head>
 <body>
 <script>
+let supportsNoModule = "noModule" in document.getElementsByTagName("script")[0];
 
 waitForLoadEvent = new Promise((resolve) => {
     window.onload = resolve;
 });
 
-waitForAsyncScript = () => {
-    return new Promise((resolve) => {
-        waitForLoadEvent.then(() => setTimeout(resolve, 200));
-    });
-}
-
-let readyForSecondTest;
 promise_test(() => {
     window.executed = false;
     let loaded = false;
     let errored = false;
 
     let script = document.createElement('script');
+
     script.src = './resources/set-script-executed.js';
     script.onload = () => loaded = true;
     script.onerror = () => errored = true;
     script.noModule = false;
     document.body.appendChild(script);
 
-    return waitForAsyncScript().then(() => {
+    return waitForLoadEvent.then(() => {
+        assert_true(supportsNoModule);
         assert_true(executed);
         assert_true(loaded);
         assert_false(errored);
@@ -54,7 +50,8 @@ promise_test(() => {
     script.noModule = true;
     document.body.appendChild(script);
 
-    return waitForAsyncScript().then(() => {
+    return waitForLoadEvent.then(() => {
+        assert_true(supportsNoModule);
         assert_false(executed);
         assert_false(loaded);
         assert_false(errored);

@@ -1,0 +1,18 @@
+<!DOCTYPE HTML>
+<title>text-decoration shorthand serialization</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-3/#text-decoration-property">
+<link rel="help" href="https://drafts.csswg.org/cssom/#serialize-a-css-declaration-block">
+<script type="text/javascript" src="/resources/testharness.js"></script>
+<script type="text/javascript" src="/resources/testharnessreport.js"></script>
+<div style="text-decoration: underline"></div>
+<script>
+test(() => {
+  const style = getComputedStyle(document.querySelector('div'));
+  const currentColor = "rgb(0, 0, 0)"; // The default color value is black.
+  // The default computed value of text-decoration-color is depended on the
+  // current color value, and it is an rgb() value, instead of `currentcolor`.
+  // This is an ambiguous part in the spec, anyway.
+  assert_equals(style.getPropertyValue("text-decoration"),
+                "underline " + currentColor);
+});
+</script>

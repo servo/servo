@@ -1,0 +1,50 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Document timelines</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#document-timelines">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<div id="log"></div>
+<script>
+'use strict';
+
+async_test(t => {
+  assert_greater_than_equal(document.timeline.currentTime, 0,
+    'The current time is initially is positive or zero');
+
+  // document.timeline.currentTime should be set even before document
+  // load fires. We expect this code to be run before document load and hence
+  // the above assertion is sufficient.
+  // If the following assertion fails, this test needs to be redesigned.
+  assert_not_equals(document.readyState, 'complete',
+    'Test is running prior to document load');
+
+  // Test that the document timeline's current time is measured from
+  // navigationStart.
+  //
+  // We can't just compare document.timeline.currentTime to
+  // window.performance.now() because currentTime is only updated on a sample
+  // so we use requestAnimationFrame instead.
+  window.requestAnimationFrame(rafTime => {
+    t.step(() => {
+      assert_equals(document.timeline.currentTime, rafTime,
+                    'The current time matches requestAnimationFrame time');
+    });
+    t.done();
+  });
+}, 'Document timelines report current time relative to navigationStart');
+
+async_test(t => {
+  window.requestAnimationFrame(rafTime => {
+    t.step(() => {
+      const iframe = document.createElement('iframe');
+      document.body.appendChild(iframe);
+      assert_greater_than_equal(iframe.contentDocument.timeline.currentTime, 0,
+        'The current time of a new iframe is initially is positive or zero');
+    });
+    t.done();
+  });
+}, 'Child frames do not report negative initial times');
+
+</script>

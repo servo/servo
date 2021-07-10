@@ -1,0 +1,297 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Uninitialized local/global variables should be initialized</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"> </script>
+
+<script id="vs_uninit_in_frag" type="x-shader/x-vertex">
+precision mediump float;
+attribute vec4 a_position;
+void main() {
+    gl_Position = a_position;
+}
+</script>
+
+<!-- Uninitialized local in vertex shader -->
+<script id="vs_uninit_local_in_vert" type="x-shader/x-vertex">
+precision mediump float;
+attribute vec4 a_position;
+varying vec3 v_uninit;
+void main() {
+    vec3 uninit; // uninitialized
+    v_uninit = uninit;
+    gl_Position = a_position;
+}
+</script>
+<script id="fs_uninit_local_in_vert" type="x-shader/x-fragment">
+precision mediump float;
+varying vec3 v_uninit;
+void main() {
+    gl_FragColor = v_uninit.xyzz;
+}
+</script>
+
+<!-- Uninitialized local in fragment shader -->
+<script id="fs_uninit_local_in_frag" type="x-shader/x-fragment">
+precision mediump float;
+void main() {
+    vec2 uninit; // uninitialized
+    gl_FragColor = uninit.xyyy;
+}
+</script>
+
+<!-- Uninitialized global in vertex shader -->
+<script id="vs_uninit_global_in_vert" type="x-shader/x-vertex">
+precision mediump float;
+attribute vec4 a_position;
+varying float v_uninit;
+float uninit; // uninitialized
+void main() {
+    v_uninit = uninit;
+    gl_Position = a_position;
+}
+</script>
+<script id="fs_uninit_global_in_vert" type="x-shader/x-fragment">
+precision mediump float;
+varying float v_uninit;
+void main() {
+    gl_FragColor = vec4(v_uninit);
+}
+</script>
+
+<!-- Uninitialized global in fragment shader -->
+<script id="fs_uninit_global_in_frag" type="x-shader/x-fragment">
+precision mediump float;
+vec4 uninit; // uninitialized
+void main() {
+    gl_FragColor = uninit;
+}
+</script>
+
+<!-- Uninitialized local int in fragment shader -->
+<script id="fs_uninit_local_int_in_frag" type="x-shader/x-fragment">
+precision mediump float;
+void main() {
+    int uninit;
+    gl_FragColor = vec4(uninit);
+}
+</script>
+
+<!-- Uninitialized local variable and another variable in the same declaration using it as an initializer in fragment shader -->
+<script id="fs_uninit_two_local_variables_in_declaration_in_frag" type="x-shader/x-fragment">
+precision mediump float;
+void main() {
+    vec2 uninit, uninit2 = uninit;
+    gl_FragColor = uninit2.xyyy;
+}
+</script>
+
+<!-- Uninitialized local array and another variable in the same declaration using it in its initializer in fragment shader -->
+<script id="fs_uninit_array_and_another_in_declaration_in_frag" type="x-shader/x-fragment">
+precision mediump float;
+void main() {
+    vec2 uninit[2], uninit2 = uninit[0];
+    gl_FragColor = uninit2.xyyy;
+}
+</script>
+
+<!-- Uninitialized global int in fragment shader -->
+<script id="fs_uninit_global_int_in_frag" type="x-shader/x-fragment">
+precision mediump float;
+int uninit; // uninitialized
+void main() {
+    gl_FragColor = vec4(uninit);
+}
+</script>
+
+<!-- Uninitialized local struct in fragment shader -->
+<script id="fs_uninit_local_struct_in_frag" type="x-shader/x-fragment">
+precision mediump float;
+struct S { vec4 v; };
+void main() {
+    S uninit; // uninitialized
+    gl_FragColor = uninit.v;
+}
+</script>
+
+<!-- Uninitialized global struct in fragment shader -->
+<script id="fs_uninit_global_struct_in_frag" type="x-shader/x-fragment">
+precision mediump float;
+struct S { vec4 v; };
+S uninit; // uninitialized
+void main() {
+    gl_FragColor = uninit.v;
+}
+</script>
+
+<!-- Uninitialized nameless local struct in fragment shader -->
+<script id="fs_uninit_nameless_local_struct_in_frag" type="x-shader/x-fragment">
+precision mediump float;
+void main() {
+    struct { vec4 v; } uninit; // uninitialized
+    gl_FragColor = uninit.v;
+}
+</script>
+
+<!-- Uninitialized nameless global struct in fragment shader -->
+<script id="fs_uninit_nameless_global_struct_in_frag" type="x-shader/x-fragment">
+precision mediump float;
+struct { vec4 v; } uninit; // uninitialized
+void main() {
+    gl_FragColor = uninit.v;
+}
+</script>
+
+<!-- Uninitialized local bool in fragment shader -->
+<script id="fs_uninit_local_bool_in_frag" type="x-shader/x-fragment">
+precision mediump float;
+void main() {
+    bool uninit[16]; // uninitialized
+    bool result;
+    for (int i = 0; i < 16; i++) {
+        result = result || uninit[i];
+    }
+    gl_FragColor = result ? vec4(1, 0, 0, 1) : vec4(0);
+}
+</script>
+
+<!-- Uninitialized global bool in fragment shader -->
+<script id="fs_uninit_global_bool_in_frag" type="x-shader/x-fragment">
+precision mediump float;
+bool uninit[16]; // uninitialized
+void main() {
+    bool result = false;
+    for (int i = 0; i < 16; i++) {
+        result = result || uninit[i];
+    }
+    gl_FragColor = result ? vec4(1, 0, 0, 1) : vec4(0);
+}
+</script>
+
+</head>
+<body>
+<canvas id="canvas" width="50" height="50"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description('Uninitialized local/global variables should be initialized: http://anglebug.com/1966');
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("canvas");
+wtu.setupUnitQuad(gl);
+
+var cases = [
+  {
+    name: "Uninitialized local variable in vertex shader",
+    prog: ["vs_uninit_local_in_vert", "fs_uninit_local_in_vert"],
+  },
+  {
+    name: "Uninitialized local variable in fragment shader",
+    prog: ["vs_uninit_in_frag", "fs_uninit_local_in_frag"],
+  },
+  {
+    name: "Uninitialized global variable in vertex shader",
+    prog: ["vs_uninit_global_in_vert", "fs_uninit_global_in_vert"],
+  },
+  {
+    name: "Uninitialized global variable in fragment shader",
+    prog: ["vs_uninit_in_frag", "fs_uninit_global_in_frag"],
+  },
+  {
+    name: "Uninitialized local int variable in fragment shader",
+    prog: ["vs_uninit_in_frag", "fs_uninit_local_int_in_frag"],
+  },
+  {
+    name: "Uninitialized local variable and another variable in the same declaration using it as an initializer in fragment shader",
+    prog: ["vs_uninit_in_frag", "fs_uninit_two_local_variables_in_declaration_in_frag"],
+  },
+  {
+    name: "Uninitialized local array and another variable in the same declaration using it in its initializer in fragment shader",
+    prog: ["vs_uninit_in_frag", "fs_uninit_array_and_another_in_declaration_in_frag"],
+  },
+  {
+    name: "Uninitialized global int variable in fragment shader",
+    prog: ["vs_uninit_in_frag", "fs_uninit_global_int_in_frag"],
+  },
+  {
+    name: "Uninitialized local struct variable in fragment shader",
+    prog: ["vs_uninit_in_frag", "fs_uninit_local_struct_in_frag"],
+  },
+  {
+    name: "Uninitialized global struct variable in fragment shader",
+    prog: ["vs_uninit_in_frag", "fs_uninit_global_struct_in_frag"],
+  },
+  {
+    name: "Uninitialized nameless local struct variable in fragment shader",
+    prog: ["vs_uninit_in_frag", "fs_uninit_nameless_local_struct_in_frag"],
+  },
+  {
+    name: "Uninitialized nameless global struct variable in fragment shader",
+    prog: ["vs_uninit_in_frag", "fs_uninit_nameless_global_struct_in_frag"],
+  },
+  {
+    name: "Uninitialized local bool array variable in fragment shader",
+    prog: ["vs_uninit_in_frag", "fs_uninit_local_bool_in_frag"],
+  },
+  {
+    name: "Uninitialized global bool array variable in fragment shader",
+    prog: ["vs_uninit_in_frag", "fs_uninit_global_bool_in_frag"],
+  },
+];
+
+function runTest() {
+  for (var i = 0; i < cases.length; ++i) {
+    debug("");
+    debug(cases[i].name);
+    var program = wtu.setupProgram(gl, cases[i].prog, ["a_position"], undefined, true);
+    gl.clearColor(1.0, 0.0, 0.0, 1.0);
+    wtu.clearAndDrawUnitQuad(gl);
+    wtu.checkCanvas(gl, [0, 0, 0, 0]);
+  }
+
+  debug("");
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+}
+
+runTest();
+
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+</body>
+</html>
+

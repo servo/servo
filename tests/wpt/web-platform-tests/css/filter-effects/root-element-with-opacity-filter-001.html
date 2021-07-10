@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<title>Opacity Filter: root element opacity filter</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#FilterProperty">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#funcdef-filter-opacity">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=349587">
+<link rel="match" href="reference/root-element-with-opacity-filter-001-ref.html">
+<meta name="assert" content="This test ensures that the root renderer has an opacity filter"/>
+<html style="filter: opacity(0.501)">
+This test ensures we properly paint the root element when an opacity filter is applied.

@@ -1,5 +1,5 @@
-<svg id="svg-root" width="100%" height="100%" 
-  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg" 
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
   xmlns:xlink="http://www.w3.org/1999/xlink">
   <!--======================================================================-->
   <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
@@ -22,7 +22,7 @@
       </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
-    	<p>
+      <p>
         Run the test. No interaction required.
       </p>
     </d:operatorScript>
@@ -48,55 +48,55 @@
     </font-face>
   </defs>
   <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
-		<defs>
-			<filter id="sharpenAnim" x="0" y="0" width="100%" height="100%">
-				<feImage xlink:href="../images/stefan_252_tRNS_opti.png" result="passimg"/>
-				<feConvolveMatrix in="SourceGraphic" order="3" kernelMatrix="0  -1  0
-																																		-1   5 -1
-																																		 0  -1  0" preserveAlpha="true">
-					<set attributeName="in" to="passimg" begin="3s" fill="freeze" onbegin="runtest()"/>
-				</feConvolveMatrix>
-			</filter>
-			<filter id="sharpenScript" x="0" y="0" width="100%" height="100%">
-				<feImage xlink:href="../images/stefan_252_tRNS_opti.png" result="passimg"/>
-				<feConvolveMatrix id="prim" in="SourceGraphic" order="3" kernelMatrix="0  -1  0
-																																							-1   5 -1
-																																							 0  -1  0" preserveAlpha="true"/>
-			</filter>
+    <defs>
+      <filter id="sharpenAnim" x="0" y="0" width="100%" height="100%">
+        <feImage xlink:href="../images/stefan_252_tRNS_opti.png" result="passimg"/>
+        <feConvolveMatrix in="SourceGraphic" order="3" kernelMatrix="0  -1  0
+                                                                    -1   5 -1
+                                                                     0  -1  0" preserveAlpha="true">
+          <set attributeName="in" to="passimg" begin="3s" fill="freeze" onbegin="runtest()"/>
+        </feConvolveMatrix>
+      </filter>
+      <filter id="sharpenScript" x="0" y="0" width="100%" height="100%">
+        <feImage xlink:href="../images/stefan_252_tRNS_opti.png" result="passimg"/>
+        <feConvolveMatrix id="prim" in="SourceGraphic" order="3" kernelMatrix="0  -1  0
+                                                                              -1   5 -1
+                                                                               0  -1  0" preserveAlpha="true"/>
+      </filter>
 
-			<text id="pass" x="240" y="150" text-anchor="middle" font-size="30px">PASS</text>
-		</defs>
-		
-		<script type="application/ecmascript">
-			function runtest()
-			{
-				var img = document.getElementById("img");
-				img.href.baseVal = "../images/stefan_252_tRNS_opti.png";
-				var prim = document.getElementById("prim");
-				prim.in1.baseVal = "passimg";
-			}
-		</script>	
+      <text id="pass" x="240" y="150" text-anchor="middle" font-size="30px">PASS</text>
+    </defs>
 
-		<text x="50%" y="3em" style="font-size:18px; text-anchor:middle">feConvolveMatrix 'in1' DOM</text>
-		<image id="img" xlink:href="../images/purplesquidj.png" x="80" y="100" width="100" height="100"/>
-		<image xlink:href="../images/purplesquidj.png" x="190" y="100" width="100" height="100" filter="url(#sharpenAnim)"/>
-		<image xlink:href="../images/purplesquidj.png" x="300" y="100" width="100" height="100" filter="url(#sharpenScript)"/>
-		<rect x="80" y="100" width="100" height="100" stroke="black" fill="none"/>
-		<rect x="190" y="100" width="100" height="100" stroke="blue" fill="none"/>
-		<rect x="300" y="100" width="100" height="100" stroke="blue" fill="none"/>
-		<text x="130" y="220" style="font-size:9px; text-anchor:middle">Original image</text>
-		<text x="240" y="220" style="font-size:9px; text-anchor:middle">Animated filter</text>
-		<text x="350" y="220" style="font-size:9px; text-anchor:middle">Scripted filter</text>
-	</g>
+    <script type="application/ecmascript">
+      function runtest()
+      {
+        var img = document.getElementById("img");
+        img.href.baseVal = "../images/stefan_252_tRNS_opti.png";
+        var prim = document.getElementById("prim");
+        prim.in1.baseVal = "passimg";
+      }
+    </script>
+
+    <text x="50%" y="3em" style="font-size:18px; text-anchor:middle">feConvolveMatrix 'in1' DOM</text>
+    <image id="img" xlink:href="../images/purplesquidj.png" x="80" y="100" width="100" height="100"/>
+    <image xlink:href="../images/purplesquidj.png" x="190" y="100" width="100" height="100" filter="url(#sharpenAnim)"/>
+    <image xlink:href="../images/purplesquidj.png" x="300" y="100" width="100" height="100" filter="url(#sharpenScript)"/>
+    <rect x="80" y="100" width="100" height="100" stroke="black" fill="none"/>
+    <rect x="190" y="100" width="100" height="100" stroke="blue" fill="none"/>
+    <rect x="300" y="100" width="100" height="100" stroke="blue" fill="none"/>
+    <text x="130" y="220" style="font-size:9px; text-anchor:middle">Original image</text>
+    <text x="240" y="220" style="font-size:9px; text-anchor:middle">Animated filter</text>
+    <text x="350" y="220" style="font-size:9px; text-anchor:middle">Scripted filter</text>
+  </g>
   <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
-  <text id="revision" x="10" y="340" stroke="none" 
+  <text id="revision" x="10" y="340" stroke="none"
     fill="black">$Revision: 1.8 $</text>
   </g>
   <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
   <!-- comment out this watermark once the test is approved --><!--
   <g id="draft-watermark">
     <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
-    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240" 
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
       text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
   </g>-->
 </svg>

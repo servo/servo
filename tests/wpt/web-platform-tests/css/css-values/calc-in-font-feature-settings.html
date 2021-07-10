@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: calc() function in font-feature-settings</title>
+<link rel="author" title="Chris Nardi" href="mailto:cnardi@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-values/#funcdef-calc">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+    #test {
+        font-feature-settings: "vert" calc(2);
+    }
+</style>
+<div id="test"></div>
+<script>
+    const div = document.querySelector("#test");
+    // Chrome serializes font-feature-settings with single quotes vs. double quotes
+    // in other browsers, but that's not the issue being tested.
+    const expected = ["'vert' 2", "\"vert\" 2"];
+    test(function() {
+        assert_in_array(getComputedStyle(div).fontFeatureSettings, expected);
+    }, "calc() in font-feature-settings");
+</script>

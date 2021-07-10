@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text Decoration Test: Ink skipping extends only a small distance away from glyph</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-ink-property">
+<meta name="assert" content="Ink skipping gap is capped at a small distance and does not continuously grow with text-decoration-thickness.">
+<link rel="author" title="Dominik Röttsches" href="mailto:drott@chromium.org">
+<link rel="match" href="reference/text-decoration-thickness-ink-skip-dilation-ref.html">
+<style>
+@font-face {
+font-family: underline-variable;
+src: url(resources/UnderlineTest-VF.ttf);
+}
+
+.test_red {
+font-family: underline-variable;
+font-size: 64px;
+}
+
+.underline {
+text-decoration: underline;
+text-underline-position: from-font;
+text-decoration-thickness: 13px;
+text-decoration-color: red;
+}
+
+.test_green {
+text-decoration: underline;
+font-family: underline-variable;
+text-underline-position: from-font;
+text-decoration-thickness: 25px;;
+font-size: 64px;
+text-decoration-color: green;
+}
+
+.overlap {
+position: absolute;
+left: 20px;
+top: 25px;
+}
+</style>
+</head>
+<body>
+<p>Test passes if no blips of red underline show near the descender of the g glyph.</p>
+<div class="test">
+<div class="test_red overlap">a<span class="underline">aaaagaaaa</span>a</div>
+<div class="test_green overlap">aaaaagaaaaa</div>
+</div>
+</div>
+</body>
+</html>

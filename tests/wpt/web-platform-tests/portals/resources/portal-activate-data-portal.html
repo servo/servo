@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<script>
+let logic = new Function('event', (new URL(location)).searchParams.get('logic'));
+onload = () => window.portalHost.postMessage('ready');
+onportalactivate = event => {
+  var portal = event.adoptPredecessor();
+  portal.postMessage(logic(event));
+};
+</script>

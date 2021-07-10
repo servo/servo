@@ -95,12 +95,9 @@
       // to the character that immediately follows the text entry cursor.
       assert_equals(el.selectionStart, el.value.length,
                     "SelectionStart offset without selection in " + el.id);
-      if (!el.parentNode) {
-        return;
-      }
       el.select();
       assert_equals(el.selectionStart, 0, "SelectionStart offset");
-      el.parentNode.removeChild(el);
+      el.remove();
     }, "test SelectionStart offset for input that is " +
          (append ? "appended" : " not appended"));
   }
@@ -112,12 +109,9 @@
       // to the character that immediately follows the text entry cursor.
       assert_equals(el.selectionStart, el.value.length,
                     "SelectionStart offset without selection in " + el.id);
-      if (!el.parentNode) {
-        return;
-      }
       el.select();
       assert_equals(el.selectionStart, 0, "SelectionStart offset");
-      el.parentNode.removeChild(el);
+      el.remove();
     }, "test SelectionStart offset for textarea that is " +
          (append ? "appended" : " not appended"));
   }
@@ -129,12 +123,9 @@
       // to the character that immediately follows the text entry cursor.
       assert_equals(el.selectionEnd, el.value.length,
                     "SelectionEnd offset without selection in " + el.id);
-      if (!el.parentNode) {
-        return;
-      }
       el.select();
       assert_equals(el.selectionEnd, el.value.length, "SelectionEnd offset");
-      el.parentNode.removeChild(el);
+      el.remove();
     }, "test SelectionEnd offset for input that is " +
          (append ? "appended" : " not appended"));
   }
@@ -147,12 +138,9 @@
       // to the character that immediately follows the text entry cursor.
       assert_equals(el.selectionEnd, el.value.length,
                     "SelectionEnd offset without selection in " + el.id);
-      if (!el.parentNode) {
-        return;
-      }
       el.select();
       assert_equals(el.selectionEnd, el.value.length, "SelectionEnd offset");
-      el.parentNode.removeChild(el);
+      el.remove();
     }, "test SelectionEnd offset for textarea that is " +
          (append ? "appended" : " not appended"));
   }
@@ -167,10 +155,52 @@
 
 
   test(function() {
-    var el = createInputElement(sampleText);
+    var el = createTextareaElement(sampleText);
     assert_in_array(el.selectionDirection, dirs, "SelectionDirection");
     el.select();
     assert_in_array(el.selectionDirection, dirs, "SelectionDirection");
     el.parentNode.removeChild(el);
   }, "test SelectionDirection for textarea");
+
+  promise_test(async () => {
+    // cause a layout overflow
+    const el = createInputElement(sampleText.repeat(100));
+    el.selectionEnd = 0;
+    await new Promise(requestAnimationFrame);
+    assert_equals(el.scrollLeft, 0);
+
+    el.select();
+    await new Promise(requestAnimationFrame);
+    assert_equals(el.scrollLeft, 0);
+    el.remove();
+  }, `test scrollLeft for input`);
+
+  promise_test(async () => {
+    // cause a layout overflow
+    const el = createInputElement(sampleText.repeat(100));
+    el.scrollLeft = 33;
+
+    el.select();
+    await new Promise(requestAnimationFrame);
+    assert_equals(el.scrollLeft, 33);
+    el.remove();
+  }, `test scrollLeft preservation for input`);
+
+  for (const localName of ["input", "textarea"]) {
+    promise_test(async () => {
+      const container = document.createElement("div");
+      container.style.height = "100px";
+      container.style.overflow = "scroll";
+      const element = document.createElement(localName);
+      element.style.marginTop = "120px";
+      container.append(element);
+      document.body.append(container);
+
+      element.select();
+      await new Promise(requestAnimationFrame);
+      assert_equals(container.scrollTop, 0);
+
+      container.remove();
+    }, `test container.scrollTop for ${localName}`);
+  }
 </script>

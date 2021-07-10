@@ -38,9 +38,9 @@
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
-        The test passes if the string "AyÖ@ç" is visible and fontsize, 
+        The test passes if the string "AyÖ@ç" is visible and fontsize,
         character baseline and horizontal advances are the same on both lines,
-	as shown in the reference image.
+  as shown in the reference image.
       </p>
     </d:passCriteria>
   </d:SVGTestCase>

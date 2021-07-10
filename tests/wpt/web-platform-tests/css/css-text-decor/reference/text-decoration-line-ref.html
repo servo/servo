@@ -1,0 +1,33 @@
+<html>
+<head>
+    <style>
+            .none { text-decoration: none; }
+            .underline { text-decoration: underline; }
+            .overline { text-decoration: overline; }
+            .line-through { text-decoration: line-through; }
+            .all-decorations { text-decoration: underline overline line-through; }
+    </style>
+</head>
+<body>
+    <div>Each line of this test should match its style description (<i>text-decoration-line</i> resets <i>text-decoration</i>, except when the latter is set as <i>important</i>):</div><br/>
+    <div class="underline">This text is underlined <span>(also inside span).</span></div><br/>
+    <div class="overline">This text is overlined <span>(also inside span).</span></div><br/>
+    <div class="line-through">This text has a line-through <span>(also inside span).</span></div><br/>
+    <div class="none">This text contains no decorations.</div><br/>
+    <div class="underline">This text is underlined.</div><br/>
+    <div class="none">This text contains no decorations.</div><br/>
+    <div class="overline">This text is overlined.</div><br/>
+    <div class="none">This text contains no decorations.</div><br/>
+    <div class="line-through">This text has a line-through.</div><br/>
+    <div class="none">This text contains no decorations.</div><br/>
+    <div class="all-decorations">This text is underlined, overlined and has a line-through.</div><br/>
+    <div class="none">This text contains no decorations.</div><br/>
+    <div class="overline">This text is overlined.</div><br/>
+    <div class="overline">This text is overlined.</div><br/>
+    <div class="underline">This text is underlined.</div>
+    <div class="none">This text contains no decorations.</div><br/>
+    <div class="none">This text contains no decorations.</div><br/>
+    <div class="none">This text contains no decorations.</div><br/>
+    <div class="none">This text contains no decorations.</div><br/>
+</body>
+</html>

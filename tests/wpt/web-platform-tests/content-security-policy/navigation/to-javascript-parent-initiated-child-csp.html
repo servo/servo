@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<iframe src="support/frame-with-csp.sub.html?csp=script-src%20%27unsafe-inline%27"></iframe>
+<div onclick="frames[0].location.href = 'javascript:parent.postMessage(\'executed\', \'*\')'" id="special_div"></div>
+<script>
+  var t = async_test("Should have executed the javascript url");
+  frames[0].addEventListener('load', () => {
+    window.onmessage = t.step_func(function(e) {
+      if (e.data == "executed")
+        t.done();
+    });
+    window.addEventListener('securitypolicyviolation', t.unreached_func("Should not have raised a violation event"));
+    document.getElementById('special_div').click();
+  });
+</script>
+</body>

@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>getUserMedia</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+  [
+    { video: { pan: { min: 1 } } },
+    { video: { pan: { max: 1 } } },
+    { video: { pan: { exact: 1 } } },
+    { video: { tilt: { min: 1 } } },
+    { video: { tilt: { max: 1 } } },
+    { video: { tilt: { exact: 1 } } },
+    { video: { zoom: { min: 1 } } },
+    { video: { zoom: { max: 1 } } },
+    { video: { zoom: { exact: 1 } } }
+  ].forEach(constraints =>
+    promise_test(t => {
+      const promise = navigator.mediaDevices.getUserMedia(constraints);
+      return promise_rejects_js(t, TypeError, promise);
+    }, `getUserMedia(${JSON.stringify(constraints)}) must fail with TypeError`)
+  );
+
+</script>

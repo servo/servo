@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1/#the-registerproperty-function" />
+<meta name="assert" content="Verifies that registering a property does not affect the cascade" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+
+#outer { color: rgb(1, 1, 1); }
+#inner {
+    --my-color: rgb(2, 2, 2);
+    --my-color: url(not-a-color);
+    color: var(--my-color);
+}
+
+</style>
+
+<div id=outer>
+    <div id=inner></div>
+</div>
+
+<script>
+
+test(function(){
+    // Because var(--my-color) is invalid, our color declaration should behave
+    // like color:unset, i.e. it should compute to the inherited color.
+    assert_equals(inner.computedStyleMap().get('color').toString(), 'rgb(1, 1, 1)');
+
+    CSS.registerProperty({
+        name: '--my-color',
+        syntax: '<color>',
+        initialValue: 'rgb(3, 3, 3)',
+        inherits: false
+    });
+
+    // After registering, var(--my-color) is still invalid. The important thing
+    // here is that the computed value of color is the initialValue of
+    // --my-color, and not rgb(2, 2, 2).
+    assert_equals(inner.computedStyleMap().get('color').toString(), 'rgb(3, 3, 3)');
+}, 'Registering a property does not affect cascade');
+
+test(function(){
+    CSS.registerProperty({
+        name: '--my-color-2',
+        syntax: '<color>',
+        initialValue: 'rgb(4, 4, 4)',
+        inherits: false
+    });
+
+    let element = document.createElement('div');
+    element.style = `
+        --my-color-2: rgb(2, 2, 2);
+        --my-color-2: url(not-a-color);
+        color: var(--my-color-2);
+    `;
+
+    outer.appendChild(element);
+
+    assert_equals(element.computedStyleMap().get('color').toString(), 'rgb(4, 4, 4)');
+}, 'Registering a property does not affect parsing');
+
+
+</script>

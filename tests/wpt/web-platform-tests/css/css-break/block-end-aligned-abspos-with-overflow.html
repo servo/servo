@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#transforms">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visudet.html#abs-non-replaced-height">
+<link rel="match" href="block-end-aligned-abspos-with-overflow-ref.html">
+<meta name="assert" content="Check that content that overflows a tall bottom-aligned abspos fragments properly">
+<style>
+  body { overflow:scroll; } /* Auto scrollbars may hide bugs. */
+</style>
+<p>There should be a green square below, and a smaller hotpink square.</p>
+<div style="columns:2; width:100px; height:100px; column-fill:auto; column-gap:0; background:white;">
+  <div style="position:relative; height:100%;">
+    <div style="position:absolute; width:20px; bottom:20px;">
+      <div style="height:10px; background:white;">
+        <div style="background:hotpink;">
+          <div style="height:10px; background:white;"></div>
+          <div style="break-inside:avoid; width:50px; height:50px; background:green;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

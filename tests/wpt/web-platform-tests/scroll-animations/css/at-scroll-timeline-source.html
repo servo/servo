@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#scroll-timeline-at-rule">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#descdef-scroll-timeline-source">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+  :root {
+    height: 100vh;
+    overflow: scroll;
+  }
+  body {
+    height: 200vh;
+  }
+  .scroller {
+    overflow: scroll;
+    width: 100px;
+    height: 100px;
+  }
+  #boxless {
+    display: none;
+  }
+  .contents {
+    height: 300px;
+  }
+  @keyframes expand {
+    from { width: 100px; }
+    to { width: 200px; }
+  }
+  @scroll-timeline timeline_source_none {
+    source: none;
+    time-range: 10s;
+    start: 0px;
+    end: 100px;
+  }
+  @scroll-timeline timeline_source_auto {
+    source: auto;
+    time-range: 10s;
+    start: 0px;
+    end: 100px;
+  }
+  @scroll-timeline timeline_source_selector {
+    source: selector(#scroller);
+    time-range: 10s;
+    start: 0px;
+    end: 100px;
+  }
+  @scroll-timeline timeline_source_unspecified {
+    time-range: 10s;
+    start: 0px;
+    end: 100px;
+  }
+  @scroll-timeline timeline_source_nonexistent_id {
+    source: selector(#doesnotexist);
+    time-range: 10s;
+    start: 0px;
+    end: 100px;
+  }
+  @scroll-timeline timeline_source_no_layout_box {
+    source: selector(#boxless);
+    time-range: 10s;
+    start: 0px;
+    end: 100px;
+  }
+  #container > div {
+    width: 0px;
+    animation-name: expand;
+    animation-duration: 10s;
+    animation-timing-function: linear;
+  }
+  /* Ensure stable expectations if feature is not supported */
+  @supports not (animation-timeline:foo) {
+    #container > div { animation-play-state: paused; }
+  }
+  #element_source_none { animation-timeline: timeline_source_none; }
+  #element_source_auto { animation-timeline: timeline_source_auto; }
+  #element_source_unspecified { animation-timeline: timeline_source_unspecified; }
+  #element_source_selector { animation-timeline: timeline_source_selector; }
+  #element_source_nonexistent_id { animation-timeline: timeline_source_nonexistent_id; }
+  #element_source_no_layout_box { animation-timeline: timeline_source_no_layout_box; }
+</style>
+<body>
+  <div class=scroller id=scroller>
+    <div class=contents></div>
+  </div>
+  <div class=scroller id=boxless>
+    <div class=contents></div>
+  </div>
+  <div id=container>
+    <div id=element_source_none></div>
+    <div id=element_source_auto></div>
+    <div id=element_source_unspecified></div>
+    <div id=element_source_selector></div>
+    <div id=element_source_nonexistent_id></div>
+    <div id=element_source_no_layout_box></div>
+  </div>
+  <script>
+    // Set progress of animations linked to #scroller to 75%.
+    scroller.scrollTop = 75;
+    // Set progress of animations linked to document.scrollingElement to 25%.
+    document.scrollingElement.scrollTop = 25;
+
+    promise_test(async (t) => {
+      await waitForNextFrame();
+      assert_equals(getComputedStyle(element_source_none).width, '0px');
+    }, 'Source none causes inactive timeline');
+
+    promise_test(async (t) => {
+      await waitForNextFrame();
+      assert_equals(getComputedStyle(element_source_auto).width, '125px');
+    }, 'Source auto selects scrollingElement of the document');
+
+    promise_test(async (t) => {
+      await waitForNextFrame();
+      assert_equals(getComputedStyle(element_source_unspecified).width, '125px');
+    }, 'Unspecified source behaves like auto');
+
+    promise_test(async (t) => {
+      await waitForNextFrame();
+      assert_equals(getComputedStyle(element_source_selector).width, '175px');
+    }, 'Source selector(<id-selector>) selects an element');
+
+    promise_test(async (t) => {
+      await waitForNextFrame();
+      assert_equals(getComputedStyle(element_source_nonexistent_id).width, '0px');
+    }, 'Unknown source causes inactive timeline');
+
+    promise_test(async (t) => {
+      await waitForNextFrame();
+      assert_equals(getComputedStyle(element_source_no_layout_box).width, '0px');
+    }, 'Source with no layout box causes inactive timeline');
+
+    // TODO(https://github.com/w3c/csswg-drafts/issues/5289): Add tests for
+    // sources that change when behavior is clarified.
+
+  </script>
+</body>

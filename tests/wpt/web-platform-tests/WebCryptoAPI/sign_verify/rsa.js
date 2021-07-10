@@ -1,5 +1,7 @@
 
 function run_test() {
+    setup({explicit_done: true});
+
     var subtle = self.crypto.subtle; // Change to test prefixed implementations
 
     // When are all these tests really done? When all the promises they use have resolved.

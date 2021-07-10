@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): rotatex() With Preserve-3D</title>
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-2/#transform-style-property">
+    <meta name="assert" content="This tests that two rotations of 22.5deg
+    properly add when preserve-3d is used.  The result, a 45deg rotation around
+    the X-axis, should be equivalent to shrinking the height by a factor of
+    sqrt(2), i.e., 1.41421356....">
+    <link rel="match" href="transform-lime-square-ref.html">
+    <style>
+      div {
+        transform: rotatex(22.5deg);
+        transform-origin: top;
+      }
+    </style>
+  </head>
+  <body>
+    <div style="transform-style: preserve-3d">
+      <div style="height: 141.421356px; width: 100px; background: lime"></div>
+    </div>
+  </body>
+</html>

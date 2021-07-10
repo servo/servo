@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<title>Ensure 'vertical-scroll' does not affect main frame</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/feature-policy/experimental-features/resources/common.js"></script>
+<script src="/feature-policy/experimental-features/resources/vertical-scroll.js"></script>
+<style>
+html, body {
+  height: 100%;
+  width: 100%;
+}
+.spacer {
+  width: 100%;
+  height: 100%;
+  margin-top: 100%;
+  margin-bottom: 100%;
+}
+</style>
+<p> Making sure there is room for vertical scroll </p>
+<div class="spacer"></div>
+<div class="spacer"></div>
+</p>EOP</p>
+<script>
+  "use strict";
+
+  // Sanity check.
+  test(() => {
+    assert_false(document.featurePolicy.allowsFeature("vertical-scroll"),
+                 "Expected 'vertical-scroll' to be disabled.");
+  }, "'vertical-scroll' disabled in main document.");
+
+  // Wait for the helper scripts to load.
+  promise_test(async() => {
+    if (window.input_api_ready)
+      return Promise.resolve();
+    await new Promise( (r) => {
+      window.resolve_on_input_api_ready = r;
+    });
+  }, "Make sure input injection API is ready.");
+
+  promise_test(async() => {
+    window.scrollTo(0, 0);
+    await inject_input("down");
+    assert_greater_than(window.scrollY, 0, "Page must have scrolled down.");
+  }, "Verify that the page scrolls vertically.");
+</script>

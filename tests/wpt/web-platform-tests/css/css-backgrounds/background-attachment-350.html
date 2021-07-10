@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Background and Borders Test: 'background-attachment: local' and 'overflow: hidden'</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-attachment">
+  <link rel="match" href="reference/ref-if-there-is-no-red.xht">
+
+  <!--
+
+  More info:
+
+  Re: [css3-background] background-attachment: local
+  http://lists.w3.org/Archives/Public/www-style/2013May/0542.html
+
+  -->
+
+  <meta content="" name="flags">
+  <meta content="This test checks that when an element has 'background-attachment: local', then the background image is fixed with regard to what is the element's scrollable area and not to its viewport. In this test, what would be the scrollable area for the div element is where the red square is and such area is clipped due to 'overflow: hidden'." name="assert">
+
+  <style>
+  div
+    {
+      background-attachment: local;
+      background-image: url("support/100x100-red.png");
+      background-position: bottom right;
+      background-repeat: no-repeat;
+      font-size: 100px;
+      line-height: 1;
+      height: 100px;
+      overflow: hidden;
+      width: 100px;
+    }
+  </style>
+
+  <body>
+
+  <p>Test passes if there is <strong>no red</strong>.
+
+  <div id="target">&nbsp;&nbsp;<br>&nbsp;&nbsp;</div>
+
+  <!--
+
+(0px, 0px)              (200px, 0px)
+  +.......................+
+  |+..........+           |
+  || +......+ |           |
+  || |  red | |           | <== bottom right of scrolling box
+  || |square| |           |     when background-image dimensions
+  || |      | |           |     are the same as the element's
+  || +......+ |           |     viewport dimensions
+   +..........+           |
+  |                       |
+  |               +......+|
+  |               |  red || <== bottom right of scrollable area
+  |               |square||     which is outside of the viewport
+  |               |      ||     area and which is clipped due
+  |               +......+|     to 'overflow: hidden'
+  +.......................+
+(0px, 200px)            (200px, 200px)
+
+  -->

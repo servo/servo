@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>PointerCapture for Shadow DOM Elements</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width">
+    <link rel="help" href= "https://bugs.chromium.org/p/chromium/issues/detail?id=810882">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+  </head>
+  <body onload="onLoad()">
+    <template id="template">
+      <style>
+          #content{
+              height:100px;
+              width:100px;
+              background-color: lightgrey;
+          }
+      </style>
+      <div id="content"></div>
+    </template>
+    <h4>PointerCapture by Shadow DOM element</h4>
+    The light gray box below is part of Shadow DOM.
+    <ul>
+      <li> Click left mouse button inside the box and keep mouse button depressed </li>
+      <li> Move the mouse </li>
+      <li> There should be a message stating <em>Pointer was captured by Shadow DOM!</em></li>
+      <li> Release left mouse button
+      <li> There should be a message stating <em>Pointer was released by Shadow DOM!</em></li>
+    </ul>
+    <div id="shadowhost"></div>
+    <div id="log"></div>
+    <script>
+      function onLoad(){
+        var logDiv = document.getElementById("log");
+        function logMessage(message){
+          var log = document.createElement("div");
+          var messageNode = document.createTextNode(message);
+          log.appendChild(messageNode);
+          logDiv.appendChild(log);
+        }
+        var events = [];
+
+        var host = document.getElementById("shadowhost");
+        var shadowRoot = host.attachShadow({mode: "open"});
+        var template = document.getElementById("template");
+        var node = template.content.cloneNode(true);
+        shadowRoot.appendChild(node);
+
+        var content = host.shadowRoot.getElementById("content");
+
+        content.addEventListener("pointerdown", function(e){
+          content.setPointerCapture(e.pointerId);
+          events.push("pointerdown@content");
+        });
+        content.addEventListener("gotpointercapture", function(e){
+          logMessage("Pointer was captured by Shadow DOM!");
+          events.push("gotpointercapture@content");
+        });
+        content.addEventListener("pointerup", function(e){
+          content.releasePointerCapture(e.pointerId);
+          events.push("pointerup@content");
+        });
+        content.addEventListener("lostpointercapture", function(e){
+          logMessage("Pointer was released by Shadow DOM!");
+          events.push("lostpointercapture@content");
+          if(window.promise_test && shadow_dom_test){
+            shadow_dom_test.step(function(){
+              assert_array_equals(events, ["pointerdown@content",
+                "gotpointercapture@content", "pointerup@content",
+                "lostpointercapture@content"]);
+              resolve_test();
+            });
+          }
+        });
+
+        var shadow_dom_test = null;
+        var resolve_test = null;
+        var reject_test = null;
+
+        function cleanup(){
+          events = [];
+          shadow_dom_test = null;
+          resolve_test = null;
+          reject_test = null;
+        }
+
+        if(window.promise_test){
+          promise_test(async function(t){
+            var actions_promise;
+            return new Promise(async function(resolve, reject){
+              shadow_dom_test = t;
+              resolve_test = resolve;
+              reject_test = reject;
+              t.add_cleanup(function(){
+                cleanup();
+              });
+              var contentRect = content.getBoundingClientRect();
+              var actions = new test_driver.Actions();
+              actions_promise = actions
+                .pointerMove(Math.ceil(contentRect.x), Math.ceil(contentRect.y))
+                .pointerDown({button: actions.ButtonType.LEFT})
+                .pointerUp({button: actions.ButtonType.LEFT})
+                .send();
+            }).then(async ()=>{
+              await actions_promise;
+              t.done();
+            });
+          }, "PointerCapture works for Shadow DOM element.");
+        }
+      }
+    </script>
+  </body>
+</html>

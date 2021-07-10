@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<canvas id='canvas0' width=10 height=10/>
+<canvas id='canvas1' width=10 height=10/>
+</body>
+<script>
+
+// This test verifies that ImageCapture can grabFrame()s.
+
+var test = async_test(function() {
+  var canvas0 = document.getElementById('canvas0');
+  var context0 = canvas0.getContext("2d");
+  context0.fillStyle = "red";
+  context0.fillRect(0, 0, 10, 10);
+
+  var stream = canvas0.captureStream();
+
+  var capturer = new ImageCapture(stream.getVideoTracks()[0]);
+
+  capturer.grabFrame()
+    .then(bitmap => {
+      assert_equals(canvas0.width, bitmap.width);
+      assert_equals(canvas0.height, bitmap.height);
+
+      var context1 = document.getElementById('canvas1').getContext("2d");
+      context1.drawImage(bitmap, 0, 0);
+
+      var imageData0 = context0.getImageData(0, 0, 10, 10);
+      var imageData1 = context1.getImageData(0, 0, 10, 10);
+
+      assert_equals(imageData0.width, imageData1.width);
+      assert_equals(imageData0.height, imageData1.height);
+      assert_equals(imageData0.data.length, imageData1.data.length);
+      for (var i = 0; i < imageData0.data.length; i++)
+        assert_approx_equals(imageData0.data[i], imageData1.data[i], 5);
+
+      this.done();
+    })
+    .catch(error => {
+      assert_unreached('Error during grabFrame(): '+ error);
+    });
+}, 'exercises the ImageCapture API creation and grabFrame().');
+
+</script>

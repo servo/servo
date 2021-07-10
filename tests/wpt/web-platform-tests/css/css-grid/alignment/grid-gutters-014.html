@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Percentage gap, content-based width/height (via float)</title>
+<link rel="help" href="https://www.w3.org/TR/css-grid-1/#gutters">
+<link rel="help" href="https://www.w3.org/TR/css-align-3/#gaps">
+<link rel="match" href="grid-gutters-014-ref.html">
+<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+<meta name="assert" content="Tests that percentage gaps contribute zero to intrinsic sizing, then resolve against corresponding axis of containing block for layout.">
+
+<style>
+    #grid {
+        display: grid;
+        border: solid 5px teal;
+        padding: 5px;
+        grid-gap: 15% 10%;
+        gap: 15% 10%;
+        float: left;
+        grid: auto auto / auto auto;
+        /* content box width = 200px height = 100px -> gap x = 20px y = 15px */
+        position: relative;
+    }
+
+    #grid > div {
+        margin: 5px 10px;
+        border: solid 5px aqua;
+        width: 70px;
+        height: 30px;
+        /* margin box height = 50px width = 100px */
+    }
+
+    /* highlight manual pass condition */
+    #grid > div:nth-child(even) {
+        border-right-color: red;
+    }
+    #grid > div:nth-child(n + 3) {
+        border-bottom-color: red;
+    }
+    #mask {
+        position: absolute;
+        border: 5px teal;
+        border-style: none solid solid none;
+        bottom: -5px; right: -5px;
+        top: 10px; left: 15px;
+    }
+</style>
+
+<p>Test passes if there is no red.
+<div id="grid">
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+    <span id="mask"></span>
+</div>

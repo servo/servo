@@ -1,50 +1,50 @@
 <!DOCTYPE html>
 <html>
-	<head>
-		<title>Drag and drop with right click</title>
-		<style type="text/css">
+  <head>
+    <title>Drag and drop with right click</title>
+    <style type="text/css">
 div {
-	width: 100px;
-	height: 100px;
-	background: orange;
-	float: left;
+  width: 100px;
+  height: 100px;
+  background: orange;
+  float: left;
 }
 div + div {
-	background: blue;
+  background: blue;
 }
 div + div + div {
-	background: fuchsia;
+  background: fuchsia;
 }
 ol {
-	clear: left;
+  clear: left;
 }
-		</style>
-		<script type="text/javascript">
+    </style>
+    <script type="text/javascript">
 window.onload = function () {
-	document.getElementsByTagName('div')[0].ondragstart = function (e) {
-		e.dataTransfer.effectAllowed = 'copy';
-		e.dataTransfer.setData('text','dummy text');
-	};
+  document.getElementsByTagName('div')[0].ondragstart = function (e) {
+    e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('text','dummy text');
+  };
 };
-		</script>
-	</head>
-	<body>
-		<div draggable="true"></div>
-		<div></div>
-		<div></div>
-		<noscript><p>Enable JavaScript and reload</p></noscript>
-		<ol>
-			<li>Drag the orange square over the blue square.</li>
-			<li>Without releasing the drag, click the right mouse button.</li>
-			<li>If the platform's normal behaviour is to cancel a drag (eg. Windows and Unix+KDE), then the drag should be cancelled;<ul>
-				<li>The drag placeholder should disappear, and the cursor should return to the normal mouse cursor.</li>
-				<li>Move the mouse over the pink square and release the drag. The mouse cursor should remain the normal mouse cursor.</li>
-			</ul></li>
-			<li>If the platform's normal behaviour is not to cancel a drag (eg. Mac and Unix+Gnome), then the drag should not be cancelled;<ul>
-				<li>The drag placeholder should not disappear, and the cursor should be the no-drop cursor.</li>
-				<li>Move the mouse over the pink square and release the drag. The drag placeholder should disappear, and the cursor should return to the normal mouse cursor.</li>
-			</ul></li>
-			<li>Fail in either case if an inappropriate right click function begins (eg. context menu opens).</li>
-		</ol>
-	</body>
+    </script>
+  </head>
+  <body>
+    <div draggable="true"></div>
+    <div></div>
+    <div></div>
+    <noscript><p>Enable JavaScript and reload</p></noscript>
+    <ol>
+      <li>Drag the orange square over the blue square.</li>
+      <li>Without releasing the drag, click the right mouse button.</li>
+      <li>If the platform's normal behaviour is to cancel a drag (eg. Windows and Unix+KDE), then the drag should be cancelled;<ul>
+        <li>The drag placeholder should disappear, and the cursor should return to the normal mouse cursor.</li>
+        <li>Move the mouse over the pink square and release the drag. The mouse cursor should remain the normal mouse cursor.</li>
+      </ul></li>
+      <li>If the platform's normal behaviour is not to cancel a drag (eg. Mac and Unix+Gnome), then the drag should not be cancelled;<ul>
+        <li>The drag placeholder should not disappear, and the cursor should be the no-drop cursor.</li>
+        <li>Move the mouse over the pink square and release the drag. The drag placeholder should disappear, and the cursor should return to the normal mouse cursor.</li>
+      </ul></li>
+      <li>Fail in either case if an inappropriate right click function begins (eg. context menu opens).</li>
+    </ol>
+  </body>
 </html>

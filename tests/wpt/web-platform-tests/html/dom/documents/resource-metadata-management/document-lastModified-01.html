@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <title>document.lastModified should return current local time</title>
+<meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
@@ -39,13 +40,11 @@
   }
   var t = async_test("Date returned by lastModified is current after timeout.");
 
-  setTimeout(function() {
-    t.step(function() {
-      var new_modified = Date.parse(document.lastModified) / 1000;
-      var new_expected = Math.round(new Date() / 1000);
-      assert_approx_equals(new_modified, new_expected, 2.5,
-                           "(initial value was " + initial_modified + ")");
-      t.done();
-    });
+  t.step_timeout(function() {
+    var new_modified = Date.parse(document.lastModified) / 1000;
+    var new_expected = Math.round(new Date() / 1000);
+    assert_approx_equals(new_modified, new_expected, 2.5,
+                         "(initial value was " + initial_modified + ")");
+    t.done();
   }, 4000);
 </script>

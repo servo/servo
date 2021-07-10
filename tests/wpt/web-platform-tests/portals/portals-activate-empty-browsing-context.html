@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+promise_test(async t => {
+  assert_implements("HTMLPortalElement" in self);
+  let portal = document.createElement('portal');
+  document.body.appendChild(portal);
+  t.add_cleanup(() => { document.body.removeChild(portal); });
+
+  await promise_rejects_dom(t, 'InvalidStateError', portal.activate());
+}, "A portal that has never been navigated cannot be activated");
+
+promise_test(async t => {
+  assert_implements("HTMLPortalElement" in self);
+  let portal = document.createElement('portal');
+  document.body.appendChild(portal);
+  t.add_cleanup(() => { document.body.removeChild(portal); });
+
+  // We use a status of 204 (No Content) as that couldn't possibly mature.
+  portal.src = "/common/blank.html?pipe=status(204)"
+  await promise_rejects_dom(t, 'InvalidStateError', portal.activate());
+}, "A portal that has not completed an initial navigation cannot be activated");
+</script>
+</body>

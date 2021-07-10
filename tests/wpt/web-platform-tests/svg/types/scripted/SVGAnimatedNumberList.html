@@ -1,0 +1,34 @@
+<!DOCTYPE HTML>
+<title>SVGAnimatedNumberList interface - utilizing the rotate property of SVGTextElement</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  // This test checks the SVGAnimatedNumberList API - utilizing the rotate property of SVGTextElement.
+
+  var textElement = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  textElement.setAttribute("rotate", "50");
+
+  // Check initial rotate value.
+  assert_true(textElement.rotate instanceof SVGAnimatedNumberList);
+  assert_true(textElement.rotate.baseVal instanceof SVGNumberList);
+  assert_equals(textElement.rotate.baseVal.getItem(0).value, 50);
+
+  // Check that number lists are dynamic, caching value in a local variable and modifying it, should take effect.
+  var numRef = textElement.rotate.baseVal;
+  numRef.getItem(0).value = 100;
+  assert_equals(numRef.getItem(0).value, 100);
+  assert_equals(textElement.rotate.baseVal.getItem(0).value, 100);
+
+  // Check that assigning to baseVal has no effect, as no setter is defined.
+  textElement.rotate.baseVal = -1;
+  assert_equals(textElement.rotate.baseVal.getItem(0).value, 100);
+  textElement.rotate.baseVal = 'aString';
+  assert_equals(textElement.rotate.baseVal.getItem(0).value, 100);
+  textElement.rotate.baseVal = textElement;
+  assert_equals(textElement.rotate.baseVal.getItem(0).value, 100);
+
+  // Check that the rotate baseVal type has not been changed.
+  assert_true(textElement.rotate.baseVal instanceof SVGNumberList);
+});
+</script>

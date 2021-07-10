@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>Test that orientation member with portrait value is supported</title>
+<link rel="help" href="https://w3c.github.io/manifest#orientation-member" />
+<link rel="manifest" href="orientation-member-portrait.webmanifest" />
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<h1>Testing support for orientation member with "portrait" value</h1>
+<style>
+  @media all and (orientation: portrait) {
+    body {
+      background-color: green;
+    }
+  }
+  @media all and (orientation: landscape) {
+    body {
+      background-color: red;
+    }
+  }
+</style>
+<p>
+  Please set the phone orientation to landscape.
+</p>
+<p>
+  To pass, after installing the display orientation must be portrait and the background must be green.
+</p>

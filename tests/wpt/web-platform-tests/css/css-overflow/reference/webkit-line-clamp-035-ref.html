@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS reference</title>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+#parent {
+  display: inline-block;
+  background: green;
+}
+#clamp {
+  font-family: Ahem;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden; /* can be removed once implementations update their old -webkit-line-clamp implementations */
+}
+</style>
+<div id="parent">
+  <div id="clamp">
+    AAA<br>
+    BBB<br>
+    CCC<span style="visibility: hidden">…</span>
+  </div>
+</div>

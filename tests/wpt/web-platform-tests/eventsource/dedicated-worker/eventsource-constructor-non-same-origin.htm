@@ -1,15 +1,3 @@
-<!--
-try {
-  var url = decodeURIComponent(location.hash.substr(1))
-  var source = new EventSource(url)
-  source.onerror = function(e) {
-    postMessage([true, this.readyState, 'data' in e])
-    this.close();
-  }
-} catch(e) {
-  postMessage([false, String(e)])
-}
-/*-->
 <!DOCTYPE html>
 <html>
   <head>
@@ -22,9 +10,9 @@ try {
     <div id="log"></div>
     <script>
       function fetchFail(url) {
-        var test = async_test(document.title + " (" + url + ")", { timeout: 20000 })
+        var test = async_test(document.title + " (" + url + ")")
         test.step(function() {
-          var worker = new Worker('#'+encodeURIComponent(url))
+          var worker = new Worker('eventsource-constructor-non-same-origin.js#'+encodeURIComponent(url))
           worker.onmessage = function(e) {
             test.step(function() {
               assert_true(e.data[0], e.data[1])
@@ -35,8 +23,6 @@ try {
           }
         })
       }
-      fetchFail("http://example.not/")
-      fetchFail("https://example.not/test")
       fetchFail("ftp://example.not/")
       fetchFail("about:blank")
       fetchFail("mailto:whatwg@awesome.example")
@@ -46,4 +32,3 @@ try {
          event is dispatched and not a MessageEvent -->
   </body>
 </html>
-<!--*/ //-->

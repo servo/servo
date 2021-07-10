@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selectors: The Matches-Any Pseudo-class: ':is()'</title>
+<link rel="help" href="https://drafts.csswg.org/selectors/#matches">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  test_valid_selector(':is(ul,ol,.list) > [hidden]',
+      ':is(ul, ol, .list) > [hidden]');
+  test_valid_selector(':is(:hover,:focus)',
+      ':is(:hover, :focus)');
+  test_valid_selector('a:is(:not(:hover))');
+
+  test_valid_selector(':is(#a)');
+  test_valid_selector('.a.b ~ :is(.c.d ~ .e.f)');
+  test_valid_selector('.a.b ~ .c.d:is(span.e + .f, .g.h > .i.j .k)');
+</script>

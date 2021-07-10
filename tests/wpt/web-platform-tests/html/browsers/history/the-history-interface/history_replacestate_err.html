@@ -9,7 +9,7 @@
     <div id="log"></div>
     <script>
     test(function () {
-      assert_throws("SecurityError", function () {
+      assert_throws_dom("SecurityError", function () {
         window.history.replaceState(1, document.title, 'http://www.microsoft.com/test.html');
       });
     }, "history replaceState SECURITY_ERR");

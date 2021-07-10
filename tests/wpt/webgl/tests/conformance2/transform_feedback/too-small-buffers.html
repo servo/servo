@@ -1,0 +1,265 @@
+<!--
+
+/*
+** Copyright (c) 2018 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>TF too small buffers</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" style="width: 50px; height: 50px;"> </canvas>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">#version 300 es
+in float in_value1;
+in float in_value2;
+out float out_value1;
+out float out_value2;
+void main() {
+   out_value1 = in_value1 * 2.;
+   out_value2 = in_value2 * 2.;
+}
+</script>
+<script id="fshader" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+out vec4 dummy;
+void main() {
+  dummy = vec4(0.);
+}
+</script>
+<script>
+"use strict";
+description("Transform feedback into buffers that are too small should produce errors.");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, null, 2);
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+}
+
+const progInterleaved = wtu.setupTransformFeedbackProgram(gl, ["vshader", "fshader"],
+    ["out_value1", "out_value2"], gl.INTERLEAVED_ATTRIBS,
+    ["in_value1", "in_value2"]);
+const progSeparate = wtu.setupTransformFeedbackProgram(gl, ["vshader", "fshader"],
+    ["out_value1", "out_value2"], gl.SEPARATE_ATTRIBS,
+    ["in_value1", "in_value2"]);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "program compilation");
+
+// Attrib 1 contains 4 vertices. Attrib 2 contains 4 instance indices.
+const vertexBuffer0 = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer0);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([1, 2, 3, 4]), gl.STATIC_DRAW);
+const vertexBuffer1 = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer1);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([1, 2, 3, 4]), gl.STATIC_DRAW);
+gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer0);
+gl.enableVertexAttribArray(0);
+gl.vertexAttribPointer(0, 1, gl.FLOAT, false, 0, 0);
+gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer1);
+gl.enableVertexAttribArray(1);
+gl.vertexAttribPointer(1, 1, gl.FLOAT, false, 0, 0);
+gl.vertexAttribDivisor(1, 1);
+
+let tfBuffer0 = gl.createBuffer();
+let tfBuffer1 = gl.createBuffer();
+
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "setup");
+
+const sizeOfFloat = 4;
+
+let cases = [
+    { name: "drawArrays",
+      drawFunction: ()=>gl.drawArrays(gl.POINTS, 0, 4),
+      result: [[2, 4, 6, 8], [2, 2, 2, 2]]},
+    { name: "drawArraysInstanced one instance",
+      drawFunction: ()=>gl.drawArraysInstanced(gl.POINTS, 0, 4, 1),
+      result: [[2, 4, 6, 8], [2, 2, 2, 2]]},
+    { name: "drawArraysInstanced four instances",
+      drawFunction: ()=>gl.drawArraysInstanced(gl.POINTS, 0, 1, 4),
+      result: [[2, 2, 2, 2], [2, 4, 6, 8]]},
+  ];
+
+for (let {name, drawFunction, result} of cases) {
+  debug("<h1>" + name + "</h1>")
+
+  let interleavedResult = [];
+  for (let i = 0; i < result[0].length; i++) {
+    interleavedResult.push(result[0][i], result[1][i]);
+  }
+
+  let doTransformFeedback = (drawFunction, error) => {
+    gl.beginTransformFeedback(gl.POINTS);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "before draw");
+    drawFunction();
+    wtu.glErrorShouldBe(gl, error, "draw");
+    gl.endTransformFeedback();
+  }
+
+  gl.useProgram(progInterleaved);
+
+  debug("<h3>interleaved - Baseline success case</h3>")
+  gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, tfBuffer0);
+  gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, 8*sizeOfFloat, gl.STREAM_READ);
+  doTransformFeedback(drawFunction, gl.NO_ERROR);
+  wtu.checkFloatBuffer(gl, gl.TRANSFORM_FEEDBACK_BUFFER, interleavedResult);
+
+  debug("<h3>interleaved - Buffer too small</h3>")
+  gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, 8*sizeOfFloat-1, gl.STREAM_READ);
+  doTransformFeedback(drawFunction, gl.INVALID_OPERATION);
+  wtu.checkFloatBuffer(gl, gl.TRANSFORM_FEEDBACK_BUFFER,
+      [0, 0, 0, 0, 0, 0, 0]);
+
+  debug("<h3>interleaved - Multiple draws success case</h3>")
+  gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, tfBuffer0);
+  gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, 8*sizeOfFloat*2, gl.STREAM_READ);
+  doTransformFeedback(()=>{drawFunction(); drawFunction()}, gl.NO_ERROR);
+  wtu.checkFloatBuffer(gl, gl.TRANSFORM_FEEDBACK_BUFFER, interleavedResult.concat(interleavedResult))
+
+  debug("<h3>interleaved - Too small for multiple draws</h3>")
+  gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, tfBuffer0);
+  gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, 8*sizeOfFloat*2-1, gl.STREAM_READ);
+  doTransformFeedback(()=>{drawFunction(); drawFunction()}, gl.INVALID_OPERATION);
+  wtu.checkFloatBuffer(gl, gl.TRANSFORM_FEEDBACK_BUFFER, interleavedResult.concat([0, 0, 0, 0, 0, 0, 0]))
+
+  debug("<h3>interleaved - bindBufferRange too small</h3>")
+  gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, 8*sizeOfFloat, gl.STREAM_READ);
+  gl.bindBufferRange(gl.TRANSFORM_FEEDBACK_BUFFER, 0, tfBuffer0, 0, 7*sizeOfFloat);
+  doTransformFeedback(drawFunction, gl.INVALID_OPERATION);
+  wtu.checkFloatBuffer(gl, gl.TRANSFORM_FEEDBACK_BUFFER,
+      [0, 0, 0, 0, 0, 0, 0, 0]);
+
+  debug("<h3>interleaved - bindBufferRange larger than buffer</h3>")
+  gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, 8*sizeOfFloat-1, gl.STREAM_READ);
+  gl.bindBufferRange(gl.TRANSFORM_FEEDBACK_BUFFER, 0, tfBuffer0, 0, 8*sizeOfFloat);
+  doTransformFeedback(drawFunction, gl.INVALID_OPERATION);
+  wtu.checkFloatBuffer(gl, gl.TRANSFORM_FEEDBACK_BUFFER,
+      [0, 0, 0, 0, 0, 0, 0]);
+
+  gl.useProgram(progSeparate);
+
+  debug("<h3>separate - Baseline success case</h3>")
+  gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, tfBuffer0);
+  gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, 4*sizeOfFloat, gl.STREAM_READ);
+  gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 1, tfBuffer1);
+  gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, 4*sizeOfFloat, gl.STREAM_READ);
+  doTransformFeedback(drawFunction, gl.NO_ERROR);
+  gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, tfBuffer0);
+  wtu.checkFloatBuffer(gl, gl.TRANSFORM_FEEDBACK_BUFFER, result[0]);
+  gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, tfBuffer1);
+  wtu.checkFloatBuffer(gl, gl.TRANSFORM_FEEDBACK_BUFFER, result[1]);
+
+  debug("<h3>separate - Buffer too small</h3>")
+  gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, tfBuffer0);
+  gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, 4*sizeOfFloat, gl.STREAM_READ);
+  gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 1, tfBuffer1);
+  gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, 4*sizeOfFloat-1, gl.STREAM_READ);
+  doTransformFeedback(drawFunction, gl.INVALID_OPERATION);
+  gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, tfBuffer0);
+  wtu.checkFloatBuffer(gl, gl.TRANSFORM_FEEDBACK_BUFFER, [0, 0, 0, 0]);
+  gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, tfBuffer1);
+  wtu.checkFloatBuffer(gl, gl.TRANSFORM_FEEDBACK_BUFFER, [0, 0, 0]);
+
+  debug("<h3>separate - multiple draws success case</h3>")
+  gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, tfBuffer0);
+  gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, 4*sizeOfFloat*2, gl.STREAM_READ);
+  gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 1, tfBuffer1);
+  gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, 4*sizeOfFloat*2, gl.STREAM_READ);
+  doTransformFeedback(()=>{drawFunction(); drawFunction();}, gl.NO_ERROR);
+  gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, tfBuffer0);
+  wtu.checkFloatBuffer(gl, gl.TRANSFORM_FEEDBACK_BUFFER, result[0].concat(result[0]));
+  gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, tfBuffer1);
+  wtu.checkFloatBuffer(gl, gl.TRANSFORM_FEEDBACK_BUFFER, result[1].concat(result[1]));
+
+  debug("<h3>separate - Too small for multiple draws</h3>")
+  gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, tfBuffer0);
+  gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, 4*sizeOfFloat*2, gl.STREAM_READ);
+  gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 1, tfBuffer1);
+  gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, 4*sizeOfFloat*2-1, gl.STREAM_READ);
+  doTransformFeedback(()=>{drawFunction(); drawFunction();}, gl.INVALID_OPERATION);
+  gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, tfBuffer0);
+  wtu.checkFloatBuffer(gl, gl.TRANSFORM_FEEDBACK_BUFFER, result[0].concat([0, 0, 0, 0]));
+  gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, tfBuffer1);
+  wtu.checkFloatBuffer(gl, gl.TRANSFORM_FEEDBACK_BUFFER, result[1].concat([0, 0, 0]));
+
+  debug("<h3>separate - bindBufferRange too small</h3>")
+  gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, tfBuffer0);
+  gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, 4*sizeOfFloat, gl.STREAM_READ);
+  gl.bindBufferRange(gl.TRANSFORM_FEEDBACK_BUFFER, 1, tfBuffer1, 0, 3*sizeOfFloat);
+  gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, 4*sizeOfFloat, gl.STREAM_READ);
+  doTransformFeedback(drawFunction, gl.INVALID_OPERATION);
+  gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, tfBuffer0);
+  wtu.checkFloatBuffer(gl, gl.TRANSFORM_FEEDBACK_BUFFER, [0, 0, 0, 0]);
+  gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, tfBuffer1);
+  wtu.checkFloatBuffer(gl, gl.TRANSFORM_FEEDBACK_BUFFER, [0, 0, 0]);
+
+  debug("<h3>separate - bindBufferRange larger than buffer</h3>")
+  gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, tfBuffer0);
+  gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, 4*sizeOfFloat, gl.STREAM_READ);
+  gl.bindBufferRange(gl.TRANSFORM_FEEDBACK_BUFFER, 1, tfBuffer1, 0, 4*sizeOfFloat);
+  gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, 4*sizeOfFloat-1, gl.STREAM_READ);
+  doTransformFeedback(drawFunction, gl.INVALID_OPERATION);
+  gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, tfBuffer0);
+  wtu.checkFloatBuffer(gl, gl.TRANSFORM_FEEDBACK_BUFFER, [0, 0, 0, 0]);
+  gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, tfBuffer1);
+  wtu.checkFloatBuffer(gl, gl.TRANSFORM_FEEDBACK_BUFFER, [0, 0, 0]);
+}
+
+debug("<h1>integer overflow</h1>")
+
+gl.useProgram(progInterleaved);
+gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer0);
+gl.bufferData(gl.ARRAY_BUFFER, (1<<16)*sizeOfFloat, gl.STREAM_READ);
+gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer1);
+gl.bufferData(gl.ARRAY_BUFFER, (1<<16)*sizeOfFloat, gl.STREAM_READ);
+gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, tfBuffer0);
+gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, (1<<16)*sizeOfFloat*2, gl.STREAM_READ);
+
+gl.beginTransformFeedback(gl.POINTS);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "before draw");
+// If count and primcount are stored in 32-bit signed integers and then
+// multiplied to calculate the number of transform feedback vertices, the
+// calculation will overflow to 0.
+gl.drawArraysInstanced(gl.POINTS, 0, 1<<16, 1<<16);
+wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "integer overflow and/or buffer too small");
+gl.endTransformFeedback();
+
+finishTest();
+
+</script>
+
+</body>
+</html>

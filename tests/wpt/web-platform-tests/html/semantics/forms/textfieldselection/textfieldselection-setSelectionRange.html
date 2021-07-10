@@ -10,6 +10,17 @@
   <textarea id="b">abcde</textarea>
 </div>
 <script>
+var expected_direction_none;
+setup(function() {
+  var input = document.createElement("input");
+  input.setSelectionRange(0, 1, "none");
+  var direction = input.selectionDirection;
+  if (direction !== "none" && direction !== "forward") {
+    throw new Error("Unexpected direction");
+  }
+  expected_direction_none = direction;
+});
+
 test(function() {
   var input = document.getElementById("a");
   test(function() {
@@ -67,22 +78,22 @@ test(function() {
 
   test(function() {
     input.setSelectionRange(0,1,"none")
-    assert_equals(input.selectionDirection, "none", 'The direction of the selection must be set to forward if direction is a case-sensitive match for the string "none"');
+    assert_equals(input.selectionDirection, expected_direction_none);
   },'input direction of setSelectionRange(0,1,"none")');
 
   test(function() {
     input.setSelectionRange(0,1,"hoge")
-    assert_equals(input.selectionDirection, "none", "otherwise");
+    assert_equals(input.selectionDirection, expected_direction_none);
   },'input direction of setSelectionRange(0,1,"hoge")');
 
   test(function() {
     input.setSelectionRange(0,1,"BACKWARD")
-    assert_equals(input.selectionDirection, "none", "selectionDirection should be 'none'");
+    assert_equals(input.selectionDirection, expected_direction_none);
   },'input direction of setSelectionRange(0,1,"BACKWARD")');
 
   test(function() {
     input.setSelectionRange(0,1)
-    assert_equals(input.selectionDirection, "none", "if the argument is omitted");
+    assert_equals(input.selectionDirection, expected_direction_none);
   },'input direction of setSelectionRange(0,1)');
 
   test(function() {
@@ -214,22 +225,22 @@ test(function() {
 
   test(function() {
     textarea.setSelectionRange(0,1,"none")
-    assert_equals(textarea.selectionDirection, "none", 'The direction of the selection must be set to forward if direction is a case-sensitive match for the string "none"');
+    assert_equals(textarea.selectionDirection, expected_direction_none);
   },'textarea direction of setSelectionRange(0,1,"none")');
 
   test(function() {
     textarea.setSelectionRange(0,1,"hoge")
-    assert_equals(textarea.selectionDirection, "none", "otherwise");
+    assert_equals(textarea.selectionDirection, expected_direction_none);
   },'textarea direction of setSelectionRange(0,1,"hoge")');
 
   test(function() {
     textarea.setSelectionRange(0,1,"BACKWARD")
-    assert_equals(textarea.selectionDirection, "none", "selectionDirection should be 'none'");
+    assert_equals(textarea.selectionDirection, expected_direction_none);
   },'textarea direction of setSelectionRange(0,1,"BACKWARD")');
 
   test(function() {
     textarea.setSelectionRange(0,1)
-    assert_equals(textarea.selectionDirection, "none", "if the argument is omitted");
+    assert_equals(textarea.selectionDirection, expected_direction_none);
   },'textarea direction of setSelectionRange(0,1)');
 
   test(function() {

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+
+ <meta charset="UTF-8">
+
+  <title>CSS Containment Test: 'contain: paint' and clipping at padding edge (generated ::before content)</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-contain-1/#containment-paint">
+  <link rel="match" href="reference/contain-paint-clip-015-ref.html">
+
+  <meta content="This test checks that the paint containment of an element clips at its padding edge. In this test, the generated element (a red square image) is located outside the content edge, into what would have been the padding belt of the element." name="assert">
+
+  <!--
+
+  contain-paint-clip-011: content overflows horizontally, principal box has no padding
+
+  contain-paint-clip-012: content overflows vertically, principal box has no padding
+
+  contain-paint-clip-013: content overflows horizontally, principal box has horizontal padding
+
+  contain-paint-clip-014: content overflows vertically, principal box has vertical padding
+
+  contain-paint-clip-015: content overflow horizontally, principal box has horizontal padding and corner clipping is involved
+
+  contain-paint-clip-016: content overflow vertically, principal box has vertical padding and corner clipping is involved
+
+  contain-paint-clip-017: principal box has horizontal and vertical padding, generated ::before content is inside top-right corner
+
+  contain-paint-clip-018: principal box has horizontal and vertical padding, generated ::after content is inside top-left corner
+
+  -->
+
+  <meta content="" name="flags">
+
+  <style>
+  div
+    {
+      background-color: green;
+      border-radius: 100px;
+      contain: paint;
+      height: 50px;
+      padding: 25px;
+      width: 50px;
+    }
+
+  div::before
+    {
+      background-color: red;
+      content: "";
+      display: block;
+      height: 18px;
+      margin-left: 61px;
+      margin-top: -28px;
+      width: 18px;
+    }
+  </style>
+
+  <p>Test passes if there is a filled green circle and <strong>no red</strong>.
+
+  <div></div>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>SVGImageElement.prototype.decode(), attach to DOM before promise resolves.</title>
+<link rel=help href="https://html.spec.whatwg.org/multipage/embedded-content.html#dom-img-decode">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg></svg>
+<script>
+"use strict";
+
+promise_test(function() {
+  var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+  img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', "/images/green.png");
+  const promise = img.decode().then(function(arg) {
+    assert_equals(arg, undefined);
+  });
+  // Don't wait for the promise to resolve before attaching the image.
+  // The promise should still resolve successfully.
+  document.querySelector('svg').appendChild(img);
+  return promise;
+}, document.title);
+</script>

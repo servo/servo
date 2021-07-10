@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Images Module Level 3: image-orientation defaults to from-image</title>
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#propdef-image-orientation">
+<link rel="match" href="reference/image-orientation-default-ref.html">
+<meta name=fuzzy content="0-5;0-200">
+<style>
+    body {
+        overflow: hidden;
+    }
+    div {
+        display: inline-block;
+        width: 100px;
+        vertical-align: top;
+    }
+</style>
+</head>
+<body>
+    <p>The images should rotate respecting their EXIF orientation because
+       no image-orientation property is given.</p>
+    <div>
+        <img src="support/exif-orientation-1-ul.jpg"/>
+        <br>Normal
+    </div>
+    <div>
+        <img src="support/exif-orientation-2-ur.jpg"/>
+        <br>Flipped horizontally
+    </div>
+    <div>
+        <img src="support/exif-orientation-3-lr.jpg"/>
+        <br>Rotated 180&deg;
+    </div>
+    <div>
+        <img src="support/exif-orientation-4-lol.jpg"/>
+        <br>Flipped vertically
+    </div>
+    <div>
+        <img src="support/exif-orientation-5-lu.jpg"/>
+        <br>Rotated 90&deg; CCW and flipped vertically
+    </div>
+    <div>
+        <img src="support/exif-orientation-6-ru.jpg"/>
+        <br>Rotated 90&deg; CW
+    </div>
+    <div>
+        <img src="support/exif-orientation-7-rl.jpg"/>
+        <br>Rotated 90&deg; CW and flipped vertically
+    </div>
+    <div>
+        <img src="support/exif-orientation-8-llo.jpg"/>
+        <br>Rotated 90&deg; CCW
+    </div>
+    <div>
+        <img src="support/exif-orientation-9-u.jpg"/>
+        <br>Undefined (invalid value)
+    </div>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Paged Media: parsing @page declarations inside @media</title>
+<link rel="author" title="Felipe Erias Morandeira" href="mailto:felipeerias@gmail.com"/>
+<link rel="help" href="https://drafts.csswg.org/css-page/#at-page-rule"/>
+<meta name="assert" content="Test that @page declarations inside @media are parsed correctly.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style type="text/css">
+
+    @media print {
+        @page {
+            margin: 3cm;
+        }
+        @page :first {
+            margin-top: 6cm;
+        }
+        @page :left {
+            color: red;
+        }
+        @page :right {
+            color: blue;
+        }
+    }
+
+</style>
+<script type="text/javascript">
+
+    let expectedForSelector = {
+        "" : "margin: 3cm;",
+        ":first" : "margin-top: 6cm;",
+        ":left" : "color: red;",
+        ":right" : "color: blue;"
+    };
+    let styleSheets = document.styleSheets;
+    for (let i = 0; i < styleSheets.length; i++) {
+        let rules = styleSheets[i].cssRules;
+        for (let rule of rules) {
+            if (rule.type == CSSRule.MEDIA_RULE && rule.conditionText == 'print') {
+                for (let mediaRule of rule.cssRules) {
+                    if (mediaRule.type == CSSRule.PAGE_RULE) {
+                        let expected = expectedForSelector[mediaRule.selectorText];
+                        test(function(){
+                            assert_equals(mediaRule.style.cssText, expected, "unexpected @page contents");
+                        }, "unexpected contents for selector ['" + mediaRule.selectorText + "']");
+                        delete expectedForSelector[mediaRule.selectorText];
+                    }
+                }
+            }
+        }
+    }
+    test(function() {
+        assert_equals(Object.keys(expectedForSelector).length, 0, "missing @page selectors in @media");
+    });
+
+</script>

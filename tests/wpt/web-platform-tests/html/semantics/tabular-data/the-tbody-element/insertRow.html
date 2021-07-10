@@ -42,13 +42,13 @@ test(function () {
 }, "HTMLTableSectionElement insertRow(rows.length)");
 
 test(function () {
-  assert_throws("IndexSizeError", function () {
+  assert_throws_dom("IndexSizeError", function () {
     tbody.insertRow(-2);
   });
 }, "HTMLTableSectionElement insertRow(-2)");
 
 test(function () {
-  assert_throws("IndexSizeError", function () {
+  assert_throws_dom("IndexSizeError", function () {
     tbody.insertRow(tbody.rows.length + 1);
   });
 }, "HTMLTableSectionElement insertRow(rows.length + 1)");

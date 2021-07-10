@@ -1,0 +1,223 @@
+<!doctype html>
+<title>CSS Test (Conditional Rules): @supports rules OM support</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="author" href="http://opera.com" title="Opera Software ASA">
+<link rel="help" href="http://www.w3.org/TR/css3-conditional/#at-supports">
+<meta name="flags" content="">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+	@supports (padding: 0) {
+		dfn { width:0; }
+		@supports (width: 0) {
+			br { height:0; }
+		}
+		ol { display:none; }
+	}
+	@media all {
+		@supports (padding: 0) {
+			@keyframes foo {
+				0% { top: 0; left: 0; }
+				100% { top: 100px; left: 100px; }
+			}
+		}
+	}
+	@supports (border: black) and (padding: 0) and (width: 0) {
+		dfn { width:0; }
+	}
+	@supports (border: black) or (padding: 0) or (width: 0) {
+		dfn { width:0; }
+	}
+</style>
+<script>
+	/**
+	 * Asserts tha the two strings are equal, after normalizing whitespace
+	 *
+	 * If the serialization of whitespace and identation ever becomes
+	 * specified to a sufficient degree of presition, this should be
+	 * replaced by a strict textual comparison with assert_equals.
+	 */
+	function assert_equals_normalized(a, b) {
+		var normal_a = a.replace(/\s+/g, " ");
+		var normal_b = b.replace(/\s+/g, " ");
+		assert_equals(normal_a, normal_b);
+	}
+	test(function(){
+		var base_rule = document.styleSheets[0].cssRules[0];
+		var child_rule = base_rule.cssRules[1];
+		assert_equals_normalized(base_rule.cssText,
+		              "@supports (padding: 0) {\n"
+		             +"  dfn { width: 0px; }\n"
+		             +"  @supports (width: 0) {\n"
+		             +"    br { height: 0px; }\n"
+		             +"  }\n"
+		             +"  ol { display: none; }\n"
+		             +"}");
+		assert_equals_normalized(child_rule.cssText,
+		              "@supports (width: 0) {\n"
+		             +"  br { height: 0px; }\n"
+		             +"}");
+	}, "nested @supports serialize properly");
+
+	test(function(){
+		var base_rule = document.styleSheets[0].cssRules[1];
+		var child_rule = base_rule.cssRules[0];
+		var grand_child_rule = child_rule.cssRules[0];
+		assert_equals_normalized(base_rule.cssText,
+		              "@media all {\n"
+		             +"  @supports (padding: 0) {\n"
+		             +"    @keyframes foo {\n"
+		             +"      0% { top: 0px; left: 0px; }\n"
+		             +"      100% { top: 100px; left: 100px; }\n"
+		             +"    }\n"
+		             +"  }\n"
+		             +"}");
+		assert_equals_normalized(child_rule.cssText,
+		              "@supports (padding: 0) {\n"
+		             +"  @keyframes foo {\n"
+		             +"    0% { top: 0px; left: 0px; }\n"
+		             +"    100% { top: 100px; left: 100px; }\n"
+		             +"  }\n"
+		             +"}");
+		assert_equals_normalized(grand_child_rule.cssText,
+		              "@keyframes foo {\n"
+		             +"  0% { top: 0px; left: 0px; }\n"
+		             +"  100% { top: 100px; left: 100px; }\n"
+		             +"}");
+	}, "@keyframes nested in @supports serialize properly");
+
+	test(function(){
+		var rules = document.styleSheets[0].cssRules;
+		assert_equals(rules.length, 4);
+		assert_equals(rules[0].type, CSSRule.SUPPORTS_RULE);
+		assert_equals(rules[1].type, CSSRule.MEDIA_RULE);
+		assert_equals(rules[0].cssRules.length, 3);
+		assert_equals(rules[0].cssRules[0].type, CSSRule.STYLE_RULE);
+		assert_equals(rules[0].cssRules[1].type, CSSRule.SUPPORTS_RULE);
+		assert_equals(rules[0].cssRules[2].type, CSSRule.STYLE_RULE);
+
+		assert_equals(rules[0].cssRules[1].cssRules.length, 1);
+		assert_equals(rules[0].cssRules[1].cssRules[0].type, CSSRule.STYLE_RULE);
+
+		assert_equals(rules[1].cssRules.length, 1);
+		assert_equals(rules[1].cssRules[0].type, CSSRule.SUPPORTS_RULE);
+		assert_equals(rules[1].cssRules[0].cssRules.length, 1);
+		assert_equals(rules[1].cssRules[0].cssRules[0].type, CSSRule.KEYFRAMES_RULE);
+
+		assert_equals(rules[2].cssRules.length, 1);
+		assert_equals(rules[2].cssRules[0].type, CSSRule.STYLE_RULE);
+
+		assert_equals(rules[3].cssRules.length, 1);
+		assert_equals(rules[3].cssRules[0].type, CSSRule.STYLE_RULE);
+	}, "The style sheet structure is properly represented");
+
+	test(function(){
+		document.styleSheets[0].deleteRule(1);
+
+		var rules = document.styleSheets[0].cssRules;
+		assert_equals(rules.length, 3);
+		assert_equals(rules[0].type, CSSRule.SUPPORTS_RULE);
+		assert_equals(rules[0].cssRules.length, 3);
+		assert_equals(rules[0].cssRules[0].type, CSSRule.STYLE_RULE);
+		assert_equals(rules[0].cssRules[1].type, CSSRule.SUPPORTS_RULE);
+		assert_equals(rules[0].cssRules[2].type, CSSRule.STYLE_RULE);
+
+		assert_equals(rules[0].cssRules[1].cssRules.length, 1);
+		assert_equals(rules[0].cssRules[1].cssRules[0].type, CSSRule.STYLE_RULE);
+	}, "Deleting the top level of a nested structue works");
+
+	test(function(){
+		var rules = document.styleSheets[0].cssRules;
+
+		rules[0].cssRules[1].insertRule("img { visibility:hidden; }", 0);
+
+		assert_equals(rules.length, 3);
+		assert_equals(rules[0].type, CSSRule.SUPPORTS_RULE);
+		assert_equals(rules[0].cssRules.length, 3);
+		assert_equals(rules[0].cssRules[0].type, CSSRule.STYLE_RULE);
+		assert_equals(rules[0].cssRules[1].type, CSSRule.SUPPORTS_RULE);
+		assert_equals(rules[0].cssRules[2].type, CSSRule.STYLE_RULE);
+
+		assert_equals(rules[0].cssRules[1].cssRules.length, 2);
+		assert_equals(rules[0].cssRules[1].cssRules[0].type, CSSRule.STYLE_RULE);
+		assert_equals(rules[0].cssRules[1].cssRules[0].cssText, "img { visibility: hidden; }");
+		assert_equals(rules[0].cssRules[1].cssRules[1].type, CSSRule.STYLE_RULE);
+		assert_equals(rules[0].cssRules[1].cssRules[1].cssText, "br { height: 0px; }");
+	}, "Rule insertion works in nested @supports rules");
+
+	test(function(){
+		var rules = document.styleSheets[0].cssRules;
+
+		rules[0].insertRule("@supports (left: 42px) { #foo { color:green; } }", 1);
+
+		assert_equals(rules.length, 3);
+		assert_equals(rules[0].type, CSSRule.SUPPORTS_RULE);
+		assert_equals(rules[0].cssRules.length, 4);
+		assert_equals(rules[0].cssRules[0].type, CSSRule.STYLE_RULE);
+		assert_equals(rules[0].cssRules[1].type, CSSRule.SUPPORTS_RULE);
+		assert_equals(rules[0].cssRules[2].type, CSSRule.SUPPORTS_RULE);
+		assert_equals(rules[0].cssRules[3].type, CSSRule.STYLE_RULE);
+
+		assert_equals(rules[0].cssRules[1].cssRules.length, 1);
+		assert_equals(rules[0].cssRules[1].cssRules[0].type, CSSRule.STYLE_RULE);
+		assert_equals(rules[0].cssRules[1].cssRules[0].cssText, "#foo { color: green; }");
+
+		assert_equals(rules[0].cssRules[2].cssRules.length, 2);
+		assert_equals(rules[0].cssRules[2].cssRules[0].type, CSSRule.STYLE_RULE);
+		assert_equals(rules[0].cssRules[2].cssRules[0].cssText, "img { visibility: hidden; }");
+		assert_equals(rules[0].cssRules[2].cssRules[1].type, CSSRule.STYLE_RULE);
+		assert_equals(rules[0].cssRules[2].cssRules[1].cssText, "br { height: 0px; }");
+	}, "Insertion @supports rules into another @supports rule works");
+
+	test(function(){
+		var rules = document.styleSheets[0].cssRules;
+
+		rules[0].deleteRule(2);
+
+		assert_equals(rules.length, 3);
+		assert_equals(rules[0].type, CSSRule.SUPPORTS_RULE);
+		assert_equals(rules[0].cssRules.length, 3);
+		assert_equals(rules[0].cssRules[0].type, CSSRule.STYLE_RULE);
+		assert_equals(rules[0].cssRules[1].type, CSSRule.SUPPORTS_RULE);
+		assert_equals(rules[0].cssRules[2].type, CSSRule.STYLE_RULE);
+
+		assert_equals(rules[0].cssRules[1].cssRules.length, 1);
+		assert_equals(rules[0].cssRules[1].cssRules[0].type, CSSRule.STYLE_RULE);
+		assert_equals(rules[0].cssRules[1].cssRules[0].cssText, "#foo { color: green; }");
+	}, "Deletion of a nested @supports rule works");
+
+	test(function(){
+		var rules = document.styleSheets[0].cssRules;
+
+		rules[0].insertRule("@font-face { font-familly: foo; src: url('http://www.example.com/foo'; }", 0);
+
+		assert_equals(rules.length, 3);
+		assert_equals(rules[0].type, CSSRule.SUPPORTS_RULE);
+		assert_equals(rules[0].cssRules.length, 4);
+		assert_equals(rules[0].cssRules[0].type, CSSRule.FONT_FACE_RULE);
+	}, "Inserting @font-face inside @supports works");
+
+	test(function(){
+		var style_rule = document.styleSheets[0].cssRules[0].cssRules[1];
+
+		assert_throws_js(TypeError, function() { style_rule.insertRule("@supports (width: 0) { ol { width: 0; } }", 0);} );
+
+	}, "Inserting an @supports inside a style rule should fail");
+	test(function(){
+		var rule = document.styleSheets[0].cssRules[1];
+		assert_equals_normalized(rule.cssText,
+		              "@supports (border: black) and (padding: 0) and (width: 0) {\n"
+		             +"  dfn { width: 0px; }\n"
+		             +"}");
+	}, "'and' arguments in @supports serialize in the correct order and with extra parentheses");
+	test(function(){
+		var rule = document.styleSheets[0].cssRules[2];
+		assert_equals_normalized(rule.cssText,
+		              "@supports (border: black) or (padding: 0) or (width: 0) {\n"
+		             +"  dfn { width: 0px; }\n"
+		             +"}");
+	}, "'or' arguments in @supports serialize in the correct order and with extra parentheses");
+</script>
+
+<div id=log></div>
+

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>iframe focuses parent same site outer</title>
+</head>
+<body>
+<iframe src="iframe-focuses-parent-same-site-inner.html"></iframe>
+<script>
+var w = null;
+var focusDisallowed = false;
+var failed = false;
+window.onmessage = function(e) {
+    if (failed) {
+        return;
+    }
+    if (e.data == "ready") {
+        focusDisallowed = true;
+        document.getElementsByTagName("iframe")[0].contentWindow.postMessage("focus", "*");
+        return;
+    }
+    focusDisallowed = false;
+    if (w) {
+        w.close();
+        w = null;
+    }
+    opener.postMessage(failed ? "FAIL" : "PASS", "*");
+}
+window.onload = function() {
+    w = window.open("iframe-focuses-parent-same-site-other.html");
+}
+document.body.onfocus = function() {
+    if (focusDisallowed) {
+        failed = true;
+    }
+}
+</script>
+</body>
+</html>

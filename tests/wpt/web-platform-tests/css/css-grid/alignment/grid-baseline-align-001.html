@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<title>
+  Grid Item (First) Baseline Block-Axis Alignment: auto-height grid, auto row, auto items
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#column-align">
+<link rel="help" href="https://www.w3.org/TR/css-grid-1/#algo-content">
+<link rel="help" href="https://www.w3.org/TR/css-align-3/#baseline-values">
+<link rel="match" href="references/grid-baseline-align-001-ref.html">
+
+<style>
+  @import "/fonts/ahem.css";
+  .grid {
+    border: solid silver;
+    margin: 1em 2px;
+    font: 20px/1 Ahem;
+
+    display: inline-grid;
+    vertical-align: top;
+    grid-template-columns: repeat(4, max-content);
+  }
+  .grid > div {
+    border: black 10px;
+    border-style: solid none;
+    color: orange;
+  }
+  div + div {
+    font-size: 2em;
+  }
+  div + div + div {
+    font-size: 50%;
+  }
+  .self > div {
+    align-self: baseline;
+  }
+  .content > div {
+    align-content: baseline;
+  }
+  div.stretch {
+    align-self: stretch;
+  }
+
+  .ref {
+    position: relative;
+    width: 80px;
+    height: 96px;
+  }
+  .ref > div {
+    position: absolute;
+  }
+  .ref1 { top:   16px; }
+  .ref2 { left:  20px; }
+  .ref3 { top:   24px;
+          left:  60px; }
+  .ref4 { right:  0px;
+          top:    0px;
+          bottom: 0px;
+          width: 10px; }
+
+  .ref.content > div:not(.stripe) {
+    border-color: transparent;
+  }
+  .stripe {
+    width: 80px;
+    height: 76px;
+  }
+</style>
+
+<p>Test passes if each pair of boxes is identical.</p>
+
+<div class="grid self">
+  <div>
+    p<br>
+    p<br>
+    p
+  </div>
+  <div>
+    p
+  </div>
+  <div>
+    p
+  </div>
+  <div class="stretch">
+    &nbsp;
+  </div>
+</div>
+
+<div class="grid self ref">
+  <div class="ref1">
+    p<br>
+    p<br>
+    p
+  </div>
+  <div class="ref2">
+    p
+  </div>
+  <div class="ref3">
+    p
+  </div>
+  <div class="ref4">
+    &nbsp;
+  </div>
+</div>
+
+<br>
+
+<div class="grid content">
+  <div>
+    p<br>
+    p<br>
+    p
+  </div>
+  <div>
+    p
+  </div>
+  <div>
+    p
+  </div>
+  <div class="stretch">
+    &nbsp;
+  </div>
+</div>
+
+<div class="grid content ref">
+  <div class="ref1">
+    p<br>
+    p<br>
+    p
+  </div>
+  <div class="ref2">
+    p
+  </div>
+  <div class="ref3">
+    p
+  </div>
+  <div class="ref4">
+    &nbsp;
+  </div>
+  <div class="stripe">
+  </div>
+</div>

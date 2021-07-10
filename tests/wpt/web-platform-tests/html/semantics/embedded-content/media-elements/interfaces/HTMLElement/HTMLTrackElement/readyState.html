@@ -8,4 +8,11 @@ test(function(){
     var track = document.createElement('track');
     assert_equals(track.readyState, 0);
 }, document.title + ' default value');
+
+test(function(){
+    assert_equals(HTMLTrackElement.NONE, 0);
+    assert_equals(HTMLTrackElement.LOADING, 1);
+    assert_equals(HTMLTrackElement.LOADED, 2);
+    assert_equals(HTMLTrackElement.ERROR, 3);
+}, document.title + ' values');
 </script>

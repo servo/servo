@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+  -->
+<html lang="ja">
+<meta charset="utf-8">
+<title>Reference: RT append in 'display:ruby/block ruby'.</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<style>
+html,body {
+  color:black; background-color:white; font:10px/1 monospace; padding:0; margin:0;
+}
+
+ruby { display: ruby; background: lightblue; }
+rbb { display: block ruby; background: lightblue; }
+grid { display: grid; }
+.mbp {
+  margin: 1px 3px 5px 7px;
+  padding: 3px 5px 7px 1px;
+  border-width: 3px 1px 7px 5px;
+  border-style: solid;
+}
+rbc {
+  display: ruby-base-container;
+  unicode-bidi: isolate;
+  font-size: 200%;
+}
+rtc {
+  display: ruby-text-container;
+  unicode-bidi: isolate;
+  ruby-position: under;
+}
+</style>
+
+<rt>る</rt>
+<ruby class=mbp>X<rt>る</rt></ruby>
+<grid>A<ruby class=mbp><rt>る</rt></ruby>B</grid>
+<grid>A<ruby class=mbp>X<rt>る</rt></ruby>B</grid>
+<grid>A<ruby>X<rt>る</rt></ruby><ruby><rbc></rbc><rt>る</rt></ruby>B</grid>
+<grid>A<ruby><rt>る</rt></ruby><ruby><rbc>X</rbc><rt>る</rt></ruby>B</grid>
+<ruby><rt><rbb>X<rt>る</rt></rbb></rt><rt>る</rt></ruby>
+<ruby><rbc><rbb>X<rt>る</rt></rbb></rbc><rt>る</rt></ruby>
+<ruby><rtc><rbb>X<rt>る</rt></rbb></rtc><rt>る</rt></ruby>
+<rbb class=mbp><rt>る</rt></rbb>
+<rbb class=mbp>X<rt>る</rt></rbb>
+<rbb class=mbp><rb>X</rb><rt>る</rt></rbb>
+
+</html>

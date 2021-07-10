@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/bluetooth/resources/bluetooth-test.js"></script>
+<script src="/bluetooth/resources/bluetooth-fake-devices.js"></script>
+<script>
+'use strict';
+const test_desc = 'Discover a device using alias, name, or UUID.';
+
+bluetooth_test(
+    () => getConnectedHealthThermometerDevice()
+              // Chrome will always close the previous chooser in the process of
+              // handling a user gesture for the next request, so these need to
+              // be done sequentially.
+              .then(
+                  () => requestDeviceWithTrustedClick(
+                      {filters: [{services: [health_thermometer.alias]}]}))
+              .then(
+                  device =>
+                      assert_equals(device.constructor.name, 'BluetoothDevice'))
+              .then(
+                  () => requestDeviceWithTrustedClick(
+                      {filters: [{services: [health_thermometer.name]}]}))
+              .then(
+                  device =>
+                      assert_equals(device.constructor.name, 'BluetoothDevice'))
+              .then(
+                  () => requestDeviceWithTrustedClick(
+                      {filters: [{services: [health_thermometer.uuid]}]}))
+              .then(
+                  device => assert_equals(
+                      device.constructor.name, 'BluetoothDevice')),
+    test_desc);
+</script>

@@ -1,11 +1,18 @@
-from cgi import escape
+from collections import deque
+import base64
 import gzip as gzip_module
+import hashlib
+import os
 import re
 import time
-import types
 import uuid
-from cStringIO import StringIO
 
+from io import BytesIO
+
+try:
+    from html import escape
+except ImportError:
+    from cgi import escape
 
 def resolve_content(response):
     return b"".join(item for item in response.iter_content(read_file=True))
@@ -231,6 +238,13 @@ def trickle(request, response, delays):
     content = resolve_content(response)
     offset = [0]
 
+    if not ("Cache-Control" in response.headers or
+            "Pragma" in response.headers or
+            "Expires" in response.headers):
+        response.headers.set("Cache-Control", "no-cache, no-store, must-revalidate")
+        response.headers.set("Pragma", "no-cache")
+        response.headers.set("Expires", "0")
+
     def add_content(delays, repeat=False):
         for i, (item_type, value) in enumerate(delays):
             if item_type == "bytes":
@@ -263,33 +277,40 @@ def slice(request, response, start, end=None):
                 (spelled "null" in a query string) to indicate the end of
                 the file.
     """
-    content = resolve_content(response)
-    response.content = content[start:end]
+    content = resolve_content(response)[start:end]
+    response.content = content
+    response.headers.set("Content-Length", len(content))
     return response
 
 
 class ReplacementTokenizer(object):
-    def ident(scanner, token):
-        return ("ident", token)
+    def arguments(self, token):
+        unwrapped = token[1:-1].decode('utf8')
+        return ("arguments", re.split(r",\s*", unwrapped) if unwrapped else [])
 
-    def index(scanner, token):
-        token = token[1:-1]
+    def ident(self, token):
+        return ("ident", token.decode('utf8'))
+
+    def index(self, token):
+        token = token[1:-1].decode('utf8')
         try:
-            token = int(token)
+            index = int(token)
         except ValueError:
-            token = unicode(token, "utf8")
-        return ("index", token)
+            index = token
+        return ("index", index)
 
-    def var(scanner, token):
-        token = token[:-1]
+    def var(self, token):
+        token = token[:-1].decode('utf8')
         return ("var", token)
 
     def tokenize(self, string):
+        assert isinstance(string, bytes)
         return self.scanner.scan(string)[0]
 
-    scanner = re.Scanner([(r"\$\w+:", var),
-                          (r"\$?\w+(?:\(\))?", ident),
-                          (r"\[[^\]]*\]", index)])
+    scanner = re.Scanner([(br"\$\w+:", var),
+                          (br"\$?\w+", ident),
+                          (br"\[[^\]]*\]", index),
+                          (br"\([^)]*\)", arguments)])
 
 
 class FirstWrapper(object):
@@ -298,6 +319,8 @@ class FirstWrapper(object):
 
     def __getitem__(self, key):
         try:
+            if isinstance(key, str):
+                key = key.encode('iso-8859-1')
             return self.params.first(key)
         except KeyError:
             return ""
@@ -311,7 +334,7 @@ def sub(request, response, escape_type="html"):
                         "html" and "none", with "html" the default for historic reasons.
 
     The format is a very limited template language. Substitutions are
-    enclosed by {{ and }}. There are several avaliable substitutions:
+    enclosed by {{ and }}. There are several available substitutions:
 
     host
       A simple string value and represents the primary host from which the
@@ -324,13 +347,27 @@ def sub(request, response, escape_type="html"):
       A dictionary of parts of the request URL. Valid keys are
       'server, 'scheme', 'host', 'hostname', 'port', 'path' and 'query'.
       'server' is scheme://host:port, 'host' is hostname:port, and query
-       includes the leading '?', but other delimiters are omitted.
+      includes the leading '?', but other delimiters are omitted.
     headers
       A dictionary of HTTP headers in the request.
+    header_or_default(header, default)
+      The value of an HTTP header, or a default value if it is absent.
+      For example::
+
+        {{header_or_default(X-Test, test-header-absent)}}
+
     GET
       A dictionary of query parameters supplied with the request.
     uuid()
       A pesudo-random UUID suitable for usage with stash
+    file_hash(algorithm, filepath)
+      The cryptographic hash of a file. Supported algorithms: md5, sha1,
+      sha224, sha256, sha384, and sha512. For example::
+
+        {{file_hash(md5, dom/interfaces.html)}}
+
+    fs_path(filepath)
+      The absolute path to a file inside the wpt document root
 
     So for example in a setup running on localhost with a www
     subdomain and a http server on ports 80 and 81::
@@ -339,16 +376,15 @@ def sub(request, response, escape_type="html"):
       {{domains[www]}} => www.localhost
       {{ports[http][1]}} => 81
 
+    It is also possible to assign a value to a variable name, which must start
+    with the $ character, using the ":" syntax e.g.::
 
-    It is also possible to assign a value to a variable name, which must start with
-    the $ character, using the ":" syntax e.g.
-
-    {{$id:uuid()}
+      {{$id:uuid()}}
 
     Later substitutions in the same file may then refer to the variable
-    by name e.g.
+    by name e.g.::
 
-    {{$id}}
+      {{$id}}
     """
     content = resolve_content(response)
 
@@ -356,6 +392,59 @@ def sub(request, response, escape_type="html"):
 
     response.content = new_content
     return response
+
+class SubFunctions(object):
+    @staticmethod
+    def uuid(request):
+        return str(uuid.uuid4())
+
+    # Maintain a list of supported algorithms, restricted to those that are
+    # available on all platforms [1]. This ensures that test authors do not
+    # unknowingly introduce platform-specific tests.
+    #
+    # [1] https://docs.python.org/2/library/hashlib.html
+    supported_algorithms = ("md5", "sha1", "sha224", "sha256", "sha384", "sha512")
+
+    @staticmethod
+    def file_hash(request, algorithm, path):
+        assert isinstance(algorithm, str)
+        if algorithm not in SubFunctions.supported_algorithms:
+            raise ValueError("Unsupported encryption algorithm: '%s'" % algorithm)
+
+        hash_obj = getattr(hashlib, algorithm)()
+        absolute_path = os.path.join(request.doc_root, path)
+
+        try:
+            with open(absolute_path, "rb") as f:
+                hash_obj.update(f.read())
+        except IOError:
+            # In this context, an unhandled IOError will be interpreted by the
+            # server as an indication that the template file is non-existent.
+            # Although the generic "Exception" is less precise, it avoids
+            # triggering a potentially-confusing HTTP 404 error in cases where
+            # the path to the file to be hashed is invalid.
+            raise Exception('Cannot open file for hash computation: "%s"' % absolute_path)
+
+        return base64.b64encode(hash_obj.digest()).strip()
+
+    @staticmethod
+    def fs_path(request, path):
+        if not path.startswith("/"):
+            subdir = request.request_path[len(request.url_base):]
+            if "/" in subdir:
+                subdir = subdir.rsplit("/", 1)[0]
+            root_rel_path = subdir + "/" + path
+        else:
+            root_rel_path = path[1:]
+        root_rel_path = root_rel_path.replace("/", os.path.sep)
+        absolute_path = os.path.abspath(os.path.join(request.doc_root, root_rel_path))
+        if ".." in os.path.relpath(absolute_path, request.doc_root):
+            raise ValueError("Path outside wpt root")
+        return absolute_path
+
+    @staticmethod
+    def header_or_default(request, name, default):
+        return request.headers.get(name, default)
 
 def template(request, content, escape_type="html"):
     #TODO: There basically isn't any error handling here
@@ -367,25 +456,37 @@ def template(request, content, escape_type="html"):
         content, = match.groups()
 
         tokens = tokenizer.tokenize(content)
+        tokens = deque(tokens)
 
-        if tokens[0][0] == "var":
-            variable = tokens[0][1]
-            tokens = tokens[1:]
+        token_type, field = tokens.popleft()
+        assert isinstance(field, str)
+
+        if token_type == "var":
+            variable = field
+            token_type, field = tokens.popleft()
+            assert isinstance(field, str)
         else:
             variable = None
 
-        assert tokens[0][0] == "ident" and all(item[0] == "index" for item in tokens[1:]), tokens
-
-        field = tokens[0][1]
+        if token_type != "ident":
+            raise Exception("unexpected token type %s (token '%r'), expected ident" % (token_type, field))
 
         if field in variables:
             value = variables[field]
+        elif hasattr(SubFunctions, field):
+            value = getattr(SubFunctions, field)
         elif field == "headers":
             value = request.headers
         elif field == "GET":
             value = FirstWrapper(request.GET)
+        elif field == "hosts":
+            value = request.server.config.all_domains
+        elif field == "domains":
+            value = request.server.config.all_domains[""]
+        elif field == "host":
+            value = request.server.config["browser_host"]
         elif field in request.server.config:
-            value = request.server.config[tokens[0][1]]
+            value = request.server.config[field]
         elif field == "location":
             value = {"server": "%s://%s:%s" % (request.url_parts.scheme,
                                                request.url_parts.hostname,
@@ -398,17 +499,23 @@ def template(request, content, escape_type="html"):
                      "path": request.url_parts.path,
                      "pathname": request.url_parts.path,
                      "query": "?%s" % request.url_parts.query}
-        elif field == "uuid()":
-            value = str(uuid.uuid4())
         elif field == "url_base":
             value = request.url_base
         else:
             raise Exception("Undefined template variable %s" % field)
 
-        for item in tokens[1:]:
-            value = value[item[1]]
+        while tokens:
+            ttype, field = tokens.popleft()
+            if ttype == "index":
+                value = value[field]
+            elif ttype == "arguments":
+                value = value(request, *field)
+            else:
+                raise Exception(
+                    "unexpected token type %s (token '%r'), expected ident or arguments" % (ttype, field)
+                )
 
-        assert isinstance(value, (int,) + types.StringTypes), tokens
+        assert isinstance(value, (int, (bytes, str))), tokens
 
         if variable is not None:
             variables[variable] = value
@@ -416,11 +523,16 @@ def template(request, content, escape_type="html"):
         escape_func = {"html": lambda x:escape(x, quote=True),
                        "none": lambda x:x}[escape_type]
 
-        #Should possibly support escaping for other contexts e.g. script
-        #TODO: read the encoding of the response
-        return escape_func(unicode(value)).encode("utf-8")
+        # Should possibly support escaping for other contexts e.g. script
+        # TODO: read the encoding of the response
+        # cgi.escape() only takes text strings in Python 3.
+        if isinstance(value, bytes):
+            value = value.decode("utf-8")
+        elif isinstance(value, int):
+            value = str(value)
+        return escape_func(value).encode("utf-8")
 
-    template_regexp = re.compile(r"{{([^}]*)}}")
+    template_regexp = re.compile(br"{{([^}]*)}}")
     new_content = template_regexp.sub(config_replacement, content)
 
     return new_content
@@ -436,7 +548,7 @@ def gzip(request, response):
     content = resolve_content(response)
     response.headers.set("Content-Encoding", "gzip")
 
-    out = StringIO()
+    out = BytesIO()
     with gzip_module.GzipFile(fileobj=out, mode="w") as f:
         f.write(content)
     response.content = out.getvalue()

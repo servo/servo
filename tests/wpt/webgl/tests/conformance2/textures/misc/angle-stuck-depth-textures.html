@@ -1,0 +1,220 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Textures Misc Tests: "Stuck" Depth Textures</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+
+<script id="draw-vs" type="x-shader/x-vertex">#version 100
+attribute vec3 vertex;
+void main () {
+  gl_Position = vec4(vertex.x, vertex.y, vertex.z * 2.0 - 1.0, 1);
+}
+</script>
+<script id="draw-fs" type="x-shader/x-fragment">#version 100
+void main () {
+  gl_FragColor = vec4 (1.);
+}
+</script>
+
+<script id="blit-vs" type="x-shader/x-vertex">#version 100
+attribute vec2 vertex;
+varying vec2 position;
+void main () {
+  position = vertex * .5 + .5;
+  gl_Position = vec4(vertex, 0, 1);
+}
+</script>
+<script id="blit-fs" type="x-shader/x-fragment">#version 100
+precision mediump float;
+uniform sampler2D texture;
+varying vec2 position;
+void main () {
+  gl_FragColor = vec4 (texture2D (texture, position).rrr, 1.);
+}
+</script>
+
+</head>
+<body>
+<canvas id="example" width="128" height="128"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+
+description("This test covers an ANGLE bug where an AMD workaround would cause depth textures to stick. See http://anglebug.com/1664.");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("example", undefined, 2);
+
+var WEBGL_depth_texture;
+
+var drawProgram, blitProgram, textureLoc;
+
+var quadVB;
+
+function drawQuad(depth) {
+  if (!quadVB) {
+    quadVB = gl.createBuffer()
+  }
+
+  var quadVerts = new Float32Array(3 * 6);
+  quadVerts[0] = -1.0; quadVerts[1] =   1.0; quadVerts[2] = depth;
+  quadVerts[3] = -1.0; quadVerts[4] =  -1.0; quadVerts[5] = depth;
+  quadVerts[6] =  1.0; quadVerts[7] =  -1.0; quadVerts[8] = depth;
+  quadVerts[9] = -1.0; quadVerts[10] =  1.0; quadVerts[11] = depth;
+  quadVerts[12] = 1.0; quadVerts[13] = -1.0; quadVerts[14] = depth;
+  quadVerts[15] = 1.0; quadVerts[16] =  1.0; quadVerts[17] = depth;
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadVB);
+  gl.bufferData(gl.ARRAY_BUFFER, quadVerts, gl.STATIC_DRAW);
+  gl.vertexAttribPointer(0, 3, gl.FLOAT, gl.FALSE, 0, 0);
+  gl.enableVertexAttribArray(0);
+  gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after drawQuad");
+}
+
+// Test based on dEQP-GLES3.functional.blit.depth_stencil.depth_24_stencil8_stencil_only
+function run_test() {
+
+  var colorTex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, colorTex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 128, 128, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.bindTexture(gl.TEXTURE_2D, null);
+
+  var depthTex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, depthTex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);
+  var levels = Math.log2(128);
+  for (var mipLevel = 0; mipLevel <= levels; ++mipLevel)
+  {
+      var size = 128 >> mipLevel;
+      gl.texImage2D(gl.TEXTURE_2D, mipLevel, gl.DEPTH24_STENCIL8, size, size, 0, gl.DEPTH_STENCIL,
+                    gl.UNSIGNED_INT_24_8, null);
+  }
+  gl.bindTexture(gl.TEXTURE_2D, null);
+
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after init textures");
+
+  var framebuffer = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, colorTex, 0);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthTex, 0);
+
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after init framebuffer");
+
+  gl.depthRange(0.0, 1.0);
+  gl.viewport(0, 0, 128, 128);
+  gl.clearColor(0, 0, 0, 1);
+
+  // Draw loop.
+  for (var frame = 0; frame < 4; ++frame)
+  {
+      // draw into FBO
+      gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
+
+      gl.enable(gl.DEPTH_TEST);
+
+      gl.useProgram(drawProgram);
+      if (frame % 2 != 0) {
+        drawQuad(0.0);
+      } else {
+        drawQuad(1.0);
+      }
+
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+      // blit FBO
+      gl.disable(gl.DEPTH_TEST);
+
+      gl.useProgram(blitProgram);
+      gl.uniform1i(textureLoc, 0);
+      gl.bindTexture(gl.TEXTURE_2D, depthTex);
+
+      drawQuad(0.5);
+
+      if (frame % 2 != 0) {
+        wtu.checkCanvasRect(gl, 0, 0, 128, 128, [0, 0, 0, 255],
+                            "depth texture should be black on odd iterations");
+
+      } else {
+        wtu.checkCanvasRect(gl, 0, 0, 128, 128, [255, 255, 255, 255],
+                            "depth texture should be white on even iterations");
+      }
+
+      wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after draw");
+  }
+
+  gl.deleteTexture(colorTex);
+  gl.deleteTexture(depthTex);
+  gl.deleteFramebuffer(framebuffer);
+}
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    drawProgram = wtu.setupProgram(gl, ["draw-vs", "draw-fs"], ["vertex"]);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after draw program initialization");
+    shouldBe('gl.getProgramParameter(drawProgram, gl.LINK_STATUS)', 'true');
+
+    blitProgram = wtu.setupProgram(gl, ["blit-vs", "blit-fs"], ["vertex"]);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after blit program initialization");
+    shouldBe('gl.getProgramParameter(blitProgram, gl.LINK_STATUS)', 'true');
+
+    textureLoc = gl.getUniformLocation(blitProgram, "texture")
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "query texture location");
+    shouldBeNonNull('textureLoc')
+
+    run_test();
+}
+
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+
+</body>
+</html>

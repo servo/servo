@@ -1,0 +1,33 @@
+<!doctype HTML>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  div {
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<div id="observeme"></div>
+
+<script>
+setup({allow_uncaught_exception: true});
+
+async_test(a => {
+  let t = document.querySelector("#observeme");
+  let i = 0;
+  window.onerror = function (err) {
+    t.style.height = "112px";
+    i++;
+    requestAnimationFrame(a.step_func_done(() => {
+      assert_equals(i, 1);
+    }), 0);
+  };
+
+  new ResizeObserver(function() {
+    t.style.height = "111px";
+  }).observe(observeme);
+  observeme.style.height = "110px";
+
+}, "Changing layout in window error handler should not result in lifecyle loop when resize observer loop limit is reached.");
+</script>

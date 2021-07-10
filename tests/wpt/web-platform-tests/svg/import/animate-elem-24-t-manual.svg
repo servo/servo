@@ -46,23 +46,23 @@
     </d:passCriteria>
   </d:SVGTestCase>
   <title id="test-title">$RCSfile: animate-elem-24-t.svg,v $</title>
-	<defs>
-		<font id="MyFont" horiz-adv-x="416">
-			<font-face font-family="MyFont" units-per-em="1000" panose-1="2 0 0 6 3 0 0 2 0 4" ascent="700" descent="-127" alphabetic="0"/>
-			<missing-glyph horiz-adv-x="233"/>
-			<glyph unicode=" " glyph-name="space" horiz-adv-x="233"/>
-			<glyph unicode="I" glyph-name="I" horiz-adv-x="330" d="M30 700V550H90V150H30V0H300V150H240V550H300V700H30Z"/>
-			<glyph unicode="t" glyph-name="t" horiz-adv-x="417" d="M5 550V410H137V0H280V410H412V550H5Z"/>
-			<glyph unicode="s" glyph-name="s" horiz-adv-x="468" d="M34 550V410V218H291V120H34V0H434V338H177V430H434V550H34Z"/>
-			<glyph unicode="&apos;" glyph-name="quotesingle" horiz-adv-x="198" d="M35 700L73 483H125L163 700H35Z"/>
-			<glyph unicode="a" glyph-name="a" horiz-adv-x="435" d="M71 550L3 0H143L154 119H282L293 0H433L365 550H71ZM168 259L182 410H254L268 259H168Z"/>
-			<glyph unicode="l" glyph-name="l" horiz-adv-x="435" d="M37 0H425V130H180V550H37V410V0Z"/>
-			<glyph unicode="i" glyph-name="i" horiz-adv-x="217" d="M37 550V410V0H180V550H37Z"/>
-			<glyph unicode="v" glyph-name="v" horiz-adv-x="430" d="M73 0H357L430 550H282L235 140H195L148 550H0L19 410L73 0Z"/>
-			<glyph unicode="e" glyph-name="e" horiz-adv-x="442" d="M37 550V410V0H419V130H180V210H299V340H180V420H419V550H37Z"/>
-			<glyph unicode="!" glyph-name="exclam" horiz-adv-x="237" d="M46 145V0H191V145H46ZM58 220H179L194 700H43L58 220Z"/>
-		</font>
-	</defs>
+  <defs>
+    <font id="MyFont" horiz-adv-x="416">
+      <font-face font-family="MyFont" units-per-em="1000" panose-1="2 0 0 6 3 0 0 2 0 4" ascent="700" descent="-127" alphabetic="0"/>
+      <missing-glyph horiz-adv-x="233"/>
+      <glyph unicode=" " glyph-name="space" horiz-adv-x="233"/>
+      <glyph unicode="I" glyph-name="I" horiz-adv-x="330" d="M30 700V550H90V150H30V0H300V150H240V550H300V700H30Z"/>
+      <glyph unicode="t" glyph-name="t" horiz-adv-x="417" d="M5 550V410H137V0H280V410H412V550H5Z"/>
+      <glyph unicode="s" glyph-name="s" horiz-adv-x="468" d="M34 550V410V218H291V120H34V0H434V338H177V430H434V550H34Z"/>
+      <glyph unicode="&apos;" glyph-name="quotesingle" horiz-adv-x="198" d="M35 700L73 483H125L163 700H35Z"/>
+      <glyph unicode="a" glyph-name="a" horiz-adv-x="435" d="M71 550L3 0H143L154 119H282L293 0H433L365 550H71ZM168 259L182 410H254L268 259H168Z"/>
+      <glyph unicode="l" glyph-name="l" horiz-adv-x="435" d="M37 0H425V130H180V550H37V410V0Z"/>
+      <glyph unicode="i" glyph-name="i" horiz-adv-x="217" d="M37 550V410V0H180V550H37Z"/>
+      <glyph unicode="v" glyph-name="v" horiz-adv-x="430" d="M73 0H357L430 550H282L235 140H195L148 550H0L19 410L73 0Z"/>
+      <glyph unicode="e" glyph-name="e" horiz-adv-x="442" d="M37 550V410V0H419V130H180V210H299V340H180V420H419V550H37Z"/>
+      <glyph unicode="!" glyph-name="exclam" horiz-adv-x="237" d="M46 145V0H191V145H46ZM58 220H179L194 700H43L58 220Z"/>
+    </font>
+  </defs>
   <defs>
     <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
       <font-face-src>

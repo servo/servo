@@ -20,10 +20,17 @@
   }
 
   var t = async_test("submit element directionality");
-  document.querySelector("input").value="foobar";
+  document.querySelector("input").value = "foobar";
   document.querySelector("button").click();
 
-  document.querySelector("iframe").onload = t.step_func_done(function() {
+  var iframe = document.querySelector("iframe");
+  iframe.onload = t.step_func(function() {
+    // The initial about:blank load event can be fired before the form navigation occurs.
+    // See https://github.com/whatwg/html/issues/490 for more information.
+    if(iframe.contentWindow.location.href == "about:blank") { return; }
+
     assert_equals(getParameterByName("comment.dir"), "ltr");
+
+    t.done();
   });
 </script>

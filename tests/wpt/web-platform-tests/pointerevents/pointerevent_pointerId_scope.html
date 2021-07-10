@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+    <!--
+Test cases for Pointer Events v1 spec
+This document references Test Assertions (abbrev TA below) written by Cathy Chan
+http://www.w3.org/wiki/PointerEvents/TestAssertions
+-->
+    <head>
+        <title>Pointer Events pointerdown tests</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <!-- Additional helper script for common checks across event types -->
+        <script type="text/javascript" src="pointerevent_support.js"></script>
+        <script>
+            var detected_pointertypes = {};
+            var test_pointerEvent = async_test("pointerId of an active pointer is the same across iframes");
+            // showPointerTypes is defined in pointerevent_support.js
+            // Requirements: the callback function will reference the test_pointerEvent object and
+            // will fail unless the async_test is created with the var name "test_pointerEvent".
+            add_completion_callback(showPointerTypes);
+            var detected_pointertypes = {};
+
+            async function run() {
+                var target0 = document.getElementById("target0");
+                var innerframe = document.getElementById("innerframe");
+                var target1 = innerframe.contentWindow.document.getElementsByTagName("div")[0];
+                var pointerover_pointerId = null;
+                var pointerover_pointerType = null;
+
+                var eventList = ['pointerenter', 'pointerover', 'pointermove', 'pointerout', 'pointerleave'];
+                var receivedEvents = {};
+                var receivedEventsInnerFrame = {};
+
+
+                function checkPointerId(event, inner) {
+                    detected_pointertypes[event.pointerType] = true;
+                    var eventName = (inner ? "inner frame " : "" ) + event.type;
+                    test_pointerEvent.step(function() {
+                        assert_equals(event.pointerId, pointerover_pointerId, "PointerId of " + eventName + " is not correct");
+                        assert_equals(event.pointerType, pointerover_pointerType, "PointerType of " + eventName + " is not correct");
+                    }, eventName + ".pointerId were the same as first pointerover");
+                }
+
+                on_event(window, "message", function(event) {
+                    if (event.source != innerframe.contentWindow) {
+                      return;
+                    }
+                    receivedEventsInnerFrame[event.data.type] = 1;
+                    checkPointerId(event.data, true);
+                    if (Object.keys(receivedEvents).length == eventList.length && Object.keys(receivedEventsInnerFrame).length == eventList.length)
+                        test_pointerEvent.done();
+                });
+
+                eventList.forEach(function(eventName) {
+                    on_event(target0, eventName, function (event) {
+                        if (pointerover_pointerId === null && event.type == 'pointerover') {
+                            pointerover_pointerId = event.pointerId;
+                            pointerover_pointerType = event.pointerType;
+                        } else {
+                            checkPointerId(event, false);
+                        }
+                        receivedEvents[event.type] = 1;
+                    });
+                });
+
+                var iframeRect = innerframe.getClientRects()[0];
+                var rect = target1.getClientRects()[0];
+                var center_x = Math.round(iframeRect.left + (rect.left + rect.right) / 2);
+                var center_y = Math.round(iframeRect.top + (rect.top + rect.bottom) / 2);
+                await new test_driver.Actions()
+                      .pointerMove(0, 0, {origin: target0})
+                      .pointerMove(center_x, center_y)
+                      .pointerMove(center_y, center_y + 100)
+                      .send();
+            }
+        </script>
+    </head>
+    <body onload="run()">
+        <h1>Pointer Events pointerdown tests</h1>
+        Complete the following actions:
+        <ol>
+            <li>Start with your pointing device outside of black box, then move it into black box. If using touch just press in black box and don't release.
+            <li>Move your pointing device into purple box (without leaving the digitizer range if you are using hover supported pen or without releasing touch if using touch). Then move it out of the purple box.
+        </ol>
+        <div id="target0" class="touchActionNone">
+        </div>
+        <iframe src="resources/pointerevent_pointerId_scope-iframe.html" id="innerframe"></iframe>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+            <p>Refresh the page to run the tests again with a different pointer type.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

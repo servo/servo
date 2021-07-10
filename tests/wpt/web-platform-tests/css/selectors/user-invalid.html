@@ -1,0 +1,21 @@
+<!doctype html>
+<title>Support for the :user-invalid pseudo-class</title>
+<link rel="help" href="https://drafts.csswg.org/selectors/#user-pseudos">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<input value="bar" pattern="foo">
+<script>
+test(() => {
+  const input = document.querySelector('input');
+  assert_false(input.validity.valid, "Should be invalid");
+  // The selector can't match because no interaction has happened.
+  assert_false(input.matches(':user-invalid'));
+}, ':user-invalid selector should be supported');
+
+// historical: https://github.com/w3c/csswg-drafts/issues/1329
+test(() => {
+  const input = document.querySelector('input');
+  // matches() will throw if the selector isn't suppported
+  assert_throws_dom("SyntaxError", () => input.matches(':user-error'));
+}, ':user-error selector should not be supported');
+</script>

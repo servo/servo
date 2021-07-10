@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: max-content sizing and white-space:break-spaces</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#propdef-white-space">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<meta name="flags" content="">
+<link rel="match" href="reference/white-space-intrinsic-size-002-ref.html">
+<meta name="assert" content="If white-space is break-spaces, preserved spaces at the end of the line do affect the intrinsic max-content size. The value of overflow-wrap makes no difference.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+aside {
+  float: left;
+  white-space: break-spaces;
+  background: blue;
+}
+aside:last-of-type {
+  float:right;
+  overflow-wrap: break-word;
+}
+div {
+  color: transparent;
+  font-family: Ahem;
+  font-size: 50px;
+  width: 3ch;
+  /* both floats should take the full 3ch,
+     one on each line
+     and therefore line up to look like a single large box.
+
+     If the spaces are not taken into account for min-content sizing,
+     the floats will leave a gap between them */
+}
+.owbw { overflow-wrap: break-word; }
+</style>
+
+<p>Test passes if there is a single blue rectangle below.
+<div>
+  <aside>X  </aside>
+  <aside>X  </aside>
+</div>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Resource Timing TAO tests</title>
+<link rel="author" title="Google" href="http://www.google.com/" />
+<link rel="help" href="https://www.w3.org/TR/resource-timing-2/#timing-allow-origin"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webperftestharness.js"></script>
+<script src="resources/webperftestharnessextension.js"></script>
+<script>
+setup({explicit_done: true});
+
+// explicitly test the namespace before we start testing
+test_namespace("getEntriesByType");
+
+var d;
+var iframe;
+var iframeBody;
+var image;
+var random = Math.random();
+
+function setup_iframe() {
+    iframe = document.getElementById('frameContext');
+    d = iframe.contentWindow.document;
+    iframeBody = d.body;
+    iframe.addEventListener('load', onload_test, false);
+}
+function onload_test() {
+    if (window.performance.getEntriesByType === undefined) {
+      done();
+      return;
+    }
+    var context = new PerformanceContext(iframe.contentWindow.performance);
+    var entries = context.getEntriesByType('resource');
+
+    assert_greater_than(entries.length, 0, "The iframe should have at least one resource timing entry.");
+    if(entries.length > 0) {
+        entry = entries[0];
+
+        test_not_equals((entry.redirectStart + entry.redirectEnd + entry.domainLookupStart + entry.domainLookupEnd + entry.connectStart + entry.connectEnd + entry.secureConnectionStart + entry.requestStart + entry.responseStart), 0, 'redirectStart, redirectEnd, domainLookupStart, domainLookupEnd, connectStart, connectEnd, secureConnectionStart, requestStart, and responseStart -- should not be all returned as 0 when the HTTP response has multiple Timing-Allow-Origin header fields and the subsequent field value is separated by a comma, i.e. TAO algorithm passes');
+    }
+
+    done();
+}
+window.setup_iframe = setup_iframe;
+</script>
+</head>
+<body>
+<h1>Description</h1>
+<p>This test validates that for a cross origin resource, the timing allow check algorithm will pass when the HTTP response has multiple Timing-Allow-Origin header fields and the subsequent field value is separated by a comma.</p>
+<div id="log"></div>
+<iframe id="frameContext" src="resources/iframe_TAO_multi_wildcard.html"></iframe>
+</body>
+</html>

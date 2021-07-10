@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<script src="resources/webxr_test_asserts.js"></script>
+
+<script>
+let testName = "Updating XRReferenceSpace origin offset updates view and input matrices.";
+
+const VIEW_OFFSET_WITH_ROTATION = {
+  position: [4, 3, 2],
+  orientation: [0, -0.7071, 0, 0.7071 ]
+};
+
+const VIEWS_WITH_OFFSET = [{
+  eye:"left",
+  projectionMatrix: VALID_PROJECTION_MATRIX,
+  viewOffset: VIEW_OFFSET_WITH_ROTATION,
+  resolution: VALID_RESOLUTION
+}, {
+  eye:"right",
+  projectionMatrix: VALID_PROJECTION_MATRIX,
+  viewOffset: VIEW_OFFSET_WITH_ROTATION,
+  resolution: VALID_RESOLUTION
+}];
+
+let fakeDeviceInitParams = {
+  supportsImmersive: true,
+  supportedModes: ["inline", "immersive-vr"],
+  viewerOrigin: VALID_POSE_TRANSFORM,
+  views: VIEWS_WITH_OFFSET,
+  supportedFeatures: ALL_FEATURES
+};
+
+let testFunction =
+  (session, fakeDeviceController, t) => new Promise((resolve) => {
+    const GRIP_TRANSFORM_WITH_ROTATION = {
+      position: [1, 2, 3],
+      orientation: [0, 0.7071, 0, 0.7071]
+    };
+
+    const POINTER_TRANSFORM_WITH_ROTATION = {
+      position: [0, 1, 4],
+      orientation: [-0.5, 0.5, 0.5, -0.5]
+    };
+
+    let input_source = fakeDeviceController.simulateInputSourceConnection({
+      handedness: "right",
+      targetRayMode: "tracked-pointer",
+      pointerOrigin: POINTER_TRANSFORM_WITH_ROTATION,
+      gripOrigin: GRIP_TRANSFORM_WITH_ROTATION,
+      profiles: []
+    });
+
+    const RADIANS_90D = Math.PI / 2;
+
+    const EXPECTED_VIEW_MATRIX_1 = [1, 0, 0, 0, 0, 0, -1, 0, 0, 1, 0, 0, -3, -4, 5, 1];
+    const EXPECTED_GRIP_MATRIX_1 = [0, 0, -1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 2, 3, 1];
+    const EXPECTED_RAY_MATRIX_1 = [0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 2, 2, 1, 1];
+
+    const EXPECTED_VIEW_MATRIX_2 = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 7, 1, 8, 1];
+    const EXPECTED_GRIP_MATRIX_2 = [0, -1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, -9, -2, -5, 1];
+    const EXPECTED_RAY_MATRIX_2 = [0, 0, -1, 0, 0, 1, 0, 0, 1, 0, 0, 0, -8, -4, -5, 1];
+
+    const EXPECTED_VIEW_MATRIX_3 = [0, 0, -1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 12, 3, 8, 1];
+    const EXPECTED_GRIP_MATRIX_3 = [0, -1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 5, -4, -14, 1];
+    const EXPECTED_RAY_MATRIX_3 = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 5, -6, -13, 1];
+
+    // Must have a reference space to get input poses. eye-level doesn't apply
+    // any transforms to the given matrix.
+    session.requestReferenceSpace('local').then( (referenceSpace) => {
+      function OnFrame(time, frame) {
+        let source = session.inputSources[0];
+
+        function CheckState(referenceSpace, expected_view_matrix, expected_grip_matrix, expected_ray_matrix, prefix) {
+          t.step(() => {
+            let pose = frame.getViewerPose(referenceSpace);
+            let grip_pose = frame.getPose(source.gripSpace, referenceSpace);
+            let input_pose = frame.getPose(source.targetRaySpace, referenceSpace);
+
+            let view_matrix = pose.views[0].transform.inverse.matrix;
+            let grip_matrix = grip_pose.transform.matrix;
+            let ray_matrix = input_pose.transform.matrix;
+
+            assert_matrix_approx_equals(view_matrix, expected_view_matrix, prefix + " view matrix");
+            assert_matrix_approx_equals(grip_matrix, expected_grip_matrix, prefix + " grip matrix");
+            assert_matrix_approx_equals(ray_matrix, expected_ray_matrix, prefix + " ray matrix");
+          });
+        }
+
+        CheckState(referenceSpace, EXPECTED_VIEW_MATRIX_1, EXPECTED_GRIP_MATRIX_1, EXPECTED_RAY_MATRIX_1, "Initial");
+
+        const new_position1 = {
+          x: 10,
+          y: -3,
+          z: 5,
+        };
+        const new_orientation1 = {
+          x: Math.sin(RADIANS_90D / 2),
+          y: 0,
+          z: 0,
+          w: Math.cos(RADIANS_90D / 2),
+        };
+
+        referenceSpace = referenceSpace.getOffsetReferenceSpace(new XRRigidTransform(new_position1, new_orientation1));
+        CheckState(referenceSpace, EXPECTED_VIEW_MATRIX_2, EXPECTED_GRIP_MATRIX_2, EXPECTED_RAY_MATRIX_2, "First transform");
+
+        const new_position2 = {
+          x: 5,
+          y: 2,
+          z: 0,
+        };
+        const new_orientation2 = {
+          x: 0,
+          y: Math.sin(RADIANS_90D / 2),
+          z: 0,
+          w: Math.cos(RADIANS_90D / 2),
+        };
+
+        referenceSpace = referenceSpace.getOffsetReferenceSpace(new XRRigidTransform(new_position2, new_orientation2));
+        CheckState(referenceSpace, EXPECTED_VIEW_MATRIX_3, EXPECTED_GRIP_MATRIX_3, EXPECTED_RAY_MATRIX_3, "Second transform");
+
+        resolve();
+      }
+
+      // Can only request input poses in an xr frame.
+      requestSkipAnimationFrame(session, OnFrame);
+    });
+  });
+
+xr_session_promise_test(
+  testName, testFunction, fakeDeviceInitParams, 'immersive-vr');
+
+</script>

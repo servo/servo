@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<style>
+table {
+  border-collapse:collapse;
+}
+
+td {
+  padding: 0;
+}
+
+td > div {
+  height: 50px;
+  width: 50px;
+}
+
+.group {
+  display: inline-block;
+  position: relative;
+  width: 150px;
+  height: 200px;
+}
+
+.indicator {
+  position: absolute;
+  background-color: green;
+  left: 0;
+  top: 150px;
+  height: 50px;
+  width: 50px;
+}
+
+</style>
+
+<div class="group">
+  <div>
+    <div class="indicator"></div>
+  </div>
+</div>
+
+<div>You should see a green box above. No red should be visible.</div>
+

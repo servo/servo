@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visudet.html#containing-block-details">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#anonymous-block-level">
+<p>There should be a green square below, and no red.</p>
+<div style="position:relative; width:100px; height:100px; background:red;">
+  <span id="posMe">
+    <div id="removeMe"></div>
+  </span>
+  <span>
+    <div>
+      <div id="target" style="position:absolute; width:100%; height:100%; background:green;"></div>
+    </div>
+  </span>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> {
+    document.body.offsetTop;
+    removeMe.style.display = "none";
+    document.body.offsetTop;
+    posMe.style.position = "relative";
+    assert_equals(document.getElementById("target").offsetWidth, 100);
+    assert_equals(document.getElementById("target").offsetHeight, 100);
+    assert_equals(document.getElementById("target").offsetLeft, 0);
+    assert_equals(document.getElementById("target").offsetTop, 0);
+  }, "Make sure that we're sized by the right ancestor");
+</script>

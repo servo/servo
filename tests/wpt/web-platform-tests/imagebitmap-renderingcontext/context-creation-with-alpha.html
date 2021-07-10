@@ -8,24 +8,12 @@
 var width = 10;
 var height = 10;
 
-function testCanvas(ctx, r, g, b, a)
-{
-    var color = ctx.getImageData(5, 5, 1, 1).data;
-    assert_array_equals(color, [r, g, b, a]);
-}
-
-function consumeImageBitmap(image, alphaVal, expectedR, expectedG, expectedB, expectedA)
+function testImageBitmap(image, opts, expectedR, expectedG, expectedB, expectedA)
 {
     var dstCanvas = document.createElement('canvas');
     dstCanvas.width = width;
     dstCanvas.height = height;
-    var dstCtx;
-    if (alphaVal == 'true')
-        dstCtx = dstCanvas.getContext('bitmaprenderer', { alpha: true });
-    else if (alphaVal == 'false')
-        dstCtx = dstCanvas.getContext('bitmaprenderer', { alpha: false });
-    else
-        dstCtx = dstCanvas.getContext('bitmaprenderer');
+    var dstCtx = dstCanvas.getContext('bitmaprenderer', opts);
     dstCtx.transferFromImageBitmap(image);
 
     var myCanvas = document.createElement('canvas');
@@ -33,7 +21,8 @@ function consumeImageBitmap(image, alphaVal, expectedR, expectedG, expectedB, ex
     myCanvas.height = height;
     var myCtx = myCanvas.getContext('2d');
     myCtx.drawImage(dstCanvas, 0, 0);
-    testCanvas(myCtx, expectedR, expectedG, expectedB, expectedA);
+    var color = myCtx.getImageData(5, 5, 1, 1).data;
+    assert_array_approx_equals(color, [expectedR, expectedG, expectedB, expectedA],1);
 }
 
 promise_test(function() {
@@ -44,7 +33,7 @@ promise_test(function() {
     ctx.fillStyle = 'rgba(0, 255, 0, 0.5)';
     ctx.fillRect(0, 0, width, height);
     return createImageBitmap(srcCanvas).then(function(image) {
-        consumeImageBitmap(image, 'false', 0, 127, 0, 255);
+        testImageBitmap(image, {alpha: false}, 0, 255, 0, 128);
     });
 }, "Test that an ImageBitmapRenderingContext with alpha disabled makes the canvas opaque");
 
@@ -56,7 +45,7 @@ promise_test(function() {
     ctx.fillStyle = 'rgba(0, 255, 0, 0.5)';
     ctx.fillRect(0, 0, width, height);
     return createImageBitmap(srcCanvas).then(function(image) {
-        consumeImageBitmap(image, 'true', 0, 255, 0, 127);
+        testImageBitmap(image, {alpha: true}, 0, 255, 0, 128);
     });
 }, "Test that an ImageBitmapRenderingContext with alpha enabled preserves the alpha");
 
@@ -68,7 +57,7 @@ promise_test(function() {
     ctx.fillStyle = 'rgba(0, 255, 0, 0.5)';
     ctx.fillRect(0, 0, width, height);
     return createImageBitmap(srcCanvas).then(function(image) {
-        consumeImageBitmap(image, '', 0, 255, 0, 127);
+        testImageBitmap(image, {}, 0, 255, 0, 128);
     });
 }, "Test that the 'alpha' context creation attribute is true by default");
 

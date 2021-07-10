@@ -1,0 +1,15 @@
+<!doctype html>
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-size-prop">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1572738">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1572451">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<script type="text/javascript" src="/resources/testharness.js"></script>
+<script type="text/javascript" src="/resources/testharnessreport.js"></script>
+<div style="font-family: something-non-default; font-size: calc(-100em + 1px);"></div>
+<div style="font-family: something-non-default; font-size: calc(1em - 100px);"></div>
+<script>
+test(function() {
+  for (const element of document.querySelectorAll("div"))
+    assert_equals(getComputedStyle(element).fontSize, "0px");
+}, "font-size computation isn't messed up when mixing positive and negatives when font-family changes and the parent has a keyword font-size");
+</script>

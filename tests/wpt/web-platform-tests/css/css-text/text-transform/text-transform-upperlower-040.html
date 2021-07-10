@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>CSS3 Text, text transform: Turkish, uppercase</title>
+<meta name="assert" content="text-transform: uppercase will uppercase Turkish as described in Unicode's SpecialCasing.txt when the language is specified as Turkish.">
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#text-transform'>
+<link rel="match" href="reference/text-transform-upperlower-040-ref.html">
+<style type='text/css'>
+@font-face {
+	font-family: 'webfont';
+	src: url('/fonts/DoulosSIL-R.woff') format('woff');
+	font-weight: normal;
+	font-style: normal;
+	}
+.test, .ref { font-size: 125%; line-height: 1.5em; font-family: webfont, serif; }
+.test span, .ref span { margin-right: 1em; white-space: nowrap; }
+/* the CSS above is not part of the test */
+.test { text-transform: uppercase; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if both characters in each pair match. If you are missing a font glyph for a character, ignore that pair, but report which characters were ignored.</p>
+<div class="test" lang="tr"><span>&#x69; &#x130;</span> <span>&#x131; &#x49;</span></div>
+<!--Notes:
+The language of the test box is set to Turkish (tr).
+-->
+</body>
+</html>

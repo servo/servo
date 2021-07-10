@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Borders: Borders appear when the element is smaller than 1/2 a pixel</title>
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#border-width">
+<link rel="match" href="reference/borders-on-sub-unit-sized-elements-ref.html">
+<meta name="assert" content="Borders on elements smaller than one pixel in size
+    should still appear." />
+<head>
+<style>
+    #right {
+      position: absolute;
+      top: 10px;
+      left: 65px;
+      width: 0.25px;
+      height: 50px;
+      border-right: 1px dashed black;
+    }
+    #left {
+      position: absolute;
+      top: 10px;
+      left: 5px;
+      width: 0.25px;
+      height: 50px;
+      border-left: 1px dashed black;
+    }
+    #top {
+      position: absolute;
+      top: 5px;
+      left: 10px;
+      width: 50px;
+      height: 0.25px;
+      border-top: 1px dashed black;
+    }
+    #bottom {
+      position: absolute;
+      top: 65px;
+      left: 10px;
+      width: 50px;
+      height: 0.25px;
+      border-bottom: 1px dashed black;
+    }
+</style>
+</head>
+<body>
+<div id="top"></div>
+<div id="right"></div>
+<div id="bottom"></div>
+<div id="left"></div>
+</body>
+</html>
+

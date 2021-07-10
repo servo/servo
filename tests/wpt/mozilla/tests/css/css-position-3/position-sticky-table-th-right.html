@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<title>position:sticky right constraint should behave correctly for &lt;th&gt; elements</title>
+<link rel="match" href="position-sticky-table-th-right-ref.html" />
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
+<meta name="assert" content="This test checks that the position:sticky right constraint behaves correctly for &lt;th&gt; elements" />
+
+<style>
+table {
+    border-collapse: collapse;
+    margin-left: 150px;
+}
+
+td, th {
+  padding: 0;
+}
+
+td > div, th > div {
+  height: 50px;
+  width: 50px;
+}
+
+.group {
+  position: relative;
+  width: 250px;
+  height: 150px;
+}
+
+.scroller {
+  position: relative;
+  width: 200px;
+  height: 100px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.postpadding {
+  height: 10px;
+  width: 500px;
+}
+
+.indicator {
+  position: absolute;
+  background-color: red;
+  top: 0;
+  height: 50px;
+  width: 50px;
+}
+
+.sticky {
+  position: sticky;
+  right: 25px;
+  background-color: green;
+}
+</style>
+
+<script>
+window.addEventListener('load', function() {
+  document.getElementById('scroller1').scrollLeft = 0;
+  document.getElementById('scroller2').scrollLeft = 75;
+  document.getElementById('scroller3').scrollLeft = 200;
+});
+</script>
+
+<div class="group">
+  <div id="scroller1" class="scroller">
+    <div class="indicator" style="left: 150px;"></div>
+    <table>
+      <tbody>
+        <tr>
+          <td><div></div></td>
+          <td><div></div></td>
+          <td><div></div></td>
+          <th class="sticky"><div></div></th>
+        </tr>
+      </tbody>
+    </table>
+    <div class="postpadding"></div>
+  </div>
+</div>
+
+<div class="group">
+  <div id="scroller2" class="scroller">
+    <div class="indicator" style="left: 200px;"></div>
+    <table>
+      <tbody>
+        <tr>
+          <td><div></div></td>
+          <td><div></div></td>
+          <td><div></div></td>
+          <th class="sticky"><div></div></th>
+        </tr>
+      </tbody>
+    </table>
+    <div class="postpadding"></div>
+  </div>
+</div>
+
+<div class="group">
+  <div id="scroller3" class="scroller">
+    <div class="indicator" style="left: 300px;"></div>
+    <table>
+      <tbody>
+        <tr>
+          <td><div></div></td>
+          <td><div></div></td>
+          <td><div></div></td>
+          <th class="sticky"><div></div></th>
+        </tr>
+      </tbody>
+    </table>
+    <div class="postpadding"></div>
+  </div>
+</div>
+
+<div>You should see three green boxes above. No red should be visible.</div>

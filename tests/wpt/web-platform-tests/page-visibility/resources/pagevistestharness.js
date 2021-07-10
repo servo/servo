@@ -72,8 +72,8 @@ function test_feature_exists(doc, msg)
     }
     var hiddenMsg = "document.hidden is defined" + msg + ".";
     var stateMsg = "document.visibilityState is defined" + msg + ".";
-    pv_test(function(){assert_true(document.hidden !== undefined, hiddenMsg);}, hiddenMsg, doc);
-    pv_test(function(){assert_true(document.visibilityState !== undefined, stateMsg);}, stateMsg, doc);
+    pv_test(function(){assert_not_equals(document.hidden, undefined, hiddenMsg);}, hiddenMsg, doc);
+    pv_test(function(){assert_not_equals(document.visibilityState, undefined, stateMsg);}, stateMsg, doc);
 }
 
 //
@@ -117,5 +117,5 @@ function TabSwitch()
 {
     //var open_link = window.open("http://www.bing.com");
     open_link = window.open('', '_blank');
-    setTimeout(function() { open_link.close(); }, 2000);
+    step_timeout(function() { open_link.close(); }, 2000);
 }

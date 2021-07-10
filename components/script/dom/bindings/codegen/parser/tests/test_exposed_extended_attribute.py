@@ -2,9 +2,9 @@ import WebIDL
 
 def WebIDLTest(parser, harness):
     parser.parse("""
-      [PrimaryGlobal] interface Foo {};
-      [Global=(Bar1,Bar2)] interface Bar {};
-      [Global=Baz2] interface Baz {};
+      [Global, Exposed=Foo] interface Foo {};
+      [Global=(Bar, Bar1,Bar2), Exposed=Bar] interface Bar {};
+      [Global=(Baz, Baz2), Exposed=Baz] interface Baz {};
 
       [Exposed=(Foo,Bar1)]
       interface Iface {
@@ -51,10 +51,11 @@ def WebIDLTest(parser, harness):
 
     parser = parser.reset()
     parser.parse("""
-      [PrimaryGlobal] interface Foo {};
-      [Global=(Bar1,Bar2)] interface Bar {};
-      [Global=Baz2] interface Baz {};
+      [Global, Exposed=Foo] interface Foo {};
+      [Global=(Bar, Bar1, Bar2), Exposed=Bar] interface Bar {};
+      [Global=(Baz, Baz2), Exposed=Baz] interface Baz {};
 
+      [Exposed=Foo]
       interface Iface2 {
         void method3();
       };
@@ -80,9 +81,9 @@ def WebIDLTest(parser, harness):
 
     parser = parser.reset()
     parser.parse("""
-      [PrimaryGlobal] interface Foo {};
-      [Global=(Bar1,Bar2)] interface Bar {};
-      [Global=Baz2] interface Baz {};
+      [Global, Exposed=Foo] interface Foo {};
+      [Global=(Bar, Bar1, Bar2), Exposed=Bar] interface Bar {};
+      [Global=(Baz, Baz2), Exposed=Baz] interface Baz {};
 
       [Exposed=Foo]
       interface Iface3 {
@@ -90,11 +91,11 @@ def WebIDLTest(parser, harness):
       };
 
       [Exposed=(Foo,Bar1)]
-      interface Mixin {
+      interface mixin Mixin {
         void method5();
       };
 
-      Iface3 implements Mixin;
+      Iface3 includes Mixin;
     """)
     results = parser.finish()
     harness.check(len(results), 6, "Should know about six things");
@@ -124,7 +125,7 @@ def WebIDLTest(parser, harness):
         """)
 
         results = parser.finish()
-    except Exception,x:
+    except Exception as x:
         threw = True
 
     harness.ok(threw, "Should have thrown on invalid Exposed value on interface.")
@@ -140,7 +141,7 @@ def WebIDLTest(parser, harness):
         """)
 
         results = parser.finish()
-    except Exception,x:
+    except Exception as x:
         threw = True
 
     harness.ok(threw, "Should have thrown on invalid Exposed value on attribute.")
@@ -156,7 +157,7 @@ def WebIDLTest(parser, harness):
         """)
 
         results = parser.finish()
-    except Exception,x:
+    except Exception as x:
         threw = True
 
     harness.ok(threw, "Should have thrown on invalid Exposed value on operation.")
@@ -172,7 +173,7 @@ def WebIDLTest(parser, harness):
         """)
 
         results = parser.finish()
-    except Exception,x:
+    except Exception as x:
         threw = True
 
     harness.ok(threw, "Should have thrown on invalid Exposed value on constant.")
@@ -181,8 +182,8 @@ def WebIDLTest(parser, harness):
     threw = False
     try:
         parser.parse("""
-            [Global] interface Foo {};
-            [Global] interface Bar {};
+            [Global, Exposed=Foo] interface Foo {};
+            [Global, Exposed=Bar] interface Bar {};
 
             [Exposed=Foo]
             interface Baz {
@@ -192,31 +193,46 @@ def WebIDLTest(parser, harness):
         """)
 
         results = parser.finish()
-    except Exception,x:
+    except Exception as x:
         threw = True
 
     harness.ok(threw, "Should have thrown on member exposed where its interface is not.")
 
     parser = parser.reset()
-    threw = False
-    try:
-        parser.parse("""
-            [Global] interface Foo {};
-            [Global] interface Bar {};
+    parser.parse("""
+        [Global, Exposed=Foo] interface Foo {};
+        [Global, Exposed=Bar] interface Bar {};
 
-            [Exposed=Foo]
-            interface Baz {
-              void method();
-            };
+        [Exposed=Foo]
+        interface Baz {
+          void method();
+        };
 
-            [Exposed=Bar]
-            interface Mixin {};
+        [Exposed=Bar]
+        interface mixin Mixin {
+          void otherMethod();
+        };
 
-            Baz implements Mixin;
-        """)
+        Baz includes Mixin;
+    """)
 
-        results = parser.finish()
-    except Exception,x:
-        threw = True
+    results = parser.finish()
 
-    harness.ok(threw, "Should have thrown on LHS of implements being exposed where RHS is not.")
+    harness.check(len(results), 5, "Should know about five things");
+    iface = results[2]
+    harness.ok(isinstance(iface, WebIDL.IDLInterface),
+               "Should have an interface here");
+    members = iface.members
+    harness.check(len(members), 2, "Should have two members")
+
+    harness.ok(members[0].exposureSet == set(["Foo"]),
+               "method should have the right exposure set")
+    harness.ok(members[0]._exposureGlobalNames == set(["Foo"]),
+               "method should have the right exposure global names")
+
+    harness.ok(members[1].exposureSet == set(["Bar"]),
+               "otherMethod should have the right exposure set")
+    harness.ok(members[1]._exposureGlobalNames == set(["Bar"]),
+               "otherMethod should have the right exposure global names")
+
+

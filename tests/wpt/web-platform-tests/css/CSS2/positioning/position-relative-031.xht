@@ -10,6 +10,8 @@
         <meta name="flags" content="" />
         <meta name="assert" content="Relatively positioned element with auto positioning render as though they were positioned in flow." />
         <style type="text/css">
+            /* Disable kerning because kerning may differ for different node tree. */
+            html { font-kerning: none; font-feature-settings: "kern" off; }
             div
             {
                 width: 5in;

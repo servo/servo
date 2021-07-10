@@ -52,6 +52,39 @@ test_with_window(function (contentWindow) {
 
 test_with_window(function (contentWindow) {
     const contentDocument = contentWindow.document;
+    contentDocument.write('<test-element>');
+
+    const element = contentDocument.querySelector('test-element');
+    assert_equals(Object.getPrototypeOf(element), contentWindow.HTMLElement.prototype);
+
+    let log = [];
+    class TestElement extends contentWindow.HTMLElement {
+        constructor() {
+            super();
+            this.id = "foo";
+            this.setAttribute('id', 'foo');
+            this.removeAttribute('id');
+            this.style.fontSize = '10px';
+            log.push(create_constructor_log(this));
+        }
+        connectedCallback(...args) {
+            log.push(create_connected_callback_log(this, ...args));
+        }
+        attributeChangedCallback(...args) {
+            log.push(create_attribute_changed_callback_log(this, ...args));
+        }
+        static get observedAttributes() { return ['id', 'style']; }
+    }
+    contentWindow.customElements.define('test-element', TestElement);
+    assert_equals(Object.getPrototypeOf(element), TestElement.prototype);
+
+    assert_equals(log.length, 2);
+    assert_constructor_log_entry(log[0], element);
+    assert_connected_log_entry(log[1], element);
+}, 'Upgrading a custom element must not invoke attributeChangedCallback for the attribute that is changed during upgrading');
+
+test_with_window(function (contentWindow) {
+    const contentDocument = contentWindow.document;
     contentDocument.write('<test-element id="first-element">');
     contentDocument.write('<test-element id="second-element">');
 

@@ -1,8 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-// https://w3c.github.io/ServiceWorker/#service-worker-global-scope
+// https://w3c.github.io/ServiceWorker/#serviceworkerglobalscope
 
 [Global=(Worker,ServiceWorker), Exposed=ServiceWorker,
  Pref="dom.serviceworker.enabled"]
@@ -17,8 +17,8 @@ interface ServiceWorkerGlobalScope : WorkerGlobalScope {
   //attribute EventHandler oninstall;
   //attribute EventHandler onactivate;
   //attribute EventHandler onfetch;
-  //attribute EventHandler onforeignfetch;
 
   // event
   attribute EventHandler onmessage; // event.source of the message events is Client object
+  attribute EventHandler onmessageerror;
 };

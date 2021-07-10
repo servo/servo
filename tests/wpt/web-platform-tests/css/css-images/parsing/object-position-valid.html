@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Images Module Level 3: parsing object-position with valid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#propdef-object-position">
+<meta name="assert" content="object-position supports the full '<position>' grammar.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+// First serialization is being returned by Blink/Firefox/WebKit, second by Edge.
+test_valid_value("object-position", "10%", ["10% center", "10% 50%"]);
+test_valid_value("object-position", "right 30% top 60px"); // "calc(70%) 60px" in Edge.
+test_valid_value("object-position", "-20% -30px");
+test_valid_value("object-position", "30px center", ["30px center", "30px 50%"]);
+test_valid_value("object-position", "40px top", ["40px top", "40px 0%"]);
+test_valid_value("object-position", "bottom 10% right 20%", "right 20% bottom 10%"); // "calc(80%) calc(90%)" in Edge.
+test_valid_value("object-position", "bottom right", ["right bottom", "100% 100%"]);
+test_valid_value("object-position", "center 50px", ["center 50px", "50% 50px"]);
+test_valid_value("object-position", "center bottom", ["center bottom", "50% 100%"]);
+test_valid_value("object-position", "center left", ["left center", "0% 50%"]);
+test_valid_value("object-position", "left", ["left center", "0% 50%"]);
+test_valid_value("object-position", "left bottom", ["left bottom", "0% 100%"]);
+test_valid_value("object-position", "left center", ["left center", "0% 50%"]);
+test_valid_value("object-position", "right 40%", ["right 40%", "100% 40%"]);
+test_valid_value("object-position", "top", ["center top", "50% 0%"]);
+test_valid_value("object-position", "top center", ["center top", "50% 0%"]);
+
+// ["center center"] in Blink and Firefox, "center" in WebKit, "50% 50%" in Edge.
+test_valid_value("object-position", "center", ["center center", "center", "50% 50%"]);
+test_valid_value("object-position", "center center", ["center center", "center", "50% 50%"]);
+</script>
+</body>
+</html>

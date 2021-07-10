@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hit regions: addHitRegion throws NotSupportedError</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<div style="display: none"><canvas id="canvas"><button id="button">button</button></canvas></div>
+
+<script>
+test(function () {
+    assert_throws_dom("NotSupportedError",
+        function () {
+            var canvas = document.getElementById("canvas");
+            // Reset context
+            canvas.width = canvas.width;
+            var button = document.getElementById("button");
+            var context = canvas.getContext("2d");
+
+            // Shapes are painted without affecting the current default path,
+            // http://www.w3.org/html/wg/drafts/2dcontext/html5_canvas_CR/#drawing-rectangles-to-the-canvas
+            context.fillRect(25, 25, 25, 25);
+
+            // If the specified path has no pixels, throw a NotSupportedError exception and abort these steps.
+            // http://www.w3.org/html/wg/drafts/2dcontext/html5_canvas_CR/#hit-regions
+            context.addHitRegion({ id: "notsupportederror_fillRect", control: button })
+        }, "fillRect should not affect current default path and NotSupportedError should be thrown.");
+}, "fillRect should not affect current default path and NotSupportedError should be thrown.");
+
+test(function () {
+    assert_throws_dom("NotSupportedError",
+        function () {
+            var canvas = document.getElementById("canvas");
+            // Reset context
+            canvas.width = canvas.width;
+            var button = document.getElementById("button");
+            var context = canvas.getContext("2d");
+
+            // "Shapes are painted without affecting the current default path,"
+            // http://www.w3.org/html/wg/drafts/2dcontext/html5_canvas_CR/#drawing-rectangles-to-the-canvas
+            context.strokeRect(75, 25, 25, 25);
+
+            // "If the specified path has no pixels, throw a NotSupportedError exception and abort these steps."
+            // http://www.w3.org/html/wg/drafts/2dcontext/html5_canvas_CR/#hit-regions
+            context.addHitRegion({ id: "notsupportederror_strokeRect", control: button })
+        }, "strokeRect should not affect current default path and NotSupportedError should be thrown.");
+}, "strokeRect should not affect current default path and NotSupportedError should be thrown.");
+
+test(function() {
+    assert_throws_dom("NotSupportedError",
+        function () {
+            var canvas = document.getElementById("canvas");
+            // Reset context
+            canvas.width = canvas.width;
+            var button = document.getElementById("button");
+            var context = canvas.getContext("2d");
+
+            // "These shapes are painted without affecting the current path"
+            // http://www.w3.org/html/wg/drafts/2dcontext/html5_canvas_CR/#drawing-rectangles-to-the-canvas
+            context.fillText("fillText", 25, 100);
+
+            // "If the specified path has no pixels, throw a NotSupportedError exception and abort these steps."
+            // http://www.w3.org/html/wg/drafts/2dcontext/html5_canvas_CR/#drawing-text-to-the-canvas
+            context.addHitRegion({ id: "notsupportederror_fillText", control: button });
+        }, "fillText should not affect current default path and NotSupportedError should be thrown.");
+}, "fillText should not affect current default path and NotSupportedError should be thrown.");
+
+test(function() {
+    assert_throws_dom("NotSupportedError",
+        function () {
+            var canvas = document.getElementById("canvas");
+            canvas.width = canvas.width;
+            var button = document.getElementById("button");
+            var context = canvas.getContext("2d");
+            // "These shapes are painted without affecting the current path"
+            // http://www.w3.org/html/wg/drafts/2dcontext/html5_canvas_CR/#drawing-rectangles-to-the-canvas
+            context.strokeText("strokeText", 75, 100);
+
+            // "If the specified path has no pixels, throw a NotSupportedError exception and abort these steps."
+            // http://www.w3.org/html/wg/drafts/2dcontext/html5_canvas_CR/#drawing-text-to-the-canvas
+            context.addHitRegion({ id: "notsupportederror_strokeText", control: button });
+        }, "strokeText should not affect current default path and NotSupportedError shuld be thrown.");
+}, "strokeText should not affect current default path and NotSupportedError shuld be thrown.");
+</script>
+</body>
+</html>

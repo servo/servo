@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>&lt;mo&gt; paint lspace rspace</title>
+    <meta charset="utf-8">
+  </head>
+  <body>
+    <h1>LTR case</h1>
+
+    <p>The test passes if the arrow has a leading space of 100px, which is as wide as the black block to the left,
+      and a trailing space of 200px, which is as wide as the black block to the right.</p>
+
+    <math>
+      <mspace width="100px" height="10px" depth="10px" style="background: black"></mspace>
+      <mspace width="100px"></mspace>
+      <mo lspace="0px" rspace="0px">→</mo>
+      <mspace width="200px"></mspace>
+      <mspace width="200px" height="10px" depth="10px" style="background: black"></mspace>
+    </math>
+
+    <p>The test passes if the arrow has a leading space of 150px, which is as wide as the black block to the left,
+      and a trailing space of 150px, which is as wide as the black block to the right.</p>
+
+    <math>
+      <mspace width="150px" height="10px" depth="10px" style="background: black"></mspace>
+      <mspace width="150px"></mspace>
+      <mo lspace="0px" rspace="0px">→</mo>
+      <mspace width="150px"></mspace>
+      <mspace width="150px" height="10px" depth="10px" style="background: black"></mspace>
+    </math>
+
+    <p>The test passes if the arrow has a leading space of 200px, which is as wide as the black block to the left,
+      and a trailing space of 100px, which is as wide as the black block to the right.</p>
+
+    <math>
+      <mspace width="200px" height="10px" depth="10px" style="background: black"></mspace>
+      <mspace width="200px"></mspace>
+      <mo lspace="0px" rspace="0px">→</mo>
+      <mspace width="100px"></mspace>
+      <mspace width="100px" height="10px" depth="10px" style="background: black"></mspace>
+    </math>
+
+    <h1>RTL case</h1>
+
+    <p>The test passes if the arrow has a leading space of 100px, which is as wide as the black block to the right,
+      and a trailing space of 200px, which is as wide as the black block to the left.</p>
+
+    <math dir="rtl">
+      <mspace width="100px" height="10px" depth="10px" style="background: black"></mspace>
+      <mspace width="100px"></mspace>
+      <mo lspace="0px" rspace="0px">→</mo>
+      <mspace width="200px"></mspace>
+      <mspace width="200px" height="10px" depth="10px" style="background: black"></mspace>
+    </math>
+
+    <p>The test passes if the arrow has a leading space of 150px, which is as wide as the black block to the right,
+      and a trailing space of 150px, which is as wide as the black block to the left.</p>
+
+    <math dir="rtl">
+      <mspace width="150px" height="10px" depth="10px" style="background: black"></mspace>
+      <mspace width="150px"></mspace>
+      <mo lspace="0px" rspace="0px">→</mo>
+      <mspace width="150px"></mspace>
+      <mspace width="150px" height="10px" depth="10px" style="background: black"></mspace>
+    </math>
+
+    <p>The test passes if the arrow has a leading space of 200px, which is as wide as the black block to the right,
+      and a trailing space of 100px, which is as wide as the black block to the left.</p>
+
+    <math dir="rtl">
+      <mspace width="200px" height="10px" depth="10px" style="background: black"></mspace>
+      <mspace width="200px"></mspace>
+      <mo lspace="0px" rspace="0px">→</mo>
+      <mspace width="100px"></mspace>
+      <mspace width="100px" height="10px" depth="10px" style="background: black"></mspace>
+    </math>
+  </body>
+</html>

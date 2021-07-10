@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<title>Background change from opaque to transparent during smooth scroll</title>
+<link rel=help href="https://drafts.csswg.org/cssom-view/#dictdef-scrolltooptions">
+<style>
+#container {
+  width: 200px;
+  height: 200px;
+  overflow: scroll;
+  background: white;
+}
+#content {
+  width: 7500px;
+  height: 7500px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+var t = async_test('background change during smooth scroll');
+
+function startSmoothScroll() {
+  var scrollToOptions = {behavior: "smooth", top: 6000};
+  container.scrollTo(scrollToOptions);
+  requestAnimationFrame(preventCompositedScrolling);
+}
+
+function preventCompositedScrolling() {
+  container.style.background = "transparent";
+  requestAnimationFrame(waitForSmoothScrollEnd);
+}
+
+function waitForSmoothScrollEnd() {
+  if (container.scrollTop == 6000) {
+    t.done();
+  } else {
+    window.requestAnimationFrame(waitForSmoothScrollEnd);
+  }
+}
+
+onload = () => {
+  requestAnimationFrame(startSmoothScroll);
+}
+</script>
+<div id="container">
+  <div id="content">Content</div>
+</div>

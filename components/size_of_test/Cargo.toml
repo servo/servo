@@ -1,0 +1,9 @@
+[package]
+name = "size_of_test"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+publish = false
+
+[lib]
+path = "lib.rs"

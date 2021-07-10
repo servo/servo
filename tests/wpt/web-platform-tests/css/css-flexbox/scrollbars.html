@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<head>
+<title>Scrollbars inside flexbox with direction and writing-mode</title>
+<link rel="author" title="Google, Inc." href="http://www.google.com/">
+<link rel="match" href="scrollbars-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/">
+
+<script src="support/scrollbars.js"></script>
+
+<style>
+.horizontal-header {
+  width: 120px;
+}
+.vertical-header {
+  width: 60px;
+}
+.container-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+.container {
+  flex: none;
+  margin: 5px;
+}
+.ltr {
+  direction: ltr;
+}
+.rtl {
+  direction: rtl;
+}
+.horizontal {
+  writing-mode: horizontal-tb;
+}
+.flipped-blocks {
+  writing-mode: vertical-rl;
+}
+.flipped-lines {
+  writing-mode: vertical-lr;
+}
+.flex {
+  border: 2px solid red;
+  display: flex;
+  overflow: scroll;
+  max-width: 100px;
+  max-height: 100px;
+}
+.column {
+  flex-direction: column;
+}
+.column-reverse {
+  flex-direction: column-reverse;
+}
+.row {
+  flex-direction: row;
+}
+.row-reverse {
+  flex-direction: row-reverse;
+}
+.flex > .leaf1, .flex > .leaf2, .flex > .leaf3 {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border: 2px solid blue;
+  margin: 3px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.flex > div > div {
+  font-size: 20px;
+  text-align: center;
+  flex: none;
+}
+</style>
+
+</head>
+
+<div class="container-row">
+  <div class="vertical-header ltr horizontal"></div>
+  <div class="horizontal-header ltr horizontal">ltr<br>horizontal-tb</div>
+  <div class="vertical-header ltr flipped-blocks">ltr<br>vertical-rl</div>
+  <div class="vertical-header ltr flipped-blocks">ltr<br>vertical-lr</div>
+  <div class="horizontal-header rtl horizontal">rtl<br>horizontal-tb</div>
+  <div class="vertical-header rtl flipped-blocks">rtl<br>vertical-rl</div>
+  <div class="vertical-header rtl flipped-blocks">rtl<br>vertical-lr</div>
+</div>
+
+<script>
+flexDirections.forEach((flexDirection) => {
+  var containerRow = createContainerRow(flexDirection);
+  document.body.appendChild(containerRow);
+});
+</script>

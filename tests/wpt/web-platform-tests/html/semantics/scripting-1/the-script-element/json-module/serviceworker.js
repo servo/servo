@@ -1,0 +1,1 @@
+import './module.json' assert { type: "json" };

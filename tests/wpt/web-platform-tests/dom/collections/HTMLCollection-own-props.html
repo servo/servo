@@ -1,0 +1,109 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>HTMLCollection getters and own properties</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+function append(t, tag, name) {
+  var element = document.createElement(tag);
+  if (name) {
+    element.id = name;
+  }
+  document.body.appendChild(element);
+  t.add_cleanup(function() { element.remove(); });
+  return element;
+}
+
+test(function() {
+  var name = "named", tag = "a";
+  var c = document.getElementsByTagName(tag);
+  var element = append(this, tag, name);
+  assert_equals(c[name], element);
+  c[name] = "foo";
+  assert_equals(c[name], element);
+}, "Setting non-array index while named property exists (loose)");
+
+test(function() {
+  "use strict";
+  var name = "named", tag = "b";
+  var c = document.getElementsByTagName(tag);
+  var element = append(this, tag, name);
+  assert_equals(c[name], element);
+  assert_throws_js(TypeError, function() {
+    c[name] = "foo";
+  });
+  assert_equals(c[name], element);
+}, "Setting non-array index while named property exists (strict)");
+
+test(function() {
+  var name = "named", tag = "i";
+  var c = document.getElementsByTagName(tag);
+  assert_equals(c[name], undefined);
+  c[name] = "foo";
+  assert_equals(c[name], "foo");
+
+  var element = append(this, tag, name);
+  assert_equals(c[name], "foo");
+  assert_equals(c.namedItem(name), element);
+}, "Setting non-array index while named property doesn't exist (loose)");
+
+test(function() {
+  "use strict";
+  var name = "named", tag = "p";
+  var c = document.getElementsByTagName(tag);
+  assert_equals(c[name], undefined);
+  c[name] = "foo";
+  assert_equals(c[name], "foo");
+
+  var element = append(this, tag, name);
+  assert_equals(c[name], "foo");
+  assert_equals(c.namedItem(name), element);
+}, "Setting non-array index while named property doesn't exist (strict)");
+
+test(function() {
+  var tag = "q";
+  var c = document.getElementsByTagName(tag);
+  var element = append(this, tag);
+  assert_equals(c[0], element);
+  c[0] = "foo";
+  assert_equals(c[0], element);
+}, "Setting array index while indexed property exists (loose)");
+
+test(function() {
+  "use strict";
+  var tag = "s";
+  var c = document.getElementsByTagName(tag);
+  var element = append(this, tag);
+  assert_equals(c[0], element);
+  assert_throws_js(TypeError, function() {
+    c[0] = "foo";
+  });
+  assert_equals(c[0], element);
+}, "Setting array index while indexed property exists (strict)");
+
+test(function() {
+  var tag = "u";
+  var c = document.getElementsByTagName(tag);
+  assert_equals(c[0], undefined);
+  c[0] = "foo";
+  assert_equals(c[0], undefined);
+
+  var element = append(this, tag);
+  assert_equals(c[0], element);
+}, "Setting array index while indexed property doesn't exist (loose)");
+
+test(function() {
+  "use strict";
+  var tag = "u";
+  var c = document.getElementsByTagName(tag);
+  assert_equals(c[0], undefined);
+  assert_throws_js(TypeError, function() {
+    c[0] = "foo";
+  });
+  assert_equals(c[0], undefined);
+
+  var element = append(this, tag);
+  assert_equals(c[0], element);
+}, "Setting array index while indexed property doesn't exist (strict)");
+</script>

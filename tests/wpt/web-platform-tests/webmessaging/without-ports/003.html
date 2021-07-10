@@ -5,7 +5,7 @@
 <div id="log"></div>
 <script>
 test(function() {
-  assert_throws('SYNTAX_ERR', function() {
+  assert_throws_dom('SYNTAX_ERR', function() {
     postMessage('', 'example.org');
   }, 'targetOrigin is not an absolute url');
 });

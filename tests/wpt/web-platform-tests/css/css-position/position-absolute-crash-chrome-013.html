@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://crbug.com/1021676">
+<div id="tfoot" style="display: table-footer-group; transform: scale(2);">
+  <div id="oof" style="position: absolute;">text</div>
+</div>
+<script>
+test(() => {
+  document.body.offsetTop;
+
+  // Make the ICB the containing-block.
+  document.getElementById('tfoot').style.transform = '';
+  document.body.offsetTop;
+
+  document.getElementById('oof').innerText = '';
+  document.body.offsetTop;
+}, 'test passes if it does not crash');
+</script>

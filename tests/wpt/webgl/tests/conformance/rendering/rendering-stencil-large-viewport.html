@@ -1,0 +1,115 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Rendering Stencil large viewport Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+
+<script id="vs" type="x-shader/x-vertex">
+attribute vec4 a_Position;
+void main()
+{
+  gl_Position = a_Position;
+}
+</script>
+<script id="fs" type="x-shader/x-fragment">
+precision mediump float;
+uniform vec4 u_draw_color;
+void main()
+{
+  gl_FragColor = u_draw_color;
+}
+</script>
+
+</head>
+<body>
+<canvas id="example" width="4" height="4"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+
+var wtu = WebGLTestUtils;
+description("This test reproduces a driver bug on Intel windows platforms http://crbug.com/782317.");
+
+var gl = wtu.create3DContext("example", {stencil: true});
+
+var program, colorLoc;
+
+// Rendering with large viewport and stencil buffer enabled will lead to
+// memory leak and driver crash on d3d11 driver on Intel platforms.
+function render_stencil() {
+  var canvas = document.getElementById("example");
+  gl.uniform4f(colorLoc, 1.0, 0.0, 0.0, 1.0);
+
+  canvas.width = 32767;
+  canvas.height = 32767;
+  gl.viewport(0, 0, 32767, 32767);
+
+  gl.enable(gl.STENCIL_TEST);
+
+  var kStencilRef = 4;
+  gl.stencilOp(gl.REPLACE, gl.REPLACE, gl.REPLACE);
+  gl.stencilFunc(gl.ALWAYS, kStencilRef, 0xFF);
+
+  gl.drawArrays(gl.TRIANGLES, 0, 6);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+  wtu.checkCanvasRect(gl, 0, 0, 1, 1, [255, 0, 0, 255],
+                      "stencil test should be red");
+}
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    program = wtu.setupProgram(gl, ["vs", "fs"], ["a_Position"]);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after program initialization");
+    shouldBe('gl.getProgramParameter(program, gl.LINK_STATUS)', 'true');
+
+    colorLoc = gl.getUniformLocation(program, "u_draw_color")
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "query uniform location");
+    shouldBeNonNull('colorLoc');
+    wtu.setupUnitQuad(gl, 0);
+
+    render_stencil();
+}
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

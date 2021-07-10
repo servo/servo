@@ -109,18 +109,18 @@ test(function() {
 
   elements[0] = 5;
   assert_equals(elements[0], old_item);
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     "use strict";
     elements[0] = 5;
   });
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     Object.defineProperty(elements, 0, { value: 5 });
   });
 
   delete elements[0];
   assert_equals(elements[0], old_item);
 
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     "use strict";
     delete elements[0];
   });
@@ -138,11 +138,11 @@ test(function() {
   // [[DefineOwnProperty]] will disallow defining an indexed expando.
   elements[idx] = 5;
   assert_equals(elements[idx], undefined);
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     "use strict";
     elements[idx] = 5;
   });
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     Object.defineProperty(elements, idx, { value: 5 });
   });
 
@@ -170,7 +170,7 @@ test(function(){
   delete elements[0];
   assert_equals(elements[0], old_item);
 
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     "use strict";
     delete elements[0];
   });

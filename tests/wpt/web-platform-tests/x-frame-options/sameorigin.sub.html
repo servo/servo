@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>X-Frame-Options variations of SAMEORIGIN</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./support/helper.sub.js"></script>
+
+<body>
+<script>
+"use strict";
+
+xfo_simple_tests({
+  headerValue: `SAMEORIGIN`,
+  sameOriginAllowed: true,
+  crossOriginAllowed: false
+});
+
+xfo_simple_tests({
+  headerValue: `sameOriGin`,
+  sameOriginAllowed: true,
+  crossOriginAllowed: false
+});
+
+xfo_simple_tests({
+  headerValue: `  SAMEORIGIN `,
+  sameOriginAllowed: true,
+  crossOriginAllowed: false
+});
+
+xfo_test({
+  url: `./support/nested.py?origin=http://{{host}}:{{ports[http][0]}}&value=SAMEORIGIN&loadShouldSucceed=true`,
+  check: "loaded message",
+  message: `SAMEORIGIN allows same-origin nested in same-origin framing`
+});
+
+xfo_test({
+  url: `./support/nested.py?origin=http://{{domains[www]}}:{{ports[http][0]}}&value=SAMEORIGIN`,
+  check: "failed message",
+  message: `SAMEORIGIN blocks cross-origin nested in same-origin framing`
+});
+
+xfo_test({
+  url: `http://{{domains[www]}}:{{ports[http][0]}}/x-frame-options/support/nested.py?origin=http://{{host}}:{{ports[http][0]}}&value=SAMEORIGIN`,
+  check: "failed message",
+  message: `SAMEORIGIN blocks same-origin nested in cross-origin framing`
+});
+
+xfo_test({
+  url: `http://{{domains[www]}}:{{ports[http][0]}}/x-frame-options/support/nested.py?origin=http://{{domains[www]}}:{{ports[http][0]}}&value=SAMEORIGIN`,
+  check: "failed message",
+  message: `SAMEORIGIN blocks cross-origin nested in cross-origin framing`
+});
+</script>

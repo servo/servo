@@ -16,22 +16,6 @@ Manifest.prototype = {
         this.generate(loaded_callback);
     },
 
-    do_load: function(loaded_callback) {
-        var xhr = new XMLHttpRequest();
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState !== 4) {
-                return;
-            }
-            if (!(xhr.status === 200 || xhr.status === 0)) {
-                throw new Error("Manifest " + this.path + " failed to load");
-            }
-            this.data = JSON.parse(xhr.responseText);
-            loaded_callback();
-        }.bind(this);
-        xhr.open("GET", this.path);
-        xhr.send(null);
-    },
-
     generate: function(loaded_callback) {
         var xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function() {
@@ -41,7 +25,8 @@ Manifest.prototype = {
             if (!(xhr.status === 200 || xhr.status === 0)) {
                 throw new Error("Manifest generation failed");
             }
-            this.do_load(loaded_callback);
+            this.data = JSON.parse(xhr.responseText);
+            loaded_callback();
         }.bind(this);
         xhr.open("POST", "update_manifest.py");
         xhr.send(null);
@@ -112,20 +97,63 @@ ManifestIterator.prototype = {
         }
     },
 
-    matches: function(manifest_item) {
-        if (this.regex_pattern !== null) {
-            return manifest_item.url.match(this.regex_pattern);
-        } else {
-            return this.paths.some(function(p) {
-                return manifest_item.url.indexOf(p) === 0;
-            });
+    // Calculate the location of a match within a provided URL.
+    //
+    // @param {string} url - Valid URL
+    //
+    // @returns {null|object} - null if the URL does not satisfy the iterator's
+    //                          filtering criteria. Otherwise, an object with
+    //                          the following properties:
+    //
+    //                          - index - the zero-indexed offset of the start
+    //                                    of the match
+    //                          - width - the total number of matching
+    //                                    characters
+    match_location: function(url) {
+        var match;
+
+        if (this.regex_pattern) {
+           match = url.match(this.regex_pattern);
+
+           if (!match) {
+              return null;
+           }
+
+           return { index: match.index, width: match[0].length };
         }
+
+        this.paths.some(function(path) {
+            if (url.indexOf(path) === 0) {
+                match = path;
+                return true;
+            }
+            return false;
+        });
+
+        if (!match) {
+            return null;
+        }
+
+        return { index: 0, width: match.length };
+    },
+
+    matches: function(manifest_item) {
+        var url_base = this.manifest.data.url_base;
+        if (url_base.charAt(url_base.length - 1) !== "/") {
+            url_base = url_base + "/";
+        }
+        var url = url_base + manifest_item.url;
+        return this.match_location(url) !== null;
     },
 
     to_test: function(manifest_item) {
+        var url_base = this.manifest.data.url_base;
+        if (url_base.charAt(url_base.length - 1) !== "/") {
+            url_base = url_base + "/";
+        }
         var test = {
             type: this.test_types[this.test_types_index],
-            url: manifest_item.url
+            url: url_base + manifest_item.url
         };
         if (manifest_item.hasOwnProperty("references")) {
             test.ref_length = manifest_item.references.length;
@@ -231,7 +259,8 @@ VisualOutput.prototype = {
         if (subtest_pass_count === subtests_count &&
             (status == "OK" || status == "PASS")) {
             test_status = "PASS";
-        } else if (subtest_notrun_count == subtests_count) {
+        } else if ((!subtests_count && status === "NOTRUN") ||
+            (subtests_count && (subtest_notrun_count == subtests_count) ) ) {
             test_status = "NOTRUN";
         } else if (subtests_count > 0 && status === "OK") {
             test_status = "FAIL";
@@ -292,7 +321,7 @@ VisualOutput.prototype = {
         this.meter.textContent = textContent;
         this.meter.classList.remove("progress-striped", "active", "stopped", "loading-manifest");
         this.meter.classList.add(statusName);
-        this.runner.test_div.textContent = "";
+        this.runner.display_current_test(null);
     },
 
     on_done: function() {
@@ -363,6 +392,7 @@ function ManualUI(elem, runner) {
     this.runner = runner;
     this.pass_button = this.elem.querySelector("button.pass");
     this.fail_button = this.elem.querySelector("button.fail");
+    this.skip_button = this.elem.querySelector("button.skip");
     this.ref_buttons = this.elem.querySelector(".reftestUI");
     this.ref_type = this.ref_buttons.querySelector(".refType");
     this.ref_warning = this.elem.querySelector(".reftestWarn");
@@ -378,6 +408,11 @@ function ManualUI(elem, runner) {
     this.pass_button.onclick = function() {
         this.disable_buttons();
         this.runner.on_result("PASS", "", []);
+    }.bind(this);
+
+    this.skip_button.onclick = function() {
+        this.disable_buttons();
+        this.runner.on_result("NOTRUN", "", []);
     }.bind(this);
 
     this.fail_button.onclick = function() {
@@ -597,8 +632,9 @@ Results.prototype = {
     },
 
     to_json: function() {
+        var test_results = this.test_results || [];
         var data = {
-            "results": this.test_results.map(function(result) {
+            "results": test_results.map(function(result) {
                 var rv = {"test":(result.test.hasOwnProperty("ref_url") ?
                                   [result.test.url, result.test.ref_type, result.test.ref_url] :
                                   result.test.url),
@@ -613,14 +649,16 @@ Results.prototype = {
 };
 
 function Runner(manifest_path) {
-    this.server = location.protocol + "//" + location.host;
+    this.server = get_host_info().HTTP_ORIGIN;
+    this.https_server = get_host_info().HTTPS_ORIGIN;
     this.manifest = new Manifest(manifest_path);
     this.path = null;
     this.test_types = null;
     this.manifest_iterator = null;
 
     this.test_window = null;
-    this.test_div = document.getElementById('test_url');
+    this.test_div = document.getElementById('current_test');
+    this.test_url = this.test_div.getElementsByTagName('a')[0];
     this.current_test = null;
     this.timeout = null;
     this.num_tests = null;
@@ -757,7 +795,7 @@ Runner.prototype = {
             this.timeout = setTimeout(this.on_timeout.bind(this),
                                       this.test_timeout * window.testharness_properties.timeout_multiplier);
         }
-        this.test_div.textContent = this.current_test.url;
+        this.display_current_test(this.current_test.url);
         this.load(this.current_test.url);
 
         this.test_start_callbacks.forEach(function(callback) {
@@ -765,9 +803,35 @@ Runner.prototype = {
         }.bind(this));
     },
 
+    display_current_test: function(url) {
+        var match_location, index, width;
+
+        if (url === null) {
+            this.test_div.style.visibility = "hidden";
+            this.test_url.removeAttribute("href");
+            this.test_url.textContent = "";
+            return;
+        }
+
+        match_location = this.manifest_iterator.match_location(url);
+        index = match_location.index;
+        width = match_location.width;
+
+        this.test_url.setAttribute("href", url);
+        this.test_url.innerHTML = url.substring(0, index) +
+            "<span class='match'>" +
+            url.substring(index, index + width) +
+            "</span>" +
+            url.substring(index + width);
+        this.test_div.style.visibility = "visible";
+    },
+
     load: function(path) {
         this.ensure_test_window();
-        this.test_window.location.href = this.server + path;
+        if (path.match(/\.https\./))
+          this.test_window.location.href = this.https_server + path;
+        else
+          this.test_window.location.href = this.server + path;
     },
 
     progress: function() {
@@ -779,8 +843,26 @@ Runner.prototype = {
             this.num_tests = this.manifest_iterator.count();
         }
         return this.num_tests;
-    }
+    },
 
+    on_complete: function(tests, status) {
+      var harness_status_map = {0:"OK", 1:"ERROR", 2:"TIMEOUT", 3:"NOTRUN"};
+      var subtest_status_map = {0:"PASS", 1:"FAIL", 2:"TIMEOUT", 3:"NOTRUN"};
+
+      // this ugly hack is because IE really insists on holding on to the objects it creates in
+      // other windows, and on losing track of them when the window gets closed
+      var subtest_results = JSON.parse(JSON.stringify(
+          tests.map(function (test) {
+              return {name: test.name,
+                      status: subtest_status_map[test.status],
+                      message: test.message};
+          })
+      ));
+
+      runner.on_result(harness_status_map[status.status],
+                       status.message,
+                       subtest_results);
+    }
 };
 
 
@@ -811,33 +893,18 @@ function setup() {
     new ManualUI(document.getElementById("manualUI"), runner);
     new VisualOutput(document.getElementById("output"), runner);
 
+    window.addEventListener("message", function(e) {
+        if (e.data.type === "complete")
+            runner.on_complete(e.data.tests, e.data.status);
+    });
+
     if (options.autorun === "1") {
         runner.start(test_control.get_path(),
                      test_control.get_test_types(),
                      test_control.get_testharness_settings(),
                      test_control.get_use_regex());
-        return;
     }
 }
-
-window.completion_callback = function(tests, status) {
-    var harness_status_map = {0:"OK", 1:"ERROR", 2:"TIMEOUT", 3:"NOTRUN"};
-    var subtest_status_map = {0:"PASS", 1:"FAIL", 2:"TIMEOUT", 3:"NOTRUN"};
-
-    // this ugly hack is because IE really insists on holding on to the objects it creates in
-    // other windows, and on losing track of them when the window gets closed
-    var subtest_results = JSON.parse(JSON.stringify(
-        tests.map(function (test) {
-            return {name: test.name,
-                    status: subtest_status_map[test.status],
-                    message: test.message};
-        })
-    ));
-
-    runner.on_result(harness_status_map[status.status],
-                     status.message,
-                     subtest_results);
-};
 
 window.addEventListener("DOMContentLoaded", setup, false);
 })();

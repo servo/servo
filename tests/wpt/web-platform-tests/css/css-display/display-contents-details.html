@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Display: display:contents and HTML details and summary elements</title>
+<link rel="author" title="Rune Lillesveen" href="mailto:futhark@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-display/#unbox-html">
+<link rel="match" href="display-contents-pass-ref.html">
+<style>
+  html { font-kerning: none; font-feature-settings: "kern" off; }
+  details, summary {
+    all: initial;
+    border: 10px solid red;
+    display: contents;
+  }
+</style>
+<p>You should see the word PASS below.</p>
+P<details open><summary>A</summary><span>S</span></details>S

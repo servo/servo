@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     width="800px" height="800px">
+  <title>SVG Painting: getComputedStyle().paintOrder</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/painting.html#PaintOrderProperty"/>
+    <h:meta name="assert" content="paint-order computed value is as specified."/>
+  </metadata>
+  <g id="target"></g>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="/css/support/computed-testcommon.js"/>
+  <script><![CDATA[
+
+test_computed_value("paint-order", "normal");
+
+test_computed_value("paint-order", "fill");
+test_computed_value("paint-order", "stroke");
+test_computed_value("paint-order", "markers");
+
+test_computed_value("paint-order", "fill stroke", "fill");
+test_computed_value("paint-order", "fill markers");
+test_computed_value("paint-order", "stroke fill", "stroke");
+test_computed_value("paint-order", "stroke markers");
+test_computed_value("paint-order", "markers fill", "markers");
+test_computed_value("paint-order", "markers stroke");
+
+test_computed_value("paint-order", "fill stroke markers", "fill");
+test_computed_value("paint-order", "fill markers stroke", "fill markers");
+test_computed_value("paint-order", "stroke fill markers", "stroke");
+test_computed_value("paint-order", "stroke markers fill", "stroke markers");
+test_computed_value("paint-order", "markers fill stroke", "markers");
+test_computed_value("paint-order", "markers stroke fill", "markers stroke");
+
+  ]]></script>
+</svg>

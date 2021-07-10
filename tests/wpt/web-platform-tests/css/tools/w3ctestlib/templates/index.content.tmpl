@@ -6,7 +6,7 @@
 [% END %]
   <dt>Test Coordinator:</dt>
    	<dd>[% suites.$suite.owner %]</dd>
-  
+
   <p>This is a <strong>[% statusNames.${suites.$suite.status}.title or "ERROR: $suite" %]</strong>
      version of the [% suites.$suite.title %].</p>
 
@@ -15,7 +15,7 @@
    <dt><a href="http://test.csswg.org/harness/suite/[% suites.$suite.harness %]">Enter Data</a></dt>
    <dt><a href="http://test.csswg.org/harness/review/[% suites.$suite.harness %]">Review Results</a></dt>
 [% END %]
-       
+
 
 [% IF devel %]
  <p>This build exists to aid in test suite development and contains unreviewed
@@ -40,7 +40,12 @@
   cover all of [% suites.$suite.spec %]. Your help is welcome in this effort.
   [% END %]
   The appropriate mailing list for submitting tests and bug reports is
-  <a href="http://lists.w3.org/Archives/Public/public-css-testsuite/">public-css-testsuite@w3.org</a>.
+  <a href="http://lists.w3.org/Archives/Public/public-css-testsuite/">public-css-testsuite@w3.org</a>.</p>
+  <p>
+  To report bugs or feedback about a specific test file,
+  search for the filename (without extension) in
+  <a href="https://github.com/web-platform-tests/wpt/issues">web-platform-tests issues</a>,
+  and file a new issue if necessary with suggested label "wg-css".
   More information on the contribution process and test guidelines is
   available on the <a href="http://wiki.csswg.org/test">wiki
   page</a>.</p>
@@ -83,7 +88,7 @@
         features and/or error recovery.</dd>
   </dl>
 [% END %]
-  
+
   <p>Unless the test instructions explicitly indicate otherwise,
     any occurrence of red in a test indicates test failure.</p>
 

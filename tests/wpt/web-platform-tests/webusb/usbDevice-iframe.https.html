@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/test-only-api.js"></script>
+<script src="resources/fake-devices.js"></script>
+<script src="resources/usb-helpers.js"></script>
+<script>
+'use strict';
+
+async function connectInIframe() {
+  let iframe = document.createElement('iframe');
+  let opened = false;
+
+  iframe.src = 'resources/open-in-iframe.html';
+  document.body.appendChild(iframe);
+
+  await navigator.usb.test.attachToContext(iframe);
+  function nextIFrameMessage() {
+    return new Promise(resolve => window.addEventListener(
+        'message', e => resolve(e.data)));
+  }
+  iframe.contentWindow.postMessage('Ready', '*');
+
+  assert_equals('Ready', (await nextIFrameMessage()));
+  let fakeDevice = navigator.usb.test.addFakeDevice(fakeDeviceInit);
+  let closedPromise = new Promise(resolve => fakeDevice.onclose = resolve)
+      .then(() => assert_true(opened));
+
+  assert_equals('Success', (await nextIFrameMessage()));
+  opened = true;
+  return { iframe, closedPromise };
+}
+
+usb_test(async () => {
+  let { iframe, closedPromise } = await connectInIframe();
+  document.body.removeChild(iframe);
+  await closedPromise;
+}, 'detaching iframe disconnects device.');
+
+usb_test(async () => {
+  let { iframe, closedPromise } = await connectInIframe();
+  iframe.src = 'about:blank';
+  await closedPromise;
+}, 'navigating iframe disconnects device.');
+</script>

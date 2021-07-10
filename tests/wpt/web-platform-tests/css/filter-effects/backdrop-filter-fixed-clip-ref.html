@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>backdrop-filter: Should not filter outside of clip/scroll.</title>
+<link rel="author" title="Mason Freed" href="mailto:masonfreed@chromium.org">
+
+
+
+<div style="width:600px;">
+  <p>Expected: A green box, overlapping red box, and a small, inset cyan box. The<br>
+  cyan should not extend to the bottom/right edges of the red box.</p>
+</div>
+
+<div id="A">
+  <div id="B">
+    <div id="F"></div>
+    <div id="T"></div>
+  </div>
+</div>
+
+<style>
+div {
+  position:absolute;
+  width: 200px;
+  height: 200px;
+}
+#A {
+  overflow:hidden;
+  top: 110px;
+  left: 10px;
+}
+#B {
+
+  background:green;
+}
+#F {
+  position:fixed;
+  background:#f008;
+  top:150px;
+  left:50px;
+}
+#T {
+  background:#c0e3ff;
+  top:90px;
+  left:90px;
+  width: 110px;
+  height: 110px;
+}
+</style>

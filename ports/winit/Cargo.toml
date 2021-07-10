@@ -1,0 +1,72 @@
+[package]
+
+name = "servo"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+edition = "2018"
+build = "build.rs"
+publish = false
+
+[[bin]]
+name = "servo"
+path = "main.rs"
+bench = false
+
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1"
+
+[target.'cfg(target_os = "macos")'.build-dependencies]
+cc = "1.0"
+
+[package.metadata.winres]
+FileDescription = "Servo"
+LegalCopyright = "© The Servo Project Developers"
+OriginalFilename = "servo.exe"
+ProductName = "Servo"
+
+[features]
+debugmozjs = ["libservo/debugmozjs"]
+default = ["webdriver", "max_log_level"]
+egl = ["libservo/egl"]
+jitspew = ["libservo/jitspew"]
+js_backtrace = ["libservo/js_backtrace"]
+layout-2013 = ["libservo/layout-2013"]
+layout-2020 = ["libservo/layout-2020"]
+max_log_level = ["log/release_max_level_info"]
+media-dummy = ["libservo/media-dummy"]
+media-gstreamer = ["libservo/media-gstreamer"]
+native-bluetooth = ["libservo/native-bluetooth"]
+no-wgl = ["libservo/no-wgl"]
+profilemozjs = ["libservo/profilemozjs"]
+refcell_backtrace = ["libservo/refcell_backtrace"]
+webdriver = ["libservo/webdriver"]
+webgl_backtrace = ["libservo/webgl_backtrace"]
+webrender_debugger = ["libservo/webrender_debugger"]
+xr-profile = ["libservo/xr-profile"]
+
+[target.'cfg(not(target_os = "android"))'.dependencies]
+backtrace = "0.3"
+clipboard = "0.5"
+euclid = "0.20"
+getopts = "0.2.11"
+keyboard-types = "0.5"
+lazy_static = "1"
+libc = "0.2"
+libservo = { path = "../../components/servo" }
+log = "0.4"
+servo-media = { git = "https://github.com/servo/media" }
+shellwords = "1.0.0"
+surfman = { version = "0.4", features = ["sm-winit", "sm-x11"] }
+tinyfiledialogs = "3.0"
+webxr = { git = "https://github.com/servo/webxr", features = ["ipc", "glwindow", "headless"] }
+winit = "0.24"
+
+[target.'cfg(any(target_os = "linux", target_os = "windows"))'.dependencies]
+image = "0.23"
+
+[target.'cfg(any(target_os = "linux", target_os = "macos"))'.dependencies]
+sig = "1.0"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+winapi = { version = "0.3", features = ["wingdi", "winuser", "winnt", "winbase", "processenv", "namedpipeapi", "ntdef", "minwindef", "handleapi", "debugapi"] }

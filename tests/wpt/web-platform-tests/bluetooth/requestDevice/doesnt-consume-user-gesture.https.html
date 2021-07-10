@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/bluetooth/resources/bluetooth-test.js"></script>
+<script src="/bluetooth/resources/bluetooth-fake-devices.js"></script>
+<script>
+'use strict';
+const test_desc = 'requestDevice calls do not consume user gestures.';
+
+bluetooth_test(
+    () => setUpHealthThermometerAndHeartRateDevices().then(
+        () => callWithTrustedClick(() => {
+          let first = navigator.bluetooth.requestDevice(
+              {filters: [{services: ['heart_rate']}]});
+          let second = navigator.bluetooth.requestDevice(
+              {filters: [{services: ['heart_rate']}]});
+          return Promise.all([
+            first.then(
+                device =>
+                    assert_equals(device.constructor.name, 'BluetoothDevice')),
+            second.then(
+                device =>
+                    assert_equals(device.constructor.name, 'BluetoothDevice')),
+          ]);
+        })),
+    test_desc);
+</script>

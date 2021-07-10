@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>displaystyle and display</title>
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#the-displaystyle-and-scriptlevel-attributes">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#style-change-mstyle">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#the-top-level-math-element">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#underscripts-and-overscripts-munder-mover-munderover">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#operator-dictionary">
+    <link rel="match" href="displaystyle-015-ref.html"/>
+    <meta name="assert" content="Test interaction of math@display and displaystyle on an operator with movablelimits">
+  </head>
+  <body>
+    <math>
+      <mstyle displaystyle="false">
+        <munderover>
+          <mo>∑</mo>
+          <mi>b</mi>
+          <mi>c</mi>
+        </munderover>
+      </mstyle>
+    </math>
+    <math>
+      <mstyle displaystyle="true">
+        <munderover>
+          <mo>∑</mo>
+          <mi>b</mi>
+          <mi>c</mi>
+        </munderover>
+      </mstyle>
+    </math>
+    <math display="inline">
+      <mstyle displaystyle="true">
+        <munderover>
+          <mo>∑</mo>
+          <mi>b</mi>
+          <mi>c</mi>
+        </munderover>
+      </mstyle>
+    </math>
+    <math display="block">
+      <mstyle displaystyle="true">
+        <munderover>
+          <mo>∑</mo>
+          <mi>b</mi>
+          <mi>c</mi>
+        </munderover>
+      </mstyle>
+    </math>
+    <math>
+      <mstyle displaystyle="false">
+        <munderover>
+          <mo>∑</mo>
+          <mi>b</mi>
+          <mi>c</mi>
+        </munderover>
+      </mstyle>
+    </math>
+    <math display="inline">
+      <mstyle displaystyle="false">
+        <munderover>
+          <mo>∑</mo>
+          <mi>b</mi>
+          <mi>c</mi>
+        </munderover>
+      </mstyle>
+    </math>
+    <math display="block">
+      <mstyle displaystyle="false">
+        <munderover>
+          <mo>∑</mo>
+          <mi>b</mi>
+          <mi>c</mi>
+        </munderover>
+      </mstyle>
+    </math>
+
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>MathMLFeatureDetection.ensure_for_match_reftest("has_movablelimits");</script>
+  </body>
+</html>

@@ -1,6 +1,6 @@
 import time
 
-script = '''
+script = u'''
 // Time stamp: %s
 // (This ensures the source text is *not* a byte-for-byte match with any
 // previously-fetched version of this script.)
@@ -21,4 +21,4 @@ addEventListener('activate', event => {
 
 
 def main(request, response):
-  return [('Content-Type', 'application/javascript')], script % time.time()
+  return [(b'Content-Type', b'application/javascript')], script % time.time()

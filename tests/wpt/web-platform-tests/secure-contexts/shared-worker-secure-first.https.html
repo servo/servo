@@ -46,15 +46,15 @@
           // one in the popup or in our subframe.
           if (data.fromPopup) {
             t3.step(function() {
-              assert_false(data.exception);
-              assert_true(data.error);
+              assert_false(data.exception, "No exception should be present.");
+              assert_true(data.error, "SharedWorker connection should error out.");
             });
             t3.done();
           } else {
             t1.step(function() {
-              assert_false(data.exception);
-              assert_false(data.error);
-              assert_true(data.isSecureContext);
+              assert_false(data.exception, "SharedWorker should not throw an exception.");
+              assert_false(data.error, "SharedWorker connection should not generate an error.");
+              assert_true(data.isSecureContext, "SharedWorker is a secure context");
             });
             t1.done();
           }
@@ -63,15 +63,15 @@
           // check whether it's the one in the popup or in our subframe.
           if (data.fromPopup) {
             t4.step(function() {
-              assert_false(data.exception);
-              assert_true(data.error);
+              assert_false(data.exception, "No exception should be present.");
+              assert_true(data.error, "SharedWorker connection should error out.");
             });
             t4.done();
           } else {
             t2.step(function() {
-              assert_false(data.exception);
-              assert_false(data.error);
-              assert_true(data.isSecureContext);
+              assert_false(data.exception, "SharedWorker should not throw an exception.");
+              assert_false(data.error, "SharedWorker connection should not generate an error.");
+              assert_true(data.isSecureContext, "SharedWorker is a secure context");
             });
             t2.done();
           }

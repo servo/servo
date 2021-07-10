@@ -1,0 +1,21 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>Origin policy second "ids" member must take precedence</title>
+<meta name=timeout content=long>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/origin-policy-test-runner.js"></script>
+
+<div id="log"></div>
+
+<script>
+"use strict";
+runTestsInSubframe({
+  hostname: "op16",
+  testJS: "../content-security/resources/disallow-unsafe-eval-disallow-images.mjs",
+  expectedIds: [
+    "3",
+    "4"
+  ]
+});
+</script>

@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+    <head>
+        <title>pointerout received just once</title>
+        <meta name="timeout" content="long">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <meta name="viewport" content="width=device-width">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <script src="pointerevent_support.js"></script>
+    </head>
+    <body onload="run()">
+        <h1>pointerout received just once</h1>
+        <h4>
+            Test Description: This test checks if pointerout event dispatched properly.
+            <ol>
+                <li>Put your mouse over the black rectangle.
+                <li>Move your mouse out of the black rectangle
+            </ol>
+        </h4>
+        <p>
+        <div id="target0" style="background:black"></div>
+        <script>
+            var pointeroutCounter = 0;
+            var detected_pointertypes = {};
+            var actions_promise;
+
+            setup({ explicit_done: true });
+            add_completion_callback(showPointerTypes);
+
+            function run() {
+                var target0 = document.getElementById("target0");
+
+                // When a mouse passes through dispatches one event
+                // TA: 7.4
+                on_event(target0, "pointerover", function (event) {
+                    pointeroutCounter = 0;
+                    detected_pointertypes[event.pointerType] = true;
+                });
+
+                on_event(target0, "pointerout", function (event) {
+                    pointeroutCounter++;
+
+                    step_timeout(function() {
+                        test(function() {
+                            assert_equals(pointeroutCounter, 1, "pointerout received just once")
+                        }, "pointerout received just once");
+                        actions_promise.then( () => {
+                            done();
+                        });
+                    }, 5000);
+                });
+
+                // Inject mouse inputs.
+                actions_promise = new test_driver.Actions()
+                    .pointerMove(0, 0, {origin: target0})
+                    .pointerMove(0, 0)
+                    .send();
+            }
+        </script>
+        <h1>Pointer Events pointerout received once test</h1>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+            <p>Refresh the page to run the tests again with a different pointer type.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

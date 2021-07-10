@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+<head>
+  <meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script';">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id=log></div>
+
+<script>
+
+// To test workers, we need to importScripts source files in the workers.
+// Since the point of this test is to test blocking of importScripts, we need
+// to set up one policy that will blindly pass through URLs for use in the test
+// setup, and then have additional policies for the actual test cases.
+//
+// For the same reason we cannot use the otherwise preferred 'META: workers'
+// tag, since that test setup would be blocked as soon as trusted types
+// enforcement is enabled.
+const test_setup_policy = trustedTypes.createPolicy("hurrayanythinggoes", {
+  createScriptURL: x => x});
+const test_url =
+  test_setup_policy.createScriptURL("support/WorkerGlobalScope-eval.https.js");
+
+fetch_tests_from_worker(new Worker(test_url));
+
+fetch_tests_from_worker(new SharedWorker(test_url));
+
+// Cargo-culted from code generated from "META: worker".
+if ('serviceWorker' in navigator) {
+  (async function() {
+      const scope = 'support/some/scope/for/this/test';
+      let reg = await navigator.serviceWorker.getRegistration(scope);
+      if (reg) await reg.unregister();
+      reg = await navigator.serviceWorker.register(test_url, {scope});
+      fetch_tests_from_worker(reg.installing);
+  })();
+}
+
+</script>
+</body>

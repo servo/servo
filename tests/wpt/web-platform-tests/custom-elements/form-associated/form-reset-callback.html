@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+class MyControl extends HTMLElement {
+  static get formAssociated() { return true; }
+
+  constructor() {
+    super();
+    this.resetCalled_ = false;
+  }
+
+  formResetCallback() {
+    this.resetCalled_ = true;
+  }
+  get resetCalled() { return this.resetCalled_; }
+}
+customElements.define('my-control', MyControl);
+
+test(() => {
+  document.body.insertAdjacentHTML('beforeend',
+      '<form><my-control></my-control></form>');
+  let form = document.body.lastChild;
+  let custom = form.firstChild;
+  form.reset();
+  assert_true(custom.resetCalled);
+}, 'form.reset() should trigger formResetCallback');
+
+test(() => {
+  document.body.insertAdjacentHTML('beforeend',
+      '<form><my-control></my-control><output>default</output></form>');
+  let form = document.body.lastChild;
+  let custom = form.firstChild;
+  let output = form.lastChild;
+  output.value = 'updated';
+  output.addEventListener('DOMSubtreeModified', () => {
+    assert_false(custom.resetCalled, 'formResetCallback should not be ' +
+                 'called before built-in control\'s reset');
+  });
+  form.reset();
+  assert_true(custom.resetCalled);
+}, 'form.reset(): formResetCallback is called after reset of the last ' +
+   'built-in form control and before the next statement.');
+
+promise_test(() => {
+  document.body.insertAdjacentHTML('beforeend',
+      '<form><my-control></my-control><input type=reset></form>');
+  let form = document.body.lastChild;
+  let custom = form.firstChild;
+  let resetButton = form.lastChild;
+  assert_false(custom.resetCalled);
+  resetButton.click();
+  assert_false(custom.resetCalled);
+  return Promise.resolve().then(() => assert_true(custom.resetCalled));
+}, 'Clicking a reset button invokes formResetCallback in a microtask');
+</script>
+</body>

@@ -1,0 +1,126 @@
+[
+  {
+    "input": "Content-Length: 42",
+    "output": 42
+  },
+  {
+    "input": "Content-Length: 42,42",
+    "output": 42
+  },
+  {
+    "input": "Content-Length: 42\r\nContent-Length: 42",
+    "output": 42
+  },
+  {
+    "input": "Content-Length: 42\r\nContent-Length: 42,42",
+    "output": 42
+  },
+  {
+    "input": "Content-Length: 30",
+    "output": 30
+  },
+  {
+    "input": "Content-Length: 30,30",
+    "output": 30
+  },
+  {
+    "input": "Content-Length: 30\r\nContent-Length: 30",
+    "output": 30
+  },
+  {
+    "input": "Content-Length: 30\r\nContent-Length: 30,30",
+    "output": 30
+  },
+  {
+    "input": "Content-Length: 42,30",
+    "output": null
+  },
+  {
+    "input": "Content-Length: 30,42",
+    "output": null
+  },
+  {
+    "input": "Content-Length: 42\r\nContent-Length: 30",
+    "output": null
+  },
+  {
+    "input": "Content-Length: 30\r\nContent-Length: 42",
+    "output": null
+  },
+  {
+    "input": "Content-Length: 30,",
+    "output": null
+  },
+  {
+    "input": "Content-Length: ,30",
+    "output": null
+  },
+  {
+    "input": "Content-Length: 30\r\nContent-Length: \t",
+    "output": null
+  },
+  {
+    "input": "Content-Length: \r\nContent-Length: 30",
+    "output": null
+  },
+  {
+    "input": "Content-Length: aaaah\r\nContent-Length: nah",
+    "output": null
+  },
+  {
+    "input": "Content-Length: aaaah, nah",
+    "output": null
+  },
+  {
+    "input": "Content-Length: aaaah\r\nContent-Length: aaaah",
+    "output": 42
+  },
+  {
+    "input": "Content-Length: aaaah, aaaah",
+    "output": 42
+  },
+  {
+    "input": "Content-Length: aaaah",
+    "output": 42
+  },
+  {
+    "input": "Content-Length: 42s",
+    "output": 42
+  },
+  {
+    "input": "Content-Length: 30s",
+    "output": 42
+  },
+  {
+    "input": "Content-Length: -1",
+    "output": 42
+  },
+  {
+    "input": "Content-Length: 0x20",
+    "output": 42
+  },
+  {
+    "input": "Content-Length: 030",
+    "output": 30
+  },
+  {
+    "input": "Content-Length: 030\r\nContent-Length: 30",
+    "output": null
+  },
+  {
+    "input": "Content-Length: 030, 30",
+    "output": null
+  },
+  {
+    "input": "Content-Length: \"30\"",
+    "output": 42
+  },
+  {
+    "input": "Content-Length:30\r\nContent-Length:,\r\nContent-Length:30",
+    "output": null
+  },
+  {
+    "input": "Content-Length: ",
+    "output": 42
+  }
+]

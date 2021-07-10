@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Overflow with preserve-3d and percentage-transformed parent is computed using the right reference box</title>
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#transform-style-property">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1626840">
+<link rel="mismatch" href="/common/blank.html">
+<style>
+:root {
+  overflow: hidden;
+}
+body {
+  margin: 0;
+  font-size: 28px;
+}
+#map {
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+}
+.floor {
+  width: 100%;
+  height: 100vh;
+}
+.skew {
+	height: 20em;
+	width: 20em;
+	position: relative;
+	left: 50%;
+	top: calc(50% + 1.5em);
+	transform-origin: 0% 0%;
+	transform: rotateX(45deg) rotateZ(-45deg) translateX(-50%) translateY(-50%);
+	transform-style: preserve-3d;
+}
+.cylinder {
+	position: absolute;
+  background-color: green;
+  transform-style: preserve-3d;
+  width: 7em;
+  height: 7em;
+  transform: translateZ(1em);
+}
+</style>
+<div id="map">
+  <div class="floor">
+    <div class="skew" style="width: 13em; height: 47em; left: calc(50% + 0em); top: calc(50% + 0.5em);">
+      <div class="cylinder" style="left: calc(1.5em + 0em); top: calc(38em + 0em);"></div>
+    </div>
+  </div>
+</div>

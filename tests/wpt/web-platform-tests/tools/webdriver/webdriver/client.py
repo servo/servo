@@ -1,14 +1,8 @@
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+from . import error
+from . import protocol
+from . import transport
 
-import urlparse
-
-import error
-import transport
-
-
-element_key = "element-6066-11e4-a52e-4f735466cecf"
+from urllib import parse as urlparse
 
 
 def command(func):
@@ -20,7 +14,6 @@ def command(func):
 
         if session.session_id is None:
             session.start()
-        assert session.session_id != None
 
         return func(self, *args, **kwargs)
 
@@ -43,8 +36,8 @@ class Timeouts(object):
 
     def _set(self, key, secs):
         body = {key: secs * 1000}
-        timeouts = self.session.send_session_command("POST", "timeouts", body)
-        return timeouts[key]
+        self.session.send_session_command("POST", "timeouts", body)
+        return None
 
     @property
     def script(self):
@@ -122,10 +115,49 @@ class ActionSequence(object):
     def _key_action(self, subtype, value):
         self._actions.append({"type": subtype, "value": value})
 
-    def _pointer_action(self, subtype, button):
-        self._actions.append({"type": subtype, "button": button})
+    def _pointer_action(self, subtype, button=None, x=None, y=None, duration=None, origin=None, width=None,
+                        height=None, pressure=None, tangential_pressure=None, tilt_x=None,
+                        tilt_y=None, twist=None, altitude_angle=None, azimuth_angle=None):
+        action = {
+            "type": subtype
+        }
+        if button is not None:
+            action["button"] = button
+        if x is not None:
+            action["x"] = x
+        if y is not None:
+            action["y"] = y
+        if duration is not None:
+            action["duration"] = duration
+        if origin is not None:
+            action["origin"] = origin
+        if width is not None:
+            action["width"] = width
+        if height is not None:
+            action["height"] = height
+        if pressure is not None:
+            action["pressure"] = pressure
+        if tangential_pressure is not None:
+            action["tangentialPressure"] = tangential_pressure
+        if tilt_x is not None:
+            action["tiltX"] = tilt_x
+        if tilt_y is not None:
+            action["tiltY"] = tilt_y
+        if twist is not None:
+            action["twist"] = twist
+        if altitude_angle is not None:
+            action["altitudeAngle"] = altitude_angle
+        if azimuth_angle is not None:
+            action["azimuthAngle"] = azimuth_angle
+        self._actions.append(action)
 
-    def pointer_move(self, x, y, duration=None, origin=None):
+    def pause(self, duration):
+        self._actions.append({"type": "pause", "duration": duration})
+        return self
+
+    def pointer_move(self, x, y, duration=None, origin=None, width=None, height=None,
+                     pressure=None, tangential_pressure=None, tilt_x=None, tilt_y=None,
+                     twist=None, altitude_angle=None, azimuth_angle=None):
         """Queue a pointerMove action.
 
         :param x: Destination x-axis coordinate of pointer in CSS pixels.
@@ -135,33 +167,48 @@ class ActionSequence(object):
         :param origin: Origin of coordinates, either "viewport", "pointer" or
                        an Element. If None, remote end defaults to "viewport".
         """
-        action = {
-            "type": "pointerMove",
-            "x": x,
-            "y": y
-        }
-        if duration is not None:
-            action["duration"] = duration
-        if origin is not None:
-            action["origin"] = origin if isinstance(origin, basestring) else origin.json()
-        self._actions.append(action)
+        self._pointer_action("pointerMove", x=x, y=y, duration=duration, origin=origin,
+                             width=width, height=height, pressure=pressure,
+                             tangential_pressure=tangential_pressure, tilt_x=tilt_x, tilt_y=tilt_y,
+                             twist=twist, altitude_angle=altitude_angle, azimuth_angle=azimuth_angle)
         return self
 
-    def pointer_up(self, button):
+    def pointer_up(self, button=0):
         """Queue a pointerUp action for `button`.
 
         :param button: Pointer button to perform action with.
+                       Default: 0, which represents main device button.
         """
-        self._pointer_action("pointerUp", button)
+        self._pointer_action("pointerUp", button=button)
         return self
 
-    def pointer_down(self, button):
+    def pointer_down(self, button=0, width=None, height=None, pressure=None,
+                     tangential_pressure=None, tilt_x=None, tilt_y=None,
+                     twist=None, altitude_angle=None, azimuth_angle=None):
         """Queue a pointerDown action for `button`.
 
         :param button: Pointer button to perform action with.
+                       Default: 0, which represents main device button.
         """
-        self._pointer_action("pointerDown", button)
+        self._pointer_action("pointerDown", button=button, width=width, height=height,
+                             pressure=pressure, tangential_pressure=tangential_pressure,
+                             tilt_x=tilt_x, tilt_y=tilt_y, twist=twist, altitude_angle=altitude_angle,
+                             azimuth_angle=azimuth_angle)
         return self
+
+    def click(self, element=None, button=0):
+        """Queue a click with the specified button.
+
+        If an element is given, move the pointer to that element first,
+        otherwise click current pointer coordinates.
+
+        :param element: Optional element to click.
+        :param button: Integer representing pointer button to perform action
+                       with. Default: 0, which represents main device button.
+        """
+        if element:
+            self.pointer_move(0, 0, origin=element)
+        return self.pointer_down(button).pointer_up(button)
 
     def key_up(self, value):
         """Queue a keyUp action for `value`.
@@ -189,6 +236,32 @@ class ActionSequence(object):
             self.key_up(c)
         return self
 
+    def scroll(self, x, y, delta_x, delta_y, duration=None, origin=None):
+        """Queue a scroll action.
+
+        :param x: Destination x-axis coordinate of pointer in CSS pixels.
+        :param y: Destination y-axis coordinate of pointer in CSS pixels.
+        :param delta_x: scroll delta on x-axis in CSS pixels.
+        :param delta_y: scroll delta on y-axis in CSS pixels.
+        :param duration: Number of milliseconds over which to distribute the
+                         scroll. If None, remote end defaults to 0.
+        :param origin: Origin of coordinates, either "viewport" or an Element.
+                       If None, remote end defaults to "viewport".
+        """
+        action = {
+            "type": "scroll",
+            "x": x,
+            "y": y,
+            "deltaX": delta_x,
+            "deltaY": delta_y
+        }
+        if duration is not None:
+            action["duration"] = duration
+        if origin is not None:
+            action["origin"] = origin
+        self._actions.append(action)
+        return self
+
 
 class Actions(object):
     def __init__(self, session):
@@ -203,7 +276,8 @@ class Actions(object):
                         ``ActionSequence.dict``.
         """
         body = {"actions": [] if actions is None else actions}
-        return self.session.send_session_command("POST", "actions", body)
+        actions = self.session.send_session_command("POST", "actions", body)
+        return actions
 
     @command
     def release(self):
@@ -216,38 +290,121 @@ class Actions(object):
         """
         return ActionSequence(self.session, *args, **kwargs)
 
+
 class Window(object):
+    identifier = "window-fcc6-11e5-b4f8-330a88ab9d7f"
+
     def __init__(self, session):
         self.session = session
+
+    @command
+    def close(self):
+        handles = self.session.send_session_command("DELETE", "window")
+        if handles is not None and len(handles) == 0:
+            # With no more open top-level browsing contexts, the session is closed.
+            self.session.session_id = None
+
+        return handles
+
+    @property
+    @command
+    def rect(self):
+        return self.session.send_session_command("GET", "window/rect")
 
     @property
     @command
     def size(self):
-        resp = self.session.send_session_command("GET", "window/rect")
-        return (resp["width"], resp["height"])
+        """Gets the window size as a tuple of `(width, height)`."""
+        rect = self.rect
+        return (rect["width"], rect["height"])
 
     @size.setter
     @command
-    def size(self, (width, height)):
+    def size(self, new_size):
+        """Set window size by passing a tuple of `(width, height)`."""
+        width, height = new_size
         body = {"width": width, "height": height}
         self.session.send_session_command("POST", "window/rect", body)
 
     @property
     @command
     def position(self):
-        resp = self.session.send_session_command("GET", "window/rect")
-        return (resp["x"], resp["y"])
+        """Gets the window position as a tuple of `(x, y)`."""
+        rect = self.rect
+        return (rect["x"], rect["y"])
 
     @position.setter
     @command
-    def position(self, (x, y)):
+    def position(self, new_position):
+        """Set window position by passing a tuple of `(x, y)`."""
+        x, y = new_position
         body = {"x": x, "y": y}
         self.session.send_session_command("POST", "window/rect", body)
 
-    @property
     @command
     def maximize(self):
         return self.session.send_session_command("POST", "window/maximize")
+
+    @command
+    def minimize(self):
+        return self.session.send_session_command("POST", "window/minimize")
+
+    @command
+    def fullscreen(self):
+        return self.session.send_session_command("POST", "window/fullscreen")
+
+    @classmethod
+    def from_json(cls, json, session):
+        uuid = json[Window.identifier]
+        return cls(uuid, session)
+
+
+class Frame(object):
+    identifier = "frame-075b-4da1-b6ba-e579c2d3230a"
+
+    def __init__(self, session):
+        self.session = session
+
+    @classmethod
+    def from_json(cls, json, session):
+        uuid = json[Frame.identifier]
+        return cls(uuid, session)
+
+
+class ShadowRoot(object):
+    identifier = "shadow-075b-4da1-b6ba-e579c2d3230a"
+
+    def __init__(self, session, id):
+        """
+        Construct a new shadow root representation.
+
+        :param id: Shadow root UUID which must be unique across
+            all browsing contexts.
+        :param session: Current ``webdriver.Session``.
+        """
+        self.id = id
+        self.session = session
+
+    @classmethod
+    def from_json(cls, json, session):
+        uuid = json[ShadowRoot.identifier]
+        return cls(uuid, session)
+
+    def send_shadow_command(self, method, uri, body=None):
+        url = "shadow/{}/{}".format(self.id, uri)
+        return self.session.send_session_command(method, url, body)
+
+    @command
+    def find_element(self, strategy, selector):
+        body = {"using": strategy,
+                "value": selector}
+        return self.send_shadow_command("POST", "element", body)
+
+    @command
+    def find_elements(self, strategy, selector):
+        body = {"using": strategy,
+                "value": selector}
+        return self.send_shadow_command("POST", "elements", body)
 
 
 class Find(object):
@@ -255,23 +412,15 @@ class Find(object):
         self.session = session
 
     @command
-    def css(self, selector, all=True):
-        return self._find_element("css selector", selector, all)
+    def css(self, element_selector, all=True):
+        elements = self._find_element("css selector", element_selector, all)
+        return elements
 
     def _find_element(self, strategy, selector, all):
         route = "elements" if all else "element"
-
         body = {"using": strategy,
                 "value": selector}
-
-        data = self.session.send_session_command("POST", route, body)
-
-        if all:
-            rv = [self.session._element(item) for item in data]
-        else:
-            rv = self.session._element(data)
-
-        return rv
+        return self.session.send_session_command("POST", route, body)
 
 
 class Cookies(object):
@@ -285,7 +434,7 @@ class Cookies(object):
         cookie = {"name": name,
                   "value": None}
 
-        if isinstance(name, (str, unicode)):
+        if isinstance(name, str):
             cookie["value"] = value
         elif hasattr(value, "value"):
             cookie["value"] = value.value
@@ -312,21 +461,24 @@ class UserPrompt(object):
     @text.setter
     @command
     def text(self, value):
-        body = {"value": list(value)}
+        body = {"text": value}
         self.session.send_session_command("POST", "alert/text", body=body)
 
 
 class Session(object):
-    def __init__(self, host, port, url_prefix="/", capabilities=None,
-                 timeout=None, extension=None):
-        self.transport = transport.HTTPWireProtocol(
-            host, port, url_prefix, timeout=timeout)
-        self.capabilities = capabilities
+    def __init__(self,
+                 host,
+                 port,
+                 url_prefix="/",
+                 capabilities=None,
+                 extension=None):
+        self.transport = transport.HTTPWireProtocol(host, port, url_prefix)
+        self.requested_capabilities = capabilities
+        self.capabilities = None
         self.session_id = None
         self.timeouts = None
         self.window = None
         self.find = None
-        self._element_cache = {}
         self.extension = None
         self.extension_cls = extension
 
@@ -335,6 +487,13 @@ class Session(object):
         self.find = Find(self)
         self.alert = UserPrompt(self)
         self.actions = Actions(self)
+
+    def __repr__(self):
+        return "<%s %s>" % (self.__class__.__name__, self.session_id or "(disconnected)")
+
+    def __eq__(self, other):
+        return (self.session_id is not None and isinstance(other, Session) and
+                self.session_id == other.session_id)
 
     def __enter__(self):
         self.start()
@@ -346,17 +505,30 @@ class Session(object):
     def __del__(self):
         self.end()
 
+    def match(self, capabilities):
+        return self.requested_capabilities == capabilities
+
     def start(self):
+        """Start a new WebDriver session.
+
+        :return: Dictionary with `capabilities` and `sessionId`.
+
+        :raises error.WebDriverException: If the remote end returns
+            an error.
+        """
         if self.session_id is not None:
             return
 
-        body = {}
+        self.transport.close()
 
-        if self.capabilities is not None:
-            body["capabilities"] = self.capabilities
+        body = {"capabilities": {}}
+
+        if self.requested_capabilities is not None:
+            body["capabilities"] = self.requested_capabilities
 
         value = self.send_command("POST", "session", body=body)
         self.session_id = value["sessionId"]
+        self.capabilities = value["capabilities"]
 
         if self.extension_cls:
             self.extension = self.extension_cls(self)
@@ -364,19 +536,19 @@ class Session(object):
         return value
 
     def end(self):
+        """Try to close the active session."""
         if self.session_id is None:
             return
 
-        url = "session/%s" % self.session_id
-        self.send_command("DELETE", url)
+        try:
+            self.send_command("DELETE", "session/%s" % self.session_id)
+        except (OSError, error.InvalidSessionIdException):
+            pass
+        finally:
+            self.session_id = None
+            self.transport.close()
 
-        self.session_id = None
-        self.timeouts = None
-        self.window = None
-        self.find = None
-        self.extension = None
-
-    def send_command(self, method, url, body=None):
+    def send_command(self, method, url, body=None, timeout=None):
         """
         Send a command to the remote end and validate its success.
 
@@ -386,21 +558,47 @@ class Session(object):
         :param body: Optional body of the HTTP request.
 
         :return: `None` if the HTTP response body was empty, otherwise
-            the result of parsing the body as JSON.
+            the `value` field returned after parsing the response
+            body as JSON.
 
         :raises error.WebDriverException: If the remote end returns
             an error.
+        :raises ValueError: If the response body does not contain a
+            `value` key.
         """
-        response = self.transport.send(method, url, body)
-        value = response.body["value"]
+
+        response = self.transport.send(
+            method, url, body,
+            encoder=protocol.Encoder, decoder=protocol.Decoder,
+            session=self, timeout=timeout)
 
         if response.status != 200:
-            cls = error.get(value.get("error"))
-            raise cls(value.get("message"))
+            err = error.from_response(response)
+
+            if isinstance(err, error.InvalidSessionIdException):
+                # The driver could have already been deleted the session.
+                self.session_id = None
+
+            raise err
+
+        if "value" in response.body:
+            value = response.body["value"]
+            """
+            Edge does not yet return the w3c session ID.
+            We want the tests to run in Edge anyway to help with REC.
+            In order to run the tests in Edge, we need to hack around
+            bug:
+            https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/14641972
+            """
+            if url == "session" and method == "POST" and "sessionId" in response.body and "sessionId" not in value:
+                value["sessionId"] = response.body["sessionId"]
+        else:
+            raise ValueError("Expected 'value' key in response body:\n"
+                "%s" % response)
 
         return value
 
-    def send_session_command(self, method, uri, body=None):
+    def send_session_command(self, method, uri, body=None, timeout=None):
         """
         Send a command to an established session and validate its success.
 
@@ -413,16 +611,11 @@ class Session(object):
         :return: `None` if the HTTP response body was empty, otherwise
             the result of parsing the body as JSON.
 
-        :raises error.SessionNotCreatedException: If there is no active
-            session.
         :raises error.WebDriverException: If the remote end returns
             an error.
         """
-        if self.session_id is None:
-            raise error.SessionNotCreatedException()
-
         url = urlparse.urljoin("session/%s/" % self.session_id, uri)
-        return self.send_command(method, url, body)
+        return self.send_command(method, url, body, timeout)
 
     @property
     @command
@@ -456,6 +649,18 @@ class Session(object):
 
     @property
     @command
+    def source(self):
+        return self.send_session_command("GET", "source")
+
+    @command
+    def new_window(self, type_hint="tab"):
+        body = {"type": type_hint}
+        value = self.send_session_command("POST", "window/new", body)
+
+        return value["handle"]
+
+    @property
+    @command
     def window_handle(self):
         return self.send_session_command("GET", "window")
 
@@ -471,16 +676,9 @@ class Session(object):
             body = None
         else:
             url = "frame"
-            if isinstance(frame, Element):
-                body = {"id": frame.json()}
-            else:
-                body = {"id": frame}
+            body = {"id": frame}
 
         return self.send_session_command("POST", url, body)
-
-    @command
-    def close(self):
-        return self.send_session_command("DELETE", "window")
 
     @property
     @command
@@ -490,16 +688,7 @@ class Session(object):
     @property
     @command
     def active_element(self):
-        data = self.send_session_command("GET", "element/active")
-        if data is not None:
-            return self._element(data)
-
-    def _element(self, data):
-        elem_id = data[element_key]
-        assert elem_id
-        if elem_id in self._element_cache:
-            return self._element_cache[elem_id]
-        return Element(self, elem_id)
+        return self.send_session_command("GET", "element/active")
 
     @command
     def cookies(self, name=None):
@@ -510,17 +699,23 @@ class Session(object):
         return self.send_session_command("GET", url, {})
 
     @command
-    def set_cookie(self, name, value, path=None, domain=None, secure=None, expiry=None):
-        body = {"name": name,
-                "value": value}
-        if path is not None:
-            body["path"] = path
+    def set_cookie(self, name, value, path=None, domain=None,
+            secure=None, expiry=None, http_only=None):
+        body = {
+            "name": name,
+            "value": value,
+        }
+
         if domain is not None:
             body["domain"] = domain
-        if secure is not None:
-            body["secure"] = secure
         if expiry is not None:
             body["expiry"] = expiry
+        if http_only is not None:
+            body["httpOnly"] = http_only
+        if path is not None:
+            body["path"] = path
+        if secure is not None:
+            body["secure"] = secure
         self.send_session_command("POST", "cookie", {"cookie": body})
 
     def delete_cookie(self, name=None):
@@ -560,28 +755,47 @@ class Session(object):
     def screenshot(self):
         return self.send_session_command("GET", "screenshot")
 
-
 class Element(object):
-    def __init__(self, session, id):
-        self.session = session
+    """
+    Representation of a web element.
+
+    A web element is an abstraction used to identify an element when
+    it is transported via the protocol, between remote- and local ends.
+    """
+    identifier = "element-6066-11e4-a52e-4f735466cecf"
+
+    def __init__(self, id, session):
+        """
+        Construct a new web element representation.
+
+        :param id: Web element UUID which must be unique across
+            all browsing contexts.
+        :param session: Current ``webdriver.Session``.
+        """
         self.id = id
-        assert id not in self.session._element_cache
-        self.session._element_cache[self.id] = self
+        self.session = session
+
+    def __repr__(self):
+        return "<%s %s>" % (self.__class__.__name__, self.id)
+
+    def __eq__(self, other):
+        return (isinstance(other, Element) and self.id == other.id and
+                self.session == other.session)
+
+    @classmethod
+    def from_json(cls, json, session):
+        uuid = json[Element.identifier]
+        return cls(uuid, session)
 
     def send_element_command(self, method, uri, body=None):
         url = "element/%s/%s" % (self.id, uri)
         return self.session.send_session_command(method, url, body)
 
-    def json(self):
-        return {element_key: self.id}
-
     @command
     def find_element(self, strategy, selector):
         body = {"using": strategy,
                 "value": selector}
-
-        elem = self.send_element_command("POST", "element", body)
-        return self.session.element(elem)
+        return self.send_element_command("POST", "element", body)
 
     @command
     def click(self):
@@ -593,15 +807,11 @@ class Element(object):
 
     @command
     def clear(self):
-        self.send_element_command("POST", self.url("clear"), {})
+        self.send_element_command("POST", "clear", {})
 
     @command
-    def send_keys(self, keys):
-        if isinstance(keys, (str, unicode)):
-            keys = [char for char in keys]
-
-        body = {"value": keys}
-        return self.send_element_command("POST", "value", body)
+    def send_keys(self, text):
+        return self.send_element_command("POST", "value", {"text": text})
 
     @property
     @command
@@ -622,10 +832,26 @@ class Element(object):
     def rect(self):
         return self.send_element_command("GET", "rect")
 
+    @property
     @command
-    def property(self, name):
-        return self.send_element_command("GET", "property/%s" % name)
+    def selected(self):
+        return self.send_element_command("GET", "selected")
+
+    @command
+    def screenshot(self):
+        return self.send_element_command("GET", "screenshot")
+
+    @property
+    @command
+    def shadow_root(self):
+        return self.send_element_command("GET", "shadow")
 
     @command
     def attribute(self, name):
         return self.send_element_command("GET", "attribute/%s" % name)
+
+    # This MUST come last because otherwise @property decorators above
+    # will be overridden by this.
+    @command
+    def property(self, name):
+        return self.send_element_command("GET", "property/%s" % name)

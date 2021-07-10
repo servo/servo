@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<link rel="author" href="mailto:atotic@google.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#scrollable">
+<meta name="assert" content="What happens when appearance of one scrollbar triggers the other one?">
+<style>
+.container {
+  width: 100px;
+  height: 100px;
+  overflow: auto;
+  background: #DDD;
+  --too-big: 120px;
+  --slightly-smaller: 95px;
+}
+.target {
+  width: 120px;
+  height: 95px;
+  background: rgba(0,255,0,0.3);
+}
+</style>
+<!--  -->
+<div class="container">
+  <div class="target" style="width:var(--too-big);height:var(--slightly-smaller)" ></div>
+</div>
+<div class="container">
+  <div class="target" style="height:var(--too-big);width:var(--slightly-smaller)" ></div>
+</div>
+
+<script>
+test(() => {
+  Array.from(document.querySelectorAll(".container")).forEach( el => {
+    let verticalScrollbar = el.offsetWidth - el.clientWidth;
+    let horizontalScrollbar = el.offsetHeight - el.clientHeight;
+    assert_equals(verticalScrollbar, horizontalScrollbar, "both scrollbars are visible.");
+  });
+}, 'appearance of one scrollbar caused the other scrollbar to appear.');
+</script>

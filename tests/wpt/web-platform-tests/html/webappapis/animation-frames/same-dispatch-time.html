@@ -9,7 +9,7 @@
   <body>
     <div id="log"></div>
     <script>
-      test(function (t) {
+      async_test(function (t) {
         var a = 0, b = 0;
 
         /* REASONING:
@@ -17,14 +17,14 @@
         * they execute right after eachother, they're added to the same
         * queue and SHOULD be timestamped with the same value.
         */
-        window.requestAnimationFrame(function() { a = arguments[0]; });
-        window.requestAnimationFrame(function() { b = arguments[0]; });
-
-        setTimeout(function() {
-            assert_true(a != 0);
-            assert_true(b != 0);
-            assert_true(a == b);
-        }, 100);
+        requestAnimationFrame(t.step_func(function() { a = arguments[0]; }));
+        requestAnimationFrame(t.step_func(function() {
+          b = arguments[0];
+          assert_not_equals(a, 0);
+          assert_not_equals(b, 0);
+          assert_equals(a, b);
+          t.done();
+        }));
       }, "requestAnimationFrame will timestamp events in the same queue with the same time");
     </script>
   </body>

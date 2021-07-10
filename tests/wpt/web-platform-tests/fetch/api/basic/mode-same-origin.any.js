@@ -9,7 +9,7 @@ function fetchSameOrigin(url, shouldPass) {
         assert_equals(resp.type, "basic", "response type is basic");
       });
     else
-      return promise_rejects(test, new TypeError, fetch(url, {mode: "same-origin"}));
+      return promise_rejects_js(test, TypeError, fetch(url, {mode: "same-origin"}));
   }, "Fetch "+ url + " with same-origin mode");
 }
 

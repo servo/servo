@@ -1,0 +1,21 @@
+<!doctype html>
+<title>CSS Test: Invalidation of :host selectors</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#host-selector">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1499603">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="host" style="color: green"></div>
+<script>
+host.attachShadow({ mode: "open" }).innerHTML = `
+  <style>
+    :host { color: red !important }
+  </style>
+`;
+test(function() {
+  assert_equals(getComputedStyle(host).color, "rgb(255, 0, 0)");
+  host.shadowRoot.querySelector("style").remove();
+  assert_equals(getComputedStyle(host).color, "rgb(0, 128, 0)");
+}, ":host rules are properly invalidated when stylesheets are removed");
+</script>

@@ -1,0 +1,120 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL framebuffer clearColor with pure 0/1</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="2" height="2"> </canvas>
+<script>
+"use strict";
+// This test verifies a Mac Intel HD 6000/6100 driver bug. See crbug.com/710443.
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("canvas");
+
+function InitializeRGBAData(width, height)
+{
+  var size = 4 * width * height;
+  var data = new Uint8Array(size);
+  for (var i = 0; i < size; i++) {
+    data[i] = 128;
+  }
+  return data;
+}
+
+function testFramebufferTextureClearWithPureZeroOrOne(clearColor, expectedColor) {
+  var width = 32;
+  var height = 32;
+  var texture0 = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture0);
+  // It seems that if we add texParameteri here, all cases can pass no matter
+  // you use texParameteri or not in Line 85.
+  // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  var texData = InitializeRGBAData(width, height);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, texData);
+
+  var fbo0 = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo0);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture0, 0);
+  gl.viewport(0, 0, width, height);
+  gl.clearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  var texture1 = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture1);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  var fbo1 = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo1);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture1, 0);
+
+  wtu.setupTexturedQuad(gl);
+
+  gl.bindTexture(gl.TEXTURE_2D, texture0);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo1);
+  gl.viewport(0, 0, width, height);
+  gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+  wtu.checkCanvasRect(gl, 0, 0, 1, 1, expectedColor);
+
+  gl.deleteTexture(texture0);
+  gl.deleteFramebuffer(fbo0);
+  gl.deleteTexture(texture1);
+  gl.deleteFramebuffer(fbo1);
+}
+
+description("Test that if clear fbo texture color with pure 0/1 and sample this texture to draw to another fbo, the final render color should be consistent with the clear color.");
+
+for(var index = 0; index < 16; index++)
+{
+  var r = (index & 8) / 8;
+  var g = (index & 4) / 4;
+  var b = (index & 2) / 2;
+  var a = index & 1;
+  var clearColor = [r, g, b, a];
+  var expectedColor = [r * 255, g * 255, b * 255, a * 255];
+  testFramebufferTextureClearWithPureZeroOrOne(clearColor, expectedColor);
+}
+
+debug("");
+var successfullyParsed = true;
+
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

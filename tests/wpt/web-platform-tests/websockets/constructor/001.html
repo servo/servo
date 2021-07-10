@@ -8,6 +8,6 @@
 <div id=log></div>
 <script>
 test(function() {
-  assert_throws(new TypeError(), function(){new WebSocket()});
+  assert_throws_js(TypeError, function(){new WebSocket()});
 });
 </script>

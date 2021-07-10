@@ -2,7 +2,7 @@
 <meta charset=utf-8>
 <title>Playing an animation</title>
 <link rel="help"
-      href="https://w3c.github.io/web-animations/#playing-an-animation-section">
+      href="https://drafts.csswg.org/web-animations/#playing-an-animation-section">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../testcommon.js"></script>
@@ -11,32 +11,58 @@
 <script>
 'use strict';
 
-test(function(t) {
-  var animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+test(t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
   animation.currentTime = 1 * MS_PER_SEC;
-  assert_times_equal(animation.currentTime, 1 * MS_PER_SEC);
+  assert_time_equals_literal(animation.currentTime, 1 * MS_PER_SEC);
   animation.play();
-  assert_times_equal(animation.currentTime, 1 * MS_PER_SEC);
+  assert_time_equals_literal(animation.currentTime, 1 * MS_PER_SEC);
 }, 'Playing a running animation leaves the current time unchanged');
 
-test(function(t) {
-  var animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+test(t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
   animation.finish();
-  assert_times_equal(animation.currentTime, 100 * MS_PER_SEC);
+  assert_time_equals_literal(animation.currentTime, 100 * MS_PER_SEC);
   animation.play();
-  assert_times_equal(animation.currentTime, 0);
+  assert_time_equals_literal(animation.currentTime, 0);
 }, 'Playing a finished animation seeks back to the start');
 
-test(function(t) {
-  var animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+test(t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
   animation.playbackRate = -1;
   animation.currentTime = 0;
-  assert_times_equal(animation.currentTime, 0);
+  assert_time_equals_literal(animation.currentTime, 0);
   animation.play();
-  assert_times_equal(animation.currentTime, 100 * MS_PER_SEC);
+  assert_time_equals_literal(animation.currentTime, 100 * MS_PER_SEC);
 }, 'Playing a finished and reversed animation seeks to end');
 
-test(function(t) {
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  animation.finish();
+
+  // Initiate a pause then abort it
+  animation.pause();
+  animation.play();
+
+  // Wait to return to running state
+  await animation.ready;
+
+  assert_true(animation.currentTime < 100 * 1000,
+              'After aborting a pause when finished, the current time should'
+              + ' jump back to the start of the animation');
+}, 'Playing a pause-pending but previously finished animation seeks back to'
+   + ' to the start');
+
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  animation.finish();
+  await animation.ready;
+
+  animation.play();
+  assert_equals(animation.startTime, null, 'start time is unresolved');
+}, 'Playing a finished animation clears the start time');
+
+test(t => {
   const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
   animation.cancel();
   const promise = animation.ready;
@@ -45,15 +71,107 @@ test(function(t) {
 }, 'The ready promise should be replaced if the animation is not already'
    + ' pending');
 
-promise_test(function(t) {
+promise_test(async t => {
   const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
   const promise = animation.ready;
-  return promise.then(p => {
-    assert_equals(p, animation);
-    assert_equals(animation.ready, promise);
-  });
+  const promiseResult = await promise;
+  assert_equals(promiseResult, animation);
+  assert_equals(animation.ready, promise);
 }, 'A pending ready promise should be resolved and not replaced when the'
    + ' animation enters the running state');
+
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  animation.currentTime = 50 * MS_PER_SEC;
+  await animation.ready;
+
+  animation.pause();
+  await animation.ready;
+
+  const holdTime = animation.currentTime;
+
+  animation.play();
+  await animation.ready;
+
+  assert_less_than_equal(
+    animation.startTime,
+    animation.timeline.currentTime - holdTime + TIME_PRECISION
+  );
+}, 'Resuming an animation from paused calculates start time from hold time');
+
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  await animation.ready;
+
+  // Go to pause-pending state
+  animation.pause();
+  assert_true(animation.pending, 'Animation is pending');
+  const pauseReadyPromise = animation.ready;
+
+  // Now play again immediately (abort the pause)
+  animation.play();
+  assert_true(animation.pending, 'Animation is still pending');
+  assert_equals(animation.ready, pauseReadyPromise,
+                'The pause Promise is re-used when playing while waiting'
+                + ' to pause');
+
+  // Sanity check: Animation proceeds to running state
+  await animation.ready;
+  assert_true(!animation.pending && animation.playState === 'running',
+              'Animation is running after aborting a pause');
+}, 'If a pause operation is interrupted, the ready promise is reused');
+
+promise_test(async t => {
+  // Seek animation beyond target end
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  animation.currentTime = -100 * MS_PER_SEC;
+  await animation.ready;
+
+  // Set pending playback rate to the opposite direction
+  animation.updatePlaybackRate(-1);
+  assert_true(animation.pending);
+  assert_equals(animation.playbackRate, 1);
+
+  // When we play, we should seek to the target end, NOT to zero (which
+  // is where we would seek to if we used the playbackRate of 1.
+  animation.play();
+  assert_time_equals_literal(animation.currentTime, 100 * MS_PER_SEC);
+}, 'A pending playback rate is used when determining auto-rewind behavior');
+
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  animation.cancel();
+  assert_equals(animation.startTime, null,
+                'Start time should be unresolved');
+
+  const playTime = animation.timeline.currentTime;
+  animation.play();
+  assert_true(animation.pending, 'Animation should be play-pending');
+
+  await animation.ready;
+
+  assert_false(animation.pending, 'animation should no longer be pending');
+  assert_greater_than(animation.startTime, playTime,
+                      'The start time of the playing animation should be set');
+}, 'Playing a canceled animation sets the start time');
+
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  animation.playbackRate = -1;
+  animation.cancel();
+  assert_equals(animation.startTime, null,
+                'Start time should be unresolved');
+
+  const playTime = animation.timeline.currentTime;
+  animation.play();
+  assert_true(animation.pending, 'Animation should be play-pending');
+
+  await animation.ready;
+
+  assert_false(animation.pending, 'Animation should no longer be pending');
+  assert_greater_than(animation.startTime, playTime + 100 * MS_PER_SEC,
+                      'The start time of the playing animation should be set');
+}, 'Playing a canceled animation backwards sets the start time');
 
 </script>
 </body>

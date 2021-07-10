@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test that font fallback from a pending web font to an available local font works.</title>
+<link rel=help href="https://drafts.csswg.org/css-fonts-4/#font-matching-algorithm">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1101483">
+<link rel=author href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@font-face {
+  font-family: remote-font;
+  src: url(/fonts/Revalia.woff?pipe=trickle(d1)) format(woff);
+}
+
+@font-face {
+  font-family: local-font;
+  src: local(Ahem);
+}
+
+#target {
+  font: 25px/1 remote-font, local-font, monospace;
+}
+</style>
+<span id="target">0123456789</span>
+<script>
+test(() => {
+  assert_false(document.fonts.check('25px/1 remote-font'));
+  assert_equals(target.offsetWidth, 250);
+}, 'We should use the local font to render the page when the primary remote font is loading');
+</script>

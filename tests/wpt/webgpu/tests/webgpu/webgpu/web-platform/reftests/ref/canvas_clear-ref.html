@@ -1,0 +1,12 @@
+<html>
+  <title>WebGPU canvas_clear (ref)</title>
+  <meta charset="utf-8" />
+  <link rel="help" href="https://gpuweb.github.io/gpuweb/" />
+  <canvas id="myCanvas" width="10" height="10"></canvas>
+  <script>
+    var c = document.getElementById('myCanvas');
+    var ctx = c.getContext('2d');
+    ctx.fillStyle = '#00FF00';
+    ctx.fillRect(0, 0, c.width, c.height);
+  </script>
+</html>

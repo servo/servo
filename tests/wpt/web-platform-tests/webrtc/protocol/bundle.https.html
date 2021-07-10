@@ -1,0 +1,94 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection BUNDLE</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const caller = new RTCPeerConnection();
+  t.add_cleanup(() => caller.close());
+  const callee = new RTCPeerConnection();
+  t.add_cleanup(() => callee.close());
+  const stream = await getNoiseStream({audio: true, video: true});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  stream.getTracks().forEach(track => caller.addTrack(track, stream));
+
+  let metadataToBeLoaded;
+  callee.ontrack = (e) => {
+    const stream = e.streams[0];
+    const v = document.createElement('video');
+    v.autoplay = true;
+    v.srcObject = stream;
+    v.id = stream.id
+    metadataToBeLoaded = new Promise((resolve) => {
+      v.addEventListener('loadedmetadata', () => {
+        resolve();
+      });
+    });
+  };
+  exchangeIceCandidates(caller, callee);
+  const offer = await caller.createOffer();
+  // remove the a=group:BUNDLE from the SDP when signaling.
+  const sdp = offer.sdp.replace(/a=group:BUNDLE (.*)\r\n/, '');
+  await callee.setRemoteDescription({type: 'offer', sdp});
+  await caller.setLocalDescription(offer);
+
+  const answer = await callee.createAnswer();
+  await caller.setRemoteDescription(answer);
+  await callee.setLocalDescription(answer);
+
+  await metadataToBeLoaded;
+  const senders = caller.getSenders();
+  const dtlsTransports = senders.map(s => s.transport);
+  assert_equals(dtlsTransports.length, 2);
+  assert_not_equals(dtlsTransports[0], dtlsTransports[1]);
+
+  const iceTransports = dtlsTransports.map(t => t.iceTransport);
+  assert_equals(iceTransports.length, 2);
+  assert_not_equals(iceTransports[0], iceTransports[1]);
+}, 'not negotiating BUNDLE creates two separate ice and dtls transports');
+
+promise_test(async t => {
+  const caller = new RTCPeerConnection();
+  t.add_cleanup(() => caller.close());
+  const callee = new RTCPeerConnection();
+  t.add_cleanup(() => callee.close());
+  const stream = await getNoiseStream({audio: true, video: true});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  stream.getTracks().forEach(track => caller.addTrack(track, stream));
+
+  let metadataToBeLoaded;
+  callee.ontrack = (e) => {
+    const stream = e.streams[0];
+    const v = document.createElement('video');
+    v.autoplay = true;
+    v.srcObject = stream;
+    v.id = stream.id
+    metadataToBeLoaded = new Promise((resolve) => {
+      v.addEventListener('loadedmetadata', () => {
+        resolve();
+      });
+    });
+  };
+  exchangeIceCandidates(caller, callee);
+  const offer = await caller.createOffer();
+  await callee.setRemoteDescription(offer);
+  await caller.setLocalDescription(offer);
+  const secondTransport = caller.getSenders()[1].transport; // Save a reference to this transport.
+
+  const answer = await callee.createAnswer();
+  await caller.setRemoteDescription(answer);
+  await callee.setLocalDescription(answer);
+
+  await metadataToBeLoaded;
+  const senders = caller.getSenders();
+  const dtlsTransports = senders.map(s => s.transport);
+  assert_equals(dtlsTransports.length, 2);
+  assert_equals(dtlsTransports[0], dtlsTransports[1]);
+  assert_not_equals(dtlsTransports[1], secondTransport);
+  assert_equals(secondTransport.state, 'closed');
+}, 'bundles on the first transport and closes the second');
+</script>

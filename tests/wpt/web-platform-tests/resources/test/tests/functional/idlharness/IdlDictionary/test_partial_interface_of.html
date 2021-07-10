@@ -1,0 +1,90 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="variant" content="">
+  <title>idlharness: Partial dictionary</title>
+  <script src="/resources/test/variants.js"></script>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/WebIDLParser.js"></script>
+  <script src="/resources/idlharness.js"></script>
+</head>
+
+<body>
+  <p>Verify the series of sub-tests that are executed for "partial" dictionary objects.</p>
+  <script>
+    "use strict";
+
+    // No original existence
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_idls('partial dictionary A {};');
+      idlArray.test();
+    })();
+
+    // Multiple partials existence
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_untested_idls('partial dictionary B {};');
+      idlArray.add_idls('partial dictionary B {};');
+      idlArray.add_idls('partial dictionary B {};');
+      idlArray.add_idls('partial dictionary B {};');
+      idlArray.add_idls('dictionary B {};');
+      idlArray.test();
+    })();
+
+    // Original is a namespace, not a dictionary.
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_idls(`
+        partial dictionary C {};
+        namespace C {};`);
+      idlArray.collapse_partials();
+    })();
+  </script>
+  <script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "OK",
+    "message": null
+  },
+  "summarized_tests": [
+    {
+      "name": "Partial dictionary A: original dictionary defined",
+      "status_string": "FAIL",
+      "properties": {},
+      "message": "assert_true: Original dictionary should be defined expected true got false"
+    },
+    {
+      "name": "Partial dictionary B[2]: original dictionary defined",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Partial dictionary B[3]: original dictionary defined",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Partial dictionary B[4]: original dictionary defined",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Partial dictionary C: original dictionary defined",
+      "status_string": "FAIL",
+      "properties": {},
+      "message": "assert_true: Original C definition should have type dictionary expected true got false"
+    }
+  ],
+  "type": "complete"
+}
+</script>
+</body>
+
+</html>

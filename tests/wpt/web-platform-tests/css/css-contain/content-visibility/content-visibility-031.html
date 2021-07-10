@@ -1,0 +1,76 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content Visibility: resize observer interactions</title>
+<link rel="author" title="Chris Harrelson" href="mailto:chrishtr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="content-visibility hidden subtrees do not trigger resize observer">
+
+<style>
+.hidden {
+  content-visibility: hidden;
+}
+</style>
+<div id="container">
+  <div id="resize" style="width: 50px; height: 50px">
+  </div>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+async_test((t) => {
+  let didCallback = false;
+
+  async function runTest() {
+    let resizeCallback = function (entries) {
+      didCallback = true;
+    }
+    let resizeObserver = new ResizeObserver(resizeCallback);
+
+    resizeObserver.observe(resize);
+
+    requestAnimationFrame(step2);
+  }
+
+  async function step2() {
+    assert_equals(true, didCallback, 'Resize observation should happen in first frame after registering');
+    didCallback = false;
+
+    const container = document.getElementById("container");
+    container.classList.add("hidden");
+
+    // Change the size of #resize. This should cause a resize observation, but
+    // only when the element becomes unhidden.
+    resize.style.width = '100px';
+
+    requestAnimationFrame(step3);
+  }
+
+  async function step3() {
+    assert_equals(false, didCallback,
+        'ResizeObsever should not run during while unrendered');
+    requestAnimationFrame(step4);
+  }
+
+  async function step4() {
+    assert_equals(false, didCallback,
+        'ResizeObsever should not run while unrendered');
+    const container = document.getElementById("container");
+    container.classList.remove("hidden");
+    requestAnimationFrame(step5);
+  }
+
+  async function step5() {
+    assert_equals(true, didCallback,
+        'ResizeObsevers should now run once becoming visible');
+    t.done();
+  }
+
+  window.onload = function() {
+    requestAnimationFrame(() => requestAnimationFrame(runTest));
+  };
+}, "ResizeObserver skipped while hidden");
+</script>
+</html>

@@ -1,0 +1,14 @@
+[run]
+include =
+  pluggy/*
+  testing/*
+  */lib/python*/site-packages/pluggy/*
+  */pypy*/site-packages/pluggy/*
+  *\Lib\site-packages\pluggy\*
+branch = 1
+
+[paths]
+source = pluggy/
+  */lib/python*/site-packages/pluggy/
+  */pypy*/site-packages/pluggy/
+  *\Lib\site-packages\pluggy\

@@ -18,8 +18,8 @@
         This tests that methods on the SVGTextContentElement interface
         that take an index to a character or a number of characters
         actually interpret these as indexes to or numbers of UTF-16 code
-        units. To test this, a character from outside the Basic Multilingual Plane 
-        (U+10000; LINEAR B SYLLABLE B008) is used in a text string. 
+        units. To test this, a character from outside the Basic Multilingual Plane
+        (U+10000; LINEAR B SYLLABLE B008) is used in a text string.
         This character is stored in UTF-16 as a surrogate pair.
       </p>
       <p>

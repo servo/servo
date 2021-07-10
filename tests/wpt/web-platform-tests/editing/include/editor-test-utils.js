@@ -1,0 +1,344 @@
+/**
+ * EditorTestUtils is a helper utilities to test HTML editor.  This can be
+ * instantiated per an editing host.  If you test `designMode`, the editing
+ * host should be the <body> element.
+ */
+class EditorTestUtils {
+  kShift = "\uE008";
+  kMeta = "\uE03d";
+  kControl = "\uE009";
+  kAlt = "\uE00A";
+
+  editingHost;
+
+  constructor(aEditingHost, aHarnessWindow = window) {
+    this.editingHost = aEditingHost;
+    if (aHarnessWindow != this.window) {
+      this.window.test_driver.set_test_context(aHarnessWindow);
+    }
+  }
+
+  get document() {
+    return this.editingHost.ownerDocument;
+  }
+  get window() {
+    return this.document.defaultView;
+  }
+  get selection() {
+    return this.window.getSelection();
+  }
+
+  sendKey(key, modifier) {
+    if (!modifier) {
+      return new this.window.test_driver.Actions()
+        .keyDown(key)
+        .keyUp(key)
+        .send();
+    }
+    return new this.window.test_driver.Actions()
+      .keyDown(modifier)
+      .keyDown(key)
+      .keyUp(key)
+      .keyUp(modifier)
+      .send();
+  }
+
+  sendDeleteKey(modifier) {
+    const kDeleteKey = "\uE017";
+    return this.sendKey(kDeleteKey, modifier);
+  }
+
+  sendBackspaceKey(modifier) {
+    const kBackspaceKey = "\uE003";
+    return this.sendKey(kBackspaceKey, modifier);
+  }
+
+  sendArrowLeftKey(modifier) {
+    const kArrowLeft = "\uE012";
+    return this.sendKey(kArrowLeft, modifier);
+  }
+
+  sendArrowRightKey(modifier) {
+    const kArrowRight = "\uE014";
+    return this.sendKey(kArrowRight, modifier);
+  }
+
+  sendHomeKey(modifier) {
+    const kHome = "\uE011";
+    return this.sendKey(kHome, modifier);
+  }
+
+  sendEndKey(modifier) {
+    const kEnd = "\uE010";
+    return this.sendKey(kEnd, modifier);
+  }
+
+  // Similar to `setupDiv` in editing/include/tests.js, this method sets
+  // innerHTML value of this.editingHost, and sets multiple selection ranges
+  // specified with the markers.
+  // - `[` specifies start boundary in a text node
+  // - `{` specifies start boundary before a node
+  // - `]` specifies end boundary in a text node
+  // - `}` specifies end boundary after a node
+  setupEditingHost(innerHTMLWithRangeMarkers) {
+    const startBoundaries = innerHTMLWithRangeMarkers.match(/\{|\[/g) || [];
+    const endBoundaries = innerHTMLWithRangeMarkers.match(/\}|\]/g) || [];
+    if (startBoundaries.length !== endBoundaries.length) {
+      throw "Should match number of open/close markers";
+    }
+
+    this.editingHost.innerHTML = innerHTMLWithRangeMarkers;
+    this.editingHost.focus();
+
+    if (startBoundaries.length === 0) {
+      // Don't remove the range for now since some tests may assume that
+      // setting innerHTML does not remove all selection ranges.
+      return;
+    }
+
+    let getNextRangeAndDeleteMarker = startNode => {
+      let getNextLeafNode = node => {
+        let inclusiveDeepestFirstChildNode = container => {
+          while (container.firstChild) {
+            container = container.firstChild;
+          }
+          return container;
+        };
+        if (node.hasChildNodes()) {
+          return inclusiveDeepestFirstChildNode(node);
+        }
+        if (node.nextSibling) {
+          return inclusiveDeepestFirstChildNode(node.nextSibling);
+        }
+        let nextSibling = (child => {
+          for (
+            let parent = child.parentElement;
+            parent && parent != this.editingHost;
+            parent = parent.parentElement
+          ) {
+            if (parent.nextSibling) {
+              return parent.nextSibling;
+            }
+          }
+          return null;
+        })(node);
+        if (!nextSibling) {
+          return null;
+        }
+        return inclusiveDeepestFirstChildNode(nextSibling);
+      };
+      let scanMarkerInTextNode = (textNode, offset) => {
+        return /[\{\[\]\}]/.exec(textNode.data.substr(offset));
+      };
+      let startMarker = ((startContainer, startOffset) => {
+        let scanStartMakerInTextNode = (textNode, offset) => {
+          let scanResult = scanMarkerInTextNode(textNode, offset);
+          if (scanResult === null) {
+            return null;
+          }
+          if (scanResult[0] === "}" || scanResult[0] === "]") {
+            throw "An end marker is found before a start marker";
+          }
+          return {
+            marker: scanResult[0],
+            container: textNode,
+            offset: scanResult.index + offset
+          };
+        };
+        if (startContainer.nodeType === Node.TEXT_NODE) {
+          let scanResult = scanStartMakerInTextNode(
+            startContainer,
+            startOffset
+          );
+          if (scanResult !== null) {
+            return scanResult;
+          }
+        }
+        let nextNode = startContainer;
+        while ((nextNode = getNextLeafNode(nextNode))) {
+          if (nextNode.nodeType === Node.TEXT_NODE) {
+            let scanResult = scanStartMakerInTextNode(nextNode, 0);
+            if (scanResult !== null) {
+              return scanResult;
+            }
+            continue;
+          }
+        }
+        return null;
+      })(startNode, 0);
+      if (startMarker === null) {
+        return null;
+      }
+      let endMarker = ((startContainer, startOffset) => {
+        let scanEndMarkerInTextNode = (textNode, offset) => {
+          let scanResult = scanMarkerInTextNode(textNode, offset);
+          if (scanResult === null) {
+            return null;
+          }
+          if (scanResult[0] === "{" || scanResult[0] === "[") {
+            throw "A start marker is found before an end marker";
+          }
+          return {
+            marker: scanResult[0],
+            container: textNode,
+            offset: scanResult.index + offset
+          };
+        };
+        if (startContainer.nodeType === Node.TEXT_NODE) {
+          let scanResult = scanEndMarkerInTextNode(startContainer, startOffset);
+          if (scanResult !== null) {
+            return scanResult;
+          }
+        }
+        let nextNode = startContainer;
+        while ((nextNode = getNextLeafNode(nextNode))) {
+          if (nextNode.nodeType === Node.TEXT_NODE) {
+            let scanResult = scanEndMarkerInTextNode(nextNode, 0);
+            if (scanResult !== null) {
+              return scanResult;
+            }
+            continue;
+          }
+        }
+        return null;
+      })(startMarker.container, startMarker.offset + 1);
+      if (endMarker === null) {
+        throw "Found an open marker, but not found corresponding close marker";
+      }
+      let indexOfContainer = (container, child) => {
+        let offset = 0;
+        for (let node = container.firstChild; node; node = node.nextSibling) {
+          if (node == child) {
+            return offset;
+          }
+          offset++;
+        }
+        throw "child must be a child node of container";
+      };
+      let deleteFoundMarkers = () => {
+        let removeNode = node => {
+          let container = node.parentElement;
+          let offset = indexOfContainer(container, node);
+          node.remove();
+          return { container, offset };
+        };
+        if (startMarker.container == endMarker.container) {
+          // If the text node becomes empty, remove it and set collapsed range
+          // to the position where there is the text node.
+          if (startMarker.container.length === 2) {
+            if (!/[\[\{][\]\}]/.test(startMarker.container.data)) {
+              throw `Unexpected text node (data: "${startMarker.container.data}")`;
+            }
+            let { container, offset } = removeNode(startMarker.container);
+            startMarker.container = endMarker.container = container;
+            startMarker.offset = endMarker.offset = offset;
+            startMarker.marker = endMarker.marker = "";
+            return;
+          }
+          startMarker.container.data = `${startMarker.container.data.substring(
+            0,
+            startMarker.offset
+          )}${startMarker.container.data.substring(
+            startMarker.offset + 1,
+            endMarker.offset
+          )}${startMarker.container.data.substring(endMarker.offset + 1)}`;
+          if (startMarker.offset >= startMarker.container.length) {
+            startMarker.offset = endMarker.offset =
+              startMarker.container.length;
+            return;
+          }
+          endMarker.offset--; // remove the start marker's length
+          if (endMarker.offset > endMarker.container.length) {
+            endMarker.offset = endMarker.container.length;
+          }
+          return;
+        }
+        if (startMarker.container.length === 1) {
+          let { container, offset } = removeNode(startMarker.container);
+          startMarker.container = container;
+          startMarker.offset = offset;
+          startMarker.marker = "";
+        } else {
+          startMarker.container.data = `${startMarker.container.data.substring(
+            0,
+            startMarker.offset
+          )}${startMarker.container.data.substring(startMarker.offset + 1)}`;
+        }
+        if (endMarker.container.length === 1) {
+          let { container, offset } = removeNode(endMarker.container);
+          endMarker.container = container;
+          endMarker.offset = offset;
+          endMarker.marker = "";
+        } else {
+          endMarker.container.data = `${endMarker.container.data.substring(
+            0,
+            endMarker.offset
+          )}${endMarker.container.data.substring(endMarker.offset + 1)}`;
+        }
+      };
+      deleteFoundMarkers();
+
+      let handleNodeSelectMarker = () => {
+        if (startMarker.marker === "{") {
+          if (startMarker.offset === 0) {
+            // The range start with the text node.
+            let container = startMarker.container.parentElement;
+            startMarker.offset = indexOfContainer(
+              container,
+              startMarker.container
+            );
+            startMarker.container = container;
+          } else if (startMarker.offset === startMarker.container.data.length) {
+            // The range start after the text node.
+            let container = startMarker.container.parentElement;
+            startMarker.offset =
+              indexOfContainer(container, startMarker.container) + 1;
+            startMarker.container = container;
+          } else {
+            throw 'Start marker "{" is allowed start or end of a text node';
+          }
+        }
+        if (endMarker.marker === "}") {
+          if (endMarker.offset === 0) {
+            // The range ends before the text node.
+            let container = endMarker.container.parentElement;
+            endMarker.offset = indexOfContainer(container, endMarker.container);
+            endMarker.container = container;
+          } else if (endMarker.offset === endMarker.container.data.length) {
+            // The range ends with the text node.
+            let container = endMarker.container.parentElement;
+            endMarker.offset =
+              indexOfContainer(container, endMarker.container) + 1;
+            endMarker.container = container;
+          } else {
+            throw 'End marker "}" is allowed start or end of a text node';
+          }
+        }
+      };
+      handleNodeSelectMarker();
+
+      let range = document.createRange();
+      range.setStart(startMarker.container, startMarker.offset);
+      range.setEnd(endMarker.container, endMarker.offset);
+      return range;
+    };
+
+    let ranges = [];
+    for (
+      let range = getNextRangeAndDeleteMarker(this.editingHost.firstChild);
+      range;
+      range = getNextRangeAndDeleteMarker(range.endContainer)
+    ) {
+      ranges.push(range);
+    }
+
+    this.selection.removeAllRanges();
+    for (let range of ranges) {
+      this.selection.addRange(range);
+    }
+
+    if (this.selection.rangeCount != ranges.length) {
+      throw `Failed to set selection to the given ranges whose length is ${ranges.length}, but only ${this.selection.rangeCount} ranges are added`;
+    }
+  }
+}

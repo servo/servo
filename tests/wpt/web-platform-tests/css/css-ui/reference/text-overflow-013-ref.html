@@ -1,0 +1,27 @@
+﻿<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test reference</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+.test {
+  overflow: hidden;
+  white-space: pre;
+  font: 100px/1 Ahem;
+  width: 2em;
+}
+.green {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: green;
+  margin-left: 100px;
+}
+span {
+  vertical-align: sub;
+}
+</style>
+
+<p>Test passes if there are 3 filled green squares and <strong>no red</strong>.</p>
+<div class="green"></div>
+<div class=test><span><br><div class="green"></div><br><div class="green"></div></span></div>

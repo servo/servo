@@ -1,0 +1,76 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Serialization of basic shapes</title>
+<link rel="help" href="https://drafts.csswg.org/css-shapes/#basic-shape-serialization"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+function checkEquals(input, expected) {
+    test(function() {
+        let div = document.createElement('div');
+        div.style.clipPath = input;
+        let serialized = div.style.clipPath;
+        assert_equals(serialized, expected, input);
+    });
+}
+
+// Keywords get replaced by percentages in 2-value form
+checkEquals("circle(at left bottom)", "circle(at 0% 100%)");
+checkEquals("circle(at bottom left)", "circle(at 0% 100%)");
+checkEquals("circle(at right calc(10% + 5px))",
+            "circle(at 100% calc(10% + 5px))");
+checkEquals("ellipse(at left bottom)", "ellipse(at 0% 100%)");
+checkEquals("ellipse(at bottom left)", "ellipse(at 0% 100%)");
+checkEquals("ellipse(at right calc(10% + 5px))",
+            "ellipse(at 100% calc(10% + 5px))");
+
+// Only 2 or 4 value form allowed
+checkEquals("circle()", "circle(at 50% 50%)");
+checkEquals("circle(0px)", "circle(0px at 50% 50%)");
+checkEquals("circle(closest-side)", "circle(at 50% 50%)");
+checkEquals("circle(farthest-side)",
+            "circle(farthest-side at 50% 50%)");
+checkEquals("ellipse()", "ellipse(at 50% 50%)");
+checkEquals("ellipse(closest-side farthest-side)",
+            "ellipse(closest-side farthest-side at 50% 50%)");
+
+
+checkEquals("circle(at top 0% right 5px)", "circle(at right 5px top 0%)");
+checkEquals("ellipse(at top 0% right 10px)", "ellipse(at right 10px top 0%)");
+// Remove defaults like closest-side
+checkEquals("circle(closest-side at center)",
+            "circle(at 50% 50%)");
+checkEquals("ellipse(closest-side closest-side at center)",
+            "ellipse(at 50% 50%)");
+
+// don't remove non defaults
+checkEquals("circle(farthest-side at center)",
+            "circle(farthest-side at 50% 50%)");
+checkEquals("circle(10px at center)",
+            "circle(10px at 50% 50%)");
+checkEquals("ellipse(farthest-side 10px at center)",
+            "ellipse(farthest-side 10px at 50% 50%)");
+// Ellipse can have 0 radii or two, not one. We cannot
+// eliminate a single closest-side if the other is different
+checkEquals("ellipse(closest-side farthest-side at 50% 50%)",
+            "ellipse(closest-side farthest-side at 50% 50%)");
+checkEquals("ellipse(closest-side 10% at 50% 50%)",
+            "ellipse(closest-side 10% at 50% 50%)");
+
+// Don't transform nonzero lengths
+checkEquals("circle(at right 5px bottom 10px)",
+            "circle(at right 5px bottom 10px)");
+checkEquals("ellipse(at right 5px bottom 10px)",
+            "ellipse(at right 5px bottom 10px)");
+
+// Convert keyword-percentage pairs to plain percentages
+// Convert zero lengths to 0%
+checkEquals("circle(at right 5% top 0px)", "circle(at 95% 0%)");
+checkEquals("ellipse(at right 5% top 0px)", "ellipse(at 95% 0%)");
+
+// Don't transform calcs
+checkEquals("circle(at right calc(10% + 5px) bottom calc(10% + 5px))",
+            "circle(at right calc(10% + 5px) bottom calc(10% + 5px))");
+checkEquals("ellipse(at right calc(10% + 5px) bottom calc(10% + 5px))",
+            "ellipse(at right calc(10% + 5px) bottom calc(10% + 5px))");
+</script>

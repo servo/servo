@@ -4,8 +4,11 @@
         <title>CSS Test: White-space 'nowrap' on a 'pre' element</title>
         <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
         <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#white-space-model" />
+        <link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-1" />
+        <link rel="match" href="white-space-001-ref.xht" />
         <meta name="flags" content="ahem" />
         <meta name="assert" content="The 'white-space' property set to 'nowrap' does not remove extra spacing when two spaces are next to each other." />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
         <style type="text/css">
             pre
             {
@@ -32,7 +35,7 @@
         </style>
     </head>
     <body>
-        <p>Test passes if there are only two boxes below.</p>
+        <p>Test passes if there are 2 filled black squares.</p>
         <pre id="pre1">XX   XX</pre>
         <pre id="pre2"></pre><pre id="pre3"></pre>
     </body>

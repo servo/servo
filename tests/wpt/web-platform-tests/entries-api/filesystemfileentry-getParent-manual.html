@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Entries API: FileSystemFileEntry getParent() manual test</title>
+<link rel=help href="https://wicg.github.io/entries-api/#api-entry">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+
+<script>
+
+file_entry_test('file.txt', (t, entry) => {
+  assert_idl_attribute(entry, 'getParent', 'FileSystemFileEntry has a getParent method');
+  assert_equals(typeof entry.getParent, 'function', 'FileSystemFileEntry has a getParent() method');
+  t.done();
+}, 'FileSystemFileEntry - getParent() method');
+
+</script>

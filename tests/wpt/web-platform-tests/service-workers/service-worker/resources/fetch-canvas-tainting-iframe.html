@@ -1,294 +1,69 @@
-<script src="/common/get-host-info.sub.js"></script>
-<script src="test-helpers.sub.js?pipe=sub"></script>
+<html>
+<title>iframe for fetch canvas tainting test</title>
 <script>
-var image_path = base_path() + 'fetch-access-control.py?PNGIMAGE';
-var host_info = get_host_info();
-var params = get_query_params(location.href);
+const NOT_TAINTED = 'NOT_TAINTED';
+const TAINTED = 'TAINTED';
+const LOAD_ERROR = 'LOAD_ERROR';
 
-var NOT_TAINTED = 'NOT_TAINTED';
-var TAINTED = 'TAINTED';
-var LOAD_ERROR = 'LOAD_ERROR';
-
-function get_query_params(url) {
-  var search = (new URL(url)).search;
-  if (!search) {
-    return {};
-  }
-  var ret = {};
-  var params = search.substring(1).split('&');
-  params.forEach(function(param) {
-      var element = param.split('=');
-      ret[decodeURIComponent(element[0])] = decodeURIComponent(element[1]);
-    });
-  return ret;
-}
-
+// Creates an image/video element with src=|url| and an optional |cross_origin|
+// attibute. Tries to read from the image/video using a canvas element. Returns
+// NOT_TAINTED if it could be read, TAINTED if it could not be read, and
+// LOAD_ERROR if loading the image/video failed.
 function create_test_case_promise(url, cross_origin) {
-  return new Promise(function(resolve) {
-      var img = new Image();
-      if (cross_origin != '') {
-        img.crossOrigin = cross_origin;
-      }
-      img.onload = function() {
-        try {
-          var canvas = document.createElement('canvas');
-          canvas.width = 100;
-          canvas.height = 100;
-          var context = canvas.getContext('2d');
-          context.drawImage(img, 0, 0);
-          context.getImageData(0, 0, 100, 100);
-          resolve(NOT_TAINTED);
-        } catch (e) {
-          resolve(TAINTED);
+  return new Promise(resolve => {
+      if (url.indexOf('PNGIMAGE') != -1) {
+        const img = document.createElement('img');
+        if (cross_origin != '') {
+          img.crossOrigin = cross_origin;
         }
-      };
-      img.onerror = function() {
-        resolve(LOAD_ERROR);
-      }
-      img.src = url;
-    });
-}
-
-function create_test_promise(url, cross_origin, expected_result) {
-  if (params['cache']) {
-    url += "&cache";
-  }
-
-  return new Promise(function(resolve, reject) {
-      create_test_case_promise(url, cross_origin)
-        .then(function(result) {
-          if (result == expected_result) {
-            resolve();
-          } else {
-            reject('Result of url:' + url + ' ' +
-                   ' cross_origin: ' + cross_origin + ' must be ' +
-                   expected_result + ' but ' + result);
+        img.onload = function() {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = 100;
+            canvas.height = 100;
+            const context = canvas.getContext('2d');
+            context.drawImage(img, 0, 0);
+            context.getImageData(0, 0, 100, 100);
+            resolve(NOT_TAINTED);
+          } catch (e) {
+            resolve(TAINTED);
           }
-        })
-    });
+        };
+        img.onerror = function() {
+          resolve(LOAD_ERROR);
+        }
+        img.src = url;
+        return;
+      }
+
+      if (url.indexOf('VIDEO') != -1) {
+        const video = document.createElement('video');
+        video.autoplay = true;
+        if (cross_origin != '') {
+          video.crossOrigin = cross_origin;
+        }
+        video.onplay = function() {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = 100;
+            canvas.height = 100;
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0);
+            context.getImageData(0, 0, 100, 100);
+            resolve(NOT_TAINTED);
+          } catch (e) {
+            resolve(TAINTED);
+          }
+        };
+        video.onerror = function() {
+          resolve(LOAD_ERROR);
+        }
+        video.src = url;
+        return;
+      }
+
+      resolve('unknown resource type');
+  });
 }
-
-window.addEventListener('message', function(evt) {
-    var port = evt.ports[0];
-    var image_url = host_info['HTTPS_ORIGIN'] + image_path;
-    var remote_image_url = host_info['HTTPS_REMOTE_ORIGIN'] + image_path;
-    Promise.all([
-        // Reject tests
-        create_test_promise(image_url + '&reject', '', LOAD_ERROR),
-        create_test_promise(image_url + '&reject', 'anonymous', LOAD_ERROR),
-        create_test_promise(
-            image_url + '&reject', 'use-credentials', LOAD_ERROR),
-        // Fallback tests
-        create_test_promise(
-            image_url + '&ignore',
-            '',
-            NOT_TAINTED),
-        create_test_promise(
-            remote_image_url + '&ignore',
-            '',
-            TAINTED),
-        create_test_promise(
-            remote_image_url + '&ignore',
-            'anonymous',
-            LOAD_ERROR),
-        create_test_promise(
-            remote_image_url + '&ACAOrigin=' + host_info['HTTPS_ORIGIN'] +
-            '&ignore',
-            'anonymous',
-            NOT_TAINTED),
-        create_test_promise(
-            remote_image_url + '&ignore',
-            'use-credentials',
-            LOAD_ERROR),
-        create_test_promise(
-            remote_image_url + '&ACAOrigin=' + host_info['HTTPS_ORIGIN'] +
-            '&ignore',
-            'use-credentials',
-            LOAD_ERROR),
-        create_test_promise(
-            remote_image_url + '&ACAOrigin=' + host_info['HTTPS_ORIGIN'] +
-            '&ACACredentials=true&ignore',
-            'use-credentials',
-            NOT_TAINTED),
-
-        // Credential test (fallback)
-        create_test_promise(
-            image_url + '&Auth&ignore',
-            '',
-            NOT_TAINTED),
-        create_test_promise(
-            remote_image_url + '&Auth&ignore',
-            '',
-            TAINTED),
-        create_test_promise(
-            remote_image_url + '&Auth&ignore',
-            'anonymous',
-            LOAD_ERROR),
-        create_test_promise(
-            remote_image_url + '&Auth&ignore',
-            'use-credentials',
-            LOAD_ERROR),
-        create_test_promise(
-            remote_image_url + '&Auth&ACAOrigin=' + host_info['HTTPS_ORIGIN'] +
-            '&ignore',
-            'use-credentials',
-            LOAD_ERROR),
-        create_test_promise(
-            remote_image_url + '&Auth&ACAOrigin=' + host_info['HTTPS_ORIGIN'] +
-            '&ACACredentials=true&ignore',
-            'use-credentials',
-            NOT_TAINTED),
-
-        // Basic response
-        create_test_promise(
-            image_url +
-            '&mode=same-origin&url=' + encodeURIComponent(image_url),
-            '',
-            NOT_TAINTED),
-        create_test_promise(
-            image_url +
-            '&mode=same-origin&url=' + encodeURIComponent(image_url),
-            'anonymous',
-            NOT_TAINTED),
-        create_test_promise(
-            image_url +
-            '&mode=same-origin&url=' + encodeURIComponent(image_url),
-            'use-credentials',
-            NOT_TAINTED),
-        create_test_promise(
-            remote_image_url +
-            '&mode=same-origin&url=' + encodeURIComponent(image_url),
-            '',
-            TAINTED),
-        create_test_promise(
-            remote_image_url +
-            '&mode=same-origin&url=' + encodeURIComponent(image_url),
-            'anonymous',
-            NOT_TAINTED),
-        create_test_promise(
-            remote_image_url +
-            '&mode=same-origin&url=' + encodeURIComponent(image_url),
-            'use-credentials',
-            NOT_TAINTED),
-
-        // Opaque response
-        create_test_promise(
-            image_url +
-            '&mode=no-cors&url=' + encodeURIComponent(remote_image_url),
-            '',
-            TAINTED),
-        create_test_promise(
-            image_url +
-            '&mode=no-cors&url=' + encodeURIComponent(remote_image_url),
-            'anonymous',
-            LOAD_ERROR),
-        create_test_promise(
-            image_url +
-            '&mode=no-cors&url=' + encodeURIComponent(remote_image_url),
-            'use-credentials',
-            LOAD_ERROR),
-        create_test_promise(
-            remote_image_url +
-            '&mode=no-cors&url=' + encodeURIComponent(remote_image_url),
-            '',
-            TAINTED),
-        create_test_promise(
-            remote_image_url +
-            '&mode=no-cors&url=' + encodeURIComponent(remote_image_url),
-            'anonymous',
-            LOAD_ERROR),
-        create_test_promise(
-            remote_image_url +
-            '&mode=no-cors&url=' + encodeURIComponent(remote_image_url),
-            'use-credentials',
-            LOAD_ERROR),
-
-        // CORS response
-        create_test_promise(
-            image_url +
-            '&mode=cors&url=' +
-            encodeURIComponent(remote_image_url +
-                               '&ACAOrigin=' + host_info['HTTPS_ORIGIN']),
-            '',
-            LOAD_ERROR), // We expect LOAD_ERROR since the server doesn't respond
-                         // with an Access-Control-Allow-Credentials header.
-        create_test_promise(
-            image_url +
-            '&mode=cors&credentials=same-origin&url=' +
-            encodeURIComponent(remote_image_url +
-                               '&ACAOrigin=' + host_info['HTTPS_ORIGIN']),
-            '',
-            NOT_TAINTED),
-        create_test_promise(
-            image_url +
-            '&mode=cors&url=' +
-            encodeURIComponent(remote_image_url +
-                               '&ACAOrigin=' + host_info['HTTPS_ORIGIN']),
-            'anonymous',
-            NOT_TAINTED),
-        create_test_promise(
-            image_url +
-            '&mode=cors&url=' +
-            encodeURIComponent(remote_image_url +
-                               '&ACAOrigin=' + host_info['HTTPS_ORIGIN']),
-            'use-credentials',
-            LOAD_ERROR), // We expect LOAD_ERROR since the server doesn't respond
-                         // with an Access-Control-Allow-Credentials header.
-        create_test_promise(
-            image_url +
-            '&mode=cors&url=' +
-            encodeURIComponent(
-                remote_image_url +
-                '&ACACredentials=true&ACAOrigin=' + host_info['HTTPS_ORIGIN']),
-            'use-credentials',
-            NOT_TAINTED),
-        create_test_promise(
-            remote_image_url +
-            '&mode=cors&url=' +
-            encodeURIComponent(remote_image_url +
-                               '&ACAOrigin=' + host_info['HTTPS_ORIGIN']),
-            '',
-            LOAD_ERROR), // We expect LOAD_ERROR since the server doesn't respond
-                         // with an Access-Control-Allow-Credentials header.
-        create_test_promise(
-            remote_image_url +
-            '&mode=cors&credentials=same-origin&url=' +
-            encodeURIComponent(remote_image_url +
-                               '&ACAOrigin=' + host_info['HTTPS_ORIGIN']),
-            '',
-            TAINTED), // The cross-origin no-cors request is immediately tainted.
-                      // Since this happens before the service worker interception,
-                      // it does not matter what kind of response it returns.
-                      // The result will always be tainted.
-        create_test_promise(
-            remote_image_url +
-            '&mode=cors&url=' +
-            encodeURIComponent(remote_image_url +
-                               '&ACAOrigin=' + host_info['HTTPS_ORIGIN']),
-            'anonymous',
-            NOT_TAINTED),
-        create_test_promise(
-            remote_image_url +
-            '&mode=cors&url=' +
-            encodeURIComponent(remote_image_url +
-                               '&ACAOrigin=' + host_info['HTTPS_ORIGIN']),
-            'use-credentials',
-            LOAD_ERROR), // We expect LOAD_ERROR since the server doesn't respond
-                         // with an Access-Control-Allow-Credentials header.
-        create_test_promise(
-            remote_image_url +
-            '&mode=cors&url=' +
-            encodeURIComponent(
-                remote_image_url +
-                '&ACACredentials=true&ACAOrigin=' + host_info['HTTPS_ORIGIN']),
-            'use-credentials',
-            NOT_TAINTED)
-      ])
-      .then(function() {
-          port.postMessage({results: 'finish'});
-        })
-      .catch(function(e) {
-          port.postMessage({results: 'failure:' + e});
-        });
-  }, false);
 </script>
+</html>

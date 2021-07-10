@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>hiragana, extended</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#simple-alphabetic'>
+<link rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+<meta name='flags' content='font'>
+<meta name="assert" content="Setting list-style-type to hiragana will produce list numbering after the basic alphabet as described in the CSS3 Counter Styles module.">
+<style type='text/css'>
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+ol li { list-style-type: hiragana;  }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, ignoring the suffix.</p>
+
+
+<div class="test"><ol start='49'><div><bdi>ああ、</bdi>ああ、</div></ol>
+<ol start='50'><div><bdi>あい、</bdi>あい、</div></ol>
+<ol start='51'><div><bdi>あう、</bdi>あう、</div></ol>
+<ol start='77'><div><bdi>あへ、</bdi>あへ、</div></ol>
+<ol start='80'><div><bdi>あみ、</bdi>あみ、</div></ol>
+<ol start='99'><div><bdi>いう、</bdi>いう、</div></ol>
+<ol start='100'><div><bdi>いえ、</bdi>いえ、</div></ol>
+<ol start='101'><div><bdi>いお、</bdi>いお、</div></ol>
+<ol start='222'><div><bdi>えほ、</bdi>えほ、</div></ol>
+<ol start='540'><div><bdi>さし、</bdi>さし、</div></ol>
+<ol start='999'><div><bdi>とら、</bdi>とら、</div></ol>
+<ol start='1000'><div><bdi>とり、</bdi>とり、</div></ol>
+<ol start='1005'><div><bdi>とゐ、</bdi>とゐ、</div></ol>
+<ol start='1060'><div><bdi>にえ、</bdi>にえ、</div></ol>
+<ol start='1065'><div><bdi>にけ、</bdi>にけ、</div></ol>
+<ol start='1800'><div><bdi>ゆね、</bdi>ゆね、</div></ol>
+<ol start='1860'><div><bdi>よや、</bdi>よや、</div></ol>
+<ol start='5865'><div><bdi>いはけ、</bdi>いはけ、</div></ol>
+<ol start='7005'><div><bdi>うあゐ、</bdi>うあゐ、</div></ol>
+<ol start='7800'><div><bdi>うつね、</bdi>うつね、</div></ol>
+<ol start='7864'><div><bdi>うてり、</bdi>うてり、</div></ol>
+<ol start='9999'><div><bdi>えたそ、</bdi>えたそ、</div></ol>
+</div>
+
+
+<!--Notes:
+You will need an appropriate font to run this test.
+
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+
+
+</body>
+</html>

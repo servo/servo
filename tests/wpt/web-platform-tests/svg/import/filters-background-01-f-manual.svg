@@ -16,36 +16,36 @@
         Test background image processing.
       </p>
       <p>
-        The first subtest enables background image processing and adds an empty ‘g’ element 
-        which invokes the ShiftBGAndBlur filter. This filter takes the current accumulated 
-        background image (i.e., the entire reference graphic) as input, shifts its offscreen 
+        The first subtest enables background image processing and adds an empty ‘g’ element
+        which invokes the ShiftBGAndBlur filter. This filter takes the current accumulated
+        background image (i.e., the entire reference graphic) as input, shifts its offscreen
         down, blurs it, and then writes the result to the canvas. Note that the offscreen for
-        the filter is initialized to transparent black, which allows the already rendered 
-        rectangle, circle and triangle to show through after the filter renders its own 
+        the filter is initialized to transparent black, which allows the already rendered
+        rectangle, circle and triangle to show through after the filter renders its own
         result to the canvas.
       </p>
       <p>
-        The second subtest enables background image processing and instead invokes the 
-        ShiftBGAndBlur filter on the inner ‘g’ element. The accumulated background at the 
-        time the filter is applied contains only the rectangle. Because the children 
-        of the inner ‘g’ (i.e., the circle and triangle) are not part of the inner ‘g’ element's 
+        The second subtest enables background image processing and instead invokes the
+        ShiftBGAndBlur filter on the inner ‘g’ element. The accumulated background at the
+        time the filter is applied contains only the rectangle. Because the children
+        of the inner ‘g’ (i.e., the circle and triangle) are not part of the inner ‘g’ element's
         background and because ShiftBGAndBlur ignores SourceGraphic, the children of the inner ‘g’
         do not appear in the result.
       </p>
       <p>
-        The third subtest enables background image processing and invokes the ShiftBGAndBlur on the 
-        ‘polygon’ element that draws the triangle. The accumulated background at the time the filter 
-        is applied contains the rectangle plus the circle ignoring the effect of the ‘opacity’ 
-        property on the inner ‘g’ element. (Note that the blurred circle at the bottom does not 
-        let the rectangle show through on its left side. This is due to ignoring the effect of 
-        the ‘opacity’ property.) Because the triangle itself is not part of the accumulated background 
+        The third subtest enables background image processing and invokes the ShiftBGAndBlur on the
+        ‘polygon’ element that draws the triangle. The accumulated background at the time the filter
+        is applied contains the rectangle plus the circle ignoring the effect of the ‘opacity’
+        property on the inner ‘g’ element. (Note that the blurred circle at the bottom does not
+        let the rectangle show through on its left side. This is due to ignoring the effect of
+        the ‘opacity’ property.) Because the triangle itself is not part of the accumulated background
         and because ShiftBGAndBlur ignores SourceGraphic, the triangle does not appear in the result.
       </p>
       <p>
-        The fourth subtest is the same as the third except that filter ShiftBGAndBlur_WithSourceGraphic is 
-        invoked instead of ShiftBGAndBlur. ShiftBGAndBlur_WithSourceGraphic performs the same effect as 
-        ShiftBGAndBlur, but then renders the SourceGraphic on top of the shifted, blurred background 
-        image. In this case, SourceGraphic is the blue triangle; thus, the result is the same as in 
+        The fourth subtest is the same as the third except that filter ShiftBGAndBlur_WithSourceGraphic is
+        invoked instead of ShiftBGAndBlur. ShiftBGAndBlur_WithSourceGraphic performs the same effect as
+        ShiftBGAndBlur, but then renders the SourceGraphic on top of the shifted, blurred background
+        image. In this case, SourceGraphic is the blue triangle; thus, the result is the same as in
         the fourth case except that the triangle now appears.
       </p>
     </d:testDescription>
@@ -85,7 +85,7 @@
           <feOffset in="BackgroundImage" dx="0" dy="125" />
           <feGaussianBlur stdDeviation="8" />
         </filter>
-        <filter id="ShiftBGAndBlur_WithSourceGraphic" 
+        <filter id="ShiftBGAndBlur_WithSourceGraphic"
                 filterUnits="userSpaceOnUse" x="0" y="0" width="1200" height="400">
           <desc>
             This filter takes the BackgroundImage, shifts it down 125 units, blurs it,

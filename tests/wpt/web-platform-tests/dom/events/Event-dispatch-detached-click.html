@@ -10,6 +10,7 @@ test(function() {
   var t = async_test("Click event can be dispatched to an element that is not in the document.")
   TARGET.addEventListener(EVENT, t.step_func(function(evt) {
     assert_equals(evt.target, TARGET);
+    assert_equals(evt.srcElement, TARGET);
     t.done();
   }), true);
   var e = document.createEvent("Event");

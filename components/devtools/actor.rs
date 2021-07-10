@@ -1,9 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 /// General actor system infrastructure.
-
+use crate::StreamId;
 use devtools_traits::PreciseTime;
 use serde_json::{Map, Value};
 use std::any::Any;
@@ -22,29 +22,37 @@ pub enum ActorMessageStatus {
 /// A common trait for all devtools actors that encompasses an immutable name
 /// and the ability to process messages that are directed to particular actors.
 /// TODO: ensure the name is immutable
-pub trait Actor: Any + ActorAsAny {
-    fn handle_message(&self,
-                      registry: &ActorRegistry,
-                      msg_type: &str,
-                      msg: &Map<String, Value>,
-                      stream: &mut TcpStream) -> Result<ActorMessageStatus, ()>;
+pub(crate) trait Actor: Any + ActorAsAny {
+    fn handle_message(
+        &self,
+        registry: &ActorRegistry,
+        msg_type: &str,
+        msg: &Map<String, Value>,
+        stream: &mut TcpStream,
+        id: StreamId,
+    ) -> Result<ActorMessageStatus, ()>;
     fn name(&self) -> String;
+    fn cleanup(&self, _id: StreamId) {}
 }
 
-pub trait ActorAsAny {
-    fn actor_as_any(&self) -> &Any;
-    fn actor_as_any_mut(&mut self) -> &mut Any;
+pub(crate) trait ActorAsAny {
+    fn actor_as_any(&self) -> &dyn Any;
+    fn actor_as_any_mut(&mut self) -> &mut dyn Any;
 }
 
 impl<T: Actor> ActorAsAny for T {
-    fn actor_as_any(&self) -> &Any { self }
-    fn actor_as_any_mut(&mut self) -> &mut Any { self }
+    fn actor_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn actor_as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
 }
 
 /// A list of known, owned actors.
 pub struct ActorRegistry {
-    actors: HashMap<String, Box<Actor + Send>>,
-    new_actors: RefCell<Vec<Box<Actor + Send>>>,
+    actors: HashMap<String, Box<dyn Actor + Send>>,
+    new_actors: RefCell<Vec<Box<dyn Actor + Send>>>,
     old_actors: RefCell<Vec<String>>,
     script_actors: RefCell<HashMap<String, String>>,
     shareable: Option<Arc<Mutex<ActorRegistry>>>,
@@ -57,12 +65,18 @@ impl ActorRegistry {
     pub fn new() -> ActorRegistry {
         ActorRegistry {
             actors: HashMap::new(),
-            new_actors: RefCell::new(vec!()),
-            old_actors: RefCell::new(vec!()),
+            new_actors: RefCell::new(vec![]),
+            old_actors: RefCell::new(vec![]),
             script_actors: RefCell::new(HashMap::new()),
             shareable: None,
             next: Cell::new(0),
             start_stamp: PreciseTime::now(),
+        }
+    }
+
+    pub(crate) fn cleanup(&self, id: StreamId) {
+        for actor in self.actors.values() {
+            actor.cleanup(id);
         }
     }
 
@@ -126,11 +140,11 @@ impl ActorRegistry {
     }
 
     /// Add an actor to the registry of known actors that can receive messages.
-    pub fn register(&mut self, actor: Box<Actor + Send>) {
+    pub(crate) fn register(&mut self, actor: Box<dyn Actor + Send>) {
         self.actors.insert(actor.name(), actor);
     }
 
-    pub fn register_later(&self, actor: Box<Actor + Send>) {
+    pub(crate) fn register_later(&self, actor: Box<dyn Actor + Send>) {
         let mut actors = self.new_actors.borrow_mut();
         actors.push(actor);
     }
@@ -149,29 +163,40 @@ impl ActorRegistry {
 
     /// Attempt to process a message as directed by its `to` property. If the actor is not
     /// found or does not indicate that it knew how to process the message, ignore the failure.
-    pub fn handle_message(&mut self,
-                          msg: &Map<String, Value>,
-                          stream: &mut TcpStream)
-                          -> Result<(), ()> {
-        let to = msg.get("to").unwrap().as_str().unwrap();
+    pub(crate) fn handle_message(
+        &mut self,
+        msg: &Map<String, Value>,
+        stream: &mut TcpStream,
+        id: StreamId,
+    ) -> Result<(), ()> {
+        let to = match msg.get("to") {
+            Some(to) => to.as_str().unwrap(),
+            None => {
+                warn!("Received unexpected message: {:?}", msg);
+                return Err(());
+            },
+        };
 
         match self.actors.get(to) {
             None => debug!("message received for unknown actor \"{}\"", to),
             Some(actor) => {
                 let msg_type = msg.get("type").unwrap().as_str().unwrap();
-                if try!(actor.handle_message(self, msg_type, msg, stream))
-                        != ActorMessageStatus::Processed {
-                    debug!("unexpected message type \"{}\" found for actor \"{}\"",
-                             msg_type, to);
+                if actor.handle_message(self, msg_type, msg, stream, id)? !=
+                    ActorMessageStatus::Processed
+                {
+                    debug!(
+                        "unexpected message type \"{}\" found for actor \"{}\"",
+                        msg_type, to
+                    );
                 }
-            }
+            },
         }
-        let new_actors = replace(&mut *self.new_actors.borrow_mut(), vec!());
+        let new_actors = replace(&mut *self.new_actors.borrow_mut(), vec![]);
         for actor in new_actors.into_iter() {
             self.actors.insert(actor.name().to_owned(), actor);
         }
 
-        let old_actors = replace(&mut *self.old_actors.borrow_mut(), vec!());
+        let old_actors = replace(&mut *self.old_actors.borrow_mut(), vec![]);
         for name in old_actors {
             self.drop_actor(name);
         }

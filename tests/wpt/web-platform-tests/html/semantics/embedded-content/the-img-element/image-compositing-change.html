@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Composited images correctly re-raster when the image and bounds change</title>
+<meta charset="utf-8">
+<link rel="match" href="image-compositing-change-ref.html"/>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-img-element">
+<style>
+#change {
+  will-change:transform;
+  height:426px; width:426px;
+}
+</style>
+<img id="change" src="image.png"></img>
+<img id="original" src="../../../../images/green-16x16.png"></img>
+<script>
+window.onload = () => {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      let image = document.querySelector('#change');
+      image.style.width = image.style.height = "75px";
+      image.src = original.src;
+
+      requestAnimationFrame(() => {
+        document.documentElement.classList.remove("reftest-wait");
+      });
+    });
+  });
+}
+</script>
+

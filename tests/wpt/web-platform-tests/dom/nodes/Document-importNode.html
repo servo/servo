@@ -54,4 +54,14 @@ test(function() {
   assert_equals(newDiv.ownerDocument, document);
   assert_equals(newDiv.firstChild, null);
 }, "False 'deep' argument.")
+
+test(function() {
+  let doc = document.implementation.createHTMLDocument("Title");
+  doc.body.setAttributeNS("http://example.com/", "p:name", "value");
+  let originalAttr = doc.body.getAttributeNodeNS("http://example.com/", "name");
+  let imported = document.importNode(originalAttr, true);
+  assert_equals(imported.prefix, originalAttr.prefix);
+  assert_equals(imported.namespaceURI, originalAttr.namespaceURI);
+  assert_equals(imported.localName, originalAttr.localName);
+}, "Import an Attr node with namespace/prefix correctly.");
 </script>

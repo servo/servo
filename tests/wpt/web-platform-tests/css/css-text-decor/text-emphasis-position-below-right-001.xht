@@ -1,0 +1,63 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Test: text-emphasis-position - below right - basic cases</title>
+		<link rel="author" title="Makoto Kikuchi" href="mailto:kikuchi@est.co.jp" />
+		<link rel="help" href="https://drafts.csswg.org/css-text-decor-3/#text-emphasis-position-property" />
+		<link rel="match" href="reference/text-emphasis-position-below-right-001-ref.xht"/>
+		<meta name="flags" content="ahem" />
+		<meta name="assert" content="This property describes where emphasis marks are drawn at." />
+		<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+		<style type="text/css"><![CDATA[
+			.test
+			{
+				text-emphasis-style: filled circle;
+				text-emphasis-position: below right;
+			}
+			/* the CSS below is not part of the test */
+			.common
+			{
+				line-height: 1em;
+				position: relative;
+			}
+			.parent
+			{
+				background: yellow;
+				border: solid 1px gray;
+				color: blue;
+				font: 20px/1em ahem;
+				width: 6em;
+			}
+			.refcommon
+			{
+				font-size: 0.5em;
+				left: 0.6em;
+				position: absolute;
+			}
+			.top
+			{
+				top: 1.6em;
+			}
+		]]></style>
+	</head>
+	<body>
+		<div>
+			<p>Test passes if a pair of upper and lower block in the square box is identical.</p>
+			<p>horizontal</p>
+			<div class="parent">
+				<div><span class="test">abc</span> de<br /><br /></div>
+			</div>
+			<br />
+			<div class="parent">
+				<div class="margin">
+					<div class="margin">
+						<span class="common">a<span class="refcommon top">&#x25CF;</span></span><span class="common">b<span class="refcommon top">&#x25CF;</span></span><span class="common">c<span class="refcommon top">&#x25CF;</span></span>
+						 de<br />
+						<br />
+					</div>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

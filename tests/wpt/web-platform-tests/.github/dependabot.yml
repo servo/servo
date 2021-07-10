@@ -1,0 +1,22 @@
+version: 2
+updates:
+- package-ecosystem: github-actions
+  directory: "/"
+  schedule:
+    interval: weekly
+  open-pull-requests-limit: 10
+- package-ecosystem: npm
+  directory: "webrtc/tools/"
+  schedule:
+    interval: weekly
+  open-pull-requests-limit: 10
+- package-ecosystem: npm
+  directory: "tools/scripts/"
+  schedule:
+    interval: weekly
+  open-pull-requests-limit: 10
+- package-ecosystem: npm
+  directory: "css/css-writing-modes/tools/generators/"
+  schedule:
+    interval: weekly
+  open-pull-requests-limit: 10

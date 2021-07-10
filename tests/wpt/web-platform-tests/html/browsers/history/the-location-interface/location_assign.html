@@ -18,7 +18,7 @@
 
     test(function () {
       var href = location.href;
-      assert_throws('SYNTAX_ERR', function() { location.assign("http://:"); });
+      assert_throws_dom('SYNTAX_ERR', function() { location.assign("http://:"); });
       assert_equals(location.href, href);
     }, "URL that fails to parse");
     </script>

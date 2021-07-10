@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Percentage size abspos box in a containing block that has padding</title>
+<link rel=help href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel=help href="https://bugzilla.mozilla.org/show_bug.cgi?id=1691374">
+<link rel=author href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel=author href="https://mozilla.org" title="Mozilla">
+<link rel=match href="intrinsic-percent-replaced-011-ref.html">
+<style>
+  :root { writing-mode: vertical-lr; }
+</style>
+<div style="position: relative; padding-left: 100px; width: 0;">
+  <div style="position: absolute; top: 0; left: 0; height: 100%; width: 100%;">
+    <div style="display: inline-block; width: 100%;">
+      <img
+        style="width: 100%; max-height: 100%;"
+        src="/images/green-100x50.png">
+    </div>
+  </div>
+</div>

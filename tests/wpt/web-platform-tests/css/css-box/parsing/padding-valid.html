@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS basic box model: parsing padding with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-box-3/#propdef-padding">
+<meta name="assert" content="padding supports the full grammar '<length-percentage>{1,4}'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("padding", "10px");
+test_valid_value("padding", "10px 20px 30px 40px");
+test_valid_value("padding", "calc(2em + 3ex)");
+
+test_valid_value("padding-top", "10px");
+test_valid_value("padding-right", "20px");
+test_valid_value("padding-bottom", "30px");
+test_valid_value("padding-left", "40px");
+
+test_valid_value("padding", "20%");
+test_valid_value("padding", "10px 20% 30% 40px");
+test_valid_value("padding-right", "20%");
+test_valid_value("padding-right", "calc(2em + 3%)");
+</script>
+</body>
+</html>

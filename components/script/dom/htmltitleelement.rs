@@ -1,19 +1,18 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::HTMLTitleElementBinding;
-use dom::bindings::codegen::Bindings::HTMLTitleElementBinding::HTMLTitleElementMethods;
-use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
-use dom::bindings::str::DOMString;
-use dom::document::Document;
-use dom::htmlelement::HTMLElement;
-use dom::node::{ChildrenMutation, Node};
-use dom::virtualmethods::VirtualMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLTitleElementBinding::HTMLTitleElementMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::document::Document;
+use crate::dom::htmlelement::HTMLElement;
+use crate::dom::node::{BindContext, ChildrenMutation, Node};
+use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever_atoms::LocalName;
+use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLTitleElement {
@@ -21,19 +20,28 @@ pub struct HTMLTitleElement {
 }
 
 impl HTMLTitleElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> HTMLTitleElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLTitleElement {
         HTMLTitleElement {
-            htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
-               document: &Document) -> Root<HTMLTitleElement> {
-        Node::reflect_node(box HTMLTitleElement::new_inherited(local_name, prefix, document),
-                           document,
-                           HTMLTitleElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLTitleElement> {
+        Node::reflect_node(
+            Box::new(HTMLTitleElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+        )
     }
 }
 
@@ -50,8 +58,8 @@ impl HTMLTitleElementMethods for HTMLTitleElement {
 }
 
 impl VirtualMethods for HTMLTitleElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
     fn children_changed(&self, mutation: &ChildrenMutation) {
@@ -64,12 +72,12 @@ impl VirtualMethods for HTMLTitleElement {
         }
     }
 
-    fn bind_to_tree(&self, tree_in_doc: bool) {
+    fn bind_to_tree(&self, context: &BindContext) {
         if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(tree_in_doc);
+            s.bind_to_tree(context);
         }
         let node = self.upcast::<Node>();
-        if tree_in_doc {
+        if context.tree_in_doc {
             node.owner_doc().title_changed();
         }
     }

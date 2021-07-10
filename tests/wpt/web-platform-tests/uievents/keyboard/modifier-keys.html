@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>UI Events Test: Modifier keys</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://w3c.github.io/uievents/#idl-keyboardevent" />
+<meta name="assert" content="This test checks that modifier keys are properly detected in 'keydown' event.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<div id="target" tabindex="0">Target</div>
+<script>
+  const keys = {
+    "Shift": '\uE008',
+    "Control": '\uE009',
+    "Alt": '\uE00A',
+    "Meta": '\uE03D',
+  };
+
+  target.focus();
+  for (const [key, code] of Object.entries(keys)) {
+    promise_test(() => {
+      return new Promise(resolve => {
+        target.addEventListener("keydown", resolve);
+        test_driver.send_keys(target, code);
+      }).then((event) => {
+        assert_equals(event.key, key);
+        assert_equals(event.shiftKey, key === "Shift");
+        assert_equals(event.ctrlKey, key === "Control");
+        assert_equals(event.altKey, key === "Alt");
+        assert_equals(event.metaKey, key === "Meta");
+      });
+    }, `Check sending ${key} key`);
+  }
+</script>

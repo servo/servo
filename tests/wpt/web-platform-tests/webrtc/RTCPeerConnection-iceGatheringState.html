@@ -1,0 +1,240 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.iceGatheringState</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  // The following helper functions are called from RTCPeerConnection-helper.js:
+  // exchangeAnswer
+  // exchangeIceCandidates
+  // generateAudioReceiveOnlyOffer
+
+  /*
+    4.3.2.  Interface Definition
+      interface RTCPeerConnection : EventTarget {
+        ...
+        readonly  attribute RTCIceGatheringState   iceGatheringState;
+                  attribute EventHandler           onicegatheringstatechange;
+      };
+
+    4.4.2.  RTCIceGatheringState Enum
+      enum RTCIceGatheringState {
+        "new",
+        "gathering",
+        "complete"
+      };
+
+    5.6.  RTCIceTransport Interface
+      interface RTCIceTransport {
+        readonly attribute RTCIceGathererState  gatheringState;
+        ...
+      };
+
+      enum RTCIceGathererState {
+        "new",
+        "gathering",
+        "complete"
+      };
+   */
+
+  /*
+    4.4.2.  RTCIceGatheringState Enum
+      new
+        Any of the RTCIceTransport s are in the new gathering state and
+        none of the transports are in the gathering state, or there are
+        no transports.
+   */
+  test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    assert_equals(pc.iceGatheringState, 'new');
+  }, 'Initial iceGatheringState should be new');
+
+  async_test(t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    let reachedGathering = false;
+    const onIceGatheringStateChange = t.step_func(() => {
+      const { iceGatheringState } = pc;
+
+      if(iceGatheringState === 'gathering') {
+        reachedGathering = true;
+      } else if(iceGatheringState === 'complete') {
+        assert_true(reachedGathering, 'iceGatheringState should reach gathering before complete');
+        t.done();
+      }
+    });
+
+    assert_equals(pc.onicegatheringstatechange, null,
+      'Expect connection to have icegatheringstatechange event');
+    assert_equals(pc.iceGatheringState, 'new');
+
+    pc.addEventListener('icegatheringstatechange', onIceGatheringStateChange);
+
+    generateAudioReceiveOnlyOffer(pc)
+    .then(offer => pc.setLocalDescription(offer))
+    .then(err => t.step_func(err =>
+      assert_unreached(`Unhandled rejection ${err.name}: ${err.message}`)));
+  }, 'iceGatheringState should eventually become complete after setLocalDescription');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    await initialOfferAnswerWithIceGatheringStateTransitions(
+        pc1, pc2, {offerToReceiveAudio: true});
+
+    expectNoMoreGatheringStateChanges(t, pc1);
+    expectNoMoreGatheringStateChanges(t, pc2);
+
+    await pc1.setLocalDescription(await pc1.createOffer());
+    await pc2.setLocalDescription(await pc2.createOffer());
+
+    await new Promise(r => t.step_timeout(r, 500));
+  }, 'setLocalDescription(reoffer) with no new transports should not cause iceGatheringState to change');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+
+    expectNoMoreGatheringStateChanges(t, pc1);
+
+    await pc1.setLocalDescription(await pc1.createOffer());
+
+    await new Promise(r => t.step_timeout(r, 500));
+  }, 'setLocalDescription() with no transports should not cause iceGatheringState to change');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    await initialOfferAnswerWithIceGatheringStateTransitions(
+        pc1, pc2, {offerToReceiveAudio:true});
+    await pc1.setLocalDescription(await pc1.createOffer({iceRestart: true}));
+    await iceGatheringStateTransitions(pc1, 'gathering', 'complete');
+  }, 'setLocalDescription(reoffer) with a new transport should cause iceGatheringState to go to "checking" and then "complete"');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    expectNoMoreGatheringStateChanges(t, pc2);
+    const offer = await pc1.createOffer({offerToReceiveAudio: true});
+    await pc2.setRemoteDescription(offer);
+    await pc2.setRemoteDescription(offer);
+    await pc2.setRemoteDescription({type: 'rollback'});
+    await pc2.setRemoteDescription(offer);
+  }, 'sRD does not cause ICE gathering state changes');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    await initialOfferAnswerWithIceGatheringStateTransitions(
+        pc1, pc2, {offerToReceiveAudio: true});
+
+    const pc1waiter = iceGatheringStateTransitions(pc1, 'new');
+    const pc2waiter = iceGatheringStateTransitions(pc2, 'new');
+    pc1.getTransceivers()[0].stop();
+    await pc1.setLocalDescription(await pc1.createOffer());
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await pc2.setLocalDescription(await pc2.createAnswer());
+    assert_equals(pc2.getTransceivers().length, 0,
+                 'PC2 transceivers should be invisible after negotiation');
+    assert_equals(pc2.iceGatheringState, 'new');
+    await pc2waiter;
+    await pc1.setRemoteDescription(pc2.localDescription);
+    assert_equals(pc1.getTransceivers().length, 0,
+                  'PC1 transceivers should be invisible after negotiation');
+    assert_equals(pc1.iceGatheringState, 'new');
+    await pc1waiter;
+  }, 'renegotiation that closes all transports should result in ICE gathering state "new"');
+
+  /*
+    4.3.2.  RTCIceGatheringState Enum
+      new
+        Any of the RTCIceTransports are in the "new" gathering state and none
+        of the transports are in the "gathering" state, or there are no
+        transports.
+
+      gathering
+        Any of the RTCIceTransport s are in the gathering state.
+
+      complete
+        At least one RTCIceTransport exists, and all RTCIceTransports are
+        in the completed gathering state.
+
+    5.6.  RTCIceGathererState
+      gathering
+        The RTCIceTransport is in the process of gathering candidates.
+
+      complete
+        The RTCIceTransport has completed gathering and the end-of-candidates
+        indication for this transport has been sent. It will not gather candidates
+        again until an ICE restart causes it to restart.
+   */
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc2.close());
+
+    const onIceGatheringStateChange = t.step_func(() => {
+      const { iceGatheringState } = pc2;
+
+      if(iceGatheringState === 'gathering') {
+        const iceTransport = pc2.sctp.transport.iceTransport;
+
+        assert_equals(iceTransport.gatheringState, 'gathering',
+          'Expect ICE transport to be in gathering gatheringState when iceGatheringState is gathering');
+
+      } else if(iceGatheringState === 'complete') {
+        const iceTransport = pc2.sctp.transport.iceTransport;
+
+        assert_equals(iceTransport.gatheringState, 'complete',
+          'Expect ICE transport to be in complete gatheringState when iceGatheringState is complete');
+
+        t.done();
+      }
+    });
+
+    pc1.createDataChannel('test');
+
+    // Spec bug w3c/webrtc-pc#1382
+    // Because sctp is only defined when answer is set, we listen
+    // to pc2 so that we can be confident that sctp is defined
+    // when icegatheringstatechange event is fired.
+    pc2.addEventListener('icegatheringstatechange', onIceGatheringStateChange);
+
+
+    exchangeIceCandidates(pc1, pc2);
+
+    await pc1.setLocalDescription();
+    assert_equals(pc1.sctp.transport.iceTransport.gatheringState, 'new');
+    await pc2.setRemoteDescription(pc1.localDescription);
+
+    await exchangeAnswer(pc1, pc2);
+  }, 'connection with one data channel should eventually have connected connection state');
+
+  /*
+    TODO
+    5.6.  RTCIceTransport Interface
+      new
+        The RTCIceTransport was just created, and has not started gathering
+        candidates yet.
+   */
+</script>

@@ -1,49 +1,38 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Tracking of pending loads in a document.
-//! https://html.spec.whatwg.org/multipage/#the-end
+//!
+//! <https://html.spec.whatwg.org/multipage/#the-end>
 
-use dom::bindings::js::JS;
-use dom::document::Document;
+use crate::dom::bindings::root::Dom;
+use crate::dom::document::Document;
+use crate::fetch::FetchCanceller;
 use ipc_channel::ipc::IpcSender;
-use net_traits::{CoreResourceMsg, FetchResponseMsg, ResourceThreads, IpcSend};
-use net_traits::request::RequestInit;
+use net_traits::request::RequestBuilder;
+use net_traits::{CoreResourceMsg, FetchChannels, FetchResponseMsg};
+use net_traits::{IpcSend, ResourceThreads};
 use servo_url::ServoUrl;
-use std::thread;
 
-#[derive(JSTraceable, PartialEq, Clone, Debug, HeapSizeOf)]
+#[derive(Clone, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum LoadType {
     Image(ServoUrl),
     Script(ServoUrl),
     Subframe(ServoUrl),
     Stylesheet(ServoUrl),
     PageSource(ServoUrl),
-    Media(ServoUrl),
-}
-
-impl LoadType {
-    fn url(&self) -> &ServoUrl {
-        match *self {
-            LoadType::Image(ref url) |
-            LoadType::Script(ref url) |
-            LoadType::Subframe(ref url) |
-            LoadType::Stylesheet(ref url) |
-            LoadType::Media(ref url) |
-            LoadType::PageSource(ref url) => url,
-        }
-    }
+    Media,
 }
 
 /// Canary value ensuring that manually added blocking loads (ie. ones that weren't
 /// created via DocumentLoader::fetch_async) are always removed by the time
 /// that the owner is destroyed.
-#[derive(JSTraceable, HeapSizeOf)]
-#[must_root]
+#[derive(JSTraceable, MallocSizeOf)]
+#[unrooted_must_root_lint::must_root]
 pub struct LoadBlocker {
     /// The document whose load event is blocked by this object existing.
-    doc: JS<Document>,
+    doc: Dom<Document>,
     /// The load that is blocking the document's load event.
     load: Option<LoadType>,
 }
@@ -51,9 +40,9 @@ pub struct LoadBlocker {
 impl LoadBlocker {
     /// Mark the document's load event as blocked on this new load.
     pub fn new(doc: &Document, load: LoadType) -> LoadBlocker {
-        doc.mut_loader().add_blocking_load(load.clone());
+        doc.loader_mut().add_blocking_load(load.clone());
         LoadBlocker {
-            doc: JS::from_ref(doc),
+            doc: Dom::from_ref(doc),
             load: Some(load),
         }
     }
@@ -65,26 +54,22 @@ impl LoadBlocker {
         }
         *blocker = None;
     }
-
-    /// Return the url associated with this load.
-    pub fn url(&self) -> Option<&ServoUrl> {
-        self.load.as_ref().map(LoadType::url)
-    }
 }
 
 impl Drop for LoadBlocker {
     fn drop(&mut self) {
-        if !thread::panicking() {
-            debug_assert!(self.load.is_none());
+        if let Some(load) = self.load.take() {
+            self.doc.finish_load(load);
         }
     }
 }
 
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub struct DocumentLoader {
     resource_threads: ResourceThreads,
     blocking_loads: Vec<LoadType>,
     events_inhibited: bool,
+    cancellers: Vec<FetchCanceller>,
 }
 
 impl DocumentLoader {
@@ -92,8 +77,10 @@ impl DocumentLoader {
         DocumentLoader::new_with_threads(existing.resource_threads.clone(), None)
     }
 
-    pub fn new_with_threads(resource_threads: ResourceThreads,
-                            initial_load: Option<ServoUrl>) -> DocumentLoader {
+    pub fn new_with_threads(
+        resource_threads: ResourceThreads,
+        initial_load: Option<ServoUrl>,
+    ) -> DocumentLoader {
         debug!("Initial blocking load {:?}.", initial_load);
         let initial_loads = initial_load.into_iter().map(LoadType::PageSource).collect();
 
@@ -101,41 +88,85 @@ impl DocumentLoader {
             resource_threads: resource_threads,
             blocking_loads: initial_loads,
             events_inhibited: false,
+            cancellers: Vec::new(),
         }
+    }
+
+    pub fn cancel_all_loads(&mut self) -> bool {
+        let canceled_any = !self.cancellers.is_empty();
+        // Associated fetches will be canceled when dropping the canceller.
+        self.cancellers.clear();
+        canceled_any
     }
 
     /// Add a load to the list of blocking loads.
     fn add_blocking_load(&mut self, load: LoadType) {
-        debug!("Adding blocking load {:?} ({}).", load, self.blocking_loads.len());
+        debug!(
+            "Adding blocking load {:?} ({}).",
+            load,
+            self.blocking_loads.len()
+        );
         self.blocking_loads.push(load);
     }
 
     /// Initiate a new fetch.
-    pub fn fetch_async(&mut self,
-                       load: LoadType,
-                       request: RequestInit,
-                       fetch_target: IpcSender<FetchResponseMsg>) {
+    pub fn fetch_async(
+        &mut self,
+        load: LoadType,
+        request: RequestBuilder,
+        fetch_target: IpcSender<FetchResponseMsg>,
+    ) {
         self.add_blocking_load(load);
         self.fetch_async_background(request, fetch_target);
     }
 
     /// Initiate a new fetch that does not block the document load event.
-    pub fn fetch_async_background(&self,
-                                  request: RequestInit,
-                                  fetch_target: IpcSender<FetchResponseMsg>) {
-        self.resource_threads.sender().send(CoreResourceMsg::Fetch(request, fetch_target)).unwrap();
+    pub fn fetch_async_background(
+        &mut self,
+        request: RequestBuilder,
+        fetch_target: IpcSender<FetchResponseMsg>,
+    ) {
+        let mut canceller = FetchCanceller::new();
+        let cancel_receiver = canceller.initialize();
+        self.cancellers.push(canceller);
+        self.resource_threads
+            .sender()
+            .send(CoreResourceMsg::Fetch(
+                request,
+                FetchChannels::ResponseMsg(fetch_target, Some(cancel_receiver)),
+            ))
+            .unwrap();
     }
 
     /// Mark an in-progress network request complete.
     pub fn finish_load(&mut self, load: &LoadType) {
-        debug!("Removing blocking load {:?} ({}).", load, self.blocking_loads.len());
-        let idx = self.blocking_loads.iter().position(|unfinished| *unfinished == *load);
-        self.blocking_loads.remove(idx.expect(&format!("unknown completed load {:?}", load)));
+        debug!(
+            "Removing blocking load {:?} ({}).",
+            load,
+            self.blocking_loads.len()
+        );
+        let idx = self
+            .blocking_loads
+            .iter()
+            .position(|unfinished| *unfinished == *load);
+        match idx {
+            Some(i) => {
+                self.blocking_loads.remove(i);
+            },
+            None => warn!("unknown completed load {:?}", load),
+        }
     }
 
     pub fn is_blocked(&self) -> bool {
         // TODO: Ensure that we report blocked if parsing is still ongoing.
         !self.blocking_loads.is_empty()
+    }
+
+    pub fn is_only_blocked_by_iframes(&self) -> bool {
+        self.blocking_loads.iter().all(|load| match *load {
+            LoadType::Subframe(_) => true,
+            _ => false,
+        })
     }
 
     pub fn inhibit_events(&mut self) {

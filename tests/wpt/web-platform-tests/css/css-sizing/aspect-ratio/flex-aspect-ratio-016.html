@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: Column flex container with the replaced-element item</title>
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#line-sizing" title="9.2.3.B">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="aspect-ratio should work well if the flex item is a replaced element.">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="display: flex; flex-direction: column;">
+  <img src="support/20x50-green.png" style="width: 100px; aspect-ratio: 1/1;">
+</div>

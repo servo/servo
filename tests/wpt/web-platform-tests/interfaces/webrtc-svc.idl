@@ -1,0 +1,12 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Scalable Video Coding (SVC) Extension for WebRTC (https://w3c.github.io/webrtc-svc/)
+
+partial dictionary RTCRtpEncodingParameters {
+             DOMString scalabilityMode;
+};
+
+partial dictionary RTCRtpCodecCapability {
+             sequence<DOMString> scalabilityModes;
+};

@@ -15,17 +15,17 @@
     version="$Revision: 1.6 $" testname="$RCSfile: animate-elem-84-t.svg,v $">
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
         <p>
-	Test animation of color keywords that resolve to animatable RGB values.
+  Test animation of color keywords that resolve to animatable RGB values.
         </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
       <p>
-        Run the test. No interaction required. 
+        Run the test. No interaction required.
       </p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
-	The test is passed if five
+  The test is passed if five
         black squares are shown, after two seconds, all five squares  turn red and
         then smoothly animate the fill color to green over the next five seconds.
       </p>

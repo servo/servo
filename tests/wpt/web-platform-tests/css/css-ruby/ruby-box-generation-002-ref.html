@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Test for pseudo ruby box generation</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="stylesheet" href="support/ruby-common.css">
+<body class="large">
+
+  <p>|<ruby><rbc></rbc
+      ><rtc pseudo><rt>a</rt><rt pseudo><span> </span></rt><rt>b</rt></rtc><rbc><rb><span>
+      </span></rb></rbc><rbc><rb>c</rb></rbc
+      ><rbc><rb><span> </span></rb></rbc><rbc><rb>d</rb></rbc
+      ><rtc pseudo><rt>e</rt></rtc><rtc><rt>f</rt></rtc
+      ><rtc pseudo><rt>g</rt></rtc><rbc><rb><span> h
+      </span></rb></rbc><rtc pseudo><rt>i</rt></rtc><rbc><rb><span> </span></rb></rbc
+      ><rbc><rb>j</rb></rbc><rbc><rb><span>
+      </span></rb></rbc><rbc><rb>k</rb></rbc><rbc><rb><span> </span></rb></rbc
+      ><rbc><rb>l</rb></rbc
+      ><rtc><rt>m</rt></rtc><rtc><rt>n</rt></rtc><rbc><rb><span>
+      o p
+      </span></rb></rbc><rtc><rt>q</rt></rtc><rbc><rb><span> </span></rb></rbc
+      ><rbc><rb>r</rb></rbc><rbc><rb><span>
+      s </span></rb></rbc><rbc><rb>t</rb></rbc
+      ><rtc><rt>u</rt></rtc><rbc><rb><span> </span></rb></rbc><rbc><rb>v</rb><rb><span>
+      </span></rb><rb>w</rb><rb><span> x
+      </span></rb><rb>y</rb></rbc><rtc pseudo><rt>z</rt></rtc></ruby>|</p>
+
+  <p>|<span> </span><ruby><rbc></rbc
+      ><rtc pseudo><rt>a</rt><rt pseudo><span> </span></rt><rt>b</rt></rtc><rbc><rb><span>
+      </span></rb></rbc><rbc><rb>c</rb></rbc
+      ><rbc><rb><span> </span></rb></rbc><rbc><rb>d</rb></rbc
+      ><rtc pseudo><rt>e</rt></rtc><rtc><rt>f</rt></rtc
+      ><rtc pseudo><rt>g</rt></rtc></ruby><span> h
+      </span><ruby><rbc></rbc><rtc pseudo><rt>i</rt></rtc
+      ><rbc><rb><span> </span></rb></rbc><rbc><rb>j</rb></rbc><rbc><rb><span>
+      </span></rb></rbc><rbc><rb>k</rb></rbc
+      ><rbc><rb><span> </span></rb></rbc><rbc><rb>l</rb></rbc
+      ><rtc><rt>m</rt></rtc><rtc><rt>n</rt></rtc></ruby><span>
+      o p
+      </span><ruby><rbc></rbc><rtc><rt>q</rt></rtc
+      ><rbc><rb><span> </span></rb></rbc><rbc><rb>r</rb></rbc></ruby><span>
+      s </span><ruby><rbc><rb>t</rb></rbc
+      ><rtc><rt>u</rt></rtc><rbc><rb><span> </span></rb></rbc><rbc><rb>v</rb><rb><span>
+      </span></rb><rb>w</rb></rbc></ruby><span> x
+      </span><ruby><rbc><rb>y</rb></rbc><rtc pseudo><rt>z</rt></rtc></ruby><span> </span>|</p>
+
+</body>

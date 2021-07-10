@@ -1,15 +1,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! APIs for memory profiling.
 
 #![deny(missing_docs)]
 
+use crossbeam_channel::Sender;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use std::marker::Send;
-use std::sync::mpsc::Sender;
 
 /// A trait to abstract away the various kinds of message senders we use.
 pub trait OpaqueSender<T> {
@@ -20,14 +20,31 @@ pub trait OpaqueSender<T> {
 impl<T> OpaqueSender<T> for Sender<T> {
     fn send(&self, message: T) {
         if let Err(e) = Sender::send(self, message) {
-            warn!("Error communicating with the target thread from the profiler: {}", e);
+            warn!(
+                "Error communicating with the target thread from the profiler: {:?}",
+                e
+            );
+        }
+    }
+}
+
+impl<T> OpaqueSender<T> for IpcSender<T>
+where
+    T: serde::Serialize,
+{
+    fn send(&self, message: T) {
+        if let Err(e) = IpcSender::send(self, message) {
+            warn!(
+                "Error communicating with the target thread from the profiler: {}",
+                e
+            );
         }
     }
 }
 
 /// Front-end representation of the profiler used to communicate with the
 /// profiler.
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ProfilerChan(pub IpcSender<ProfilerMsg>);
 
 impl ProfilerChan {
@@ -41,24 +58,32 @@ impl ProfilerChan {
     }
 
     /// Runs `f()` with memory profiling.
-    pub fn run_with_memory_reporting<F, M, T, C>(&self, f: F,
-                                                 reporter_name: String,
-                                                 channel_for_reporter: C,
-                                                 msg: M)
-        where F: FnOnce(),
-              M: Fn(ReportsChan) -> T + Send + 'static,
-              T: Send + 'static,
-              C: OpaqueSender<T> + Send + 'static
+    pub fn run_with_memory_reporting<F, M, T, C>(
+        &self,
+        f: F,
+        reporter_name: String,
+        channel_for_reporter: C,
+        msg: M,
+    ) where
+        F: FnOnce(),
+        M: Fn(ReportsChan) -> T + Send + 'static,
+        T: Send + 'static,
+        C: OpaqueSender<T> + Send + 'static,
     {
         // Register the memory reporter.
         let (reporter_sender, reporter_receiver) = ipc::channel().unwrap();
-        ROUTER.add_route(reporter_receiver.to_opaque(), box move |message| {
-            // Just injects an appropriate event into the paint thread's queue.
-            let request: ReporterRequest = message.to().unwrap();
-            channel_for_reporter.send(msg(request.reports_channel));
-        });
-        self.send(ProfilerMsg::RegisterReporter(reporter_name.clone(),
-                                                Reporter(reporter_sender)));
+        ROUTER.add_route(
+            reporter_receiver.to_opaque(),
+            Box::new(move |message| {
+                // Just injects an appropriate event into the paint thread's queue.
+                let request: ReporterRequest = message.to().unwrap();
+                channel_for_reporter.send(msg(request.reports_channel));
+            }),
+        );
+        self.send(ProfilerMsg::RegisterReporter(
+            reporter_name.clone(),
+            Reporter(reporter_sender),
+        ));
 
         f();
 
@@ -76,10 +101,10 @@ impl ProfilerChan {
 /// and thread stacks. "explicit" is not guaranteed to cover every explicit allocation, but it does
 /// cover most (including the entire heap), and therefore it is the single best number to focus on
 /// when trying to reduce memory usage.
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum ReportKind {
     /// A size measurement for an explicit allocation on the jemalloc heap. This should be used
-    /// for any measurements done via the `HeapSizeOf` trait.
+    /// for any measurements done via the `MallocSizeOf` trait.
     ExplicitJemallocHeapSize,
 
     /// A size measurement for an explicit allocation on the system heap. Only likely to be used
@@ -100,7 +125,7 @@ pub enum ReportKind {
 }
 
 /// A single memory-related measurement.
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Report {
     /// The identifying path for this report.
     pub path: Vec<String>,
@@ -113,7 +138,7 @@ pub struct Report {
 }
 
 /// A channel through which memory reports can be sent.
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ReportsChan(pub IpcSender<Vec<Report>>);
 
 impl ReportsChan {
@@ -126,7 +151,7 @@ impl ReportsChan {
 }
 
 /// The protocol used to send reporter requests.
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct ReporterRequest {
     /// The channel on which reports are to be sent.
     pub reports_channel: ReportsChan,
@@ -139,15 +164,17 @@ pub struct ReporterRequest {
 /// In many cases, clients construct `Reporter` objects by creating an IPC sender/receiver pair and
 /// registering the receiving end with the router so that messages from the memory profiler end up
 /// injected into the client's event loop.
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Reporter(pub IpcSender<ReporterRequest>);
 
 impl Reporter {
     /// Collect one or more memory reports. Returns true on success, and false on failure.
     pub fn collect_reports(&self, reports_chan: ReportsChan) {
-        self.0.send(ReporterRequest {
-            reports_channel: reports_chan,
-        }).unwrap()
+        self.0
+            .send(ReporterRequest {
+                reports_channel: reports_chan,
+            })
+            .unwrap()
     }
 }
 
@@ -161,7 +188,7 @@ macro_rules! path {
 }
 
 /// Messages that can be sent to the memory profiler thread.
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum ProfilerMsg {
     /// Register a Reporter with the memory profiler. The String is only used to identify the
     /// reporter so it can be unregistered later. The String must be distinct from that used by any
@@ -179,4 +206,3 @@ pub enum ProfilerMsg {
     /// Tells the memory profiler to shut down.
     Exit,
 }
-

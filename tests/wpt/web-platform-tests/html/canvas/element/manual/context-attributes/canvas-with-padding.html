@@ -1,0 +1,10 @@
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<canvas id='c' style="padding-right: 4294967292; border-right: 124px solid black;"></canvas>
+<script>
+    test(function(t) {
+        var canvas = document.getElementById('c');
+        var ctx = canvas.getContext('2d');
+        ctx.getImageData(0, 0, 1, 1);
+    }, '// The test case passes by not crashing.')
+</script>

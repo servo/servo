@@ -1,29 +1,47 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmltablecellelement
-[Abstract]
+[Exposed=Window]
 interface HTMLTableCellElement : HTMLElement {
-  attribute unsigned long colSpan;
-  attribute unsigned long rowSpan;
-  //         attribute DOMString headers;
+  [HTMLConstructor] constructor();
+
+  [CEReactions]
+           attribute unsigned long colSpan;
+  [CEReactions]
+           attribute unsigned long rowSpan;
+  // [CEReactions]
+  //          attribute DOMString headers;
   readonly attribute long cellIndex;
+
+  // [CEReactions]
+  //          attribute DOMString scope; // only conforming for th elements
+  // [CEReactions]
+  //          attribute DOMString abbr;  // only conforming for th elements
 
   // also has obsolete members
 };
 
 // https://html.spec.whatwg.org/multipage/#HTMLTableCellElement-partial
 partial interface HTMLTableCellElement {
-  //         attribute DOMString align;
-  //         attribute DOMString axis;
-  //         attribute DOMString height;
+  // [CEReactions]
+  //          attribute DOMString align;
+  // [CEReactions]
+  //          attribute DOMString axis;
+  // [CEReactions]
+  //          attribute DOMString height;
+  [CEReactions]
   attribute DOMString width;
 
-  //         attribute DOMString ch;
-  //         attribute DOMString chOff;
-  //         attribute boolean noWrap;
-  //         attribute DOMString vAlign;
+  //          attribute DOMString ch;
+  // [CEReactions]
+  //          attribute DOMString chOff;
+  // [CEReactions]
+  //          attribute boolean noWrap;
+  // [CEReactions]
+  //          attribute DOMString vAlign;
 
-  [TreatNullAs=EmptyString] attribute DOMString bgColor;
+  [CEReactions]
+  attribute [TreatNullAs=EmptyString] DOMString bgColor;
 };

@@ -1,23 +1,19 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-extern crate time as std_time;
-
-use energy::read_energy_uj;
 use ipc_channel::ipc::IpcSender;
-use self::std_time::precise_time_ns;
 use servo_config::opts;
-use signpost;
+use time::precise_time_ns;
 
-#[derive(PartialEq, Clone, PartialOrd, Eq, Ord, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct TimerMetadata {
-    pub url:         String,
-    pub iframe:      TimerMetadataFrameType,
+    pub url: String,
+    pub iframe: TimerMetadataFrameType,
     pub incremental: TimerMetadataReflowType,
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ProfilerChan(pub IpcSender<ProfilerMsg>);
 
 impl ProfilerChan {
@@ -28,18 +24,33 @@ impl ProfilerChan {
     }
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum ProfilerData {
+    NoRecords,
+    Record(Vec<f64>),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum ProfilerMsg {
     /// Normal message used for reporting time
-    Time((ProfilerCategory, Option<TimerMetadata>), (u64, u64), (u64, u64)),
+    Time((ProfilerCategory, Option<TimerMetadata>), (u64, u64)),
+    /// Message used to get time spend entries for a particular ProfilerBuckets (in nanoseconds)
+    Get(
+        (ProfilerCategory, Option<TimerMetadata>),
+        IpcSender<ProfilerData>,
+    ),
     /// Message used to force print the profiling metrics
     Print,
+
+    /// Report a layout query that could not be processed immediately for a particular URL.
+    BlockedLayoutQuery(String),
+
     /// Tells the profiler to shut down.
     Exit(IpcSender<()>),
 }
 
 #[repr(u32)]
-#[derive(PartialEq, Clone, Copy, PartialOrd, Eq, Ord, Deserialize, Serialize, Debug, Hash)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub enum ProfilerCategory {
     Compositing = 0x00,
     LayoutPerform = 0x10,
@@ -89,60 +100,61 @@ pub enum ProfilerCategory {
     ScriptEnterFullscreen = 0x77,
     ScriptExitFullscreen = 0x78,
     ScriptWebVREvent = 0x79,
-    ApplicationHeartbeat = 0x90,
+    ScriptWorkletEvent = 0x7a,
+    ScriptPerformanceEvent = 0x7b,
+    ScriptHistoryEvent = 0x7c,
+    ScriptPortMessage = 0x7d,
+    ScriptWebGPUMsg = 0x7e,
+    TimeToFirstPaint = 0x80,
+    TimeToFirstContentfulPaint = 0x81,
+    TimeToInteractive = 0x82,
+    IpcReceiver = 0x83,
+    IpcBytesReceiver = 0x84,
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 pub enum TimerMetadataFrameType {
     RootWindow,
     IFrame,
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 pub enum TimerMetadataReflowType {
     Incremental,
     FirstReflow,
 }
 
-pub fn profile<T, F>(category: ProfilerCategory,
-                     meta: Option<TimerMetadata>,
-                     profiler_chan: ProfilerChan,
-                     callback: F)
-                  -> T
-    where F: FnOnce() -> T
+pub fn profile<T, F>(
+    category: ProfilerCategory,
+    meta: Option<TimerMetadata>,
+    profiler_chan: ProfilerChan,
+    callback: F,
+) -> T
+where
+    F: FnOnce() -> T,
 {
     if opts::get().signpost {
         signpost::start(category as u32, &[0, 0, 0, (category as usize) >> 4]);
     }
-    let start_energy = read_energy_uj();
     let start_time = precise_time_ns();
 
     let val = callback();
 
     let end_time = precise_time_ns();
-    let end_energy = read_energy_uj();
     if opts::get().signpost {
         signpost::end(category as u32, &[0, 0, 0, (category as usize) >> 4]);
     }
 
-    send_profile_data(category,
-                      meta,
-                      profiler_chan,
-                      start_time,
-                      end_time,
-                      start_energy,
-                      end_energy);
+    send_profile_data(category, meta, &profiler_chan, start_time, end_time);
     val
 }
 
-pub fn send_profile_data(category: ProfilerCategory,
-                         meta: Option<TimerMetadata>,
-                         profiler_chan: ProfilerChan,
-                         start_time: u64,
-                         end_time: u64,
-                         start_energy: u64,
-                         end_energy: u64) {
-    profiler_chan.send(ProfilerMsg::Time((category, meta),
-                                         (start_time, end_time),
-                                         (start_energy, end_energy)));
+pub fn send_profile_data(
+    category: ProfilerCategory,
+    meta: Option<TimerMetadata>,
+    profiler_chan: &ProfilerChan,
+    start_time: u64,
+    end_time: u64,
+) {
+    profiler_chan.send(ProfilerMsg::Time((category, meta), (start_time, end_time)));
 }

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>&lt;link rel="icon"&gt; doesn't fire an error event</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  async_test((t) => {
+    const link = document.createElement("link");
+    link.rel = "icon";
+    link.href = "http://{{hosts[][nonexistent]}}";
+
+    link.addEventListener("error", t.unreached_func());
+    document.head.append(link);
+    t.step_timeout(() => t.done(), 2000);
+  }, document.title);
+</script>

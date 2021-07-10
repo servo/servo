@@ -1,6 +1,7 @@
 [configs]
 skip-check-length = false
 skip-check-licenses = false
+check-alphabetical-order = true
 check-ordered-json-keys = [
   "./resources/prefs.json",
 ]
@@ -12,69 +13,140 @@ lint-scripts = [
 # For each blocked package, we can list the exceptions,
 # which are packages allowed to use the blocked package.
 [blocked-packages]
+num = []
 rand = [
-  "deque",
-  "gaol",
+  "hashglobe", # Only used in tests
   "ipc-channel",
-  "num-bigint",
-  "parking_lot_core",
   "phf_generator",
-  "rayon",
+  "quickcheck", # Only used in tests
   "servo_rand",
-  "servo-websocket",
-  "tempdir",
   "tempfile",
   "uuid",
+  "tungstenite",
   "ws",
 ]
-num = []
 
 [ignore]
 # Ignored packages with duplicated versions
-packages = []
+packages = [
+  "arrayvec",
+  "base64",
+  "cfg-if",
+  "cloudabi",
+  "cocoa",
+  "crossbeam-channel",
+  "crossbeam-deque",
+  "crossbeam-epoch",
+  "crossbeam-utils",
+  "env_logger",
+  "fixedbitset",
+  "gleam",
+  "libloading",
+  "lock_api",
+  "memoffset",
+  "metal",
+  "miniz_oxide",
+  "num-rational",
+  "parking_lot",
+  "parking_lot_core",
+  "petgraph",
+  "ron",
+  "wayland-sys",
+  "rustc_version",
+  "semver",
+  "semver-parser",
+
+  # https://github.com/servo/servo/issues/26933
+  "futures",
+  "tokio-openssl",
+  "tokio",
+  "http",
+  "bytes",
+
+  # https://github.com/servo/servo/pull/23288#issuecomment-494687746
+  "gl_generator",
+
+  # Lots of crates to update.
+  "smallvec",
+
+  # https://github.com/servo/servo/pull/25518
+  "core-foundation",
+  "core-foundation-sys",
+  "core-graphics",
+  "lyon_geom",
+
+  # https://github.com/servo/servo/pull/28236
+  "dlib",
+  "nix",
+  "nom",
+  "strsim",
+
+  # Duplicated by webrender debugger via ws
+  "digest",
+  "generic-array",
+  "opaque-debug",
+  "sha-1",
+  "block-buffer",
+
+  # Duplicated by futures
+  "pin-project",
+  "pin-project-internal",
+]
 # Files that are ignored for all tidy and lint checks.
 files = [
+  "./components/net/tests/parsable_mime/text",
+  # Mako does not lend itself easily to splitting long lines
+  "./components/style/properties/helpers/animated_properties.mako.rs",
+  "./components/style/properties/shorthands/text.mako.rs",
+  # Long regexes are long.
+  "./components/style/gecko/regen_atoms.py",
   # Helper macro where actually a pseudo-element per line makes sense.
   "./components/style/gecko/non_ts_pseudo_class_list.rs",
-  # Generated and upstream code combined with our own. Could use cleanup
-  "./components/style/gecko_bindings/bindings.rs",
-  "./components/style/gecko_bindings/structs_debug.rs",
-  "./components/style/gecko_bindings/structs_release.rs",
-  "./components/style/gecko_string_cache/atom_macro.rs",
   "./resources/hsts_preload.json",
   "./tests/wpt/metadata/MANIFEST.json",
-  "./tests/wpt/metadata-css/MANIFEST.json",
-  "./components/script/dom/webidls/ForceTouchEvent.webidl",
+  "./tests/wpt/mozilla/meta/MANIFEST.json",
+  # Long encoded string
+  "./tests/wpt/mozilla/tests/mozilla/resources/brotli.py",
+  "./tests/wpt/webgl/meta/MANIFEST.json",
   "./support/android/openssl.sh",
+  # Upstream code from Khronos/WebGL uses tabs for indentation
+  "./tests/wpt/webgl/tests",
+  # Our import script is not currently respecting the lint.
+  "./tests/wpt/webgl/tools/import-conformance-tests.py",
   # Ignore those files since the issues reported are on purpose
   "./tests/html/bad-line-ends.html",
-  "./tests/unit/net/parsable_mime/text",
   "./tests/wpt/mozilla/tests/css/fonts",
   "./tests/wpt/mozilla/tests/css/pre_with_tab.html",
   "./tests/wpt/mozilla/tests/mozilla/textarea_placeholder.html",
-  # Tidy complains about taking &String instead of &str, but they aren't
-  # equivalent given the way the traits are set up.
-  "./components/selectors/tree.rs",
+  # Python 3 syntax causes "E901 SyntaxError" when flake8 runs in Python 2
+  "./etc/taskcluster/decision_task.py",
+  "./etc/taskcluster/decisionlib.py",
+  "./tests/wpt/reftests-report/gen.py",
+  "./components/style/properties/build.py",
 ]
 # Directories that are ignored for the non-WPT tidy check.
 directories = [
   # Upstream
   "./support/android/apk",
-  "./tests/wpt/css-tests",
+  "./support/hololens",
+  "./support/linux/gstreamer",
+  "./support/magicleap/Servo2D/.vscode",
+  "./support/magicleap/Servo2D/code/inc.gen",
+  "./support/magicleap/Servo2D/code/src.gen",
+  "./support/magicleap/Servo2D/pipeline",
   "./tests/wpt/harness",
   "./tests/wpt/update",
   "./tests/wpt/web-platform-tests",
   "./tests/wpt/mozilla/tests/mozilla/referrer-policy",
+  "./tests/wpt/mozilla/tests/webgl",
   "./tests/wpt/sync",
-  "./tests/wpt/sync_css",
   "./python/tidy/servo_tidy_tests",
   "./components/script/dom/bindings/codegen/parser",
   "./components/script/dom/bindings/codegen/ply",
-  "./python/_virtualenv",
+  "./python/_virtualenv*",
+  "./components/hashglobe/src",
   # Generated and upstream code combined with our own. Could use cleanup
   "./target",
-  "./ports/cef",
-  "./components/style/gecko_bindings/nsstring_vendor/",
 ]
 
 # Directories that are checked for correct file extension

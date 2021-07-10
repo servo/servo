@@ -1,0 +1,21 @@
+<!doctype html>
+<html style="font-size:16px">
+<head>
+  <title>CSS Values and Units Test: rem subpixel change</title>
+  <link rel="help" href="https://drafts.csswg.org/css-values/#rem">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <div style="font-size:16px">
+  <div id="remElement" style="width: 10rem"></div>
+  </div>
+  <script>
+    test(() => {
+      assert_equals(getComputedStyle(remElement).width, "160px");
+      document.documentElement.style.fontSize = "16.1px";
+      assert_equals(getComputedStyle(remElement).width, "161px");
+    }, "Check that a 0.1px change in root font-size affect rem units.");
+  </script>
+<body>
+</html>

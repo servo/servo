@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>SVGGeometryElement.prototype.getTotalLength() query with 'pathLength'</title>
+  <h:link rel="help" href="https://svgwg.org/svg2-draft/types.html#__svg__SVGGeometryElement__getTotalLength"/>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <script>
+test(function() {
+    let path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'M0,0L100,0L100,100');
+    path.setAttribute('pathLength', '1000');
+    assert_approx_equals(path.getTotalLength(), 200, 1e-5);
+}, document.title+', getTotalLength');
+  </script>
+</svg>

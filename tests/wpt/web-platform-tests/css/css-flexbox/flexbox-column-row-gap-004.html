@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0
+-->
+<html>
+<head>
+  <title>CSS Test: Testing percentage gap resolution in flex containers</title>
+  <link rel="author" title="Mihir Iyer" href="mailto:miyer@mozilla.com">
+  <link rel="help" href="https://drafts.csswg.org/css-align/#column-row-gap">
+  <link rel="match" href="flexbox-column-row-gap-004-ref.html">
+  <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5081">
+  <meta charset="utf-8">
+  <meta name="assert" content="% row-gaps in a flexbox with indefinite block size are treated as 'normal'." />
+  <style>
+    .flexContainer {
+      display: flex;
+      border: 2px solid black;
+      row-gap: 20%;
+      column-gap: 10%;
+      align-content: start;
+      justify-content: start;
+      margin-top: 20px;
+    }
+    .item {
+      border: 1px solid blue;
+      background: yellow;
+      width: 48px;
+      height: 48px;
+      flex: none;
+    }
+    .vertLR {
+      writing-mode: vertical-lr;
+    }
+    .rowWrap {
+      flex-flow: row wrap;
+    }
+    .colWrap {
+      flex-flow: column wrap;
+    }
+    .w50 {
+      width: 50px;
+    }
+  </style>
+</head>
+<body>
+  <div class="flexContainer rowWrap w50">
+    <div class="item"></div>
+    <div class="item"></div>
+  </div>
+  <div class="flexContainer colWrap w50">
+    <div class="item"></div>
+    <div class="item"></div>
+  </div>
+  <div class="flexContainer vertLR rowWrap">
+    <div class="item"></div>
+    <div class="item"></div>
+  </div>
+  <div class="flexContainer vertLR colWrap">
+    <div class="item"></div>
+    <div class="item"></div>
+  </div>
+</body>
+</html>

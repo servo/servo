@@ -1,0 +1,71 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Writing Modes Test: inline-table alignment - central alignment with vertical layout</title>
+    <link rel="author" title="Hajime Shiozawa" href="mailto:hajime.shiozawa@gmail.com" />
+    <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2015-08-13 -->
+    <link rel="help" title="CSS3 Writing modes: 4.3. Atomic Inline Baseline" href="http://www.w3.org/TR/css-writing-modes-3/#replaced-baselines" />
+    <link rel="help" title="10.8.1 Leading and half-leading" href="http://www.w3.org/TR/CSS21/visudet.html#leading" />
+    <link rel="match" href="inline-table-alignment-002-ref.xht" />
+    <meta name="assert" content="This test checks the generation of inline-table baseline. When 'writing-mode' is 'vertical-rl' and when 'text-orientation' is 'upright', then the central baseline is used as the dominant baseline." />
+    <meta name="flags" content="ahem" />
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+    <style type="text/css"><![CDATA[
+    div#rl-upright
+    {
+      color: orange;
+      font: 60px/1 Ahem; /* computes to 60px/60px */
+      writing-mode: vertical-rl;
+      text-orientation: upright;
+    }
+
+    div#inline-table
+    {
+      display: inline-table;
+      padding-left: 0.5em; /* computes to 60px */
+      font-size: 2em; /* computes to 120px */
+      /*
+        such padding-left declaration is arbitrary and only serve to make the
+        test a bit more challenging.
+      */
+    }
+
+    span.row
+    {
+      display: table-row;
+    }
+
+    span#first
+    {
+      color: blue;
+    }
+
+    span#last
+    {
+      color: yellow;
+    }
+
+    span#orange30
+    {
+      padding-right: 4em; /* computes to 120px */
+      font-size: 0.5em; /* computes to 30px */
+      /*
+        such padding-right declaration is arbitrary and only serve to make the
+        test a bit more challenging.
+      */
+    }
+    ]]></style>
+
+  </head>
+
+  <body>
+
+  <p>Test passes if 2 orange squares are centered with respect to a blue square.</p>
+
+  <div id="rl-upright">A<div id="inline-table">
+    <span class="row" id="first">F</span>
+    <span class="row" id="last">L</span>
+  </div><span id="orange30">O</span></div>
+
+  </body>
+</html>

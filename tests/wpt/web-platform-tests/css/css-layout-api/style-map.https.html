@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#layout-invalidation">
+<link rel="match" href="style-map-ref.html">
+<meta name="assert" content="This test checks that properties are correctly given to the layout function." />
+
+<style>
+.test {
+  background: red;
+  margin: 10px;
+  width: 100px;
+
+  /* Properties under test. */
+  --foo: bar;
+  margin-left: 2px;
+}
+
+@supports (display: layout(test)) {
+  .test {
+    background: green;
+  }
+
+  .test-0 { display: layout(test-0); }
+  .test-1 { display: layout(test-1); }
+  .test-2 { display: layout(test-2); }
+  .test-3 { display: layout(test-3); }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div class="test test-0"></div>
+<div class="test test-1"></div>
+<div class="test test-2"></div>
+<div class="test test-3"></div>
+
+<script>
+const tmpl = (test, idx) => {
+  return `
+    registerLayout('test-${idx}', class {
+      static get inputProperties() { return ['${test.property}']; }
+
+      async intrinsicSizes() {}
+      async layout(children, edges, constraints, styleMap) {
+        const value = styleMap.get('${test.property}');
+        const result = '[' + value.constructor.name + '=' + value.toString() + ']';
+        if (result != '${test.expected}')
+          return {autoBlockSize: 0};
+
+        const size = Array.from(styleMap.keys()).length;
+        if (size != 1)
+          return {autoBlockSize: 0};
+
+        return {autoBlockSize: 100};
+      }
+    });
+  `;
+}
+
+const tests = [
+  {property: '--bar', expected: '[CSSUnparsedValue=]'},
+  {property: '--foo', expected: '[CSSUnparsedValue= bar]'},
+  {property: 'empty-cells', expected: '[CSSKeywordValue=show]'},
+  {property: 'margin-left', expected: '[CSSUnitValue=2px]'},
+];
+
+const workletSource = tests.map(tmpl).join('\n');
+
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, workletSource);
+</script>
+</html>

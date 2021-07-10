@@ -1,0 +1,88 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Draw With Integer Texture Base Level Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/tests/tex-image-and-sub-image-utils.js"></script>
+</head>
+<body>
+<canvas id="example" width="24" height="24"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+
+var canvas;
+var wtu = WebGLTestUtils;
+canvas = document.getElementById("example");
+var gl = wtu.create3DContext(canvas, undefined, 2);
+var tiu = TexImageUtils;
+
+// Both Chrome and Firefox fail on this test on NVIDIA Windows, see crbug.com/679639.
+function testDrawIntegerTextureBaseLevel()
+{
+    description("This test verifies the functionality of rendering with integer texture non-zero base level.");
+
+    var green = [0, 255, 0, 255];
+
+    var width = 16;
+    var height = 16;
+    canvas.width = width;
+    canvas.height = height;
+    gl.viewport(0, 0, width, height);
+
+    var texture = gl.createTexture();
+    var level = 1;
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_BASE_LEVEL, level);
+    wtu.fillTexture(gl, texture, width, height, green, level, gl.RGBA_INTEGER, gl.UNSIGNED_BYTE, gl.RGBA8UI);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+    var program = tiu.setupTexturedQuad(gl, "RGBA8UI");
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+    wtu.checkCanvas(gl, green);
+}
+
+testDrawIntegerTextureBaseLevel();
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>
+

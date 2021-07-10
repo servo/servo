@@ -37,7 +37,7 @@
           mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
           {
               mediaSource.removeSourceBuffer(sourceBuffer);
-              assert_throws('InvalidStateError',
+              assert_throws_dom('InvalidStateError',
                   function() { sourceBuffer.mode = 'segments'; },
                   'Setting valid sourceBuffer.mode on removed SourceBuffer should throw InvalidStateError.');
               test.done();
@@ -47,7 +47,7 @@
           {
               sourceBuffer.appendBuffer(mediaData);
               assert_true(sourceBuffer.updating, 'updating attribute is true');
-              assert_throws('InvalidStateError',
+              assert_throws_dom('InvalidStateError',
                   function() { sourceBuffer.mode = 'segments'; },
                   'Setting valid sourceBuffer.mode on updating SourceBuffer threw InvalidStateError.');
               test.done();
@@ -114,11 +114,11 @@
               {
                   assert_false(sourceBuffer.updating, 'updating attribute is false');
                   assert_equals(sourceBuffer.mode, 'segments');
-                  assert_throws('InvalidStateError',
+                  assert_throws_dom('InvalidStateError',
                       function() { sourceBuffer.mode = 'segments'; },
                       'Setting valid sourceBuffer.mode while still parsing media segment threw InvalidStateError.');
                   assert_equals(sourceBuffer.timestampOffset, 10.123456789);
-                  assert_throws('InvalidStateError',
+                  assert_throws_dom('InvalidStateError',
                       function() { sourceBuffer.timestampOffset = 20.0; },
                       'Setting valid sourceBuffer.timestampOffset while still parsing media segment threw InvalidStateError.');
 

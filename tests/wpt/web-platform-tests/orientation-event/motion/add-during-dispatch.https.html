@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../resources/orientation-event-helpers.js"></script>
+<script>
+'use strict';
+
+sensor_test(async (t, sensorProvider) => {
+  const motionData = generateMotionData(1, 2, 3,
+                                        4, 5, 6,
+                                        7, 8, 9);
+  setMockMotionData(sensorProvider, motionData);
+
+  return new Promise((resolve, reject) => {
+    let result = reject;
+    window.addEventListener('devicemotion', event1 => {
+      // Now we are in event dispatch.
+      assertEventEquals(event1, getExpectedMotionEvent(motionData));
+      window.addEventListener('devicemotion', event2 => {
+        // Not call until the outer function returns.
+        assertEventEquals(event2, getExpectedMotionEvent(motionData));
+        result();
+      });
+    });
+    result = resolve;
+  });
+}, 'Test no fire listeners added during event dispatch.');
+</script>

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: Flex item main size with flex-basis:content and width in Row flex container</title>
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#algo-main-item">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="display: flex;">
+  <div style="background: green; flex-basis: content; height: 100px;
+              aspect-ratio: 1/1; width: 20px; min-width: 0;"></div>
+</div>

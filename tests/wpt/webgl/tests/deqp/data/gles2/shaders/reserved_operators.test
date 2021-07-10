@@ -1,0 +1,250 @@
+# WARNING: This file is auto-generated. Do NOT modify it manually, but rather
+# modify the generating script file. Otherwise changes will be lost!
+
+case operator_modulo
+	expect compile_fail
+	values {}
+
+	both ""
+		precision mediump float;
+		precision mediump int;
+
+		${DECLARATIONS}
+
+		void main()
+		{
+			${SETUP}
+			int value = 100;
+			value % 1;
+			${OUTPUT}
+		}
+	""
+end
+case operator_bitwise_not
+	expect compile_fail
+	values {}
+
+	both ""
+		precision mediump float;
+		precision mediump int;
+
+		${DECLARATIONS}
+
+		void main()
+		{
+			${SETUP}
+			int value = 100;
+			value = ~value;
+			${OUTPUT}
+		}
+	""
+end
+case operator_bitwise_shift_left
+	expect compile_fail
+	values {}
+
+	both ""
+		precision mediump float;
+		precision mediump int;
+
+		${DECLARATIONS}
+
+		void main()
+		{
+			${SETUP}
+			int value = 100;
+			value << 1;
+			${OUTPUT}
+		}
+	""
+end
+case operator_bitwise_shift_right
+	expect compile_fail
+	values {}
+
+	both ""
+		precision mediump float;
+		precision mediump int;
+
+		${DECLARATIONS}
+
+		void main()
+		{
+			${SETUP}
+			int value = 100;
+			value >> 1;
+			${OUTPUT}
+		}
+	""
+end
+case operator_bitwise_and
+	expect compile_fail
+	values {}
+
+	both ""
+		precision mediump float;
+		precision mediump int;
+
+		${DECLARATIONS}
+
+		void main()
+		{
+			${SETUP}
+			int value = 100;
+			value & 1;
+			${OUTPUT}
+		}
+	""
+end
+case operator_bitwise_xor
+	expect compile_fail
+	values {}
+
+	both ""
+		precision mediump float;
+		precision mediump int;
+
+		${DECLARATIONS}
+
+		void main()
+		{
+			${SETUP}
+			int value = 100;
+			value ^ 1;
+			${OUTPUT}
+		}
+	""
+end
+case operator_bitwise_or
+	expect compile_fail
+	values {}
+
+	both ""
+		precision mediump float;
+		precision mediump int;
+
+		${DECLARATIONS}
+
+		void main()
+		{
+			${SETUP}
+			int value = 100;
+			value | 1;
+			${OUTPUT}
+		}
+	""
+end
+case operator_assign_modulo
+	expect compile_fail
+	values {}
+
+	both ""
+		precision mediump float;
+		precision mediump int;
+
+		${DECLARATIONS}
+
+		void main()
+		{
+			${SETUP}
+			int value = 100;
+			value %= 1;
+			${OUTPUT}
+		}
+	""
+end
+case operator_assign_shift_left
+	expect compile_fail
+	values {}
+
+	both ""
+		precision mediump float;
+		precision mediump int;
+
+		${DECLARATIONS}
+
+		void main()
+		{
+			${SETUP}
+			int value = 100;
+			value <<= 1;
+			${OUTPUT}
+		}
+	""
+end
+case operator_assign_shift_right
+	expect compile_fail
+	values {}
+
+	both ""
+		precision mediump float;
+		precision mediump int;
+
+		${DECLARATIONS}
+
+		void main()
+		{
+			${SETUP}
+			int value = 100;
+			value >>= 1;
+			${OUTPUT}
+		}
+	""
+end
+case operator_assign_and
+	expect compile_fail
+	values {}
+
+	both ""
+		precision mediump float;
+		precision mediump int;
+
+		${DECLARATIONS}
+
+		void main()
+		{
+			${SETUP}
+			int value = 100;
+			value &= 1;
+			${OUTPUT}
+		}
+	""
+end
+case operator_assign_xor
+	expect compile_fail
+	values {}
+
+	both ""
+		precision mediump float;
+		precision mediump int;
+
+		${DECLARATIONS}
+
+		void main()
+		{
+			${SETUP}
+			int value = 100;
+			value ^= 1;
+			${OUTPUT}
+		}
+	""
+end
+case operator_assign_or
+	expect compile_fail
+	values {}
+
+	both ""
+		precision mediump float;
+		precision mediump int;
+
+		${DECLARATIONS}
+
+		void main()
+		{
+			${SETUP}
+			int value = 100;
+			value |= 1;
+			${OUTPUT}
+		}
+	""
+end

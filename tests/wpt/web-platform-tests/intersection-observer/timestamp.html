@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/intersection-observer-test-utils.js"></script>
+
+<style>
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 200px;
+}
+.spacer {
+  height: calc(100vh + 100px);
+}
+
+</style>
+<div id="leading-space" class="spacer"></div>
+<div id="trailing-space" class="spacer"></div>
+
+<script>
+// Pick this number to be comfortably greater than the length of two frames at 60Hz.
+var timeSkew = 40;
+
+var topWindowEntries = [];
+var iframeWindowEntries = [];
+var targetIframe;
+var topWindowTimeBeforeNotification;
+var iframeWindowTimeBeforeNotification;
+
+async_test(function(t) {
+  t.step_timeout(function() {
+    targetIframe = document.createElement("iframe");
+    assert_true(!!targetIframe, "iframe exists");
+    targetIframe.src = "resources/timestamp-subframe.html";
+    var trailingSpace = document.getElementById("trailing-space");
+    assert_true(!!trailingSpace, "trailing-space exists");
+    trailingSpace.parentNode.insertBefore(targetIframe, trailingSpace);
+    targetIframe.onload = function() {
+      var target = targetIframe.contentDocument.getElementById("target");
+      var iframeScroller = targetIframe.contentDocument.scrollingElement;
+
+      // Observer created here, callback created in iframe context.  Timestamps should be
+      // from this window.
+      var observer = new IntersectionObserver(
+          targetIframe.contentDocument.createObserverCallback(topWindowEntries), {});
+      assert_true(!!observer, "Observer exists");
+      observer.observe(target);
+
+      // Callback created here, observer created in iframe.  Timestamps should be
+      // from iframe window.
+      observer = targetIframe.contentDocument.createObserver(function(newEntries) {
+        iframeWindowEntries = iframeWindowEntries.concat(newEntries);
+      });
+      observer.observe(target);
+      runTestCycle(step1, "First rAF after iframe is loaded.");
+      t.done();
+    };
+  }, timeSkew);
+}, "Check that timestamps correspond to the to execution context that created the observer.");
+
+function step1() {
+  document.scrollingElement.scrollTop = 200;
+  targetIframe.contentDocument.scrollingElement.scrollTop = 250;
+  topWindowTimeBeforeNotification = performance.now();
+  iframeWindowTimeBeforeNotification = targetIframe.contentWindow.performance.now();
+  runTestCycle(step2, "Generate notifications.");
+  assert_equals(topWindowEntries.length, 1, "One notification to top window observer.");
+  assert_equals(iframeWindowEntries.length, 1, "One notification to iframe observer.");
+}
+
+function step2() {
+  document.scrollingElement.scrollTop = 0;
+  var topWindowTimeAfterNotification = performance.now();
+  var iframeWindowTimeAfterNotification = targetIframe.contentWindow.performance.now();
+
+  assert_approx_equals(
+      topWindowEntries[1].time - topWindowTimeBeforeNotification,
+      iframeWindowEntries[1].time - iframeWindowTimeBeforeNotification,
+      // Since all intersections are computed in a tight loop between 2 frames,
+      // an epsilon of 16ms (the length of one frame at 60Hz) turned out to be
+      // reliable, even at slow frame rates.
+      16,
+      "Notification times are relative to the expected time origins");
+
+  assert_equals(topWindowEntries.length, 2, "Top window observer has two notifications.");
+  assert_between_inclusive(
+      topWindowEntries[1].time,
+      topWindowTimeBeforeNotification,
+      topWindowTimeAfterNotification,
+      "Notification to top window observer is within the expected range.");
+
+  assert_equals(iframeWindowEntries.length, 2, "Iframe observer has two notifications.");
+  assert_between_inclusive(
+      iframeWindowEntries[1].time,
+      iframeWindowTimeBeforeNotification,
+      iframeWindowTimeAfterNotification,
+      "Notification to iframe observer is within the expected range.");
+}
+</script>

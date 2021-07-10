@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Focus restoration outer</title>
+<script>
+let other = null;
+let log = "outerlog:";
+function getLog() {
+    return log;
+}
+window.onmessage = function(e) {
+    if (e.data == "start") {
+        other = window.open("focus-restoration-in-different-site-iframes-other.html", "otherwindow", "resizable=yes");
+    } else if (e.data == "other") {
+        other.close();
+        opener.step_timeout(function() {
+            document.getElementsByTagName("iframe")[0].contentWindow.postMessage("getlog", "*");
+        }, 2000);
+    } else {
+        opener.step_timeout(function() {
+            opener.postMessage(getLog() + e.data, "*");
+        }, 1500);
+    }
+};
+window.onload = function() {
+    document.getElementsByTagName("iframe")[0].onfocus = function() {
+        log += "iframefocus,";
+    }
+    document.getElementsByTagName("iframe")[0].onblur = function() {
+        log += "iframeblur,";
+    }
+    document.body.onfocus = function() {
+        log += "bodyfocus,";
+    }
+    document.body.onblur = function() {
+        log += "bodyblur,";
+    }
+}
+</script>
+<iframe src="http://{{hosts[alt][www]}}:{{ports[http][0]}}/focus/support/focus-restoration-in-different-site-iframes-inner-window.html">

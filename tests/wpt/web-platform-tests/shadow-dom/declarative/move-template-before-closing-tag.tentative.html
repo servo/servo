@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<title>Declarative Shadow DOM: moving the template doesn't change attachment point</title>
+<link rel='author' title='Mason Freed' href='mailto:masonfreed@chromium.org'>
+<link rel='help' href='https://github.com/whatwg/dom/issues/831'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+
+<body>
+<script>
+function myObserver(mutationsList, observer) {
+  for (let mutation of mutationsList) {
+    for (let n of mutation.addedNodes) {
+      if (n.className === 'template' && !n.alreadyMoved) {
+        n.alreadyMoved = true;
+        let testWrapper = n.parentElement.parentElement;
+        let newHost = testWrapper.querySelector('div.new-host');
+        newHost.appendChild(n);
+      }
+    }
+  }
+}
+(new MutationObserver(myObserver)).observe(document.body, { childList: true, subtree: true });
+
+function runTest(testdiv) {
+  let description = testdiv.getAttribute('description');
+  let shouldAttach = testdiv.getAttribute('shouldattach') == 'true';
+  test(t => {
+    let template = testdiv.querySelector('.template');
+    let oldHost = testdiv.querySelector('.old-host');
+    let newHost = testdiv.querySelector('.new-host');
+    let shadowroot = oldHost.shadowRoot;
+    if (shouldAttach) {
+      assert_true(!template, 'Declarative shadow template should not be left over');
+      assert_true(!oldHost.children.length, 'Old host should not contain children');
+      assert_true(!newHost.children.length, 'New host should not contain any children');
+      assert_true(!!shadowroot, 'Shadow root should be present');
+      assert_true(!!shadowroot.querySelector('span.contents'), 'The shadow root should contain a span');
+    } else {
+      assert_true(!oldHost.children.length, 'Old host should not contain children');
+      assert_true(!!newHost.children.length, 'New host should now contain the template');
+      assert_true(!shadowroot, 'Shadow root should not be present');
+      assert_true(!!template, 'Declarative shadow template should be left over');
+      assert_equals(template, newHost.querySelector('.template'), 'Declarative shadow template should be in the new host');
+      assert_true(!!template.content.querySelector('span.contents'), 'The template should still contain its content');
+    }
+  }, description);
+}
+</script>
+
+<style>
+  div.test {
+    display: none;
+  }
+</style>
+
+<div class=test shouldattach=true description="Moving the template node during parsing should attach to initial parent (content before observer)">
+  <div class=new-host></div>
+  <div class=old-host>
+    <template class='template' shadowroot=open>
+      <span class=contents>Template contents</span>
+      <script></script> <!-- Observer runs here, moves <template> node -->
+    </template>
+  </div>
+</div>
+
+<div class=test shouldattach=true description="Moving the template node during parsing should attach to initial parent (content after observer)">
+  <div class=new-host></div>
+  <div class=old-host>
+    <template class='template' shadowroot=open>
+      <script></script> <!-- Observer runs here, moves <template> node -->
+      <span class=contents>Template contents</span>
+    </template>
+  </div>
+</div>
+
+<div class=test shouldattach=false description="Moving the template node from invalid parent to valid parent should still not attach">
+  <div class=new-host></div>
+  <video class=old-host>
+    <template class='template' shadowroot=open>
+      <span class=contents>Template contents</span>
+      <script></script> <!-- Observer runs here, moves <template> node -->
+    </template>
+  </video>
+</div>
+
+<script>
+  let tests = document.querySelectorAll('div.test');
+  assert_true(tests.length > 0);
+  tests.forEach(t => { runTest(t); });
+</script>
+</body>

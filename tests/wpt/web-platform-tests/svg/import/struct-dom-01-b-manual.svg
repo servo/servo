@@ -135,7 +135,7 @@
         Element newText = doc.createElement("text");
         newText.setAttribute("x", "50");
         newText.setAttribute("y", "100");
-        String message = "This document's root identifier is=" " + rootId" 
+        String message = "This document's root identifier is=" " + rootId"
         Text textContent = doc.createTextNode(message);
         newText.appendChild(textContent);
         rect.getParentNode().appendChild(newText);
@@ -165,7 +165,7 @@
         //
         // Insert new element in DOM tree
         //
-	alert(newRect)
+  alert(newRect)
         rect.getParentNode().insertBefore(newRect, rect);
 
 -->

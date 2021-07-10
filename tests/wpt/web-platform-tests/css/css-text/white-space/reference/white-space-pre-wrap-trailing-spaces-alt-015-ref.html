@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSS test Reference</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com" />
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+    div {
+        font: 20px/1 Ahem;
+        white-space: pre;
+    }
+    span { background: blue; }
+</style>
+
+<p>This test passes if the line is broken after the 2nd white space, which hangs (blue).
+<div>XX&#x0020;X<span>X<br>X</span></div>

@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Encrypted Media Extentions IDL test</title>
+    <meta name="timeout" content="long">
+    <link rel="help" href="https://w3c.github.io/encrypted-media/">
+
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+    <script src=/resources/WebIDLParser.js></script>
+    <script src=/resources/idlharness.js></script>
+    <script src=/encrypted-media/util/fetch.js></script>
+  </head>
+  <body>
+    <h1 class="instructions">Description</h1>
+    <p class="instructions">
+      This test verifies that implementations of the Encrypted Media Extensions API match its WebIDL definition.
+    </p>
+
+    <div id='log'></div>
+
+    <script>
+      'use strict';
+
+      idl_test(
+        ['encrypted-media'],
+        ['html', 'dom'],
+        idl_array => {
+          idl_array.add_objects({
+            Navigator: ['navigator'],
+          });
+        }
+      );
+    </script>
+  </body>
+</html>

@@ -1,0 +1,59 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>This test validates resource timing information for a same-origin=>cross-origin=>same-origin redirect chain with Timing-Allow-Origin.</title>
+<link rel="help" href="http://www.w3.org/TR/resource-timing/#performanceresourcetiming"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/webperftestharness.js"></script>
+<script src="resources/webperftestharnessextension.js"></script>
+
+<script>
+    setup({explicit_done: true});
+    test_namespace('getEntriesByName');
+    const pageOrigin = get_host_info()['ORIGIN'];
+    const crossOrigin = get_host_info()['REMOTE_ORIGIN'];
+</script>
+
+</head>
+<body>
+<iframe id="frameContext" src="" style="width: 250px; height: 250px;"></iframe>
+<script>
+    let destUrl = pageOrigin + '/resource-timing/resources/multi_redirect.py?';
+    destUrl += 'page_origin=' + pageOrigin;
+    destUrl += '&cross_origin=' + crossOrigin;
+    destUrl += '&final_resource=' + "/resource-timing/resources/blue-with-tao.png";
+    destUrl += '&tao_steps=3';
+    const taoStarImage = document.createElement('img');
+    taoStarImage.src = destUrl;
+    document.body.appendChild(taoStarImage);
+
+    destUrl += '&tao_value=' + pageOrigin;
+    // Due to the tainted origin flag, having the TAO header set to |pageOrigin| is insufficient.
+    // That is, the Timing-Allow-Origin check should fail in this case.
+    const taoPageOriginImage = document.createElement('img');
+    taoPageOriginImage.src = destUrl;
+    document.body.appendChild(taoPageOriginImage);
+
+    let visitedTaoStar = false;
+    let visitedTaoPageOrigin = false;
+    new PerformanceObserver(e => {
+        e.getEntries().forEach(entry => {
+            if (entry.name === taoStarImage.src) {
+                assert_false(visitedTaoStar);
+                visitedTaoStar = true;
+                test_tao_pass(entry);
+            } else if (entry.name === taoPageOriginImage.src) {
+                assert_false(visitedTaoPageOrigin);
+                visitedTaoPageOrigin = true;
+                test_tao_fail(entry);
+            }
+            if (visitedTaoStar && visitedTaoPageOrigin)
+                done();
+        });
+    }).observe({entryTypes: ['resource']});
+</script>
+</body>
+</html>

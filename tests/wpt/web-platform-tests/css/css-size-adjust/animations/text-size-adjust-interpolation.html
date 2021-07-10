@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>text-size-adjust-interpolation</title>
+<link rel="help" href="https://drafts.csswg.org/css-size-adjust/#adjustment-control">
+<meta name="assert" content="text-size-adjust supports animation">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<style type="text/css">
+.container {
+    display: inline-block;
+}
+
+.parent {
+    text-size-adjust: 70%;
+}
+
+.target {
+    text-size-adjust: 60%;
+}
+
+.expected {
+  color: green;
+  margin-right: 30px;
+}
+</style>
+<body></body>
+<template id="target-template">
+    <span class="container">
+        <div class="target">x</span>
+    </div>
+</template>
+<script>
+test_interpolation({
+  property: 'text-size-adjust',
+  from: neutralKeyframe,
+  to: '50%',
+}, [
+  {at: -2, expect: '80%'},
+  {at: -0.3, expect: '63%'},
+  {at: 0, expect: '60%'},
+  {at: 0.3, expect: '57%'},
+  {at: 0.6, expect: '54%'},
+  {at: 1, expect: '50%'},
+  {at: 1.5, expect: '45%'},
+]);
+
+test_no_interpolation({
+  property: 'text-size-adjust',
+  from: 'initial',
+  to: '70%',
+});
+
+test_interpolation({
+  property: 'text-size-adjust',
+  from: 'inherit', // 70%
+  to: '50%',
+}, [
+  {at: -2, expect: '110%'},
+  {at: -0.3, expect: '76%'},
+  {at: 0, expect: '70%'},
+  {at: 0.3, expect: '64%'},
+  {at: 0.6, expect: '58%'},
+  {at: 1, expect: '50%'},
+  {at: 1.5, expect: '40%'},
+]);
+
+test_interpolation({
+  property: 'text-size-adjust',
+  from: 'unset',
+  to: '50%',
+}, [
+  {at: -2, expect: '110%'},
+  {at: -0.3, expect: '76%'},
+  {at: 0, expect: '70%'},
+  {at: 0.3, expect: '64%'},
+  {at: 0.6, expect: '58%'},
+  {at: 1, expect: '50%'},
+  {at: 1.5, expect: '40%'},
+]);
+
+
+test_interpolation({
+    property: 'text-size-adjust',
+    from: '10%',
+    to: '0%'
+}, [
+    {at: -2, expect: '30%'},
+    {at: -0.3, expect: '13%'},
+    {at: 0, expect: '10%'},
+    {at: 0.3, expect: '7%'},
+    {at: 0.6, expect: '4%'},
+    {at: 1, expect: '0%'},
+    {at: 1.5, expect: '0%'}, // text-size-adjust can't be negative
+]);
+
+test_no_interpolation({
+    property: 'text-size-adjust',
+    from: 'none',
+    to: '100%'
+});
+</script>

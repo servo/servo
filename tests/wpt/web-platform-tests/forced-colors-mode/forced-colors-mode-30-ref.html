@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - fill/stroke with sys colors.
+</title>
+<style>
+  div {
+    fill: LinkText;
+    forced-color-adjust: none;
+    stroke: Link;
+  }
+</style>
+<div>
+  The triangle below should preserve the LinkText and Link fill/stroke colors
+  in forced colors mode.
+  <svg height="600" width="600">
+    <path d="M150 0 L75 200 L225 200 Z" />
+  </svg>
+</div>

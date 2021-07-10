@@ -1,0 +1,90 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL dynamic vector and matrix indexing test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fshaderLValueVectorBeingIndexedHasSideEffects" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+uniform int u_zero;
+
+int sideEffectCounter = 0;
+
+int funcWithSideEffects() {
+    sideEffectCounter++;
+    return 1;
+}
+
+void main() {
+    vec4 V[2];
+    V[0] = vec4(1.0, 2.0, 3.0, 4.0);
+    V[1] = vec4(5.0, 6.0, 7.0, 8.0);
+    // In case this is broken down to two expressions where one reads V[funcWithSideEffects()]
+    // and another writes it, it needs to be made sure that funcWithSideEffects() only gets called once.
+    V[funcWithSideEffects()][u_zero + 1]++;
+    vec4 expectedV0 = vec4(1.0, 2.0, 3.0, 4.0);
+    vec4 expectedV1 = vec4(5.0, 7.0, 7.0, 8.0);
+    float f = 1.0 - distance(V[0], expectedV0) - distance(V[1], expectedV1);
+    if (sideEffectCounter != 1) {
+        f = 0.0;
+    }
+    my_FragColor = vec4(1.0 - f, f, 0.0, 1.0);
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description("Dynamic indexing of vectors and matrices should work.");
+
+debug("This test exposes a NVidia driver bug on Linux");
+
+GLSLConformanceTester.runRenderTests([
+{
+  fShaderId: 'fshaderLValueVectorBeingIndexedHasSideEffects',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Index a vector expression that itself has side effects, in an l-value'
+},
+], 2);
+</script>
+</body>
+</html>
+

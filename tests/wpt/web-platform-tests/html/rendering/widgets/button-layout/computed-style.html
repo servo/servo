@@ -1,0 +1,31 @@
+<!doctype html>
+<title>computed style on buttons</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div class="tests">
+ <input type="reset">
+ <input type="button">
+ <input type="submit">
+ <input type="color">
+ <button></button>
+</div>
+<script>
+// "behave as" doesn't change computed value.
+const displayValues = ['inline', 'block', 'list-item', 'inline-block', 'table', 'inline-table', 'table-row-group', 'table-header-group', 'table-footer-group', 'table-row', 'table-column-group', 'table-column', 'table-cell', 'table-caption', 'none', 'contents', 'flow', 'flow-root', 'flex', 'grid', 'ruby', 'ruby-base', 'ruby-text', 'ruby-base-container', 'ruby-text-container', 'inline-flex', 'inline-grid'];
+for (const val of displayValues) {
+  [].slice.call(document.querySelectorAll('.tests > *')).forEach(el => {
+    el.style.display = ''
+    el.style.display = val;
+    const attrs = el.type ? ` type=${el.type}` : '';
+    const tag = `<${el.localName}${attrs}>`;
+    test(() => {
+     assert_not_equals(el.style.display, '', `display: ${val} is not supported`)
+      let expectedVal = val;
+      if (el instanceof HTMLInputElement && val === 'contents') {
+        expectedVal = 'none'; // https://drafts.csswg.org/css-display/#unbox-html
+      }
+      assert_equals(getComputedStyle(el).display, expectedVal);
+    }, `computed display of ${tag} with display: ${val}`);
+  });
+}
+</script>

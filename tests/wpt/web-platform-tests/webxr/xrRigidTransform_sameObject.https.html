@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<script>
+
+let testName = "XRRigidTransform position and orientation meet [SameObject] requirements";
+
+// xrRigidTransform_inverse.https.html already checks [SameObject] requirement
+// for XRRigidTransform.inverse. It's in a separate test because there are
+// additional constraints around how the inverse attribute should work besides
+// just [SameObject].
+
+let testFunction =
+  (session, fakeDeviceController, t) => new Promise((resolve, reject) => {
+
+  let transform = new XRRigidTransform(
+      { x: -9.0, y: 8.0, z: -7.0 },
+      { x: 6.0, y: -5.0, z: 4.0, w: 3.0 });
+
+  let position = transform.position;
+  let orientation = transform.orientation;
+  let matrix = transform.matrix;
+  t.step(() => {
+    assert_equals(position, transform.position,
+      "XRRigidTransform.position returns the same object.");
+    assert_equals(orientation, transform.orientation,
+      "XRRigidTransform.orientation returns the same object.");
+    assert_equals(matrix, transform.matrix,
+      "XRRigidTransform.matrix returns the same object.");
+  });
+
+  resolve();
+});
+
+xr_session_promise_test(testName, testFunction, TRACKED_IMMERSIVE_DEVICE,
+    'immersive-vr');
+
+</script>

@@ -42,7 +42,7 @@
       "Activate input");
 
     test(function () {
-      assert_throws(null, function () {
+      assert_throws_dom("NotSupportedError", function () {
         var foo = document.getElementById("foo");
         foo.enterFormalActivationState();
       });

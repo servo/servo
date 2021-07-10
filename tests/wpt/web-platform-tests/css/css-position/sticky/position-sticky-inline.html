@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<title>position:sticky should work for inline elements</title>
+<link rel="match" href="position-sticky-inline-ref.html" />
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
+<meta name="assert" content="This test checks that position:sticky works for inline elements" />
+
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<script src="../resources/ref-rectangle.js"></script>
+
+<style>
+.group {
+  display: inline-block;
+  position: relative;
+  width: 150px;
+  height: 250px;
+}
+
+.scroller {
+  position: relative;
+  width: 100px;
+  height: 200px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  font: 25px/1 Ahem;
+}
+
+.contents {
+  height: 500px;
+}
+
+.prepadding {
+  height: 100px;
+}
+
+.container {
+  height: 200px;
+}
+
+.innerpadding {
+  height: 50px;
+}
+
+.indicator {
+  position: absolute;
+  left: 0;
+  color: red;
+}
+
+.sticky {
+  position: sticky;
+  top: 50px;
+  color: green;
+}
+
+.inline {
+  display: inline;
+}
+</style>
+
+<script>
+window.addEventListener('load', function() {
+  document.getElementById('scroller1').scrollTop = 50;
+  document.getElementById('scroller2').scrollTop = 125;
+  document.getElementById('scroller3').scrollTop = 250;
+  createIndicatorForStickyElements(document.querySelectorAll('.sticky'));
+});
+</script>
+
+<div class="group">
+  <div id="scroller1" class="scroller">
+    <div class="indicator inline" style="top: 150px;">XXX</div>
+    <div class="contents">
+      <div class="prepadding"></div>
+      <div class="container">
+        <div class="innerpadding"></div>
+        <div class="sticky inline">XXX</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="group">
+  <div id="scroller2" class="scroller">
+    <div class="indicator inline" style="top: 175px;">XXX</div>
+    <div class="contents">
+      <div class="prepadding"></div>
+      <div class="container">
+        <div class="innerpadding"></div>
+        <div class="sticky inline">XXX</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="group">
+  <div id="scroller3" class="scroller">
+    <div class="indicator inline" style="top: 275px;">XXX</div>
+    <div class="contents">
+      <div class="prepadding"></div>
+      <div class="container">
+        <div class="innerpadding"></div>
+        <div class="sticky inline">XXX</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div>You should see three green rectangles above. No red or blue should be visible.</div>

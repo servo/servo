@@ -1,0 +1,112 @@
+<!doctype html>
+<title>COEP and dedicated worker</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+<script>
+const HOST = get_host_info();
+const FETCH_URL = `${HOST.REMOTE_ORIGIN}/common/blank.html`;
+const WORKER_URL = new URL('resources/dedicated-worker.js', location).href;
+const WITH_COEP = '?pipe=header(cross-origin-embedder-policy,require-corp)';
+
+async function createWorker(t, frameHasCoep, workerHasCoep, workerOptions) {
+  const frame = document.createElement("iframe");
+  t.add_cleanup(() => frame.remove());
+  frame.src = '/common/blank.html';
+  if (frameHasCoep) {
+    frame.src += WITH_COEP;
+  }
+  document.body.append(frame);
+
+  await new Promise(resolve => {
+    frame.addEventListener('load', resolve, {once: true})
+  });
+  const worker = new frame.contentWindow.Worker(
+    workerHasCoep ? WORKER_URL + WITH_COEP : WORKER_URL, workerOptions);
+
+  return worker;
+}
+
+function waitForMessage(target) {
+  return new Promise(resolve => {
+    target.addEventListener('message', resolve, {once: true});
+  });
+}
+
+promise_test(async (t) => {
+  const worker = await createWorker(t, false, false, {});
+  worker.onerror = t.unreached_func('Worker.onerror should not be called');
+
+  worker.postMessage(FETCH_URL);
+
+  const result = await waitForMessage(worker);
+  assert_equals(result.data, 'LOADED');
+}, 'COEP: none worker in COEP: none frame');
+
+promise_test(async (t) => {
+  const worker = await createWorker(t, true, false, {});
+  await new Promise(resolve => {
+    worker.onerror = resolve;
+  });
+}, 'COEP: none worker in COEP: require-corp frame');
+
+promise_test(async (t) => {
+  const worker = await createWorker(t, false, true, {});
+  worker.onerror = t.unreached_func('Worker.onerror should not be called');
+
+  worker.postMessage(FETCH_URL);
+
+  const result = await waitForMessage(worker);
+  assert_equals(result.data, 'FAILED');
+}, 'COEP: require-corp worker in COEP: none frame');
+
+promise_test(async (t) => {
+  const worker = await createWorker(t, true, true, {});
+  worker.onerror = t.unreached_func('Worker.onerror should not be called');
+
+  worker.postMessage(FETCH_URL);
+
+  const result = await waitForMessage(worker);
+  assert_equals(result.data, 'FAILED');
+}, 'COEP: require-corp worker in COEP: require-corp frame');
+
+promise_test(async (t) => {
+  const worker = await createWorker(t, false, false, {type: 'module'});
+  worker.onerror = t.unreached_func('Worker.onerror should not be called');
+
+  worker.postMessage(FETCH_URL);
+
+  const result = await waitForMessage(worker);
+  assert_equals(result.data, 'LOADED');
+}, 'COEP: none module worker in COEP: none frame');
+
+promise_test(async (t) => {
+  const worker = await createWorker(t, true, false, {type: 'module'});
+  await new Promise(resolve => {
+    worker.onerror = resolve;
+  });
+}, 'COEP: none module worker in COEP: require-corp frame');
+
+promise_test(async (t) => {
+  const worker = await createWorker(t, false, true, {type: 'module'});
+  worker.onerror = t.unreached_func('Worker.onerror should not be called');
+
+  worker.postMessage(FETCH_URL);
+
+  const result = await waitForMessage(worker);
+  assert_equals(result.data, 'FAILED');
+}, 'COEP: require-corp module worker in COEP: none frame');
+
+promise_test(async (t) => {
+  const worker = await createWorker(t, true, true, {type: 'module'});
+  worker.onerror = t.unreached_func('Worker.onerror should not be called');
+
+  worker.postMessage(FETCH_URL);
+
+  const result = await waitForMessage(worker);
+  assert_equals(result.data, 'FAILED');
+}, 'COEP: require-corp module worker in COEP: require-corp frame');
+
+</script>
+</body>

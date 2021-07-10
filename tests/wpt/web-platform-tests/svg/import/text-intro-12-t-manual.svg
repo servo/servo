@@ -52,8 +52,8 @@
         <li>The first subtest has the word for 'tools', آلات</li>
         <li>The second subtest has the word for 'three', ثلاثة</li>
       </ul>
-      <p>In the first subtest, there must be an isolate lam-alef ligature 
-      and in the second subtest there must be  a right-joining lam-alef 
+      <p>In the first subtest, there must be an isolate lam-alef ligature
+      and in the second subtest there must be  a right-joining lam-alef
       ligature, as in the reference image.
       </p>
     </d:passCriteria>

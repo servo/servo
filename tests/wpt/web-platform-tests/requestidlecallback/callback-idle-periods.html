@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>window.requestIdleCallback callback behavior during idle periods.</title>
+<meta name="timeout" content="long">
+<link rel="author" title="Ross McIlroy" href="mailto:rmcilroy@chromium.org" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+async_test(function() {
+  // Check that if an idle callback calls requestIdleCallback, the new callback
+  // doesn't get the same deadline (i.e., runs in a new idle period).
+  var previous_deadline = undefined;
+  var idle_callbacks_remaining = 10;
+  var rIC = this.step_func(function(deadline) {
+    var now = performance.now();
+    var remaining = deadline.timeRemaining();
+    var new_deadline = now + remaining;
+    if (previous_deadline != undefined) {
+      assert_true(new_deadline > previous_deadline, "A requestIdleCallback scheduled during an idle period should be called back with a deadline greater than that in the current idle period.");
+    }
+
+    // Schedule a new requestIdleCallback.
+    if (--idle_callbacks_remaining > 0) {
+      previous_deadline = new_deadline;
+      requestIdleCallback(rIC);
+    } else {
+      this.done();
+    }
+  });
+
+  // Spin an empty rAF loop to cause an idle period each frame.
+  var idle_task_posted = false;
+  requestAnimationFrame(function rAFLoop() {
+    if (!idle_task_posted) {
+      requestIdleCallback(rIC);
+      idle_task_posted = true;
+    }
+    requestAnimationFrame(rAFLoop);
+  });
+}, 'Check that if an idle callback calls requestIdleCallback the new callback doesn\'t run in the current idle period.');
+</script>
+<h1>Test of requestIdleCallback idle period behavior</h1>
+<p>This test validates that window.requestIdleCallback deals with callbacks during idle periods correctly.</p>
+<div id="log"></div>

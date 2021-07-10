@@ -32,13 +32,13 @@
         // set the current test, and run it
         db.setTest(t).onupgradeneeded = function(e) {
             objStore = objStore || e.target.result.createObjectStore("store");
-            assert_throws('DataError', function() {
+            assert_throws_dom('DataError', function() {
                 objStore.add("value", key);
             });
 
             if (is_cloneable(key)) {
                 objStore2 = objStore2 || e.target.result.createObjectStore("store2", { keyPath: ["x", "keypath"] });
-                assert_throws('DataError', function() {
+                assert_throws_dom('DataError', function() {
                     objStore2.add({ x: "value", keypath: key });
                 });
             }
@@ -123,6 +123,8 @@
 
     var recursive3 = [recursive];
     invalid_key('array member contains self', recursive3);
+
+    invalid_key('proxy of an array', new Proxy([1,2,3], {}));
 
 </script>
 

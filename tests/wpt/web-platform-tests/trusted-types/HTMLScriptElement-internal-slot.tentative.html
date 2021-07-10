@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script'">
+</head>
+<body>
+<script>
+  promise_test(t => {
+    // Setup: We create an <iframe> and trigger loading the document. We use
+    // WPTserve's ?pipe functionality to make sure it gets delivered in chunks
+    // and that parsing will be deferred.
+    var frame = document.createElement("iframe");
+    document.body.appendChild(frame);
+    frame.src = "support/HTMLScriptElement-internal-slot-support.html?pipe=trickle(200:d1)";
+
+    // This function tries to find the first <script> element in our iframe and
+    // manipulated it with DOM APIs (appendChild + createTextNode). If it
+    // doesn't find the script element then it'll just enqueue itself again
+    // in 100ms.
+    var manipulator = _ => {
+      let script = frame.contentDocument.getElementsByTagName("script")[0];
+      if (script) {
+        script.appendChild(frame.contentDocument.createTextNode("/*byapi*/"));
+      } else {
+        t.step_timeout(manipulator, 100);
+      }
+    }
+    manipulator();
+
+    // Now we'll wait for the postMessages to arrive. We expect the iframe's
+    // first message to be blocked by Trusted Types, since the manipulator
+    // above should have manipulated it (while loading). The second one should
+    // pass.
+    return new Promise((resolve, reject) => {
+      window.addEventListener("message", e => {
+        if (e.data.includes("first")) {
+          reject("First message should have been blocked: " + e.data);
+        } else if (e.data.includes("second")) {
+          resolve();
+        } else {
+          reject("Unknown message: " + e.data);
+        }
+      });
+    });
+  }, "Test TT application when manipulating <script> elements during loading.");
+</script>
+</body>
+</html>

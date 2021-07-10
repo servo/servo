@@ -1,0 +1,218 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Uniform Buffers Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" style="width: 50px; height: 50px;"> </canvas>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">#version 300 es
+in vec4 position;
+void main()
+{
+    gl_Position = position;
+}
+</script>
+<script id="fshader" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+uniform uni {
+    vec4 color;
+};
+
+out vec4 fragColor;
+
+void main()
+{
+    fragColor = color;
+}
+</script>
+<script>
+"use strict";
+description("This test covers ANGLE bugs when using a large uniform blocks. ANGLE would confuse an internal clipped uniform buffer size and produce an assert or error. Also there were issues with readback of large UBOs. See http://crbug.com/660670.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, null, 2);
+var quadVB;
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    debug("");
+    debug("Testing uniform block with large data store");
+    runTest();
+
+    debug("");
+    debug("Testing readback on uniform block with large data store");
+    runReadbackTest();
+}
+
+function getQuadVerts(depth) {
+  var quadVerts = new Float32Array(3 * 6);
+  quadVerts[0] = -1.0; quadVerts[1] =   1.0; quadVerts[2] = depth;
+  quadVerts[3] = -1.0; quadVerts[4] =  -1.0; quadVerts[5] = depth;
+  quadVerts[6] =  1.0; quadVerts[7] =  -1.0; quadVerts[8] = depth;
+  quadVerts[9] = -1.0; quadVerts[10] =  1.0; quadVerts[11] = depth;
+  quadVerts[12] = 1.0; quadVerts[13] = -1.0; quadVerts[14] = depth;
+  quadVerts[15] = 1.0; quadVerts[16] =  1.0; quadVerts[17] = depth;
+  return quadVerts;
+}
+
+function drawQuad(depth) {
+  if (!quadVB) {
+    quadVB = gl.createBuffer()
+  }
+
+  var quadVerts = getQuadVerts(depth);
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadVB);
+  gl.bufferData(gl.ARRAY_BUFFER, quadVerts, gl.STATIC_DRAW);
+  gl.vertexAttribPointer(0, 3, gl.FLOAT, gl.FALSE, 0, 0);
+  gl.enableVertexAttribArray(0);
+  gl.drawArrays(gl.TRIANGLES, 0, 6);
+}
+
+function runTest() {
+
+    // Create the program
+    var program = wtu.setupProgram(gl, ["vshader", "fshader"], ["position"]);
+    if (!program) {
+        testFailed("Failed to set up the program");
+        return;
+    }
+
+    // Init uniform buffer. To trigger the bug, it's necessary to use the
+    // DYNAMIC_DRAW usage. This makes ANGLE attempt to map the buffer internally
+    // with an incorrect copy size.
+    var ubo = gl.createBuffer();
+    var big_size = 4096 * 64;
+    var data = new Float32Array([0.5, 0.75, 0.25, 1.0]);
+    gl.bindBuffer(gl.UNIFORM_BUFFER, ubo);
+    gl.bufferData(gl.UNIFORM_BUFFER, big_size, gl.DYNAMIC_DRAW);
+    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, data);
+
+    gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, ubo);
+    var buffer_index = gl.getUniformBlockIndex(program, "uni");
+    if (buffer_index == -1) {
+      testFailed("Failed to get uniform block index");
+      return;
+    }
+    gl.uniformBlockBinding(program, buffer_index, 0);
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Setting up uniform block should succeed");
+
+    // Draw the quad
+    gl.useProgram(program);
+    drawQuad(0.5);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Draw with uniform block should succeed");
+
+    // Verify the output color
+    var color = [127, 191, 64, 255];
+    wtu.checkCanvas(gl, color, "canvas should be same as input uniform", 1);
+}
+
+function runReadbackTest() {
+
+    // Create the program
+    var program = wtu.setupProgram(gl, ["vshader", "fshader"], ["position"]);
+    if (!program) {
+        testFailed("Failed to set up the program");
+        return;
+    }
+
+    // Init uniform buffer. To trigger the bug, it's necessary to use the
+    // DYNAMIC_DRAW usage. This makes ANGLE attempt to map the buffer internally
+    // with an incorrect copy size.
+    var ubo = gl.createBuffer();
+    var num_floats = 4096 * 16;
+    var expected_data = new Float32Array(num_floats);
+    for (var index = 0; index < num_floats; ++index) {
+        expected_data[index] = index;
+    }
+
+    expected_data[0] = 0.5;
+    expected_data[1] = 0.75;
+    expected_data[2] = 0.25;
+    expected_data[3] = 1.0;
+
+    gl.bindBuffer(gl.UNIFORM_BUFFER, ubo);
+    gl.bufferData(gl.UNIFORM_BUFFER, expected_data, gl.DYNAMIC_DRAW);
+    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, expected_data);
+
+    gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, ubo);
+    var buffer_index = gl.getUniformBlockIndex(program, "uni");
+    if (buffer_index == -1) {
+      testFailed("Failed to get uniform block index");
+      return;
+    }
+    gl.uniformBlockBinding(program, buffer_index, 0);
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Setting up uniform block should succeed");
+
+    // Draw the quad
+    gl.useProgram(program);
+    drawQuad(0.5);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Draw with uniform block should succeed");
+
+    // Verify the output color
+    var color = [127, 191, 64, 255];
+    wtu.checkCanvas(gl, color, "canvas should be same as input uniform", 1);
+
+    // Verify readback
+    var actual_data = new Float32Array(num_floats);
+    gl.getBufferSubData(gl.UNIFORM_BUFFER, 0, actual_data);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Readback from uniform block should succeed");
+
+    for (var index = 0; index < num_floats; ++index) {
+        if (actual_data[index] != expected_data[index]) {
+            testFailed("Expected and actual buffer data do not match");
+            return;
+        }
+    }
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

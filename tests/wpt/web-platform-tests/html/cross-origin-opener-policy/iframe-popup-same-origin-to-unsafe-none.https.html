@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name=timeout content=long>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/common.js"></script>
+
+<div id=log></div>
+<script>
+// This document has COOP "same-origin". The popup has no COOP. Therefore there should be no
+// opener or name.
+[
+[SAME_ORIGIN, SAME_ORIGIN],
+[SAME_SITE, SAME_ORIGIN],
+[CROSS_ORIGIN, SAME_ORIGIN],
+[SAME_ORIGIN, SAME_SITE],
+[SAME_SITE, SAME_SITE],
+[CROSS_ORIGIN, SAME_SITE],
+[SAME_ORIGIN, CROSS_ORIGIN],
+[SAME_SITE, CROSS_ORIGIN],
+[CROSS_ORIGIN, CROSS_ORIGIN],
+].forEach(([frameOrigin, popupOrigin]) => {
+    const testTitleStart = "same-origin";
+    const popupCOOP = "";
+    const popupHasOpenerAndName = false;
+    run_coop_test_iframe(testTitleStart, frameOrigin, popupOrigin, popupCOOP, popupHasOpenerAndName, popupHasOpenerAndName);
+});
+</script>

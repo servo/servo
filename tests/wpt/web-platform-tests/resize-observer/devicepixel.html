@@ -1,0 +1,85 @@
+<!doctype html>
+<link rel="match" href="devicepixel-ref.html">
+<meta name="assert" content="Device pixel content box sizes and pixel snapping are correct in Resize Observer callback">
+<!--
+  This test verifies that the device pixel content box sizes available
+  in a resize observer callback are correct. Resize observer notifications
+  are delivered as the element is loaded. A box is then drawn using the
+  available dimensions in device pixels. The result is compared to the reference
+  which uses div and border to draw a box.
+-->
+
+<style>
+  #canvas2D {
+    width: 100%;
+    height: 100%;
+  }
+  #canvas2DPadding14 {
+    width: 100%;
+    height: 100%;
+  }
+  #outer {
+    padding-top: 1.7px;
+    width: 300.8px;
+    height: 250.1px;
+  }
+  #outer2 {
+    padding-top: 1.4px;
+    width: 300.8px;
+    height: 250.1px;
+  }
+
+</style>
+<body>
+  <div id="outer">
+    <canvas id="canvas2D"></canvas>
+  </div>
+  <div id="outer2">
+    <canvas id="canvas2DPadding14"></canvas>
+  </div>
+</body>
+
+<script>
+  // Create a box using device pixel content box dimensions
+  function paint2D(ctx, snappedSize) {
+    ctx.beginPath();
+    // Use a linewidth of 2. Because the rectangle is drawn at 0,0 with
+    // its dimensions being the same as canvas dimensions, linewidth as it
+    // is drawn on the canvas will be 1.
+    ctx.lineWidth = "2";
+    ctx.strokeStyle = "green";
+    ctx.rect(0, 0, snappedSize.inlineSize, snappedSize.blockSize);
+    ctx.stroke();
+  }
+
+  function updateCanvasSize2D(canvas2D, ctx, snappedSize) {
+    canvas2D.width = snappedSize.inlineSize;
+    canvas2D.height = snappedSize.blockSize;
+    paint2D(ctx, snappedSize);
+  }
+
+  (function() {
+    let canvas2D = document.querySelector("#canvas2D");
+    let canvas2DPadding14 = document.querySelector("#canvas2DPadding14");
+
+    function observeSizes() {
+      let ro = new ResizeObserver( entries => {
+        for (entry of entries) {
+          let size = entry.devicePixelContentBoxSize[0];
+          if (entry.target == canvas2D) {
+            let canvas2D = document.querySelector("#canvas2D");
+            let ctx = canvas2D.getContext("2d");
+            updateCanvasSize2D(canvas2D, ctx, size);
+          } else if (entry.target == canvas2DPadding14){
+            let canvas2DPadding14 = document.querySelector("#canvas2DPadding14");
+            let ctx = canvas2DPadding14.getContext("2d");
+            updateCanvasSize2D(canvas2DPadding14, ctx, size);
+          }
+        }
+      });
+      ro.observe(canvas2D, {box: "device-pixel-content-box"});
+      ro.observe(canvas2DPadding14, {box: "device-pixel-content-box"});
+    }
+    observeSizes();
+  })();
+</script>

@@ -3,6 +3,7 @@ name = "gfx_traits"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
+edition = "2018"
 publish = false
 
 [lib]
@@ -10,8 +11,8 @@ name = "gfx_traits"
 path = "lib.rs"
 
 [dependencies]
-heapsize = "0.3.0"
-heapsize_derive = "0.1"
-range = {path = "../range"}
-serde = "0.9"
-serde_derive = "0.9"
+malloc_size_of = { path = "../malloc_size_of" }
+malloc_size_of_derive = "0.1"
+range = { path = "../range" }
+serde = "1.0"
+webrender_api = { git = "https://github.com/servo/webrender" }

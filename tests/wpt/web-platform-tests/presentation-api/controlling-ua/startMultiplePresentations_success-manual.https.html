@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Starting presentations on two distinct displays</title>
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs">
+<link rel="help" href="http://w3c.github.io/presentation-api/#dfn-controlling-user-agent">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="common.js"></script>
+<style>
+#second-step {
+  display: none;
+}
+</style>
+
+<p id="first-step">Click the button below and select the available presentation display, to start the manual test.</p>
+<p id="second-step">Click the button below and select the other available presentation display, to continue the manual test.</p>
+<p>This test asks you to click the button twice, unless the test fails.<br>
+<em>This test requires two or more available displays.<em></p>
+<button id="presentBtn">Start Presentation Test</button>
+
+
+<script>
+  promise_test(async t => {
+    const presentBtn = document.getElementById("presentBtn");
+
+    const request = new PresentationRequest(presentationUrls);
+    const clickWatcher = new EventWatcher(t, presentBtn, 'click');
+    let connection1, connection2, eventWatcher1, eventWatcher2, timer;
+
+    t.add_cleanup(() => {
+      [connection1, connection2].forEach(connection => {
+        if (connection) {
+          connection.onconnect = () => { connection.terminate(); };
+          if (connection.state == 'closed')
+            request.reconnect(connection.id);
+          else
+            connection.terminate();
+        }
+      });
+    });
+
+    const disableTimeout = () => {
+      setup({explicit_timeout: true});
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+    };
+
+    const enableTimeout = () => {
+      timer = t.step_timeout(() => {
+        t.force_timeout();
+        t.done();
+      }, 5000);
+    }
+
+    disableTimeout();
+
+    await clickWatcher.wait_for('click');
+    presentBtn.disabled = true;
+    connection1 = await request.start();
+
+    presentBtn.disabled = false;
+    document.getElementById('first-step').style.display = 'none';
+    document.getElementById('second-step').style.display = 'block';
+    presentBtn.innerText = 'Continue Presentation Test';
+    eventWatcher1 = new EventWatcher(t, connection1, ['connect', 'close', 'terminate']);
+
+    await Promise.all([
+      eventWatcher1.wait_for('connect'),
+      (async () => {
+        await clickWatcher.wait_for('click');
+        presentBtn.disabled = true;
+
+        connection2 = await request.start();
+        enableTimeout();
+        eventWatcher2 = new EventWatcher(t, connection2, ['connect', 'terminate']);
+        await eventWatcher2.wait_for('connect');
+      })()
+    ]);
+
+    assert_not_equals(connection1.id, connection2.id,
+      'Presentation connections on distinct presentations must have different presentation IDs.');
+
+    assert_equals(connection1.state, 'connected', 'The presentation connection is successfully reconnected.');
+    connection1.terminate();
+    assert_equals(connection2.state, 'connected',
+      'Terminating one presentation connection does not affect the state of the other.');
+    connection2.terminate();
+
+    await Promise.all([
+      eventWatcher1.wait_for('terminate'),
+      eventWatcher2.wait_for('terminate')
+    ]);
+
+    assert_equals(connection1.state, 'terminated', 'One presentation connection is successfully terminated.');
+    assert_equals(connection2.state, 'terminated', 'Both presentation connections are successfully terminated.');
+  });
+</script>

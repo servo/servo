@@ -1,0 +1,15 @@
+<!doctype html>
+<title>Meta color-scheme - presentational hint</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#meta-color-scheme">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/compute-root-color-scheme.js"></script>
+<style>
+  * { color-scheme: light }
+</style>
+<meta name="color-scheme" content="dark">
+<script>
+  // Author level CSS color-scheme property overrides meta color-scheme value
+  // which is at the presentational hint cascade order.
+  assert_root_color_scheme("light", "Author origin style rule overrides meta color-scheme.");
+</script>

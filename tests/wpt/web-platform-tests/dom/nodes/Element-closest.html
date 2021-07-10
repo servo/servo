@@ -56,11 +56,10 @@
   do_test(":first-child"               , "test12", "test3");
   do_test(":invalid"                   , "test11", "test2");
 
-  do_scope_test(":scope"               , "test4");
-  do_scope_test("select > :scope"      , "test4");
-  do_scope_test("div > :scope"         , "test4");
-  do_scope_test(":has(> :scope)"       , "test4");
-
+  do_test(":scope"                     , "test4",  "test4");
+  do_test("select > :scope"            , "test4",  "test4");
+  do_test("div > :scope"               , "test4",  "");
+  do_test(":has(> :scope)"             , "test4",  "test3");
 function do_test(aSelector, aElementId, aTargetId) {
   test(function() {
     var el = document.getElementById(aElementId).closest(aSelector);
@@ -70,14 +69,5 @@ function do_test(aSelector, aElementId, aTargetId) {
       assert_equals(el.id, aTargetId, aSelector);
     }
   }, "Element.closest with context node '" + aElementId + "' and selector '" + aSelector + "'");
-}
-
-function do_scope_test(aSelector, aElementId) {
-  test(function() {
-    var el = document.getElementById(aElementId);
-    assert_throws("SYNTAX_ERR", function() {
-      el.closest(aSelector);
-    });
-  }, "Element.closest with context node '" + aElementId + "' and selector '" + aSelector + "' should throw");
 }
 </script>

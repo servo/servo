@@ -1,0 +1,96 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Reftest Reference</title>
+		<!-- reftest for line-break-normal-016b.xht -->
+		<link rel="author" title="Taka Oshiyama" href="mailto:takaoshiyama@gmail.com" />
+		<link rel="author" title="Shinyu Murakami" href="mailto:murakami@vivliostyle.org" />
+		<meta http-equiv="content-language" content="en, ja" />
+		<style type="text/css">
+			@font-face
+			{
+				font-family: "mplus-1p-regular";
+				src: url("/fonts/mplus-1p-regular.woff") format("woff");
+				/* filesize: 803300 bytes (784.5 KBytes) */
+				/*
+				mplus-1p-regular.ttf can be downloaded at/from [TBD later]
+				*/
+			}
+			p.control {
+				border: 1px solid gray;
+				color: blue;
+				font-family: "mplus-1p-regular";
+				width: 10.2em;		/* added extra .2em for some symbols wider than 1em */
+			}
+			span.target {
+				background-color: aqua;
+			}
+			div.wrapper {
+				display: inline-block;
+				border: 1px solid;
+				margin: 5px;
+				padding: 5px;
+			}
+		</style>
+	</head>
+	<body  lang="en">
+		<p>
+			Test passes if the highlighted characters in each pair of rectangles are at the exact same horizontal position.
+		</p>
+		<div class="wrapper">
+			<!-- centered punctuation marks DOUBLE EXCLAMATION MARK -->
+			<p class="control" lang="ja">
+				<span>サンプル文サンプル<br />文<span class="target">&#x203c;</span>サンプル文</span>
+			</p>
+			<p class="control" lang="ja">
+				<span>サンプル文サンプル<br />文<span class="target">&#x203c;</span>サンプル文</span>
+			</p>
+		</div>
+		<div class="wrapper">
+			<!-- centered punctuation marks DOUBLE QUESTION MARK -->
+			<p class="control" lang="ja">
+				<span>サンプル文サンプル<br />文<span class="target">&#x2047;</span>サンプル文</span>
+			</p>
+			<p class="control" lang="ja">
+				<span>サンプル文サンプル<br />文<span class="target">&#x2047;</span>サンプル文</span>
+			</p>
+		</div>
+		<div class="wrapper">
+			<!-- centered punctuation marks QUESTION EXCLAMATION MARK -->
+			<p class="control" lang="ja">
+				<span>サンプル文サンプル<br />文<span class="target">&#x2048;</span>サンプル文</span>
+			</p>
+			<p class="control" lang="ja">
+				<span>サンプル文サンプル<br />文<span class="target">&#x2048;</span>サンプル文</span>
+			</p>
+		</div>
+		<div class="wrapper">
+			<!-- centered punctuation marks EXCLAMATION QUESTION MARK -->
+			<p class="control" lang="ja">
+				<span>サンプル文サンプル<br />文<span class="target">&#x2049;</span>サンプル文</span>
+			</p>
+			<p class="control" lang="ja">
+				<span>サンプル文サンプル<br />文<span class="target">&#x2049;</span>サンプル文</span>
+			</p>
+		</div>
+		<div class="wrapper">
+			<!-- centered punctuation marks FULLWIDTH EXCLAMATION MARK -->
+			<p class="control" lang="ja">
+				<span>サンプル文サンプル<br />文<span class="target">&#xff01;</span>サンプル文</span>
+			</p>
+			<p class="control" lang="ja">
+				<span>サンプル文サンプル<br />文<span class="target">&#xff01;</span>サンプル文</span>
+			</p>
+		</div>
+		<div class="wrapper">
+			<!-- centered punctuation marks FULLWIDTH QUESTION MARK -->
+			<p class="control" lang="ja">
+				<span>サンプル文サンプル<br />文<span class="target">&#xff1f;</span>サンプル文</span>
+			</p>
+			<p class="control" lang="ja">
+				<span>サンプル文サンプル<br />文<span class="target">&#xff1f;</span>サンプル文</span>
+			</p>
+		</div>
+	</body>
+</html>

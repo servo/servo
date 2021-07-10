@@ -1,0 +1,125 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+// FIXME(ferjm) https://github.com/servo/servo/issues/22269
+//              This is not using file:// urls.
+
+[{
+  file: "resources/range_small.txt",
+  range: "bytes=0-",
+  status: 206,
+  expected: "abcdefghijklmnopqrstuvwxyz\n"
+}, {
+  file: "resources/range_small.txt",
+  range: "bytes=0-9",
+  status: 206,
+  expected: "abcdefghij"
+}, {
+  file: "resources/range_small.txt",
+  range: "bytes=1-9",
+  status: 206,
+  expected: "bcdefghij"
+}, {
+  file: "resources/range_small.txt",
+  range: "bytes=-10",
+  status: 206,
+  expected: "rstuvwxyz\n"
+}, {
+  file: "resources/range_small.txt",
+  range: "bytes=0-100",
+  status: 206,
+  expected: "abcdefghijklmnopqrstuvwxyz\n"
+}, {
+  file: "resources/range_small.txt",
+  range: "bytes=100-",
+  status: 416,
+  expected: ""
+}, {
+  file: "resources/range_small.txt",
+  range: "bytes=-100",
+  status: 206,
+  expected: "abcdefghijklmnopqrstuvwxyz\n"
+}].forEach(test => {
+  promise_test(function() {
+    return fetch(test.file, {
+      headers: {
+        "Range": test.range
+      }
+    })
+    .then(response => {
+      assert_equals(response.status, test.status);
+      if (response.status != 206) {
+        return "";
+      }
+      return response.text();
+    })
+    .then(response => {
+      assert_equals(response, test.expected);
+    });
+  });
+});
+
+// We read files in chunks of 32 KB.
+
+[{
+  file: "resources/range.txt",
+  range: "bytes=0-",
+  status: 206,
+  expected_length: 75401
+}, {
+  file: "resources/range.txt",
+  range: "bytes=32768-32777",
+  status: 206,
+  expected_length: 10
+}, {
+  file: "resources/range.txt",
+  range: "bytes=32769-32777",
+  status: 206,
+  expected_length: 9
+}, {
+  file: "resources/range.txt",
+  range: "bytes=-10",
+  status: 206,
+  expected_length: 10
+}, {
+  file: "resources/range.txt",
+  range: "bytes=0-99999",
+  status: 206,
+  expected_length: 75401
+}, {
+  file: "resources/range.txt",
+  range: "bytes=75402-",
+  status: 416,
+  expected_length: 0
+}, {
+  file: "resources/range.txt",
+  range: "bytes=-99999",
+  status: 206,
+  expected_length: 75401
+}].forEach(test => {
+  promise_test(function() {
+    return fetch(test.file, {
+      headers: {
+        "Range": test.range
+      }
+    })
+    .then(response => {
+      assert_equals(response.status, test.status);
+      if (response.status != 206) {
+        return "";
+      }
+      return response.text();
+    })
+    .then(response => {
+      assert_equals(response.length, test.expected_length);
+    });
+  });
+});
+
+</script>
+</head>
+</body>
+</html>

@@ -1,0 +1,135 @@
+name: Nightly builds
+
+on:
+  schedule:
+    # Run at 5:30 am, daily.
+    - cron: '15 5 * * *'
+  workflow_dispatch:
+
+env:
+  RUST_BACKTRACE: 1
+  SHELL: /bin/bash
+
+jobs:
+  upload-linux:
+    name: Upload nightly (Linux)
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Bootstrap
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          python3 ./mach bootstrap
+      - name: Release build
+        run: python3 ./mach build --release
+      - name: Package
+        run: python3 ./mach package --release
+      - name: Upload
+        run: python3 ./mach upload-nightly linux --secret-from-environment
+        env:
+          S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
+
+  upload-mac:
+    name: Upload nightly (macOS)
+    runs-on: macos-10.15
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Bootstrap
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile
+          brew bundle install --verbose --no-upgrade --file=etc/taskcluster/macos/Brewfile-build
+          rm -rf /usr/local/etc/openssl
+          rm -rf /usr/local/etc/openssl@1.1
+          brew install openssl@1.1 gnu-tar
+      - name: Release build
+        run: |
+          export OPENSSL_INCLUDE_DIR="$(brew --prefix openssl)/include"
+          export OPENSSL_LIB_DIR="$(brew --prefix openssl)/lib"
+          export PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig/"
+          export PKG_CONFIG_PATH="$(brew --prefix zlib)/lib/pkgconfig/:$PKG_CONFIG_PATH"
+          python3 ./mach build --release
+      - name: Package
+        run: python3 ./mach package --release
+      - name: Smoketest
+        run: ./etc/ci/macos_package_smoketest.sh target/release/servo-tech-demo.dmg
+      - name: Upload
+        run: python3 ./mach upload-nightly mac --secret-from-environment
+        env:
+          S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
+          GITHUB_HOMEBREW_TOKEN: ${{ secrets.HOMEBREW_TOKEN }}
+
+  upload-win:
+    name: Upload nightly (Windows)
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Copy to C drive
+        run: cp D:\a C:\ -Recurse
+      - uses: suisei-cn/actions-download-file@v1
+        id: wix311-binaries
+        name: Download wix binaries
+        with:
+          url: "https://github.com/wixtoolset/wix3/releases/download/wix3111rtm/wix311-binaries.zip"
+          target: "C:\\wix311-binaries.zip"
+      - uses: DuckSoft/extract-7z-action@v1.0
+        name: Extract wix binaries
+        with:
+          pathSource: "C:\\wix311-binaries.zip"
+          pathTarget: "C:\\wix"
+      - name: Add binaries to path
+        run: echo "C:\\wix" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Bootstrap
+        working-directory: "C:\\a\\servo\\servo"
+        run: |
+          python -m pip install --upgrade pip virtualenv
+          python mach fetch
+      - name: Release build
+        working-directory: "C:\\a\\servo\\servo"
+        run: python mach build --release --media-stack=dummy
+      - name: Package
+        working-directory: "C:\\a\\servo\\servo"
+        run: python mach package --release
+      - name: Upload
+        working-directory: "C:\\a\\servo\\servo"
+        run: python mach upload-nightly windows-msvc --secret-from-environment
+        env:
+          S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
+
+  upload-uwp:
+    name: Upload nightly (UWP)
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Copy to C drive
+        run: cp D:\a C:\ -Recurse
+      - name: Bootstrap
+        working-directory: "C:\\a\\servo\\servo"
+        run: |
+          python -m pip install --upgrade pip virtualenv
+          python mach fetch
+      - name: Release build (x64)
+        working-directory: "C:\\a\\servo\\servo"
+        run: python mach build --release --target=x86_64-uwp-windows-msvc
+      - name: Release build (arm64)
+        working-directory: "C:\\a\\servo\\servo"
+        run: python mach build --release --target=aarch64-uwp-windows-msvc
+      - name: Package
+        working-directory: "C:\\a\\servo\\servo"
+        run: python mach package --release --target=x86_64-uwp-windows-msvc --uwp=x64 --uwp=arm64
+        env:
+          CODESIGN_CERT: ${{ secrets.WINDOWS_CODESIGN_CERT }}
+      - name: Upload
+        working-directory: "C:\\a\\servo\\servo"
+        run: python mach upload-nightly uwp --secret-from-environment
+        env:
+          S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}

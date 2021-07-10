@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS test: Handling of dynamic changes to :any-link selectors</title>
+<link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu">
+<link rel="match" href="any-link-dynamic-001-ref.html">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#the-any-link-pseudo">
+<style>
+  span { color: green; }
+  :any-link + span { color: red; }
+</style>
+<body onload="window.oldColor = getComputedStyle(document.querySelector('span')).color;
+              document.querySelector('a').removeAttribute('href');">
+  <a href=""></a><span>This should be green</span>
+</body>

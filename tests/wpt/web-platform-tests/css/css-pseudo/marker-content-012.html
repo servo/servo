@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: ::marker pseudo elements styled with 'content' property</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="match" href="marker-content-012-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-lists/#content-property">
+<meta name="assert" content="Checks that ::marker's 'content' takes precendence over 'list-style-type' and 'list-style-image'">
+<style>
+:root {
+  --red-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="16" style="background: red"></svg>');
+  --green-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="16" style="background: green"></svg>');
+}
+ul {
+  float: left;
+}
+.inside {
+  list-style-position: inside;
+}
+.text::marker {
+  content: "text";
+}
+.image::marker {
+  content: var(--green-image);
+}
+</style>
+<ul style="list-style-type: none">
+  <li class="outside normal">item</li>
+  <li class="outside text">item</li>
+  <li class="outside image">item</li>
+  <li class="inside normal">item</li>
+  <li class="inside text">item</li>
+  <li class="inside image">item</li>
+</ul>
+<ul style="list-style-type: decimal">
+  <li class="outside normal">item</li>
+  <li class="outside text">item</li>
+  <li class="outside image">item</li>
+  <li class="inside normal">item</li>
+  <li class="inside text">item</li>
+  <li class="inside image">item</li>
+</ul>
+<ul style="list-style-type: disc">
+  <li class="outside normal">item</li>
+  <li class="outside text">item</li>
+  <li class="outside image">item</li>
+  <li class="inside normal">item</li>
+  <li class="inside text">item</li>
+  <li class="inside image">item</li>
+</ul>
+<ul style="list-style-type: 'string'">
+  <li class="outside normal">item</li>
+  <li class="outside text">item</li>
+  <li class="outside image">item</li>
+  <li class="inside normal">item</li>
+  <li class="inside text">item</li>
+  <li class="inside image">item</li>
+</ul>
+<ul style="list-style-image: var(--red-image)">
+  <li class="outside normal">item</li>
+  <li class="outside text">item</li>
+  <li class="outside image">item</li>
+  <li class="inside normal">item</li>
+  <li class="inside text">item</li>
+  <li class="inside image">item</li>
+</ul>

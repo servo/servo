@@ -86,3 +86,45 @@ self.recordingWritableStream = (extras = {}, strategy) => {
 
   return stream;
 };
+
+self.recordingTransformStream = (extras = {}, writableStrategy, readableStrategy) => {
+  let controllerToCopyOver;
+  const stream = new TransformStream({
+    start(controller) {
+      controllerToCopyOver = controller;
+
+      if (extras.start) {
+        return extras.start(controller);
+      }
+
+      return undefined;
+    },
+
+    transform(chunk, controller) {
+      stream.events.push('transform', chunk);
+
+      if (extras.transform) {
+        return extras.transform(chunk, controller);
+      }
+
+      controller.enqueue(chunk);
+
+      return undefined;
+    },
+
+    flush(controller) {
+      stream.events.push('flush');
+
+      if (extras.flush) {
+        return extras.flush(controller);
+      }
+
+      return undefined;
+    }
+  }, writableStrategy, readableStrategy);
+
+  stream.controller = controllerToCopyOver;
+  stream.events = [];
+
+  return stream;
+};

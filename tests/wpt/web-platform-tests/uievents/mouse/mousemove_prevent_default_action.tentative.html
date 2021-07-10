@@ -1,0 +1,96 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>mousemove event: preventDefault()</title>
+  <link rel="author" title="Mirko Brodesser" href="mailto:mbrodesser@mozilla.com">
+  <link rel="help" href="https://github.com/w3c/uievents/issues/278">
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/uievents/resources/eventrecorder.js></script>
+  <script src=/resources/testdriver.js></script>
+  <script src=/resources/testdriver-actions.js></script>
+  <script src=/resources/testdriver-vendor.js></script>
+</head>
+
+<body>
+  <div id="a">a</div>
+  <div id="b">b</div>
+</body>
+
+<script>
+const eventsToRecord = [
+  "mousedown",
+  "mousemove",
+  "selectionchange",
+];
+
+const expectedEventRecords = [
+  {type: "mousemove", target: "a"},
+  {type: "mousemove", target: "document"},
+  {type: "mousedown", target: "a"},
+  {type: "mousedown", target: "document"},
+  {type: "selectionchange", target: "document"},
+  {type: "mousemove", target: "b"},
+  {type: "mousemove", target: "document"},
+];
+
+window.onload = function () {
+  setup({single_test: true});
+
+  const a = document.getElementById("a");
+  const b = document.getElementById("b");
+  const nodesToListenForEvents = [a, b, document];
+
+  EventRecorder.configure({
+    objectMap: {
+      "a" : a,
+      "b" : b,
+      "document" : document,
+    }
+  });
+
+  EventRecorder.addEventListenersForNodes(eventsToRecord,
+    nodesToListenForEvents, null);
+
+  document.addEventListener("mousemove", (event) => {
+    event.preventDefault();
+  });
+
+  EventRecorder.start();
+
+  let actions_promise = new test_driver.Actions()
+    .pointerMove(0, 0, {origin: a})
+    .pointerDown()
+    .send();
+
+  actions_promise.then(() => {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        // Requested two animation frames to enforce flushing the
+        // "selectionchange" event.
+      })
+    });
+  });
+
+  actions_promise = new test_driver.Actions()
+    .pointerMove(0, 0, {origin: b})
+    .send();
+
+  actions_promise.then(() => {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        // Requested two animation frames to enforce flusing the
+        // "selectionchange" event, if there was one.
+
+        EventRecorder.stop();
+        assert_true(EventRecorder.checkRecords(expectedEventRecords),
+          "Events are as expected");
+
+        done();
+      });
+    });
+  });
+};
+</script>
+</html>

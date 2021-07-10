@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Clicking with primary vs non-primary buttons</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+  </head>
+  <body>
+    <h1>Clicking on input type=text element when placeholder changes</h1>
+    <input id="target" onfocus="this.placeholder = ++focusCount;" placeholder="initial">
+    <input id="other">
+    <script>
+    var focusCount = 0;
+    var target = document.querySelector('#target');
+    document.addEventListener('contextmenu', event => { event.preventDefault(); });
+
+    var test_click = async_test("Test click and auxclick on input element");
+
+    // The test is on purpose rather vague, since auxclick handling on
+    // touchscreens isn't well defined.
+    // But at least there should be 'click'
+    var didGetClick = false;
+    async function testClick(type, mouseButton) {
+      return new Promise((resolve) => {
+        target.addEventListener(type, event => {
+          event.preventDefault();
+          didGetClick = didGetClick || event.type == "click";
+          test_click.step(() => {
+            assert_equals(event.type, type, 'Should have got an event.');
+          });
+        }, {once: true});
+
+        // Inject mouse click events.
+        var actions = new test_driver.Actions();
+        document.getElementById("other").focus();
+        actions.pointerMove(0, 0, {origin: target})
+               .pointerDown({button: mouseButton})
+               .pointerUp({button: mouseButton})
+               .send()
+               .then(resolve);
+      });
+    }
+
+    async function testClicks() {
+      var buttonType = test_driver.Actions.prototype.ButtonType;
+      await testClick("click", buttonType.LEFT);
+      await testClick("auxclick", buttonType.MIDDLE);
+      await testClick("auxclick", buttonType.RIGHT);
+      test_click.step(() => {
+          assert_true(didGetClick, 'Should have got at least "click".');
+        });
+      test_click.done();
+    }
+
+    testClicks();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<title>Makes sure that Link headers preload images with imagesrcset/imagesizes attributes.</title>
+<link rel="help" href="https://github.com/w3c/preload/issues/120">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/preload/resources/preload_helper.js"></script>
+<body>
+<script>
+    setup({single_test: true});
+
+    var iterations = 0;
+    var expectation = new Array(10).fill(0);
+    if (window.devicePixelRatio < 1.5) {
+        expectation[0] = expectation[5] = expectation[8] = 1;
+    } else if (window.devicePixelRatio >= 1.5) {
+        expectation[1] = expectation[6] = expectation[9] = 1;
+    }
+
+    function check_finished() {
+        if (numberOfResourceTimingEntries('resources/square.png?from-header&1x') == expectation[0] &&
+            numberOfResourceTimingEntries('resources/square.png?from-header&2x') == expectation[1] &&
+            numberOfResourceTimingEntries('resources/square.png?from-header&3x') == expectation[2] &&
+            numberOfResourceTimingEntries('resources/square.png?from-header&base') == expectation[3] &&
+            numberOfResourceTimingEntries('resources/square.png?from-header&200') == expectation[4] &&
+            numberOfResourceTimingEntries('resources/square.png?from-header&400') == expectation[5] &&
+            numberOfResourceTimingEntries('resources/square.png?from-header&800') == expectation[6] &&
+            numberOfResourceTimingEntries('resources/square.png?from-header&150') == expectation[7] &&
+            numberOfResourceTimingEntries('resources/square.png?from-header&300') == expectation[8] &&
+            numberOfResourceTimingEntries('resources/square.png?from-header&600') == expectation[9]) {
+            done();
+        }
+        iterations++;
+        if (iterations == 10) {
+            // At least one is expected to fail, but this should give details to the exact failure(s).
+            verifyNumberOfResourceTimingEntries('resources/square.png?from-header&1x', expectation[0]);
+            verifyNumberOfResourceTimingEntries('resources/square.png?from-header&2x', expectation[1]);
+            verifyNumberOfResourceTimingEntries('resources/square.png?from-header&3x', expectation[2]);
+            verifyNumberOfResourceTimingEntries('resources/square.png?from-header&base', expectation[3]);
+            verifyNumberOfResourceTimingEntries('resources/square.png?from-header&200', expectation[4]);
+            verifyNumberOfResourceTimingEntries('resources/square.png?from-header&400', expectation[5]);
+            verifyNumberOfResourceTimingEntries('resources/square.png?from-header&800', expectation[6]);
+            verifyNumberOfResourceTimingEntries('resources/square.png?from-header&150', expectation[7]);
+            verifyNumberOfResourceTimingEntries('resources/square.png?from-header&300', expectation[8]);
+            verifyNumberOfResourceTimingEntries('resources/square.png?from-header&600', expectation[9]);
+            done();
+        } else {
+            step_timeout(check_finished, 500);
+        }
+    }
+
+    window.addEventListener("load", function() {
+        verifyPreloadAndRTSupport();
+        step_timeout(check_finished, 500);
+    });
+</script>
+</body>

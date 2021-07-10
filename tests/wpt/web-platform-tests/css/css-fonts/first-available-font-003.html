@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS-fonts: first available font and the strut</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-3/#first-available-font">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#first-available-font">
+<link rel="match" href="first-available-font-003-ref.html">
+<meta name="flags" content="">
+<meta name="assert" content="The strut, which impacts the line height, is taken from the primary font, which is the first font to include the U+0020 character.">
+<style>
+/* Two arbitrary fonts with different metrics */
+@font-face {
+  font-family: 'A';
+  font-style: normal;
+  font-weight: 400;
+  src:  url(/fonts/Revalia.woff) format('woff');
+}
+@font-face {
+  font-family: 'B-no-space';
+  font-style: normal;
+  font-weight: 400;
+  src: url(/fonts/AD.woff) format('woff');
+  unicode-range: U+0062;
+}
+
+div {
+  position: absolute;
+  line-height: normal;
+  font-size: 100px;
+  color: transparent;
+  border: solid black 1px;
+  width: 100px;
+}
+
+.a { font-family: A; }
+.ba { font-family: B-no-space, A; margin-left: 100px; }
+</style>
+
+<p>There should be <strong>two identically sized rectangles</strong> below.
+
+<!-- Both divs show the same content with the same font,
+     but the first div has an unused font earlier in the list,
+     while the second one does not.
+     However, that font does not include the U+0020 character,
+     and can therefore not be the first available font.
+     If it had been, it would affect the height of the strut,
+     making the height different.
+     Since it is not, both boxes are expected to be the same height. -->
+<div class="ba">a</div>
+<div class="a">a</div>

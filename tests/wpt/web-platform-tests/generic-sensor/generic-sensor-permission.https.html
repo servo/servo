@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>sensor: permission</title>
+<link rel="help" href="https://w3c.github.io/sensors/"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+
+"use strict";
+
+for (const entry of ['accelerometer', 'gyroscope',
+    'magnetometer', 'ambient-light-sensor']) {
+  promise_test(async t => {
+    await test_driver.set_permission({ name: entry }, 'denied', false);
+
+    const status = await navigator.permissions.query({ name: entry });
+    assert_class_string(status, "PermissionStatus");
+    assert_equals(status.state, "denied");
+  }, `Deny ${entry} permission should work.`);
+
+  promise_test(async t => {
+    await test_driver.set_permission({ name: entry }, 'granted', false);
+
+    const status = await navigator.permissions.query({ name: entry });
+    assert_class_string(status, "PermissionStatus");
+    assert_equals(status.state, "granted");
+  }, `Grant ${entry} permission should work.`);
+};
+
+</script>

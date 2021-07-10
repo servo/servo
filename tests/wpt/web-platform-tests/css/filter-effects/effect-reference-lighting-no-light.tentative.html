@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>CSS Filters: feDiffuseLighting and feSpecularLighting error handling.</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#feDiffuseLightingElement">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#feSpecularLightingElement">
+<link rel="match" href="reference/effect-reference-lighting-no-light.tentative-ref.html">
+<meta name="assert" content="This test ensures that invalid parameters to both feDiffuseLighting and feSpecularLighting produce transparent black."/>
+<style>
+.target {
+  display: inline-block;
+  width: 100px;
+  height: 100px;
+  background-color: red;
+}
+</style>
+<div class="target" style="filter: url(#noLightDiffuse)"></div>
+<div class="target" style="filter: url(#noLightSpecular)"></div>
+<svg height="0" color-interpolation-filters="sRGB">
+  <filter id="noLightDiffuse" x="0" y="0" width="1" height="1">
+    <feDiffuseLighting lighting-color="blue"/>
+    <!-- Using 0.5 on the matrices below can cause in different engines
+     an off-by-one difference (127 vs. 128), when rounding 127.5 (255 * 0.5)
+     either up or downwards.
+     Hence, the test uses 0.502 (~128/255) to avoid this tie-break. -->
+    <feColorMatrix values="1 0 0 0 0,
+                           0 1 0 0 0.502,
+                           0 0 1 0 0,
+                           0 0 0 1 1"/>
+  </filter>
+
+  <filter id="noLightSpecular" x="0" y="0" width="1" height="1">
+    <feSpecularLighting lighting-color="blue"/>
+    <feColorMatrix values="1 0 0 0 0,
+                           0 1 0 0 0.502,
+                           0 0 1 0 0,
+                           0 0 0 1 1"/>
+  </filter>
+</svg>

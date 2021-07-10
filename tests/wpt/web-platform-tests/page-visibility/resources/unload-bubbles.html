@@ -1,0 +1,15 @@
+<!doctype html>
+<html>
+<head><title>Document</title></head>
+<body>
+<h1>Document</h1>
+<script>
+window.addEventListener("load", function() {
+  window.addEventListener("visibilitychange", function() {
+    opener.postMessage(document.visibilityState, "*");
+  });
+  opener.postMessage("close", "*");
+});
+</script>
+</body>
+</html>

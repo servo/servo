@@ -21,13 +21,13 @@
         </p>
         <!-- the issue is that SVG 1.1 does not require ICC color profile support, it is optional.
         So the pass criteria are incorrect. In fact, this is untestable as the feature is purely
-        optional and does not correspond to a named conformance class. 
+        optional and does not correspond to a named conformance class.
         Fixed in the SVG Color module.
         -->
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
       <p>
-        
+
       </p>
       <p>
         Run the test. No interaction required.
@@ -36,8 +36,8 @@
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
         If the two images (each of 9 colored squares) look identical, the test fails.
-	If the colours in the lower right image are more saturated, brighter versions of 
-	those in the top left image, as shown by the reference image, the test is passed.
+  If the colours in the lower right image are more saturated, brighter versions of
+  those in the top left image, as shown by the reference image, the test is passed.
       </p>
     </d:passCriteria>
   </d:SVGTestCase>

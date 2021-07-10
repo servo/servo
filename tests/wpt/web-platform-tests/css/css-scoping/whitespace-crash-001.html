@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Scoping: Dynamic shadow root creation and whitespace optimization crash.</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#selectors-data-model">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1465572">
+<link rel="match" href="reference/green-box.html"/>
+<p>Test passes if you see a single 100px by 100px green box below.</p>
+<!--
+  It's important for the test-case that there's whitespace inside the host,
+  and that it's not assigned to any slot.
+-->
+<div id="host">
+  <div style="display: inline" slot="the-slot"></div>
+</div>
+<script>
+  // Flush layout before creating a ShadowRoot, so that the whitespace ends up
+  // suppressed.
+  document.body.offsetTop;
+  host.attachShadow({ mode: "open" }).innerHTML = `
+    <style>
+      ::slotted(div) {
+        width: 100px;
+        height: 100px;
+        background: green;
+      }
+    </style>
+    <slot name="the-slot"></slot>
+  `;
+  document.body.offsetTop;
+  host.firstElementChild.style.display = "block"; // or anything else that reframes the <div>.
+</script>

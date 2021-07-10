@@ -15,7 +15,7 @@
     version="$Revision: 1.5 $" testname="$RCSfile: struct-frag-01-t.svg,v $">
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/struct.html#NewDocument">
         <p>
-         This is an empty SVG document.  
+         This is an empty SVG document.
         </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">

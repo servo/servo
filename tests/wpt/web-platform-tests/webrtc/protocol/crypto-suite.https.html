@@ -1,0 +1,85 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.createOffer</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script src="../RTCStats-helper.js"></script>
+<script>
+'use strict';
+
+// draft-ietf-rtcweb-security-20 section 6.5
+//
+// All Implementations MUST support DTLS 1.2 with the
+// TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 cipher suite and the P-256
+// curve [FIPS186].
+//   .......  The DTLS-SRTP protection profile
+// SRTP_AES128_CM_HMAC_SHA1_80 MUST be supported for SRTP.
+// Implementations MUST favor cipher suites which support (Perfect
+// Forward Secrecy) PFS over non-PFS cipher suites and SHOULD favor AEAD
+// over non-AEAD cipher suites.
+
+const acceptableTlsVersions = new Set([
+  'FEFD', // DTLS 1.2 - RFC 6437 section 4.1
+  '0304', // TLS 1.3 - RFC 8446 section 5.1
+]);
+
+const acceptableDtlsCiphersuites = new Set([
+  'TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256',
+]);
+
+const acceptableSrtpCiphersuites = new Set([
+  'SRTP_AES128_CM_HMAC_SHA1_80',
+  'AES_CM_128_HMAC_SHA1_80',
+]);
+
+const acceptableTlsGroups = new Set([
+  'P-256',
+]);
+
+const acceptableValues = {
+  'tlsVersion': acceptableTlsVersions,
+  'dtlsCipher': acceptableDtlsCiphersuites,
+  'srtpCipher': acceptableSrtpCiphersuites,
+  'tlsGroup': acceptableTlsGroups,
+};
+
+function verifyStat(name, transportStats) {
+  assert_not_equals(typeof transportStats, 'undefined');
+  assert_true(name in transportStats, 'Value present:');
+  assert_true(acceptableValues[name].has(transportStats[name]));
+}
+
+for (const name of Object.keys(acceptableValues)) {
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+    pc1.createDataChannel('foo');
+    exchangeIceCandidates(pc1, pc2);
+    await exchangeOfferAnswer(pc1, pc2);
+    await waitForState(pc1.sctp.transport, 'connected');
+    const statsReport = await pc1.getStats();
+    const transportStats = findStatsFromReport(statsReport,
+                                               stats => stats.type === 'transport')
+    verifyStat(name, transportStats);
+  }, name + ' is acceptable on data-only');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+    const transceiver = pc1.addTransceiver('video');
+
+    exchangeIceCandidates(pc1, pc2);
+    await exchangeOfferAnswer(pc1, pc2);
+    await waitForState(transceiver.sender.transport, 'connected');
+    const statsReport = await pc1.getStats();
+    const transportStats = findStatsFromReport(statsReport,
+                                               stats => stats.type === 'transport')
+    verifyStat(name, transportStats);
+  }, name + ' is acceptable on video-only');
+}
+</script>

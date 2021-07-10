@@ -1,0 +1,85 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="help" href="https://w3c.github.io/resource-timing/#dom-performance-setresourcetimingbuffersize">
+<title>This test validates that setResourceTimingBufferFull behaves appropriately when set to the current buffer level.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/buffer-full-utilities.js"></script>
+</head>
+<body>
+<script>
+let eventFired = false;
+let loadRandomResource = () => {
+    return fetch(window.location.href + "?" + Math.random()).then(r => r.text());
+}
+
+setup(() => {
+    // Get the browser into a consistent state.
+    clearBufferAndSetSize(100);
+});
+
+let loadResourcesToFillFutureBuffer = () => {
+    return new Promise(resolve => {
+        // Gather up 3 Resource Entries to kick off the rest of test behavior.
+        let resources = 0;
+        let observer = new PerformanceObserver(function(list) {
+            resources += list.getEntriesByType("resource").length;
+            if (resources !== 3)
+                return;
+            observer.disconnect();
+            resolve();
+        });
+        observer.observe({entryTypes: ["resource"]});
+        for (let i = 0; i < 3; ++i)
+            loadRandomResource();
+    });
+};
+
+let setBufferFullEventAndBufferSize = () => {
+    performance.setResourceTimingBufferSize(3);
+    performance.onresourcetimingbufferfull = function() {
+        eventFired = true;
+        performance.clearResourceTimings();
+    };
+};
+
+let clearAndAddAnotherEntryToBuffer = () => {
+    return new Promise(resolve => {
+        performance.clearResourceTimings();
+        loadRandomResource().then(resolve);
+    });
+};
+
+let testThatEntryWasAdded = () => {
+    let tries = 1;
+    let maxTries = 5;
+    return waitUntilConditionIsMet( function() {
+        if (performance.getEntriesByType("resource").length) {
+            return true;
+        } else {
+            if (tries < maxTries) {
+                tries++;
+                return false;
+            } else {
+                return true;
+            }
+        }
+    }).then( () => {
+        assert_true((performance.getEntriesByType("resource").length) === 1);
+    });
+};
+
+promise_test(async () => {
+    await loadResourcesToFillFutureBuffer();
+    setBufferFullEventAndBufferSize();
+    // Overflow the buffer.
+    await loadRandomResource();
+    await waitForEventToFire();
+    await clearAndAddAnotherEntryToBuffer();
+    // Since we have no strict guarantees when an entry will be added to the
+    // buffer, waiting till next task to try to avoid flakiness.
+    await testThatEntryWasAdded();
+}, "Test that entry was added to the buffer after a buffer full event");
+</script>

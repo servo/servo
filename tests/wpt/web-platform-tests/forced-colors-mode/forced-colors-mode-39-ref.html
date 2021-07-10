@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - pseudo elements.</title>
+<style>
+  p::before {
+    background: Canvas;
+    content: 'before';
+    display: block;
+    forced-color-adjust: none;
+    width: 100%;
+  }
+</style>
+<p>
+  The background color of pseudo elements should get overridden in Forced Colors
+  Mode.
+</p>

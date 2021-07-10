@@ -1,0 +1,12 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(() => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.empty);
+    return window.navigator.bluetooth.getAvailability()
+    .then(isAvailable => assert_equals(isAvailable, true));
+}, 'GetAvailability is true if the adapter is present.');
+</script>

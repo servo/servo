@@ -1,0 +1,335 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Animating CSS logical properties using Web Animations</title>
+<link rel="help" href="https://drafts.csswg.org/css-logical/#box">
+<meta name="assert" content="The specified values of these properties are separate from the specified values of the parallel physical properties, but the flow-relative and physical properties share computed values.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../css-animations/support/testcommon.js"></script>
+<style>
+:root {
+  --200px: 200px;
+  --300px: 300px;
+  --writingMode: horizontal-tb;
+}
+</style>
+
+<div id="log"></div>
+<script>
+'use strict';
+
+test(t => {
+  const div = addDiv(t);
+  const anim = div.animate({ blockSize: ['0px', '100px'] }, 1000);
+  anim.currentTime = 500;
+  assert_equals(getComputedStyle(div).height, '50px');
+}, 'Logical properties can be animated using object notation');
+
+test(t => {
+  const div = addDiv(t);
+  const anim = div.animate(
+    [{ blockSize: '0px' }, { blockSize: '100px' }],
+    1000
+  );
+  anim.currentTime = 500;
+  assert_equals(getComputedStyle(div).height, '50px');
+}, 'Logical properties can be animated using array notation');
+
+test(t => {
+  const anim = addDiv(t).animate({ blockSize: ['0px', '100px'] }, 1000);
+  assert_equals(anim.effect.getKeyframes().length, 2);
+
+  assert_own_property(anim.effect.getKeyframes()[0], 'blockSize');
+  assert_false(anim.effect.getKeyframes()[0].hasOwnProperty('height'));
+
+  assert_own_property(anim.effect.getKeyframes()[1], 'blockSize');
+  assert_false(anim.effect.getKeyframes()[1].hasOwnProperty('height'));
+}, 'Logical properties are NOT stored as physical properties');
+
+test(t => {
+  const div = addDiv(t, { style: 'writing-mode: vertical-rl' });
+  const anim = div.animate({ blockSize: ['0px', '100px'] }, 1000);
+  anim.currentTime = 500;
+  assert_equals(getComputedStyle(div).width, '50px');
+  assert_equals(getComputedStyle(div).height, '0px');
+}, 'Logical properties in animations respect the writing-mode');
+
+test(t => {
+  const div = addDiv(t, { style: 'direction: rtl' });
+  const anim = div.animate({ marginInlineStart: ['0px', '100px'] }, 1000);
+  anim.currentTime = 500;
+  assert_equals(getComputedStyle(div).marginLeft, '0px');
+  assert_equals(getComputedStyle(div).marginRight, '50px');
+}, 'Logical properties in animations respect the direction');
+
+test(t => {
+  const div = addDiv(t);
+  const anim = div.animate(
+    {
+      blockSize: ['0px', '100px'],
+      height: ['200px', '300px'],
+    },
+    1000
+  );
+  anim.currentTime = 500;
+  assert_equals(getComputedStyle(div).height, '250px');
+}, 'Physical properties win over logical properties in object notation');
+
+test(t => {
+  const div = addDiv(t);
+  const anim = div.animate(
+    [
+      { height: '200px', blockSize: '0px' },
+      { height: '300px', blockSize: '100px' },
+    ],
+    1000
+  );
+  anim.currentTime = 500;
+  assert_equals(getComputedStyle(div).height, '250px');
+}, 'Physical properties win over logical properties in array notation');
+
+test(t => {
+  const div = addDiv(t);
+  const anim = div.animate(
+    {
+      blockSize: ['0px', '100px'],
+      height: ['var(--200px)', 'var(--300px)'],
+    },
+    1000
+  );
+  anim.currentTime = 500;
+  assert_equals(getComputedStyle(div).height, '250px');
+}, 'Physical properties with variables win over logical properties');
+
+test(t => {
+  const div = addDiv(t);
+  const anim = div.animate(
+    {
+      marginInlineStart: '100px',
+      marginInline: '200px',
+      margin: 'logical 300px',
+    },
+    { duration: 1, easing: 'step-start' }
+  );
+  assert_equals(getComputedStyle(div).marginLeft, '100px');
+  assert_equals(getComputedStyle(div).marginRight, '200px');
+  assert_equals(getComputedStyle(div).marginTop, '300px');
+  assert_equals(getComputedStyle(div).marginBottom, '300px');
+}, 'Logical shorthands follow the usual prioritization based on number of'
+   + ' component longhands');
+
+test(t => {
+  const div = addDiv(t);
+  const anim = div.animate(
+    {
+      marginInline: '100px',
+      marginLeft: '200px',
+    },
+    { duration: 1, easing: 'step-start' }
+  );
+  assert_equals(getComputedStyle(div).marginLeft, '200px');
+  assert_equals(getComputedStyle(div).marginRight, '100px');
+}, 'Physical longhands win over logical shorthands');
+
+test(t => {
+  const div = addDiv(t);
+  const anim = div.animate(
+    {
+      marginInlineStart: '100px',
+      margin: '200px',
+    },
+    { duration: 1, easing: 'step-start' }
+  );
+  assert_equals(getComputedStyle(div).marginLeft, '100px');
+  assert_equals(getComputedStyle(div).marginRight, '200px');
+}, 'Logical longhands win over physical shorthands');
+
+test(t => {
+  const div = addDiv(t);
+  const anim = div.animate(
+    {
+      marginInline: '100px',
+      margin: '200px',
+    },
+    { duration: 1, easing: 'step-start' }
+  );
+  assert_equals(getComputedStyle(div).marginLeft, '200px');
+  assert_equals(getComputedStyle(div).marginRight, '200px');
+}, 'Physical shorthands win over logical shorthands');
+
+test(t => {
+  const div = addDiv(t);
+  const anim = div.animate(
+    {
+      marginInline: '100px',
+      margin: 'var(--200px)',
+    },
+    { duration: 1, easing: 'step-start' }
+  );
+  assert_equals(getComputedStyle(div).marginLeft, '200px');
+  assert_equals(getComputedStyle(div).marginRight, '200px');
+}, 'Physical shorthands using variables win over logical shorthands');
+
+test(t => {
+  const div = addDiv(t);
+  const anim = div.animate([{ blockSize: '200px' }, { height: '300px' }], 1000);
+  anim.currentTime = 500;
+  assert_equals(getComputedStyle(div).height, '250px');
+}, 'Physical properties and logical properties can be mixed');
+
+test(t => {
+  const div = addDiv(t);
+  const anim = div.animate(
+    [{ marginInline: '200px' }, { marginRight: '300px' }],
+    1000
+  );
+  anim.currentTime = 500;
+  assert_equals(getComputedStyle(div).marginRight, '250px');
+}, 'Physical shorthands and logical shorthands can be mixed');
+
+test(t => {
+  const div = addDiv(t);
+  const anim = div.animate(
+    [{ blockSize: '100px', height: '200px' }, { height: '300px' }],
+    1000
+  );
+  anim.currentTime = 500;
+  assert_equals(getComputedStyle(div).height, '250px');
+}, 'Physical properties win over logical properties even when some keyframes'
+   + ' only have logical properties');
+
+test(t => {
+  const div = addDiv(t, { style: 'width: 0px; height: 0px' });
+  const anim = div.animate({ blockSize: ['0px', '100px'] }, 1000);
+  anim.currentTime = 500;
+
+  assert_equals(getComputedStyle(div).width, '0px');
+  assert_equals(getComputedStyle(div).height, '50px');
+
+  div.style.writingMode = 'vertical-rl';
+  assert_equals(getComputedStyle(div).width, '50px');
+  assert_equals(getComputedStyle(div).height, '0px');
+}, 'Animations update when the writing-mode is changed');
+
+test(t => {
+  const div = addDiv(t, { style: 'width: 0px; height: 0px' });
+  const anim = div.animate(
+    { blockSize: ['0px', '100px'] },
+    {
+      duration: 1000,
+      fill: 'forwards',
+    }
+  );
+  anim.finish();
+
+  assert_equals(getComputedStyle(div).width, '0px');
+  assert_equals(getComputedStyle(div).height, '100px');
+
+  div.style.writingMode = 'vertical-rl';
+  assert_equals(getComputedStyle(div).width, '100px');
+  assert_equals(getComputedStyle(div).height, '0px');
+}, 'Filling animations update when the writing-mode is changed');
+
+test(t => {
+  const div = addDiv(t, { style: 'width: 100px; height: 200px' });
+  const anim = div.animate({ blockSize: '300px' }, 1000);
+  anim.currentTime = 500;
+
+  // Initially we are animating height from 200px -> 300px
+  assert_equals(getComputedStyle(div).width, '100px');
+  assert_equals(getComputedStyle(div).height, '250px');
+
+  // After the change we are animating width from 100px -> 300px
+  div.style.writingMode = 'vertical-rl';
+  assert_equals(getComputedStyle(div).width, '200px');
+  assert_equals(getComputedStyle(div).height, '200px');
+}, 'Animations with implicit from values update when the writing-mode'
+   + ' is changed');
+
+test(t => {
+  const div = addDiv(t, { style: 'width: 0px; height: 0px' });
+  const anim = div.animate(
+    [
+      { height: '200px', blockSize: '0px' },
+      { height: '300px', blockSize: '100px' },
+    ],
+    1000
+  );
+  anim.currentTime = 500;
+
+  // Initially writing-mode is horizontal-tb so the 'block-size' values are
+  // clobbered by the 'height' values.
+
+  assert_equals(getComputedStyle(div).width, '0px');
+  assert_equals(getComputedStyle(div).height, '250px');
+
+  // After updating the writing-mode to vertical-rl the 'block-size' values
+  // should no longer be overridden and should apply to the height.
+
+  div.style.writingMode = 'vertical-rl';
+  assert_equals(getComputedStyle(div).width, '50px');
+  assert_equals(getComputedStyle(div).height, '250px');
+}, 'Animations with overlapping physical and logical properties update'
+   + ' when the writing-mode is changed');
+
+test(t => {
+  const div = addDiv(t, { style: 'width: 0px; height: 0px' });
+  div.style.writingMode = 'var(--writingMode)';
+  const anim = div.animate({ blockSize: ['0px', '100px'] }, 1000);
+  anim.currentTime = 500;
+
+  assert_equals(getComputedStyle(div).width, '0px');
+  assert_equals(getComputedStyle(div).height, '50px');
+
+  div.style.setProperty('--writingMode', 'vertical-rl');
+  assert_equals(getComputedStyle(div).width, '50px');
+  assert_equals(getComputedStyle(div).height, '0px');
+}, 'Animations update when the writing-mode is changed through a CSS variable');
+
+test(t => {
+  const div = addDiv(t);
+  const anim = div.animate({ marginInlineStart: ['0px', '100px'] }, 1000);
+  anim.currentTime = 500;
+
+  assert_equals(getComputedStyle(div).marginLeft, '50px');
+  assert_equals(getComputedStyle(div).marginRight, '0px');
+
+  div.style.direction = 'rtl';
+  assert_equals(getComputedStyle(div).marginLeft, '0px');
+  assert_equals(getComputedStyle(div).marginRight, '50px');
+}, 'Animations update when the direction is changed');
+
+test(t => {
+  const div = addDiv(t);
+  const anim = div.animate(
+    {
+      insetBlock: ['var(--200px)', 'var(--300px)'],
+    },
+    1000
+  );
+  anim.currentTime = 500;
+  assert_equals(getComputedStyle(div).insetBlockStart, '250px');
+}, 'Logical shorthand with variable references animates correctly');
+
+test(t => {
+  const div = addDiv(t);
+  const anim = div.animate(
+    { writingMode: 'vertical-rl' },
+    { duration: 1, easing: 'step-start' }
+  );
+  assert_equals(getComputedStyle(div).writingMode, 'horizontal-tb');
+  assert_equals(anim.effect.getKeyframes().length, 0);
+}, 'writing-mode is not animatable');
+
+test(t => {
+  const div = addDiv(t);
+  const anim = div.animate(
+    { writingMode: 'rtl' },
+    { duration: 1, easing: 'step-start' }
+  );
+  anim.currentTime = 500;
+  assert_equals(getComputedStyle(div).direction, 'ltr');
+  assert_equals(anim.effect.getKeyframes().length, 0);
+}, 'direction is not animatable');
+
+</script>

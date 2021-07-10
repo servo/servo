@@ -5,40 +5,43 @@
 <script src="resources/test-helpers.sub.js"></script>
 <body>
 <script>
-// "waiting" is set
-async_test(function(t) {
-    var step = t.step_func.bind(t);
-    var url = 'resources/empty-worker.js';
-    var scope = 'resources/blank.html';
-    var frame;
-    var registration;
 
-    service_worker_unregister(t, scope)
-    .then(function() { return with_iframe(scope); })
-    .then(function(f) {
-        frame = f;
-        return navigator.serviceWorker.register(url, {scope: scope});
-      })
-    .then(function(r) {
-        registration = r;
-        return wait_for_state(t, r.installing, 'installed');
-      }, unreached_rejection(t, 'Registration should not fail'))
-    .then(function() {
-        var controller = frame.contentWindow.navigator.serviceWorker.controller;
-        assert_equals(controller, null);
-        // Nothing in the spec prohibits a worker from going to active
-        // immediately.
-        // Step 26 of the [[Install]] algorithm
-        // "If registration's waiting worker waitingWorker is not null and
-        // waitingWorker's skip waiting flag is not set, invoke Activate
-        // algorithm, or its equivalent, with registration as its argument."
-        var w = registration.waiting || registration.active;
-        assert_equals(w.scriptURL, normalizeURL(url));
-        assert_equals(registration.installing, null);
-      })
-    .then(function() {
-        frame.remove();
-        return service_worker_unregister_and_done(t, scope);
-      });
-}, 'waiting or active is set');
+const SCRIPT = 'resources/empty-worker.js';
+const SCOPE = 'resources/blank.html';
+
+promise_test(async t => {
+
+  t.add_cleanup(async() => {
+    if (frame)
+      frame.remove();
+    if (registration)
+      await registration.unregister();
+  });
+
+  await service_worker_unregister(t, SCOPE);
+  const frame = await with_iframe(SCOPE);
+  const registration =
+      await navigator.serviceWorker.register(SCRIPT, {scope: SCOPE});
+  await wait_for_state(t, registration.installing, 'installed');
+  const controller = frame.contentWindow.navigator.serviceWorker.controller;
+  assert_equals(controller, null, 'controller');
+  assert_equals(registration.active, null, 'registration.active');
+  assert_equals(registration.waiting.state, 'installed',
+                'registration.waiting');
+  assert_equals(registration.installing, null, 'registration.installing');
+}, 'waiting is set after installation');
+
+// Tests that the ServiceWorker objects returned from waiting attribute getter
+// that represent the same service worker are the same objects.
+promise_test(async t => {
+  const registration1 =
+      await service_worker_unregister_and_register(t, SCRIPT, SCOPE);
+  const registration2 = await navigator.serviceWorker.getRegistration(SCOPE);
+  assert_equals(registration1.waiting, registration2.waiting,
+                'ServiceWorkerRegistration.waiting should return the same ' +
+                'object');
+  await registration1.unregister();
+}, 'The ServiceWorker objects returned from waiting attribute getter that ' +
+   'represent the same service worker are the same objects');
 </script>
+</body>

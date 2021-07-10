@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - highlighted text.</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #a {
+    background-color: purple;
+    color: orange;
+    forced-color-adjust: auto;
+  }
+  #b {
+    background-color: purple;
+    color: orange;
+    forced-color-adjust: none;
+  }
+</style>
+<body>
+  <mark id="a">
+    This text should be black in forced colors mode because forced-color-adjust
+    is auto. The backgroud color should be yellow because the default
+    highlighted colors should not be overridden in forced colors mode.
+  </mark>
+  <mark id="b">
+    This text should be orange in forced colors mode because
+    forced-color-adjust is none. The backgroud color should be yellow because
+    the default highlighted colors should not be overridden in forced colors
+    mode.
+  </mark>
+</body>
+
+<script>
+  test(function(){
+    assert_equals(getComputedStyle(a).color, "rgb(0, 0, 0)");
+
+    assert_equals(getComputedStyle(b).color, "rgb(255, 165, 0)");
+
+    assert_equals(getComputedStyle(a).backgroundColor, "rgb(255, 255, 0)");
+
+    assert_equals(getComputedStyle(b).backgroundColor, "rgb(128, 0, 128)");
+
+  }, "Checks that default highlighted text style does not get overridden in forced colors mode.");
+</script>

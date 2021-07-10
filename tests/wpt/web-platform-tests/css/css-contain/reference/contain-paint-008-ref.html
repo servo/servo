@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang=en>
+  <meta charset=utf-8>
+  <title>CSS-contain test: paint containment on ruby-text</title>
+  <link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+
+<style>
+rt {
+  display: ruby-text;
+  font-size: 1rem;
+  font-family: monospace;
+}
+</style>
+
+<p>This test passes if you can see the word PASS below.
+<div><ruby><rt><span style="margin-left: 4ch;"></span>PASS</rt></ruby></div>

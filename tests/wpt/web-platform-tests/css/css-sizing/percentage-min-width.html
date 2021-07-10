@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-sizing-3/#sizing-values">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="container" data-expected-width="100" style="width:fit-content; min-width:100px; height:100px; background:red;">
+  <div data-expected-width="100" style="width:fit-content; min-width:100%; height:100px; background:green;"></div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+  checkLayout("#container");
+</script>

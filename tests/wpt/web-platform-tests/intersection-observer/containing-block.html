@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/intersection-observer-test-utils.js"></script>
+
+<style>
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 200px;
+}
+#root {
+  width: 170px;
+  height: 200px;
+  overflow-y: scroll;
+}
+#target {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+  position: absolute;
+}
+</style>
+
+<div id="root" style="position: absolute">
+  <div id="target" style="left: 50px; top: 250px"></div>
+</div>
+
+<script>
+var entries = [];
+var root, target;
+
+runTestCycle(function() {
+  root = document.getElementById("root");
+  assert_true(!!root, "root element exists.");
+  target = document.getElementById("target");
+  assert_true(!!target, "target element exists.");
+  var observer = new IntersectionObserver(function(changes) {
+    entries = entries.concat(changes);
+  }, { root: root });
+  observer.observe(target);
+  entries = entries.concat(observer.takeRecords());
+  assert_equals(entries.length, 0, "No initial notifications.");
+  target.style.top = "10px";
+  runTestCycle(test1, "In containing block and intersecting.");
+}, "IntersectionObserver should only report intersections if root is a containing block ancestor of target.");
+
+function test1() {
+  runTestCycle(test2, "In containing block and not intersecting.");
+  var rootBounds = contentBounds(root);
+  checkLastEntry(entries, 0, [58, 158, 18, 118, 58, 158, 18, 118].concat(rootBounds));
+  target.style.top = "250px";
+}
+
+function test2() {
+  runTestCycle(test3, "Not in containing block and intersecting.");
+  var rootBounds = contentBounds(root);
+  checkLastEntry(entries, 1, [58, 158, 258, 358, 0, 0, 0, 0].concat(rootBounds));
+  root.style.position = "static";
+  target.style.top = "10px";
+}
+
+function test3() {
+  runTestCycle(test4, "Not in containing block and not intersecting.");
+  checkLastEntry(entries, 1);
+  target.style.top = "250px";
+}
+
+function test4() {
+  checkLastEntry(entries, 1);
+  target.style.top = "0";
+}
+</script>

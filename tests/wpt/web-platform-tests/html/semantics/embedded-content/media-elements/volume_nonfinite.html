@@ -9,7 +9,7 @@
   [NaN, Infinity, -Infinity].forEach(function(aValue) {
     test(function() {
       var el = document.createElement(aElement);
-      assert_throws(new TypeError(), function() {
+      assert_throws_js(TypeError, function() {
         el.volume = aValue;
       });
     }, "Setting " + aElement + ".volume to " + String(aValue) + " should throw a TypeError");

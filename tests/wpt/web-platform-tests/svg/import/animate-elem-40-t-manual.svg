@@ -122,7 +122,6 @@
         <text text-anchor="middle" y="60">x/y on &lt;rect&gt;</text>
       </g>
 
-
       <g transform="translate(300,90)">
         <rect x="-15" y="-15" width="50" height="20" fill="black" stroke="rgb(255,180,0)">
           <animate attributeName="x" values="-15;15;15;-15;-15" begin="0s" dur="4s"/>
@@ -149,12 +148,10 @@
         <animate xlink:href="#textID" attributeName="x" values="-15;15;15;-15;-15" begin="0s" dur="4s"/>
         <animate xlink:href="#textID" attributeName="y" values="-15;-15;15;15;-15" begin="0s" dur="4s"/>
 
-
         <use xlink:href="#markerGroup"/>
 
         <text text-anchor="middle" y="60">x/y on &lt;text&gt;</text>
       </g>
-
 
       <g transform="translate(60,210)">
         <defs>
@@ -201,7 +198,6 @@
         <text text-anchor="middle" y="60">width/height</text>
         <text text-anchor="middle" y="75">on &lt;image&gt;</text>
       </g>
-
 
       <g transform="translate(300,210)">
         <rect x="-40" y="-40" width="50" height="50" fill="gray">

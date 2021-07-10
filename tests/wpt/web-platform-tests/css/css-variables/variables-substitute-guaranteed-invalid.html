@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>Testing substitution of guaranteed-invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-variables/#guaranteed-invalid">
+<link rel="help" href="https://drafts.csswg.org/css-variables/#cycles">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+    #target1 {
+        /* Cycle */
+        --var1: var(--var2);
+        --var2: var(--var1);
+
+        /* Reference to cycle */
+        --var3: var(--var1);
+
+        /* Reference to non-existent property */
+        --var4: var(--noexist);
+    }
+
+    #target1parent {
+        --var3: inherited;
+        --var4: inherited;
+    }
+</style>
+<div id="target1parent">
+    <div id="target1"></div>
+</div>
+<script>
+    test( function () {
+        let cs = getComputedStyle(target1);
+        assert_equals(cs.getPropertyValue('--var1'), '');
+        assert_equals(cs.getPropertyValue('--var2'), '');
+    }, 'Custom properties in a cycle become guaranteed-invalid');
+
+    test( function () {
+        let cs = getComputedStyle(target1);
+        assert_equals(cs.getPropertyValue('--var3'), '');
+    }, 'A custom property referencing a cycle becomes guaranteed-invalid');
+
+    test( function () {
+        let cs = getComputedStyle(target1);
+        assert_equals(cs.getPropertyValue('--var4'), '');
+    }, 'A custom property referencing a non-existent variable becomes guaranteed-invalid');
+</script>

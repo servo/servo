@@ -47,7 +47,7 @@
       <p>The test passes if after three seconds, in each of the three rows,
       the red rectangle is in the column at the times indicated.
       Thus, from the document load until 2s afterwards, the red
-      square in the first row must be in the right column, 
+      square in the first row must be in the right column,
       and after the 2s it must be in the left column.  In the
       other two rows, the red square must remain in the
       right column.</p>

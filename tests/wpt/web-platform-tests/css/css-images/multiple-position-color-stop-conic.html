@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>Conic gradient with a two position color stop</title>
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#color-stop-syntax">
+<meta name="assert" content="A color stop with two positions create a hard transition">
+<link rel="match" href="reference/100x100-blue-green.html">
+<style>
+#target {
+  width: 100px;
+  height: 100px;
+  background-color: red;
+  background-image: conic-gradient(green 0% 180deg, blue 180deg);
+}
+</style>
+<div id="target"></div>

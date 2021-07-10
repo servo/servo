@@ -1,0 +1,205 @@
+<!doctype html>
+<html>
+<head>
+  <title>MediaRecorder mimeType</title>
+  <link rel="help" href="https://w3c.github.io/mediacapture-record/MediaRecorder.html#dom-mediarecorder-mimeType">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="utils/sources.js"></script>
+</head>
+<body>
+<script>
+test(t => {
+  const recorder = new MediaRecorder(createAudioStream(t).stream);
+  assert_equals(recorder.mimeType, "",
+    "MediaRecorder has no default mimeType");
+}, "MediaRecorder sets no default mimeType in the constructor for audio");
+
+test(t => {
+  const recorder = new MediaRecorder(createVideoStream(t).stream);
+  assert_equals(recorder.mimeType, "",
+    "MediaRecorder has no default mimeType");
+}, "MediaRecorder sets no default mimeType in the constructor for video");
+
+test(t => {
+  const recorder = new MediaRecorder(createAudioVideoStream(t).stream);
+  assert_equals(recorder.mimeType, "",
+    "MediaRecorder has no default mimeType");
+}, "MediaRecorder sets no default mimeType in the constructor for audio/video");
+
+test(t => {
+  assert_throws_dom("NotSupportedError",
+    () => new MediaRecorder(new MediaStream(), {mimeType: "audio/banana"}));
+}, "MediaRecorder invalid audio mimeType throws");
+
+test(t => {
+  assert_false(MediaRecorder.isTypeSupported("audio/banana"));
+}, "MediaRecorder invalid audio mimeType is unsupported");
+
+test(t => {
+  assert_throws_dom("NotSupportedError",
+    () => new MediaRecorder(new MediaStream(), {mimeType: "video/pineapple"}));
+}, "MediaRecorder invalid video mimeType throws");
+
+test(t => {
+  assert_false(MediaRecorder.isTypeSupported("video/pineapple"));
+}, "MediaRecorder invalid video mimeType is unsupported");
+
+// New MIME types could be added to this list as needed.
+for (const mimeType of [
+  'audio/mp4',
+  'video/mp4',
+  'audio/ogg',
+  'audio/ogg; codecs="vorbis"',
+  'audio/ogg; codecs="opus"',
+  'audio/webm',
+  'audio/webm; codecs="vorbis"',
+  'audio/webm; codecs="opus"',
+  'video/webm',
+  'video/webm; codecs="vp8"',
+  'video/webm; codecs="vp8, vorbis"',
+  'video/webm; codecs="vp8, opus"',
+  'video/webm; codecs="vp9"',
+  'video/webm; codecs="vp9, vorbis"',
+  'video/webm; codecs="vp9, opus"',
+  'video/webm; codecs="av1"',
+  'video/webm; codecs="av1, opus"',
+]) {
+  if (MediaRecorder.isTypeSupported(mimeType)) {
+    test(t => {
+      const recorder = new MediaRecorder(new MediaStream(), {mimeType});
+      assert_equals(recorder.mimeType, mimeType, "Supported mimeType is set");
+    }, `Supported mimeType ${mimeType} is set immediately after constructing`);
+  } else {
+    test(t => {
+      assert_throws_dom("NotSupportedError",
+        () => new MediaRecorder(new MediaStream(), {mimeType}));
+    }, `Unsupported mimeType ${mimeType} throws`);
+  }
+}
+
+promise_test(async t => {
+  const recorder = new MediaRecorder(createFlowingAudioStream(t).stream);
+  recorder.start();
+  await new Promise(r => recorder.onstart = r);
+  assert_not_equals(recorder.mimeType, "");
+}, "MediaRecorder sets a nonempty mimeType on 'onstart' for audio");
+
+promise_test(async t => {
+  const recorder = new MediaRecorder(createFlowingVideoStream(t).stream);
+  recorder.start();
+  await new Promise(r => recorder.onstart = r);
+  assert_not_equals(recorder.mimeType, "");
+}, "MediaRecorder sets a nonempty mimeType on 'onstart' for video");
+
+promise_test(async t => {
+  const recorder = new MediaRecorder(createFlowingAudioVideoStream(t).stream);
+  recorder.start();
+  await new Promise(r => recorder.onstart = r);
+  assert_not_equals(recorder.mimeType, "");
+}, "MediaRecorder sets a nonempty mimeType on 'onstart' for audio/video");
+
+promise_test(async t => {
+  const recorder = new MediaRecorder(createFlowingAudioStream(t).stream);
+  recorder.start();
+  assert_equals(recorder.mimeType, "");
+}, "MediaRecorder mimeType is not set before 'onstart' for audio");
+
+promise_test(async t => {
+  const recorder = new MediaRecorder(createFlowingVideoStream(t).stream);
+  recorder.start();
+  assert_equals(recorder.mimeType, "");
+}, "MediaRecorder mimeType is not set before 'onstart' for video");
+
+promise_test(async t => {
+  const recorder = new MediaRecorder(createFlowingAudioVideoStream(t).stream);
+  recorder.start();
+  assert_equals(recorder.mimeType, "");
+}, "MediaRecorder mimeType is not set before 'onstart' for audio/video");
+
+promise_test(async t => {
+  const recorder = new MediaRecorder(createFlowingAudioStream(t).stream);
+  const onstartPromise = new Promise(resolve => {
+    recorder.onstart = () => {
+      recorder.onstart = () => t.step_func(() => {
+        assert_not_reached("MediaRecorder doesn't fire 'onstart' twice");
+      });
+      resolve();
+    }
+  });
+  recorder.start();
+  await onstartPromise;
+  await new Promise(r => t.step_timeout(r, 1000));
+}, "MediaRecorder doesn't fire 'onstart' multiple times for audio");
+
+promise_test(async t => {
+  const recorder = new MediaRecorder(createFlowingVideoStream(t).stream);
+  const onstartPromise = new Promise(resolve => {
+    recorder.onstart = () => {
+      recorder.onstart = () => t.step_func(() => {
+        assert_not_reached("MediaRecorder doesn't fire 'onstart' twice");
+      });
+      resolve();
+    }
+  });
+  recorder.start();
+  await onstartPromise;
+  await new Promise(r => t.step_timeout(r, 1000));
+}, "MediaRecorder doesn't fire 'onstart' multiple times for video");
+
+promise_test(async t => {
+  const recorder = new MediaRecorder(createFlowingAudioVideoStream(t).stream);
+  const onstartPromise = new Promise(resolve => {
+    recorder.onstart = () => {
+      recorder.onstart = () => t.step_func(() => {
+        assert_not_reached("MediaRecorder doesn't fire 'onstart' twice");
+      });
+      resolve();
+    }
+  });
+  recorder.start();
+  await onstartPromise;
+  await new Promise(r => t.step_timeout(r, 1000));
+}, "MediaRecorder doesn't fire 'onstart' multiple times for audio/video");
+
+promise_test(async t => {
+  const recorder = new MediaRecorder(createFlowingAudioStream(t).stream);
+  recorder.start();
+  await new Promise(r => recorder.onstart = r);
+  assert_regexp_match(recorder.mimeType, /^audio\//,
+    "mimeType has an expected media type");
+  assert_regexp_match(recorder.mimeType, /^[a-z]+\/[a-z]+/,
+    "mimeType has a container subtype");
+  assert_regexp_match(
+    recorder.mimeType, /^[a-z]+\/[a-z]+;[ ]*codecs=[^,]+$/,
+    "mimeType has one codec a");
+}, "MediaRecorder formats mimeType well after 'start' for audio");
+
+promise_test(async t => {
+  const recorder = new MediaRecorder(createFlowingVideoStream(t).stream);
+  recorder.start();
+  await new Promise(r => recorder.onstart = r);
+  assert_regexp_match(recorder.mimeType, /^video\//,
+    "mimeType has an expected media type");
+  assert_regexp_match(recorder.mimeType, /^[a-z]+\/[a-z]+/,
+    "mimeType has a container subtype");
+  assert_regexp_match(
+    recorder.mimeType, /^[a-z]+\/[a-z]+;[ ]*codecs=[^,]+$/,
+    "mimeType has one codec a");
+}, "MediaRecorder formats mimeType well after 'start' for video");
+
+promise_test(async t => {
+  const recorder = new MediaRecorder(createFlowingAudioVideoStream(t).stream);
+  recorder.start();
+  await new Promise(r => recorder.onstart = r);
+  assert_regexp_match(recorder.mimeType, /^video\//,
+    "mimeType has an expected media type");
+  assert_regexp_match(recorder.mimeType, /^[a-z]+\/[a-z]+/,
+    "mimeType has a container subtype");
+  assert_regexp_match(
+    recorder.mimeType, /^[a-z]+\/[a-z]+;[ ]*codecs=[^,]+,[^,]+$/,
+    "mimeType has two codecs");
+}, "MediaRecorder formats mimeType well after 'start' for audio/video");
+</script>
+</body>
+</html>

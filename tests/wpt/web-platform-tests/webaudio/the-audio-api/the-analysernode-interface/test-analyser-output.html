@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>AnalyserNode output</title>
+  <meta name="timeout" content="long">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/webaudio/js/helpers.js"></script>
+  <script>
+setup({ single_test: true });
+
+var gTest = {
+  length: 2048,
+  numberOfChannels: 1,
+  createGraph: function(context) {
+    var source = context.createBufferSource();
+
+    var analyser = context.createAnalyser();
+
+    source.buffer = this.buffer;
+
+    source.connect(analyser);
+
+    source.start(0);
+    return analyser;
+  },
+  createExpectedBuffers: function(context) {
+    this.buffer = context.createBuffer(1, 2048, context.sampleRate);
+    for (var i = 0; i < 2048; ++i) {
+      this.buffer.getChannelData(0)[i] = Math.sin(
+        440 * 2 * Math.PI * i / context.sampleRate
+      );
+    }
+
+    return [this.buffer];
+  }
+};
+
+runTest("AnalyserNode output");
+  </script>
+</head>
+</body>
+</html>

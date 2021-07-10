@@ -11,6 +11,6 @@ test(function() {
   assert_true(x instanceof XPathEvaluator);
 }, "Constructor with 'new'");
 test(function() {
-  assert_throws(new TypeError(), "var x = XPathEvaluator()");
+  assert_throws_js(TypeError, "var x = XPathEvaluator()");
 }, "Constructor without 'new'");
 </script>

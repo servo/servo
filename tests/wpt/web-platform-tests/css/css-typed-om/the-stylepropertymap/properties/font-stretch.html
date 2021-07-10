@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>'font-stretch' property</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-get">
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-set">
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#property-stle-value-normalization">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../resources/testhelper.js"></script>
+<script src="resources/testsuite.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+runPropertyTests('font-stretch', [
+  { syntax: 'normal' },
+  { syntax: 'ultra-condensed' },
+  { syntax: 'extra-condensed' },
+  { syntax: 'condensed' },
+  { syntax: 'semi-condensed' },
+  { syntax: 'semi-expanded' },
+  { syntax: 'expanded' },
+  { syntax: 'extra-expanded' },
+  { syntax: 'ultra-expanded' },
+  {
+    syntax: '<percentage>',
+    specified: assert_is_equal_with_range_handling
+  },
+]);
+
+</script>

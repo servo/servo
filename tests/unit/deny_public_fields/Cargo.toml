@@ -1,0 +1,13 @@
+[package]
+name = "deny_public_fields_tests"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+edition = "2018"
+
+[lib]
+path = "lib.rs"
+test = false
+
+[dependencies]
+deny_public_fields = {path = "../../../components/deny_public_fields"}

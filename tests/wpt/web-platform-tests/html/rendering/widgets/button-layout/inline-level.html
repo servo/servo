@@ -1,0 +1,25 @@
+<!doctype html>
+<title>button with inline-level display</title>
+<link rel=match href=inline-level-ref.html>
+<style>
+button, input { font: inherit }
+.inline { display: inline }
+.inline-block { display: inline-block }
+.inline-table { display: inline-table }
+</style>
+<p>There should be three buttons below containing "1" and "2" on separate lines, and "a" and "b" before and after on the same baseline as the "2".</p>
+<p>a<button class=inline>1<br><span class=check-baseline>2</span></button><span class=ref-baseline>b</span></p>
+<p>a<button class=inline-block>1<br><span class=check-baseline>2</span></button><span class=ref-baseline>b</span></p>
+<p>a<button class=inline-table>1<br><span class=check-baseline>2</span></button><span class=ref-baseline>b</span></p>
+<p>a<input type=button class=inline-table value="1&#10;2">b</p>
+<script>
+const spans = document.querySelectorAll('.check-baseline');
+for (const span of [].slice.call(spans)) {
+  const baseline = span.offsetTop + span.offsetHeight;
+  const refSpan = span.parentNode.nextSibling;
+  const refBaseline = refSpan.offsetTop + refSpan.offsetHeight;
+  if (baseline !== refBaseline) {
+    refSpan.textContent += " (wrong baseline)";
+  }
+}
+</script>

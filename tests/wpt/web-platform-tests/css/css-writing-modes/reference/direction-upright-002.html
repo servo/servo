@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<title>Reftest Reference</title>
+
+<style>
+  body > div {
+    border: solid silver;
+    float: left;
+    margin: 1em;
+    border-inline-start-color: orange;
+    border-block-start-color: aqua;
+    border-inline-end-color: lime;
+    border-block-end-color: yellow;
+  }
+  colgroup:first-child { background: fuchsia; }
+  col:last-child { background: purple; }
+  .flex { display: flex; }
+  .grid { grid-template-columns: auto auto }
+  hr { clear: both }
+</style>
+
+<p>Test passes if both rows of boxes are identical (coloring, order, orientation, and arrangement of contents).
+
+<div style="writing-mode: vertical-rl; text-orientation: upright">
+  <table>
+    <colgroup></colgroup>
+    <colgroup><col><col></colgroup>
+    <tr><td>A<td>B<td>C
+  </table>
+  <div class=flex>A <span>B</span></div>
+  <div class=grid>A <span>B</span></div>
+  <div>A <ruby>B<rt>b</rt> C<rt>c</rt></ruby><ruby>D<rt>d</rt> E<rt>e</rt></ruby></div>
+</div>
+<div style="writing-mode: vertical-lr; text-orientation: upright">
+  <table>
+    <colgroup></colgroup>
+    <colgroup><col><col></colgroup>
+    <tr><td>A<td>B<td>C
+  </table>
+  <div class=flex>A <span>B</span></div>
+  <div class=grid>A <span>B</span></div>
+  <div>A <ruby>B<rt>b</rt> C<rt>c</rt></ruby><ruby>D<rt>d</rt> E<rt>e</rt></ruby></div>
+</div>
+
+<div dir=rtl>
+  <table>
+    <colgroup></colgroup>
+    <colgroup><col><col></colgroup>
+    <tr><td>A<td>B<td>C
+  </table>
+  <div class=flex>A <span>B</span></div>
+  <div class=grid>A <span>B</span></div>
+  <div>A <ruby>B<rt>b</rt> C<rt>c</rt></ruby><ruby>D<rt>d</rt> E<rt>e</rt></ruby></div>
+</div>
+<div dir=rtl style="writing-mode: sideways-rl">
+  <table>
+    <colgroup></colgroup>
+    <colgroup><col><col></colgroup>
+    <tr><td>A<td>B<td>C
+  </table>
+  <div class=flex>A <span>B</span></div>
+  <div class=grid>A <span>B</span></div>
+  <div>A <ruby>B<rt>b</rt> C<rt>c</rt></ruby><ruby>D<rt>d</rt> E<rt>e</rt></ruby></div>
+</div>
+<div dir=rtl style="writing-mode: sideways-lr">
+  <table>
+    <colgroup></colgroup>
+    <colgroup><col><col></colgroup>
+    <tr><td>A<td>B<td>C
+  </table>
+  <div class=flex>A <span>B</span></div>
+  <div class=grid>A <span>B</span></div>
+  <div>A <ruby>B<rt>b</rt> C<rt>c</rt></ruby><ruby>D<rt>d</rt> E<rt>e</rt></ruby></div>
+</div>
+
+<hr>
+
+<div style="writing-mode: vertical-rl; text-orientation: upright">
+  <table>
+    <colgroup></colgroup>
+    <colgroup><col><col></colgroup>
+    <tr><td>A<td>B<td>C
+  </table>
+  <div class=flex>A <span>B</span></div>
+  <div class=grid>A <span>B</span></div>
+  <div>A <ruby>B<rt>b</rt> C<rt>c</rt></ruby><ruby>D<rt>d</rt> E<rt>e</rt></ruby></div>
+</div>
+<div style="writing-mode: vertical-lr; text-orientation: upright">
+  <table>
+    <colgroup></colgroup>
+    <colgroup><col><col></colgroup>
+    <tr><td>A<td>B<td>C
+  </table>
+  <div class=flex>A <span>B</span></div>
+  <div class=grid>A <span>B</span></div>
+  <div>A <ruby>B<rt>b</rt> C<rt>c</rt></ruby><ruby>D<rt>d</rt> E<rt>e</rt></ruby></div>
+</div>
+
+<div dir=rtl>
+  <table>
+    <colgroup></colgroup>
+    <colgroup><col><col></colgroup>
+    <tr><td>A<td>B<td>C
+  </table>
+  <div class=flex>A <span>B</span></div>
+  <div class=grid>A <span>B</span></div>
+  <div>A <ruby>B<rt>b</rt> C<rt>c</rt></ruby><ruby>D<rt>d</rt> E<rt>e</rt></ruby></div>
+</div>
+<div dir=rtl style="writing-mode: sideways-rl">
+  <table>
+    <colgroup></colgroup>
+    <colgroup><col><col></colgroup>
+    <tr><td>A<td>B<td>C
+  </table>
+  <div class=flex>A <span>B</span></div>
+  <div class=grid>A <span>B</span></div>
+  <div>A <ruby>B<rt>b</rt> C<rt>c</rt></ruby><ruby>D<rt>d</rt> E<rt>e</rt></ruby></div>
+</div>
+<div dir=rtl style="writing-mode: sideways-lr">
+  <table>
+    <colgroup></colgroup>
+    <colgroup><col><col></colgroup>
+    <tr><td>A<td>B<td>C
+  </table>
+  <div class=flex>A <span>B</span></div>
+  <div class=grid>A <span>B</span></div>
+  <div>A <ruby>B<rt>b</rt> C<rt>c</rt></ruby><ruby>D<rt>d</rt> E<rt>e</rt></ruby></div>
+</div>

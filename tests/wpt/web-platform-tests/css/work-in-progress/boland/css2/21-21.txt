@@ -1,6 +1,0 @@
-<?xml#x20version=1?>
-<!--first test-->
-<?xml-stylesheet href="test.css" type="text/css"?>
-<tim#x20boland/>
-<?xml version=1 ?>
-<name>tim</name>

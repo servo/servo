@@ -5,4 +5,4 @@ These tests are located here as originally the CORS protocol was defined on its 
 More CORS tests can be found in
 
 * /fetch
-* /XMLHttpRequest
+* /xhr

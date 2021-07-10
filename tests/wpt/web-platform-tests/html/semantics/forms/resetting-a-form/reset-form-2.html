@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Resetting a form integration test</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#concept-form-reset">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+test(() => {
+
+  const form = document.createElement("form");
+  const text = document.createElement("input");
+  text.type = "text";
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  const select = document.createElement("select");
+  select.multiple = true;
+  const option = document.createElement("option");
+  option.value = "option";
+  const textarea = document.createElement("textarea");
+
+  form.appendChild(text);
+  form.appendChild(checkbox);
+  form.appendChild(textarea);
+  form.appendChild(select);
+  select.appendChild(option);
+
+  text.defaultValue = "text default";
+  checkbox.defaultChecked = true;
+  option.defaultSelected = true;
+  textarea.defaultValue = "textarea default";
+
+  text.value = "text new value";
+  checkbox.checked = false;
+  option.selected = false;
+  textarea.value = "textarea new value";
+
+  form.reset();
+
+  assert_equals(text.value, "text default", "input should reset value to default");
+  assert_equals(checkbox.checked, true, "input should reset checkedness to default");
+  assert_equals(option.selected, true, "second option should reset selectedness to default");
+  assert_equals(select.selectedIndex, 0, "second option should reset selectedness to default");
+  assert_equals(textarea.value, "textarea default", "textarea should reset api value to default");
+
+  text.defaultValue = "text new default";
+  checkbox.defaultChecked = false;
+  option.defaultSelected = false;
+  textarea.defaultValue = "textarea new default";
+
+  assert_equals(text.value, "text new default", "input should reset dirty value to false");
+  assert_equals(checkbox.checked, false, "input should reset dirty checkedness to false");
+  assert_equals(option.selected, false, "option should reset dirtyness to false");
+  assert_equals(select.selectedIndex, -1, "option should reset dirtyness to false");
+  assert_equals(textarea.value, "textarea new default", "textarea should reset dirty value to false");
+
+}, "integration test on reset for a created-from-script form");
+</script>

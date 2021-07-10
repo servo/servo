@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<link rel="help" href="http://www.w3.org/TR/cssom-view/#extensions-to-the-document-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div style="font-size: 40px">
+  <span id="target">
+    XXX <span id="small" style="font-size:10px">small</span> YYY
+  </span>
+</div>
+<script>
+test(() => {
+  // Find a point in the empty region above the "small" span, but still inside
+  // the "target" span.
+  const small = document.getElementById('small');
+  const rect = small.getBoundingClientRect();
+  const x = rect.left + rect.width / 2;
+  const y = rect.top - 5;
+
+  const actual = document.elementFromPoint(x, y);
+  const target = document.getElementById('target');
+  assert_equals(actual, target);
+}, 'document.elementFromPoint finds container SPAN in the empty region above a child SPAN with a smaller font size');
+</script>

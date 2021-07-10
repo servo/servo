@@ -7,15 +7,15 @@
 var rect = document.querySelector('rect');
 rect.addEventListener('dragenter',
 function (event)
-	{event.preventDefault();}
+  {event.preventDefault();}
 ,false);
 rect.addEventListener('dragover',
 function (event)
-	{event.preventDefault();}
+  {event.preventDefault();}
 ,false);
 rect.addEventListener('drop',
 function (event)
-	{rect.setAttribute('fill',(event.dataTransfer.getData('text/uri-list').replace(/\r\n$/,'') == 'data:text/plain,1')?'green':'red');}
+  {rect.setAttribute('fill',(event.dataTransfer.getData('text/uri-list').replace(/\r\n$/,'') == 'data:text/plain,1')?'green':'red');}
 ,false);
 </script>
 </svg>

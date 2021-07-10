@@ -31,7 +31,7 @@
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
         <p>The test has passed if the four green rectangles each animate their height according to the following:</p>
-       	<p>The leftmost rect:</p>
+         <p>The leftmost rect:</p>
         <ul>
            <li>when the animation starts the height of the green rect should make it align with the bottommost red indicator line</li>
            <li>after two seconds the height should jump to be 10% of the height of the gray rect it overlaps</li>
@@ -39,21 +39,21 @@
            <li>after six seconds the height should jump to its final position, 10% of the height of the gray rect</li>
          </ul>
         <p>The next to leftmost rect:</p>
-       	<ul>
+         <ul>
            <li>when the animation starts the height of the green rect should be 110% of the height of the gray rect</li>
            <li>after two seconds the height should jump to be 20% of the height of the gray rect</li>
            <li>after four seconds the height should jump to be 110% of the height of the gray rect</li>
            <li>after six seconds the height should jump to its final position, 20% of the height of the gray rect</li>
          </ul>
         <p>The next to rightmost rect:</p>
-       	<ul>
+         <ul>
            <li>when the animation starts the height of the green rect should make it align with the bottommost red indicator line</li>
            <li>after two seconds the height should jump to be 10% of the height of the gray rect</li>
            <li>after four seconds the height should jump to be 110% of the height of the gray rect</li>
            <li>after six seconds the height should jump to its final position, 20% of the height of the gray rect</li>
          </ul>
         <p>The rightmost rect:</p>
-       	<ul>
+         <ul>
            <li>when the animation starts the height of the green rect should be 110% of the height of the gray rect</li>
            <li>after two seconds the height should jump to be 20% of the height of the gray rect</li>
            <li>after four seconds the height should jump to be 120% of the height of the gray rect</li>

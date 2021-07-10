@@ -1,0 +1,31 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>MutationObserver: callback arguments</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#notify-mutation-observers">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="mo-target"></div>
+<div id="log"></div>
+<script>
+"use strict";
+
+async_test(t => {
+  const moTarget = document.querySelector("#mo-target");
+  const mo = new MutationObserver(function(records, observer) {
+    t.step(() => {
+      assert_equals(this, mo);
+      assert_equals(arguments.length, 2);
+      assert_true(Array.isArray(records));
+      assert_equals(records.length, 1);
+      assert_true(records[0] instanceof MutationRecord);
+      assert_equals(observer, mo);
+
+      mo.disconnect();
+      t.done();
+    });
+  });
+
+  mo.observe(moTarget, {attributes: true});
+  moTarget.className = "trigger-mutation";
+}, "Callback is invoked with |this| value of MutationObserver and two arguments");
+</script>

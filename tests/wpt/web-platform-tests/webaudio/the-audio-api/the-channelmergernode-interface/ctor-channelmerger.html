@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Test Constructor: ChannelMerger
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+    <script src="/webaudio/resources/audionodeoptions.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      let context;
+
+      let audit = Audit.createTaskRunner();
+
+      audit.define('initialize', (task, should) => {
+        context = initializeContext(should);
+        task.done();
+      });
+
+      audit.define('invalid constructor', (task, should) => {
+        testInvalidConstructor(should, 'ChannelMergerNode', context);
+        task.done();
+      });
+
+      audit.define('default constructor', (task, should) => {
+        let prefix = 'node0';
+        let node =
+            testDefaultConstructor(should, 'ChannelMergerNode', context, {
+              prefix: prefix,
+              numberOfInputs: 6,
+              numberOfOutputs: 1,
+              channelCount: 1,
+              channelCountMode: 'explicit',
+              channelInterpretation: 'speakers'
+            });
+
+        task.done();
+      });
+
+      audit.define('test AudioNodeOptions', (task, should) => {
+        testAudioNodeOptions(should, context, 'ChannelMergerNode', {
+          channelCount: {
+            value: 1,
+            isFixed: true,
+            exceptionType: 'InvalidStateError'
+          },
+          channelCountMode: {
+            value: 'explicit',
+            isFixed: true,
+            exceptionType: 'InvalidStateError'
+          }
+        });
+        task.done();
+      });
+
+      audit.define('constructor options', (task, should) => {
+        let node;
+        let options = {
+          numberOfInputs: 3,
+          numberOfOutputs: 9,
+          channelInterpretation: 'discrete'
+        };
+
+        should(
+            () => {
+              node = new ChannelMergerNode(context, options);
+            },
+            'node1 = new ChannelMergerNode(context, ' +
+                JSON.stringify(options) + ')')
+            .notThrow();
+
+        should(node.numberOfInputs, 'node1.numberOfInputs')
+            .beEqualTo(options.numberOfInputs);
+        should(node.numberOfOutputs, 'node1.numberOfOutputs').beEqualTo(1);
+        should(node.channelInterpretation, 'node1.channelInterpretation')
+            .beEqualTo(options.channelInterpretation);
+
+        options = {numberOfInputs: 99};
+        should(
+            () => {
+              node = new ChannelMergerNode(context, options);
+            },
+            'new ChannelMergerNode(c, ' + JSON.stringify(options) + ')')
+            .throw(DOMException, 'IndexSizeError');
+
+        options = {channelCount: 3};
+        should(
+            () => {
+              node = new ChannelMergerNode(context, options);
+            },
+            'new ChannelMergerNode(c, ' + JSON.stringify(options) + ')')
+            .throw(DOMException, 'InvalidStateError');
+
+        options = {channelCountMode: 'max'};
+        should(
+            () => {
+              node = new ChannelMergerNode(context, options);
+            },
+            'new ChannelMergerNode(c, ' + JSON.stringify(options) + ')')
+            .throw(DOMException, 'InvalidStateError');
+
+        task.done();
+      });
+
+      audit.run();
+    </script>
+  </body>
+</html>

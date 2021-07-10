@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>Moving fullscreen document's body into a fullscreen iframe</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../trusted-click.js"></script>
+<iframe allowfullscreen></iframe>
+<script>
+// wait for load event to avoid https://bugzil.la/1493878
+window.onload = function() {
+  async_test(t => {
+    const iframe = document.querySelector('iframe');
+    const iframeDoc = iframe.contentDocument;
+
+    // Enter fullscreen for the iframe's body element.
+    trusted_request(t, iframeDoc.body, iframeDoc.body);
+    document.onfullscreenchange = t.step_func(() => {
+      assert_equals(document.fullscreenElement, iframe, "document's initial fullscreen element");
+      assert_equals(iframeDoc.fullscreenElement, iframeDoc.body, "iframe's initial fullscreen element");
+
+      // Then, move the outer document's body into the iframe. This is an unusual
+      // thing to do, but means that the iframe is removed from its document and
+      // should trigger fullscreen exit.
+      iframeDoc.documentElement.appendChild(document.body);
+
+      // If we exit in an orderly fashion, that's all one can ask for.
+      document.onfullscreenchange = t.step_func_done(() => {
+        assert_equals(document.fullscreenElement, null, "document's final fullscreen element");
+
+        // Because the iframe was removed, its browsing context was discarded and
+        // its contentDocument has become null. Because that browsing context was
+        // neither a descendant browsing context nor had an active document,
+        // nothing at all was done with it in the exit fullscreen algorithm, so
+        // its fullscreenElement is unchanged.
+        assert_equals(iframe.contentDocument, null, "iframe's content document");
+        assert_equals(iframeDoc.fullscreenElement, iframeDoc.body, "iframe's final fullscreen element");
+      });
+    });
+  });
+};
+</script>

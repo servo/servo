@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<!-- Submitted from TestTWF Paris -->
+<head>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Values and Units Test: elements should be the real world size given in mm, cm, inches...</title>
+  <link rel="author" title="Marc Bourlon" href="mailto:marc@bourlon.com">
+  <link rel="help" href="https://www.w3.org/TR/css3-values/#absolute-lengths" title="5.2 Absolute lengths: the cm, mm, Q, in, pt, pc, px units">
+
+  <style type="text/css">
+
+    .s1mm { background-color: fuchsia; width: 1mm; height: 1mm; }
+    .s10mm { background-color: olive; width: 10mm; height: 10mm; }
+    .s1cm { background-color: orange; width: 1cm; height: 1cm; }
+    .s254cm { background-color: gray; width: 2.54cm; height: 2.54cm; }
+    .s1in { background-color: blue; width: 1in; height: 1in; }
+
+    .inline { float: left; }
+
+    .newline { clear: left; }
+
+    p { clear: both; margin: 10px 0; }
+
+  </style>
+
+</head>
+<body>
+
+<p>
+  There should be a 1mm (width) by 1mm (height) fuchsia square:
+</p>
+
+<div class="s1mm"></div>
+
+<p>
+  There should be a 10mm (width) by 1mm (height) fuchsia stripe:
+</p>
+
+<div class="s1mm newline inline"></div>
+<div class="s1mm inline"></div>
+<div class="s1mm inline"></div>
+<div class="s1mm inline"></div>
+<div class="s1mm inline"></div>
+<div class="s1mm inline"></div>
+<div class="s1mm inline"></div>
+<div class="s1mm inline"></div>
+<div class="s1mm inline"></div>
+<div class="s1mm inline"></div>
+
+<p>
+  There should be a 10mm (width) by 10mm (height) olive square:
+</p>
+
+<div class="s10mm newline "></div>
+
+<p>
+  There should be a 1cm (width) by 1cm (height) orange square. So, same width above:
+</p>
+
+<div class="s1cm newline "></div>
+
+<p>
+  There should be a 2.54cm (width) by 2.54cm (height) gray square:
+</p>
+
+<div class="s254cm newline "></div>
+
+<p>
+  There should be a 1in (width) by 1in (height) blue square. So, same width as above:
+</p>
+
+<div class="s1in"></div>
+
+</body>
+</html>

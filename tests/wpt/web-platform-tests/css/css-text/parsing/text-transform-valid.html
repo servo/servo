@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text Module Test: parsing text-transform with valid values</title>
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#propdef-text-transform">
+<meta name="assert" content="text-transform supports the full grammar 'none | [capitalize | uppercase | lowercase ] || full-width || full-size-kana'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("text-transform", "none");
+
+test_valid_value("text-transform", "capitalize");
+test_valid_value("text-transform", "uppercase");
+test_valid_value("text-transform", "lowercase");
+test_valid_value("text-transform", "full-width");
+test_valid_value("text-transform", "full-size-kana");
+
+test_valid_value("text-transform", "capitalize full-width");
+test_valid_value("text-transform", "uppercase full-size-kana");
+test_valid_value("text-transform", "full-width full-size-kana");
+
+// serialization canonicalizes the order of values: https://drafts.csswg.org/cssom/#serialize-a-css-value
+test_valid_value("text-transform", "full-width lowercase", "lowercase full-width");
+test_valid_value("text-transform", "full-size-kana capitalize", "capitalize full-size-kana");
+test_valid_value("text-transform", "full-size-kana full-width", "full-width full-size-kana");
+
+test_valid_value("text-transform", "capitalize full-width full-size-kana");
+
+// serialization canonicalizes the order of values
+test_valid_value("text-transform", "full-width full-size-kana uppercase", "uppercase full-width full-size-kana");
+test_valid_value("text-transform", "full-size-kana lowercase full-width", "lowercase full-width full-size-kana");
+test_valid_value("text-transform", "lowercase full-size-kana full-width", "lowercase full-width full-size-kana");
+test_valid_value("text-transform", "full-width uppercase full-size-kana", "uppercase full-width full-size-kana");
+test_valid_value("text-transform", "full-size-kana full-width capitalize", "capitalize full-width full-size-kana");
+</script>
+</body>
+</html>

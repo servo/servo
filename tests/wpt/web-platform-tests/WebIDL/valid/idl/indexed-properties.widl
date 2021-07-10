@@ -7,6 +7,6 @@ interface OrderedMap {
   deleter void removeByIndex(unsigned long index);
 
   getter any get(DOMString name);
-  setter creator void set(DOMString name, any value);
+  setter void set(DOMString name, any value);
   deleter void remove(DOMString name);
 };

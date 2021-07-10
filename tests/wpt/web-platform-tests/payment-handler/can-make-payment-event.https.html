@@ -1,0 +1,379 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Tests for CanMakePaymentEvent</title>
+<link rel="help" href="https://w3c.github.io/payment-handler/#the-canmakepaymentevent">
+<link rel="manifest" href="manifest.json">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<p>The "basic-card" test requires that you don't have a prepaid MIR card stored
+in the browser. If you do, please remove it for the duration of the test.</p>
+<script>
+const instrumentKey = 'instrument-key';
+
+async function registerApp(methodName) {
+  await navigator.serviceWorker.register('app-can-make-payment.js');
+  const registration = await navigator.serviceWorker.ready;
+  if (!registration.paymentManager) {
+    return;
+  }
+  if (registration.paymentManager.requestPermission) {
+    const permission = await registration.paymentManager.requestPermission();
+    if (permission !== 'granted') {
+      return;
+    }
+  }
+  await registration.paymentManager.instruments.set(instrumentKey, {
+    name: 'Test Payment Method',
+    method: methodName,
+  });
+  return registration;
+}
+
+function buildPaymentRequest(methodName) {
+  const unsupportedMethodName = methodName + '-unsupported';
+  return new PaymentRequest(
+    [
+      {
+        supportedMethods: methodName,
+        data: {
+          defaultParameter: 'defaultValue',
+        },
+      },
+      {
+        supportedMethods: unsupportedMethodName,
+        data: {
+          defaultUnsupportedParameter: 'defaultUnsupportedValue',
+        },
+      },
+    ],
+    {
+      total: {
+        label: 'Total',
+        amount: {
+          currency: 'USD',
+          value: '0',
+        },
+      },
+      displayItems: [
+        {
+          label: 'Nada',
+          amount: {currency: 'USD', value: '0'},
+        },
+      ],
+      modifiers: [
+        {
+          supportedMethods: [methodName],
+          data: {
+            modifiedParameter: 'modifiedValue',
+          },
+          total: {
+            label: 'Modified Total',
+            amount: {
+              currency: 'USD',
+              value: '0.0001',
+            },
+          },
+          additionalDisplayItems: [
+            {
+              label: 'Something',
+              amount: {currency: 'USD', value: '0.0001'},
+            },
+          ],
+        },
+        {
+          supportedMethods: [unsupportedMethodName],
+          data: {
+            modifiedUnsupportedParameter: 'modifiedUnsupportedValue',
+          },
+          total: {
+            label: 'Modified Unsupported Total',
+            amount: {
+              currency: 'USD',
+              value: '10',
+            },
+          },
+          additionalDisplayItems: [
+            {
+              label: 'Something Unsupported',
+              amount: {currency: 'USD', value: '10'},
+            },
+          ],
+        },
+      ],
+    },
+  );
+}
+
+promise_test(async t => {
+  const methodName = window.location.origin + '/canMakePayment-true';
+  // Intentionally do not install the payment app.
+  const request = buildPaymentRequest(methodName);
+  assert_not_equals(request, undefined);
+  let paymentRequestCanMakePaymentResult;
+  try {
+    paymentRequestCanMakePaymentResult = await request.canMakePayment();
+  } catch (err) {
+    assert_equals(
+      err.name,
+      'NotAllowedError',
+      'If it throws, then it must be NotAllowedError',
+    );
+  }
+  assert_false(
+    paymentRequestCanMakePaymentResult,
+    'canMakePayment() must return false.',
+  );
+  await promise_rejects_dom(t, 'NotSupportedError', request.show());
+}, 'If a payment handler is not installed, then the payment method is not supported.');
+
+promise_test(async t => {
+  const methodName = window.location.origin + '/canMakePayment-false';
+  await registerApp(methodName);
+  const request = buildPaymentRequest(methodName);
+  assert_not_equals(request, undefined);
+  let paymentRequestCanMakePaymentResult;
+  try {
+    paymentRequestCanMakePaymentResult = await request.canMakePayment();
+  } catch (err) {
+    assert_equals(
+      err.name,
+      'NotAllowedError',
+      'If it throws, then it must be NotAllowedError',
+    );
+  }
+  assert_false(
+    paymentRequestCanMakePaymentResult,
+    'canMakePayment() must return false.',
+  );
+  await promise_rejects_dom(t, 'NotSupportedError', request.show());
+}, 'If CanMakePaymentEvent.respondWith(false) is called, then the payment method is not supported.');
+
+promise_test(async t => {
+  const methodName = window.location.origin + '/canMakePayment-promise-false';
+  await registerApp(methodName);
+  const request = buildPaymentRequest(methodName);
+  assert_not_equals(request, undefined);
+  let paymentRequestCanMakePaymentResult;
+  try {
+    paymentRequestCanMakePaymentResult = await request.canMakePayment();
+  } catch (err) {
+    assert_equals(
+      err.name,
+      'NotAllowedError',
+      'If it throws, then it must be NotAllowedError',
+    );
+  }
+  assert_false(
+    paymentRequestCanMakePaymentResult,
+    'canMakePayment() must return false.',
+  );
+  await promise_rejects_dom(t, 'NotSupportedError', request.show());
+}, 'If CanMakePaymentEvent.respondWith(Promise.resolve(false)) is called, then the payment method is not supported.');
+
+promise_test(async t => {
+  const methodName = window.location.origin + '/canMakePayment-true';
+  await registerApp(methodName);
+  const request = buildPaymentRequest(methodName);
+  assert_not_equals(request, undefined);
+  let paymentRequestCanMakePaymentResult;
+  try {
+    paymentRequestCanMakePaymentResult = await request.canMakePayment();
+  } catch (err) {
+    assert_equals(
+      err.name,
+      'NotAllowedError',
+      'If it throws, then it must be NotAllowedError',
+    );
+  }
+  assert_true(
+    paymentRequestCanMakePaymentResult,
+    'canMakePayment() must return true.',
+  );
+  const acceptPromise = request.show();
+  await request.abort();
+  await promise_rejects_dom(t, 'AbortError', acceptPromise);
+}, 'If CanMakePaymentEvent.respondWith(true) is called, then the payment method is supported.');
+
+promise_test(async t => {
+  const methodName = window.location.origin + '/canMakePayment-promise-true';
+  await registerApp(methodName);
+  const request = buildPaymentRequest(methodName);
+  assert_not_equals(request, undefined);
+  let paymentRequestCanMakePaymentResult;
+  try {
+    paymentRequestCanMakePaymentResult = await request.canMakePayment();
+  } catch (err) {
+    assert_equals(
+      err.name,
+      'NotAllowedError',
+      'If it throws, then it must be NotAllowedError',
+    );
+  }
+  assert_true(
+    paymentRequestCanMakePaymentResult,
+    'canMakePayment() must return true.',
+  );
+  const acceptPromise = request.show();
+  await request.abort();
+  await promise_rejects_dom(t, 'AbortError', acceptPromise);
+}, 'If CanMakePaymentEvent.respondWith(Promise.resolve(true)) is called, then the payment method is supported.');
+
+promise_test(async t => {
+  const methodName = window.location.origin + '/canMakePayment-custom-error';
+  await registerApp(methodName);
+  const request = buildPaymentRequest(methodName);
+  assert_not_equals(request, undefined);
+  let paymentRequestCanMakePaymentResult;
+  try {
+    paymentRequestCanMakePaymentResult = await request.canMakePayment();
+  } catch (err) {
+    assert_equals(
+      err.name,
+      'NotAllowedError',
+      'If it throws, then it must be NotAllowedError',
+    );
+  }
+  assert_false(
+    paymentRequestCanMakePaymentResult,
+    'canMakePayment() must return false.',
+  );
+  await promise_rejects_dom(t, 'NotSupportedError', request.show());
+}, 'If CanMakePaymentEvent.respondWith(Promise.reject(error)) is called, then the payment method is not supported.');
+
+promise_test(async t => {
+  const methodName = 'basic-card';
+  await registerApp(methodName);
+  const request = buildPaymentRequest(methodName);
+  assert_not_equals(request, undefined);
+  let paymentRequestCanMakePaymentResult;
+  try {
+    paymentRequestCanMakePaymentResult = await request.canMakePayment();
+  } catch (err) {
+    assert_equals(
+      err.name,
+      'NotAllowedError',
+      'If it throws, then it must be NotAllowedError',
+    );
+  }
+  assert_true(
+    paymentRequestCanMakePaymentResult,
+    'canMakePayment() must return true due to capability matching in the browser.',
+  );
+}, 'If an app supports "basic-card" in general and that\'s what merchant requests as well, then capability filtering should make the app available for use. CanMakePaymentEvent should not be fired for "basic-card".');
+
+promise_test(async t => {
+  const methodName = 'basic-card';
+  await registerApp(methodName);
+  const cardNetwork = 'mir';
+  const request = new PaymentRequest(
+    [
+      {
+        supportedMethods: methodName,
+        data: {
+          supportedNetworks: [cardNetwork],
+        },
+      },
+    ],
+    {
+      total: {
+        label: 'Total',
+        amount: {
+          currency: 'USD',
+          value: '0',
+        },
+      },
+    },
+  );
+  assert_not_equals(request, undefined);
+  let paymentRequestCanMakePaymentResult;
+  try {
+    paymentRequestCanMakePaymentResult = await request.canMakePayment();
+  } catch (err) {
+    assert_equals(
+      err.name,
+      'NotAllowedError',
+      'If it throws, then it must be NotAllowedError',
+    );
+  }
+  assert_false(
+    paymentRequestCanMakePaymentResult,
+    'canMakePayment() must return false due to capability matching in the browser.',
+  );
+}, 'If an app has less specific "basic-card" capabilites than merchant\'s request, capability filtering should not make the app available for use. CanMakePaymentEvent should not be fired for "basic-card". ');
+
+promise_test(async t => {
+  const methodName = 'basic-card';
+  const cardNetwork = 'mir';
+  const registration = await registerApp(methodName);
+  await registration.paymentManager.instruments.set(instrumentKey, {
+    name: 'Test Payment Method',
+    method: methodName,
+    capabilities: {
+      supportedNetworks: [cardNetwork],
+    },
+  });
+  const request = new PaymentRequest(
+    [
+      {
+        supportedMethods: methodName,
+        data: {
+          supportedNetworks: [cardNetwork],
+        },
+      },
+    ],
+    {
+      total: {
+        label: 'Total',
+        amount: {
+          currency: 'USD',
+          value: '0',
+        },
+      },
+    },
+  );
+  assert_not_equals(request, undefined);
+  let paymentRequestCanMakePaymentResult;
+  try {
+    paymentRequestCanMakePaymentResult = await request.canMakePayment();
+  } catch (err) {
+    assert_equals(
+      err.name,
+      'NotAllowedError',
+      'If it throws, then it must be NotAllowedError',
+    );
+  }
+  assert_true(
+    paymentRequestCanMakePaymentResult,
+    'canMakePayment() must return true due to capability matching in the browser.',
+  );
+}, 'If an app has the exact "basic-card" capabilities that a merchant requested, capability filtering should make the app available for use. CanMakePaymentEvent should not be fired for "basic-card".');
+
+promise_test(async t => {
+  const methodName = 'basic-card';
+  const cardNetwork = 'mir';
+  const registration = await registerApp(methodName);
+  await registration.paymentManager.instruments.set(instrumentKey, {
+    name: 'Test Payment Method',
+    method: methodName,
+    capabilities: {
+      supportedNetworks: [cardNetwork],
+    },
+  });
+  const request = buildPaymentRequest(methodName);
+  assert_not_equals(request, undefined);
+  let paymentRequestCanMakePaymentResult;
+  try {
+    paymentRequestCanMakePaymentResult = await request.canMakePayment();
+  } catch (err) {
+    assert_equals(
+      err.name,
+      'NotAllowedError',
+      'If it throws, then it must be NotAllowedError',
+    );
+  }
+  assert_true(
+    paymentRequestCanMakePaymentResult,
+    'canMakePayment() must return true due to capability matching in the browser.',
+  );
+}, 'If an app has more specific "basic-card" capabilities than merchant\'s request, capability filtering should make the app available for use. CanMakePaymentEvent should not be fired for "basic-card".');
+</script>

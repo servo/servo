@@ -1,0 +1,6 @@
+WEBVTT
+A file with no line terminator at the end should be fine (last cue should be recognized).
+
+1
+00:00:00.000 --> 00:00:30.500
+Bear is Coming!!!!!

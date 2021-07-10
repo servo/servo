@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: ::marker pseudo elements styled with 'text-align' property</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="match" href="marker-text-align-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-text/#text-align-property">
+<meta name="assert" content="Checks that 'text-align' doesn't apply nor inherit to ::marker.">
+<style>
+li {
+  /* Should not be inherited by ::marker */
+  text-align: start;
+  text-align-all: start;
+  text-align-last: start;
+}
+::marker {
+  /* Should have no effect */
+  text-align: start;
+  text-align-all: start;
+  text-align-last: start;
+}
+li > div {
+  text-align: initial;
+  text-align-all: initial;
+  text-align-last: initial;
+}
+ol {
+  padding-left: 13ch;
+}
+li {
+  line-height: 16px;
+  height: 32px;
+  white-space: pre;
+}
+.disc {
+  list-style-type: disc;
+}
+.decimal {
+  list-style-type: decimal;
+}
+.string {
+  list-style-type: "[m]\a longtext";
+}
+.content::marker {
+  content: "[m]\a longtext";
+}
+.rtl-marker ::marker {
+  direction: rtl;
+}
+</style>
+<ol>
+  <li class="disc"><div>disc</div></li>
+  <li class="decimal"><div>decimal</div></li>
+  <li class="string"><div>string</div></li>
+  <li class="content"><div>content</div></li>
+</ol>
+<ol class="rtl-marker">
+  <li class="disc"><div>disc</div></li>
+  <li class="decimal"><div>decimal</div></li>
+  <li class="string"><div>string</div></li>
+  <li class="content"><div>content</div></li>
+</ol>

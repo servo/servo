@@ -18,22 +18,26 @@ type size_t = usize;
 /// Obtains task_basic_info::virtual_size.
 pub fn virtual_size() -> Option<usize> {
     let mut virtual_size: size_t = 0;
-    let rv = unsafe {
-        TaskBasicInfoVirtualSize(&mut virtual_size)
-    };
-    if rv == 0 { Some(virtual_size as usize) } else { None }
+    let rv = unsafe { TaskBasicInfoVirtualSize(&mut virtual_size) };
+    if rv == 0 {
+        Some(virtual_size as usize)
+    } else {
+        None
+    }
 }
 
 /// Obtains task_basic_info::resident_size.
 pub fn resident_size() -> Option<usize> {
     let mut resident_size: size_t = 0;
-    let rv = unsafe {
-        TaskBasicInfoResidentSize(&mut resident_size)
-    };
-    if rv == 0 { Some(resident_size as usize) } else { None }
+    let rv = unsafe { TaskBasicInfoResidentSize(&mut resident_size) };
+    if rv == 0 {
+        Some(resident_size as usize)
+    } else {
+        None
+    }
 }
 
-extern {
+extern "C" {
     fn TaskBasicInfoVirtualSize(virtual_size: *mut size_t) -> c_int;
     fn TaskBasicInfoResidentSize(resident_size: *mut size_t) -> c_int;
 }

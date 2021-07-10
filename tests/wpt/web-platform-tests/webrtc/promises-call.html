@@ -24,16 +24,11 @@ This test uses data only, and thus does not require fake media devices.
   var gSecondConnection = null;
 
   var onIceCandidateToFirst = test.step_func(function(event) {
-    // If event.candidate is null = no more candidates.
-    if (event.candidate) {
-      gSecondConnection.addIceCandidate(event.candidate);
-    }
+    gSecondConnection.addIceCandidate(event.candidate);
   });
 
   var onIceCandidateToSecond = test.step_func(function(event) {
-    if (event.candidate) {
-      gFirstConnection.addIceCandidate(event.candidate);
-    }
+    gFirstConnection.addIceCandidate(event.candidate);
   });
 
   var onIceConnectionStateChange = test.step_func(function(event) {
@@ -66,10 +61,12 @@ This test uses data only, and thus does not require fake media devices.
   // This function starts the test.
   test.step(function() {
     gFirstConnection = new RTCPeerConnection(null);
+    test.add_cleanup(() => gFirstConnection.close());
     gFirstConnection.onicecandidate = onIceCandidateToFirst;
     gFirstConnection.oniceconnectionstatechange = onIceConnectionStateChange;
 
     gSecondConnection = new RTCPeerConnection(null);
+    test.add_cleanup(() => gSecondConnection.close());
     gSecondConnection.onicecandidate = onIceCandidateToSecond;
     gSecondConnection.oniceconnectionstatechange = onIceConnectionStateChange;
 

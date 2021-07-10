@@ -28,7 +28,7 @@
         steps requied to run the test or any manual operation that need
         to be performed to run the test.
         ]]
-      </p>      
+      </p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>

@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Reporting: Buffer size</title>
+<link rel="author" title="Paul Meyer" href="paulmeyer@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+  // Test the buffer size (100) of ReportingObserver.
+  promise_test(async function(test) {
+    for (let i = 0; i != 110; ++i)
+      await test_driver.generate_test_report("" + i);
+
+    let reports = await new Promise(resolve => {
+      let observer = new ReportingObserver(resolve, {buffered:true});
+      observer.observe();
+    });
+
+    // Only (the most recent) 100 reports should be observed, even though
+    // 110 were buffered.
+    assert_equals(reports.length, 100);
+    for (let i = 0; i != 100; ++i) {
+      assert_equals(reports[i].body.message, "" + (i + 10));
+    }
+  }, "Buffer size");
+</script>

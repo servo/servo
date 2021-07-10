@@ -1,0 +1,270 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>Reference: Masonry layout max-content sizing</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+  <style>
+html,body {
+  color:black; background-color:white; font:15px/1 Ahem; padding:0; margin:0;
+}
+
+grid {
+  display: inline-grid;
+  gap: 1px 2px;
+  grid-template-columns: 1ch 3ch 3ch 1ch;
+  grid-auto-rows: 1em;
+  border: 1px solid;
+  padding: 0 1px 0 2px;
+  vertical-align: top;
+  align-items: start;
+  width: max-content;
+}
+.fr {
+  grid-template-columns: 1fr 2fr 1fr 1fr;
+}
+.mixed {
+  grid-template-columns: 1fr 2fr min-content max-content;
+}
+
+item {
+  background-color: #444;
+  color: blue;
+}
+item.start { align-self: start; }
+</style>
+</head>
+<body>
+
+<grid style="grid: 1em 2em / 2ch 3ch 3ch 1ch">
+  <item style="width:2ch">1</item>
+  <item>2 2</item>
+  <item>3 3</item>
+  <item>4</item>
+  <item>5 5</item>
+</grid>
+
+<grid style="grid: 1em 2em / 1ch 3ch 3ch 1ch; ">
+  <item>1</item>
+  <item>2 2</item>
+  <item>3 3</item>
+  <item>4</item>
+  <item style="width:2ch">5 5</item>
+</grid>
+
+<grid style="grid-template-rows: 1em 2em">
+  <item class="start">1</item>
+  <item>2 2</item>
+  <item>3 3</item>
+  <item class="start">4</item>
+  <item style="width:2ch; grid-column:2">5 5</item>
+</grid>
+
+<grid>
+  <item class="start">1</item>
+  <item>2 2</item>
+  <item>3 3</item>
+  <item class="start">4</item>
+  <item style="width:4ch; grid-column:2/span 2">5 5</item>
+</grid>
+
+<grid>
+  <item class="start">1</item>
+  <item>2 2</item>
+  <item>3 3</item>
+  <item class="start">4</item>
+  <item style="grid-column:2/span 2">5 5</item>
+  <item style="width:5ch; grid-column:1/span 3">6</item>
+</grid>
+
+<grid>
+  <item class="start">1</item>
+  <item>2 2</item>
+  <item>3 3</item>
+  <item class="start">4</item>
+  <item style="width:3ch; grid-column:2/span 2">5 5</item>
+  <item style="width:5ch; grid-column:1/span 3">6</item>
+</grid>
+
+<grid>
+  <item class="start">1</item>
+  <item>2 2</item>
+  <item>3 3</item>
+  <item class="start">4</item>
+  <item style="grid-column:span 4">5 5</item>
+</grid>
+
+<grid>
+  <item class="start">1</item>
+  <item>2 2</item>
+  <item>3 3</item>
+  <item class="start">4</item>
+  <item style="width:6ch; grid-column:span 4">5 5</item>
+</grid>
+
+<grid>
+  <item class="start">1</item>
+  <item>2 2</item>
+  <item>3 3</item>
+  <item class="start">4</item>
+  <item style="width:6ch; grid-column:span 3">5 5</item>
+</grid>
+
+<!-- ditto with 'fr' sizing -->
+
+<grid class="fr">
+  <item style="width:2ch" class="start">1</item>
+  <item>2 2</item>
+  <item>3 3</item>
+  <item class="start">4</item>
+  <item>5 5</item>
+</grid>
+
+<grid class="fr" style="grid: 1em 2em / 3ch 6ch 3ch 3ch">
+  <item class="start">1</item>
+  <item>2 2</item>
+  <item>3 3</item>
+  <item class="start">4</item>
+  <item style="width:2ch">5 5</item>
+</grid>
+
+<grid class="fr" style="grid: 1em 2em / 3ch 6ch 3ch 3ch">
+  <item class="start">1</item>
+  <item>2 2</item>
+  <item>3 3</item>
+  <item class="start">4</item>
+  <item style="width:2ch; grid-column:2">5 5</item>
+</grid>
+
+<grid class="fr">
+  <item class="start">1</item>
+  <item>2 2</item>
+  <item>3 3</item>
+  <item class="start">4</item>
+  <item style="width:4ch; grid-column:2/span 2">5 5</item>
+</grid>
+
+<grid class="fr">
+  <item class="start">1</item>
+  <item>2 2</item>
+  <item>3 3</item>
+  <item class="start">4</item>
+  <item style="grid-column:2/span 2">5 5</item>
+  <item style="width:5ch; grid-column:1/span 3">6</item>
+</grid>
+
+<grid class="fr">
+  <item class="start">1</item>
+  <item>2 2</item>
+  <item>3 3</item>
+  <item class="start">4</item>
+  <item style="width:3ch; grid-column:2/span 2">5 5</item>
+  <item style="width:5ch; grid-column:1/span 3">6</item>
+</grid>
+
+<grid class="fr">
+  <item class="start">1</item>
+  <item>2 2</item>
+  <item>3 3</item>
+  <item class="start">4</item>
+  <item style="grid-column:span 4">5 5</item>
+</grid>
+
+<grid class="fr">
+  <item class="start">1</item>
+  <item>2 2</item>
+  <item>3 3</item>
+  <item class="start">4</item>
+  <item style="width:6ch; grid-column:span 4">5 5</item>
+</grid>
+
+<grid class="fr">
+  <item class="start">1</item>
+  <item>2 2</item>
+  <item>3 3</item>
+  <item class="start">4</item>
+  <item style="width:6ch; grid-column:span 3">5 5</item>
+</grid>
+
+<!-- ditto with mixed sizing -->
+
+<grid class="mixed" style="grid: 1em 2em / 2ch 4ch 1ch 1ch">
+  <item style="width:2ch" class="start">1</item>
+  <item>2 2</item>
+  <item>3 3</item>
+  <item class="start">4</item>
+  <item>5 5</item>
+</grid>
+
+<grid class="mixed" style="grid: 1em 2em / calc(3ch/2) 3ch 1ch 1ch">
+  <item class="start">1</item>
+  <item>2 2</item>
+  <item>3 3</item>
+  <item class="start">4</item>
+  <item style="width:2ch">5 5</item>
+</grid>
+
+<grid class="mixed" style="grid: 1em 2em / calc(3ch/2) 3ch 1ch 1ch">
+  <item class="start">1</item>
+  <item>2 2</item>
+  <item>3 3</item>
+  <item class="start">4</item>
+  <item style="width:2ch; grid-column:2">5 5</item>
+</grid>
+
+<grid class="mixed" style="grid: 2em 1em / calc(3ch/2) 3ch 1ch 1ch">
+  <item class="start">1</item>
+  <item class="start">2 2</item>
+  <item class="start">3 3</item>
+  <item class="start">4</item>
+  <item style="width:4ch; grid-column:2/span 2">5 5</item>
+</grid>
+
+<grid class="mixed" style="grid: 2em 1em 1em / calc(3ch/2) 3ch 1ch 1ch">
+  <item class="start">1</item>
+  <item class="start">2 2</item>
+  <item class="start">3 3</item>
+  <item class="start">4</item>
+  <item style="grid-column:2/span 2">5 5</item>
+  <item style="width:5ch; grid-column:1/span 3">6</item>
+</grid>
+
+<grid class="mixed" style="grid: 2em 1em / calc(3ch/2) 3ch 1ch 1ch">
+  <item class="start">1</item>
+  <item class="start">2 2</item>
+  <item class="start">3 3</item>
+  <item class="start">4</item>
+  <item style="width:3ch; grid-column:2/span 2">5 5</item>
+  <item style="width:5ch; grid-column:1/span 3">6</item>
+</grid>
+
+<grid class="mixed" style="grid: 2em 1em / calc(3ch/2) 3ch 1ch 1ch">
+  <item class="start">1</item>
+  <item class="start">2 2</item>
+  <item class="start">3 3</item>
+  <item class="start">4</item>
+  <item style="grid-column:span 4">5 5</item>
+</grid>
+
+<grid class="mixed" style="grid: 2em 1em / calc(3ch/2) 3ch 1ch 1ch">
+  <item class="start">1</item>
+  <item class="start">2 2</item>
+  <item class="start">3 3</item>
+  <item class="start">4</item>
+  <item style="width:6ch; grid-column:span 4">5 5</item>
+</grid>
+
+<grid class="mixed" style="grid: 2em 1em / calc(3ch/2) 3ch 1ch 1ch">
+  <item class="start">1</item>
+  <item class="start">2 2</item>
+  <item class="start">3 3</item>
+  <item class="start">4</item>
+  <item style="width:6ch; grid-column:span 3">5 5</item>
+</grid>
+
+</body>
+</html>

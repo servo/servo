@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+
+<meta charset="utf-8">
+<title>Closing a PresentationConnection</title>
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs">
+<link rel="help" href="https://w3c.github.io/presentation-api/#closing-a-presentationconnection">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../common.js"></script>
+<script src="stash.js"></script>
+
+<script>
+  const stash = new Stash(stashIds.toReceiver, stashIds.toController);
+
+  add_completion_callback((tests, status) => {
+    const log = document.getElementById('log');
+    stash.send(JSON.stringify({ type: 'result', tests: tests, status: status, log: log.innerHTML }));
+  });
+
+  const checkCloseEvent = (evt, connection, reason) => {
+    assert_true(evt instanceof PresentationConnectionCloseEvent, 'An event using PresentationConnectionCloseEvent is fired.');
+    assert_true(evt.isTrusted, 'The event is a trusted event.');
+    assert_false(evt.bubbles, 'The event does not bubbles.');
+    assert_false(evt.cancelable, 'The event is not cancelable.');
+    assert_equals(evt.type, 'close', 'The event name is "close".');
+    assert_equals(evt.target, connection, 'event.target is the presentation connection.');
+    assert_equals(connection.state, 'closed', 'State of the presentation connection is "closed".');
+    assert_equals(evt.reason, reason, 'The reason for closing the presentation connection is "' + reason + '".');
+  };
+
+  const watchEvent = (obj, watcher, type) => {
+    const watchHandler = new Promise(resolve => {
+      obj['on' + type] = evt => { resolve(evt); };
+    });
+    return Promise.all([ watchHandler, watcher.wait_for(type) ]).then(results => {
+      assert_equals(results[0], results[1], 'Both on' + type + ' and addEventListener pass the same event object.');
+      return results[0];
+    });
+  };
+
+  promise_test(t => {
+    return navigator.presentation.receiver.connectionList.then(list => {
+      let connection = list.connections[0];
+      assert_equals(list.connections.length, 1, 'A presentation connection list is populated with a first presentation connection.');
+
+      // Step 1: close the presentation connection in "connected" state
+      connection.close();
+      let watchClose = new EventWatcher(t, connection, 'close');
+      const watchNewConnection = new EventWatcher(t, list, 'connectionavailable');
+      return watchEvent(connection, watchClose, 'close').then(evt => {
+        checkCloseEvent(evt, connection, 'closed');
+
+        // Step 2: check a connection closed by the controlling user agent
+        stash.send(JSON.stringify({ type: 'ok' }));
+        return watchNewConnection.wait_for('connectionavailable');
+      }).then(evt => {
+        connection = evt.connection;
+        watchClose = new EventWatcher(t, connection, 'close');
+        return watchEvent(connection, watchClose, 'close');
+      }).then(evt => {
+        checkCloseEvent(evt, connection, 'closed');
+
+        // Step 3: try to close the presentation connection in "closed" state (nothing should happen)
+        connection.close();
+        return Promise.race([
+          new Promise(resolve => { t.step_timeout(resolve, 1000); }),
+          watchEvent(connection, watchClose, 'close').then(() => {
+            assert_unreached('Invoking PresentationConnection.close() in the "closed" state causes nothing.'); })
+        ]);
+      }).then(() => {
+
+        // Step 4: check a connection closed due to aborting the nested browsing context
+        stash.send(JSON.stringify({ type: 'ok' }));
+        return watchNewConnection.wait_for('connectionavailable');
+      }).then(evt => {
+        connection = evt.connection;
+        stash.send(JSON.stringify({ type: 'ok' }));
+        watchClose = new EventWatcher(t, connection, 'close');
+        return Promise.race([
+          watchEvent(connection, watchClose, 'close'),
+          new Promise(resolve => { t.step_timeout(() => { resolve(null); }, 3000); })
+        ]);
+      }).then(evt => {
+        assert_true(!!evt, 'A presentation connection is closed when its controller\'s browsing context is discarded.');
+        checkCloseEvent(evt, connection, 'wentaway');
+      });
+    });
+  });
+</script>

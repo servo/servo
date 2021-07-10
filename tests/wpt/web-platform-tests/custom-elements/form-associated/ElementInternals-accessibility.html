@@ -1,0 +1,78 @@
+<!DOCTYPE HTML>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+class TestElement extends HTMLElement {
+  constructor() {
+    super();
+    this._internals = this.attachInternals();
+  }
+
+  get internals() {
+    return this._internals;
+  }
+
+  set internals(val) {
+    throw "Can't set internals!";
+  }
+}
+customElements.define("test-element", TestElement);
+</script>
+
+<test-element id= "testElement"></test-element>
+
+<script>
+const element = document.getElementById("testElement");
+const properties = [
+  "role",
+  "ariaActiveDescendantElement",
+  "ariaAtomic",
+  "ariaAutoComplete",
+  "ariaBusy",
+  "ariaChecked",
+  "ariaColCount",
+  "ariaColIndex",
+  "ariaColSpan",
+  "ariaControlsElements",
+  "ariaCurrent",
+  "ariaDescribedByElements",
+  "ariaDetailsElements",
+  "ariaDisabled",
+  "ariaErrorMessageElement",
+  "ariaExpanded",
+  "ariaFlowToElements",
+  "ariaHasPopup",
+  "ariaHidden",
+  "ariaKeyShortcuts",
+  "ariaLabel",
+  "ariaLabelledByElements",
+  "ariaLevel",
+  "ariaLive",
+  "ariaModal",
+  "ariaMultiLine",
+  "ariaMultiSelectable",
+  "ariaOrientation",
+  "ariaOwnsElements",
+  "ariaPlaceholder",
+  "ariaPosInSet",
+  "ariaPressed",
+  "ariaReadOnly",
+  "ariaRelevant",
+  "ariaRequired",
+  "ariaRoleDescription",
+  "ariaRowCount",
+  "ariaRowIndex",
+  "ariaRowSpan",
+  "ariaSelected",
+  "ariaSort",
+  "ariaValueMax",
+  "ariaValueMin",
+  "ariaValueNow",
+  "ariaValueText"
+];
+for (const property of properties) {
+  test(() => {
+    assert_inherits(element.internals, property);
+  }, property + " is defined in ElementInternals");
+}
+</script>

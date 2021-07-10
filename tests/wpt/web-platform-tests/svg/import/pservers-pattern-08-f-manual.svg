@@ -14,7 +14,7 @@
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/pservers.html#Patterns">
       <p>
         Test that an invalid xlink:href on a 'pattern' element has no effect on the pattern.
-        This test specifies only 'width' and 'height' on the pattern that is tested in order to catch 
+        This test specifies only 'width' and 'height' on the pattern that is tested in order to catch
         incorrectly overridden values from a non-existant pattern. The result is tested
         with a reference pattern using slightly different syntax.
       </p>

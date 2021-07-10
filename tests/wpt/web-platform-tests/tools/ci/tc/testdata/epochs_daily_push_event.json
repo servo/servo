@@ -1,0 +1,460 @@
+{
+  "ref": "refs/heads/epochs/daily",
+  "before": "20bb1ca5db519ee5d37ece6492868f8a6b65a2e7",
+  "after": "5df56b25e1cb81f81fe16c88be839f9fd538b41e",
+  "repository": {
+    "id": 3618133,
+    "node_id": "MDEwOlJlcG9zaXRvcnkzNjE4MTMz",
+    "name": "wpt",
+    "full_name": "web-platform-tests/wpt",
+    "private": false,
+    "owner": {
+      "name": "web-platform-tests",
+      "email": null,
+      "login": "web-platform-tests",
+      "id": 37226233,
+      "node_id": "MDEyOk9yZ2FuaXphdGlvbjM3MjI2MjMz",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/37226233?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/web-platform-tests",
+      "html_url": "https://github.com/web-platform-tests",
+      "followers_url": "https://api.github.com/users/web-platform-tests/followers",
+      "following_url": "https://api.github.com/users/web-platform-tests/following{/other_user}",
+      "gists_url": "https://api.github.com/users/web-platform-tests/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/web-platform-tests/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/web-platform-tests/subscriptions",
+      "organizations_url": "https://api.github.com/users/web-platform-tests/orgs",
+      "repos_url": "https://api.github.com/users/web-platform-tests/repos",
+      "events_url": "https://api.github.com/users/web-platform-tests/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/web-platform-tests/received_events",
+      "type": "Organization",
+      "site_admin": false
+    },
+    "html_url": "https://github.com/web-platform-tests/wpt",
+    "description": "Test suites for Web platform specs — including WHATWG, W3C, and others",
+    "fork": false,
+    "url": "https://github.com/web-platform-tests/wpt",
+    "forks_url": "https://api.github.com/repos/web-platform-tests/wpt/forks",
+    "keys_url": "https://api.github.com/repos/web-platform-tests/wpt/keys{/key_id}",
+    "collaborators_url": "https://api.github.com/repos/web-platform-tests/wpt/collaborators{/collaborator}",
+    "teams_url": "https://api.github.com/repos/web-platform-tests/wpt/teams",
+    "hooks_url": "https://api.github.com/repos/web-platform-tests/wpt/hooks",
+    "issue_events_url": "https://api.github.com/repos/web-platform-tests/wpt/issues/events{/number}",
+    "events_url": "https://api.github.com/repos/web-platform-tests/wpt/events",
+    "assignees_url": "https://api.github.com/repos/web-platform-tests/wpt/assignees{/user}",
+    "branches_url": "https://api.github.com/repos/web-platform-tests/wpt/branches{/branch}",
+    "tags_url": "https://api.github.com/repos/web-platform-tests/wpt/tags",
+    "blobs_url": "https://api.github.com/repos/web-platform-tests/wpt/git/blobs{/sha}",
+    "git_tags_url": "https://api.github.com/repos/web-platform-tests/wpt/git/tags{/sha}",
+    "git_refs_url": "https://api.github.com/repos/web-platform-tests/wpt/git/refs{/sha}",
+    "trees_url": "https://api.github.com/repos/web-platform-tests/wpt/git/trees{/sha}",
+    "statuses_url": "https://api.github.com/repos/web-platform-tests/wpt/statuses/{sha}",
+    "languages_url": "https://api.github.com/repos/web-platform-tests/wpt/languages",
+    "stargazers_url": "https://api.github.com/repos/web-platform-tests/wpt/stargazers",
+    "contributors_url": "https://api.github.com/repos/web-platform-tests/wpt/contributors",
+    "subscribers_url": "https://api.github.com/repos/web-platform-tests/wpt/subscribers",
+    "subscription_url": "https://api.github.com/repos/web-platform-tests/wpt/subscription",
+    "commits_url": "https://api.github.com/repos/web-platform-tests/wpt/commits{/sha}",
+    "git_commits_url": "https://api.github.com/repos/web-platform-tests/wpt/git/commits{/sha}",
+    "comments_url": "https://api.github.com/repos/web-platform-tests/wpt/comments{/number}",
+    "issue_comment_url": "https://api.github.com/repos/web-platform-tests/wpt/issues/comments{/number}",
+    "contents_url": "https://api.github.com/repos/web-platform-tests/wpt/contents/{+path}",
+    "compare_url": "https://api.github.com/repos/web-platform-tests/wpt/compare/{base}...{head}",
+    "merges_url": "https://api.github.com/repos/web-platform-tests/wpt/merges",
+    "archive_url": "https://api.github.com/repos/web-platform-tests/wpt/{archive_format}{/ref}",
+    "downloads_url": "https://api.github.com/repos/web-platform-tests/wpt/downloads",
+    "issues_url": "https://api.github.com/repos/web-platform-tests/wpt/issues{/number}",
+    "pulls_url": "https://api.github.com/repos/web-platform-tests/wpt/pulls{/number}",
+    "milestones_url": "https://api.github.com/repos/web-platform-tests/wpt/milestones{/number}",
+    "notifications_url": "https://api.github.com/repos/web-platform-tests/wpt/notifications{?since,all,participating}",
+    "labels_url": "https://api.github.com/repos/web-platform-tests/wpt/labels{/name}",
+    "releases_url": "https://api.github.com/repos/web-platform-tests/wpt/releases{/id}",
+    "deployments_url": "https://api.github.com/repos/web-platform-tests/wpt/deployments",
+    "created_at": 1330865891,
+    "updated_at": "2019-11-30T21:34:30Z",
+    "pushed_at": 1575160610,
+    "git_url": "git://github.com/web-platform-tests/wpt.git",
+    "ssh_url": "git@github.com:web-platform-tests/wpt.git",
+    "clone_url": "https://github.com/web-platform-tests/wpt.git",
+    "svn_url": "https://github.com/web-platform-tests/wpt",
+    "homepage": "https://web-platform-tests.org/",
+    "size": 329465,
+    "stargazers_count": 2543,
+    "watchers_count": 2543,
+    "language": "HTML",
+    "has_issues": true,
+    "has_projects": true,
+    "has_downloads": true,
+    "has_wiki": true,
+    "has_pages": true,
+    "forks_count": 1838,
+    "mirror_url": null,
+    "archived": false,
+    "disabled": false,
+    "open_issues_count": 1590,
+    "license": {
+      "key": "other",
+      "name": "Other",
+      "spdx_id": "NOASSERTION",
+      "url": null,
+      "node_id": "MDc6TGljZW5zZTA="
+    },
+    "forks": 1838,
+    "open_issues": 1590,
+    "watchers": 2543,
+    "default_branch": "master",
+    "stargazers": 2543,
+    "master_branch": "master",
+    "organization": "web-platform-tests"
+  },
+  "pusher": {
+    "name": "github-actions[bot]",
+    "email": null
+  },
+  "organization": {
+    "login": "web-platform-tests",
+    "id": 37226233,
+    "node_id": "MDEyOk9yZ2FuaXphdGlvbjM3MjI2MjMz",
+    "url": "https://api.github.com/orgs/web-platform-tests",
+    "repos_url": "https://api.github.com/orgs/web-platform-tests/repos",
+    "events_url": "https://api.github.com/orgs/web-platform-tests/events",
+    "hooks_url": "https://api.github.com/orgs/web-platform-tests/hooks",
+    "issues_url": "https://api.github.com/orgs/web-platform-tests/issues",
+    "members_url": "https://api.github.com/orgs/web-platform-tests/members{/member}",
+    "public_members_url": "https://api.github.com/orgs/web-platform-tests/public_members{/member}",
+    "avatar_url": "https://avatars0.githubusercontent.com/u/37226233?v=4",
+    "description": ""
+  },
+  "sender": {
+    "login": "github-actions[bot]",
+    "id": 41898282,
+    "node_id": "MDM6Qm90NDE4OTgyODI=",
+    "avatar_url": "https://avatars2.githubusercontent.com/in/15368?v=4",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/github-actions%5Bbot%5D",
+    "html_url": "https://github.com/apps/github-actions",
+    "followers_url": "https://api.github.com/users/github-actions%5Bbot%5D/followers",
+    "following_url": "https://api.github.com/users/github-actions%5Bbot%5D/following{/other_user}",
+    "gists_url": "https://api.github.com/users/github-actions%5Bbot%5D/gists{/gist_id}",
+    "starred_url": "https://api.github.com/users/github-actions%5Bbot%5D/starred{/owner}{/repo}",
+    "subscriptions_url": "https://api.github.com/users/github-actions%5Bbot%5D/subscriptions",
+    "organizations_url": "https://api.github.com/users/github-actions%5Bbot%5D/orgs",
+    "repos_url": "https://api.github.com/users/github-actions%5Bbot%5D/repos",
+    "events_url": "https://api.github.com/users/github-actions%5Bbot%5D/events{/privacy}",
+    "received_events_url": "https://api.github.com/users/github-actions%5Bbot%5D/received_events",
+    "type": "Bot",
+    "site_admin": false
+  },
+  "created": false,
+  "deleted": false,
+  "forced": false,
+  "base_ref": "refs/heads/epochs/six_hourly",
+  "compare": "https://github.com/web-platform-tests/wpt/compare/20bb1ca5db51...5df56b25e1cb",
+  "commits": [
+    {
+      "id": "3503c50a6452e153bde906a9c6644cb6237224fc",
+      "tree_id": "b735fa0ae88ebe0abd6764a1afd63aea815ac18e",
+      "distinct": false,
+      "message": "[LayoutNG] Pixel-snap column rules.\n\nBug: 829028\nChange-Id: I252901109502256f14bc68e64d4303006db50a13\nReviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/1944350\nCommit-Queue: Xianzhu Wang <wangxianzhu@chromium.org>\nReviewed-by: Xianzhu Wang <wangxianzhu@chromium.org>\nCr-Commit-Position: refs/heads/master@{#720302}",
+      "timestamp": "2019-11-29T16:25:44-08:00",
+      "url": "https://github.com/web-platform-tests/wpt/commit/3503c50a6452e153bde906a9c6644cb6237224fc",
+      "author": {
+        "name": "Morten Stenshorne",
+        "email": "mstensho@chromium.org",
+        "username": "mstensho"
+      },
+      "committer": {
+        "name": "Blink WPT Bot",
+        "email": "blink-w3c-test-autoroller@chromium.org",
+        "username": "chromium-wpt-export-bot"
+      },
+      "added": [
+        "css/css-multicol/equal-gap-and-rule.html"
+      ],
+      "removed": [
+
+      ],
+      "modified": [
+
+      ]
+    },
+    {
+      "id": "561b765308e6d188618f3ba73091bb598d8357ce",
+      "tree_id": "775ac4481c03e020819910d03019f0ec93def868",
+      "distinct": false,
+      "message": "Fix parser mXSS sanitizer bypass for <p> and <br> within foreign context\n\nPrior to this CL, the following code:\n <svg></p></svg>\nparsed to this innerHTML: <svg><p></p></svg>\n\nThis is in contrast to this code:\n <svg><p></svg>\nwhich parses to <svg></svg><p></p>\n\nThe fact that the </p> is left inside the <svg> allowed sanitizer\nbypasses as detailed in [1]. Please also see [2] for the spec\ndiscussion.\n\nWith this CL, </p> and </br> within a foreign context now cause\nthe closing of the foreign context.\n\n[1] https://research.securitum.com/dompurify-bypass-using-mxss/\n[2] https://github.com/whatwg/html/issues/5113\n\nBug: 1005713\nChange-Id: Ic07ee50de4eb1ef19b73a075bd83785c99f4f891\nReviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/1940722\nReviewed-by: Kouhei Ueno <kouhei@chromium.org>\nCommit-Queue: Mason Freed <masonfreed@chromium.org>\nCr-Commit-Position: refs/heads/master@{#720315}",
+      "timestamp": "2019-11-30T00:22:29-08:00",
+      "url": "https://github.com/web-platform-tests/wpt/commit/561b765308e6d188618f3ba73091bb598d8357ce",
+      "author": {
+        "name": "Mason Freed",
+        "email": "masonfreed@chromium.org",
+        "username": "mfreed7"
+      },
+      "committer": {
+        "name": "Blink WPT Bot",
+        "email": "blink-w3c-test-autoroller@chromium.org",
+        "username": "chromium-wpt-export-bot"
+      },
+      "added": [
+        "html/syntax/parsing/html_content_in_foreign_context.html"
+      ],
+      "removed": [
+
+      ],
+      "modified": [
+
+      ]
+    },
+    {
+      "id": "d31800185dab8e194294620c8ad6bf40f25bf752",
+      "tree_id": "c718a913e9a5197e1896f5b2ee0434f896d6725b",
+      "distinct": false,
+      "message": "[css-text-4] tests for word-boundary-expansion\n\nhttps://drafts.csswg.org/css-text-4/#word-boundary-expansion",
+      "timestamp": "2019-11-30T18:09:49+09:00",
+      "url": "https://github.com/web-platform-tests/wpt/commit/d31800185dab8e194294620c8ad6bf40f25bf752",
+      "author": {
+        "name": "Florian Rivoal",
+        "email": "git@florian.rivoal.net",
+        "username": "frivoal"
+      },
+      "committer": {
+        "name": "Florian Rivoal",
+        "email": "git@florian.rivoal.net",
+        "username": "frivoal"
+      },
+      "added": [
+        "css/css-text/parsing/word-boundary-expansion-computed.html",
+        "css/css-text/parsing/word-boundary-expansion-invalid.html",
+        "css/css-text/parsing/word-boundary-expansion-valid.html",
+        "css/css-text/word-boundary/reference/word-boundary-001-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-002-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-004-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-007-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-008-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-009-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-010-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-011-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-012-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-013-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-014-ref.html",
+        "css/css-text/word-boundary/word-boundary-001.html",
+        "css/css-text/word-boundary/word-boundary-002.html",
+        "css/css-text/word-boundary/word-boundary-003.html",
+        "css/css-text/word-boundary/word-boundary-004.html",
+        "css/css-text/word-boundary/word-boundary-005.html",
+        "css/css-text/word-boundary/word-boundary-006.html",
+        "css/css-text/word-boundary/word-boundary-007.html",
+        "css/css-text/word-boundary/word-boundary-008.html",
+        "css/css-text/word-boundary/word-boundary-009.html",
+        "css/css-text/word-boundary/word-boundary-010.html",
+        "css/css-text/word-boundary/word-boundary-011.html",
+        "css/css-text/word-boundary/word-boundary-012.html",
+        "css/css-text/word-boundary/word-boundary-013.html",
+        "css/css-text/word-boundary/word-boundary-014.html",
+        "css/css-text/word-boundary/word-boundary-015-manual.html"
+      ],
+      "removed": [
+
+      ],
+      "modified": [
+
+      ]
+    },
+    {
+      "id": "37ddab0528d8ab49db1371188e36f68133ff5c1c",
+      "tree_id": "832644a697a1cdcaf93126d4f95c89f71b4f5d47",
+      "distinct": false,
+      "message": "[css-text-4] tests for word-boundary-detection\n\nhttps://drafts.csswg.org/css-text-4/#word-boundary-detection",
+      "timestamp": "2019-11-30T18:09:49+09:00",
+      "url": "https://github.com/web-platform-tests/wpt/commit/37ddab0528d8ab49db1371188e36f68133ff5c1c",
+      "author": {
+        "name": "Florian Rivoal",
+        "email": "git@florian.rivoal.net",
+        "username": "frivoal"
+      },
+      "committer": {
+        "name": "Florian Rivoal",
+        "email": "git@florian.rivoal.net",
+        "username": "frivoal"
+      },
+      "added": [
+        "css/css-text/word-boundary/reference/word-boundary-101-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-102-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-103-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-104-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-105-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-106-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-107-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-108-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-109-a-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-109-b-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-110-a-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-110-b-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-111-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-112-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-113-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-114-a-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-114-b-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-115-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-116-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-117-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-119-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-120-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-121-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-122-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-123-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-124-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-125-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-126-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-127-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-128-ref.html",
+        "css/css-text/word-boundary/reference/word-boundary-129-ref.html",
+        "css/css-text/word-boundary/word-boundary-101.html",
+        "css/css-text/word-boundary/word-boundary-102.html",
+        "css/css-text/word-boundary/word-boundary-103.html",
+        "css/css-text/word-boundary/word-boundary-104.html",
+        "css/css-text/word-boundary/word-boundary-105.html",
+        "css/css-text/word-boundary/word-boundary-106.html",
+        "css/css-text/word-boundary/word-boundary-107.html",
+        "css/css-text/word-boundary/word-boundary-108.html",
+        "css/css-text/word-boundary/word-boundary-109.html",
+        "css/css-text/word-boundary/word-boundary-110.html",
+        "css/css-text/word-boundary/word-boundary-111.html",
+        "css/css-text/word-boundary/word-boundary-112.html",
+        "css/css-text/word-boundary/word-boundary-113.html",
+        "css/css-text/word-boundary/word-boundary-114.html",
+        "css/css-text/word-boundary/word-boundary-115.html",
+        "css/css-text/word-boundary/word-boundary-116.html",
+        "css/css-text/word-boundary/word-boundary-117.html",
+        "css/css-text/word-boundary/word-boundary-118.html",
+        "css/css-text/word-boundary/word-boundary-119.html",
+        "css/css-text/word-boundary/word-boundary-120.html",
+        "css/css-text/word-boundary/word-boundary-121.html",
+        "css/css-text/word-boundary/word-boundary-122.html",
+        "css/css-text/word-boundary/word-boundary-123.html",
+        "css/css-text/word-boundary/word-boundary-124.html",
+        "css/css-text/word-boundary/word-boundary-125.html",
+        "css/css-text/word-boundary/word-boundary-126.html",
+        "css/css-text/word-boundary/word-boundary-127.html",
+        "css/css-text/word-boundary/word-boundary-128.html",
+        "css/css-text/word-boundary/word-boundary-129.html"
+      ],
+      "removed": [
+
+      ],
+      "modified": [
+
+      ]
+    },
+    {
+      "id": "054edcc23aa1e0ebee50d7ddf1ce6115dd940ece",
+      "tree_id": "b58ca36bb7e928d440bed734e323580467dd32c7",
+      "distinct": false,
+      "message": "[css-text] Fix typo",
+      "timestamp": "2019-11-30T19:08:12+09:00",
+      "url": "https://github.com/web-platform-tests/wpt/commit/054edcc23aa1e0ebee50d7ddf1ce6115dd940ece",
+      "author": {
+        "name": "Florian Rivoal",
+        "email": "git@florian.rivoal.net",
+        "username": "frivoal"
+      },
+      "committer": {
+        "name": "Florian Rivoal",
+        "email": "git@florian.rivoal.net",
+        "username": "frivoal"
+      },
+      "added": [
+
+      ],
+      "removed": [
+
+      ],
+      "modified": [
+        "css/css-text/parsing/word-boundary-expansion-computed.html"
+      ]
+    },
+    {
+      "id": "d15d6d91834108a38070771025b548124d44026b",
+      "tree_id": "a1476d347b04acb59ed2562f0d4f845e8252e6d0",
+      "distinct": false,
+      "message": "[css-text add parsing tests for word-boundary-detection",
+      "timestamp": "2019-11-30T19:08:12+09:00",
+      "url": "https://github.com/web-platform-tests/wpt/commit/d15d6d91834108a38070771025b548124d44026b",
+      "author": {
+        "name": "Florian Rivoal",
+        "email": "git@florian.rivoal.net",
+        "username": "frivoal"
+      },
+      "committer": {
+        "name": "Florian Rivoal",
+        "email": "git@florian.rivoal.net",
+        "username": "frivoal"
+      },
+      "added": [
+        "css/css-text/parsing/word-boundary-detection-computed.html",
+        "css/css-text/parsing/word-boundary-detection-invalid.html",
+        "css/css-text/parsing/word-boundary-detection-valid.html"
+      ],
+      "removed": [
+
+      ],
+      "modified": [
+
+      ]
+    },
+    {
+      "id": "5df56b25e1cb81f81fe16c88be839f9fd538b41e",
+      "tree_id": "18da87e7701bd6218f4437b4d2d49cefe1f56af9",
+      "distinct": false,
+      "message": "Delete invalid test. (#20547)\n\nIt seems it expects `transform: rotate(1deg, 20px, 20px)` to somehow be valid.\r\n\r\nIt was introduced in cdc3032f56c86cc68121e54e169485441d9cdb1a, pointing to https://www.w3.org/TR/css-transforms-1/#svg-transform-functions, which doesn't say anything like that.\r\n\r\nDoesn't pass in any browser.",
+      "timestamp": "2019-11-30T13:34:24-08:00",
+      "url": "https://github.com/web-platform-tests/wpt/commit/5df56b25e1cb81f81fe16c88be839f9fd538b41e",
+      "author": {
+        "name": "Emilio Cobos Álvarez",
+        "email": "emilio@crisal.io",
+        "username": "emilio"
+      },
+      "committer": {
+        "name": "L. David Baron",
+        "email": "dbaron@dbaron.org",
+        "username": "dbaron"
+      },
+      "added": [
+
+      ],
+      "removed": [
+        "css/css-transforms/external-styles/svg-external-styles-012.html"
+      ],
+      "modified": [
+        "css/css-transforms/external-styles/support/svg-external-styles.css"
+      ]
+    }
+  ],
+  "head_commit": {
+    "id": "5df56b25e1cb81f81fe16c88be839f9fd538b41e",
+    "tree_id": "18da87e7701bd6218f4437b4d2d49cefe1f56af9",
+    "distinct": false,
+    "message": "Delete invalid test. (#20547)\n\nIt seems it expects `transform: rotate(1deg, 20px, 20px)` to somehow be valid.\r\n\r\nIt was introduced in cdc3032f56c86cc68121e54e169485441d9cdb1a, pointing to https://www.w3.org/TR/css-transforms-1/#svg-transform-functions, which doesn't say anything like that.\r\n\r\nDoesn't pass in any browser.",
+    "timestamp": "2019-11-30T13:34:24-08:00",
+    "url": "https://github.com/web-platform-tests/wpt/commit/5df56b25e1cb81f81fe16c88be839f9fd538b41e",
+    "author": {
+      "name": "Emilio Cobos Álvarez",
+      "email": "emilio@crisal.io",
+      "username": "emilio"
+    },
+    "committer": {
+      "name": "L. David Baron",
+      "email": "dbaron@dbaron.org",
+      "username": "dbaron"
+    },
+    "added": [
+
+    ],
+    "removed": [
+      "css/css-transforms/external-styles/svg-external-styles-012.html"
+    ],
+    "modified": [
+      "css/css-transforms/external-styles/support/svg-external-styles.css"
+    ]
+  }
+}

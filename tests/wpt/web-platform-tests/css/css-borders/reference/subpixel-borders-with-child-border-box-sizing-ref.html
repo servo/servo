@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#border-width">
+<head>
+  <style>
+    .outer {
+        border: solid 1px black;
+        background: red;
+        width: 101px;
+        height: 101px;
+        margin: 5px;
+        padding: 0px;
+        box-sizing: border-box;
+    }
+    .inner {
+        background: lightgreen;
+        box-sizing: border-box;
+        padding: 0px;
+    }
+    #inner1 {
+        width: 99px;
+        height: 99px;
+    }
+    #inner2 {
+        width: 100%;
+        height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div class="outer">
+    <div class="inner" id="inner1"></div>
+  </div>
+
+  <div class="outer">
+    <div class="inner" id="inner2"></div>
+  </div>
+</body>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <title>CSS aspect-ratio: canvas with aspect-ratio, object-fit and object-position</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+  <link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+  <meta name="assert" content="This test verifies aspect-ratio affects the canvas element's ratio, but not the canvas content's ratio.">
+
+  <style>
+  canvas {
+    width: 100px;
+    aspect-ratio: 1/3;
+    object-fit: contain;
+    object-position: top left;
+  }
+  </style>
+
+  <script>
+  window.onload = function() {
+    const canvas = document.querySelector('canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'green';
+    ctx.fillRect(0, 0, 200, 200);
+  }
+  </script>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <canvas width=200 height=200></canvas>
+</html>

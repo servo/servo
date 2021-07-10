@@ -1,0 +1,272 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+ <head>
+  <title>The Second Acid Test (pixel-for-pixel reference version)</title>
+  <style type="text/css">
+    *
+    {
+        margin: 0;
+        padding: 0;
+    }
+
+    html
+    {
+        font: 12px sans-serif;
+
+        overflow: hidden;
+
+        color: red;
+        background: white;
+    }
+
+    #top
+    {
+        font: 2em / 24px sans-serif;
+
+        margin: 2em 3.5em 0;
+
+        text-align: left;
+        white-space: pre;
+
+        color: navy;
+    }
+
+    .picture
+    {
+        margin: 3em 1em 1em 6em;
+    }
+
+    .line
+    {
+        height: 1em;
+
+        border: 0 solid black;
+        background: yellow;
+    }
+
+    .one
+    {
+        width: 0;
+        margin-left: 5em;
+
+        border-width: 0 2em;
+    }
+
+    .two
+    {
+        width: 4em;
+        margin-left: 3em;
+
+        border-width: 0 2em;
+    }
+
+    .three
+    {
+        width: 8em;
+        margin-left: 2em;
+
+        border-width: 0 1em;
+    }
+
+    /* the eyes, in all their three-layer glory
+
+       these need to appear with both background layers as on hidpi displays
+       the two background layers don't just create a solid yellow background */
+    .eyes
+    {
+        position: relative;
+
+        width: 12em;
+        height: 2em;
+        margin-left: 1em;
+
+        background: red;
+    }
+
+    .eyes .lower
+    {
+        position: absolute;
+        z-index: 1; /* redundant, but make stacking explicit */
+
+        width: 9em;
+        height: 2em;
+        margin-left: 1em;
+
+        border-left: solid 1em yellow;
+        background: fixed url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAABnRSTlMAAAAAAABupgeRAAAABmJLR0QA%2FwD%2FAP%2BgvaeTAAAAEUlEQVR42mP4%2F58BCv7%2FZwAAHfAD%2FabwPj4AAAAASUVORK5CYII%3D');
+    }
+
+    .eyes .upper
+    {
+        position: absolute;
+        z-index: 2; /* redundant, but make stacking explicit */
+
+        width: 10em;
+        height: 2em;
+        margin-left: 0;
+
+        border: solid 1em black;
+        border-width: 0 1em;
+        background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAABnRSTlMAAAAAAABupgeRAAAABmJLR0QA%2FwD%2FAP%2BgvaeTAAAAEUlEQVR42mP4%2F58BCv7%2FZwAAHfAD%2FabwPj4AAAAASUVORK5CYII%3D') fixed 1px 0;
+    }
+
+    .eyes .img
+    {
+        position: absolute;
+        z-index: 3; /* redundant, but make stacking explicit */
+
+        width: 8em;
+        height: 2em;
+        margin-left: 2em;
+
+        background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAAAYCAYAAAFy7sgCAAAGsUlEQVRo3u2ZbWwcZxHHf3s%2B7LNbO3ZjXBtowprGODRX0qpNQCjmJKuVKhMl1P2AkCwhFOIKkCBSm9IXavGFKAixIAECwkmWo5MrhRI3Ub40IEwQgp6aIDg3Cd6eEqyIHEteah%2B1E69vhw%2BZtTaX8704ZzkKjHS6271nZ56ZZ%2BY%2F%2F%2BdZKF%2FCwYshx3EkkggLsD1v4FQkEZZYLCbAKyG9%2Ba9EIsG6hnUAf8x74K3aUC3j4%2BM54HcsR2oAIomwZOezkv%2FnSHpYNh%2BNCmAE7xv94zvFdd1bHsjMZmQkPSxAJP%2B%2FfuBLwK54PC7JZFKAVJmzXLBt2w%2FMvcDLwIb8QS8CeJ4nkURYIomw7J%2FYJ8BvSiiXptGGxWds2%2Fa9%2Bnaxh%2BYAD%2Bgt04NDgABTpQY2cvvSFLzw86gWeBVwC8SzlOSv2YeBPfmDBoBHgKmR9LBEEmHZfDTqGykqfkUE0nA78BzQGfSgUeP3wNeTXwXg7MwZDhw4UHL6ra2ti79%2FOvljgG8AZ4H64Lhm4MvAocxsRppGG%2FxcXihlwLIs6R%2FfKV2HO%2F26uA94pdDYUKUZUU7W1RQYXA98Gnhaf5%2FXWX0HeAHYoQonqa4sZSOsSWMCWeC9Yko%2BCQwBe4E6oNc0Tc91XTl1%2BaTsn9gnI%2Blhyc5nZWxsrBIkKSbl2tiic3tW53YDEwOKaoFBrcOfqKee53lG9xsPMjV784r%2F4lO%2FpPvyJ9iyZcuvFSaXK5XYeAZ4CDgGvB3MS4B54LQuWYPeuy4iRFsevsXqpuYoqVQKIH2bK1CuDQNo11o4XUzh%2FcDWYIe1LEtyuZx4niee54njOGKapgfsqlL%2Bl2OjEXg8nxrc1dJ0h3hbtL%2BGCtz7KPBF4CuBe9uB15VafE8hr9qylI3HgG8C2%2FK7VyHZoJj7MrBRm30qFotJMpkU27YlHo%2F7Ha5a%2BV%2FKRkSJ4KuKRLVLKapTjB1SzAVIjY2NSXY%2BKyPpYdk%2FsU9OXT4pruv6BdZbBQfKsVGnvWlIe1VB6VQO8JxC1vZYLCbZ%2BaxsPhpdZDyRRFhG0sPiOE6ldKBg2lRg4xF1YCDIIIKN7DGgD3gH%2BBXwejKZfPrs2tPs%2FvPN2bKuYR1nd7xLKBSSJeqoXKnERjPwNWAG%2BLn2rZuM%2B4Tpml6vaWlp4eLcxVusZq5lCgVgOVKJjRqdX86ffL4D5wIoZACnTpw4wRMdT96i%2FImOJxERAs4uVyqxUacF%2FPdiCj%2BjdRBRGFtwXVdG0sPSdbhTmkYbpH98p2RmM2JZlig1vl0GWo4NQ%2Fn%2Bs5pKRXfwjweaxy7TND3HcRZbfC6X8xVPVQlGy7WxVWlO5XRXFXm6EZmrQuSXYyPE3SiVoEhE6Wyr0u2rumO6zv%2B21AFdQAswC1wCMuUCXCmyWQus103Qg8qlDO0lxwOb%2Fl4FiK3AB3VS%2FuKKLtK%2FgbeAnwG%2FvUODuRw%2FFrR0H1UC75fwu8oJ%2FhFsW5VIG%2FBUgEIN6Y65O4AHu4Ap0zQ9y7LEcZyb9lRBUHQcRyzL8unZVBW5bFWAvAp%2BhDQ2g4F47dUYtlU6obXA54DnVdFLekjUGGifh4AFy7LEdV3xj3X9I66m0QZpGm2QrsOd0j%2B%2BU0bSw5KZzYjrun6HWlAd961i4FfCj0aN1Usau%2Bc1lmuXPFwvAEumUut7tQQvAb%2FXb%2FT0bCAej9cODg7yt%2Bm%2F8q2%2F7OUHZ76PnZ1k2p0mJzlykmPancbOTnL0whHs7CQfb%2B5mx2d3sH79%2BtCRI0c6FeaOr9ICrIQfLvA%2B8BGNXxi4R6HrisJVUWrxAVW2oMFf0Aczim8o3kV6enowDIPjF9%2Fk%2BMU3S3rrjzMMg56eHr%2BxP7qKFbASfojG6kpeDGs1tiW53RxwWT%2Bin5q8w4xpQK5evQpAR30H7ZH2khNvj7TTUd8BgD4rqmu1ZKX8qNeY%2BfHz4zlXDgT5E8tpCTUq7XSBC4Euv8227TV9fX1E73%2BYtvo27BmbS9cvFVTY3bSRFza9yOcf6Gfmygy7d%2B%2Fm%2FPnzF4DvrsBLhnJlJfwIKXxv1PheAE4qK6p4H9AGbNKTuhngBPBPXYRe4IemaT5kWZbR19fHNbmGnZ1k4r3U4glDR30Hm5qjbGjsImJEOHbsGHv27JFz5869o0eFq01Jq%2BmHAXwI6FFKagMTgHM7GzFDS%2BoeLSMv7zjzC9x4Y7gxFovVDAwMEI1GaWlpWSzRVCrFwYMH%2FXfxZ4AfAa8B%2F7lDaGg1%2FQgp43lfK0yqtRMuJa3ceKe5DfgYsCYAZ2ngD8CfAkzqTpW7xY%2F%2FSznyX%2FVeUb2kVmX4AAAAAElFTkSuQmCC');
+    }
+
+    /* lines six to nine are the nose
+
+       (note these are scarcely changed from the test as border anti-aliasing
+       quickly differs) */
+    .nose
+    {
+        width: 12em;
+        height: 4em;
+        margin-left: 0;
+
+        border-width: 0 1em;
+    }
+
+    .nose > div
+    {
+        height: 0;
+        padding: 1em 1em 3em;
+
+        background: yellow;
+    }
+
+    .nose div div
+    {
+        width: 2em;
+        height: 2em;
+        margin-left: 4em;
+
+        background: red;
+    }
+
+    .nose div:hover div:before
+    {
+        border-bottom-color: blue;
+    }
+
+    .nose div:hover div:after
+    {
+        border-top-color: blue;
+    }
+
+    .nose div div:before
+    {
+        display: block;
+
+        height: 0;
+
+        content: '';
+
+        border-width: 1em;
+        border-style: none solid  solid;
+        border-color: red yellow black yellow;
+    }
+
+    .nose div div:after
+    {
+        display: block;
+
+        height: 0;
+
+        content: '';
+
+        border-width: 1em;
+        border-style: solid solid  none;
+        border-color: black yellow red yellow;
+    }
+
+    /* lines ten and eleven are the smile */
+    .ten
+    {
+        width: 10em;
+        margin-left: 1em;
+
+        border-width: 0 1em;
+    }
+
+    .ten div
+    {
+        width: 6em;
+        height: 1em;
+        margin-left: 1em;
+
+        border: solid black;
+        border-width: 0 1em;
+        background: transparent;
+    }
+
+    .eleven
+    {
+        width: 10em;
+        margin-left: 1em;
+
+        border-width: 0 1em;
+    }
+
+    .eleven div
+    {
+        width: 6em;
+        height: 1em;
+        margin-left: 2em;
+
+        background: black;
+    }
+
+    /* bottom of the face */
+    .twelve
+    {
+        width: 8em;
+        margin-left: 2em;
+
+        border-width: 0 1em;
+    }
+
+    .thirteen
+    {
+        width: 4em;
+        margin-left: 3em;
+
+        border-width: 0 2em;
+    }
+
+    .fourteen
+    {
+        width: 0;
+        margin-left: 5em;
+
+        border-width: 0 2em;
+    }
+  </style>
+ </head>
+ <body>
+  <h2 id="top">Hello World!</h2>
+  <div class="picture">
+   <div class="line one"></div>
+   <div class="line two"></div>
+   <div class="line three"></div>
+
+   <div class="eyes"><div class=lower></div><div class=upper></div><div class=img></div></div>
+
+   <div class="line nose"><div><div></div></div></div>
+
+   <div class="line ten"><div></div></div>
+   <div class="line eleven"><div></div></div>
+   <div class="line twelve"></div>
+   <div class="line thirteen"></div>
+   <div class="line fourteen"></div>
+  </div>
+ </body>
+</html>

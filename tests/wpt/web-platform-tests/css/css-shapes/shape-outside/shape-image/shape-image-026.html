@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test: left float, url(png), real offset image + shape-margin (px)</title>
+    <link rel="author" title="Brad Werth" href="mailto:bwerth@mozilla.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shapes-from-image"/>
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property"/>
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-margin-property"/>
+    <link rel="match" href="reference/shape-image-006-ref.html"/>
+    <meta name="flags" content="ahem"/>
+    <meta name="assert" content="This test verifies that content wraps around all the image pixels
+                                 + the shape-margin when shape-outside is given a png file.
+                                 Additionally, the shape-outside: image element is offset from its
+                                 containing block."/>
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+        .container {
+          font: 50px/1 Ahem;
+          padding: 50px;
+          position: absolute;
+          top: 20px;
+          left: -40px;
+        }
+        #test {
+            width: 200px;
+            color: rgb(0,100,0);
+        }
+        #image {
+            float: left;
+            shape-outside: url("support/left-half-rectangle.png");
+            shape-margin: 10px;
+        }
+        .blue {
+            width: 2px;
+            height: 100px;
+            background-color: blue;
+        }
+        .left-line { left: 65px; }
+        .right-line { left: 125px; }
+
+        .failure {
+            left: 70px;
+            width: 50px;
+            height: 100px;
+            background-color: red;
+            z-index: -1;
+        }
+        .blue, .failure {
+            position: absolute;
+            top: 70px;
+        }
+    </style>
+</head>
+<body>
+    <p>
+        The test passes if the green rectangle on the right is completely between the two blue lines.
+        There should be no red.
+    </p>
+    <div id="test" class="container">
+        <img id="image" src="support/left-half-rectangle.png"/>
+        X<br/>X
+    </div>
+    <div class="blue left-line"></div>
+    <div class="blue right-line"></div>
+    <div class="failure"></div>
+</body>
+</html>

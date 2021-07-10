@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../resources/webxr_util.js"></script>
+<script src="../../resources/webxr_test_asserts.js"></script>
+<script src="../../resources/webxr_test_constants.js"></script>
+<script src="../../resources/webxr_test_constants_fake_depth.js"></script>
+<script src="../dataUnavailableTests.js"></script>
+
+<script>
+
+const fakeDeviceInitParams = {
+  supportedModes: ["immersive-ar"],
+  views: VALID_VIEWS,
+  supportedFeatures: ALL_FEATURES,
+  depthSensingData: DEPTH_SENSING_DATA,
+};
+
+xr_session_promise_test("Ensures depth data is not available when cleared in the controller, `cpu-optimized`",
+  dataUnavailableTestFunctionGenerator(/*isCpuOptimized=*/true),
+  fakeDeviceInitParams,
+  'immersive-ar', {
+    requiredFeatures: ['depth-sensing'],
+    depthSensing: VALID_DEPTH_CONFIG_CPU_USAGE,
+  });
+
+</script>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>writing mode:vertical-rl, textarea</title>
+<link rel="author" title="Richard Ishida" href="mailto:ishida@w3.org"/>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#block-flow"/>
+<meta name="flags" content="should"/>
+<meta name="assert" content="writing-mode:vertical-rl will display a textarea field vertically, and with vertical text inside."/>
+<style type="text/css">
+@font-face {
+    font-family: "webfont";
+    src: url("/fonts/mplus-1p-regular.woff") format("woff");
+    font-weight: normal;
+    font-style: normal;
+    }
+textarea { font-family: webfont; font-size: 34px; }
+</style>
+<!-- this is the test -->
+<style type="text/css">
+.test { writing-mode: vertical-rl; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the input field is vertical and the text inside it has default vertical settings.</p>
+<div class="test">
+<textarea rows="3">国际化活动W3C i18n万维网联盟</textarea>
+</div>
+</body>
+</html>

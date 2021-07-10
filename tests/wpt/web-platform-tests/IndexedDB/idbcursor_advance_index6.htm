@@ -26,7 +26,7 @@
             var cursor = event.target.result;
             assert_true(cursor instanceof IDBCursor);
 
-            assert_throws(new TypeError(), function() {
+            assert_throws_js(TypeError, function() {
                 cursor.advance(0);
             }, "Calling advance() with count argument 0 should throw TypeError.");
 

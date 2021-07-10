@@ -21,7 +21,7 @@ documents.forEach(function(d) {
       var doc = get();
       var s = doc[creator]("a")
       assert_equals(s.ownerDocument, doc)
-      assert_throws("NOT_FOUND_ERR", function() { document.body.removeChild(s) })
+      assert_throws_dom("NOT_FOUND_ERR", function() { document.body.removeChild(s) })
       assert_equals(s.ownerDocument, doc)
     }, "Passing a detached " + p + " from " + description +
        " to removeChild should not affect it.")
@@ -31,7 +31,7 @@ documents.forEach(function(d) {
       var s = doc[creator]("b")
       doc.documentElement.appendChild(s)
       assert_equals(s.ownerDocument, doc)
-      assert_throws("NOT_FOUND_ERR", function() { document.body.removeChild(s) })
+      assert_throws_dom("NOT_FOUND_ERR", function() { document.body.removeChild(s) })
       assert_equals(s.ownerDocument, doc)
     }, "Passing a non-detached " + p + " from " + description +
        " to removeChild should not affect it.")
@@ -41,14 +41,18 @@ documents.forEach(function(d) {
       var s = doc[creator]("test")
       doc.body.appendChild(s)
       assert_equals(s.ownerDocument, doc)
-      assert_throws("NOT_FOUND_ERR", function() { s.removeChild(doc) })
+      assert_throws_dom(
+        "NOT_FOUND_ERR",
+        (doc.defaultView || self).DOMException,
+        function() { s.removeChild(doc) }
+      );
     }, "Calling removeChild on a " + p + " from " + description +
        " with no children should throw NOT_FOUND_ERR.")
   }
 });
 
 test(function() {
-  assert_throws(new TypeError(), function() { document.body.removeChild(null) })
-  assert_throws(new TypeError(), function() { document.body.removeChild({'a':'b'}) })
+  assert_throws_js(TypeError, function() { document.body.removeChild(null) })
+  assert_throws_js(TypeError, function() { document.body.removeChild({'a':'b'}) })
 }, "Passing a value that is not a Node reference to removeChild should throw TypeError.")
 </script>

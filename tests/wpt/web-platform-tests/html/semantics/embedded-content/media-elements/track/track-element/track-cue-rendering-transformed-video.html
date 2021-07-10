@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<script src="/common/reftest-wait.js"></script>
+<link rel="match" href="track-cue-rendering-transformed-video-ref.html">
+<style>
+video {
+  transform: translate(1px, 0px);
+}
+video::cue {
+  font-size: 50px;
+  color: green;
+  background-color: green;
+}
+</style>
+<video autoplay onplaying="this.onplaying = null; this.pause(); takeScreenshot();">
+  <source src="/media/white.webm" type="video/webm">
+  <source src="/media/white.mp4" type="video/mp4">
+  <script>
+  var video = document.querySelector('video');
+  var track = video.addTextTrack('subtitles');
+  var cue = new VTTCue(0, 10, 'XXX');
+  cue.align = 'start';
+  cue.line = 0;
+  track.addCue(cue);
+  track.mode = 'showing';
+  </script>
+</video>
+</html>

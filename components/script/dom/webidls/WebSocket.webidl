@@ -1,13 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#the-websocket-interface
 
 enum BinaryType { "blob", "arraybuffer" };
 
-[Constructor(DOMString url, optional (DOMString or sequence<DOMString>) protocols), Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface WebSocket : EventTarget {
+    [Throws] constructor(DOMString url, optional (DOMString or sequence<DOMString>) protocols);
     readonly attribute DOMString url;
     //ready state
     const unsigned short CONNECTING = 0;
@@ -23,13 +24,13 @@ interface WebSocket : EventTarget {
     attribute EventHandler onclose;
     //readonly attribute DOMString extensions;
     readonly attribute DOMString protocol;
-    [Throws] void close([Clamp] optional unsigned short code, optional USVString reason);
+    [Throws] void close(optional [Clamp] unsigned short code, optional USVString reason);
 
     //messaging
     attribute EventHandler onmessage;
     attribute BinaryType binaryType;
     [Throws] void send(USVString data);
     [Throws] void send(Blob data);
-    //void send(ArrayBuffer data);
-    //void send(ArrayBufferView data);
+    [Throws] void send(ArrayBuffer data);
+    [Throws] void send(ArrayBufferView data);
 };

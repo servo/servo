@@ -6,7 +6,7 @@
     <script src='/resources/testharness.js' nonce='dummy'></script>
     <script src='/resources/testharnessreport.js' nonce='dummy'></script>
 
-    <!-- CSP served: script-src 'strict-dynamic' 'nonce-dummy' 'sha256-yU6Q7nD1TCBB9JvY06iIJ8ONLOPU4g8ml5JCDgXkv+M=' 'sha256-IFt1v6itHgqlrtInbPm/y7qyWcAlDbPgZM+92C5EZ5o=' -->
+    <!-- CSP served: script-src 'strict-dynamic' 'nonce-dummy' 'sha256-yU6Q7nD1TCBB9JvY06iIJ8ONLOPU4g8ml5JCDgXkv+M=' 'sha256-EEoi70frWHkGFhK51NVIJkXpq72aPxSCNZEow37ZmRA=' -->
 </head>
 
 <body>
@@ -16,11 +16,11 @@
     <script nonce='dummy'>
         var hashScriptRan = false;
         window.addEventListener('securitypolicyviolation', function(e) {
-            assert_unreached('No CSP violation report has fired.');
+            assert_unreached('CSP violation reports should not fire.');
         });
     </script>
 
-    <!-- Hash: 'sha256-yU6Q7nD1TCBB9JvY06iIJ8ONLOPU4g8ml5JCDgXkv+M=' -->
+    <!-- Hash: 'sha256-EEoi70frWHkGFhK51NVIJkXpq72aPxSCNZEow37ZmRA=' -->
     <script>
         hashScriptRan = true;
     </script>

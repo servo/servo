@@ -1,0 +1,21 @@
+{
+  "importMap": {},
+  "importMapBaseURL": "https://example.com/app/index.html",
+  "baseURL": "https://example.com/js/app.mjs",
+  "tests": {
+    "non-HTTPS fetch scheme absolute URLs": {
+      "expectedResults": {
+        "about:fetch-scheme": "about:fetch-scheme"
+      }
+    },
+    "non-fetch scheme absolute URLs": {
+      "expectedResults": {
+        "about:fetch-scheme": "about:fetch-scheme",
+        "mailto:non-fetch-scheme": "mailto:non-fetch-scheme",
+        "import:non-fetch-scheme": "import:non-fetch-scheme",
+        "javascript:non-fetch-scheme": "javascript:non-fetch-scheme",
+        "wss:non-fetch-scheme": "wss://non-fetch-scheme/"
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>HTMLAnchorElement.onclick with null browsing conext</title>
+<link rel="author" title="Nate Chapin" href="mailto:japhet@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/C/#the-a-element">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1083721">
+<meta name="assert" content="An <a> from a discarded browsing context that is cloned into a new document should not crash when clicked"/>
+<body>
+<iframe id="i" src="resources/a-onclick-handler-iframe.html"></iframe>
+<script>
+window.onload = () => {
+  var range = i.contentDocument.createRange();
+  range.selectNodeContents(i.contentDocument.body);
+  i.remove();
+
+  // Clone the <a> into this document, and ensure clicking it does not crash.
+  document.body.appendChild(range.cloneContents());
+  var a = document.getElementsByTagName('a')[0];
+  a.click();
+};
+</script>
+</body>

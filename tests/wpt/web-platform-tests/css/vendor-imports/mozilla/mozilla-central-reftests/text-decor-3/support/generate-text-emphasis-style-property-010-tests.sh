@@ -53,6 +53,8 @@ write_test_file() {
     cat <<EOF > $filename
 <!DOCTYPE html>
 <meta charset="utf-8">
+<!-- This file was generated automatically by the script
+     ./support/generate-text-emphasis-style-property-010-tests.sh -->
 <title>CSS Test: text-emphasis, $1</title>
 <link rel="author" title="Xidorn Quan" href="https://www.upsuper.org">
 <link rel="author" title="Mozilla" href="https://www.mozilla.org">

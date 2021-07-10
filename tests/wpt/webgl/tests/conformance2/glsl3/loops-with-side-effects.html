@@ -1,0 +1,234 @@
+<!--
+
+/*
+** Copyright (c) 2013 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Loops and side-effects test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" style="width: 50px; height: 50px;"> </canvas>
+<div id="console"></div>
+
+<!-- Variations on counter functions that used to give incorrect result on OSX 10.9 -->
+<script id="counter0" type="x-shader/x-shader">
+bool s0 = false;
+while(true) {
+    bool bar = s0;
+    if (!bar) {
+        bar = i < 3;
+        i = i + 1;
+    }
+    bool foo = !bar;
+    if (foo) {
+        break;
+    }
+    s0 = false;
+    n ++;
+}
+return n;
+</script>
+<script id="counter1" type="x-shader/x-shader">
+while(true) {
+    bool bar = i < 3;
+    i = i + 1;
+    bool foo = !bar;
+    if (foo) {
+        break;
+    }
+    n ++;
+}
+return n;
+</script>
+<script id="counter2" type="x-shader/x-shader">
+bool s0 = true;
+while(true) {
+    bool bar = s0;
+    if (!bar) {
+        bar = i < 3;
+        i = i + 1;
+    }
+    bool foo = !bar;
+    if (foo) {
+        break;
+    }
+    s0 = false;
+    n ++;
+}
+return n;
+</script>
+<script id="counter3" type="x-shader/x-shader">
+bool s0 = true;
+while(true) {
+    bool bar = s0;
+    if (!bar) {
+        bar = i++ < 3;
+    }
+    bool foo = !bar;
+    if (foo) {
+        break;
+    }
+    s0 = false;
+    n ++;
+}
+return n;
+</script>
+<script id="counter4" type="x-shader/x-shader">
+bool s0 = true;
+while(true) {
+    bool bar = s0 || (i++ < 3);
+    bool foo = !bar;
+    if (foo) {
+        break;
+    }
+    s0 = false;
+    n ++;
+}
+return n;
+</script>
+<script id="counter5" type="x-shader/x-shader">
+bool s0 = true;
+while(true) {
+    if (!(s0 || (i++ < 3))) {
+        break;
+    }
+    s0 = false;
+    n ++;
+}
+return n;
+</script>
+<script id="counter6" type="x-shader/x-shader">
+bool s0 = true;
+while(s0 || (i++ < 3)) {
+    s0 = false;
+    n ++;
+}
+return n;
+</script>
+
+<script id="counter7" type="x-shader/x-shader">
+do {
+    n++;
+} while (i++ < 3);
+return n;
+</script>
+<script>
+"use strict";
+description("This test checks for bugs related to loops and side-effects.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, null, 2);
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    for (var i = 0; i < 8; i++) {
+        tryCounter(document.getElementById("counter" + i).text);
+        debug("");
+    }
+}
+
+function evaluateCounter(source) {
+    var jsSource = "(function(n, i) {" +
+                    source.split("bool").join("var") +
+                    "})(0, 0)";
+
+    return eval(jsSource);
+}
+
+function makeFSSource(source) {
+    var fsSource =
+        "#version 300 es\n" +
+        "precision highp float;\n" +
+        "in float vertexCounter;\n" +
+        "uniform int uVertZero;\n" +
+        "uniform int uReference;\n" +
+        "out vec4 fragColor;\n" +
+        "int counter(int n, int i) {\n" +
+            source +
+        "}\n" +
+        "void main() {\n" +
+        "    fragColor = vec4(0.0, 0.0, 0.0, 1.0);\n" +
+        "    fragColor.r = float(counter(uVertZero, uVertZero) == uReference);\n" +
+        "    fragColor.g = float(int(vertexCounter) == uReference);\n" +
+        "}\n";
+    return fsSource;
+}
+
+function makeVSSource(source) {
+    var vsSource =
+        "#version 300 es\n" +
+        "out float vertexCounter;\n" +
+        "uniform int uFragZero;\n" +
+        "in vec4 vPosition;\n" +
+        "int counter(int n, int i) {\n" +
+            source +
+        "}\n" +
+        "void main() {\n" +
+        "    gl_Position = vPosition;\n" +
+        "    vertexCounter = float(counter(uFragZero, uFragZero));\n" +
+        "}\n";
+    return vsSource;
+}
+
+function tryCounter(source) {
+    canvas.width = 50; canvas.height = 50;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    wtu.setupUnitQuad(gl, 0, 1);
+
+    var program = wtu.setupProgram(gl, [makeVSSource(source), makeFSSource(source)], ['vPosition'], [0], true);
+
+    gl.uniform1i(gl.getUniformLocation(program, "uVertZero"), 0);
+    gl.uniform1i(gl.getUniformLocation(program, "uFragZero"), 0);
+
+    var reference = evaluateCounter(source);
+    gl.uniform1i(gl.getUniformLocation(program, "uReference"), reference);
+
+    gl.useProgram(program);
+    wtu.clearAndDrawUnitQuad(gl, [0, 0, 0, 0]);
+    wtu.checkCanvas(gl, [255, 255, 0, 255]);
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

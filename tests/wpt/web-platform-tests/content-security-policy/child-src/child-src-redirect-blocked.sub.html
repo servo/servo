@@ -3,14 +3,19 @@
 
 <head>
     <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="child-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self';">
     <title>child-src-blocked</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <script src='../support/logTest.sub.js?logs=["PASS IFrame %231 generated a load event."]'></script>
+    <script src='../support/logTest.sub.js?logs=["PASS IFrame %231 generated a load event.", "violated-directive=frame-src"]'></script>
     <script>
         window.addEventListener("message", function(event) {
             alert_assert(event.data);
         }, false);
+
+        window.addEventListener("securitypolicyviolation", function(e) {
+            log("violated-directive=" + e.violatedDirective);
+        });
 
         function alert_assert(msg) {
             t_log.step(function() {
@@ -20,7 +25,7 @@
                 }
                 for (var i = 0; i < expected_alerts.length; i++) {
                     if (expected_alerts[i] == msg) {
-                        assert_true(expected_alerts[i] == msg);
+                        assert_equals(expected_alerts[i], msg);
                         expected_alerts.splice(i, 1);
                         if (expected_alerts.length == 0) {
                             t_log.done();
@@ -55,7 +60,6 @@ child-src 'none'; script-src 'self' 'unsafe-inline'; connect-src 'self';
 <body>
     <iframe src="/common/redirect.py?location=http://{{domains[www1]}}:{{ports[http][0]}}/content-security-policy/support/postmessage-fail.html" onload="loadEvent()" onerror="log('FAIL')"></iframe>
     <div id="log"></div>
-    <script async defer src="../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=frame-src%20&apos;none&apos;"></script>
 </body>
 
 </html>

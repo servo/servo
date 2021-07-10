@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml"
+	 xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="testmeta">
+	<title>CSS Masking: mask with negative scale target</title>
+	<html:link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#svg-masks"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#MaskElement"/>
+	<html:link rel="match" href="reference/mask-negative-scale-001-ref.svg"/>
+	<metadata class="flags">svg</metadata>
+	<desc class="assert">The masked target elements get scaled with negative
+	factors. Check if that influences masking. You should see 4 green
+	rectangles with smaller blue rectangles in it in various rotations.</desc>
+</g>
+<defs>
+<g id="img" transform="translate(10,10)">
+	<rect width="200" height="200" fill="red"/>
+	<rect width="100" height="100" fill="green"/>
+	<rect width="50" height="50" fill="blue"/>
+</g>
+</defs>
+
+<mask id="mask">
+	<rect x="10" y="10" width="90" height="90" fill="white"/>
+</mask>
+
+<g transform="translate(200, 200)">
+<g transform="matrix(1 0 0 1 -100 -100)" mask="url(#mask)">
+	<use xlink:href="#img"/>
+</g>
+<g transform="matrix(-1 0 0 -1 -100 -100)" mask="url(#mask)">
+	<use xlink:href="#img"/>
+</g>
+<g transform="matrix(-1 0 0 1 -100 -100)" mask="url(#mask)">
+	<use xlink:href="#img"/>
+</g>
+<g transform="matrix(1 0 0 -1 -100 -100)" mask="url(#mask)">
+	<use xlink:href="#img"/>
+</g>
+</g>
+</svg>

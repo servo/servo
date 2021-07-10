@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>
+  Nested fragmentation for out-of-flow positioned elements create new columns.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#abspos-breaking">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    column-count: 2;
+    column-fill: auto;
+    column-gap: 0px;
+    background-color: red;
+  }
+  #outer {
+    height: 100px;
+    width: 100px;
+  }
+  #inner {
+    width: 50px;
+  }
+  .rel {
+    position: relative;
+  }
+  .abs {
+    position: absolute;
+    height: 400px;
+    width: 25px;
+    top: 800px;
+    left: -200px;
+    background-color: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol" id="outer">
+  <div class="multicol" id="inner">
+    <div class="rel">
+      <div class="abs"></div>
+    </div>
+  </div>
+</div>

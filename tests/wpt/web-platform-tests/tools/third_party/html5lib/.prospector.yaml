@@ -1,0 +1,21 @@
+strictness: veryhigh
+doc-warnings: false
+test-warnings: false
+
+max-line-length: 139
+
+requirements:
+  - requirements.txt
+  - requirements-test.txt
+  - requirements-optional.txt
+
+ignore-paths:
+  - parse.py
+  - utils/
+
+python-targets:
+  - 2
+  - 3
+
+mccabe:
+  run: false

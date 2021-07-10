@@ -23,7 +23,9 @@
 
   test(function() {
     var mq = document.getElementById("test3");
-    assert_equals(mq.scrollDelay, 60, "The delay time should be 60ms.");
+    assert_equals(mq.scrollDelay, 1,
+                  "The delay time should be 1ms (although this doesn't " +
+                  "match rendering).");
   }, "The scrolldelay attribute is less than 60");
 
   test(function() {

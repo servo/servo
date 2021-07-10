@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+  <h1>Basic user activation test</h1>
+  <p>Tests that a popup is allowed with user activation.</p>
+  <ol id="instructions">
+    <li>Click anywhere in the document.
+  </ol></body>
+  <script>
+    let test_w_click = async_test("Popup with click");
+
+    window.addEventListener("click", () => {
+        test_w_click.step(() => {
+            let win = window.open();
+            assert_true(!!win);
+            win.close();
+        });
+        test_w_click.done();
+    });
+
+    test_driver.click(document.body);
+  </script>
+</body>
+</html>

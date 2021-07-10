@@ -5,26 +5,19 @@
     <script src="errorhandling-parseerror-common.js"></script>
 </head>
 <body>
-    <script type="module" onerror="errorHandler(event);createSecondDependentRoot();">
+    <script type="module" onerror="errorHandler(event)">
 
         // No parse errors in the root module, just in the dependent module
         import test from "./errorhandling-parseerror-dependentmultiple.js";
         document._errorReported = "shouldn't have run dependent module";
 
     </script>
-    <script>
+    <script type="module" onerror="errorHandler(event)">
 
-        function createSecondDependentRoot()
-        {
-            // With the broken dependent module already acquired, try to import it
-            // again from another root.  This root should be unwound appropriately.
-            var script = document.createElement("script");
-            script.type = "module";
-            script.textContent = "import test from './errorhandling-parseerror-dependentmultiple.js';" +
-                                 "document._errorReported = 'really shouldn\\'t have run dependent module';";
-            script.addEventListener("error", errorHandler);
-            document.body.appendChild(script);
-        }
+        // With the broken dependent module already acquired, try to import it
+        // again from another root.  This root should be unwound appropriately.
+        import test from "./errorhandling-parseerror-dependentmultiple.js";
+        document._errorReported = "really shouldn't have run dependent module";
 
     </script>
 </body>

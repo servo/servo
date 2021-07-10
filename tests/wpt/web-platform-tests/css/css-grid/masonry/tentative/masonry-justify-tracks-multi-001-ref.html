@@ -1,0 +1,117 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>Reference: Masonry layout with multiple `justify-tracks` values</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<style>
+html,body {
+  color:black; background-color:white; font:15px/1 monospace; padding:0; margin:0;
+}
+grid {
+  display: inline-grid;
+  grid-template-columns: auto;
+  grid-template-rows: repeat(8,50px);
+  gap: 3px 5px;
+  padding: 10px 3px 1px 7px;
+  border: solid;
+  border-width: 1px 7px 3px 5px;
+  background: lightgrey content-box;
+  width: 500px;
+  vertical-justify: top;
+}
+.fallback { grid-template-rows:3px; padding:0; border:0; display: grid; }
+item {
+  background: grey;
+  width: 3ch;
+  position: relative;
+  border: 1px solid;
+}
+.purple { background:purple; width:auto; border-left:3px solid; }
+z { display: block; background: yellow; height: calc(.2 * (50px - 2px)); width:calc(.8 * 2ch); }
+a {
+ position: absolute;
+ inset: 0;
+ top: auto;
+ border: 2px solid lime;
+}
+masonry-track {
+  display: grid;
+  grid-auto-flow: column;
+  gap: 3px 5px;
+}
+masonry-track:nth-child(1) { justify-content:start }
+masonry-track:nth-child(2) { justify-content:end }
+masonry-track:nth-child(3) { justify-content:center }
+masonry-track:nth-child(4) { justify-content:stretch; grid-template-columns: repeat(3,auto) repeat(2,max-content); }
+masonry-track:nth-child(5) { justify-content:space-between }
+masonry-track:nth-child(6) { justify-content:space-around }
+masonry-track:nth-child(7) { justify-content:space-evenly }
+masonry-track:nth-child(8) { justify-content:space-evenly }
+</style>
+</head>
+<body>
+<grid>
+ <masonry-track>
+  <item style="width:50px">1</item>
+  <item class="purple">20</item>
+  <item class="purple">26</item>
+  <item>33</item>
+ </masonry-track>
+ <masonry-track>
+  <item class="purple" style="height:25px">2</item>
+  <item>9<a></a></item>
+  <item class="purple">18</item>
+  <item>25</item>
+ </masonry-track>
+ <masonry-track>
+  <item style="margin-left:10px">3</item>
+  <item>15</item>
+  <item class="purple">24</item>
+  <item class="purple">32</item>
+ </masonry-track>
+ <masonry-track>
+  <item class="purple" style="margin-top:5px">4</item>
+  <item class="purple">10</item>
+  <item class="purple" style="writing-mode:vertical-rl">16</item>
+  <item>23</item>
+  <item>31</item>
+ </masonry-track>
+ <masonry-track>
+  <item>5</item>
+  <item>13</item>
+  <item class="purple">22</item>
+  <item>29</item>
+ </masonry-track>
+ <masonry-track>
+  <item class="purple">6<a></a></item>
+  <item>11</item>
+  <item>19</item>
+  <item class="purple">28</item>
+ </masonry-track>
+ <masonry-track>
+  <item>7</item>
+  <item class="purple"><z></z>14<a></a></item>
+  <item>21</item>
+  <item class="purple">30</item>
+ </masonry-track>
+ <masonry-track>
+  <item class="purple" style="writing-mode:vertical-lr">8</item>
+  <item class="purple">12<z></z></item>
+  <item>17</item>
+  <item>27</item>
+ </masonry-track>
+</grid>
+<grid class="fallback" style="justify-content:start">
+  <item></item>
+</grid>
+<grid class="fallback" style="justify-content:center">
+  <item></item>
+</grid>
+<grid class="fallback" style="justify-content:center">
+  <item></item>
+</grid>
+</body></html>

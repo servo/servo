@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Flexible Box Test: display_flex</title>
+    <link rel="author" title="Intel" href="http://www.intel.com" />
+    <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#flex-containers" />
+    <meta name="flags" content="dom" />
+    <meta name="assert" content="Check if the web engine can indenfy the display value flex." />
+    <style>
+      div#test{
+        display: flex;
+      }
+    </style>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id=log></div>
+    <div id=test></div>
+    <script type="text/javascript">
+        var t = async_test();
+        t.step(function () {
+            assert_equals(window.getComputedStyle(document.querySelector('div#test')).display, "flex", "Display value is");
+        });
+        t.done();
+    </script>
+  </body>
+</html>

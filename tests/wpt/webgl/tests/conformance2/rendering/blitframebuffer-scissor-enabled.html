@@ -1,0 +1,183 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL BlitFramebuffer Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="example" width="8" height="8"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+
+var wtu = WebGLTestUtils;
+description("This test verifies the functionality of blitFramebuffer when scissor test is enabled.");
+
+var gl = wtu.create3DContext("example", undefined, 2);
+
+// Define the src region and dst region for blitFramebuffer
+var blit_src = [0, 0, 4, 4];
+var blit_dst = [2, 2, 6, 6];
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    var bounds = [
+        [0, 0, 4, 4], // Partially intersects with blitFramebuffer's dst region
+        [0, 0, 2, 2], // No intersection with blitFramebuffer's dst region
+    ];
+
+    // We can compute the real drawing area by intersecting the scissor bound with dst region of blitting.
+    var intersections = [
+        [2, 2, 4, 4],
+        [0, 0, 0, 0],
+    ];
+
+    for (var ii = 0; ii < bounds.length; ++ii) {
+        blitframebuffer_scissor(gl.RGBA8, gl.RGBA8, bounds[ii], intersections[ii]);
+        blitframebuffer_scissor(gl.RGBA8, gl.SRGB8_ALPHA8, bounds[ii], intersections[ii]);
+        blitframebuffer_scissor(gl.SRGB8_ALPHA8, gl.RGBA8, bounds[ii], intersections[ii]);
+        blitframebuffer_scissor(gl.SRGB8_ALPHA8, gl.SRGB8_ALPHA8, bounds[ii], intersections[ii]);
+    }
+}
+
+function checkPixel(color, expectedColor) {
+  var tolerance = 3;
+  return (Math.abs(color[0] - expectedColor[0]) <= tolerance &&
+          Math.abs(color[1] - expectedColor[1]) <= tolerance &&
+          Math.abs(color[2] - expectedColor[2]) <= tolerance &&
+          Math.abs(color[3] - expectedColor[3]) <= tolerance);
+}
+
+function blitframebuffer_scissor(readbufferFormat, drawbufferFormat, bound, intersection) {
+    debug("");
+    debug("read buffer format is: " + wtu.glEnumToString(gl, readbufferFormat) + ", draw buffer format is: " + wtu.glEnumToString(gl, drawbufferFormat));
+
+
+    // Initiate data to read framebuffer
+    var size = 8;
+    var data = new Uint8Array(size * size * 4);
+    var color = [250, 100, 15, 255];
+    for (var ii = 0; ii < size * size * 4; ii += 4) {
+        for (var jj = 0; jj < 4; ++jj) {
+          data[ii + jj] = color[jj];
+        }
+    }
+
+    // Feed data to read buffer. Feed 0 to draw buffer.
+    var tex_read = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex_read);
+    gl.texImage2D(gl.TEXTURE_2D, 0, readbufferFormat, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+
+    var fbo_read = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo_read);
+    gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex_read, 0);
+
+    var tex_draw = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex_draw);
+    gl.texImage2D(gl.TEXTURE_2D, 0, drawbufferFormat, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+    var fbo_draw = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo_draw);
+    gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex_draw, 0);
+    if (gl.checkFramebufferStatus(gl.READ_FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE || gl.checkFramebufferStatus(gl.DRAW_FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE) {
+        testFailed("Framebuffer incomplete.");
+        return;
+    }
+
+    // Enable scissor test. Then blit framebuffer.
+    gl.enable(gl.SCISSOR_TEST);
+    gl.scissor(bound[0], bound[1], bound[2], bound[3]);
+    gl.blitFramebuffer(blit_src[0], blit_src[1], blit_src[2], blit_src[3], blit_dst[0], blit_dst[1], blit_dst[2], blit_dst[3], gl.COLOR_BUFFER_BIT, gl.LINEAR);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "blitframebuffer should succeed");
+
+    // Read pixels and Comparison
+    var pixels = new Uint8Array(size * size * 4);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo_draw);
+    gl.readPixels(0, 0, size, size, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "readPixels should succeed");
+
+    var blitColor;
+    var expectedColor;
+    var clearColor = [0, 0, 0, 0];
+
+    if (readbufferFormat == drawbufferFormat) {
+        blitColor = color;
+    } else if (readbufferFormat == gl.SRGB8_ALPHA8) {
+        blitColor = wtu.sRGBToLinear(color);
+    } else {
+        blitColor = wtu.linearToSRGB(color);
+    }
+
+    var failed = false;
+    for (var ii = 0; ii < size; ++ii) {
+        for (var jj = 0; jj < size; ++jj) {
+            if (ii >= intersection[0] && jj >= intersection[1] && ii < intersection[2] && jj < intersection[3]) {
+                expectedColor = blitColor;
+            } else {
+                expectedColor = clearColor;
+            }
+            var index = (ii * size + jj) * 4;
+            var pixelColor = [pixels[index], pixels[index + 1], pixels[index + 2], pixels[index + 3]];
+            if (checkPixel(pixelColor, expectedColor) == false) {
+                failed = true;
+                debug("Pixels comparison failed. Pixel at [" + jj + ", " + ii + "] should be (" + expectedColor + "), but the actual color is (" + pixelColor + ")");
+            }
+        }
+    }
+    if (failed == false) {
+        testPassed("All pixels comparision passed!");
+    }
+
+    // Deinit
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+    gl.deleteFramebuffer(fbo_read);
+    gl.deleteFramebuffer(fbo_draw);
+    gl.deleteTexture(tex_read);
+    gl.deleteTexture(tex_draw);
+};
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

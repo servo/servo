@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Flexbox: absolutely position child removal.</title>
+<link rel="stylesheet" href="support/flexbox.css" >
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#abspos-items">
+<meta name="assert" content="This test ensures that removing absolute positioned flexbox children works."/>
+</head>
+<body>
+
+<div id="outer" class="inline-flexbox">
+  <div id="middle" class="inline-flexbox">
+    <div id="inner" style="position: absolute">absolute</div>
+  </div>
+</div>
+
+<script>
+  var outer = document.getElementById("outer");
+  var middle = document.getElementById("middle");
+  var inner = document.getElementById("inner");
+
+  // Force layout.
+  outer.offsetHeight;
+
+  middle.removeChild(inner);
+</script>
+</body>
+</html>

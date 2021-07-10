@@ -4,26 +4,26 @@
 <title>Vertical scrolling during selection drag and drop to text input</title>
 <style type="text/css">
 input[placeholder]
-	{width:300px;
-	height:50px;}
+  {width:300px;
+  height:50px;}
 div > p:first-child
-	{margin-bottom:200px;}
+  {margin-bottom:200px;}
 body > div
-	{height:150px;
-	width:500px;
-	overflow-y:scroll;}
+  {height:150px;
+  width:500px;
+  overflow-y:scroll;}
 div > div
-	{height:400px;}
+  {height:400px;}
 </style>
 </head>
 <body onload="window.getSelection().selectAllChildren(document.querySelector('p'))">
 <p>Drag me</p>
 <div>
-	<div>
-		<p>You should be able to drag selected text to the input at the bottom of scrollable container (dragging towards the bottom edge triggers scrolling).</p>
-		<input placeholder="Drop selection here"/>
-		<p>Copy of selection should end up in the input once you drop it there.</p>
-	</div>
+  <div>
+    <p>You should be able to drag selected text to the input at the bottom of scrollable container (dragging towards the bottom edge triggers scrolling).</p>
+    <input placeholder="Drop selection here"/>
+    <p>Copy of selection should end up in the input once you drop it there.</p>
+  </div>
 </div>
 </body>
 </html>

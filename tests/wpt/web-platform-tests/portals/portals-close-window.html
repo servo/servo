@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+promise_test(async t => {
+  assert_implements("HTMLPortalElement" in self);
+  let portal = document.createElement('portal');
+  portal.src = "resources/portal-close-window.html";
+  let waitForMessage = new Promise((resolve, reject) => {
+    portal.onmessage = e => resolve(e.data);
+    document.body.appendChild(portal);
+  });
+  document.body.appendChild(portal);
+  var message = await waitForMessage;
+  assert_equals(message, false);
+  t.add_cleanup(() => { document.body.removeChild(portal); });
+}, "A portal's window cannot be closed");
+</script>
+</body>

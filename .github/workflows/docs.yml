@@ -1,0 +1,35 @@
+name: Docs upload
+
+on:
+  push:
+    branches: ["master"]
+  workflow_dispatch:
+
+jobs:
+  upload-docs:
+    name: Upload docs to GitHub Pages
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Bootstrap
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          python3 ./mach bootstrap
+      - name: Compile docs
+        run: python3 ./mach doc
+        env:
+          RUSTDOCFLAGS: --disable-minification
+      - name: Upload docs
+        run: |
+          cd target/doc
+          git init
+          git add .
+          git -c user.name="Workflow" -c user.email="" \
+              commit -q -m "Rebuild Servo documentation"
+          git remote add origin https://git:${DOC_SERVO_ORG}@github.com/servo/doc.servo.org
+          git push --force origin master:gh-pages
+        env:
+          DOC_SERVO_ORG: ${{ secrets.DOC_SERVO_ORG }}

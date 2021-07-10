@@ -1,0 +1,85 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>CSS Basic User Interface Test: text-overflow:ellipsis and ruby</title>
+  <link rel="help" href="http://www.w3.org/TR/css3-ui/#text-overflow">
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <link rel="match" href="text-overflow-ruby-ref.html">
+  <style>
+html,body {
+  color:black; background-color:white; font:14px/1 monospace; padding:0; margin:0;
+}
+
+.clip {
+    overflow: hidden;
+    width: 40px;
+    text-overflow: ellipsis;
+}
+
+input { width: 40px; -webkit-appearance: none; border: 1px solid black; }
+
+.thg { display: table-header-group; }
+.tc { display: table-cell; }
+.t { display: table; }
+
+    </style>
+</head>
+<body>
+
+<div style="float:left; width:300px">
+<div class="clip">
+<ruby><rb><span>aa<input class="thg">bb</span></rb></ruby>
+<br>
+<ruby><rb><span>aa<div class="thg">bbbbbb</div>cc</span></rb></ruby>
+<br>
+<ruby><rb><span>aa<span>bbbbbb</span>cc</span></rb></ruby>
+<br>
+<ruby><rb><span>aa<input class="tc">bb</span></rb></ruby>
+<br>
+<ruby><rb><span>aa<div class="tc">bbbbbb</div>cc</span></rb></ruby>
+<br>
+<ruby><rb><span>aa<input class="t">bb</span></rb></ruby>
+<br>
+<ruby><rb><span>aa<div class="t">bbbbbb</div>cc</span></rb></ruby>
+
+<br>
+<ruby><rb><span><input class="thg">bb</span></rb></ruby>
+<br>
+<ruby><rb><span><div class="thg">bbbbbb</div>cc</span></rb></ruby>
+<br>
+<ruby><rb><span><span>bbbbbb</span>cc</span></rb></ruby>
+<br>
+<ruby><rb><span><input class="tc">bb</span></rb></ruby>
+<br>
+<ruby><rb><span><div class="tc">bbbbbb</div>cc</span></rb></ruby>
+<br>
+<ruby><rb><span><input class="t">bb</span></rb></ruby>
+<br>
+<ruby><rb><span><div class="t">bbbbbb</div>cc</span></rb></ruby>
+</div>
+</div>
+
+<div style="float:left; width:300px">
+<div class="clip">
+<ruby><rb><input class="thg">bb</rb></ruby>
+<br>
+<ruby><rb><div class="thg">bbbbbb</div>cc</rb></ruby>
+<br>
+<ruby><rb>bbbbbbcc</rb></ruby>
+<br>
+<ruby><rb><input class="tc">bb</rb></ruby>
+<br>
+<ruby><rb><div class="tc">bbbbbb</div>cc</rb></ruby>
+<br>
+<ruby><rb><input class="t">bb</rb></ruby>
+<br>
+<ruby><rb><div class="t">bbbbbb</div>cc</rb></ruby>
+</div>
+</div>
+
+</body>
+</html>

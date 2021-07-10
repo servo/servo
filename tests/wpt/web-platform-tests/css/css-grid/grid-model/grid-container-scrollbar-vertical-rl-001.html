@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Grid container with scrollbars</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#grid-model">
+<link rel="match" href="grid-container-scrollbar-vertical-rl-001-ref.html">
+<meta name="assert" content="This test verifies that scrollbars are properly painted on grid containers, and are shown in the expected position depending on the direction.">
+<link href="/css/support/grid.css" rel="stylesheet">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  .grid {
+    font: 10px/1 Ahem;
+    margin: 10px;
+    writing-mode: vertical-rl;
+  }
+
+  .scrollX {
+    overflow-x: scroll;
+  }
+
+  .scrollY {
+    overflow-y: scroll;
+  }
+
+  .fixedSize {
+    width: 200px;
+    height: 50px;
+  }
+
+  .grid > div {
+    background: cyan;
+  }
+</style>
+
+<p>The test passes if it has the same output as the reference.</p>
+
+<div style="float: left; width: 350px;">
+
+  <h2>direction: ltr;</h2>
+
+  <div class="grid scrollX">
+    <div>item</div>
+  </div>
+
+  <div class="grid scrollY">
+    <div>item</div>
+  </div>
+
+  <div class="grid scrollX scrollY">
+    <div>item</div>
+  </div>
+
+  <div class="grid fixedSize scrollX">
+    <div>item</div>
+  </div>
+
+  <div class="grid fixedSize scrollY">
+    <div>item</div>
+  </div>
+
+  <div class="grid fixedSize scrollX scrollY">
+    <div>item</div>
+  </div>
+
+</div>
+
+<div style="float: left; width: 350px;">
+
+  <h2>direction: rtl;</h2>
+
+  <div class="directionRTL grid scrollX">
+    <div>item</div>
+  </div>
+
+  <div class="directionRTL grid scrollY">
+    <div>item</div>
+  </div>
+
+  <div class="directionRTL grid scrollX scrollY">
+    <div>item</div>
+  </div>
+
+  <div class="directionRTL grid fixedSize scrollX">
+    <div>item</div>
+  </div>
+
+  <div class="directionRTL grid fixedSize scrollY">
+    <div>item</div>
+  </div>
+
+  <div class="directionRTL grid fixedSize scrollX scrollY">
+    <div>item</div>
+  </div>
+
+</div>

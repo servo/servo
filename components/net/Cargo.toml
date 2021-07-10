@@ -3,45 +3,72 @@ name = "net"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
+edition = "2018"
 publish = false
+autotests = false  # Inhibit lookup for tests/*.rs without [[test]] sections
+build = "build.rs"
 
 [lib]
 name = "net"
 path = "lib.rs"
+test = false
+doctest = false
 
 [dependencies]
-base64 = "0.4.1"
-brotli = "1.0.6"
-cookie = "0.6"
-devtools_traits = {path = "../devtools_traits"}
-flate2 = "0.2.0"
-hyper = "0.10"
-hyper_serde = "0.6"
-hyper-openssl = "0.2.2"
-immeta = "0.3.1"
-ipc-channel = "0.7"
-lazy_static = "0.2"
-log = "0.3.5"
-matches = "0.1"
-mime = "0.2.1"
-mime_guess = "1.8.0"
-msg = {path = "../msg"}
-net_traits = {path = "../net_traits"}
-openssl = "0.9"
-parse-hosts = "0.3.0"
-profile_traits = {path = "../profile_traits"}
-serde = "0.9"
-serde_derive = "0.9"
-serde_json = "0.9"
-servo_config = {path = "../config"}
-servo_url = {path = "../url"}
-servo-websocket = "0.19"
-threadpool = "1.0"
-time = "0.1.17"
-unicase = "1.4.0"
-url = {version = "1.2", features = ["heap_size"]}
-uuid = {version = "0.4", features = ["v4"]}
-webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+async-tungstenite = { version = "0.7.1", features = ["tokio-openssl"] }
+base64 = "0.10.1"
+brotli = "3"
+bytes = "0.4"
+content-security-policy = { version = "0.4.0", features = ["serde"] }
+cookie_rs = { package = "cookie", version = "0.11" }
+crossbeam-channel = "0.4"
+data-url = "0.1.0"
+devtools_traits = { path = "../devtools_traits" }
+embedder_traits = { path = "../embedder_traits" }
+flate2 = "1"
+futures = "0.1"
+futures03 = { version = "0.3", package = "futures" }
+headers = "0.2"
+http = "0.1"
+hyper = "0.12"
+hyper-openssl = "0.7"
+hyper_serde = "0.11"
+immeta = "0.4"
+ipc-channel = "0.14"
+lazy_static = "1"
+libflate = "0.1"
+log = "0.4"
+malloc_size_of = { path = "../malloc_size_of" }
+malloc_size_of_derive = "0.1"
+mime = "0.3"
+mime_guess = "2.0.3"
+msg = { path = "../msg" }
+net_traits = { path = "../net_traits" }
+openssl = "0.10"
+openssl-sys = "0.9"
+percent-encoding = "2.0"
+pixels = { path = "../pixels" }
+profile_traits = { path = "../profile_traits" }
+rayon = "1"
+serde = "1.0"
+serde_json = "1.0"
+servo_allocator = { path = "../allocator" }
+servo_arc = { path = "../servo_arc" }
+servo_config = { path = "../config" }
+servo_url = { path = "../url" }
+time = "0.1.41"
+tokio = "0.1"
+tokio2 = { version = "0.2", package = "tokio", features = ["sync", "macros", "rt-threaded"] }
+tungstenite = "0.11"
+url = "2.0"
+uuid = { version = "0.8", features = ["v4"] }
+webrender_api = { git = "https://github.com/servo/webrender" }
 
-[target.'cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))'.dependencies]
-tinyfiledialogs = "2.5.9"
+[dev-dependencies]
+futures = "0.1"
+std_test_override = { path = "../std_test_override" }
+tokio-openssl = "0.3"
+
+[[test]]
+name = "main"
+path = "tests/main.rs"

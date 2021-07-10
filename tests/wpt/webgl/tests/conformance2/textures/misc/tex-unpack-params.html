@@ -1,0 +1,614 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL2 texture unpack parameters conformance test.</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="example" width="4" height="4"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+
+var wtu = WebGLTestUtils;
+var __verbose__ = false;
+
+// Some drivers (for example, NVIDIA Linux) incorrectly require padding for
+// the last row. The below flag is only for testing convenience. Browsers should
+// work around the bug.
+var __apply_alignment_workaround__ = false;
+
+function setupArrayBuffer(size, initData) {
+  var array = new Uint8Array(size);
+  if (initData) {
+    for (var ii = 0; ii < size; ++ii) {
+      array[ii] = ii % 255;
+    }
+  }
+  return array;
+}
+
+function calculatePaddingBytes(bytesPerPixel, alignment, width) {
+  var padding = 0;
+  switch (alignment) {
+    case 1:
+    case 2:
+    case 4:
+    case 8:
+      padding = (bytesPerPixel * width) % alignment;
+      if (padding > 0)
+        padding = alignment - padding;
+      return padding;
+    default:
+      testFailed("should not reach here");
+      return;
+  }
+}
+
+function computeImageSizes2D(width, height, testCase) {
+  // Assume RGB8/UNSIGNED_BYTE
+  var bytesPerPixel = 3;
+  var actualWidth = testCase.rowLength == 0 ? width : testCase.rowLength;
+  var padding = calculatePaddingBytes(bytesPerPixel, testCase.alignment, actualWidth);
+  var bytesPerRow = actualWidth * bytesPerPixel + padding;
+  var bytesLastRow = bytesPerPixel * width;
+  var size = bytesPerRow * (height - 1) + bytesLastRow;
+  var skipSize = 0;
+  if (testCase.skipPixels > 0)
+    skipSize += bytesPerPixel * testCase.skipPixels;
+  if (testCase.skipRows > 0)
+    skipSize += bytesPerRow * testCase.skipRows;
+  return {size: size,
+          bytesPerRow: bytesPerRow,
+          bytesLastRow: bytesLastRow,
+          padding: padding,
+          skipSize: skipSize,
+          totalSize: size + skipSize};
+}
+
+function computeImageSizes3D(width, height, depth, testCase) {
+  // Assume RGB8/UNSIGNED_BYTE
+  var bytesPerPixel = 3;
+  var actualWidth = testCase.rowLength == 0 ? width : testCase.rowLength;
+  var actualHeight = testCase.imageHeight == 0 ? height : testCase.imageHeight;
+  var padding = calculatePaddingBytes(bytesPerPixel, testCase.alignment, actualWidth);
+  var bytesPerRow = actualWidth * bytesPerPixel + padding;
+  var bytesLastRow = bytesPerPixel * width;
+  var bytesPerImage = bytesPerRow * actualHeight;
+  var bytesLastImage = bytesPerRow * (height - 1) + bytesLastRow;
+  var size = bytesPerImage * (depth - 1) + bytesLastImage;
+  var skipSize = 0;
+  if (testCase.skipPixels > 0)
+    skipSize += bytesPerPixel * testCase.skipPixels;
+  if (testCase.skipRows > 0)
+    skipSize += bytesPerRow * testCase.skipRows;
+  if (testCase.skipImages > 0)
+    skipSize += bytesPerImage * testCase.skipImages;
+  return {size: size,
+          bytesPerRow: bytesPerRow,
+          bytesLastRow: bytesLastRow,
+          bytesPerImage: bytesPerImage,
+          bytesLastImage: bytesLastImage,
+          padding: padding,
+          skipSize: skipSize,
+          totalSize: size + skipSize};
+}
+
+function copyData(srcData, srcIndex, dstData, dstIndex, size) {
+  for (var ii = 0; ii < size; ++ii)
+    dstData[dstIndex + ii] = srcData[srcIndex + ii];
+}
+
+function unpackPixels(srcData, width, height, depth, imageSizes) {
+  var bytesPerPixel = 3;
+  var unpackedSize = width * height * depth * bytesPerPixel;
+  var dstData = setupArrayBuffer(unpackedSize, false);
+  var srcIndex = imageSizes.skipSize;
+  var dstIndex = 0;
+  for (var z = 0; z < depth; ++z) {
+    var srcIndexPerImage = srcIndex;
+    for (var y = 0; y < height; ++y) {
+      copyData(srcData, srcIndexPerImage, dstData, dstIndex, width * 3);
+      srcIndexPerImage += imageSizes.bytesPerRow;
+      dstIndex += width * 3;
+    }
+    if (depth > 1)
+      srcIndex += imageSizes.bytesPerImage;
+  }
+  return dstData;
+}
+
+function getPixelsFromTexture2D(gl, tex, xoffset, yoffset, width, height) {
+  var fbo = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+  var bytesPerReadbackPixel = 4;
+  var readbackBuffer = setupArrayBuffer(width * height * bytesPerReadbackPixel, false);
+  gl.readPixels(xoffset, yoffset, width, height, gl.RGBA, gl.UNSIGNED_BYTE, readbackBuffer);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "read back texture pixels should succeed");
+  var bytesPerPixel = 3;
+  var buffer = setupArrayBuffer(width * height * bytesPerPixel, false);
+  var srcIndex = 0;
+  var dstIndex = 0;
+  for (var y = 0; y < height; ++y) {
+    for (var x = 0; x < width; ++x) {
+      buffer[dstIndex++] = readbackBuffer[srcIndex++]; // R
+      buffer[dstIndex++] = readbackBuffer[srcIndex++]; // G
+      buffer[dstIndex++] = readbackBuffer[srcIndex++]; // B
+      srcIndex++;                                      // A
+    }
+  }
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.deleteFramebuffer(fbo);
+  return buffer;
+}
+
+function getPixelsFromTexture3D(gl, tex, xoffset, yoffset, zoffset, width, height, depth) {
+  var fbo = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+  var bytesPerReadbackPixel = 4;
+  var readbackBuffer = setupArrayBuffer(width * height * bytesPerReadbackPixel, false);
+  var bytesPerPixel = 3;
+  var buffer = setupArrayBuffer(width * height * depth * bytesPerPixel, false);
+  var dstIndex = 0;
+  for (var zz = 0; zz < depth; ++zz) {
+    gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, tex, 0, zz + zoffset);
+    gl.readPixels(xoffset, yoffset, width, height, gl.RGBA, gl.UNSIGNED_BYTE, readbackBuffer);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "read back texture pixels should succeed");
+    var srcIndex = 0;
+    for (var y = 0; y < height; ++y) {
+      for (var x = 0; x < width; ++x) {
+        buffer[dstIndex++] = readbackBuffer[srcIndex++]; // R
+        buffer[dstIndex++] = readbackBuffer[srcIndex++]; // G
+        buffer[dstIndex++] = readbackBuffer[srcIndex++]; // B
+        srcIndex++;                                      // A
+      }
+    }
+  }
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.deleteFramebuffer(fbo);
+  return buffer;
+}
+
+function comparePixels(buffer1, buffer2) {
+  if (buffer1.length != buffer2.length || buffer1.length % 3 != 0) {
+    testFailed("compare pixels: invalid buffer size");
+    return;
+  }
+  var count = 0;
+  for (var ii = 0; ii < buffer1.length / 3; ++ii) {
+    if (buffer1[ii * 3] != buffer2[ii * 3] ||
+        buffer1[ii * 3 + 1] != buffer2[ii * 3 + 1] ||
+        buffer1[ii * 3 + 2] != buffer2[ii * 3 + 2]) {
+      if (__verbose__) {
+        debug("Pixel " + ii + ": expected (" +
+              [buffer1[ii * 3], buffer1[ii * 3 + 1], buffer1[ii * 3 + 2]] + "), got (" +
+              [buffer2[ii * 3], buffer2[ii * 3 + 1], buffer2[ii * 3 + 2]] + ")");
+      }
+      count++;
+    }
+  }
+  if (count > 0) {
+    testFailed("compare pixels: " + count + " pixels differ");
+  } else {
+    testPassed("compare pixels: as expected");
+  }
+}
+
+function runTestIteration2D(gl, testCase, useUnpackBuffer) {
+  debug("");
+  debug("Texture upload from " + (useUnpackBuffer ? "unpack buffer" : "client data") +
+        " : alignment = " + testCase.alignment + ", rowLength = " + testCase.rowLength +
+        ", skipPixels = " + testCase.skipPixels + ", skipRows = " + testCase.skipRows);
+  debug("TexImage2D : size = (" + testCase.width + ", " + testCase.height + ")");
+  gl.pixelStorei(gl.UNPACK_ALIGNMENT, testCase.alignment);
+  gl.pixelStorei(gl.UNPACK_ROW_LENGTH, testCase.rowLength);
+  gl.pixelStorei(gl.UNPACK_SKIP_PIXELS, testCase.skipPixels);
+  gl.pixelStorei(gl.UNPACK_SKIP_ROWS, testCase.skipRows);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Set up pixel store parameters should succeed");
+
+  var tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+
+  var imageSizes = computeImageSizes2D(testCase.width, testCase.height, testCase);
+  var bufferSize = imageSizes.totalSize;
+  var buffer = null;
+  var array;
+
+  // Verify buffer with less than enough size will fail.
+  if (useUnpackBuffer) {
+    buffer = gl.createBuffer();
+    gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, buffer);
+    gl.bufferData(gl.PIXEL_UNPACK_BUFFER, bufferSize - 1, gl.DYNAMIC_DRAW);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB8, testCase.width, testCase.height, 0,
+                  gl.RGB, gl.UNSIGNED_BYTE, 0);
+  } else {
+    array = setupArrayBuffer(bufferSize - 1, false);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB8, testCase.width, testCase.height, 0,
+                  gl.RGB, gl.UNSIGNED_BYTE, array);
+  }
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "buffer too small");
+
+  if (__apply_alignment_workaround__)
+    bufferSize += imageSizes.padding;
+  array = setupArrayBuffer(bufferSize, true);
+  if (useUnpackBuffer) {
+    gl.bufferData(gl.PIXEL_UNPACK_BUFFER, array, gl.DYNAMIC_DRAW);
+  }
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB8, testCase.width, testCase.height, 0,
+                gl.RGB, gl.UNSIGNED_BYTE, useUnpackBuffer ? 0 : array);
+  if (testCase.validUnpackParams2D) {
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texImage2D with correct buffer size should succeed");
+  } else {
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "invalid unpack params combination");
+    if (!useUnpackBuffer) {
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB8, testCase.width, testCase.height, 0,
+                    gl.RGB, gl.UNSIGNED_BYTE, null);
+      wtu.glErrorShouldBe(gl, gl.NO_ERROR, "unpack param constraints do not apply if no data are uploaded.");
+    }
+    return;
+  }
+
+  var buffer1 = unpackPixels(array, testCase.width, testCase.height, 1, imageSizes);
+  var buffer2 = getPixelsFromTexture2D(gl, tex, 0, 0, testCase.width, testCase.height);
+  comparePixels(buffer1, buffer2);
+
+  var subWidth = testCase.width - testCase.xoffset;
+  var subHeight = testCase.height - testCase.yoffset;
+  debug("TexSubImage2D : offset = (" + testCase.xoffset + ", " + testCase.yoffset +
+        "), size = (" + subWidth + ", " + subHeight + ")");
+  imageSizes = computeImageSizes2D(subWidth, subHeight, testCase);
+  bufferSize = imageSizes.totalSize;
+
+  if (useUnpackBuffer) {
+    gl.bufferData(gl.PIXEL_UNPACK_BUFFER, bufferSize - 1, gl.DYNAMIC_DRAW);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, testCase.xoffset, testCase.yoffset,
+                     subWidth, subHeight, gl.RGB, gl.UNSIGNED_BYTE, 0);
+  } else {
+    array = setupArrayBuffer(bufferSize - 1, false);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, testCase.xoffset, testCase.yoffset,
+                     subWidth, subHeight, gl.RGB, gl.UNSIGNED_BYTE, array);
+  }
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "buffer too small");
+
+  if (__apply_alignment_workaround__)
+    bufferSize += imageSizes.padding;
+  array = setupArrayBuffer(bufferSize, true);
+  if (useUnpackBuffer) {
+    gl.bufferData(gl.PIXEL_UNPACK_BUFFER, array, gl.DYNAMIC_DRAW);
+  }
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, testCase.xoffset, testCase.yoffset, subWidth, subHeight,
+                   gl.RGB, gl.UNSIGNED_BYTE, useUnpackBuffer ? 0 : array);
+  if (testCase.validUnpackParamsForSub2D) {
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texSubImage2D with correct buffer size should succeed");
+  } else {
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "invalid unpack params combination");
+    return;
+  }
+
+  var buffer1 = unpackPixels(array, subWidth, subHeight, 1, imageSizes);
+  var buffer2 = getPixelsFromTexture2D(
+      gl, tex, testCase.xoffset, testCase.yoffset, subWidth, subHeight);
+  comparePixels(buffer1, buffer2);
+
+  if (buffer) {
+    gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, null);
+    gl.deleteBuffer(buffer);
+  }
+  gl.bindTexture(gl.TEXTURE_2D, null);
+  gl.deleteTexture(tex);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "no error");
+}
+
+function runTestIteration3D(gl, testCase, useUnpackBuffer) {
+  debug("");
+  debug("Texture upload from "  + (useUnpackBuffer ? "unpack buffer" : "client data") +
+        " : alignment = " + testCase.alignment + ", rowLength = " + testCase.rowLength +
+        ", imageHeight = " + testCase.imageHeight + ", skipPixels = " + testCase.skipPixels +
+        ", skipRows = " + testCase.skipRows + ", skipImages = " + testCase.skipImages);
+  debug("TexImage3D : size = (" + testCase.width + ", " + testCase.height + ", " + testCase.depth + ")");
+  gl.pixelStorei(gl.UNPACK_ALIGNMENT, testCase.alignment);
+  gl.pixelStorei(gl.UNPACK_ROW_LENGTH, testCase.rowLength);
+  gl.pixelStorei(gl.UNPACK_IMAGE_HEIGHT, testCase.imageHeight);
+  gl.pixelStorei(gl.UNPACK_SKIP_PIXELS, testCase.skipPixels);
+  gl.pixelStorei(gl.UNPACK_SKIP_ROWS, testCase.skipRows);
+  gl.pixelStorei(gl.UNPACK_SKIP_IMAGES, testCase.skipImages);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Set up pixel store parameters should succeed");
+
+  var tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_3D, tex);
+
+  var imageSizes = computeImageSizes3D(testCase.width, testCase.height, testCase.depth, testCase);
+  var buffer = null;
+  var array;
+  var bufferSize = imageSizes.totalSize;
+
+  // Verify buffer with less than enough size will fail.
+  if (useUnpackBuffer) {
+    buffer = gl.createBuffer();
+    gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, buffer);
+    gl.bufferData(gl.PIXEL_UNPACK_BUFFER, bufferSize - 1, gl.DYNAMIC_DRAW);
+    gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGB8, testCase.width, testCase.height, testCase.depth, 0,
+                  gl.RGB, gl.UNSIGNED_BYTE, 0);
+  } else {
+    array = setupArrayBuffer(bufferSize - 1, false);
+    gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGB8, testCase.width, testCase.height, testCase.depth, 0,
+                  gl.RGB, gl.UNSIGNED_BYTE, array);
+  }
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "buffer too small");
+
+  if (__apply_alignment_workaround__)
+    bufferSize += imageSizes.padding;
+  array = setupArrayBuffer(bufferSize, true);
+  if (useUnpackBuffer) {
+    gl.bufferData(gl.PIXEL_UNPACK_BUFFER, array, gl.DYNAMIC_DRAW);
+  }
+  gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGB8, testCase.width, testCase.height, testCase.depth, 0,
+                gl.RGB, gl.UNSIGNED_BYTE, useUnpackBuffer ? 0 : array);
+  if (testCase.validUnpackParams3D) {
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texImage3D with correct buffer size should succeed");
+  } else {
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "invalid unpack params combination");
+    if (!useUnpackBuffer) {
+      gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGB8, testCase.width, testCase.height, testCase.depth, 0,
+                    gl.RGB, gl.UNSIGNED_BYTE, null);
+      wtu.glErrorShouldBe(gl, gl.NO_ERROR, "unpack param constraints do not apply if no data are uploaded.");
+    }
+    return;
+  }
+
+  var buffer1 = unpackPixels(array, testCase.width, testCase.height, testCase.depth, imageSizes);
+  var buffer2 = getPixelsFromTexture3D(
+      gl, tex, 0, 0, 0, testCase.width, testCase.height, testCase.depth);
+  comparePixels(buffer1, buffer2);
+
+  var subWidth = testCase.width - testCase.xoffset;
+  var subHeight = testCase.height - testCase.yoffset;
+  var subDepth = testCase.depth - testCase.zoffset;
+  debug("TexSubImage3D : offset = (" + testCase.xoffset + ", " + testCase.yoffset + ", " +
+        testCase.zoffset + "), size = (" + subWidth + ", " + subHeight + ", " + subDepth + ")");
+  imageSizes = computeImageSizes3D(subWidth, subHeight, subDepth, testCase);
+  bufferSize = imageSizes.totalSize;
+
+  if (useUnpackBuffer) {
+    gl.bufferData(gl.PIXEL_UNPACK_BUFFER, bufferSize - 1, gl.DYNAMIC_DRAW);
+    gl.texSubImage3D(gl.TEXTURE_3D, 0, testCase.xoffset, testCase.yoffset, testCase.zoffset,
+                     subWidth, subHeight, subDepth, gl.RGB, gl.UNSIGNED_BYTE, 0);
+  } else {
+    array = setupArrayBuffer(bufferSize - 1, false);
+    gl.texSubImage3D(gl.TEXTURE_3D, 0, testCase.xoffset, testCase.yoffset, testCase.zoffset,
+                     subWidth, subHeight, subDepth, gl.RGB, gl.UNSIGNED_BYTE, array);
+  }
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "buffer too small");
+
+  if (__apply_alignment_workaround__)
+    bufferSize += imageSizes.padding;
+  array = setupArrayBuffer(bufferSize, true);
+  if (useUnpackBuffer) {
+    gl.bufferData(gl.PIXEL_UNPACK_BUFFER, array, gl.DYNAMIC_DRAW);
+  }
+  gl.texSubImage3D(gl.TEXTURE_3D, 0, testCase.xoffset, testCase.yoffset, testCase.zoffset,
+                   subWidth, subHeight, subDepth,
+                   gl.RGB, gl.UNSIGNED_BYTE, useUnpackBuffer ? 0 : array);
+  if (testCase.validUnpackParamsForSub3D) {
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texSubImage3D with correct buffer size should succeed");
+  } else {
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "invalid unpack params combination");
+    return;
+  }
+
+  buffer1 = unpackPixels(array, subWidth, subHeight, subDepth, imageSizes);
+  buffer2 = getPixelsFromTexture3D(gl, tex, testCase.xoffset, testCase.yoffset, testCase.zoffset,
+                                   subWidth, subHeight, subDepth);
+  comparePixels(buffer1, buffer2);
+
+  if (buffer) {
+    gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, null);
+    gl.deleteBuffer(buffer);
+  }
+  gl.bindTexture(gl.TEXTURE_3D, null);
+  gl.deleteTexture(tex);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "no error");
+}
+
+function runTests() {
+  var gl = wtu.create3DContext("example", undefined, 2);
+  if (!gl) {
+    testFailed("Fail to get a WebGL context");
+    return;
+  }
+
+  // For 2D cases, depth, zoffset, imageHeight, skipImages are ignored.
+  var testCases = [
+    { width: 5, height: 7, depth: 3, xoffset: 2, yoffset: 3, zoffset: 1,
+      alignment: 1, rowLength: 0, imageHeight: 0, skipPixels: 0, skipRows: 0, skipImages: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true,
+      validUnpackParams3D: true, validUnpackParamsForSub3D: true },
+    { width: 5, height: 7, depth: 4, xoffset: 2, yoffset: 3, zoffset: 1,
+      alignment: 2, rowLength: 0, imageHeight: 0, skipPixels: 0, skipRows: 0, skipImages: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true,
+      validUnpackParams3D: true, validUnpackParamsForSub3D: true },
+    { width: 6, height: 7, depth: 3, xoffset: 2, yoffset: 3, zoffset: 1,
+      alignment: 4, rowLength: 0, imageHeight: 0, skipPixels: 0, skipRows: 0, skipImages: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true,
+      validUnpackParams3D: true, validUnpackParamsForSub3D: true },
+    { width: 5, height: 8, depth: 3, xoffset: 2, yoffset: 3, zoffset: 1,
+      alignment: 8, rowLength: 0, imageHeight: 0, skipPixels: 0, skipRows: 0, skipImages: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true,
+      validUnpackParams3D: true, validUnpackParamsForSub3D: true },
+
+    // ROW_LENGTH == width
+    { width: 10, height: 9, depth: 2, xoffset: 2, yoffset: 3, zoffset: 1,
+      alignment: 4, rowLength: 10, imageHeight: 0, skipPixels: 0, skipRows: 0, skipImages: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true,
+      validUnpackParams3D: true, validUnpackParamsForSub3D: true },
+
+    // ROW_LENGTH < width
+    { width: 5, height: 7, depth: 3, xoffset: 2, yoffset: 3, zoffset: 1,
+      alignment: 1, rowLength: 4, imageHeight: 0, skipPixels: 0, skipRows: 0, skipImages: 0,
+      validUnpackParams2D: false, validUnpackParams3D: false },
+    { width: 5, height: 7, depth: 3, xoffset: 2, yoffset: 3, zoffset: 1,
+      alignment: 2, rowLength: 4, imageHeight: 0, skipPixels: 0, skipRows: 0, skipImages: 0,
+      validUnpackParams2D: false, validUnpackParams3D: false },
+    { width: 5, height: 7, depth: 3, xoffset: 2, yoffset: 3, zoffset: 1,
+      alignment: 4, rowLength: 4, imageHeight: 0, skipPixels: 0, skipRows: 0, skipImages: 0,
+      validUnpackParams2D: false, validUnpackParams3D: false },
+    { width: 5, height: 7, depth: 3, xoffset: 2, yoffset: 3, zoffset: 1,
+      alignment: 8, rowLength: 4, imageHeight: 0, skipPixels: 0, skipRows: 0, skipImages: 0,
+      validUnpackParams2D: false, validUnpackParams3D: false },
+
+    // ROW_LENGTH > width
+    { width: 5, height: 7, depth: 3, xoffset: 2, yoffset: 3, zoffset: 1,
+      alignment: 1, rowLength: 6, imageHeight: 0, skipPixels: 0, skipRows: 0, skipImages: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true,
+      validUnpackParams3D: true, validUnpackParamsForSub3D: true },
+    { width: 5, height: 7, depth: 3, xoffset: 2, yoffset: 3, zoffset: 1,
+      alignment: 2, rowLength: 7, imageHeight: 0, skipPixels: 0, skipRows: 0, skipImages: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true,
+      validUnpackParams3D: true, validUnpackParamsForSub3D: true },
+    { width: 5, height: 7, depth: 3, xoffset: 2, yoffset: 3, zoffset: 1,
+      alignment: 4, rowLength: 8, imageHeight: 0, skipPixels: 0, skipRows: 0, skipImages: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true,
+      validUnpackParams3D: true, validUnpackParamsForSub3D: true },
+    { width: 5, height: 7, depth: 5, xoffset: 2, yoffset: 3, zoffset: 2,
+      alignment: 8, rowLength: 9, imageHeight: 0, skipPixels: 0, skipRows: 0, skipImages: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true,
+      validUnpackParams3D: true, validUnpackParamsForSub3D: true },
+
+    // IMAGE_HEIGHT == height
+    { width: 6, height: 7, depth: 4, xoffset: 2, yoffset: 3, zoffset: 1,
+      alignment: 8, rowLength: 0, imageHeight: 7, skipPixels: 0, skipRows: 0, skipImages: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true,
+      validUnpackParams3D: true, validUnpackParamsForSub3D: true },
+
+    // IMAGE_HEIGHT < height
+    { width: 5, height: 7, depth: 3, xoffset: 2, yoffset: 3, zoffset: 1,
+      alignment: 1, rowLength: 0, imageHeight: 6, skipPixels: 0, skipRows: 0, skipImages: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true,
+      validUnpackParams3D: false },
+    { width: 5, height: 7, depth: 3, xoffset: 2, yoffset: 3, zoffset: 1,
+      alignment: 2, rowLength: 0, imageHeight: 6, skipPixels: 0, skipRows: 0, skipImages: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true,
+      validUnpackParams3D: false },
+    { width: 5, height: 7, depth: 3, xoffset: 2, yoffset: 3, zoffset: 1,
+      alignment: 4, rowLength: 0, imageHeight: 6, skipPixels: 0, skipRows: 0, skipImages: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true,
+      validUnpackParams3D: false },
+    { width: 5, height: 7, depth: 3, xoffset: 2, yoffset: 3, zoffset: 1,
+      alignment: 8, rowLength: 0, imageHeight: 6, skipPixels: 0, skipRows: 0, skipImages: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true,
+      validUnpackParams3D: false },
+
+    // IMAGE_HEIGHT > height
+    { width: 5, height: 7, depth: 3, xoffset: 2, yoffset: 3, zoffset: 1,
+      alignment: 1, rowLength: 0, imageHeight: 8, skipPixels: 0, skipRows: 0, skipImages: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true,
+      validUnpackParams3D: true, validUnpackParamsForSub3D: true },
+    { width: 6, height: 7, depth: 3, xoffset: 2, yoffset: 2, zoffset: 1,
+      alignment: 2, rowLength: 0, imageHeight: 9, skipPixels: 0, skipRows: 0, skipImages: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true,
+      validUnpackParams3D: true, validUnpackParamsForSub3D: true },
+    { width: 7, height: 7, depth: 3, xoffset: 2, yoffset: 4, zoffset: 1,
+      alignment: 4, rowLength: 0, imageHeight: 10, skipPixels: 0, skipRows: 0, skipImages: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true,
+      validUnpackParams3D: true, validUnpackParamsForSub3D: true },
+    { width: 8, height: 7, depth: 3, xoffset: 2, yoffset: 3, zoffset: 1,
+      alignment: 8, rowLength: 0, imageHeight: 11, skipPixels: 0, skipRows: 0, skipImages: 0,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true,
+      validUnpackParams3D: true, validUnpackParamsForSub3D: true },
+
+    // SKIP parameters
+    { width: 5, height: 7, depth: 3, xoffset: 2, yoffset: 3, zoffset: 1,
+      alignment: 1, rowLength: 0, imageHeight: 0, skipPixels: 10, skipRows: 0, skipImages: 0,
+      validUnpackParams2D: false, validUnpackParams3D: false },
+    { width: 5, height: 7, depth: 3, xoffset: 2, yoffset: 3, zoffset: 1,
+      alignment: 2, rowLength: 0, imageHeight: 0, skipPixels: 2, skipRows: 8, skipImages: 0,
+      validUnpackParams2D: false, validUnpackParams3D: false },
+    { width: 5, height: 7, depth: 3, xoffset: 2, yoffset: 3, zoffset: 1,
+      alignment: 4, rowLength: 0, imageHeight: 0, skipPixels: 3, skipRows: 5, skipImages: 1,
+      validUnpackParams2D: false, validUnpackParams3D: false },
+    { width: 5, height: 7, depth: 3, xoffset: 2, yoffset: 3, zoffset: 1,
+      alignment: 8, rowLength: 0, imageHeight: 0, skipPixels: 7, skipRows: 0, skipImages: 2,
+      validUnpackParams2D: false, validUnpackParams3D: false },
+
+    // all mixed.
+    { width: 5, height: 7, depth: 3, xoffset: 2, yoffset: 3, zoffset: 1,
+      alignment: 1, rowLength: 6, imageHeight: 6, skipPixels: 3, skipRows: 5, skipImages: 1,
+      validUnpackParams2D: false, validUnpackParams3D: false },
+    { width: 5, height: 7, depth: 3, xoffset: 2, yoffset: 3, zoffset: 1,
+      alignment: 2, rowLength: 4, imageHeight: 8, skipPixels: 7, skipRows: 2, skipImages: 2,
+      validUnpackParams2D: false, validUnpackParams3D: false },
+    { width: 5, height: 7, depth: 3, xoffset: 2, yoffset: 3, zoffset: 1,
+      alignment: 4, rowLength: 10, imageHeight: 2, skipPixels: 0, skipRows: 3, skipImages: 1,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true,
+      validUnpackParams3D: false },
+    { width: 1, height: 1, depth: 1, xoffset: 0, yoffset: 0, zoffset: 0,
+      alignment: 2, rowLength: 3, imageHeight: 2, skipPixels: 3, skipRows: 5, skipImages: 1,
+      validUnpackParams2D: false, validUnpackParams3D: false },
+    { width: 17, height: 6, depth: 4, xoffset: 12, yoffset: 3, zoffset: 2,
+      alignment: 2, rowLength: 4, imageHeight: 8, skipPixels: 1, skipRows: 4, skipImages: 2,
+      validUnpackParams2D: false, validUnpackParams3D: false },
+    { width: 8, height: 17, depth: 3, xoffset: 2, yoffset: 13, zoffset: 1,
+      alignment: 4, rowLength: 9, imageHeight: 2, skipPixels: 0, skipRows: 3, skipImages: 1,
+      validUnpackParams2D: true, validUnpackParamsForSub2D: true,
+      validUnpackParams3D: false },
+  ];
+
+  // Upload textures from client data
+  var useUnpackBuffer = false;
+  for (var ii = 0; ii < testCases.length; ++ii) {
+    var testCase = testCases[ii];
+    runTestIteration2D(gl, testCase, useUnpackBuffer);
+    runTestIteration3D(gl, testCase, useUnpackBuffer);
+  }
+
+  // Upload textures from unpack buffer
+  useUnpackBuffer = true;
+  for (var ii = 0; ii < testCases.length; ++ii) {
+    var testCase = testCases[ii];
+    runTestIteration2D(gl, testCase, useUnpackBuffer);
+    runTestIteration3D(gl, testCase, useUnpackBuffer);
+  }
+}
+
+runTests();
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+</body>
+</html>

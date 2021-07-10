@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'nonce-noncynonce'; connect-src 'self';">
+    <title>scriptnonce-basic-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/alertAssert.sub.js?alerts=["PASS (closely-quoted nonce)","PASS (nonce w/whitespace)", "violated-directive=script-src-elem", "violated-directive=script-src-elem", "violated-directive=script-src-elem"]'></script>
+    <script nonce="noncynonce">
+        alert_assert('PASS (closely-quoted nonce)');
+
+    </script>
+    <script nonce="   noncynonce    ">
+        alert_assert('PASS (nonce w/whitespace)');
+
+        window.addEventListener('securitypolicyviolation', function(e) {
+            alert_assert("violated-directive=" + e.violatedDirective);
+        });
+    </script>
+    <script nonce="noncynonce noncynonce">
+        alert_assert('FAIL (1/3)');
+
+    </script>
+    <script>
+        alert_assert('FAIL (2/3)');
+
+    </script>
+    <script nonce="noncynonceno?">
+        alert_assert('FAIL (3/3)');
+
+    </script>
+</head>
+
+<body>
+    <p>
+        This tests the effect of a valid script-nonce value. It passes if a CSP violation is generated, and the two PASS alerts are executed.
+    </p>
+    <div id="log"></div>
+</body>
+
+</html>

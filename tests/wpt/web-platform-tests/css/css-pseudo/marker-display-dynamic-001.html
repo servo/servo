@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: ::marker is created dynamically properly</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="match" href="marker-color-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1538589">
+<style>
+li {
+  color: green;
+  font-size: 40px;
+  list-style-type: square;
+}
+::marker {
+  display: none;
+}
+.tweak::marker {
+  display: initial;
+}
+</style>
+<ol>
+    <li><!-- The list marker should be a green square.--></li>
+</ol>
+<script>
+  onload = function() {
+    let li = document.querySelector("li");
+    li.offsetTop;
+    li.classList.add("tweak");
+  }
+</script>

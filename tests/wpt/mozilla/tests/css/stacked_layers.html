@@ -74,6 +74,15 @@
             <div class="gray box" style="position: relative; left: 20px; top: -30px;"> </div>
         </div>
 
+        <!-- The child of div with overflow scroll should be painted last since
+             overflow:scroll does not create a stacking context and capture it. -->
+        <div class="test grayest box">
+            <div class="box" style="position: relative; left: 20px; top: 20px; overflow: scroll;">
+                <div class="gray box" style="position: relative; z-index: 3;"></div>
+            </div>
+            <div class="grayer box" style="position: relative; left: 10px; top: -40px; z-index: 2;"></div>
+        </div>
+
         <script>
             function paintCanvas(id) {
                 var canvas = document.getElementById(id);

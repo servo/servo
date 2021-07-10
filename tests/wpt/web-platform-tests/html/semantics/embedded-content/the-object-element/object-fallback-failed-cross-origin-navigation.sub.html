@@ -1,0 +1,52 @@
+n<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Test that &lt;object&gt; renders its own fallback.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  // The host exists but the resource is unavailable.
+  const cross_origin_url_a = "http://{{hosts[alt][www]}}:{{ports[http][0]}}/foo.html";
+  // The destination does not even exist and the navigation fails.
+  const cross_origin_url_b = "http://{{hosts[alt][nonexistent]}}:{{ports[http][0]}}/foo.html";
+
+  // Returns a promise which is resolved when |callback| returns true. The |callback| is invoked at
+  // every animation frame.
+  function for_each_animation_frame(callback) {
+    return new Promise((resolve) => {
+      function on_raf() {
+        if (!callback())
+          resolve();
+        window.requestAnimationFrame(on_raf);
+      }
+      window.requestAnimationFrame(on_raf);
+    });
+  }
+
+  // Create an <object> with some fallback content.
+  function create_object_with_fallback(url) {
+    var object = document.createElement("object");
+    var fallback = document.createElement("button");
+    fallback.textContent = "FALLBACK CONTENT";
+    object.appendChild(fallback);
+    object.data = url;
+    object.type = "text/html";
+    document.body.appendChild(object);
+    return object;
+  }
+
+  function area(el) {
+    let bounds = el.getBoundingClientRect();
+    return el.width * el.height;
+  }
+
+  promise_test(async() => {
+    var object = create_object_with_fallback(cross_origin_url_a);
+    await for_each_animation_frame(() => area(object.firstChild) > 0);
+    object.parentElement.removeChild(object);
+    object = create_object_with_fallback(cross_origin_url_b);
+    await for_each_animation_frame(() => area(object.firstChild) > 0);
+    object.parentElement.removeChild(object);
+  }, "Verify fallback content for failed cross-origin navigations is shown correctly.");
+</script>
+</body>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     xmlns:h="http:/www.w3.org/1999/xhtml">
+  <title>&#x3c;linearGradient&#x3e; (without content) inheriting from a &#x3c;linearGradient&#x3e; in an invalid context</title>
+  <h:link rel="help" href="https://svgwg.org/svg2-draft/pservers.html#StopNotes"/>
+  <h:link rel="match" href="reference/green-100x100.svg"/>
+  <linearGradient id="linearGradient1" xlink:href="#linearGradient0"/>
+  <rect width="100" height="100" fill="green"/>
+  <rect width="100" height="100" fill="url(#linearGradient1) yellow"/>
+  <text>
+    <linearGradient id="linearGradient0">
+      <stop stop-color="orange"/>
+    </linearGradient>
+  </text>
+</svg>

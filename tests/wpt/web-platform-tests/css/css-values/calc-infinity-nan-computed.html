@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Infinity and NaN: calc() computed value.</title>
+<link rel="author" title="Seokho Song"  href="mailto:0xdevssh@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-values/#calc-type-checking">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+const APPROX_INFINITY = 3.35544e+07;
+const APPROX_NEGATIVE_INFINITY = -APPROX_INFINITY;
+
+// For <length>
+test_computed_value_greater_or_lower_than("width", "calc(NaN * 1px)", APPROX_INFINITY);
+test_computed_value_greater_or_lower_than("width", "calc(infinity * 1px)", APPROX_INFINITY);
+test_computed_value_greater_or_lower_than("width", "calc(infinity * 1cm)", APPROX_INFINITY);
+test_computed_value_greater_or_lower_than("width", "calc(NaN * 1rem)", APPROX_INFINITY);
+
+test_computed_value_greater_or_lower_than("width", "calc(infinity * 1px - infinity * 1%)", APPROX_INFINITY);
+test_computed_value_greater_or_lower_than("width", "calc(infinity * 1px + infinity * 1%)", APPROX_INFINITY);
+test_computed_value_greater_or_lower_than("width", "calc(min(NaN * 1px, infinity * 1px) + max(infinity * 1px, -infinity * 1px))", APPROX_INFINITY);
+test_computed_value_greater_or_lower_than("width", "calc(infinity * 1px - max(infinity * 1%, 0%))", APPROX_INFINITY);
+
+test_computed_value_greater_or_lower_than("width", "calc(max(infinity * 1px, 10px))", APPROX_INFINITY);
+
+test_computed_value_greater_or_lower_than("margin-left", "calc(-infinity * 1px)", APPROX_NEGATIVE_INFINITY);
+test_computed_value_greater_or_lower_than("margin-left", "calc(min(1px, -infinity * 1%))", APPROX_NEGATIVE_INFINITY);
+
+test_computed_value_greater_or_lower_than("margin-left", "calc(-infinity * 1%)", APPROX_NEGATIVE_INFINITY);
+test_computed_value_greater_or_lower_than("margin-left", "calc(max(10000px, 0px) + min(-infinity * 1px, infinity * 1px))", APPROX_NEGATIVE_INFINITY);
+
+test_computed_value_greater_or_lower_than("margin-left", "calc(-infinity * 1px - infinity * 1px)", APPROX_NEGATIVE_INFINITY);
+test_computed_value_greater_or_lower_than("margin-left", "calc(min(-infinity * 1px, 10px))", APPROX_NEGATIVE_INFINITY);
+
+// ----------------
+
+</script>
+</body>
+</html>

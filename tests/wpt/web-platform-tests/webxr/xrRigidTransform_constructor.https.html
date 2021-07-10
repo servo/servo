@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<script>
+
+let testName = "XRRigidTransform constructor works";
+let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+let testFunction =
+  (session, fakeDeviceController, t) => new Promise((resolve, reject) => {
+  let coordDict = function(coords) {
+    let tempDict = {
+        x : coords[0],
+        y : coords[1],
+        z : coords[2]
+    }
+
+    if (coords.length >= 4) {
+        tempDict["w"] = coords[3];
+    }
+
+    return tempDict;
+  };
+
+  let createDOMPoint = function(coords) {
+    return DOMPoint.fromPoint(coordDict(coords));
+  };
+
+  let createDOMPointReadOnly = function(coords) {
+    return DOMPointReadOnly.fromPoint(coordDict(coords));
+  };
+
+  let quaternionLength = function(point) {
+    return Math.sqrt(
+        (point.x * point.x) +
+        (point.y * point.y) +
+        (point.z * point.z) +
+        (point.w * point.w));
+  };
+
+  let checkDOMPoint = function(point, x, y, z, w, desc) {
+    t.step(() => {
+      assert_approx_equals(point.x, x, FLOAT_EPSILON, `${desc}: x value`);
+      assert_approx_equals(point.y, y, FLOAT_EPSILON, `${desc}: y value`);
+      assert_approx_equals(point.z, z, FLOAT_EPSILON, `${desc}: z value`);
+      assert_approx_equals(point.w, w, FLOAT_EPSILON, `${desc}: w value`);
+    });
+  };
+
+  let checkTransform = function(transformObj, desc) {
+    t.step(() => {
+      assert_not_equals(transformObj, null, `${desc}: exists`);
+      assert_not_equals(transformObj.position, null, `${desc}: position exists`);
+      assert_not_equals(transformObj.orientation, null, `${desc}: orientation exists`);
+      assert_not_equals(transformObj.matrix, null, `${desc}: matrix exists`);
+      assert_equals(transformObj.matrix.length, 16, `${desc}: matrix of correct length`);
+    });
+  };
+
+  // test creating transform with specified position and orientation
+  // make sure that orientation was normalized to have length = 1.0
+  let transform = new XRRigidTransform(
+      createDOMPoint([1.0, 2.0, 3.0]),
+      createDOMPoint([1.1, 2.1, 3.1, 1.0]));
+  checkTransform(transform, "Arbitrary transform");
+  checkDOMPoint(transform.position, 1.0, 2.0, 3.0, 1.0, "Arbitrary transform position");
+  assert_approx_equals(quaternionLength(transform.orientation), 1.0, FLOAT_EPSILON,
+                       "Arbitrary transform is normalized");
+
+  // test creating identity transform
+  let identity = new XRRigidTransform();
+  checkTransform(identity, "Identity transform");
+  checkDOMPoint(identity.position, 0.0, 0.0, 0.0, 1.0, "Identity transform position");
+  checkDOMPoint(identity.orientation, 0.0, 0.0, 0.0, 1.0, "Identity transform orientation");
+
+  // create transform with only position specified
+  transform = new XRRigidTransform(createDOMPoint([1.0, 2.0, 3.0]));
+  checkTransform(transform, "Position-only");
+
+  // create transform with only orientation specified
+  transform = new XRRigidTransform(undefined, createDOMPoint([1.1, 2.1, 3.1, 1.0]));
+  checkTransform(transform, "orientation-only");
+
+  // create transform with DOMPointReadOnly
+  transform = new XRRigidTransform(
+      createDOMPointReadOnly([1.0, 2.0, 3.0]),
+      createDOMPointReadOnly([1.1, 2.1, 3.1, 1.0]));
+  checkTransform(transform, "Created with DOMPointReadOnly");
+
+  // create transform with dictionary
+  transform = new XRRigidTransform(
+      coordDict([1.0, 2.0, 3.0]),
+      coordDict([1.1, 2.1, 3.1, 1.0]));
+  checkTransform(transform, "Created with dict");
+
+  assert_throws_js(TypeError, () => new XRRigidTransform(
+      coordDict([1.0, 2.0, 3.0, 0.5]),
+      coordDict([1.1, 2.1, 3.1, 1.0])
+  ), "Constructor should throw TypeError for non-1 position w values");
+
+  assert_throws_dom("InvalidStateError", () => new XRRigidTransform(
+      coordDict([1.0, 2.0, 3.0, 1.0]),
+      coordDict([0, 0, 0, 0])
+  ), "Constructor should throw InvalidStateError for non-normalizeable orientation values");
+  resolve();
+});
+
+xr_session_promise_test(testName, testFunction, fakeDeviceInitParams,
+    'immersive-vr');
+
+</script>

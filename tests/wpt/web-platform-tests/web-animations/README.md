@@ -1,7 +1,7 @@
 Web Animations Test Suite
 =========================
 
-Specification: https://w3c.github.io/web-animations/
+Specification: https://drafts.csswg.org/web-animations/
 
 
 Guidelines for writing tests
@@ -19,7 +19,7 @@ Guidelines for writing tests
 
     Instead, try something like:
 
-    > *   `/web-animations/timing-model/animations/set-the-animation-start-time.html`<br>
+    > *   `/web-animations/timing-model/animations/setting-the-start-time-of-an-animation.html`<br>
     >     Tests all the branches and inputs to the procedure as defined in the
     >     spec (using the `Animation.startTime` API).
     > *   `/web-animations/interfaces/Animation/startTime.html`<br>
@@ -51,24 +51,24 @@ Guidelines for writing tests
     e.g.
 
       ```javascript
-      test(function(t) {
+      test(t => {
         const animation = createDiv(t).animate(null);
         assert_class_string(animation, 'Animation', 'Returned object is an Animation');
       }, 'Element.animate() creates an Animation object');
       ```
 
       ```javascript
-      test(function(t) {
-        assert_throws({ name: 'TypeError' }, function() {
+      test(t => {
+        assert_throws_js(TypeError, () => {
           createDiv(t).animate(null, -1);
         });
       }, 'Setting a negative duration throws a TypeError');
       ```
 
       ```javascript
-      promise_test(function(t) {
+      promise_test(t => {
         const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
-        return animation.ready.then(function() {
+        return animation.ready.then(() => {
           assert_greater_than(animation.startTime, 0, 'startTime when running');
         });
       }, 'startTime is resolved when running');
@@ -98,10 +98,19 @@ Guidelines for writing tests
     Remember, even if we do need to make all tests take, say 200s each, text
     editors are very good at search and replace.
 
-*   Use the `assert_times_equal` assertion for comparing calculated times.
-    It tests times are equal using the precision recommended in the spec whilst
-    allowing implementations to override the function to meet their own
-    precision requirements.
+*   Use the `assert_times_equal` assertion for comparing times returned from
+    the API. This asserts that the time values are equal using a tolerance
+    based on the precision recommended in the spec. This tolerance is applied
+    to *both* of the values being compared. That is, it effectively allows
+    double the epsilon that is used when comparing with an absolute value.
+
+    For comparing a time value returned from the API to an absolute value, use
+    `assert_time_equals_literal`. This tests that the actual value is equal to
+    the expected value within the precision recommended in the spec.
+
+    Both `assert_times_equal` and `assert_time_equals_literal` are defined in a
+    way that implementations can override them to meet their own precision
+    requirements.
 
 *   There are quite a few bad tests in the repository. We're learning as
     we go. Don't just copy them blindly&mdash;please fix them!

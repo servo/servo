@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: SVG presentation attribute, translateY on group, skewX on child</title>
+    <link rel="author" title="David Alcala" href="mailto:dalcala@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+    <link rel="match" href="reference/svg-green-square-250x250-ref.html">
+    <meta name="flags" content="svg">
+    <meta name="assert" content="Transforms on a parent element should be pre-multiplied to transforms on a child element.  The group of elements should be translated vertically.  Additionally, the child rect should be skewed horizontally.">
+    <style type="text/css">
+    svg {
+        width: 250px;
+        height: 250px;
+        background: green;
+    }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a green square and no red.</p>
+    <svg>
+        <path d="M 2,26 100,26 198,124 100,124 Z" fill="red"/>
+        <g transform="translate(0 25)">
+            <rect width="100" height="100" fill="green" transform="skewX(45)"/>
+        </g>
+    </svg>
+</body>
+</html>

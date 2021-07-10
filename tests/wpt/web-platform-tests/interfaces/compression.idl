@@ -1,0 +1,16 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Compression Streams (https://wicg.github.io/compression/)
+
+[Exposed=(Window,Worker)]
+interface CompressionStream {
+  constructor(DOMString format);
+};
+CompressionStream includes GenericTransformStream;
+
+[Exposed=(Window,Worker)]
+interface DecompressionStream {
+  constructor(DOMString format);
+};
+DecompressionStream includes GenericTransformStream;

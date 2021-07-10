@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/1058690">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="A percent inset resolves against the available size when it dynamically changes.">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="target" style="contain: paint; width: 100px; background: red; line-height: 0;">
+  <span style="position: relative; top: -100%;">
+    <span style="position: relative; top: 100px;">
+      <div style="position: fixed; width: 100px; height: 100px; background: green;"></div>
+    </span>
+  </span>
+</div>
+<script>
+document.body.offsetTop;
+document.getElementById('target').style.height = '100px';
+</script>

@@ -4,10 +4,10 @@
 <title>dataTransfer.clearData during link drag and drop</title>
 <style type="text/css">
 div
-	{height:100px;
-	width:100px;
-	padding:20px;
-	background-color:silver;}
+  {height:100px;
+  width:100px;
+  padding:20px;
+  background-color:silver;}
 </style>
 <script type="application/ecmascript">
 <![CDATA[
@@ -15,43 +15,43 @@ var dataTypes = ['text/uri-list', 'text/plain', 'application/xml', 'application/
 data = ['data:text/plain,FAIL', 'FAIL', '<result>FAIL</result>', '<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Data store item</title></head><body><p>FAIL</p></body></html>', '<math xmlns="http://www.w3.org/1998/Math/MathML"><mn>1</mn></math>', '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="100px" height="50px" viewBox="0 0 100 50"><text x="0" y="40" font-size="40" fill="green">FAIL</text></svg>', '<!DOCTYPE html><html><head><title>Data store item</title></head><body><p>FAIL</p></body></html>', 'FAIL'],
 l = 0;
 function start(event)
-	{event.dataTransfer.effectAllowed = 'copy';
-	for(var i = 0; i != dataTypes.length; i++)
-		{event.dataTransfer.setData(dataTypes[i], data[i]);}
-	say('items.length (dragstart) : ' + ((event.dataTransfer.items.length >= dataTypes.length)?'PASS':'FAIL'));
-	}
+  {event.dataTransfer.effectAllowed = 'copy';
+  for(var i = 0; i != dataTypes.length; i++)
+    {event.dataTransfer.setData(dataTypes[i], data[i]);}
+  say('items.length (dragstart) : ' + ((event.dataTransfer.items.length >= dataTypes.length)?'PASS':'FAIL'));
+  }
 function start(event)
-	{event.dataTransfer.effectAllowed = 'copy';
-	l = event.dataTransfer.items.length;
-	for(var i = 0; i != dataTypes.length; i++)
-		{event.dataTransfer.setData(dataTypes[i], data[i]);}
-	for(var i = 0; i != dataTypes.length; i++)
-		{event.dataTransfer.clearData(dataTypes[i]);}
-	say('items.length (dragstart) : ' + ((event.dataTransfer.items.length < l)?'PASS':'FAIL'));}
+  {event.dataTransfer.effectAllowed = 'copy';
+  l = event.dataTransfer.items.length;
+  for(var i = 0; i != dataTypes.length; i++)
+    {event.dataTransfer.setData(dataTypes[i], data[i]);}
+  for(var i = 0; i != dataTypes.length; i++)
+    {event.dataTransfer.clearData(dataTypes[i]);}
+  say('items.length (dragstart) : ' + ((event.dataTransfer.items.length < l)?'PASS':'FAIL'));}
 function dragElement(event)
-	{for(var i = 0; i != dataTypes.length; i++)
-		{event.dataTransfer.setData(dataTypes[i], 'FAIL');
-		if(event.dataTransfer.getData(dataTypes[i]))
-			{say('getData(' + dataTypes[i] + ') : FAIL (data store should not be readable during drag)')}
-		}
-	if(event.dataTransfer.items.length > l)
-		{say('items.length (dragover) : FAIL' + event.dataTransfer.items.length)}
-	}
+  {for(var i = 0; i != dataTypes.length; i++)
+    {event.dataTransfer.setData(dataTypes[i], 'FAIL');
+    if(event.dataTransfer.getData(dataTypes[i]))
+      {say('getData(' + dataTypes[i] + ') : FAIL (data store should not be readable during drag)')}
+    }
+  if(event.dataTransfer.items.length > l)
+    {say('items.length (dragover) : FAIL' + event.dataTransfer.items.length)}
+  }
 function enterElement(event)
-	{event.preventDefault();
-	for(var i = 0; i != dataTypes.length; i++)
-		{event.dataTransfer.setData(dataTypes[i], 'FAIL');
-		if(event.dataTransfer.getData(dataTypes[i]))
-			{say('getData(' + dataTypes[i] + ') : FAIL (data store should not be readable during dragenter)')}
-		}
-	say('items.length (dragenter) : ' + ((event.dataTransfer.items.length < l)?'PASS':'FAIL'));}
+  {event.preventDefault();
+  for(var i = 0; i != dataTypes.length; i++)
+    {event.dataTransfer.setData(dataTypes[i], 'FAIL');
+    if(event.dataTransfer.getData(dataTypes[i]))
+      {say('getData(' + dataTypes[i] + ') : FAIL (data store should not be readable during dragenter)')}
+    }
+  say('items.length (dragenter) : ' + ((event.dataTransfer.items.length < l)?'PASS':'FAIL'));}
 function dataDrop(event)
-	{say('items.length (drop) : ' + ((event.dataTransfer.items.length < l)?'PASS':'FAIL'));
-	for(var i = 0; i != dataTypes.length; i++)
-		{say('getData(' + dataTypes[i] + ') : ' + ((event.dataTransfer.getData(dataTypes[i]) == '')?'PASS':'FAIL'));}
-	document.querySelector('div').setAttribute('style','background-color:green');}
+  {say('items.length (drop) : ' + ((event.dataTransfer.items.length < l)?'PASS':'FAIL'));
+  for(var i = 0; i != dataTypes.length; i++)
+    {say('getData(' + dataTypes[i] + ') : ' + ((event.dataTransfer.getData(dataTypes[i]) == '')?'PASS':'FAIL'));}
+  document.querySelector('div').setAttribute('style','background-color:green');}
 function say(it)
-	{document.querySelector('pre').appendChild(document.createTextNode(it + '\n'));}
+  {document.querySelector('pre').appendChild(document.createTextNode(it + '\n'));}
 ]]>
 </script>
 </head>

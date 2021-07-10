@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Fraction numalign denomalign</title>
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#fractions-mfrac">
+    <meta name="assert" content="Check that legacy numalign/denomalign attributes are ignored.">
+    <link rel="match" href="frac-numalign-denomalign-001-ref.html">
+  </head>
+  <body>
+    <p>This test passes if you see 6 fractions with numerators and
+      denominators horizontally centered.</p>
+    <p>
+      <math>
+        <mfrac numalign="left">
+          <mspace width="10px" height="20px" style="background: blue;"></mspace>
+          <mspace width="30px" height="20px" style="background: cyan;"></mspace>
+        </mfrac>
+      </math>
+      <math>
+        <mfrac numalign="center">
+          <mspace width="10px" height="20px" style="background: blue;"></mspace>
+          <mspace width="30px" height="20px" style="background: cyan;"></mspace>
+        </mfrac>
+      </math>
+      <math>
+        <mfrac numalign="right">
+          <mspace width="10px" height="20px" style="background: blue;"></mspace>
+          <mspace width="30px" height="20px" style="background: cyan;"></mspace>
+        </mfrac>
+      </math>
+    </p>
+    <p>
+      <math>
+        <mfrac denomalign="left">
+          <mspace width="30px" height="20px" style="background: cyan;"></mspace>
+          <mspace width="10px" height="20px" style="background: blue;"></mspace>
+        </mfrac>
+      </math>
+      <math>
+        <mfrac denomalign="center">
+          <mspace width="30px" height="20px" style="background: cyan;"></mspace>
+          <mspace width="10px" height="20px" style="background: blue;"></mspace>
+        </mfrac>
+      </math>
+      <math>
+        <mfrac denomalign="right">
+          <mspace width="30px" height="20px" style="background: cyan;"></mspace>
+          <mspace width="10px" height="20px" style="background: blue;"></mspace>
+        </mfrac>
+      </math>
+    </p>
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>MathMLFeatureDetection.ensure_for_match_reftest("has_mfrac");</script>
+  </body>
+</html>

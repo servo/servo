@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: Transform functions separated by commas and newlines on SVG presentation attribute</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform-list">
+    <link rel="help" href="https://www.w3.org/TR/css-transforms-1/#svg-syntax">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-function-lists">
+    <link rel="match" href="reference/svg-transform-list-separations-ref.html">
+    <meta name="flags" content="svg">
+    <meta name="assert" content="The rect in the test should have an x offset of 100, a y offset of 100, and should be rotated 90 degrees clockwise with 3 transform functions in the list delimited by commas and newlines">
+    <style type="text/css">
+    svg {
+        width: 300px;
+        height: 300px;
+    }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a vertical orange stripe to the left of a vertical fuchsia stripe.</p>
+    <svg>
+        <!-- Fill with Gradient to avoid false positive. -->
+        <defs>
+            <linearGradient id="grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="50%" stop-color="fuchsia"/>
+                <stop offset="50%" stop-color="orange"/>
+            </linearGradient>
+        </defs>
+        <rect width="100" height="100" fill="url(#grad)" transform="translate(200 0),
+                                                                    translate(0 100),
+                                                                    rotate(90)"/>
+    </svg>
+</body>
+</html>

@@ -1,0 +1,41 @@
+﻿<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: ellipsis and legacy grapheme cluster</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#text-overflow">
+<link rel="match" href="reference/text-overflow-022-ref.html">
+<meta name="flags" content="">
+<meta name="assert" content="Implementations must hide characters, i.e. entire garpheme clusters, not part of them, to make room for the ellipsis">
+<style>
+#sizer {
+  font-size: 50px;
+  white-space: pre;
+  color: white;
+  float: left;
+  position: relative;
+}
+
+#test {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: absolute;
+  top: 0; right: 2px; bottom: 0; left: 0;
+  color: green;
+}
+span {
+  color: red;
+}
+
+</style>
+
+<p>Test passes if there are three green dots below and <strong>no red</strong>.</p>
+
+<!--Starting the line with an space because the first character on the line is clipped rather than ellided, so we need the tested grapheme cluster to be non-first-->
+<!--
+sizer shrinkwraps to the size of a space, plus the grapheme cluster, plus the ellipsis.
+test is 2px shorter than that, so it can only fit part of the grapheme cluster.
+The whole grapheme cluster should be removed, not just its second character.
+-->
+
+<div id=sizer> l&#x20DE;…<div id=test> <span>l&#x20DE;filler text to make things overflow</span></div><div>

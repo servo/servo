@@ -7,10 +7,10 @@
 <script>
 promise_test(t => {
   var v = document.createElement('video');
-  v.src = getVideoURI('movie_5');
+  v.src = getVideoURI('/media/movie_5');
   v.disableRemotePlayback = true;
 
-  return promise_rejects(t, 'InvalidStateError', v.remote.prompt());
+  return promise_rejects_dom(t, 'InvalidStateError', v.remote.prompt());
 }, 'Test that calling prompt() when disableRemotePlayback attribute is set throws an exception.');
 </script>
 </html>

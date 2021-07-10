@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <title>This tests that multiple violations on a page trigger multiple reports
+        if and only if the violations are distinct.</title>
+    <!-- CSP headers
+         Content-Security-Policy-Report-Only: script-src 'unsafe-inline' 'self'; report-uri /reporting/resources/report.py?op=put&reportID={{$id}}
+         -->
+</head>
+<body>
+  <script>
+    for (var i = 0; i<5; i++)
+      setTimeout("document.body.innerHTML += ('<p>PASS: setTimeout #" + i + " executed.');", 0);
+  </script>
+  <script async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=script-src%20%27unsafe-inline%27%20%27self%27&reportCount=1'></script>
+</body>
+</html>

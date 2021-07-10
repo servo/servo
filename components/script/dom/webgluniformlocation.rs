@@ -1,40 +1,66 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use dom::bindings::codegen::Bindings::WebGLUniformLocationBinding;
-use dom::bindings::js::Root;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::window::Window;
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::window::Window;
+use canvas_traits::webgl::WebGLContextId;
+use canvas_traits::webgl::WebGLProgramId;
 use dom_struct::dom_struct;
-use webrender_traits::WebGLProgramId;
 
 #[dom_struct]
 pub struct WebGLUniformLocation {
     reflector_: Reflector,
     id: i32,
+    context_id: WebGLContextId,
     program_id: WebGLProgramId,
+    link_generation: u64,
+    size: Option<i32>,
+    type_: u32,
 }
 
 impl WebGLUniformLocation {
-    fn new_inherited(id: i32,
-                     program_id: WebGLProgramId)
-                     -> WebGLUniformLocation {
-        WebGLUniformLocation {
+    fn new_inherited(
+        id: i32,
+        context_id: WebGLContextId,
+        program_id: WebGLProgramId,
+        link_generation: u64,
+        size: Option<i32>,
+        type_: u32,
+    ) -> Self {
+        Self {
             reflector_: Reflector::new(),
-            id: id,
-            program_id: program_id,
+            id,
+            context_id,
+            program_id,
+            link_generation,
+            size,
+            type_,
         }
     }
 
-    pub fn new(window: &Window,
-               id: i32,
-               program_id: WebGLProgramId)
-               -> Root<WebGLUniformLocation> {
-        reflect_dom_object(box WebGLUniformLocation::new_inherited(id, program_id),
-                           window,
-                           WebGLUniformLocationBinding::Wrap)
+    pub fn new(
+        window: &Window,
+        id: i32,
+        context_id: WebGLContextId,
+        program_id: WebGLProgramId,
+        link_generation: u64,
+        size: Option<i32>,
+        type_: u32,
+    ) -> DomRoot<Self> {
+        reflect_dom_object(
+            Box::new(Self::new_inherited(
+                id,
+                context_id,
+                program_id,
+                link_generation,
+                size,
+                type_,
+            )),
+            window,
+        )
     }
 
     pub fn id(&self) -> i32 {
@@ -43,5 +69,21 @@ impl WebGLUniformLocation {
 
     pub fn program_id(&self) -> WebGLProgramId {
         self.program_id
+    }
+
+    pub fn context_id(&self) -> WebGLContextId {
+        self.context_id
+    }
+
+    pub fn link_generation(&self) -> u64 {
+        self.link_generation
+    }
+
+    pub fn size(&self) -> Option<i32> {
+        self.size
+    }
+
+    pub fn type_(&self) -> u32 {
+        self.type_
     }
 }

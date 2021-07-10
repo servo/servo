@@ -8,11 +8,15 @@
 # except according to those terms.
 
 from __future__ import print_function, unicode_literals
-from os import path, getcwd, listdir
+from os import path, listdir, getcwd
+from time import time
 
+import signal
 import sys
-import urllib2
+import tempfile
+import six.moves.urllib as urllib
 import json
+import subprocess
 
 from mach.decorators import (
     CommandArgument,
@@ -21,45 +25,44 @@ from mach.decorators import (
 )
 
 from servo.command_base import CommandBase, cd, call
+from servo.build_commands import notify_build_done
+from servo.util import get_static_rust_lang_org_dist, get_urlopen_kwargs
 
 
 @CommandProvider
 class MachCommands(CommandBase):
-    @Command('cargo',
-             description='Run Cargo',
+    @Command('check',
+             description='Run "cargo check"',
              category='devenv')
     @CommandArgument(
         'params', default=None, nargs='...',
-        help="Command-line arguments to be passed through to Cargo")
-    def cargo(self, params):
+        help="Command-line arguments to be passed through to cargo check")
+    @CommandBase.build_like_command_arguments
+    def check(self, params, features=[], media_stack=None, target=None,
+              android=False, magicleap=False, **kwargs):
         if not params:
             params = []
 
-        self.ensure_bootstrapped()
+        features = features or []
 
-        if self.context.topdir == getcwd():
-            with cd(path.join('components', 'servo')):
-                return call(["cargo"] + params, env=self.build_env())
-        return call(['cargo'] + params, env=self.build_env())
+        target, android = self.pick_target_triple(target, android, magicleap)
 
-    @Command('cargo-geckolib',
-             description='Run Cargo with the same compiler version and root crate as build-geckolib',
-             category='devenv')
-    @CommandArgument(
-        'params', default=None, nargs='...',
-        help="Command-line arguments to be passed through to Cargo")
-    def cargo_geckolib(self, params):
-        if not params:
-            params = []
+        features += self.pick_media_stack(media_stack, target)
 
-        self.set_use_stable_rust()
-        self.ensure_bootstrapped()
-        env = self.build_env(geckolib=True)
+        self.ensure_bootstrapped(target=target)
+        self.ensure_clobbered()
+        env = self.build_env()
 
-        if self.context.topdir == getcwd():
-            with cd(path.join('ports', 'geckolib')):
-                return call(["cargo"] + params, env=env)
-        return call(['cargo'] + params, env=env)
+        build_start = time()
+        status = self.run_cargo_build_like_command("check", params, env=env, features=features, **kwargs)
+        elapsed = time() - build_start
+
+        notify_build_done(self.config, elapsed, status == 0)
+
+        if status == 0:
+            print('Finished checking, binary NOT updated. Consider ./mach build before ./mach run')
+
+        return status
 
     @Command('cargo-update',
              description='Same as update-cargo',
@@ -90,8 +93,8 @@ class MachCommands(CommandBase):
         help='Updates the selected package')
     @CommandArgument(
         '--all-packages', '-a', action='store_true',
-        help='Updates all packages. NOTE! This is very likely to break your ' +
-             'working copy, making it impossible to build servo. Only do ' +
+        help='Updates all packages. NOTE! This is very likely to break your '
+             'working copy, making it impossible to build servo. Only do '
              'this if you really know what you are doing.')
     @CommandArgument(
         '--dry-run', '-d', action='store_true',
@@ -102,7 +105,6 @@ class MachCommands(CommandBase):
 
         if dry_run:
             import toml
-            import json
             import httplib
             import colorama
 
@@ -161,8 +163,7 @@ class MachCommands(CommandBase):
             self.ensure_bootstrapped()
 
             with cd(self.context.topdir):
-                call(["cargo", "update"] + params,
-                     env=self.build_env())
+                self.call_rustup_run(["cargo", "update"] + params, env=self.build_env())
 
     @Command('rustc',
              description='Run the Rust compiler',
@@ -175,30 +176,7 @@ class MachCommands(CommandBase):
             params = []
 
         self.ensure_bootstrapped()
-
-        return call(["rustc"] + params, env=self.build_env())
-
-    @Command('rustc-geckolib',
-             description='Run the Rust compiler with the same compiler version and root crate as build-geckolib',
-             category='devenv')
-    @CommandArgument(
-        'params', default=None, nargs='...',
-        help="Command-line arguments to be passed through to rustc")
-    def rustc_geckolib(self, params):
-        if params is None:
-            params = []
-
-        self.set_use_stable_rust()
-        self.ensure_bootstrapped()
-        env = self.build_env(geckolib=True)
-
-        return call(["rustc"] + params, env=env)
-
-    @Command('rust-root',
-             description='Print the path to the root of the Rust compiler',
-             category='devenv')
-    def rust_root(self):
-        print(self.config["tools"]["rust-root"])
+        return self.call_rustup_run(["rustc"] + params, env=self.build_env())
 
     @Command('grep',
              description='`git grep` for selected directories.',
@@ -226,54 +204,100 @@ class MachCommands(CommandBase):
             env=self.build_env())
 
     @Command('rustup',
-             description='Update the Rust version to latest master',
+             description='Update the Rust version to latest Nightly',
              category='devenv')
     def rustup(self):
-        url = "https://api.github.com/repos/rust-lang/rust/git/refs/heads/master"
-        commit = json.load(urllib2.urlopen(url))["object"]["sha"]
-        filename = path.join(self.context.topdir, "rust-commit-hash")
-        with open(filename, "w") as f:
-            f.write(commit)
-
-        # Reset self.config["tools"]["rust-root"]
-        self._rust_version = None
-        self.set_use_stable_rust(False)
-
-        self.fetch()
+        url = get_static_rust_lang_org_dist() + "/channel-rust-nightly-date.txt"
+        nightly_date = urllib.request.urlopen(url, **get_urlopen_kwargs()).read()
+        toolchain = b"nightly-" + nightly_date
+        filename = path.join(self.context.topdir, "rust-toolchain")
+        with open(filename, "wb") as f:
+            f.write(toolchain + b"\n")
+        self.ensure_bootstrapped()
 
     @Command('fetch',
              description='Fetch Rust, Cargo and Cargo dependencies',
              category='devenv')
     def fetch(self):
-        # Fetch Rust and Cargo
         self.ensure_bootstrapped()
 
-        # Fetch Cargo dependencies
         with cd(self.context.topdir):
-            call(["cargo", "fetch"], env=self.build_env())
+            return self.call_rustup_run(["cargo", "fetch"], env=self.build_env())
 
-    @Command('wptrunner-upgrade',
-             description='upgrade wptrunner.',
+    @Command('ndk-stack',
+             description='Invoke the ndk-stack tool with the expected symbol paths',
              category='devenv')
-    def upgrade_wpt_runner(self):
-        env = self.build_env()
-        with cd(path.join(self.context.topdir, 'tests', 'wpt', 'harness')):
-            code = call(["git", "init"], env=env)
-            if code:
-                return code
-            # No need to report an error if this fails, as it will for the first use
-            call(["git", "remote", "rm", "upstream"], env=env)
-            code = call(
-                ["git", "remote", "add", "upstream", "https://github.com/w3c/wptrunner.git"], env=env)
-            if code:
-                return code
-            code = call(["git", "fetch", "upstream"], env=env)
-            if code:
-                return code
-            code = call(["git", "reset", "--hard", "remotes/upstream/master"], env=env)
-            if code:
-                return code
-            code = call(["rm", "-rf", ".git"], env=env)
-            if code:
-                return code
-            return 0
+    @CommandArgument('--release', action='store_true', help="Use release build symbols")
+    @CommandArgument('--target', action='store', default="armv7-linux-androideabi",
+                     help="Build target")
+    @CommandArgument('logfile', action='store', help="Path to logcat output with crash report")
+    def stack(self, release, target, logfile):
+        if not path.isfile(logfile):
+            print(logfile + " doesn't exist")
+            return -1
+        env = self.build_env(target=target)
+        ndk_stack = path.join(env["ANDROID_NDK"], "ndk-stack")
+        self.handle_android_target(target)
+        sym_path = path.join(
+            "target",
+            target,
+            "release" if release else "debug",
+            "apk",
+            "obj",
+            "local",
+            self.config["android"]["lib"])
+        print(subprocess.check_output([ndk_stack, "-sym", sym_path, "-dump", logfile]))
+
+    @Command('ndk-gdb',
+             description='Invoke ndk-gdb tool with the expected symbol paths',
+             category='devenv')
+    @CommandArgument('--release', action='store_true', help="Use release build symbols")
+    @CommandArgument('--target', action='store', default="armv7-linux-androideabi",
+                     help="Build target")
+    def ndk_gdb(self, release, target):
+        env = self.build_env(target)
+        self.handle_android_target(target)
+        ndk_gdb = path.join(env["ANDROID_NDK"], "ndk-gdb")
+        adb_path = path.join(env["ANDROID_SDK"], "platform-tools", "adb")
+        sym_paths = [
+            path.join(
+                getcwd(),
+                "target",
+                target,
+                "release" if release else "debug",
+                "apk",
+                "obj",
+                "local",
+                self.config["android"]["lib"]
+            ),
+            path.join(
+                getcwd(),
+                "target",
+                target,
+                "release" if release else "debug",
+                "apk",
+                "libs",
+                self.config["android"]["lib"]
+            ),
+        ]
+        env["NDK_PROJECT_PATH"] = path.join(getcwd(), "support", "android", "apk")
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            f.write('\n'.join([
+                "python",
+                "param = gdb.parameter('solib-search-path')",
+                "param += ':{}'".format(':'.join(sym_paths)),
+                "gdb.execute('set solib-search-path ' + param)",
+                "end",
+            ]))
+
+        p = subprocess.Popen([
+            ndk_gdb,
+            "--adb", adb_path,
+            "--project", "support/android/apk/servoapp/src/main/",
+            "--launch", "org.mozilla.servo.MainActivity",
+            "-x", f.name,
+            "--verbose",
+        ], env=env)
+        return p.wait()

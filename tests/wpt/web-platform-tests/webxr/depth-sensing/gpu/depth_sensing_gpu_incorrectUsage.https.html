@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../resources/webxr_util.js"></script>
+<script src="../../resources/webxr_test_asserts.js"></script>
+<script src="../../resources/webxr_test_constants.js"></script>
+<script src="../../resources/webxr_test_constants_fake_depth.js"></script>
+<script src="../incorrectUsageTests.js"></script>
+
+<script>
+
+const fakeDeviceInitParams = {
+  supportedModes: ["immersive-ar"],
+  views: VALID_VIEWS,
+  supportedFeatures: ALL_FEATURES,
+};
+
+const incorrectUsageTestFunctionTryGetCpuOnGpu = function (session, controller, t, sessionObjects) {
+  return session.requestReferenceSpace('viewer').then((viewerSpace) => {
+    let done = false;
+
+    session.requestAnimationFrame((time, frame) => {
+      const pose = frame.getViewerPose(viewerSpace);
+      for(const view of pose.views) {
+        t.step(() => {
+          assert_throws_dom("InvalidStateError", () => frame.getDepthInformation(view),
+                            "XRFrame.getDepthInformation() should throw when depth sensing is in `gpu-optimized` usage mode");
+        });
+      }
+
+      done = true;
+    });
+
+    return t.step_wait(() => done);
+  });
+};
+
+xr_session_promise_test("Ensures XRCPUDepthInformation is not obtainable in `gpu-optimized` usage mode",
+  incorrectUsageTestFunctionTryGetCpuOnGpu,
+  fakeDeviceInitParams,
+  'immersive-ar', {
+    requiredFeatures: ['depth-sensing'],
+    depthSensing: VALID_DEPTH_CONFIG_GPU_USAGE,
+  });
+
+</script>

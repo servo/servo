@@ -1,0 +1,87 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta name="variant" content="">
+<meta name="variant" content="?keep-promise">
+<title>Example with iframe that notifies containing document via cross document messaging</title>
+<script src="../../variants.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<h1>Notifications From Tests Running In An IFRAME</h1>
+<p>A test is run inside an <tt>iframe</tt> with a same origin document. The
+containing document should receive messages via <tt>postMessage</tt>/
+<tt>onmessage</tt> as the tests progress inside the <tt>iframe</tt>. A single
+passing test is expected in the summary below.
+</p>
+<div id="log"></div>
+
+<script>
+var t = async_test("Containing document receives messages");
+var start_received = false;
+var result_received = false;
+var completion_received = false;
+
+// These are the messages that are expected to be seen while running the tests
+// in the IFRAME.
+var expected_messages = [
+    t.step_func(
+        function(message) {
+            assert_equals(message.data.type, "start");
+            assert_own_property(message.data, "properties");
+        }),
+
+    t.step_func(
+        function(message) {
+            assert_equals(message.data.type, "test_state");
+            assert_equals(message.data.test.status, message.data.test.NOTRUN);
+        }),
+
+    t.step_func(
+        function(message) {
+            assert_equals(message.data.type, "result");
+            assert_equals(message.data.test.status, message.data.test.PASS);
+        }),
+
+    t.step_func(
+        function(message) {
+            assert_equals(message.data.type, "complete");
+            assert_equals(message.data.tests.length, 1);
+            assert_equals(message.data.tests[0].status,
+                          message.data.tests[0].PASS);
+            assert_equals(message.data.status.status, message.data.status.OK);
+            t.done();
+        }),
+
+    t.unreached_func("Too many messages received")
+];
+
+on_event(window,
+         "message",
+         function(message) {
+             var handler = expected_messages.shift();
+             handler(message);
+         });
+</script>
+<iframe src="single-page-test-pass.html" style="display:none">
+  <!-- single-page-test-pass.html implements a file_is_test test. -->
+</iframe>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "OK",
+    "message": null
+  },
+  "summarized_tests": [
+    {
+      "status_string": "PASS",
+      "name": "Containing document receives messages",
+      "properties": {},
+      "message": null
+    }
+  ],
+  "type": "complete"
+}
+</script>
+</body>

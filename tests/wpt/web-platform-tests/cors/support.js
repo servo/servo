@@ -1,16 +1,3 @@
-// For ignoring exception names (just for testing)
-/*
-_real_assert_throws = assert_throws;
-function assert_throws(d, func, desc) {
-    try {
-        func();
-    } catch(e) {
-        return true;
-    }
-    assert_unreached("Didn't throw!");
-}
-*/
-
 function dirname(path) {
     return path.replace(/\/[^\/]*$/, '/')
 }

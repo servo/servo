@@ -82,7 +82,6 @@
         <glyph unicode="a" glyph-name="upward-triangle" d="M0 0L500 0L250 900Z"/>
       </font>
 
-
       <font horiz-adv-x="500">
         <font-face font-family="SVGFont2" font-variant="small-caps" units-per-em="1000" ascent="800" descent="200" alphabetic="200"/>
         <missing-glyph horiz-adv-x="500" d="M0 0L500 0L500 1000L0 1000M50 50L50 950L450 950L450 50Z"/>
@@ -96,7 +95,6 @@
         <glyph unicode=" " glyph-name="space"/>
         <glyph unicode="a" glyph-name="square" d="M0 250L500 250L500 750L0 750Z"/>
       </font>
-
 
       <font horiz-adv-x="500">
         <font-face font-family="SVGFont4" font-variant="normal" units-per-em="1000" ascent="800" descent="200" alphabetic="200"/>

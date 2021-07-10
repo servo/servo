@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Flexbox: min-height: auto with nested flexboxes and justify-content</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/" />
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#min-size-auto" />
+<link rel="issue" href="https://bugs.chromium.org/p/chromium/issues/detail?id=945214" />
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+<style>
+.overlapped-green {
+  position: absolute;
+  background-color: green;
+  width: 100px;
+  height: 100px;
+  z-index: 1;
+}
+
+.outer {
+  display: flex;
+  flex-direction: column;
+  height: 100px;
+  width: 100px;
+  background: green;
+}
+
+.inner {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+  background-color: red;
+}
+
+.spacer {
+  height: 30px;
+  width: 100px;
+  background: red;
+  flex: none;
+}
+</style>
+<body>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div class="overlapped-green"></div>
+<div class="outer">
+  <div class="spacer"></div>
+  <div class="inner">
+    <div class="spacer"></div>
+  </div>
+</div>
+
+
+</body>
+</html>

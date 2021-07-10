@@ -1,7 +1,0 @@
-// from http://lists.w3.org/Archives/Public/public-script-coord/2010OctDec/0112.html
-  exception DOMException {
-    unsigned short code;
-  };
-
-  exception HierarchyRequestError : DOMException { };
-  exception NoModificationAllowedError : DOMException { };

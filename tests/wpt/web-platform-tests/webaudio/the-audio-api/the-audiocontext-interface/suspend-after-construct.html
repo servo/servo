@@ -1,0 +1,72 @@
+<!doctype html>
+<title>Test AudioContext state updates with suspend() shortly after
+  construction</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+// A separate async_test is used for tracking state change counts so that it
+// can report excess changes after the promise_test for the iteration has
+// completed.
+const changeCountingTest = async_test('State change counting');
+
+const doTest = async (testCount) => {
+  const ctx = new AudioContext();
+  // Explicitly resume to get a promise to indicate whether the context
+  // successfully started running.
+  const resume = ctx.resume();
+  const suspend = ctx.suspend();
+  let stateChangesDone = new Promise((resolve) => {
+    ctx.onstatechange = () => {
+      ++ctx.stateChangeCount;
+      changeCountingTest.step(() => {
+        assert_less_than_equal(ctx.stateChangeCount,
+                               ctx.expectedStateChangeCount,
+                               `ctx ${testCount} state change count.`);
+        assert_equals(ctx.state, ctx.expectedState, `ctx ${testCount} state`);
+      });
+      if (ctx.stateChangeCount == ctx.totalStateChangeCount) {
+        resolve();
+      }
+    };
+  });
+  ctx.stateChangeCount = 0;
+  ctx.expectedStateChangeCount = 1;
+  ctx.expectedState = 'running';
+  ctx.totalStateChangeCount = 2;
+  let resumeState = 'pending';
+  resume.then(() => {
+    resumeState = 'fulfilled';
+    assert_equals(ctx.state, 'running', 'state on resume fulfilled.');
+  }).catch(() => {
+    // The resume() promise may be rejected if "Attempt to acquire system
+    // resources" fails.  The spec does not discuss the possibility of a
+    // subsequent suspend causing such a failure, but accept this as a
+    // reasonable behavior.
+    resumeState = 'rejected';
+    assert_equals(ctx.state, 'suspended', 'state on resume rejected.');
+    assert_equals(ctx.stateChangeCount, 0);
+    ctx.expectedStateChangeCount = 0;
+    stateChangesDone = Promise.resolve();
+  });
+  suspend.then(() => {
+    assert_not_equals(resumeState, 'pending',
+                      'resume promise should settle before suspend promise.')
+    if (resumeState == 'fulfilled') {
+      ++ctx.expectedStateChangeCount;
+    }
+    ctx.expectedState = 'suspended';
+    assert_equals(ctx.state, 'suspended', 'state on suspend fulfilled.');
+  });
+  await resume;
+  await suspend;
+  await stateChangesDone;
+};
+
+// Repeat the test because Gecko uses different code when there is more than
+// one AudioContext.  The third run provides time to check that no further
+// state changes from the second run are pending.
+for (const testCount of [1, 2, 3]) {
+  promise_test(() => { return doTest(testCount); }, `Iteration ${testCount}`);
+}
+promise_test(async () => changeCountingTest.done(), 'Stop waiting');
+</script>

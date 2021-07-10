@@ -1,0 +1,36 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>CSS Pseduo: painting order of outside ::marker box</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.org">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+  <link rel="match" href="outside-marker-paint-order-ref.html">
+  <style>
+li {
+  margin-left: 100px;
+  text-indent: -100px;
+  font: 20px/1 Ahem;
+  color: red;
+}
+
+x { color: grey; }
+.before::before { content: "XXXXXXXX"; color: grey; }
+.after::after { content: "XXXXXXXX"; color: grey; }
+.both::before,.both::after  {content: "XXXX"; color: grey; }
+  </style>
+</head>
+<body>
+
+<pre>There should be no red areas.<pre>
+<ol><li><x>XXXXXXXX</x></ol>
+<ol><li class="before"></ol>
+<ol><li class="after"></ol>
+<ol><li class="both"></ol>
+
+</body>
+</html>

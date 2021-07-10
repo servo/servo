@@ -2,13 +2,13 @@
 all: openssl
 	@:  # No-op to silence the "make: Nothing to be done for 'all'." message.
 
-# From http://wiki.openssl.org/index.php/Android
+# From https://wiki.openssl.org/index.php/Android
 .PHONY: openssl
-openssl: openssl-1.0.1t/libssl.so
+openssl: openssl-${OPENSSL_VERSION}/libssl.so
 
-openssl-1.0.1t/libssl.so: openssl-1.0.1t/Configure
-	./openssl.sh ${ANDROID_NDK}
+openssl-${OPENSSL_VERSION}/libssl.so: openssl-${OPENSSL_VERSION}/Configure
+	./openssl.sh ${ANDROID_NDK} ${OPENSSL_VERSION}
 
-openssl-1.0.1t/Configure:
-	wget https://www.openssl.org/source/openssl-1.0.1t.tar.gz
-	tar -zxf openssl-1.0.1t.tar.gz
+openssl-${OPENSSL_VERSION}/Configure:
+	URL=https://servo-deps-2.s3.amazonaws.com/android-deps/openssl-${OPENSSL_VERSION}.tar.gz; \
+	curl $$URL | tar xzf -

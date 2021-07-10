@@ -1,0 +1,34 @@
+<!doctype html>
+<title>CSS Test: @keyframes from the document don't apply in the shadow tree.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#selectors-data-model">
+<!--
+  Beware of https://github.com/w3c/csswg-drafts/issues/1995 potentially, but
+  unlikely, changing the expected result of this test.
+-->
+<style>
+@keyframes myanim {
+  from { background: red; }
+  to { background: red; }
+}
+</style>
+<div id="host"></div>
+<script>
+test(function() {
+  host.attachShadow({ mode: "open" }).innerHTML = `
+    <style>
+      #in-shadow {
+        width: 100px;
+        height: 100px;
+        background: blue;
+        animation: myanim 10s infinite;
+      }
+    </style>
+    <div id="in-shadow"></div>
+  `;
+
+  assert_equals(host.shadowRoot.getElementById('in-shadow').getAnimations().length, 0);
+}, "@keyframes from the document don't apply in the shadow tree");
+</script>

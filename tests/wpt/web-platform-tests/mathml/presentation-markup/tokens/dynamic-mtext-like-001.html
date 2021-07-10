@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<title>Dynamic mtext-like elements</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#text-mtext">
+<script src="/mathml/support/mathml-fragments.js"></script>
+<meta name="assert" content="Dynamically set children of mtext-like elements.">
+<style>
+  math {
+      font: 25px/1 Ahem;
+      background: lightblue;
+  }
+  li {
+      padding: 2px;
+  }
+</style>
+<link rel="match" href="dynamic-mtext-like-001-ref.html">
+<script>
+  window.addEventListener("load", function() {
+
+      // force initial layout so we're sure what we're testing against
+      document.documentElement.getBoundingClientRect();
+
+      Array.from(document.getElementsByClassName("testedElement")).forEach(e => {
+          if (e.textContent === "")
+              e.textContent = "É";
+          else if (e.textContent === "X")
+              e.textContent = "pX";
+          else if (e.textContent === "p") {
+              while (e.firstChild)
+                  e.removeChild(e.firstChild);
+              e.insertAdjacentHTML("beforeend", "<span>Xp</span>")
+          }
+      });
+
+      document.documentElement.classList.remove('reftest-wait');
+  });
+</script>
+</head>
+<body>
+  <ol>
+    <li><math><mtext class="testedElement"></mtext></math></li>
+    <li><math><mtext class="testedElement">X</mtext></math></li>
+    <li><math><mtext class="testedElement">p</mtext></math></li>
+    <li><math><mi class="testedElement"></mi></math></li>
+    <li><math><mi class="testedElement">X</mi></math></li>
+    <li><math><mi class="testedElement">p</mi></math></li>
+    <li><math><mn class="testedElement"></mn></math></li>
+    <li><math><mn class="testedElement">X</mn></math></li>
+    <li><math><mn class="testedElement">p</mn></math></li>
+    <li><math><mo class="testedElement"></mo></math></li>
+    <li><math><mo class="testedElement">X</mo></math></li>
+    <li><math><mo class="testedElement">p</mo></math></li>
+    <li><math><mo class="testedElement"></mo></math></li>
+    <li><math><mo class="testedElement">X</mo></math></li>
+    <li><math><mo class="testedElement">p</mo></math></li>
+    <li><math><ms class="testedElement"></ms></math></li>
+    <li><math><ms class="testedElement">X</ms></math></li>
+    <li><math><ms class="testedElement">p</ms></math></li>
+    <!-- HTML parser does not accept span as a child of annotation or
+         annotation-xml, so we can't test dynamic VS static. -->
+    <li><math><annotation class="testedElement"></annotation></math></li>
+    <li><math><annotation class="testedElement">X</annotation></math></li>
+    <li><math><annotation-xml class="testedElement"></annotation-xml></math></li>
+    <li><math><annotation-xml class="testedElement">X</annotation-xml></math></li>
+  </ol>
+</body>
+</html>

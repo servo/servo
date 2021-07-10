@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+
+<script>
+let testName = "XRInputSources primary input presses properly fires off the "
+  + "right events";
+
+let watcherDone = new Event("watcherdone");
+
+let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+let xrViewerSpace = null;
+
+let testFunction = function(session, fakeDeviceController, t) {
+  let eventWatcher = new EventWatcher(
+    t, session, ["squeezestart", "squeeze", "squeezeend", "watcherdone"]);
+  let eventPromise = eventWatcher.wait_for(
+    ["squeezestart", "squeeze", "squeezeend", "watcherdone"]);
+
+  function tryCallingFrameMethods(frame) {
+    t.step(() => {
+      // Frame is active but not an animation frame, so calling getPose is
+      // allowed while getViewerPose is not.
+      assert_throws_dom('InvalidStateError', () => frame.getViewerPose(currentReferenceSpace));
+      let pose = frame.getPose(xrViewerSpace, currentReferenceSpace);
+      assert_not_equals(pose, null);
+      assert_true(pose instanceof XRPose);
+      assert_false(pose instanceof XRViewerPose);
+    });
+  }
+
+  function onSessionSqueezeStart(event) {
+    t.step( () => {
+      let input_sources = session.inputSources;
+      assert_equals(event.frame.session, session);
+      assert_equals(event.inputSource, input_sources[0]);
+      validateSameObject(event);
+      tryCallingFrameMethods(event.frame);
+    });
+  }
+
+  function onSessionSqueezeEnd(event) {
+    t.step( () => {
+      let input_sources = session.inputSources;
+      assert_equals(event.frame.session, session);
+      assert_equals(event.inputSource, input_sources[0]);
+      validateSameObject(event);
+      tryCallingFrameMethods(event.frame);
+    });
+    session.dispatchEvent(watcherDone);
+  }
+
+  function onSessionSqueeze(event) {
+    t.step( () => {
+      let input_sources = session.inputSources;
+      assert_equals(event.frame.session, session);
+      assert_equals(event.inputSource, input_sources[0]);
+      validateSameObject(event);
+      tryCallingFrameMethods(event.frame);
+    });
+  }
+
+  // Verifies that the same object is returned each time attributes are accessed
+  // on an XRInputSoruceEvent, as required by the spec.
+  function validateSameObject(event) {
+    let frame = event.frame;
+    let source = event.inputSource;
+    t.step(() => {
+      assert_equals(frame, event.frame,
+        "XRInputSourceEvent.frame returns the same object.");
+      assert_equals(source, event.inputSource,
+        "XRInputSourceEvent.inputSource returns the same object.");
+    });
+  }
+
+  session.addEventListener("squeezestart", onSessionSqueezeStart, false);
+  session.addEventListener("squeezeend", onSessionSqueezeEnd, false);
+  session.addEventListener("squeeze", onSessionSqueeze, false);
+
+  let pressed_grip_button = {
+    buttonType: "grip",
+    pressed: true,
+    touched: true,
+    pressedValue: 1.0
+  };
+
+  let unpressed_grip_button = {
+    buttonType: "grip",
+    pressed: false,
+    touched: false,
+    pressedValue: 0.0
+  };
+
+  let gripController = {
+      handedness: "none",
+      targetRayMode: "tracked-pointer",
+      pointerOrigin: VALID_POINTER_TRANSFORM,
+      profiles: [],
+      supportedButtons: [ unpressed_grip_button ]
+  };
+
+  let input_source =
+    fakeDeviceController.simulateInputSourceConnection(gripController);
+  let currentReferenceSpace = null;
+
+  session.requestReferenceSpace('viewer').then(function(viewerSpace) {
+    xrViewerSpace = viewerSpace;
+
+    session.requestReferenceSpace('local').then((referenceSpace) => {
+      currentReferenceSpace = referenceSpace;
+
+      //Simulate a grip starting then release it a short time later.
+      requestSkipAnimationFrame(session, (time, xrFrame) => {
+        input_source.updateButtonState(pressed_grip_button);
+
+          session.requestAnimationFrame((time, xrFrame) => {
+            input_source.updateButtonState(unpressed_grip_button);
+
+            session.requestAnimationFrame((time, xrFrame) => {
+              // Need to process one more frame to allow grip to propegate.
+            });
+          });
+      });
+    });
+  });
+
+  return eventPromise;
+};
+
+xr_session_promise_test(
+  testName, testFunction, fakeDeviceInitParams, 'immersive-vr');
+
+</script>

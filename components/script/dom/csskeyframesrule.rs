@@ -1,73 +1,84 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use cssparser::Parser;
-use dom::bindings::codegen::Bindings::CSSKeyframesRuleBinding;
-use dom::bindings::codegen::Bindings::CSSKeyframesRuleBinding::CSSKeyframesRuleMethods;
-use dom::bindings::error::{Error, ErrorResult};
-use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{MutNullableJS, Root};
-use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::str::DOMString;
-use dom::csskeyframerule::CSSKeyframeRule;
-use dom::cssrule::{CSSRule, SpecificCSSRule};
-use dom::cssrulelist::{CSSRuleList, RulesSource};
-use dom::cssstylesheet::CSSStyleSheet;
-use dom::window::Window;
+use crate::dom::bindings::codegen::Bindings::CSSKeyframesRuleBinding::CSSKeyframesRuleMethods;
+use crate::dom::bindings::error::ErrorResult;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::csskeyframerule::CSSKeyframeRule;
+use crate::dom::cssrule::{CSSRule, SpecificCSSRule};
+use crate::dom::cssrulelist::{CSSRuleList, RulesSource};
+use crate::dom::cssstylesheet::CSSStyleSheet;
+use crate::dom::window::Window;
+use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
-use servo_atoms::Atom;
-use std::sync::Arc;
-use style::keyframes::{Keyframe, KeyframeSelector};
+use servo_arc::Arc;
 use style::shared_lock::{Locked, ToCssWithGuard};
-use style::stylesheets::KeyframesRule;
+use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframesRule};
+use style::values::KeyframesName;
 
 #[dom_struct]
 pub struct CSSKeyframesRule {
     cssrule: CSSRule,
-    #[ignore_heap_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Arc"]
     keyframesrule: Arc<Locked<KeyframesRule>>,
-    rulelist: MutNullableJS<CSSRuleList>,
+    rulelist: MutNullableDom<CSSRuleList>,
 }
 
 impl CSSKeyframesRule {
-    fn new_inherited(parent_stylesheet: &CSSStyleSheet, keyframesrule: Arc<Locked<KeyframesRule>>)
-                     -> CSSKeyframesRule {
+    fn new_inherited(
+        parent_stylesheet: &CSSStyleSheet,
+        keyframesrule: Arc<Locked<KeyframesRule>>,
+    ) -> CSSKeyframesRule {
         CSSKeyframesRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
             keyframesrule: keyframesrule,
-            rulelist: MutNullableJS::new(None),
+            rulelist: MutNullableDom::new(None),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
-               keyframesrule: Arc<Locked<KeyframesRule>>) -> Root<CSSKeyframesRule> {
-        reflect_dom_object(box CSSKeyframesRule::new_inherited(parent_stylesheet, keyframesrule),
-                           window,
-                           CSSKeyframesRuleBinding::Wrap)
+    pub fn new(
+        window: &Window,
+        parent_stylesheet: &CSSStyleSheet,
+        keyframesrule: Arc<Locked<KeyframesRule>>,
+    ) -> DomRoot<CSSKeyframesRule> {
+        reflect_dom_object(
+            Box::new(CSSKeyframesRule::new_inherited(
+                parent_stylesheet,
+                keyframesrule,
+            )),
+            window,
+        )
     }
 
-    fn rulelist(&self) -> Root<CSSRuleList> {
+    fn rulelist(&self) -> DomRoot<CSSRuleList> {
         self.rulelist.or_init(|| {
             let parent_stylesheet = &self.upcast::<CSSRule>().parent_stylesheet();
-            CSSRuleList::new(self.global().as_window(),
-                             parent_stylesheet,
-                             RulesSource::Keyframes(self.keyframesrule.clone()))
+            CSSRuleList::new(
+                self.global().as_window(),
+                parent_stylesheet,
+                RulesSource::Keyframes(self.keyframesrule.clone()),
+            )
         })
     }
 
     /// Given a keyframe selector, finds the index of the first corresponding rule if any
     fn find_rule(&self, selector: &str) -> Option<usize> {
-        let mut input = Parser::new(selector);
+        let mut input = ParserInput::new(selector);
+        let mut input = Parser::new(&mut input);
         if let Ok(sel) = KeyframeSelector::parse(&mut input) {
             let guard = self.cssrule.shared_lock().read();
             // This finds the *last* element matching a selector
             // because that's the rule that applies. Thus, rposition
-            self.keyframesrule.read_with(&guard)
-                .keyframes.iter().rposition(|frame| {
-                    frame.read_with(&guard).selector == sel
-                })
+            self.keyframesrule
+                .read_with(&guard)
+                .keyframes
+                .iter()
+                .rposition(|frame| frame.read_with(&guard).selector == sel)
         } else {
             None
         }
@@ -76,16 +87,25 @@ impl CSSKeyframesRule {
 
 impl CSSKeyframesRuleMethods for CSSKeyframesRule {
     // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-cssrules
-    fn CssRules(&self) -> Root<CSSRuleList> {
+    fn CssRules(&self) -> DomRoot<CSSRuleList> {
         self.rulelist()
     }
 
     // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-appendrule
     fn AppendRule(&self, rule: DOMString) {
-        let rule = Keyframe::parse(&rule, self.cssrule.parent_stylesheet().style_stylesheet());
+        let style_stylesheet = self.cssrule.parent_stylesheet().style_stylesheet();
+        let rule = Keyframe::parse(
+            &rule,
+            &style_stylesheet.contents,
+            &style_stylesheet.shared_lock,
+        );
+
         if let Ok(rule) = rule {
             let mut guard = self.cssrule.shared_lock().write();
-            self.keyframesrule.write_with(&mut guard).keyframes.push(rule);
+            self.keyframesrule
+                .write_with(&mut guard)
+                .keyframes
+                .push(rule);
             self.rulelist().append_lazy_dom_rule();
         }
     }
@@ -98,45 +118,42 @@ impl CSSKeyframesRuleMethods for CSSKeyframesRule {
     }
 
     // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-findrule
-    fn FindRule(&self, selector: DOMString) -> Option<Root<CSSKeyframeRule>> {
-        self.find_rule(&selector).and_then(|idx| {
-            self.rulelist().item(idx as u32)
-        }).and_then(Root::downcast)
+    fn FindRule(&self, selector: DOMString) -> Option<DomRoot<CSSKeyframeRule>> {
+        self.find_rule(&selector)
+            .and_then(|idx| self.rulelist().item(idx as u32))
+            .and_then(DomRoot::downcast)
     }
 
     // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name
     fn Name(&self) -> DOMString {
         let guard = self.cssrule.shared_lock().read();
-        DOMString::from(&*self.keyframesrule.read_with(&guard).name)
+        DOMString::from(&**self.keyframesrule.read_with(&guard).name.as_atom())
     }
 
     // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name
     fn SetName(&self, value: DOMString) -> ErrorResult {
-        // https://github.com/w3c/csswg-drafts/issues/801
-        // Setting this property to a CSS-wide keyword or `none` will
-        // throw a Syntax Error.
-        match_ignore_ascii_case! { &value,
-            "initial" => return Err(Error::Syntax),
-            "inherit" => return Err(Error::Syntax),
-            "unset" => return Err(Error::Syntax),
-            "none" => return Err(Error::Syntax),
-            _ => ()
-        }
+        // Spec deviation: https://github.com/w3c/csswg-drafts/issues/801
+        // Setting this property to a CSS-wide keyword or `none` does not throw,
+        // it stores a value that serializes as a quoted string.
+        let name = KeyframesName::from_ident(&value);
         let mut guard = self.cssrule.shared_lock().write();
-        self.keyframesrule.write_with(&mut guard).name = Atom::from(value);
+        self.keyframesrule.write_with(&mut guard).name = name;
         Ok(())
     }
 }
 
 impl SpecificCSSRule for CSSKeyframesRule {
     fn ty(&self) -> u16 {
-        use dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
+        use crate::dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
         CSSRuleConstants::KEYFRAMES_RULE
     }
 
     fn get_css(&self) -> DOMString {
         let guard = self.cssrule.shared_lock().read();
-        self.keyframesrule.read_with(&guard).to_css_string(&guard).into()
+        self.keyframesrule
+            .read_with(&guard)
+            .to_css_string(&guard)
+            .into()
     }
 
     fn deparent_children(&self) {

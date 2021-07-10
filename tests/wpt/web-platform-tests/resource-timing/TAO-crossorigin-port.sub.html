@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Resource Timing TAO - "null" and opaque origin</title>
+<link rel="author" title="Google" href="http://www.google.com/" />
+<link rel="help" href="https://www.w3.org/TR/resource-timing-2/#timing-allow-origin"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+const t = async_test("Makes sure that the iframe passed the test and had an entry which passed the timing allow check");
+window.addEventListener("message", t.step_func_done(e=>{
+    assert_equals(e.data, "PASS");
+}));
+</script>
+</head>
+<body>
+<h1>Description</h1>
+<p>This test validates that for a cross origin resource with different ports, the timing allow check algorithm will fail when the value of Timing-Allow-Origin value has the right host but the wrong port in it.</p>
+<div id="log"></div>
+<!-- The frame is being requested on the default port ([0]), while the subresource in it will be requested on a separate port ([1]) -->
+<iframe id="frameContext" src="{{location[scheme]}}://{{host}}:{{ports[http][0]}}/resource-timing/resources/iframe-TAO-crossorigin-port.sub.html"></iframe>
+</body>
+</html>

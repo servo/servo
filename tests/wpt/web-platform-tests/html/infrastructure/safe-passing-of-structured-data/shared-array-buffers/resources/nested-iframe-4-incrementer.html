@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>A test page that messes with a given SharedArrayBuffer, nested 4 levels deep in iframes</title>
+<script src="test-incrementer.js"></script>
+
+<script>
+"use strict";
+
+setupDestinationIncrementer(self, parent.parent.parent.parent.parent, "*");
+</script>

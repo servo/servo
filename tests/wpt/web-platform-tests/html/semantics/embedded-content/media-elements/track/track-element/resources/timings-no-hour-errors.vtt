@@ -1,0 +1,22 @@
+WEBVTT
+These timings all have errors and all cues should be ignored.
+
+1
+00.00.000 --> 00:30.500
+Bear is Coming!!!!!
+
+2
+00:31.000 --> 01:00:500
+I said Bear is coming!!!!
+
+3
+01:01.000 --> 120:00.500
+I said Bear is coming now!!!!
+
+4
+01:01.000 - 02:00.500
+I said Bear is coming now!!!!
+
+5
+02:01.000 --> 03m:00.500
+I said Bear is coming now!!!!

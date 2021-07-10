@@ -1,0 +1,134 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL 2 Resizing With PBO Bound Test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas1" style="width: 256px; height: 256px;"> </canvas>
+<canvas id="canvas2" style="width: 256px; height: 256px;"> </canvas>
+<div id="console"></div>
+<script>
+"use strict";
+
+description("Verifies that resizing the canvas (recreating the backing framebuffer) works correctly while a PBO is bound.");
+
+debug("");
+debug("Regression test for Chromium <a href='https://bugs.chromium.org/p/chromium/issues/detail?id=644572'>Issue 644572</a>");
+debug("");
+
+var wtu = WebGLTestUtils;
+var canvas;
+var largeSize = 256;
+var smallSize = 128;
+var currentSize;
+var gl;
+var numFrames = 0;
+var testNumber = 0;
+var pbo;
+
+function nextTest() {
+  ++testNumber;
+  numFrames = 0;
+  currentSize = largeSize;
+  if (testNumber > 2) {
+    finishTest();
+    return;
+  }
+
+  canvas = document.getElementById("canvas" + testNumber);
+  canvas.width = currentSize;
+  canvas.height = currentSize;
+  var usePreserveDrawingBuffer = (testNumber == 1) ? true : false;
+  debug("Testing preserveDrawingBuffer = " + usePreserveDrawingBuffer);
+  gl = wtu.create3DContext(canvas, { preserveDrawingBuffer: usePreserveDrawingBuffer }, 2);
+
+  if (!gl) {
+    testFailed("context does not exist");
+
+    wtu.requestAnimFrame(nextTest);
+  } else {
+    testPassed("context exists");
+
+    gl.clearColor(0, 1, 0, 1);
+
+    pbo = gl.createBuffer();
+    gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, pbo);
+
+    wtu.requestAnimFrame(render);
+  }
+}
+
+function render() {
+  if (++numFrames < 4) {
+    if (currentSize == largeSize) {
+      canvas.height = smallSize;
+      currentSize = smallSize;
+    } else {
+      canvas.height = largeSize;
+      currentSize = largeSize;
+    }
+  }
+
+  gl.viewport(0, 0, largeSize, currentSize);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  // Check the four corners
+  var green = [ 0, 255, 0, 255 ];
+  var inset = 3;
+  wtu.checkCanvasRect(gl, inset, inset, 1, 1, green, "lower left should be green", 1);
+  wtu.checkCanvasRect(gl, largeSize - inset, inset, 1, 1, green, "lower right should be green", 1);
+  wtu.checkCanvasRect(gl, inset, currentSize - inset, 1, 1, green, "upper left should be green", 1);
+  wtu.checkCanvasRect(gl, largeSize - inset, currentSize - inset, 1, 1, green, "upper right should be green", 1);
+
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "No GL error");
+  if (gl.getParameter(gl.PIXEL_UNPACK_BUFFER_BINDING) != pbo) {
+    testFailed("Pixel unpack buffer binding was lost");
+  }
+
+  if (numFrames < 4) {
+    wtu.requestAnimFrame(render);
+  } else {
+    wtu.requestAnimFrame(nextTest);
+  }
+}
+
+wtu.requestAnimFrame(nextTest);
+
+</script>
+
+</body>
+</html>

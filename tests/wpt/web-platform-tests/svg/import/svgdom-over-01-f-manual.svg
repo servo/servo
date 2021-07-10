@@ -13,21 +13,21 @@
     version="$Revision: 1.9 $" testname="$RCSfile: svgdom-over-01-f.svg,v $">
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/svgdom.html#SVGDOMOverview">
       <p>
-      	This tests how unspecified attributes affect the return values from the
-      	SVG DOM methods related to attributes.
+        This tests how unspecified attributes affect the return values from the
+        SVG DOM methods related to attributes.
       </p>
       <p>
-      	After loading the test, you should see a list of red or green rectangles followed by some text describing each subtest.
+        After loading the test, you should see a list of red or green rectangles followed by some text describing each subtest.
       </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
-			<p>
+      <p>
         Run the test. No interaction required.
       </p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
-      	The test has passed if there is a line of text saying "Test status: PASSED", and there is a green rectangle to the left of that text.
+        The test has passed if there is a line of text saying "Test status: PASSED", and there is a green rectangle to the left of that text.
       </p>
     </d:passCriteria>
   </d:SVGTestCase>
@@ -55,7 +55,7 @@
       <filter id="f"/>
       <polygon id="p"/>
     </defs>
-    
+
     <script><![CDATA[
       var ypos = 50;
       var r = document.getElementById("r");
@@ -77,7 +77,7 @@
         this.str = str;
         this.code = code ? code : str;
       }
-      
+
       Subtest.prototype.getStr = function()
       {
         return this.str;
@@ -87,7 +87,7 @@
       {
         return this.code;
       }
-      
+
       function verify(str, result)
       {
         var g = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -109,82 +109,82 @@
         ypos += 10;
         document.getElementById("test-body-content").appendChild(g);
         if(result)
-        	passes++;	
+          passes++;
       }
-      
+
       var passes = 0;
-      var tests = [ 
+      var tests = [
         // test SVGLength
         new Subtest("r.x.baseVal.value == 0"),
         new Subtest("r.x.baseVal.unitType == 1 (SVG_LENGTHTYPE_NUMBER)", "r.x.baseVal.unitType == 1"),
         new Subtest("v.width.baseVal.valueInSpecifiedUnits == 100"),
         new Subtest("v.width.baseVal.unitType == 2 (SVG_LENGTHTYPE_PERCENTAGE)", "v.width.baseVal.unitType == 2"),
         new Subtest("tt.textLength.baseVal.value == tt.getComputedTextLength()"),
-        
+
         // test SVGAnimatedNumber
         new Subtest("s.offset.baseVal == 0"),
-        
+
         // test SVGAnimatedBoolean
         new Subtest("c.preserveAlpha.baseVal == false"),
-        
+
         // test SVGAnimatedString / DOMString
         new Subtest("c.className.baseVal == \"\""),
         new Subtest("i.href.baseVal == \"\""),
-        
+
         // test SVGStringList
         new Subtest("i.requiredFeatures.numberOfItems == 0"),
-      
+
         // SVGAnimatedNumberList
         new Subtest("c.kernelMatrix.baseVal.numberOfItems == 0"),
 
         // SVGAnimatedLengthList
         new Subtest("t.x.baseVal.numberOfItems == 0"),
-        
+
         // SVGAnimatedPointsList / SVGPointList
         new Subtest("p.points.numberOfItems == 0"),
-      
+
         // SVGAnimatedEnumeration
         new Subtest("g.gradientUnits.baseVal == 2 (SVG_UNIT_TYPE_OBJECTBOUNDINGBOX)", "g.gradientUnits.baseVal == 2"),
 
         // SVGAnimatedInteger
         new Subtest("f.filterResX.baseVal == 0"),
-        
+
         // SVGAnimatedAngle
         new Subtest("m.orientAngle.baseVal.value == 0"),
         new Subtest("m.orientAngle.baseVal.unitType == 1 (SVG_ANGLETYPE_UNSPECIFIED)", "m.orientAngle.baseVal.unitType == 1"),
-        
+
         // SVGAnimatedRect / SVGRect
-        new Subtest("v.viewBox.baseVal.[x,y,width,height] == 0", 
+        new Subtest("v.viewBox.baseVal.[x,y,width,height] == 0",
                 "v.viewBox.baseVal.x == 0 && v.viewBox.baseVal.y == 0 && v.viewBox.baseVal.width == 0 && v.viewBox.baseVal.height == 0"),
-        
+
         // SVGAnimatedTransformList
         new Subtest("t.transform.baseVal.numberOfItems == 0"),
 
         // SVGAnimatedPreserveAspectRatio / SVGPreserveAspectRatio
         new Subtest("v.preserveAspectRatio.baseVal.align == 6 (SVG_PRESERVEASPECTRATIO_XMIDYMID)", "v.preserveAspectRatio.baseVal.align == 6"),
         new Subtest("v.preserveAspectRatio.baseVal.meetOrSlice == 1 (SVG_MEETORSLICE_MEET)", "v.preserveAspectRatio.baseVal.meetOrSlice == 1"),
-      
+
         // SVGZoomAndPan
         new Subtest("v.zoomAndPan == 2 (SVG_ZOOMANDPAN_MAGNIFY)", "v.zoomAndPan == 2")
       ];
-            
+
       try {
-	      for (var k = 0; k < tests.length; k++)
-	      {
-	        try 
-	        {
-	          verify(tests[k].getStr(), eval(tests[k].getCode()));
-	        }
-	        catch(e)
-	        {
-	          verify(tests[k].getStr(), false);
-	        }
-	      }
+        for (var k = 0; k < tests.length; k++)
+        {
+          try
+          {
+            verify(tests[k].getStr(), eval(tests[k].getCode()));
+          }
+          catch(e)
+          {
+            verify(tests[k].getStr(), false);
+          }
+        }
       }
       finally
       {
-      	verify("Test status", tests.length == passes);
-      }      
+        verify("Test status", tests.length == passes);
+      }
     ]]></script>
 
   </g>

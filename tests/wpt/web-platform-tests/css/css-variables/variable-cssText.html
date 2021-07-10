@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Parse, store, and serialize CSS variable (thorugh css Text)</title>
+
+    <meta rel="author" title="Kevin Babbitt">
+    <meta rel="author" title="Greg Whitworth">
+    <link rel="author" title="Microsoft Corporation" href="http://microsoft.com" />
+    <link rel="help" href="http://www.w3.org/TR/css-variables-1/#serializing-custom-props">
+
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+
+<div id="target1" style="--var: var1;"></div>
+<div id="target2" style="margin: var(--prop);"></div>
+<div id="target3" style="background: var(--prop);"></div>
+<div id="target4" style="margin: var(--prop) !important;"></div>
+<div id="target5" style="background: var(--prop) !important;"></div>
+<div id="target6" style="background: var(--prop); background: green;"></div>
+<div id="target7" style="background: green; background: var(--prop);"></div>
+<div id="target8" style="color: green; color: var(--prop);"></div>
+<div id="target9" style="margin: var(--prop); margin-top: 10px"></div>
+<div id="target10"style="expando: var(--prop);"></div>
+
+<script type="text/javascript">
+    "use strict";
+
+    var testcases = [
+        { element: "target1",   expectedCssText: "--var: var1;" },
+        { element: "target2",   expectedCssText: "margin: var(--prop);" },
+        { element: "target3",   expectedCssText: "background: var(--prop);" },
+        { element: "target4",   expectedCssText: "margin: var(--prop)  !important;" },
+        { element: "target5",   expectedCssText: "background: var(--prop)  !important;" },
+        { element: "target6",   expectedCssText: "background: green;" },
+        { element: "target7",   expectedCssText: "background: var(--prop);" },
+        { element: "target8",   expectedCssText: "color: var(--prop);" },
+        { element: "target9",   expectedCssText: "margin-right: ; margin-bottom: ; margin-left: ; margin-top: 10px;" },
+        { element: "target10",  expectedCssText: "" }
+    ];
+
+    testcases.forEach(function (testcase) {
+        test( function () {
+            var div = document.getElementById(testcase.element);
+            var actualCssText = div.style.cssText;
+            assert_equals(actualCssText, testcase.expectedCssText);
+        }, testcase.element);
+    });
+</script>
+
+</body>
+</html>

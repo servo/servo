@@ -1,0 +1,44 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>'display' property</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-get">
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-set">
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#property-stle-value-normalization">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../resources/testhelper.js"></script>
+<script src="resources/testsuite.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+runPropertyTests('display', [
+  { syntax: 'none' },
+  { syntax: 'block' },
+  { syntax: 'inline' },
+  { syntax: 'flow-root' },
+  { syntax: 'table' },
+  { syntax: 'flex' },
+  { syntax: 'grid' },
+  { syntax: 'list-item' },
+  { syntax: 'table-row-group' },
+  { syntax: 'table-header-group' },
+  { syntax: 'table-footer-group' },
+  { syntax: 'table-row' },
+  { syntax: 'table-cell' },
+  { syntax: 'table-column-group' },
+  { syntax: 'table-column' },
+  { syntax: 'table-caption' },
+  { syntax: 'contents' },
+  { syntax: 'inline-block' },
+  { syntax: 'inline-table' },
+  { syntax: 'inline-flex' },
+  { syntax: 'inline-grid' },
+]);
+
+runUnsupportedPropertyTests('display', [
+  'block math', 'math block', 'inline math', 'math inline'
+]);
+
+</script>

@@ -1,0 +1,9 @@
+<title>Ensure that setting gecko prefs works</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  assert_equals(getComputedStyle(document.documentElement).color, "rgb(0, 255, 0)")
+});
+</script>
+<p>This should be green</p>

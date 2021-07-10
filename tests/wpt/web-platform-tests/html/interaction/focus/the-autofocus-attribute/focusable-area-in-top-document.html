@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<iframe srcdoc="<input><script>document.querySelector('input').focus();</script>"></iframe>
+
+<script>
+'use strict';
+
+promise_test(async () => {
+  await waitForLoad(window);
+  let iframe = document.querySelector('iframe');
+  assert_equals(document.activeElement, iframe, 'Prereq: IFRAME should be focused');
+
+  let input = document.createElement('input');
+  input.autofocus = true;
+  document.body.appendChild(input);
+
+  await waitUntilStableAutofocusState();
+  assert_equals(document.activeElement, iframe, 'activeElement should not be changed');
+  assert_not_equals(document.activeElement, input);
+}, 'If topDocument\'s focused area is not topDocument, autofocus is not processed.');
+</script>

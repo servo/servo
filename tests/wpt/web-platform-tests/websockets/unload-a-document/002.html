@@ -10,17 +10,17 @@
 <p>Test requires popup blocker disabled</p>
 <div id=log></div>
 <script>
-var t = async_test(null, {timeout:15000});
+var t = async_test();
 var w;
 var uuid;
 t.step(function() {
   uuid = token()
-  w = window.open("002-1.html");
+  w = window.open("002-1.html" + location.search);
   add_result_callback(function() {
     w.close();
   });
 });
 navigate = t.step_func(function() {
-  w.location = 'data:text/html,<body onload="history.back()">';
+  w.location = w.location.href.replace("002-1.html", "002-2.html");
 });
 </script>

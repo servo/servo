@@ -1,8 +1,8 @@
 test(function()
 {
-    self.performance.mark("mark1", "responseStart");
+    self.performance.mark("mark1");
     self.performance.measure("measure1", "mark1");
-    self.performance.mark("mark2", "responseStart");
+    self.performance.mark("mark2");
     self.performance.measure("measure2", "mark2");
 
     // test that two measures have been created

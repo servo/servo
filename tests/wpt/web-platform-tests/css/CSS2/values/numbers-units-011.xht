@@ -4,9 +4,11 @@
         <title>CSS Test: Em size with font-size set to em</title>
         <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
         <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#length-units" />
+        <link rel="help" href="https://www.w3.org/TR/css-values-3/#font-relative-lengths" />
         <link rel="match" href="numbers-units-011-ref.xht"/>
         <meta name="flags" content="ahem" />
         <meta name="assert" content="When 'em' is assigned in the value of the 'font-size' property itself, it uses the font size of the parent element." />
+        <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
         <style type="text/css">
             #div1
             {
@@ -22,6 +24,7 @@
             {
                 font-family: Ahem;
                 margin-top: 10px;
+                line-height: 1;
             }
         </style>
     </head>

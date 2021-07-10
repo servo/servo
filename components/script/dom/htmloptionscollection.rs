@@ -1,25 +1,26 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
-use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
-use dom::bindings::codegen::Bindings::HTMLOptionsCollectionBinding;
-use dom::bindings::codegen::Bindings::HTMLOptionsCollectionBinding::HTMLOptionsCollectionMethods;
-use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
-use dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
-use dom::bindings::codegen::UnionTypes::{HTMLOptionElementOrHTMLOptGroupElement, HTMLElementOrLong};
-use dom::bindings::error::{Error, ErrorResult};
-use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{Root, RootedReference};
-use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::str::DOMString;
-use dom::element::Element;
-use dom::htmlcollection::{CollectionFilter, HTMLCollection};
-use dom::htmloptionelement::HTMLOptionElement;
-use dom::htmlselectelement::HTMLSelectElement;
-use dom::node::{document_from_node, Node};
-use dom::window::Window;
+use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLOptionsCollectionBinding::HTMLOptionsCollectionMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
+use crate::dom::bindings::codegen::UnionTypes::{
+    HTMLElementOrLong, HTMLOptionElementOrHTMLOptGroupElement,
+};
+use crate::dom::bindings::error::{Error, ErrorResult};
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::element::Element;
+use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
+use crate::dom::htmloptionelement::HTMLOptionElement;
+use crate::dom::htmlselectelement::HTMLSelectElement;
+use crate::dom::node::{document_from_node, Node};
+use crate::dom::window::Window;
 use dom_struct::dom_struct;
 
 #[dom_struct]
@@ -28,18 +29,24 @@ pub struct HTMLOptionsCollection {
 }
 
 impl HTMLOptionsCollection {
-    fn new_inherited(select: &HTMLSelectElement, filter: Box<CollectionFilter + 'static>) -> HTMLOptionsCollection {
+    fn new_inherited(
+        select: &HTMLSelectElement,
+        filter: Box<dyn CollectionFilter + 'static>,
+    ) -> HTMLOptionsCollection {
         HTMLOptionsCollection {
             collection: HTMLCollection::new_inherited(select.upcast(), filter),
         }
     }
 
-    pub fn new(window: &Window, select: &HTMLSelectElement, filter: Box<CollectionFilter + 'static>)
-        -> Root<HTMLOptionsCollection>
-    {
-        reflect_dom_object(box HTMLOptionsCollection::new_inherited(select, filter),
-                           window,
-                           HTMLOptionsCollectionBinding::Wrap)
+    pub fn new(
+        window: &Window,
+        select: &HTMLSelectElement,
+        filter: Box<dyn CollectionFilter + 'static>,
+    ) -> DomRoot<HTMLOptionsCollection> {
+        reflect_dom_object(
+            Box::new(HTMLOptionsCollection::new_inherited(select, filter)),
+            window,
+        )
     }
 
     fn add_new_elements(&self, count: u32) -> ErrorResult {
@@ -49,8 +56,8 @@ impl HTMLOptionsCollection {
         for _ in 0..count {
             let element = HTMLOptionElement::new(local_name!("option"), None, &document);
             let node = element.upcast::<Node>();
-            try!(root.AppendChild(node));
-        };
+            root.AppendChild(node)?;
+        }
         Ok(())
     }
 }
@@ -61,7 +68,7 @@ impl HTMLOptionsCollectionMethods for HTMLOptionsCollection {
     // https://github.com/servo/servo/issues/5875
     //
     // https://dom.spec.whatwg.org/#dom-htmlcollection-nameditem
-    fn NamedGetter(&self, name: DOMString) -> Option<Root<Element>> {
+    fn NamedGetter(&self, name: DOMString) -> Option<DomRoot<Element>> {
         self.upcast().NamedItem(name)
     }
 
@@ -75,7 +82,7 @@ impl HTMLOptionsCollectionMethods for HTMLOptionsCollection {
     // https://github.com/servo/servo/issues/5875
     //
     // https://dom.spec.whatwg.org/#dom-htmlcollection-item
-    fn IndexedGetter(&self, index: u32) -> Option<Root<Element>> {
+    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Element>> {
         self.upcast().IndexedGetter(index)
     }
 
@@ -90,7 +97,7 @@ impl HTMLOptionsCollectionMethods for HTMLOptionsCollection {
 
             // Step 4
             if n > 0 {
-                try!(self.add_new_elements(n as u32));
+                self.add_new_elements(n as u32)?;
             }
 
             // Step 5
@@ -132,12 +139,20 @@ impl HTMLOptionsCollectionMethods for HTMLOptionsCollection {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-add
-    fn Add(&self, element: HTMLOptionElementOrHTMLOptGroupElement, before: Option<HTMLElementOrLong>) -> ErrorResult {
+    fn Add(
+        &self,
+        element: HTMLOptionElementOrHTMLOptGroupElement,
+        before: Option<HTMLElementOrLong>,
+    ) -> ErrorResult {
         let root = self.upcast().root_node();
 
         let node: &Node = match element {
-            HTMLOptionElementOrHTMLOptGroupElement::HTMLOptionElement(ref element) => element.upcast(),
-            HTMLOptionElementOrHTMLOptGroupElement::HTMLOptGroupElement(ref element) => element.upcast(),
+            HTMLOptionElementOrHTMLOptGroupElement::HTMLOptionElement(ref element) => {
+                element.upcast()
+            },
+            HTMLOptionElementOrHTMLOptGroupElement::HTMLOptGroupElement(ref element) => {
+                element.upcast()
+            },
         };
 
         // Step 1
@@ -159,24 +174,23 @@ impl HTMLOptionsCollectionMethods for HTMLOptionsCollection {
         }
 
         // Step 4
-        let reference_node = before.and_then(|before| {
-            match before {
-                HTMLElementOrLong::HTMLElement(element) => Some(Root::upcast::<Node>(element)),
-                HTMLElementOrLong::Long(index) => {
-                    self.upcast().IndexedGetter(index as u32).map(Root::upcast::<Node>)
-                }
-            }
+        let reference_node = before.and_then(|before| match before {
+            HTMLElementOrLong::HTMLElement(element) => Some(DomRoot::upcast::<Node>(element)),
+            HTMLElementOrLong::Long(index) => self
+                .upcast()
+                .IndexedGetter(index as u32)
+                .map(DomRoot::upcast::<Node>),
         });
 
         // Step 5
-        let parent = if let Some(reference_node) = reference_node.r() {
+        let parent = if let Some(ref reference_node) = reference_node {
             reference_node.GetParentNode().unwrap()
         } else {
             root
         };
 
         // Step 6
-        Node::pre_insert(node, &parent, reference_node.r()).map(|_| ())
+        Node::pre_insert(node, &parent, reference_node.as_deref()).map(|_| ())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-remove

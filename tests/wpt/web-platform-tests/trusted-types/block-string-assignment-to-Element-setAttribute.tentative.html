@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/helper.sub.js"></script>
+
+  <meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script';">
+</head>
+<body>
+<script>
+  const nullPolicy = trustedTypes.createPolicy('NullPolicy', {createScript: s => s});
+
+  // TrustedScriptURL Assignments
+  const scriptURLTestCases = [
+    [ 'embed', 'src' ],
+    [ 'object', 'data' ],
+    [ 'object', 'codeBase' ],
+    [ 'script', 'src' ]
+  ];
+
+  scriptURLTestCases.forEach(c => {
+    test(t => {
+      assert_element_accepts_trusted_script_url_explicit_set(window,
+          c[0] + "-" + c[1], t, c[0], c[1], RESULTS.SCRIPTURL);
+      assert_throws_no_trusted_type_explicit_set(c[0], c[1], 'A string');
+      assert_throws_no_trusted_type_explicit_set(c[0], c[1], null);
+      assert_throws_no_trusted_type_explicit_set(c[0], c[1], nullPolicy.createScript('script'));
+    }, c[0] + "." + c[1] + " accepts only TrustedScriptURL");
+  });
+
+  // TrustedHTML Assignments
+  const HTMLTestCases = [
+    [ 'iframe', 'srcdoc' ]
+  ];
+
+  HTMLTestCases.forEach(c => {
+    test(t => {
+      assert_element_accepts_trusted_html_explicit_set(window, c[0] + "-" + c[1], t, c[0], c[1], RESULTS.HTML);
+      assert_throws_no_trusted_type_explicit_set(c[0], c[1], 'A string');
+      assert_throws_no_trusted_type_explicit_set(c[0], c[1], null);
+      assert_throws_no_trusted_type_explicit_set(c[0], c[1], nullPolicy.createScript('script'));
+    }, c[0] + "." + c[1] + " accepts only TrustedHTML");
+  });
+
+  // TrustedScript Assignments
+  const ScriptTestCases = [
+    [ 'div', 'onclick' ]
+  ];
+
+  ScriptTestCases.forEach(c => {
+    test(t => {
+      assert_element_accepts_trusted_script_explicit_set(window, c[0] + "-" + c[1], t, c[0], c[1], RESULTS.SCRIPT);
+      assert_throws_no_trusted_type_explicit_set(c[0], c[1], 'A string');
+      assert_throws_no_trusted_type_explicit_set(c[0], c[1], null);
+    }, c[0] + "." + c[1] + " accepts only TrustedScript");
+  });
+
+  test(t => {
+    let el = document.createElement('script');
+
+    assert_throws_js(TypeError, _ => {
+      el.setAttribute('SrC', INPUTS.URL);
+    });
+
+    assert_equals(el.src, '');
+  }, "`Script.prototype.setAttribute.SrC = string` throws.");
+
+  // After default policy creation string and null assignments implicitly call createXYZ
+  let p = window.trustedTypes.createPolicy("default", { createScriptURL: createScriptURLJS, createHTML: createHTMLJS, createScript: createScriptJS }, true);
+  scriptURLTestCases.forEach(c => {
+    test(t => {
+      assert_element_accepts_trusted_type(c[0], c[1], INPUTS.SCRIPTURL, RESULTS.SCRIPTURL);
+      assert_element_accepts_trusted_type(c[0], c[1], null, window.location.toString().replace(/[^\/]*$/, "null"));
+    }, c[0] + "." + c[1] + " accepts string and null after default policy was created.");
+  });
+
+  HTMLTestCases.forEach(c => {
+    test(t => {
+      assert_element_accepts_trusted_type(c[0], c[1], INPUTS.HTML, RESULTS.HTML);
+      assert_element_accepts_trusted_type(c[0], c[1], null, "null");
+    }, c[0] + "." + c[1] + " accepts string and null after default policy was created.");
+  });
+
+  ScriptTestCases.forEach(c => {
+    test(t => {
+      assert_element_accepts_trusted_type_explicit_set(c[0], c[1], INPUTS.SCRIPT, RESULTS.SCRIPT);
+      assert_element_accepts_trusted_type_explicit_set(c[0], c[1], null, "null");
+    }, c[0] + "." + c[1] + " accepts string and null after default policy was created.");
+  });
+
+  // Other attributes can be assigned with TrustedTypes or strings or null values
+  test(t => {
+    assert_element_accepts_non_trusted_type_explicit_set('a', 'rel', 'A string', 'A string');
+  }, "a.rel accepts strings");
+
+  test(t => {
+    assert_element_accepts_non_trusted_type_explicit_set('a', 'rel', null, 'null');
+  }, "a.rel accepts null");
+
+  test(t => {
+    let embed = document.createElement('embed');
+    let script = document.createElement('script');
+
+    embed.setAttribute('src', INPUTS.SCRIPTURL);
+    let attr = embed.getAttributeNode('src');
+    embed.removeAttributeNode(attr);
+    script.setAttributeNode(attr);
+
+    assert_equals(script.getAttribute('src'), RESULTS.SCRIPTURL);
+  }, "`script.src = setAttributeNode(embed.src)` with string works.");
+</script>

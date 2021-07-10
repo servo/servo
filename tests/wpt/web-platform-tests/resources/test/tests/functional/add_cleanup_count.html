@@ -1,0 +1,41 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta name="variant" content="?keep-promise">
+<title>Test#add_cleanup reported count</title>
+<script src="../../variants.js"></script>
+<script src="../../../testharness.js"></script>
+<script src="../../../testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+
+<script>
+promise_test(function(t) {
+    t.add_cleanup(function() {});
+    t.add_cleanup(function() {});
+    t.add_cleanup(function() { throw new Error(); });
+    new EventWatcher(t, document.body, []);
+
+    return Promise.resolve();
+}, 'test with 3 user-defined cleanup functions');
+</script>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "ERROR",
+    "message": "Test named 'test with 3 user-defined cleanup functions' specified 3 'cleanup' functions, and 1 failed."
+  },
+  "summarized_tests": [
+    {
+      "status_string": "PASS",
+      "name": "test with 3 user-defined cleanup functions",
+      "message": null,
+      "properties": {}
+    }
+  ],
+  "type": "complete"
+}
+</script>
+</body>
+</html>

@@ -1,27 +1,43 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use canvas_traits::CanvasMsg;
-use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
-use dom::bindings::codegen::Bindings::WebGLTextureBinding;
-use dom::bindings::js::Root;
-use dom::bindings::reflector::reflect_dom_object;
-use dom::webgl_validations::types::{TexImageTarget, TexFormat, TexDataType};
-use dom::webglobject::WebGLObject;
-use dom::window::Window;
+
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::EXTTextureFilterAnisotropicBinding::EXTTextureFilterAnisotropicConstants;
+use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::root::Dom;
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::webgl_validations::types::TexImageTarget;
+use crate::dom::webglframebuffer::WebGLFramebuffer;
+use crate::dom::webglobject::WebGLObject;
+use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
+use crate::dom::xrsession::XRSession;
+use canvas_traits::webgl::{
+    webgl_channel, TexDataType, TexFormat, TexParameter, TexParameterBool, TexParameterInt,
+    WebGLResult, WebGLTextureId,
+};
+use canvas_traits::webgl::{DOMToTextureCommand, WebGLCommand, WebGLError};
 use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSender;
 use std::cell::Cell;
 use std::cmp;
-use webrender_traits;
-use webrender_traits::{WebGLCommand, WebGLError, WebGLResult, WebGLTextureId};
 
 pub enum TexParameterValue {
     Float(f32),
     Int(i32),
+    Bool(bool),
+}
+
+// Textures generated for WebXR are owned by the WebXR device, not by the WebGL thread
+// so the GL texture should not be deleted when the texture is garbage collected.
+#[unrooted_must_root_lint::must_root]
+#[derive(JSTraceable, MallocSizeOf)]
+enum WebGLTextureOwner {
+    WebGL,
+    WebXR(Dom<XRSession>),
 }
 
 const MAX_LEVEL_COUNT: usize = 31;
@@ -36,51 +52,76 @@ pub struct WebGLTexture {
     /// The target to which this texture was bound the first time
     target: Cell<Option<u32>>,
     is_deleted: Cell<bool>,
+    owner: WebGLTextureOwner,
     /// Stores information about mipmap levels and cubemap faces.
-    #[ignore_heap_size_of = "Arrays are cumbersome"]
-    image_info_array: DOMRefCell<[ImageInfo; MAX_LEVEL_COUNT * MAX_FACE_COUNT]>,
+    #[ignore_malloc_size_of = "Arrays are cumbersome"]
+    image_info_array: DomRefCell<[Option<ImageInfo>; MAX_LEVEL_COUNT * MAX_FACE_COUNT]>,
     /// Face count can only be 1 or 6
     face_count: Cell<u8>,
     base_mipmap_level: u32,
-    #[ignore_heap_size_of = "Defined in ipc-channel"]
-    renderer: IpcSender<CanvasMsg>,
+    // Store information for min and mag filters
+    min_filter: Cell<u32>,
+    mag_filter: Cell<u32>,
+    /// True if this texture is used for the DOMToTexture feature.
+    attached_to_dom: Cell<bool>,
+    /// Framebuffer that this texture is attached to.
+    attached_framebuffer: MutNullableDom<WebGLFramebuffer>,
+    /// Number of immutable levels.
+    immutable_levels: Cell<Option<u32>>,
 }
 
 impl WebGLTexture {
-    fn new_inherited(renderer: IpcSender<CanvasMsg>,
-                     id: WebGLTextureId)
-                     -> WebGLTexture {
-        WebGLTexture {
-            webgl_object: WebGLObject::new_inherited(),
+    fn new_inherited(
+        context: &WebGLRenderingContext,
+        id: WebGLTextureId,
+        owner: Option<&XRSession>,
+    ) -> Self {
+        Self {
+            webgl_object: WebGLObject::new_inherited(context),
             id: id,
             target: Cell::new(None),
             is_deleted: Cell::new(false),
+            owner: owner
+                .map(|session| WebGLTextureOwner::WebXR(Dom::from_ref(session)))
+                .unwrap_or(WebGLTextureOwner::WebGL),
+            immutable_levels: Cell::new(None),
             face_count: Cell::new(0),
             base_mipmap_level: 0,
-            image_info_array: DOMRefCell::new([ImageInfo::new(); MAX_LEVEL_COUNT * MAX_FACE_COUNT]),
-            renderer: renderer,
+            min_filter: Cell::new(constants::NEAREST_MIPMAP_LINEAR),
+            mag_filter: Cell::new(constants::LINEAR),
+            image_info_array: DomRefCell::new([None; MAX_LEVEL_COUNT * MAX_FACE_COUNT]),
+            attached_to_dom: Cell::new(false),
+            attached_framebuffer: Default::default(),
         }
     }
 
-    pub fn maybe_new(window: &Window, renderer: IpcSender<CanvasMsg>)
-                     -> Option<Root<WebGLTexture>> {
-        let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
-        renderer.send(CanvasMsg::WebGL(WebGLCommand::CreateTexture(sender))).unwrap();
-
-        let result = receiver.recv().unwrap();
-        result.map(|texture_id| WebGLTexture::new(window, renderer, texture_id))
+    pub fn maybe_new(context: &WebGLRenderingContext) -> Option<DomRoot<Self>> {
+        let (sender, receiver) = webgl_channel().unwrap();
+        context.send_command(WebGLCommand::CreateTexture(sender));
+        receiver
+            .recv()
+            .unwrap()
+            .map(|id| WebGLTexture::new(context, id))
     }
 
-    pub fn new(window: &Window,
-               renderer: IpcSender<CanvasMsg>,
-               id: WebGLTextureId)
-               -> Root<WebGLTexture> {
-        reflect_dom_object(box WebGLTexture::new_inherited(renderer, id),
-                           window,
-                           WebGLTextureBinding::Wrap)
+    pub fn new(context: &WebGLRenderingContext, id: WebGLTextureId) -> DomRoot<Self> {
+        reflect_dom_object(
+            Box::new(WebGLTexture::new_inherited(context, id, None)),
+            &*context.global(),
+        )
+    }
+
+    pub fn new_webxr(
+        context: &WebGLRenderingContext,
+        id: WebGLTextureId,
+        session: &XRSession,
+    ) -> DomRoot<Self> {
+        reflect_dom_object(
+            Box::new(WebGLTexture::new_inherited(context, id, Some(session))),
+            &*context.global(),
+        )
     }
 }
-
 
 impl WebGLTexture {
     pub fn id(&self) -> WebGLTextureId {
@@ -89,7 +130,7 @@ impl WebGLTexture {
 
     // NB: Only valid texture targets come here
     pub fn bind(&self, target: u32) -> WebGLResult<()> {
-        if self.is_deleted.get() {
+        if self.is_invalid() {
             return Err(WebGLError::InvalidOperation);
         }
 
@@ -102,37 +143,44 @@ impl WebGLTexture {
             let face_count = match target {
                 constants::TEXTURE_2D => 1,
                 constants::TEXTURE_CUBE_MAP => 6,
-                _ => return Err(WebGLError::InvalidOperation)
+                _ => return Err(WebGLError::InvalidEnum),
             };
             self.face_count.set(face_count);
             self.target.set(Some(target));
         }
 
-        let msg = CanvasMsg::WebGL(WebGLCommand::BindTexture(target, Some(self.id)));
-        self.renderer.send(msg).unwrap();
+        self.upcast::<WebGLObject>()
+            .context()
+            .send_command(WebGLCommand::BindTexture(target, Some(self.id)));
 
         Ok(())
     }
 
-    pub fn initialize(&self,
-                      target: TexImageTarget,
-                      width: u32,
-                      height: u32,
-                      depth: u32,
-                      internal_format: TexFormat,
-                      level: u32,
-                      data_type: Option<TexDataType>) -> WebGLResult<()> {
+    pub fn initialize(
+        &self,
+        target: TexImageTarget,
+        width: u32,
+        height: u32,
+        depth: u32,
+        internal_format: TexFormat,
+        level: u32,
+        data_type: Option<TexDataType>,
+    ) -> WebGLResult<()> {
         let image_info = ImageInfo {
             width: width,
             height: height,
             depth: depth,
-            internal_format: Some(internal_format),
-            is_initialized: true,
+            internal_format: internal_format,
             data_type: data_type,
         };
 
         let face_index = self.face_index_for_target(&target);
         self.set_image_infos_at_level_and_face(level, face_index, image_info);
+
+        if let Some(fb) = self.attached_framebuffer.get() {
+            fb.update_status();
+        }
+
         Ok(())
     }
 
@@ -142,13 +190,10 @@ impl WebGLTexture {
             None => {
                 error!("Cannot generate mipmap on texture that has no target!");
                 return Err(WebGLError::InvalidOperation);
-            }
+            },
         };
 
-        let base_image_info = self.base_image_info().unwrap();
-        if !base_image_info.is_initialized() {
-            return Err(WebGLError::InvalidOperation);
-        }
+        let base_image_info = self.base_image_info().ok_or(WebGLError::InvalidOperation)?;
 
         let is_cubic = target == constants::TEXTURE_CUBE_MAP;
         if is_cubic && !self.is_cube_complete() {
@@ -163,7 +208,9 @@ impl WebGLTexture {
             return Err(WebGLError::InvalidOperation);
         }
 
-        self.renderer.send(CanvasMsg::WebGL(WebGLCommand::GenerateMipmap(target))).unwrap();
+        self.upcast::<WebGLObject>()
+            .context()
+            .send_command(WebGLCommand::GenerateMipmap(target));
 
         if self.base_mipmap_level + base_image_info.get_max_mimap_levels() == 0 {
             return Err(WebGLError::InvalidOperation);
@@ -173,89 +220,157 @@ impl WebGLTexture {
         self.populate_mip_chain(self.base_mipmap_level, last_level)
     }
 
-    pub fn delete(&self) {
+    pub fn delete(&self, operation_fallibility: Operation) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
-            let _ = self.renderer.send(CanvasMsg::WebGL(WebGLCommand::DeleteTexture(self.id)));
+            let context = self.upcast::<WebGLObject>().context();
+            // Notify WR to release the frame output when using DOMToTexture feature
+            if self.attached_to_dom.get() {
+                let _ = context
+                    .webgl_sender()
+                    .send_dom_to_texture(DOMToTextureCommand::Detach(self.id));
+            }
+
+            /*
+            If a texture object is deleted while its image is attached to one or more attachment
+            points in a currently bound framebuffer, then it is as if FramebufferTexture had been
+            called, with a texture of zero, for each attachment point to which this im-age was
+            attached in that framebuffer. In other words, this texture image is firstdetached from
+            all attachment points in a currently bound framebuffer.
+            - GLES 3.0, 4.4.2.3, "Attaching Texture Images to a Framebuffer"
+            */
+            if let Some(fb) = context.get_draw_framebuffer_slot().get() {
+                let _ = fb.detach_texture(self);
+            }
+            if let Some(fb) = context.get_read_framebuffer_slot().get() {
+                let _ = fb.detach_texture(self);
+            }
+
+            // We don't delete textures owned by WebXR
+            if let WebGLTextureOwner::WebXR(_) = self.owner {
+                return;
+            }
+
+            let cmd = WebGLCommand::DeleteTexture(self.id);
+            match operation_fallibility {
+                Operation::Fallible => context.send_command_ignored(cmd),
+                Operation::Infallible => context.send_command(cmd),
+            }
         }
     }
 
-    pub fn is_deleted(&self) -> bool {
+    pub fn is_invalid(&self) -> bool {
+        // https://immersive-web.github.io/layers/#xrwebglsubimagetype
+        if let WebGLTextureOwner::WebXR(ref session) = self.owner {
+            if session.is_outside_raf() {
+                return true;
+            }
+        }
         self.is_deleted.get()
+    }
+
+    pub fn is_immutable(&self) -> bool {
+        self.immutable_levels.get().is_some()
     }
 
     pub fn target(&self) -> Option<u32> {
         self.target.get()
     }
 
+    pub fn maybe_get_tex_parameter(&self, param: TexParameter) -> Option<TexParameterValue> {
+        match param {
+            TexParameter::Int(TexParameterInt::TextureImmutableLevels) => Some(
+                TexParameterValue::Int(self.immutable_levels.get().unwrap_or(0) as i32),
+            ),
+            TexParameter::Bool(TexParameterBool::TextureImmutableFormat) => {
+                Some(TexParameterValue::Bool(self.is_immutable()))
+            },
+            _ => None,
+        }
+    }
+
     /// We have to follow the conversion rules for GLES 2.0. See:
     ///   https://www.khronos.org/webgl/public-mailing-list/archives/1008/msg00014.html
     ///
-    pub fn tex_parameter(&self,
-                     target: u32,
-                     name: u32,
-                     value: TexParameterValue) -> WebGLResult<()> {
-        let (int_value, _float_value) = match value {
+    pub fn tex_parameter(&self, param: u32, value: TexParameterValue) -> WebGLResult<()> {
+        let target = self.target().unwrap();
+
+        let (int_value, float_value) = match value {
             TexParameterValue::Int(int_value) => (int_value, int_value as f32),
             TexParameterValue::Float(float_value) => (float_value as i32, float_value),
+            TexParameterValue::Bool(_) => unreachable!("no settable tex params should be booleans"),
         };
 
-        match name {
-            constants::TEXTURE_MIN_FILTER => {
-                match int_value as u32 {
-                    constants::NEAREST |
-                    constants::LINEAR |
-                    constants::NEAREST_MIPMAP_NEAREST |
-                    constants::LINEAR_MIPMAP_NEAREST |
-                    constants::NEAREST_MIPMAP_LINEAR |
-                    constants::LINEAR_MIPMAP_LINEAR => {
-                        self.renderer
-                            .send(CanvasMsg::WebGL(WebGLCommand::TexParameteri(target, name, int_value)))
-                            .unwrap();
-                        Ok(())
-                    },
-
-                    _ => Err(WebGLError::InvalidEnum),
-                }
+        let update_filter = |filter: &Cell<u32>| {
+            if filter.get() == int_value as u32 {
+                return Ok(());
+            }
+            filter.set(int_value as u32);
+            self.upcast::<WebGLObject>()
+                .context()
+                .send_command(WebGLCommand::TexParameteri(target, param, int_value));
+            Ok(())
+        };
+        match param {
+            constants::TEXTURE_MIN_FILTER => match int_value as u32 {
+                constants::NEAREST |
+                constants::LINEAR |
+                constants::NEAREST_MIPMAP_NEAREST |
+                constants::LINEAR_MIPMAP_NEAREST |
+                constants::NEAREST_MIPMAP_LINEAR |
+                constants::LINEAR_MIPMAP_LINEAR => update_filter(&self.min_filter),
+                _ => Err(WebGLError::InvalidEnum),
             },
-            constants::TEXTURE_MAG_FILTER => {
-                match int_value as u32 {
-                    constants::NEAREST |
-                    constants::LINEAR => {
-                        self.renderer
-                            .send(CanvasMsg::WebGL(WebGLCommand::TexParameteri(target, name, int_value)))
-                            .unwrap();
-                        Ok(())
-                    },
-
-                    _ => Err(WebGLError::InvalidEnum),
-                }
+            constants::TEXTURE_MAG_FILTER => match int_value as u32 {
+                constants::NEAREST | constants::LINEAR => update_filter(&self.mag_filter),
+                _ => return Err(WebGLError::InvalidEnum),
             },
-            constants::TEXTURE_WRAP_S |
-            constants::TEXTURE_WRAP_T => {
-                match int_value as u32 {
-                    constants::CLAMP_TO_EDGE |
-                    constants::MIRRORED_REPEAT |
-                    constants::REPEAT => {
-                        self.renderer
-                            .send(CanvasMsg::WebGL(WebGLCommand::TexParameteri(target, name, int_value)))
-                            .unwrap();
-                        Ok(())
-                    },
-
-                    _ => Err(WebGLError::InvalidEnum),
-                }
+            constants::TEXTURE_WRAP_S | constants::TEXTURE_WRAP_T => match int_value as u32 {
+                constants::CLAMP_TO_EDGE | constants::MIRRORED_REPEAT | constants::REPEAT => {
+                    self.upcast::<WebGLObject>()
+                        .context()
+                        .send_command(WebGLCommand::TexParameteri(target, param, int_value));
+                    Ok(())
+                },
+                _ => Err(WebGLError::InvalidEnum),
             },
-
+            EXTTextureFilterAnisotropicConstants::TEXTURE_MAX_ANISOTROPY_EXT => {
+                // NaN is not less than 1., what a time to be alive.
+                if !(float_value >= 1.) {
+                    return Err(WebGLError::InvalidValue);
+                }
+                self.upcast::<WebGLObject>()
+                    .context()
+                    .send_command(WebGLCommand::TexParameterf(target, param, float_value));
+                Ok(())
+            },
             _ => Err(WebGLError::InvalidEnum),
         }
     }
 
+    pub fn min_filter(&self) -> u32 {
+        self.min_filter.get()
+    }
+
+    pub fn mag_filter(&self) -> u32 {
+        self.mag_filter.get()
+    }
+
+    pub fn is_using_linear_filtering(&self) -> bool {
+        let filters = [self.min_filter.get(), self.mag_filter.get()];
+        filters.iter().any(|filter| match *filter {
+            constants::LINEAR |
+            constants::NEAREST_MIPMAP_LINEAR |
+            constants::LINEAR_MIPMAP_NEAREST |
+            constants::LINEAR_MIPMAP_LINEAR => true,
+            _ => false,
+        })
+    }
+
     pub fn populate_mip_chain(&self, first_level: u32, last_level: u32) -> WebGLResult<()> {
-        let base_image_info = self.image_info_at_face(0, first_level);
-        if !base_image_info.is_initialized() {
-            return Err(WebGLError::InvalidOperation);
-        }
+        let base_image_info = self
+            .image_info_at_face(0, first_level)
+            .ok_or(WebGLError::InvalidOperation)?;
 
         let mut ref_width = base_image_info.width;
         let mut ref_height = base_image_info.height;
@@ -277,7 +392,6 @@ impl WebGLTexture {
                 height: ref_height,
                 depth: 0,
                 internal_format: base_image_info.internal_format,
-                is_initialized: base_image_info.is_initialized(),
                 data_type: base_image_info.data_type,
             };
 
@@ -287,26 +401,27 @@ impl WebGLTexture {
     }
 
     fn is_cube_complete(&self) -> bool {
-        debug_assert!(self.face_count.get() == 6);
+        debug_assert_eq!(self.face_count.get(), 6);
 
-        let image_info = self.base_image_info().unwrap();
-        if !image_info.is_defined() {
-            return false;
-        }
+        let image_info = match self.base_image_info() {
+            Some(info) => info,
+            None => return false,
+        };
 
         let ref_width = image_info.width;
         let ref_format = image_info.internal_format;
 
         for face in 0..self.face_count.get() {
-            let current_image_info = self.image_info_at_face(face, self.base_mipmap_level);
-            if !current_image_info.is_defined() {
-                return false;
-            }
+            let current_image_info = match self.image_info_at_face(face, self.base_mipmap_level) {
+                Some(info) => info,
+                None => return false,
+            };
 
             // Compares height with width to enforce square dimensions
             if current_image_info.internal_format != ref_format ||
-               current_image_info.width != ref_width ||
-               current_image_info.height != ref_width {
+                current_image_info.width != ref_width ||
+                current_image_info.height != ref_width
+            {
                 return false;
             }
         }
@@ -314,27 +429,24 @@ impl WebGLTexture {
         true
     }
 
-    fn face_index_for_target(&self,
-                             target: &TexImageTarget) -> u8 {
+    fn face_index_for_target(&self, target: &TexImageTarget) -> u8 {
         match *target {
-            TexImageTarget::Texture2D => 0,
             TexImageTarget::CubeMapPositiveX => 0,
             TexImageTarget::CubeMapNegativeX => 1,
             TexImageTarget::CubeMapPositiveY => 2,
             TexImageTarget::CubeMapNegativeY => 3,
             TexImageTarget::CubeMapPositiveZ => 4,
             TexImageTarget::CubeMapNegativeZ => 5,
+            _ => 0,
         }
     }
 
-    pub fn image_info_for_target(&self,
-                                 target: &TexImageTarget,
-                                 level: u32) -> ImageInfo {
+    pub fn image_info_for_target(&self, target: &TexImageTarget, level: u32) -> Option<ImageInfo> {
         let face_index = self.face_index_for_target(&target);
         self.image_info_at_face(face_index, level)
     }
 
-    pub fn image_info_at_face(&self, face: u8, level: u32) -> ImageInfo {
+    pub fn image_info_at_face(&self, face: u8, level: u32) -> Option<ImageInfo> {
         let pos = (level * self.face_count.get() as u32) + face as u32;
         self.image_info_array.borrow()[pos as usize]
     }
@@ -348,44 +460,96 @@ impl WebGLTexture {
     fn set_image_infos_at_level_and_face(&self, level: u32, face: u8, image_info: ImageInfo) {
         debug_assert!(face < self.face_count.get());
         let pos = (level * self.face_count.get() as u32) + face as u32;
-        self.image_info_array.borrow_mut()[pos as usize] = image_info;
+        self.image_info_array.borrow_mut()[pos as usize] = Some(image_info);
     }
 
     fn base_image_info(&self) -> Option<ImageInfo> {
         assert!((self.base_mipmap_level as usize) < MAX_LEVEL_COUNT);
 
-        Some(self.image_info_at_face(0, self.base_mipmap_level))
+        self.image_info_at_face(0, self.base_mipmap_level)
+    }
+
+    pub fn set_attached_to_dom(&self) {
+        self.attached_to_dom.set(true);
+    }
+
+    pub fn attach_to_framebuffer(&self, fb: &WebGLFramebuffer) {
+        self.attached_framebuffer.set(Some(fb));
+    }
+
+    pub fn detach_from_framebuffer(&self) {
+        self.attached_framebuffer.set(None);
+    }
+
+    pub fn storage(
+        &self,
+        target: TexImageTarget,
+        levels: u32,
+        internal_format: TexFormat,
+        width: u32,
+        height: u32,
+        depth: u32,
+    ) -> WebGLResult<()> {
+        // Handled by the caller
+        assert!(!self.is_immutable());
+        assert!(self.target().is_some());
+
+        let target_id = target.as_gl_constant();
+        let command = match target {
+            TexImageTarget::Texture2D | TexImageTarget::CubeMap => {
+                WebGLCommand::TexStorage2D(target_id, levels, internal_format, width, height)
+            },
+            TexImageTarget::Texture3D | TexImageTarget::Texture2DArray => {
+                WebGLCommand::TexStorage3D(target_id, levels, internal_format, width, height, depth)
+            },
+            _ => unreachable!(), // handled by the caller
+        };
+        self.upcast::<WebGLObject>().context().send_command(command);
+
+        let mut width = width;
+        let mut height = height;
+        let mut depth = depth;
+        for level in 0..levels {
+            let image_info = ImageInfo {
+                width,
+                height,
+                depth,
+                internal_format,
+                data_type: None,
+            };
+            self.set_image_infos_at_level(level, image_info);
+
+            width = cmp::max(1, width / 2);
+            height = cmp::max(1, height / 2);
+            depth = cmp::max(1, depth / 2);
+        }
+
+        self.immutable_levels.set(Some(levels));
+
+        if let Some(fb) = self.attached_framebuffer.get() {
+            fb.update_status();
+        }
+
+        Ok(())
     }
 }
 
 impl Drop for WebGLTexture {
     fn drop(&mut self) {
-        self.delete();
+        self.delete(Operation::Fallible);
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Debug, JSTraceable, HeapSizeOf)]
+#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct ImageInfo {
     width: u32,
     height: u32,
     depth: u32,
-    internal_format: Option<TexFormat>,
-    is_initialized: bool,
+    internal_format: TexFormat,
     data_type: Option<TexDataType>,
 }
 
 impl ImageInfo {
-    fn new() -> ImageInfo {
-        ImageInfo {
-            width: 0,
-            height: 0,
-            depth: 0,
-            internal_format: None,
-            is_initialized: false,
-            data_type: None,
-        }
-    }
-
     pub fn width(&self) -> u32 {
         self.width
     }
@@ -394,7 +558,7 @@ impl ImageInfo {
         self.height
     }
 
-    pub fn internal_format(&self) -> Option<TexFormat> {
+    pub fn internal_format(&self) -> TexFormat {
         self.internal_format
     }
 
@@ -404,16 +568,8 @@ impl ImageInfo {
 
     fn is_power_of_two(&self) -> bool {
         self.width.is_power_of_two() &&
-        self.height.is_power_of_two() &&
-        self.depth.is_power_of_two()
-    }
-
-    fn is_initialized(&self) -> bool {
-        self.is_initialized
-    }
-
-    fn is_defined(&self) -> bool {
-        self.internal_format.is_some()
+            self.height.is_power_of_two() &&
+            self.depth.is_power_of_two()
     }
 
     fn get_max_mimap_levels(&self) -> u32 {
@@ -426,7 +582,21 @@ impl ImageInfo {
     }
 
     fn is_compressed_format(&self) -> bool {
-        // TODO: Once Servo supports compressed formats, check for them here
-        false
+        self.internal_format.is_compressed()
     }
+}
+
+#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf)]
+pub enum TexCompressionValidation {
+    None,
+    S3TC,
+}
+
+#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf)]
+pub struct TexCompression {
+    pub format: TexFormat,
+    pub bytes_per_block: u8,
+    pub block_width: u8,
+    pub block_height: u8,
+    pub validation: TexCompressionValidation,
 }

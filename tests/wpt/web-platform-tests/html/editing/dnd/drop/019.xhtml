@@ -4,29 +4,29 @@
 <title>Text input selection drag and drop: setting dropzone attribute ondragstart</title>
 <style type="text/css">
 div
-	{display:inline-block;
-	vertical-align:top;
-	background-color:olive;
-	color:white;
-	padding:20px;
-	width:100px;
-	height:100px;}
+  {display:inline-block;
+  vertical-align:top;
+  background-color:olive;
+  color:white;
+  padding:20px;
+  width:100px;
+  height:100px;}
 div:nth-child(2)
-	{background-color:green;}
+  {background-color:green;}
 div:nth-child(3)
-	{background-color:teal;}
+  {background-color:teal;}
 </style>
 <script type="application/ecmascript">
 var effects = ['copy','move','link'];
 function selectText()
-	{document.querySelector('input').select()}
+  {document.querySelector('input').select()}
 function dropSelection(event,element)
-	{document.querySelectorAll('div')[element].appendChild(document.createTextNode((event.dataTransfer.dropEffect == effects[element])?' PASS ':' FAIL '));
-	selectText();}
+  {document.querySelectorAll('div')[element].appendChild(document.createTextNode((event.dataTransfer.dropEffect == effects[element])?' PASS ':' FAIL '));
+  selectText();}
 function start(event)
-	{for(var i = 0; i != 3; i++)
-		{document.querySelectorAll('div')[i].setAttribute('dropzone',effects[i] + ' string:text/plain')}
-	}
+  {for(var i = 0; i != 3; i++)
+    {document.querySelectorAll('div')[i].setAttribute('dropzone',effects[i] + ' string:text/plain')}
+  }
 </script>
 </head>
 <body onload="selectText()">

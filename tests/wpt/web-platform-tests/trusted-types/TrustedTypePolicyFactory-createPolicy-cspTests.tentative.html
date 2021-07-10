@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js" ></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.sub.js"></script>
+
+<meta http-equiv="Content-Security-Policy" content="trusted-types SomeName JustOneMoreName">
+<body>
+<script>
+  // Allowed name test
+  test(t => {
+    let policy = window.trustedTypes.createPolicy('SomeName', { createHTML: s => s } );
+    assert_equals(policy.name, 'SomeName');
+  }, "Allowed-name policy creation works.");
+
+  // Another allowed name test
+  test(t => {
+    let policy = window.trustedTypes.createPolicy('JustOneMoreName', { createHTML: s => s } );
+    assert_equals(policy.name, 'JustOneMoreName');
+  }, "Another allowed-name policy creation works.");
+
+  // Non-allowed names test
+  test(t => {
+    assert_throws_js(TypeError, _ => {
+     window.trustedTypes.createPolicy('SomeOtherName', { createURL: s => s } );
+    });
+  }, "Non-allowed name policy creation throws.");
+</script>

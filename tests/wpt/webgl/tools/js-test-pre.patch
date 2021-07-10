@@ -1,0 +1,81 @@
+--- js/js-test-pre.js
++++ js/js-test-pre.js
+@@ -106,11 +106,25 @@
+   }
+ }
+ 
+-function reportTestResultsToHarness(success, msg) {
+-  if (window.parent.webglTestHarness) {
+-    window.parent.webglTestHarness.reportResults(window.location.pathname, success, msg);
++(function() {
++  var WPT_TEST_ID = 0;
++
++  // Store the current WPT test harness `test` function
++  // if found, since it's overriden by some tests.
++  var wpt_test = window.test;
++  var wpt_assert_true = window.assert_true;
++  var wt_async_test = window.async_test;
++
++  window.reportTestResultsToHarness = function reportTestResultsToHarness(success, msg) {
++    if (window.parent.webglTestHarness) {
++      window.parent.webglTestHarness.reportResults(window.location.pathname, success, msg);
++    } else if (wpt_test) { // WPT test harness
++      wpt_test(function () {
++        wpt_assert_true(success, msg);
++      }, "WebGL test #" + (WPT_TEST_ID++) + ": " + msg);
++    }
+   }
+-}
++}())
+ 
+ function reportSkippedTestResultsToHarness(success, msg) {
+   if (window.parent.webglTestHarness) {
+@@ -127,6 +141,13 @@
+   }
+ }
+ 
++(function () {
++  var t = async_test("Overall test");
++  var done = t.step_func_done(notifyFinishedToHarness);
++  window.notifyFinishedToHarness = done;
++  window.addEventListener("error", done);
++}())
++
+ var _bufferedConsoleLogs = [];
+ 
+ function _bufferedLogToConsole(msg)
+@@ -157,7 +177,7 @@
+   }
+ }
+ 
+-var _jsTestPreVerboseLogging = false;
++var _jsTestPreVerboseLogging = true;
+ 
+ function enableJSTestPreVerboseLogging()
+ {
+@@ -170,24 +190,11 @@
+     if (msg === undefined) {
+       msg = document.title;
+     }
+-    // For MSIE 6 compatibility
+-    var span = document.createElement("span");
+-    span.innerHTML = '<p>' + msg + '</p><p>On success, you will see a series of "<span class="pass">PASS</span>" messages, followed by "<span class="pass">TEST COMPLETE</span>".</p>';
+-    var description = document.getElementById("description");
+-    if (description.firstChild)
+-        description.replaceChild(span, description.firstChild);
+-    else
+-        description.appendChild(span);
+-    if (_jsTestPreVerboseLogging) {
+-        _bufferedLogToConsole(msg);
+-    }
++    _bufferedLogToConsole("DESCRIPTION: " + msg);
+ }
+ 
+ function _addSpan(contents)
+ {
+-    var span = document.createElement("span");
+-    document.getElementById("console").appendChild(span); // insert it first so XHTML knows the namespace
+-    span.innerHTML = contents + '<br />';
+ }
+ 
+ function debug(msg)

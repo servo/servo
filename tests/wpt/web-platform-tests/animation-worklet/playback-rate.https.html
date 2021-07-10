@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>The playback rate of a worklet animation</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-animationworklet/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+// Presence of playback rate adds FP operations to calculating start_time
+// and current_time of animations. That's why it's needed to increase FP error
+// for comparing times in these tests.
+window.assert_times_equal = (actual, expected, description) => {
+  assert_approx_equals(actual, expected, 0.002, description);
+};
+</script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="common.js"></script>
+<style>
+  .scroller {
+    overflow: auto;
+    height: 100px;
+    width: 100px;
+  }
+  .contents {
+    height: 1000px;
+    width: 100%;
+  }
+</style>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+function createWorkletAnimation(test) {
+  const DURATION = 10000; // ms
+  const KEYFRAMES = { transform: ['translateY(100px)', 'translateY(200px)'] };
+  return new WorkletAnimation('passthrough', new KeyframeEffect(createDiv(test),
+        KEYFRAMES, DURATION), document.timeline);
+}
+
+function createScroller(test) {
+  var scroller = createDiv(test);
+  scroller.innerHTML = "<div class='contents'></div>";
+  scroller.classList.add('scroller');
+  return scroller;
+}
+
+function createScrollLinkedWorkletAnimation(test) {
+  const timeline = new ScrollTimeline({
+    scrollSource: createScroller(test),
+    timeRange: 1000
+  });
+  const DURATION = 10000; // ms
+  const KEYFRAMES = { transform: ['translateY(100px)', 'translateY(200px)'] };
+  return new WorkletAnimation('passthrough', new KeyframeEffect(createDiv(test),
+        KEYFRAMES, DURATION), timeline);
+}
+
+setup(setupAndRegisterTests, {explicit_done: true});
+
+function setupAndRegisterTests() {
+  registerPassthroughAnimator().then(() => {
+
+    promise_test(async t => {
+      const animation = createWorkletAnimation(t);
+
+      animation.playbackRate = 0.5;
+      animation.play();
+      assert_equals(animation.currentTime, 0,
+        'Zero current time is not affected by playbackRate.');
+    }, 'Zero current time is not affected by playbackRate set while the ' +
+       'animation is in idle state.');
+
+    promise_test(async t => {
+      const animation = createWorkletAnimation(t);
+
+      animation.play();
+      animation.playbackRate = 0.5;
+      assert_equals(animation.currentTime, 0,
+        'Zero current time is not affected by playbackRate.');
+    }, 'Zero current time is not affected by playbackRate set while the ' +
+       'animation is in play-pending state.');
+
+    promise_test(async t => {
+      const animation = createWorkletAnimation(t);
+      const playbackRate = 2;
+
+      animation.play();
+
+      await waitForAnimationFrameWithCondition(_=> {
+        return animation.playState == "running"
+      });
+      // Make sure the current time is not Zero.
+      await waitForDocumentTimelineAdvance();
+
+      // Set playback rate while the animation is playing.
+      const prevCurrentTime = animation.currentTime;
+      animation.playbackRate = playbackRate;
+
+      assert_times_equal(animation.currentTime, prevCurrentTime,
+        'The current time should stay unaffected by setting playback rate.');
+    }, 'Non zero current time is not affected by playbackRate set while the ' +
+       'animation is in play state.');
+
+    promise_test(async t => {
+      const animation = createWorkletAnimation(t);
+      const playbackRate = 0.2;
+
+      animation.play();
+
+      await waitForAnimationFrameWithCondition(_=> {
+        return animation.playState == "running"
+      });
+
+      // Set playback rate while the animation is playing.
+      const prevCurrentTime = animation.currentTime;
+      const prevTimelineTime = document.timeline.currentTime;
+      animation.playbackRate = playbackRate;
+
+      // Play the animation some more.
+      await waitForDocumentTimelineAdvance();
+
+      const currentTime = animation.currentTime;
+      const currentTimelineTime = document.timeline.currentTime;
+
+      assert_times_equal(
+        currentTime - prevCurrentTime,
+        (currentTimelineTime - prevTimelineTime) * playbackRate,
+        'The current time should increase 0.2 times faster than timeline.');
+    }, 'The playback rate affects the rate of progress of the current time.');
+
+    promise_test(async t => {
+      const animation = createWorkletAnimation(t);
+      const playbackRate = 2;
+
+      // Set playback rate while the animation is in 'idle' state.
+      animation.playbackRate = playbackRate;
+      const prevTimelineTime = document.timeline.currentTime;
+      animation.play();
+
+      await waitForAnimationFrameWithCondition(_=> {
+        return animation.playState == "running"
+      });
+      await waitForDocumentTimelineAdvance();
+
+      const currentTime = animation.currentTime;
+      const timelineTime = document.timeline.currentTime;
+      assert_times_equal(
+        currentTime,
+        (timelineTime - prevTimelineTime) * playbackRate,
+        'The current time should increase two times faster than timeline.');
+    }, 'The playback rate set before the animation started playing affects ' +
+       'the rate of progress of the current time');
+
+    promise_test(async t => {
+      const timing = { duration: 100,
+                      easing: 'linear',
+                      fill: 'none',
+                      iterations: 1
+                     };
+      // TODO(crbug.com/937382): Currently composited
+      // workletAnimation.currentTime and the corresponding
+      // effect.getComputedTiming().localTime are computed by main and
+      // compositing threads respectively and, as a result, don't match.
+      // To workaround this limitation we compare the output of two identical
+      // animations that only differ in playback rate. The expectation is that
+      // their output matches after taking their playback rates into
+      // consideration. This works since these two animations start at the same
+      // time on the same thread.
+      // Once the issue is fixed, this test needs to change so expected
+      // effect.getComputedTiming().localTime is compared against
+      // workletAnimation.currentTime.
+      const target = createDiv(t);
+      const targetRef = createDiv(t);
+      const keyframeEffect = new KeyframeEffect(
+        target, { opacity: [1, 0] }, timing);
+      const keyframeEffectRef = new KeyframeEffect(
+        targetRef, { opacity: [1, 0] }, timing);
+      const animation = new WorkletAnimation(
+        'passthrough', keyframeEffect, document.timeline);
+      const animationRef = new WorkletAnimation(
+        'passthrough', keyframeEffectRef, document.timeline);
+      const playbackRate = 2;
+      animation.playbackRate = playbackRate;
+      animation.play();
+      animationRef.play();
+
+      // wait until local times are synced back to the main thread.
+      await waitForAnimationFrameWithCondition(_ => {
+        return getComputedStyle(target).opacity != '1';
+      });
+
+      assert_times_equal(
+        keyframeEffect.getComputedTiming().localTime,
+        keyframeEffectRef.getComputedTiming().localTime * playbackRate,
+        'When playback rate is set on WorkletAnimation, the underlying ' +
+        'effect\'s timing should be properly updated.');
+
+      assert_approx_equals(
+        1 - Number(getComputedStyle(target).opacity),
+        (1 - Number(getComputedStyle(targetRef).opacity)) * playbackRate,
+        0.001,
+        'When playback rate is set on WorkletAnimation, the underlying effect' +
+        ' should produce correct visual result.');
+    }, 'When playback rate is updated, the underlying effect is properly ' +
+       'updated with the current time of its WorkletAnimation and produces ' +
+       'correct visual result.');
+
+    promise_test(async t => {
+      const animation = createScrollLinkedWorkletAnimation(t);
+      const scroller = animation.timeline.scrollSource;
+      const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+      const timeRange = animation.timeline.timeRange;
+      scroller.scrollTop = 0.2 * maxScroll;
+
+      animation.playbackRate = 0.5;
+      animation.play();
+      await waitForAnimationFrameWithCondition(_=> {
+        return animation.playState == "running"
+      });
+      assert_equals(animation.currentTime, 0.2 * timeRange * 0.5,
+        'Initial current time is scaled by playbackRate.');
+    }, 'Initial current time is scaled by playbackRate set while ' +
+       'scroll-linked animation is in idle state.');
+
+    promise_test(async t => {
+      const animation = createScrollLinkedWorkletAnimation(t);
+      const scroller = animation.timeline.scrollSource;
+      const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+      const timeRange = animation.timeline.timeRange;
+      scroller.scrollTop = 0.2 * maxScroll;
+
+      animation.play();
+      animation.playbackRate = 0.5;
+
+      assert_equals(animation.currentTime, 0.2 * timeRange,
+        'Initial current time is not affected by playbackRate.');
+    }, 'Initial current time is not affected by playbackRate set while '+
+       'scroll-linked animation is in play-pending state.');
+
+    promise_test(async t => {
+      const animation = createScrollLinkedWorkletAnimation(t);
+      const scroller = animation.timeline.scrollSource;
+      const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+      const timeRange = animation.timeline.timeRange;
+      const playbackRate = 2;
+
+      animation.play();
+      scroller.scrollTop = 0.2 * maxScroll;
+      await waitForAnimationFrameWithCondition(_=> {
+        return animation.playState == "running"
+      });
+      // Set playback rate while the animation is playing.
+      animation.playbackRate = playbackRate;
+      assert_times_equal(animation.currentTime, 0.2 * timeRange,
+        'The current time should stay unaffected by setting playback rate.');
+    }, 'The current time is not affected by playbackRate set while the ' +
+       'scroll-linked animation is in play state.');
+
+    promise_test(async t => {
+      const animation = createScrollLinkedWorkletAnimation(t);
+      const scroller = animation.timeline.scrollSource;
+      const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+      const playbackRate = 2;
+      const timeRange = animation.timeline.timeRange;
+
+      animation.play();
+      await waitForAnimationFrameWithCondition(_=> {
+        return animation.playState == "running"
+      });
+      scroller.scrollTop = 0.1 * maxScroll;
+
+      // Set playback rate while the animation is playing.
+      animation.playbackRate = playbackRate;
+
+      scroller.scrollTop = 0.2 * maxScroll;
+
+      assert_times_equal(
+        animation.currentTime - 0.1 * timeRange, 0.1 * timeRange * playbackRate,
+        'The current time should increase twice faster than scroll timeline.');
+    }, 'Scroll-linked animation playback rate affects the rate of progress ' +
+       'of the current time.');
+
+    promise_test(async t => {
+      const animation = createScrollLinkedWorkletAnimation(t);
+      const scroller = animation.timeline.scrollSource;
+      const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+      const timeRange = animation.timeline.timeRange;
+      const playbackRate = 2;
+
+      // Set playback rate while the animation is in 'idle' state.
+      animation.playbackRate = playbackRate;
+      animation.play();
+      await waitForAnimationFrameWithCondition(_=> {
+        return animation.playState == "running"
+      });
+      scroller.scrollTop = 0.2 * maxScroll;
+
+      assert_times_equal(animation.currentTime, 0.2 * timeRange * playbackRate,
+        'The current time should increase two times faster than timeline.');
+    }, 'The playback rate set before scroll-linked animation started playing ' +
+       'affects the rate of progress of the current time');
+
+    promise_test(async t => {
+      const scroller = createScroller(t);
+      const timeline = new ScrollTimeline({
+        scrollSource: scroller,
+        timeRange: 1000
+      });
+      const timing = { duration: 1000,
+                      easing: 'linear',
+                      fill: 'none',
+                      iterations: 1
+                    };
+      const target = createDiv(t);
+      const keyframeEffect = new KeyframeEffect(
+        target, { opacity: [1, 0] }, timing);
+      const animation = new WorkletAnimation(
+        'passthrough', keyframeEffect, timeline);
+      const playbackRate = 2;
+      const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+      const timeRange = timeline.timeRange;
+
+      animation.play();
+      animation.playbackRate = playbackRate;
+      await waitForAnimationFrameWithCondition(_=> {
+        return animation.playState == "running"
+      });
+
+      scroller.scrollTop = 0.2 * maxScroll;
+      // wait until local times are synced back to the main thread.
+      await waitForAnimationFrameWithCondition(_ => {
+        return getComputedStyle(target).opacity != '1';
+      });
+
+      assert_times_equal(
+        keyframeEffect.getComputedTiming().localTime,
+        0.2 * timeRange * playbackRate,
+        'When playback rate is set on WorkletAnimation, the underlying ' +
+        'effect\'s timing should be properly updated.');
+      assert_approx_equals(
+        Number(getComputedStyle(target).opacity),
+        1 - 0.2 * timeRange * playbackRate / 1000, 0.001,
+        'When playback rate is set on WorkletAnimation, the underlying ' +
+        'effect should produce correct visual result.');
+    }, 'When playback rate is updated, the underlying effect is properly ' +
+       'updated with the current time of its scroll-linked WorkletAnimation ' +
+       'and produces correct visual result.');
+    done();
+  });
+}
+</script>
+</body>

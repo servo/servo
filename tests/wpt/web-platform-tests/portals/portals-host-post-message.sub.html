@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<title>Test postMessage on PortalHost</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script>
+    function createPortal(portalSrc) {
+      var portal = document.createElement("portal");
+      portal.src = portalSrc;
+      return new Promise((resolve, reject) => {
+        portal.onload = () => {
+          resolve(portal);
+        };
+        document.body.appendChild(portal);
+      });
+    }
+
+    async function createPortalAndLoopMessage(portalSrc, params) {
+      assert_implements("HTMLPortalElement" in self);
+      var portal = await createPortal(portalSrc);
+      var waitForResponse = new Promise((resolve, reject) => {
+        portal.addEventListener("message", e => { resolve(e); });
+      });
+      portal.postMessage(params);
+      return waitForResponse;
+    }
+
+    const sameOriginUrl = "resources/portal-host-post-message.html";
+    const crossOriginUrl = "http://{{hosts[alt][www]}}:{{ports[http][0]}}/portals/resources/portal-host-post-message-x-origin.html";
+
+    promise_test(async () => {
+      var {data, origin} = await createPortalAndLoopMessage(sameOriginUrl,
+                                                            ["test"]);
+      assert_equals(data, "test");
+      assert_equals(origin, "http://{{host}}:{{ports[http][0]}}");
+    }, "Message received after postMessage from portal host");
+
+    promise_test(async () => {
+      var message = {
+        prop1: "value1",
+        prop2: 2.5,
+        prop3: [1, 2, "3"],
+        prop4: {
+          prop4_1: "value4_1"
+        }
+      };
+      var {data} = await createPortalAndLoopMessage(sameOriginUrl,
+                                                    [message]);
+      assert_object_equals(data, message);
+    }, "postMessage with object message");
+
+    promise_test(async () => {
+      assert_implements("HTMLPortalElement" in self);
+      function checkPort(port) {
+        return new Promise((resolve, reject) => {
+          var channel = new MessageChannel();
+          channel.port1.onmessage = resolve;
+          port.postMessage("sending port", {transfer: [channel.port2]});
+        });
+      }
+
+      var {ports} = await createPortalAndLoopMessage(sameOriginUrl, {
+        type: "message-port"
+      });
+      await checkPort(ports[0]);
+    }, "postMessage with message ports");
+
+    promise_test(async () => {
+      var {data} = await createPortalAndLoopMessage(sameOriginUrl, {
+        type: "array-buffer-without-transfer",
+        array: [0, 1, 2, 3, 4]
+      });
+      assert_array_equals([0, 1, 2, 3, 4], new Int8Array(data.arrayBuffer));
+    }, "postMessage with array buffer without transfer");
+
+    promise_test(async () => {
+      var {data} = await createPortalAndLoopMessage(sameOriginUrl, {
+        type: "array-buffer-with-transfer",
+        array: [0, 1, 2, 3, 4]
+      });
+      assert_array_equals([0, 1, 2, 3, 4], new Int8Array(data.arrayBuffer));
+    }, "postMessage with array buffer with transfer");
+
+    promise_test(async () => {
+      var {data} = await createPortalAndLoopMessage(sameOriginUrl, {
+        type: "invalid-message"
+      });
+      assert_equals(data.errorType, "DataCloneError");
+    }, "postMessage should throw error when serialization fails");
+
+    promise_test(async () => {
+      var {data} = await createPortalAndLoopMessage(sameOriginUrl,{
+        type: "invalid-port"
+      });
+      assert_equals(data.errorType, "TypeError");
+    }, "postMessage with invalid transferable should throw error");
+
+    promise_test(async () => {
+      assert_implements("HTMLPortalElement" in self);
+       var receiveMessage = new Promise((resolve, reject) => {
+         var bc = new BroadcastChannel("portal-host-post-message-after-activate");
+         bc.onmessage = e => { resolve(e); };
+       });
+       const portalUrl = encodeURIComponent(
+          "portal-host-post-message-after-activate.html");
+       window.open(`resources/portal-embed-and-activate.html?url=${portalUrl}`);
+       var message = await receiveMessage;
+       assert_equals(message.data, "InvalidStateError");
+    }, "Calling postMessage after receiving onactivate event should fail");
+
+    promise_test(() => {
+      assert_implements("HTMLPortalElement" in self);
+      var portal = document.createElement("portal");
+      portal.src = "resources/portal-host-post-message-navigate-1.html";
+      var count = 0;
+      var waitForMessages = new Promise((resolve, reject) => {
+        portal.addEventListener("message", e => {
+          count++;
+          if (count == 2)
+            resolve();
+        });
+      });
+      document.body.appendChild(portal);
+      return waitForMessages;
+    }, "postMessage before and after portal navigation should work");
+
+    const TIMEOUT_DURATION_MS = 1000;
+
+    promise_test(t => new Promise((resolve, reject) => {
+      const portal = document.createElement('portal');
+      portal.src = crossOriginUrl;
+      portal.onmessage = () => reject('should not have received message');
+      document.body.appendChild(portal);
+      t.step_timeout(resolve, TIMEOUT_DURATION_MS);
+    }), "postMessage from portal host in cross-origin-portal should be blocked");
+  </script>
+</body>

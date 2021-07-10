@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>CSS3 Text, linebreaks: 0F3B TIBETAN MARK GUG RTAGS GYAS</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<meta name='flags' content=''>
+<style type='text/css'>
+@font-face {
+	font-family: CSSFW;
+	src: url('/fonts/adobe-fonts/CSSFWOrientationTest.otf');
+	}
+.test, .ref { font-size: 30px; font-family: CSSFW, sans-serif; padding: 0; width: 3em; border: 1px solid orange; line-height: 1em; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two orange boxes are identical.</p>
+
+
+<div class='ref'>中中<br />中&#x0F3B;文</div>
+
+
+
+
+
+<div class='ref'>中中<br />中&#x0F3B;文</div>
+
+
+
+
+</body>
+</html>

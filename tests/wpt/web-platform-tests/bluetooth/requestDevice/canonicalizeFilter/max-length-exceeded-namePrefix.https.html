@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/bluetooth/resources/bluetooth-test.js"></script>
+<script src="/bluetooth/resources/bluetooth-fake-devices.js"></script>
+<script>
+'use strict';
+const test_desc = 'A device name prefix longer than 248 must reject.';
+const expected = new DOMException(
+    'Failed to execute \'requestDevice\' on \'Bluetooth\': A device ' +
+        'name can\'t be longer than 248 bytes.',
+    new TypeError());
+const name_too_long = 'a'.repeat(249);
+
+bluetooth_test(
+    () => assert_promise_rejects_with_message(
+        requestDeviceWithTrustedClick({filters: [{namePrefix: name_too_long}]}),
+        expected, 'Device name longer than 248'),
+    test_desc);
+</script>

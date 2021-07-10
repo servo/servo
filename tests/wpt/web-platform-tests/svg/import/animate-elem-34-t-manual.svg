@@ -77,7 +77,6 @@
 
       </polygon>
 
-
       <!-- SECOND TEST, FILL-RULE-->
       <g transform="scale(0.3) translate(-450, 500)">
         <path fill-rule="nonzero" fill="#ccc" stroke="none" d="M 500,100 L 500,300 700,300 700,100 550,100 550,250 650,250 650,100 500,100 z">
@@ -104,7 +103,6 @@
         </path>
       </g>
     </g>
-
 
     <text x="5" y="225" font-size="28">Animation on: 'points' and 'fill-rule'.</text>
     <text x="5" y="255" font-size="18">Digit should match outline at indicated time.</text>

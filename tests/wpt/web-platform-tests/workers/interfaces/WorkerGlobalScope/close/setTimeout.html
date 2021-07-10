@@ -1,20 +1,12 @@
-<!--
-function x() {
-  postMessage(1);
-  throw new Error();
-}
-setTimeout(x, 0);
-close();
-setTimeout(x, 0);
-/*
--->
 <!doctype html>
 <title>close() and setTimeout</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
 <script>
-var worker = new Worker('#');
+setup({ single_test: true });
+
+var worker = new Worker('setTimeout.js');
 worker.onmessage = function(e) {
   assert_unreached("Got message");
 };
@@ -23,6 +15,3 @@ worker.onerror = function(e) {
 };
 setTimeout(done, 2000);
 </script>
-<!--
-*/
-//-->

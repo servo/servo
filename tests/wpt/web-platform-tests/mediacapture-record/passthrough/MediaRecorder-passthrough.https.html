@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+
+<head>
+  <title>MediaRecorder peer connection</title>
+  <link rel="help"
+        href="https://w3c.github.io/mediacapture-record/MediaRecorder.html#dom-mediarecorder-mimeType">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="../utils/peerconnection.js"></script>
+</head>
+
+<body>
+  <video id="remote" autoplay width="240" />
+  <script>
+
+[{kind: "video", audio: false, codecPreference: "VP8", codecRegex: /.*vp8.*/},
+ {kind: "audio/video", audio: true, codecPreference: "VP8", codecRegex: /.*vp8.*/},
+ {kind: "video", audio: false, codecPreference: "VP9", codecRegex: /.*vp9.*/},
+ {kind: "audio/video", audio: true, codecPreference: "VP9", codecRegex: /.*vp9.*/}]
+  .forEach(args => {
+    promise_test(async t => {
+      const [localPc, remotePc, stream] = await startConnection(
+          t, args.audio, /*video=*/true, args.codecPreference);
+
+      // Needed for the tests to get exercised in Chrome (bug)
+      document.getElementById('remote').srcObject = stream;
+
+      const recorder = new MediaRecorder(stream);  // Passthrough.
+      const onstartPromise = new Promise(resolve => {
+        recorder.onstart = t.step_func(() => {
+          assert_regexp_match(
+                recorder.mimeType, args.codecRegex,
+                "mimeType is matching " + args.codecPreference +
+                " in case of passthrough.");
+          resolve();
+        });
+      });
+      recorder.start();
+      await(onstartPromise);
+    }, "PeerConnection passthrough MediaRecorder receives " +
+          args.codecPreference + " after onstart with a " + args.kind +
+          " stream.");
+  });
+
+promise_test(async t => {
+  const [localPc, remotePc, stream, transceivers] = await startConnection(
+      t, /*audio=*/false, /*video=*/true, /*videoCodecPreference=*/"VP8");
+
+  // Needed for the tests to get exercised in Chrome (bug)
+  document.getElementById('remote').srcObject = stream;
+
+  const recorder = new MediaRecorder(stream);  // Possibly passthrough.
+  recorder.start();
+  await waitForReceivedFramesOrPackets(t, remotePc, false, true, 10);
+
+  // Switch codec to VP9; we expect onerror to not be invoked.
+  recorder.onerror = t.step_func(() => assert_unreached(
+      "MediaRecorder should be prepared to handle codec switches"));
+  setTransceiverCodecPreference(transceivers.video, "VP9");
+  await Promise.all([
+    exchangeOfferAnswer(localPc, remotePc),
+    waitForReceivedCodec(t, remotePc, "VP9")
+  ]);
+}, "PeerConnection passthrough MediaRecorder should be prepared to handle " +
+        "the codec switching from VP8 to VP9");
+
+</script>
+</body>
+
+</html>

@@ -1,0 +1,33 @@
+<title>Hit testing backgrounds of content should report the same element as the content</title>
+<style>
+  * {
+  margin: 0;
+  padding: 0;
+  border-width: 0;
+  }
+
+  .tiles {
+  background-color: red;
+  overflow: hidden;
+  }
+  .tile-image {
+  background-color: green;
+  border: 1px solid black;
+  height: 100px;
+  width: 160px;
+  }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="bg" class="tiles">
+  <a id="anchor" href="about:blank">
+    <div id="tile" class="tile-image duckduckgo"></div>
+  </a>
+</div>
+<script>
+  var t = async_test();
+  onload = t.step_func_done(function() {
+    var tile = document.getElementById('tile');
+    assert_equals(document.elementFromPoint(10, 10), tile);
+  });
+</script>

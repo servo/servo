@@ -1,0 +1,113 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Resizing Test for OffscreenCanvas</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/tests/canvas-tests-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test ensures that the OffscreenCanvas context returns the correct image size after resizing.");
+
+function testResizeOnNewOffscreenCanvas() {
+  var canvas = new OffscreenCanvas(10, 20);
+  canvas.getContext("webgl");
+  canvas.width = 30;
+  canvas.height = 40;
+  assertWidthAndHeight(canvas, "canvas", 30, 40);
+  var imagebitmap = canvas.transferToImageBitmap();
+  assertWidthAndHeight(imagebitmap, "imagebitmap", 30, 40);
+}
+
+function testResizeOnTransferredOffscreenCanvas() {
+  var placeholder = document.createElement("canvas");
+  var offscreencanvas = transferredOffscreenCanvasCreation(placeholder, 10, 20);
+  var ctx = offscreencanvas.getContext("webgl");
+
+  // Verify that setting the size of an OffscreenCanvas that has a placeholder works.
+  offscreencanvas.width = 30;
+  offscreencanvas.height = 40;
+  assertWidthAndHeight(offscreencanvas, "resized offscreencanvas", 30, 40);
+  var imagebitmap = offscreencanvas.transferToImageBitmap();
+  assertWidthAndHeight(imagebitmap, "imagebitmap transferred from resized offscreencanvas" , 30, 40);
+
+  // Verify that setting the size of an OffscreenCanvas does not directly update the size of its placeholder canvas.
+  assertWidthAndHeight(placeholder, "placeholder canvas", 10, 20);
+
+  var asyncStepsCompleted = 0;
+  ctx.commit();
+  createImageBitmap(placeholder).then(image => {
+    // Verify that the placeholder was not updated synchronously.
+    assertWidthAndHeight(image, "imagebitmap from placeholder canvas", 10, 20);
+    asyncStepsCompleted++;
+    if (asyncStepsCompleted == 2) {
+      finishTest();
+    }
+  });
+
+  // Set timeout acts as a sync barrier to allow commit to propagate
+  setTimeout(function() {
+    // Verify that commit() asynchronously updates the size of its placeholder canvas.
+    assertWidthAndHeight(placeholder, "placeholder canvas", 30, 40);
+
+    // Verify that width/height attributes are not settable
+    shouldThrow("placeholder.width = 50");
+    shouldThrow("placeholder.height = 60");
+
+    assertWidthAndHeight(placeholder, "placeholder canvas after size reset", 30, 40);
+
+    createImageBitmap(placeholder).then(image => {
+      // Verify that an image grabbed from the placeholder has the correct dimensions
+      assertWidthAndHeight(image, "imagebitmap from placeholder canvas", 30, 40);
+      asyncStepsCompleted++;
+      if (asyncStepsCompleted == 2) {
+        finishTest();
+      }
+    });
+  }, 0);
+}
+
+if (!window.OffscreenCanvas) {
+  testPassed("No OffscreenCanvas support");
+  finishTest();
+} else {
+  testResizeOnNewOffscreenCanvas();
+  testResizeOnTransferredOffscreenCanvas();
+}
+</script>
+</body>
+</html>

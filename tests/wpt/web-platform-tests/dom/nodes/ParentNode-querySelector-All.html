@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <meta charset="UTF-8">
+<meta name=timeout content=long>
 <title>Selectors-API Test Suite: HTML</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -12,12 +13,18 @@
 <script>
 async_test(function() {
   var frame = document.createElement("iframe");
-  frame.onload = this.step_func_done(init);
+  var self = this;
+  frame.onload = function() {
+    // :target doesn't work before a page rendering on some browsers.  We run
+    // tests after an animation frame because it may be later than the first
+    // page rendering.
+    requestAnimationFrame(self.step_func_done(init.bind(self, frame)));
+  };
   frame.src = "ParentNode-querySelector-All-content.html#target";
   document.body.appendChild(frame);
 });
 
-function init(e) {
+function init(target) {
   /*
    * This test suite tests Selectors API methods in 4 different contexts:
    * 1. Document node
@@ -56,7 +63,7 @@ function init(e) {
   var docType  = "html"; // Only run tests suitable for HTML
 
   // Prepare the nodes for testing
-  var doc = e.target.contentDocument;                 // Document Node tests
+  var doc = target.contentDocument;                 // Document Node tests
 
   var element = doc.getElementById("root");   // In-document Element Node tests
 
@@ -78,6 +85,8 @@ function init(e) {
   var fragment = doc.createDocumentFragment(); // Fragment Node tests
   fragment.appendChild(element.cloneNode(true));
 
+  var empty = document.createElement("div"); // Empty Node tests
+
   // Setup Tests
   interfaceCheck("Document", doc);
   interfaceCheck("Detached Element", detached);
@@ -98,6 +107,7 @@ function init(e) {
   runInvalidSelectorTest("Detached Element", detached, invalidSelectors);
   runInvalidSelectorTest("Fragment", fragment, invalidSelectors);
   runInvalidSelectorTest("In-document Element", element, invalidSelectors);
+  runInvalidSelectorTest("Empty Element", empty, invalidSelectors);
 
   runValidSelectorTest("Document", doc, validSelectors, testType, docType);
   runValidSelectorTest("Detached Element", detached, validSelectors, testType, docType);

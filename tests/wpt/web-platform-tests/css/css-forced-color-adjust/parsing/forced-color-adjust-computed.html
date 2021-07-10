@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>CSS Forced Color Adjust: getComputedStyle for forced-color-adjust</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-color-adjust-prop">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<div id="target"></div>
+<script>
+  test_computed_value("forced-color-adjust", "auto");
+  test_computed_value("forced-color-adjust", "none");
+</script>

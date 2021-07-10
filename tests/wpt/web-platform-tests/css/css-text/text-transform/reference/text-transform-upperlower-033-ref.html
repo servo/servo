@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>CSS3 Text, text transform: Latin ligatures, uppercase</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<meta name='flags' content=''>
+<style type='text/css'>
+/* the CSS below is not part of the test */
+@font-face {
+	font-family: 'webfont';
+	src: url('/fonts/DoulosSIL-R.woff') format('woff');
+	font-weight: normal;
+	font-style: normal;
+	}
+.test, .ref { font-size: 125%; line-height: 1.5em; font-family: webfont, serif; }
+.test span, .ref span { margin-right: 1em; white-space: nowrap; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the both characters in each pair match. If you are missing a font glyph for a character, ignore that pair, but report which characters were ignored.</p>
+<div class="test"><span>FF FF</span> <span>FI FI</span> <span>FL FL</span> <span>FFI FFI</span> <span>FFL FFL</span> <span>ST ST</span> <span>ST ST</span></div>
+</body>
+</html>

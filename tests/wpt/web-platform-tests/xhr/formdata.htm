@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang=en>
+<meta charset=utf-8>
+<title>XMLHttpRequest: Construct and upload FormData</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/semantics/forms/form-submission-0/resources/targetted-form.js"></script>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#interface-formdata" data-tested-assertations="following::P[1]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#dom-formdata" data-tested-assertations=".. following::P[1]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#dom-formdata-append" data-tested-assertations=".. following::UL[1]/LI[1] following::UL[1]/LI[2] following::UL[1]/LI[3]" />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#dom-XMLHttpRequest-send-FormData" data-tested-assertations="following::DD[1]" />
+<link rel="help" href="https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#constructing-the-form-data-set">
+
+<div id="log"></div>
+<form id="form">
+  <input type="hidden" name="key" value="value">
+</form>
+<script>
+  function do_test (name, fd, expected) {
+    var test = async_test(name);
+    test.step(function() {
+      var client = new XMLHttpRequest();
+      client.onreadystatechange = test.step_func(function () {
+        if (client.readyState !== 4) return;
+        assert_equals(client.responseText, expected);
+        test.done();
+      });
+      client.open("POST", "resources/upload.py");
+      client.send(fd);
+    });
+  }
+
+  function create_formdata () {
+    var fd = new FormData();
+    for (var i = 0; i < arguments.length; i++) {
+      fd.append.apply(fd, arguments[i]);
+    };
+    return fd;
+  }
+
+  test(() => {
+    assert_throws_js(TypeError, () => { new FormData(null); });
+    assert_throws_js(TypeError, () => { new FormData("string"); });
+  }, "Constructors should throw a type error");
+
+  do_test("empty formdata", new FormData(), '\n');
+  do_test("formdata with string", create_formdata(['key', 'value']), 'key=value,\n');
+  do_test("formdata with named string", create_formdata(['key', new Blob(['value'], {type: 'text/plain'}), 'kv.txt']), '\nkey=kv.txt:text/plain:5,');
+  do_test("formdata from form", new FormData(document.getElementById('form')), 'key=value,\n');
+
+  test(() => {
+    let form = populateForm('<input name=n1 value=v1>');
+    let formDataInEvent = null;
+    form.addEventListener('formdata', e => {
+      e.formData.append('h1', 'vh1');
+      formDataInEvent = e.formData;
+    });
+    let formData = new FormData(form);
+    assert_equals(formData.get('h1'), 'vh1');
+    assert_equals(formData.get('n1'), 'v1');
+    assert_not_equals(formData, formDataInEvent,
+                      '"formData" attribute should be different from the ' +
+                      'FromData object created by "new"');
+
+    formDataInEvent.append('later-key', 'later-value');
+    assert_false(formData.has('later-key'));
+  }, 'Newly created FormData contains entries added to "formData" IDL ' +
+     'attribute of FormDataEvent.');
+
+  test(() => {
+    let form = populateForm('<input name=n11 value=v11>');
+    let counter = 0;
+    form.addEventListener('formdata', e => {
+      ++counter;
+      assert_throws_dom('InvalidStateError', () => { new FormData(e.target) });
+    });
+    new FormData(form);
+    assert_equals(counter, 1);
+
+    form.submit();
+    assert_equals(counter, 2);
+  }, '|new FormData()| in formdata event handler should throw');
+</script>

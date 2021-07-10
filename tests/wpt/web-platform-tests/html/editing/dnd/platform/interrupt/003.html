@@ -19,25 +19,25 @@
 </style>
 <script type="text/javascript">
 window.onload = function () {
-	var orange = document.getElementsByTagName('div')[0], blue = document.getElementsByTagName('div')[1], yellow = document.getElementsByTagName('div')[2], fuchsia = document.getElementsByTagName('div')[3];
-	orange.ondragstart = function (e) {
-		e.dataTransfer.setData('text','PASS');
-		e.dataTransfer.effectAllowed = 'all';
-	};
-	yellow.ondragstart = function (e) {
-		e.dataTransfer.setData('text','FAIL');
-		e.dataTransfer.effectAllowed = 'all';
-	};
-	blue.ondragenter = function (e) {
-		alert('JS alert');
-	};
-	fuchsia.ondragenter = fuchsia.ondragover = function (e) {
-		e.preventDefault();
-	};
-	fuchsia.ondrop = function (e) {
-		document.getElementsByTagName('ol')[0].textContent = e.dataTransfer.getData('text');
-		e.preventDefault();
-	};
+  var orange = document.getElementsByTagName('div')[0], blue = document.getElementsByTagName('div')[1], yellow = document.getElementsByTagName('div')[2], fuchsia = document.getElementsByTagName('div')[3];
+  orange.ondragstart = function (e) {
+    e.dataTransfer.setData('text','PASS');
+    e.dataTransfer.effectAllowed = 'all';
+  };
+  yellow.ondragstart = function (e) {
+    e.dataTransfer.setData('text','FAIL');
+    e.dataTransfer.effectAllowed = 'all';
+  };
+  blue.ondragenter = function (e) {
+    alert('JS alert');
+  };
+  fuchsia.ondragenter = fuchsia.ondragover = function (e) {
+    e.preventDefault();
+  };
+  fuchsia.ondrop = function (e) {
+    document.getElementsByTagName('ol')[0].textContent = e.dataTransfer.getData('text');
+    e.preventDefault();
+  };
 };
 </script>
 <div draggable="true"></div>
@@ -46,14 +46,14 @@ window.onload = function () {
 <div></div>
 
 <ol>
-	<li>Open this page in two separate tabs, and start on tab #1.</li>
-	<li>Drag the orange square over the blue square.</li>
-	<li>An alert may appear. Do not dismiss it. If an alert does not appear, PASS, and ignore any further steps.</li>
-	<li>Click the other tab to focus it (or focus it in whatever way works). If you cannot change tabs, PASS, and ignore any further steps.</li>
-	<li>On tab #2, drag the yellow square over the blue square. If you cannot drag the yellow square, PASS, and ignore any further steps.</li>
-	<li>An alert may appear. Do not dismiss it.</li>
-	<li>Return to tab #1.</li>
-	<li>Dismiss the alert without using the left mouse button (eg. use keyboard, or mouse gestures such as gesture-down,gesture-right).</li>
-	<li>Do a short drag and drop within the pink square. If nothing happens, PASS, and ignore any further steps.</li>
-	<li>The word &quot;PASS&quot; should appear in place of this text.</li>
+  <li>Open this page in two separate tabs, and start on tab #1.</li>
+  <li>Drag the orange square over the blue square.</li>
+  <li>An alert may appear. Do not dismiss it. If an alert does not appear, PASS, and ignore any further steps.</li>
+  <li>Click the other tab to focus it (or focus it in whatever way works). If you cannot change tabs, PASS, and ignore any further steps.</li>
+  <li>On tab #2, drag the yellow square over the blue square. If you cannot drag the yellow square, PASS, and ignore any further steps.</li>
+  <li>An alert may appear. Do not dismiss it.</li>
+  <li>Return to tab #1.</li>
+  <li>Dismiss the alert without using the left mouse button (eg. use keyboard, or mouse gestures such as gesture-down,gesture-right).</li>
+  <li>Do a short drag and drop within the pink square. If nothing happens, PASS, and ignore any further steps.</li>
+  <li>The word &quot;PASS&quot; should appear in place of this text.</li>
 </ol>

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-type" />
+<title>Arrow key scroll snapping</title>
+<meta name="flags" content="should">
+<meta name="assert"
+      content="Test passes if keyboard scrolling correctly snaps on a snap
+               container">
+
+<link rel="stylesheet" href="../support/common.css">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../support/common.js"></script>
+
+
+<div id="scroller">
+  <div id="space"></div>
+  <div class="snap left top" id="top-left"></div>
+  <div class="snap right top" id="top-right"></div>
+  <div class="snap left bottom" id="bottom-left"></div>
+</div>
+
+<script>
+const scroller = document.getElementById("scroller");
+const topLeft = document.getElementById("top-left");
+const topRight = document.getElementById("top-right");
+
+scrollLeft = () => scroller.scrollLeft;
+scrollTop = () => scroller.scrollTop;
+
+promise_test(async t => {
+  scroller.scrollTo(0, 0);
+  assert_equals(scroller.scrollTop, 0, "verify test pre-condition");
+  await keyPress(scroller, "ArrowDown");
+  await waitForScrollEnd(scroller, scrollTop, 400);
+}, "Snaps to bottom-left after pressing ArrowDown");
+
+promise_test(async t => {
+  scroller.scrollTo(0, 400);
+  assert_equals(scroller.scrollTop, 400, "verify test pre-condition");
+  await keyPress(scroller, "ArrowUp");
+  await waitForScrollEnd(scroller, scrollTop, 0);
+}, "Snaps to top-left after pressing ArrowUp");
+
+promise_test(async t => {
+  scroller.scrollTo(0, 0);
+  assert_equals(scroller.scrollTop, 0, "verify test pre-condition");
+  await keyPress(scroller, "ArrowRight");
+  await waitForScrollEnd(scroller, scrollLeft, 400);
+}, "Snaps to top-right after pressing ArrowRight");
+
+promise_test(async t => {
+  scroller.scrollTo(400, 0);
+  assert_equals(scroller.scrollLeft, 400, "verify test pre-condition");
+  await keyPress(scroller, "ArrowLeft");
+  await waitForScrollEnd(scroller, scrollLeft, 0);
+}, "Snaps to top-left after pressing ArrowLeft");
+
+promise_test(async t => {
+  t.add_cleanup(function() {
+    topLeft.style.width = "";
+    topRight.style.left = "400px";
+  });
+
+  // Make the snap area cover the snapport.
+  topLeft.style.width = "800px";
+  // Make the distance between the previous and the next snap position larger
+  // than snapport.
+  topRight.style.left = "500px";
+  scroller.scrollTo(0, 0);
+  assert_equals(scroller.scrollLeft, 0, "verify test pre-condition");
+  const scrollPromise = waitForScrollEvent(scroller);
+  await keyPress(scroller, "ArrowRight");
+  await scrollPromise;
+  await waitForAnimationEnd(scrollLeft);
+  assert_between_exclusive(scroller.scrollLeft, 0, 500);
+}, "If the original intended offset is valid as making a snap area cover the"
++ "snapport, and there's no other snap offset in between, use the original"
++ "intended offset");
+
+promise_test(async t => {
+  t.add_cleanup(function() {
+    topLeft.style.width = "";
+    topRight.style.left = "400px";
+  });
+
+  // Make the snap area cover the snapport.
+  topLeft.style.width = "800px";
+  // Make the next snap offset closer than the original intended offset.
+  topRight.style.left = "20px";
+  scroller.scrollTo(0, 0);
+  assert_equals(scroller.scrollLeft, 0, "verify test pre-condition");
+  await keyPress(scroller, "ArrowRight");
+  await waitForScrollEnd(scroller, scrollLeft, 20);
+}, "If the original intended offset is valid as making a snap area cover the "
++ "snapport, but there's a defined snap offset in between, use the defined snap"
++ " offset.");
+
+promise_test(async t => {
+  scroller.scrollTo(400, 0);
+  await keyPress(scroller, "ArrowRight");
+  await waitForScrollEnd(scroller, scrollLeft, 400);
+}, "If there is no valid snap offset on the arrow key's direction other than "
++ "the current offset, and the scroll-snap-type is mandatory, stay at the "
++ "current offset.");
+
+promise_test(async t => {
+  t.add_cleanup(function() {
+    scroller.style.scrollSnapType = "both mandatory";
+  });
+
+  scroller.style.scrollSnapType = "both proximity";
+  scroller.scrollTo(400, 0);
+  assert_equals(scroller.scrollLeft, 400, "verify test pre-condition");
+  const scrollPromise = waitForScrollEvent(scroller);
+  await keyPress(scroller, "ArrowRight");
+  await scrollPromise;
+  await waitForAnimationEnd(scrollLeft);
+  assert_greater_than(scroller.scrollLeft, 400);
+}, "If there is no valid snap offset on the arrow key's direction other than "
++ "the current offset, and the scroll-snap-type is proximity, go to the "
++ "original intended offset");
+</script>

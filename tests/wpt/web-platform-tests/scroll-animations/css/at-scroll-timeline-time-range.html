@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#scroll-timeline-at-rule">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#descdef-scroll-timeline-time-range">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+  #scroller {
+    overflow: scroll;
+    width: 100px;
+    height: 100px;
+  }
+  #contents {
+    height: 200px;
+  }
+  @keyframes expand {
+    from { width: 100px; }
+    to { width: 200px; }
+  }
+  @scroll-timeline timeline_10s {
+    source: selector(#scroller);
+    time-range: 10s;
+    start: 0px;
+    end: 100px;
+  }
+  @scroll-timeline timeline_1s {
+    source: selector(#scroller);
+    time-range: 1s;
+    start: 0px;
+    end: 100px;
+  }
+  @scroll-timeline timeline_1000ms {
+    source: selector(#scroller);
+    time-range: 1000ms;
+    start: 0px;
+    end: 100px;
+  }
+  #container > div {
+    width: 0px;
+    animation-name: expand;
+    animation-duration: 10s;
+    animation-timing-function: linear;
+  }
+  /* Ensure stable expectations if feature is not supported */
+  @supports not (animation-timeline:foo) {
+    #container > div { animation-play-state: paused; }
+  }
+  #element_10s { animation-timeline: timeline_10s; }
+  #element_1s { animation-timeline: timeline_1s; }
+  #element_1000ms { animation-timeline: timeline_1000ms; }
+</style>
+<div id=scroller>
+  <div id=contents></div>
+</div>
+<div id=container>
+  <div id=element_10s></div>
+  <div id=element_1s></div>
+  <div id=element_1000ms></div>
+</div>
+<script>
+  scroller.scrollTop = 50;
+
+  promise_test(async (t) => {
+    await waitForNextFrame();
+    assert_equals(getComputedStyle(element_10s).width, '150px');
+  }, 'Timerange mapped correctly (10s)');
+
+  promise_test(async (t) => {
+    await waitForNextFrame();
+    assert_equals(getComputedStyle(element_1s).width, '105px');
+  }, 'Timerange mapped correctly (1s)');
+
+  promise_test(async (t) => {
+    await waitForNextFrame();
+    assert_equals(getComputedStyle(element_1s).width, '105px');
+  }, 'Timerange mapped correctly (1000ms)');
+</script>

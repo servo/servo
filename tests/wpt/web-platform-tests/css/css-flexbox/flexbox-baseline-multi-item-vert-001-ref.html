@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Reference case, using inline-block instead of inline-flex, and with the
+     inline-blocks manually positioned with "vertical-align:top" and
+     margin-top.
+-->
+<html>
+<head>
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <meta charset="utf-8">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+  <style>
+    body {
+      margin: 0;
+      font: 20px Ahem;
+      line-height: 20px;
+      /* Baseline is 0.8em = 16px from top */
+    }
+    .flexContainer {
+      display: inline-block;
+      background: lightblue;
+    }
+    .smallFont {
+      font-size: 10px;
+      line-height: 10px;
+      /* Baseline is 0.8em = 8px from top */
+    }
+    .bigFont {
+      font-size: 20px;
+      line-height: 20px;
+      /* Baseline is 0.8em = 16px from top */
+    }
+    * { vertical-align: top }
+  </style>
+</head>
+<body>
+  a
+  <div class="flexContainer" style="margin-top: 8px">
+    <div class="smallFont">b</div
+    ><div class="bigFont">c</div>
+  </div>
+  <div class="flexContainer">
+    <div class="bigFont">d</div
+    ><div class="smallFont">e</div>
+  </div>
+</body>
+</html>

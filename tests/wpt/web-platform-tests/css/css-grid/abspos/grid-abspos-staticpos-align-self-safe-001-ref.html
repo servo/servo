@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Reference: Testing safe overflow-position for align-self and justify-self in absolutely positioned boxes in grid containers in both horizontal and vertical writing modes</title>
+  <link rel="author" title="Mihir Iyer" href="mailto:miyer@mozilla.com">
+  <style>
+    .container {
+      display: grid;
+      padding: 2px 1px;
+      border: 1px solid black;
+      background: yellow;
+      margin-bottom: 5px;
+      margin-right: 5px;
+      float: left; /* For testing in "rows" of containers */
+      position: relative;
+      width: 30px;
+      height: 25px;
+      grid: 3px 14px 3px / 2px 20px 2px;
+    }
+    br { clear: both }
+    .container > * {
+      position: absolute;
+      grid-area: 2 / 2 / 3 / 3;
+      background: teal;
+      width: 21px;
+      height: 21px;
+      justify-self: start;
+      align-self: start;
+    }
+    .vertRL {
+      writing-mode: vertical-rl;
+    }
+    .relPos {
+      position: relative;
+    }
+    .relPos > * {
+      height: 35px;
+      width: 33px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container vertRL"><div></div></div>
+  <div class="container"><div></div></div>
+  <div class="container relPos vertRL"><div></div></div>
+  <div class="container relPos"><div></div></div>
+</body>
+</html>

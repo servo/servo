@@ -1,7 +1,7 @@
 function testMathMaxMin(aFun) {
   var test_error = { name: "test" };
   test(function() {
-    assert_throws(test_error, function() {
+    assert_throws_exactly(test_error, function() {
       Math[aFun](NaN, {
         valueOf: function() {
           throw test_error;
@@ -10,7 +10,7 @@ function testMathMaxMin(aFun) {
     });
   }, "ToNumber should be called on all arguments: NaN.");
   test(function() {
-    assert_throws(test_error, function() {
+    assert_throws_exactly(test_error, function() {
       Math[aFun](-Infinity, {
         valueOf: function() {
           throw test_error;
@@ -19,7 +19,7 @@ function testMathMaxMin(aFun) {
     });
   }, "ToNumber should be called on all arguments: -Infinity.");
   test(function() {
-    assert_throws(test_error, function() {
+    assert_throws_exactly(test_error, function() {
       Math[aFun](Infinity, {
         valueOf: function() {
           throw test_error;
@@ -28,7 +28,7 @@ function testMathMaxMin(aFun) {
     });
   }, "ToNumber should be called on all arguments: Infinity.");
   test(function() {
-    assert_throws(test_error, function() {
+    assert_throws_exactly(test_error, function() {
       Math[aFun]({
         valueOf: function() {
           throw test_error;

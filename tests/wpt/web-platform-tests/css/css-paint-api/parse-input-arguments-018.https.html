@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.css-houdini.org/css-paint-api/">
+<link rel="match" href="parse-input-arguments-018-ref.html">
+<style>
+.container {
+    width: 100px;
+    height: 100px;
+}
+
+#canvas-geometry {
+    background-image: paint(failureIndicator), paint(geometry);
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<body>
+<p>This test result should show a green rect. The registerPaint('failureIndicator')
+will be called twice and the inputArguments will return two different strings,
+which will throw an exception and the paint function with 'failureIndicator'
+should never be called. In other words, there should be no red painted in the result.</p>
+<div id="canvas-geometry" class="container"></div>
+
+<script id="code" type="text/worklet">
+function generateRandString(length) {
+    var text = "";
+    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    for (var i = 0; i < length; i++)
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+    return text;
+}
+
+try {
+    registerPaint('failureIndicator', class {
+        static get inputArguments() {
+            // This test is testing the case where an exception should be thrown
+            // when two paint definitions with different properties are registered
+            // to the same paint worklet. In order to do that, we randomly generate
+            // the input properties here. We make the string length 100 to make sure
+            // that it is veryyyyyyyyyyyy unlikely that two strings will be the same
+            // when running this test.
+            var current_str = generateRandString(100);
+            return [current_str];
+        }
+        // The paint function here should never be called because the inputArguments
+        // will generate two different properties, and that should throw an
+        // exception.
+        paint(ctx, geom) {
+            ctx.fillStyle = 'red';
+            ctx.fillRect(0, 0, 50, 50);
+        }
+    });
+} catch(ex) {
+}
+
+registerPaint('geometry', class {
+    paint(ctx, geom) {
+        ctx.fillStyle = 'green';
+        ctx.fillRect(50, 50, 50, 50);
+    }
+});
+</script>
+
+<script>
+    importWorkletAndTerminateTestAfterAsyncPaint(CSS.paintWorklet, document.getElementById('code').textContent);
+</script>
+</body>
+</html>

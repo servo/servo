@@ -1,0 +1,271 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use crate::dom::audiobuffer::AudioBuffer;
+use crate::dom::audioparam::AudioParam;
+use crate::dom::audioscheduledsourcenode::AudioScheduledSourceNode;
+use crate::dom::baseaudiocontext::BaseAudioContext;
+use crate::dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding::AudioBufferSourceNodeMethods;
+use crate::dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding::AudioBufferSourceOptions;
+use crate::dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
+use crate::dom::bindings::codegen::Bindings::AudioScheduledSourceNodeBinding::AudioScheduledSourceNodeMethods;
+use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::num::Finite;
+use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::window::Window;
+use dom_struct::dom_struct;
+use servo_media::audio::buffer_source_node::AudioBufferSourceNodeMessage;
+use servo_media::audio::buffer_source_node::AudioBufferSourceNodeOptions;
+use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage};
+use servo_media::audio::param::ParamType;
+use std::cell::Cell;
+use std::f32;
+
+#[dom_struct]
+pub struct AudioBufferSourceNode {
+    source_node: AudioScheduledSourceNode,
+    buffer: MutNullableDom<AudioBuffer>,
+    buffer_set: Cell<bool>,
+    playback_rate: Dom<AudioParam>,
+    detune: Dom<AudioParam>,
+    loop_enabled: Cell<bool>,
+    loop_start: Cell<f64>,
+    loop_end: Cell<f64>,
+}
+
+impl AudioBufferSourceNode {
+    #[allow(unrooted_must_root)]
+    fn new_inherited(
+        window: &Window,
+        context: &BaseAudioContext,
+        options: &AudioBufferSourceOptions,
+    ) -> Fallible<AudioBufferSourceNode> {
+        let node_options = Default::default();
+        let source_node = AudioScheduledSourceNode::new_inherited(
+            AudioNodeInit::AudioBufferSourceNode(options.into()),
+            context,
+            node_options,
+            0, /* inputs */
+            1, /* outputs */
+        )?;
+        let node_id = source_node.node().node_id();
+        let playback_rate = AudioParam::new(
+            &window,
+            context,
+            node_id,
+            ParamType::PlaybackRate,
+            AutomationRate::K_rate,
+            *options.playbackRate,
+            f32::MIN,
+            f32::MAX,
+        );
+        let detune = AudioParam::new(
+            &window,
+            context,
+            node_id,
+            ParamType::Detune,
+            AutomationRate::K_rate,
+            *options.detune,
+            f32::MIN,
+            f32::MAX,
+        );
+        let node = AudioBufferSourceNode {
+            source_node,
+            buffer: Default::default(),
+            buffer_set: Cell::new(false),
+            playback_rate: Dom::from_ref(&playback_rate),
+            detune: Dom::from_ref(&detune),
+            loop_enabled: Cell::new(options.loop_),
+            loop_start: Cell::new(*options.loopStart),
+            loop_end: Cell::new(*options.loopEnd),
+        };
+        if let Some(ref buffer) = options.buffer {
+            if let Some(ref buffer) = buffer {
+                if let Err(err) = node.SetBuffer(Some(&**buffer)) {
+                    return Err(err);
+                }
+            }
+        }
+        Ok(node)
+    }
+
+    #[allow(unrooted_must_root)]
+    pub fn new(
+        window: &Window,
+        context: &BaseAudioContext,
+        options: &AudioBufferSourceOptions,
+    ) -> Fallible<DomRoot<AudioBufferSourceNode>> {
+        let node = AudioBufferSourceNode::new_inherited(window, context, options)?;
+        Ok(reflect_dom_object(Box::new(node), window))
+    }
+
+    #[allow(non_snake_case)]
+    pub fn Constructor(
+        window: &Window,
+        context: &BaseAudioContext,
+        options: &AudioBufferSourceOptions,
+    ) -> Fallible<DomRoot<AudioBufferSourceNode>> {
+        AudioBufferSourceNode::new(window, context, options)
+    }
+}
+
+impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
+    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-buffer
+    fn GetBuffer(&self) -> Fallible<Option<DomRoot<AudioBuffer>>> {
+        Ok(self.buffer.get())
+    }
+
+    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-buffer
+    fn SetBuffer(&self, new_buffer: Option<&AudioBuffer>) -> Fallible<()> {
+        if new_buffer.is_some() {
+            if self.buffer_set.get() {
+                // Step 2.
+                return Err(Error::InvalidState);
+            }
+            // Step 3.
+            self.buffer_set.set(true);
+        }
+
+        // Step 4.
+        self.buffer.set(new_buffer);
+
+        // Step 5.
+        if self.source_node.has_start() {
+            if let Some(buffer) = self.buffer.get() {
+                let buffer = buffer.get_channels();
+                if buffer.is_some() {
+                    self.source_node
+                        .node()
+                        .message(AudioNodeMessage::AudioBufferSourceNode(
+                            AudioBufferSourceNodeMessage::SetBuffer((*buffer).clone()),
+                        ));
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-playbackrate
+    fn PlaybackRate(&self) -> DomRoot<AudioParam> {
+        DomRoot::from_ref(&self.playback_rate)
+    }
+
+    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-detune
+    fn Detune(&self) -> DomRoot<AudioParam> {
+        DomRoot::from_ref(&self.detune)
+    }
+
+    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-loop
+    fn Loop(&self) -> bool {
+        self.loop_enabled.get()
+    }
+
+    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-loop
+    fn SetLoop(&self, should_loop: bool) {
+        self.loop_enabled.set(should_loop);
+        let msg = AudioNodeMessage::AudioBufferSourceNode(
+            AudioBufferSourceNodeMessage::SetLoopEnabled(should_loop),
+        );
+        self.source_node.node().message(msg);
+    }
+
+    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-loopstart
+    fn LoopStart(&self) -> Finite<f64> {
+        Finite::wrap(self.loop_start.get())
+    }
+
+    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-loopstart
+    fn SetLoopStart(&self, loop_start: Finite<f64>) {
+        self.loop_start.set(*loop_start);
+        let msg = AudioNodeMessage::AudioBufferSourceNode(
+            AudioBufferSourceNodeMessage::SetLoopStart(*loop_start),
+        );
+        self.source_node.node().message(msg);
+    }
+
+    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-loopend
+    fn LoopEnd(&self) -> Finite<f64> {
+        Finite::wrap(self.loop_end.get())
+    }
+
+    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-loopend
+    fn SetLoopEnd(&self, loop_end: Finite<f64>) {
+        self.loop_end.set(*loop_end);
+        let msg = AudioNodeMessage::AudioBufferSourceNode(
+            AudioBufferSourceNodeMessage::SetLoopEnd(*loop_end),
+        );
+        self.source_node.node().message(msg);
+    }
+
+    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-start
+    fn Start(
+        &self,
+        when: Finite<f64>,
+        offset: Option<Finite<f64>>,
+        duration: Option<Finite<f64>>,
+    ) -> Fallible<()> {
+        if let Some(offset) = offset {
+            if *offset < 0. {
+                return Err(Error::Range("'offset' must be a positive value".to_owned()));
+            }
+        }
+
+        if let Some(duration) = duration {
+            if *duration < 0. {
+                return Err(Error::Range(
+                    "'duration' must be a positive value".to_owned(),
+                ));
+            }
+        }
+
+        if let Some(buffer) = self.buffer.get() {
+            let buffer = buffer.get_channels();
+            if buffer.is_some() {
+                self.source_node
+                    .node()
+                    .message(AudioNodeMessage::AudioBufferSourceNode(
+                        AudioBufferSourceNodeMessage::SetBuffer((*buffer).clone()),
+                    ));
+            }
+        }
+
+        self.source_node
+            .node()
+            .message(AudioNodeMessage::AudioBufferSourceNode(
+                AudioBufferSourceNodeMessage::SetStartParams(
+                    *when,
+                    offset.map(|f| *f),
+                    duration.map(|f| *f),
+                ),
+            ));
+
+        self.source_node
+            .upcast::<AudioScheduledSourceNode>()
+            .Start(when)
+    }
+}
+
+impl<'a> From<&'a AudioBufferSourceOptions> for AudioBufferSourceNodeOptions {
+    fn from(options: &'a AudioBufferSourceOptions) -> Self {
+        Self {
+            buffer: if let Some(ref buffer) = options.buffer {
+                if let Some(ref buffer) = buffer {
+                    (*buffer.get_channels()).clone()
+                } else {
+                    None
+                }
+            } else {
+                None
+            },
+            detune: *options.detune,
+            loop_enabled: options.loop_,
+            loop_end: Some(*options.loopEnd),
+            loop_start: Some(*options.loopStart),
+            playback_rate: *options.playbackRate,
+        }
+    }
+}

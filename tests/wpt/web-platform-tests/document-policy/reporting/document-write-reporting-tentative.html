@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+  </head>
+  <body>
+    <script>
+var t = async_test("Document-write Report Format");
+
+var check_report_format = (reports, observer) => {
+  let report = reports[0];
+  assert_equals(report.type, "document-policy-violation");
+  assert_equals(report.url, document.location.href);
+  assert_equals(report.body.featureId, "document-write");
+  assert_equals(report.body.sourceFile, document.location.href);
+  assert_equals(typeof report.body.lineNumber, "number");
+  assert_equals(typeof report.body.columnNumber, "number");
+  assert_equals(report.body.disposition, "enforce");
+};
+
+new ReportingObserver(t.step_func_done(check_report_format),
+                      {types: ['document-policy-violation']}).observe();
+
+t.step_func(() => {
+  assert_throws_dom('NotAllowedError',
+  () => document.write("This should not succeed"),
+  "document.write should throw an exception when disabled");
+})();
+    </script>
+  </body>
+</html>

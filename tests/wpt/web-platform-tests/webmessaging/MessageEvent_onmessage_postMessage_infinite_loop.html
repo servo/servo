@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>MessageEvent: onmessage infinite loop</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+'use strict';
+
+// The test passes if the onmessage / postMessage loop does not prevent the
+// step_timeout task from ever being run. In particular there should be no
+// infinite loop or stack overflow.
+async_test(function(t) {
+  var channel = new MessageChannel();
+  var count = 0;
+  channel.port1.addEventListener("message", t.step_func(function() {
+    count++;
+    assert_less_than(count, 1000, "There were many message events without " +
+                                  "t.step_timeout ever being called.");
+  }));
+  channel.port1.addEventListener("message", t.step_func(function() {
+    channel.port2.postMessage(0);
+  }));
+  channel.port1.start();
+  channel.port2.postMessage(0);
+
+  t.step_timeout(function() { t.done(); }, 0);
+}, "onmessage calling source postMessage");
+</script>

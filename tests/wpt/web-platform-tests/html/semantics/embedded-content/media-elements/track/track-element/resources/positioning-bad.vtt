@@ -1,0 +1,39 @@
+WEBVTT
+Invalid horizontal positioning values (all settings are ignored).
+
+1
+00:00:00.000 --> 00:00:15.500 position:-5%
+Bear is Coming!!!!!
+This would be off screen -> ignored.
+
+00:00:16.000 --> 00:00:30.500 position:150%
+Bear is Coming!!!!!
+This would be off screen -> ignored.
+
+2
+00:00:31.000 --> 00:00:45.500 position:50
+I said Bear is coming!!!!
+Missing percent sign -> ignored.
+
+2
+00:00:46.000 --> 00:01:00.500 position:50a%
+I said Bear is coming!!!!
+Surplus character between number and percent sign -> ignored.
+
+3
+00:01:01.000 --> 00:01:30.500 position:100%-fj
+I said Bear is coming now!!!!
+Surplus characters after percent sign -> ignored.
+
+
+00:01:31.000 --> 00:02:00.500 position:100asdf
+I said Bear is coming now!!!!
+Surplus characters and no percent sign -> ignored.
+
+00:02:01.000 --> 00:02:02.000 position:e50%
+I said Bear is coming now!!!!
+Surplus characters at beginning of size string -> ignored.
+
+00:02:02.100 --> 00:02:02.500 position:5g0%
+I said Bear is coming now!!!!
+Surplus characters in middle of size string -> ignored.

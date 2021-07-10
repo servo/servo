@@ -1,6 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // This interface is entirely internal to Servo, and should not be accessible to
 // web pages.
@@ -32,8 +32,10 @@ dictionary TestDictionary {
   Blob interfaceValue;
   any anyValue;
   object objectValue;
-  TestDictionaryDefaults dict;
+  TestDictionaryDefaults dict = {};
   sequence<TestDictionaryDefaults> seqDict;
+  // Testing codegen to import Element correctly, ensure no other code references Element directly
+  sequence<Element> elementSequence;
   // Reserved rust keyword
   DOMString type;
   // These are used to test bidirectional conversion
@@ -41,6 +43,14 @@ dictionary TestDictionary {
   // in dictionaries.
   DOMString? nonRequiredNullable;
   DOMString? nonRequiredNullable2;
+};
+
+dictionary TestDictionaryParent {
+  DOMString parentStringMember;
+};
+
+dictionary TestDictionaryWithParent : TestDictionaryParent {
+  DOMString stringMember;
 };
 
 dictionary TestDictionaryDefaults {
@@ -62,6 +72,7 @@ dictionary TestDictionaryDefaults {
   USVString usvstringValue = "foo";
   TestEnum enumValue = "bar";
   any anyValue = null;
+  sequence<object> arrayValue = [];
 
   boolean? nullableBooleanValue = false;
   byte? nullableByteValue = 7;
@@ -83,13 +94,17 @@ dictionary TestDictionaryDefaults {
   object? nullableObjectValue = null;
 };
 
-[Constructor,
- Constructor(sequence<unrestricted double> numberSequence),
- Constructor(unrestricted double num),
- Pref="dom.testbinding.enabled",
+dictionary TestURLLike {
+  required DOMString href;
+};
+
+[Pref="dom.testbinding.enabled",
  Exposed=(Window,Worker)
 ]
 interface TestBinding {
+           [Throws] constructor();
+           [Throws] constructor(sequence<unrestricted double> numberSequence);
+           [Throws] constructor(unrestricted double num);
            attribute boolean booleanAttribute;
            attribute byte byteAttribute;
            attribute octet octetAttribute;
@@ -150,6 +165,13 @@ interface TestBinding {
   [BinaryName="BinaryRenamedAttribute"] attribute DOMString attrToBinaryRename;
   [BinaryName="BinaryRenamedAttribute2"] attribute DOMString attr-to-binary-rename;
   attribute DOMString attr-to-automatically-rename;
+
+  const long long constantInt64 = -1;
+  const unsigned long long constantUint64 = 1;
+  const float constantFloat32 = 1.0;
+  const double constantFloat64 = 1.0;
+  const unrestricted float constantUnrestrictedFloat32 = 1.0;
+  const unrestricted double constantUnrestrictedFloat64 = 1.0;
 
   [PutForwards=booleanAttribute]
   readonly attribute TestBinding forwardedAttribute;
@@ -219,6 +241,8 @@ interface TestBinding {
   TestDictionary receiveTestDictionaryWithSuccessOnKeyword();
   boolean dictMatchesPassedValues(TestDictionary arg);
 
+  (DOMString or object) receiveUnionIdentity((DOMString or object) arg);
+
   void passBoolean(boolean arg);
   void passByte(byte arg);
   void passOctet(octet arg);
@@ -237,6 +261,9 @@ interface TestBinding {
   void passByteString(ByteString arg);
   void passEnum(TestEnum arg);
   void passInterface(Blob arg);
+  void passTypedArray(Int8Array arg);
+  void passTypedArray2(ArrayBuffer arg);
+  void passTypedArray3(ArrayBufferView arg);
   void passUnion((HTMLElement or long) arg);
   void passUnion2((Event or DOMString) data);
   void passUnion3((Blob or DOMString) data);
@@ -247,6 +274,7 @@ interface TestBinding {
   void passUnion8((sequence<ByteString> or long) arg);
   void passUnion9((TestDictionary or long) arg);
   void passUnion10((DOMString or object) arg);
+  void passUnion11((ArrayBuffer or ArrayBufferView) arg);
   void passUnionWithTypedef((Document or TestTypedef) arg);
   void passUnionWithTypedef2((sequence<long> or TestTypedef) arg);
   void passAny(any arg);
@@ -254,8 +282,18 @@ interface TestBinding {
   void passCallbackFunction(Function fun);
   void passCallbackInterface(EventListener listener);
   void passSequence(sequence<long> seq);
+  void passAnySequence(sequence<any> seq);
+  sequence<any> anySequencePassthrough(sequence<any> seq);
+  void passObjectSequence(sequence<object> seq);
   void passStringSequence(sequence<DOMString> seq);
   void passInterfaceSequence(sequence<Blob> seq);
+
+  void passOverloaded(ArrayBuffer arg);
+  void passOverloaded(DOMString arg);
+
+  // https://github.com/servo/servo/pull/26154
+  DOMString passOverloadedDict(Node arg);
+  DOMString passOverloadedDict(TestURLLike arg);
 
   void passNullableBoolean(boolean? arg);
   void passNullableByte(byte? arg);
@@ -276,6 +314,7 @@ interface TestBinding {
   // void passNullableEnum(TestEnum? arg);
   void passNullableInterface(Blob? arg);
   void passNullableObject(object? arg);
+  void passNullableTypedArray(Int8Array? arg);
   void passNullableUnion((HTMLElement or long)? arg);
   void passNullableUnion2((Event or DOMString)? data);
   void passNullableUnion3((DOMString or sequence<long>)? data);
@@ -358,6 +397,7 @@ interface TestBinding {
   void passOptionalStringWithDefault(optional DOMString arg = "x");
   void passOptionalUsvstringWithDefault(optional USVString arg = "x");
   void passOptionalEnumWithDefault(optional TestEnum arg = "foo");
+  void passOptionalSequenceWithDefault(optional sequence<long> seq = []);
   // void passOptionalUnionWithDefault(optional (HTMLElement or long) arg = 9);
   // void passOptionalUnion2WithDefault(optional(Event or DOMString)? data = "foo");
 
@@ -400,6 +440,9 @@ interface TestBinding {
   // void passOptionalNullableEnumWithNonNullDefault(optional TestEnum? arg = "foo");
   // void passOptionalNullableUnionWithNonNullDefault(optional (HTMLElement or long)? arg = 7);
   // void passOptionalNullableUnion2WithNonNullDefault(optional (Event or DOMString)? data = "foo");
+  TestBinding passOptionalOverloaded(TestBinding arg0, optional unsigned long arg1 = 0,
+                                     optional unsigned long arg2 = 0);
+  void passOptionalOverloaded(Blob arg0, optional unsigned long arg1 = 0);
 
   void passVariadicBoolean(boolean... args);
   void passVariadicBooleanAndDefault(optional boolean arg = true, boolean... args);
@@ -434,33 +477,37 @@ interface TestBinding {
   sequence<sequence<long>> returnSequenceSequence();
   void passUnionSequenceSequence((long or sequence<sequence<long>>) seq);
 
-  void passMozMap(MozMap<long> arg);
-  void passNullableMozMap(MozMap<long>? arg);
-  void passMozMapOfNullableInts(MozMap<long?> arg);
-  void passOptionalMozMapOfNullableInts(optional MozMap<long?> arg);
-  void passOptionalNullableMozMapOfNullableInts(optional MozMap<long?>? arg);
-  void passCastableObjectMozMap(MozMap<TestBinding> arg);
-  void passNullableCastableObjectMozMap(MozMap<TestBinding?> arg);
-  void passCastableObjectNullableMozMap(MozMap<TestBinding>? arg);
-  void passNullableCastableObjectNullableMozMap(MozMap<TestBinding?>? arg);
-  void passOptionalMozMap(optional MozMap<long> arg);
-  void passOptionalNullableMozMap(optional MozMap<long>? arg);
-  void passOptionalNullableMozMapWithDefaultValue(optional MozMap<long>? arg = null);
-  void passOptionalObjectMozMap(optional MozMap<TestBinding> arg);
-  void passStringMozMap(MozMap<DOMString> arg);
-  void passByteStringMozMap(MozMap<ByteString> arg);
-  void passMozMapOfMozMaps(MozMap<MozMap<long>> arg);
+  void passRecord(record<DOMString, long> arg);
+  void passRecordWithUSVStringKey(record<USVString, long> arg);
+  void passRecordWithByteStringKey(record<ByteString, long> arg);
+  void passNullableRecord(record<DOMString, long>? arg);
+  void passRecordOfNullableInts(record<DOMString, long?> arg);
+  void passOptionalRecordOfNullableInts(optional record<DOMString, long?> arg);
+  void passOptionalNullableRecordOfNullableInts(optional record<DOMString, long?>? arg);
+  void passCastableObjectRecord(record<DOMString, TestBinding> arg);
+  void passNullableCastableObjectRecord(record<DOMString, TestBinding?> arg);
+  void passCastableObjectNullableRecord(record<DOMString, TestBinding>? arg);
+  void passNullableCastableObjectNullableRecord(record<DOMString, TestBinding?>? arg);
+  void passOptionalRecord(optional record<DOMString, long> arg);
+  void passOptionalNullableRecord(optional record<DOMString, long>? arg);
+  void passOptionalNullableRecordWithDefaultValue(optional record<DOMString, long>? arg = null);
+  void passOptionalObjectRecord(optional record<DOMString, TestBinding> arg);
+  void passStringRecord(record<DOMString, DOMString> arg);
+  void passByteStringRecord(record<DOMString, ByteString> arg);
+  void passRecordOfRecords(record<DOMString, record<DOMString, long>> arg);
 
-  void passMozMapUnion((long or MozMap<ByteString>) init);
-  void passMozMapUnion2((TestBinding or MozMap<ByteString>) init);
-  void passMozMapUnion3((TestBinding or sequence<sequence<ByteString>> or MozMap<ByteString>) init);
+  void passRecordUnion((long or record<DOMString, ByteString>) init);
+  void passRecordUnion2((TestBinding or record<DOMString, ByteString>) init);
+  void passRecordUnion3((TestBinding or sequence<sequence<ByteString>> or record<DOMString, ByteString>) init);
 
-  MozMap<long> receiveMozMap();
-  MozMap<long>? receiveNullableMozMap();
-  MozMap<long?> receiveMozMapOfNullableInts();
-  MozMap<long?>? receiveNullableMozMapOfNullableInts();
-  MozMap<MozMap<long>> receiveMozMapOfMozMaps();
-  MozMap<any> receiveAnyMozMap();
+  record<DOMString, long> receiveRecord();
+  record<USVString, long> receiveRecordWithUSVStringKey();
+  record<ByteString, long> receiveRecordWithByteStringKey();
+  record<DOMString, long>? receiveNullableRecord();
+  record<DOMString, long?> receiveRecordOfNullableInts();
+  record<DOMString, long?>? receiveNullableRecordOfNullableInts();
+  record<DOMString, record<DOMString, long>> receiveRecordOfRecords();
+  record<DOMString, any> receiveAnyRecord();
 
   static attribute boolean booleanAttributeStatic;
   static void receiveVoidStatic();
@@ -478,7 +525,7 @@ interface TestBinding {
   [Pref="dom.testbinding.prefcontrolled.enabled"]
   const unsigned short prefControlledConstDisabled = 0;
   [Pref="layout.animations.test.enabled"]
-  void advanceClock(long millis, optional boolean forceLayoutTick = true);
+  void advanceClock(long millis);
 
   [Pref="dom.testbinding.prefcontrolled2.enabled"]
   readonly attribute boolean prefControlledAttributeEnabled;
@@ -519,7 +566,6 @@ interface TestBinding {
   Promise<any> returnRejectedPromise(any value);
   readonly attribute Promise<boolean> promiseAttribute;
   void acceptPromise(Promise<DOMString> string);
-  void acceptNullablePromise(Promise<DOMString>? string);
   Promise<any> promiseNativeHandler(SimpleCallback? resolve, SimpleCallback? reject);
   void promiseResolveNative(Promise<any> p, any value);
   void promiseRejectNative(Promise<any> p, any value);
@@ -530,6 +576,21 @@ interface TestBinding {
 
   GlobalScope entryGlobal();
   GlobalScope incumbentGlobal();
+
+  [Exposed=(Window)]
+  readonly attribute boolean semiExposedBoolFromInterface;
+
+  TestDictionaryWithParent getDictionaryWithParent(DOMString parent, DOMString child);
+};
+
+[Exposed=(Window)]
+partial interface TestBinding {
+  readonly attribute boolean boolFromSemiExposedPartialInterface;
+};
+
+partial interface TestBinding {
+  [Exposed=(Window)]
+  readonly attribute boolean semiExposedBoolFromPartialInterface;
 };
 
 callback SimpleCallback = void(any value);

@@ -11,28 +11,24 @@
 var steps = [{
     fragid:'not-the-top',
     handler: function(){
-      assert_not_equals( scrollPosition(), 0 );
+      assert_not_equals( document.scrollingElement.scrollTop, 0 );
     }
   },{
     fragid:'top',
     handler: function(){
-      assert_equals( scrollPosition(), 0 );
+      assert_equals( document.scrollingElement.scrollTop, 0 );
     }
   },{
     fragid:'not-the-top',
     handler: function(){
-      assert_not_equals( scrollPosition(), 0 );
+      assert_not_equals( document.scrollingElement.scrollTop, 0 );
     }
   },{
     fragid:'TOP',
     handler: function(){
-      assert_equals( scrollPosition(), 0 );
+      assert_equals( document.scrollingElement.scrollTop, 0 );
     }
   }];
-
-function scrollPosition(){
-  return document.documentElement.scrollTop || document.body.scrollTop;
-}
 
 function runNextStep(){
     if( steps.length > 0 ) {

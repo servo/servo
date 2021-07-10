@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+<!-- We're appending an <iframe> to the document's body, so execute tests after we have a body -->
+<body>
+<script>
+  function create_test(target, expectedDomStatus, title) {
+    promise_test(async t => {
+      var cookieValue = "" + Math.random();
+      document.cookie = `dc_samesite_strict=${cookieValue}; sameSite=strict; path=/`;
+      document.cookie = `dc_samesite_lax=${cookieValue}; sameSite=lax; path=/`;
+      // SameSite=None requires `Secure` which complicates the test and we don't
+      // need it, so don't add it.
+
+      await new Promise((resolve, reject) => {
+        var iframe = document.createElement("iframe");
+
+        window.onmessage = t.step_func(e => {
+          if (e.source == iframe.contentWindow) {
+            // Cleanup, then verify cookie state:
+            document.body.removeChild(iframe);
+
+            const cookies = e.data;
+
+            if (expectedDomStatus === DomSameSiteStatus.SAME_SITE) {
+              assert_equals(cookies["dc_samesite_lax"], cookieValue, "SameSite=lax cookies can be sent to same-scheme subresources");
+              assert_equals(cookies["dc_samesite_strict"], cookieValue, "SameSite=strict cookies can be sent to same-scheme subresources");
+            } else if (expectedDomStatus === DomSameSiteStatus.CROSS_SITE) {
+              assert_not_equals(cookies["dc_samesite_lax"], cookieValue, "SameSite=lax cookies cannot be sent to cross-scheme subresources");
+              assert_not_equals(cookies["dc_samesite_strict"], cookieValue, "SameSite=strict cookies cannot be sent to cross-scheme subresources");
+            }
+
+            resolve();
+          }
+        });
+
+        iframe.src = target + "/cookies/resources/postToParent.py";
+        document.body.appendChild(iframe);
+      });
+    }, title);
+  }
+
+  // Test that cross-scheme subresources (iframes in this case) are cross-site.
+  create_test(INSECURE_ORIGIN, DomSameSiteStatus.SAME_SITE, "Same-scheme subresources can send lax/strict cookies");
+  create_test(SECURE_ORIGIN, DomSameSiteStatus.CROSS_SITE, "Cross-scheme subresources cannot sent lax/strict cookies");
+</script>

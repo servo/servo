@@ -1,0 +1,371 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Animation interface: style change events</title>
+<link rel="help"
+      href="https://drafts.csswg.org/web-animations-1/#model-liveness">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+// Test that each property defined in the Animation interface behaves as
+// expected with regards to whether or not it produces style change events.
+//
+// There are two types of tests:
+//
+//   PlayAnimationTest
+//
+//     For properties that are able to cause the Animation to start affecting
+//     the target CSS property.
+//
+//     This function takes either:
+//
+//     (a) A function that simply "plays" that passed-in Animation (i.e. makes
+//         it start affecting the target CSS property.
+//
+//     (b) An object with the following format:
+//
+//         {
+//            setup: elem => { /* return Animation */ },
+//            test: animation => { /* play |animation| */ },
+//            shouldFlush: boolean /* optional, defaults to false */
+//         }
+//
+//     If the latter form is used, the setup function should return an Animation
+//     that does NOT (yet) have an in-effect AnimationEffect that affects the
+//     'opacity' property. Otherwise, the transition we use to detect if a style
+//     change event has occurred will never have a chance to be triggered (since
+//     the animated style will clobber both before-change and after-change
+//     style).
+//
+//     Examples of valid animations:
+//
+//       - An animation that is idle, or finished but without a fill mode.
+//       - An animation with an effect that that does not affect opacity.
+//
+//  UsePropertyTest
+//
+//    For properties that cannot cause the Animation to start affecting the
+//    target CSS property.
+//
+//    The shape of the parameter to the UsePropertyTest is identical to the
+//    PlayAnimationTest. The only difference is that the function (or 'test'
+//    function of the object format is used) does not need to play the
+//    animation, but simply needs to get/set the property under test.
+
+const PlayAnimationTest = testFuncOrObj => {
+  let test, setup, shouldFlush;
+
+  if (typeof testFuncOrObj === 'function') {
+    test = testFuncOrObj;
+    shouldFlush = false;
+  } else {
+    test = testFuncOrObj.test;
+    if (typeof testFuncOrObj.setup === 'function') {
+      setup = testFuncOrObj.setup;
+    }
+    shouldFlush = !!testFuncOrObj.shouldFlush;
+  }
+
+  if (!setup) {
+    setup = elem =>
+      new Animation(
+        new KeyframeEffect(elem, { opacity: [0, 1] }, 100 * MS_PER_SEC)
+      );
+  }
+
+  return { test, setup, shouldFlush };
+};
+
+const UsePropertyTest = testFuncOrObj => {
+  const { setup, test, shouldFlush } = PlayAnimationTest(testFuncOrObj);
+
+  let coveringAnimation;
+  return {
+    setup: elem => {
+      coveringAnimation = new Animation(
+        new KeyframeEffect(elem, { opacity: [0, 1] }, 100 * MS_PER_SEC)
+      );
+
+      return setup(elem);
+    },
+    test: animation => {
+      test(animation);
+      coveringAnimation.play();
+    },
+    shouldFlush,
+  };
+};
+
+const tests = {
+  id: UsePropertyTest(animation => (animation.id = 'yer')),
+  get effect() {
+    let effect;
+    return PlayAnimationTest({
+      setup: elem => {
+        // Create a new effect and animation but don't associate them yet
+        effect = new KeyframeEffect(
+          elem,
+          { opacity: [0.5, 1] },
+          100 * MS_PER_SEC
+        );
+        return elem.animate(null, 100 * MS_PER_SEC);
+      },
+      test: animation => {
+        // Read the effect
+        animation.effect;
+
+        // Assign the effect
+        animation.effect = effect;
+      },
+    });
+  },
+  timeline: PlayAnimationTest({
+    setup: elem => {
+      // Create a new animation with no timeline
+      const animation = new Animation(
+        new KeyframeEffect(elem, { opacity: [0.5, 1] }, 100 * MS_PER_SEC),
+        null
+      );
+      // Set the hold time so that once we assign a timeline it will begin to
+      // play.
+      animation.currentTime = 0;
+
+      return animation;
+    },
+    test: animation => {
+      // Get the timeline
+      animation.timeline;
+
+      // Play the animation by setting the timeline
+      animation.timeline = document.timeline;
+    },
+  }),
+  startTime: PlayAnimationTest(animation => {
+    // Get the startTime
+    animation.startTime;
+
+    // Play the animation by setting the startTime
+    animation.startTime = document.timeline.currentTime;
+  }),
+  currentTime: PlayAnimationTest(animation => {
+    // Get the currentTime
+    animation.currentTime;
+
+    // Play the animation by setting the currentTime
+    animation.currentTime = 0;
+  }),
+  playbackRate: UsePropertyTest(animation => {
+    // Get and set the playbackRate
+    animation.playbackRate = animation.playbackRate * 1.1;
+  }),
+  playState: UsePropertyTest(animation => animation.playState),
+  pending: UsePropertyTest(animation => animation.pending),
+  replaceState: UsePropertyTest(animation => animation.replaceState),
+  ready: UsePropertyTest(animation => animation.ready),
+  finished: UsePropertyTest(animation => {
+    // Get the finished Promise
+    animation.finished;
+  }),
+  onfinish: UsePropertyTest(animation => {
+    // Get the onfinish member
+    animation.onfinish;
+
+    // Set the onfinish menber
+    animation.onfinish = () => {};
+  }),
+  onremove: UsePropertyTest(animation => {
+    // Get the onremove member
+    animation.onremove;
+
+    // Set the onremove menber
+    animation.onremove = () => {};
+  }),
+  oncancel: UsePropertyTest(animation => {
+    // Get the oncancel member
+    animation.oncancel;
+
+    // Set the oncancel menber
+    animation.oncancel = () => {};
+  }),
+  cancel: UsePropertyTest({
+    // Animate _something_ just to make the test more interesting
+    setup: elem => elem.animate({ color: ['green', 'blue'] }, 100 * MS_PER_SEC),
+    test: animation => {
+      animation.cancel();
+    },
+  }),
+  finish: PlayAnimationTest({
+    setup: elem =>
+      new Animation(
+        new KeyframeEffect(
+          elem,
+          { opacity: [0.5, 1] },
+          {
+            duration: 100 * MS_PER_SEC,
+            fill: 'both',
+          }
+        )
+      ),
+    test: animation => {
+      animation.finish();
+    },
+  }),
+  play: PlayAnimationTest(animation => animation.play()),
+  pause: PlayAnimationTest(animation => {
+    // Pause animation -- this will cause the animation to transition from the
+    // 'idle' state to the 'paused' (but pending) state with hold time zero.
+    animation.pause();
+  }),
+  updatePlaybackRate: UsePropertyTest(animation => {
+    animation.updatePlaybackRate(1.1);
+  }),
+  // We would like to use a PlayAnimationTest here but reverse() is async and
+  // doesn't start applying its result until the animation is ready.
+  reverse: UsePropertyTest({
+    setup: elem => {
+      // Create a new animation and seek it to the end so that it no longer
+      // affects style (since it has no fill mode).
+      const animation = elem.animate({ opacity: [0.5, 1] }, 100 * MS_PER_SEC);
+      animation.finish();
+      return animation;
+    },
+    test: animation => {
+      animation.reverse();
+    },
+  }),
+  persist: PlayAnimationTest({
+    setup: async elem => {
+      // Create an animation whose replaceState is 'removed'.
+      const animA = elem.animate(
+        { opacity: 1 },
+        { duration: 1, fill: 'forwards' }
+      );
+      const animB = elem.animate(
+        { opacity: 1 },
+        { duration: 1, fill: 'forwards' }
+      );
+      await animA.finished;
+      animB.cancel();
+
+      return animA;
+    },
+    test: animation => {
+      animation.persist();
+    },
+  }),
+  commitStyles: PlayAnimationTest({
+    setup: async elem => {
+      // Create an animation whose replaceState is 'removed'.
+      const animA = elem.animate(
+        // It's important to use opacity of '1' here otherwise we'll create a
+        // transition due to updating the specified style whereas the transition
+        // we want to detect is the one from flushing due to calling
+        // commitStyles.
+        { opacity: 1 },
+        { duration: 1, fill: 'forwards' }
+      );
+      const animB = elem.animate(
+        { opacity: 1 },
+        { duration: 1, fill: 'forwards' }
+      );
+      await animA.finished;
+      animB.cancel();
+
+      return animA;
+    },
+    test: animation => {
+      animation.commitStyles();
+    },
+    shouldFlush: true,
+  }),
+  get ['Animation constructor']() {
+    let originalElem;
+    return UsePropertyTest({
+      setup: elem => {
+        originalElem = elem;
+        // Return a dummy animation so the caller has something to wait on
+        return elem.animate(null);
+      },
+      test: () =>
+        new Animation(
+          new KeyframeEffect(
+            originalElem,
+            { opacity: [0.5, 1] },
+            100 * MS_PER_SEC
+          )
+        ),
+    });
+  },
+};
+
+// Check that each enumerable property and the constructor follow the
+// expected behavior with regards to triggering style change events.
+const properties = [
+  ...Object.keys(Animation.prototype),
+  'Animation constructor',
+];
+
+test(() => {
+  for (const property of Object.keys(tests)) {
+    assert_in_array(
+      property,
+      properties,
+      `Test property '${property}' should be one of the properties on ` +
+        ' Animation'
+    );
+  }
+}, 'All property keys are recognized');
+
+for (const key of properties) {
+  promise_test(async t => {
+    assert_own_property(tests, key, `Should have a test for '${key}' property`);
+    const { setup, test, shouldFlush } = tests[key];
+
+    // Setup target element
+    const div = createDiv(t);
+    let gotTransition = false;
+    div.addEventListener('transitionrun', () => {
+      gotTransition = true;
+    });
+
+    // Setup animation
+    const animation = await setup(div);
+
+    // Setup transition start point
+    div.style.transition = 'opacity 100s';
+    getComputedStyle(div).opacity;
+
+    // Update specified style but don't flush
+    div.style.opacity = '0.5';
+
+    // Trigger the property
+    test(animation);
+
+    // If the test function produced a style change event it will have triggered
+    // a transition.
+
+    // Wait for the animation to start and then for at least two animation
+    // frames to give the transitionrun event a chance to be dispatched.
+    assert_true(
+      typeof animation.ready !== 'undefined',
+      'Should have a valid animation to wait on'
+    );
+    await animation.ready;
+    await waitForAnimationFrames(2);
+
+    if (shouldFlush) {
+      assert_true(gotTransition, 'A transition should have been triggered');
+    } else {
+      assert_false(
+        gotTransition,
+        'A transition should NOT have been triggered'
+      );
+    }
+  }, `Animation.${key} produces expected style change events`);
+}
+</script>
+</body>

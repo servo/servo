@@ -1,0 +1,11 @@
+<script>
+  const channelName = new URL(location).searchParams.get("channelname"),
+        channel = new BroadcastChannel(channelName);
+  channel.postMessage({ haveOpener: window.opener !== null,
+                        referrer: document.referrer });
+  // Because messages are not delivered synchronously and because closing a
+  // browsing context prompts the eventual clearing of all task sources, this
+  // document should not be closed until the opener document has confirmed
+  // receipt.
+  channel.onmessage = () => window.close();
+</script>

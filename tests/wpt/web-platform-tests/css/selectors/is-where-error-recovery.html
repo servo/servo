@@ -1,0 +1,55 @@
+<!doctype html>
+<title>CSS Selectors: :is() and :where() error recovery</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/3676">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#matches">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#zero-matches">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#typedef-forgiving-selector-list">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style id="test-sheet">
+  random-selector { color: blue; }
+</style>
+<div id="test-div"></div>
+<script>
+  let rule = document.getElementById("test-sheet").sheet.cssRules[0];
+  test(function() {
+    for (let pseudo of ["is", "where"]) {
+      rule.selectorText = "random-selector";
+      let invalidSelector = `:${pseudo}(:total-nonsense)`;
+      rule.selectorText = invalidSelector;
+      assert_not_equals(
+        rule.selectorText,
+        "random-selector",
+        "Should've parsed",
+      );
+      assert_not_equals(
+        rule.selectorText,
+        invalidSelector,
+        "Should not be considered valid and parsed as-is",
+      );
+      let emptyList = `:${pseudo}()`;
+      assert_equals(
+        rule.selectorText,
+        emptyList,
+        "Should be serialized as an empty selector-list",
+      );
+      assert_equals(document.querySelector(emptyList), null, "Should never match, but should parse");
+      for (let mixedList of [
+        `:${pseudo}(:total-nonsense, #test-div)`,
+        `:${pseudo}(:total-nonsense and-more-stuff, #test-div)`,
+        `:${pseudo}(weird-token || and-more-stuff, #test-div)`,
+      ]) {
+        rule.selectorText = mixedList;
+        assert_equals(
+          rule.selectorText,
+          `:${pseudo}(#test-div)`,
+          `${mixedList}: Should ignore invalid selectors`,
+        );
+        let testDiv = document.getElementById("test-div");
+        assert_equals(document.querySelector(mixedList), testDiv, "Should correctly match");
+        assert_equals(getComputedStyle(testDiv).color, "rgb(0, 0, 255)", "test element should be blue");
+      }
+    }
+  });
+</script>

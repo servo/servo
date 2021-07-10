@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<head>
+
+<script src="support/scrollbars.js"></script>
+
+<style>
+.horizontal-header {
+  width: 120px;
+}
+.vertical-header {
+  width: 60px;
+}
+.container-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+.container {
+  flex: none;
+  margin: 5px;
+}
+.ltr {
+  direction: ltr;
+}
+.rtl {
+  direction: rtl;
+}
+.horizontal {
+  writing-mode: horizontal-tb;
+}
+.flipped-blocks {
+  writing-mode: vertical-rl;
+}
+.flipped-lines {
+  writing-mode: vertical-lr;
+}
+.flex {
+  border: 2px solid red;
+  overflow: auto;
+  max-width: 100px;
+  max-height: 100px;
+  white-space: nowrap;
+  font-size: 0;
+}
+.row > div, .row-reverse > div {
+  display: inline-flex;
+  margin: 3px;
+}
+.column > div, .column-reverse > div {
+  display: flex;
+}
+
+/* Adjust margins to account for collapsing. */
+.ltr.horizontal > .row > .leaf3 {
+  margin-right: 0;
+}
+.ltr.flipped-blocks > .row > .leaf3, .ltr.flipped-lines > .row > .leaf3 {
+  margin-bottom: 0;
+}
+.rtl.horizontal > .row > .leaf3 {
+  margin-left: 0;
+}
+.rtl.flipped-blocks > .row > .leaf3, .rtl.flipped-lines > .row > .leaf3 {
+  margin-top: 0;
+}
+
+.ltr.horizontal > .row-reverse > .leaf3 {
+  margin-left: 0;
+}
+.ltr.flipped-blocks > .row-reverse > .leaf3, .ltr.flipped-lines > .row-reverse > .leaf3 {
+  margin-top: 0;
+}
+.rtl.horizontal > .row-reverse > .leaf3 {
+  margin-right: 0;
+}
+.rtl.flipped-blocks > .row-reverse > .leaf3, .rtl.flipped-lines > .row-reverse > .leaf3 {
+  margin-bottom: 0;
+}
+
+.horizontal > .column > .leaf1, .horizontal > .column > .leaf2 {
+  margin: 3px 3px 6px 3px;
+}
+.horizontal > .column > .leaf3 {
+  margin: 3px;
+}
+.flipped-blocks > .column > .leaf1, .flipped-blocks > .column > .leaf2 {
+  margin: 3px 3px 3px 6px;
+}
+.flipped-blocks > .column > .leaf3 {
+  margin: 3px;
+}
+.flipped-lines > .column > .leaf1, .flipped-lines > .column > .leaf2 {
+  margin: 3px 6px 3px 3px;
+}
+.flipped-lines > .column > .leaf3 {
+  margin: 3px;
+}
+
+.horizontal > .column-reverse > .leaf1, .horizontal > .column-reverse > .leaf2 {
+  margin: 6px 3px 3px 3px;
+}
+.horizontal > .column-reverse > .leaf3 {
+  margin: 0 3px 3px 3px;
+}
+.flipped-blocks > .column-reverse > .leaf1, .flipped-blocks > .column-reverse > .leaf2 {
+  margin: 3px 6px 3px 3px;
+}
+.flipped-blocks > .column-reverse > .leaf3 {
+  margin: 3px 0 3px 3px;
+}
+.flipped-lines > .column-reverse > .leaf1, .flipped-lines > .column-reverse > .leaf2 {
+  margin: 3px 3px 3px 6px;
+}
+.flipped-lines > .column-reverse > .leaf3 {
+  margin: 3px 3px 3px 0;
+}
+
+.flex > div {
+  width: 30px;
+  height: 30px;
+  border: 2px solid blue;
+  flex-direction: column;
+  justify-content: center;
+}
+.flex > div > div {
+  font-size: 20px;
+  text-align: center;
+  flex: none;
+}
+</style>
+
+</head>
+
+<div class="container-row">
+  <div class="vertical-header ltr horizontal"></div>
+  <div class="horizontal-header ltr horizontal">ltr<br>horizontal-tb</div>
+  <div class="vertical-header ltr flipped-blocks">ltr<br>vertical-rl</div>
+  <div class="vertical-header ltr flipped-blocks">ltr<br>vertical-lr</div>
+  <div class="horizontal-header rtl horizontal">rtl<br>horizontal-tb</div>
+  <div class="vertical-header rtl flipped-blocks">rtl<br>vertical-rl</div>
+  <div class="vertical-header rtl flipped-blocks">rtl<br>vertical-lr</div>
+</div>
+
+<script>
+// Override createContentNode to emulate reverse flow direction.
+createContentNode = (flexDirection, textDirection, writingMode) => {
+  var flexNode = document.createElement("div");
+  flexNode.className = "flex " + flexDirection;
+  flexNode.title = "flex-direction: " + flexDirection + "; direction: " + textDirection + "; writing-mode: " + writingMode;
+  for (var i = 1; i < 4; i++)
+    flexNode.appendChild(createLeafNode(flexDirection.endsWith("reverse") ? 4 - i : i));
+  return flexNode;
+}
+
+flexDirections.forEach((flexDirection) => {
+  var containerRow = createContainerRow(flexDirection);
+  document.body.appendChild(containerRow);
+});
+
+// Scroll all flex containers to the emulated beginning of flow.
+var nodes = document.querySelectorAll(".ltr > .row-reverse");
+for (var i = 0; i < nodes.length; i++) {
+  nodes[i].scrollLeft = 10000;
+  nodes[i].scrollTop = 10000;
+}
+nodes = document.querySelectorAll(".rtl > .row-reverse");
+for (var i = 0; i < nodes.length; i++) {
+  nodes[i].scrollLeft = -10000;
+  nodes[i].scrollTop = -10000;
+}
+nodes = document.querySelectorAll(".column-reverse");
+for (var i = 0; i < nodes.length; i++) {
+  nodes[i].scrollLeft = 10000;
+  nodes[i].scrollTop = 10000;
+}
+nodes = document.querySelectorAll(".flipped-blocks > .column-reverse");
+for (var i = 0; i < nodes.length; i++) {
+  nodes[i].scrollLeft = -10000;
+  nodes[i].scrollTop = 0;
+}
+</script>

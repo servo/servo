@@ -1,0 +1,22 @@
+<!doctype html>
+<title>CSS Test: ::before box removed when display set to 'none'.</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#generated-content">
+<link rel="match" href="../reference/pass_if_pass_below.html">
+<style>
+  #id::before {
+    content: "FAIL";
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    background-color: red;
+  }
+  #id.none::before {
+    display: none;
+  }
+</style>
+<p>Test passes if there is the word "PASS" below.</p>
+<div id="id" class="open">PASS</div>
+<script>
+  id.offsetTop;
+  id.className = "none";
+</script>

@@ -1,0 +1,22 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+    <!-- This tests that a report only policy is not treated as enforcing when
+         inherited by a worker. This manifests in particular for `unsafe-eval`
+         in this bug crbug.com/777076  -->
+    <script nonce="abc">
+      var t1 = async_test("Check that inline is allowed since the inherited policy is report only");
+      var t2 = async_test("Check that eval is allowed since the inherited policy is report only");
+
+      var w = new Worker("support/eval.js");
+      w.onmessage = function(e) {
+        if (e.data == "unsafe-inline allowed") t1.done();
+        else if (e.data == "unsafe-eval allowed") t2.done();
+      }
+    </script>
+</body>
+</html>

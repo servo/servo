@@ -1,0 +1,115 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+
+<script>
+"use strict";
+
+// These declarations need to be global for "shouldBe" to see them
+var gl;
+var pixel = [0, 0, 0, 1];
+var canvas;
+
+function init()
+{
+    description('Verify that changing the size of an antialiased WebGL context does not cause it to stop working.');
+
+    runTest();
+}
+
+function getWebGL(canvasWidth, canvasHeight, contextAttribs)
+{
+    canvas = document.createElement("canvas");
+    if (!canvas)
+        return null;
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+
+    gl = WebGLTestUtils.create3DContext(canvas, contextAttribs);
+    if (!gl)
+        return null;
+
+    return gl;
+}
+
+function runTest()
+{
+    shouldBeNonNull("gl = getWebGL(1, 1, { alpha: false, antialias: true })");
+
+    // Clear to black.
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // Check that the pixel's R channel is 0.
+    var buf = new Uint8Array(1 * 1 * 4);
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    pixel[0] = buf[0];
+    shouldBeTrue("pixel[0] == 0");
+
+    // Change the size of the canvas.
+    canvas.width = 3;
+    canvas.height = 3;
+
+    // Clear to black.
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // Clear the top-left pixel to white.
+    gl.enable(gl.SCISSOR_TEST);
+    gl.scissor(0, 0, 1, 1);
+    gl.clearColor(1.0, 1.0, 1.0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // Check that the top-left pixel has R channel 255.
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    pixel[0] = buf[0];
+    shouldBeTrue("pixel[0] == 255");
+
+    // Check that the bottom-right pixel has R channel 0.
+    gl.readPixels(2, 2, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    pixel[0] = buf[0];
+    shouldBeTrue("pixel[0] == 0");
+
+    finishTest();
+}
+
+</script>
+</head>
+<body onload="init()">
+<div id="description"></div>
+<div id="console"></div>
+</body>
+</html>

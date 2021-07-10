@@ -1,0 +1,36 @@
+<html>
+    <head>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="./resources/webxr-util.js"></script>
+    </head>
+    <body>
+          <canvas id="canvas" width="640" height="480"></canvas>
+
+        <script>
+          let canvas = document.getElementById("canvas");
+          let gl = canvas.getContext('webgl');
+          promise_test(async function() {
+            let mock = await navigator.xr.test.simulateDeviceConnection({
+              supportedModes: ["immersive-vr"],
+              views: TEST_VIEWS,
+              viewerOrigin: {position: [0.5, 0.1, 0.1], orientation: [1, 0, 0, 1] }
+            });
+            let sessionPromise;
+            navigator.xr.test.simulateUserActivation(() => {
+              sessionPromise = navigator.xr.requestSession("immersive-vr");
+            });
+            let session = await sessionPromise;
+            let glLayerFactory = new XRWebGLBinding(session, gl);
+            let layer = new XRWebGLLayer(session, gl);
+            let event = new XRLayerEvent("foo", { layer: layer, bubbles: true });
+
+            assert_equals(event.type, "foo", "XRLeventLayer construxctor sets type");
+            assert_equals(event.bubbles, true, "XRLeventLayer construxctor sets bubbles");
+            assert_equals(event.cancelable, false, "XRLeventLayer construxctor sets cancelable");
+            assert_equals(event.isTrusted, false, "XRLeventLayer construxctor sets trusted");
+            assert_equals(event.layer, layer, "XRLeventLayer construxctor sets layer");
+          });
+        </script>
+    </body>
+</html>

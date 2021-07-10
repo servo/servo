@@ -9,10 +9,10 @@
 <script src="support.js"></script>
 
 <script>
-    createdb(async_test(document.title, {timeout: 10000})).onupgradeneeded = function(e) {
+    createdb(async_test()).onupgradeneeded = function(e) {
         var store = e.target.result.createObjectStore("store");
 
-        assert_throws('InvalidAccessError', function() {
+        assert_throws_dom('InvalidAccessError', function() {
             store.createIndex('actors', ['name'], { multiEntry: true })
         });
 

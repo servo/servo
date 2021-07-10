@@ -1,0 +1,24 @@
+<!doctype html>
+<title>CSS Test: nested preserve-3d and perspective without transformed items</title>
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#perspective">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#transform-style-property">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1505222">
+<link rel="match" href="preserve3d-nested-perspective-ref.html">
+<style>
+  html, body { margin: 0 }
+  #box {
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+</style>
+<!-- Since we don't specify any transform, this should render just a 100x100px red box -->
+<div style="perspective: 1200px">
+  <div style="transform-style: preserve-3d">
+    <div style="transform-style: flat">
+      <div id="box" style="transform-style: preserve-3d"></div>
+    </div>
+  </div>
+</div>

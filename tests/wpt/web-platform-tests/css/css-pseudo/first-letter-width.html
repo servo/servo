@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html lang="en">
+<head>
+  <title>initial-letter width test</title>
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=362880">
+  <link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-letter-styling">
+  <link rel="match" href="first-letter-width-ref.html">
+  <meta name="assert" content="The width of an element with first-letter styling should render correctly.">
+  <style>
+    div {
+      position: relative;
+    }
+    span {
+      position: absolute;
+      color: transparent;
+    }
+    #control {
+      background-color: green;
+    }
+    #test {
+      background-color: red;
+      line-height: 1;
+      top: 1px;
+    }
+    #test::first-letter {
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+  <p>There should be no red</p>
+  <div>
+  <span id="test">Test</span>
+  <span id="control">Test.</span>
+  </div>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.iceGatheringState</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  await initialOfferAnswerWithIceGatheringStateTransitions(
+      pc1, pc2, {offerToReceiveAudio: true});
+  await pc1.setLocalDescription(await pc1.createOffer({iceRestart: true}));
+  await iceGatheringStateTransitions(pc1, 'gathering', 'complete');
+  expectNoMoreGatheringStateChanges(t, pc1);
+  await pc1.setLocalDescription({type: 'rollback'});
+  await new Promise(r => t.step_timeout(r, 1000));
+}, 'rolling back an ICE restart when gathering is complete should not result in iceGatheringState changes');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  await pc.setLocalDescription(
+    await pc.createOffer({offerToReceiveAudio: true}));
+  await iceGatheringStateTransitions(pc, 'gathering', 'complete');
+  await pc.setLocalDescription({type: 'rollback'});
+  await iceGatheringStateTransitions(pc, 'new');
+}, 'setLocalDescription(rollback) of original offer should cause iceGatheringState to reach "new" when starting in "complete"');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  await pc.setLocalDescription(
+    await pc.createOffer({offerToReceiveAudio: true}));
+  await iceGatheringStateTransitions(pc, 'gathering');
+  await pc.setLocalDescription({type: 'rollback'});
+  // We might go directly to 'new', or we might go to 'complete' first,
+  // depending on timing. Allow either.
+  const results = await Promise.allSettled([
+    iceGatheringStateTransitions(pc, 'new'),
+    iceGatheringStateTransitions(pc, 'complete', 'new')]);
+  assert_true(results.some(result => result.status == 'fulfilled'),
+    'ICE gathering state should go back to "new", possibly through "complete"');
+}, 'setLocalDescription(rollback) of original offer should cause iceGatheringState to reach "new" when starting in "gathering"');
+
+</script>

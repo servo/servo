@@ -1,644 +1,467 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use cookie::Cookie;
-use fetch::methods::{should_be_blocked_due_to_bad_port, should_be_blocked_due_to_nosniff};
-use hosts::replace_host;
-use http_loader::{HttpState, is_redirect_status, set_default_accept};
-use http_loader::{set_default_accept_language, set_request_cookies};
-use hyper::buffer::BufReader;
-use hyper::header::{CacheControl, CacheDirective, Connection, ConnectionOption};
-use hyper::header::{Headers, Host, SetCookie, Pragma, Protocol, ProtocolName, Upgrade};
-use hyper::http::h1::{LINE_ENDING, parse_response};
-use hyper::method::Method;
-use hyper::net::HttpStream;
-use hyper::status::StatusCode;
-use hyper::version::HttpVersion;
-use net_traits::{CookieSource, MessageData, NetworkError, WebSocketCommunicate, WebSocketConnectData};
+//! The websocket handler has three main responsibilities:
+//! 1) initiate the initial HTTP connection and process the response
+//! 2) ensure any DOM requests for sending/closing are propagated to the network
+//! 3) transmit any incoming messages/closing to the DOM
+//!
+//! In order to accomplish this, the handler uses a long-running loop that selects
+//! over events from the network and events from the DOM, using async/await to avoid
+//! the need for a dedicated thread per websocket.
+
+use crate::connector::{create_tls_config, ALPN_H1};
+use crate::cookie::Cookie;
+use crate::fetch::methods::should_be_blocked_due_to_bad_port;
+use crate::hosts::replace_host;
+use crate::http_loader::HttpState;
+use async_tungstenite::tokio::{client_async_tls_with_connector_and_config, ConnectStream};
+use async_tungstenite::WebSocketStream;
+use embedder_traits::resources::{self, Resource};
+use futures03::future::TryFutureExt;
+use futures03::sink::SinkExt;
+use futures03::stream::StreamExt;
+use http::header::{HeaderMap, HeaderName, HeaderValue};
+use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use ipc_channel::router::ROUTER;
+use net_traits::request::{RequestBuilder, RequestMode};
+use net_traits::{CookieSource, MessageData};
 use net_traits::{WebSocketDomAction, WebSocketNetworkEvent};
-use net_traits::request::{Destination, Type};
+use openssl::ssl::ConnectConfiguration;
 use servo_url::ServoUrl;
-use std::ascii::AsciiExt;
-use std::io::{self, Write};
-use std::net::TcpStream;
-use std::sync::{Arc, Mutex};
+use std::fs;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::thread;
-use url::Position;
-use websocket::{Message, Receiver as WSReceiver, Sender as WSSender};
-use websocket::header::{Origin, WebSocketAccept, WebSocketKey, WebSocketProtocol, WebSocketVersion};
-use websocket::message::Type as MessageType;
-use websocket::receiver::Receiver;
-use websocket::sender::Sender;
+use std::sync::{Arc, Mutex};
+use tokio2::net::TcpStream;
+use tokio2::runtime::Runtime;
+use tokio2::select;
+use tokio2::sync::mpsc::{unbounded_channel, UnboundedReceiver};
+use tungstenite::error::Error;
+use tungstenite::error::Result as WebSocketResult;
+use tungstenite::handshake::client::{Request, Response};
+use tungstenite::http::header::{self as WSHeader, HeaderValue as WSHeaderValue};
+use tungstenite::protocol::CloseFrame;
+use tungstenite::Message;
+use url::Url;
 
-pub fn init(connect: WebSocketCommunicate,
-            connect_data: WebSocketConnectData,
-            http_state: Arc<HttpState>) {
-    thread::Builder::new().name(format!("WebSocket connection to {}", connect_data.resource_url)).spawn(move || {
-        let channel = establish_a_websocket_connection(connect_data.resource_url,
-                                                       connect_data.origin,
-                                                       connect_data.protocols,
-                                                       &http_state);
-        let (ws_sender, mut receiver) = match channel {
-            Ok((protocol_in_use, sender, receiver)) => {
-                let _ = connect.event_sender.send(WebSocketNetworkEvent::ConnectionEstablished { protocol_in_use });
-                (sender, receiver)
-            },
-            Err(e) => {
-                debug!("Failed to establish a WebSocket connection: {:?}", e);
-                let _ = connect.event_sender.send(WebSocketNetworkEvent::Fail);
-                return;
+// Websockets get their own tokio runtime that's independent of the one used for
+// HTTP connections, otherwise a large number of websockets could occupy all workers
+// and starve other network traffic.
+lazy_static! {
+    pub static ref HANDLE: Mutex<Option<Runtime>> = Mutex::new(Some(Runtime::new().unwrap()));
+}
+
+/// Create a tungstenite Request object for the initial HTTP request.
+/// This request contains `Origin`, `Sec-WebSocket-Protocol`, `Authorization`,
+/// and `Cookie` headers as appropriate.
+/// Returns an error if any header values are invalid or tungstenite cannot create
+/// the desired request.
+fn create_request(
+    resource_url: &ServoUrl,
+    origin: &str,
+    protocols: &[String],
+    http_state: &HttpState,
+) -> WebSocketResult<Request> {
+    let mut builder = Request::get(resource_url.as_str());
+    let headers = builder.headers_mut().unwrap();
+    headers.insert("Origin", WSHeaderValue::from_str(origin)?);
+
+    if !protocols.is_empty() {
+        let protocols = protocols.join(",");
+        headers.insert(
+            "Sec-WebSocket-Protocol",
+            WSHeaderValue::from_str(&protocols)?,
+        );
+    }
+
+    let mut cookie_jar = http_state.cookie_jar.write().unwrap();
+    cookie_jar.remove_expired_cookies_for_url(resource_url);
+    if let Some(cookie_list) = cookie_jar.cookies_for_url(resource_url, CookieSource::HTTP) {
+        headers.insert("Cookie", WSHeaderValue::from_str(&cookie_list)?);
+    }
+
+    if resource_url.password().is_some() || resource_url.username() != "" {
+        let basic = base64::encode(&format!(
+            "{}:{}",
+            resource_url.username(),
+            resource_url.password().unwrap_or("")
+        ));
+        headers.insert(
+            "Authorization",
+            WSHeaderValue::from_str(&format!("Basic {}", basic))?,
+        );
+    }
+
+    let request = builder.body(())?;
+    Ok(request)
+}
+
+/// Process an HTTP response resulting from a WS handshake.
+/// This ensures that any `Cookie` or HSTS headers are recognized.
+/// Returns an error if the protocol selected by the handshake doesn't
+/// match the list of provided protocols in the original request.
+fn process_ws_response(
+    http_state: &HttpState,
+    response: &Response,
+    resource_url: &ServoUrl,
+    protocols: &[String],
+) -> Result<Option<String>, Error> {
+    trace!("processing websocket http response for {}", resource_url);
+    let mut protocol_in_use = None;
+    if let Some(protocol_name) = response.headers().get("Sec-WebSocket-Protocol") {
+        let protocol_name = protocol_name.to_str().unwrap();
+        if !protocols.is_empty() && !protocols.iter().any(|p| protocol_name == (*p)) {
+            return Err(Error::Protocol(
+                "Protocol in use not in client-supplied protocol list".into(),
+            ));
+        }
+        protocol_in_use = Some(protocol_name.to_string());
+    }
+
+    let mut jar = http_state.cookie_jar.write().unwrap();
+    // TODO(eijebong): Replace thise once typed headers settled on a cookie impl
+    for cookie in response.headers().get_all(WSHeader::SET_COOKIE) {
+        if let Ok(s) = std::str::from_utf8(cookie.as_bytes()) {
+            if let Some(cookie) =
+                Cookie::from_cookie_string(s.into(), resource_url, CookieSource::HTTP)
+            {
+                jar.push(cookie, resource_url, CookieSource::HTTP);
             }
+        }
+    }
 
-        };
+    // We need to make a new header map here because tungstenite depends on
+    // a more recent version of http than the rest of the network stack, so the
+    // HeaderMap types are incompatible.
+    let mut headers = HeaderMap::new();
+    for (key, value) in response.headers().iter() {
+        if let (Ok(key), Ok(value)) = (
+            HeaderName::from_bytes(key.as_ref()),
+            HeaderValue::from_bytes(value.as_ref()),
+        ) {
+            headers.insert(key, value);
+        }
+    }
+    http_state
+        .hsts_list
+        .write()
+        .unwrap()
+        .update_hsts_list_from_response(resource_url, &headers);
 
-        let initiated_close = Arc::new(AtomicBool::new(false));
-        let ws_sender = Arc::new(Mutex::new(ws_sender));
+    Ok(protocol_in_use)
+}
 
-        let initiated_close_incoming = initiated_close.clone();
-        let ws_sender_incoming = ws_sender.clone();
-        let resource_event_sender = connect.event_sender;
-        thread::spawn(move || {
-            for message in receiver.incoming_messages() {
-                let message: Message = match message {
-                    Ok(m) => m,
-                    Err(e) => {
-                        debug!("Error receiving incoming WebSocket message: {:?}", e);
+#[derive(Debug)]
+enum DomMsg {
+    Send(Message),
+    Close(Option<(u16, String)>),
+}
+
+/// Initialize a listener for DOM actions. These are routed from the IPC channel
+/// to a tokio channel that the main WS client task uses to receive them.
+fn setup_dom_listener(
+    dom_action_receiver: IpcReceiver<WebSocketDomAction>,
+    initiated_close: Arc<AtomicBool>,
+) -> UnboundedReceiver<DomMsg> {
+    let (sender, receiver) = unbounded_channel();
+
+    ROUTER.add_route(
+        dom_action_receiver.to_opaque(),
+        Box::new(move |message| {
+            let dom_action = message.to().expect("Ws dom_action message to deserialize");
+            trace!("handling WS DOM action: {:?}", dom_action);
+            match dom_action {
+                WebSocketDomAction::SendMessage(MessageData::Text(data)) => {
+                    if let Err(e) = sender.send(DomMsg::Send(Message::Text(data))) {
+                        warn!("Error sending websocket message: {:?}", e);
+                    }
+                },
+                WebSocketDomAction::SendMessage(MessageData::Binary(data)) => {
+                    if let Err(e) = sender.send(DomMsg::Send(Message::Binary(data))) {
+                        warn!("Error sending websocket message: {:?}", e);
+                    }
+                },
+                WebSocketDomAction::Close(code, reason) => {
+                    if initiated_close.fetch_or(true, Ordering::SeqCst) {
+                        return;
+                    }
+                    let frame = code.map(move |c| (c, reason.unwrap_or_default()));
+                    if let Err(e) = sender.send(DomMsg::Close(frame)) {
+                        warn!("Error closing websocket: {:?}", e);
+                    }
+                },
+            }
+        }),
+    );
+
+    receiver
+}
+
+/// Listen for WS events from the DOM and the network until one side
+/// closes the connection or an error occurs. Since this is an async
+/// function that uses the select operation, it will run as a task
+/// on the WS tokio runtime.
+async fn run_ws_loop(
+    mut dom_receiver: UnboundedReceiver<DomMsg>,
+    resource_event_sender: IpcSender<WebSocketNetworkEvent>,
+    mut stream: WebSocketStream<ConnectStream>,
+) {
+    loop {
+        select! {
+            dom_msg = dom_receiver.recv() => {
+                trace!("processing dom msg: {:?}", dom_msg);
+                let dom_msg = match dom_msg {
+                    Some(msg) => msg,
+                    None => break,
+                };
+                match dom_msg {
+                    DomMsg::Send(m) => {
+                        if let Err(e) = stream.send(m).await {
+                            warn!("error sending websocket message: {:?}", e);
+                        }
+                    },
+                    DomMsg::Close(frame) => {
+                        if let Err(e) = stream.close(frame.map(|(code, reason)| {
+                            CloseFrame {
+                                code: code.into(),
+                                reason: reason.into(),
+                            }
+                        })).await {
+                            warn!("error closing websocket: {:?}", e);
+                        }
+                    },
+                }
+            }
+            ws_msg = stream.next() => {
+                trace!("processing WS stream: {:?}", ws_msg);
+                let msg = match ws_msg {
+                    Some(Ok(msg)) => msg,
+                    Some(Err(e)) => {
+                        warn!("Error in WebSocket communication: {:?}", e);
+                        let _ = resource_event_sender.send(WebSocketNetworkEvent::Fail);
+                        break;
+                    },
+                    None => {
+                        warn!("Error in WebSocket communication");
                         let _ = resource_event_sender.send(WebSocketNetworkEvent::Fail);
                         break;
                     }
                 };
-                let message = match message.opcode {
-                    MessageType::Text => MessageData::Text(String::from_utf8_lossy(&message.payload).into_owned()),
-                    MessageType::Binary => MessageData::Binary(message.payload.into_owned()),
-                    MessageType::Ping => {
-                        let pong = Message::pong(message.payload);
-                        ws_sender_incoming.lock().unwrap().send_message(&pong).unwrap();
-                        continue;
-                    },
-                    MessageType::Pong => continue,
-                    MessageType::Close => {
-                        if !initiated_close_incoming.fetch_or(true, Ordering::SeqCst) {
-                            ws_sender_incoming.lock().unwrap().send_message(&message).unwrap();
+                match msg {
+                    Message::Text(s) => {
+                        let message = MessageData::Text(s);
+                        if let Err(e) = resource_event_sender
+                            .send(WebSocketNetworkEvent::MessageReceived(message))
+                        {
+                            warn!("Error sending websocket notification: {:?}", e);
+                            break;
                         }
-                        let code = message.cd_status_code;
-                        let reason = String::from_utf8_lossy(&message.payload).into_owned();
-                        let _ = resource_event_sender.send(WebSocketNetworkEvent::Close(code, reason));
-                        break;
-                    },
-                };
-                let _ = resource_event_sender.send(WebSocketNetworkEvent::MessageReceived(message));
-            }
-        });
-
-        while let Ok(dom_action) = connect.action_receiver.recv() {
-            match dom_action {
-                WebSocketDomAction::SendMessage(MessageData::Text(data)) => {
-                    ws_sender.lock().unwrap().send_message(&Message::text(data)).unwrap();
-                },
-                WebSocketDomAction::SendMessage(MessageData::Binary(data)) => {
-                    ws_sender.lock().unwrap().send_message(&Message::binary(data)).unwrap();
-                },
-                WebSocketDomAction::Close(code, reason) => {
-                    if !initiated_close.fetch_or(true, Ordering::SeqCst) {
-                        let message = match code {
-                            Some(code) => Message::close_because(code, reason.unwrap_or("".to_owned())),
-                            None => Message::close()
-                        };
-                        ws_sender.lock().unwrap().send_message(&message).unwrap();
                     }
-                },
+
+                    Message::Binary(v) => {
+                        let message = MessageData::Binary(v);
+                        if let Err(e) = resource_event_sender
+                            .send(WebSocketNetworkEvent::MessageReceived(message))
+                        {
+                            warn!("Error sending websocket notification: {:?}", e);
+                            break;
+                        }
+                    }
+
+                    Message::Ping(_) | Message::Pong(_) => {}
+
+                    Message::Close(frame) => {
+                        let (reason, code) = match frame {
+                            Some(frame) => (frame.reason, Some(frame.code.into())),
+                            None => ("".into(), None),
+                        };
+                        debug!("Websocket connection closing due to ({:?}) {}", code, reason);
+                        let _ = resource_event_sender.send(WebSocketNetworkEvent::Close(
+                            code,
+                            reason.to_string(),
+                        ));
+                        break;
+                    }
+                }
             }
         }
-    }).expect("Thread spawning failed");
+    }
 }
 
-type Stream = HttpStream;
+/// Initiate a new async WS connection. Returns an error if the connection fails
+/// for any reason, or if the response isn't valid. Otherwise, the endless WS
+/// listening loop will be started.
+async fn start_websocket(
+    http_state: Arc<HttpState>,
+    url: ServoUrl,
+    resource_event_sender: IpcSender<WebSocketNetworkEvent>,
+    protocols: Vec<String>,
+    client: Request,
+    tls_config: ConnectConfiguration,
+    dom_action_receiver: IpcReceiver<WebSocketDomAction>,
+) -> Result<(), Error> {
+    trace!("starting WS connection to {}", url);
 
-// https://fetch.spec.whatwg.org/#concept-websocket-connection-obtain
-fn obtain_a_websocket_connection(url: &ServoUrl) -> Result<Stream, NetworkError> {
-    // Step 1.
-    let host = url.host_str().unwrap();
+    let initiated_close = Arc::new(AtomicBool::new(false));
+    let dom_receiver = setup_dom_listener(dom_action_receiver, initiated_close.clone());
 
-    // Step 2.
-    let port = url.port_or_known_default().unwrap();
+    let host_str = client
+        .uri()
+        .host()
+        .ok_or_else(|| Error::Url("No host string".into()))?;
+    let host = replace_host(host_str);
+    let mut net_url =
+        Url::parse(&client.uri().to_string()).map_err(|e| Error::Url(e.to_string().into()))?;
+    net_url
+        .set_host(Some(&host))
+        .map_err(|e| Error::Url(e.to_string().into()))?;
 
-    // Step 3.
-    // We did not replace the scheme by "http" or "https" in step 1 of
-    // establish_a_websocket_connection.
-    let secure = match url.scheme() {
-        "ws" => false,
-        "wss" => true,
-        _ => panic!("URL's scheme should be ws or wss"),
-    };
+    let domain = net_url
+        .host()
+        .ok_or_else(|| Error::Url("No host string".into()))?;
+    let port = net_url
+        .port_or_known_default()
+        .ok_or_else(|| Error::Url("Unknown port".into()))?;
 
-    if secure {
-        return Err(NetworkError::Internal("WSS is disabled for now.".into()));
-    }
+    let try_socket = TcpStream::connect((&*domain.to_string(), port)).await;
+    let socket = try_socket.map_err(Error::Io)?;
+    let (stream, response) =
+        client_async_tls_with_connector_and_config(client, socket, Some(tls_config), None).await?;
 
-    // Steps 4-5.
-    let host = replace_host(host);
-    let tcp_stream = TcpStream::connect((&*host, port)).map_err(|e| {
-        NetworkError::Internal(format!("Could not connect to host: {}", e))
-    })?;
-    Ok(HttpStream(tcp_stream))
-}
+    let protocol_in_use = process_ws_response(&http_state, &response, &url, &protocols)?;
 
-// https://fetch.spec.whatwg.org/#concept-websocket-establish
-fn establish_a_websocket_connection(resource_url: ServoUrl,
-                                    origin: String,
-                                    protocols: Vec<String>,
-                                    http_state: &HttpState)
-                                    -> Result<(Option<String>,
-                                               Sender<Stream>,
-                                               Receiver<Stream>),
-                                              NetworkError> {
-    // Steps 1 is not really applicable here, given we don't exactly go
-    // through the same infrastructure as the Fetch spec.
-
-    // Step 2, slimmed down because we don't go through the whole Fetch infra.
-    let mut headers = Headers::new();
-
-    // Step 3.
-    headers.set(Upgrade(vec![Protocol::new(ProtocolName::WebSocket, None)]));
-
-    // Step 4.
-    headers.set(Connection(vec![ConnectionOption::ConnectionHeader("upgrade".into())]));
-
-    // Step 5.
-    let key_value = WebSocketKey::new();
-
-    // Step 6.
-    headers.set(key_value);
-
-    // Step 7.
-    headers.set(WebSocketVersion::WebSocket13);
-
-    // Step 8.
-    if !protocols.is_empty() {
-        headers.set(WebSocketProtocol(protocols.clone()));
-    }
-
-    // Steps 9-10.
-    // TODO: handle permessage-deflate extension.
-
-    // Step 11 and network error check from step 12.
-    let response = fetch(resource_url, origin, headers, http_state)?;
-
-    // Step 12, the status code check.
-    if response.status != StatusCode::SwitchingProtocols {
-        return Err(NetworkError::Internal("Response's status should be 101.".into()));
-    }
-
-    // Step 13.
-    if !protocols.is_empty() {
-        if response.headers.get::<WebSocketProtocol>().map_or(true, |protocols| protocols.is_empty()) {
-            return Err(NetworkError::Internal(
-                "Response's Sec-WebSocket-Protocol header is missing, malformed or empty.".into()));
+    if !initiated_close.load(Ordering::SeqCst) {
+        if resource_event_sender
+            .send(WebSocketNetworkEvent::ConnectionEstablished { protocol_in_use })
+            .is_err()
+        {
+            return Ok(());
         }
-    }
 
-    // Step 14.2.
-    let upgrade_header = response.headers.get::<Upgrade>().ok_or_else(|| {
-        NetworkError::Internal("Response should have an Upgrade header.".into())
-    })?;
-    if upgrade_header.len() != 1 {
-        return Err(NetworkError::Internal("Response's Upgrade header should have only one value.".into()));
-    }
-    if upgrade_header[0].name != ProtocolName::WebSocket {
-        return Err(NetworkError::Internal("Response's Upgrade header value should be \"websocket\".".into()));
-    }
-
-    // Step 14.3.
-    let connection_header = response.headers.get::<Connection>().ok_or_else(|| {
-        NetworkError::Internal("Response should have a Connection header.".into())
-    })?;
-    let connection_includes_upgrade = connection_header.iter().any(|option| {
-        match *option {
-            ConnectionOption::ConnectionHeader(ref option) => *option == "upgrade",
-            _ => false,
-        }
-    });
-    if !connection_includes_upgrade {
-        return Err(NetworkError::Internal("Response's Connection header value should include \"upgrade\".".into()));
-    }
-
-    // Step 14.4.
-    let accept_header = response.headers.get::<WebSocketAccept>().ok_or_else(|| {
-        NetworkError::Internal("Response should have a Sec-Websocket-Accept header.".into())
-    })?;
-    if *accept_header != WebSocketAccept::new(&key_value) {
-        return Err(NetworkError::Internal(
-            "Response's Sec-WebSocket-Accept header value did not match the sent key.".into()));
-    }
-
-    // Step 14.5.
-    // TODO: handle permessage-deflate extension.
-    // We don't support any extension, so we fail at the mere presence of
-    // a Sec-WebSocket-Extensions header.
-    if response.headers.get_raw("Sec-WebSocket-Extensions").is_some() {
-        return Err(NetworkError::Internal(
-            "Response's Sec-WebSocket-Extensions header value included unsupported extensions.".into()));
-    }
-
-    // Step 14.6.
-    let protocol_in_use = if let Some(response_protocols) = response.headers.get::<WebSocketProtocol>() {
-        for replied in &**response_protocols {
-            if !protocols.iter().any(|requested| requested.eq_ignore_ascii_case(replied)) {
-                return Err(NetworkError::Internal(
-                    "Response's Sec-WebSocket-Protocols contain values that were not requested.".into()));
-            }
-        }
-        response_protocols.first().cloned()
+        trace!("about to start ws loop for {}", url);
+        run_ws_loop(dom_receiver, resource_event_sender, stream).await;
     } else {
-        None
+        trace!("client closed connection for {}, not running loop", url);
+    }
+    Ok(())
+}
+
+/// Create a new websocket connection for the given request.
+fn connect(
+    mut req_builder: RequestBuilder,
+    resource_event_sender: IpcSender<WebSocketNetworkEvent>,
+    dom_action_receiver: IpcReceiver<WebSocketDomAction>,
+    http_state: Arc<HttpState>,
+    certificate_path: Option<String>,
+) -> Result<(), String> {
+    let protocols = match req_builder.mode {
+        RequestMode::WebSocket { protocols } => protocols,
+        _ => {
+            return Err(
+                "Received a RequestBuilder with a non-websocket mode in websocket_loader"
+                    .to_string(),
+            )
+        },
     };
 
-    let sender = Sender::new(response.writer, true);
-    let receiver = Receiver::new(response.reader, false);
-    Ok((protocol_in_use, sender, receiver))
-}
+    // https://fetch.spec.whatwg.org/#websocket-opening-handshake
+    // By standard, we should work with an http(s):// URL (req_url),
+    // but as ws-rs expects to be called with a ws(s):// URL (net_url)
+    // we upgrade ws to wss, so we don't have to convert http(s) back to ws(s).
+    http_state
+        .hsts_list
+        .read()
+        .unwrap()
+        .apply_hsts_rules(&mut req_builder.url);
 
-struct Response {
-    status: StatusCode,
-    headers: Headers,
-    reader: BufReader<Stream>,
-    writer: Stream,
-}
-
-// https://fetch.spec.whatwg.org/#concept-fetch
-fn fetch(url: ServoUrl,
-         origin: String,
-         mut headers: Headers,
-         http_state: &HttpState)
-         -> Result<Response, NetworkError> {
-    // Step 1.
-    // TODO: handle request's window.
-
-    // Step 2.
-    // TODO: handle request's origin.
-
-    // Step 3.
-    set_default_accept(Type::None, Destination::None, &mut headers);
-
-    // Step 4.
-    set_default_accept_language(&mut headers);
-
-    // Step 5.
-    // TODO: handle request's priority.
-
-    // Step 6.
-    // Not applicable: not a navigation request.
-
-    // Step 7.
-    // We know this is a subresource request.
-    {
-        // Step 7.1.
-        // Not applicable: client hints list is empty.
-
-        // Steps 7.2-3.
-        // TODO: handle fetch groups.
+    let scheme = req_builder.url.scheme();
+    let mut req_url = req_builder.url.clone();
+    match scheme {
+        "ws" => {
+            req_url
+                .as_mut_url()
+                .set_scheme("http")
+                .map_err(|()| "couldn't replace scheme".to_string())?;
+        },
+        "wss" => {
+            req_url
+                .as_mut_url()
+                .set_scheme("https")
+                .map_err(|()| "couldn't replace scheme".to_string())?;
+        },
+        _ => {},
     }
 
-    // Step 8.
-    main_fetch(url, origin, headers, http_state)
-}
-
-// https://fetch.spec.whatwg.org/#concept-main-fetch
-fn main_fetch(url: ServoUrl,
-              origin: String,
-              mut headers: Headers,
-              http_state: &HttpState)
-              -> Result<Response, NetworkError> {
-    // Step 1.
-    let mut response = None;
-
-    // Step 2.
-    // Not applicable: request’s local-URLs-only flag is unset.
-
-    // Step 3.
-    // TODO: handle content security policy violations.
-
-    // Step 4.
-    // TODO: handle upgrade to a potentially secure URL.
-
-    // Step 5.
-    if should_be_blocked_due_to_bad_port(&url) {
-        response = Some(Err(NetworkError::Internal("Request should be blocked due to bad port.".into())));
-    }
-    // TODO: handle blocking as mixed content.
-    // TODO: handle blocking by content security policy.
-
-    // Steps 6-8.
-    // TODO: handle request's referrer policy.
-
-    // Step 9.
-    // Not applicable: request's current URL's scheme is not "ftp".
-
-    // Step 10.
-    // TODO: handle known HSTS host domain.
-
-    // Step 11.
-    // Not applicable: request's synchronous flag is set.
-
-    // Step 12.
-    let mut response = response.unwrap_or_else(|| {
-        // We must run the first sequence of substeps, given request's mode
-        // is "websocket".
-
-        // Step 12.1.
-        // Not applicable: the response is never exposed to the Web so it
-        // doesn't need to be filtered at all.
-
-        // Step 12.2.
-        basic_fetch(&url, origin, &mut headers, http_state)
-    });
-
-    // Step 13.
-    // Not applicable: recursive flag is unset.
-
-    // Step 14.
-    // Not applicable: the response is never exposed to the Web so it doesn't
-    // need to be filtered at all.
-
-    // Steps 15-16.
-    // Not applicable: no need to maintain an internal response.
-
-    // Step 17.
-    if response.is_ok() {
-        // TODO: handle blocking as mixed content.
-        // TODO: handle blocking by content security policy.
-        // Not applicable: blocking due to MIME type matters only for scripts.
-        if should_be_blocked_due_to_nosniff(Type::None, &headers) {
-            response = Err(NetworkError::Internal("Request should be blocked due to nosniff.".into()));
-        }
+    if should_be_blocked_due_to_bad_port(&req_url) {
+        return Err("Port blocked".to_string());
     }
 
-    // Step 18.
-    // Not applicable: we don't care about the body at all.
-
-    // Step 19.
-    // Not applicable: request's integrity metadata is the empty string.
-
-    // Step 20.
-    // TODO: wait for response's body here, maybe?
-    response
-}
-
-// https://fetch.spec.whatwg.org/#concept-basic-fetch
-fn basic_fetch(url: &ServoUrl,
-               origin: String,
-               headers: &mut Headers,
-               http_state: &HttpState)
-               -> Result<Response, NetworkError> {
-    // In the case of a WebSocket request, HTTP fetch is always used.
-    http_fetch(url, origin, headers, http_state)
-}
-
-// https://fetch.spec.whatwg.org/#concept-http-fetch
-fn http_fetch(url: &ServoUrl,
-              origin: String,
-              headers: &mut Headers,
-              http_state: &HttpState)
-              -> Result<Response, NetworkError> {
-    // Step 1.
-    // Not applicable: with step 3 being useless here, this one is too.
-
-    // Step 2.
-    // Not applicable: we don't need to maintain an internal response.
-
-    // Step 3.
-    // Not applicable: request's service-workers mode is "none".
-
-    // Step 4.
-    // There cannot be a response yet at this point.
-    let mut response = {
-        // Step 4.1.
-        // Not applicable: CORS-preflight flag is unset.
-
-        // Step 4.2.
-        // Not applicable: request's redirect mode is "error".
-
-        // Step 4.3.
-        let response = http_network_or_cache_fetch(url, origin, headers, http_state);
-
-        // Step 4.4.
-        // Not applicable: CORS flag is unset.
-
-        response
+    let certs = match certificate_path {
+        Some(ref path) => fs::read_to_string(path).map_err(|e| e.to_string())?,
+        None => resources::read_string(Resource::SSLCertificates),
     };
 
-    // Step 5.
-    if response.as_ref().ok().map_or(false, |response| is_redirect_status(response.status)) {
-        // Step 5.1.
-        // Not applicable: the connection does not use HTTP/2.
-
-        // Steps 5.2-4.
-        // Not applicable: matters only if request's redirect mode is not "error".
-
-        // Step 5.5.
-        // Request's redirect mode is "error".
-        response = Err(NetworkError::Internal("Response should not be a redirection.".into()));
-    }
-
-    // Step 6.
-    response
-}
-
-// https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch
-fn http_network_or_cache_fetch(url: &ServoUrl,
-                               origin: String,
-                               headers: &mut Headers,
-                               http_state: &HttpState)
-                               -> Result<Response, NetworkError> {
-    // Steps 1-3.
-    // Not applicable: we don't even have a request yet, and there is no body
-    // in a WebSocket request.
-
-    // Step 4.
-    // Not applicable: credentials flag is always set
-    // because credentials mode is "include."
-
-    // Steps 5-9.
-    // Not applicable: there is no body in a WebSocket request.
-
-    // Step 10.
-    // TODO: handle header Referer.
-
-    // Step 11.
-    // Request's mode is "websocket".
-    headers.set(Origin(origin));
-
-    // Step 12.
-    // TODO: handle header User-Agent.
-
-    // Steps 13-14.
-    // Not applicable: request's cache mode is "no-store".
-
-    // Step 15.
-    {
-        // Step 15.1.
-        // We know there is no Pragma header yet.
-        headers.set(Pragma::NoCache);
-
-        // Step 15.2.
-        // We know there is no Cache-Control header yet.
-        headers.set(CacheControl(vec![CacheDirective::NoCache]));
-    }
-
-    // Step 16.
-    // TODO: handle Accept-Encoding.
-    // Not applicable: Connection header is already present.
-    // TODO: handle DNT.
-    headers.set(Host {
-        hostname: url.host_str().unwrap().to_owned(),
-        port: url.port(),
-    });
-
-    // Step 17.
-    // Credentials flag is set.
-    {
-        // Step 17.1.
-        // TODO: handle user agent configured to block cookies.
-        set_request_cookies(&url, headers, &http_state.cookie_jar);
-
-        // Steps 17.2-6.
-        // Not applicable: request has no Authorization header.
-    }
-
-    // Step 18.
-    // TODO: proxy-authentication entry.
-
-    // Step 19.
-    // Not applicable: with step 21 being useless, this one is too.
-
-    // Step 20.
-    // Not applicable: revalidatingFlag is only useful if step 21 is.
-
-    // Step 21.
-    // Not applicable: cache mode is "no-store".
-
-    // Step 22.
-    // There is no response yet.
-    let response = {
-        // Step 22.1.
-        // Not applicable: cache mode is "no-store".
-
-        // Step 22.2.
-        let forward_response = http_network_fetch(url, headers, http_state);
-
-        // Step 22.3.
-        // Not applicable: request's method is not unsafe.
-
-        // Step 22.4.
-        // Not applicable: revalidatingFlag is unset.
-
-        // Step 22.5.
-        // There is no response yet and the response should not be cached.
-        forward_response
+    let client = match create_request(
+        &req_builder.url,
+        &req_builder.origin.ascii_serialization(),
+        &protocols,
+        &*http_state,
+    ) {
+        Ok(c) => c,
+        Err(e) => return Err(e.to_string()),
     };
 
-    // Step 23.
-    // TODO: handle 401 status when request's window is not "no-window".
+    let tls_config = create_tls_config(
+        &certs,
+        ALPN_H1,
+        http_state.extra_certs.clone(),
+        http_state.connection_certs.clone(),
+    );
+    let tls_config = match tls_config.build().configure() {
+        Ok(c) => c,
+        Err(e) => return Err(e.to_string()),
+    };
 
-    // Step 24.
-    // TODO: handle 407 status when request's window is not "no-window".
-
-    // Step 25.
-    // Not applicable: authentication-fetch flag is unset.
-
-    // Step 26.
-    response
+    let resource_event_sender2 = resource_event_sender.clone();
+    match HANDLE.lock().unwrap().as_mut() {
+        Some(handle) => handle.spawn(
+            start_websocket(
+                http_state,
+                req_builder.url.clone(),
+                resource_event_sender,
+                protocols,
+                client,
+                tls_config,
+                dom_action_receiver,
+            )
+            .map_err(move |e| {
+                warn!("Failed to establish a WebSocket connection: {:?}", e);
+                let _ = resource_event_sender2.send(WebSocketNetworkEvent::Fail);
+            }),
+        ),
+        None => return Err("No runtime available".to_string()),
+    };
+    Ok(())
 }
 
-// https://fetch.spec.whatwg.org/#concept-http-network-fetch
-fn http_network_fetch(url: &ServoUrl,
-                      headers: &Headers,
-                      http_state: &HttpState)
-                      -> Result<Response, NetworkError> {
-    // Step 1.
-    // Not applicable: credentials flag is set.
-
-    // Steps 2-3.
-    // Request's mode is "websocket".
-    let connection = obtain_a_websocket_connection(url)?;
-
-    // Step 4.
-    // Not applicable: request’s body is null.
-
-    // Step 5.
-    let response = make_request(connection, url, headers)?;
-
-    // Steps 6-12.
-    // Not applicable: correct WebSocket responses don't have a body.
-
-    // Step 13.
-    // TODO: handle response's CSP list.
-
-    // Step 14.
-    // Not applicable: request's cache mode is "no-store".
-
-    // Step 15.
-    if let Some(cookies) = response.headers.get::<SetCookie>() {
-        let mut jar = http_state.cookie_jar.write().unwrap();
-        for cookie in &**cookies {
-            if let Some(cookie) = Cookie::from_cookie_string(cookie.clone(), url, CookieSource::HTTP) {
-                jar.push(cookie, url, CookieSource::HTTP);
-            }
-        }
+/// Create a new websocket connection for the given request.
+pub fn init(
+    req_builder: RequestBuilder,
+    resource_event_sender: IpcSender<WebSocketNetworkEvent>,
+    dom_action_receiver: IpcReceiver<WebSocketDomAction>,
+    http_state: Arc<HttpState>,
+    certificate_path: Option<String>,
+) {
+    let resource_event_sender2 = resource_event_sender.clone();
+    if let Err(e) = connect(
+        req_builder,
+        resource_event_sender,
+        dom_action_receiver,
+        http_state,
+        certificate_path,
+    ) {
+        warn!("Error starting websocket: {}", e);
+        let _ = resource_event_sender2.send(WebSocketNetworkEvent::Fail);
     }
-
-    // Step 16.
-    // Not applicable: correct WebSocket responses don't have a body.
-
-    // Step 17.
-    Ok(response)
-}
-
-fn make_request(mut stream: Stream,
-                url: &ServoUrl,
-                headers: &Headers)
-                -> Result<Response, NetworkError> {
-    write_request(&mut stream, url, headers).map_err(|e| {
-        NetworkError::Internal(format!("Request could not be sent: {}", e))
-    })?;
-
-    // FIXME: Stream isn't supposed to be cloned.
-    let writer = stream.clone();
-
-    // FIXME: BufReader from hyper isn't supposed to be used.
-    let mut reader = BufReader::new(stream);
-
-    let head = parse_response(&mut reader).map_err(|e| {
-        NetworkError::Internal(format!("Response could not be read: {}", e))
-    })?;
-
-    // This isn't in the spec, but this is the correct thing to do for WebSocket requests.
-    if head.version != HttpVersion::Http11 {
-        return Err(NetworkError::Internal("Response's HTTP version should be HTTP/1.1.".into()));
-    }
-
-    // FIXME: StatusCode::from_u16 isn't supposed to be used.
-    let status = StatusCode::from_u16(head.subject.0);
-    Ok(Response {
-        status: status,
-        headers: head.headers,
-        reader: reader,
-        writer: writer,
-    })
-}
-
-fn write_request(stream: &mut Stream,
-                 url: &ServoUrl,
-                 headers: &Headers)
-                 -> io::Result<()> {
-    // Write "GET /foo/bar HTTP/1.1\r\n".
-    let method = Method::Get;
-    let request_uri = &url.as_url()[Position::BeforePath..Position::AfterQuery];
-    let version = HttpVersion::Http11;
-    write!(stream, "{} {} {}{}", method, request_uri, version, LINE_ENDING)?;
-
-    // Write the headers.
-    write!(stream, "{}{}", headers, LINE_ENDING)
 }

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style>
+  input
+    {
+      background-color: yellow;
+      color: green;
+      font-family: monospace;
+      font-size: 48px;
+      line-height: 56px;
+      padding: 0px;
+      width: 13ch;
+    }
+  </style>
+
+  <script>
+  function startReference()
+  {
+    /*
+    Some browsers, like Chromium 80+ or Safari 14+, will
+    transfer focus to a selected element like a text input
+    and therefore style the border of such element according
+    to an user agent stylesheet rule, such as:
+    :focus {outline: -webkit-focus-ring-color auto 1px;} .
+    So, we deliberately trigger such focus with the focus()
+    method in the reference file.
+    */
+
+    document.getElementById("ref").focus();
+
+    /*
+    When a text input element is focused in Firefox
+    82+, then the caret becomes visible and blinking and
+    it is painted with the ::selected's color which is
+    the green color in this case. We therefore counter,
+    neutralize this by resetting the caret's color to the
+    background color.
+    */
+
+    document.getElementById("ref").style.caretColor = "yellow";
+  }
+  </script>
+
+  <body onload="startReference();">
+
+  <p>Test passes if each glyph of "Selected Text" is green with a yellow background and if there is <strong>no red</strong>.
+
+  <div><input id="ref" type="text" value="Selected Text"></div>

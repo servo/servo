@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<script>
+// This is tentative because currently this feature only has an explainer and
+// no formal spec.
+// https://github.com/wanderview/fetchevent-worker-timing/blob/master/explainer.md
+
+async function wait_for_performance_entries(url, performance, entry_type) {
+  const entries = await performance.getEntriesByName(url);
+  if (entries.length > 0) {
+    return entries;
+  }
+  return new Promise((resolve) => {
+    new PerformanceObserver((list, observer) => {
+      const entries = list.getEntriesByName(url);
+      if (entries.length > 0) {
+        observer.disconnect();
+        resolve(entries);
+      }
+    }).observe({ entryTypes: [entry_type] });
+  });
+}
+
+function load_image(target_document, url) {
+  return new Promise((resolve, reject) => {
+    const image = target_document.createElement('img');
+    image.onload = () => { resolve(image); }
+    image.onerror = () => { reject(`Failed to load: ${url}`); };
+    image.src = url;
+  });
+}
+
+promise_test(async (t) => {
+  const registration = await service_worker_unregister_and_register(
+    t, 'resources/fetch-event-worker-timing.js', 'resources/');
+  promise_test(async (t) => registration.unregister(),
+    'Unregister service worker');
+  await wait_for_state(t, registration.installing, 'activated');
+}, 'Set up an active service worker');
+
+promise_test(async (t) => {
+  const frame = await with_iframe('resources/empty.html?fallback');
+  t.add_cleanup(() => frame.remove());
+
+  const performance = frame.contentWindow.performance;
+
+  const entries = await wait_for_performance_entries(
+    frame.src, performance, 'navigation');
+  assert_equals(entries.length, 1, 'PerformanceNavigationTiming is observed');
+
+  const worker_timings = await entries[0].workerTiming;
+  const expected_worker_timings = [
+    {
+      name: "network-fallback mark 1",
+      entryType: "mark",
+      detail: { foo: 'foo' }
+    },
+    {
+      name: "network-fallback mark 2",
+      entryType: "mark",
+      detail: { bar: 'bar' }
+    },
+    {
+      name: "network-fallback measure",
+      entryType: "measure",
+      detail: { baz: 'baz' }
+    }
+  ];
+  assert_equals(worker_timings.length, expected_worker_timings.length,
+    'workerTiming is completed when PerformanceResourceTiming is observed');
+
+  for (let i = 0; i < workerTimings.length; i++) {
+    assert_equals(worker_timings[i].name,
+      expected_worker_timings[i].name, 'entry name');
+    assert_equals(worker_timings[i].entryType,
+      expected_worker_timings[i].entryType, 'entry type');
+    assert_object_equals(worker_timings[i].detail,
+      expected_worker_timings[i].detail, 'entry detail');
+  }
+}, 'workerTiming for navigation in a frame with network fallback');
+
+promise_test(async (t) => {
+  const frame= await with_iframe('resources/empty.html?fetch-event');
+  t.add_cleanup(() => frame.remove());
+
+  const performance = frame.contentWindow.performance;
+
+  const entries = await wait_for_performance_entries(
+    frame.src, performance, 'navigation');
+  assert_equals(entries.length, 1, 'PerformanceNavigationTiming is observed');
+
+  const worker_timings = await entries[0].workerTiming;
+  const expected_worker_timings = [
+    {
+      name: "fetch-event mark 1",
+      entryType: "mark",
+      detail: { foo: 'foo' }
+    },
+    {
+      name: "fetch-event mark 2",
+      entryType: "mark",
+      detail: { bar: 'bar' }
+    },
+    {
+      name: "fetch-event measure",
+      entryType: "measure",
+      detail: { baz: 'baz' }
+    }
+  ];
+  assert_equals(worker_timings.length, expected_worker_timings.length,
+    'workerTiming is completed when PerformanceResourceTiming is observed');
+
+  for (let i = 0; i < workerTimings.length; i++) {
+    assert_equals(worker_timings[i].name,
+      expected_worker_timings[i].name, 'entry name');
+    assert_equals(worker_timings[i].entryType,
+      expected_worker_timings[i].entryType, 'entry type');
+    assert_object_equals(worker_timings[i].detail,
+      expected_worker_timings[i].detail, 'entry detail');
+  }
+}, 'workerTiming for navigation in a frame for a response from a fetch ' +
+   'handler');
+
+promise_test(async (t) => {
+  const frame = await with_iframe('resources/empty.html');
+  t.add_cleanup(() => frame.remove());
+
+  const performance = frame.contentWindow.performance;
+
+  const image_path = base_path() + 'resources/square.png?fallback';
+  const image_url = get_host_info()['HTTPS_ORIGIN'] + image_path;
+
+  let entries = await performance.getEntriesByName(image_url);
+  assert_equals(entries.length, 0, 'No PerformanceResourceTiming');
+
+  const image = await load_image(frame.contentDocument,
+    'square.png?fetch-event');
+  entries = await wait_for_performance_entries(
+    image.src, performance, 'resource');
+  assert_equals(entries.length, 1, 'PerformanceResourceTiming is observed');
+
+  const worker_timings = await entries[0].workerTiming;
+  const expected_worker_timings = [
+    {
+      name: "network-fallback mark 1",
+      entryType: "mark",
+      detail: { foo: 'foo' }
+    },
+    {
+      name: "network-fallback mark 2",
+      entryType: "mark",
+      detail: { bar: 'bar' }
+    },
+    {
+      name: "network-fallback measure",
+      entryType: "measure",
+      detail: { baz: 'baz' }
+    }
+  ];
+  assert_equals(worker_timings.length, expected_worker_timings.length,
+    'workerTiming is completed when PerformanceResourceTiming is observed');
+
+  for (let i = 0; i < workerTimings.length; i++) {
+    assert_equals(worker_timings[i].name,
+      expected_worker_timings[i].name, 'entry name');
+    assert_equals(worker_timings[i].entryType,
+      expected_worker_timings[i].entryType, 'entry type');
+    assert_object_equals(worker_timings[i].detail,
+      expected_worker_timings[i].detail, 'entry detail');
+  }
+}, 'workerTiming for subresources in a frame with network fallback');
+
+promise_test(async (t) => {
+  const frame = await with_iframe('resources/empty.html');
+  t.add_cleanup(() => frame.remove());
+
+  const performance = frame.contentWindow.performance;
+
+  const image_path = base_path() + 'resources/square.png?fetch-event';
+  const image_url = get_host_info()['HTTPS_ORIGIN'] + image_path;
+
+  let entries = await performance.getEntriesByName(image_url);
+  assert_equals(entries.length, 0, 'No PerformanceResourceTiming');
+
+  const image = await load_image(frame.contentDocument,
+    'square.png?fetch-event');
+  entries = await wait_for_performance_entries(
+    image.src, performance, 'resource');
+  assert_equals(entries.length, 1, 'PerformanceResourceTiming is observed');
+
+  const worker_timings = await entries[0].workerTiming;
+  const expected_worker_timings = [
+    {
+      name: "fetch-event mark 1",
+      entryType: "mark",
+      detail: { foo: 'foo' }
+    },
+    {
+      name: "fetch-event mark 2",
+      entryType: "mark",
+      detail: { bar: 'bar' }
+    },
+    {
+      name: "fetch-event measure",
+      entryType: "measure",
+      detail: { baz: 'baz' }
+    }
+  ];
+  assert_equals(worker_timings.length, expected_worker_timings.length,
+    'workerTiming is completed when PerformanceResourceTiming is observed');
+
+  for (let i = 0; i < workerTimings.length; i++) {
+    assert_equals(worker_timings[i].name,
+      expected_worker_timings[i].name, 'entry name');
+    assert_equals(worker_timings[i].entryType,
+      expected_worker_timings[i].entryType, 'entry type');
+    assert_object_equals(worker_timings[i].detail,
+      expected_worker_timings[i].detail, 'entry detail');
+  }
+}, 'workerTiming for subresources in a frame for a response from a fetch' +
+   'handler');
+</script>

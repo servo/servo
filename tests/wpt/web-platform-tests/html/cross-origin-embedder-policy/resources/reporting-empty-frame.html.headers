@@ -1,0 +1,2 @@
+cross-origin-embedder-policy: require-corp; report-to="endpoint"
+cross-origin-embedder-policy-report-only: require-corp; report-to="report-only-endpoint"

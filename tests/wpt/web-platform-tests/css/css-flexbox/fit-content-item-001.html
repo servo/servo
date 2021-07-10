@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#flex-base-size">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#algo-cross-item">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="flags" content="" />
+<meta name="assert" content="A column flex container shrink wraps items both when determining their flex base sizes and when laying them out after their flexed size has been determined." />
+
+<style>
+
+x-flexbox {
+  display: flex;
+  flex-direction: column;
+}
+
+x-item {
+  display: block;
+  background: red;
+  /* Override default alignment of "stretch" because items don't shrink to fit
+     when they are stretched. */
+  align-self: start;
+}
+
+#mainSizeDependsOnCrossSize {
+  padding-bottom: 50%;
+  background: green;
+}
+
+#widthSetter {
+  width: 100px;
+  height: 50px;
+  background: green;
+}
+
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<x-flexbox>
+  <x-item> <!-- If fit-content is skipped when determining flex base size, this item gets a main size of 50px + 100vw / 2. -->
+    <div id=widthSetter></div>
+    <div id=mainSizeDependsOnCrossSize></div>
+  </x-item>
+</x-flexbox>

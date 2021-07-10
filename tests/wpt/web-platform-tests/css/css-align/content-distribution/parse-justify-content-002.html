@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Content Distribution: justify-content - 'initial' value</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#content-distribution" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-justify-content" />
+<link rel="help" href="https://drafts.csswg.org/css-cascade/#initial-values" />
+<meta name="assert" content="Check the 'initial' value in diferent scenarios."/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-align/resources/alignment-parsing-utils.js"></script>
+<div id="log"></div>
+<script>
+container = document.createElement("div");
+element = document.createElement("div");
+container.appendChild(element);
+document.body.appendChild(container);
+
+test(function() {
+    element = document.createElement("div");
+    document.body.appendChild(element);
+    checkValues(element, "justifyContent", "justify-content", "", "normal");
+}, "Test 'initial' value when nothing is specified");
+
+test(function() {
+    container.style.display = "";
+    checkInitialValues(element, "justifyContent", "justify-content", "center", "normal");
+}, "Test justify-content: 'initial'");
+
+test(function() {
+    container.style.display = "grid";
+    checkInitialValues(element, "justifyContent", "justify-content", "safe start", "normal");
+}, "Test grid items justify-content: 'initial'");
+
+test(function() {
+    container.style.display = "flex";
+    checkInitialValues(element, "justifyContent", "justify-content", "unsafe end", "normal");
+}, "Test flex items justify-content: 'initial'");
+
+test(function() {
+    container.style.display = "";
+    element.style.position = "absolute";
+    checkInitialValues(element, "justifyContent", "justify-content", "start", "normal");
+}, "Test absolute positioned elements justify-content: 'initial'");
+
+test(function() {
+    container.style.display = "grid";
+    element.style.position = "absolute";
+    checkInitialValues(element, "justifyContent", "justify-content", "end", "normal");
+}, "Test absolute positioned grid items justify-content: 'initial'");
+
+test(function() {
+    container.style.display = "flex";
+    element.style.position = "absolute";
+    checkInitialValues(element, "justifyContent", "justify-content", "end", "normal");
+}, "Test absolute positioned flex items justify-content: 'initial'");
+</script>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/test-helper.js"></script>
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';">
+<script type="importmap">
+{
+  "imports": {
+    "../resources/log.js?pipe=sub&name=A": "https://{{domains[www1]}}:{{ports[https][0]}}/import-maps/resources/log.js?pipe=sub&name=B",
+    "https://{{domains[www1]}}:{{ports[https][0]}}/import-maps/resources/log.js?pipe=sub&name=C": "../resources/log.js?pipe=sub&name=D"
+  }
+}
+</script>
+<script>
+promise_test(t => {
+    return promise_rejects_js(t, TypeError,
+                           import('../resources/log.js?pipe=sub&name=A'),
+                           'Dynamic import should fail');
+  }, 'The URL after mapping violates CSP (but not the URL before mapping)');
+
+promise_test(t => {
+    return import('https://{{domains[www1]}}:{{ports[https][0]}}/import-maps/resources/log.js?pipe=sub&name=C')
+      .then(() => assert_array_equals(log, ["log:D"]));
+  }, 'The URL before mapping violates CSP (but not the URL after mapping)');
+</script>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Caret navigation around line break</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<meta name="assert" content="This test checks that caret navigation works well around various kinds of line breaks." />
+<meta name="timeout" content="long">
+<style>
+.test {
+  font-size: 16px;
+  line-height: 20px;
+  padding: 4px;
+  width: 5.5ch;
+  padding: 5px;
+  font-family: monospace;
+  word-wrap: break-word;
+}
+</style>
+
+<div class="test" contenteditable data-title="no separator"
+    >line1line2</div>
+<div class="test" contenteditable data-title="<br> separator"
+    >line1<br>line2</div>
+<div class="test" contenteditable data-title="<wbr> separator"
+    >line1<wbr>line2</div>
+<div class="test" contenteditable data-title="<span> separator"
+    >line1<span></span>line2</div>
+<div class="test" contenteditable data-title="two <span> separators"
+    >line1<span></span><span></span>line2</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script>
+const KEY_CODE_MAP = {
+  'ArrowLeft':  '\uE012',
+  'ArrowUp':    '\uE013',
+  'ArrowRight': '\uE014',
+  'ArrowDown':  '\uE015',
+};
+
+function click(target, x, y) {
+  return new test_driver.Actions()
+    .pointerMove(x, y, {origin: target})
+    .pointerDown()
+    .pointerUp()
+    .send();
+}
+
+const s = getSelection();
+for (const test of document.querySelectorAll(".test")) {
+  const padding = 4;
+  const halfLineWidth = Math.floor((test.offsetWidth - padding) / 2);
+  const halfLineHeight = Math.floor(20 / 2);
+  const hasSeparator = test.firstChild !== test.lastChild;
+  const line1 = {
+    node: test.firstChild,
+    start: 0,
+    end: "line1".length,
+  };
+  const line2 = {
+    node: test.lastChild,
+    start: hasSeparator ? 0 : "line1".length,
+    end: hasSeparator ? "line2".length : "line1line2".length,
+  };
+
+  promise_test(async t => {
+    // Click at the start of line 1
+    await click(test, -halfLineWidth, -halfLineHeight);
+    assert_equals(s.anchorNode, line1.node, "Caret is in line 1");
+    assert_equals(s.anchorOffset, line1.start, "Caret is at the start of line 1");
+
+    // Move down, expect start of line 2
+    await test_driver.send_keys(test, KEY_CODE_MAP.ArrowDown);
+    assert_equals(s.anchorNode, line2.node, "Caret moved to line 2");
+    assert_equals(s.anchorOffset, line2.start, "Caret moved to the start of line 2");
+
+    // Click at the end of line 1
+    await click(test, +halfLineWidth, -halfLineHeight);
+    range = getSelection().getRangeAt(0);
+    assert_equals(s.anchorNode, line1.node, "Caret is in line 1");
+    assert_equals(s.anchorOffset, line1.end, "Caret is at the end of line 1");
+
+    // Move down, expect end of line 2
+    await test_driver.send_keys(test, KEY_CODE_MAP.ArrowDown);
+    assert_equals(s.anchorNode, line2.node, "Caret moved to line 2");
+    assert_equals(s.anchorOffset, line2.end, "Caret moved to the end of line 2");
+  }, test.dataset.title + " - move down");
+
+  promise_test(async t => {
+    // Click at the start of line 2
+    await click(test, -halfLineWidth, +halfLineHeight);
+    assert_equals(s.anchorNode, line2.node, "Caret is in line 2");
+    assert_equals(s.anchorOffset, line2.start, "Caret is at the start of line 2");
+
+    // Move up, expect start of line 1
+    await test_driver.send_keys(test, KEY_CODE_MAP.ArrowUp);
+    assert_equals(s.anchorNode, line1.node, "Caret moved to line 1");
+    assert_equals(s.anchorOffset, line1.start, "Caret moved to the start of line 1");
+
+    // Click at the end of line 2
+    await click(test, +halfLineWidth, +halfLineHeight);
+    assert_equals(s.anchorNode, line2.node, "Caret is in line 2");
+    assert_equals(s.anchorOffset, line2.end, "Caret is at the end of line 2");
+
+    // Move up, expect end of line 1
+    await test_driver.send_keys(test, KEY_CODE_MAP.ArrowUp);
+    assert_equals(s.anchorNode, line1.node, "Caret moved to line 1");
+    assert_equals(s.anchorOffset, line1.end, "Caret moved to the end of line 1");
+  }, test.dataset.title + " - move up");
+
+  promise_test(async t => {
+    // Click at the end of line 1
+    await click(test, +halfLineWidth, -halfLineHeight);
+    assert_equals(s.anchorNode, line1.node, "Caret is in line 1");
+    assert_equals(s.anchorOffset, line1.end, "Caret is at the end of line 1");
+
+    // Move right, expect start or start+1 of line 2
+    await test_driver.send_keys(test, KEY_CODE_MAP.ArrowRight);
+    assert_equals(s.anchorNode, line2.node, "Caret moved to line 2");
+    assert_in_array(s.anchorOffset, [line2.start, line2.start + 1], "Caret moved to the start or start+1 of line 2");
+  }, test.dataset.title + " - move right");
+
+  promise_test(async t => {
+    // Click at the start of line 2
+    await click(test, -halfLineWidth, +halfLineHeight);
+    assert_equals(s.anchorNode, line2.node, "Caret is in line 2");
+    assert_equals(s.anchorOffset, line2.start, "Caret is at the start of line 2");
+
+    // Move left, expect end or end-1 of line 1
+    await test_driver.send_keys(test, KEY_CODE_MAP.ArrowLeft);
+    assert_equals(s.anchorNode, line1.node, "Caret moved to line 1");
+    assert_in_array(s.anchorOffset, [line1.end, line1.end - 1], "Caret moved to the end or end-1 of line 1");
+  }, test.dataset.title + " - move left");
+}
+</script>

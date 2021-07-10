@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="David Grogan" href="dgrogan@chromium.org">
+From <a href="https://html.spec.whatwg.org/multipage/rendering.html#the-details-and-summary-elements">html.spec.whatwg.org</a>:
+
+<blockquote>
+The details element is expected to render as a block box. The element's shadow
+tree is expected to take the element's first summary element child, if any, and
+place it in a first block box container, and then take the element's remaining
+descendants, if any, and place them in a second block box container.
+</blockquote>
+
+&lt;details display:flex> should be ignored. Otherwise details would render as
+something other than a block box.
+<hr>
+
+<details open>
+  <summary>This is the summary.</summary>
+  <div>thing 1</div>
+  thing 2
+</details>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <script src="resources/webxr_test_constants.js"></script>
+  <script>
+    xr_promise_test(
+      "Requesting non-immersive session outside of a user gesture succeeds",
+      (t) => {
+        return navigator.xr.test.simulateDeviceConnection(VALID_NON_IMMERSIVE_DEVICE)
+          .then( (controller) => navigator.xr.requestSession('inline'))
+          .then( (session) => { assert_not_equals(session, null); });
+      });
+  </script>
+</body>

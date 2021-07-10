@@ -1,25 +1,28 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! CSS table formatting contexts.
 
-#![deny(unsafe_code)]
-
+use crate::block::BlockFlow;
+use crate::context::LayoutContext;
+use crate::display_list::{
+    DisplayListBuildState, StackingContextCollectionFlags, StackingContextCollectionState,
+};
+use crate::flow::{Flow, FlowClass, OpaqueFlow};
+use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use app_units::Au;
-use block::BlockFlow;
-use context::LayoutContext;
-use display_list_builder::DisplayListBuildState;
-use euclid::Point2D;
-use flow::{Flow, FlowClass, OpaqueFlow};
-use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
+use euclid::default::Point2D;
 use gfx_traits::print_tree::PrintTree;
 use std::fmt;
-use std::sync::Arc;
 use style::logical_geometry::LogicalSize;
-use style::properties::ServoComputedValues;
+use style::properties::ComputedValues;
+
+#[allow(unsafe_code)]
+unsafe impl crate::flow::HasBaseFlow for TableCaptionFlow {}
 
 /// A table formatting context.
+#[repr(C)]
 pub struct TableCaptionFlow {
     pub block_flow: BlockFlow,
 }
@@ -37,10 +40,6 @@ impl Flow for TableCaptionFlow {
         FlowClass::TableCaption
     }
 
-    fn as_mut_table_caption(&mut self) -> &mut TableCaptionFlow {
-        self
-    }
-
     fn as_mut_block(&mut self) -> &mut BlockFlow {
         &mut self.block_flow
     }
@@ -54,7 +53,10 @@ impl Flow for TableCaptionFlow {
     }
 
     fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
-        debug!("assign_inline_sizes({}): assigning inline_size for flow", "table_caption");
+        debug!(
+            "assign_inline_sizes({}): assigning inline_size for flow",
+            "table_caption"
+        );
         self.block_flow.assign_inline_sizes(layout_context);
     }
 
@@ -63,16 +65,19 @@ impl Flow for TableCaptionFlow {
         self.block_flow.assign_block_size(layout_context);
     }
 
-    fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
-        self.block_flow.compute_absolute_position(layout_context)
+    fn compute_stacking_relative_position(&mut self, layout_context: &LayoutContext) {
+        self.block_flow
+            .compute_stacking_relative_position(layout_context)
     }
 
     fn update_late_computed_inline_position_if_necessary(&mut self, inline_position: Au) {
-        self.block_flow.update_late_computed_inline_position_if_necessary(inline_position)
+        self.block_flow
+            .update_late_computed_inline_position_if_necessary(inline_position)
     }
 
     fn update_late_computed_block_position_if_necessary(&mut self, block_position: Au) {
-        self.block_flow.update_late_computed_block_position_if_necessary(block_position)
+        self.block_flow
+            .update_late_computed_block_position_if_necessary(block_position)
     }
 
     fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
@@ -80,11 +85,12 @@ impl Flow for TableCaptionFlow {
         self.block_flow.build_display_list(state);
     }
 
-    fn collect_stacking_contexts(&mut self, state: &mut DisplayListBuildState) {
-        self.block_flow.collect_stacking_contexts(state);
+    fn collect_stacking_contexts(&mut self, state: &mut StackingContextCollectionState) {
+        self.block_flow
+            .collect_stacking_contexts_for_block(state, StackingContextCollectionFlags::empty());
     }
 
-    fn repair_style(&mut self, new_style: &Arc<ServoComputedValues>) {
+    fn repair_style(&mut self, new_style: &crate::ServoArc<ComputedValues>) {
         self.block_flow.repair_style(new_style)
     }
 
@@ -92,18 +98,32 @@ impl Flow for TableCaptionFlow {
         self.block_flow.compute_overflow()
     }
 
+    fn contains_roots_of_absolute_flow_tree(&self) -> bool {
+        self.block_flow.contains_roots_of_absolute_flow_tree()
+    }
+
+    fn is_absolute_containing_block(&self) -> bool {
+        self.block_flow.is_absolute_containing_block()
+    }
+
     fn generated_containing_block_size(&self, flow: OpaqueFlow) -> LogicalSize<Au> {
         self.block_flow.generated_containing_block_size(flow)
     }
 
-    fn iterate_through_fragment_border_boxes(&self,
-                                             iterator: &mut FragmentBorderBoxIterator,
-                                             level: i32,
-                                             stacking_context_position: &Point2D<Au>) {
-        self.block_flow.iterate_through_fragment_border_boxes(iterator, level, stacking_context_position)
+    fn iterate_through_fragment_border_boxes(
+        &self,
+        iterator: &mut dyn FragmentBorderBoxIterator,
+        level: i32,
+        stacking_context_position: &Point2D<Au>,
+    ) {
+        self.block_flow.iterate_through_fragment_border_boxes(
+            iterator,
+            level,
+            stacking_context_position,
+        )
     }
 
-    fn mutate_fragments(&mut self, mutator: &mut FnMut(&mut Fragment)) {
+    fn mutate_fragments(&mut self, mutator: &mut dyn FnMut(&mut Fragment)) {
         self.block_flow.mutate_fragments(mutator)
     }
 

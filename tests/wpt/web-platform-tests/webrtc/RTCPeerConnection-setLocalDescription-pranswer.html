@@ -1,0 +1,167 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.setLocalDescription pranswer</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  // The following helper functions are called from RTCPeerConnection-helper.js:
+  //   assert_session_desc_similar
+
+  /*
+    4.3.2.  Interface Definition
+      [Constructor(optional RTCConfiguration configuration)]
+      interface RTCPeerConnection : EventTarget {
+        Promise<void>                      setLocalDescription(
+            RTCSessionDescriptionInit description);
+
+        readonly attribute RTCSessionDescription? localDescription;
+        readonly attribute RTCSessionDescription? currentLocalDescription;
+        readonly attribute RTCSessionDescription? pendingLocalDescription;
+
+        Promise<void>                      setRemoteDescription(
+            RTCSessionDescriptionInit description);
+
+        readonly attribute RTCSessionDescription? remoteDescription;
+        readonly attribute RTCSessionDescription? currentRemoteDescription;
+        readonly attribute RTCSessionDescription? pendingRemoteDescription;
+        ...
+      };
+
+    4.6.2.  RTCSessionDescription Class
+      dictionary RTCSessionDescriptionInit {
+        required RTCSdpType type;
+                 DOMString  sdp = "";
+      };
+
+    4.6.1.  RTCSdpType
+      enum RTCSdpType {
+        "offer",
+        "pranswer",
+        "answer",
+        "rollback"
+      };
+   */
+
+  /*
+    4.3.1.6.  Set the RTCSessionSessionDescription
+      2.3.  If the description's type is invalid for the current signaling state of
+            connection, then reject p with a newly created InvalidStateError and abort
+            these steps.
+
+    [jsep]
+      5.5. If the type is "pranswer" or "answer", the PeerConnection
+           state MUST be either "have-remote-offer" or "have-local-pranswer".
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
+
+    return pc.createOffer()
+    .then(offer =>
+      promise_rejects_dom(t, 'InvalidStateError',
+        pc.setLocalDescription({ type: 'pranswer', sdp: offer.sdp })));
+  }, 'setLocalDescription(pranswer) from stable state should reject with InvalidStateError');
+
+  /*
+    4.3.1.6 Set the RTCSessionSessionDescription
+      2.2.2.  If description is set as a local description, then run one of the
+              following steps:
+        - If description is of type "pranswer", then set
+          connection.pendingLocalDescription to description and signaling state to
+          have-local-pranswer.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const states = [];
+    pc.addEventListener('signalingstatechange', () => states.push(pc.signalingState));
+
+    return generateVideoReceiveOnlyOffer(pc)
+    .then(offer =>
+      pc.setRemoteDescription(offer)
+      .then(() => pc.createAnswer())
+      .then(answer => {
+        const pranswer = { type: 'pranswer', sdp: answer.sdp };
+
+        return pc.setLocalDescription(pranswer)
+        .then(() => {
+          assert_equals(pc.signalingState, 'have-local-pranswer');
+
+          assert_session_desc_similar(pc.remoteDescription, offer);
+          assert_session_desc_similar(pc.pendingRemoteDescription, offer);
+          assert_equals(pc.currentRemoteDescription, null);
+
+          assert_session_desc_similar(pc.localDescription, pranswer);
+          assert_session_desc_similar(pc.pendingLocalDescription, pranswer);
+          assert_equals(pc.currentLocalDescription, null);
+
+          assert_equals(pc.pendingRemoteDescription, null);
+
+          assert_array_equals(states, ['have-remote-offer', 'have-local-pranswer']);
+        });
+      }));
+  }, 'setLocalDescription(pranswer) should succeed');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const states = [];
+    pc.addEventListener('signalingstatechange', () => states.push(pc.signalingState));
+
+    return generateVideoReceiveOnlyOffer(pc)
+    .then(offer =>
+      pc.setRemoteDescription(offer)
+      .then(() => pc.createAnswer())
+      .then(answer => {
+        const pranswer = { type: 'pranswer', sdp: answer.sdp };
+
+        return pc.setLocalDescription(pranswer)
+        .then(() => pc.setLocalDescription(pranswer))
+        .then(() => {
+          assert_array_equals(states, ['have-remote-offer', 'have-local-pranswer']);
+        });
+      }));
+  }, 'setLocalDescription(pranswer) can be applied multiple times while still in have-local-pranswer');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const states = [];
+    pc.addEventListener('signalingstatechange', () => states.push(pc.signalingState));
+
+    return generateVideoReceiveOnlyOffer(pc)
+    .then(offer =>
+      pc.setRemoteDescription(offer)
+      .then(() => pc.createAnswer())
+      .then(answer => {
+        const pranswer = { type: 'pranswer', sdp: answer.sdp };
+
+        return pc.setLocalDescription(pranswer)
+        .then(() => pc.setLocalDescription(answer))
+        .then(() => {
+          assert_equals(pc.signalingState, 'stable');
+          assert_session_desc_similar(pc.localDescription, answer);
+          assert_session_desc_similar(pc.remoteDescription, offer);
+
+          assert_session_desc_similar(pc.currentLocalDescription, answer);
+          assert_session_desc_similar(pc.currentRemoteDescription, offer);
+
+          assert_equals(pc.pendingLocalDescription, null);
+          assert_equals(pc.pendingRemoteDescription, null);
+
+          assert_array_equals(states, ['have-remote-offer', 'have-local-pranswer', 'stable']);
+        });
+      }));
+  }, 'setLocalDescription(answer) from have-local-pranswer state should succeed');
+
+</script>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/stash-utils.sub.js"></script>
+<script src="/common/utils.js"></script>
+<body>
+<script>
+  function openPortal(portalSrc) {
+    assert_implements("HTMLPortalElement" in self);
+    const portal = document.createElement('portal');
+    portal.src = portalSrc;
+    return portal;
+  }
+
+  async function openPortalAndReceiveMessage(portalSrc) {
+    const key = token();
+    const portal = openPortal(`${portalSrc}?key=${key}`);
+    document.body.appendChild(portal);
+    return StashUtils.takeValue(key);
+  }
+
+  promise_test(async () => {
+    const result = await openPortalAndReceiveMessage("resources/portal-host.html");
+    assert_equals(result, "passed");
+  }, "window.portalHost should be exposed in same-origin portal");
+
+  promise_test(async () => {
+    const result = await openPortalAndReceiveMessage(
+        "http://{{hosts[alt][www]}}:{{ports[http][0]}}/portals/resources/portal-host.html");
+    assert_equals(result, "passed");
+  }, "window.portalHost should be exposed in cross-origin portal");
+
+  promise_test(async () => {
+    const result = await openPortalAndReceiveMessage(
+        'resources/portal-host-cross-origin-navigate.sub.html');
+    assert_equals(result, "passed");
+  }, "window.portalHost should be exposed in portal after cross-origin navigation");
+
+</script>
+</body>

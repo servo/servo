@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<title>Test having multiple video.rVFC callbacks in flight for a single element.</title>
+<body></body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/media.js"></script>
+<script>
+
+async_test(function(t) {
+    let video = document.createElement('video');
+    document.body.appendChild(video);
+
+    let firstTime;
+    let firstMetadata;
+
+    video.requestVideoFrameCallback(t.step_func((time, metadata) => {
+      firstTime = time;
+      firstMetadata = metadata;
+    }));
+
+    video.requestVideoFrameCallback(t.step_func_done((time, metadata) => {
+      assert_equals(firstTime, time);
+      assert_object_equals(firstMetadata, metadata);
+    }));
+
+    video.src = getVideoURI('/media/movie_5');
+    video.play();
+
+}, 'Test callbacks get the same information.');
+
+async_test(function(t) {
+    let video = document.createElement('video');
+    document.body.appendChild(video);
+
+    let secondCallbackId;
+
+    video.requestVideoFrameCallback(
+      t.step_func(_ => { video.cancelVideoFrameCallback(secondCallbackId); })
+    );
+
+    secondCallbackId = video.requestVideoFrameCallback(
+      t.step_func(_ => {
+        assert_unreached("Cancelled callbacks shouldn't be executed")
+      })
+    );
+
+    // NOTE: This callback should be executed last.
+    video.requestVideoFrameCallback(
+      t.step_func_done()
+    );
+
+    video.src = getVideoURI('/media/movie_5');
+    video.play();
+}, 'Test we can cancel callbacks from callbacks.');
+</script>
+</html>

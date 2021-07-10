@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>NEGATED :link pseudo-class</title>
+  <style type="text/css"><![CDATA[div.stub > * { background-color : red }
+div.stub *:not(:link) { background-color : lime }
+]]></style>
+  <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <meta name="flags" content=" history" />
+ </head>
+ <body>
+<div class="stub">
+<a href="http://www.w3.org/">This anchor should have a green background</a>
+(Note: You must have visited http://www.w3.org/ for this test to be valid.)
+</div>
+</body>
+</html>

@@ -1,8 +1,8 @@
 *#
-.coverage*
+.coverage
+.coverage.*
 htmlcov/
 coverage.xml
-.tox/
 .cache/
 .hypothesis/
 *.py[co]
@@ -10,3 +10,8 @@ coverage.xml
 *~
 \#*
 runner/MANIFEST.json
+
+# WAVE
+!wave/www/lib
+!wave/export/lib
+!wave/export/css

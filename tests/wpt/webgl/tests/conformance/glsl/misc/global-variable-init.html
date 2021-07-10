@@ -1,0 +1,346 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Global variable initializer restrictions</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="constGlobalShader" type="x-shader/x-vertex">
+precision mediump float;
+attribute vec4 aPosition;
+varying float v;
+
+const float c = 1.0;
+float f = c;
+
+void main() {
+    v = f;
+    gl_Position = aPosition;
+}
+</script>
+<script id="globalShader" type="x-shader/x-vertex">
+precision mediump float;
+attribute vec4 aPosition;
+varying float v;
+
+float c = 1.0;
+float f = c;
+
+void main() {
+    v = f;
+    gl_Position = aPosition;
+}
+</script>
+<script id="uniformShader" type="x-shader/x-vertex">
+precision mediump float;
+attribute vec4 aPosition;
+varying float v;
+
+uniform float u;
+float f = u;
+
+void main() {
+    v = f;
+    gl_Position = aPosition;
+}
+</script>
+<script id="builtinFunctionShader" type="x-shader/x-vertex">
+precision mediump float;
+attribute vec4 aPosition;
+varying float v;
+
+float c = 1.0;
+float f = sin(c);
+
+void main() {
+    v = f;
+    gl_Position = aPosition;
+}
+</script>
+<script id="builtinTextureFunctionShader" type="x-shader/x-vertex">
+precision mediump float;
+attribute vec4 aPosition;
+varying float v;
+
+uniform sampler2D s;
+float f = texture2DLod(s, vec2(0.5, 0.5), 0.0).x;
+
+void main() {
+    v = f;
+    gl_Position = aPosition;
+}
+</script>
+<script id="attributeShader" type="x-shader/x-vertex">
+precision mediump float;
+attribute vec4 aPosition;
+varying float v;
+
+float f = aPosition.x;
+
+void main() {
+    v = f;
+    gl_Position = aPosition;
+}
+</script>
+<script id="userDefinedFunctionShader" type="x-shader/x-vertex">
+precision mediump float;
+attribute vec4 aPosition;
+varying float v;
+
+float foo() {
+    return 1.0;
+}
+float f = foo();
+
+void main() {
+    v = f;
+    gl_Position = aPosition;
+}
+</script>
+<script id="varyingShader" type="x-shader/x-fragment">
+precision mediump float;
+varying float v;
+float f = v;
+
+void main() {
+    gl_FragColor = vec4(f);
+}
+</script>
+<script id="globalLValueShader" type="x-shader/x-vertex">
+precision mediump float;
+attribute vec4 aPosition;
+varying float v;
+
+float c = 1.0;
+float f = (c = 0.0);
+
+void main() {
+    v = f;
+    gl_Position = aPosition;
+}
+</script>
+<script id="globalLValueShader2" type="x-shader/x-vertex">
+precision mediump float;
+attribute vec4 aPosition;
+varying float v;
+
+float c = 1.0;
+float f = (c++);
+
+void main() {
+    v = f;
+    gl_Position = aPosition;
+}
+</script>
+<script id="globalNonConstTernary" type="x-shader/x-fragment">
+precision mediump float;
+float green = 1.0;
+float black = 0.0;
+float f = true ? green : black;
+
+void main() {
+    gl_FragColor = vec4(0.0, f, 0.0, 1.0);
+}
+</script>
+<script id="globalUniformTernary" type="x-shader/x-fragment">
+precision mediump float;
+uniform float u_zero;
+float green = 1.0 + u_zero;
+float f = true ? green : u_zero;
+
+void main() {
+    gl_FragColor = vec4(0.0, f, 0.0, 1.0);
+}
+</script>
+<script id="globalUniformTernary2" type="x-shader/x-fragment">
+precision mediump float;
+uniform float u_zero;
+float green = 1.0;
+float f = (u_zero < 0.1) ? green : 0.0;
+
+void main() {
+    gl_FragColor = vec4(0.0, f, 0.0, 1.0);
+}
+</script>
+<script id="globalUniformStruct" type="x-shader/x-fragment">
+precision mediump float;
+struct S {
+    float zero;
+    int one;
+};
+uniform S us;
+S s = us;
+
+void main() {
+    float green = (s.one == 1) ? 1.0 : 0.0;
+    gl_FragColor = vec4(0.0, green, 0.0, 1.0);
+}
+</script>
+<script id="builtInConstant" type="x-shader/x-fragment">
+precision mediump float;
+int i = gl_MaxFragmentUniformVectors;
+
+void main() {
+    float green = (i > 0) ? 1.0 : 0.0;
+    gl_FragColor = vec4(0.0, green, 0.0, 1.0);
+}
+</script>
+<script id="builtInNonConstant" type="x-shader/x-fragment">
+precision mediump float;
+vec4 v = gl_FragCoord;
+
+void main() {
+    gl_FragColor = v;
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description();
+GLSLConformanceTester.runTests([
+  {
+    vShaderId: "constGlobalShader",
+    vShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: "A const global in a global variable initializer should be accepted by WebGL."
+  },
+  {
+    vShaderId: "globalShader",
+    vShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: "Another global in a global variable initializer should be accepted by WebGL."
+  },
+  {
+    vShaderId: "uniformShader",
+    vShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: "A uniform in a global variable initializer should be accepted by WebGL."
+  },
+  {
+    vShaderId: "builtinFunctionShader",
+    vShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: "A built-in math function in a global variable initializer should be accepted by WebGL."
+  },
+  {
+    vShaderId: "builtinTextureFunctionShader",
+    vShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "A texture lookup function in a global variable initializer should not be accepted by WebGL."
+  },
+  {
+    vShaderId: "attributeShader",
+    vShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "An attribute in a global variable initializer should not be accepted by WebGL."
+  },
+  {
+    vShaderId: "userDefinedFunctionShader",
+    vShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "A user-defined function call in a global variable initializer should not be accepted by WebGL."
+  },
+  {
+    vShaderId: "constGlobalShader",
+    vShaderSuccess: true,
+    fShaderId: "varyingShader",
+    fShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "A varying in a global variable initializer should not be accepted by WebGL."
+  },
+  {
+    vShaderId: "globalLValueShader",
+    vShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "Another global as an l-value in a global variable initializer should not be accepted by WebGL."
+  },
+  {
+    vShaderId: "globalLValueShader2",
+    vShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "Another global as an l-value (parameter of ++) in a global variable initializer should not be accepted by WebGL."
+  },
+  {
+    fShaderId: "globalNonConstTernary",
+    fShaderSuccess: true,
+    linkSuccess: true,
+    render: true,
+    passMsg: "Non-const global variables as operands for a ternary operator in a global variable initializer should be accepted by WebGL."
+  },
+  {
+    fShaderId: "globalUniformTernary",
+    fShaderSuccess: true,
+    linkSuccess: true,
+    render: true,
+    passMsg: "A uniform as the second operand for a ternary operator in a global variable initializer should be accepted by WebGL."
+  },
+  {
+    fShaderId: "globalUniformTernary2",
+    fShaderSuccess: true,
+    linkSuccess: true,
+    render: true,
+    passMsg: "Referencing a uniform inside the first operand for a ternary operator in a global variable initializer should be accepted by WebGL."
+  },
+  {
+    fShaderId: "globalUniformStruct",
+    fShaderSuccess: true,
+    linkSuccess: true,
+    render: true,
+    uniforms: [
+        { name: 'us.one', functionName: 'uniform1i', value: 1 }
+    ],
+    passMsg: "A global struct initialized with a uniform struct should be accepted by WebGL."
+  },
+  {
+    fShaderId: "builtInConstant",
+    fShaderSuccess: true,
+    linkSuccess: true,
+    render: true,
+    passMsg: "Referencing a built-in constant in a global variable initializer should be accepted by WebGL."
+  },
+  {
+    fShaderId: "builtInNonConstant",
+    fShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "Referencing a built-in non-constant in a global variable initializer should not be accepted by WebGL."
+  }
+]);
+var successfullyParsed = true;
+</script>
+</body>
+</html>

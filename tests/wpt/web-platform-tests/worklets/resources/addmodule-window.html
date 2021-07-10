@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Worklet: Referrer</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="worklet-test-utils.js"></script>
+</head>
+<body>
+<script>
+// Calls addModule() on a given worklet type with a script url.
+//
+// [Message Format]
+//   - type: 'paint' (worklet types defined in get_worklet())
+//   - script_url: 'worklet-script.js'
+window.onmessage = e => {
+  const worklet_type = e.data.type;
+  const script_url = e.data.script_url;
+  get_worklet(worklet_type).addModule(script_url)
+      .then(() => window.opener.postMessage('RESOLVED', '*'))
+      .catch(e => window.opener.postMessage('REJECTED', '*'));
+};
+
+window.opener.postMessage('LOADED', '*');
+</script>
+</body>
+</html>

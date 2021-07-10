@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Gamepad Test: non-secure contexts</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(() => {
+    assert_false("getGamepads" in Navigator.prototype, "not in prototype");
+    assert_false("getGamepads" in navigator, "not on instance");
+  }, "Gamepad API is not exposed in insecure contexts");
+</script>

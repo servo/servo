@@ -1,30 +1,30 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-pub use dom::bindings::str::{ByteString, DOMString};
-pub use dom::headers::normalize_value;
+pub use crate::dom::bindings::str::{ByteString, DOMString};
+pub use crate::dom::headers::normalize_value;
 
 // For compile-fail tests only.
-pub use dom::bindings::cell::DOMRefCell;
-pub use dom::bindings::js::JS;
-pub use dom::node::Node;
-pub use dom::bindings::refcounted::TrustedPromise;
+pub use crate::dom::bindings::cell::DomRefCell;
+pub use crate::dom::bindings::refcounted::TrustedPromise;
+pub use crate::dom::bindings::root::Dom;
+pub use crate::dom::node::Node;
 
 pub mod area {
-    pub use dom::htmlareaelement::{Area, Shape};
+    pub use crate::dom::htmlareaelement::{Area, Shape};
 }
 
+#[allow(non_snake_case)]
 pub mod size_of {
-    use dom::characterdata::CharacterData;
-    use dom::element::Element;
-    use dom::eventtarget::EventTarget;
-    use dom::htmldivelement::HTMLDivElement;
-    use dom::htmlelement::HTMLElement;
-    use dom::htmlspanelement::HTMLSpanElement;
-    use dom::node::Node;
-    use dom::text::Text;
-    use layout_wrapper::{ServoLayoutElement, ServoLayoutNode, ServoThreadSafeLayoutNode};
+    use crate::dom::characterdata::CharacterData;
+    use crate::dom::element::Element;
+    use crate::dom::eventtarget::EventTarget;
+    use crate::dom::htmldivelement::HTMLDivElement;
+    use crate::dom::htmlelement::HTMLElement;
+    use crate::dom::htmlspanelement::HTMLSpanElement;
+    use crate::dom::node::Node;
+    use crate::dom::text::Text;
     use std::mem::size_of;
 
     pub fn CharacterData() -> usize {
@@ -55,19 +55,15 @@ pub mod size_of {
         size_of::<Node>()
     }
 
-    pub fn SendElement() -> usize {
-        size_of::<::style::dom::SendElement<ServoLayoutElement>>()
-    }
-
-    pub fn SendNode() -> usize {
-        size_of::<::style::dom::SendNode<ServoLayoutNode>>()
-    }
-
-    pub fn ServoThreadSafeLayoutNode() -> usize {
-        size_of::<ServoThreadSafeLayoutNode>()
-    }
-
     pub fn Text() -> usize {
         size_of::<Text>()
     }
+}
+
+pub mod srcset {
+    pub use crate::dom::htmlimageelement::{parse_a_srcset_attribute, Descriptor, ImageSource};
+}
+
+pub mod timeranges {
+    pub use crate::dom::timeranges::TimeRangesContainer;
 }

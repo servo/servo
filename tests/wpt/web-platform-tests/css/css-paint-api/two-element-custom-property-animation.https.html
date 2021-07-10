@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.css-houdini.org/css-paint-api/">
+<link rel="match" href="two-element-custom-property-animation-ref.html">
+<style>
+#footainer {
+  width: 200px;
+  height: 200px;
+}
+.fooanimate {
+  background-image: paint(foo);
+  /* Use long animations that start at 50% progress where the slope of the
+     selected timing function is zero. By setting up the animations in this way,
+     we accommodate lengthy delays in running the test without a potential drift
+     in the animated properties values. This is important for avoiding flakes,
+     especially on debug builds. The screenshots are taken as soon as the
+     animations are ready, thus the long animation duration has no bearing on
+     the actual duration of the test. */
+  animation: expand 1000000s cubic-bezier(0,1,1,0) -500000s;
+}
+#bartainer {
+  width: 200px;
+  height: 200px;
+}
+.baranimate {
+  background-image: paint(bar);
+  animation: colorChange 1000000s cubic-bezier(0,1,1,0) -500000s;
+}
+@keyframes expand {
+  0% { --foo: 0; }
+  100% { --foo: 200; }
+}
+@keyframes colorChange {
+  0% { --bar: rgb(200, 0, 0); }
+  100% { --bar: rgb(0, 200, 0); }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<body>
+<div id="footainer"></div>
+<div id="bartainer"></div>
+
+<script id="code" type="text/worklet">
+registerPaint('foo', class {
+  static get inputProperties() { return ['--foo']; }
+  paint(ctx, geom, properties) {
+    let fooValue = parseFloat(properties.get('--foo').toString());
+    ctx.fillStyle = 'green';
+    ctx.fillRect(0, 0, fooValue, fooValue);
+  }
+});
+
+registerPaint('bar', class {
+  static get inputProperties() { return ['--bar']; }
+  paint(ctx, geom, properties) {
+    ctx.fillStyle = properties.get('--bar').toString();
+    ctx.fillRect(0, 0, 200, 200);
+  }
+});
+</script>
+
+<script type="text/javascript">
+CSS.registerProperty({
+  name: '--foo',
+  syntax: '<number>',
+  initialValue: '0',
+  inherits: false
+});
+CSS.registerProperty({
+  name: '--bar',
+  syntax: '<color>',
+  initialValue: 'rgb(0, 0, 0)',
+  inherits: false
+});
+</script>
+
+<script>
+var code = document.getElementById('code').textContent;
+var blob = new Blob([code], {type: 'text/javascript'});
+CSS.paintWorklet.addModule(URL.createObjectURL(blob)).then(function() {
+  document.getElementById('footainer').classList.add('fooanimate');
+  document.getElementById('bartainer').classList.add('baranimate');
+  const animations = document.getAnimations();
+  // Wait for all animations to start before completing the test.
+  Promise.all([animations[0].ready, animations[1].ready]).then(() => {
+      takeScreenshot();
+  });
+});
+</script>
+</body>
+</html>

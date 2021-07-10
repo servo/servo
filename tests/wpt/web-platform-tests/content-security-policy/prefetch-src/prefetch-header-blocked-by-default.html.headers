@@ -1,0 +1,2 @@
+Content-Security-Policy: default-src 'none'; script-src 'unsafe-inline' 'self'; img-src 'self'; style-src 'self'
+Link: </content-security-policy/support/fail.png>;rel=prefetch

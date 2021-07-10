@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<style>
+.row-wrapper, .column-wrapper {
+  margin: 4px 0;
+  overflow: auto;
+  direction: rtl;
+  border: 2px solid black;
+}
+
+.column-wrapper {
+  width: 300px;
+}
+
+.row-wrapper {
+  height: 300px;
+  writing-mode: vertical-rl;
+}
+
+.column-wrapper > div {
+  margin: 4px;
+  height: 30px;
+  background: #CCC;
+}
+
+.column-wrapper > .h-overflow {
+  margin-top: 8px;  // Compensate for margin collapsing.
+}
+
+.h-overflow {
+  width: 500px;
+}
+
+.row-wrapper > div {
+  margin: 4px;
+  width: 30px;
+  background: #CCC;
+}
+
+.v-overflow {
+  height: 500px;
+}
+
+.row-wrapper > .v-overflow {
+  margin-right: 8px;  // Compensate for margin collapsing.
+}
+
+</style>
+
+<div class=column-wrapper>
+  <div>one</div>
+  <div class=h-overflow>two</div>
+</div>
+
+<div class=row-wrapper>
+  <div>one</div>
+  <div class=v-overflow>two</div>
+</div>

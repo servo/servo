@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<body style="background: red;">
+  <script>
+    window.parent.postMessage("child-loaded",
+                              {targetOrigin: "*", includeUserActivation: true});
+    window.addEventListener("click", event => {
+      window.parent.postMessage("child-clicked",
+                                {targetOrigin: "*", includeUserActivation: true});
+      var win = window.open('404.html');
+      win.close();
+    });
+
+    window.addEventListener("message", event => {
+      if (event.data == "report") {
+        window.parent.postMessage("child-report",
+                                  {targetOrigin: "*", includeUserActivation: true});
+      }
+      if (event.data == "report-no-activation") {
+        window.parent.postMessage("child-report-no-activation",
+                                  {targetOrigin: "*", includeUserActivation: false});
+      }
+    });
+  </script>
+</body>

@@ -1,0 +1,136 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL R11F_G11F_B10F BlitFramebuffer Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+
+var wtu = WebGLTestUtils;
+description("This tests multisample blitting with the R11F_G11F_B10F format.");
+
+var width = 8;
+var height = 8;
+
+function runWithContextCreationArguments(args) {
+  debug('');
+  debug('Running test with arguments: ' + JSON.stringify(args));
+
+  var canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+
+  var gl = wtu.create3DContext(canvas, args, 2);
+  if (!gl) {
+    testFailed("WebGL 2.0 context does not exist");
+    return;
+  }
+
+  var ext = gl.getExtension("EXT_color_buffer_float");
+  if (!ext) {
+    testPassed("EXT_color_buffer_float extension not supported");
+    return;
+  }
+
+  var samples = gl.getInternalformatParameter(gl.RENDERBUFFER, gl.R11F_G11F_B10F, gl.SAMPLES);
+
+  // Set up source framebuffer.
+  var rb = gl.createRenderbuffer();
+  gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
+  gl.renderbufferStorageMultisample(gl.RENDERBUFFER, samples[0], gl.R11F_G11F_B10F, width, height);
+  var readfb = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, readfb);
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rb);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after multisampled R11F_G11F_B10F FBO setup");
+  if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE) {
+    testFailed("Source framebuffer incomplete.");
+    return;
+  }
+
+  // Draw something to that framebuffer.
+  gl.clearColor(0.0, 1.0, 0.0, 1.0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after clearing R11F_G11F_B10F framebuffer");
+
+  // Set up destination framebuffer for resolving MSAA.
+  var tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.R11F_G11F_B10F, width, height, 0, gl.RGB, gl.UNSIGNED_INT_10F_11F_11F_REV, null);
+  var drawfb = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, drawfb);
+  gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after destination R11F_G11F_B10F FBO setup");
+  if (gl.checkFramebufferStatus(gl.DRAW_FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE) {
+    testFailed("Framebuffer incomplete.");
+    return;
+  }
+
+  // Attempt a blit.
+  gl.blitFramebuffer(0, 0, width, height, 0, 0, width, height, gl.COLOR_BUFFER_BIT, gl.LINEAR);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after blitFramebuffer for multisample resolve");
+
+  // Try a readback.
+  gl.bindFramebuffer(gl.READ_FRAMEBUFFER, drawfb);
+  var readBackBuf = new Float32Array(width * height * 4);
+  wtu.checkCanvasRect(gl, 0, 0, width, height, [0.0, 1.0, 0.0], "should be green", undefined, readBackBuf, gl.FLOAT);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after floating-point canvas readback");
+
+  // If default backbuffer is RGB and non-antialiased, test blitting to it too.
+  if (args && !args['alpha'] && !args['antialias']) {
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, drawfb);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+    gl.blitFramebuffer(0, 0, width, height, 0, 0, width, height, gl.COLOR_BUFFER_BIT, gl.LINEAR);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after blit to default back buffer");
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+    wtu.checkCanvas(gl, [ 0, 255, 0, 255 ], "default back buffer should be green");
+  }
+}
+
+// The format of the back buffer should have no effect on the behavior of this test.
+runWithContextCreationArguments(undefined);
+runWithContextCreationArguments({ alpha: true, antialias: true });
+runWithContextCreationArguments({ alpha: true, antialias: false });
+runWithContextCreationArguments({ alpha: false, antialias: true });
+runWithContextCreationArguments({ alpha: false, antialias: false });
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

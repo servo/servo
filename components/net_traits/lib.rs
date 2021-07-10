@@ -1,58 +1,45 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
-#![feature(box_syntax)]
-#![feature(slice_patterns)]
-#![feature(step_by)]
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #![deny(unsafe_code)]
 
-extern crate cookie as cookie_rs;
-extern crate heapsize;
-#[macro_use]
-extern crate heapsize_derive;
-extern crate hyper;
-extern crate hyper_serde;
-extern crate image as piston_image;
-extern crate ipc_channel;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
-extern crate msg;
-extern crate num_traits;
-extern crate serde;
 #[macro_use]
-extern crate serde_derive;
-extern crate servo_config;
-extern crate servo_url;
-extern crate url;
-extern crate uuid;
-extern crate webrender_traits;
+extern crate malloc_size_of;
+#[macro_use]
+extern crate malloc_size_of_derive;
+#[macro_use]
+extern crate serde;
 
-use cookie_rs::Cookie;
-use filemanager_thread::FileManagerThreadMsg;
-use heapsize::HeapSizeOf;
+use crate::filemanager_thread::FileManagerThreadMsg;
+use crate::request::{Request, RequestBuilder};
+use crate::response::{HttpsState, Response, ResponseInit};
+use crate::storage_thread::StorageThreadMsg;
+use cookie::Cookie;
+use headers::{ContentType, HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
+use http::{Error as HttpError, HeaderMap};
 use hyper::Error as HyperError;
-use hyper::header::{ContentType, Headers, ReferrerPolicy as ReferrerPolicyHeader};
-use hyper::http::RawStatus;
-use hyper::mime::{Attr, Mime};
+use hyper::StatusCode;
 use hyper_serde::Serde;
-use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use request::{Request, RequestInit};
-use response::{HttpsState, Response};
-use servo_url::ServoUrl;
-use std::error::Error;
-use storage_thread::StorageThreadMsg;
+use ipc_channel::Error as IpcError;
+use mime::Mime;
+use msg::constellation_msg::HistoryStateId;
+use servo_rand::RngCore;
+use servo_url::{ImmutableOrigin, ServoUrl};
+use time::precise_time_ns;
+use webrender_api::{ImageData, ImageDescriptor, ImageKey};
 
 pub mod blob_url_store;
 pub mod filemanager_thread;
 pub mod image_cache;
-pub mod net_error_list;
 pub mod pub_domains;
+pub mod quality;
 pub mod request;
 pub mod response;
 pub mod storage_thread;
@@ -67,8 +54,8 @@ pub mod image {
 }
 
 /// A loading context, for context-specific sniffing, as defined in
-/// https://mimesniff.spec.whatwg.org/#context-specific-sniffing
-#[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
+/// <https://mimesniff.spec.whatwg.org/#context-specific-sniffing>
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum LoadContext {
     Browsing,
     Image,
@@ -81,21 +68,29 @@ pub enum LoadContext {
     CacheManifest,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct CustomResponse {
-    #[ignore_heap_size_of = "Defined in hyper"]
-    #[serde(deserialize_with = "::hyper_serde::deserialize",
-            serialize_with = "::hyper_serde::serialize")]
-    pub headers: Headers,
-    #[ignore_heap_size_of = "Defined in hyper"]
-    #[serde(deserialize_with = "::hyper_serde::deserialize",
-            serialize_with = "::hyper_serde::serialize")]
-    pub raw_status: RawStatus,
+    #[ignore_malloc_size_of = "Defined in hyper"]
+    #[serde(
+        deserialize_with = "::hyper_serde::deserialize",
+        serialize_with = "::hyper_serde::serialize"
+    )]
+    pub headers: HeaderMap,
+    #[ignore_malloc_size_of = "Defined in hyper"]
+    #[serde(
+        deserialize_with = "::hyper_serde::deserialize",
+        serialize_with = "::hyper_serde::serialize"
+    )]
+    pub raw_status: (StatusCode, String),
     pub body: Vec<u8>,
 }
 
 impl CustomResponse {
-    pub fn new(headers: Headers, raw_status: RawStatus, body: Vec<u8>) -> CustomResponse {
+    pub fn new(
+        headers: HeaderMap,
+        raw_status: (StatusCode, String),
+        body: Vec<u8>,
+    ) -> CustomResponse {
         CustomResponse {
             headers: headers,
             raw_status: raw_status,
@@ -104,7 +99,7 @@ impl CustomResponse {
     }
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CustomResponseMediator {
     pub response_chan: IpcSender<Option<CustomResponse>>,
     pub load_url: ServoUrl,
@@ -112,7 +107,7 @@ pub struct CustomResponseMediator {
 
 /// [Policies](https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-states)
 /// for providing a referrer header for a request
-#[derive(Clone, Copy, Debug, Deserialize, HeapSizeOf, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum ReferrerPolicy {
     /// "no-referrer"
     NoReferrer,
@@ -132,30 +127,61 @@ pub enum ReferrerPolicy {
     StrictOriginWhenCrossOrigin,
 }
 
-impl<'a> From<&'a ReferrerPolicyHeader> for ReferrerPolicy {
-    fn from(policy: &'a ReferrerPolicyHeader) -> Self {
-        match *policy {
-            ReferrerPolicyHeader::NoReferrer =>
-                ReferrerPolicy::NoReferrer,
-            ReferrerPolicyHeader::NoReferrerWhenDowngrade =>
-                ReferrerPolicy::NoReferrerWhenDowngrade,
-            ReferrerPolicyHeader::SameOrigin =>
-                ReferrerPolicy::SameOrigin,
-            ReferrerPolicyHeader::Origin =>
-                ReferrerPolicy::Origin,
-            ReferrerPolicyHeader::OriginWhenCrossOrigin =>
-                ReferrerPolicy::OriginWhenCrossOrigin,
-            ReferrerPolicyHeader::UnsafeUrl =>
-                ReferrerPolicy::UnsafeUrl,
-            ReferrerPolicyHeader::StrictOrigin =>
-                ReferrerPolicy::StrictOrigin,
-            ReferrerPolicyHeader::StrictOriginWhenCrossOrigin =>
-                ReferrerPolicy::StrictOriginWhenCrossOrigin,
+impl ToString for ReferrerPolicy {
+    fn to_string(&self) -> String {
+        match self {
+            ReferrerPolicy::NoReferrer => "no-referrer",
+            ReferrerPolicy::NoReferrerWhenDowngrade => "no-referrer-when-downgrade",
+            ReferrerPolicy::Origin => "origin",
+            ReferrerPolicy::SameOrigin => "same-origin",
+            ReferrerPolicy::OriginWhenCrossOrigin => "origin-when-cross-origin",
+            ReferrerPolicy::UnsafeUrl => "unsafe-url",
+            ReferrerPolicy::StrictOrigin => "strict-origin",
+            ReferrerPolicy::StrictOriginWhenCrossOrigin => "strict-origin-when-cross-origin",
+        }
+        .to_string()
+    }
+}
+
+impl From<ReferrerPolicyHeader> for ReferrerPolicy {
+    fn from(policy: ReferrerPolicyHeader) -> Self {
+        match policy {
+            ReferrerPolicyHeader::NO_REFERRER => ReferrerPolicy::NoReferrer,
+            ReferrerPolicyHeader::NO_REFERRER_WHEN_DOWNGRADE => {
+                ReferrerPolicy::NoReferrerWhenDowngrade
+            },
+            ReferrerPolicyHeader::SAME_ORIGIN => ReferrerPolicy::SameOrigin,
+            ReferrerPolicyHeader::ORIGIN => ReferrerPolicy::Origin,
+            ReferrerPolicyHeader::ORIGIN_WHEN_CROSS_ORIGIN => ReferrerPolicy::OriginWhenCrossOrigin,
+            ReferrerPolicyHeader::UNSAFE_URL => ReferrerPolicy::UnsafeUrl,
+            ReferrerPolicyHeader::STRICT_ORIGIN => ReferrerPolicy::StrictOrigin,
+            ReferrerPolicyHeader::STRICT_ORIGIN_WHEN_CROSS_ORIGIN => {
+                ReferrerPolicy::StrictOriginWhenCrossOrigin
+            },
         }
     }
 }
 
-#[derive(Deserialize, Serialize)]
+impl From<ReferrerPolicy> for ReferrerPolicyHeader {
+    fn from(referrer_policy: ReferrerPolicy) -> Self {
+        match referrer_policy {
+            ReferrerPolicy::NoReferrer => ReferrerPolicyHeader::NO_REFERRER,
+            ReferrerPolicy::NoReferrerWhenDowngrade => {
+                ReferrerPolicyHeader::NO_REFERRER_WHEN_DOWNGRADE
+            },
+            ReferrerPolicy::SameOrigin => ReferrerPolicyHeader::SAME_ORIGIN,
+            ReferrerPolicy::Origin => ReferrerPolicyHeader::ORIGIN,
+            ReferrerPolicy::OriginWhenCrossOrigin => ReferrerPolicyHeader::ORIGIN_WHEN_CROSS_ORIGIN,
+            ReferrerPolicy::UnsafeUrl => ReferrerPolicyHeader::UNSAFE_URL,
+            ReferrerPolicy::StrictOrigin => ReferrerPolicyHeader::STRICT_ORIGIN,
+            ReferrerPolicy::StrictOriginWhenCrossOrigin => {
+                ReferrerPolicyHeader::STRICT_ORIGIN_WHEN_CROSS_ORIGIN
+            },
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 pub enum FetchResponseMsg {
     // todo: should have fields for transmitted/total bytes
     ProcessRequestBody,
@@ -163,21 +189,21 @@ pub enum FetchResponseMsg {
     // todo: send more info about the response (or perhaps the entire Response)
     ProcessResponse(Result<FetchMetadata, NetworkError>),
     ProcessResponseChunk(Vec<u8>),
-    ProcessResponseEOF(Result<(), NetworkError>),
+    ProcessResponseEOF(Result<ResourceFetchTiming, NetworkError>),
 }
 
 pub trait FetchTaskTarget {
-    /// https://fetch.spec.whatwg.org/#process-request-body
+    /// <https://fetch.spec.whatwg.org/#process-request-body>
     ///
     /// Fired when a chunk of the request body is transmitted
     fn process_request_body(&mut self, request: &Request);
 
-    /// https://fetch.spec.whatwg.org/#process-request-end-of-file
+    /// <https://fetch.spec.whatwg.org/#process-request-end-of-file>
     ///
     /// Fired when the entire request finishes being transmitted
     fn process_request_eof(&mut self, request: &Request);
 
-    /// https://fetch.spec.whatwg.org/#process-response
+    /// <https://fetch.spec.whatwg.org/#process-response>
     ///
     /// Fired when headers are received
     fn process_response(&mut self, response: &Response);
@@ -185,21 +211,21 @@ pub trait FetchTaskTarget {
     /// Fired when a chunk of response content is received
     fn process_response_chunk(&mut self, chunk: Vec<u8>);
 
-    /// https://fetch.spec.whatwg.org/#process-response-end-of-file
+    /// <https://fetch.spec.whatwg.org/#process-response-end-of-file>
     ///
     /// Fired when the response is fully fetched
     fn process_response_eof(&mut self, response: &Response);
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum FilteredMetadata {
     Basic(Metadata),
     Cors(Metadata),
     Opaque,
-    OpaqueRedirect
+    OpaqueRedirect(ServoUrl),
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum FetchMetadata {
     Unfiltered(Metadata),
     Filtered {
@@ -213,7 +239,10 @@ pub trait FetchResponseListener {
     fn process_request_eof(&mut self);
     fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>);
     fn process_response_chunk(&mut self, chunk: Vec<u8>);
-    fn process_response_eof(&mut self, response: Result<(), NetworkError>);
+    fn process_response_eof(&mut self, response: Result<ResourceFetchTiming, NetworkError>);
+    fn resource_timing(&self) -> &ResourceFetchTiming;
+    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming;
+    fn submit_resource_timing(&mut self);
 }
 
 impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
@@ -234,16 +263,34 @@ impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
     }
 
     fn process_response_eof(&mut self, response: &Response) {
-        if response.is_network_error() {
-            // todo: finer grained errors
-            let _ =
-                self.send(FetchResponseMsg::ProcessResponseEOF(Err(NetworkError::Internal("Network error".into()))));
+        if let Some(e) = response.get_network_error() {
+            let _ = self.send(FetchResponseMsg::ProcessResponseEOF(Err(e.clone())));
         } else {
-            let _ = self.send(FetchResponseMsg::ProcessResponseEOF(Ok(())));
+            let _ = self.send(FetchResponseMsg::ProcessResponseEOF(Ok(response
+                .get_resource_timing()
+                .lock()
+                .unwrap()
+                .clone())));
         }
     }
 }
 
+/// A fetch task that discards all data it's sent,
+/// useful when speculatively prefetching data that we don't need right
+/// now, but might need in the future.
+pub struct DiscardFetch;
+
+impl FetchTaskTarget for DiscardFetch {
+    fn process_request_body(&mut self, _: &Request) {}
+
+    fn process_request_eof(&mut self, _: &Request) {}
+
+    fn process_response(&mut self, _: &Response) {}
+
+    fn process_response_chunk(&mut self, _: Vec<u8>) {}
+
+    fn process_response_eof(&mut self, _: &Response) {}
+}
 
 pub trait Action<Listener> {
     fn process(self, listener: &mut Listener);
@@ -257,7 +304,23 @@ impl<T: FetchResponseListener> Action<T> for FetchResponseMsg {
             FetchResponseMsg::ProcessRequestEOF => listener.process_request_eof(),
             FetchResponseMsg::ProcessResponse(meta) => listener.process_response(meta),
             FetchResponseMsg::ProcessResponseChunk(data) => listener.process_response_chunk(data),
-            FetchResponseMsg::ProcessResponseEOF(data) => listener.process_response_eof(data),
+            FetchResponseMsg::ProcessResponseEOF(data) => {
+                match data {
+                    Ok(ref response_resource_timing) => {
+                        // update listener with values from response
+                        *listener.resource_timing_mut() = response_resource_timing.clone();
+                        listener.process_response_eof(Ok(response_resource_timing.clone()));
+                        // TODO timing check https://w3c.github.io/resource-timing/#dfn-timing-allow-check
+
+                        listener.submit_resource_timing();
+                    },
+                    // TODO Resources for which the fetch was initiated, but was later aborted
+                    // (e.g. due to a network error) MAY be included as PerformanceResourceTiming
+                    // objects in the Performance Timeline and MUST contain initialized attribute
+                    // values for processed substeps of the processing model.
+                    Err(e) => listener.process_response_eof(Err(e)),
+                }
+            },
         }
     }
 }
@@ -271,10 +334,11 @@ pub type IpcSendResult = Result<(), IpcError>;
 /// used by net_traits::ResourceThreads to ease the use its IpcSender sub-fields
 /// XXX: If this trait will be used more in future, some auto derive might be appealing
 pub trait IpcSend<T>
-    where T: serde::Serialize + serde::Deserialize,
+where
+    T: serde::Serialize + for<'de> serde::Deserialize<'de>,
 {
     /// send message T
-    fn send(&self, T) -> IpcSendResult;
+    fn send(&self, _: T) -> IpcSendResult;
     /// get underlying sender
     fn sender(&self) -> IpcSender<T>;
 }
@@ -284,7 +348,7 @@ pub trait IpcSend<T>
 // the "Arc" hack implicitly in future.
 // See discussion: http://logs.glob.uno/?c=mozilla%23servo&s=16+May+2016&e=16+May+2016#c430412
 // See also: https://github.com/servo/servo/blob/735480/components/script/script_thread.rs#L313
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ResourceThreads {
     core_thread: CoreResourceThread,
     storage_thread: IpcSender<StorageThreadMsg>,
@@ -296,6 +360,10 @@ impl ResourceThreads {
             core_thread: c,
             storage_thread: s,
         }
+    }
+
+    pub fn clear_cache(&self) {
+        let _ = self.core_thread.send(CoreResourceMsg::ClearCache);
     }
 }
 
@@ -320,58 +388,60 @@ impl IpcSend<StorageThreadMsg> for ResourceThreads {
 }
 
 // Ignore the sub-fields
-impl HeapSizeOf for ResourceThreads {
-    fn heap_size_of_children(&self) -> usize {
-        0
-    }
-}
+malloc_size_of_is_0!(ResourceThreads);
 
-#[derive(PartialEq, Copy, Clone, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum IncludeSubdomains {
     Included,
     NotIncluded,
 }
 
-#[derive(HeapSizeOf, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum MessageData {
     Text(String),
     Binary(Vec<u8>),
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum WebSocketDomAction {
     SendMessage(MessageData),
     Close(Option<u16>, Option<String>),
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum WebSocketNetworkEvent {
-    ConnectionEstablished {
-        protocol_in_use: Option<String>,
-    },
+    ConnectionEstablished { protocol_in_use: Option<String> },
     MessageReceived(MessageData),
     Close(Option<u16>, String),
     Fail,
 }
 
-#[derive(Deserialize, Serialize)]
-pub struct WebSocketCommunicate {
-    pub event_sender: IpcSender<WebSocketNetworkEvent>,
-    pub action_receiver: IpcReceiver<WebSocketDomAction>,
+#[derive(Debug, Deserialize, Serialize)]
+/// IPC channels to communicate with the script thread about network or DOM events.
+pub enum FetchChannels {
+    ResponseMsg(
+        IpcSender<FetchResponseMsg>,
+        /* cancel_chan */ Option<IpcReceiver<()>>,
+    ),
+    WebSocket {
+        event_sender: IpcSender<WebSocketNetworkEvent>,
+        action_receiver: IpcReceiver<WebSocketDomAction>,
+    },
+    /// If the fetch is just being done to populate the cache,
+    /// not because the data is needed now.
+    Prefetch,
 }
 
-#[derive(Deserialize, Serialize)]
-pub struct WebSocketConnectData {
-    pub resource_url: ServoUrl,
-    pub origin: String,
-    pub protocols: Vec<String>,
-}
-
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum CoreResourceMsg {
-    Fetch(RequestInit, IpcSender<FetchResponseMsg>),
-    /// Try to make a websocket connection to a URL.
-    WebsocketConnect(WebSocketCommunicate, WebSocketConnectData),
+    Fetch(RequestBuilder, FetchChannels),
+    /// Initiate a fetch in response to processing a redirection
+    FetchRedirect(
+        RequestBuilder,
+        ResponseInit,
+        IpcSender<FetchResponseMsg>,
+        /* cancel_chan */ Option<IpcReceiver<()>>,
+    ),
     /// Store a cookie for a given originating URL
     SetCookieForUrl(ServoUrl, Serde<Cookie<'static>>, CookieSource),
     /// Store a set of cookies for a given originating URL
@@ -379,13 +449,24 @@ pub enum CoreResourceMsg {
     /// Retrieve the stored cookies for a given URL
     GetCookiesForUrl(ServoUrl, IpcSender<Option<String>>, CookieSource),
     /// Get a cookie by name for a given originating URL
-    GetCookiesDataForUrl(ServoUrl, IpcSender<Vec<Serde<Cookie<'static>>>>, CookieSource),
-    /// Cancel a network request corresponding to a given `ResourceId`
-    Cancel(ResourceId),
+    GetCookiesDataForUrl(
+        ServoUrl,
+        IpcSender<Vec<Serde<Cookie<'static>>>>,
+        CookieSource,
+    ),
+    DeleteCookies(ServoUrl),
+    /// Get a history state by a given history state id
+    GetHistoryState(HistoryStateId, IpcSender<Option<Vec<u8>>>),
+    /// Set a history state for a given history state id
+    SetHistoryState(HistoryStateId, Vec<u8>),
+    /// Removes history states for the given ids
+    RemoveHistoryStates(Vec<HistoryStateId>),
     /// Synchronization message solely for knowing the state of the ResourceChannelManager loop
     Synchronize(IpcSender<()>),
-    /// Send the network sender in constellation to CoreResourceThread
-    NetworkMediator(IpcSender<CustomResponseMediator>),
+    /// Clear the network cache.
+    ClearCache,
+    /// Send the service worker network mediator for an origin to CoreResourceThread
+    NetworkMediator(IpcSender<CustomResponseMediator>, ImmutableOrigin),
     /// Message forwarded to file manager's handler
     ToFileManager(FileManagerThreadMsg),
     /// Break the load handler loop, send a reply when done cleaning up local resources
@@ -394,16 +475,24 @@ pub enum CoreResourceMsg {
 }
 
 /// Instruct the resource thread to make a new request.
-pub fn fetch_async<F>(request: RequestInit, core_resource_thread: &CoreResourceThread, f: F)
-    where F: Fn(FetchResponseMsg) + Send + 'static,
+pub fn fetch_async<F>(request: RequestBuilder, core_resource_thread: &CoreResourceThread, f: F)
+where
+    F: Fn(FetchResponseMsg) + Send + 'static,
 {
     let (action_sender, action_receiver) = ipc::channel().unwrap();
-    ROUTER.add_route(action_receiver.to_opaque(),
-                     box move |message| f(message.to().unwrap()));
-    core_resource_thread.send(CoreResourceMsg::Fetch(request, action_sender)).unwrap();
+    ROUTER.add_route(
+        action_receiver.to_opaque(),
+        Box::new(move |message| f(message.to().unwrap())),
+    );
+    core_resource_thread
+        .send(CoreResourceMsg::Fetch(
+            request,
+            FetchChannels::ResponseMsg(action_sender, None),
+        ))
+        .unwrap();
 }
 
-#[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ResourceCorsData {
     /// CORS Preflight flag
     pub preflight: bool,
@@ -411,22 +500,172 @@ pub struct ResourceCorsData {
     pub origin: ServoUrl,
 }
 
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct ResourceFetchTiming {
+    pub domain_lookup_start: u64,
+    pub timing_check_passed: bool,
+    pub timing_type: ResourceTimingType,
+    /// Number of redirects until final resource (currently limited to 20)
+    pub redirect_count: u16,
+    pub request_start: u64,
+    pub secure_connection_start: u64,
+    pub response_start: u64,
+    pub fetch_start: u64,
+    pub response_end: u64,
+    pub redirect_start: u64,
+    pub redirect_end: u64,
+    pub connect_start: u64,
+    pub connect_end: u64,
+    pub start_time: u64,
+}
+
+pub enum RedirectStartValue {
+    #[allow(dead_code)]
+    Zero,
+    FetchStart,
+}
+
+pub enum RedirectEndValue {
+    Zero,
+    ResponseEnd,
+}
+
+// TODO: refactor existing code to use this enum for setting time attributes
+// suggest using this with all time attributes in the future
+pub enum ResourceTimeValue {
+    Zero,
+    Now,
+    FetchStart,
+    RedirectStart,
+}
+
+pub enum ResourceAttribute {
+    RedirectCount(u16),
+    DomainLookupStart,
+    RequestStart,
+    ResponseStart,
+    RedirectStart(RedirectStartValue),
+    RedirectEnd(RedirectEndValue),
+    FetchStart,
+    ConnectStart(u64),
+    ConnectEnd(u64),
+    SecureConnectionStart,
+    ResponseEnd,
+    StartTime(ResourceTimeValue),
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub enum ResourceTimingType {
+    Resource,
+    Navigation,
+    Error,
+    None,
+}
+
+impl ResourceFetchTiming {
+    pub fn new(timing_type: ResourceTimingType) -> ResourceFetchTiming {
+        ResourceFetchTiming {
+            timing_type: timing_type,
+            timing_check_passed: true,
+            domain_lookup_start: 0,
+            redirect_count: 0,
+            secure_connection_start: 0,
+            request_start: 0,
+            response_start: 0,
+            fetch_start: 0,
+            redirect_start: 0,
+            redirect_end: 0,
+            connect_start: 0,
+            connect_end: 0,
+            response_end: 0,
+            start_time: 0,
+        }
+    }
+
+    // TODO currently this is being set with precise time ns when it should be time since
+    // time origin (as described in Performance::now)
+    pub fn set_attribute(&mut self, attribute: ResourceAttribute) {
+        let should_attribute_always_be_updated = match attribute {
+            ResourceAttribute::FetchStart |
+            ResourceAttribute::ResponseEnd |
+            ResourceAttribute::StartTime(_) => true,
+            _ => false,
+        };
+        if !self.timing_check_passed && !should_attribute_always_be_updated {
+            return;
+        }
+        match attribute {
+            ResourceAttribute::DomainLookupStart => self.domain_lookup_start = precise_time_ns(),
+            ResourceAttribute::RedirectCount(count) => self.redirect_count = count,
+            ResourceAttribute::RequestStart => self.request_start = precise_time_ns(),
+            ResourceAttribute::ResponseStart => self.response_start = precise_time_ns(),
+            ResourceAttribute::RedirectStart(val) => match val {
+                RedirectStartValue::Zero => self.redirect_start = 0,
+                RedirectStartValue::FetchStart => {
+                    if self.redirect_start == 0 {
+                        self.redirect_start = self.fetch_start
+                    }
+                },
+            },
+            ResourceAttribute::RedirectEnd(val) => match val {
+                RedirectEndValue::Zero => self.redirect_end = 0,
+                RedirectEndValue::ResponseEnd => self.redirect_end = self.response_end,
+            },
+            ResourceAttribute::FetchStart => self.fetch_start = precise_time_ns(),
+            ResourceAttribute::ConnectStart(val) => self.connect_start = val,
+            ResourceAttribute::ConnectEnd(val) => self.connect_end = val,
+            ResourceAttribute::SecureConnectionStart => {
+                self.secure_connection_start = precise_time_ns()
+            },
+            ResourceAttribute::ResponseEnd => self.response_end = precise_time_ns(),
+            ResourceAttribute::StartTime(val) => match val {
+                ResourceTimeValue::RedirectStart
+                    if self.redirect_start == 0 || !self.timing_check_passed => {},
+                _ => self.start_time = self.get_time_value(val),
+            },
+        }
+    }
+
+    fn get_time_value(&self, time: ResourceTimeValue) -> u64 {
+        match time {
+            ResourceTimeValue::Zero => 0,
+            ResourceTimeValue::Now => precise_time_ns(),
+            ResourceTimeValue::FetchStart => self.fetch_start,
+            ResourceTimeValue::RedirectStart => self.redirect_start,
+        }
+    }
+
+    pub fn mark_timing_check_failed(&mut self) {
+        self.timing_check_passed = false;
+        self.domain_lookup_start = 0;
+        self.redirect_count = 0;
+        self.request_start = 0;
+        self.response_start = 0;
+        self.redirect_start = 0;
+        self.connect_start = 0;
+        self.connect_end = 0;
+    }
+}
+
 /// Metadata about a loaded resource, such as is obtained from HTTP headers.
-#[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct Metadata {
     /// Final URL after redirects.
     pub final_url: ServoUrl,
 
-    #[ignore_heap_size_of = "Defined in hyper"]
+    /// Location URL from the response headers.
+    pub location_url: Option<Result<ServoUrl, String>>,
+
+    #[ignore_malloc_size_of = "Defined in hyper"]
     /// MIME type / subtype.
     pub content_type: Option<Serde<ContentType>>,
 
     /// Character set.
     pub charset: Option<String>,
 
-    #[ignore_heap_size_of = "Defined in hyper"]
+    #[ignore_malloc_size_of = "Defined in hyper"]
     /// Headers
-    pub headers: Option<Serde<Headers>>,
+    pub headers: Option<Serde<HeaderMap>>,
 
     /// HTTP Status
     pub status: Option<(u16, Vec<u8>)>,
@@ -436,6 +675,13 @@ pub struct Metadata {
 
     /// Referrer Url
     pub referrer: Option<ServoUrl>,
+
+    /// Referrer Policy of the Request used to obtain Response
+    pub referrer_policy: Option<ReferrerPolicy>,
+    /// Performance information for navigation events
+    pub timing: Option<ResourceFetchTiming>,
+    /// True if the request comes from a redirection
+    pub redirected: bool,
 }
 
 impl Metadata {
@@ -443,37 +689,56 @@ impl Metadata {
     pub fn default(url: ServoUrl) -> Self {
         Metadata {
             final_url: url,
+            location_url: None,
             content_type: None,
             charset: None,
             headers: None,
             // https://fetch.spec.whatwg.org/#concept-response-status-message
-            status: Some((200, b"OK".to_vec())),
+            status: Some((200, b"".to_vec())),
             https_state: HttpsState::None,
             referrer: None,
+            referrer_policy: None,
+            timing: None,
+            redirected: false,
         }
     }
 
     /// Extract the parts of a Mime that we care about.
     pub fn set_content_type(&mut self, content_type: Option<&Mime>) {
         if self.headers.is_none() {
-            self.headers = Some(Serde(Headers::new()));
+            self.headers = Some(Serde(HeaderMap::new()));
         }
 
         if let Some(mime) = content_type {
-            self.headers.as_mut().unwrap().set(ContentType(mime.clone()));
-            self.content_type = Some(Serde(ContentType(mime.clone())));
-            let Mime(_, _, ref parameters) = *mime;
-            for &(ref k, ref v) in parameters {
-                if Attr::Charset == *k {
-                    self.charset = Some(v.to_string());
-                }
+            self.headers
+                .as_mut()
+                .unwrap()
+                .typed_insert(ContentType::from(mime.clone()));
+            if let Some(charset) = mime.get_param(mime::CHARSET) {
+                self.charset = Some(charset.to_string());
             }
+            self.content_type = Some(Serde(ContentType::from(mime.clone())));
+        }
+    }
+
+    /// Set the referrer policy associated with the loaded resource.
+    pub fn set_referrer_policy(&mut self, referrer_policy: Option<ReferrerPolicy>) {
+        if self.headers.is_none() {
+            self.headers = Some(Serde(HeaderMap::new()));
+        }
+
+        self.referrer_policy = referrer_policy;
+        if let Some(referrer_policy) = referrer_policy {
+            self.headers
+                .as_mut()
+                .unwrap()
+                .typed_insert::<ReferrerPolicyHeader>(referrer_policy.into());
         }
     }
 }
 
 /// The creator of a given cookie
-#[derive(PartialEq, Copy, Clone, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum CookieSource {
     /// An HTTP API
     HTTP,
@@ -481,57 +746,28 @@ pub enum CookieSource {
     NonHTTP,
 }
 
-/// Convenience function for synchronously loading a whole resource.
-pub fn load_whole_resource(request: RequestInit,
-                           core_resource_thread: &CoreResourceThread)
-                           -> Result<(Metadata, Vec<u8>), NetworkError> {
-    let (action_sender, action_receiver) = ipc::channel().unwrap();
-    core_resource_thread.send(CoreResourceMsg::Fetch(request, action_sender)).unwrap();
-
-    let mut buf = vec![];
-    let mut metadata = None;
-    loop {
-        match action_receiver.recv().unwrap() {
-            FetchResponseMsg::ProcessRequestBody |
-            FetchResponseMsg::ProcessRequestEOF => (),
-            FetchResponseMsg::ProcessResponse(Ok(m)) => {
-                metadata = Some(match m {
-                    FetchMetadata::Unfiltered(m) => m,
-                    FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
-                })
-            },
-            FetchResponseMsg::ProcessResponseChunk(data) => buf.extend_from_slice(&data),
-            FetchResponseMsg::ProcessResponseEOF(Ok(())) => return Ok((metadata.unwrap(), buf)),
-            FetchResponseMsg::ProcessResponse(Err(e)) |
-            FetchResponseMsg::ProcessResponseEOF(Err(e)) => return Err(e),
-        }
-    }
-}
-
-/// An unique identifier to keep track of each load message in the resource handler
-#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
-pub struct ResourceId(pub u32);
-
 /// Network errors that have to be exported out of the loaders
-#[derive(Clone, PartialEq, Eq, Debug, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum NetworkError {
     /// Could be any of the internal errors, like unsupported scheme, connection errors, etc.
     Internal(String),
     LoadCancelled,
     /// SSL validation error that has to be handled in the HTML parser
-    SslValidation(ServoUrl, String),
+    SslValidation(String, Vec<u8>),
 }
 
 impl NetworkError {
-    pub fn from_hyper_error(url: &ServoUrl, error: HyperError) -> Self {
-        if let HyperError::Ssl(ref ssl_error) = error {
-            return NetworkError::from_ssl_error(url, &**ssl_error);
+    pub fn from_hyper_error(error: &HyperError, cert_bytes: Option<Vec<u8>>) -> Self {
+        let s = error.to_string();
+        if s.contains("the handshake failed") {
+            NetworkError::SslValidation(s, cert_bytes.unwrap_or_default())
+        } else {
+            NetworkError::Internal(s)
         }
-        NetworkError::Internal(error.description().to_owned())
     }
 
-    pub fn from_ssl_error(url: &ServoUrl, error: &Error) -> Self {
-        NetworkError::SslValidation(url.clone(), error.description().to_owned())
+    pub fn from_http_error(error: &HttpError) -> Self {
+        NetworkError::Internal(error.to_string())
     }
 }
 
@@ -555,4 +791,68 @@ pub fn trim_http_whitespace(mut slice: &[u8]) -> &[u8] {
     }
 
     slice
+}
+
+pub fn http_percent_encode(bytes: &[u8]) -> String {
+    // This encode set is used for HTTP header values and is defined at
+    // https://tools.ietf.org/html/rfc5987#section-3.2
+    const HTTP_VALUE: &percent_encoding::AsciiSet = &percent_encoding::CONTROLS
+        .add(b' ')
+        .add(b'"')
+        .add(b'%')
+        .add(b'\'')
+        .add(b'(')
+        .add(b')')
+        .add(b'*')
+        .add(b',')
+        .add(b'/')
+        .add(b':')
+        .add(b';')
+        .add(b'<')
+        .add(b'-')
+        .add(b'>')
+        .add(b'?')
+        .add(b'[')
+        .add(b'\\')
+        .add(b']')
+        .add(b'{')
+        .add(b'}');
+
+    percent_encoding::percent_encode(bytes, HTTP_VALUE).to_string()
+}
+
+#[derive(Deserialize, Serialize)]
+pub enum WebrenderImageMsg {
+    AddImage(ImageKey, ImageDescriptor, ImageData),
+    GenerateImageKey(IpcSender<ImageKey>),
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+pub struct WebrenderIpcSender(IpcSender<WebrenderImageMsg>);
+
+impl WebrenderIpcSender {
+    pub fn new(sender: IpcSender<WebrenderImageMsg>) -> Self {
+        Self(sender)
+    }
+
+    pub fn generate_image_key(&self) -> ImageKey {
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.0
+            .send(WebrenderImageMsg::GenerateImageKey(sender))
+            .expect("error sending image key generation");
+        receiver.recv().expect("error receiving image key result")
+    }
+
+    pub fn add_image(&self, key: ImageKey, descriptor: ImageDescriptor, data: ImageData) {
+        if let Err(e) = self
+            .0
+            .send(WebrenderImageMsg::AddImage(key, descriptor, data))
+        {
+            warn!("Error sending image update: {}", e);
+        }
+    }
+}
+
+lazy_static! {
+    pub static ref PRIVILEGED_SECRET: u32 = servo_rand::ServoRng::new().next_u32();
 }

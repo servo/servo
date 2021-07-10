@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js" ></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.sub.js"></script>
+
+<meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script';">
+<body>
+<div id="target"></div>
+<script>
+  const policy = trustedTypes.createPolicy("anythinggoes", {
+    "createHTML": x => x,
+    "createScript": x => x,
+    "createScriptURL": x => x,
+  });
+
+  const create_value = {
+    "TrustedHTML": policy.createHTML("hello"),
+    "TrustedScript": policy.createScript("x => x + x"),
+    "TrustedScriptURL": policy.createScriptURL("https://url.invalid/blubb.js"),
+    null: "empty",
+  };
+
+  // The tests will assign all values to all sink types. To prevent spurious
+  // errors when assigning "hello" to a script sink, we'll just define a
+  // varaible of that name.
+  const hello = "";
+
+  // We seed our elements and properties with one element/property that has no
+  // 'trusted type' sinks, and one non-specced (madeup) element/property.
+  // Also add several event handlers (onclick).
+  let elements = ['madeup', 'b'];
+  let properties = ['madeup', 'id', "onerror", "onclick"];
+  const types = [null, "TrustedHTML", "TrustedScript", "TrustedScriptURL"];
+
+  // We'll wrap construction of the elements/properties list in a test, mainly
+  // so we'll get decent error messages when it might fail.
+  test(t => {
+    // Collect all element and property names from getTypeMapping().
+    const map = trustedTypes.getTypeMapping();
+    for (let elem in map) {
+      elements.push(elem);
+      properties = properties.concat(Object.keys(map[elem].properties));
+    }
+
+    // Remove "*" entries and de-duplicate properties.
+    elements = elements.filter(s => !s.includes("*"));
+    properties = properties.filter(s => !s.includes("*"));
+    properties = Array.from(new Set(properties));
+  }, "Prepare parameters for generic test series below.");
+
+  // Iterate one test for each combination of element, property, and sink type.
+  const target = document.getElementById("target");
+  for (elem of elements) {
+    for (property of properties) {
+      for (type of types) {
+        // Conceptually, our test is beautifully simple: Ask getPropertyType
+        // about the expected trusted type. If it's the one we're testing,
+        // expect the assignment to pass, and expect we can read back the same
+        // value. If it's a different type, expect the assignment to fail.
+        //
+        // The idealized test case would look something like this:
+        //   const value = ....;
+        //   const test_fn = _ => { element[property] = value };
+        //   if (type == expected_type || !expected_type) {
+        //     test_fn();
+        //     assert_equals(element[property], value);
+        //   } else {
+        //     assert_throws_js(..., test_fn, ...);
+        //   }
+        //
+        // Below is the same logic, but extended to handle the various edge
+        // cases.
+        //
+        // Some difficulties we need to accomodate:
+        // - Some properties have built-in behaviours. (E.g. the "innerHTML"
+        //   value depends on whether elements are visible or not.) To
+        //   accomodate this, we have a big switch-statement that handles
+        //   those types of exceptions.
+        // - Some properties parse their values, so that you can't easily get
+        //   the original text value back (e.g. error handlers).
+        // - Some properties cause actions as side-effects (e.g. loading a
+        //   script), which will cause errors in the test (despite the actual
+        //   code-under-test meeting our expectations). This is handled with
+        //   a cleanup script which removes the element (and thus cancels
+        //   the loading actions).
+        test(t => {
+          const element = target.appendChild(document.createElement(elem));
+          t.add_cleanup(_ => element.remove());
+          const expected_type = trustedTypes.getPropertyType(elem, property);
+          const value = create_value[type];
+          const test_fn = _ => { element[property] = value; };
+          if (type == expected_type || !expected_type) {
+            test_fn();
+            let result_value = element[property];
+            switch (property) {
+              // Node.innerText returns the rendered text of an Element, which
+              // in this test case is usually empty. For this specific case,
+              // let's just check "textContent" instead.
+              // Node.innerHTML re-creates a text representation from the DOM,
+              // which may not always match the exact input.
+              case "innerText":
+              case "innerHTML":
+                result_value = element["textContent"];
+                break;
+              // Node.outerHTML replaces the node, which means the simple
+              // checking logic below does not work. In this case, we'll just
+              // return and hence skip the result comparison.
+              case "outerHTML":
+                return;
+              // URL-typed accessors
+              case "src":
+                if (elem == "iframe")
+                  return;
+                break;
+              // Properties starting with "on" are usually error handlers,
+              // which will parse their input as a function. In this case,
+              // also skip the result comparison.
+              default:
+                if (property.startsWith("on")) return;
+                break;
+            }
+            assert_equals("" + result_value, "" + value);
+          } else {
+            assert_throws_js(TypeError, test_fn, "throws");
+          }
+        }, `Test assignment of ${type ? type : "string"} on ${elem}.${property}`);
+
+        // And once more, for attributes.
+        test(t => {
+          const element = target.appendChild(document.createElement(elem));
+          t.add_cleanup(_ => element.remove());
+          const expected_type = trustedTypes.getAttributeType(elem, property);
+          const value = create_value[type];
+          const test_fn = _ => { element.setAttribute(property, value); };
+          if (type == expected_type || !expected_type) {
+            test_fn();
+            assert_equals("" + element.getAttribute(property), "" + value);
+          } else {
+            assert_throws_js(TypeError, test_fn, "throws");
+          }
+        }, `Test assignment of ${type ? type : "string"} on ${elem}.setAttribute(${property},..)`);
+      }
+    }
+  }
+</script>
+</body>

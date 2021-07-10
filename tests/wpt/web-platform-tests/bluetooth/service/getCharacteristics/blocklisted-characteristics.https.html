@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/bluetooth/resources/bluetooth-test.js"></script>
+<script src="/bluetooth/resources/bluetooth-fake-devices.js"></script>
+<script>
+'use strict';
+const test_desc = 'The Device Information service is composed of blocklisted ' +
+    'characteristics so we shouldn\'t find any.';
+const expected = new DOMException('No Characteristics found in service.',
+    'NotFoundError');
+let device;
+
+bluetooth_test(() => getHIDDevice({
+    filters: [{services: ['device_information']}]
+  })
+    .then(_ => ({device} = _))
+    .then(() => device.gatt.getPrimaryService('device_information'))
+    .then(service => assert_promise_rejects_with_message(
+      service.getCharacteristics(),
+      expected)),
+    test_desc);
+</script>

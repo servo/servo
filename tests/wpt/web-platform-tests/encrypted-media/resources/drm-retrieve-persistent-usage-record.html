@@ -33,7 +33,7 @@
 
         function onFailure(error) {
             assertions.push( { actual: false, expected: true, message: error } );
-            window.opener.postMessage(assertions, '*');
+            window.opener.postMessage({ testResult: assertions }, '*');
         }
 
         function onMessage( event )
@@ -56,13 +56,13 @@
             _mediaKeySession = _mediaKeys.createSession( 'persistent-usage-record' );
             _mediaKeySession.addEventListener( 'message', onMessage );
             _mediaKeySession.closed.then( function() {
-                window.opener.postMessage(assertions, '*');
+                window.opener.postMessage({ testResult: assertions }, '*');
             });
             return _mediaKeySession.load( event.data.sessionId );
         }).then(function( success ) {
             if ( !success ) {
                 assertions.push( { actual: success, expected: true, message: "Error loading session" } );
-                window.opener.postMessage(assertions, '*');
+                window.opener.postMessage({ testResult: assertions }, '*');
             }
         }).catch( onFailure );
     });

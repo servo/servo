@@ -4,7 +4,7 @@ parent.t.step(function() {
   window.onerror = this.step_func(function(a) {
     assert_unreached('(inner) window.onerror invoked: ' + a);
   });
-  var worker = new SharedWorker('004.html#', '');
+  var worker = new SharedWorker('004.js', '');
   worker.addEventListener('error', this.step_func(function(e) {
     parent.assert_unreached('(inner) error on worker');
   }), false);

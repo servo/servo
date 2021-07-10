@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf8">
+<title>CSS Scroll Anchoring: prioritize focused element</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/#anchor-node-selection">
+<meta name="assert" content="anchor selection prioritized focused element">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+body { height: 4000px }
+.spacer { height: 100px }
+#growing { height: 100px }
+#focused { height: 10px }
+</style>
+
+<div class=spacer></div>
+<div class=spacer></div>
+<div class=spacer></div>
+<div class=spacer></div>
+<div id=growing></div>
+<div class=spacer></div>
+<div id=focused contenteditable></div>
+<div class=spacer></div>
+<div class=spacer></div>
+
+<script>
+async_test((t) => {
+  document.scrollingElement.scrollTop = 150;
+  focused.focus();
+
+  const target_rect = focused.getBoundingClientRect();
+  growing.style.height = "3000px";
+
+  requestAnimationFrame(() => {
+    t.step(() => {
+      const new_rect = focused.getBoundingClientRect();
+      assert_equals(new_rect.x, target_rect.x, "x coordinate");
+      assert_equals(new_rect.y, target_rect.y, "y coordinate");
+      assert_not_equals(document.scrollingElement.scrollTop, 150, "scroll adjusted");
+    });
+    t.done();
+  });
+}, "Anchor selection prioritized focused element.");
+</script>

@@ -1,0 +1,6 @@
+<script>
+  parent.postMessage('load');
+  window.onmessage = (e) => {
+    parent.postMessage('pong');
+  };
+</script>

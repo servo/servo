@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#layout-api-box-tree">
+<link rel="match" href="box-tree-unregistered-ref.html">
+<meta name="assert" content="This test checks that an unregistered layout() works the same as a normal flow-root." />
+<style>
+@supports (display: layout(unregistered)) {
+  .test {
+    display: layout(unregistered);
+  }
+}
+
+.container {
+  float: left;
+  margin: 20px 0;
+  border: solid 2px;
+  width: 100px;
+}
+
+.float {
+  float: left;
+  width: 100%;
+  height: 40px;
+  background: hotpink;
+}
+
+.inflow {
+  height: 40px;
+  background: hotpink;
+}
+</style>
+
+<div class="container">
+  <!-- This tests that the "layout()" margins don't collapse with its children. -->
+  <div class="test" style="margin: 20px 0">
+    <div class="inflow" style="margin: 20px 0"></div>
+  </div>
+</div>
+
+<div class="container">
+  <!-- This tests that the "layout()" grows to fit child floats. -->
+  <div class="test">
+    <div class="float" style="margin: 40px 0"></div>
+  </div>
+</div>
+
+<div class="container">
+  <!-- This tests that a float does not intrude into "layout()" box. -->
+  <div class="float"></div>
+  <div class="test" style="width: 100%; height: 40px; background: green;"></div>
+</div>
+
+<div class="container">
+  <!-- This tests that margins in two "layout()" box children collapse as normally. -->
+  <div class="test" style="background: green;">
+    <div style="margin:100px 0;">
+      <div style="margin:100px 0;"></div>
+    </div>
+    <div style="margin:100px 0;">
+      <div style="margin:100px 0;"></div>
+    </div>
+  </div>
+</div>

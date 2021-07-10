@@ -3,15 +3,15 @@ name = "servo_atoms"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
+edition = "2018"
 publish = false
 build = "build.rs"
-workspace = "../.."
 
 [lib]
 path = "lib.rs"
 
 [dependencies]
-string_cache = {version = "0.5", features = ["heapsize"]}
+string_cache = "0.8"
 
 [build-dependencies]
-string_cache_codegen = "0.4"
+string_cache_codegen = "0.5"

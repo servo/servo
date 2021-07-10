@@ -1,0 +1,12 @@
+README.rst
+setup.cfg
+setup.py
+webencodings/__init__.py
+webencodings/labels.py
+webencodings/mklabels.py
+webencodings/tests.py
+webencodings/x_user_defined.py
+webencodings.egg-info/PKG-INFO
+webencodings.egg-info/SOURCES.txt
+webencodings.egg-info/dependency_links.txt
+webencodings.egg-info/top_level.txt

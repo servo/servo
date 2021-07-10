@@ -1,0 +1,140 @@
+<!--
+
+/*
+** Copyright (c) 2018 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL Structure as Inout Parameter Test</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"> </script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+
+<script id="simple-vs" type="x-shader/x-vertex">
+attribute vec4 a_position;
+void main(void) {
+    gl_Position = a_position;
+}
+</script>
+<script id="struct-inout-parameter-fs" type="x-shader/x-fragment">
+struct ColorData {
+  vec3 red;
+  vec3 blue;
+};
+
+void modify(inout ColorData colorData) {
+  colorData.red += vec3(0.5, 0.0, 0.0);
+  colorData.blue += vec3(0.0, 0.0, 0.5);
+}
+
+void main() {
+  ColorData colorData;
+  colorData.red = vec3(0.5, 0.0, 0.0);
+  colorData.blue = vec3(0.0, 0.0, 0.5);
+
+  vec3 red = vec3(1.0, 0.0, 0.0);
+  vec3 green = vec3(0.0, 1.0, 0.0);
+  vec3 blue = vec3(0.0, 0.0, 1.0);
+  vec3 finalColor;
+
+  modify(colorData);
+
+  if (colorData.red == red && colorData.blue == blue)
+    finalColor = green;
+  else
+    finalColor = red;
+
+  gl_FragColor = vec4(finalColor, 1.0);
+}
+</script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("Testing structs as inout parameter");
+
+debug('Regression test for <a href="http://crbug.com/851870">http://crbug.com/851870</a> / <a href="https://github.com/mrdoob/three.js/issues/14137">https://github.com/mrdoob/three.js/issues/14137</a>');
+
+function prepend(floatPrecision) {
+  let source = document.getElementById('struct-inout-parameter-fs').text;
+  return 'precision ' + floatPrecision + ' float;\n' + source;
+}
+
+let tests = [
+  {
+    vShaderId: "simple-vs",
+    vShaderSuccess: true,
+    fShaderSource: prepend('lowp'),
+    fShaderSuccess: true,
+    linkSuccess: true,
+    render: true,
+    passMsg: "lowp struct used as inout parameter",
+  },
+  {
+    vShaderId: "simple-vs",
+    vShaderSuccess: true,
+    fShaderSource: prepend('mediump'),
+    fShaderSuccess: true,
+    linkSuccess: true,
+    render: true,
+    passMsg: "mediump struct used as inout parameter",
+  },
+];
+
+let wtu = WebGLTestUtils;
+let gl = wtu.create3DContext();
+let precision = gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT);
+let highpSupported = (precision.rangeMin >= 62 && precision.rangeMax >= 62 && precision.precision >= 16);
+debug("highp is" + (highpSupported ? "" : " not") + " supported in fragment shaders");
+
+if (highpSupported) {
+  tests.push(
+    {
+      vShaderId: "simple-vs",
+      vShaderSuccess: true,
+      fShaderSource: prepend('highp'),
+      fShaderSuccess: true,
+      linkSuccess: true,
+      render: true,
+      passMsg: "highp struct used as inout parameter",
+    }
+  );
+}
+
+GLSLConformanceTester.runTests(tests);
+debug("");
+
+var successfullyParsed = true;
+</script>
+</body>
+</html>

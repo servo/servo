@@ -71,8 +71,8 @@ responsible for constructing the response to the HTTP request. See
 
 .. _router.Interface:
 
-:mod:`Interface <wptserve>`
----------------------------
+:mod:`Interface <wptserve.router>`
+----------------------------------
 
 .. automodule:: wptserve.router
    :members:

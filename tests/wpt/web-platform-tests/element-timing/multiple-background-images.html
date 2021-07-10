@@ -1,0 +1,58 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Element Timing: observe element with multiple background images</title>
+<body>
+<style>
+body {
+  margin: 0;
+}
+#target {
+  width: 200px;
+  height: 200px;
+  background-image: url('resources/circle.svg'), url('resources/square100.png');
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/element-timing-helpers.js"></script>
+<script>
+  let beforeRender = performance.now();
+  async_test(function (t) {
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    let numObservedElements = 0;
+    let observedCircle = false;
+    let observedSquare = false;
+    const pathPrefix = window.location.origin + '/element-timing/resources/';
+    let div = document.getElementById('target');
+    const observer = new PerformanceObserver(
+      t.step_func(entryList => {
+        entryList.getEntries().forEach(entry => {
+          numObservedElements++;
+          if (entry.url.endsWith('square100.png')) {
+            observedSquare = true;
+            checkElement(entry, pathPrefix + 'square100.png', 'multi', 'target', beforeRender, div);
+            checkRect(entry, [0, 200, 0, 200]);
+            checkNaturalSize(entry, 100, 100);
+          }
+          else if (entry.url.endsWith('circle.svg')) {
+            observedCircle = true;
+            checkElement(entry, pathPrefix + 'circle.svg', 'multi', 'target', beforeRender, div);
+            checkRect(entry, [0, 200, 0, 200]);
+            checkNaturalSize(entry, 200, 200);
+          }
+          else {
+            assert_unreached("Should not have observed an entry with different url!");
+          }
+          if (numObservedElements === 2) {
+            assert_true(observedCircle);
+            assert_true(observedSquare);
+            t.done();
+          }
+        });
+      })
+    );
+    observer.observe({entryTypes: ['element']});
+  }, 'Element with two background images receives both.');
+</script>
+<div id='target' elementtiming='multi'></div>
+</body>

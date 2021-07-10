@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Autoupgrade mixed content: Audio.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+</head>
+<body>
+  <script>
+    async_test(t => assert_audio_loads(t), "Audio autoupgraded");
+
+    function assert_audio_loads(test) {
+        // Since autoupgrades don't upgrade custom ports, we use the https port with an HTTP scheme. A successful autoupgrade will result in the right URL loading (and no autoupgrade will result in failure).
+        var url = new URL("http://{{host}}:{{ports[https][0]}}/mixed-content/tentative/resources/test.wav")
+        var i = document.createElement('audio');
+        i.oncanplaythrough = test.step_func_done(_ => {
+            assert_equals(i.duration, 1, "Length");
+        });
+        i.onerror = test.unreached_func("Audio should load successfully from " + url);
+        i.src = url;
+    }
+</script>
+</body>
+</html>

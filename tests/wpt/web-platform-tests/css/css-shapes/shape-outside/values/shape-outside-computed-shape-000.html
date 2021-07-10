@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Shape Outside Basic Shape Computed Font Relative Lengths</title>
+        <link rel="author" title="Adobe" href="http://html.adobe.com/">
+        <link rel="author" title="Bear Travis" href="mailto:betravis@adobe.com">
+        <link rel="reviewer" title="Alan Stearns" href="mailto:stearns@adobe.com"> <!-- 2014-03-04 -->
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property">
+        <link rel="help" href="http://www.w3.org/TR/css-cascade-3/#computed">
+        <meta name="assert" content="The basic shape can contain relative length formats, which resolve to the computed (absolute) length value">
+        <meta name="flags" content="ahem dom">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="support/parsing-utils.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script type="text/javascript">
+            // font relative units: em, ex, ch, rem
+            var units = ['em', 'ex', 'ch', 'rem'];
+            var resolveds = {};
+            ParsingUtils.setupFonts();
+
+            var div = document.createElement('div');
+            document.body.appendChild(div);
+            units.forEach(function(unit) {
+                div.style.width = '10' + unit;
+                var s = getComputedStyle(div);
+                resolveds[unit] = parseFloat(s.width);
+            });
+            document.body.removeChild(div);
+
+            function fillArray(string, length) {
+                return Array.apply(null, new Array(length)).map(String.prototype.valueOf, string);
+            }
+
+            function testUnit(unit) {
+                var relativeLength = '1' + unit;
+                var usedLength = resolveds[unit] + 'px';
+
+                var input = 'polygon(nonzero, ' + fillArray('10' + unit, 2).join(' ') + ')';
+                var output = 'polygon(' + fillArray(resolveds[unit] + 'px', 2).join(' ') + ')';
+
+                ParsingUtils.testComputedStyle(input, ParsingUtils.roundResultStr(output));
+            }
+
+            var tests = units.map(function(unit) {
+                return [unit + ' units', unit];
+            });
+
+            generate_tests(testUnit, tests);
+
+            ParsingUtils.restoreFonts();
+        </script>
+    </body>
+</html>

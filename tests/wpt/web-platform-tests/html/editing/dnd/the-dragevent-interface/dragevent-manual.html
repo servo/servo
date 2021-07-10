@@ -29,7 +29,7 @@
 
     <script>
       var drag, element;
-      var Events = ['ondragstart', 'ondrag', 'ondragover', 'ondragenter', 'ondragexit', 'ondragleave', 'ondrop', 'ondragend'];
+      var Events = ['ondragstart', 'ondrag', 'ondragover', 'ondragenter', 'ondragleave', 'ondrop', 'ondragend'];
 
       setup(function() {
           drag = document.querySelector('#drag');
@@ -53,10 +53,6 @@
       test(function() {
         assert_inherits(element, 'ondragenter', 'Check if have ondragenter attribute');
       }, 'Check if have ondragenter attribute');
-
-      test(function() {
-        assert_inherits(element, 'ondragexit', 'Check if have ondragexit attribute');
-      }, 'Check if have ondragexit attribute');
 
       test(function() {
         assert_inherits(element, 'ondragleave', 'Check if have dragleave attribute');

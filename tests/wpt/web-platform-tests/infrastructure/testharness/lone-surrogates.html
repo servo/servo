@@ -1,0 +1,10 @@
+<!DOCTYPE HTML>
+<title>test behaviour with lone surrogates</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(() => assert_true(true), "passing test with lone surrogate \uD800 in name");
+  test(() => assert_true(false), "failing test with lone surrogate \uD800 in name");
+  test(() => assert_true(true, "lone \uD800 surrogate"), "passing test with lone surrogate in assert");
+  test(() => assert_true(false, "lone \uD800 surrogate"), "failing test with lone surrogate in assert");
+</script>

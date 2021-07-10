@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): scale3d(2, 2, 2)</title>
+    <link rel="author" title="Matt Woodrow" href="mailto:mwoodrow@mozilla.com">
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-2/#three-d-transform-functions">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-2/#funcdef-scale3d">
+    <meta name="assert" content="This tests that scale3d(2, 2, 2) on some text
+    has the same effect as scaleX(2) scaleY(2).  The Z part should be
+    irrelevant, because the text is flat.">
+    <link rel="match" href="transform3d-scale-001-ref.html">
+    <link rel="mismatch" href="transform3d-scale-001-notref.html">
+  </head>
+  <body>
+    <div style="transform: scale3D(2,2,2); transform-origin: 0 0; width: 100px; height: 100px;">
+      <div style="background: blue; width: 50px; height: 50px;"></div>
+      <div style="background: lime; width: 50px; height: 50px; margin-left: 50px;"></div>
+    </div>
+  </body>
+</html>

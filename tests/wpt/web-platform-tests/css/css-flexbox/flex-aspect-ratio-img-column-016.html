@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>Aspect-ratio items with undefined specified size suggestion</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#min-size-auto">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1667668">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="Flex item with auto height and fixed max-height (in a column-oriented flex container) should have an undefined specified size suggestion.">
+
+<p>Test passes if there is a filled green square.</p>
+<div style="display: flex; flex-direction: column; ">
+  <img src="support/200x200-green.png" style="max-height:150px; width:100px;">
+</div>

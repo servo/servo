@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/intersection-observer-test-utils.js"></script>
+
+<style>
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 200px;
+}
+.spacer {
+  height: calc(100vh + 100px);
+}
+#target {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+}
+</style>
+<div class="spacer"></div>
+<div id="target"></div>
+<div class="spacer"></div>
+
+<script>
+var entries = [];
+
+runTestCycle(function() {
+  var target = document.getElementById("target");
+  assert_true(!!target, "Target exists");
+  function createObserver() {
+    new IntersectionObserver(function(changes) {
+      entries = entries.concat(changes)
+    }).observe(target);
+  }
+  createObserver();
+  runTestCycle(step0, "First rAF");
+}, "IntersectionObserver that is unreachable in js should still generate notifications.");
+
+function step0() {
+  document.scrollingElement.scrollTop = 300;
+  runTestCycle(step1, "document.scrollingElement.scrollTop = 300");
+  assert_equals(entries.length, 1, "One notification.");
+}
+
+function step1() {
+  document.scrollingElement.scrollTop = 0;
+  assert_equals(entries.length, 2, "Two notifications.");
+}
+</script>

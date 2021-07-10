@@ -4,29 +4,59 @@
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
 <script>
-test(function() {
-  var element = document.createElement("div");
-  document.body.appendChild(element);
-  assert_equals(element.baseURI, document.URL);
-}, "For elements belonging to document, baseURI should be document url")
+const elementTests = [
+  {
+    name: "elements belonging to document",
+    creator: () => {
+      const element = document.createElement("div");
+      document.body.appendChild(element);
+      return element;
+    }
+  },
+  {
+    name: "elements unassigned to document",
+    creator: () => document.createElement("div")
+  },
+  {
+    name: "elements belonging to document fragments",
+    creator: () => {
+      const fragment = document.createDocumentFragment();
+      const element = document.createElement("div");
+      fragment.appendChild(element);
+      return element;
+    }
+  },
+  {
+    name: "elements belonging to document fragments in document",
+    creator: () => {
+      const fragment = document.createDocumentFragment();
+      const element = document.createElement("div");
+      fragment.appendChild(element);
+      document.body.appendChild(fragment);
+      return element;
+    }
+  },
+];
 
-test(function() {
-  var element = document.createElement("div");
-  assert_equals(element.baseURI, document.URL);
-}, "For elements unassigned to document, baseURI should be document url")
+const attributeTests = [
+  {
+    name: "attributes unassigned to element",
+    creator: () => document.createAttribute("class")
+  },
+  ...elementTests.map(({ name, creator }) => ({
+    name: "attributes in " + name,
+    creator: () => {
+      const element = creator();
+      element.setAttribute("class", "abc");
+      return element.getAttributeNode("class");
+    }
+  }))
+];
 
-test(function() {
-  var fragment = document.createDocumentFragment();
-  var element = document.createElement("div");
-  fragment.appendChild(element);
-  assert_equals(element.baseURI, document.URL)
-}, "For elements belonging to document fragments, baseURI should be document url")
-
-test(function() {
-  var fragment = document.createDocumentFragment();
-  var element = document.createElement("div");
-  fragment.appendChild(element);
-  document.body.appendChild(fragment);
-  assert_equals(element.baseURI, document.URL)
-}, "After inserting fragment into document, element baseURI should be document url")
+for (const { name, creator } of [...elementTests, ...attributeTests]) {
+  test(function() {
+    const node = creator();
+    assert_equals(node.baseURI, document.URL);
+  }, `For ${name}, baseURI should be document URL`)
+}
 </script>

@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Positive test case: Inline script should run 'unsafe-inline' script-src directive.</title>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';">
     <script src='/resources/testharness.js'></script>
     <script src='/resources/testharnessreport.js'></script>
     <script src='inlineSuccessTest.js'></script>
@@ -13,8 +14,5 @@
     <script>
       inlineRan = true;
     </script>
-
-    <script async defer src='../support/checkReport.sub.js?reportExists=false'></script>
-
 </body>
 </html>

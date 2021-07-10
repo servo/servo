@@ -3,6 +3,7 @@
 <html>
     <head>
         <title>HTMLVideoElement.getVideoPlaybackQuality() test cases.</title>
+        <meta name="timeout" content="long">
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
         <script src="mediasource-util.js"></script>
@@ -39,12 +40,6 @@
                   assert_less_than_equal(newQuality.droppedVideoFrames, newQuality.totalVideoFrames,
                     "droppedVideoFrames is only a portion of totalVideoFrames");
 
-                  assert_greater_than_equal(newQuality.corruptedVideoFrames, 0, "corruptedVideoFrames >= 0");
-                  assert_greater_than_equal(newQuality.corruptedVideoFrames, previousQuality.corruptedVideoFrames,
-                    "corruptedVideoFrames increases monotonically");
-                  assert_less_than_equal(newQuality.corruptedVideoFrames, newQuality.totalVideoFrames,
-                    "corruptedVideoFrames is only a portion of totalVideoFrames");
-
                   previousQuality = newQuality;
                   timeUpdateCount++;
               }));
@@ -59,7 +54,7 @@
                   assert_false(sourceBuffer.updating, "updating");
                   mediaSource.endOfStream();
                   assert_less_than(mediaSource.duration, 10, "duration");
-                  mediaElement.play();
+                  mediaElement.play().catch(test.unreached_func("Unexpected promise rejection"));;
                   test.expectEvent(mediaElement, 'ended', 'mediaElement');
               });
 
@@ -69,49 +64,6 @@
                   test.done();
               });
           }, "Test HTMLVideoElement.getVideoPlaybackQuality() with MediaSource API");
-
-
-          mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
-          {
-              var previousQuality = mediaElement.getVideoPlaybackQuality();
-              var timeUpdateCount = 0;
-              var startTime = 0;
-              mediaElement.addEventListener("timeupdate", test.step_func(function (e)
-              {
-                  var videoElement = e.target;
-                  var newQuality = videoElement.getVideoPlaybackQuality();
-                  var now = window.performance.now();
-
-                  assert_greater_than_equal(newQuality.totalFrameDelay, 0, "totalFrameDelay >= 0");
-                  assert_greater_than_equal(newQuality.totalFrameDelay, previousQuality.totalFrameDelay,
-                    "totalFrameDelay increases monotonically");
-                  assert_less_than(newQuality.totalFrameDelay, (now - startTime) / 1000,
-                    "totalFrameDelay does not exceed the time elapsed since playback started");
-
-                  previousQuality = newQuality;
-                  timeUpdateCount++;
-              }));
-
-              mediaElement.addEventListener('error', test.unreached_func("Unexpected event 'error'"));
-
-              sourceBuffer.appendBuffer(mediaData);
-              test.expectEvent(sourceBuffer, 'updateend', 'sourceBuffer');
-              test.waitForExpectedEvents(function()
-              {
-                  assert_false(sourceBuffer.updating, "updating");
-                  mediaSource.endOfStream();
-                  assert_less_than(mediaSource.duration, 10, "duration");
-                  startTime = window.performance.now();
-                  mediaElement.play();
-                  test.expectEvent(mediaElement, 'ended', 'mediaElement');
-              });
-
-              test.waitForExpectedEvents(function()
-              {
-                  assert_greater_than(timeUpdateCount, 2, "timeUpdateCount");
-                  test.done();
-              });
-          }, "Test the totalFrameDelay attribute of HTMLVideoElement.getVideoPlaybackQuality() with MediaSource API");
         </script>
     </body>
 </html>

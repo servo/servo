@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#scroll-timeline-at-rule">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#scroll-timeline-offset-section">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+  #scroller {
+    overflow: scroll;
+    width: 100px;
+    height: 100px;
+  }
+  #contents {
+    height: 300px;
+  }
+  @keyframes expand {
+    from { width: 100px; }
+    to { width: 200px; }
+  }
+  @scroll-timeline timeline_0px_100px {
+    source: selector(#scroller);
+    time-range: 10s;
+    start: 0px;
+    end: 100px;
+  }
+  @scroll-timeline timeline_50px_100px {
+    source: selector(#scroller);
+    time-range: 10s;
+    start: 50px;
+    end: 100px;
+  }
+  @scroll-timeline timeline_auto_auto {
+    source: selector(#scroller);
+    time-range: 10s;
+    start: auto;
+    end: auto;
+  }
+  @scroll-timeline timeline_auto_auto_implicit {
+    source: selector(#scroller);
+    time-range: 10s;
+  }
+  @scroll-timeline timeline_50px_auto {
+    source: selector(#scroller);
+    time-range: 10s;
+    start: 50px;
+    end: auto;
+  }
+  @scroll-timeline timeline_auto_100px {
+    source: selector(#scroller);
+    time-range: 10s;
+    start: auto;
+    end: 100px;
+  }
+  @scroll-timeline timeline_25p_75p {
+    source: selector(#scroller);
+    time-range: 10s;
+    start: 25%;
+    end: 75%;
+  }
+  @scroll-timeline timeline_calc_calc {
+    source: selector(#scroller);
+    time-range: 10s;
+    start: calc(25% + 10px);
+    end: calc(75% + 10px);
+  }
+  #container > div {
+    width: 0px;
+    animation-name: expand;
+    animation-duration: 10s;
+    animation-timing-function: linear;
+  }
+  /* Ensure stable expectations if feature is not supported */
+  @supports not (animation-timeline:foo) {
+    #container > div { animation-play-state: paused; }
+  }
+  #element_0px_100px { animation-timeline: timeline_0px_100px; }
+  #element_50px_100px { animation-timeline: timeline_50px_100px; }
+  #element_auto_auto { animation-timeline: timeline_auto_auto; }
+  #element_auto_auto_implicit { animation-timeline: timeline_auto_auto_implicit; }
+  #element_50px_auto { animation-timeline: timeline_50px_auto; }
+  #element_auto_100px { animation-timeline: timeline_auto_100px; }
+  #element_25p_75p { animation-timeline: timeline_25p_75p; }
+  #element_calc_calc { animation-timeline: timeline_calc_calc; }
+</style>
+<div id=scroller>
+  <div id=contents></div>
+</div>
+<div id=container>
+  <div id=element_0px_100px></div>
+  <div id=element_50px_100px></div>
+  <div id=element_auto_auto></div>
+  <div id=element_auto_auto_implicit></div>
+  <div id=element_50px_auto></div>
+  <div id=element_auto_100px></div>
+  <div id=element_25p_75p></div>
+  <div id=element_calc_calc></div>
+</div>
+<script>
+
+  // Scrolls top to 'offset', waits for a frame, then call the provided
+  // assertions function.
+  function test_scroll(element, offset, assertions, description) {
+    promise_test(async (t) => {
+      scroller.scrollTop = offset;
+      await waitForNextFrame();
+      assertions();
+    }, `${description} [${element.id}]`);
+  }
+
+  // Tests that the computed value of 'width' on element is the expected value
+  // after scrolling top to the specifed offset.
+  function test_width_at_scroll_top(element, offset, expected) {
+    test_scroll(element, offset, () => {
+      assert_equals(getComputedStyle(element).width, expected);
+    }, `Scroll at offset ${offset} updates animation correctly`);
+  }
+
+  // Tests that the computed value of 'width' on element is (approximately)
+  // the expected value after scrolling top to the offset specified by
+  // 'fraction'. The 'fraction' parameter is either a number which maps [0, 1]
+  // to the full scroll range, or a function which accepts the maximum scroll,
+  // and returns a specific offset.
+  function test_approximate_width_at_fraction(element, fraction, expected) {
+    const max = scroller.scrollHeight - scroller.clientHeight;
+    const offsetFunction = (typeof fraction == 'function') ? fraction : () => max * fraction;
+    const resolvedOffset = Math.floor(offsetFunction(max));
+    test_scroll(element, resolvedOffset, () => {
+      assert_approx_equals(parseInt(getComputedStyle(element).width), parseInt(expected), 5);
+    }, `Scroll at offset ${resolvedOffset} updates animation correctly`);
+  }
+
+  // [0px, 100px]
+  test_width_at_scroll_top(element_0px_100px, 0, '100px');
+  test_width_at_scroll_top(element_0px_100px, 1, '101px');
+  test_width_at_scroll_top(element_0px_100px, 50, '150px');
+  test_width_at_scroll_top(element_0px_100px, 99, '199px');
+  test_width_at_scroll_top(element_0px_100px, 100, '0px');
+  test_width_at_scroll_top(element_0px_100px, 101, '0px');
+
+  // [50px, 100px]
+  test_width_at_scroll_top(element_50px_100px, 0, '0px');
+  test_width_at_scroll_top(element_50px_100px, 1, '0px');
+  test_width_at_scroll_top(element_50px_100px, 49, '0px');
+  test_width_at_scroll_top(element_50px_100px, 50, '100px');
+  test_width_at_scroll_top(element_50px_100px, 51, '102px');
+  test_width_at_scroll_top(element_50px_100px, 99, '198px');
+  test_width_at_scroll_top(element_50px_100px, 100, '0px');
+  test_width_at_scroll_top(element_50px_100px, 101, '0px');
+
+  // [auto, auto]
+  test_approximate_width_at_fraction(element_auto_auto, 0, '100px');
+  test_approximate_width_at_fraction(element_auto_auto, 0.1, '110px');
+  test_approximate_width_at_fraction(element_auto_auto, 0.5, '150px');
+  test_approximate_width_at_fraction(element_auto_auto, 0.9, '190px');
+  // TODO: Effects for scroll linked animations are not inclusive at max scroll
+  // https://github.com/w3c/csswg-drafts/issues/5223
+  test_approximate_width_at_fraction(element_auto_auto, 1, '0px');
+
+  // [auto, auto] (implicit)
+  test_approximate_width_at_fraction(element_auto_auto_implicit, 0, '100px');
+  test_approximate_width_at_fraction(element_auto_auto_implicit, 0.1, '110px');
+  test_approximate_width_at_fraction(element_auto_auto_implicit, 0.5, '150px');
+  test_approximate_width_at_fraction(element_auto_auto_implicit, 0.9, '190px');
+  // TODO: Effects for scroll linked animations are not inclusive at max scroll
+  // https://github.com/w3c/csswg-drafts/issues/5223
+  test_approximate_width_at_fraction(element_auto_auto_implicit, 1, '0px');
+
+  // [50px, auto]
+  {
+    let offset = (t) => (max => 50 * (1 - t) + max * t);
+    test_width_at_scroll_top(element_50px_auto, 0, '0px');
+    test_width_at_scroll_top(element_50px_auto, 49, '0px');
+    test_width_at_scroll_top(element_50px_auto, 50, '100px');
+    test_approximate_width_at_fraction(element_50px_auto, offset(0.5), '150px');
+    test_approximate_width_at_fraction(element_50px_auto, offset(0.9), '190px');
+    test_approximate_width_at_fraction(element_50px_auto, 1, '0px');
+  }
+
+  // [auto, 100px]
+  test_width_at_scroll_top(element_auto_100px, 0, '100px');
+  test_width_at_scroll_top(element_auto_100px, 1, '101px');
+  test_width_at_scroll_top(element_auto_100px, 50, '150px');
+  test_width_at_scroll_top(element_auto_100px, 99, '199px');
+  test_width_at_scroll_top(element_auto_100px, 100, '0px');
+
+  // [25%, 75%]
+  test_approximate_width_at_fraction(element_25p_75p, 0, '0px');
+  test_approximate_width_at_fraction(element_25p_75p, 0.1, '0px');
+  test_approximate_width_at_fraction(element_25p_75p, 0.2, '0px');
+  test_approximate_width_at_fraction(element_25p_75p, 0.35, '120px');
+  test_approximate_width_at_fraction(element_25p_75p, 0.55, '160px');
+  test_approximate_width_at_fraction(element_25p_75p, 0.8, '0px');
+  test_approximate_width_at_fraction(element_25p_75p, 1, '0px');
+
+  // [calc(25% + 10px), calc(75% + 10px)]
+  {
+    let offset = (t) => (max => (max * 0.25 + 10) * (1 - t) + (max * 0.75 + 10) * t);
+    test_approximate_width_at_fraction(element_calc_calc, offset(0), '0px');
+    test_approximate_width_at_fraction(element_calc_calc, offset(0.5), '150px');
+    test_approximate_width_at_fraction(element_calc_calc, offset(1.1), '0px');
+  }
+
+</script>

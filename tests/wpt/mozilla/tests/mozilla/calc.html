@@ -9,6 +9,7 @@
 #inner {
     border-style: solid; /* So used border == computed border */
     outline-style: solid; /* So used outline-width == computed outline-width */
+    transition-property: none; /* so that tests don't occur in the middle of a transition */
 }
 </style>
 </head>
@@ -41,17 +42,17 @@ var widthTests = [
     ['calc(10px + 10em - 10px)', 'calc(10em + 0px)', '160px'],
 
     // Fold absolute units
-    ['calc(1px + 1pt + 1pc + 1in + 1cm + 1mm)', 'calc(155.91666666666666px)', '155.91666666666666px'],
+    ['calc(96px + 72pt + 6pc + 1in + 2.54cm + 25.4mm)', 'calc(576px)', '576px'],
 
     // Alphabetical order
     ['calc(0ch + 0px + 0pt + 0pc + 0in + 0cm + 0mm + 0rem + 0em + 0ex + 0% + 0vw + 0vh + 0vmin + 0vmax)',
-     'calc(0ch + 0em + 0ex + 0rem + 0vh + 0vmax + 0vmin + 0vw + 0px + 0%)',
+     'calc(0% + 0ch + 0em + 0ex + 0px + 0rem + 0vh + 0vmax + 0vmin + 0vw)',
      '0px'],
 
     // Simplification
     ['calc((2 - 1) * 10px)', 'calc(10px)', '10px'],
     ['calc(((3 - 1) * (8 + 4)) * 10px)', 'calc(240px)', '240px'],
-    ['calc(5 * (20px / 2 + 7 * (3em + 12px/4 + (8 - 2) * 2rem)))', 'calc(105em + 420rem + 155px)', '8555px'],
+    ['calc(5 * (20px / 2 + 7 * (3em + 12px/4 + (8 - 2) * 2rem)))', 'calc(105em + 155px + 420rem)', '8555px'],
 
 ];
 
@@ -106,7 +107,7 @@ var lengthOrPercentageProperties = [
 lengthOrPercentageProperties.forEach(function(prop) {
     test(function() {
         div.style.setProperty(prop, 'calc(1px + 0%)');
-        assert_equals(div.style.getPropertyValue(prop), 'calc(1px + 0%)');
+        assert_equals(div.style.getPropertyValue(prop), 'calc(0% + 1px)');
     }, 'calc for ' + prop);
 });
 
@@ -141,14 +142,14 @@ numberProperties.forEach(function(prop) {
 var otherProperties = [
   ['border-width', 'calc(1px)', 'calc(1px)'],
   ['border-spacing', 'calc(1px)', 'calc(1px)'],
-  ['transform-origin', 'calc(1px + 0%)', 'calc(1px + 0%) 50% 0px'],
-  ['perspective-origin', 'calc(1px + 0%)', 'calc(1px + 0%) 50%'],
-  ['background-size', 'calc(1px + 0%)', 'calc(1px + 0%) auto'],
-  ['background-position', 'calc(1px + 0%) calc(2px + 0%)', 'calc(1px + 0%) calc(2px + 0%)'],
-  ['border-top-left-radius', 'calc(1px + 0%)', 'calc(1px + 0%) calc(1px + 0%)'],
-  ['border-bottom-left-radius', 'calc(1px + 0%)', 'calc(1px + 0%) calc(1px + 0%)'],
-  ['border-top-right-radius', 'calc(1px + 0%)', 'calc(1px + 0%) calc(1px + 0%)'],
-  ['border-bottom-right-radius', 'calc(1px + 0%)', 'calc(1px + 0%) calc(1px + 0%)'],
+  ['transform-origin', 'calc(1px + 0%)', 'calc(0% + 1px) center 0px'],
+  ['perspective-origin', 'calc(1px + 0%)', 'calc(0% + 1px) center'],
+  ['background-size', 'calc(1px + 0%)', 'calc(0% + 1px)'],
+  ['background-position', 'calc(1px + 0%) calc(2px + 0%)', 'calc(0% + 1px) calc(0% + 2px)'],
+  ['border-top-left-radius', 'calc(1px + 0%)', 'calc(0% + 1px)'],
+  ['border-bottom-left-radius', 'calc(1px + 0%)', 'calc(0% + 1px)'],
+  ['border-top-right-radius', 'calc(1px + 0%)', 'calc(0% + 1px)'],
+  ['border-bottom-right-radius', 'calc(1px + 0%)', 'calc(0% + 1px)'],
   ['counter-increment', 'foo calc(1 + 1)', 'foo calc(2)'],
 ];
 

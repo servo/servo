@@ -1,0 +1,27 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Event Timing API (https://wicg.github.io/event-timing/)
+
+[Exposed=Window]
+interface PerformanceEventTiming : PerformanceEntry {
+    readonly attribute DOMHighResTimeStamp processingStart;
+    readonly attribute DOMHighResTimeStamp processingEnd;
+    readonly attribute boolean cancelable;
+    readonly attribute Node? target;
+    [Default] object toJSON();
+};
+
+[Exposed=Window]
+interface EventCounts {
+    readonly maplike<DOMString, unsigned long long>;
+};
+
+[Exposed=Window]
+partial interface Performance {
+    [SameObject] readonly attribute EventCounts eventCounts;
+};
+
+partial dictionary PerformanceObserverInit {
+    DOMHighResTimeStamp durationThreshold;
+};

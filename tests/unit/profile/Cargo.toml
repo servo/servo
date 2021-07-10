@@ -3,6 +3,7 @@ name = "profile_tests"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
+edition = "2018"
 
 [lib]
 name = "profile_tests"
@@ -10,6 +11,8 @@ path = "lib.rs"
 doctest = false
 
 [dependencies]
-ipc-channel = "0.7"
+ipc-channel = "0.14"
 profile = {path = "../../../components/profile"}
 profile_traits = {path = "../../../components/profile_traits"}
+servo_config = {path = "../../../components/config"}
+

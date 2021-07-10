@@ -3,6 +3,10 @@ from .utils import HTTPException
 
 class RangeParser(object):
     def __call__(self, header, file_size):
+        try:
+            header = header.decode("ascii")
+        except UnicodeDecodeError:
+            raise HTTPException(400, "Non-ASCII range header value")
         prefix = "bytes="
         if not header.startswith(prefix):
             raise HTTPException(416, message="Unrecognised range type %s" % (header,))

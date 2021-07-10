@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<body>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/feature-policy/resources/featurepolicy.js></script>
+<script>
+'use strict';
+
+const base_src = '/feature-policy/resources/redirect-on-load.html#';
+const sub = 'https://{{domains[www]}}:{{ports[https][0]}}';
+const relative_path =
+  '/feature-policy/resources/feature-policy-idle-detection.html';
+const relative_worker_frame_path =
+  '/feature-policy/resources/feature-policy-idle-detection-worker.html';
+const same_origin_src = base_src + relative_path;
+const same_origin_worker_frame_src = base_src + relative_worker_frame_path;
+const cross_origin_src = base_src + sub + relative_path;
+const cross_origin_worker_frame_src = base_src + sub +
+  relative_worker_frame_path;
+
+promise_setup(async () => {
+  await test_driver.set_permission({ name: 'idle-detection' }, 'granted', false);
+});
+
+promise_test(async t => {
+  test_feature_availability('new IdleDetector().start()', t, same_origin_src,
+      expect_feature_available_default, 'idle-detection');
+}, 'Attribute allow="idle-detection" in top-level frame ' +
+   'allows same-origin relocation.');
+
+promise_test(async t => {
+  test_feature_availability('new IdleDetector().start()', t, same_origin_worker_frame_src,
+      expect_feature_available_default, 'idle-detection');
+}, 'Attribute allow="idle-detection" in top-level frame ' +
+   'allows workers in same-origin relocation.');
+
+promise_test(async t => {
+  test_feature_availability('new IdleDetector().start()', t, cross_origin_src,
+      expect_feature_unavailable_default, 'idle-detection');
+}, 'Attribute allow="idle-detection" in top-level frame ' +
+   'disallows cross-origin relocation.');
+
+promise_test(async t => {
+  test_feature_availability('new IdleDetector().start()', t, cross_origin_worker_frame_src,
+      expect_feature_unavailable_default, 'idle-detection');
+}, 'Attribute allow="idle-detection" in top-level frame ' +
+   'disallows workers in cross-origin relocation.');
+
+</script>
+</body>

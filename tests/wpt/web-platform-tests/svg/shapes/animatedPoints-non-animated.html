@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>animatedPoints non-animated</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/shapes.html#InterfaceSVGAnimatedPoints">
+<meta name="assert" content="animatedPoints represents the current non-animated value">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     width="200" height="200">
+  <polyline fill="none" stroke="blue" stroke-width="5"
+            points="20,30 50,70" id="stripe">
+    <set id="anim" attributeType="XML" attributeName="points" fill="freeze"
+         to="170,150 130,120" begin="indefinite" onbegin="measure()"/>
+  </polyline>
+</svg>
+<script>
+
+'use strict';
+
+var measure;
+
+async_test(t => {
+
+  measure = t.step_func(() => {
+    const stripe = document.getElementById('stripe');
+    const animatedPoints = stripe.animatedPoints;
+    assert_equals(animatedPoints.numberOfItems, 2);
+    assert_equals(animatedPoints.getItem(0).x, 20);
+    assert_equals(animatedPoints.getItem(0).y, 30);
+    assert_equals(animatedPoints.getItem(1).x, 50);
+    assert_equals(animatedPoints.getItem(1).y, 70);
+    t.done();
+  });
+
+  const anim = document.getElementById('anim');
+  if (anim.beginElement) {
+    anim.beginElement();
+  } else {
+    // SMIL not supported.
+    requestAnimationFrame(measure);
+  }
+}, 'animatedPoints represents non-animated value');
+
+</script>
+</body>
+</html>

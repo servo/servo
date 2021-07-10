@@ -4,24 +4,24 @@
 <title>Drag and drop of image to scrollable container</title>
 <style type="text/css">
 p + div
-	{height:150px;
-	width:150px;
-	overflow:scroll;}
+  {height:150px;
+  width:150px;
+  overflow:scroll;}
 div[ondragenter]
-	{margin:200px 0 0 200px;
-	width:105px;
-	min-height:105px;
-	text-align:center;
-	padding:10px;
- 	background-color:silver;}
+  {margin:200px 0 0 200px;
+  width:105px;
+  min-height:105px;
+  text-align:center;
+  padding:10px;
+  background-color:silver;}
 p:first-child
-	{padding-left:12px;}
+  {padding-left:12px;}
 </style>
 <script type="application/ecmascript">
 function addImage(event)
-	{var c = document.createElement('img');
-	c.setAttribute('src',event.dataTransfer.getData('text/uri-list').replace(/\r\n$/,''));
-	document.querySelector('div > div').appendChild(c);}
+  {var c = document.createElement('img');
+  c.setAttribute('src',event.dataTransfer.getData('text/uri-list').replace(/\r\n$/,''));
+  document.querySelector('div > div').appendChild(c);}
 </script>
 </head>
 <body>
@@ -30,11 +30,11 @@ function addImage(event)
 <p>It should be copied to the silver box once you drop it there.</p>
 <div>
 ↘
-	<div
-		ondragenter="event.preventDefault()"
-		ondragover="return false"
-		ondrop="addImage(event)"
-	/>
+  <div
+    ondragenter="event.preventDefault()"
+    ondragover="return false"
+    ondrop="addImage(event)"
+  />
 </div>
 </body>
 </html>

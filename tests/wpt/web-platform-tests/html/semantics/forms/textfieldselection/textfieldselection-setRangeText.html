@@ -94,13 +94,13 @@
     }, element.id + " selectionMode 'preserve'");
 
     test(function(){
-      assert_throws("INDEX_SIZE_ERR", function() {
+      assert_throws_dom("INDEX_SIZE_ERR", function() {
         element.setRangeText("barfoo", 2, 1);
       });
     }, element.id + " setRangeText with 3rd argument greater than 2nd argument throws an IndexSizeError exception");
 
     test(function(){
-      assert_throws(new TypeError(), function() {
+      assert_throws_js(TypeError, function() {
         element.setRangeText();
       });
     }, element.id + " setRangeText without argument throws a type error");
@@ -112,7 +112,7 @@
       //
       // This is unfortunately racy in that we might _still_ get spurious
       // passes.  I'm not sure how best to handle that.
-      setTimeout(this.step_func(function() {
+      this.step_timeout(function() {
         var q = false;
         element.onselect = this.step_func_done(function(e) {
           assert_true(q, "event should be queued");
@@ -122,7 +122,7 @@
         });
         element.setRangeText("foobar2", 0, 6);
         q = true;
-      }), 10);
+      }, 10);
     }, element.id + " setRangeText fires a select event");
 
   })

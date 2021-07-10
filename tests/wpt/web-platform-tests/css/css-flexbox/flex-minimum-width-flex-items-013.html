@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>Flex transferred minimum width</title>
+<link rel="author" title="dgrogan@chromium.org" href="mailto:dgrogan@chromium.org" />
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#min-size-auto" />
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5663" />
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="min-width: auto ignores transferred size suggestion when item has a definite specified main size">
+
+<style>
+#reference-overlapped-red {
+  position: absolute;
+  background-color: red;
+  width: 100px;
+  height: 100px;
+  z-index: -1;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div style="width:100px; height: 75px; background: green;"></div>
+<div style="display: flex; width: 0px; height: 25px;">
+  <!--
+    content size suggestion is 300px
+    specified size suggestion is 100px
+
+    Chrome 87 and Firefox 84a1 disagree about transferred size suggestion here
+    (Chrome says undefined. Firefox says 300/150 * 25 = 50. See spec issue
+    above.) but it doesn't matter: this test asserts that the transferred size
+    suggestion is ignored, because of this from the spec (capitalization
+    added):
+
+    In general, the content-based minimum size of a flex item is the smaller of
+    its content size suggestion and its specified size suggestion. However, if
+    the box has an aspect ratio AND NO specified size, its content-based
+    minimum size is the smaller of its content size suggestion and its
+    transferred size suggestion.
+
+    So here the content-based minimum size is min(300, 100) = 100.
+  -->
+  <img src="support/300x150-green.png" style="width: 100px;">
+</div>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Table as a flex item in column-oriented flex container</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#resolve-flexible-lengths">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#computing-the-table-height">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1692116">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="Inflexible table flex item's flex base size is its final main size.">
+
+<p>Test passes if there is a filled green square.</p>
+<div style="display: flex; flex-direction: column;">
+  <table style="box-sizing: content-box; border: 10px solid green; background: green;
+                width: 80px; flex: 0 0 50px">
+    <caption style="height: 10px; border: 10px solid green; background: green;"></caption>
+  </table>
+</div>

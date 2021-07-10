@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <title>CSS Test: flex container layout starts with lowest order item</title>
+  <link rel="author" title="Sylvain Galineau" href="mailto:galineau@adobe.com">
+  <link rel="reviewer" title="Arron Eicholz" href="mailto:arronei@microsoft.com">
+  <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#order-property">
+  <meta name="flags" content="">
+  <meta name="assert" content="This test check that a flex container layous out its content starting with the lowest numbered ordinal group and going up">
+  <style>
+    #test {
+      display: flex;
+    }
+
+    #leftmost {
+      order: -1;
+    }
+
+    #middle {
+      order:0;
+    }
+
+    #rightmost {
+      order:1;
+    }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if the paragraph below reads 'First,Second,Third'.</p>
+  <div id="test">
+    <p id="rightmost">Third</p>
+    <p id="middle">Second,</p>
+    <p id="leftmost">First,</p>
+  </div>
+ </body>
+</html>

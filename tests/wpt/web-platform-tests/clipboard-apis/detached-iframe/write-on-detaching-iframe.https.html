@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>navigator.clipboard write on detaching iframe</title>
+<link rel='help' href='https://w3c.github.io/clipboard-apis/#async-clipboard-api'>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<iframe id="iframe"></iframe>
+<script>
+'use strict';
+
+promise_test(async t => {
+  // This tests proper behavior on a detaching iframe. text/plain is chosen for
+  // simplicity, and the test should fail the same way no matter what the input
+  // type is.
+  await test_driver.set_permission({name: 'clipboard-read'}, 'granted');
+  await test_driver.set_permission({name: 'clipboard-write'}, 'granted');
+
+  const iframe = document.getElementById('iframe');
+  const iframeClipboard = iframe.contentWindow.navigator.clipboard;
+  const blobInput = new Blob(['test string'], {type: 'text/plain'});
+  const clipboardItemInput = new ClipboardItem({'text/plain': blobInput});
+  // Clipboard API must only be available in focused documents.
+  // reference: https://www.w3.org/TR/clipboard-apis/#privacy-async
+  iframe.focus();
+
+  // An iframe detaching while writing to the clipboard should fail, but not
+  // crash. The lack of await here means that the iframe will detach while the
+  // write operation is running.
+  iframeClipboard.write([clipboardItemInput]);
+  iframe.parentNode.removeChild(iframe);
+}, 'Verify write fails on detaching iframe');
+</script>

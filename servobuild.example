@@ -1,27 +1,14 @@
 # Copy this file to .servobuild in the Servo root directory
-# Be sure to set the cache-dir correctly, otherwise extra
-# copies of the Rust compiler may get downloaded
 
 # Paths starting with "./" are relative to the repo root
 
 # Tool options
 [tools]
-# Where Rust compiler and other downloads will be stored.  Can be
-# shared by multiple Servo repositories.  Defaults to <servo-repo>/.servo
-cache-dir = "./.servo"
-
-# Where Cargo stores all of its clones  Defaults to <servo-repo>/.cargo
-cargo-home-dir = "./.cargo"
-
-# If system-rust is true, will use rustc/rustdoc from the path, or if
-# rust-root is specified, will make sure that rust-root is in the path
-# when building. Similarly for Cargo. This takes care of PATH as well as
-# [DY]LD_LIBRARY_PATH.
-# rust-root and cargo-root default to <servo-repo>/
-system-rust = false
-#rust-root = "/path/to/rust"
-system-cargo = false
-#cargo-root = "/path/to/cargo"
+# If use-rustup is set to false, mach will run for example "cargo build"
+# instead of "rustup run --install <toolchain> cargo build"
+# It is then the user’s responsibility to ensure that cargo and especially rustc
+# in $PATH are versions compatible with Servo.
+use-rustup = true
 
 # If rustc-with-gold is true, will try to find and use gold linker with rustc.
 # Defaults to true
@@ -39,14 +26,28 @@ rustc-with-gold = true
 # Defaults to prompting before building
 #mode = "dev"
 
-# Whether to enable LLVM assertions in rustc.
-#llvm-assertions = false
-
 # Set "android = true" or use `mach build --android` to build the Android app.
 android = false
 
+# Enable `debug_assert!` macros in release mode
+debug-assertions = false
+
 # Set "debug-mozjs" or use `mach build --debug-mozjs` to build a debug spidermonkey.
 debug-mozjs = false
+
+# When a GL error occurs as a result of a WebGL operation, print the stack trace for the content
+# JS and native Rust code that triggered the failed operation. Warning: very slow.
+webgl-backtrace = false
+
+# When a DOM exception is reported, print the stack trace for the content JS and native Rust code
+# that triggered it.
+dom-backtrace = false
+
+# Default to the “2020” implementation of CSS layout instead of the “2013” one.
+layout-2020 = false
+
+# Pick a media stack based on the target. Other values are "gstreamer" and "dummy"
+media-stack = "auto"
 
 # Set to the path to your ccache binary to enable caching of compiler outputs
 #ccache = "/usr/local/bin/ccache"
@@ -54,8 +55,16 @@ debug-mozjs = false
 # Any optional flags that will be added to $RUSTFLAGS
 #rustflags = ""
 
-# Enable rustc’s incremental compilation
+# Enable or disable rustc’s incremental compilation
+# Cargo’s default is to enable it in debug mode but not in release mode.
+# Leaving this key unspecified makes mach keep Cargo’s default.
+# It can be set to true or false in order to always enable or always disable
+# incremental compilation.
 #incremental = false
+#incremental = true
+
+# Whether to use ThinLTO or not
+#thinlto = false
 
 # Android information
 [android]

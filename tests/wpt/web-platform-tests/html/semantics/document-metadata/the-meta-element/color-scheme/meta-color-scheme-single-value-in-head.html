@@ -1,0 +1,10 @@
+<!doctype html>
+<title>Single meta color-scheme in head</title>
+<meta name="color-scheme" content="dark">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#meta-color-scheme">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/compute-root-color-scheme.js"></script>
+<script>
+  assert_root_color_scheme("dark", "Meta color-scheme in head applies.");
+</script>

@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<script>
+  let message = {
+    httpReferrer: '{{header_or_default(Referer, no-http-referrer)}}',
+    documentReferrer: document.referrer || 'no-document-referrer',
+  };
+  window.portalHost.postMessage(message);
+</script>

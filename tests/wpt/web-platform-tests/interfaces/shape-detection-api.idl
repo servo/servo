@@ -1,0 +1,69 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Accelerated Shape Detection in Images (https://wicg.github.io/shape-detection-api/)
+
+[Exposed=(Window,Worker),
+ SecureContext]
+interface FaceDetector {
+  constructor(optional FaceDetectorOptions faceDetectorOptions = {});
+  Promise<sequence<DetectedFace>> detect(ImageBitmapSource image);
+};
+
+dictionary FaceDetectorOptions {
+  unsigned short maxDetectedFaces;
+  boolean fastMode;
+};
+
+dictionary DetectedFace {
+  required DOMRectReadOnly boundingBox;
+  required FrozenArray<Landmark>? landmarks;
+};
+
+dictionary Landmark {
+  required FrozenArray<Point2D> locations;
+  LandmarkType type;
+};
+
+enum LandmarkType {
+  "mouth",
+  "eye",
+  "nose"
+};
+
+[Exposed=(Window,Worker),
+ SecureContext]
+interface BarcodeDetector {
+  constructor(optional BarcodeDetectorOptions barcodeDetectorOptions = {});
+  static Promise<sequence<BarcodeFormat>> getSupportedFormats();
+
+  Promise<sequence<DetectedBarcode>> detect(ImageBitmapSource image);
+};
+
+dictionary BarcodeDetectorOptions {
+  sequence<BarcodeFormat> formats;
+};
+
+dictionary DetectedBarcode {
+  required DOMRectReadOnly boundingBox;
+  required DOMString rawValue;
+  required BarcodeFormat format;
+  required FrozenArray<Point2D> cornerPoints;
+};
+
+enum BarcodeFormat {
+  "aztec",
+  "code_128",
+  "code_39",
+  "code_93",
+  "codabar",
+  "data_matrix",
+  "ean_13",
+  "ean_8",
+  "itf",
+  "pdf417",
+  "qr_code",
+  "unknown",
+  "upc_a",
+  "upc_e"
+};

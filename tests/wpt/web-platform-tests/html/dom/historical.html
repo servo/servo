@@ -1,0 +1,42 @@
+<!doctype html>
+<title>Historical HTML APIs</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<applet name=war align=left></applet>
+<script>
+test(() => {
+  assert_array_equals(document.applets, []);
+}, "document.applets is always empty");
+
+test(() => {
+  const ap = document.getElementsByTagName("applet")[0];
+  assert_equals(self.HTMLAppletElement, undefined);
+  assert_true(ap instanceof window.HTMLUnknownElement);
+}, "HTMLAppletElement is no more")
+
+test(() => {
+  assert_equals(document.all.war, undefined);
+}, "document.all cannot find applet")
+
+test(() => {
+  assert_equals(document.war, undefined);
+}, "document cannot find applet")
+
+test(() => {
+  assert_equals(self.war, undefined);
+}, "window cannot find applet")
+
+test(() => {
+  assert_equals(self.getComputedStyle(document.getElementsByTagName("applet")[0], "").cssFloat, "none");
+}, "applet is not styled")
+
+// removed in https://github.com/whatwg/html/commit/e383ae23776362cafb2fb4bbba70c8c9080d4b0f
+test(() => {
+  assert_false("HTMLTableDataCellElement" in window);
+}, "HTMLTableDataCellElement interface is removed")
+
+test(() => {
+  assert_false("HTMLTableHeaderCellElement" in window);
+}, "HTMLTableHeaderCellElement interface is removed")
+</script>

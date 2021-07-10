@@ -1,9 +1,9 @@
 --- WebIDL.py
 +++ WebIDL.py
-@@ -1695,7 +1695,8 @@ class IDLInterface(IDLInterfaceOrNamespace):
-                   identifier == "ProbablyShortLivingObject" or
-                   identifier == "LegacyUnenumerableNamedProperties" or
-                   identifier == "NonOrdinaryGetPrototypeOf" or
+@@ -1884,7 +1884,8 @@ class IDLInterface(IDLInterfaceOrNamespace):
+                   identifier == "RunConstructorInCallerCompartment" or
+                   identifier == "WantsEventListenerHooks" or
+                   identifier == "Serializable" or
 -                  identifier == "Abstract"):
 +                  identifier == "Abstract" or
 +                  identifier == "Inline"):

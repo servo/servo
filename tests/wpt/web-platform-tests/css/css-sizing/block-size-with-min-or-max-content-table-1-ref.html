@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSS Reference Case: Block size with max-content and min-content in a table</title>
+  <meta charset="utf-8">
+  <link rel="author" title="Boris Chiou" href="mailto:boris.chiou@gmail.com">
+  <style>
+    html,body {
+      margin: 0;
+    }
+    table {
+      border: 2px solid black;
+    }
+
+    td {
+      border: 2px solid lime;
+    }
+
+    .item {
+      height: 50px;
+      width: 50px;
+      border: 1px solid blue;
+    }
+
+    .container {
+      writing-mode: vertical-lr;
+    }
+
+    .small { block-size: 1px; }
+    .big { block-size: 150px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <table class="big"><td><div class="item"></div></td></table>
+    <table class="big"><td><div class="item"></div></td></table>
+
+    <table><td class="small"><div class="item"></div></td></table>
+    <table><td class="small"><div class="item"></div></td></table>
+  </div>
+
+  <table class="big"><td><div class="item"></div></td></table>
+  <table class="big"><td><div class="item"></div></td></table>
+
+  <table><td class="small"><div class="item"></div></td></table>
+  <table><td class="small"><div class="item"></div></td></table>
+</body>
+</html>

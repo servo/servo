@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<title>SyntaxError thrown when matching CSS-wide keyword</title>
+<link rel="help" href="https://drafts.csswg.org/css-font-loading/#font-face-set-load">
+<link rel="help" href="https://drafts.csswg.org/css-font-loading/#find-the-matching-font-faces">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+  function load_on_worker(keyword) {
+    return new Promise((resolve, reject) =>{
+      var blob = new Blob([`
+        self.fonts.load('${keyword}').then(
+          ()=>{ self.postMessage('success') },
+          (e)=>{ self.postMessage(e) }
+        );
+      `]);
+      var blob_url = window.URL.createObjectURL(blob);
+      let worker = new Worker(blob_url);
+      worker.onmessage = msg => {
+        if (msg === 'success')
+          resolve(msg.data)
+        else
+          reject(msg.data)
+      }
+    });
+  }
+
+  promise_test(test => {
+    return promise_rejects_dom(test, 'SyntaxError', document.fonts.load('initial'));
+  }, 'Loading CSS-wide keyword "initial" causes SyntaxError (document)')
+
+  promise_test(test => {
+    return promise_rejects_dom(test, 'SyntaxError', document.fonts.load('inherit'));
+  }, 'Loading CSS-wide keyword "inherit" causes SyntaxError (document)')
+
+  promise_test(test => {
+    return promise_rejects_dom(test, 'SyntaxError', document.fonts.load('unset'));
+  }, 'Loading CSS-wide keyword "unset" causes SyntaxError (document)')
+
+  promise_test(test => {
+    return promise_rejects_dom(test, 'SyntaxError', document.fonts.load('revert'));
+  }, 'Loading CSS-wide keyword "revert" causes SyntaxError (document)')
+
+  promise_test(test => {
+    return promise_rejects_dom(test, 'SyntaxError', load_on_worker('initial'));
+  }, 'Loading CSS-wide keyword "initial" causes SyntaxError (worker)')
+
+  promise_test(test => {
+    return promise_rejects_dom(test, 'SyntaxError', load_on_worker('inherit'));
+  }, 'Loading CSS-wide keyword "inherit" causes SyntaxError (worker)')
+
+  promise_test(test => {
+    return promise_rejects_dom(test, 'SyntaxError', load_on_worker('unset'));
+  }, 'Loading CSS-wide keyword "unset" causes SyntaxError (worker)')
+
+  promise_test(test => {
+    return promise_rejects_dom(test, 'SyntaxError', load_on_worker('revert'));
+  }, 'Loading CSS-wide keyword "revert" causes SyntaxError (worker)')
+
+</script>

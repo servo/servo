@@ -4,6 +4,7 @@
         <title>CSS Test: Right table border width under collapsing borders model</title>
         <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
         <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#collapsing-borders" />
+        <link rel="match" href="collapsing-border-model-001-ref.html" />
         <meta name="flags" content="" />
         <meta name="assert" content="The right border width of the table is half of the collapsed right border width of the last cell of the first row." />
         <style type="text/css">
@@ -14,21 +15,22 @@
             }
             col
             {
-                width: 1in;
+                width: 165px;
             }
             td, #div1
             {
-                height: 1in;
+                height: 120px;
             }
             td
             {
-                border-right: 1in solid blue;
+                width: 110px;
+                border-right: 110px solid blue;
                 padding: 0;
             }
             #div1
             {
                 background: orange;
-                width: 1.5in;
+                width: 220px;
             }
         </style>
     </head>

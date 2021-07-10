@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>CSS Test: PASS rendering</title>
+<link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#propdef-font-family" />
+<link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-family-prop" />
+<meta name="assert" content="The 'font-family' property set to and installed font renders the appropriate font." />
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style type="text/css">
+body { font-size: 36px; }
+span#verify { font-family: CSSTest Verify; }
+p {
+  font-family: ahem, monospace;
+}
+</style>
+<div><a href="http://www.w3.org/Style/CSS/Test/Fonts/">Test fonts</a> must be installed for this test: <span id="verify">FAIL</span></div>
+<p>These two lines should use the same font.</p>
+<p>These two lines should use the same font.</p>

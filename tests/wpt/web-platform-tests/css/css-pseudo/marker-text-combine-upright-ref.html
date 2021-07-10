@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Reference: ::marker supports 'text-combine-upright'</title>
+<style>
+body {
+  writing-mode: vertical-lr;
+}
+ol, ul {
+  display: flow-root;
+  list-style-type: none;
+}
+.symbol {
+  list-style-type: disc;
+}
+ul {
+  list-style-position: inside;
+}
+ol span {
+  display: inline-block;
+  margin-top: -50px;
+  height: 50px;
+  text-align: end;
+}
+span {
+  text-combine-upright: all;
+}
+</style>
+<ol><li><span>1. </span>outside decimal</li></ol>
+<ol><li><span>2. </span>outside string</li></ol>
+<ol><li><span>3. </span>outside content</li></ol>
+<ol class="symbol"><li>outside symbol</li></ol>
+
+<ul><li><span>1. </span>inside decimal</li></ul>
+<ul><li><span>2. </span>inside string</li></ul>
+<ul><li><span>3. </span>inside content</li></ul>
+<ul class="symbol"><li>inside symbol</li></ul>

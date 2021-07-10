@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#baseline-participation">
+<link rel="match" href="dynamic-baseline-change-ref.html">
+<meta name="assert" content="This test ensures proper baseline alignment for a sub-tree which adds a scrollbar.">
+<div style="display: flex; width: 100px; border: solid; align-items: baseline;">
+  <div style="width: 50px; height: 50px; position: relative; overflow: auto;">
+    <canvas width=10 height=10 style="width: 80%; background: green;"></canvas> <!-- Baseline of the canvas will move when a scrollbar is added. -->
+    <div id="target" style="position: absolute; width: 10px; height: 10px; background: red; top: 0;"></div>
+  </div>
+  <div style="width: 50px; height: 50px; background: green;"></div> <!-- Baseline is synthesized at the block-end edge. -->
+</div>
+<script>
+  document.body.offsetTop;
+  document.getElementById('target').style.top = '100px';
+</script>

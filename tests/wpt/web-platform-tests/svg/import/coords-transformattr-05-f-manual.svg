@@ -20,13 +20,13 @@
       </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
-	<p>Run the test. No interaction required.</p>
+  <p>Run the test. No interaction required.</p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
         Test passes if there is no red visible on the page.
       </p>
-            
+
     </d:passCriteria>
   </d:SVGTestCase>
   <title id="test-title">$RCSfile: coords-transformattr-05-f.svg,v $</title>

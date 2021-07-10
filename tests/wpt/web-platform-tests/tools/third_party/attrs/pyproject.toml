@@ -1,0 +1,27 @@
+[tool.towncrier]
+    package = "attr"
+    package_dir = "src"
+    filename = "CHANGELOG.rst"
+    template = "changelog.d/towncrier_template.rst"
+    issue_format = "`#{issue} <https://github.com/python-attrs/attrs/issues/{issue}>`_"
+    directory = "changelog.d"
+    title_format = "{version} ({project_date})"
+    underlines = ["-", "^"]
+
+    [[tool.towncrier.section]]
+        path = ""
+
+    [[tool.towncrier.type]]
+        directory = "breaking"
+        name = "Backward-incompatible Changes"
+        showcontent = true
+
+    [[tool.towncrier.type]]
+        directory = "deprecation"
+        name = "Deprecations"
+        showcontent = true
+
+    [[tool.towncrier.type]]
+        directory = "change"
+        name = "Changes"
+        showcontent = true

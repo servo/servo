@@ -1,0 +1,46 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Intersection Observer (https://w3c.github.io/IntersectionObserver/)
+
+callback IntersectionObserverCallback = undefined (sequence<IntersectionObserverEntry> entries, IntersectionObserver observer);
+
+[Exposed=Window]
+interface IntersectionObserver {
+  constructor(IntersectionObserverCallback callback, optional IntersectionObserverInit options = {});
+  readonly attribute (Element or Document)? root;
+  readonly attribute DOMString rootMargin;
+  readonly attribute FrozenArray<double> thresholds;
+  undefined observe(Element target);
+  undefined unobserve(Element target);
+  undefined disconnect();
+  sequence<IntersectionObserverEntry> takeRecords();
+};
+
+[Exposed=Window]
+interface IntersectionObserverEntry {
+  constructor(IntersectionObserverEntryInit intersectionObserverEntryInit);
+  readonly attribute DOMHighResTimeStamp time;
+  readonly attribute DOMRectReadOnly? rootBounds;
+  readonly attribute DOMRectReadOnly boundingClientRect;
+  readonly attribute DOMRectReadOnly intersectionRect;
+  readonly attribute boolean isIntersecting;
+  readonly attribute double intersectionRatio;
+  readonly attribute Element target;
+};
+
+dictionary IntersectionObserverEntryInit {
+  required DOMHighResTimeStamp time;
+  required DOMRectInit? rootBounds;
+  required DOMRectInit boundingClientRect;
+  required DOMRectInit intersectionRect;
+  required boolean isIntersecting;
+  required double intersectionRatio;
+  required Element target;
+};
+
+dictionary IntersectionObserverInit {
+  (Element or Document)?  root = null;
+  DOMString rootMargin = "0px";
+  (double or sequence<double>) threshold = 0;
+};

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>presentational hints</title>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+  @font-face {
+    font-family: DoubleStruck;
+    src: url("/fonts/math/mathvariant-double-struck.woff");
+  }
+  @font-face {
+    font-family: Italic;
+    src: url("/fonts/math/mathvariant-italic.woff");
+  }
+  math {
+      font: 25px/1 Ahem;
+  }
+</style>
+<body>
+  <p>dir:
+    <math style="direction: ltr;">
+      <mtext>X</mtext>
+      <mtext>p</mtext>
+    </math>
+  </p>
+  <p>mathcolor:
+    <math style="color: green;">
+      <mtext>X</mtext>
+      <mtext>p</mtext>
+    </math>
+  </p>
+  <p>mathbackground:
+    <math style="background: green;">
+      <mtext>X</mtext>
+      <mtext>p</mtext>
+  </p>
+  <p>mathsize:
+    <math>
+      <mtext style="font-size: 100%">X</mtext>
+    </math>
+  </p>
+  <p>mathvariant:
+    <math style="font-family: DoubleStruck, Italic;">
+      <mtext style="text-transform: math-italic">&#x628;</mtext>
+    </math>
+  </p>
+  <p>displaystyle:
+    <math style="math-style: compact">
+      <munder>
+        <mo movablelimits="true">X</mo>
+        <mo>X</mo>
+      </munder>
+    </math>
+  </p>
+  <p>scriptlevel:
+    <math>
+      <mtext style="math-depth: 0;">X</mtext>
+    </math>
+  </p>
+</body>
+</html>

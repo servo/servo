@@ -1,0 +1,19 @@
+<!doctype html>
+<title>SVG Filters: feColorMatrix filter</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#FilterProperty">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#feColorMatrixElement">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=227025">
+<link rel="match" href="reference/effect-reference-add-hw-001-ref.html">
+<meta name="assert" content="Check that a reference filter can be dynamically set on elements with will-change: transform."/>
+<div style="width: 100px; height: 100px; background-color: rgb(255, 0, 0); will-change: transform" id="div1"></div>
+<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" version="1.1">
+  <defs>
+    <filter id="colormatrix">
+      <feColorMatrix type="matrix" values="0 1 0 0 0  1 0 0 0 0  0 0 1 0 0  0 0 0 1 0"/>
+    </filter>
+  </defs>
+</svg>
+<script>
+  var div = document.getElementById("div1");
+  div.style.filter = "url(#colormatrix)";
+</script>

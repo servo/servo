@@ -1,0 +1,22 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Element Timing API (https://wicg.github.io/element-timing/)
+
+[Exposed=Window]
+interface PerformanceElementTiming : PerformanceEntry {
+    readonly attribute DOMHighResTimeStamp renderTime;
+    readonly attribute DOMHighResTimeStamp loadTime;
+    readonly attribute DOMRectReadOnly intersectionRect;
+    readonly attribute DOMString identifier;
+    readonly attribute unsigned long naturalWidth;
+    readonly attribute unsigned long naturalHeight;
+    readonly attribute DOMString id;
+    readonly attribute Element? element;
+    readonly attribute DOMString url;
+    [Default] object toJSON();
+};
+
+partial interface Element {
+    [CEReactions] attribute DOMString elementTiming;
+};

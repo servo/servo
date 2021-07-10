@@ -14,7 +14,7 @@
     template-version="1.4" reviewer="CL" author="CN" status="issue"
     version="$Revision: 1.6 $" testname="$RCSfile: fonts-glyph-03-t.svg,v $">
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/fonts.html#GlyphElement">
-    	<p>ISSUE: http://www.w3.org/2011/02/27-svg-irc#T22-20-51 - unapprove test for now</p>
+      <p>ISSUE: http://www.w3.org/2011/02/27-svg-irc#T22-20-51 - unapprove test for now</p>
       <p>
         This files tests the lang attribute support of the glyph
         element. The test should produce an upward-triangle for

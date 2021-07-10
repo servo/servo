@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>WebIDL conversions are performed correctly and don't lose values</title>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<script>
+test(function() {
+  var t = new TestBinding;
+
+  // (DOMString or object) receiveUnionIdentity((DOMString or object) arg)
+  var obj = { 'some': 'key', 'num': 42 };
+  assert_equals(t.receiveUnionIdentity(obj), obj);
+
+  var str = "myString";
+  assert_equals(t.receiveUnionIdentity(str), str);
+}, "(DOMString or object) conversion is performed correctly");
+</script>
+</html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS opacity Module Level 3: parsing opacity with valid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-color-3/#opacity">
+<meta name="assert" content="opacity supports the full grammar '<alphavalue>'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("opacity", "1");
+test_valid_value("opacity", "0.5");
+test_valid_value("opacity", "0");
+test_valid_value("opacity", "-2");
+test_valid_value("opacity", "3");
+test_valid_value("opacity", "-100%", "-1");
+test_valid_value("opacity", "50%", "0.5");
+test_valid_value("opacity", "300%", "3");
+
+</script>
+</body>
+</html>

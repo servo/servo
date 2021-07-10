@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500">
+    <defs>
+        <marker id="arrowNW" orient="225" markerUnits="userSpaceOnUse" style="overflow:visible">
+            <path d="M25,0 L 0,-25 L0,25 z" fill="green"/>
+        </marker>
+        <marker id="arrowNE" orient="315" markerUnits="userSpaceOnUse" style="overflow:visible">
+            <path d="M25,0 L 0,-25 L0,25 z" fill="green"/>
+        </marker>
+        <marker id="arrowSE" orient="45" markerUnits="userSpaceOnUse" style="overflow:visible">
+            <path d="M25,0 L 0,-25 L0,25 z" fill="green"/>
+        </marker>
+        <marker id="arrowSW" orient="135" markerUnits="userSpaceOnUse" style="overflow:visible">
+            <path d="M25,0 L 0,-25 L0,25 z" fill="green"/>
+        </marker>
+        <marker id="arrowW" orient="180" markerUnits="userSpaceOnUse" style="overflow:visible">
+            <path d="M25,0 L 0,-25 L0,25 z" fill="green"/>
+        </marker>
+        <marker id="arrowS" orient="90" markerUnits="userSpaceOnUse" style="overflow:visible">
+            <path d="M25,0 L 0,-25 L0,25 z" fill="green"/>
+        </marker>
+        <marker id="arrowAuto" orient="auto" markerUnits="userSpaceOnUse" style="overflow:visible">
+            <path d="M25,0 L 0,-25 L0,25 z" fill="green"/>
+        </marker>
+     </defs>
+    <!-- Test path, with markers -->
+    <path d="M 40,40 l140,140 240,240" marker-start="url(#arrowNW)" marker-mid="url(#arrowSE)" marker-end="url(#arrowSE)" stroke="black" stroke-width="2"/>
+    <path d="M 40,400 l100,-100 100,-100" marker-start="url(#arrowSW)" marker-mid="url(#arrowNE)" marker-end="url(#arrowNE)" stroke="black" stroke-width="2"/>
+    <path d="M 160,40 c40,0 40,0 40,40" marker-start="url(#arrowW)" marker-end="url(#arrowS)" stroke="black" fill="none" stroke-width="2"/>
+    <path d="M 260,140 a 100,100 0 1 1 100,100" marker-start="url(#arrowS)" marker-end="url(#arrowW)" stroke="black" fill="none" stroke-width="2"/>
+    <path d="M 340,100 h50 v50 h-50 z" marker-start="url(#arrowSW)" marker-mid="url(#arrowAuto)" marker-end="url(#arrowNE)" stroke="black" fill="none" stroke-width="2"/>
+</svg>

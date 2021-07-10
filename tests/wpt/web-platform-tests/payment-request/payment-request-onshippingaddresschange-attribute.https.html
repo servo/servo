@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<!-- Copyright © 2017 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<meta charset="utf-8">
+<title>Test for onshippingaddresschange attribute</title>
+<link rel="help" href="https://w3c.github.io/browser-payment-api/#onshippingaddresschange-attribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+const applePay = Object.freeze({
+  supportedMethods: "https://apple.com/apple-pay",
+  data: {
+    version: 3,
+    merchantIdentifier: "merchant.com.example",
+    countryCode: "US",
+    merchantCapabilities: ["supports3DS"],
+    supportedNetworks: ["visa"],
+  }
+});
+const basicCard = Object.freeze({ supportedMethods: "basic-card" });
+const defaultMethods = Object.freeze([basicCard, applePay]);
+const defaultDetails = Object.freeze({
+  total: {
+    label: "Total",
+    amount: {
+      currency: "USD",
+      value: "1.00",
+    },
+  },
+});
+
+test(() => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  assert_idl_attribute(request, "onshippingaddresschange");
+}, "Must have a onshippingaddresschange IDL attribute");
+
+test(() => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  const ev = new Event("shippingaddresschange");
+  let didHandle = false;
+  request.onshippingaddresschange = evt => {
+    assert_equals(ev, evt, "must be same event");
+    didHandle = true;
+  };
+  request.dispatchEvent(ev);
+  assert_true(didHandle, "event did not fire");
+}, `onshippingaddresschange attribute is a generic handler for "shippingaddresschange"`);
+
+test(() => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  const ev = new PaymentRequestUpdateEvent("shippingaddresschange");
+  let didHandle = false;
+  request.onshippingaddresschange = evt => {
+    assert_equals(ev, evt, "must be same event");
+    didHandle = true;
+  };
+  request.dispatchEvent(ev);
+  assert_true(didHandle, "event did not fire");
+}, `onshippingaddresschange attribute is a handler for PaymentRequestUpdateEvent`);
+
+test(() => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  const ev = new PaymentRequestUpdateEvent("shippingaddresschange");
+  let didHandle = false;
+  let didListen = false;
+  request.onshippingaddresschange = evt => {
+    assert_equals(ev, evt, "must be same event");
+    didHandle = true;
+  };
+  request.addEventListener("shippingaddresschange", evt => {
+    assert_equals(ev, evt, "must be same event");
+    didListen = true;
+  });
+  request.dispatchEvent(ev);
+  assert_true(didHandle, "onshippingaddresschange did not receive the event");
+  assert_true(didListen, "addEventListener did not receive the event");
+}, `onshippingaddresschange attribute and listeners both work`);
+</script>

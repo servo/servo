@@ -1,0 +1,16 @@
+NOTE: Change "x.y" by the version you use. If you are unsure about which version
+you are using run: `pip show pytest`.
+
+Text:
+
+[pytest] pytest x.y, 2004
+Krekel et al., https://github.com/pytest-dev/pytest
+
+BibTeX:
+
+@misc{pytestx.y,
+  title =        {pytest x.y},
+  author = {Krekel, Holger and Oliveira, Bruno and Pfannschmidt, Ronny and Bruynooghe, Floris and Laugher, Brianna and Bruhin, Florian},
+  year =         {2004},
+  url = {https://github.com/pytest-dev/pytest},
+}

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Logical Properties and Values: getComputedStyle().paddingBlockStart etc.</title>
+<link rel="help" href="https://drafts.csswg.org/css-logical/#propdef-padding-block">
+<link rel="help" href="https://drafts.csswg.org/cssom/#resolved-values">
+<meta name="assert" content="padding-block, padding-inline resolved values have absolute length.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #container {
+    will-change: transform; /* containing block for #target */
+    width: 200px;
+  }
+  #parent {
+    width: 0px;
+  }
+  #target {
+    position: absolute;
+    font-size: 40px;
+  }
+</style>
+</head>
+<body>
+<div id="container">
+  <div id="parent">
+    <div id="target"></div>
+  </div>
+</div>
+<script>
+test_computed_value("padding-block-start", "10px");
+test_computed_value("padding-block-end", "10%", "20px");
+test_computed_value("padding-inline-start", "30px");
+test_computed_value("padding-inline-end", "1em", "40px");
+
+test_computed_value('padding-block-start', 'calc(10% + 40px)', '60px');
+test_computed_value('padding-block-end', 'calc(10% - 40px)', '0px');
+test_computed_value('padding-inline-start', 'calc(10% - 40px)', '0px');
+test_computed_value('padding-inline-end', 'calc(10% + 40px)', '60px');
+
+test_computed_value('padding-block-start', 'calc(10px - 0.5em)', '0px');
+test_computed_value('padding-block-end', 'calc(10px + 0.5em)', '30px');
+test_computed_value('padding-inline-start', 'calc(10px + 0.5em)', '30px');
+test_computed_value('padding-inline-end', 'calc(10px - 0.5em)', '0px');
+
+test_computed_value("padding-block", "10px");
+test_computed_value("padding-block", "10px 20px");
+test_computed_value("padding-inline", "30px");
+test_computed_value("padding-inline", "30px 40px");
+</script>
+</body>
+</html>

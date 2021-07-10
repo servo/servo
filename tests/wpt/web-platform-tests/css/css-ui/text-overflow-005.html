@@ -1,0 +1,20 @@
+<!doctype html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS-UI test: text-overflow reflow</title>
+<meta name="assert" content="Text overflow should disappear when the container becomes large enough. This test is targetted at bug #14952 in Servo's incremental reflow engine.">
+<link rel="author" title="Michael Howell" href="mailto:michael@notriddle.com">
+<link rel="help" title="8.2. Overflow Ellipsis: the 'text-overflow' property" href="http://www.w3.org/TR/css3-ui/#text-overflow">
+<link rel="match" href="reference/text-overflow-005-ref.html">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>html{font-family:Ahem}</style>
+<div id=goat style="width:5em"><p style="text-overflow:ellipsis;overflow:hidden">XXXXXXXXXX</p></div>
+<script>
+var goat = document.getElementById("goat");
+requestAnimationFrame(function() {
+    goat.style.width = "20em";
+    document.documentElement.className = "";
+});
+</script>
+

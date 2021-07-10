@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Test: hsl()</title>
+		<link rel="author" title="L. David Baron" href="https://dbaron.org/" />
+		<link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+		<link rel="help" href="http://www.w3.org/TR/css3-color/#hsl-color" />
+		<link rel="match" href="t424-hsl-parsing-f-ref.html" />
+		<meta name="flags" content="invalid" />
+		<meta name="assert" content="Test rules for parsing of hsl() colors." />
+		<style type="text/css"><![CDATA[
+		html, body { background: white; }
+		p { color: hsl(120, 100%, 25%); }
+		p { color: hsl(0, 255, 128); }
+		p { color: hsl(0%, 100%, 50%); }
+		p { color: hsl(0px, 100%, 50%); }
+		]]></style>
+	</head>
+	<body>
+		<p>This text should be dark green.</p>
+
+		<div>Note: the rules tested by this test may be changed in
+		future levels of the CSS Color Module.</div>
+	</body>
+</html>

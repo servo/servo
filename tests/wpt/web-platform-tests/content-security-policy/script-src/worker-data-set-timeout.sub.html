@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- We add two CSP entries on purpose. The first one does nothing
+    for the purpose of this test, but we want to check that both are
+    inherited -->
+    <meta http-equiv="Content-Security-Policy" content="object-src: 'none'">
+    <meta http-equiv="Content-Security-Policy" content="script-src data: 'self' 'unsafe-inline'; connect-src 'self';">
+    <title>worker-data-set-timeout</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/testharness-helper.js'></script>
+</head>
+
+<body>
+    <script>
+      fetch('./support/worker-with-script-src-none-set-timeout.js')
+       .then(data => data.text())
+       .then(
+           text => assert_shared_worker_is_loaded(
+               `data:text/javascript,${text}`,
+               "Shared worker with data: url inherits CSP",
+               "setTimeout blocked"));
+    </script>
+</body>
+
+</html>

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html>
 <body>
+<meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <meta name='flags' content='interact'>
-<meta name="timeout" content="long">
 <style type="text/css">
     button {
         color: blue;
@@ -70,7 +70,7 @@
             status_log.innerHTML = "Pointer lock exited!";
 
             leaveUATest.step(function() {
-                assert_true(document.pointerLockElement === null, "Pointer lock exited!");
+                assert_equals(document.pointerLockElement, null, "Pointer lock exited!");
             });
 
             leaveUATest.done();

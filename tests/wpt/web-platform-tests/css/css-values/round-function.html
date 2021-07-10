@@ -1,0 +1,97 @@
+<!doctype html>
+<title>round() function</title>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/numeric-testcommon.js"></script>
+
+<meta name=author content="Tab Atkins-Bittner">
+<link rel=help href="https://drafts.csswg.org/css-values-4/#round-func">
+
+<div id=target></div>
+<script>
+// No-op round should be same as nearest
+test_math_used("round(23px, 10px)", "20px");
+test_math_used("round(18px, 10px)", "20px");
+test_math_used("round(15px, 10px)", "20px");
+test_math_used("round(13px, 10px)", "10px");
+test_math_used("round(-13px, 10px)", "-10px");
+test_math_used("round(-18px, 10px)", "-20px");
+
+// Test nearest
+test_math_used("round(nearest, 23px, 10px)", "20px");
+test_math_used("round(nearest, 18px, 10px)", "20px");
+test_math_used("round(nearest, 15px, 10px)", "20px");
+test_math_used("round(nearest, 13px, 10px)", "10px");
+test_math_used("round(nearest, -13px, 10px)", "-10px");
+test_math_used("round(nearest, -18px, 10px)", "-20px");
+
+// Test down
+test_math_used("round(down, 23px, 10px)", "20px");
+test_math_used("round(down, 18px, 10px)", "10px");
+test_math_used("round(down, 15px, 10px)", "10px");
+test_math_used("round(down, 13px, 10px)", "10px");
+test_math_used("round(down, -13px, 10px)", "-20px");
+test_math_used("round(down, -18px, 10px)", "-20px");
+
+// Test up
+test_math_used("round(up, 23px, 10px)", "30px");
+test_math_used("round(up, 18px, 10px)", "20px");
+test_math_used("round(up, 15px, 10px)", "20px");
+test_math_used("round(up, 13px, 10px)", "20px");
+test_math_used("round(up, -13px, 10px)", "-10px");
+test_math_used("round(up, -18px, 10px)", "-10px");
+
+// Test to-zero
+test_math_used("round(to-zero, 23px, 10px)", "20px");
+test_math_used("round(to-zero, 18px, 10px)", "10px");
+test_math_used("round(to-zero, 15px, 10px)", "10px");
+test_math_used("round(to-zero, 13px, 10px)", "10px");
+test_math_used("round(to-zero, -13px, 10px)", "-10px");
+test_math_used("round(to-zero, -18px, 10px)", "-10px");
+
+// Test a negative step
+test_math_used("round(23px, -10px)", "20px");
+test_math_used("round(18px, -10px)", "20px");
+test_math_used("round(15px, -10px)", "20px");
+test_math_used("round(13px, -10px)", "10px");
+test_math_used("round(-13px, -10px)", "-10px");
+test_math_used("round(-18px, -10px)", "-20px");
+
+// Extreme cases:
+
+// 0 step is NaN
+test_nan("round(5, 0)");
+// both infinite is NaN
+test_nan("round(infinity, infinity)");
+test_nan("round(infinity, -infinity)");
+test_nan("round(-infinity, infinity)");
+test_nan("round(-infinity, -infinity)");
+
+// infinite value with finite step is the same infinity
+test_plus_infinity("round(infinity, 5)");
+test_plus_infinity("round(infinity, -5)");
+test_minus_infinity("round(-infinity, 5)");
+test_minus_infinity("round(-infinity, -5)");
+
+// Finite value with infinite step depends on rounding strategy.
+// 'nearest' and 'to-zero': pos and +0 go to +0, neg and -0 go to -0
+test_plus_zero("round(5, infinity)");
+test_plus_zero("round(5, -infinity)");
+test_minus_zero("round(-5, infinity)");
+test_minus_zero("round(-5, -infinity)");
+test_plus_zero("round(to-zero, 5, infinity)");
+test_plus_zero("round(to-zero, 5, -infinity)");
+test_minus_zero("round(to-zero, -5, infinity)");
+test_minus_zero("round(to-zero, -5, -infinity)");
+// 'up': pos goes to +inf, 0+ goes to 0+, else 0-
+test_plus_infinity("round(up, 1, infinity)");
+test_plus_zero("round(up, 0, infinity)");
+test_minus_zero("round(up, -1 * 0, infinity");
+test_minus_zero("round(up, -1, infinity");
+// 'down': neg goes to -inf, -0 goes to -0, else 0+
+test_minus_infinity("round(down, -1, infinity)");
+test_minus_zero("round(down, -1 * 0, infinity)");
+test_plus_zero("round(down, 0, infinity)");
+test_plus_zero("round(down, 1, infinity)");
+</script>

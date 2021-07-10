@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>form.action</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/forms.html#dom-fs-action">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<form id="form1" action="a.html"></form>
+<form id="form2" action=""></form>
+<form id="form3"></form>
+
+<script>
+"use strict";
+
+test(() => {
+
+  assert_equals(document.querySelector("#form1").action, (new URL("a.html", document.baseURI)).href,
+    "action should equal the correct absolute URL");
+
+}, "An action URL should be resolved relative to the document's base URL (= the document's URL in this case)");
+
+test(() => {
+
+  assert_equals(document.querySelector("#form2").action, document.URL);
+
+}, "An empty-string action content attribute should cause the IDL attribute to return the document's URL (= the document's base URL in this case)");
+
+test(() => {
+
+  assert_equals(document.querySelector("#form3").action, document.URL);
+
+}, "A missing action content attribute should cause the IDL attribute to return the document's URL (= the document's base URL in this case)");
+
+</script>

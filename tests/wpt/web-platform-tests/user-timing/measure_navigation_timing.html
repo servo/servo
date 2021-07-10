@@ -9,6 +9,7 @@
         <link rel="help" href="https://w3c.github.io/user-timing/#dom-performance-measure"/>
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
+        <script src="/common/performance-timeline-utils.js"></script>
         <script src="resources/webperftestharness.js"></script>
 
     <script>
@@ -72,7 +73,7 @@
 
         function onload_test()
         {
-            // test for existance of User Timing and Performance Timeline interface
+            // test for existence of User Timing and Performance Timeline interface
             if (!has_required_interfaces())
             {
                 test_true(false,
@@ -91,7 +92,7 @@
 
                 // create the test end mark using the test delay; this will allow for a significant difference between
                 // the mark values that should be represented in the duration of measures using these marks
-                setTimeout(measure_test_cb, measureTestDelay);
+                step_timeout(measure_test_cb, measureTestDelay);
             }
         }
 

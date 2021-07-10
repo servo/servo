@@ -1,44 +1,50 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::attr::Attr;
+use crate::dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::{DomRoot, LayoutDom};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::document::Document;
+use crate::dom::element::{Element, LayoutElementHelpers};
+use crate::dom::htmlelement::HTMLElement;
+use crate::dom::node::Node;
+use crate::dom::virtualmethods::VirtualMethods;
 use cssparser::RGBA;
-use dom::bindings::codegen::Bindings::HTMLFontElementBinding;
-use dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{LayoutJS, Root};
-use dom::bindings::str::DOMString;
-use dom::document::Document;
-use dom::element::{Element, RawLayoutElementHelpers};
-use dom::htmlelement::HTMLElement;
-use dom::node::Node;
-use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever_atoms::LocalName;
+use html5ever::{LocalName, Prefix};
 use servo_atoms::Atom;
 use style::attr::AttrValue;
-use style::str::{HTML_SPACE_CHARACTERS, read_numbers};
+use style::str::{read_numbers, HTML_SPACE_CHARACTERS};
 
 #[dom_struct]
 pub struct HTMLFontElement {
     htmlelement: HTMLElement,
 }
 
-
 impl HTMLFontElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> HTMLFontElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLFontElement {
         HTMLFontElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
-               document: &Document) -> Root<HTMLFontElement> {
-        Node::reflect_node(box HTMLFontElement::new_inherited(local_name, prefix, document),
-                           document,
-                           HTMLFontElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLFontElement> {
+        Node::reflect_node(
+            Box::new(HTMLFontElement::new_inherited(local_name, prefix, document)),
+            document,
+        )
     }
 }
 
@@ -66,8 +72,19 @@ impl HTMLFontElementMethods for HTMLFontElement {
 }
 
 impl VirtualMethods for HTMLFontElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    }
+
+    fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
+        if attr.local_name() == &local_name!("color") {
+            return true;
+        }
+
+        // FIXME: Should also return true for `size` and `face` changes!
+        self.super_type()
+            .unwrap()
+            .attribute_affects_presentational_hints(attr)
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
@@ -75,44 +92,39 @@ impl VirtualMethods for HTMLFontElement {
             &local_name!("face") => AttrValue::from_atomic(value.into()),
             &local_name!("color") => AttrValue::from_legacy_color(value.into()),
             &local_name!("size") => parse_size(&value),
-            _ => self.super_type().unwrap().parse_plain_attribute(name, value),
+            _ => self
+                .super_type()
+                .unwrap()
+                .parse_plain_attribute(name, value),
         }
     }
 }
 
 pub trait HTMLFontElementLayoutHelpers {
-    fn get_color(&self) -> Option<RGBA>;
-    fn get_face(&self) -> Option<Atom>;
-    fn get_size(&self) -> Option<u32>;
+    fn get_color(self) -> Option<RGBA>;
+    fn get_face(self) -> Option<Atom>;
+    fn get_size(self) -> Option<u32>;
 }
 
-impl HTMLFontElementLayoutHelpers for LayoutJS<HTMLFontElement> {
-    #[allow(unsafe_code)]
-    fn get_color(&self) -> Option<RGBA> {
-        unsafe {
-            (*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(), &local_name!("color"))
-                .and_then(AttrValue::as_color)
-                .cloned()
-        }
+impl HTMLFontElementLayoutHelpers for LayoutDom<'_, HTMLFontElement> {
+    fn get_color(self) -> Option<RGBA> {
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("color"))
+            .and_then(AttrValue::as_color)
+            .cloned()
     }
 
-    #[allow(unsafe_code)]
-    fn get_face(&self) -> Option<Atom> {
-        unsafe {
-            (*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(), &local_name!("face"))
-                .map(AttrValue::as_atom)
-                .cloned()
-        }
+    fn get_face(self) -> Option<Atom> {
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("face"))
+            .map(AttrValue::as_atom)
+            .cloned()
     }
 
-    #[allow(unsafe_code)]
-    fn get_size(&self) -> Option<u32> {
-        let size = unsafe {
-            (*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(), &local_name!("size"))
-        };
+    fn get_size(self) -> Option<u32> {
+        let size = self
+            .upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("size"));
         match size {
             Some(&AttrValue::UInt(_, s)) => Some(s),
             _ => None,
@@ -120,7 +132,7 @@ impl HTMLFontElementLayoutHelpers for LayoutJS<HTMLFontElement> {
     }
 }
 
-/// https://html.spec.whatwg.org/multipage/#rules-for-parsing-a-legacy-font-size
+/// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-a-legacy-font-size>
 fn parse_size(mut input: &str) -> AttrValue {
     let original_input = input;
     // Steps 1 & 2 are not relevant
@@ -140,13 +152,13 @@ fn parse_size(mut input: &str) -> AttrValue {
 
         // Step 5
         Some(&'+') => {
-            let _ = input_chars.next();  // consume the '+'
+            let _ = input_chars.next(); // consume the '+'
             ParseMode::RelativePlus
-        }
+        },
         Some(&'-') => {
-            let _ = input_chars.next();  // consume the '-'
+            let _ = input_chars.next(); // consume the '-'
             ParseMode::RelativeMinus
-        }
+        },
         Some(_) => ParseMode::Absolute,
     };
 

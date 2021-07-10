@@ -1,0 +1,61 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSSPositionValue</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#positionvalue-objects">
+<meta name="assert" content="Test CSSPositionValue constructor and attributes" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/testhelper.js"></script>
+<body>
+<div id="log">
+<script>
+'use strict';
+
+const gTestArguments = [
+  {
+    description: 'a length CSSUnitValue' ,
+    value: CSS.px(1),
+  },
+  {
+    description: 'a percent CSSUnitValue' ,
+    value: CSS.percent(10),
+  },
+  {
+    description: 'a CSSMathValue of length type' ,
+    value: new CSSMathSum(CSS.px(1)),
+  },
+  {
+    description: 'a CSSMathValue of percent type' ,
+    value: new CSSMathSum(CSS.percent(1)),
+  },
+];
+
+for (const {value, description} of gTestArguments) {
+  test(() => {
+    const position = new CSSPositionValue(value, value);
+    assert_style_value_equals(position.x, value,
+        'X member should be same as passed in constructor');
+    assert_style_value_equals(position.y, value,
+        'Y member should be same as passed in constructor');
+  }, 'CSSPositionValue can be constructed from ' + description);
+}
+
+for (const {value, description} of gTestArguments) {
+  test(() => {
+    let position = new CSSPositionValue(CSS.px(0), CSS.px(0));
+    position.x = value;
+
+    assert_style_value_equals(position.x, value,
+        'X member should be updated to new value');
+  }, 'CSSPositionValue.x can be updated to ' + description);
+
+  test(() => {
+    let position = new CSSPositionValue(CSS.px(0), CSS.px(0));
+    position.y = value;
+
+    assert_style_value_equals(position.y, value,
+        'Y member should be updated to new value');
+  }, 'CSSPositionValue.y can be updated to ' + description);
+}
+
+</script>

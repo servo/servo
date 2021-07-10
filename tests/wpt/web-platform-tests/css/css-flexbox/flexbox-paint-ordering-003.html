@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <title>CSS Test: Testing that paint order isn't influenced
+         by "order" for absolutely positioned flex children</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#abspos-items">
+  <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#painting">
+  <link rel="match" href="flexbox-paint-ordering-003-ref.html">
+  <style>
+    .container { display: flex; }
+    .absPosLowOrder {
+      position: absolute;
+      order: 5;
+      background: red;
+      height: 0;
+      width: 0;
+    }
+    .absPosHighOrder {
+      position: absolute;
+      order: 10;
+      height: 0;
+      width: 0;
+    }
+    .redBlock {
+      height: 100px;
+      width: 100px;
+      background: red;
+    }
+    .limeBlock {
+      height: 100px;
+      width: 100px;
+      background: lime;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Note: The following elements will be superimposed.  If they weren't
+         positioned, then they'd be flex items, and their relative "order"
+         values would force the first one (with the red child) to paint on top.
+         But since they're absolutely positioned, they're not flex items &
+         "order" has no effect, and so the lime one should end up on top. -->
+    <div class="absPosHighOrder"><div class="redBlock"></div></div>
+    <div class="absPosLowOrder"><div class="limeBlock"></div></div>
+  </div>
+</body>
+</html>

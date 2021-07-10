@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Entries API: FileSystemDirectoryEntry.getFile() manual test</title>
+<link rel=help href="https://wicg.github.io/entries-api/#dom-filesystemdirectoryentry-getfile">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+
+<script>
+entry_test((t, entry) => {
+  assert_idl_attribute(entry, 'getFile', 'FileSystemDirectoryEntry has getFile');
+  assert_equals(typeof entry.getFile, 'function', 'getFile() is a method');
+
+  t.done();
+}, 'FileSystemDirectoryEntry - getFile()');
+
+INVALID_PATHS.forEach(path => {
+  entry_test((t, entry) => {
+    entry.getFile(
+      path,
+      {},
+      t.unreached_func('getFile should fail'),
+      t.step_func(error => {
+        assert_equals(error.name, 'TypeMismatchError',
+                      'getFile() should fail if given invalid path');
+        t.done();
+      }));
+  }, 'FileSystemDirectoryEntry.getFile() - invalid path: ' + JSON.stringify(path));
+});
+
+EMPTY_PATHS.forEach(path => {
+  entry_test((t, entry) => {
+    entry.getFile(
+      path,
+      {},
+      t.unreached_func('getFile should fail'),
+      t.step_func(error => {
+        assert_equals(error.name, 'TypeMismatchError',
+                      'getFile() on empty path should fail because the ' +
+                      'path resolves to the directory itself');
+        t.done();
+      }));
+  }, 'FileSystemDirectoryEntry.getFile() - empty path: ' + JSON.stringify(path) || 'undefined');
+});
+
+FILE_PATHS.forEach(path => {
+  entry_test((t, entry) => {
+    entry.getFile(
+      path,
+      {create: true},
+      t.unreached_func('getFile should fail'),
+      t.step_func(error => {
+        assert_equals(error.name, 'SecurityError',
+                      'getFile() should fail with security error if ' +
+                      'create option is set');
+        t.done();
+      }));
+  }, 'FileSystemDirectoryEntry.getFile() - {create:true}: ' + path);
+});
+
+NOT_FOUND_PATHS.forEach(path => {
+  entry_test((t, entry) => {
+    entry.getFile(
+      path,
+      {},
+      t.unreached_func('getFile should fail'),
+      t.step_func(error => {
+        assert_equals(error.name, 'NotFoundError',
+                      'getFile() should fail with not found');
+        t.done();
+      }));
+  }, 'FileSystemDirectoryEntry.getFile() - not found: ' + path);
+});
+
+DIR_PATHS.concat(['/', '.']).forEach(path => {
+  entry_test((t, entry) => {
+    entry.getFile(
+      path,
+      {},
+      t.unreached_func('getFile should fail'),
+      t.step_func(error => {
+        assert_equals(error.name, 'TypeMismatchError',
+                      'getFile() should fail if type is directory');
+        t.done();
+      }));
+  }, 'FileSystemDirectoryEntry.getFile() - directory: ' + path);
+});
+
+FILE_PATHS.forEach(path => {
+  entry_test((t, entry) => {
+    entry.getFile(
+      path,
+      {},
+      t.step_func(e => {
+        assert_true(e.isFile);
+        assert_false(e.isDirectory);
+        assert_equals(e.name, 'file.txt');
+        t.done();
+      }),
+      t.unreached_func('getFile should not fail')
+    );
+  }, 'FileSystemDirectoryEntry.getFile() - file: ' + path);
+});
+
+entry_test((t, entry) => {
+  entry.getFile(FILE_PATHS[0], {}, t.step_func(e1 => {
+    entry.getFile(FILE_PATHS[0], {}, t.step_func(e2 => {
+      assert_equals(e1.name, e2.name, 'names should match');
+      assert_equals(e1.fullPath, e2.fullPath, 'names should match');
+      assert_not_equals(e1, e2, 'objects should be distinct');
+      t.done();
+    }), t.unreached_func('getFile should not fail'));
+  }), t.unreached_func('getFile should not fail'));
+}, 'FileSystemDirectoryEntry.getFile() - object identity');
+</script>

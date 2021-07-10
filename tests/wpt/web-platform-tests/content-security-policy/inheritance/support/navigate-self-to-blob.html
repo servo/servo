@@ -1,0 +1,6 @@
+<script nonce="abc">
+  var blob_string = "<script>alert(document.domain)<\/script>";
+  var blob = new Blob([blob_string], {type : 'text/html'});
+  var url = URL.createObjectURL(blob);
+  location.href=url;
+</script>

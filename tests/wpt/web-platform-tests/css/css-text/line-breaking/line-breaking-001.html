@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>CSS Text — line breaking around Zero With Space</title>
+<meta name=assert content="When ‘white-space’ allows wrapping, line breaking behavior defined for the ZW line-breaking classes in [UAX14] must be honored.">
+<link rel=help href="https://www.w3.org/TR/css-text-3/#line-break-details">
+<link rel=match href="reference/line-breaking-001-ref.html">
+<link rel=author title="Florian Rivoal" href="http://florian.rivoal.net">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+div {
+    color:green;
+    width: 1em;
+    line-height: 1em;
+    font-family: Ahem;
+    white-space: normal;
+    font-size: 20px;
+}
+.container {
+    position: relative;
+}
+.fail {
+    color: red;
+    position: absolute;
+    left: 0;
+    top: 1em;
+    z-index: -1;
+}
+</style>
+<body>
+    <p>There should be a green rectangle and no red.</p>
+    <div class=container>
+        <div>X&#x200B;X</div>
+        <div class=fail>X</div>
+    </div>
+</body>
+</html>

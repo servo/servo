@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 4 Test: word-boundary-expansion and text-transform:full-width</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#word-boundary-expansion">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-1">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-transform-property">
+<link rel="match" href="reference/word-boundary-009-ref.html">
+<meta name="assert" content="word-boundary-expansion:space happens at the right stage of the white space processing pipeline to interact properly with text-transform:full-width">
+<style>
+div {
+  font-size: 2em;
+}
+#test {
+  word-boundary-expansion: space;
+  text-transform: full-width;
+}
+</style>
+
+<p>Test passes if the two lines below are identical.
+
+<div id=test>a b<wbr>c&#x200B;d <wbr>e &#x200B;f<wbr>&#x200B;g</div>
+<div id=ref>ａ　ｂ　ｃ　ｄ　ｅ　ｆ　ｇ</div>
+

@@ -15,7 +15,7 @@
     version="$Revision: 1.7 $" testname="$RCSfile: fonts-elem-05-t.svg,v $">
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/fonts.html#FontElement">
         <p>
-				 This tests the horiz-origin-x attributes on the font and glyph elements.
+         This tests the horiz-origin-x attributes on the font and glyph elements.
         </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
@@ -66,7 +66,6 @@
         <glyph unicode="4" glyph-name="gl_4" horiz-adv-x="1500" d="M 0 0 L 1000 0 L 1000 1000 L 0 1000 Z"/>
       </font>
 
-
       <g id="marker">
         <line y2="-40" stroke="blue"/>
         <rect x="-4" y="-4" width="8" height="8" fill="#8888ff"/>
@@ -106,7 +105,6 @@
         <use xlink:href="#marker500" x="375"/>
         <text x="240" font-family="origin500" font-size="30">1234</text>
       </g>
-
 
       <g transform="translate(0, 120)">
         <text>horiz-adv-x=1000 but ignored</text>

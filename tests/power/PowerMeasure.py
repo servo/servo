@@ -2,7 +2,7 @@
 
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 
 # ---------Power measurement ------------------------------#
@@ -134,10 +134,10 @@ def PowerParser(OutputDir, LayoutThreads):
 
         TotalPower = PowerGen / float(ExperimentNum - 1)
         TotalTime = TimeGen / float(ExperimentNum - 1)
-        ResultFile.write(str(layoutT) + " , " + str(TotalPower) + " , " +
-                         str(MaxPower) + " , " + str(MinPower) + " , " +
-                         str(TotalTime) + " , " + str(MaxTime) + " , " +
-                         str(MinTime) + "\n")
+        ResultFile.write(str(layoutT) + " , " + str(TotalPower) + " , "
+                         + str(MaxPower) + " , " + str(MinPower) + " , "
+                         + str(TotalTime) + " , " + str(MaxTime) + " , "
+                         + str(MinTime) + "\n")
     ResultFile.close()
     Opener = ResultFile = open(ResultTable, "r")
     for line in Opener:
@@ -179,6 +179,7 @@ def main():
 
     PowerCollector(OutputDir, Benchmarks, LayoutThreads, Renderer)
     PowerParser(OutputDir, LayoutThreads)
+
 
 if __name__ == "__main__":
     main()

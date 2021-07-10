@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-multicol/#filling-columns">
+<div id="multicol" style="columns:2; line-height:100px;">
+  <div style="display:table-row; height:4.9999px;"></div>
+  <div style="display:table-row;">
+    <br>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> {
+      assert_equals(multicol.getBoundingClientRect().height, 100);
+  }, "If we have room for the line, we have room for all we need");
+</script>

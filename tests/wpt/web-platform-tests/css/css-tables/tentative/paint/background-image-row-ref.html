@@ -1,0 +1,68 @@
+<!doctype html>
+<style>
+  body {
+    --peek: LightGreen;
+  }
+  .bg {
+    background-color: var(--peek);
+    background-image: linear-gradient(45deg, orange 0px, orange 5px, gainsboro 3px, gainsboro 25%, rgba(160,160,160,0.5) 25%, rgba(160,160,160,0.5) 50%, silver 50%, silver 75%, darkgray 75%, darkgray 99%, blue 99%);
+    background-size: 230px 50px;
+    background-repeat: no-repeat; /* FF defaults to no-repeat, Chrome to repeat */
+  }
+  main > * {
+    box-sizing: border-box;
+  }
+  .table {
+    border: 10px solid yellow;
+    padding: 10px;
+    width: 290px;
+  }
+  .row {
+    margin-left: 10px;
+    margin-top: 10px;
+    width: 230px;
+    height: 50px;
+  }
+  .cell {
+    margin: 10px;
+    margin-right: 5px;
+    margin-left: 5px;
+    width: 50px;
+    height: 50px;
+    display: inline-block;
+    vertical-align: top;
+  }
+  .firstcell {
+    margin-left: 10px;
+  }
+  .bigsquarecell {
+    margin:10px;
+    margin-left: 5px;
+    margin-right: 5px;
+    margin-bottom: 5px;
+    width: 110px;
+    height: 110px;
+    display: inline-block;
+    vertical-align: top;
+    background-position-x: -60px;
+  }
+  .c2 {
+    background-position-x: -60px
+  }
+  .c3 {
+    background-position-x: -120px;
+  }
+  .c4 {
+    background-position-x: -180px;
+  }
+  .bottomrow > .cell {
+    margin-top: 5px;
+  }
+</style>
+<main>
+<div class="table">
+<div class="row bg"></div>
+<div><div class="cell firstcell bg"></div><div class="bigsquarecell bg"></div><div class="cell c4 bg"></div></div>
+<div class="bottomrow"><div class="cell firstcell bg"></div><div class="cell c2 bg"></div><div class="cell c3 bg"></div><div class="cell c4 bg"></div>
+</div>
+</main>

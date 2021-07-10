@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <title>Cookies are sent on same origin violation reports</title>
+    <!-- CSP headers
+         Content-Security-Policy: script-src 'unsafe-inline' 'self'; img-src 'none'; report-uri /reporting/resources/report.py?op=put&reportID={{$id}}
+         -->
+</head>
+<body>
+<script>
+  var test = async_test("Image should not load");
+  fetch(
+    "/cookies/resources/set-cookie.py?name=cspViolationReportCookie2&path=" + encodeURIComponent("/"),
+    {mode: 'no-cors', credentials: 'include'})
+  .then(() => {
+    test.add_cleanup(() => {
+      document.cookie = "cspViolationReportCookie2=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
+    });
+
+    // This image will generate a CSP violation report.
+    const img = new Image();
+    img.onerror = test.step_func_done();
+    img.onload = test.unreached_func("Should not have loaded the image");
+
+    img.src = "../support/fail.png";
+    document.body.appendChild(img);
+  });
+</script>
+<script async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=img-src%20%27none%27&cookiePresent=cspViolationReportCookie2'></script>
+
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!doctype html>
+<html>
+  <head>
+    <title>img ismap attribute coordinate origin</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+    iframe { width: 500px; height: 500px; }
+    </style>
+  </head>
+  <body>
+    <iframe></iframe>
+    <div id="log"></div>
+    <script type="text/javascript">
+    tests = [
+      {
+        file: "img-ismap-coordinates-iframe-inside.html",
+      },
+      {
+        test: async_test("Coordinates within the content box of an image map have origin of the context box"),
+        resultMinXY: 0,
+        resultMaxXY: 96,
+      },
+      {
+        file: "img-ismap-coordinates-iframe-before.html",
+      },
+      {
+        test: async_test("Coordinates within the margin/padding (top-left) of the image map are clamped to zero"),
+        resultMinXY: 0,
+        resultMaxXY: 0,
+      },
+      {
+        file: "img-ismap-coordinates-iframe-after.html",
+      },
+      {
+        test: async_test("Coordinates within the margin/padding (bottom-right) of the image map have origin in the content box"),
+        resultMinXY: 97,
+        resultMaxXY: 146,
+      }
+    ];
+    testIndex = 0;
+
+    var iframe = document.querySelector('iframe');
+    iframe.onload = function testInit() {
+      if (testIndex % 2 == 0) {
+        testIndex++;
+        return;
+      }
+      // User clicked on a results...
+      var url = iframe.contentWindow.location.toString();
+      var test = tests[testIndex].test;
+      var minXY = tests[testIndex].resultMinXY;
+      var maxXY = tests[testIndex].resultMaxXY;
+      testIndex++;
+      if (testIndex < tests.length)
+        iframe.src = tests[testIndex].file; // Advance the test...
+      // Validate the last test's results...
+      test.step(function () {
+        var i = url.indexOf("?");
+        assert_not_equals(i, -1);
+        var coordsStr = url.substr(i+1);
+        var i = coordsStr.indexOf(',');
+        assert_not_equals(i, -1);
+        var x = parseFloat(coordsStr.substring(0, i));
+        var y = parseFloat(coordsStr.substring(i+1));
+        assert_greater_than_equal(x, minXY);
+        assert_less_than_equal(x, maxXY);
+        assert_greater_than_equal(y, minXY);
+        assert_less_than_equal(y, maxXY);
+        test.done();
+      });
+      if (testIndex >= tests.length)
+        iframe.style.display = "none";
+    }
+    iframe.src = tests[0].file;
+    </script>
+  </body>
+</html>

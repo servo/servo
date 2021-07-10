@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: orthogonal floated right in horizontal-tb context</title>
+
+  <meta name="DC.date.created" content="2017-02-17T09:54:03+11:00" scheme="W3CDTF" />
+  <meta name="DC.date.modified" content="2017-02-17T09:54:03+11:00" scheme="W3CDTF" />
+
+  <!--
+  Inspired by the test in
+  http://lists.w3.org/Archives/Public/www-style/2016Nov/0044.html
+  -->
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="https://www.w3.org/TR/css-writing-modes-3/#orthogonal-auto" />
+  <link rel="match" href="float-rgt-orthog-vlr-in-htb-003-ref.xht" />
+
+  <meta content="" name="flags" />
+  <meta content="This test checks the vertical position of an orthogonal floated right block box inside an horizontal-tb parent. The orthogonal floated right block box must be put as high as possible inside the horizontal-tb line box." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div#horiz-parent
+    {
+      border: orange solid 8px;
+      font-size: 32px;
+      line-height: 1.25; /* computes to 40px */
+    }
+
+  div#orthog-vlr-float-right
+    {
+      background-color: blue;
+      color: white;
+      float: right;
+      writing-mode: vertical-lr;
+    }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <div id="horiz-parent">HTB parent
+    <div id="orthog-vlr-float-right">VLR floated right</div>
+  </div>
+
+ </body>
+</html>

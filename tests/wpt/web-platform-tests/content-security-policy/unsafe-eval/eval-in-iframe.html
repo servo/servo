@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>eval-in-iframe</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+    <p>This test checks that iframes correctly block the eval function.</p>
+    <script>
+      var tests = [
+          { "name": "script-src blocks eval unless 'unsafe-eval' is specified.",
+            "csp": "script-src 'unsafe-inline'" },
+          { "name": "default-src blocks eval unless 'unsafe-eval' is specified.",
+            "csp": "default-src 'unsafe-inline'" },
+      ];
+
+      tests.forEach(test => {
+          async_test(t => {
+              var child = document.createElement('iframe');
+              child.src = '/content-security-policy/unsafe-eval/support/echo-eval-with-policy.py?policy=' + encodeURIComponent(test.csp);
+              window.addEventListener('message', t.step_func(e => {
+                  if (e.source != child.contentWindow)
+                      return;
+                  if (e.data === "eval blocked") {
+                      t.done();
+                  }
+                  else if (e.data === "eval allowed") {
+                      assert_unreached("Eval code was executed in iframe");
+                  }
+              }));
+              document.body.appendChild(child);
+          }, test.name);
+      });
+    </script>
+</body>
+
+</html>

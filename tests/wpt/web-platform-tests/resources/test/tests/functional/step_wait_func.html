@@ -1,0 +1,50 @@
+<!doctype html>
+<title>Tests for step_wait_func and step_wait_func_done</title>
+<script src="../../variants.js"></script>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+async_test(t => {
+  let x = 0;
+  let step_x = 0;
+  setTimeout(() => ++x, 100);
+  t.step_wait_func(() => {
+    ++step_x;
+    return x === 1;
+  }, () => {
+    assert_equals(step_x, 2);
+    t.done();
+  });
+}, "Basic step_wait_func() test");
+
+async_test(t => {
+  let x = 0;
+  setTimeout(() => ++x, 100);
+  t.step_wait_func_done(() => true, () => assert_equals(x, 0));
+}, "Basic step_wait_func_done() test");
+
+</script>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "message": null,
+    "status_string": "OK"
+  },
+  "summarized_tests": [
+    {
+      "properties": {},
+      "message": null,
+      "name": "Basic step_wait_func() test",
+      "status_string": "PASS"
+    },
+    {
+      "properties": {},
+      "message": null,
+      "name": "Basic step_wait_func_done() test",
+      "status_string": "PASS"
+    }
+  ],
+  "type": "complete"
+}
+</script>

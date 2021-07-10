@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<title>CSS Filters: Repaint of element with background-image and blur filter</title>
+<link rel="author" title="Stephen White" href="mailto:senorblanco@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#background-image">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=415106">
+<link rel="match" href="reference/background-image-blur-repaint-expected.html">
+<meta name="assert" content="An element with background-image and a filter should be rendered correctly after other elements on the page change size. You should see a 50x50 green box over a blurred background."/>
+
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<script>
+function runTest() {
+  function shrinkBox() {
+    var box = document.getElementsByClassName("box")[0];
+    box.style.width = "50px";
+    box.style.height = "50px";
+  }
+
+  waitForAtLeastOneFrame().then(function() {
+    shrinkBox();
+    takeScreenshot();
+  });
+}
+</script>
+<style>
+.bg {
+  position: absolute;
+  left:   200px;
+  top:    0px;
+  width:  400px;
+  height: 300px;
+  background-image: url(support/color-palette.png);
+  filter: blur(8px);
+}
+.box {
+  position: absolute;
+  left:   300px;
+  top:    50px;
+  width:  100px;
+  height: 100px;
+  background-color: green;
+}
+</style>
+</head>
+
+<body onload="runTest()">
+<div class="bg"></div>
+<div class="box"></div>
+</body>
+</html>

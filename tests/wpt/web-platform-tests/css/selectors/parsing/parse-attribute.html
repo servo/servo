@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selectors: Attribute selectors</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-3/#attribute-selectors">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  // Attribute presence and value selectors
+  test_valid_selector('[att]');
+  test_valid_selector('[att=val]', '[att="val"]');
+  test_valid_selector('[att~=val]', '[att~="val"]');
+  test_valid_selector('[att|=val]', '[att|="val"]');
+  test_valid_selector('h1[title]');
+  test_valid_selector("span[class='example']", 'span[class="example"]');
+  test_valid_selector('a[hreflang=fr]', 'a[hreflang="fr"]');
+  test_valid_selector("a[hreflang|='en']", 'a[hreflang|="en"]');
+
+  // Substring matching attribute selectors
+  test_valid_selector('[att^=val]', '[att^="val"]');
+  test_valid_selector('[att$=val]', '[att$="val"]');
+  test_valid_selector('[att*=val]', '[att*="val"]');
+  test_valid_selector('object[type^="image/"]');
+  test_valid_selector('a[href$=".html"]');
+  test_valid_selector('p[title*="hello"]');
+
+  // From Attribute selectors and namespaces examples in spec:
+  test_valid_selector('[*|att]');
+  test_valid_selector('[|att]', '[att]');
+</script>

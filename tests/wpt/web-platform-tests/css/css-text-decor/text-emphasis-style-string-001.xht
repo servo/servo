@@ -1,0 +1,79 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Test: text-emphasis-style - string - basic cases</title>
+		<link rel="author" title="Makoto Kikuchi" href="mailto:kikuchi@est.co.jp" />
+		<link rel="help" title="CSS Text Level 3: 11.2.1.  Emphasis Mark Style: the ‘text-emphasis-style’ property" href="http://www.w3.org/TR/css-text-decor-3/#text-emphasis-style-property" />
+		<link rel="match" href="reference/text-emphasis-style-string-001-ref.xht"/>
+		<meta name="flags" content="" />
+		<meta name="assert" content="This property applies emphasis marks to the element's text. " />
+		<style type="text/css"><![CDATA[
+				.common
+				{
+					line-height: 1em;
+					position: relative;
+				}
+				.parent
+				{
+					border: solid 1px gray;
+					font-size: 2em;
+					width: 10em;
+				}
+				.refcommon
+				{
+					font-size: 0.5em;
+					left: 0em;
+					position: absolute;
+					top: -1.5em;
+				}
+				#test
+				{
+					text-emphasis-style: "!";
+				}
+		]]></style>
+		<script type="text/javascript">
+			//	<![CDATA[
+					// Set Font Family to 'IPAMincho'
+					function setFontFamily () {
+						var fontName = 'IPAMincho';
+						var divs = document.getElementsByTagName('div');
+						var i = 0;
+						var div;
+						while (i < divs.length) {
+							div = divs.item(i);
+							if (div.className == 'parent') {
+								div.style.fontFamily = fontName;
+							}
+							i++;
+						}
+					}
+			//	]]>
+		</script>
+	</head>
+	<body>
+		<div>
+			<p>Test passes if a pair of upper and lower "Filler Text" in the square box is identical.</p>
+			string
+			<div class="parent">
+				<div><span id="test">Filler</span> Text</div>
+				<br />
+				<div class="margin">
+					<span class="common">F<span class="refcommon">!</span></span><span class="common">i<span class="refcommon">!</span></span><span class="common">l<span class="refcommon">!</span></span><span class="common">l<span class="refcommon">!</span></span><span class="common">e<span class="refcommon">!</span></span><span class="common">r<span class="refcommon">!</span></span>
+					Text
+				</div>
+			</div>
+			<p class="fontChange" style="display: block;">
+				If you are unable to see font glyphs for certain characters using the browsers default font, install the <a href="http://ossipedia.ipa.go.jp/ipafont/">IPA Font(http://ossipedia.ipa.go.jp/ipafont/)</a> and apply it.
+				<button type="button" onclick="setFontFamily()">
+					Apply
+				</button>
+			</p>
+			<script type="text/javascript">
+				if (document.getElementById) {
+					document.getElementById('fontChange').style.display = 'block'
+				}
+			</script>
+		</div>
+	</body>
+</html>

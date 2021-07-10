@@ -1,0 +1,63 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: 'contain: paint' with various overflowing block descendants.</title>
+  <link rel="author" title="Kyle Zentner" href="mailto:zentner.kyle@gmail.com">
+  <link rel="help" href="https://drafts.csswg.org/css-contain/#containment-paint">
+  <link rel="match" href="contain-paint-clip-001-ref.html">
+  <style>
+  .root {
+    contain: paint;
+    width: 100px;
+    height: 100px;
+    background: blue;
+    margin: 25px;
+    padding: 25px;
+  }
+  .a {
+    width: 100px;
+    height: 200px;
+    background: red;
+  }
+  .b {
+    width: 150px;
+    height: 150px;
+    background: green;
+    position: relative;
+    top: -25px;
+    left: -25px;
+  }
+  .background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 200px;
+    height: 200px;
+    background: red;
+    z-index: -1;
+  }
+  .foreground {
+    position: absolute;
+    top: -25px;
+    left: -25px;
+    width: 150px;
+    height: 150px;
+    border: 25px solid red;
+    z-index: 1;
+  }
+  </style>
+</head>
+<body>
+  <div class="root">
+    <div class="a">
+      <div class="b"></div>
+      <!--These two absolutely positioned elements are checking that all sides are-->
+      <!--clipped.  They also test that clipping is done correctly on absolutely-->
+      <!--positioned elements.-->
+      <div class="background"></div>
+      <div class="foreground"></div>
+    </div>
+  </div>
+</body>
+</html>

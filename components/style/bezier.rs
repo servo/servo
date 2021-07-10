@@ -1,6 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Parametric Bézier curves.
 //!
@@ -8,7 +8,7 @@
 
 #![deny(missing_docs)]
 
-use euclid::point::Point2D;
+use crate::values::CSSFloat;
 
 const NEWTON_METHOD_ITERATIONS: u8 = 8;
 
@@ -31,12 +31,12 @@ impl Bezier {
     /// The start and end points are always (0, 0) and (1, 1) so that a transition or animation
     /// starts at 0% and ends at 100%.
     #[inline]
-    pub fn new(p1: Point2D<f64>, p2: Point2D<f64>) -> Bezier {
-        let cx = 3.0 * p1.x;
-        let bx = 3.0 * (p2.x - p1.x) - cx;
+    pub fn new(x1: CSSFloat, y1: CSSFloat, x2: CSSFloat, y2: CSSFloat) -> Bezier {
+        let cx = 3. * x1 as f64;
+        let bx = 3. * (x2 as f64 - x1 as f64) - cx;
 
-        let cy = 3.0 * p1.y;
-        let by = 3.0 * (p2.y - p1.y) - cy;
+        let cy = 3. * y1 as f64;
+        let by = 3. * (y2 as f64 - y1 as f64) - cy;
 
         Bezier {
             ax: 1.0 - cx - bx,
@@ -71,11 +71,11 @@ impl Bezier {
         for _ in 0..NEWTON_METHOD_ITERATIONS {
             let x2 = self.sample_curve_x(t);
             if x2.approx_eq(x, epsilon) {
-                return t
+                return t;
             }
             let dx = self.sample_curve_derivative_x(t);
             if dx.approx_eq(0.0, 1e-6) {
-                break
+                break;
             }
             t -= (x2 - x) / dx;
         }
@@ -84,16 +84,16 @@ impl Bezier {
         let (mut lo, mut hi, mut t) = (0.0, 1.0, x);
 
         if t < lo {
-            return lo
+            return lo;
         }
         if t > hi {
-            return hi
+            return hi;
         }
 
         while lo < hi {
             let x2 = self.sample_curve_x(t);
             if x2.approx_eq(x, epsilon) {
-                return t
+                return t;
             }
             if x > x2 {
                 lo = t
@@ -124,4 +124,3 @@ impl ApproxEq for f64 {
         (self - value).abs() < epsilon
     }
 }
-

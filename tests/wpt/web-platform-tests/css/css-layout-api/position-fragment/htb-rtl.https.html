@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#layoutfragment">
+<link rel="match" href="ref.html">
+<meta name="assert" content="This test checks that child fragments get positioned correctly." />
+<style>
+.test {
+  background: red;
+  width: 100px;
+  height: 100px;
+}
+
+.test {
+  writing-mode: horizontal-tb;
+  direction: rtl;
+}
+
+.child-1 {
+  background: rebeccapurple;
+  width: 10px;
+  height: 20px;
+
+  --inline-offset: 85;
+  --block-offset: 25;
+}
+
+.child-2 {
+  writing-mode: vertical-rl;
+  background: rebeccapurple;
+  width: 15px;
+  height: 25px;
+
+  --inline-offset: 35;
+  --block-offset: 60;
+}
+
+@supports (display: layout(test)) {
+  .test {
+    background: green;
+    display: layout(test);
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div class="test">
+  <div class="child-1"></div>
+  <div class="child-2"></div>
+</div>
+
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, {url: 'support/layout-position-child-worklet.js'});
+</script>

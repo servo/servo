@@ -1,0 +1,67 @@
+<!doctype html>
+<title>PaymentRequest removing allow="payment" after load and then navigating</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id="log"></div>
+<script>
+async_test((t) => {
+  const iframe = document.createElement('iframe');
+  iframe.allow = "payment";
+
+  let i = 0;
+
+  const path = location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1);
+  iframe.src = "https://{{domains[www1]}}:{{ports[https][0]}}" + path + "echo-PaymentRequest.html";
+  iframe.onload = t.step_func(() => {
+    if (i === 0) {
+      // 2. The iframe has now loaded (the first load).
+      // The allow="payment" is set.
+      iframe.allow = "";
+      // 3. The allow attribute has now been cleared.
+      // The allow="payment" is *still set* for the document.
+    }
+    // 4. (first load) Ask the subdocument to invoke PaymentRequest and post back the result.
+    // (See below for steps 5 and 6.)
+    // 7. (second load) Ask the subdocument to invoke PaymentRequest and post back the result.
+    iframe.contentWindow.postMessage('What is the result of new PaymentRequest(...)?', '*');
+  });
+
+  window.onmessage = t.step_func((e) => {
+    // Ignore messages that are not part of the test.
+    if (e.source != iframe.contentWindow) return;
+
+    i++;
+    if (i === 1) {
+      // 5. This is the first message we receive, from the first load.
+      // Since the allow="payment" was set, we expect success.
+      assert_equals(e.data.message, 'Success', 'before navigation');
+
+      // 6. Navigate the iframe. This will fire a second 'load' event on the iframe.
+      // At this time, the iframe does not have an allow attribute.
+      // https://html.spec.whatwg.org/#the-location-interface:dom-location-href-3
+      // https://html.spec.whatwg.org/#location-object-setter-navigate
+      // https://html.spec.whatwg.org/#location-object-navigate
+      // https://html.spec.whatwg.org/#navigate step 12
+      // https://html.spec.whatwg.org/#process-a-navigate-response step 5
+      // https://html.spec.whatwg.org/#read-html
+      // https://html.spec.whatwg.org/#initialise-the-document-object step 8
+      // https://html.spec.whatwg.org/#set-the-allow*-flags step 3 does *not* set the allow="payment".
+      iframe.contentWindow.location.href = iframe.src + '?2';
+    } else {
+      // 8. This is the second message we receive, from the second load.
+      // Since the allow="payment" was not set, we expect an exception.
+      assert_equals(e.data.message, 'Exception', 'after navigation');
+      assert_equals(4, e.data.details.length);
+      // The last entry is the error stacktrace. Ignore it in comparison.
+      assert_array_equals(e.data.details.slice(0, 3), [true /* ex instanceof DOMException*/, 18 /* ex.code */, 'SecurityError' /* ex.name */], 'after navigation');
+      t.done();
+    }
+  });
+
+  // 1. The browsing context for the iframe is created when the iframe is inserted to the document.
+  // https://html.spec.whatwg.org/#the-iframe-element:creating-a-new-browsing-context
+  // https://html.spec.whatwg.org/#creating-a-new-browsing-context step 11
+  // https://html.spec.whatwg.org/#set-the-allow*-flags step 3 sets the allow="payment".
+  document.body.appendChild(iframe);
+});
+</script>

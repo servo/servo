@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/helper.sub.js"></script>
+
+  <meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script';">
+</head>
+<body>
+<div id="container"></div>
+<script>
+  var container = document.querySelector('#container');
+
+  // Trusted HTML assignments do not throw.
+  test(t => {
+    let p = createHTML_policy(window, 1);
+    let html = p.createHTML(INPUTS.HTML);
+    let before = 'before';
+    let after = 'after';
+    let htmlBefore = p.createHTML(before);
+    let htmlAfter = p.createHTML(after);
+
+    var d = document.createElement('div');
+    container.appendChild(d);
+
+    d.insertAdjacentHTML('beforebegin', html);
+    assert_equals(d.previousSibling.nodeType, Node.TEXT_NODE);
+    assert_equals(d.previousSibling.data, RESULTS.HTML);
+
+    d.insertAdjacentHTML('afterbegin', htmlBefore);
+    d.insertAdjacentHTML('beforeend', htmlAfter);
+    assert_equals(d.innerHTML, before + after);
+
+    d.insertAdjacentHTML('afterend', html);
+    assert_equals(d.nextSibling.nodeType, Node.TEXT_NODE);
+    assert_equals(d.nextSibling.data, RESULTS.HTML);
+
+    while (container.firstChild)
+      container.firstChild.remove();
+  }, "insertAdjacentHTML with html assigned via policy (successful HTML transformation).");
+
+  // String assignments throw.
+  test(t => {
+    var d = document.createElement('div');
+    container.appendChild(d);
+
+    assert_throws_js(TypeError, _ => {
+      d.insertAdjacentHTML('beforebegin', "<p>Fail</p>");
+    });
+    assert_throws_js(TypeError, _ => {
+      d.insertAdjacentHTML('afterbegin', "<p>Fail</p>");
+    });
+    assert_throws_js(TypeError, _ => {
+      d.insertAdjacentHTML('beforeend', "<p>Fail</p>");
+    });
+    assert_throws_js(TypeError, _ => {
+      d.insertAdjacentHTML('afterend', "<p>Fail</p>");
+    });
+
+    assert_equals(d.previousSibling, null);
+    assert_equals(d.firstChild, null);
+    assert_equals(d.lastChild, null);
+    assert_equals(d.nextSibling, null);
+
+    while (container.firstChild)
+      container.firstChild.remove();
+  }, "`insertAdjacentHTML(string)` throws.");
+
+  // Null assignment throws.
+  test(t => {
+    var d = document.createElement('div');
+    container.appendChild(d);
+
+    assert_throws_js(TypeError, _ => {
+      d.insertAdjacentHTML('beforebegin', null);
+    });
+    assert_throws_js(TypeError, _ => {
+      d.insertAdjacentHTML('afterbegin', null);
+    });
+    assert_throws_js(TypeError, _ => {
+      d.insertAdjacentHTML('beforeend', null);
+    });
+    assert_throws_js(TypeError, _ => {
+      d.insertAdjacentHTML('afterend', null);
+    });
+
+    assert_equals(d.previousSibling, null);
+    assert_equals(d.firstChild, null);
+    assert_equals(d.lastChild, null);
+    assert_equals(d.nextSibling, null);
+  }, "`insertAdjacentHTML(null)` throws.");
+
+  // After default policy creation string assignment implicitly calls createHTML.
+  test(t => {
+    let p = window.trustedTypes.createPolicy("default", { createHTML: createHTMLJS }, true);
+
+    var d = document.createElement('div');
+    container.appendChild(d);
+
+    d.insertAdjacentHTML('beforebegin', INPUTS.HTML);
+    assert_equals(d.previousSibling.nodeType, Node.TEXT_NODE);
+    assert_equals(d.previousSibling.data, RESULTS.HTML);
+
+    d.insertAdjacentHTML('afterbegin', INPUTS.HTML);
+    assert_equals(d.firstChild.nodeType, Node.TEXT_NODE);
+    assert_equals(d.firstChild.data, RESULTS.HTML);
+
+    d.insertAdjacentHTML('beforeend', INPUTS.HTML);
+    assert_equals(d.lastChild.nodeType, Node.TEXT_NODE);
+    assert_equals(d.lastChild.data, RESULTS.HTML);
+
+    d.insertAdjacentHTML('afterend', INPUTS.HTML);
+    assert_equals(d.nextSibling.nodeType, Node.TEXT_NODE);
+    assert_equals(d.nextSibling.data, RESULTS.HTML);
+
+    while (container.firstChild)
+      container.firstChild.remove();
+  }, "`insertAdjacentHTML(string)` assigned via default policy (successful HTML transformation).");
+
+   // After default policy creation null assignment implicitly calls createHTML.
+  test(t => {
+    var d = document.createElement('div');
+    container.appendChild(d);
+
+    d.insertAdjacentHTML('beforebegin', null);
+    assert_equals(d.previousSibling.nodeType, Node.TEXT_NODE);
+    assert_equals(d.previousSibling.data, "null");
+
+    d.insertAdjacentHTML('afterbegin', null);
+    assert_equals(d.firstChild.nodeType, Node.TEXT_NODE);
+    assert_equals(d.firstChild.data, "null");
+
+    d.insertAdjacentHTML('beforeend', null);
+    assert_equals(d.lastChild.nodeType, Node.TEXT_NODE);
+    assert_equals(d.lastChild.data, "null");
+
+    d.insertAdjacentHTML('afterend', null);
+    assert_equals(d.nextSibling.nodeType, Node.TEXT_NODE);
+    assert_equals(d.nextSibling.data, "null");
+
+    while (container.firstChild)
+      container.firstChild.remove();
+  }, "`insertAdjacentHTML(null)` assigned via default policy does not throw.");
+</script>
+</body>
+</html>

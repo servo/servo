@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>TestDriver freeze method</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+var test = async_test('Test freeze callback.');
+window.open('resources/window.html', 'Child Window');
+
+var total_steps = 0;
+
+const StepStatus = {
+  ADDED: 0,
+  SUCCESS: 1,
+  FAIL: 2,
+};
+
+var steps_map = new Map();
+
+function poll_for_result(request_token, step_name, expect_success) {
+  test.step(() => {
+    var iteration = 5;
+    var checkResult = () => {
+      fetch("resources/beacon.py?query&token=" + request_token).then(test.step_func((response) => {
+        var count = response.headers.get("Count");
+        if (count != '0') {
+          // If the server received something we can terminate polling.
+          if (expect_success) {
+            step_success(step_name);
+          } else {
+            step_fail(step_name);
+          }
+        } else if (!expect_success && count == '0' && iteration == 0) {
+          // When we are out of iterations and we aren't expecting success, declare this step complete.
+          // Should be 125 ms looking to make sure server didn't see the request.
+          step_success(step_name);
+        } else {
+          iteration--;
+          test.step_timeout(checkResult, 25);
+        }
+      }));
+    };
+    test.step_timeout(checkResult, 25);
+  });
+}
+
+function add_step(name) {
+  steps_map[name] = StepStatus.ADDED;
+  total_steps++;
+}
+
+function step_success(name) {
+  total_steps--;
+  steps_map[name] = StepStatus.SUCCESS;
+  if (total_steps == 0)
+    test.done();
+}
+
+function step_fail(name) {
+  total_steps--;
+  steps_map[name] = StepStatus.FAIL;
+  test.step(() => assert_unreached('During onfreeze: ' + name + ' failed to behave as expected.'));
+  if (total_steps == 0)
+    test.done();
+}
+
+test.step_timeout(() => {
+  for (var step in steps_map) {
+    if(steps_map[step] == StepStatus.ADDED)
+      test.step(() => assert_unreached('During onfreeze: ' + step + ' never finshed.'));
+  }
+}, 1000);
+
+</script>

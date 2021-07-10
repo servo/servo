@@ -27,13 +27,13 @@
       </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
-    	<p>
-    		Run the test. No interaction required.
-    	</p>
+      <p>
+        Run the test. No interaction required.
+      </p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
-      	The test is passed if the two orange rects are animated so that the bottom part of each rectangle is at the position indicated by the ruler lines at the particular time noted next to each ruler line. Between two noted times the bottom part of each rect must be between the two corresponding ruler lines. The bottom of the left rectangles and the right rectangle must always be the same throughout the animation. 
+        The test is passed if the two orange rects are animated so that the bottom part of each rectangle is at the position indicated by the ruler lines at the particular time noted next to each ruler line. Between two noted times the bottom part of each rect must be between the two corresponding ruler lines. The bottom of the left rectangles and the right rectangle must always be the same throughout the animation.
       </p>
     </d:passCriteria>
   </d:SVGTestCase>
@@ -62,7 +62,7 @@
           <animate attributeName="height" calcMode="spline" keySplines="0,0,1,1;0,0,1,1;.75,0,0,.75" values="210;177;121;10" begin="0s" dur="9s" fill="freeze"/>
         </rect>
       </g>
-      
+
       <g transform="translate(250,50)">
         <text x="0" y="203">at 0 sec.</text>
         <text x="0" y="170">at 3 sec. </text>

@@ -8,7 +8,7 @@
 <script>
     var db,
       count = 0,
-      t = async_test(document.title, {timeout: 10000}),
+      t = async_test(),
       records = [ { pKey: "primaryKey_0" },
                   { pKey: "primaryKey_1" },
                   { pKey: "primaryKey_2" } ],
@@ -18,6 +18,7 @@
     var open_rq = createdb(t);
     open_rq.onupgradeneeded = function(e) {
         db = e.target.result;
+        t.add_cleanup(function() { db.close(); indexedDB.deleteDatabase(db.name); });
         var objStore = db.createObjectStore("test", {keyPath:"pKey"});
 
         for (var i = 0; i < records.length; i++)
@@ -47,5 +48,3 @@
         });
     };
 </script>
-
-<div id="log"> </div>

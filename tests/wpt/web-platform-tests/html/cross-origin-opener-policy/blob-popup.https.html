@@ -1,0 +1,41 @@
+<!doctype html>
+<title>Cross-Origin-Opener-Policy and a blob URL popup</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/common/get-host-info.sub.js></script>
+<script src="/common/utils.js"></script>
+<script>
+async_test(t => {
+  window.test = t; // Make the test available globally so the blob URL can use it
+  window.furtherPopup = null;
+
+  const bc = new BroadcastChannel(token());
+  bc.onmessage = t.step_func_done(({ data }) => {
+    assert_equals(data.name.length, 0);
+    assert_false(data.opener);
+    assert_true(furtherPopup.closed);
+    assert_equals(furtherPopup.document.URL, "about:blank");
+  });
+
+  const blobContents = `<script>
+const w = window.open("${get_host_info().HTTPS_REMOTE_ORIGIN}/html/cross-origin-opener-policy/resources/coop-coep.py?coop=x&coep=x&channel=${bc.name}", "${bc.name}");
+window.opener.furtherPopup = w;
+<\/script>`;
+  const blob = new Blob([blobContents], { type: "text/html" });
+  const blobURL = URL.createObjectURL(blob);
+  const popup = window.open(blobURL);
+  t.add_cleanup(() => {
+    // Close the popups once the test is complete.
+    // The browsing context of the second popup is closed hence use the
+    //  broadcast channel to trigger the closure.
+    bc.postMessage("close");
+    popup.close();
+  });
+  popup.onload = t.step_func(() => {
+    assert_equals(popup.opener, window);
+    assert_equals(popup.location.href, blobURL);
+    assert_equals(popup.document.URL, blobURL);
+    assert_equals(popup.origin, window.origin);
+  });
+});
+</script>

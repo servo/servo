@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>test reference</title>
+<style type='text/css'>
+/* the CSS below is not part of the test */
+.test { font-size: 130%; line-height: 2.5; color: blue; }
+.test div { white-space: nowrap; text-align: center;
+             width: 5em; display: inline-block; }</style>
+<script type='text/javascript'>
+//<![CDATA[
+function setFontFamily () {var fontName = document.getElementById( 'fontName' ).value;	var divs = document.getElementsByTagName('div');	var i = 0; var div;	while (i < divs.length) {	 	div = divs.item(i);		if (div.className == 'test') { 			div.style.fontFamily = fontName; 			}		i++;		}	}
+//]]>
+</script>
+</head>
+<body>
+<p class="instructions">Test passes if the right-hand character in each pair matches the left-hand one.</p>
+
+
+<div class="test">
+<div>Ⓐ Ⓐ</div>
+<div>Ⓑ Ⓑ</div>
+<div>Ⓒ Ⓒ</div>
+<div>Ⓓ Ⓓ</div>
+<div>Ⓔ Ⓔ</div>
+<div>Ⓕ Ⓕ</div>
+<div>Ⓖ Ⓖ</div>
+<div>Ⓗ Ⓗ</div>
+<div>Ⓘ Ⓘ</div>
+<div>Ⓙ Ⓙ</div>
+<div>Ⓚ Ⓚ</div>
+<div>Ⓛ Ⓛ</div>
+<div>Ⓜ Ⓜ</div>
+<div>Ⓝ Ⓝ</div>
+<div>Ⓞ Ⓞ</div>
+<div>Ⓟ Ⓟ</div>
+<div>Ⓠ Ⓠ</div>
+<div>Ⓡ Ⓡ</div>
+<div>Ⓢ Ⓢ</div>
+<div>Ⓣ Ⓣ</div>
+<div>Ⓤ Ⓤ</div>
+<div>Ⓥ Ⓥ</div>
+<div>Ⓦ Ⓦ</div>
+<div>Ⓧ Ⓧ</div>
+<div>Ⓨ Ⓨ</div>
+<div>Ⓩ Ⓩ</div>
+</div>
+
+
+<p id='fontChange' style='display: none;' class='notes'>If you are unable to see font glyphs for certain characters using the browsers default font you can apply a specific font by typing its name in the following box: <input class='css' name='fontName' id='fontName' value='' type='text' /> <button class='notes' type='button' onclick='setFontFamily()'>Apply</button></p><script type='text/javascript'>if (document.getElementById) {document.getElementById('fontChange').style.display = 'block'}</script></body>
+</html>

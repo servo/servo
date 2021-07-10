@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>Handling of evaluation errors, 2</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    setup({allow_uncaught_exception: true});
+
+    window.log = [];
+
+    window.addEventListener("error", ev => log.push(ev.error));
+    window.addEventListener("onunhandledrejection", unreachable);
+
+    const test_load = async_test(
+        "Test that ill-founded cyclic dependencies cause ReferenceError " +
+        "during evaluation, which leads to error events on window, and that " +
+        "exceptions are remembered.\n");
+    window.addEventListener("load", test_load.step_func_done(ev => {
+      const exn = log[1];
+      assert_array_equals(log,
+          ["cycle-tdz-access-a", exn, "load", exn, "load", exn, "load"]);
+      assert_equals(exn.constructor, ReferenceError);
+    }));
+
+    function logLoad() { log.push("load"); }
+
+    function unreachable() { log.push("unexpected"); }
+</script>
+<script type="module" src="cycle-tdz-access.js" async onerror="unreachable()"
+    onload="logLoad()"></script>
+<script type="module" src="cycle-tdz-access.js" nomodule onerror="unreachable()"
+    onload="logLoad()"></script>
+<script type="module" src="cycle-tdz-access.js" onerror="unreachable()"
+    onload="logLoad()"></script>

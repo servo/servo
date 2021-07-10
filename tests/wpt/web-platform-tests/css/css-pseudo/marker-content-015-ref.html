@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Reference: ::marker pseudo elements styled with 'content' property</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<style>
+li {
+  margin-left: 100px;
+}
+.outside {
+  list-style-position: outside;
+}
+.inside {
+  list-style-position: inside;
+}
+.decimal {
+  list-style-type: decimal;
+}
+.string {
+  list-style-type: "[marker]";
+}
+</style>
+<!-- Note: Chromium and WebKit force all these markers to be inside -->
+<li class="outside decimal">outside</li>
+<li class="outside string">outside</li>
+<li class="inside decimal">inside</li>
+<li class="inside string">inside</li>

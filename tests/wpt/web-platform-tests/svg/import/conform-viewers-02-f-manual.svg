@@ -45,9 +45,9 @@
     </font-face>
   </defs>
   <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
-		<text x="240" y="40" text-anchor="middle">Test data uri with svgz content</text>
-		
-		<text fill="black" x="50%" y="200" text-anchor="middle">FAILED</text>
+    <text x="240" y="40" text-anchor="middle">Test data uri with svgz content</text>
+
+    <text fill="black" x="50%" y="200" text-anchor="middle">FAILED</text>
     <image xlink:href="data:image/svg+xml;base64,H4sICA/BlksCA3N0YXIuc3ZnAMVUwW7bMAw9d8D+QVAvLeDIkiha0mDn0A7oZcMO
 Wz/Aa+zUgGsHttq0+/pRTtwkwLBuwIAhcPRIihT5RCofn9bsqam2V/1zwSWTTGfT
 x9nzQ9uNBb8PYfMhTbfbrdiC6Id1qqWUKfnx5ft3jOWrqh4nRLhu2lANrFkV/Hv7

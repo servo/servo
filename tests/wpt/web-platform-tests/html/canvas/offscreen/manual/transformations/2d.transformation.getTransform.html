@@ -1,0 +1,40 @@
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// Ensure that context2d.getTransform works
+const epsilon = 1e-5;
+const canvas = new OffscreenCanvas(300, 150);
+const ctx = canvas.getContext('2d');
+
+test(function(t) {
+
+  assert_array_equals(ctx.getTransform().toFloat32Array(),
+    [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+    "Assert that an untransformed matrix is identity");
+
+  ctx.scale(2, 3);
+  transform = ctx.getTransform();
+  assert_array_equals(ctx.getTransform().toFloat32Array(),
+    [2, 0, 0, 0, 0, 3, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+    "Assert that context2d scaling works");
+
+  ctx.rotate(Math.PI/2);
+  transform = ctx.getTransform();
+  assert_array_approx_equals(ctx.getTransform().toFloat32Array(),
+    [0, 3, 0, 0, -2, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], epsilon,
+    "Assert that context2d rotate works");
+
+  ctx.translate(1, -1);
+  transform = ctx.getTransform();
+  assert_array_approx_equals(ctx.getTransform().toFloat32Array(),
+    [0, 3, 0, 0, -2, 0, 0, 0, 0, 0, 1, 0, 2, 3, 0, 1], epsilon,
+    "Assert context2d translate works.");
+
+  ctx.resetTransform();
+  assert_array_equals(ctx.getTransform().toFloat32Array(),
+    [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+    "Assert that a reset matrix is identity");
+}, 'This test ensures that getTransform works correctly.');
+</script>
+</body>

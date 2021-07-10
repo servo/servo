@@ -4,13 +4,6 @@
 // the `event` object. In the case of the `onmessage` handler, it provides the
 // Client instance attributes of the requested clients.
 self.onfetch = function(e) {
-  if (e.request.mode === 'navigate' && e.clientId !== null) {
-    e.respondWith(Response.error(
-      '`clientId` incorrectly set to non-null value for request with mode `navigate`'
-    ));
-    return;
-  }
-
   if (/\/clientId$/.test(e.request.url)) {
     e.respondWith(new Response(e.clientId));
     return;
@@ -18,7 +11,6 @@ self.onfetch = function(e) {
 };
 
 self.onmessage = function(e) {
-  var port = e.data.port;
   var client_ids = e.data.clientIds;
   var message = [];
 
@@ -30,19 +22,20 @@ self.onmessage = function(e) {
           // No matching client for a given id or a matched client is off-origin
           // from the service worker.
           if (clients.length == 1 && clients[0] == undefined) {
-            port.postMessage(clients[0]);
+            e.source.postMessage(clients[0]);
           } else {
             clients.forEach(function(client) {
                 if (client instanceof Client) {
                   message.push([client.visibilityState,
                                 client.focused,
                                 client.url,
+                                client.type,
                                 client.frameType]);
                 } else {
                   message.push(client);
                 }
               });
-            port.postMessage(message);
+            e.source.postMessage(message);
           }
         }));
 };

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>math-script-level</title>
+    <meta charset="utf-8">
+    <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/3746">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#the-math-script-level-property">
+    <link rel="help" href="https://www.w3.org/TR/cssom-1/#serialize-a-css-component-value">
+    <meta name="assert" content="Verify effect of math-depth: auto-add | add(<integer) | (<integer>, starting from different values of math-depth.">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+    <style>
+      .container {
+          /* Ahem font does not have a MATH table so the font-size scale factor
+             is always 0.71^{computed - inherited math script level} */
+          font: 20px/1 Ahem;
+      }
+    </style>
+    <script>
+      var epsilon = .1;
+      function fontSize(id) {
+          return parseFloat((/(.+)px/).exec(getComputedStyle(document.getElementById(id)).getPropertyValue("font-size"))[1]);
+      }
+      setup({ explicit_done: true });
+      window.addEventListener("load", function() {
+          document.fonts.ready.then(function() {
+              test(function() {
+                  assert_equals(fontSize("autoDisplay"), 200);
+                  assert_equals(fontSize("autoInline"), 500 * .71);
+              }, "auto");
+              test(function() {
+                  var initialSize = 2000 * Math.pow(.71, 7);
+                  assert_approx_equals(fontSize("autoDisplayFrom7"), initialSize, epsilon);
+                  assert_approx_equals(fontSize("autoInlineFrom7"), initialSize * .71, epsilon);
+              }, "auto ; starting from level 7");
+              test(function() {
+                  assert_equals(fontSize("add0"), 200);
+                  assert_equals(fontSize("add-1"), 100);
+                  assert_equals(fontSize("add1"), 355);
+                  assert_approx_equals(fontSize("add-2"), 397, 1);
+                  assert_approx_equals(fontSize("add2"), 504, 1);
+                  assert_approx_equals(fontSize("add-9"), 654, 1);
+                  assert_approx_equals(fontSize("add9"), 92, 1);
+              }, "add(<integer>)");
+              test(function() {
+                  assert_equals(fontSize("add0from3"), 200);
+                  assert_equals(fontSize("add-1from3"), 100);
+                  assert_equals(fontSize("add1from3"), 355);
+                  assert_approx_equals(fontSize("add-2from3"), 397, 1);
+                  assert_approx_equals(fontSize("add2from3"), 504, 1);
+                  assert_approx_equals(fontSize("add-9from3"), 654, 1);
+                  assert_approx_equals(fontSize("add9from3"), 92, 1);
+              }, "add(<integer>) ; starting from level 3");
+              test(function() {
+                  assert_equals(fontSize("set0"), 200);
+                  assert_equals(fontSize("set-1"), 100);
+                  assert_equals(fontSize("set1"), 355);
+                  assert_approx_equals(fontSize("set-2"), 397, 1);
+                  assert_approx_equals(fontSize("set2"), 504, 1);
+                  assert_approx_equals(fontSize("set-9"), 654, 1);
+                  assert_approx_equals(fontSize("set9"), 92, 1);
+              }, "<integer>");
+              test(function() {
+                  assert_equals(fontSize("set50"), 200);
+                  assert_equals(fontSize("set49"), 100);
+                  assert_equals(fontSize("set51"), 355);
+                  assert_approx_equals(fontSize("set48"), 397, 1);
+                  assert_approx_equals(fontSize("set52"), 504, 1);
+                  assert_approx_equals(fontSize("set41"), 654, 1);
+                  assert_approx_equals(fontSize("set59"), 92, 1);
+              }, "<integer> ; starting from level 50");
+              done();
+          });
+      });
+    </script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <div>
+      <div class="container">
+        <div>
+          <div style="font-size: 200px; math-style: normal">
+            <div id="autoDisplay" style="font-size: math; math-depth: auto-add"></div>
+          </div>
+          <div style="font-size: 500px; math-style: compact">
+            <div id="autoInline" style="font-size: math; math-depth: auto-add"></div>
+          </div>
+        </div>
+        <div style="font-size: 2000px;">
+          <div style="math-style: normal; font-size: math; math-depth: 7">
+            <div id="autoDisplayFrom7" style="font-size: math; math-depth: auto-add"></div>
+          </div>
+          <div style="math-style: compact; font-size: math; math-depth: 7">
+            <div id="autoInlineFrom7" style="font-size: math; math-depth: auto-add"></div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size: 200px">
+            <div id="add0" style="font-size: math; math-depth: add(0)"></div>
+          </div>
+          <div style="font-size: 71px">
+            <div id="add-1" style="font-size: math; math-depth: add(-1)"></div>
+          </div>
+          <div style="font-size: 500px">
+            <div id="add1" style="font-size: math; math-depth: add(1)"></div>
+          </div>
+          <div style="font-size: 200px">
+            <div id="add-2" style="font-size: math; math-depth: add(-2)"></div>
+          </div>
+          <div style="font-size: 1000px">
+            <div id="add2" style="font-size: math; math-depth: add(2)"></div>
+          </div>
+          <div style="font-size: 30px">
+            <div id="add-9" style="font-size: math; math-depth: add(-9)"></div>
+          </div>
+          <div style="font-size: 2000px">
+            <div id="add9" style="font-size: math; math-depth: add(9)"></div>
+          </div>
+        </div>
+        <div style="math-depth: 3;">
+          <div style="font-size: 200px;">
+            <div id="add0from3" style="font-size: math; math-depth: add(0)"></div>
+          </div>
+          <div style="font-size: 71px;">
+            <div id="add-1from3" style="font-size: math; math-depth: add(-1)"></div>
+          </div>
+          <div style="font-size: 500px;">
+            <div id="add1from3" style="font-size: math; math-depth: add(1)"></div>
+          </div>
+          <div style="font-size: 200px;">
+            <div id="add-2from3" style="font-size: math; math-depth: add(-2)"></div>
+          </div>
+          <div style="font-size: 1000px;">
+            <div id="add2from3" style="font-size: math; math-depth: add(2)"></div>
+          </div>
+          <div style="font-size: 30px;">
+            <div id="add-9from3" style="font-size: math; math-depth: add(-9)"></div>
+          </div>
+          <div style="font-size: 2000px;">
+            <div id="add9from3" style="font-size: math; math-depth: add(9)"></div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size: 200px">
+            <div id="set0" style="font-size: math; math-depth: 0"></div>
+          </div>
+          <div style="font-size: 71px">
+            <div id="set-1" style="font-size: math; math-depth: -1"></div>
+          </div>
+          <div style="font-size: 500px">
+            <div id="set1" style="font-size: math; math-depth: 1"></div>
+          </div>
+          <div style="font-size: 200px">
+            <div id="set-2" style="font-size: math; math-depth: -2"></div>
+          </div>
+          <div style="font-size: 1000px">
+            <div id="set2" style="font-size: math; math-depth: 2"></div>
+          </div>
+          <div style="font-size: 30px">
+            <div id="set-9" style="font-size: math; math-depth: -9"></div>
+          </div>
+          <div style="font-size: 2000px">
+            <div id="set9" style="font-size: math; math-depth: 9"></div>
+          </div>
+        </div>
+      </div>
+        <div style="math-depth: 50">
+          <div style="font-size: 200px;">
+            <div id="set50" style="font-size: math; math-depth: 50"></div>
+          </div>
+          <div style="font-size: 71px;">
+            <div id="set49" style="font-size: math; math-depth: 49"></div>
+          </div>
+          <div style="font-size: 500px;">
+            <div id="set51" style="font-size: math; math-depth: 51"></div>
+          </div>
+          <div style="font-size: 200px;">
+            <div id="set48" style="font-size: math; math-depth: 48"></div>
+          </div>
+          <div style="font-size: 1000px;">
+            <div id="set52" style="font-size: math; math-depth: 52"></div>
+          </div>
+          <div style="font-size: 30px;">
+            <div id="set41" style="font-size: math; math-depth: 41"></div>
+          </div>
+          <div style="font-size: 2000px;">
+            <div id="set59" style="font-size: math; math-depth: 59"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

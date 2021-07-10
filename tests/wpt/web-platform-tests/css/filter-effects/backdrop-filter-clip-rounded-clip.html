@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>backdrop-filter under overflow clip under border-radius overflow clip</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="match"  href="backdrop-filter-clip-rounded-clip-ref.html">
+<div style="width: 300px; height: 200px; border-radius: 80px; overflow: hidden">
+  <div style="position: relative; height: 100px; overflow: hidden">
+    <!-- This should be fully clipped by the outer rounded clip. -->
+    <div style="width: 10px; height: 10px; background: cyan"></div>
+    <!-- This should be fully visible and inverted to green. -->
+    <div style="position: absolute; top: 0; left: 100px; width: 100px; height: 100px; background: magenta"></div>
+    <div style="position: absolute; top: 0; left: 100px; width: 100px; height: 1000px; backdrop-filter: invert(1)"></div>
+  </div>
+  <!-- This should not be affected by the backdrop filter. -->
+  <div style="width: 100px; height: 100px; margin-left: 100px; background: lime"></div>
+</div>
+<!-- This should not be affected by the backdrop filter. -->
+<div style="width: 100px; height: 100px; margin-left: 100px; background: lime"></div>
+

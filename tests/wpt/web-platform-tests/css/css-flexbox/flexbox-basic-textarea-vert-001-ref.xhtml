@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <style>
+      div.flexbox {
+        height: 200px;
+        width: 22px;
+        float: left;
+        margin-right: 10px;
+        background: lightgreen;
+        line-height: 0;
+      }
+      textarea {
+        width: 20px;
+        height: 10px;
+        background: white;
+        border-radius: 0;
+        border: 1px dotted green;
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="flexbox">
+      <textarea/>
+    </div>
+
+    <div class="flexbox">
+      <div style="font: 8px monospace; height: 188px">
+        a b
+      </div>
+      <textarea/>
+    </div>
+
+    <div class="flexbox">
+      <textarea style="height: 108.8px"
+    /><textarea style="height: 87.1px"/>
+    </div>
+
+    <div class="flexbox">
+      <textarea style="height: 93px"
+    /><textarea style="height: 103px"/>
+    </div>
+
+    <div class="flexbox">
+      <textarea style="height: 114px"
+    /><textarea style="height: 82px"/>
+    </div>
+
+    <div class="flexbox">
+      <textarea style="height: 106px"
+    /><textarea style="height: 90px"/>
+    </div>
+
+    <div class="flexbox">
+      <textarea style="height: 46px"
+    /><textarea style="height: 150px"/>
+    </div>
+
+  </body>
+</html>

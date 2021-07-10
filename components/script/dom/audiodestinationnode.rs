@@ -1,0 +1,56 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use crate::dom::audionode::{AudioNode, MAX_CHANNEL_COUNT};
+use crate::dom::baseaudiocontext::BaseAudioContext;
+use crate::dom::bindings::codegen::Bindings::AudioDestinationNodeBinding::AudioDestinationNodeMethods;
+use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
+use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
+    ChannelCountMode, ChannelInterpretation,
+};
+use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::globalscope::GlobalScope;
+use dom_struct::dom_struct;
+
+#[dom_struct]
+pub struct AudioDestinationNode {
+    node: AudioNode,
+}
+
+impl AudioDestinationNode {
+    fn new_inherited(
+        context: &BaseAudioContext,
+        options: &AudioNodeOptions,
+    ) -> AudioDestinationNode {
+        let node_options =
+            options.unwrap_or(2, ChannelCountMode::Max, ChannelInterpretation::Speakers);
+        AudioDestinationNode {
+            node: AudioNode::new_inherited_for_id(
+                context.destination_node(),
+                context,
+                node_options,
+                1,
+                1,
+            ),
+        }
+    }
+
+    #[allow(unrooted_must_root)]
+    pub fn new(
+        global: &GlobalScope,
+        context: &BaseAudioContext,
+        options: &AudioNodeOptions,
+    ) -> DomRoot<AudioDestinationNode> {
+        let node = AudioDestinationNode::new_inherited(context, options);
+        reflect_dom_object(Box::new(node), global)
+    }
+}
+
+impl AudioDestinationNodeMethods for AudioDestinationNode {
+    // https://webaudio.github.io/web-audio-api/#dom-audiodestinationnode-maxchannelcount
+    fn MaxChannelCount(&self) -> u32 {
+        MAX_CHANNEL_COUNT
+    }
+}

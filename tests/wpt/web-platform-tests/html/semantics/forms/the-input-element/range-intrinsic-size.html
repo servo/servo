@@ -1,0 +1,85 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>Test: type=range intrinsic size</title>
+  <link rel="author" title="Mats Palmgren" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1512066">
+  <link rel="match" href="range-intrinsic-size-ref.html">
+  <style>
+html,body {
+  color:black; background-color:white; font:16px/1 monospace;
+}
+
+.flex {
+  display: inline-flex;
+  width: 0;
+  border: 1px solid;
+}
+.flex2 {
+  display: inline-flex;
+  border: 1px solid;
+}
+.grid {
+  display: inline-grid;
+  grid: auto / 0;
+  border: 1px solid;
+}
+.grid2 {
+  display: inline-grid;
+  border: 1px solid;
+}
+.ib {
+  display: inline-block;
+  width: 0;
+  border: 1px solid;
+}
+input.mbp0 {
+  margin-left: 0;
+  margin-right: 0;
+  padding: 0;
+  border: 0;
+}
+  </style>
+</head>
+<body>
+
+<div class="flex"><input type="range"></div><br>
+<div class="flex"><input type="range" style="min-width:0"></div><br>
+<div class="flex" style="justify-items:start"><input type="range"></div><br>
+<div class="flex" style="-webkit-box-pack: start"><input type="range"></div><br>
+<div class="flex" style="-webkit-box-pack: start; justify-content: flex-start;"><input type="range"></div><br>
+<br>
+
+<div class="flex2"><input type="range"></div>
+<div class="flex2" style="width:3px"><input type="range" style="min-width:0" class="mbp0"></div>
+<div class="flex2" style="width:30px"><input type="range" style="min-width:0" class="mbp0"></div>
+<div class="flex2"><input type="range" style="min-width:0"></div>
+<div class="flex2" style="justify-items:start"><input type="range"></div>
+<div class="flex2" style="-webkit-box-pack: start"><input type="range"></div>
+<div class="flex2" style="-webkit-box-pack: start; justify-content: flex-start;"><input type="range"></div>
+<br>
+
+<div class="grid"><input type="range"></div><br>
+<div class="grid"><input type="range" style="min-width:0"></div><br>
+<div class="grid" style="justify-items:start"><input type="range"></div><br>
+
+<div class="grid2"><input type="range"></div>
+<div class="grid2"><input type="range" style="min-width:0"></div>
+<div class="grid2" style="width:3px"><input type="range" style="min-width:0" class="mbp0"></div>
+<div class="grid2" style="width:30px"><input type="range" style="min-width:0" class="mbp0"></div>
+<div class="grid2" style="grid:auto/30px"><input type="range" class="mbp0"></div>
+<div class="grid2" style="justify-items:start"><input type="range"></div>
+
+<br>
+
+<div class="ib"><input type="range"></div><br>
+<div class="ib"><input type="range" style="min-width:0"></div><br>
+
+<input type="range" style="width:-moz-min-content; width:min-content;">
+<input type="range" style="width:-moz-max-content; width:max-content;">
+
+</body>
+</html>

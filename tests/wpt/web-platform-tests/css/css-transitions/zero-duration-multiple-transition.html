@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-transitions/#starting">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1461070">
+<link rel="author" title="Emilio Cobos Álvarez" href="emilio@crisal.io">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #t {
+    color: red;
+    transition-property: color, color;
+    transition-duration: 1s, 0s;
+  }
+</style>
+<div id="t"></div>
+<script>
+test(function() {
+  let div = document.getElementById("t");
+  assert_equals(getComputedStyle(div).color, "rgb(255, 0, 0)");
+
+  div.style.color = "green";
+  assert_equals(
+    div.getAnimations().length,
+    0,
+    "No transition should've started"
+  );
+
+  assert_equals(getComputedStyle(div).color, "rgb(0, 128, 0)");
+}, "transition-duration of 0 prevents earlier transitions with the same property from starting.");
+</script>

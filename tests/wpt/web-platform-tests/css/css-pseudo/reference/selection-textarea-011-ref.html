@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style>
+  textarea
+    {
+      background-color: yellow;
+      color: green;
+      font-family: monospace;
+      font-size: 48px;
+      height: 112px;
+      line-height: 56px;
+      padding: 0px;
+      resize: none;
+      width: 8ch;
+      outline: none;
+    }
+  </style>
+
+  <script>
+  function startReference()
+  {
+    /*
+    Some browsers, like Chromium 80+ or Safari 14+, will
+    transfer focus to a selected element like a textarea
+    and therefore style the border of such element according
+    to an user agent stylesheet rule, such as:
+    :focus {outline: -webkit-focus-ring-color auto 1px;} .
+    So, we deliberately trigger such focus with the focus()
+    method in the reference file.
+    */
+
+    document.getElementById("ref").focus();
+
+    /*
+    When a textarea element is focused in Firefox
+    82+, then the caret becomes visible and blinking and
+    it is painted with the ::selected's color which is
+    the green color in this case. We therefore counter,
+    neutralize this by resetting the caret's color to the
+    background color.
+    */
+
+    document.getElementById("ref").style.caretColor = "yellow";
+
+  }
+  </script>
+
+  <body onload="startReference();">
+
+  <p>Test passes if each glyph of both "Selected" is green with a yellow background and if there is <strong>no red</strong>.
+
+  <div><textarea id="ref" rows="2" cols="8">Selected Selected </textarea></div>

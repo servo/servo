@@ -1,0 +1,59 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta name="variant" content="?keep-promise">
+<title>Test#add_cleanup with Promise-returning functions (timeout handling)</title>
+<script src="../../variants.js"></script>
+<script src="../../../testharness.js"></script>
+<script src="../../../testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+"use strict";
+
+promise_test(function(t) {
+  t.add_cleanup(function() {
+    return Promise.resolve();
+  });
+
+  t.add_cleanup(function() {
+    return new Promise(function() {});
+  });
+
+  t.add_cleanup(function() {});
+
+  t.add_cleanup(function() {
+    return new Promise(function() {});
+  });
+
+  return Promise.resolve();
+}, "promise_test with asynchronous cleanup");
+
+promise_test(function() {}, "promise_test following timed out cleanup ('NOT RUN')");
+</script>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "ERROR",
+    "message": "Timeout while running cleanup for test named \"promise_test with asynchronous cleanup\"."
+  },
+  "summarized_tests": [
+    {
+      "status_string": "NOTRUN",
+      "name": "promise_test following timed out cleanup ('NOT RUN')",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "promise_test with asynchronous cleanup",
+      "message": null,
+      "properties": {}
+    }
+  ],
+  "type": "complete"
+}
+</script>
+</body>
+</html>

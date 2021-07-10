@@ -1,0 +1,39 @@
+<!doctype html>
+<link rel="help" href="https://drafts.csswg.org/css-transitions/#transition-duration-property">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1650189">
+<link rel="author" href="http://mellthas.de" title="Till Berger">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<script src="/resources/testharness.js" type="text/javascript"></script>
+<script src="/resources/testharnessreport.js" type="text/javascript"></script>
+<title>transition-duration when looking at shorthand properties should be correct</title>
+<style>
+  div {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+    transition: all 100s, height 0s;
+  }
+  div.trigger {
+    width: 200px;
+    height: 200px;
+  }
+</style>
+<div></div>
+<script>
+  promise_test(async function (t) {
+    let div = document.querySelector("div");
+    let cs = getComputedStyle(div);
+    assert_equals(cs.width, "100px", "Width should start off correct");
+    assert_equals(cs.height, "100px", "Height should start off correct");
+
+    div.classList.add("trigger");
+
+    await new Promise(resolve => {
+      requestAnimationFrame(() => requestAnimationFrame(resolve));
+    });
+
+    assert_not_equals(cs.width, "200px", "Width should not have advanced to the end of the transition right away");
+    assert_equals(cs.height, "200px", "Height should have advanced to the end of the transition right away");
+  });
+</script>

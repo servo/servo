@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/bluetooth/resources/bluetooth-test.js"></script>
+<script src="/bluetooth/resources/bluetooth-fake-devices.js"></script>
+<script>
+'use strict';
+const test_desc = 'Simple filter selects matching device.';
+
+bluetooth_test(
+    () => setUpHealthThermometerAndHeartRateDevices()
+              .then(
+                  () => requestDeviceWithTrustedClick(
+                      {filters: [{services: ['health_thermometer']}]}))
+              .then(device => assert_equals(device.name, 'Health Thermometer')),
+    test_desc);
+</script>

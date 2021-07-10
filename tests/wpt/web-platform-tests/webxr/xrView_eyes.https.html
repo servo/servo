@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_asserts.js"></script>
+
+<script>
+
+let immersiveTestName = "XRView.eye is correct for immersive sessions";
+let nonImmersiveTestName = "XRView.eye is correct for non-immersive sessions";
+
+let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+let testFunction = function(session, fakeDeviceController, t) {
+  return session.requestReferenceSpace('viewer')
+      .then((space) => new Promise((resolve) => {
+    function onFrame(time, xrFrame) {
+      let viewer_pose = xrFrame.getViewerPose(space);
+
+      if (session.mode == 'inline') {
+        // An inline session should report a single view with an eye type "none".
+        assert_equals(viewer_pose.views.length, 1);
+        assert_equals(viewer_pose.views[0].eye, "none");
+      } else {
+        // An immersive session should report a two views with a left and right eye.
+        assert_equals(viewer_pose.views.length, 2);
+        assert_equals(viewer_pose.views[0].eye, "left");
+        assert_equals(viewer_pose.views[1].eye, "right");
+      }
+
+      // Finished test.
+      resolve();
+    }
+
+    session.requestAnimationFrame(onFrame);
+  }));
+};
+
+xr_session_promise_test(immersiveTestName, testFunction,
+  fakeDeviceInitParams, 'immersive-vr');
+xr_session_promise_test(nonImmersiveTestName, testFunction,
+  fakeDeviceInitParams, 'inline');
+
+</script>

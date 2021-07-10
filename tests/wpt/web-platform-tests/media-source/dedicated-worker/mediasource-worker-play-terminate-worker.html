@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<title>MediaSource-in-Worker looped playback test case with worker termination at various places</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+
+function terminateWorkerAfterMultipleSetTimeouts(test, worker, timeouts_remaining) {
+  if (timeouts_remaining <= 0) {
+    worker.terminate();
+    test.step_timeout(() => { test.done(); }, 0);
+  } else {
+    test.step_timeout(() => {
+      terminateWorkerAfterMultipleSetTimeouts(test, worker, --timeouts_remaining);
+    }, 0);
+  }
+}
+
+function startWorkerAndTerminateWorker(test, when_to_start_timeouts, timeouts_to_await) {
+  // Fail fast if MSE-in-Workers is not supported.
+  assert_true(MediaSource.hasOwnProperty("canConstructInDedicatedWorker"), "MediaSource hasOwnProperty 'canConstructInDedicatedWorker'");
+  assert_true(MediaSource.canConstructInDedicatedWorker, "MediaSource.canConstructInDedicatedWorker");
+
+  const worker = new Worker("mediasource-worker-util.js");
+  worker.onerror = test.unreached_func("worker error");
+
+  const video = document.createElement("video");
+  document.body.appendChild(video);
+  video.onerror = test.unreached_func("video element error");
+
+  if (when_to_start_timeouts == "after first ended event") {
+    video.addEventListener("ended", test.step_func(() => {
+      terminateWorkerAfterMultipleSetTimeouts(test, worker, timeouts_to_await);
+      video.currentTime = 0;
+      video.loop = true;
+    }), { once : true });
+  } else {
+    video.loop = true;
+  }
+
+  if (when_to_start_timeouts == "before setting src") {
+    terminateWorkerAfterMultipleSetTimeouts(test, worker, timeouts_to_await);
+  }
+
+  worker.onmessage = test.step_func(e => {
+    if (e.data.substr(0,6) == "Error:") {
+      assert_unreached("Worker error: " + e.data);
+    } else {
+      const url = e.data
+      assert_true(url.match(/^blob:.+/) != null);
+      video.src = url;
+      if (when_to_start_timeouts == "after setting src") {
+        terminateWorkerAfterMultipleSetTimeouts(test, worker, timeouts_to_await);
+      }
+      video.play().catch(error => {
+        // Only rejections due to MEDIA_ERR_SRC_NOT_SUPPORTED are expected to possibly
+        // occur, except if we expect to reach at least 1 'ended' event.
+        assert_not_equals(when_to_start_timeouts, "after first ended event");
+        assert_true(video.error != null);
+        assert_equals(video.error.code, MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED);
+        // Do not rethrow. Instead, wait for the step_timeouts to finish the test.
+      });
+    }
+  });
+}
+
+[ "before setting src", "after setting src", "after first ended event" ].forEach(when => {
+  for (let timeouts = 0; timeouts < 10; ++timeouts) {
+    async_test(test => { startWorkerAndTerminateWorker(test, when, timeouts); },
+        "Test worker MediaSource termination after at least " + timeouts +
+          " main thread setTimeouts, starting counting " + when);
+  }
+});
+
+</script>
+</body>
+</html>

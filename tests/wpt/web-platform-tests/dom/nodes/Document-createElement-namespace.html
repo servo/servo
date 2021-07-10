@@ -102,18 +102,16 @@ var tests = [
 
 tests.forEach(function(testName) {
   Object.keys(testExtensions).forEach(function(ext) {
-    var iframe = document.createElement("iframe");
-    iframe.src = "Document-createElement-namespace-tests/" +
-                 testName + "." + ext;
-    var t = async_test("Created element's namespace in " + testName + "." + ext);
-    iframe.onload = function() {
-      t.step(function() {
+    async_test(function(t) {
+      var iframe = document.createElement("iframe");
+      iframe.src = "Document-createElement-namespace-tests/" +
+                  testName + "." + ext;
+      iframe.onload = t.step_func_done(function() {
         testDoc(iframe.contentDocument, testExtensions[ext]);
+        document.body.removeChild(iframe);
       });
-      document.body.removeChild(iframe);
-      t.done();
-    };
-    document.body.appendChild(iframe);
+      document.body.appendChild(iframe);
+    }, "Created element's namespace in " + testName + "." + ext);
   });
 });
 </script>

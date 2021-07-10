@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>CSS3 Text, text transform: Latin Extended-C, uppercase</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<style type='text/css'>
+@font-face {
+	font-family: 'webfont';
+	src: url('/fonts/DoulosSIL-R.woff') format('woff');
+	font-weight: normal;
+	font-style: normal;
+	}
+.test, .ref { font-size: 125%; line-height: 1.5em; font-family: 'Doulos SIL', 'Noto Sans', webfont, sans-serif; }
+.test span, .ref span { margin-right: 1em; white-space: nowrap; }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if both characters in each pair match. If you are missing a font glyph for a character, ignore that pair, but report which characters were ignored.</p>
+<div class="test"><span title="U+2C61">&#x2C60; &#x2C60;</span> <span title="U+2C65">&#x023A; &#x023A;</span> <span title="U+2C66">&#x023E; &#x023E;</span> <span title="U+2C68">&#x2C67; &#x2C67;</span> <span title="U+2C6A">&#x2C69; &#x2C69;</span> <span title="U+2C6C">&#x2C6B; &#x2C6B;</span> <span title="U+2C73">&#x2C72; &#x2C72;</span> <span title="U+2C76">&#x2C75; &#x2C75;</span> </div>
+<!--Notes:
+Characters from this block that do not have case equivalents: &#x2C71; &#x2C74; &#x2C77; &#x2C78; &#x2C79; &#x2C7A; &#x2C7B; &#x2C7C; &#x2C7D;
+-->
+</body>
+</html>

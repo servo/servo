@@ -9,7 +9,6 @@
 <div style="display:none">
   <p name="a" id="p1"></p>
   <a name="a" id="a1" href="#"></a>
-  <applet name="a" id="app1"></applet>
   <area name="a" id="area1"></area>
   <embed name="a" id="embed1"></embed>
   <form name="a" id="form1"></form>
@@ -33,10 +32,9 @@ test(function() {
 }, "Check if the first nested browsing context is returned by window['c']");
 
 test(function() {
-  assert_equals(window['a'].length, 5, "The length should be 5.");
   assert_true(window['a'] instanceof HTMLCollection);
   assert_array_equals(window['a'],
-                      [ document.getElementById('app1'), document.getElementById('embed1'),
+                      [ document.getElementById('embed1'),
                         document.getElementById('form1'), document.getElementById('img1'),
                         document.getElementById('obj1') ],
                       "The elements are not in tree order.");
@@ -44,10 +42,10 @@ test(function() {
   document.getElementById('form1').setAttribute("name", "");
   document.getElementById('embed1').setAttribute("name", "");
   assert_array_equals(window['a'],
-                      [ document.getElementById('app1'), document.getElementById('img1'),
+                      [ document.getElementById('img1'),
                         document.getElementById('obj1') ],
                       "Window['a'] should not contain the elements with empty name attribute.");
-}, "Check if window['a'] contains all applet, embed, form, img, and object elements, and their order");
+}, "Check if window['a'] contains all embed, form, img, and object elements, and their order");
 
 var t = async_test("Check that window['fs'] does not return the frameset element with name='fs' (historical)");
 function on_load () {

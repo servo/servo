@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg id="svg-root"
+  width="310" height="170" viewBox="0, 0, 620, 340"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Percentages in shapes</title>
+  <html:link rel="help" href="https://svgwg.org/svg2-draft/geometry.html"/>
+  <html:link rel="match"  href="percentage-ref.svg" />
+
+  <style>
+    svg {
+      fill: none;
+      stroke-width: 30px;
+    }
+    circle {
+      cx: 70%;
+      cy: 60%;
+      r: 50%;
+    }
+    ellipse {
+      cx: 40%;
+      cy: 30%;
+      rx: 10%;
+      ry: 20%;
+    }
+    rect {
+      x: 10%;
+      y: 20%;
+      width: 70%;
+      height: 60%;
+    }
+  </style>
+
+  <circle stroke="cyan" />
+  <ellipse stroke="green" />
+  <rect stroke="blue" />
+</svg>

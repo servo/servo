@@ -1,0 +1,15 @@
+<script>
+  const iframe_1_script = encodeURI(`
+    <script>
+      try {
+        document.domain = document.domain;
+        parent.postMessage("not sandboxed", "*");
+      } catch (exception) {
+        parent.postMessage("sandboxed", "*");
+      }
+    </scr`+`ipt>
+  `);
+
+  const iframe_1 = parent.document.querySelector("#iframe_1");
+  iframe_1.src = `data:text/html,${iframe_1_script}`;
+</script>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<head>
+  <title>Deferred images with loading='lazy' use the original
+         base URL specified at parse-time</title>
+  <link rel="author" title="Rob Buis" href="mailto:rbuis@igalia.com">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="../resources/common.js"></script>
+  <base href='/html/semantics/embedded-content/the-img-element/resources/'>
+</head>
+
+<script>
+  const below_viewport_img = new ElementLoadPromise("below-viewport");
+
+  let has_window_loaded = false;
+
+  async_test(t => {
+    // At this point, the below-viewport image's request has been set-up, and
+    // its URL is the URL that was parsed relative to the document's base URL
+    // at this time. Any changes to the document's base URL from this point
+    // forward should not impact the image when we scroll it in-view. This is
+    // because the next step in the #updating-the-img-data algorithm is to to
+    // fetch the request that has already been set up. Now we'll change the
+    // document's base URL, and scroll the image in-view.
+    window.addEventListener("load", t.step_func(() => {
+      const base = document.querySelector('base');
+      base.href = '/invalid-url-where-no-subresources-exist/';
+      has_window_loaded = true;
+      below_viewport_img.element().scrollIntoView();
+    }));
+
+    below_viewport_img.promise.then(t.step_func_done(() => {
+      assert_true(has_window_loaded,
+                  "Below-viewport loading=lazy images do not block the " +
+                  "window load event");
+    }));
+
+    below_viewport_img.promise.catch(
+      t.unreached_func("The image request should not load relative to the " +
+                       "current (incorrect) base URL.")
+    );
+  }, "When a loading=lazy image is loaded, it loads relative to the " +
+     "document's base URL computed at parse-time.");
+</script>
+
+<body>
+  <div style="height:1000vh"></div>
+  <img id="below-viewport" src="image.png" loading="lazy"
+       onload="below_viewport_img.resolve()"
+       onerror="below_viewport_img.reject()">
+</body>

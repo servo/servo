@@ -7,7 +7,7 @@
     background-color: orange;
   }
   body > div + div {
-  	margin-top: 10px;
+    margin-top: 10px;
     height: 200px;
     width: 200px;
     background-color: blue;
@@ -19,15 +19,15 @@ window.onload = function() {
   var orange = document.getElementsByTagName('div')[0], blue = document.getElementsByTagName('div')[1];
   orange.ondragstart = function(e) {
     e.dataTransfer.effectAllowed = 'copy';
-		e.dataTransfer.setData('text', 'dummy text');
+    e.dataTransfer.setData('text', 'dummy text');
   };
   blue.ondragover = blue.ondragenter = function(e) {
-   	e.preventDefault();
+    e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
   };
-	blue.ondrop = function(e) {
-   	e.preventDefault();
-		alert('It should ideally be possible to dismiss this dialog with your mouse/pointing device (do not use mouse gestures).');
+  blue.ondrop = function(e) {
+    e.preventDefault();
+    alert('It should ideally be possible to dismiss this dialog with your mouse/pointing device (do not use mouse gestures).');
   };
 };
 </script>

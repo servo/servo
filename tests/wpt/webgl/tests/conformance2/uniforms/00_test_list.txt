@@ -1,0 +1,8 @@
+--min-version 2.0.1 draw-with-uniform-blocks.html
+--min-version 2.0.1 gl-uniform-arrays-sub-source.html
+--min-version 2.0.1 query-uniform-blocks-after-shader-detach.html
+--min-version 2.0.1 uniform-blocks-with-arrays.html
+--min-version 2.0.1 simple-buffer-change.html
+--min-version 2.0.1 dependent-buffer-change.html
+--min-version 2.0.1 incompatible-texture-type-for-sampler.html
+

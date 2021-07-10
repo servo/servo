@@ -1,0 +1,173 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>IdlDictionary.prototype.default_to_json_operation()</title>
+</head>
+<body>
+<div id="log"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<script src="../../../idl-helper.js"></script>
+<pre id=fragments>
+    interface A : B {
+      attribute DOMString a;
+    };
+
+    interface B : C {
+      [Default] object toJSON();
+      attribute long b;
+    };
+
+    interface C {
+      attribute DOMString c;
+    };
+
+    interface mixin D {
+      [Default] object toJSON();
+      attribute float d;
+    };
+
+    interface mixin G {
+      [Default] object toJSON();
+      attribute octet g;
+    };
+
+    interface mixin H {
+      [Default] object toJSON();
+      attribute DOMString h;
+    };
+
+    interface mixin I {
+      [Default] object toJSON();
+      attribute boolean i;
+    };
+
+    A includes G;
+    A includes H;
+    B includes D;
+</pre>
+<script>
+    "use strict";
+    test(function() {
+        var map = interfaceFrom('interface A { [Default] object toJSON(); };').default_to_json_operation();
+        assert_equals(map.size, 0);
+    }, 'should return an empty map when there are no attributes');
+
+    test(function() {
+        var r = interfaceFrom('interface A { };').default_to_json_operation();
+        assert_equals(r, null);
+    }, 'should return null when there is no toJSON method');
+
+    test(function() {
+        var r = interfaceFrom('interface A { DOMString toJSON(); };').default_to_json_operation();
+        assert_equals(r, null);
+    }, 'should return null when there is a toJSON method but it does not have the [Default] extended attribute');
+
+    test(function() {
+        var context = new IdlArray();
+        context.add_idls("interface A : B { DOMString toJSON(); };");
+        context.add_idls("interface B { [Default] object toJSON(); };");
+        var r = context.members.A.default_to_json_operation();
+        assert_equals(r, null);
+    }, 'should return null when there is a toJSON method but it does not have the [Default] extended attribute even if this extended attribute exists on inherited interfaces');
+
+    test(function() {
+        var map = interfaceFrom('interface A { [Default] object toJSON(); static attribute DOMString foo; };').default_to_json_operation();
+        assert_equals(map.size, 0);
+    }, 'should not include static attributes');
+
+    test(function() {
+        var map = interfaceFrom('interface A { [Default] object toJSON(); attribute Promise<DOMString> bar; };').default_to_json_operation();
+        assert_equals(map.size, 0);
+    }, 'should not include attributes which are not JSON types');
+
+    test(function() {
+        var map = interfaceFrom('interface A { [Default] object toJSON(); DOMString bar(); };').default_to_json_operation();
+        assert_equals(map.size, 0);
+    }, 'should not include operations');
+
+    test(function() {
+        var map = interfaceFrom('interface A { [Default] object toJSON(); attribute DOMString bar; };').default_to_json_operation();
+        assert_equals(map.size, 1);
+        assert_true(map.has("bar"));
+        assert_equals(map.get("bar").idlType, "DOMString");
+    }, 'should return a map whose key/value pair represent the identifier and IDL type of valid attributes');
+
+    test(function() {
+        var context = new IdlArray();
+        context.add_idls("interface A : B { [Default] object toJSON(); attribute DOMString a; };");
+        context.add_idls("interface B { [Default] object toJSON(); attribute long b; };");
+        var map = context.members.A.default_to_json_operation();
+        assert_array_equals([...map.keys()], ["b", "a"]);
+        assert_array_equals([...map.values()].map(v => v.idlType), ["long", "DOMString"]);
+    }, 'should return a properly ordered map that contains IDL types of valid attributes for inherited interfaces');
+
+    test(function() {
+        var context = new IdlArray();
+        context.add_idls("interface A : B { attribute DOMString a; };");
+        context.add_idls("interface B { [Default] object toJSON(); attribute long b; };");
+        var map = context.members.A.default_to_json_operation();
+        assert_equals(map.size, 1);
+        assert_true(map.has("b"));
+        assert_equals(map.get("b").idlType, "long");
+        assert_array_equals([...map.keys()], ["b"]);
+    }, 'should not include attributes of the current interface when the [Default] toJSON method in inherited');
+
+    test(function() {
+        var context = new IdlArray();
+        context.add_idls("interface A : B { [Default] object toJSON(); };");
+        context.add_idls("interface B : C { [Default] object toJSON(); attribute DOMString foo; };");
+        context.add_idls("interface C { [Default] object toJSON(); attribute long foo; };");
+        var map = context.members.A.default_to_json_operation();
+        assert_equals(map.size, 1);
+        assert_true(map.has("foo"));
+        assert_equals(map.get("foo").idlType, "DOMString");
+    }, 'attributes declared further away in the inheritance hierarchy should be masked by attributes declared closer');
+
+    test(function() {
+        var context = new IdlArray();
+        context.add_idls("interface A : B { [Default] object toJSON(); attribute DOMString a; };");
+        context.add_idls("interface B { object toJSON(); attribute long b; };");
+        var map = context.members.A.default_to_json_operation();
+        assert_equals(map.size, 1);
+        assert_true(map.has("a"));
+        assert_false(map.has("b"));
+        assert_equals(map.get("a").idlType, "DOMString");
+    }, 'should return an ordered map that ignores attributes of inherited interfaces which do not declare a [Default] toJSON operation.');
+
+    test(function() {
+        var context = new IdlArray();
+        context.add_idls("interface A { [Default] object toJSON(); attribute DOMString a; };");
+        context.add_idls("interface mixin N { [Default] object toJSON(); attribute long n; };");
+        context.add_idls("A includes N;");
+        var map = context.members.A.default_to_json_operation();
+        assert_array_equals([...map.keys()], ["a", "n"]);
+        assert_array_equals([...map.values()].map(v => v.idlType), ["DOMString", "long"]);
+    }, 'should return a properly ordered map that accounts for mixed-in interfaces which declare a [Default] toJSON operation.');
+
+    test(function() {
+        var context = new IdlArray();
+        context.add_idls("interface A { [Default] object toJSON(); attribute DOMString a; };");
+        context.add_idls("interface mixin N { attribute long n; };");
+        context.add_idls("A includes N;");
+        var map = context.members.A.default_to_json_operation();
+        assert_equals(map.size, 1);
+        assert_true(map.has("a"));
+        assert_false(map.has("n"));
+        assert_equals(map.get("a").idlType, "DOMString");
+    }, 'should return a properly ordered map that ignores mixed-in interfaces which do not declare a [Default] toJSON operation.');
+
+
+    test(function() {
+        var context = new IdlArray();
+        context.add_idls(document.getElementById('fragments').textContent);
+        var map = context.members.A.default_to_json_operation();
+        assert_array_equals([...map.keys()], ["b", "d", "g", "h"]);
+        assert_array_equals([...map.values()].map(v => v.idlType), ["long", "float", "octet", "DOMString"]);
+    }, 'should return a properly ordered map of name/type pairs handling inherited and consequential interfaces as specified.');
+</script>
+</body>
+</html>
+

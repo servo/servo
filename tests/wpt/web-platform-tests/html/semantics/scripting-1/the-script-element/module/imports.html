@@ -52,13 +52,13 @@
     </script>
 
     <script>
-        var test_importSelf = async_test("Import a module that tries to import itself");
+        var test_importSelf = async_test("Import a module that validly imports itself");
     </script>
-    <script type="module" src="imports-self.js" onerror="test_importSelf.done();"></script>
+    <script type="module" src="imports-self.js"></script>
 
     <script>
-        var test_importCycle = async_test("Import a module with a cyclical module dependency");
+        var test_importCycle = async_test("Import a module with a valid cyclical module dependency");
     </script>
-    <script type="module" src="imports-cycle.js" onerror="test_importCycle.done();"></script>
+    <script type="module" src="imports-cycle.js"></script>
 </body>
 </html>

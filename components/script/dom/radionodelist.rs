@@ -1,20 +1,21 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
-use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
-use dom::bindings::codegen::Bindings::RadioNodeListBinding;
-use dom::bindings::codegen::Bindings::RadioNodeListBinding::RadioNodeListMethods;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, Root};
-use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::str::DOMString;
-use dom::htmlinputelement::HTMLInputElement;
-use dom::node::Node;
-use dom::nodelist::{NodeList, NodeListType};
-use dom::window::Window;
+use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
+use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
+use crate::dom::bindings::codegen::Bindings::RadioNodeListBinding::RadioNodeListMethods;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::htmlformelement::HTMLFormElement;
+use crate::dom::htmlinputelement::{HTMLInputElement, InputType};
+use crate::dom::node::Node;
+use crate::dom::nodelist::{NodeList, NodeListType, RadioList, RadioListMode};
+use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use servo_atoms::Atom;
 
 #[dom_struct]
 pub struct RadioNodeList {
@@ -25,25 +26,44 @@ impl RadioNodeList {
     #[allow(unrooted_must_root)]
     fn new_inherited(list_type: NodeListType) -> RadioNodeList {
         RadioNodeList {
-            node_list: NodeList::new_inherited(list_type)
+            node_list: NodeList::new_inherited(list_type),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, list_type: NodeListType) -> Root<RadioNodeList> {
-        reflect_dom_object(box RadioNodeList::new_inherited(list_type),
-                           window,
-                           RadioNodeListBinding::Wrap)
+    pub fn new(window: &Window, list_type: NodeListType) -> DomRoot<RadioNodeList> {
+        reflect_dom_object(Box::new(RadioNodeList::new_inherited(list_type)), window)
     }
 
-    pub fn new_simple_list<T>(window: &Window, iter: T) -> Root<RadioNodeList>
-                              where T: Iterator<Item=Root<Node>> {
-        RadioNodeList::new(window, NodeListType::Simple(iter.map(|r| JS::from_ref(&*r)).collect()))
+    pub fn new_controls_except_image_inputs(
+        window: &Window,
+        form: &HTMLFormElement,
+        name: &Atom,
+    ) -> DomRoot<RadioNodeList> {
+        RadioNodeList::new(
+            window,
+            NodeListType::Radio(RadioList::new(
+                form,
+                RadioListMode::ControlsExceptImageInputs,
+                name.clone(),
+            )),
+        )
     }
 
-    // FIXME: This shouldn't need to be implemented here since NodeList (the parent of
-    // RadioNodeList) implements Length
+    pub fn new_images(
+        window: &Window,
+        form: &HTMLFormElement,
+        name: &Atom,
+    ) -> DomRoot<RadioNodeList> {
+        RadioNodeList::new(
+            window,
+            NodeListType::Radio(RadioList::new(form, RadioListMode::Images, name.clone())),
+        )
+    }
+
+    // https://dom.spec.whatwg.org/#dom-nodelist-length
     // https://github.com/servo/servo/issues/5875
+    #[allow(non_snake_case)]
     pub fn Length(&self) -> u32 {
         self.node_list.Length()
     }
@@ -52,45 +72,51 @@ impl RadioNodeList {
 impl RadioNodeListMethods for RadioNodeList {
     // https://html.spec.whatwg.org/multipage/#dom-radionodelist-value
     fn Value(&self) -> DOMString {
-        self.upcast::<NodeList>().as_simple_list().iter().filter_map(|node| {
-            // Step 1
-            node.downcast::<HTMLInputElement>().and_then(|input| {
-                match input.type_() {
-                    atom!("radio") if input.Checked() => {
+        self.upcast::<NodeList>()
+            .iter()
+            .filter_map(|node| {
+                // Step 1
+                node.downcast::<HTMLInputElement>().and_then(|input| {
+                    if input.input_type() == InputType::Radio && input.Checked() {
                         // Step 3-4
                         let value = input.Value();
-                        Some(if value.is_empty() { DOMString::from("on") } else { value })
+                        Some(if value.is_empty() {
+                            DOMString::from("on")
+                        } else {
+                            value
+                        })
+                    } else {
+                        None
                     }
-                    _ => None
-                }
+                })
             })
-        }).next()
-        // Step 2
-          .unwrap_or(DOMString::from(""))
+            .next()
+            // Step 2
+            .unwrap_or(DOMString::from(""))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-radionodelist-value
     fn SetValue(&self, value: DOMString) {
-        for node in self.upcast::<NodeList>().as_simple_list().iter() {
+        for node in self.upcast::<NodeList>().iter() {
             // Step 1
             if let Some(input) = node.downcast::<HTMLInputElement>() {
-                match input.type_() {
-                    atom!("radio") if value == DOMString::from("on") => {
+                match input.input_type() {
+                    InputType::Radio if value == DOMString::from("on") => {
                         // Step 2
                         let val = input.Value();
                         if val.is_empty() || val == value {
                             input.SetChecked(true);
                             return;
                         }
-                    }
-                    atom!("radio") => {
+                    },
+                    InputType::Radio => {
                         // Step 2
                         if input.Value() == value {
                             input.SetChecked(true);
                             return;
                         }
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
             }
         }
@@ -101,7 +127,7 @@ impl RadioNodeListMethods for RadioNodeList {
     // https://github.com/servo/servo/issues/5875
     //
     // https://dom.spec.whatwg.org/#dom-nodelist-item
-    fn IndexedGetter(&self, index: u32) -> Option<Root<Node>> {
+    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Node>> {
         self.node_list.IndexedGetter(index)
     }
 }

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<link rel="author" title="Google LLC" href="http://www.google.com" />
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#line-sizing" />
+<title>css-flexbox: Tests that we use the aspect ratio, clamped by min/max, to compute the main size</title>
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+<style>
+.flex {
+  display: flex;
+  width: 100px;
+  flex-direction: column;
+}
+
+img {
+  max-width: 100%;
+  width: 500px;
+  min-height: 0;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div class="flex">
+      <img src="support/100x100-green.png">
+</div>
+

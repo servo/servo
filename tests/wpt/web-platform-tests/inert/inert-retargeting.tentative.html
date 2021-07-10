@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+button#foreground,
+button#background {
+  position: absolute;
+  top: 75px;
+  left: 50px;
+  width: 100px;
+  height: 20px;
+}
+
+button#background {
+  left: 75px;
+  width: 150px;
+  height: 40px;
+  top: 125px;
+  line-height: 53px;
+}
+
+.clicked {
+  background-color: red;
+}
+
+#ancestorContainer.clicked {
+  background-color: green;
+}
+
+#ancestorContainer {
+  position: relative;
+  width: 300px;
+  height: 300px;
+  background-color: blue;
+}
+
+#displacedAncestor {
+  position: absolute;
+  top: 13px;
+  left: 240px;
+  width: 300px;
+  height: 250px;
+  background-color: #ff89;
+}
+
+#displacedAncestor.clicked {
+  background-color: #f009;
+}
+
+#inertContainer {
+  background-color: #fff9;
+  position: absolute;
+  top: 35px;
+  left: -192px;
+  width: 200px;
+  height: 200px;
+}
+
+fieldset {
+  margin: 0;
+  padding: 0;
+  border: 1px solid black;
+}
+
+legend {
+  background-color: white;
+  border: 1px solid black;
+  margin-left: 5px;
+}
+
+button.clicked::after {
+  content: " (clicked)";
+}
+
+.clicked > legend::after {
+  content: " (clicked)";
+}
+
+</style>
+</head>
+<body>
+  <p>Click on "foreground".</p>
+  <ul>
+    <li>The blue square ("Non-inert ancestor container") should turn green.</li>
+    <li>The yellow, semi-transparent square ("Non-inert, displaced container") should not turn red.</li>
+    <li>"Non-inert button" should not turn red.</li>
+  </ul>
+  <p>(The full test suite checks a range of events.)</p>
+  <fieldset id="ancestorContainer">
+    <legend>Non-inert ancestor container</legend>
+    <button id="background">background</button>
+    <fieldset id="displacedAncestor">
+      <legend>Non-inert, displaced ancestor</legend>
+      <fieldset id="inertContainer" inert>
+        <legend>Inert container</legend>
+        <button id="foreground">foreground</button>
+      </fieldset>
+    </fieldset>
+  </fieldset>
+
+  <script>
+document.body.addEventListener('click', (e) => {
+  e.target.classList.add('clicked');
+});
+
+function clickOn(element) {
+  return new test_driver.Actions()
+      .pointerMove(0, 0, {origin: element})
+      .pointerDown({button: test_driver.Actions.prototype.ButtonType.LEFT})
+      .pointerUp({button: test_driver.Actions.prototype.ButtonType.LEFT})
+      .send();
+}
+
+function auxClickOn(element) {
+  return new test_driver.Actions()
+      .pointerMove(0, 0, {origin: element})
+      .pointerDown({button: test_driver.Actions.prototype.ButtonType.RIGHT})
+      .pointerUp({button: test_driver.Actions.prototype.ButtonType.RIGHT})
+      .send();
+}
+
+function dblClickOn(element) {
+  return new test_driver.Actions()
+      .pointerMove(0, 0, {origin: element})
+      .pointerDown({button: test_driver.Actions.prototype.ButtonType.LEFT})
+      .pointerUp({button: test_driver.Actions.prototype.ButtonType.LEFT})
+      .pointerDown({button: test_driver.Actions.prototype.ButtonType.LEFT})
+      .pointerUp({button: test_driver.Actions.prototype.ButtonType.LEFT})
+      .send();
+}
+
+function movePointerOver(element) {
+  let rect = element.getBoundingClientRect();
+  return new test_driver.Actions()
+      .pointerMove(0, 0, { origin: element })
+      .send();
+}
+
+function movePointerTo(x, y) {
+  return new test_driver.Actions()
+      .pointerMove(x, y, { origin: "viewport" })
+      .send();
+}
+
+function expectEventsOn(events, element) {
+  let promises = [];
+  for (event of events) {
+    ((event, element) => {
+      var promise = new Promise((resolve, reject) => {
+        let f = (e) => {
+          assert_equals(e.type, event);
+          assert_equals(e.target, element);
+          resolve();
+        }
+        element.addEventListener(event, f, { capture: true, once: true });
+
+        step_timeout(() => {
+          element.removeEventListener(event, f, { capture: true });
+          reject("did not get " + event + " on " + element.id);
+        }, 1000);
+      });
+      promises.push(promise);
+    })(event, element);
+  }
+  return promises;
+}
+
+function unexpectEventsOn(events, element) {
+  let promises = [];
+  for (event of events) {
+    ((event, element) => {
+      var promise = new Promise((resolve, reject) => {
+        let f = (e) => {
+          assert_equals(e.type, event);
+          assert_equals(e.target, element);
+          reject("got " + e.type + " on " + e.target.id);
+        }
+        element.addEventListener(event, f, { capture: true, once: true });
+
+        step_timeout(() => {
+          element.removeEventListener(event, f, { capture: true });
+          resolve();
+        }, 1000);
+      });
+      promises.push(promise);
+    })(event, element);
+  }
+  return promises;
+}
+
+test(() => {
+  let rect = foreground.getBoundingClientRect();
+  let center_x = rect.left + (rect.width / 2);
+  let center_y = rect.top + (rect.height / 2);
+  assert_equals(document.elementsFromPoint(center_x, center_y)[0], foreground);
+}, "elementsFromPoint returns inert element");
+
+promise_test(async () => {
+  // Test mouse events on non-inert element - events should go to "foreground"
+  inertContainer.inert = false;
+  await movePointerTo(0, 0);
+  let promises = expectEventsOn(["mouseover", "mouseenter", "mousemove", "mousedown",
+                                 "mouseup", "click", "auxclick", "mouseout",
+                                 "mouseleave"],
+                                foreground);
+  await clickOn(foreground);
+  await auxClickOn(foreground);
+  await dblClickOn(foreground);
+  let ancestorBox = ancestorContainer.getBoundingClientRect();
+  let inertBox = inertContainer.getBoundingClientRect();
+  let x = ancestorBox.left + (ancestorBox.width / 2);
+  let y = inertBox.bottom + ((ancestorBox.bottom - inertBox.bottom) / 2);
+  await movePointerTo(x, y);
+  await Promise.all(promises);
+}, "Tests that any mouse event on a non-inert element is correctly targeted to that element");
+
+promise_test(async () => {
+  // Make the containing element inert - now events should go to "container"
+  // which is the non-inert ancestor at the same position
+  inertContainer.inert = true;
+  await movePointerTo(0, 0);
+
+  let promises = expectEventsOn(["mouseover", "mouseenter", "mousemove", "mousedown",
+                                 "mouseup", "click", "auxclick"],
+                                ancestorContainer);
+
+  // TODO(aboxhall): We are getting these unexpected events. Why?
+  promises = promises.concat(unexpectEventsOn(["mouseout", "mouseleave"],
+                                              ancestorContainer));
+
+  await clickOn(foreground);
+  await auxClickOn(foreground);
+  await dblClickOn(foreground);
+  let ancestorBox = ancestorContainer.getBoundingClientRect();
+  let inertBox = inertContainer.getBoundingClientRect();
+  let x = ancestorBox.left + (ancestorBox.width / 2);
+  let y = inertBox.bottom + ((ancestorBox.bottom - inertBox.bottom) / 2);
+  await movePointerTo(x, y);
+  await Promise.all(promises);
+}, 'Tests that any mouse event on an inert element is targeted to the nearest non-inert ancestor at the same coordinates');
+
+promise_test(async () => {
+  // Test pointer events on non-inert element - events should go to "foreground"
+  inertContainer.inert = false;
+  await movePointerTo(0, 0);
+
+  let promises = expectEventsOn(["pointerover", "pointerenter", "pointermove",
+                                 "pointerdown", "pointerup", "pointerout",
+                                 "pointerleave"],
+                                foreground);
+  await clickOn(foreground);
+  let ancestorBox = ancestorContainer.getBoundingClientRect();
+  let inertBox = inertContainer.getBoundingClientRect();
+  let x = ancestorBox.left + (ancestorBox.width / 2);
+  let y = inertBox.bottom + ((ancestorBox.bottom - inertBox.bottom) / 2);
+  await movePointerTo(x, y);
+  await Promise.all(promises);
+}, "Tests that any pointer event on a non-inert element is correctly targeted to that element");
+
+promise_test(async () => {
+  // Make the containing element inert - now events should go to "container"
+  // which is the non-inert ancestor at the same position
+  inertContainer.inert = true;
+  await movePointerTo(0, 0);
+
+  let promises = expectEventsOn(["pointerover", "pointerenter", "pointermove",
+                                 "pointerdown", "pointerup" ],
+                                ancestorContainer);
+
+  // TODO(aboxhall): We are getting these unexpected events. Why?
+  promises = promises.concat(unexpectEventsOn(["pointerout", "pointerleave"],
+                                              ancestorContainer));
+
+  await clickOn(foreground);
+  let ancestorBox = ancestorContainer.getBoundingClientRect();
+  let inertBox = inertContainer.getBoundingClientRect();
+  let x = ancestorBox.left + (ancestorBox.width / 2);
+  let y = inertBox.bottom + ((ancestorBox.bottom - inertBox.bottom) / 2);
+  await movePointerTo(x, y);
+  await Promise.all(promises);
+}, 'Tests that any pointer event on an inert element is targeted to the nearest non-inert ancestor at the same coordinates');
+
+</script>
+</body>
+</html>

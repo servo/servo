@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1052370" >
+<meta name="assert" content="When determining the size of a replaced element, if it has an aspect ratio of 1/1 then the final height should be exactly equal to its width." />
+<script src="../../resources/check-layout.js"></script>
+<style>
+canvas {
+  float: left;
+  background: green;
+}
+</style>
+<div style="position: relative; width: 254px; zoom: 0.8;">
+  <canvas style="width: 30%;" width="1" height="1"></canvas>
+  <canvas style="width: 30%;" width="708" height="708"></canvas>
+  <canvas id="target" style="width: 60%;" width="2" height="1" data-offset-x="0"></canvas>
+</div>
+<script>
+checkLayout('#target');
+</script>

@@ -27,8 +27,8 @@
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
-        The test is passed if on the first line you see two upward pointed triangles 
-	followed by the letter "l". On the second line, a single square.
+        The test is passed if on the first line you see two upward pointed triangles
+  followed by the letter "l". On the second line, a single square.
       </p>
     </d:passCriteria>
   </d:SVGTestCase>

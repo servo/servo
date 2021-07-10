@@ -1,0 +1,5 @@
+@import 'style-imported-from-file.css';
+
+#scopes_style_target {
+  color: blue;
+}

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>Ellipsizing inline blocks that have absolute positioned objects should not crash</title>
+<link rel="author" href="kojii@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=945690">
+<meta name="assert" content="Ellipsizing inline blocks that have absolute positioned objects should not crash">
+<style>
+div {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  width: 5ch;
+}
+.inline-block {
+  display: inline-block;
+}
+.abs {
+  position: absolute;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div>
+  12345678
+  <span class="inline-block">
+    <span class="abs">abs</span>
+  </span>
+</div>
+<div>
+  12345678
+  <span class="inline-block">
+    999
+    <span class="abs">abs</span>
+  </span>
+</div>
+<div>
+  12
+  <span class="inline-block">
+    3456789
+    <span class="abs">abs</span>
+  </span>
+</div>
+<script>
+test(() => {}, 'No crash or DCHECK failure');
+</script>

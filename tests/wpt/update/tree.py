@@ -1,6 +1,6 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 from distutils.spawn import find_executable
 import re
@@ -69,7 +69,7 @@ class GitTree(wptupdate.tree.GitTree):
         data = self.git("log", *args)
         return [self.commit_cls(self, sha1) for sha1 in data.split("\0") if sha1]
 
-    def import_patch(self, patch):
+    def import_patch(self, patch, strip_count):
         """Import a patch file into the tree and commit it
 
         :param patch: a Patch object containing the patch to import
@@ -79,7 +79,7 @@ class GitTree(wptupdate.tree.GitTree):
             f.write(patch.diff)
             f.flush()
             f.seek(0)
-            self.git("apply", "--index", f.name)
+            self.git("apply", "--index", f.name, "-p", str(strip_count))
         self.git("commit", "-m", patch.message.text, "--author=%s" % patch.full_author)
 
     def rebase(self, ref, continue_rebase=False):

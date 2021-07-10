@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<!-- Any copyright is dedicated to the Public Domain.
+   - http://creativecommons.org/publicdomain/zero/1.0/ -->
+
+<html>
+  <title>CSS Shape Test: float right, content-box</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-shapes-1/#shapes-from-box-values">
+  <link rel="match" href="reference/shape-outside-content-box-002-ref.html">
+  <meta name="flags" content="">
+  <meta name="assert" content="Test the boxes are wrapping around the right float shape defined by the content-box value.">
+  <style>
+  .container {
+    direction: rtl;
+    width: 175px;
+    line-height: 0;
+  }
+
+  .shape {
+    float: right;
+    shape-outside: content-box;
+    box-sizing: content-box;
+    height: 25px;
+    width: 25px;
+    padding: 25px;
+    border: 25px solid lightgreen;
+    margin: 25px;
+    background-color: orange;
+  }
+
+  .box {
+    display: inline-block;
+    width: 50px;
+    height: 25px;
+    background-color: blue;
+  }
+
+  .longbox {
+    display: inline-block;
+    width: 175px;
+    height: 25px;
+    background-color: blue;
+  }
+  </style>
+
+  <main class="container">
+    <div class="shape"></div>
+    <div class="shape"></div>
+    <div class="longbox"></div> <!-- Saturate the margin space -->
+    <div class="longbox"></div> <!-- Saturate the border space -->
+    <div class="longbox"></div> <!-- Saturate the padding space -->
+    <div class="box"></div>
+    <div class="longbox"></div> <!-- Saturate the padding space -->
+    <div class="longbox"></div> <!-- Saturate the border space -->
+    <div class="longbox"></div> <!-- Saturate the margin space -->
+
+    <div class="longbox"></div> <!-- Saturate the margin space -->
+    <div class="longbox"></div> <!-- Saturate the border space -->
+    <div class="longbox"></div> <!-- Saturate the padding space -->
+    <div class="box"></div>
+    <div class="longbox"></div> <!-- Saturate the padding space -->
+    <div class="longbox"></div> <!-- Saturate the border space -->
+    <div class="longbox"></div> <!-- Saturate the margin space -->
+  </main>
+</html>

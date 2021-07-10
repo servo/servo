@@ -1,0 +1,37 @@
+<html manifest="resources/appcache-iframe.manifest">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const initPromise = new Promise(resolve => {
+  applicationCache.addEventListener('cached', resolve, false);
+  applicationCache.addEventListener('noupdate', resolve, false);
+});
+
+function with_iframe(url) {
+  return new Promise(resolve => {
+      let frame = document.createElement('iframe');
+      frame.src = url;
+      frame.onload = () => { resolve(frame); };
+      document.body.appendChild(frame);
+      add_result_callback(() => frame.remove());
+    });
+}
+
+promise_test(async t => {
+    await initPromise;
+    const frame =
+        await with_iframe('resources/appcache-iframe.py?type=cached');
+    const msgEvent = await new Promise(r => window.onmessage = r);
+    assert_equals(msgEvent.data, 'Done: cached');
+  }, 'iframe should be loaded from application caches.');
+
+promise_test(async t => {
+    await initPromise;
+    const frame =
+        await with_iframe('resources/appcache-iframe.py?type=fallingback');
+    const msgEvent = await new Promise(r => window.onmessage = r);
+    assert_equals(msgEvent.data, 'Done: fallbacked');
+  }, 'iframe should be loaded from application caches for fallback.');
+
+</script>
+</html>

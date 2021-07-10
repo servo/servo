@@ -4,21 +4,21 @@
 <title>Events during selection drag and drop to email input</title>
 <style type="text/css">
 input[placeholder]
-	{width:300px;
-	height:50px;
-	margin-top:20px;}
+  {width:300px;
+  height:50px;
+  margin-top:20px;}
 .hidden
-	{visibility:hidden;}
+  {visibility:hidden;}
 </style>
 <script type="application/ecmascript">
 function evtChange()
-	{document.querySelectorAll('tt')[0].firstChild.nodeValue = 'PASS'}
+  {document.querySelectorAll('tt')[0].firstChild.nodeValue = 'PASS'}
 function evtInput()
-	{document.querySelectorAll('tt')[1].firstChild.nodeValue = 'PASS'}
+  {document.querySelectorAll('tt')[1].firstChild.nodeValue = 'PASS'}
 function evtDrop()
-	{document.querySelectorAll('tt')[2].firstChild.nodeValue = (event.dataTransfer.getData('text/plain') == 'mail@example.org')?'PASS':'FAIL (selection is not properly added to data store)'}
+  {document.querySelectorAll('tt')[2].firstChild.nodeValue = (event.dataTransfer.getData('text/plain') == 'mail@example.org')?'PASS':'FAIL (selection is not properly added to data store)'}
 function evtKeypress()
-	{document.querySelectorAll('tt')[3].firstChild.nodeValue = 'FAIL (even is not supposed to fire)'}
+  {document.querySelectorAll('tt')[3].firstChild.nodeValue = 'FAIL (even is not supposed to fire)'}
 </script>
 </head>
 <body onload="window.getSelection().selectAllChildren(document.querySelector('p'))">

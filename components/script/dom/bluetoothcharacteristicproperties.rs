@@ -1,17 +1,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::BluetoothCharacteristicPropertiesBinding;
-use dom::bindings::codegen::Bindings::BluetoothCharacteristicPropertiesBinding::
-    BluetoothCharacteristicPropertiesMethods;
-use dom::bindings::js::Root;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::globalscope::GlobalScope;
+use crate::dom::bindings::codegen::Bindings::BluetoothCharacteristicPropertiesBinding::BluetoothCharacteristicPropertiesMethods;
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#characteristicproperties
- #[dom_struct]
+#[dom_struct]
 pub struct BluetoothCharacteristicProperties {
     reflector_: Reflector,
     broadcast: bool,
@@ -25,17 +23,19 @@ pub struct BluetoothCharacteristicProperties {
     writable_auxiliaries: bool,
 }
 
+#[allow(non_snake_case)]
 impl BluetoothCharacteristicProperties {
-    pub fn new_inherited(broadcast: bool,
-                         read: bool,
-                         write_without_response: bool,
-                         write: bool,
-                         notify: bool,
-                         indicate: bool,
-                         authenticated_signed_writes: bool,
-                         reliable_write: bool,
-                         writable_auxiliaries: bool)
-                         -> BluetoothCharacteristicProperties {
+    pub fn new_inherited(
+        broadcast: bool,
+        read: bool,
+        write_without_response: bool,
+        write: bool,
+        notify: bool,
+        indicate: bool,
+        authenticated_signed_writes: bool,
+        reliable_write: bool,
+        writable_auxiliaries: bool,
+    ) -> BluetoothCharacteristicProperties {
         BluetoothCharacteristicProperties {
             reflector_: Reflector::new(),
             broadcast: broadcast,
@@ -50,30 +50,34 @@ impl BluetoothCharacteristicProperties {
         }
     }
 
-    pub fn new(global: &GlobalScope,
-               broadcast: bool,
-               read: bool,
-               writeWithoutResponse: bool,
-               write: bool,
-               notify: bool,
-               indicate: bool,
-               authenticatedSignedWrites: bool,
-               reliableWrite: bool,
-               writableAuxiliaries: bool)
-               -> Root<BluetoothCharacteristicProperties> {
-        reflect_dom_object(box BluetoothCharacteristicProperties::new_inherited(broadcast,
-                                                                                read,
-                                                                                writeWithoutResponse,
-                                                                                write,
-                                                                                notify,
-                                                                                indicate,
-                                                                                authenticatedSignedWrites,
-                                                                                reliableWrite,
-                                                                                writableAuxiliaries),
-                           global,
-                           BluetoothCharacteristicPropertiesBinding::Wrap)
-        }
+    pub fn new(
+        global: &GlobalScope,
+        broadcast: bool,
+        read: bool,
+        writeWithoutResponse: bool,
+        write: bool,
+        notify: bool,
+        indicate: bool,
+        authenticatedSignedWrites: bool,
+        reliableWrite: bool,
+        writableAuxiliaries: bool,
+    ) -> DomRoot<BluetoothCharacteristicProperties> {
+        reflect_dom_object(
+            Box::new(BluetoothCharacteristicProperties::new_inherited(
+                broadcast,
+                read,
+                writeWithoutResponse,
+                write,
+                notify,
+                indicate,
+                authenticatedSignedWrites,
+                reliableWrite,
+                writableAuxiliaries,
+            )),
+            global,
+        )
     }
+}
 
 impl BluetoothCharacteristicPropertiesMethods for BluetoothCharacteristicProperties {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothcharacteristicproperties-broadcast

@@ -13,7 +13,7 @@
     version="$Revision: 1.5 $" testname="$RCSfile: types-basic-01-f.svg,v $">
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/types.html#BasicDataTypes">
       <p>
-        Tests scientific notation in attribute values; in particular, that numbers 
+        Tests scientific notation in attribute values; in particular, that numbers
         of the form .n with a leading decimal point, are supported
       </p>
     </d:testDescription>
@@ -24,8 +24,8 @@
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
-        The test is passed if all the coloured rectangles are of the same height 
-        and line up with each other and 
+        The test is passed if all the coloured rectangles are of the same height
+        and line up with each other and
         with the grey marker lines. If any red is visible, the test fails.
       </p>
     </d:passCriteria>
@@ -41,19 +41,18 @@
     </font-face>
   </defs>
   <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
-    
+
     <polyline points="20,75 380,75" stroke="#999" stroke-width="1"/>
     <polyline points="20,125 380,125" stroke="#999" stroke-width="1"/>
-   
+
     <rect width="300" height="50" x="50" y="75" fill="red"/>
 
     <polyline points="50,100 150,100" stroke-width="50" stroke="#6F3"/>
     <polyline points="150,100 250,100" stroke-width="5e1" stroke="#6C6"/>
     <polyline points="250,100 350,100" stroke-width=".5e2" stroke="#39F"/>
-   
-    
+
     <text x="50" y="200" font-size="20">Different forms of the &lt;number&gt; type</text>
-    
+
     <g text-anchor="middle" fill="#555">
       <text x="100" y="110" font-size="20">50</text>
       <text x="200" y="110" font-size="20" >5e1</text>

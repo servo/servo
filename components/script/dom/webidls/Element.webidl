@@ -1,6 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 /*
  * The origin of this IDL file is
  * https://dom.spec.whatwg.org/#element and
@@ -12,6 +12,7 @@
  * liability, trademark and document use rules apply.
  */
 
+[Exposed=Window]
 interface Element : Node {
   [Constant]
   readonly attribute DOMString? namespaceURI;
@@ -23,9 +24,9 @@ interface Element : Node {
   [Pure]
   readonly attribute DOMString tagName;
 
-  [Pure]
+  [CEReactions, Pure]
            attribute DOMString id;
-  [Pure]
+  [CEReactions, Pure]
            attribute DOMString className;
   [SameObject, PutForwards=value]
   readonly attribute DOMTokenList classList;
@@ -40,11 +41,15 @@ interface Element : Node {
   DOMString? getAttribute(DOMString name);
   [Pure]
   DOMString? getAttributeNS(DOMString? namespace, DOMString localName);
-  [Throws]
+  [CEReactions, Throws]
+  boolean toggleAttribute(DOMString name, optional boolean force);
+  [CEReactions, Throws]
   void setAttribute(DOMString name, DOMString value);
-  [Throws]
+  [CEReactions, Throws]
   void setAttributeNS(DOMString? namespace, DOMString name, DOMString value);
+  [CEReactions]
   void removeAttribute(DOMString name);
+  [CEReactions]
   void removeAttributeNS(DOMString? namespace, DOMString localName);
   boolean hasAttribute(DOMString name);
   boolean hasAttributeNS(DOMString? namespace, DOMString localName);
@@ -53,11 +58,11 @@ interface Element : Node {
   Attr? getAttributeNode(DOMString name);
   [Pure]
   Attr? getAttributeNodeNS(DOMString? namespace, DOMString localName);
-  [Throws]
+  [CEReactions, Throws]
   Attr? setAttributeNode(Attr attr);
-  [Throws]
+  [CEReactions, Throws]
   Attr? setAttributeNodeNS(Attr attr);
-  [Throws]
+  [CEReactions, Throws]
   Attr removeAttributeNode(Attr oldAttr);
 
   [Pure, Throws]
@@ -71,12 +76,14 @@ interface Element : Node {
   HTMLCollection getElementsByTagNameNS(DOMString? namespace, DOMString localName);
   HTMLCollection getElementsByClassName(DOMString classNames);
 
-  [Throws]
+  [CEReactions, Throws]
   Element? insertAdjacentElement(DOMString where_, Element element); // historical
   [Throws]
   void insertAdjacentText(DOMString where_, DOMString data);
-  [Throws]
+  [CEReactions, Throws]
   void insertAdjacentHTML(DOMString position, DOMString html);
+
+  [Throws, Pref="dom.shadowdom.enabled"] ShadowRoot attachShadow();
 };
 
 // http://dev.w3.org/csswg/cssom-view/#extensions-to-the-element-interface
@@ -85,12 +92,12 @@ partial interface Element {
   [NewObject]
   DOMRect getBoundingClientRect();
 
-  void scroll(optional ScrollToOptions options);
+  void scroll(optional ScrollToOptions options = {});
   void scroll(unrestricted double x, unrestricted double y);
 
-  void scrollTo(optional ScrollToOptions options);
+  void scrollTo(optional ScrollToOptions options = {});
   void scrollTo(unrestricted double x, unrestricted double y);
-  void scrollBy(optional ScrollToOptions options);
+  void scrollBy(optional ScrollToOptions options = {});
   void scrollBy(unrestricted double x, unrestricted double y);
   attribute unrestricted double scrollTop;
   attribute unrestricted double scrollLeft;
@@ -105,10 +112,10 @@ partial interface Element {
 
 // https://w3c.github.io/DOM-Parsing/#extensions-to-the-element-interface
 partial interface Element {
-  [Throws,TreatNullAs=EmptyString]
-  attribute DOMString innerHTML;
-  [Throws,TreatNullAs=EmptyString]
-  attribute DOMString outerHTML;
+  [CEReactions, Throws]
+  attribute [TreatNullAs=EmptyString] DOMString innerHTML;
+  [CEReactions, Throws]
+  attribute [TreatNullAs=EmptyString] DOMString outerHTML;
 };
 
 // https://fullscreen.spec.whatwg.org/#api
@@ -116,7 +123,7 @@ partial interface Element {
   Promise<void> requestFullscreen();
 };
 
-Element implements ChildNode;
-Element implements NonDocumentTypeChildNode;
-Element implements ParentNode;
-Element implements ActivatableElement;
+Element includes ChildNode;
+Element includes NonDocumentTypeChildNode;
+Element includes ParentNode;
+Element includes ActivatableElement;

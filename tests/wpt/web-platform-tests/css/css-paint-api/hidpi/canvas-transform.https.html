@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.css-houdini.org/css-paint-api/">
+<link rel="match" href="canvas-transform-ref.html">
+<style>
+.container {
+  width: 270px;
+  height: 275px;
+}
+
+#canvas-geometry {
+  background-image: paint(geometry);
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<body>
+<div id="canvas-geometry" class="container"></div>
+
+<script id="code" type="text/worklet">
+// Regression test for crbug.com/970783. The canvas transform matrix should
+// account for the devicePixelRatio, such that the clip bounds can be
+// properly computed when applying clips.
+registerPaint('geometry', class {
+  paint(ctx, geom) {
+    var fillW = 250;
+    var fillH = 50;
+    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 100);
+    ctx.beginPath();
+    ctx.rect(0, 0, fillW, fillH);
+    ctx.closePath();
+    ctx.clip();
+    ctx.fillStyle = 'green';
+    ctx.fillRect(0, 0, fillW, fillH);
+  }
+});
+</script>
+
+<script>
+    importWorkletAndTerminateTestAfterAsyncPaint(CSS.paintWorklet, document.getElementById('code').textContent);
+</script>
+</body>
+</html>

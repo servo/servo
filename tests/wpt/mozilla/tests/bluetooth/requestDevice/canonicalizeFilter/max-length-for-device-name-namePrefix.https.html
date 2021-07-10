@@ -1,0 +1,14 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(t => {
+    let name_too_long = 'a'.repeat(249);
+    window.testRunner.setBluetoothMockDataSet(adapter_type.empty);
+    return promise_rejects_js(
+        t, TypeError, window.navigator.bluetooth.requestDevice({filters: [{namePrefix: name_too_long}]}),
+        'Device name longer than 248 bytes');
+}, 'A device name prefix longer than 248 must reject.');
+</script>

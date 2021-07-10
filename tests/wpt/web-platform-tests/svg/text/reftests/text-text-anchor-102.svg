@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <g id="testmeta">
+    <title>Text: Text Anchor — 102</title>
+    <html:link rel="author"
+          title="Tavmjong Bah"
+          href="mailto:tavmjong@free.fr"/>
+    <html:link rel="help"
+          href="https://svgwg.org/svg2-draft/text.html#TextAnchoringProperties"/>
+    <html:link rel="match"  href="text-text-anchor-102-ref.svg" />
+  </g>
+
+  <style id="test-font" type="text/css">
+    /* Standard Font (if needed). */
+    @font-face {
+      font-family: IPAMincho;
+      src: url("fonts/IPaMincho.woff") format("woff"),
+           local("IPAMincho");
+    }
+    text { font-family: IPAMincho, sans-serif }
+  </style>
+
+  <g id="test-body-reference" style="font-size:16px;fill:red">
+    <g transform="translate(0,0)">
+      <circle cx="140" cy="100" r="2" style="fill:red"/>
+      <text x="132 132 132 132 132 132 132" y="114 130 146 162 178 194 210 ">千利奴流乎和加</text>
+    </g>
+    <g transform="translate(80,0)">
+      <circle cx="140" cy="200" r="2" style="fill:red"/>
+      <text x="140" y="144" style="writing-mode:tb-rl">千利奴流乎和加</text>
+    </g>
+    <g transform="translate(160,0)">
+      <circle cx="140" cy="300" r="2" style="fill:red"/>
+      <text x="140" y="188" style="writing-mode:tb-rl">千利奴流乎和加</text>
+    </g>
+  </g>
+
+  <g id="test-body-content" style="font-size:16px;writing-mode:tb-rl">
+    <g transform="translate(0,0)">
+      <text x="140" y="100" style="text-anchor:start">千利奴流乎和加</text>
+    </g>
+    <g transform="translate(80,0)">
+      <text x="140" y="200" style="text-anchor:middle">千利奴流乎和加</text>
+    </g>
+    <g transform="translate(160,0)">
+      <text x="140" y="300" style="text-anchor:end">千利奴流乎和加</text>
+    </g>
+  </g>
+
+</svg>

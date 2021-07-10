@@ -1,0 +1,26 @@
+[package]
+name = "webgpu"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+edition = "2018"
+publish = false
+
+[lib]
+name = "webgpu"
+path = "lib.rs"
+
+[dependencies]
+arrayvec = { version = "0.5.1", features = ["serde"] }
+euclid = "0.20"
+ipc-channel = "0.14"
+log = "0.4"
+malloc_size_of = { path = "../malloc_size_of" }
+msg = { path = "../msg" }
+serde = { version = "1.0", features = ["serde_derive"] }
+servo_config = { path = "../config" }
+smallvec = { version = "0.6", features = ["serde"] }
+webrender_api = { git = "https://github.com/servo/webrender" }
+webrender_traits = { path = "../webrender_traits" }
+wgpu-core = { version = "0.6.0", git = "https://github.com/gfx-rs/wgpu", features = ["replay", "trace", "serial-pass"], rev = "e72724a6e393503c73f37e86aa9317a5c62e32b8" }
+wgpu-types = { version = "0.6.0", git = "https://github.com/gfx-rs/wgpu", features = ["replay", "trace"], rev = "e72724a6e393503c73f37e86aa9317a5c62e32b8" }

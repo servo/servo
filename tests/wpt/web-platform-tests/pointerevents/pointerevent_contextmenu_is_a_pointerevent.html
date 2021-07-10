@@ -1,0 +1,29 @@
+<!DOCTYPE HTML>
+<title>contexmenu is a PointerEvent</title>
+<link rel="help" href="https://github.com/w3c/pointerevents/pull/317">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<input id="target" style="margin: 20px">
+
+<script>
+'use strict';
+let contextmenuTest = async_test("contextmenu is a PointerEvent");
+let target = document.getElementById("target");
+
+target.addEventListener("contextmenu", contextmenuTest.step_func((e)=>{
+  assert_equals(e.constructor, window.PointerEvent, "contextmenu should use a PointerEvent constructor");
+  assert_true(e instanceof PointerEvent, "contextmenu should be a PointerEvent");
+  // TODO(crbug.com/1150441,crbug.com/1150442): Test pointerId, pointerType are properly populated from the pointer event stream
+}));
+
+let eventWatcher = new EventWatcher(contextmenuTest, target, ["contextmenu"]);
+let actions = new test_driver.Actions();
+actions = actions.pointerMove(0,0, {origin:target})
+  .pointerDown({button:actions.ButtonType.RIGHT})
+  .pointerUp({button:actions.ButtonType.RIGHT});
+Promise.all([eventWatcher.wait_for("contextmenu"), actions.send()]).then(()=>contextmenuTest.done());
+</script>

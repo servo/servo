@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Check that a grandchild can access window.top</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script>
+    // Assert that the grandchild can't access window.location.href and send it back to us.
+    // It should indicate noaccess.
+    async_test(function(test) {
+        window.addEventListener('message', test.step_func((e) => {
+          assert_equals(e.data, 'noaccess');
+          test.done();
+        }));
+    });
+  </script>
+  <iframe disallowdocumentaccess src="http://{{domains[www1]}}:{{ports[http][0]}}/html/browsers/windows/document-access/resources/cross_origin_intermediate_child.sub.html"></iframe>
+</body>

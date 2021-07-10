@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+  var window_url = encodeURIComponent("javascript:'<iframe src=/content-security-policy/support/fail.js />'");
+  var report_cookie_name = encodeURIComponent("javascript-url-navigation-inherits-csp");
+  window.open("support/test_csp_self_window.sub.html?window_url=" + window_url + "&report_cookie_name=" + report_cookie_name);
+  setTimeout(function() {
+    var s = document.createElement('script');
+    s.async = true;
+    s.defer = true;
+    s.src = "../support/checkReport.sub.js?reportField=violated-directive&reportValue=frame-src%20%27none%27";
+    document.body.appendChild(s);
+  }, 2000);
+</script>

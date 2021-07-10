@@ -15,10 +15,10 @@
     version="$Revision: 1.9 $" testname="$RCSfile: render-elems-06-t.svg,v $">
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/render.html#Elements">
         <p>
-          Verifies that text can be filled. 
+          Verifies that text can be filled.
         </p>
     </d:testDescription>
-    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">      
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
       <p>
 Run the test. No interaction required.
       </p>
@@ -26,7 +26,7 @@ Run the test. No interaction required.
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
 The
-          test shows two 'G' characters that are filled 
+          test shows two 'G' characters that are filled
           (green to the left, and with navy to the right) and not stroked.
       </p>
     </d:passCriteria>

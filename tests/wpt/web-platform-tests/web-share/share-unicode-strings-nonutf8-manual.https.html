@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="windows-1252">
+    <title>WebShare Test: Share with non-ASCII Unicode strings in a Latin-1-encoded page</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/manual-helper.js"></script>
+  </head>
+  <body>
+    <script>
+        setup({explicit_timeout: true});
+
+        assert_equals(document.characterSet, 'windows-1252');
+
+        // Exact same test as in share-unicode-strings-manual.html, with same
+        // expectations. This tests that the page's encoding (ISO-8859-1) is
+        // ignored and Unicode characters are always percent-encoded in UTF-8.
+        const title = 'f\xe1ncy \u5199\u4f5c \ud83d\ude31';
+        const url = 'https://\u6d4b\u8bd5.example.com/\ud83d\udcc4';
+        // Host is IDNA-encoded. Path is percent-encoded with UTF-8.
+        const url_ascii = 'https://xn--0zwm56d.example.com/%F0%9F%93%84';
+        setupManualShareTest({title, text: '\ufffdx', url: url_ascii});
+        callWhenButtonClicked(() => navigator.share({title, text: '\ud9a3x', url}));
+    </script>
+  </body>
+</html>

@@ -1,43 +1,42 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::attr::Attr;
-use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
-use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
-use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
-use dom::bindings::codegen::Bindings::HTMLOptionsCollectionBinding::HTMLOptionsCollectionMethods;
-use dom::bindings::codegen::Bindings::HTMLSelectElementBinding;
-use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
-use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
-use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
-//use dom::bindings::error::ErrorResult;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{MutNullableJS, Root};
-use dom::bindings::str::DOMString;
-use dom::document::Document;
-use dom::element::{AttributeMutation, Element};
-use dom::htmlcollection::CollectionFilter;
-use dom::htmlelement::HTMLElement;
-use dom::htmlfieldsetelement::HTMLFieldSetElement;
-use dom::htmlformelement::{FormDatumValue, FormControl, FormDatum, HTMLFormElement};
-use dom::htmloptgroupelement::HTMLOptGroupElement;
-use dom::htmloptionelement::HTMLOptionElement;
-use dom::htmloptionscollection::HTMLOptionsCollection;
-use dom::node::{Node, UnbindContext, window_from_node};
-use dom::nodelist::NodeList;
-use dom::validation::Validatable;
-use dom::validitystate::{ValidityState, ValidationFlags};
-use dom::virtualmethods::VirtualMethods;
+use crate::dom::attr::Attr;
+use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLOptionsCollectionBinding::HTMLOptionsCollectionMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use crate::dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
+use crate::dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
+use crate::dom::bindings::error::ErrorResult;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::document::Document;
+use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::htmlcollection::CollectionFilter;
+use crate::dom::htmlelement::HTMLElement;
+use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
+use crate::dom::htmlformelement::{FormControl, FormDatum, FormDatumValue, HTMLFormElement};
+use crate::dom::htmloptgroupelement::HTMLOptGroupElement;
+use crate::dom::htmloptionelement::HTMLOptionElement;
+use crate::dom::htmloptionscollection::HTMLOptionsCollection;
+use crate::dom::node::{window_from_node, BindContext, Node, UnbindContext};
+use crate::dom::nodelist::NodeList;
+use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
+use crate::dom::validitystate::{ValidationFlags, ValidityState};
+use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever_atoms::LocalName;
+use html5ever::{LocalName, Prefix};
 use std::default::Default;
 use std::iter;
 use style::attr::AttrValue;
-use style::element_state::*;
+use style::element_state::ElementState;
 
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(JSTraceable, MallocSizeOf)]
 struct OptionsFilter;
 impl CollectionFilter for OptionsFilter {
     fn filter<'a>(&self, elem: &'a Element, root: &'a Node) -> bool {
@@ -51,8 +50,7 @@ impl CollectionFilter for OptionsFilter {
         }
 
         match node.GetParentNode() {
-            Some(optgroup) =>
-                optgroup.is::<HTMLOptGroupElement>() && root.is_parent_of(&optgroup),
+            Some(optgroup) => optgroup.is::<HTMLOptGroupElement>() && root.is_parent_of(&optgroup),
             None => false,
         }
     }
@@ -61,48 +59,75 @@ impl CollectionFilter for OptionsFilter {
 #[dom_struct]
 pub struct HTMLSelectElement {
     htmlelement: HTMLElement,
-    options: MutNullableJS<HTMLOptionsCollection>,
-    form_owner: MutNullableJS<HTMLFormElement>,
+    options: MutNullableDom<HTMLOptionsCollection>,
+    form_owner: MutNullableDom<HTMLFormElement>,
+    labels_node_list: MutNullableDom<NodeList>,
+    validity_state: MutNullableDom<ValidityState>,
 }
 
 static DEFAULT_SELECT_SIZE: u32 = 0;
 
 impl HTMLSelectElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
-                     document: &Document) -> HTMLSelectElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLSelectElement {
         HTMLSelectElement {
-            htmlelement:
-                HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
-                                                      local_name, prefix, document),
-                options: Default::default(),
-                form_owner: Default::default(),
+            htmlelement: HTMLElement::new_inherited_with_state(
+                ElementState::IN_ENABLED_STATE,
+                local_name,
+                prefix,
+                document,
+            ),
+            options: Default::default(),
+            form_owner: Default::default(),
+            labels_node_list: Default::default(),
+            validity_state: Default::default(),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
-               document: &Document) -> Root<HTMLSelectElement> {
-        Node::reflect_node(box HTMLSelectElement::new_inherited(local_name, prefix, document),
-                           document,
-                           HTMLSelectElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLSelectElement> {
+        let n = Node::reflect_node(
+            Box::new(HTMLSelectElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+        );
+
+        n.upcast::<Node>().set_weird_parser_insertion_mode();
+        n
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-select-option-list
-    fn list_of_options(&self) -> impl Iterator<Item=Root<HTMLOptionElement>> {
-        self.upcast::<Node>()
-            .children()
-            .flat_map(|node| {
-                if node.is::<HTMLOptionElement>() {
-                    let node = Root::downcast::<HTMLOptionElement>(node).unwrap();
-                    Choice3::First(iter::once(node))
-                } else if node.is::<HTMLOptGroupElement>() {
-                    Choice3::Second(node.children().filter_map(Root::downcast))
-                } else {
-                    Choice3::Third(iter::empty())
-                }
+    pub fn list_of_options(&self) -> impl Iterator<Item = DomRoot<HTMLOptionElement>> {
+        self.upcast::<Node>().children().flat_map(|node| {
+            if node.is::<HTMLOptionElement>() {
+                let node = DomRoot::downcast::<HTMLOptionElement>(node).unwrap();
+                Choice3::First(iter::once(node))
+            } else if node.is::<HTMLOptGroupElement>() {
+                Choice3::Second(node.children().filter_map(DomRoot::downcast))
+            } else {
+                Choice3::Third(iter::empty())
+            }
+        })
+    }
+
+    // https://html.spec.whatwg.org/multipage/#placeholder-label-option
+    fn get_placeholder_label_option(&self) -> Option<DomRoot<HTMLOptionElement>> {
+        if self.Required() && !self.Multiple() && self.display_size() == 1 {
+            self.list_of_options().next().filter(|node| {
+                let parent = node.upcast::<Node>().GetParentNode();
+                node.Value().is_empty() && parent.as_deref() == Some(self.upcast())
             })
+        } else {
+            None
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#the-select-element:concept-form-reset-control
@@ -120,17 +145,17 @@ impl HTMLSelectElement {
             return;
         }
 
-        let mut first_enabled: Option<Root<HTMLOptionElement>> = None;
-        let mut last_selected: Option<Root<HTMLOptionElement>> = None;
+        let mut first_enabled: Option<DomRoot<HTMLOptionElement>> = None;
+        let mut last_selected: Option<DomRoot<HTMLOptionElement>> = None;
 
         for opt in self.list_of_options() {
             if opt.Selected() {
                 opt.set_selectedness(false);
-                last_selected = Some(Root::from_ref(&opt));
+                last_selected = Some(DomRoot::from_ref(&opt));
             }
             let element = opt.upcast::<Element>();
             if first_enabled.is_none() && !element.disabled_state() {
-                first_enabled = Some(Root::from_ref(&opt));
+                first_enabled = Some(DomRoot::from_ref(&opt));
             }
         }
 
@@ -155,7 +180,7 @@ impl HTMLSelectElement {
                 data_set.push(FormDatum {
                     ty: self.Type(),
                     name: self.Name(),
-                    value:  FormDatumValue::String(opt.Value())
+                    value: FormDatumValue::String(opt.Value()),
                 });
             }
         }
@@ -175,28 +200,26 @@ impl HTMLSelectElement {
 
     // https://html.spec.whatwg.org/multipage/#concept-select-size
     fn display_size(&self) -> u32 {
-         if self.Size() == 0 {
-             if self.Multiple() {
-                 4
-             } else {
-                 1
-             }
-         } else {
-             self.Size()
-         }
-     }
+        if self.Size() == 0 {
+            if self.Multiple() {
+                4
+            } else {
+                1
+            }
+        } else {
+            self.Size()
+        }
+    }
 }
 
 impl HTMLSelectElementMethods for HTMLSelectElement {
-    // https://html.spec.whatwg.org/multipage/#dom-cva-validity
-    fn Validity(&self) -> Root<ValidityState> {
-        let window = window_from_node(self);
-        ValidityState::new(&window, self.upcast())
-    }
-
-    // Note: this function currently only exists for union.html.
     // https://html.spec.whatwg.org/multipage/#dom-select-add
-    fn Add(&self, _element: HTMLOptionElementOrHTMLOptGroupElement, _before: Option<HTMLElementOrLong>) {
+    fn Add(
+        &self,
+        element: HTMLOptionElementOrHTMLOptGroupElement,
+        before: Option<HTMLElementOrLong>,
+    ) -> ErrorResult {
+        self.Options().Add(element, before)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
@@ -206,7 +229,7 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     make_bool_setter!(SetDisabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/#dom-fae-form
-    fn GetForm(&self) -> Option<Root<HTMLFormElement>> {
+    fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
         self.form_owner()
     }
 
@@ -220,7 +243,13 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     make_getter!(Name, "name");
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-name
-    make_setter!(SetName, "name");
+    make_atomic_setter!(SetName, "name");
+
+    // https://html.spec.whatwg.org/multipage/#dom-select-required
+    make_bool_getter!(Required, "required");
+
+    // https://html.spec.whatwg.org/multipage/#dom-select-required
+    make_bool_setter!(SetRequired, "required");
 
     // https://html.spec.whatwg.org/multipage/#dom-select-size
     make_uint_getter!(Size, "size", DEFAULT_SELECT_SIZE);
@@ -238,16 +267,13 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
-    fn Labels(&self) -> Root<NodeList> {
-        self.upcast::<HTMLElement>().labels()
-    }
+    make_labels_getter!(Labels, labels_node_list);
 
     // https://html.spec.whatwg.org/multipage/#dom-select-options
-    fn Options(&self) -> Root<HTMLOptionsCollection> {
+    fn Options(&self) -> DomRoot<HTMLOptionsCollection> {
         self.options.or_init(|| {
             let window = window_from_node(self);
-            HTMLOptionsCollection::new(
-                &window, self, box OptionsFilter)
+            HTMLOptionsCollection::new(&window, self, Box::new(OptionsFilter))
         })
     }
 
@@ -262,18 +288,25 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-item
-    fn Item(&self, index: u32) -> Option<Root<Element>> {
+    fn Item(&self, index: u32) -> Option<DomRoot<Element>> {
         self.Options().upcast().Item(index)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-item
-    fn IndexedGetter(&self, index: u32) -> Option<Root<Element>> {
+    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Element>> {
         self.Options().IndexedGetter(index)
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-select-setter
+    fn IndexedSetter(&self, index: u32, value: Option<&HTMLOptionElement>) -> ErrorResult {
+        self.Options().IndexedSetter(index, value)
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-select-nameditem
-    fn NamedItem(&self, name: DOMString) -> Option<Root<HTMLOptionElement>> {
-        self.Options().NamedGetter(name).map_or(None, |e| Root::downcast::<HTMLOptionElement>(e))
+    fn NamedItem(&self, name: DOMString) -> Option<DomRoot<HTMLOptionElement>> {
+        self.Options()
+            .NamedGetter(name)
+            .map_or(None, |e| DomRoot::downcast::<HTMLOptionElement>(e))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-remove
@@ -338,11 +371,41 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
             }
         }
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate
+    fn WillValidate(&self) -> bool {
+        self.is_instance_validatable()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-validity
+    fn Validity(&self) -> DomRoot<ValidityState> {
+        self.validity_state()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity
+    fn CheckValidity(&self) -> bool {
+        self.check_validity()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity
+    fn ReportValidity(&self) -> bool {
+        self.report_validity()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage
+    fn ValidationMessage(&self) -> DOMString {
+        self.validation_message()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity
+    fn SetCustomValidity(&self, error: DOMString) {
+        self.validity_state().set_custom_error_message(error);
+    }
 }
 
 impl VirtualMethods for HTMLSelectElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
@@ -359,7 +422,7 @@ impl VirtualMethods for HTMLSelectElement {
                         el.set_disabled_state(false);
                         el.set_enabled_state(true);
                         el.check_ancestors_disabled_state_for_form_control();
-                    }
+                    },
                 }
             },
             &local_name!("form") => {
@@ -369,12 +432,13 @@ impl VirtualMethods for HTMLSelectElement {
         }
     }
 
-    fn bind_to_tree(&self, tree_in_doc: bool) {
+    fn bind_to_tree(&self, context: &BindContext) {
         if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(tree_in_doc);
+            s.bind_to_tree(context);
         }
 
-        self.upcast::<Element>().check_ancestors_disabled_state_for_form_control();
+        self.upcast::<Element>()
+            .check_ancestors_disabled_state_for_form_control();
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext) {
@@ -382,7 +446,10 @@ impl VirtualMethods for HTMLSelectElement {
 
         let node = self.upcast::<Node>();
         let el = self.upcast::<Element>();
-        if node.ancestors().any(|ancestor| ancestor.is::<HTMLFieldSetElement>()) {
+        if node
+            .ancestors()
+            .any(|ancestor| ancestor.is::<HTMLFieldSetElement>())
+        {
             el.check_ancestors_disabled_state_for_form_control();
         } else {
             el.check_disabled_attribute();
@@ -392,13 +459,16 @@ impl VirtualMethods for HTMLSelectElement {
     fn parse_plain_attribute(&self, local_name: &LocalName, value: DOMString) -> AttrValue {
         match *local_name {
             local_name!("size") => AttrValue::from_u32(value.into(), DEFAULT_SELECT_SIZE),
-            _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
+            _ => self
+                .super_type()
+                .unwrap()
+                .parse_plain_attribute(local_name, value),
         }
     }
 }
 
 impl FormControl for HTMLSelectElement {
-    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
         self.form_owner.get()
     }
 
@@ -412,13 +482,36 @@ impl FormControl for HTMLSelectElement {
 }
 
 impl Validatable for HTMLSelectElement {
-    fn is_instance_validatable(&self) -> bool {
-        true
+    fn as_element(&self) -> &Element {
+        self.upcast()
     }
-    fn validate(&self, validate_flags: ValidationFlags) -> bool {
-        if validate_flags.is_empty() {}
-        // Need more flag check for different validation types later
-        true
+
+    fn validity_state(&self) -> DomRoot<ValidityState> {
+        self.validity_state
+            .or_init(|| ValidityState::new(&window_from_node(self), self.upcast()))
+    }
+
+    fn is_instance_validatable(&self) -> bool {
+        // https://html.spec.whatwg.org/multipage/#enabling-and-disabling-form-controls%3A-the-disabled-attribute%3Abarred-from-constraint-validation
+        // https://html.spec.whatwg.org/multipage/#the-datalist-element%3Abarred-from-constraint-validation
+        !self.upcast::<Element>().disabled_state() && !is_barred_by_datalist_ancestor(self.upcast())
+    }
+
+    fn perform_validation(&self, validate_flags: ValidationFlags) -> ValidationFlags {
+        let mut failed_flags = ValidationFlags::empty();
+
+        // https://html.spec.whatwg.org/multipage/#suffering-from-being-missing
+        // https://html.spec.whatwg.org/multipage/#the-select-element%3Asuffering-from-being-missing
+        if validate_flags.contains(ValidationFlags::VALUE_MISSING) && self.Required() {
+            let placeholder = self.get_placeholder_label_option();
+            let selected_option = self
+                .list_of_options()
+                .filter(|e| e.Selected() && placeholder.as_ref() != Some(e))
+                .next();
+            failed_flags.set(ValidationFlags::VALUE_MISSING, selected_option.is_none());
+        }
+
+        failed_flags
     }
 }
 
@@ -429,7 +522,10 @@ enum Choice3<I, J, K> {
 }
 
 impl<I, J, K, T> Iterator for Choice3<I, J, K>
-    where I: Iterator<Item=T>, J: Iterator<Item=T>, K: Iterator<Item=T>
+where
+    I: Iterator<Item = T>,
+    J: Iterator<Item = T>,
+    K: Iterator<Item = T>,
 {
     type Item = T;
 
@@ -438,6 +534,14 @@ impl<I, J, K, T> Iterator for Choice3<I, J, K>
             Choice3::First(ref mut i) => i.next(),
             Choice3::Second(ref mut j) => j.next(),
             Choice3::Third(ref mut k) => k.next(),
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        match *self {
+            Choice3::First(ref i) => i.size_hint(),
+            Choice3::Second(ref j) => j.size_hint(),
+            Choice3::Third(ref k) => k.size_hint(),
         }
     }
 }

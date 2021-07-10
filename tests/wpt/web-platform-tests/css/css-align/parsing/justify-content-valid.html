@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Box Alignment Level 3: parsing justify-content with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-justify-content">
+<meta name="assert" content="justify-content supports the full grammar 'normal | <content-distribution> | <overflow-position>? [ <content-position> | left | right ]'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("justify-content", "normal");
+
+// <content-distribution> = space-between | space-around | space-evenly | stretch
+test_valid_value("justify-content", "space-between");
+test_valid_value("justify-content", "space-around");
+test_valid_value("justify-content", "space-evenly");
+test_valid_value("justify-content", "stretch");
+
+// <overflow-position>? [ <content-position> | left | right ]
+// <overflow-position> = unsafe | safe
+// <content-position> = center | start | end | flex-start | flex-end
+test_valid_value("justify-content", "center");
+test_valid_value("justify-content", "start");
+test_valid_value("justify-content", "end");
+test_valid_value("justify-content", "flex-start");
+test_valid_value("justify-content", "flex-end");
+test_valid_value("justify-content", "unsafe end");
+test_valid_value("justify-content", "safe flex-start");
+test_valid_value("justify-content", "left");
+test_valid_value("justify-content", "unsafe right");
+</script>
+</body>
+</html>

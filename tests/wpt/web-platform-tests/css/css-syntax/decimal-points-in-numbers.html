@@ -1,0 +1,56 @@
+<!doctype html>
+<title>decimal points in numbers</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<meta name=author title="Tab Atkins-Bittner">
+<link rel=help href="https://drafts.csswg.org/css-syntax/#consume-number">
+
+<style>
+
+.foo {}
+
+</style>
+<script>
+
+function roundTripNumber(input) {
+    const rule = document.styleSheets[0].cssRules[0].style;
+    const fallback = "0";
+    rule.setProperty("line-height", fallback);
+    rule.setProperty("line-height", input);
+    const value = rule.getPropertyValue("line-height");
+    if(value == fallback) return false;
+    return value;
+}
+
+test(()=>{
+    assert_equals(roundTripNumber("1.0"), "1");
+}, "decimal point between digits is valid in a number");
+test(()=>{
+    assert_equals(roundTripNumber(".1"), "0.1");
+}, "decimal point before digits is valid in a number");
+test(()=>{
+    assert_not_equals(roundTripNumber("1."), "1");
+}, "decimal point after digits is invalid in a number");
+
+function roundTripDimension(input) {
+    const rule = document.styleSheets[0].cssRules[0].style;
+    const fallback = "0px";
+    rule.setProperty("width", fallback);
+    rule.setProperty("width", input);
+    const value = rule.getPropertyValue("width");
+    if(value == fallback) return false;
+    return value;
+}
+
+test(()=>{
+    assert_equals(roundTripDimension("1.0px"), "1px");
+}, "decimal point between digits is valid in a dimension");
+test(()=>{
+    assert_equals(roundTripDimension(".1px"), "0.1px");
+}, "decimal point before digits is valid in a dimension");
+test(()=>{
+    assert_not_equals(roundTripDimension("1.px"), "1px");
+}, "decimal point after digits is invalid in a dimension");
+
+</script>

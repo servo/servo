@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Clip property</title>
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#css-styling">
+<link rel="match" href="clip-ref.html"/>
+<meta name="assert" content="Verify that the clip property works on MathML elements.">
+</head>
+<body>
+  <p>Rectangles should be clipped.</p>
+  <div>
+    <math><mspace width="200px" height="200px" style="position:absolute; top:100px; background: green; clip: rect(0px 100px 100px 0px)"/></math>
+  </div>
+  <div style="position: absolute; top: 300px; width: 200px; height: 200px">
+    <math style="position: absolute; clip: rect(0px 100px 100px 0px)"><mspace width="200px" height="200px" style="background: green"/></math>
+  </div>
+  <script src="/mathml/support/feature-detection.js"></script>
+  <script>MathMLFeatureDetection.ensure_for_match_reftest("has_mspace");</script>
+</body>
+</html>

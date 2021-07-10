@@ -1,0 +1,30 @@
+<!doctype html>
+<title>Aborting a Document load</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#aborting-a-document-load">
+<div id="log"></div>
+<script>
+var events = [];
+onmessage = function(e) {
+  events.push(e.data);
+};
+async_test(test => {
+  test.step_timeout(() => {
+    const frame = document.querySelector('iframe');
+    const child = frame.contentWindow;
+    assert_equals(child.document.readyState, 'complete', 'readyState is complete');
+    assert_array_equals(events, ["loading", "DOMContentLoaded", "stop", "complete"], 'no load event was fired');
+    events = [];
+    frame.src = "abort-document-load-2.html";
+
+    test.step_timeout(() => {
+      const child = frame.contentWindow;
+      assert_equals(child.document.readyState, 'complete', 'readyState is complete');
+      assert_array_equals(events, ["loading", "DOMContentLoaded", "stop", "complete"], 'no load event was fired');
+      test.done();
+    }, 1000);
+  }, 1000);
+});
+</script>
+<iframe src="abort-document-load-1.html"></iframe>

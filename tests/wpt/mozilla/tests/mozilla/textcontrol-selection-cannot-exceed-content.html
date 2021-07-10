@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>The selection bounds of a text control should never exceed the content</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<input type="text" value="lorem  ">
+
+<script>
+test(() => {
+  const el = document.querySelector("input");
+
+  el.setSelectionRange("lorem".length + 1, "lorem".length + 2);
+
+  assert_equals(el.selectionStart, "lorem".length + 1);
+  assert_equals(el.selectionEnd, "lorem".length + 2);
+
+  // This will invoke the value sanitization algorithm for a url field, which strips trailing
+  // whitespace from the raw value.
+  el.type = "url";
+
+  assert_equals(el.selectionStart, "lorem".length);
+  assert_equals(el.selectionEnd, "lorem".length);
+});
+</script>

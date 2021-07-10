@@ -1,11 +1,9 @@
- # -*- coding: utf-8 -*-
-
 def main(request, response):
-  response.headers.set("Content-Type", "text/event-stream")
-  last_event_id = request.headers.get('Last-Event-ID', None)
+  response.headers.set(b"Content-Type", b"text/event-stream")
 
-  if(last_event_id):
-      return "data: " + last_event_id + "\n\n"
+  last_event_id = request.headers.get(b"Last-Event-ID", b"")
+  if last_event_id:
+    return b"data: " + last_event_id + b"\n\n"
   else:
-    return "id: …\nretry: 200\ndata: hello\n\n"
-
+    idvalue = request.GET.first(b"idvalue", u"\u2026".encode("utf-8"))
+    return b"id: " + idvalue + b"\nretry: 200\ndata: hello\n\n"

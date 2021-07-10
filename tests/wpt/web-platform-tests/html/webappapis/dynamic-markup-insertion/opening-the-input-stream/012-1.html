@@ -1,0 +1,7 @@
+<script>
+onload = parent.t.step_func(function() {
+  parent.assert_equals(document.open(), document);
+  setTimeout(parent.t.step_func(function() {parent.t.done()}), 0);
+  document.close();
+});
+</script>

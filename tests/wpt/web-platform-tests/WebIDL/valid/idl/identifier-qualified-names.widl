@@ -5,14 +5,14 @@
 
   // Exception identifier: "FrameworkException"
   // Qualified name:       "::framework::FrameworkException"
-  exception FrameworkException {
+  interface FrameworkException {
 
     // Constant identifier: "ERR_NOT_FOUND"
     // Qualified name:      "::framework::FrameworkException::ERR_NOT_FOUND"
     const long ERR_NOT_FOUND = 1;
 
     // Exception field identifier: "code"
-    long code;
+    attribute long code;
   };
 
   // Interface identifier: "System"

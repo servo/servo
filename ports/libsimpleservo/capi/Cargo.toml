@@ -1,0 +1,50 @@
+[package]
+name = "simpleservo_capi"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+edition = "2018"
+publish = false
+
+[lib]
+name = "simpleservo"
+crate-type = ["cdylib"]
+test = false
+bench = false
+
+[dependencies]
+backtrace = "0.3"
+env_logger = "0.8"
+lazy_static = "1"
+log = "0.4"
+simpleservo = { path = "../api" }
+surfman = "0.4"
+keyboard-types = "0.5"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+libc = "0.2"
+winapi = { version = "0.3", features = ["wingdi", "winuser", "winnt", "winbase", "processenv", "namedpipeapi", "ntdef", "minwindef", "handleapi", "debugapi"] }
+
+[build-dependencies]
+cbindgen = "0.14"
+
+[features]
+debugmozjs = ["simpleservo/debugmozjs"]
+default = ["webdriver", "max_log_level"]
+egl = ["simpleservo/egl"]
+googlevr = ["simpleservo/googlevr"]
+jitspew = ["simpleservo/jitspew"]
+js_backtrace = ["simpleservo/js_backtrace"]
+layout-2013 = ["simpleservo/layout-2013"]
+layout-2020 = ["simpleservo/layout-2020"]
+max_log_level = ["simpleservo/max_log_level"]
+media-dummy = ["simpleservo/media-dummy"]
+media-gstreamer = ["simpleservo/media-gstreamer"]
+native-bluetooth = ["simpleservo/native-bluetooth"]
+no-wgl = ["simpleservo/no-wgl"]
+profilemozjs = ["simpleservo/profilemozjs"]
+refcell_backtrace = ["simpleservo/refcell_backtrace"]
+uwp = ["simpleservo/uwp"]
+webdriver = ["simpleservo/webdriver"]
+webgl_backtrace = ["simpleservo/webgl_backtrace"]
+xr-profile = ["simpleservo/xr-profile"]

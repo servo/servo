@@ -1,69 +1,38 @@
 <!DOCTYPE html>
-<meta http-equiv="Content-Security-Policy" content="connect-src 'self'">
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<script>
-    async_test(t => {
-      var errorEvent = false;
-      var cspEvent = false;
+<html>
 
-      var xhr = new XMLHttpRequest;
-      xhr.open("GET", "http://{{domains[www]}}:{{ports[http][0]}}/common/text-plain.txt");
-      xhr.onload = t.unreached_func("Load should not fire.");
-      xhr.onerror = t.step_func(e => {
-        assert_equals(xhr.readyState, XMLHttpRequest.DONE);
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="connect-src 'self'; script-src 'self' 'unsafe-inline';">
+    <title>connect-src-xmlhttprequest-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["Pass","violated-directive=connect-src"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+</head>
 
-        assert_false(errorEvent);
-        errorEvent = true;
-        if (cspEvent)
-            t.done();
-      });
+<body>
+    <script>
+        window.addEventListener('securitypolicyviolation', function(e) {
+            log("violated-directive=" + e.violatedDirective);
+        });
 
-      document.addEventListener("securitypolicyviolation", t.step_func(e => {
-        if (e.blockedURI != "http://{{domains[www]}}:{{ports[http][0]}}/common/text-plain.txt")
-            return;
+        try {
+            var xhr = new XMLHttpRequest;
+            xhr.open("GET", "http://www1.{{host}}:{{ports[http][0]}}/content-security-policy/support/fail.png", true);
+            xhr.send();
+            xhr.onload = function() {
+                log("Fail");
+            }
+            xhr.onerror = function() {
+                log("Pass");
+            }
+        } catch (e) {
+            log("Pass");
+        }
 
-        assert_equals(xhr.readyState, XMLHttpRequest.DONE);
-        assert_equals(e.violatedDirective, "connect-src");
+    </script>
+    <div id="log"></div>
+</body>
 
-        assert_false(cspEvent);
-        cspEvent = true;
-        if (errorEvent)
-            t.done();
-      }));
-
-      xhr.send();
-    }, "XHR should fire onerror.");
-
-    async_test(t => {
-      var errorEvent = false;
-      var cspEvent = false;
-
-      var xhr = new XMLHttpRequest;
-      xhr.open("GET", "/common/redirect-opt-in.py?status=307&location=http://{{domains[www]}}:{{ports[http][0]}}/common/text-plain.txt");
-      xhr.onload = t.unreached_func("Load should not fire.");
-      xhr.onerror = t.step_func(e => {
-        assert_equals(xhr.readyState, XMLHttpRequest.DONE);
-
-        assert_false(errorEvent);
-        errorEvent = true;
-        if (cspEvent)
-            t.done();
-      });
-
-      document.addEventListener("securitypolicyviolation", t.step_func(e => {
-        if (e.blockedURI != "http://{{domains[www]}}:{{ports[http][0]}}")
-            return;
-
-        assert_equals(xhr.readyState, XMLHttpRequest.DONE);
-        assert_equals(e.violatedDirective, "connect-src");
-
-        assert_false(cspEvent);
-        cspEvent = true;
-        if (errorEvent)
-            t.done();
-      }));
-
-      xhr.send();
-    }, "XHR should fire onerror after a redirect.");
-</script>
+</html>

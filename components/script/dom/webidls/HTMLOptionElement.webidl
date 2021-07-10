@@ -1,19 +1,26 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmloptionelement
-//[NamedConstructor=Option(optional DOMString text = "", optional DOMString value,
-//                         optional boolean defaultSelected = false,
-//                         optional boolean selected = false)]
+[Exposed=Window, NamedConstructor=Option(optional DOMString text = "", optional DOMString value,
+                         optional boolean defaultSelected = false,
+                         optional boolean selected = false)]
 interface HTMLOptionElement : HTMLElement {
-             attribute boolean disabled;
-             readonly attribute HTMLFormElement? form;
-             attribute DOMString label;
-             attribute boolean defaultSelected;
-             attribute boolean selected;
-             attribute DOMString value;
+  [HTMLConstructor] constructor();
 
-             attribute DOMString text;
-  //readonly attribute long index;
+  [CEReactions]
+           attribute boolean disabled;
+  readonly attribute HTMLFormElement? form;
+  [CEReactions]
+           attribute DOMString label;
+  [CEReactions]
+           attribute boolean defaultSelected;
+           attribute boolean selected;
+  [CEReactions]
+           attribute DOMString value;
+
+  [CEReactions]
+           attribute DOMString text;
+  readonly attribute long index;
 };

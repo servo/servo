@@ -14,12 +14,12 @@ var w;
 var uuid;
 t.step(function() {
   uuid = token()
-  w = window.open("001-1.html");
+  w = window.open("001-1.html" + location.search);
   add_result_callback(function() {
     w.close();
   });
 });
 navigate = t.step_func(function() {
-  w.location = 'data:text/html,<body onload="history.back()">';
+  w.location = w.location.href.replace("001-1.html", "001-2.html");
 });
 </script>

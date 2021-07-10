@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Lists: parsing list-style-position with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#propdef-list-style-position">
+<meta name="assert" content="list-style-position supports the full grammar 'inside | outside'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value('list-style-position', 'inside');
+test_valid_value('list-style-position', 'outside');
+</script>
+</body>
+</html>

@@ -1,15 +1,15 @@
-import json
+from wptserve.utils import isomorphic_decode
 
 def main(request, response):
-    headers = [("Content-Type", "application/json"),
-               ("Access-Control-Allow-Credentials", "true")]
+    headers = [(b"Content-Type", b"application/json"),
+               (b"Access-Control-Allow-Credentials", b"true")]
 
-    if "origin" in request.headers:
-        headers.append(("Access-Control-Allow-Origin", request.headers["origin"]))
+    if b"origin" in request.headers:
+        headers.append((b"Access-Control-Allow-Origin", request.headers[b"origin"]))
 
     values = []
     for key in request.cookies:
         for value in request.cookies.get_list(key):
-            values.append("\"%s\": \"%s\"" % (key, value))
-    body = "{ %s }" % ",".join(values)
+            values.append(u"\"%s\": \"%s\"" % (isomorphic_decode(key), value))
+    body = u"{ %s }" % u",".join(values)
     return headers, body

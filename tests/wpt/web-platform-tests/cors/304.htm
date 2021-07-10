@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
 <title>CORS - 304 Responses</title>
+<meta name="timeout" content="long">
 <meta name=author title="Mark Nottingham" href="mailto:mnot@mnot.net">
 
 <script src=/resources/testharness.js></script>
@@ -28,7 +29,7 @@ function req(url, id, t, ready) {
   client.onreadystatechange = function() {
     if (client.readyState == client.DONE) {
       t.step(function() {
-        assert_true(client.status != 299, "req " + id + " server says: " + client.responseText)
+        assert_not_equals(client.status, 299, "req " + id + " server says: " + client.responseText)
       })
       ready(client)
     }

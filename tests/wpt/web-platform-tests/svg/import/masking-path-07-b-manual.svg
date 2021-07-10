@@ -31,24 +31,24 @@
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
         The test has passed if the following conditions are met:
-			</p>
-			<ul>
-				<li>There is no red visible.</li>
-				<li>No shapes extend outside of the rects that have a thick black border.</li>
-				<li>For the left subtest:
-					<ul>
-						<li>There must be a large blue rect with a transparent smaller rect in it, and the intersection of two circles.</li>
-						<li>The borders of the clipregions are shown with black stroke.</li>
-						<li>The blue shapes must be visible only inside of these stroked regions.</li>
-				 	</ul>
-				</li>
-				<li>For the right subtest:
-					<ul>
-						<li>The test on the right must show part of the large blue rect shape with a transparent rect in it, and part of a circle.</li>
-						<li>The blue shapes must only be visible inside of the circle that has black stroke.</li>
-					</ul>
-				</li>
-			</ul>
+      </p>
+      <ul>
+        <li>There is no red visible.</li>
+        <li>No shapes extend outside of the rects that have a thick black border.</li>
+        <li>For the left subtest:
+          <ul>
+            <li>There must be a large blue rect with a transparent smaller rect in it, and the intersection of two circles.</li>
+            <li>The borders of the clipregions are shown with black stroke.</li>
+            <li>The blue shapes must be visible only inside of these stroked regions.</li>
+           </ul>
+        </li>
+        <li>For the right subtest:
+          <ul>
+            <li>The test on the right must show part of the large blue rect shape with a transparent rect in it, and part of a circle.</li>
+            <li>The blue shapes must only be visible inside of the circle that has black stroke.</li>
+          </ul>
+        </li>
+      </ul>
     </d:passCriteria>
   </d:SVGTestCase>
   <title id="test-title">$RCSfile: masking-path-07-b.svg,v $</title>
@@ -74,9 +74,9 @@
         <path id="p1" d="M10 10l100 0 0 100 -100 0ZM50 50l40 0 0 40 -40 0Z" clip-rule="evenodd"/>
       </clipPath>
 
-      <!-- "If a valid 'clip-path' reference is placed on one of the children of a 'clipPath' element, 
-		      then the given child element is clipped by the referenced clipping path before OR'ing the 
-			  silhouette of the child element with the silhouettes of the other child elements." -->
+      <!-- "If a valid 'clip-path' reference is placed on one of the children of a 'clipPath' element,
+          then the given child element is clipped by the referenced clipping path before OR'ing the
+        silhouette of the child element with the silhouettes of the other child elements." -->
       <clipPath id="clipRects1">
         <rect x="50" y="30" width="25" height="100"/>
         <rect x="25" y="50" width="10" height="10" clip-path="url(#clipTwoCircles)"/>
@@ -105,7 +105,7 @@
     </defs>
 
     <rect x="20" y="70" width="210" height="210" fill="url(#pattern)" stroke="black" stroke-width="4"/>
-		<rect x="250" y="70" width="210" height="210" fill="url(#pattern)" stroke="black" stroke-width="4"/>
+    <rect x="250" y="70" width="210" height="210" fill="url(#pattern)" stroke="black" stroke-width="4"/>
 
     <text x="240" y="2em" text-anchor="middle">Test clip unions and intersections</text>
 

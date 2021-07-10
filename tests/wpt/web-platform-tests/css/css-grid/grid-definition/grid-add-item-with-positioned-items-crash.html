@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Grid Layout Test: no crash with adding positioned grid items</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#grid-definition">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=273898">
+<meta name="assert" content="Test that adding grid items when some of them are positioned does not crash." />
+
+<style>
+#grid {
+  display: grid;
+  grid-auto-flow: dense;
+}
+
+.absolute {
+  position: absolute;
+}
+</style>
+</head>
+
+<body>
+<div id="grid">
+  <div></div>
+  <div class="absolute"></div>
+</div>
+
+<script>
+  var grid = document.getElementById("grid");
+  grid.offsetTop;
+  var newItem1 = document.createElement("div");
+  grid.appendChild(newItem1);
+  var newItem2 = document.createElement("div");
+  newItem2.className = "absolute";
+  grid.appendChild(newItem2);
+</script>
+</body>
+</html>

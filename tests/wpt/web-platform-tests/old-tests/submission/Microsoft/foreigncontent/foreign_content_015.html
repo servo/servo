@@ -3,51 +3,30 @@
     <head>
         <title>HTML 5 Foreign Content SVG in HTML </title>
         <meta description="Test to verify SVG Elements outside SVG namespace are camelCased" />
-        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />   
-        
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
         <script type="text/javascript">
-        
             function RunTest()
             {
-                try
+                var parentNode = document.getElementById("div1");
+
+                for(var i=0;i<parentNode.childNodes.length;i++)
                 {
-                
-                    var parentNode = document.getElementById("div1");
-                            
-                    for(var i=0;i<parentNode.childNodes.length;i++)
-                    {
-                        var idName = parentNode.childNodes[i].id;
-                        var tagName = parentNode.childNodes[i].localName;
-                        if(idName==tagName)
-                        {
-                            document.getElementById("testresult").innerHTML = "FAIL";
-                            break;
-                        }
-                        else
-                        {
-                            document.getElementById("testresult").innerHTML = "PASS";
-                        }
-                    }
-                }
-                catch(ex)
-                {
-                    document.getElementById("testresult").innerHTML = "FAIL";   
+                    var idName = parentNode.childNodes[i].id;
+                    var localName = parentNode.childNodes[i].localName;
+                    assert_equals(localName, idName);
                 }
             }
         </script>
     </head>
-    
-    <body onload="RunTest()">
+
+    <body onload="test(RunTest)">
 
         <div id="div1">
             <AlTglYph id="altGlyph" />
-        </div> 
-        <p id="instructions"> Test passes if the word "PASS" appears below  </p>
-        <p> Test Result : </p>
-        <div id="testresult"> RUNNING </div>
-        
-        
+        </div>
+
     </body>
 
 </html>
-

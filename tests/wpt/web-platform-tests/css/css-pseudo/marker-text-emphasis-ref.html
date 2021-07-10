@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>CSS Reftest Reference</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com" />
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+ol {
+  float: left;
+  width: 50px;
+  list-style: none;
+}
+.text-emphasis-shorthand {
+  -webkit-text-emphasis: circle green;
+  text-emphasis: circle green;
+}
+.text-emphasis-longhands {
+  -webkit-text-emphasis-style: circle;
+  -webkit-text-emphasis-color: green;
+  -webkit-text-emphasis-position: under right;
+  text-emphasis-style: circle;
+  text-emphasis-color: green;
+  text-emphasis-position: under right;
+}
+</style>
+<ol class="text-emphasis-shorthand">
+  <li>1. </li>
+  <li>2. </li>
+  <li>3. </li>
+</ol>
+<ol class="text-emphasis-shorthand">
+  <li>1. </li>
+  <li>2. </li>
+  <li>3. </li>
+</ol>
+<ol class="text-emphasis-longhands">
+  <li>1. </li>
+  <li>2. </li>
+  <li>3. </li>
+</ol>
+<ol class="text-emphasis-longhands">
+  <li>1. </li>
+  <li>2. </li>
+  <li>3. </li>
+</ol>

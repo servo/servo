@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<body>
+  <script src=/common/media.js></script>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/resources/testdriver.js></script>
+  <script src=/resources/testdriver-vendor.js></script>
+  <script src=/feature-policy/resources/featurepolicy.js></script>
+  <script src=/feature-policy/resources/picture-in-picture.js></script>
+  <script>
+  'use strict';
+  const same_origin_src = '/feature-policy/resources/feature-policy-picture-in-picture.html';
+  const cross_origin_src = 'https://{{domains[www]}}:{{ports[https][0]}}' +
+    same_origin_src;
+  const header = 'Feature-Policy header: picture-in-picture *';
+
+  async_pip_test(t => {
+    isPictureInPictureAllowed().then(t.step_func_done((result) => {
+      assert_true(result);
+    }));
+  }, header + ' allows the top-level document.');
+
+  async_pip_test(t => {
+    test_feature_availability('picture-in-picture', t, same_origin_src,
+        expect_feature_available_default);
+  }, header + ' allows same-origin iframes.');
+
+  async_pip_test(t => {
+    test_feature_availability('picture-in-picture', t, cross_origin_src,
+        expect_feature_available_default);
+  }, header + ' allows cross-origin iframes.');
+  </script>
+</body>

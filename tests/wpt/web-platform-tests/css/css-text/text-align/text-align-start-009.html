@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8">
+<title>text-align: start, dir=auto, RTL first strong</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#text-align-property'>
+<link rel='match' href='reference/text-align-start-ref-009.html'>
+<meta name="assert" content="text-align:start aligns inline-level content to the start edge of the line box – ie. right when direction is auto and first strong character is rtl.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style type='text/css'>
+.test { text-align: start; }
+/* the CSS below is not part of the test */
+.test, .ref { border: 1px solid orange;  margin: 20px; width: 290px; color: orange; font: 24px/24px Ahem; }
+.ref { position: relative;  height: 72px; }
+#rb1 { position: absolute; top: 0; right: 0; background-color: orange; width: 72px;  height: 72px; }
+#rb2 { position: absolute; top: 0; right: 96px; background-color: orange; width: 72px;  height: 72px; }
+#rb3 { position: absolute; top: 0; right: 192px; background-color: orange; width: 72px;  height: 48px; }
+</style>
+</head>
+<body>
+<div id='instructions'>Test passes if shading in both orange boxes is identical.</div>
+<div class="test" dir="auto">&rlm;XXX XXX XXX XXX XXX XXX XXX XXX</div>
+<div class="ref"><div id="rb1"></div><div id="rb2"></div><div id="rb3"></div></div>
+<!-- Notes:
+The &rlm isn't in the Ahem font, so it may cause a spurious effect, such as a thin white line in the middle of a block in IE. This should be ignored. The test needs a RTL character in the Ahem font, so that the &RLM can be removed.
+-->
+</body>
+</html>

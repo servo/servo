@@ -69,6 +69,17 @@ async_test(t => {
     c1.postMessage('test');
   }, 'messages aren\'t delivered to a closed port');
 
+ async_test(t => {
+    let c1 = new BroadcastChannel('closed');
+    let c2 = new BroadcastChannel('closed');
+    let c3 = new BroadcastChannel('closed');
+
+    c2.onmessage = t.unreached_func();
+    c3.onmessage = t.step_func(() => t.done());
+    c1.postMessage('test');
+    c2.close();
+}, 'messages aren\'t delivered to a port closed after calling postMessage.');
+
 async_test(t => {
     let c1 = new BroadcastChannel('create-in-onmessage');
     let c2 = new BroadcastChannel('create-in-onmessage');
@@ -87,8 +98,6 @@ async_test(t => {
     c2.postMessage('second');
   }, 'closing and creating channels during message delivery works correctly');
 
-// TODO(mek): Depending on https://github.com/whatwg/html/issues/1371 adjust
-// this test to match the correct behavior.
 async_test(t => {
     let c1 = new BroadcastChannel('close-in-onmessage');
     let c2 = new BroadcastChannel('close-in-onmessage');
@@ -108,13 +117,12 @@ async_test(t => {
           assert_array_equals(events, [
               'c2: first',
               'c3: first',
-              'c2: done',
               'c3: done']);
           t.done();
         }
       }));
     c1.postMessage('first');
     c1.postMessage('done');
-  }, 'Closing a channel in onmessage doesn\'t cancel already queued events');
+  }, 'Closing a channel in onmessage prevents already queued tasks from firing onmessage events');
 
 </script>

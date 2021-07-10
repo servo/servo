@@ -1,0 +1,327 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Properties of the window object</title>
+<link rel="author" title="Ms2ger" href="mailto:Ms2ger@gmail.com">
+<link rel="help" href="http://ecma-international.org/ecma-262/5.1/#sec-15.1">
+<link rel="help" href="https://heycam.github.io/webidl/#interface-prototype-object">
+<link rel="help" href="https://heycam.github.io/webidl/#es-attributes">
+<link rel="help" href="https://heycam.github.io/webidl/#es-operations">
+<link rel="help" href="https://dom.spec.whatwg.org/#eventtarget">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#window">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#windowtimers">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#windowbase64">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#windowsessionstorage">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#windowlocalstorage">
+<link rel="help" href="https://dvcs.w3.org/hg/editing/raw-file/tip/editing.html#dom-window-getselection">
+<link rel="help" href="http://dev.w3.org/csswg/cssom/#widl-def-Window">
+<link rel="help" href="http://dev.w3.org/csswg/cssom-view/#widl-def-Window">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+function assert_data_propdesc(pd, Writable, Enumerable, Configurable) {
+  assert_equals(typeof pd, "object");
+  assert_equals(pd.writable, Writable);
+  assert_equals(pd.enumerable, Enumerable);
+  assert_equals(pd.configurable, Configurable);
+}
+function assert_accessor_propdesc(pd, hasSetter, Enumerable, Configurable) {
+  assert_equals(typeof pd, "object");
+  assert_equals(typeof pd.get, "function");
+  assert_true("set" in pd,
+              "Should always have a setter property on the property descriptor");
+  assert_equals(typeof pd.set, hasSetter ? "function" : "undefined");
+  assert_equals(pd.enumerable, Enumerable);
+  assert_equals(pd.configurable, Configurable);
+}
+
+var unforgeableAttributes = [
+  "window",
+  "document",
+  "location",
+  "top"
+];
+
+var replaceableAttributes = [
+  "self",
+  "locationbar",
+  "menubar",
+  "personalbar",
+  "scrollbars",
+  "statusbar",
+  "toolbar",
+  "frames",
+  "parent",
+  "external",
+  "length",
+  "origin",
+
+  // CSSOM-View
+  "screen",
+  "scrollX",
+  "scrollY",
+  "pageXOffset",
+  "pageYOffset",
+  "innerWidth",
+  "innerHeight",
+  "screenLeft",
+  "screenTop",
+  "screenX",
+  "screenY",
+  "outerWidth",
+  "outerHeight",
+  "devicePixelRatio",
+];
+
+var methods = [
+  "close",
+  "stop",
+  "focus",
+  "blur",
+  "open",
+  "alert",
+  "confirm",
+  "prompt",
+  "print",
+  "postMessage",
+
+  // WindowBase64
+  "btoa",
+  "atob",
+
+  // WindowTimers
+  "setTimeout",
+  "clearTimeout",
+  "setInterval",
+  "clearInterval",
+
+  // Microtask queuing
+  "queueMicrotask",
+
+  // ImageBitmap
+  "createImageBitmap",
+
+  // HTML Editing APIs
+  "getSelection",
+
+  // CSSOM
+  "getComputedStyle",
+
+  // CSSOM-View
+  "matchMedia",
+  "moveBy",
+  "moveTo",
+  "resizeBy",
+  "resizeTo",
+  "scroll",
+  "scrollTo",
+  "scrollBy"
+];
+
+var readonlyAttributes = [
+  "history",
+  "frameElement",
+  "navigator",
+  "applicationCache",
+
+  // WindowSessionStorage
+  "sessionStorage",
+
+  // WindowLocalStorage
+  "localStorage",
+];
+
+var writableAttributes = [
+  "name",
+  "status",
+  "opener",
+  "onabort",
+  "onafterprint",
+  "onbeforeprint",
+  "onbeforeunload",
+  "onblur",
+  "oncancel",
+  "oncanplay",
+  "oncanplaythrough",
+  "onchange",
+  "onclick",
+  "onclose",
+  "oncontextmenu",
+  "oncuechange",
+  "ondblclick",
+  "ondrag",
+  "ondragend",
+  "ondragenter",
+  "ondragleave",
+  "ondragover",
+  "ondragstart",
+  "ondrop",
+  "ondurationchange",
+  "onemptied",
+  "onended",
+  "onerror",
+  "onfocus",
+  "onhashchange",
+  "oninput",
+  "oninvalid",
+  "onkeydown",
+  "onkeypress",
+  "onkeyup",
+  "onload",
+  "onloadeddata",
+  "onloadedmetadata",
+  "onloadstart",
+  "onmessage",
+  "onmousedown",
+  "onmousemove",
+  "onmouseout",
+  "onmouseover",
+  "onmouseup",
+  "onmousewheel",
+  "onoffline",
+  "ononline",
+  "onpause",
+  "onplay",
+  "onplaying",
+  "onpagehide",
+  "onpageshow",
+  "onpopstate",
+  "onprogress",
+  "onratechange",
+  "onreset",
+  "onresize",
+  "onscroll",
+  "onseeked",
+  "onseeking",
+  "onselect",
+  "onstalled",
+  "onstorage",
+  "onsubmit",
+  "onsuspend",
+  "ontimeupdate",
+  "onunload",
+  "onvolumechange",
+  "onwaiting"
+];
+
+test(function() {
+  // 15.1.1 Value Properties of the Global Object
+  ["NaN", "Infinity", "undefined"].forEach(function(id) {
+    test(function() {
+      assert_true(id in window, id + " in window");
+      assert_data_propdesc(Object.getOwnPropertyDescriptor(window, id),
+                           false, false, false);
+    }, "Value Property: " + id);
+  });
+}, "Value Properties of the Global Object");
+test(function() {
+  // 15.1.2 Function Properties of the Global Object
+  ["eval", "parseInt", "parseFloat", "isNaN", "isFinite"].forEach(function(id) {
+    test(function() {
+      assert_true(id in window, id + " in window");
+      assert_data_propdesc(Object.getOwnPropertyDescriptor(window, id),
+                           true, false, true);
+    }, "Function Property: " + id);
+  });
+}, "Function Properties of the Global Object");
+test(function() {
+  // 15.1.3 URI Handling Function Properties
+  ["decodeURI", "decodeURIComponent", "encodeURI", "encodeURIComponent"].forEach(function(id) {
+    test(function() {
+      assert_true(id in window, id + " in window");
+      assert_data_propdesc(Object.getOwnPropertyDescriptor(window, id),
+                           true, false, true);
+    }, "URI Handling Function Property: " + id);
+  });
+}, "URI Handling Function Properties");
+test(function() {
+  // 15.1.4 Constructor Properties of the Global Object
+  ["Object", "Function", "Array", "String", "Boolean", "Number", "Date",
+   "RegExp", "Error", "EvalError", "RangeError", "ReferenceError",
+   "SyntaxError", "TypeError", "URIError"].forEach(function(id) {
+    test(function() {
+      assert_true(id in window, id + " in window");
+      assert_data_propdesc(Object.getOwnPropertyDescriptor(window, id),
+                           true, false, true);
+    }, "Constructor Property: " + id);
+  });
+}, "Constructor Properties of the Global Object");
+test(function() {
+  // 15.1.5 Other Properties of the Global Object
+  ["Math", "JSON"].forEach(function(id) {
+    test(function() {
+      assert_true(id in window, id + " in window");
+      assert_data_propdesc(Object.getOwnPropertyDescriptor(window, id),
+                           true, false, true);
+    }, "Other Property: " + id);
+  });
+}, "Other Properties of the Global Object");
+test(function() {
+  // EventTarget interface
+  ["addEventListener", "removeEventListener", "dispatchEvent"].forEach(function(id) {
+    test(function() {
+      var EventTargetProto = EventTarget.prototype;
+      assert_true(id in window, id + " in window");
+      assert_equals(window[id], EventTargetProto[id]);
+      assert_data_propdesc(Object.getOwnPropertyDescriptor(EventTargetProto, id),
+                           true, true, true);
+      assert_equals(Object.getOwnPropertyDescriptor(window, id), undefined);
+    }, "EventTarget method: " + id);
+  });
+}, "EventTarget interface");
+test(function() {
+  // Window interface
+  methods.forEach(function(id) {
+    test(function() {
+      var WindowProto = Window.prototype;
+      assert_true(id in window, id + " in window");
+      assert_false(id in WindowProto, id + " in Window.prototype");
+      assert_data_propdesc(Object.getOwnPropertyDescriptor(window, id),
+                           true, true, true);
+    }, "Window method: " + id);
+  });
+  readonlyAttributes.forEach(function(id) {
+    test(function() {
+      var WindowProto = Window.prototype;
+      assert_true(id in window, id + " in window");
+      assert_false(id in WindowProto, id + " in Window.prototype");
+      assert_accessor_propdesc(Object.getOwnPropertyDescriptor(window, id),
+                               false, true, true);
+    }, "Window readonly attribute: " + id);
+  });
+  writableAttributes.forEach(function(id) {
+    test(function() {
+      var WindowProto = Window.prototype;
+      assert_true(id in window, id + " in window");
+      assert_false(id in WindowProto, id + " in Window.prototype");
+      assert_accessor_propdesc(Object.getOwnPropertyDescriptor(window, id),
+                               true, true, true);
+    }, "Window attribute: " + id);
+  });
+  unforgeableAttributes.forEach(function(id) {
+    test(function() {
+      var WindowProto = Window.prototype;
+      assert_true(id in window, id + " in window");
+      assert_false(id in WindowProto, id + " in Window.prototype");
+      // location has a [PutForwards] extended attribute.
+      assert_accessor_propdesc(Object.getOwnPropertyDescriptor(window, id),
+                               id === "location", true, false);
+    }, "Window unforgeable attribute: " + id);
+  });
+  replaceableAttributes.forEach(function(id) {
+    test(function() {
+      var WindowProto = Window.prototype;
+      assert_true(id in window, id + " in window");
+      assert_false(id in WindowProto, id + " in Window.prototype");
+      assert_accessor_propdesc(Object.getOwnPropertyDescriptor(window, id),
+                               true, true, true);
+    }, "Window replaceable attribute: " + id);
+  });
+}, "Window interface");
+test(function() {
+  assert_equals(window.constructor, Window);
+  assert_false(window.hasOwnProperty("constructor"), "window.constructor should not be an own property.");
+  assert_data_propdesc(Object.getOwnPropertyDescriptor(Window.prototype, "constructor"),
+                       true, false, true);
+}, "constructor");
+</script>

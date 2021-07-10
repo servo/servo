@@ -1,0 +1,111 @@
+<!DOCTYPE HTML>
+<script type="text/javascript" src="/resources/testharness.js"></script>
+<script type="text/javascript" src="/resources/testharnessreport.js"></script>
+<script type="text/javascript" src="/resources/testdriver.js"></script>
+<script type="text/javascript" src="/resources/testdriver-vendor.js"></script>
+<script type="text/javascript" src="/resources/testdriver-actions.js"></script>
+<script type="text/javascript" src="../pointerevent_support.js"></script>
+
+<style>
+#obj {
+  width: 50px;
+  height: 50px;
+  padding: 50px;
+  background-color: lightblue;
+  border:1px solid black;
+}
+div {
+  display: block;
+}
+</style>
+
+<h1>Verifies that mouse activities on an object fire pointerevents. It expected to get pointerup when the pointerdown happened on the object for compatibility with flash objects.</h1>
+
+
+<p>
+  To test that when clicking inside the blue rectangle all compat mouse events are correct:
+  <ul>
+    <li> Click once in the blue rectangle
+    <li> Click the Done button
+  </ul>
+</p>
+<p>
+  To test that when dragging mouse outside all compat mouse events are correct:
+  <ul>
+    <li> Press left mouse button in the blue rectangle
+    <li> Drag the mouse cursor out of the blue rectangle
+    <li> Release the left mouse button
+    <li> Click the Done button
+  </ul>
+</p>
+<!-- draggable is set to false because there is a difference between auto draggable value in different browsers -->
+<object id="obj" draggable="false"></object>
+<button id="done">Done</button>
+<div id="log"></div>
+<script>
+var target = document.getElementById("obj");
+var done = document.getElementById("done");
+
+var rect = target.getBoundingClientRect();
+var done_clicked = 0;
+var receivedEvents = [];
+var previous_done_clicked = 0;
+
+["mousedown", "mouseup", "mousemove", "pointerdown", "pointerup", "pointermove"].forEach(function(eventName) {
+  target.addEventListener(eventName, function(event) {
+    // This will clear receivedEvents once another test starts
+    if(previous_done_clicked !== done_clicked){
+      previous_done_clicked = done_clicked;
+      receivedEvents = [];
+    }
+    receivedEvents.push(event.type);
+  });
+});
+
+document.getElementById('done').addEventListener('click', (e) => done_clicked++);
+
+// Need to prevent the default behaviour for firefox
+target.addEventListener("dragstart", (e)=>e.preventDefault());
+
+if(window.promise_test){
+  promise_test(async() => {
+    receivedEvents = [];
+
+    await new test_driver.Actions()
+          .pointerMove(Math.ceil(rect.left+5), Math.ceil(rect.top+5))
+          .pointerDown()
+          .pointerUp()
+          .send()
+          .then(() => clickInTarget("mouse", done));
+    await resolveWhen(() => done_clicked === 1);
+
+    assert_array_equals(receivedEvents.filter(isPointerEvent), ["pointermove", "pointerdown", "pointerup"],
+                        "Click on object should result in the correct sequence of pointer events");
+    assert_array_equals(receivedEvents.filter(isMouseEvent), ["mousemove", "mousedown", "mouseup"],
+                        "Click on object should result in the correct sequence of mouse events");
+    assert_true(arePointerEventsBeforeCompatMouseEvents(receivedEvents),
+                        "Click on object should result in the correct sequence of events: " + receivedEvents);
+  }, "Normal click event sequence within object");
+
+  promise_test(async() => {
+    receivedEvents = [];
+
+    await new test_driver.Actions()
+          .pointerMove(Math.ceil(rect.left+5), Math.ceil(rect.top+5))
+          .pointerDown()
+          .pointerMove(Math.ceil(rect.left-5), Math.ceil(rect.top-5))
+          .pointerUp()
+          .send()
+          .then(() => clickInTarget("mouse", done));
+    await resolveWhen(() => done_clicked === 2);
+
+    assert_array_equals(receivedEvents.filter(isPointerEvent), ["pointermove", "pointerdown", "pointermove", "pointerup"],
+                        "Drag from object should result in the correct sequence of pointer events");
+    assert_array_equals(receivedEvents.filter(isMouseEvent), ["mousemove", "mousedown", "mousemove", "mouseup"],
+                        "Drag from object should result in the correct sequence of mouse events");
+    assert_true(arePointerEventsBeforeCompatMouseEvents(receivedEvents),
+                        "Drag from object should result in the correct sequence of events: " + receivedEvents);
+
+  }, "Click and drag outside of object event sequence");
+}
+</script>

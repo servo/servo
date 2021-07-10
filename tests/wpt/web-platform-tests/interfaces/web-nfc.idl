@@ -1,0 +1,78 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Web NFC (https://w3c.github.io/web-nfc/)
+
+[SecureContext, Exposed=Window]
+interface NDEFMessage {
+  constructor(NDEFMessageInit messageInit);
+  readonly attribute FrozenArray<NDEFRecord> records;
+};
+
+dictionary NDEFMessageInit {
+  required sequence<NDEFRecordInit> records;
+};
+
+typedef (DOMString or BufferSource or NDEFMessageInit) NDEFRecordDataSource;
+
+[SecureContext, Exposed=Window]
+interface NDEFRecord {
+  constructor(NDEFRecordInit recordInit);
+
+  readonly attribute USVString recordType;
+  readonly attribute USVString? mediaType;
+  readonly attribute USVString? id;
+  readonly attribute DataView? data;
+
+  readonly attribute USVString? encoding;
+  readonly attribute USVString? lang;
+
+  sequence<NDEFRecord>? toRecords();
+};
+
+dictionary NDEFRecordInit {
+  required USVString recordType;
+  USVString mediaType;
+  USVString id;
+
+  USVString encoding;
+  USVString lang;
+
+  NDEFRecordDataSource data;
+};
+
+typedef (DOMString or BufferSource or NDEFMessageInit) NDEFMessageSource;
+
+[SecureContext, Exposed=Window]
+interface NDEFReader : EventTarget {
+  constructor();
+
+  attribute EventHandler onreading;
+  attribute EventHandler onreadingerror;
+
+  Promise<undefined> scan(optional NDEFScanOptions options={});
+  Promise<undefined> write(NDEFMessageSource message,
+                                 optional NDEFWriteOptions options={});
+};
+
+[SecureContext, Exposed=Window]
+interface NDEFReadingEvent : Event {
+  constructor(DOMString type, NDEFReadingEventInit readingEventInitDict);
+
+  readonly attribute DOMString serialNumber;
+  [SameObject] readonly attribute NDEFMessage message;
+};
+
+dictionary NDEFReadingEventInit : EventInit {
+  DOMString? serialNumber = "";
+  required NDEFMessageInit message;
+};
+
+dictionary NDEFWriteOptions {
+  boolean overwrite = true;
+  AbortSignal? signal;
+};
+
+dictionary NDEFScanOptions {
+  AbortSignal signal;
+};

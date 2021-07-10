@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <meta http-equiv="Content-Security-Policy" content="form-action 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self';">
+    <title>form-action-src-redirect-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["violated-directive=form-action","TEST COMPLETE"]'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
+    <script>
+        window.addEventListener('securitypolicyviolation', function(e) {
+            log('violated-directive=' + e.violatedDirective);
+        });
+        window.addEventListener("message", function(event) {
+            alert_assert(event.data);
+        }, false);
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                document.getElementById('submit').click();
+                log("TEST COMPLETE");
+            }, 0);
+        });
+        setTimeout(function() {}, 1000);
+
+    </script>
+</head>
+
+<body>
+    <iframe name="test_target" id="test_iframe"></iframe>
+
+    <form id="form1" action="/common/redirect.py?location=http://{{domains[www1]}}:{{ports[http][0]}}/content-security-policy/support/postmessage-fail.html" method="post" target="test_target">
+        <input type="text" name="fieldname" value="fieldvalue">
+        <input type="submit" id="submit" value="submit">
+    </form>
+    <p>Tests that blocking a POST form with a redirect works correctly. If this test passes, a CSP violation will be generated.</p>
+    <div id="log"></div>
+</body>
+
+</html>

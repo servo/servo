@@ -1,0 +1,153 @@
+- name: 2d.coordinatespace
+  desc: Coordinate space goes from top-left to bottom-right
+  notes: This should not be upside down.
+  testing:
+  - 2d.coordinatespace
+  code: |
+    ctx.fillStyle = '#00f';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0ff';
+    ctx.fillRect(0, 0, 50, 25);
+    @assert pixel 25,12 == 0,255,255,255;
+    @assert pixel 75,12 == 0,0,255,255;
+    @assert pixel 25,37 == 0,0,255,255;
+    @assert pixel 75,37 == 0,0,255,255;
+    t.done();
+
+- name: 2d.missingargs
+  desc: Missing arguments cause TypeError
+  code: |
+    @assert throws TypeError ctx.scale();
+    @assert throws TypeError ctx.scale(1);
+    @assert throws TypeError ctx.rotate();
+    @assert throws TypeError ctx.translate();
+    @assert throws TypeError ctx.translate(0);
+    if (ctx.transform) { // (avoid spurious failures, since the aim here is not to test that all features are supported)
+        @assert throws TypeError ctx.transform();
+        @assert throws TypeError ctx.transform(1);
+        @assert throws TypeError ctx.transform(1, 0);
+        @assert throws TypeError ctx.transform(1, 0, 0);
+        @assert throws TypeError ctx.transform(1, 0, 0, 1);
+        @assert throws TypeError ctx.transform(1, 0, 0, 1, 0);
+    }
+    if (ctx.setTransform) {
+        @assert throws TypeError ctx.setTransform(1);
+        @assert throws TypeError ctx.setTransform(1, 0);
+        @assert throws TypeError ctx.setTransform(1, 0, 0);
+        @assert throws TypeError ctx.setTransform(1, 0, 0, 1);
+        @assert throws TypeError ctx.setTransform(1, 0, 0, 1, 0);
+    }
+    @assert throws TypeError ctx.createLinearGradient();
+    @assert throws TypeError ctx.createLinearGradient(0);
+    @assert throws TypeError ctx.createLinearGradient(0, 0);
+    @assert throws TypeError ctx.createLinearGradient(0, 0, 1);
+    @assert throws TypeError ctx.createRadialGradient();
+    @assert throws TypeError ctx.createRadialGradient(0);
+    @assert throws TypeError ctx.createRadialGradient(0, 0);
+    @assert throws TypeError ctx.createRadialGradient(0, 0, 1);
+    @assert throws TypeError ctx.createRadialGradient(0, 0, 1, 0);
+    @assert throws TypeError ctx.createRadialGradient(0, 0, 1, 0, 0);
+    @assert throws TypeError ctx.createPattern(offscreenCanvas);
+    @assert throws TypeError ctx.clearRect();
+    @assert throws TypeError ctx.clearRect(0);
+    @assert throws TypeError ctx.clearRect(0, 0);
+    @assert throws TypeError ctx.clearRect(0, 0, 0);
+    @assert throws TypeError ctx.fillRect();
+    @assert throws TypeError ctx.fillRect(0);
+    @assert throws TypeError ctx.fillRect(0, 0);
+    @assert throws TypeError ctx.fillRect(0, 0, 0);
+    @assert throws TypeError ctx.strokeRect();
+    @assert throws TypeError ctx.strokeRect(0);
+    @assert throws TypeError ctx.strokeRect(0, 0);
+    @assert throws TypeError ctx.strokeRect(0, 0, 0);
+    @assert throws TypeError ctx.moveTo();
+    @assert throws TypeError ctx.moveTo(0);
+    @assert throws TypeError ctx.lineTo();
+    @assert throws TypeError ctx.lineTo(0);
+    @assert throws TypeError ctx.quadraticCurveTo();
+    @assert throws TypeError ctx.quadraticCurveTo(0);
+    @assert throws TypeError ctx.quadraticCurveTo(0, 0);
+    @assert throws TypeError ctx.quadraticCurveTo(0, 0, 0);
+    @assert throws TypeError ctx.bezierCurveTo();
+    @assert throws TypeError ctx.bezierCurveTo(0);
+    @assert throws TypeError ctx.bezierCurveTo(0, 0);
+    @assert throws TypeError ctx.bezierCurveTo(0, 0, 0);
+    @assert throws TypeError ctx.bezierCurveTo(0, 0, 0, 0);
+    @assert throws TypeError ctx.bezierCurveTo(0, 0, 0, 0, 0);
+    @assert throws TypeError ctx.arcTo();
+    @assert throws TypeError ctx.arcTo(0);
+    @assert throws TypeError ctx.arcTo(0, 0);
+    @assert throws TypeError ctx.arcTo(0, 0, 0);
+    @assert throws TypeError ctx.arcTo(0, 0, 0, 0);
+    @assert throws TypeError ctx.rect();
+    @assert throws TypeError ctx.rect(0);
+    @assert throws TypeError ctx.rect(0, 0);
+    @assert throws TypeError ctx.rect(0, 0, 0);
+    @assert throws TypeError ctx.arc();
+    @assert throws TypeError ctx.arc(0);
+    @assert throws TypeError ctx.arc(0, 0);
+    @assert throws TypeError ctx.arc(0, 0, 1);
+    @assert throws TypeError ctx.arc(0, 0, 1, 0);
+    @assert throws TypeError ctx.drawImage();
+    @assert throws TypeError ctx.drawImage(offscreenCanvas);
+    @assert throws TypeError ctx.drawImage(offscreenCanvas, 0);
+    // TODO: n >= 3 args on drawImage could be either a valid overload,
+    // or too few for another overload, or too many for another
+    // overload - what should happen?
+    if (ctx.createImageData) {
+        @assert throws TypeError ctx.createImageData();
+        @assert throws TypeError ctx.createImageData(1);
+    }
+    if (ctx.getImageData) {
+        @assert throws TypeError ctx.getImageData();
+        @assert throws TypeError ctx.getImageData(0);
+        @assert throws TypeError ctx.getImageData(0, 0);
+        @assert throws TypeError ctx.getImageData(0, 0, 1);
+    }
+    if (ctx.putImageData) {
+        var imgdata = ctx.getImageData(0, 0, 1, 1);
+        @assert throws TypeError ctx.putImageData();
+        @assert throws TypeError ctx.putImageData(imgdata);
+        @assert throws TypeError ctx.putImageData(imgdata, 0);
+    }
+    var g = ctx.createLinearGradient(0, 0, 0, 0);
+    @assert throws TypeError g.addColorStop(); @moz-todo
+    @assert throws TypeError g.addColorStop(0); @moz-todo
+    t.done();
+
+- name: 2d.voidreturn
+  desc: void methods return undefined
+  code: |
+    @assert ctx.save() === undefined;
+    @assert ctx.restore() === undefined;
+    @assert ctx.scale(1, 1) === undefined;
+    @assert ctx.rotate(0) === undefined;
+    @assert ctx.translate(0, 0) === undefined;
+    if (ctx.transform) { // (avoid spurious failures, since the aim here is not to test that all features are supported)
+        @assert ctx.transform(1, 0, 0, 1, 0, 0) === undefined;
+    }
+    if (ctx.setTransform) {
+        @assert ctx.setTransform(1, 0, 0, 1, 0, 0) === undefined;
+    }
+    @assert ctx.clearRect(0, 0, 0, 0) === undefined;
+    @assert ctx.fillRect(0, 0, 0, 0) === undefined;
+    @assert ctx.strokeRect(0, 0, 0, 0) === undefined;
+    @assert ctx.beginPath() === undefined;
+    @assert ctx.closePath() === undefined;
+    @assert ctx.moveTo(0, 0) === undefined;
+    @assert ctx.lineTo(0, 0) === undefined;
+    @assert ctx.quadraticCurveTo(0, 0, 0, 0) === undefined;
+    @assert ctx.bezierCurveTo(0, 0, 0, 0, 0, 0) === undefined;
+    @assert ctx.arcTo(0, 0, 0, 0, 1) === undefined;
+    @assert ctx.rect(0, 0, 0, 0) === undefined;
+    @assert ctx.arc(0, 0, 1, 0, 0, true) === undefined;
+    @assert ctx.fill() === undefined;
+    @assert ctx.stroke() === undefined;
+    @assert ctx.clip() === undefined;
+    if (ctx.putImageData) {
+        @assert ctx.putImageData(ctx.getImageData(0, 0, 1, 1), 0, 0) === undefined;
+    }
+    @assert ctx.drawImage(offscreenCanvas, 0, 0, 1, 1, 0, 0, 0, 0) === undefined;
+    @assert ctx.createLinearGradient(0, 0, 0, 0).addColorStop(0, 'white') === undefined;
+    t.done();
+

@@ -13,16 +13,13 @@
       clearTimeout(timer);
       timer = setTimeout(t.step_func(
         function() {
-          try {
-            assert_array_equals(pages, [4, 2], "Pages opened during history navigation");
-            t.done();
-          } finally {
-           // win.close();
-          }
+          assert_array_equals(pages, [4, 2], "Pages opened during history navigation");
+          t.done();
         }
       ), 500);
     }
   );
-  t.step(function() {win = window.open("history_entry.html&urls=history_entry.html,history_entry.html,traverse_the_history_1-1.html");
+  t.step(function() {win = window.open("history_entry.html?urls=history_entry.html,history_entry.html,traverse_the_history_1-1.html");
+  t.add_cleanup(() => { win.close() });
 });
 </script>

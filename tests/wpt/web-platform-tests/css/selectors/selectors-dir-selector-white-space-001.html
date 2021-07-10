@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Selectors Level 4 Test: Verify for an identifier with leading and tailing whitespace of dir() </title>
+    <link rel="author" title="Miyoung Shin" href="mailto:myid.shin@igalia.com">
+    <link rel="help" href="http://www.w3.org/TR/selectors4/#dir-pseudo">
+    <link rel="match" href="selectors-dir-selector-white-space-001-ref.html">
+    <meta name="assert" content="The :dir(ltr) pseudo-class matches an element that has a directionality of (ltr). Since the div element has dir=ltr, the selector matches.">
+    <style type="text/css">
+       div {
+           width: 100px;
+           height: 100px;
+           background-color: red;
+       }
+
+       #a:dir( ltr) { background-color: green; }
+       #b:dir(ltr ) { background-color: green; }
+       #c:dir( ltr ) { background-color: green; }
+    </style>
+</head>
+<body>
+    <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+    <div id="a" dir="ltr"></div>
+    <div id="b" dir="ltr"></div>
+    <div id="c" dir="ltr"></div>
+</body>
+</html>

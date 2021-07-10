@@ -1,0 +1,475 @@
+<!doctype html>
+<meta charset=utf-8>
+<title></title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+"use strict";
+
+function getLines(sdp, startsWith) {
+  const lines = sdp.split("\r\n").filter(l => l.startsWith(startsWith));
+  assert_true(lines.length > 0, `One or more ${startsWith} in sdp`);
+  return lines;
+}
+
+const getUfrags = ({sdp}) => getLines(sdp, "a=ice-ufrag:");
+const getPwds = ({sdp}) => getLines(sdp, "a=ice-pwd:");
+
+const negotiators = [
+  {
+    tag: "",
+    async setOffer(pc) {
+      await pc.setLocalDescription(await pc.createOffer());
+    },
+    async setAnswer(pc) {
+      await pc.setLocalDescription(await pc.createAnswer());
+    },
+  },
+  {
+    tag: " (perfect negotiation)",
+    async setOffer(pc) {
+      await pc.setLocalDescription();
+    },
+    async setAnswer(pc) {
+      await pc.setLocalDescription();
+    },
+  },
+];
+
+async function exchangeOfferAnswerEndOnFirst(pc1, pc2, negotiator) {
+  await negotiator.setOffer(pc1);
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await negotiator.setAnswer(pc2);
+  await pc1.setRemoteDescription(pc2.localDescription); // End on pc1. No race
+}
+
+async function exchangeOfferAnswerEndOnSecond(pc1, pc2, negotiator) {
+  await negotiator.setOffer(pc1);
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc1.setRemoteDescription(await pc2.createAnswer());
+  await pc2.setLocalDescription(pc1.remoteDescription); // End on pc2. No race
+}
+
+async function assertNoNegotiationNeeded(t, pc) {
+  assert_equals(pc.signalingState, "stable", "In stable state");
+  const event = await Promise.race([
+    new Promise(r => pc.onnegotiationneeded = r),
+    new Promise(r => t.step_timeout(r, 10))
+  ]);
+  assert_equals(event, undefined, "No negotiationneeded event");
+}
+
+// In Chromium, assert_equals() produces test expectations with the values
+// compared. Because ufrags are different on each run, this would make Chromium
+// test expectations different on each run on tests that failed when comparing
+// ufrags. To work around this problem, assert_ufrags_equals() and
+// assert_ufrags_not_equals() should be preferred over assert_equals() and
+// assert_not_equals().
+function assert_ufrags_equals(x, y, description) {
+  assert_true(x === y, description);
+}
+function assert_ufrags_not_equals(x, y, description) {
+  assert_false(x === y, description);
+}
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+
+  pc1.restartIce();
+  await assertNoNegotiationNeeded(t, pc1);
+  pc1.addTransceiver("audio");
+  await new Promise(r => pc1.onnegotiationneeded = r);
+  await assertNoNegotiationNeeded(t, pc1);
+}, "restartIce() does not trigger negotiation ahead of initial negotiation");
+
+// Run remaining tests twice: once for each negotiator
+
+for (const negotiator of negotiators) {
+  const {tag} = negotiator;
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+
+    pc1.addTransceiver("audio");
+    await new Promise(r => pc1.onnegotiationneeded = r);
+    pc1.restartIce();
+    await exchangeOfferAnswerEndOnFirst(pc1, pc2, negotiator);
+    await assertNoNegotiationNeeded(t, pc1);
+  }, `restartIce() has no effect on initial negotiation${tag}`);
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+
+    pc1.addTransceiver("audio");
+    await new Promise(r => pc1.onnegotiationneeded = r);
+    await exchangeOfferAnswerEndOnFirst(pc1, pc2, negotiator);
+    pc1.restartIce();
+    await new Promise(r => pc1.onnegotiationneeded = r);
+  }, `restartIce() fires negotiationneeded after initial negotiation${tag}`);
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+
+    pc1.addTransceiver("audio");
+    await exchangeOfferAnswerEndOnFirst(pc1, pc2, negotiator);
+
+    const [oldUfrag1] = getUfrags(pc1.localDescription);
+    const [oldUfrag2] = getUfrags(pc2.localDescription);
+    await exchangeOfferAnswerEndOnFirst(pc1, pc2, negotiator);
+    assert_ufrags_equals(getUfrags(pc1.localDescription)[0], oldUfrag1, "control 1");
+    assert_ufrags_equals(getUfrags(pc2.localDescription)[0], oldUfrag2, "control 2");
+
+    pc1.restartIce();
+    await new Promise(r => pc1.onnegotiationneeded = r);
+    await exchangeOfferAnswerEndOnFirst(pc1, pc2, negotiator);
+    const [newUfrag1] = getUfrags(pc1.localDescription);
+    const [newUfrag2] = getUfrags(pc2.localDescription);
+    assert_ufrags_not_equals(newUfrag1, oldUfrag1, "ufrag 1 changed");
+    assert_ufrags_not_equals(newUfrag1, oldUfrag2, "ufrag 2 changed");
+    await assertNoNegotiationNeeded(t, pc1);
+
+    await exchangeOfferAnswerEndOnFirst(pc1, pc2, negotiator);
+    assert_ufrags_equals(getUfrags(pc1.localDescription)[0], newUfrag1, "Unchanged 1");
+    assert_ufrags_equals(getUfrags(pc2.localDescription)[0], newUfrag2, "Unchanged 2");
+  }, `restartIce() causes fresh ufrags${tag}`);
+
+  promise_test(async t => {
+    const config = {bundlePolicy: "max-bundle"};
+    const pc1 = new RTCPeerConnection(config);
+    const pc2 = new RTCPeerConnection(config);
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+
+    pc1.onicecandidate = e => pc2.addIceCandidate(e.candidate);
+    pc2.onicecandidate = e => pc1.addIceCandidate(e.candidate);
+
+    // See the explanation below about Chrome's onnegotiationneeded firing
+    // too early.
+    const negotiationNeededPromise1 =
+        new Promise(r => pc1.onnegotiationneeded = r);
+    pc1.addTransceiver("video");
+    pc1.addTransceiver("audio");
+    await negotiationNeededPromise1;
+    await exchangeOfferAnswerEndOnFirst(pc1, pc2, negotiator);
+
+    const [videoTc, audioTc] = pc1.getTransceivers();
+    const [videoTp, audioTp] =
+        pc1.getTransceivers().map(tc => tc.sender.transport);
+    assert_equals(pc1.getTransceivers().length, 2, 'transceiver count');
+
+    // On Chrome, it is possible (likely, even) that videoTc.sender.transport.state
+    // will be 'connected' by the time we get here.  We'll race 2 promises here:
+    // 1. Resolve after onstatechange is called with connected state.
+    // 2. If already connected, resolve immediately.
+    await Promise.race([
+      new Promise(r => videoTc.sender.transport.onstatechange =
+        () => videoTc.sender.transport.state == "connected" && r()),
+      new Promise(r => videoTc.sender.transport.state == "connected" && r())
+    ]);
+    assert_equals(videoTc.sender.transport.state, "connected");
+
+    await exchangeOfferAnswerEndOnFirst(pc1, pc2, negotiator);
+    assert_equals(videoTp, pc1.getTransceivers()[0].sender.transport,
+                  'offer/answer retains dtls transport');
+    assert_equals(audioTp, pc1.getTransceivers()[1].sender.transport,
+                  'offer/answer retains dtls transport');
+
+    const negotiationNeededPromise2 =
+        new Promise(r => pc1.onnegotiationneeded = r);
+    pc1.restartIce();
+    await negotiationNeededPromise2;
+    await exchangeOfferAnswerEndOnFirst(pc1, pc2, negotiator);
+
+    const [newVideoTp, newAudioTp] =
+        pc1.getTransceivers().map(tc => tc.sender.transport);
+    assert_equals(videoTp, newVideoTp, 'ice restart retains dtls transport');
+    assert_equals(audioTp, newAudioTp, 'ice restart retains dtls transport');
+  }, `restartIce() retains dtls transports${tag}`);
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+
+    pc1.addTransceiver("audio");
+    await new Promise(r => pc1.onnegotiationneeded = r);
+    await exchangeOfferAnswerEndOnFirst(pc1, pc2, negotiator);
+
+    const [oldUfrag1] = getUfrags(pc1.localDescription);
+    const [oldUfrag2] = getUfrags(pc2.localDescription);
+
+    await negotiator.setOffer(pc1);
+    pc1.restartIce();
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await negotiator.setAnswer(pc2);
+    // Several tests in this file initializes the onnegotiationneeded listener
+    // before the setLocalDescription() or setRemoteDescription() that we expect
+    // to trigger negotiation needed. This allows Chrome to exercise these tests
+    // without timing out due to a bug that causes onnegotiationneeded to fire too
+    // early.
+    // TODO(https://crbug.com/985797): Once Chrome does not fire ONN too early,
+    // simply do "await new Promise(...)" instead of
+    // "await negotiationNeededPromise" here and in other tests in this file.
+    const negotiationNeededPromise =
+        new Promise(r => pc1.onnegotiationneeded = r);
+    await pc1.setRemoteDescription(pc2.localDescription);
+    assert_ufrags_equals(getUfrags(pc1.localDescription)[0], oldUfrag1, "Unchanged 1");
+    assert_ufrags_equals(getUfrags(pc2.localDescription)[0], oldUfrag2, "Unchanged 2");
+    await negotiationNeededPromise;
+    await exchangeOfferAnswerEndOnFirst(pc1, pc2, negotiator);
+    const [newUfrag1] = getUfrags(pc1.localDescription);
+    const [newUfrag2] = getUfrags(pc2.localDescription);
+    assert_ufrags_not_equals(newUfrag1, oldUfrag1, "ufrag 1 changed");
+    assert_ufrags_not_equals(newUfrag1, oldUfrag2, "ufrag 2 changed");
+    await assertNoNegotiationNeeded(t, pc1);
+  }, `restartIce() works in have-local-offer${tag}`);
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+
+    pc1.addTransceiver("audio");
+    await new Promise(r => pc1.onnegotiationneeded = r);
+    await negotiator.setOffer(pc1);
+    pc1.restartIce();
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await negotiator.setAnswer(pc2);
+    const negotiationNeededPromise =
+        new Promise(r => pc1.onnegotiationneeded = r);
+    await pc1.setRemoteDescription(pc2.localDescription);
+    const [oldUfrag1] = getUfrags(pc1.localDescription);
+    const [oldUfrag2] = getUfrags(pc2.localDescription);
+    await negotiationNeededPromise;
+    await exchangeOfferAnswerEndOnFirst(pc1, pc2, negotiator);
+    const [newUfrag1] = getUfrags(pc1.localDescription);
+    const [newUfrag2] = getUfrags(pc2.localDescription);
+    assert_ufrags_not_equals(newUfrag1, oldUfrag1, "ufrag 1 changed");
+    assert_ufrags_not_equals(newUfrag1, oldUfrag2, "ufrag 2 changed");
+    await assertNoNegotiationNeeded(t, pc1);
+  }, `restartIce() works in initial have-local-offer${tag}`);
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+
+    pc1.addTransceiver("audio");
+    await new Promise(r => pc1.onnegotiationneeded = r);
+    await exchangeOfferAnswerEndOnFirst(pc1, pc2, negotiator);
+
+    const [oldUfrag1] = getUfrags(pc1.localDescription);
+    const [oldUfrag2] = getUfrags(pc2.localDescription);
+
+    await negotiator.setOffer(pc2);
+    await pc1.setRemoteDescription(pc2.localDescription);
+    pc1.restartIce();
+    await pc2.setRemoteDescription(await pc1.createAnswer());
+    const negotiationNeededPromise =
+        new Promise(r => pc1.onnegotiationneeded = r);
+    await pc1.setLocalDescription(pc2.remoteDescription); // End on pc1. No race
+    assert_ufrags_equals(getUfrags(pc1.localDescription)[0], oldUfrag1, "Unchanged 1");
+    assert_ufrags_equals(getUfrags(pc2.localDescription)[0], oldUfrag2, "Unchanged 2");
+    await negotiationNeededPromise;
+    await exchangeOfferAnswerEndOnFirst(pc1, pc2, negotiator);
+    const [newUfrag1] = getUfrags(pc1.localDescription);
+    const [newUfrag2] = getUfrags(pc2.localDescription);
+    assert_ufrags_not_equals(newUfrag1, oldUfrag1, "ufrag 1 changed");
+    assert_ufrags_not_equals(newUfrag1, oldUfrag2, "ufrag 2 changed");
+    await assertNoNegotiationNeeded(t, pc1);
+  }, `restartIce() works in have-remote-offer${tag}`);
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+
+    pc2.addTransceiver("audio");
+    await negotiator.setOffer(pc2);
+    await pc1.setRemoteDescription(pc2.localDescription);
+    pc1.restartIce();
+    await pc2.setRemoteDescription(await pc1.createAnswer());
+    await pc1.setLocalDescription(pc2.remoteDescription); // End on pc1. No race
+    await assertNoNegotiationNeeded(t, pc1);
+  }, `restartIce() does nothing in initial have-remote-offer${tag}`);
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+
+    pc1.addTransceiver("audio");
+    await new Promise(r => pc1.onnegotiationneeded = r);
+    await exchangeOfferAnswerEndOnFirst(pc1, pc2, negotiator);
+
+    const [oldUfrag1] = getUfrags(pc1.localDescription);
+    const [oldUfrag2] = getUfrags(pc2.localDescription);
+
+    pc1.restartIce();
+    await new Promise(r => pc1.onnegotiationneeded = r);
+    const negotiationNeededPromise =
+        new Promise(r => pc1.onnegotiationneeded = r);
+    await exchangeOfferAnswerEndOnSecond(pc2, pc1, negotiator);
+    assert_ufrags_equals(getUfrags(pc1.localDescription)[0], oldUfrag1, "nothing yet 1");
+    assert_ufrags_equals(getUfrags(pc2.localDescription)[0], oldUfrag2, "nothing yet 2");
+    await negotiationNeededPromise;
+    await exchangeOfferAnswerEndOnFirst(pc1, pc2, negotiator);
+    const [newUfrag1] = getUfrags(pc1.localDescription);
+    const [newUfrag2] = getUfrags(pc2.localDescription);
+    assert_ufrags_not_equals(newUfrag1, oldUfrag1, "ufrag 1 changed");
+    assert_ufrags_not_equals(newUfrag2, oldUfrag2, "ufrag 2 changed");
+    await assertNoNegotiationNeeded(t, pc1);
+  }, `restartIce() survives remote offer${tag}`);
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+
+    pc1.addTransceiver("audio");
+    await new Promise(r => pc1.onnegotiationneeded = r);
+    await exchangeOfferAnswerEndOnFirst(pc1, pc2, negotiator);
+
+    const [oldUfrag1] = getUfrags(pc1.localDescription);
+    const [oldUfrag2] = getUfrags(pc2.localDescription);
+
+    pc1.restartIce();
+    pc2.restartIce();
+    await new Promise(r => pc1.onnegotiationneeded = r);
+    await exchangeOfferAnswerEndOnSecond(pc2, pc1, negotiator);
+    const [newUfrag1] = getUfrags(pc1.localDescription);
+    const [newUfrag2] = getUfrags(pc2.localDescription);
+    assert_ufrags_not_equals(newUfrag1, oldUfrag1, "ufrag 1 changed");
+    assert_ufrags_not_equals(newUfrag1, oldUfrag2, "ufrag 2 changed");
+    await assertNoNegotiationNeeded(t, pc1);
+
+    await exchangeOfferAnswerEndOnFirst(pc1, pc2, negotiator);
+    assert_ufrags_equals(getUfrags(pc1.localDescription)[0], newUfrag1, "Unchanged 1");
+    assert_ufrags_equals(getUfrags(pc2.localDescription)[0], newUfrag2, "Unchanged 2");
+    await assertNoNegotiationNeeded(t, pc1);
+  }, `restartIce() is satisfied by remote ICE restart${tag}`);
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+
+    pc1.addTransceiver("audio");
+    await new Promise(r => pc1.onnegotiationneeded = r);
+    await exchangeOfferAnswerEndOnFirst(pc1, pc2, negotiator);
+
+    const [oldUfrag1] = getUfrags(pc1.localDescription);
+    const [oldUfrag2] = getUfrags(pc2.localDescription);
+
+    pc1.restartIce();
+    await new Promise(r => pc1.onnegotiationneeded = r);
+    await pc1.setLocalDescription(await pc1.createOffer({iceRestart: false}));
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await negotiator.setAnswer(pc2);
+    await pc1.setRemoteDescription(pc2.localDescription);
+    const [newUfrag1] = getUfrags(pc1.localDescription);
+    const [newUfrag2] = getUfrags(pc2.localDescription);
+    assert_ufrags_not_equals(newUfrag1, oldUfrag1, "ufrag 1 changed");
+    assert_ufrags_not_equals(newUfrag1, oldUfrag2, "ufrag 2 changed");
+    await assertNoNegotiationNeeded(t, pc1);
+  }, `restartIce() trumps {iceRestart: false}${tag}`);
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+
+    pc1.addTransceiver("audio");
+    await new Promise(r => pc1.onnegotiationneeded = r);
+    await exchangeOfferAnswerEndOnFirst(pc1, pc2, negotiator);
+
+    const [oldUfrag1] = getUfrags(pc1.localDescription);
+    const [oldUfrag2] = getUfrags(pc2.localDescription);
+
+    pc1.restartIce();
+    await new Promise(r => pc1.onnegotiationneeded = r);
+    await negotiator.setOffer(pc1);
+    const negotiationNeededPromise =
+        new Promise(r => pc1.onnegotiationneeded = r);
+    await pc1.setLocalDescription({type: "rollback"});
+    await negotiationNeededPromise;
+    await exchangeOfferAnswerEndOnFirst(pc1, pc2, negotiator);
+    const [newUfrag1] = getUfrags(pc1.localDescription);
+    const [newUfrag2] = getUfrags(pc2.localDescription);
+    assert_ufrags_not_equals(newUfrag1, oldUfrag1, "ufrag 1 changed");
+    assert_ufrags_not_equals(newUfrag1, oldUfrag2, "ufrag 2 changed");
+    await assertNoNegotiationNeeded(t, pc1);
+  }, `restartIce() survives rollback${tag}`);
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection({bundlePolicy: "max-compat"});
+    const pc2 = new RTCPeerConnection({bundlePolicy: "max-compat"});
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+
+    pc1.addTransceiver("audio");
+    pc1.addTransceiver("video");
+    await new Promise(r => pc1.onnegotiationneeded = r);
+    await exchangeOfferAnswerEndOnFirst(pc1, pc2, negotiator);
+
+    const oldUfrags1 = getUfrags(pc1.localDescription);
+    const oldUfrags2 = getUfrags(pc2.localDescription);
+    const oldPwds2 = getPwds(pc2.localDescription);
+
+    pc1.restartIce();
+    await new Promise(r => pc1.onnegotiationneeded = r);
+
+    // Engineer a partial ICE restart from pc2
+    pc2.restartIce();
+    await negotiator.setOffer(pc2);
+    {
+      let {type, sdp} = pc2.localDescription;
+      // Restore both old ice-ufrag and old ice-pwd to trigger a partial restart
+      sdp = sdp.replace(getUfrags({sdp})[0], oldUfrags2[0]);
+      sdp = sdp.replace(getPwds({sdp})[0], oldPwds2[0]);
+      const newUfrags2 = getUfrags({sdp});
+      const newPwds2 = getPwds({sdp});
+      assert_ufrags_equals(newUfrags2[0], oldUfrags2[0], "control ufrag match");
+      assert_ufrags_equals(newPwds2[0], oldPwds2[0], "control pwd match");
+      assert_ufrags_not_equals(newUfrags2[1], oldUfrags2[1], "control ufrag non-match");
+      assert_ufrags_not_equals(newPwds2[1], oldPwds2[1], "control pwd non-match");
+      await pc1.setRemoteDescription({type, sdp});
+    }
+    const negotiationNeededPromise =
+        new Promise(r => pc1.onnegotiationneeded = r);
+    await negotiator.setAnswer(pc1);
+    const newUfrags1 = getUfrags(pc1.localDescription);
+    assert_ufrags_equals(newUfrags1[0], oldUfrags1[0], "Unchanged 1");
+    assert_ufrags_not_equals(newUfrags1[1], oldUfrags1[1], "Restarted 2");
+    await negotiationNeededPromise;
+    await negotiator.setOffer(pc1);
+    const newestUfrags1 = getUfrags(pc1.localDescription);
+    assert_ufrags_not_equals(newestUfrags1[0], oldUfrags1[0], "Restarted 1");
+    assert_ufrags_not_equals(newestUfrags1[1], oldUfrags1[1], "Restarted 2");
+    await assertNoNegotiationNeeded(t, pc1);
+  }, `restartIce() survives remote offer containing partial restart${tag}`);
+
+}
+
+</script>

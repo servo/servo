@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<iframe srcdoc="<input autofocus><script>window.frameElement.remove();</script>"></iframe>
+
+<script>
+'use strict';
+
+promise_test(async () => {
+  let iframe = document.querySelector('iframe');
+  let iframeDocument = iframe.contentDocument;
+  await waitForLoad(window);
+  assert_not_equals(document.activeElement, iframe);
+  assert_equals(iframeDocument.activeElement, iframeDocument.body);
+}, 'Autofocus element in not-fully-active document should be skipped while flusing.');
+</script>

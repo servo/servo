@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: 'Border-top-left-radius' with one value as 0.</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#the-border-radius" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="If either value of 'border-top-left-radius' is 0 then the corner is a square." />
+        <style type="text/css">
+            div
+            {
+                width: 1in;
+                height: 1in;
+                border: 0.2in solid black;
+                margin: 10px;
+            }
+            #reference
+            {
+            }
+            #test1
+            {
+                border-top-left-radius : 0 80px;
+            }
+            #test2
+            {
+                border-top-left-radius : 80px 0;
+            }
+            #test3
+            {
+                border-top-left-radius : 0 0;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the four boxes are identical.</p>
+        <table>
+            <tr>
+                <td>
+                    <div id="reference"></div>
+                    <div id="test1"></div>
+                </td>
+                <td>
+                    <div id="test2"></div>
+                    <div id="test3"></div>
+                </td>
+            </tr>
+        </table>
+    </body>
+</html>

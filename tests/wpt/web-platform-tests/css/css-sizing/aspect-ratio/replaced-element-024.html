@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <title>CSS aspect-ratio: image with aspect-ratio, object-fit and object-position</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+  <link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+  <meta name="assert" content="This test verifies aspect-ratio affects the image element's ratio, but not the image content's ratio.">
+
+  <style>
+  div {
+    display: inline-block;
+    width: 60px;
+    height: 100px;
+    background: green;
+  }
+  img {
+    height: 100px;
+    aspect-ratio: 3/1;
+    object-fit: contain;
+    object-position: top left;
+  }
+  </style>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <!-- object-fit:contain should preserve the image's ratio, and scale it to 40x100. -->
+  <div></div><img src="support/20x50-green.png">
+</html>

@@ -1,0 +1,398 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Overflow: test scrollbar-gutter with horizontal left to right content</title>
+<link rel="author" title="Felipe Erias Morandeira" href="mailto:felipeerias@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#scrollbar-gutter-property" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<style>
+  .line {
+    display: flex;
+  }
+
+  .container {
+    writing-mode: horizontal-tb;
+    direction: ltr;
+
+    height: 200px;
+    width: 200px;
+    margin: 10px;
+    padding: 0px;
+    border-width: 0px;
+    overflow-x: auto;
+    flex: none;
+    background: deepskyblue;
+  }
+
+  .content {
+    width: 100%;
+    height: 100%;
+    padding: 0px;
+    border-width: 0px;
+    background: lightsalmon;
+  }
+
+  /* scrollbar-gutter
+  Note: not testing "stable" because the decision to use overlay scrollbars
+  is up to the browser. The "always" keyword takes effect regardless of
+  whether classical or overlay scrollbars are being used.*/
+  .sg_auto {
+    scrollbar-gutter: auto;
+  }
+
+  .sg_always {
+    scrollbar-gutter: always;
+  }
+
+  .sg_always_both {
+    scrollbar-gutter: always both;
+  }
+
+  .sg_always_force {
+    scrollbar-gutter: always force;
+  }
+
+  .sg_always_both_force {
+    scrollbar-gutter: always both force;
+  }
+
+  /* overflow */
+  .container.ov_auto {
+    overflow-y: auto;
+  }
+
+  .container.ov_scroll {
+    overflow-y: scroll;
+  }
+
+  .container.ov_visible {
+    overflow: visible;
+  }
+
+  .container.ov_hidden {
+    overflow-y: hidden;
+  }
+
+  .container.ov_clip {
+    overflow-y: clip;
+  }
+</style>
+<body>
+
+  <div class="line">
+    <div class="container ov_auto sg_auto" id="container_auto_auto">
+      <div class="content" id="content_auto_auto">auto/auto</div>
+    </div>
+
+    <div class="container ov_scroll sg_auto" id="container_scroll_auto">
+      <div class="content" id="content_scroll_auto">scroll/auto</div>
+    </div>
+
+    <div class="container ov_visible sg_auto" id="container_visible_auto">
+      <div class="content" id="content_visible_auto">visible/auto</div>
+    </div>
+
+    <div class="container ov_hidden sg_auto" id="container_hidden_auto">
+      <div class="content" id="content_hidden_auto">hidden/auto</div>
+    </div>
+
+    <div class="container ov_clip sg_auto" id="container_clip_auto">
+      <div class="content" id="content_clip_auto">clip/auto</div>
+    </div>
+  </div>
+
+  <div class="line">
+    <div class="container ov_auto sg_always" id="container_auto_always">
+      <div class="content" id="content_auto_always">auto/always</div>
+    </div>
+
+    <div class="container ov_scroll sg_always" id="container_scroll_always">
+      <div class="content" id="content_scroll_always">scroll/always</div>
+    </div>
+
+    <div class="container ov_visible sg_always" id="container_visible_always">
+      <div class="content" id="content_visible_always">visible/always</div>
+    </div>
+
+    <div class="container ov_hidden sg_always" id="container_hidden_always">
+      <div class="content" id="content_hidden_always">hidden/always</div>
+    </div>
+
+    <div class="container ov_clip sg_always" id="container_clip_always">
+      <div class="content" id="content_clip_always">clip/always</div>
+    </div>
+  </div>
+
+  <div class="line">
+    <div class="container ov_auto sg_always_force" id="container_auto_always_force">
+      <div class="content" id="content_auto_always_force">auto/always force</div>
+    </div>
+
+    <div class="container ov_scroll sg_always_force" id="container_scroll_always_force">
+      <div class="content" id="content_scroll_always_force">scroll/always force</div>
+    </div>
+
+    <div class="container ov_visible sg_always_force" id="container_visible_always_force">
+      <div class="content" id="content_visible_always_force">visible/always force</div>
+    </div>
+
+    <div class="container ov_hidden sg_always_force" id="container_hidden_always_force">
+      <div class="content" id="content_hidden_always_force">hidden/always force</div>
+    </div>
+
+    <div class="container ov_clip sg_always_force" id="container_clip_always_force">
+      <div class="content" id="content_clip_always_force">clip/always force</div>
+    </div>
+  </div>
+
+  <div class="line">
+    <div class="container ov_auto sg_always_both" id="container_auto_always_both">
+      <div class="content" id="content_auto_always_both">auto/always both</div>
+    </div>
+
+    <div class="container ov_scroll sg_always_both" id="container_scroll_always_both">
+      <div class="content" id="content_scroll_always_both">scroll/always both</div>
+    </div>
+
+    <div class="container ov_visible sg_always_both" id="container_visible_always_both">
+      <div class="content" id="content_visible_always_both">visible/always both</div>
+    </div>
+
+    <div class="container ov_hidden sg_always_both" id="container_hidden_always_both">
+      <div class="content" id="content_hidden_always_both">hidden/always both</div>
+    </div>
+
+    <div class="container ov_clip sg_always_both" id="container_clip_always_both">
+      <div class="content" id="content_clip_always_both">clip/always both</div>
+    </div>
+  </div>
+
+  <div class="line">
+    <div class="container ov_auto sg_always_both_force" id="container_auto_always_both_force">
+      <div class="content" id="content_auto_always_both_force">auto/always both force</div>
+    </div>
+
+    <div class="container ov_scroll sg_always_both_force" id="container_scroll_always_both_force">
+      <div class="content" id="content_scroll_always_both_force">scroll/always both force</div>
+    </div>
+
+    <div class="container ov_visible sg_always_both_force" id="container_visible_always_both_force">
+      <div class="content" id="content_visible_always_both_force">visible/always both force</div>
+    </div>
+
+    <div class="container ov_hidden sg_always_both_force" id="container_hidden_always_both_force">
+      <div class="content" id="content_hidden_always_both_force">hidden/always both force</div>
+    </div>
+
+    <div class="container ov_clip sg_always_both_force" id="container_clip_always_both_force">
+      <div class="content" id="content_clip_always_both_force">clip/always both force</div>
+    </div>
+  </div>
+
+  <script type="text/javascript">
+    setup({ explicit_done: true });
+
+    // scrollbar-gutter: auto
+
+    test(function () {
+      let container = document.getElementById('container_auto_auto');
+      let content = document.getElementById('content_auto_auto');
+      assert_equals(container.offsetWidth, content.offsetWidth, "content width");
+      assert_equals(container.offsetLeft, content.offsetLeft, "content position");
+    }, "overflow auto, scrollbar-gutter auto");
+
+    test(function () {
+      let container = document.getElementById('container_scroll_auto');
+      let content = document.getElementById('content_scroll_auto');
+      assert_greater_than(container.offsetWidth, content.offsetWidth, "content width");
+      assert_equals(container.offsetLeft, content.offsetLeft, "content position");
+    }, "overflow scroll, scrollbar-gutter auto");
+
+    test(function () {
+      let container = document.getElementById('container_visible_auto');
+      let content = document.getElementById('content_visible_auto');
+      assert_equals(container.offsetWidth, content.offsetWidth, "content width");
+      assert_equals(container.offsetLeft, content.offsetLeft, "content position");
+    }, "overflow visible, scrollbar-gutter auto");
+
+    test(function () {
+      let container = document.getElementById('container_hidden_auto');
+      let content = document.getElementById('content_hidden_auto');
+      assert_equals(container.offsetWidth, content.offsetWidth, "content width");
+      assert_equals(container.offsetLeft, content.offsetLeft, "content position");
+    }, "overflow hidden, scrollbar-gutter auto");
+
+    test(function () {
+      let container = document.getElementById('container_clip_auto');
+      let content = document.getElementById('content_clip_auto');
+      assert_equals(container.offsetWidth, content.offsetWidth, "content width");
+      assert_equals(container.offsetLeft, content.offsetLeft, "content position");
+    }, "overflow clip, scrollbar-gutter auto");
+
+    // scrollbar-gutter: always
+
+    test(function () {
+      let container = document.getElementById('container_auto_always');
+      let content = document.getElementById('content_auto_always');
+      assert_greater_than(container.offsetWidth, content.offsetWidth, "content width");
+      assert_equals(container.offsetLeft, content.offsetLeft, "content position");
+    }, "overflow auto, scrollbar-gutter always");
+
+    test(function () {
+      let container = document.getElementById('container_scroll_always');
+      let content = document.getElementById('content_scroll_always');
+      assert_greater_than(container.offsetWidth, content.offsetWidth, "content width");
+      assert_equals(container.offsetLeft, content.offsetLeft, "content position");
+    }, "overflow scroll, scrollbar-gutter always");
+
+    test(function () {
+      let container = document.getElementById('container_visible_always');
+      let content = document.getElementById('content_visible_always');
+      assert_equals(container.offsetWidth, content.offsetWidth, "content width");
+      assert_equals(container.offsetLeft, content.offsetLeft, "content position");
+    }, "overflow visible, scrollbar-gutter always");
+
+    test(function () {
+      let container = document.getElementById('container_hidden_always');
+      let content = document.getElementById('content_hidden_always');
+      assert_equals(container.offsetWidth, content.offsetWidth, "content width");
+      assert_equals(container.offsetLeft, content.offsetLeft, "content position");
+    }, "overflow hidden, scrollbar-gutter always");
+
+    test(function () {
+      let container = document.getElementById('container_clip_always');
+      let content = document.getElementById('content_clip_always');
+      assert_equals(container.offsetWidth, content.offsetWidth, "content width");
+      assert_equals(container.offsetLeft, content.offsetLeft, "content position");
+    }, "overflow clip, scrollbar-gutter always");
+
+    // scrollbar-gutter: always force
+
+    test(function () {
+      let container = document.getElementById('container_auto_always_force');
+      let content = document.getElementById('content_auto_always_force');
+      assert_greater_than(container.offsetWidth, content.offsetWidth, "content width");
+      assert_equals(container.offsetLeft, content.offsetLeft, "content position");
+    }, "overflow auto, scrollbar-gutter always force");
+
+    test(function () {
+      let container = document.getElementById('container_scroll_always_force');
+      let content = document.getElementById('content_scroll_always_force');
+      assert_greater_than(container.offsetWidth, content.offsetWidth, "content width");
+      assert_equals(container.offsetLeft, content.offsetLeft, "content position");
+    }, "overflow scroll, scrollbar-gutter always force");
+
+    test(function () {
+      let container = document.getElementById('container_visible_always_force');
+      let content = document.getElementById('content_visible_always_force');
+      assert_greater_than(container.offsetWidth, content.offsetWidth, "content width");
+      assert_equals(container.offsetLeft, content.offsetLeft, "content position");
+    }, "overflow visible, scrollbar-gutter always force");
+
+    test(function () {
+      let container = document.getElementById('container_hidden_always_force');
+      let content = document.getElementById('content_hidden_always_force');
+      assert_greater_than(container.offsetWidth, content.offsetWidth, "content width");
+      assert_equals(container.offsetLeft, content.offsetLeft, "content position");
+    }, "overflow hidden, scrollbar-gutter always force");
+
+    test(function () {
+      let container = document.getElementById('container_clip_always_force');
+      let content = document.getElementById('content_clip_always_force');
+      assert_greater_than(container.offsetWidth, content.offsetWidth, "content width");
+      assert_equals(container.offsetLeft, content.offsetLeft, "content position");
+    }, "overflow clip, scrollbar-gutter always force");
+
+    // scrollbar-gutter: always both
+
+    test(function () {
+      let container = document.getElementById('container_auto_always_both');
+      let content = document.getElementById('content_auto_always_both');
+      assert_greater_than(container.offsetWidth, content.offsetWidth, "content width");
+      assert_less_than(container.offsetLeft, content.offsetLeft, "content position");
+      let reference = document.getElementById('content_auto_always');
+      assert_less_than(content.offsetWidth, reference.offsetWidth, "compare with \"always\"");
+    }, "overflow auto, scrollbar-gutter always both");
+
+    test(function () {
+      let container = document.getElementById('container_scroll_always_both');
+      let content = document.getElementById('content_scroll_always_both');
+      assert_greater_than(container.offsetWidth, content.offsetWidth, "content width");
+      assert_less_than(container.offsetLeft, content.offsetLeft, "content position");
+      let reference = document.getElementById('content_auto_always');
+      assert_less_than(content.offsetWidth, reference.offsetWidth, "compare with \"always\"");
+    }, "overflow scroll, scrollbar-gutter always both");
+
+    test(function () {
+      let container = document.getElementById('container_visible_always_both');
+      let content = document.getElementById('content_visible_always_both');
+      assert_equals(container.offsetWidth, content.offsetWidth, "content width");
+      assert_equals(container.offsetLeft, content.offsetLeft, "content position");
+    }, "overflow visible, scrollbar-gutter always both");
+
+    test(function () {
+      let container = document.getElementById('container_hidden_always_both');
+      let content = document.getElementById('content_hidden_always_both');
+      assert_equals(container.offsetWidth, content.offsetWidth, "content width");
+      assert_equals(container.offsetLeft, content.offsetLeft, "content position");
+    }, "overflow hidden, scrollbar-gutter always both");
+
+    test(function () {
+      let container = document.getElementById('container_clip_always_both');
+      let content = document.getElementById('content_clip_always_both');
+      assert_equals(container.offsetWidth, content.offsetWidth, "content width");
+      assert_equals(container.offsetLeft, content.offsetLeft, "content position");
+    }, "overflow clip, scrollbar-gutter always both");
+
+    // scrollbar-gutter: always both force
+
+    test(function () {
+      let container = document.getElementById('container_auto_always_both_force');
+      let content = document.getElementById('content_auto_always_both_force');
+      assert_greater_than(container.offsetWidth, content.offsetWidth, "content width");
+      assert_less_than(container.offsetLeft, content.offsetLeft, "content position");
+      let reference = document.getElementById('content_auto_always_force');
+      assert_less_than(content.offsetWidth, reference.offsetWidth, "compare with \"always force\"");
+    }, "overflow auto, scrollbar-gutter always both force");
+
+    test(function () {
+      let container = document.getElementById('container_scroll_always_both_force');
+      let content = document.getElementById('content_scroll_always_both_force');
+      assert_greater_than(container.offsetWidth, content.offsetWidth, "content width");
+      assert_less_than(container.offsetLeft, content.offsetLeft, "content position");
+      let reference = document.getElementById('content_scroll_always_force');
+      assert_less_than(content.offsetWidth, reference.offsetWidth, "compare with \"always force\"");
+    }, "overflow scroll, scrollbar-gutter always both force");
+
+    test(function () {
+      let container = document.getElementById('container_visible_always_both_force');
+      let content = document.getElementById('content_visible_always_both_force');
+      assert_greater_than(container.offsetWidth, content.offsetWidth, "content width");
+      assert_less_than(container.offsetLeft, content.offsetLeft, "content position");
+      let reference = document.getElementById('content_visible_always_force');
+      assert_less_than(content.offsetWidth, reference.offsetWidth, "compare with \"always force\"");
+    }, "overflow visible, scrollbar-gutter always both force");
+
+    test(function () {
+      let container = document.getElementById('container_hidden_always_both_force');
+      let content = document.getElementById('content_hidden_always_both_force');
+      assert_greater_than(container.offsetWidth, content.offsetWidth, "content width");
+      assert_less_than(container.offsetLeft, content.offsetLeft, "content position");
+      let reference = document.getElementById('content_hidden_always_force');
+      assert_less_than(content.offsetWidth, reference.offsetWidth, "compare with \"always force\"");
+    }, "overflow hidden, scrollbar-gutter always both force");
+
+    test(function () {
+      let container = document.getElementById('container_clip_always_both_force');
+      let content = document.getElementById('content_clip_always_both_force');
+      assert_greater_than(container.offsetWidth, content.offsetWidth, "content width");
+      assert_less_than(container.offsetLeft, content.offsetLeft, "content position");
+      let reference = document.getElementById('content_clip_always_force');
+      assert_less_than(content.offsetWidth, reference.offsetWidth, "compare with \"always force\"");
+    }, "overflow clip, scrollbar-gutter always both force");
+
+    done();
+
+  </script>
+</body>

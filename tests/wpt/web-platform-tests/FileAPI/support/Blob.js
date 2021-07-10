@@ -1,3 +1,5 @@
+'use strict'
+
 function test_blob(fn, expectations) {
   var expected = expectations.expected,
       type = expectations.type,
@@ -46,4 +48,23 @@ function test_blob_binary(fn, expectations) {
     });
     fr.readAsArrayBuffer(blob);
   });
+}
+
+// Assert that two TypedArray objects have the same byte values
+self.assert_equals_typed_array = (array1, array2) => {
+  const [view1, view2] = [array1, array2].map((array) => {
+    assert_true(array.buffer instanceof ArrayBuffer,
+      'Expect input ArrayBuffers to contain field `buffer`');
+    return new DataView(array.buffer, array.byteOffset, array.byteLength);
+  });
+
+  assert_equals(view1.byteLength, view2.byteLength,
+    'Expect both arrays to be of the same byte length');
+
+  const byteLength = view1.byteLength;
+
+  for (let i = 0; i < byteLength; ++i) {
+    assert_equals(view1.getUint8(i), view2.getUint8(i),
+      `Expect byte at buffer position ${i} to be equal`);
+  }
 }

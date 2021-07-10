@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Security-Policy" content="
+      IMg-sRC 'self' 'unsafe-inline' http://{{domains[www1]}}:{{ports[http][0]}};
+      img-src 'self' 'unsafe-inline' http://{{domains[www2]}}:{{ports[http][0]}};">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+  <script>
+    var t1 = async_test("Test that the www1 image is allowed to load");
+    var t2 = async_test("Test that the www2 image is not allowed to load");
+    var t_spv = async_test("Test that the www2 image throws a violation event");
+    window.addEventListener("securitypolicyviolation", t_spv.step_func_done(function(e) {
+      assert_equals(e.violatedDirective, "img-src");
+      assert_equals(e.blockedURI, "http://{{domains[www2]}}:{{ports[http][0]}}/content-security-policy/support/fail.png");
+    }));
+  </script>
+
+  <img src="http://{{domains[www1]}}:{{ports[http][0]}}/content-security-policy/support/pass.png"
+       onload="t1.done();"
+       onerror="t1.step(function() { assert_unreached('www1 image should have loaded'); t1.done(); });">
+
+  <img src="http://{{domains[www2]}}:{{ports[http][0]}}/content-security-policy/support/fail.png"
+       onerror="t2.done();"
+       onload="t2.step(function() { assert_unreached('www2 image should not have loaded'); t2.done(); });">
+</body>
+
+</html>

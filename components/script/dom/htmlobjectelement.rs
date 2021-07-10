@@ -1,55 +1,62 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::attr::Attr;
-use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::HTMLObjectElementBinding;
-use dom::bindings::codegen::Bindings::HTMLObjectElementBinding::HTMLObjectElementMethods;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{MutNullableJS, Root};
-use dom::bindings::str::DOMString;
-use dom::document::Document;
-use dom::element::{AttributeMutation, Element};
-use dom::htmlelement::HTMLElement;
-use dom::htmlformelement::{FormControl, HTMLFormElement};
-use dom::node::{Node, window_from_node};
-use dom::validation::Validatable;
-use dom::validitystate::{ValidityState, ValidationFlags};
-use dom::virtualmethods::VirtualMethods;
+use crate::dom::attr::Attr;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::HTMLObjectElementBinding::HTMLObjectElementMethods;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::document::Document;
+use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::htmlelement::HTMLElement;
+use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
+use crate::dom::node::{window_from_node, Node};
+use crate::dom::validation::Validatable;
+use crate::dom::validitystate::ValidityState;
+use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever_atoms::LocalName;
+use html5ever::{LocalName, Prefix};
 use net_traits::image::base::Image;
+use servo_arc::Arc;
 use std::default::Default;
-use std::sync::Arc;
 
 #[dom_struct]
 pub struct HTMLObjectElement {
     htmlelement: HTMLElement,
-    #[ignore_heap_size_of = "Arc"]
-    image: DOMRefCell<Option<Arc<Image>>>,
-    form_owner: MutNullableJS<HTMLFormElement>,
+    #[ignore_malloc_size_of = "Arc"]
+    image: DomRefCell<Option<Arc<Image>>>,
+    form_owner: MutNullableDom<HTMLFormElement>,
+    validity_state: MutNullableDom<ValidityState>,
 }
 
 impl HTMLObjectElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
-                     document: &Document) -> HTMLObjectElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLObjectElement {
         HTMLObjectElement {
-            htmlelement:
-                HTMLElement::new_inherited(local_name, prefix, document),
-            image: DOMRefCell::new(None),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
+            image: DomRefCell::new(None),
             form_owner: Default::default(),
+            validity_state: Default::default(),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
-               document: &Document) -> Root<HTMLObjectElement> {
-        Node::reflect_node(box HTMLObjectElement::new_inherited(local_name, prefix, document),
-                           document,
-                           HTMLObjectElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLObjectElement> {
+        Node::reflect_node(
+            Box::new(HTMLObjectElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+        )
     }
 }
 
@@ -64,23 +71,19 @@ impl<'a> ProcessDataURL for &'a HTMLObjectElement {
         let elem = self.upcast::<Element>();
 
         // TODO: support other values
-        match (elem.get_attribute(&ns!(), &local_name!("type")),
-               elem.get_attribute(&ns!(), &local_name!("data"))) {
+        match (
+            elem.get_attribute(&ns!(), &local_name!("type")),
+            elem.get_attribute(&ns!(), &local_name!("data")),
+        ) {
             (None, Some(_uri)) => {
                 // TODO(gw): Prefetch the image here.
-            }
-            _ => { }
+            },
+            _ => {},
         }
     }
 }
 
 impl HTMLObjectElementMethods for HTMLObjectElement {
-    // https://html.spec.whatwg.org/multipage/#dom-cva-validity
-    fn Validity(&self) -> Root<ValidityState> {
-        let window = window_from_node(self);
-        ValidityState::new(&window, self.upcast())
-    }
-
     // https://html.spec.whatwg.org/multipage/#dom-object-type
     make_getter!(Type, "type");
 
@@ -88,25 +91,60 @@ impl HTMLObjectElementMethods for HTMLObjectElement {
     make_setter!(SetType, "type");
 
     // https://html.spec.whatwg.org/multipage/#dom-fae-form
-    fn GetForm(&self) -> Option<Root<HTMLFormElement>> {
+    fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
         self.form_owner()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate
+    fn WillValidate(&self) -> bool {
+        self.is_instance_validatable()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-validity
+    fn Validity(&self) -> DomRoot<ValidityState> {
+        self.validity_state()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity
+    fn CheckValidity(&self) -> bool {
+        self.check_validity()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity
+    fn ReportValidity(&self) -> bool {
+        self.report_validity()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage
+    fn ValidationMessage(&self) -> DOMString {
+        self.validation_message()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity
+    fn SetCustomValidity(&self, error: DOMString) {
+        self.validity_state().set_custom_error_message(error);
     }
 }
 
 impl Validatable for HTMLObjectElement {
-    fn is_instance_validatable(&self) -> bool {
-        true
+    fn as_element(&self) -> &Element {
+        self.upcast()
     }
-    fn validate(&self, validate_flags: ValidationFlags) -> bool {
-        if validate_flags.is_empty() {}
-        // Need more flag check for different validation types later
-        true
+
+    fn validity_state(&self) -> DomRoot<ValidityState> {
+        self.validity_state
+            .or_init(|| ValidityState::new(&window_from_node(self), self.upcast()))
+    }
+
+    fn is_instance_validatable(&self) -> bool {
+        // https://html.spec.whatwg.org/multipage/#the-object-element%3Abarred-from-constraint-validation
+        false
     }
 }
 
 impl VirtualMethods for HTMLObjectElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
@@ -126,7 +164,7 @@ impl VirtualMethods for HTMLObjectElement {
 }
 
 impl FormControl for HTMLObjectElement {
-    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
         self.form_owner.get()
     }
 

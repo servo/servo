@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Images Module Level 3: change from image-orientation: none to from-image</title>
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#propdef-image-orientation">
+<link rel="match" href="reference/image-orientation-from-image-ref.html">
+<meta name=fuzzy content="0-5;0-200">
+<style>
+    body {
+        overflow: hidden;
+    }
+    img {
+        image-orientation: none;
+    }
+    div {
+        display: inline-block;
+        width: 100px;
+        vertical-align: top;
+    }
+</style>
+<script>
+    function runTest() {
+        for (var i = 1; i <= 9; i++) {
+            document.getElementById("img" + i).style.imageOrientation = "from-image";
+        }
+    }
+</script>
+</head>
+<body onload="runTest()">
+    <p>The images should rotate respecting their EXIF orientation because
+       image-orientation: from-image is specified.</p>
+    <div>
+        <img id="img1" src="support/exif-orientation-1-ul.jpg"/>
+        <br>Normal
+    </div>
+    <div>
+        <img id="img2" src="support/exif-orientation-2-ur.jpg"/>
+        <br>Flipped horizontally
+    </div>
+    <div>
+        <img id="img3" src="support/exif-orientation-3-lr.jpg"/>
+        <br>Rotated 180&deg;
+    </div>
+    <div>
+        <img id="img4" src="support/exif-orientation-4-lol.jpg"/>
+        <br>Flipped vertically
+    </div>
+    <div>
+        <img id="img5" src="support/exif-orientation-5-lu.jpg"/>
+        <br>Rotated 90&deg; CCW and flipped vertically
+    </div>
+    <div>
+        <img id="img6" src="support/exif-orientation-6-ru.jpg"/>
+        <br>Rotated 90&deg; CW
+    </div>
+    <div>
+        <img id="img7" src="support/exif-orientation-7-rl.jpg"/>
+        <br>Rotated 90&deg; CW and flipped vertically
+    </div>
+    <div>
+        <img id="img8" src="support/exif-orientation-8-llo.jpg"/>
+        <br>Rotated 90&deg; CCW
+    </div>
+    <div>
+        <img id="img9" src="support/exif-orientation-9-u.jpg"/>
+        <br>Undefined (invalid value)
+    </div>
+</body>
+</html>

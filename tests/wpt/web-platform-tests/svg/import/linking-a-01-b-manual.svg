@@ -28,7 +28,7 @@
       <p>
         The (blue) arrow uses the "bare name" fragment identifier
         form, "#circle-2", to target the circle with id "circle-2" in the external
-        file. 
+        file.
       </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">

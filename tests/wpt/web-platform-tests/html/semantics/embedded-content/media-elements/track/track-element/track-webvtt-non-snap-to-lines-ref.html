@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Reference test for track-webvtt-non-snap-to-lines.html</title>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/media.js"></script>
+<style>
+.container {
+  position: relative;
+  display: inline-block;
+}
+.cue {
+  position: absolute;
+  top: 30px;
+  left: 0px;
+  font-family: sans-serif;
+  background: green;
+  color: rgba(255, 255, 255, 1);
+  font-size: 7.5px;
+}
+</style>
+<div class="container">
+  <video autoplay onplaying="this.onplaying = null; this.pause(); takeScreenshot();">
+    <script>
+    document.currentScript.parentNode.src = getVideoURI("/media/test");
+    </script>
+  </video>
+  <span class="cue">Bear is Coming!!!!!</span>
+</div>
+</html>

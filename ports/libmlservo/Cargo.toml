@@ -1,0 +1,28 @@
+[package]
+name = "libmlservo"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+edition = "2018"
+publish = false
+
+[lib]
+name = "mlservo"
+crate-type = ["staticlib"]
+test = false
+bench = false
+
+[features]
+egl = ["simpleservo/egl"]
+layout-2013 = ["simpleservo/layout-2013"]
+layout-2020 = ["simpleservo/layout-2020"]
+
+[dependencies]
+libc = "0.2"
+libservo = { path = "../../components/servo", features = ["no_static_freetype"] }
+log = "0.4"
+servo-egl = "0.2"
+simpleservo = { path = "../libsimpleservo/api", features = ["no_static_freetype"] }
+smallvec = "1.6"
+webxr = { git = "https://github.com/servo/webxr", features = ["ipc", "magicleap"] }
+webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }

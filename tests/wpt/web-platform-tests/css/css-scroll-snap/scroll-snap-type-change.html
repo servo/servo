@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap/#scroll-snap-type" />
+<meta name="viewport" content="user-scalable=no">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+div, html, body {
+  margin: 0;
+  padding: 0;
+}
+html {
+  margin: 0px;
+  overflow: scroll;
+}
+#scroller {
+  margin-left: 200px;
+
+  height: 300px;
+  width: 300px;
+  overflow: scroll;
+}
+.space {
+  width: 2000px;
+  height: 2000px;
+}
+.snap_area {
+  margin-left: 200px;
+  top: 0;
+  width: 200px;
+  height: 200px;
+  background-color: blue;
+  scroll-snap-align: none start;
+}
+</style>
+
+<!-- Add snap area to the root scroller -->
+<div class="snap_area" id="viewport"></div>
+
+<div id="scroller">
+  <div class="snap_area" id="inner"></div>
+  <div class="space"></div>
+</div>
+
+<div class="space"></div>
+
+<script>
+
+const scrollers = [document.scrollingElement, document.getElementById("scroller")];
+for (const scroller of scrollers) {
+  test(_ => {
+    scroller.style.scrollSnapType = 'x mandatory';
+    scroller.scrollTo(100, 0);
+    assert_equals(scroller.scrollLeft, 200, "scrolling should snap");
+
+    // When snap type is 'none' the scroller, scrolling should not snap.
+    scroller.style.scrollSnapType = 'none';
+    scroller.scrollTo(100, 0);
+    assert_equals(scroller.scrollLeft, 100, "scrolling should not snap");
+
+    // When snap type is changed back to mandatory, scrolling should snap.
+    scroller.style.scrollSnapType = 'x mandatory';
+    scroller.scrollTo(110, 0);
+    assert_equals(scroller.scrollLeft, 200, "scrolling should snap after change");
+  }, `scroll-snap-type on ${scroller.nodeName} should control snapping behavior and changing it takes effect`);
+}
+</script>

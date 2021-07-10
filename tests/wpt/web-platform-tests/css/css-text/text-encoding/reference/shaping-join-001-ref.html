@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test reference</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<style>
+  table {
+    font-size: 3em;
+    border-spacing: 0 3px;
+  }
+  td {
+    padding: 0 0.5ch;
+    line-height: 1;
+    border: 1px solid;
+  }
+  @font-face {
+    font-family: 'csstest_noto';
+    src: url('/fonts/noto/NotoNaskhArabic-regular.woff2') format('woff2');
+  }
+  table {
+    font-family: 'csstest_noto';
+  }
+</style>
+
+<p>Test passes if both halves of each of the pairs below are identical:
+
+<table dir=rtl>
+<tr><!-- alef, final form as it doesn't have a medial form -->
+  <td>&#xFE8E;
+  <td>&#xFE8E;
+<tr><!-- alef, final form -->
+  <td>&#xFE8E;
+  <td>&#xFE8E;
+<tr><!-- beh, initial form -->
+  <td>&#xFE91;
+  <td>&#xFE91;
+<tr><!-- beh, medial form -->
+  <td>&#xFE92;
+  <td>&#xFE92;
+<tr><!-- beh, final form -->
+  <td>&#xFE90;
+  <td>&#xFE90;
+</table>

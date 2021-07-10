@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+<head>
+<meta charset=utf-8>
+<title>letter-spacing should not be applied to zero-width format controls</title>
+<style>
+.test {
+  font: 12px/2 monospace;
+  letter-spacing: 4px;
+}
+</style>
+</head>
+<body>
+The two lines below should match:<br>
+<div class=test>
+letterspacing should not be
+affected by
+zero-width
+format
+characters
+</div>
+<div class=test>
+letterspacing should not be
+affected by
+zero-width
+format
+characters
+</div>
+</body>
+</html>

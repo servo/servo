@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>A huge 'repeatCount' (1e+309) is treated as unspecified</title>
+  <h:link rel="help" href="https://svgwg.org/specs/animations/#TimingAttributes"/>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+
+  <rect width="50" height="100" fill="blue">
+    <animate attributeName="fill" from="#007f00" to="green" dur="10ms" fill="freeze"
+             repeatCount="1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"/>
+  </rect>
+  <rect width="50" height="100" fill="blue" x="50">
+    <animate attributeName="fill" from="#007f00" to="green" dur="10ms" fill="freeze"
+             repeatCount="1e+309"/>
+  </rect>
+  <script>
+    promise_test(t => {
+      let watchers = Array.from(document.getElementsByTagName('animate')).map(element => {
+        let watcher = new EventWatcher(t, element, ['endEvent', 'repeatEvent']);
+        return watcher.wait_for('endEvent').then(() => {
+          assert_equals(getComputedStyle(element).fill, 'rgb(0, 128, 0)');
+        });
+      });
+      return Promise.all(watchers);
+    });
+  </script>
+</svg>

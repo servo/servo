@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <title>drag &amp; drop - event sequence for cross-document drag</title>
 <style type="text/css">
-	/* use margins instead of padding to make sure the body begins at the top of the page */
-	html, body {
-		margin: 0;
-		padding: 0;
-		height: 100%;
-	}
+  /* use margins instead of padding to make sure the body begins at the top of the page */
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+  }
   #testhere div {
     height: 100px;
     width: 100px;
@@ -34,39 +34,39 @@
 
 <script>
 window.onload = function () {
-	var yellow = document.querySelector('#yellow')
-	var blue = document.querySelector('#blue')
-	var body = document.body;
+  var yellow = document.querySelector('#yellow')
+  var blue = document.querySelector('#blue')
+  var body = document.body;
 
-	/* Events for the fuchsia box */
-	yellow.ondragstart = function () { parent.events.push('doc2.yellow.ondragstart'); };
-	yellow.ondrag = function () { parent.events.push('doc2.yellow.ondrag'); };
-	yellow.ondragenter = function () { parent.events.push('doc2.yellow.ondragenter'); return false; };
-	yellow.ondragover = function () { parent.events.push('doc2.yellow.ondragover'); return false; };
-	yellow.ondrop = function () { parent.events.push('doc2.yellow.ondrop'); return false; };
-	yellow.ondragend = function () { parent.events.push('doc2.yellow.ondragend'); };
-	yellow.onmousedown = function () { parent.events.push('doc2.yellow.onmousedown'); };
-	yellow.onmouseup = function () { parent.events.push('doc2.yellow.onmouseup'); };
+  /* Events for the fuchsia box */
+  yellow.ondragstart = function () { parent.events.push('doc2.yellow.ondragstart'); };
+  yellow.ondrag = function () { parent.events.push('doc2.yellow.ondrag'); };
+  yellow.ondragenter = function () { parent.events.push('doc2.yellow.ondragenter'); return false; };
+  yellow.ondragover = function () { parent.events.push('doc2.yellow.ondragover'); return false; };
+  yellow.ondrop = function () { parent.events.push('doc2.yellow.ondrop'); return false; };
+  yellow.ondragend = function () { parent.events.push('doc2.yellow.ondragend'); };
+  yellow.onmousedown = function () { parent.events.push('doc2.yellow.onmousedown'); };
+  yellow.onmouseup = function () { parent.events.push('doc2.yellow.onmouseup'); };
 
-	/* Events for the blue box (droppable) */
-	blue.ondragstart = function () { parent.events.push('doc2.blue.ondragstart'); };
-	blue.ondrag = function () { parent.events.push('doc2.blue.ondrag'); };
-	blue.ondragenter = function () { parent.events.push('doc2.blue.ondragenter'); return false; };
-	blue.ondragover = function () { parent.events.push('doc2.blue.ondragover'); return false; };
-	blue.ondrop = function () { parent.events.push('doc2.blue.ondrop'); return false; };
-	blue.ondragend = function () { parent.events.push('doc2.blue.ondragend'); };
-	blue.onmousedown = function () { parent.events.push('doc2.blue.onmousedown'); };
-	blue.onmouseup = function () { parent.events.push('doc2.blue.onmouseup'); };
+  /* Events for the blue box (droppable) */
+  blue.ondragstart = function () { parent.events.push('doc2.blue.ondragstart'); };
+  blue.ondrag = function () { parent.events.push('doc2.blue.ondrag'); };
+  blue.ondragenter = function () { parent.events.push('doc2.blue.ondragenter'); return false; };
+  blue.ondragover = function () { parent.events.push('doc2.blue.ondragover'); return false; };
+  blue.ondrop = function () { parent.events.push('doc2.blue.ondrop'); return false; };
+  blue.ondragend = function () { parent.events.push('doc2.blue.ondragend'); };
+  blue.onmousedown = function () { parent.events.push('doc2.blue.onmousedown'); };
+  blue.onmouseup = function () { parent.events.push('doc2.blue.onmouseup'); };
 
-	/* Events for the page body */
-	body.ondragstart = function (e) { parent.events.push( ( e.target == body ) ? 'doc2.body.ondragstart': 'doc2.bubble.ondragstart' ); };
-	body.ondrag = function (e) { parent.events.push( ( e.target == body ) ? 'doc2.body.ondrag': 'doc2.bubble.ondrag' ); };
-	body.ondragenter = function (e) { parent.events.push( ( e.target == body ) ? 'doc2.body.ondragenter': 'doc2.bubble.ondragenter' ); };
-	body.ondragover = function (e) { parent.events.push( ( e.target == body ) ? 'doc2.body.ondragover': 'doc2.bubble.ondragover' ); };
-	body.ondrop = function (e) { parent.events.push( ( e.target == body ) ? 'doc2.body.ondrop': 'doc2.bubble.ondrop' ); };
-	body.ondragend = function (e) { parent.events.push( ( e.target == body ) ? 'doc2.body.ondragend': 'doc2.bubble.ondragend' ); };
-	body.onmousedown = function (e) { parent.events.push( ( e.target == body ) ? 'doc2.body.onmousedown': 'doc2.bubble.onmousedown' ); };
-	body.onmouseup = function (e) { parent.events.push( ( e.target == body ) ? 'doc2.body.onmouseup': 'doc2.bubble.onmouseup' ); };
+  /* Events for the page body */
+  body.ondragstart = function (e) { parent.events.push( ( e.target == body ) ? 'doc2.body.ondragstart': 'doc2.bubble.ondragstart' ); };
+  body.ondrag = function (e) { parent.events.push( ( e.target == body ) ? 'doc2.body.ondrag': 'doc2.bubble.ondrag' ); };
+  body.ondragenter = function (e) { parent.events.push( ( e.target == body ) ? 'doc2.body.ondragenter': 'doc2.bubble.ondragenter' ); };
+  body.ondragover = function (e) { parent.events.push( ( e.target == body ) ? 'doc2.body.ondragover': 'doc2.bubble.ondragover' ); };
+  body.ondrop = function (e) { parent.events.push( ( e.target == body ) ? 'doc2.body.ondrop': 'doc2.bubble.ondrop' ); };
+  body.ondragend = function (e) { parent.events.push( ( e.target == body ) ? 'doc2.body.ondragend': 'doc2.bubble.ondragend' ); };
+  body.onmousedown = function (e) { parent.events.push( ( e.target == body ) ? 'doc2.body.onmousedown': 'doc2.bubble.onmousedown' ); };
+  body.onmouseup = function (e) { parent.events.push( ( e.target == body ) ? 'doc2.body.onmouseup': 'doc2.bubble.onmouseup' ); };
 
 };
 </script>

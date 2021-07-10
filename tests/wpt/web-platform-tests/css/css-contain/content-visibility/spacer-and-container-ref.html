@@ -1,0 +1,23 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content Visibility: spacer and a container (reference)</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+
+<style>
+.spacer {
+  width: 150px;
+  height: 3000px;
+  background: lightblue;
+}
+#container {
+  contain: style layout;
+  width: 150px;
+  height: 150px;
+}
+</style>
+
+<div class="spacer"></div>
+<div id="container"></div>
+</html>

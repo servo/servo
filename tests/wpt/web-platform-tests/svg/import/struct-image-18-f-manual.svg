@@ -16,7 +16,7 @@
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/struct.html#ImageElement">
       <p>
         Test referencing an svg from an 'image' element, where the referenced
-        svg has no viewBox and a larger width and height than the 'image' 
+        svg has no viewBox and a larger width and height than the 'image'
         element viewport.
       </p>
     </d:testDescription>
@@ -27,7 +27,7 @@
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
-        The test is passed if a green quarter circle with black stroke is displayed, and no red.  
+        The test is passed if a green quarter circle with black stroke is displayed, and no red.
       </p>
     </d:passCriteria>
   </d:SVGTestCase>

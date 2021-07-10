@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Inline Layout: parsing vertical-align with valid values</title>
+<link rel="help" href="https://www.w3.org/TR/CSS2/visudet.html#propdef-vertical-align">
+<link rel="help" href="https://drafts.csswg.org/css-inline/#propdef-vertical-align">
+<meta name="assert" content="vertical-align supports the CSS 2 grammar 'baseline | sub | super | top | text-top | middle | bottom | text-bottom | <percentage> | <length>'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("vertical-align", "baseline");
+test_valid_value("vertical-align", "sub");
+test_valid_value("vertical-align", "super");
+test_valid_value("vertical-align", "top");
+test_valid_value("vertical-align", "text-top");
+test_valid_value("vertical-align", "middle");
+test_valid_value("vertical-align", "bottom");
+test_valid_value("vertical-align", "text-bottom");
+test_valid_value("vertical-align", "-10px");
+test_valid_value("vertical-align", "20%");
+test_valid_value("vertical-align", "0", "0px");
+test_valid_value("vertical-align", "calc(20% - 10px)");
+
+// TODO: Test against the CSS Inline Layout grammar when browsers support it.
+</script>
+</body>
+</html>

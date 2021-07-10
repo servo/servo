@@ -1,0 +1,67 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: 'contain: size' on 'overflow:auto' inline-block elements should cause them to be sized as if they had no contents and baseline-aligned regularly.</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="author" title="Morgan Rae Reschenberg" href="mailto:mreschenberg@berkeley.edu">
+  <link rel="help" href="https://drafts.csswg.org/css-contain/#containment-size">
+  <link rel="match" href="contain-size-inline-block-003-ref.html">
+  <style>
+  .contain {
+    display: inline-block;
+    overflow: auto;
+    contain:size;
+    border: 2px solid green;
+  }
+  .innerContents {
+    color: transparent;
+    height: 100px;
+    width: 100px;
+  }
+  .minHeight {
+    min-height: 60px;
+  }
+  .height {
+    height: 60px;
+  }
+  .minWidth {
+    min-width: 60px;
+  }
+  .width {
+    width: 60px;
+  }
+  </style>
+</head>
+<body>
+  <!-- NOTE: In all cases below, the expectation is that the size-contained
+       element should be sized as if it had no contents (while honoring
+       whatever sizing properties are provided). -->
+
+  <!-- A size-contained scrollable inline-block with no specified size -->
+  <div class="contain"><div class="innerContents">inner</div></div>
+  <br>
+
+  <!-- A size-contained scrollable inline-block should perform baseline
+       alignment regularly, based on contents' baseline. -->
+  outside before
+  <div class="contain"><div class="innerContents">inner</div></div>
+  outside after
+  <br>
+
+  <!-- A size-contained scrollable inline-block with specified min-height -->
+  <div class="contain minHeight"><div class="innerContents">inner</div></div>
+  <br>
+
+  <!-- A size-contained scrollable inline-block with specified height -->
+  <div class="contain height"><div class="innerContents">inner</div></div>
+  <br>
+
+  <!-- A size-contained scrollable inline-block with specified min-width -->
+  <div class="contain minWidth"><div class="innerContents">inner</div></div>
+  <br>
+
+  <!-- A size-contained scrollable inline-block with specified width -->
+  <div class="contain width"><div class="innerContents">inner</div></div>
+</body>
+</html>

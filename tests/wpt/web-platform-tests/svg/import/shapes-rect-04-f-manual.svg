@@ -13,7 +13,7 @@
     version="$Revision: 1.3 $" testname="$RCSfile: shapes-rect-04-f.svg,v $">
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/shapes.html#RectElement">
       <p>
-        'Rect' elements with unspecified 'rx' and 'ry' attributes will use the specified 'rx' and 'ry' value if the other one is specified; if neither is specified, the 'rect' has square edges. 
+        'Rect' elements with unspecified 'rx' and 'ry' attributes will use the specified 'rx' and 'ry' value if the other one is specified; if neither is specified, the 'rect' has square edges.
       </p>
       <p>
         Creates one 'rect' element with an unspecified 'ry'. Places it over a red 'rect' element with both 'rx' and 'ry' specified.  Repeat with unspecified 'rx'. Finally creates a 'rect' element that has neither 'rx' or

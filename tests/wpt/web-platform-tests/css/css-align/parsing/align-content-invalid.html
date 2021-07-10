@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Box Alignment Level 3: parsing align-content with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-align-content">
+<meta name="assert" content="align-content supports only the grammar 'normal | <baseline-position> | <content-distribution> | <overflow-position>? <content-position>'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("align-content", "auto");
+test_invalid_value("align-content", "baseline last");
+test_invalid_value("align-content", "center baseline");
+test_invalid_value("align-content", "first");
+test_invalid_value("align-content", "flex-start flex-end");
+test_invalid_value("align-content", "last");
+test_invalid_value("align-content", "left");
+test_invalid_value("align-content", "legacy center");
+test_invalid_value("align-content", "legacy left");
+test_invalid_value("align-content", "legacy");
+test_invalid_value("align-content", "normal baseline");
+test_invalid_value("align-content", "right legacy");
+test_invalid_value("align-content", "safe self-end");
+test_invalid_value("align-content", "safe");
+test_invalid_value("align-content", "self-end unsafe");
+test_invalid_value("align-content", "self-start");
+test_invalid_value("align-content", "start safe");
+test_invalid_value("align-content", "unsafe right");
+test_invalid_value("align-content", "unsafe");
+</script>
+</body>
+</html>

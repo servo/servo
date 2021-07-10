@@ -12,7 +12,7 @@ var test_error = { name: "test" };
 test(function() {
   [null, undefined, {}].forEach(function(that) {
     test(function() {
-      assert_throws(test_error, function() {
+      assert_throws_exactly(test_error, function() {
         ({}).hasOwnProperty.call(that, { toString: function() { throw test_error; } });
       });
     });

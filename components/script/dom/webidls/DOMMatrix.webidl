@@ -1,6 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 /*
  * The origin of this IDL file is
  * https://drafts.fxtf.org/geometry-1/#DOMMatrix
@@ -10,15 +10,14 @@
  * related or neighboring rights to this work.
  */
 
-[Constructor,
- // Constructor(DOMString transformList),
- Constructor(sequence<unrestricted double> numberSequence),
- Exposed=(Window,Worker)]
+[Exposed=(Window,Worker,PaintWorklet),
+ LegacyWindowAlias=WebKitCSSMatrix]
 interface DOMMatrix : DOMMatrixReadOnly {
+    [Throws] constructor(optional (DOMString or sequence<unrestricted double>) init);
 
-    [NewObject, Throws] static DOMMatrix fromMatrix(optional DOMMatrixInit other);
-//  [NewObject] static DOMMatrix fromFloat32Array(Float32Array array32);
-//  [NewObject] static DOMMatrix fromFloat64Array(Float64Array array64);
+    [NewObject, Throws] static DOMMatrix fromMatrix(optional DOMMatrixInit other = {});
+    [NewObject, Throws] static DOMMatrix fromFloat32Array(Float32Array array32);
+    [NewObject, Throws] static DOMMatrix fromFloat64Array(Float64Array array64);
 
     // These attributes are simple aliases for certain elements of the 4x4 matrix
     inherit attribute unrestricted double a;
@@ -46,8 +45,8 @@ interface DOMMatrix : DOMMatrixReadOnly {
     inherit attribute unrestricted double m44;
 
     // Mutable transform methods
-    [Throws] DOMMatrix multiplySelf(optional DOMMatrixInit other);
-    [Throws] DOMMatrix preMultiplySelf(optional DOMMatrixInit other);
+    [Throws] DOMMatrix multiplySelf(optional DOMMatrixInit other = {});
+    [Throws] DOMMatrix preMultiplySelf(optional DOMMatrixInit other = {});
     DOMMatrix translateSelf(optional unrestricted double tx = 0,
                             optional unrestricted double ty = 0,
                             optional unrestricted double tz = 0);

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0
+-->
+<!--
+     Testcase for the correctness of gaps in horizontal and vertical multi-line
+     flex containers.
+-->
+<html>
+<head>
+  <title>CSS Test: Testing row and column gaps in horizontal and vertical multi-line flex containers with the space-around property and auto margins</title>
+  <link rel="author" title="Mihir Iyer" href="mailto:miyer@mozilla.com">
+  <link rel="help" href="https://drafts.csswg.org/css-align/#gap-flex">
+  <link rel="match" href="flexbox-column-row-gap-001-ref.html">
+  <meta charset="utf-8">
+  <style>
+    .flexContainer {
+      display: flex;
+      width: 200px;
+      height: 220px;
+      border: 1px solid black;
+      column-gap: 10%;
+      row-gap: 40px;
+      align-content: space-around;
+      justify-content: space-around;
+      float: left;
+    }
+    .rowWrap {
+      flex-flow: row wrap;
+    }
+    .columnWrap {
+      flex-flow: column wrap;
+    }
+    .item {
+      border: 1px solid blue;
+      background: lightblue;
+      width: 28px;
+      height: 28px;
+    }
+    .autoLBMargins {
+      margin-left: auto;
+      margin-bottom: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="flexContainer rowWrap">
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item autoLBMargins"></div>
+    <div class="item"></div>
+  </div>
+  <div class="flexContainer columnWrap">
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item autoLBMargins"></div>
+  </div>
+</body>
+</html>

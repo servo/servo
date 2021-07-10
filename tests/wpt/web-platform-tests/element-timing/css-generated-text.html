@@ -1,0 +1,36 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Element Timing: observe generated CSS text</title>
+<style>
+p::before {
+  content: "Generated text prefix";
+}
+body {
+  margin: 20px;
+}
+</style>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/element-timing-helpers.js"></script>
+<p elementtiming='my_text' id='text_id'></p>
+<script>
+  async_test(function (t) {
+    const beforeRender = performance.now();
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    const observer = new PerformanceObserver(
+      t.step_func_done(function(entryList) {
+        assert_equals(entryList.getEntries().length, 1);
+        const entry = entryList.getEntries()[0];
+        checkTextElement(entry, 'my_text', 'text_id', beforeRender, document.getElementById('text_id'));
+        assert_equals(entry.intersectionRect.left, 20, 'left should be 20.');
+        assert_equals(entry.intersectionRect.top, 20, 'top should be 20.');
+        // Try a lower bound of height=10, width=80 for the generated text.
+        assert_greater_than_equal(entry.intersectionRect.right, 100);
+        assert_greater_than_equal(entry.intersectionRect.bottom, 30);
+      })
+    );
+    observer.observe({type: 'element', buffered: true});
+  }, 'Generated text content is observable.');
+</script>
+</body>

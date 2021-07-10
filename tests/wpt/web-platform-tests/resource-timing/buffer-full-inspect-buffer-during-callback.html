@@ -1,0 +1,56 @@
+<!DOCTYPE HTML>
+<html>
+<head onload>
+<meta charset="utf-8" />
+<title>This test validates the buffer doesn't contain more entries than it should inside onresourcetimingbufferfull callback.</title>
+<link rel="help" href="http://www.w3.org/TR/resource-timing/#performanceresourcetiming"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/buffer-full-utilities.js"></script>
+</head>
+<body>
+<script>
+let resource_timing_buffer_size = 2;
+let eventFired = false;
+
+setup(() => {
+    clearBufferAndSetSize(resource_timing_buffer_size);
+    var resize = function() {
+        assert_equals(performance.getEntriesByType("resource").length, resource_timing_buffer_size, "resource timing buffer in resourcetimingbufferfull is the size of the limit");
+        ++resource_timing_buffer_size;
+        performance.setResourceTimingBufferSize(resource_timing_buffer_size);
+        xhrScript("resources/empty.js?xhr");
+        assert_equals(performance.getEntriesByType("resource").length, resource_timing_buffer_size - 1, "A sync request was not added to the primary buffer just yet, because it is full");
+        ++resource_timing_buffer_size;
+        performance.setResourceTimingBufferSize(resource_timing_buffer_size);
+        eventFired = true;
+    }
+    performance.addEventListener('resourcetimingbufferfull', resize);
+});
+
+let overflowTheBuffer = () => {
+    return new Promise(resolve => {
+        // This resource overflows the entry buffer, and goes into the secondary buffer.
+        appendScript('resources/empty_script.js', resolve);
+    });
+};
+
+let testThatBufferContainsTheRightResources = () => {
+    let entries = performance.getEntriesByType('resource');
+    assert_equals(entries.length, resource_timing_buffer_size,
+                  'All 4 entries should be stored in resource timing buffer.');
+    assert_true(entries[0].name.includes('empty.js'), "empty.js is in the entries buffer");
+    assert_true(entries[1].name.includes('empty.js?second'), "empty.js?second is in the entries buffer");
+    assert_true(entries[2].name.includes('empty_script.js'), "empty_script.js is in the entries buffer");
+    assert_true(entries[3].name.includes('empty.js?xhr'), "empty.js?xhr is in the entries buffer");
+};
+
+promise_test(async () => {
+    await fillUpTheBufferWithTwoResources('resources/empty.js');
+    await overflowTheBuffer();
+    await waitForEventToFire();
+    testThatBufferContainsTheRightResources();
+}, "Test that entries in the secondary buffer are not exposed during the callback and before they are copied to the primary buffer");
+</script>
+</body>
+</html>

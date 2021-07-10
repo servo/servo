@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     width="800px" height="800px">
+  <title>SVG Painting: parsing fill with invalid values</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/painting.html#FillProperty"/>
+    <h:meta name="assert" content="fill supports only the paint grammar 'none | color | url [none | color]? | context-fill | context-stroke'."/>
+  </metadata>
+  <g id="target"></g>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="/css/support/parsing-testcommon.js"/>
+  <script><![CDATA[
+
+test_invalid_value("fill", "auto");
+test_invalid_value("fill", "none red");
+test_invalid_value("fill", 'none url("https://example.com/")');
+test_invalid_value("fill", 'red url("https://example.com/")');
+test_invalid_value("fill", 'url("https://example.com/") none red');
+
+  ]]></script>
+</svg>

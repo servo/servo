@@ -11,12 +11,12 @@ var test_error = { name: "test" };
 
 // Step 1.
 test(function() {
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     [].join.call(null, {
       toString: function() { assert_unreached(); }
     });
   });
-  assert_throws(new TypeError(), function() {
+  assert_throws_js(TypeError, function() {
     [].join.call(undefined, {
       toString: function() { assert_unreached(); }
     });
@@ -38,14 +38,14 @@ var generateTest = function(throwing_getter, getter_name) {
 
   [throwing_object, true, false, 0, 1, Math.PI].forEach(function(that) {
     test(function() {
-      assert_throws(test_error, function() {
+      assert_throws_exactly(test_error, function() {
         [].join.call(that, ",");
       });
     }, "Array.prototype.join must forward the exception from the this " +
        "object's length property with this=" + format_value(that) + " and " +
        "getter " + getter_name + ".")
     test(function() {
-      assert_throws(test_error, function() {
+      assert_throws_exactly(test_error, function() {
         [].join.call(that, {
           toString: function() { assert_unreached(); }
         });

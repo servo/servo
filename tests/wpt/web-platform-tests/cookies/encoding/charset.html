@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Test utf-8 and ASCII cookie parsing</title>
+    <meta name=help href="https://tools.ietf.org/html/rfc6265#section-4.1.1">
+    <meta name="timeout" content="long">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/cookies/resources/cookie-test.js"></script>
+  </head>
+  <body>
+    <div id=log></div>
+    <script>
+      const charsetTests = [
+        {
+          cookie: "test=1春节回家路·春运完全手册",
+          expected: "test=1春节回家路·春运完全手册",
+          name: "ASCII name and utf-8 value",
+        },
+        {
+          cookie: "тест=2",
+          expected: "тест=2",
+          name: "utf-8 name and ASCII value",
+        },
+        {
+          cookie: 'test="3春节回家路·春运完全手册"',
+          expected: 'test="3春节回家路·春运完全手册"',
+          name: "ASCII name and quoted utf-8 value",
+        },
+        {
+          cookie: "春节回=4家路·春运完全手册",
+          expected: "春节回=4家路·春运完全手册",
+          name: "utf-8 name and value",
+        },
+        {
+          cookie: '"春节回=5家路·春运完全手册"',
+          expected: '"春节回=5家路·春运完全手册"',
+          name: "quoted utf-8 name and value",
+        },
+        {
+          cookie: "春节回=6家路·春运; 完全手册",
+          expected: "春节回=6家路·春运",
+          name: "utf-8 name and value, with (invalid) utf-8 attribute",
+        },
+      ];
+
+      for (const test of charsetTests) {
+        httpCookieTest(test.cookie, test.expected, test.name);
+      }
+    </script>
+  </body>
+</html>

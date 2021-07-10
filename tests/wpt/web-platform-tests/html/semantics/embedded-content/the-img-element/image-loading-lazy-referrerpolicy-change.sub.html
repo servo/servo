@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<head>
+  <title>Deferred loading=lazy images are fetched with the latest
+         `referrerpolicy` attribute</title>
+  <link rel="author" title="Dom Farolino" href="mailto:dom@chromium.org">
+  <link rel="author" title="Raj T" href="mailto:rajendrant@chromium.org">
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/images.html#updating-the-image-data">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="../resources/common.js"></script>
+</head>
+
+<script>
+  const below_viewport_img = new ElementLoadPromise("below_viewport_img");
+
+  async_test(function(t) {
+    // At this point the image's #updating-the-image-data algorithm has been
+    // invoked, and the image request has been deferred. The deferred request
+    // was created with the default referrer policy, which will result in a
+    // `Referer` header being sent when the request is finally made. The request
+    // is also for an image that the server will send a broken response for if
+    // the request has a `Referer` header.
+    // While the request is deferred, we'll set the `referrerpolicy` attribute
+    // to `no-referrer`, which would cause the image request to succeed. Since
+    // `referrerpolicy` mutations trigger another #updating-the-image-data
+    // invocation (replacing the first one), when we scroll the image into view,
+    // the image should be fetched with no `Referer` header, and succeed.
+    window.addEventListener("load", t.step_func(() => {
+      below_viewport_img.element().referrerPolicy = "no-referrer";
+      below_viewport_img.element().scrollIntoView();
+    }));
+
+    below_viewport_img.promise
+      .then(t.step_func_done())
+      .catch(t.unreached_func("The image request should successfully load"))
+  }, "Test that when a deferred image is loaded, it uses the latest referrerpolicy");
+</script>
+
+<body>
+  <div style="height:1000vh;"></div>
+  <img id="below_viewport_img"
+       src="resources/referrer-checker-img.py?expected_referrer="
+       loading="lazy" referrerpolicy="unsafe-url"
+       onload="below_viewport_img.resolve();"
+       onerror="below_viewport_img.reject();">
+</body>

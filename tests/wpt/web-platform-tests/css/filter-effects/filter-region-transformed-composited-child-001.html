@@ -1,0 +1,51 @@
+<title>CSS Filters: filtered parent with composited or transformed child</title>
+<link rel="author" title="Stephen White" href="mailto:senorblanco@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#FilterProperty">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#feComponentTransferElement">
+<link rel="issue" href="https://bugs.chromium.org/p/chromium/issues/detail?id=618642">
+<link rel="issue" href="https://bugs.chromium.org/p/chromium/issues/detail?id=620394">
+<link rel="match" href="reference/filter-region-transformed-composited-child-001-ref.html">
+<meta name="assert" content="This test ensures that filtered parent works correctly with composited or transformed children.">
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="0" height="0">
+  <defs>
+    <filter id="filter" x="25%" y="0%" width="50%" height="100%">
+      <feComponentTransfer>
+        <feFuncR type="linear" intercept="0" slope="1"/>
+        <feFuncG type="linear" intercept="0" slope="0"/>
+        <feFuncB type="linear" intercept="0" slope="0"/>
+        <feFuncA type="linear" intercept="0" slope="1"/>
+      </feComponentTransfer>
+    </filter>
+  </defs>
+</svg>
+<style>
+div {
+    position: absolute;
+}
+.filtered {
+    filter: url(#filter);
+}
+.child {
+    background-color: gray;
+    width: 50px;
+    height: 50px;
+    position: absolute;
+    will-change: transform;
+}
+.p1 {
+    left: 50px;
+    top: 50px;
+}
+.c1 {
+    transform: translate(0px, 25px);
+}
+.p2 {
+    left: 150px;
+    top: 50px;
+}
+.c2 {
+    transform: translate(0px, -25px);
+}
+</style>
+<div class="filtered p1"><div class="child c1"></div></div>
+<div class="filtered p2"><div class="child c2"></div></div>

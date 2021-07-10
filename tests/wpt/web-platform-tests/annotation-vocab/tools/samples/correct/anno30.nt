@@ -1,7 +1,0 @@
-<http://example.org/anno30> <http://www.w3.org/ns/oa#hasBody> <http://example.org/road1> .
-<http://example.org/anno30> <http://www.w3.org/ns/oa#hasTarget> _:b0 .
-<http://example.org/anno30> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/oa#Annotation> .
-_:b0 <http://www.w3.org/ns/oa#hasSource> <http://example.org/map1> .
-_:b0 <http://www.w3.org/ns/oa#hasSelector> _:b1 .
-_:b1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#value> "<svg:svg> ... </svg:svg>" .
-_:b1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/oa#SvgSelector> .

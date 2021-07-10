@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.sub.js"></script>
+<meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script'">
+<body>
+<script>
+  async_test(t => {
+    window.timeoutTrustedTest = t;
+    let policy = createScript_policy(window, 'timeout');
+    let script = policy.createScript("window.timeoutTrustedTest.done();");
+    setTimeout(script);
+  }, "window.setTimeout assigned via policy (successful Script transformation).");
+
+  async_test(t => {
+    window.intervalTrustedTest = t;
+    let policy = createScript_policy(window, 'script');
+    let script = policy.createScript("window.intervalTrustedTest.done();");
+    setInterval(script);
+  }, "window.setInterval assigned via policy (successful Script transformation).");
+
+  trustedTypes.createPolicy("default", {createScript: s => "window." + s + ".done()"});
+
+  async_test(t => {
+    window.timeoutStringTest = t;
+    let script = "timeoutStringTest";
+    setTimeout(script);
+  }, "window.setTimeout assigned via default policy (successful Script transformation).");
+
+  async_test(t => {
+    window.intervalStringTest = t;
+    let script = "intervalStringTest";
+    setInterval(script);
+  }, "window.setInterval assigned via default policy (successful Script transformation).");
+
+  async_test(t => {
+    window.timeoutFunctionTest = t;
+    let script = () => window.timeoutFunctionTest.done();
+    setTimeout(script);
+  }, "window.setTimeout assigned with a function handler shouldn't go through default policy.");
+
+  async_test(t => {
+    window.intervalFunctionTest = t;
+    let script = () => window.intervalFunctionTest.done();
+    setInterval(script);
+  }, "window.setInterval assigned with a function handler shouldn't go through default policy.");
+</script>

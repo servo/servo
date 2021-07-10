@@ -17,12 +17,11 @@ Web Audio API</a>.</p>
 <div id='log'></div>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="/common/vendor-prefix.js" data-prefixed-objects='[{"ancestors":["navigator"], "name":"getUserMedia"}, {"ancestors":["window"], "name":"AudioContext"}]'></script>
 <script>
-var t = async_test("Tests that a disabled audio track in a MediaStream is rendered as silence", {timeout: 200000});
+var t = async_test("Tests that a disabled audio track in a MediaStream is rendered as silence");
 var aud = document.getElementById("aud");
 t.step(function() {
-  navigator.getUserMedia({audio: true}, t.step_func(function (stream) {
+  navigator.mediaDevices.getUserMedia({audio: true}).then(t.step_func(function (stream) {
     var ctx = new AudioContext();
     var streamSource = ctx.createMediaStreamSource(stream);
     var silenceDetector = ctx.createScriptProcessor(1024);

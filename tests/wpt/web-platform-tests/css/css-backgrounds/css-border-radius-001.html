@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS border-radius Test</title>
+    <link rel="author" title="tmd" href="mailto:weisong4413@126.com">
+    <link rel="help" href="http://www.w3.org/TR/css3-background/#the-border-radius">
+    <link rel="match" href="reference/css-border-radius-ref-001.html">
+    <style type="text/css">
+		.redSquare{
+            position: absolute;
+			top:50px;
+			left:50px;
+            width: 100px;
+            height: 100px;
+			background-color:rgba(255, 0, 0, 1);
+		}
+        .greenSquare {
+            position: absolute;
+			top:50px;
+			left:50px;
+            width: 100px;
+            height: 100px;
+			border-radius: 50%;
+			background-color:rgba(0, 255, 0, 1);
+        }
+        .container {
+            position: absolute;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passes if you the green is inscribed circle of the red square.</p>
+    <div class="container">
+        <!-- This is the square that has a inscribed circle if the test passes -->
+		<div id="red" class="redSquare"></div>
+        <!-- This is the square being tested with the radius-->
+		<div id="green" class="greenSquare"></div>
+    </div>
+</body>
+</html>

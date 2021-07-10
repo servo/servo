@@ -1,0 +1,40 @@
+<!DOCTYPE HTML>
+<title>Use of SVGAnimatedEnumeration within SVGClipPathElement</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  // This test checks the use of SVGAnimatedEnumeration within SVGClipPathElement.
+
+  var clipPathElement = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");
+  clipPathElement.setAttribute("clipPathUnits", "userSpaceOnUse");
+
+  // Check initial 'clipPathUnits' value.
+  assert_true(clipPathElement.clipPathUnits instanceof SVGAnimatedEnumeration);
+  assert_equals(typeof(clipPathElement.clipPathUnits.baseVal), "number");
+  assert_equals(clipPathElement.clipPathUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE);
+
+  // Switch to 'objectBoundingBox'.
+  clipPathElement.clipPathUnits.baseVal = SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX;
+  assert_equals(clipPathElement.clipPathUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(clipPathElement.getAttribute('clipPathUnits'), "objectBoundingBox");
+
+  // Try setting invalid values.
+  assert_throws_js(TypeError, function() { clipPathElement.clipPathUnits.baseVal = 3; });
+  assert_equals(clipPathElement.clipPathUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(clipPathElement.getAttribute('clipPathUnits'), "objectBoundingBox");
+
+  assert_throws_js(TypeError, function() { clipPathElement.clipPathUnits.baseVal = -1; });
+  assert_equals(clipPathElement.clipPathUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(clipPathElement.getAttribute('clipPathUnits'), "objectBoundingBox");
+
+  assert_throws_js(TypeError, function() { clipPathElement.clipPathUnits.baseVal = 0; });
+  assert_equals(clipPathElement.clipPathUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_OBJECTBOUNDINGBOX);
+  assert_equals(clipPathElement.getAttribute('clipPathUnits'), "objectBoundingBox");
+
+  // Switch to 'userSpaceOnUse'.
+  clipPathElement.clipPathUnits.baseVal = SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE;
+  assert_equals(clipPathElement.clipPathUnits.baseVal, SVGUnitTypes.SVG_UNIT_TYPE_USERSPACEONUSE);
+  assert_equals(clipPathElement.getAttribute('clipPathUnits'), "userSpaceOnUse");
+});
+</script>

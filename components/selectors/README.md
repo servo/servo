@@ -1,13 +1,13 @@
 rust-selectors
 ==============
 
-* [![Build Status](https://travis-ci.org/servo/rust-selectors.svg?branch=master)](
-  https://travis-ci.org/servo/rust-selectors)
+* [![Build Status](https://travis-ci.com/servo/rust-selectors.svg?branch=master)](
+  https://travis-ci.com/servo/rust-selectors)
 * [Documentation](https://docs.rs/selectors/)
 * [crates.io](https://crates.io/crates/selectors)
 
 CSS Selectors library for Rust.
-Includes parsing and serilization of selectors,
+Includes parsing and serialization of selectors,
 as well as matching against a generic tree of elements.
 Pseudo-elements and most pseudo-classes are generic as well.
 
@@ -18,8 +18,8 @@ old versions stay available on crates.io and Cargo will only automatically updat
 to versions that are numbered as compatible.
 
 To see how to use this library with your own tree representation,
-see [Kuchiki’s `src/select.rs`](https://github.com/SimonSapin/kuchiki/blob/master/src/select.rs).
+see [Kuchiki’s `src/select.rs`](https://github.com/kuchiki-rs/kuchiki/blob/master/src/select.rs).
 (Note however that Kuchiki is not always up to date with the latest rust-selectors version,
 so that code may need to be tweaked.)
 If you don’t already have a tree data structure,
-consider using [Kuchiki](https://github.com/SimonSapin/kuchiki) itself.
+consider using [Kuchiki](https://github.com/kuchiki-rs/kuchiki) itself.

@@ -5607,7 +5607,7 @@ function runConformanceTest(browserTest) {
             format_value(browserTest[1][i][1]) + ") " +
             (browserTest[1][i][2] ? browserTest[1][i][2] + " " : "") +
             "return value"
-        test(function() {
+        subsetTest(test, function() {
             assert_equals(exception, null, "Setup must not throw an exception");
 
             assert_equals(document.execCommand(browserTest[1][i][0], false, browserTest[1][i][1]),
@@ -5640,7 +5640,7 @@ function runConformanceTest(browserTest) {
         }
     }
 
-    test(function() {
+    subsetTest(test, function() {
         assert_equals(exception, null, "Setup must not throw an exception");
 
         // Now test for modifications to non-editable content.  First just
@@ -5664,12 +5664,22 @@ function runConformanceTest(browserTest) {
             "Everything outside the editable div must be unchanged, but some change did occur");
     }, testName + " checks for modifications to non-editable content");
 
-    test(function() {
+    subsetTest(test, function() {
         assert_equals(exception, null, "Setup must not throw an exception");
 
-        assert_equals(testDiv.innerHTML,
-            browserTest[2].replace(/[\[\]{}]/g, ""),
-            "Unexpected innerHTML (after normalizing inline style)");
+        if (Array.isArray(browserTest[2])) {
+          var expectedInnerHTMLArray = [];
+          browserTest[2].forEach(function (expectedInnerHTML) {
+            expectedInnerHTMLArray.push(expectedInnerHTML.replace(/[\[\]{}]/g, ""));
+          });
+          assert_in_array(testDiv.innerHTML,
+               expectedInnerHTMLArray,
+               "Unexpected innerHTML (after normalizing inline style)");
+        } else {
+          assert_equals(testDiv.innerHTML,
+              browserTest[2].replace(/[\[\]{}]/g, ""),
+              "Unexpected innerHTML (after normalizing inline style)");
+        }
     }, testName + " compare innerHTML");
 
     for (var command in expectedQueryResults) {
@@ -5682,7 +5692,7 @@ function runConformanceTest(browserTest) {
             'queryCommandValue("' + command + '") after',
         ];
         for (var i = 0; i < 6; i++) {
-            test(function() {
+            subsetTest(test, function() {
                 assert_equals(exception, null, "Setup must not throw an exception");
 
                 if (expectedQueryResults[command][i] === null) {

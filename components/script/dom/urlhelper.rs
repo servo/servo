@@ -1,15 +1,16 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::str::USVString;
+use crate::dom::bindings::str::USVString;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use url::quirks;
 
-#[derive(HeapSizeOf)]
+#[derive(MallocSizeOf)]
 pub struct UrlHelper;
 
+#[allow(non_snake_case)]
 impl UrlHelper {
     pub fn Origin(url: &ServoUrl) -> USVString {
         USVString(quirks::origin(url.as_url()).to_owned())
@@ -70,19 +71,5 @@ impl UrlHelper {
     }
     pub fn SetUsername(url: &mut ServoUrl, value: USVString) {
         let _ = quirks::set_username(url.as_mut_url(), &value.0);
-    }
-    // https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustworthy
-    pub fn is_origin_trustworthy(url: &ServoUrl) -> bool {
-        // Step 3
-        if url.scheme() == "http" || url.scheme() == "wss" {
-            true
-        // Step 4
-        } else if url.host().is_some() {
-            let host = url.host_str().unwrap();
-            host == "127.0.0.0/8" || host == "::1/128"
-        // Step 5
-        } else {
-            url.scheme() == "file"
-        }
     }
 }

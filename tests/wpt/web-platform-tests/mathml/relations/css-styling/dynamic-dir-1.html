@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <meta charset="utf-8">
+  <title>Test dynamically changing dir attribute</title>
+  <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#css-styling">
+  <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#attributes-common-to-html-and-mathml-elements">
+  <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#dom-and-javascript">
+  <meta name="assert" content="The dir attribute should update direction map to css properties dynamically">
+  <link rel="match" href="dynamic-dir-1-ref.html">
+  <script>
+      window.addEventListener("load", () => {
+
+        // force initial layout so we're sure what we're testing against
+        document.documentElement.getBoundingClientRect();
+
+        ["math", "mstyle", "mrow"].forEach((tag) => {
+          let elements = document.getElementsByTagName(tag);
+
+          // set an explicit rtl where there was none
+          elements[0].setAttribute("dir", "rtl");
+
+          // change explicit ltr to rtl
+          elements[1].setAttribute("dir", "rtl");
+
+          // remove an explicitly set dir="rtl"
+          elements[2].removeAttribute("dir");
+
+        })
+
+        document.documentElement.classList.remove('reftest-wait');
+      })
+    </script>
+</head>
+<body>
+    <p>
+      math:
+      <math>
+        <mi>a</mi>
+        <mi>b</mi>
+        <mi>c</mi>
+      </math>
+      <math dir="ltr">
+        <mi>a</mi>
+        <mi>b</mi>
+        <mi>c</mi>
+      </math>
+      <math dir="rtl">
+        <mi>a</mi>
+        <mi>b</mi>
+        <mi>c</mi>
+      </math>
+    </p>
+    <p>
+      mstyle:
+      <math>
+        <mstyle>
+          <mi>a</mi>
+          <mi>b</mi>
+          <mi>c</mi>
+        </mstyle>
+      </math>
+      <math>
+        <mstyle dir="ltr">
+          <mi>a</mi>
+          <mi>b</mi>
+          <mi>c</mi>
+        </mstyle>
+      </math>
+      <math>
+        <mstyle dir="rtl">
+          <mi>a</mi>
+          <mi>b</mi>
+          <mi>c</mi>
+        </mstyle>
+      </math>
+    </p>
+    <p>
+      mrow:
+      <math>
+        <mrow>
+          <mi>a</mi>
+          <mi>b</mi>
+          <mi>c</mi>
+        </mrow>
+      </math>
+      <math>
+        <mrow dir="ltr">
+          <mi>a</mi>
+          <mi>b</mi>
+          <mi>c</mi>
+        </mrow>
+      </math>
+      <math>
+        <mrow dir="rtl">
+          <mi>a</mi>
+          <mi>b</mi>
+          <mi>c</mi>
+        </mrow>
+      </math>
+    </p>
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>MathMLFeatureDetection.ensure_for_match_reftest("has_dir");</script>
+</body>
+</html>

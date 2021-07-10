@@ -1,0 +1,8 @@
+{
+  "ids": [],
+  "content_security": {
+    "policies": [
+      "script-src 'self' 'unsafe-inline'"
+    ]
+  }
+}

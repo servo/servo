@@ -18,9 +18,9 @@ test(() => {
   channel[0] = channel.port1;
   channel[1] = channel.port2;
   channel.length = 2;
-  assert_throws(new TypeError(),
-                () => { postMessage('', '*', channel) },
-                'Old-style WebIDL arrays must throw a type error');
+  assert_throws_js(TypeError,
+                   () => { postMessage('', '*', channel) },
+                   'Old-style WebIDL arrays must throw a type error');
 }, "Old-style array objects");
 </script>
 

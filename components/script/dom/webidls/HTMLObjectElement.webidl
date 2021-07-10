@@ -1,26 +1,36 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlobjectelement
+[Exposed=Window]
 interface HTMLObjectElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
+  // [CEReactions]
   //         attribute DOMString data;
+  [CEReactions]
            attribute DOMString type;
+  // [CEReactions]
   //         attribute boolean typeMustMatch;
+  // [CEReactions]
   //         attribute DOMString name;
+  // [CEReactions]
   //         attribute DOMString useMap;
   readonly attribute HTMLFormElement? form;
+  // [CEReactions]
   //         attribute DOMString width;
+  // [CEReactions]
   //         attribute DOMString height;
   //readonly attribute Document? contentDocument;
   //readonly attribute WindowProxy? contentWindow;
 
-  //readonly attribute boolean willValidate;
+  readonly attribute boolean willValidate;
   readonly attribute ValidityState validity;
-  //readonly attribute DOMString validationMessage;
-  //boolean checkValidity();
-  //boolean reportValidity();
-  //void setCustomValidity(DOMString error);
+  readonly attribute DOMString validationMessage;
+  boolean checkValidity();
+  boolean reportValidity();
+  void setCustomValidity(DOMString error);
 
   //legacycaller any (any... arguments);
 

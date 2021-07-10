@@ -4,7 +4,7 @@
 <title>Reload during link drag and drop roundtrip</title>
 <script type="application/ecmascript">
 function checkLink(event)
-	{document.querySelector('a').firstChild.nodeValue = (event.dataTransfer.getData('text/uri-list').replace(/\r\n$/,'') == 'data:text/plain,1')?'PASS':'FAIL'}
+  {document.querySelector('a').firstChild.nodeValue = (event.dataTransfer.getData('text/uri-list').replace(/\r\n$/,'') == 'data:text/plain,1')?'PASS':'FAIL'}
 </script>
 </head>
 <body>

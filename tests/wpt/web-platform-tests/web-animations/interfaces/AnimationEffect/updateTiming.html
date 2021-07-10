@@ -1,0 +1,475 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>AnimationEffect.updateTiming</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/#dom-animationeffect-updatetiming">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<script src="../../resources/easing-tests.js"></script>
+<script src="../../resources/timing-tests.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+// ------------------------------
+//  delay
+// ------------------------------
+
+test(t => {
+  const anim = createDiv(t).animate(null, 100);
+  anim.effect.updateTiming({ delay: 100 });
+  assert_equals(anim.effect.getTiming().delay, 100, 'set delay 100');
+  assert_equals(anim.effect.getComputedTiming().delay, 100,
+                  'getComputedTiming() after set delay 100');
+}, 'Allows setting the delay to a positive number');
+
+test(t => {
+  const anim = createDiv(t).animate(null, 100);
+  anim.effect.updateTiming({ delay: -100 });
+  assert_equals(anim.effect.getTiming().delay, -100, 'set delay -100');
+  assert_equals(anim.effect.getComputedTiming().delay, -100,
+                'getComputedTiming() after set delay -100');
+}, 'Allows setting the delay to a negative number');
+
+test(t => {
+  const anim = createDiv(t).animate(null, 100);
+  anim.effect.updateTiming({ delay: 100 });
+  assert_equals(anim.effect.getComputedTiming().progress, null);
+  assert_equals(anim.effect.getComputedTiming().currentIteration, null);
+}, 'Allows setting the delay of an animation in progress: positive delay that'
+   + ' causes the animation to be no longer in-effect');
+
+test(t => {
+  const anim = createDiv(t).animate(null, { fill: 'both', duration: 100 });
+  anim.effect.updateTiming({ delay: -50 });
+  assert_equals(anim.effect.getComputedTiming().progress, 0.5);
+}, 'Allows setting the delay of an animation in progress: negative delay that'
+   + ' seeks into the active interval');
+
+test(t => {
+  const anim = createDiv(t).animate(null, { fill: 'both', duration: 100 });
+  anim.effect.updateTiming({ delay: -100 });
+  assert_equals(anim.effect.getComputedTiming().progress, 1);
+  assert_equals(anim.effect.getComputedTiming().currentIteration, 0);
+}, 'Allows setting the delay of an animation in progress: large negative delay'
+   + ' that causes the animation to be finished');
+
+for (const invalid of gBadDelayValues) {
+  test(t => {
+    const anim = createDiv(t).animate(null);
+    assert_throws_js(TypeError, () => {
+      anim.effect.updateTiming({ delay: invalid });
+    });
+  }, `Throws when setting invalid delay value: ${invalid}`);
+}
+
+
+// ------------------------------
+//  endDelay
+// ------------------------------
+
+test(t => {
+  const anim = createDiv(t).animate(null, 2000);
+  anim.effect.updateTiming({ endDelay: 123.45 });
+  assert_time_equals_literal(anim.effect.getTiming().endDelay, 123.45,
+                             'set endDelay 123.45');
+  assert_time_equals_literal(anim.effect.getComputedTiming().endDelay, 123.45,
+                             'getComputedTiming() after set endDelay 123.45');
+}, 'Allows setting the endDelay to a positive number');
+
+test(t => {
+  const anim = createDiv(t).animate(null, 2000);
+  anim.effect.updateTiming({ endDelay: -1000 });
+  assert_equals(anim.effect.getTiming().endDelay, -1000, 'set endDelay -1000');
+  assert_equals(anim.effect.getComputedTiming().endDelay, -1000,
+                'getComputedTiming() after set endDelay -1000');
+}, 'Allows setting the endDelay to a negative number');
+
+test(t => {
+  const anim = createDiv(t).animate(null, 2000);
+  assert_throws_js(TypeError, () => {
+    anim.effect.updateTiming({ endDelay: Infinity });
+  });
+}, 'Throws when setting the endDelay to infinity');
+
+test(t => {
+  const anim = createDiv(t).animate(null, 2000);
+  assert_throws_js(TypeError, () => {
+    anim.effect.updateTiming({ endDelay: -Infinity });
+  });
+}, 'Throws when setting the endDelay to negative infinity');
+
+
+// ------------------------------
+//  fill
+// ------------------------------
+
+for (const fill of ['none', 'forwards', 'backwards', 'both']) {
+  test(t => {
+    const anim = createDiv(t).animate(null, 100);
+    anim.effect.updateTiming({ fill });
+    assert_equals(anim.effect.getTiming().fill, fill, 'set fill ' + fill);
+    assert_equals(anim.effect.getComputedTiming().fill, fill,
+                  'getComputedTiming() after set fill ' + fill);
+  }, `Allows setting the fill to '${fill}'`);
+}
+
+
+// ------------------------------
+//  iterationStart
+// ------------------------------
+
+test(t => {
+  const anim = createDiv(t).animate(null,
+                                    { iterationStart: 0.2,
+                                      iterations: 1,
+                                      fill: 'both',
+                                      duration: 100,
+                                      delay: 1 });
+  anim.effect.updateTiming({ iterationStart: 2.5 });
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.5);
+  assert_equals(anim.effect.getComputedTiming().currentIteration, 2);
+}, 'Allows setting the iterationStart of an animation in progress:'
+   + ' backwards-filling');
+
+test(t => {
+  const anim = createDiv(t).animate(null,
+                                    { iterationStart: 0.2,
+                                      iterations: 1,
+                                      fill: 'both',
+                                      duration: 100,
+                                      delay: 0 });
+  anim.effect.updateTiming({ iterationStart: 2.5 });
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.5);
+  assert_equals(anim.effect.getComputedTiming().currentIteration, 2);
+}, 'Allows setting the iterationStart of an animation in progress:'
+   + ' active phase');
+
+test(t => {
+  const anim = createDiv(t).animate(null,
+                                    { iterationStart: 0.2,
+                                      iterations: 1,
+                                      fill: 'both',
+                                      duration: 100,
+                                      delay: 0 });
+  anim.finish();
+  anim.effect.updateTiming({ iterationStart: 2.5 });
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.5);
+  assert_equals(anim.effect.getComputedTiming().currentIteration, 3);
+}, 'Allows setting the iterationStart of an animation in progress:'
+   + ' forwards-filling');
+
+for (const invalid of gBadIterationStartValues) {
+  test(t => {
+    const anim = createDiv(t).animate(null);
+    assert_throws_js(TypeError, () => {
+      anim.effect.updateTiming({ iterationStart: invalid });
+    }, `setting ${invalid}`);
+  }, `Throws when setting invalid iterationStart value: ${invalid}`);
+}
+
+// ------------------------------
+//  iterations
+// ------------------------------
+
+test(t => {
+  const anim = createDiv(t).animate(null, 2000);
+  anim.effect.updateTiming({ iterations: 2 });
+  assert_equals(anim.effect.getTiming().iterations, 2, 'set duration 2');
+  assert_equals(anim.effect.getComputedTiming().iterations, 2,
+                       'getComputedTiming() after set iterations 2');
+}, 'Allows setting iterations to a double value');
+
+test(t => {
+  const anim = createDiv(t).animate(null, 2000);
+  anim.effect.updateTiming({ iterations: Infinity });
+  assert_equals(anim.effect.getTiming().iterations, Infinity,
+                'set duration Infinity');
+  assert_equals(anim.effect.getComputedTiming().iterations, Infinity,
+                       'getComputedTiming() after set iterations Infinity');
+}, 'Allows setting iterations to infinity');
+
+for (const invalid of gBadIterationsValues) {
+  test(t => {
+    const anim = createDiv(t).animate(null);
+    assert_throws_js(TypeError, () => {
+      anim.effect.updateTiming({ iterations: invalid });
+    });
+  }, `Throws when setting invalid iterations value: ${invalid}`);
+}
+
+test(t => {
+  const anim = createDiv(t).animate(null, { duration: 100000, fill: 'both' });
+
+  anim.finish();
+
+  assert_equals(anim.effect.getComputedTiming().progress, 1,
+                'progress when animation is finished');
+  assert_equals(anim.effect.getComputedTiming().currentIteration, 0,
+                'current iteration when animation is finished');
+
+  anim.effect.updateTiming({ iterations: 2 });
+
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress,
+                             0,
+                             'progress after adding an iteration');
+  assert_time_equals_literal(anim.effect.getComputedTiming().currentIteration,
+                             1,
+                             'current iteration after adding an iteration');
+
+  anim.effect.updateTiming({ iterations: 0 });
+
+  assert_equals(anim.effect.getComputedTiming().progress, 0,
+                'progress after setting iterations to zero');
+  assert_equals(anim.effect.getComputedTiming().currentIteration, 0,
+                'current iteration after setting iterations to zero');
+
+  anim.effect.updateTiming({ iterations: Infinity });
+
+  assert_equals(anim.effect.getComputedTiming().progress, 0,
+                'progress after setting iterations to Infinity');
+  assert_equals(anim.effect.getComputedTiming().currentIteration, 1,
+                'current iteration after setting iterations to Infinity');
+}, 'Allows setting the iterations of an animation in progress');
+
+
+// ------------------------------
+//  duration
+// ------------------------------
+
+for (const duration of gGoodDurationValues) {
+  test(t => {
+    const anim = createDiv(t).animate(null, 2000);
+    anim.effect.updateTiming({ duration: duration.specified });
+    if (typeof duration.specified === 'number') {
+      assert_time_equals_literal(anim.effect.getTiming().duration,
+                                 duration.specified,
+                                 'Updates specified duration');
+    } else {
+      assert_equals(anim.effect.getTiming().duration, duration.specified,
+                    'Updates specified duration');
+    }
+    assert_time_equals_literal(anim.effect.getComputedTiming().duration,
+                               duration.computed,
+                               'Updates computed duration');
+  }, `Allows setting the duration to ${duration.specified}`);
+}
+
+for (const invalid of gBadDurationValues) {
+  test(t => {
+    assert_throws_js(TypeError, () => {
+      createDiv(t).animate(null, { duration: invalid });
+    });
+  }, 'Throws when setting invalid duration: '
+     + (typeof invalid === 'string' ? `"${invalid}"` : invalid));
+}
+
+test(t => {
+  const anim = createDiv(t).animate(null, { duration: 100000, fill: 'both' });
+  anim.finish();
+  assert_equals(anim.effect.getComputedTiming().progress, 1,
+                'progress when animation is finished');
+  anim.effect.updateTiming({ duration: anim.effect.getTiming().duration * 2 });
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.5,
+                             'progress after doubling the duration');
+  anim.effect.updateTiming({ duration: 0 });
+  assert_equals(anim.effect.getComputedTiming().progress, 1,
+                'progress after setting duration to zero');
+  anim.effect.updateTiming({ duration: 'auto' });
+  assert_equals(anim.effect.getComputedTiming().progress, 1,
+                'progress after setting duration to \'auto\'');
+}, 'Allows setting the duration of an animation in progress');
+
+promise_test(t => {
+  const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  return anim.ready.then(() => {
+    const originalStartTime   = anim.startTime;
+    const originalCurrentTime = anim.currentTime;
+    assert_time_equals_literal(
+      anim.effect.getComputedTiming().duration,
+      100 * MS_PER_SEC,
+      'Initial duration should be as set on KeyframeEffect'
+    );
+
+    anim.effect.updateTiming({ duration: 200 * MS_PER_SEC });
+    assert_time_equals_literal(
+      anim.effect.getComputedTiming().duration,
+      200 * MS_PER_SEC,
+      'Effect duration should have been updated'
+    );
+    assert_times_equal(anim.startTime, originalStartTime,
+                       'startTime should be unaffected by changing effect ' +
+                       'duration');
+    assert_times_equal(anim.currentTime, originalCurrentTime,
+                       'currentTime should be unaffected by changing effect ' +
+                       'duration');
+  });
+}, 'Allows setting the duration of an animation in progress such that the' +
+   ' the start and current time do not change');
+
+
+// ------------------------------
+//  direction
+// ------------------------------
+
+test(t => {
+  const anim = createDiv(t).animate(null, 2000);
+
+  const directions = ['normal', 'reverse', 'alternate', 'alternate-reverse'];
+  for (const direction of directions) {
+    anim.effect.updateTiming({ direction: direction });
+    assert_equals(anim.effect.getTiming().direction, direction,
+                  `set direction to ${direction}`);
+  }
+}, 'Allows setting the direction to each of the possible keywords');
+
+test(t => {
+  const anim = createDiv(t).animate(null, {
+    duration: 10000,
+    direction: 'normal',
+  });
+  anim.currentTime = 7000;
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.7,
+                             'progress before updating direction');
+
+  anim.effect.updateTiming({ direction: 'reverse' });
+
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.3,
+                             'progress after updating direction');
+}, 'Allows setting the direction of an animation in progress from \'normal\' to'
+   + ' \'reverse\'');
+
+test(t => {
+  const anim = createDiv(t).animate(null,
+                                    { duration: 10000, direction: 'normal' });
+  assert_equals(anim.effect.getComputedTiming().progress, 0,
+                'progress before updating direction');
+
+  anim.effect.updateTiming({ direction: 'reverse' });
+
+  assert_equals(anim.effect.getComputedTiming().progress, 1,
+                'progress after updating direction');
+}, 'Allows setting the direction of an animation in progress from \'normal\' to'
+   + ' \'reverse\' while at start of active interval');
+
+test(t => {
+  const anim = createDiv(t).animate(null,
+                                    { fill: 'backwards',
+                                      duration: 10000,
+                                      delay: 10000,
+                                      direction: 'normal' });
+  assert_equals(anim.effect.getComputedTiming().progress, 0,
+                'progress before updating direction');
+
+  anim.effect.updateTiming({ direction: 'reverse' });
+
+  assert_equals(anim.effect.getComputedTiming().progress, 1,
+                'progress after updating direction');
+}, 'Allows setting the direction of an animation in progress from \'normal\' to'
+   + ' \'reverse\' while filling backwards');
+
+test(t => {
+  const anim = createDiv(t).animate(null,
+                                    { iterations: 2,
+                                      duration: 10000,
+                                      direction: 'normal' });
+  anim.currentTime = 17000;
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.7,
+                             'progress before updating direction');
+
+  anim.effect.updateTiming({ direction: 'alternate' });
+
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.3,
+                             'progress after updating direction');
+}, 'Allows setting the direction of an animation in progress from \'normal\' to'
+   + ' \'alternate\'');
+
+test(t => {
+  const anim = createDiv(t).animate(null,
+                                    { iterations: 2,
+                                      duration: 10000,
+                                      direction: 'alternate' });
+  anim.currentTime = 17000;
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.3,
+                             'progress before updating direction');
+
+  anim.effect.updateTiming({ direction: 'alternate-reverse' });
+
+  assert_time_equals_literal(anim.effect.getComputedTiming().progress, 0.7,
+                             'progress after updating direction');
+}, 'Allows setting the direction of an animation in progress from \'alternate\''
+   + ' to \'alternate-reverse\'');
+
+
+// ------------------------------
+//  easing
+// ------------------------------
+
+function assert_progress(animation, currentTime, easingFunction) {
+  animation.currentTime = currentTime;
+  const portion = currentTime / animation.effect.getTiming().duration;
+  assert_approx_equals(animation.effect.getComputedTiming().progress,
+                       easingFunction(portion),
+                       0.01,
+                       'The progress of the animation should be approximately'
+                       + ` ${easingFunction(portion)} at ${currentTime}ms`);
+}
+
+for (const options of gEasingTests) {
+  test(t => {
+    const target = createDiv(t);
+    const anim = target.animate(null,
+                                { duration: 1000 * MS_PER_SEC,
+                                  fill: 'forwards' });
+    anim.effect.updateTiming({ easing: options.easing });
+    assert_equals(anim.effect.getTiming().easing,
+                  options.serialization || options.easing);
+
+    const easing = options.easingFunction;
+    assert_progress(anim, 0, easing);
+    assert_progress(anim, 250 * MS_PER_SEC, easing);
+    assert_progress(anim, 500 * MS_PER_SEC, easing);
+    assert_progress(anim, 750 * MS_PER_SEC, easing);
+    assert_progress(anim, 1000 * MS_PER_SEC, easing);
+  }, `Allows setting the easing to a ${options.desc}`);
+}
+
+for (const easing of gRoundtripEasings) {
+  test(t => {
+    const anim = createDiv(t).animate(null);
+    anim.effect.updateTiming({ easing: easing });
+    assert_equals(anim.effect.getTiming().easing, easing);
+  }, `Updates the specified value when setting the easing to '${easing}'`);
+}
+
+test(t => {
+  const delay = 1000 * MS_PER_SEC;
+
+  const target = createDiv(t);
+  const anim = target.animate(null,
+                              { duration: 1000 * MS_PER_SEC,
+                                fill: 'both',
+                                delay: delay,
+                                easing: 'steps(2, start)' });
+
+  anim.effect.updateTiming({ easing: 'steps(2, end)' });
+  assert_equals(anim.effect.getComputedTiming().progress, 0,
+                'easing replace to steps(2, end) at before phase');
+
+  anim.currentTime = delay + 750 * MS_PER_SEC;
+  assert_equals(anim.effect.getComputedTiming().progress, 0.5,
+                'change currentTime to active phase');
+
+  anim.effect.updateTiming({ easing: 'steps(2, start)' });
+  assert_equals(anim.effect.getComputedTiming().progress, 1,
+                'easing replace to steps(2, start) at active phase');
+
+  anim.currentTime = delay + 1500 * MS_PER_SEC;
+  anim.effect.updateTiming({ easing: 'steps(2, end)' });
+  assert_equals(anim.effect.getComputedTiming().progress, 1,
+                'easing replace to steps(2, end) again at after phase');
+}, 'Allows setting the easing of an animation in progress');
+
+</script>
+</body>

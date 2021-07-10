@@ -1,0 +1,225 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.setLocalDescription</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  // The following helper functions are called from RTCPeerConnection-helper.js:
+  //   generateDataChannelOffer
+  //   assert_session_desc_not_similar
+  //   assert_session_desc_similar
+
+  /*
+    4.3.2.  Interface Definition
+      [Constructor(optional RTCConfiguration configuration)]
+      interface RTCPeerConnection : EventTarget {
+        Promise<void>                      setRemoteDescription(
+            RTCSessionDescriptionInit description);
+
+        readonly attribute RTCSessionDescription? remoteDescription;
+        readonly attribute RTCSessionDescription? currentRemoteDescription;
+        readonly attribute RTCSessionDescription? pendingRemoteDescription;
+        ...
+      };
+
+    4.6.2.  RTCSessionDescription Class
+      dictionary RTCSessionDescriptionInit {
+        required RTCSdpType type;
+                 DOMString  sdp = "";
+      };
+
+    4.6.1.  RTCSdpType
+      enum RTCSdpType {
+        "offer",
+        "pranswer",
+        "answer",
+        "rollback"
+      };
+   */
+
+  /*
+    4.3.2.  setLocalDescription
+      2.  Let lastOffer be the result returned by the last call to createOffer.
+      5.  If description.sdp is null and description.type is offer, set description.sdp
+          to lastOffer.
+
+    4.3.1.6.  Set the RTCSessionSessionDescription
+      2.2.2.  If description is set as a local description, then run one of the following
+              steps:
+        - If description is of type "offer", set connection.pendingLocalDescription
+          to description and signaling state to have-local-offer.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const states = [];
+    pc.addEventListener('signalingstatechange', () => states.push(pc.signalingState));
+
+    return generateAudioReceiveOnlyOffer(pc)
+    .then(offer =>
+      pc.setLocalDescription(offer)
+      .then(() => {
+        assert_equals(pc.signalingState, 'have-local-offer');
+        assert_session_desc_similar(pc.localDescription, offer);
+        assert_session_desc_similar(pc.pendingLocalDescription, offer);
+        assert_equals(pc.currentLocalDescription, null);
+
+        assert_array_equals(states, ['have-local-offer']);
+      }));
+  }, 'setLocalDescription with valid offer should succeed');
+
+  /*
+    4.3.2.  setLocalDescription
+      2.  Let lastOffer be the result returned by the last call to createOffer.
+      5.  If description.sdp is null and description.type is offer, set description.sdp
+          to lastOffer.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    return generateAudioReceiveOnlyOffer(pc)
+    .then(offer =>
+      pc.setLocalDescription({ type: 'offer' })
+      .then(() => {
+        assert_equals(pc.signalingState, 'have-local-offer');
+        assert_session_desc_similar(pc.localDescription, offer);
+        assert_session_desc_similar(pc.pendingLocalDescription, offer);
+        assert_equals(pc.currentLocalDescription, null);
+      }));
+  }, 'setLocalDescription with type offer and null sdp should use lastOffer generated from createOffer');
+
+  /*
+    4.3.2.  setLocalDescription
+      2.  Let lastOffer be the result returned by the last call to createOffer.
+      6.  If description.type is offer and description.sdp does not match lastOffer,
+          reject the promise with a newly created InvalidModificationError and abort
+          these steps.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const pc2 = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc2.close());
+
+    return generateDataChannelOffer(pc)
+    .then(offer =>
+      promise_rejects_dom(t, 'InvalidModificationError',
+        pc2.setLocalDescription(offer)));
+  }, 'setLocalDescription() with offer not created by own createOffer() should reject with InvalidModificationError');
+
+  promise_test(t => {
+    // Create first offer with audio line, then second offer with
+    // both audio and video line. Since the second offer is the
+    // last offer, setLocalDescription would reject when setting
+    // with the first offer
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    return generateAudioReceiveOnlyOffer(pc)
+    .then(offer1 =>
+      generateVideoReceiveOnlyOffer(pc)
+      .then(offer2 => {
+        assert_session_desc_not_similar(offer1, offer2);
+        return promise_rejects_dom(t, 'InvalidModificationError',
+          pc.setLocalDescription(offer1));
+      }));
+  }, 'Set created offer other than last offer should reject with InvalidModificationError');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const states = [];
+    pc.addEventListener('signalingstatechange', () => states.push(pc.signalingState));
+
+    return generateAudioReceiveOnlyOffer(pc)
+    .then(offer1 =>
+      pc.setLocalDescription(offer1)
+      .then(() =>
+        generateVideoReceiveOnlyOffer(pc)
+        .then(offer2 =>
+          pc.setLocalDescription(offer2)
+          .then(() => {
+            assert_session_desc_not_similar(offer1, offer2);
+            assert_equals(pc.signalingState, 'have-local-offer');
+            assert_session_desc_similar(pc.localDescription, offer2);
+            assert_session_desc_similar(pc.pendingLocalDescription, offer2);
+            assert_equals(pc.currentLocalDescription, null);
+
+            assert_array_equals(states, ['have-local-offer']);
+          }))));
+  }, 'Creating and setting offer multiple times should succeed');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const offer = await pc1.createOffer({offerToReceiveAudio: true}); // [[LastOffer]] set
+    const offer2 = await pc2.createOffer({offerToReceiveVideo: true});
+    await pc1.setRemoteDescription(offer2);
+    await pc1.createAnswer(); // [[LastAnswer]] set
+    await pc1.setRemoteDescription({type: "rollback"});
+    await pc1.setLocalDescription(offer);
+  }, "Setting previously generated offer after a call to createAnswer should work");
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    await pc1.setLocalDescription(await pc1.createOffer({offerToReceiveAudio: true}));
+
+    const offer = await pc1.createOffer();
+    await pc1.setLocalDescription(offer);
+    await pc2.setRemoteDescription(offer);
+    const answer = await pc2.createAnswer();
+    await pc2.setLocalDescription(answer);
+    await pc1.setRemoteDescription(answer);
+
+    assert_equals(pc1.getTransceivers().length, 1);
+    assert_equals(pc1.getTransceivers()[0].receiver.track.kind, "audio");
+    assert_equals(pc2.getTransceivers().length, 1);
+    assert_equals(pc2.getTransceivers()[0].receiver.track.kind, "audio");
+  }, "Negotiation works when there has been a repeated setLocalDescription(offer)");
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const sldPromise = pc.setLocalDescription(await pc.createOffer({offerToReceiveAudio: true}));
+
+    assert_equals(pc.signalingState, "stable", "signalingState should not be set synchronously after a call to sLD");
+
+    assert_equals(pc.pendingLocalDescription, null, "pendingRemoteDescription should never be set due to sLD");
+    assert_equals(pc.pendingRemoteDescription, null, "pendingLocalDescription should not be set synchronously after a call to sLD");
+    assert_equals(pc.currentLocalDescription, null, "currentLocalDescription should not be set synchronously after a call to sLD");
+    assert_equals(pc.currentRemoteDescription, null, "currentRemoteDescription should not be set synchronously after a call to sLD");
+
+    const statePromise = new Promise(resolve => {
+      pc.onsignalingstatechange = () => {
+        resolve(pc.signalingState);
+      }
+    });
+    const raceValue = await Promise.race([statePromise, sldPromise]);
+    assert_equals(raceValue, "have-local-offer", "signalingstatechange event should fire before sLD resolves");
+    assert_equals(pc.pendingRemoteDescription, null, "pendingRemoteDescription should never be set due to sLD");
+    assert_not_equals(pc.pendingLocalDescription, null, "pendingLocalDescription should be updated before the signalingstatechange event");
+    assert_equals(pc.pendingLocalDescription.type, "offer");
+    assert_equals(pc.pendingLocalDescription.sdp, pc.localDescription.sdp);
+    assert_equals(pc.currentLocalDescription, null, "currentLocalDescription should never be updated due to sLD(offer)");
+    assert_equals(pc.currentRemoteDescription, null, "currentRemoteDescription should never be updated due to sLD(offer)");
+
+    await sldPromise;
+  }, "setLocalDescription(offer) should update internal state with a queued task, in the right order");
+
+</script>

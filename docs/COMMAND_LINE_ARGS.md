@@ -13,12 +13,12 @@ Only arguments that need more explanation will be documented here.
 ## Enable Experimental Features
 Use `--pref` to enable experimental features like experimental DOM API, JavaScript API and CSS properties.
 
-e.g. To enable `flex` and `flex-direction` css properties:
+e.g. To enable Web VR and Bluetooth features:
 ```
-./mach run -d -- --pref layout.flex.enabled --pref layout.flex-direction.enabled ...
+./mach run -d -- --pref dom.webvr.enabled --pref dom.bluetooth.enabled ...
 ```
 
-You can find all the available preferences at [resources/prefs.json](http://mxr.mozilla.org/servo/source/resources/prefs.json).
+You can find all the available preferences at [resources/prefs.json](https://dxr.mozilla.org/servo/source/resources/prefs.json).
 
 # Debugging
 ## Remote Debugging

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      audionode-connect-method-chaining.html
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      // AudioNode dictionary with associated arguments.
+      let nodeDictionary = [
+        {name: 'Analyser'}, {name: 'BiquadFilter'}, {name: 'BufferSource'},
+        {name: 'ChannelMerger', args: [6]},
+        {name: 'ChannelSplitter', args: [6]}, {name: 'Convolver'},
+        {name: 'Delay', args: []}, {name: 'DynamicsCompressor'}, {name: 'Gain'},
+        {name: 'Oscillator'}, {name: 'Panner'},
+        {name: 'ScriptProcessor', args: [512, 1, 1]}, {name: 'StereoPanner'},
+        {name: 'WaveShaper'}
+      ];
+
+
+      function verifyReturnedNode(should, config) {
+        should(
+            config.destination === config.returned,
+            'The return value of ' + config.desc + ' matches the destination ' +
+                config.returned.constructor.name)
+            .beEqualTo(true);
+      }
+
+      // Test utility for batch method checking: in order to test 3 method
+      // signatures, so we create 3 dummy destinations.
+      // 1) .connect(GainNode)
+      // 2) .connect(BiquadFilterNode, output)
+      // 3) .connect(ChannelMergerNode, output, input)
+      function testConnectMethod(context, should, options) {
+        let source =
+            context['create' + options.name].apply(context, options.args);
+        let sourceName = source.constructor.name;
+
+        let destination1 = context.createGain();
+        verifyReturnedNode(should, {
+          source: source,
+          destination: destination1,
+          returned: source.connect(destination1),
+          desc: sourceName + '.connect(' + destination1.constructor.name + ')'
+        });
+
+        let destination2 = context.createBiquadFilter();
+        verifyReturnedNode(should, {
+          source: source,
+          destination: destination2,
+          returned: source.connect(destination2, 0),
+          desc:
+              sourceName + '.connect(' + destination2.constructor.name + ', 0)'
+        });
+
+        let destination3 = context.createChannelMerger();
+        verifyReturnedNode(should, {
+          source: source,
+          destination: destination3,
+          returned: source.connect(destination3, 0, 1),
+          desc: sourceName + '.connect(' + destination3.constructor.name +
+              ', 0, 1)'
+        });
+      }
+
+
+      let audit = Audit.createTaskRunner();
+
+      // Task: testing entries from the dictionary.
+      audit.define('from-dictionary', (task, should) => {
+        let context = new AudioContext();
+
+        for (let i = 0; i < nodeDictionary.length; i++)
+          testConnectMethod(context, should, nodeDictionary[i]);
+
+        task.done();
+      });
+
+      // Task: testing Media* nodes.
+      audit.define('media-group', (task, should) => {
+        let context = new AudioContext();
+
+        // Test MediaElementSourceNode needs an <audio> element.
+        let mediaElement = document.createElement('audio');
+        testConnectMethod(
+            context, should,
+            {name: 'MediaElementSource', args: [mediaElement]});
+
+        // MediaStreamAudioDestinationNode has no output so it connect method
+        // chaining isn't possible.
+
+        // MediaStreamSourceNode requires 'stream' object to be constructed,
+        // which is a part of MediaStreamDestinationNode.
+        let streamDestination = context.createMediaStreamDestination();
+        let stream = streamDestination.stream;
+        testConnectMethod(
+            context, should, {name: 'MediaStreamSource', args: [stream]});
+
+        task.done();
+      });
+
+      // Task: test the exception thrown by invalid operation.
+      audit.define('invalid-operation', (task, should) => {
+        let contextA = new AudioContext();
+        let contextB = new AudioContext();
+        let gain1 = contextA.createGain();
+        let gain2 = contextA.createGain();
+
+        // Test if the first connection throws correctly. The first gain node
+        // does not have the second output, so it should throw.
+        should(function() {
+          gain1.connect(gain2, 1).connect(contextA.destination);
+        }, 'Connecting with an invalid output').throw(DOMException, 'IndexSizeError');
+
+        // Test if the second connection throws correctly. The contextB's
+        // destination is not compatible with the nodes from contextA, thus the
+        // first connection succeeds but the second one should throw.
+        should(
+            function() {
+              gain1.connect(gain2).connect(contextB.destination);
+            },
+            'Connecting to a node from the different context')
+            .throw(DOMException, 'InvalidAccessError');
+
+        task.done();
+      });
+
+      // Task: verify if the method chaining actually works.
+      audit.define('verification', (task, should) => {
+        // We pick the lowest sample rate allowed to run the test efficiently.
+        let context = new OfflineAudioContext(1, 128, 8000);
+
+        let constantBuffer = createConstantBuffer(context, 1, 1.0);
+
+        let source = context.createBufferSource();
+        source.buffer = constantBuffer;
+        source.loop = true;
+
+        let gain1 = context.createGain();
+        gain1.gain.value = 0.5;
+        let gain2 = context.createGain();
+        gain2.gain.value = 0.25;
+
+        source.connect(gain1).connect(gain2).connect(context.destination);
+        source.start();
+
+        context.startRendering()
+            .then(function(buffer) {
+              should(
+                  buffer.getChannelData(0),
+                  'The output of chained connection of gain nodes')
+                  .beConstantValueOf(0.125);
+            })
+            .then(() => task.done());
+      });
+
+      audit.run();
+    </script>
+  </body>
+</html>

@@ -1,32 +1,32 @@
 <!doctype html>
 <html>
-	<head>
-		<title>Origin for http site with user/pass/port to itself</title>
-		<style type="text/css">
+  <head>
+    <title>Origin for http site with user/pass/port to itself</title>
+    <style type="text/css">
 div { height: 100px; width: 100px; background: orange; }
 iframe { width: 500px; height: 120px; border: none; }
-		</style>
-		<script type="text/javascript" src="../resources/crossorigin.sub.js"></script>
-		<script type="text/javascript">
+    </style>
+    <script type="text/javascript" src="../resources/crossorigin.sub.js"></script>
+    <script type="text/javascript">
 window.onload = function () {
-	var origin = 'http://'+httpHostMain;
-	document.getElementsByTagName('div')[0].ondragstart = function (e) {
-		e.dataTransfer.effectAllowed = 'copy';
-		e.dataTransfer.setData('text','dummy text');
-	};
-	document.getElementsByTagName('span')[0].textContent = origin;
-	var iframe = document.createElement('iframe');
-	iframe.src = origin+location.pathname.replace(/[^\/]*$/,'HELPER-showorigin.html');
-	document.body.insertBefore(iframe,document.getElementsByTagName('div')[0]);
+  var origin = 'http://'+httpHostMain;
+  document.getElementsByTagName('div')[0].ondragstart = function (e) {
+    e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('text','dummy text');
+  };
+  document.getElementsByTagName('span')[0].textContent = origin;
+  var iframe = document.createElement('iframe');
+  iframe.src = origin+location.pathname.replace(/[^\/]*$/,'HELPER-showorigin.html');
+  document.body.insertBefore(iframe,document.getElementsByTagName('div')[0]);
 };
-		</script>
-	</head>
-	<body>
+    </script>
+  </head>
+  <body>
 
-		<noscript><p>Enable JavaScript and reload</p></noscript>
-		<p>Drag the orange square onto the blue square and release it. The blue square should be replaced with the text:<br>
-		<span></span></p>
-		<div draggable="true"></div>
+    <noscript><p>Enable JavaScript and reload</p></noscript>
+    <p>Drag the orange square onto the blue square and release it. The blue square should be replaced with the text:<br>
+    <span></span></p>
+    <div draggable="true"></div>
 
-	</body>
+  </body>
 </html>

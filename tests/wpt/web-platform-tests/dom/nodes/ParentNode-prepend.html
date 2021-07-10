@@ -4,44 +4,45 @@
 <link rel=help href="https://dom.spec.whatwg.org/#dom-parentnode-prepend">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="pre-insertion-validation-hierarchy.js"></script>
 <script>
+preInsertionValidateHierarchy("prepend");
 
 function test_prepend(node, nodeName) {
-
     test(function() {
-        var parent = node.cloneNode();
+        const parent = node.cloneNode();
         parent.prepend();
         assert_array_equals(parent.childNodes, []);
     }, nodeName + '.prepend() without any argument, on a parent having no child.');
 
     test(function() {
-        var parent = node.cloneNode();
+        const parent = node.cloneNode();
         parent.prepend(null);
         assert_equals(parent.childNodes[0].textContent, 'null');
     }, nodeName + '.prepend() with null as an argument, on a parent having no child.');
 
     test(function() {
-        var parent = node.cloneNode();
+        const parent = node.cloneNode();
         parent.prepend(undefined);
         assert_equals(parent.childNodes[0].textContent, 'undefined');
     }, nodeName + '.prepend() with undefined as an argument, on a parent having no child.');
 
     test(function() {
-        var parent = node.cloneNode();
+        const parent = node.cloneNode();
         parent.prepend('text');
         assert_equals(parent.childNodes[0].textContent, 'text');
     }, nodeName + '.prepend() with only text as an argument, on a parent having no child.');
 
     test(function() {
-        var parent = node.cloneNode();
-        var x = document.createElement('x');
+        const parent = node.cloneNode();
+        const x = document.createElement('x');
         parent.prepend(x);
         assert_array_equals(parent.childNodes, [x]);
     }, nodeName + '.prepend() with only one element as an argument, on a parent having no child.');
 
     test(function() {
-        var parent = node.cloneNode();
-        var child = document.createElement('test');
+        const parent = node.cloneNode();
+        const child = document.createElement('test');
         parent.appendChild(child);
         parent.prepend(null);
         assert_equals(parent.childNodes[0].textContent, 'null');
@@ -49,9 +50,9 @@ function test_prepend(node, nodeName) {
     }, nodeName + '.prepend() with null as an argument, on a parent having a child.');
 
     test(function() {
-        var parent = node.cloneNode();
-        var x = document.createElement('x');
-        var child = document.createElement('test');
+        const parent = node.cloneNode();
+        const x = document.createElement('x');
+        const child = document.createElement('test');
         parent.appendChild(child);
         parent.prepend(x, 'text');
         assert_equals(parent.childNodes[0], x);
@@ -61,6 +62,6 @@ function test_prepend(node, nodeName) {
 }
 
 test_prepend(document.createElement('div'), 'Element');
-test_prepend(document.createDocumentFragment(), 'DocumentFrgment');
+test_prepend(document.createDocumentFragment(), 'DocumentFragment');
 </script>
 </html>

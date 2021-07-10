@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Viewport: URL bar changes height</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="viewport_support.js"></script>
+        <script>
+           setup({explicit_timeout: true});
+        </script>
+        <style>
+          body {
+            margin-bottom: 1000px;
+          }
+        </style>
+    </head>
+    <body>
+    <h1>Viewport: URL bar changes height</h1>
+    <h4>
+        Test Description: This test checks that hiding the URL bar correctly
+        affects the visualViewport height. Skip if the UA doesn't have a URL bar
+        that hides/shows with scrolling.
+    </h4>
+    <h2 style="color: red">THIS IS A MANUAL TEST</h2>
+    <p id="skip">
+        <button id="skipbtn" onclick="skipManualTest();">Skip Test</button>
+    </p>
+    <p id="instruction"></p>
+    <button id="continue">Start Test</button>
+    <div id="log"></div>
+    </body>
+    <script>
+        var continueBtn = document.getElementById("continue");
+
+        function continueTest() {
+          nextStep(function(instructionText) {
+            var instruction = document.getElementById("instruction");
+            continueBtn.innerText = "Continue";
+            instruction.innerText = instructionText;
+          });
+        }
+
+        continueBtn.addEventListener('click', continueTest);
+
+        var heights = [ window.visualViewport.height ];
+
+        addManualTestStep(
+            function() {
+                window.visualViewport.addEventListener('resize', function(e) {
+                    heights.push( window.visualViewport.height );
+                });
+            },
+            null,
+            '1. Scroll down (slowly, e.g. over ~1 sec) so the URL bar hides.');
+
+        addManualTestStep(
+            function() {
+                continueBtn.remove();
+                assert_greater_than(
+                    heights.length, 2, 'URL bar caused multiple resize events');
+
+                var smallest = heights[0];
+                var largest = heights[0];
+                for (var height in heights) {
+                    if (height < smallest)
+                        smallest = height;
+                    if (height > largest)
+                        largest = height;
+                }
+
+                var hasIntermediate = false;
+                for (var height in heights) {
+                    if (height != smallest && height != largest) {
+                        hasIntermediate = true;
+                        break;
+                    }
+                }
+                assert_true(
+                    hasIntermediate,
+                    'Resize fired for intermediate viewport height values');
+            },
+            'URL bar updates height continually',
+            'Test Complete');
+    </script>
+</html>

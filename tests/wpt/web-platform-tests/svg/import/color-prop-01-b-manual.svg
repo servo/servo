@@ -29,7 +29,7 @@
          There are three subtests. The first subtest, to the top left, is passed if the circle has a green fill. The second subtest,
         to the top right, is passed if the circle has a green stroke. The third subtest shows a rectangle
         with a gradient fill, which has three stops. The subtest is passed if central stop is green,
-        fading off to blue to the left and pale 	yellow to the right.
+        fading off to blue to the left and pale   yellow to the right.
       </p>
     </d:passCriteria>
   </d:SVGTestCase>

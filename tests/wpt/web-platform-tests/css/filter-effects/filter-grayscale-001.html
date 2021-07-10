@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<!-- Submitted from TestTWF Paris -->
+	<head>
+		<title>CSS Filter Test: apply a filter to a div with background-color</title>
+		<link rel="author" title="Pierre Van der Eecken" href="mailto:pierre.vandereecken@gmail.com">
+		<link rel="help" href="http://www.w3.org/TR/filter-effects-1/#FilterFunction">
+		<link rel="match" href="filter-grayscale-ref.html">
+		<meta name="assert" content="The background color of an div element change when a grayscale filter apply">
+		<style type="text/css">
+			.testzone{
+				position: relative;
+			}
+			.box{
+				background-color: blue;
+				height: 30px;
+				width: 30px;
+			}
+			.filter{
+				filter: grayscale(100%);
+			}
+		</style>
+	</head>
+	<body>
+		<p>The test passes if the little box looks grey.</p>
+		<div class="testzone">
+			<div class="box filter"></div>
+		</div>
+	</body>
+</html>

@@ -35,14 +35,14 @@
       </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
-	<p>
-	Run the test. No interaction required.
-	</p>
+  <p>
+  Run the test. No interaction required.
+  </p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
-        The test passes if the upper and lower lines show the same glyphs with 
-	the same glyph positioing and inter-glyph spacing.
+        The test passes if the upper and lower lines show the same glyphs with
+  the same glyph positioing and inter-glyph spacing.
       </p>
     </d:passCriteria>
   </d:SVGTestCase>
@@ -67,10 +67,10 @@
 
       </style>
       <!--font-face font-family="TestComic">
-				<font-face-src>
-					<font-face-uri xlink:href="../images/ext-TestComic.svg#Font"/>
-				</font-face-src>
-			</font-face-->
+        <font-face-src>
+          <font-face-uri xlink:href="../images/ext-TestComic.svg#Font"/>
+        </font-face-src>
+      </font-face-->
     </defs>
     <text fill="black" stroke="none" font-size="30" x="26" y="35">External SVG font element (css)</text>
     <!-- ====================================================================== -->

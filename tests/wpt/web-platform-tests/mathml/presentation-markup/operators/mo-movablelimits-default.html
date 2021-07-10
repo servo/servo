@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>&lt;mo&gt; movablelimits default value</title>
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
+    <meta name="assert" content="Verifies default value of movablelimits for some operators.">
+    <link rel="match" href="mo-movablelimits-default-ref.html">
+  </head>
+  <body>
+    <math>
+      <munder>
+        <mo>∑</mo> <!-- This has movablelimits="true" in the operator dictionary -->
+        <mi>x</mi>
+      </munder>
+      <munder>
+        <mo>∫</mo> <!-- This has movablelimits="false" in the operator dictionary -->
+        <mi>x</mi>
+      </munder>
+    </math>
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>MathMLFeatureDetection.ensure_for_match_reftest("has_munderover");</script>
+  </body>
+</html>

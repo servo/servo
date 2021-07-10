@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Ping attribute Referrer Header Strict Origin Policy</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <meta name='referrer' content='strict-origin'>
+  </head>
+  <body>
+    <a id="a" href="#">
+    <script src="/common/utils.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+    <script src="/resources/chromium/enable-hyperlink-auditing.js"></script>
+    <script src="header-referrer.js"></script>
+    <script>
+      testReferrerHeader("");
+    </script>
+  </body>
+</html>

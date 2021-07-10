@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Navigation in onload handler through form submission in a dynamically created iframe</title>
+    <script>
+      function test() {
+        let testFrame = document.createElement("iframe");
+        testFrame.src = "navigation-in-onload_form-submission-1.tentative.html";
+        document.body.appendChild(testFrame);
+      }
+    </script>
+  </head>
+  <body onload="test();">
+  </body>
+</html>

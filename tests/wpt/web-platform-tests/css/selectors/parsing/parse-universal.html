@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selectors: Universal selector</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-3/#universal-selector">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  test_valid_selector('*');
+  test_valid_selector('div :first-child',
+      ['div *:first-child', 'div :first-child']);
+  test_valid_selector('div *:first-child',
+      ['div *:first-child', 'div :first-child']);
+</script>

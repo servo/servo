@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+        <title>CSS Test: The 'border-image-slice' property with four percentage values</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+        <!--
+        Test rehabilitated by Gérard Talbot
+        2020-05-27 and 2020-09-28
+        -->
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#the-border-image-slice">
+        <link rel="match" href="reference/border-image-slice-005-ref.html">
+        <meta name="flags" content="">
+        <meta name="fuzzy" content="0-35;0-1250">
+        <meta name="assert" content="This test checks that the border image is sliced into nine regions with inward offsets, '40%' from the top, '30%' from the right,'20%' from the bottom, and '10%' from the left edges of the image. Percentages are relative to the size of the image: the width of the image for the horizontal offsets, the height for vertical offsets.">
+        <style>
+            div
+            {
+                background-color: orange;
+                border-color: red;
+                border-style: double;
+                border-width: 40px;
+                border-image-slice: 40% 30% 20% 10%;
+                /*
+                The original test was using 'border-image-slice: 40% 15% 20% 5%'.
+                */
+                border-image-source: url("support/9grid40-30-20-10-red.png");
+                /*
+                The top side uses 3 blue borders of 24px wide interleaved with 2
+                transparent areas of 24px wide.
+                So: 5 times 24px == 120px which is 40% of 300px
+
+                The right side uses 3 blue borders of 18px wide interleaved with 2
+                transparent areas of 18px wide.
+                So: 5 times 18px == 90px which is 30% of 300px
+
+                The bottom side uses 3 blue borders of 4px wide interleaved with 2
+                transparent areas of 12px wide.
+                So: 5 times 12px == 60px which is 20% of 300px
+
+                The left side uses 3 blue borders of 6px wide interleaved with 2
+                transparent areas of 6px wide.
+                So: 5 times 6px == 30px which is 10% of 300px
+                */
+                height: 100px;
+                margin: 50px;
+                width: 200px;
+            }
+        </style>
+
+        <p>Test passes if there is a filled orange rectangle inside 3 blue borders interleaved with 2 orange borders and <strong>no red</strong>.
+
+        <div></div>

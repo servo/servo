@@ -1,0 +1,26 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>This test validates the functionality of clearResourceTimings method in resource timing.</title>
+<link rel="author" title="Intel" href="http://www.intel.com/" />
+<link rel="help" href="http://www.w3.org/TR/resource-timing/#performanceresourcetiming"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webperftestharness.js"></script>
+<script src="resources/webperftestharnessextension.js"></script>
+<script>
+    setup({ explicit_done: true });
+    const context = new PerformanceContext(performance);
+    function onload_test()
+    {
+        test_equals(context.getEntriesByType('resource').length, 4, 4 + ' resource timing entries should be stored in this page.');
+        context.clearResourceTimings();
+        test_equals(context.getEntriesByType('resource').length, 0, 'No resource timing entries should be stored after clearResourceTimings.');
+        done();
+    }
+</script>
+</head>
+<body onload=onload_test()>
+</body>
+</html>

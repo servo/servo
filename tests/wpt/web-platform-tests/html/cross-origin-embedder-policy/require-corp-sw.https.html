@@ -1,0 +1,53 @@
+<!doctype html>
+<title>Cross Origin Embedder Policy: requests initiated from a service worker with 'require-corp'</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<script>
+'use strict';
+
+const SCRIPT = 'resources/require-corp-sw.js';
+const SCOPE = 'resources/in-scope';
+let worker = null;
+
+promise_test(async t => {
+  const registration =
+      await service_worker_unregister_and_register(t, SCRIPT, SCOPE);
+  promise_test(async t => registration.unregister(), 'Clean up global state');
+  worker = registration.installing;
+  await wait_for_state(t, worker, 'activated');
+}, 'Set up global state');
+
+promise_test(async t => {
+  const p = new Promise(resolve =>
+      navigator.serviceWorker.addEventListener('message', resolve,
+                                               {once: true}));
+  worker.postMessage('WithCorp');
+  assert_equals((await p).data, 'opaque');
+}, "fetch() to 'CORP: cross-origin' response should succeed.");
+
+promise_test(async t => {
+  const p = new Promise(resolve =>
+      navigator.serviceWorker.addEventListener('message', resolve,
+                                               {once: true}));
+  worker.postMessage('WithoutCorp');
+  assert_equals((await p).data, 'Exception: TypeError');
+}, "fetch() to no CORP response should not succeed.");
+
+promise_test(async t => {
+  const scope = `${SCOPE}-2`;
+  await service_worker_unregister(t, scope);
+  const promise = navigator.serviceWorker.register(
+      'resources/require-corp-sw-import-scripts.js', {scope});
+  await promise_rejects_js(t, TypeError, promise, 'register() should fail.');
+}, 'importScripts() fails for a script with no corp.');
+
+promise_test(async t => {
+  const scope = `${SCOPE}-3`;
+  await service_worker_unregister(t, scope);
+  const registration = await navigator.serviceWorker.register(
+      'resources/require-corp-sw-import-scripts.js?corp=cross-origin', {scope});
+  t.add_cleanup(() => registration.unregister());
+}, 'importScripts() succeeds for a script with corp: cross-origin.');
+</script>

@@ -14,7 +14,7 @@
 <body>
     <h1>Introduction to Writing Content Security Policy Tests</h1>
     <p>The CSP test suite uses the standard W3C testharness.js framework, but there are a few additional things you'll need to do because of the unique way CSP works, even if you're already an expert at writing W3C tests. These tests require the use of the
-    <a href="https://github.com/w3c/wptserve">wptserve</a> server (included in the <a href="https://github.com/w3c/web-platform-tests">web-platform-tests repository</a>) to operate correctly.</p>
+    <a href="https://github.com/w3c/wptserve">wptserve</a> server (included in the <a href="https://github.com/web-platform-tests/wpt">web-platform-tests repository</a>) to operate correctly.</p>
 
     <h2>What's different about writing CSP tests?</h2>
 
@@ -46,7 +46,7 @@
 
     &lt;script&gt;
     test(function() {
-        asset_unreached(&#39;Unsafe inline script ran.&#39;)},
+        assert_unreached(&#39;Unsafe inline script ran.&#39;)},
         &#39;Inline script in a script tag should not run without an unsafe-inline directive&#39;
     );
     &lt;/script&gt;
@@ -62,7 +62,7 @@
 
     <p>This code includes three tests. The first one in the script block will generate a failure if it runs. The second one, in the onerror handler for the img which does not exist should also generate a failure if it runs. But for a successful CSP implementation, neither of these tests does run. The final test is run by the link to <span class=code>../support/checkReport.sub.js</span>. It will load some script in the page (make sure its not blocked by your policy!) which contacts the server asynchronously and sees if the expected report was sent. This should always run an generate a positive or negative result even if the inline tests are blocked as we expect.</p>
 
-    <p>Now, to acutally exercise these tests against a policy, we'll need to set headers. In the same directory we'll place this file:</p>
+    <p>Now, to actually exercise these tests against a policy, we'll need to set headers. In the same directory we'll place this file:</p>
 
     <p class=codeTitle>script-src-1_1.html.sub.headers</p>
     <pre><code class="html">
@@ -71,7 +71,7 @@ Cache-Control: no-store, no-cache, must-revalidate
 Cache-Control: post-check=0, pre-check=0, false
 Pragma: no-cache
 Set-Cookie: <span class=highlight2>script-src-1_1</span>={{$id:uuid()}}; Path=<span class=highlight2>/content-security-policy/script-src/</span>
-Content-Security-Policy: <span class=highlight1>script-src 'self'</span>; report-uri  <span class=highlight2>..</span>/support/report.py?op=put&reportID={{$id}}
+Content-Security-Policy: <span class=highlight1>script-src 'self'</span>; report-uri  <span class=highlight2></span>/reporting/resources/report.py?op=put&reportID={{$id}}
         </code></pre>
     <p>This sets some headers to prevent caching (just so we are more likely to see our latest changes if we're actively developing this test) sets a cookie (more on that later) and sets the relevant <span class=code>Content-Security-Policy</span> header for our test case.</p>
 

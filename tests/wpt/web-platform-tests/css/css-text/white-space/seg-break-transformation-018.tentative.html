@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: inline element boundary and segment break transformations</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#text-encoding">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#line-break-transform">
+<link rel=match href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="intervening inline box boundaries must be ignored for segment break transformations">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+div {
+  font: 20px/1 Ahem;
+  color: green;
+}
+#b { border-right: solid 20px green; }
+#p { padding-right: 20px; background: green; }
+#m { margin-right: 20px; }
+#m2 { margin-right: -20px; }
+
+#red {
+  width: 100px;
+  height: 100px;
+  background: red;
+  position: absolute;
+  z-index: -1;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.
+
+<div id=red></div>
+
+<div>aa&#x200b;
+bbb</div>
+
+<div>aa<span>&#x200b;</span>
+bbb</div>
+
+<div>aa<span id=b>&#x200b;</span>
+bb</div>
+
+<div>aa<span id=p>&#x200b;</span>
+bb</div>
+
+<div>aa<span id=m>&#x200b;</span><span id=m2></span>
+bbb</div>

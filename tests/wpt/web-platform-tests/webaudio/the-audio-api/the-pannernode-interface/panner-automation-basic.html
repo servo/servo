@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Test Basic PannerNode with Automation Position Properties
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="../../resources/audit-util.js"></script>
+    <script src="../../resources/audit.js"></script>
+    <script src="../../resources/panner-formulas.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      let sampleRate = 48000;
+
+      // These tests are quite slow, so don't run for many frames.  256 frames
+      // should be enough to demonstrate that automations are working.
+      let renderFrames = 256;
+      let renderDuration = renderFrames / sampleRate;
+
+      let audit = Audit.createTaskRunner();
+
+      // Array of tests for setting the panner positions.  These tests basically
+      // verify that the position setters for the panner and listener are
+      // working correctly.
+      let testConfig = [
+        {
+          setter: 'positionX',
+        },
+        {
+          setter: 'positionY',
+        },
+        {
+          setter: 'positionZ',
+        }
+      ];
+
+      // Create tests for the panner position setters.  Both mono and steroe
+      // sources are tested.
+      for (let k = 0; k < testConfig.length; ++k) {
+        let config = testConfig[k];
+        // Function to create the test to define the test.
+        let tester = function(config, channelCount) {
+          return (task, should) => {
+            let nodes = createGraph(channelCount);
+            let {context, source, panner} = nodes;
+
+            let message = channelCount == 1 ? 'Mono' : 'Stereo';
+            message += ' panner.' + config.setter;
+
+            testPositionSetter(should, {
+              nodes: nodes,
+              pannerSetter: panner[config.setter],
+              message: message
+            }).then(() => task.done());
+          }
+        };
+
+        audit.define('Stereo panner.' + config.setter, tester(config, 2));
+        audit.define('Mono panner.' + config.setter, tester(config, 1));
+      }
+
+      // Create tests for the listener position setters.  Both mono and steroe
+      // sources are tested.
+      for (let k = 0; k < testConfig.length; ++k) {
+        let config = testConfig[k];
+        // Function to create the test to define the test.
+        let tester = function(config, channelCount) {
+          return (task, should) => {
+            let nodes = createGraph(channelCount);
+            let {context, source, panner} = nodes;
+
+            let message = channelCount == 1 ? 'Mono' : 'Stereo';
+            message += ' listener.' + config.setter;
+
+            // Some relatively arbitrary (non-default) position for the source
+            // location.
+            panner.setPosition(1, 0, 1);
+
+            testPositionSetter(should, {
+              nodes: nodes,
+              pannerSetter: context.listener[config.setter],
+              message: message
+            }).then(() => task.done());
+          }
+        };
+
+        audit.define('Stereo listener.' + config.setter, tester(config, 2));
+        audit.define('Mono listener.' + config.setter, tester(config, 1));
+      }
+
+      // Test setPosition method.
+      audit.define('setPosition', (task, should) => {
+        let {context, panner, source} = createGraph(2);
+
+        // Initialize source position (values don't really matter).
+        panner.setPosition(1, 1, 1);
+
+        // After some (unimportant) time, move the panner to a (any) new
+        // location.
+        let suspendFrame = 128;
+        context.suspend(suspendFrame / sampleRate)
+            .then(function() {
+              panner.setPosition(-100, 2000, 8000);
+            })
+            .then(context.resume.bind(context));
+
+        context.startRendering()
+            .then(function(resultBuffer) {
+              verifyPannerOutputChanged(
+                  should, resultBuffer,
+                  {message: 'setPosition', suspendFrame: suspendFrame});
+            })
+            .then(() => task.done());
+      });
+
+      audit.define('orientation setter', (task, should) => {
+        let {context, panner, source} = createGraph(2);
+
+        // For orientation to matter, we need to make the source directional,
+        // and also move away from the listener (because the default location is
+        // 0,0,0).
+        panner.setPosition(0, 0, 1);
+        panner.coneInnerAngle = 0;
+        panner.coneOuterAngle = 360;
+        panner.coneOuterGain = .001;
+
+        // After some (unimportant) time, change the panner orientation to a new
+        // orientation.  The only constraint is that the orientation changes
+        // from before.
+        let suspendFrame = 128;
+        context.suspend(suspendFrame / sampleRate)
+            .then(function() {
+              panner.orientationX.value = -100;
+              panner.orientationY.value = 2000;
+              panner.orientationZ.value = 8000;
+            })
+            .then(context.resume.bind(context));
+
+        context.startRendering()
+            .then(function(resultBuffer) {
+              verifyPannerOutputChanged(should, resultBuffer, {
+                message: 'panner.orientation{XYZ}',
+                suspendFrame: suspendFrame
+              });
+            })
+            .then(() => task.done());
+      });
+
+      audit.define('forward setter', (task, should) => {
+        let {context, panner, source} = createGraph(2);
+
+        // For orientation to matter, we need to make the source directional,
+        // and also move away from the listener (because the default location is
+        // 0,0,0).
+        panner.setPosition(0, 0, 1);
+        panner.coneInnerAngle = 0;
+        panner.coneOuterAngle = 360;
+        panner.coneOuterGain = .001;
+
+        // After some (unimportant) time, change the panner orientation to a new
+        // orientation.  The only constraint is that the orientation changes
+        // from before.
+        let suspendFrame = 128;
+        context.suspend(suspendFrame / sampleRate)
+            .then(function() {
+              context.listener.forwardX.value = -100;
+              context.listener.forwardY.value = 2000;
+              context.listener.forwardZ.value = 8000;
+            })
+            .then(context.resume.bind(context));
+
+        context.startRendering()
+            .then(function(resultBuffer) {
+              verifyPannerOutputChanged(should, resultBuffer, {
+                message: 'listener.forward{XYZ}',
+                suspendFrame: suspendFrame
+              });
+            })
+            .then(() => task.done());
+      });
+
+      audit.define('up setter', (task, should) => {
+        let {context, panner, source} = createGraph(2);
+
+        // For orientation to matter, we need to make the source directional,
+        // and also move away from the listener (because the default location is
+        // 0,0,0).
+        panner.setPosition(0, 0, 1);
+        panner.coneInnerAngle = 0;
+        panner.coneOuterAngle = 360;
+        panner.coneOuterGain = .001;
+        panner.setPosition(1, 0, 1);
+
+        // After some (unimportant) time, change the panner orientation to a new
+        // orientation.  The only constraint is that the orientation changes
+        // from before.
+        let suspendFrame = 128;
+        context.suspend(suspendFrame / sampleRate)
+            .then(function() {
+              context.listener.upX.value = 100;
+              context.listener.upY.value = 100;
+              context.listener.upZ.value = 100;
+              ;
+            })
+            .then(context.resume.bind(context));
+
+        context.startRendering()
+            .then(function(resultBuffer) {
+              verifyPannerOutputChanged(
+                  should, resultBuffer,
+                  {message: 'listener.up{XYZ}', suspendFrame: suspendFrame});
+            })
+            .then(() => task.done());
+      });
+
+      audit.run();
+
+      function createGraph(channelCount) {
+        let context = new OfflineAudioContext(2, renderFrames, sampleRate);
+        let panner = context.createPanner();
+        let source = context.createBufferSource();
+        source.buffer =
+            createConstantBuffer(context, 1, channelCount == 1 ? 1 : [1, 2]);
+        source.loop = true;
+
+        source.connect(panner);
+        panner.connect(context.destination);
+
+        source.start();
+        return {context: context, source: source, panner: panner};
+      }
+
+      function testPositionSetter(should, options) {
+        let {nodes, pannerSetter, message} = options;
+
+        let {context, source, panner} = nodes;
+
+        // Set panner x position. (Value doesn't matter);
+        pannerSetter.value = 1;
+
+        // Wait a bit and set a new position.  (Actual time and position doesn't
+        // matter).
+        let suspendFrame = 128;
+        context.suspend(suspendFrame / sampleRate)
+            .then(function() {
+              pannerSetter.value = 10000;
+            })
+            .then(context.resume.bind(context));
+
+        return context.startRendering().then(function(resultBuffer) {
+          verifyPannerOutputChanged(
+              should, resultBuffer,
+              {message: message, suspendFrame: suspendFrame});
+        });
+      }
+
+      function verifyPannerOutputChanged(should, resultBuffer, options) {
+        let {message, suspendFrame} = options;
+        // Verify that the first part of output is constant. (Doesn't matter
+        // what.)
+        let data0 = resultBuffer.getChannelData(0);
+        let data1 = resultBuffer.getChannelData(1);
+
+        let middle = '[0, ' + suspendFrame + ') ';
+        should(
+            data0.slice(0, suspendFrame),
+            message + '.value frame ' + middle + 'channel 0')
+            .beConstantValueOf(data0[0]);
+        should(
+            data1.slice(0, suspendFrame),
+            message + '.value frame ' + middle + 'channel 1')
+            .beConstantValueOf(data1[0]);
+
+        // The rest after suspendTime should be constant and different from the
+        // first part.
+        middle = '[' + suspendFrame + ', ' + renderFrames + ') ';
+        should(
+            data0.slice(suspendFrame),
+            message + '.value frame ' + middle + 'channel 0')
+            .beConstantValueOf(data0[suspendFrame]);
+        should(
+            data1.slice(suspendFrame),
+            message + '.value frame ' + middle + 'channel 1')
+            .beConstantValueOf(data1[suspendFrame]);
+        should(
+            data0[suspendFrame],
+            message + ': Output at frame ' + suspendFrame + ' channel 0')
+            .notBeEqualTo(data0[0]);
+        should(
+            data1[suspendFrame],
+            message + ': Output at frame ' + suspendFrame + ' channel 1')
+            .notBeEqualTo(data1[0]);
+      }
+    </script>
+  </body>
+</html>

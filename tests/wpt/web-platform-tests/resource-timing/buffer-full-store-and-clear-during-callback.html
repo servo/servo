@@ -1,0 +1,55 @@
+<!DOCTYPE HTML>
+<html>
+<head onload>
+<meta charset="utf-8" />
+<title>This test validates the behavior of read and clear operation in onresourcetimingbufferfull callback of resource timing.</title>
+<link rel="author" title="Intel" href="http://www.intel.com/" />
+<link rel="help" href="http://www.w3.org/TR/resource-timing/#performanceresourcetiming"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/buffer-full-utilities.js"></script>
+</head>
+<body>
+<script>
+const resource_timing_buffer_size = 1;
+let global_buffer = [];
+let eventFired = false;
+
+setup(() => {
+    clearBufferAndSetSize(resource_timing_buffer_size);
+    let store_and_clear = function() {
+        const entryList = performance.getEntriesByType('resource');
+        entryList.forEach(function (entry) {
+            global_buffer.push(entry);
+        });
+        performance.clearResourceTimings();
+        eventFired = true;
+    }
+    performance.addEventListener('resourcetimingbufferfull', store_and_clear);
+});
+
+let overflowTheBuffer = () => {
+    return new Promise(resolve => {
+        // This resource overflows the entry buffer, and goes into the secondary buffer.
+        appendScript('resources/empty_script.js', resolve);
+    });
+};
+
+let testThatBufferContainsTheRightResources = () => {
+    let entries = performance.getEntriesByType('resource');
+    assert_equals(entries.length, 1,
+                  "Only the last entry should be stored in resource timing buffer since it's cleared once it overflows.");
+    assert_equals(global_buffer.length, 1, '1 resource timing entry should be moved to global buffer.');
+    assert_true(global_buffer[0].name.includes('empty.js'), "empty.js is in the global buffer");
+    assert_true(entries[0].name.includes('empty_script.js'), "empty_script.js is in the entries buffer");
+};
+
+promise_test(async () => {
+    await fillUpTheBufferWithSingleResource("resources/empty.js");
+    await overflowTheBuffer();
+    await waitForEventToFire();
+    testThatBufferContainsTheRightResources();
+}, "Test that entries overflowing the buffer trigger the buffer full event, can be stored, and find themselves in the primary buffer after it's cleared.");
+</script>
+</body>
+</html>

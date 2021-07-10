@@ -1,0 +1,27 @@
+<h3><a href="{{ pathto(master_doc) }}">{{ _('Table Of Contents') }}</a></h3>
+
+<ul>
+  <li><a href="{{ pathto('index') }}">Home</a></li>
+  <li><a href="{{ pathto('getting-started') }}">Install</a></li>
+  <li><a href="{{ pathto('contents') }}">Contents</a></li>
+  <li><a href="{{ pathto('reference') }}">API Reference</a></li>
+  <li><a href="{{ pathto('example/index') }}">Examples</a></li>
+  <li><a href="{{ pathto('customize') }}">Customize</a></li>
+  <li><a href="{{ pathto('changelog') }}">Changelog</a></li>
+  <li><a href="{{ pathto('contributing') }}">Contributing</a></li>
+  <li><a href="{{ pathto('backwards-compatibility') }}">Backwards Compatibility</a></li>
+  <li><a href="{{ pathto('py27-py34-deprecation') }}">Python 2.7 and 3.4 Support</a></li>
+  <li><a href="{{ pathto('sponsor') }}">Sponsor</a></li>
+  <li><a href="{{ pathto('tidelift') }}">pytest for Enterprise</a></li>
+  <li><a href="{{ pathto('license') }}">License</a></li>
+  <li><a href="{{ pathto('contact') }}">Contact Channels</a></li>
+</ul>
+
+{%- if display_toc %}
+  <hr>
+  {{ toc }}
+{%- endif %}
+
+<hr>
+<a href="{{ pathto('genindex') }}">Index</a>
+<hr>

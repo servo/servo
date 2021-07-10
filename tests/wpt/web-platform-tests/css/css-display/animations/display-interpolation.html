@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>display interpolation</title>
+<link rel="help" href="https://www.w3.org/TR/CSS2/visuren.html#display-prop">
+<meta name="assert" content="display supports animation">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+
+<style>
+.target {
+  display: block;
+}
+</style>
+
+<body>
+<script>
+test_interpolation({
+  property: 'display',
+  from: 'none',
+  to: 'flex',
+  method: 'CSS Animations',
+}, [
+  {at: -0.3, expect: 'block'},
+  {at: 0, expect: 'block'},
+  {at: 0.3, expect: 'block'},
+  {at: 0.6, expect: 'block'},
+  {at: 1, expect: 'block'},
+  {at: 1.5, expect: 'block'},
+]);
+test_interpolation({
+  property: 'display',
+  from: 'none',
+  to: 'flex',
+  method: 'Web Animations',
+}, [
+  {at: -0.3, expect: 'block'},
+  {at: 0, expect: 'block'},
+  {at: 0.3, expect: 'block'},
+  {at: 0.6, expect: 'block'},
+  {at: 1, expect: 'block'},
+  {at: 1.5, expect: 'block'},
+]);
+</script>
+</body>

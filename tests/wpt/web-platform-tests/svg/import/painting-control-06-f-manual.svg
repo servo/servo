@@ -6,7 +6,7 @@
   <!--=  All Rights Reserved.                                              =-->
   <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
   <!--======================================================================-->
-  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/" template-version="1.4" 
+  <d:SVGTestCase xmlns:d="http://www.w3.org/2000/02/svg/testsuite/description/" template-version="1.4"
     reviewer="ED" author="Microsoft" status="accepted" version="$Revision: 1.4 $" testname="$RCSfile: painting-control-06-f.svg,v $">
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/painting.html#VisibilityControl">
       <p>

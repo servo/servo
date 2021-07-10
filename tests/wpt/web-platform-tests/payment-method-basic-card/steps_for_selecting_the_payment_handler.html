@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>
+  Payment Method Basic Card: steps for selecting the payment handler
+</title>
+<link
+  rel="help"
+  href="https://w3c.github.io/payment-method-basic-card/#selecting-the-payment-handler"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  setup({ explicit_done: true, explicit_timeout: true });
+  const defaultDetails = {
+    total: {
+      label: "Total",
+      amount: {
+        currency: "USD",
+        value: "1.00",
+      },
+    },
+  };
+
+  function emptyDataIsAllNetworks(testableAssertion) {
+    promise_test(async t => {
+      const methodData = [
+        {
+          supportedMethods: "basic-card",
+        },
+      ];
+      const showPromise = new PaymentRequest(methodData, defaultDetails).show();
+      await promise_rejects_dom(t, "AbortError", showPromise);
+    }, testableAssertion.trim());
+  }
+
+  function mixedPMILastOneWins(testableAssertion) {
+    promise_test(async t => {
+      const methodData = [
+        {
+          supportedMethods: "basic-card",
+          data: {
+            supportedNetworks: [],
+          },
+        },
+        {
+          supportedMethods: "basic-card",
+          data: {
+            supportedNetworks: ["visa"],
+          },
+        },
+        {
+          supportedMethods: "https://example.com/bobpay",
+        },
+      ];
+      const showPromise = new PaymentRequest(methodData, defaultDetails).show();
+      await promise_rejects_dom(t, "AbortError", showPromise);
+    }, testableAssertion.trim());
+  }
+
+  function lastOneWinsEvenIfDataIsMissing(testableAssertion) {
+    promise_test(async t => {
+      const methodData = [
+        {
+          supportedMethods: "basic-card",
+          data: {
+            supportedNetworks: ["visa"],
+          },
+        },
+        // Same as data: { supportedNetworks: [] }
+        {
+          supportedMethods: "basic-card",
+        },
+      ];
+      const showPromise = new PaymentRequest(methodData, defaultDetails).show();
+      await promise_rejects_dom(t, "AbortError", showPromise);
+    }, testableAssertion.trim());
+  }
+</script>
+<h1>Manual tests</h1>
+<ol>
+  <li>
+    <p>
+      To pass, this test must show the payment sheet and allow paying with any
+      card.
+    </p>
+    <button onclick="emptyDataIsAllNetworks(this.textContent.trim())">
+      If no data is passed, it's the same as passing an empty BasicCardRequest
+      (i.e., allow all networks).
+    </button>
+  </li>
+  <li>
+    <p>
+      To pass, this test must show the payment sheet and restrict to "visa"
+      credit cards.
+    </p>
+    <button onclick="mixedPMILastOneWins(this.textContent.trim())">
+      It ignores unknown PMIs and last "basic-card" wins - in this case, "visa".
+    </button>
+  </li>
+  <li>
+    <p>
+      To pass, this test must show the payment sheet and allow paying with any
+      card.
+    </p>
+    <button onclick="lastOneWinsEvenIfDataIsMissing(this.textContent.trim())">
+      "Last one wins" even if data is missing.
+    </button>
+  </li>
+  <li><button onclick="done()">Done!</button></li>
+</ol>

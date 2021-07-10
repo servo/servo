@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<title>Simple MediaSource-in-Worker playback test case</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+
+async_test(t => {
+  // Fail fast if MSE-in-Workers is not supported.
+  assert_true(MediaSource.hasOwnProperty("canConstructInDedicatedWorker"), "MediaSource hasOwnProperty 'canConstructInDedicatedWorker'");
+  assert_true(MediaSource.canConstructInDedicatedWorker, "MediaSource.canConstructInDedicatedWorker");
+
+  const video = document.createElement("video");
+  document.body.appendChild(video);
+  video.onerror = t.unreached_func("video element error");
+  video.onended = t.step_func_done();
+
+  let worker = new Worker("mediasource-worker-util.js");
+  worker.onerror = t.unreached_func("worker error");
+  worker.onmessage = t.step_func(e => {
+    if (e.data.substr(0,6) == "Error:") {
+      assert_unreached("Worker error: " + e.data);
+    } else {
+      const url = e.data;
+      assert_true(url.match(/^blob:.+/) != null);
+      video.src = url;
+      video.play();
+    }
+  });
+}, "Test worker MediaSource construction, attachment, buffering and basic playback");
+
+// TODO(https://crbug.com/878133): Test multiple attachments to same worker
+// MediaSource racing each other: precisely one should win the race.
+
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Test for CanMakePaymentEvent Constructor</title>
+<link rel="help" href="https://w3c.github.io/payment-handler/#dom-canmakepaymentevent">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<script>
+
+service_worker_test('can-make-payment-event-constructor.https.serviceworker.js',
+    'CanMakePaymentEvent can be constructed in service worker');
+
+</script>

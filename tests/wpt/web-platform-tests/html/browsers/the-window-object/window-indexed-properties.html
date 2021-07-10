@@ -17,14 +17,29 @@ test(function() {
   window[-1] = "foo";
   assert_equals(window[-1], "foo");
 });
+test(() => {
+  const desc = Object.getOwnPropertyDescriptor(window, "0");
+  assert_true(desc.configurable);
+  assert_true(desc.enumerable);
+  assert_false(desc.writable);
+}, "Ensure indexed properties have the correct configuration");
 test(function() {
   window[0] = "foo";
+  assert_throws_js(TypeError, () => Object.defineProperty(window, 0, { value: "bar" }))
+  assert_throws_js(TypeError, () => Object.defineProperty(window, 0, { get() { return "baz" } }))
+  assert_throws_js(TypeError, () => Object.defineProperty(window, 0, { set() { return "quz" } }))
   assert_equals(window[0],
                 document.getElementsByTagName("iframe")[0].contentWindow);
+  assert_equals(delete window[0], false);
 });
 test(function() {
   window[1] = "foo";
+  assert_throws_js(TypeError, () => Object.defineProperty(window, 1, { value: "bar" }))
+  assert_throws_js(TypeError, () => Object.defineProperty(window, 1, { get() { return "baz" } }))
+  assert_throws_js(TypeError, () => Object.defineProperty(window, 1, { set(v) { return "quz" } }))
   assert_equals(window[1], undefined);
+  assert_equals(Object.getOwnPropertyDescriptor(window, 1), undefined);
+  assert_equals(delete window[1], true);
 });
 test(function() {
   var proto = Window.prototype;

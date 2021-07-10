@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<meta charset=utf-8 />
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+
+<script src=resources/event-timing-test-utils.js></script>
+
+<custom-button id='custom_button'></custom-button>
+
+<script>
+async_test(function(t) {
+  assert_implements(window.PerformanceEventTiming, 'Event Timing is not supported.');
+  let innerButtonClicked = false;
+  customElements.define('custom-button', class extends HTMLElement {
+    connectedCallback() {
+      this.attachShadow({mode: 'open'});
+      this.shadowRoot.innerHTML = `<button id='inner_button_id'>Click me</button>`;
+      this.shadowRoot.getElementById('inner_button_id').onclick = () => {
+        innerButtonClicked = true;
+      };
+    }
+  });
+  const observer = new PerformanceObserver(t.step_func((entryList) => {
+    const entries = entryList.getEntriesByName('mousedown');
+    if (entries.length === 0)
+      return;
+
+    // There must only be one mousedown entry.
+    assert_equals(entries.length, 1);
+    verifyClickEvent(entries[0], 'custom_button', true);
+    assert_true(innerButtonClicked);
+    t.done()
+  }));
+  observer.observe({entryTypes: ['event']});
+  clickAndBlockMain('custom_button');
+}, "Event Timing: target reports the last Event Target, i.e. nothing from shadow DOM.");
+</script>
+</html>

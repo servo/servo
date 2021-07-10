@@ -1,54 +1,57 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::attr::Attr;
-use dom::bindings::codegen::Bindings::HTMLDetailsElementBinding;
-use dom::bindings::codegen::Bindings::HTMLDetailsElementBinding::HTMLDetailsElementMethods;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
-use dom::bindings::refcounted::Trusted;
-use dom::bindings::str::DOMString;
-use dom::document::Document;
-use dom::element::AttributeMutation;
-use dom::eventtarget::EventTarget;
-use dom::htmlelement::HTMLElement;
-use dom::node::{Node, window_from_node};
-use dom::virtualmethods::VirtualMethods;
+use crate::dom::attr::Attr;
+use crate::dom::bindings::codegen::Bindings::HTMLDetailsElementBinding::HTMLDetailsElementMethods;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::document::Document;
+use crate::dom::element::AttributeMutation;
+use crate::dom::eventtarget::EventTarget;
+use crate::dom::htmlelement::HTMLElement;
+use crate::dom::node::{window_from_node, Node, NodeDamage};
+use crate::dom::virtualmethods::VirtualMethods;
+use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
-use html5ever_atoms::LocalName;
-use script_thread::Runnable;
+use html5ever::{LocalName, Prefix};
 use std::cell::Cell;
-use task_source::TaskSource;
 
 #[dom_struct]
 pub struct HTMLDetailsElement {
     htmlelement: HTMLElement,
-    toggle_counter: Cell<u32>
+    toggle_counter: Cell<u32>,
 }
 
 impl HTMLDetailsElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
-                     document: &Document) -> HTMLDetailsElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLDetailsElement {
         HTMLDetailsElement {
-            htmlelement:
-                HTMLElement::new_inherited(local_name, prefix, document),
-            toggle_counter: Cell::new(0)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
+            toggle_counter: Cell::new(0),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
-               document: &Document) -> Root<HTMLDetailsElement> {
-        Node::reflect_node(box HTMLDetailsElement::new_inherited(local_name, prefix, document),
-                           document,
-                           HTMLDetailsElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLDetailsElement> {
+        Node::reflect_node(
+            Box::new(HTMLDetailsElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+        )
     }
 
-    pub fn check_toggle_count(&self, number: u32) -> bool {
-        number == self.toggle_counter.get()
+    pub fn toggle(&self) {
+        self.SetOpen(!self.Open());
     }
 }
 
@@ -61,8 +64,8 @@ impl HTMLDetailsElementMethods for HTMLDetailsElement {
 }
 
 impl VirtualMethods for HTMLDetailsElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
@@ -73,29 +76,18 @@ impl VirtualMethods for HTMLDetailsElement {
             self.toggle_counter.set(counter);
 
             let window = window_from_node(self);
-            let task_source = window.dom_manipulation_task_source();
-            let details = Trusted::new(self);
-            let runnable = box DetailsNotificationRunnable {
-                element: details,
-                toggle_number: counter
-            };
-            let _ = task_source.queue(runnable, window.upcast());
-        }
-    }
-}
-
-pub struct DetailsNotificationRunnable {
-    element: Trusted<HTMLDetailsElement>,
-    toggle_number: u32
-}
-
-impl Runnable for DetailsNotificationRunnable {
-    fn name(&self) -> &'static str { "DetailsNotificationRunnable" }
-
-    fn handler(self: Box<DetailsNotificationRunnable>) {
-        let target = self.element.root();
-        if target.check_toggle_count(self.toggle_number) {
-            target.upcast::<EventTarget>().fire_event(atom!("toggle"));
+            let this = Trusted::new(self);
+            // FIXME(nox): Why are errors silenced here?
+            let _ = window.task_manager().dom_manipulation_task_source().queue(
+                task!(details_notification_task_steps: move || {
+                    let this = this.root();
+                    if counter == this.toggle_counter.get() {
+                        this.upcast::<EventTarget>().fire_event(atom!("toggle"));
+                    }
+                }),
+                window.upcast(),
+            );
+            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage)
         }
     }
 }

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <title>CSS Test: CSSStyleDeclaration Interface</title>
+  <link rel="author" title="Bear Travis" href="mailto:betravis@adobe.com">
+  <link rel="help" href="http://www.w3.org/TR/cssom-1/#the-cssstyledeclaration-interface">
+  <meta name="flags" content="dom">
+  <meta name="assert" content="CSSStyleDeclaration is properly initialized and can be modified through its interface">
+  <script src="/resources/testharness.js" type="text/javascript"></script>
+  <script src="/resources/testharnessreport.js" type="text/javascript"></script>
+  <style id="styleElement">
+      #test { color: green; }
+  </style>
+ </head>
+ <body>
+ <div id="log"></div>
+ <div id="test"></div>
+ <script type="text/javascript">
+    var declaration;
+    setup(function() {
+        var styleElement = document.getElementById("styleElement");
+        declaration = styleElement.sheet.cssRules.item(0).style;
+    });
+
+    test(function() {
+        assert_equals(declaration.cssText, "color: green;");
+        assert_equals(declaration.getPropertyValue("color"), "green");
+    }, "Reading CSSStyleDeclaration initialized from a style element");
+
+    test(function() {
+        declaration.cssText = "margin-left:10px;  padding-left:10px";
+        assert_equals(declaration.cssText, "margin-left: 10px; padding-left: 10px;");
+        assert_equals(declaration.length, 2);
+        assert_equals(declaration.item(0), "margin-left");
+        assert_equals(declaration.item(1), "padding-left");
+        assert_equals(declaration.getPropertyValue("margin-left"), "10px");
+        assert_equals(declaration.getPropertyValue("padding-left"), "10px");
+
+        var computedStyle = window.getComputedStyle(document.getElementById("test"));
+        assert_equals(computedStyle.getPropertyValue("margin-left"), "10px");
+        assert_equals(computedStyle.getPropertyValue("padding-left"), "10px");
+    }, "Setting CSSStyleDeclaration#cssText");
+
+    test(function() {
+        while (declaration.length > 0) {
+            declaration.removeProperty(declaration.item(0));
+        }
+        declaration.setProperty("margin-left", "15px");
+        declaration.setProperty("padding-left", "15px");
+
+
+        assert_equals(declaration.length, 2);
+        assert_equals(declaration.item(0), "margin-left");
+        assert_equals(declaration.item(1), "padding-left");
+        assert_equals(declaration.getPropertyValue("margin-left"), "15px");
+        assert_equals(declaration.getPropertyValue("padding-left"), "15px");
+
+        var computedStyle = window.getComputedStyle(document.getElementById("test"));
+        assert_equals(computedStyle.getPropertyValue("margin-left"), "15px");
+        assert_equals(computedStyle.getPropertyValue("padding-left"), "15px");
+
+    }, "Calling CSSStyleDeclaration#setProperty");
+
+    test(function() {
+        declaration.setProperty("background-color", "red", "ImPoRtAnt");
+        assert_equals(declaration.getPropertyPriority("background-color"), "important");
+    }, "setProperty priority should be case-insensitive");
+
+ </script>
+ </body>
+</html>

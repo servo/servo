@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Orthogonal positioned grid items reference file</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<style>
+#grid {
+  display: grid;
+  grid: 150px 100px / 200px 300px;
+  margin: 1px 2px 3px 4px;
+  padding: 20px 15px 10px 5px;
+  border-width: 9px 3px 12px 6px;
+  border-style: solid;
+  width: 550px;
+  height: 400px;
+}
+
+#grid > div {
+  writing-mode: vertical-lr;
+  margin-left: 10px;
+  margin-right: 5px;
+  margin-top: 15px;
+  margin-bottom: 20px;
+}
+
+#firstItem {
+  background: magenta;
+}
+
+#secondItem {
+  background: cyan;
+}
+
+#thirdItem {
+  background: yellow;
+}
+
+#fourthItem {
+  background: lime;
+}
+</style>
+
+<p>The test passes if it has the same output than the reference.</p>
+
+<div id="grid">
+  <div id="firstItem">First item</div>
+  <div id="secondItem">Second item</div>
+  <div id="thirdItem">Third item</div>
+  <div id="fourthItem">Fourth item</div>
+</div>

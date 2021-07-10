@@ -1,0 +1,40 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>PerformanceNavigationTiming.name updated in iframes</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+promise_test(async function (t) {
+  var ifr = document.createElement("iframe");
+  document.body.appendChild(ifr);
+
+  ifr.src="resources/blank_page_green.html";
+  await new Promise(resolve => {
+    ifr.onload = function() {
+      assert_equals(ifr.contentWindow.performance.getEntriesByType("navigation").length, 1, "Only one navigation time entry");
+      assert_equals(ifr.contentWindow.performance.getEntriesByType("navigation")[0].name, ifr.contentWindow.location.toString(), "navigation name matches the window.location");
+      assert_true(ifr.contentWindow.performance.getEntriesByType("navigation")[0].name.endsWith("blank_page_green.html"), "navigation name is blank_page_green.html");
+      resolve();
+    }
+  });
+
+
+  await new Promise(resolve => { setTimeout(resolve, 100); });
+  ifr.src ="resources/blank_page_yellow.html";
+
+  await new Promise(resolve => {
+    ifr.onload = function() {
+      assert_equals(ifr.contentWindow.performance.getEntriesByType("navigation").length, 1, "Only one navigation time entry");
+      assert_equals(ifr.contentWindow.performance.getEntriesByType("navigation")[0].name, ifr.contentWindow.location.toString(), "navigation name matches the window.location");
+      assert_true(ifr.contentWindow.performance.getEntriesByType("navigation")[0].name.endsWith("blank_page_yellow.html"), "navigation name is blank_page_yellow.html");
+      resolve();
+    }
+  });
+}, "navigation.name updated when iframe URL changes");
+    </script>
+  </body>
+</html>

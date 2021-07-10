@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<meta charset=utf-8 />
+<title>Event Timing: compare timing of two long clicks
+</title>
+<button id='button'>Generate a 'click' event</button>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=resources/event-timing-test-utils.js></script>
+<script>
+  /* Timeline:
+     Observer starts
+     Long click 1
+     Long click 2
+     Once two clicks have been received by observer, compare the timestamps.
+  */
+  let timeBeforeFirstClick;
+  let timeAfterFirstClick;
+  let timeAfterSecondClick;
+  let observedEntries = [];
+  async_test(function(t) {
+    assert_implements(window.PerformanceEventTiming, 'Event Timing is not supported.');
+    new PerformanceObserver(t.step_func(entryList => {
+      observedEntries = observedEntries.concat(entryList.getEntries().filter(
+        entry => entry.name === 'mousedown'));
+      if (observedEntries.length < 2)
+        return;
+
+      assert_not_equals(timeBeforeFirstClick, undefined);
+      assert_not_equals(timeAfterFirstClick, undefined);
+      assert_not_equals(timeAfterSecondClick, undefined);
+      // First click.
+      verifyClickEvent(observedEntries[0], 'button');
+      assert_between_exclusive(observedEntries[0].processingStart,
+          timeBeforeFirstClick,
+          timeAfterFirstClick,
+          "First click's processingStart");
+      assert_greater_than(timeAfterFirstClick, observedEntries[0].startTime,
+          "timeAfterFirstClick should be later than first click's start time.");
+
+      // Second click.
+      verifyClickEvent(observedEntries[1], 'button');
+      assert_between_exclusive(observedEntries[1].processingStart,
+          timeAfterFirstClick,
+          timeAfterSecondClick,
+          "Second click's processingStart");
+      assert_greater_than(timeAfterSecondClick, observedEntries[1].startTime,
+          "timeAfterSecondClick should be later than second click's start time.");
+      t.done();
+    })).observe({type: 'event'});
+    timeBeforeFirstClick = performance.now();
+    clickAndBlockMain('button').then( () => {
+      timeAfterFirstClick = performance.now();
+      clickAndBlockMain('button').then(() => {
+        timeAfterSecondClick = performance.now();
+      })
+    });
+  }, "Event Timing: compare click timings.");
+</script>
+</html>

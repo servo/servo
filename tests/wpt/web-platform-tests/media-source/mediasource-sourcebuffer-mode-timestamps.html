@@ -32,11 +32,11 @@ function mediaTest(mime) {
         mediaSource.addEventListener('sourceopen', t.step_func_done(function(e) {
             var sourceBuffer = mediaSource.addSourceBuffer(mime);
             assert_equals(sourceBuffer.updating, false, "SourceBuffer.updating is false");
-            assert_throws({name: 'TypeError'},
-                          function() {
-                              sourceBuffer.mode = "segments";
-                          },
-                          'SourceBuffer#mode with generate timestamps flag true');
+            assert_throws_js(TypeError,
+                             function() {
+                                 sourceBuffer.mode = "segments";
+                             },
+                             'SourceBuffer#mode with generate timestamps flag true');
         }), false);
         var video = document.createElement('video');
         video.src = window.URL.createObjectURL(mediaSource);

@@ -4,25 +4,25 @@
 <title>Link drag and drop: events after drag and drop is cancelled</title>
 <style type="text/css">
 div
-	{width:0;
-	height:0;
-	border:solid 50px silver;
-	border-radius:50px;}
+  {width:0;
+  height:0;
+  border:solid 50px silver;
+  border-radius:50px;}
 </style>
 <script type="application/ecmascript">
 var result = true;
 function dropIt(event)
-	{result = false;
-	setColor('maroon');
-	say('drop event : FAIL (no drop should occur once drag and drop is cancelled)')}
+  {result = false;
+  setColor('maroon');
+  say('drop event : FAIL (no drop should occur once drag and drop is cancelled)')}
 function endDrag(event)
-	{if(result)
-		{setColor('teal')}
-	}
+  {if(result)
+    {setColor('teal')}
+  }
 function say(it)
-	{document.querySelector('pre').appendChild(document.createTextNode(it + '\n'));}
+  {document.querySelector('pre').appendChild(document.createTextNode(it + '\n'));}
 function setColor(c)
-	{document.querySelector('div').setAttribute('style','border-color:' + c)}
+  {document.querySelector('div').setAttribute('style','border-color:' + c)}
 </script>
 </head>
 <body dropzone="copy string:text/uri-list" ondrop="dropIt(event)">

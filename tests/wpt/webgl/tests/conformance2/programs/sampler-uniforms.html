@@ -1,0 +1,134 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL2 getActiveUniform conformance test.</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"> </script>
+</head>
+<body>
+<canvas id="example" width="16" height="16"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">#version 300 es
+void main()
+{
+    gl_Position = vec4(0, 0, 0, 1);
+}
+</script>
+<script id="fshader" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+uniform mediump $type uniform0;
+out vec4 myFragColor;
+void main()
+{
+    myFragColor = vec4(0,$access,0,1);
+}
+</script>
+<script>
+"use strict";
+description("Tests getActiveUniform for various types");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("example", undefined, 2);
+
+var tests = [
+  { glType: gl.SAMPLER_2D,   size: 1, type: 'sampler2D',   access: 'texture(uniform0, vec2(0,0)).x'},
+  { glType: gl.SAMPLER_CUBE, size: 1, type: 'samplerCube', access: 'texture(uniform0, vec3(0,1,0)).x'},
+  { glType: gl.SAMPLER_3D,   size: 1, type: 'sampler3D',   access: 'texture(uniform0, vec3(0,1,0)).x'},
+  { glType: gl.SAMPLER_2D_ARRAY, size: 1, type: 'sampler2DArray', access: 'texture(uniform0, vec3(0,1,0)).x'},
+
+  { glType: gl.SAMPLER_2D_SHADOW,   size: 1, type: 'sampler2DShadow',   access: 'texture(uniform0, vec3(0,1,0))'},
+  { glType: gl.SAMPLER_CUBE_SHADOW, size: 1, type: 'samplerCubeShadow', access: 'texture(uniform0, vec4(0,1,0,0))'},
+  { glType: gl.SAMPLER_2D_ARRAY_SHADOW, size: 1, type: 'sampler2DArrayShadow', access: 'texture(uniform0, vec4(0,1,0,0))'},
+
+  { glType: gl.INT_SAMPLER_2D,   size: 1, type: 'isampler2D',   access: 'texture(uniform0, vec2(0,0)).x'},
+  { glType: gl.INT_SAMPLER_CUBE, size: 1, type: 'isamplerCube', access: 'texture(uniform0, vec3(0,1,0)).x'},
+  { glType: gl.INT_SAMPLER_3D,   size: 1, type: 'isampler3D',   access: 'texture(uniform0, vec3(0,1,0)).x'},
+  { glType: gl.INT_SAMPLER_2D_ARRAY,   size: 1, type: 'isampler2DArray',   access: 'texture(uniform0, vec3(0,1,0)).x'},
+
+  { glType: gl.UNSIGNED_INT_SAMPLER_2D,   size: 1, type: 'usampler2D',   access: 'texture(uniform0, vec2(0,0)).x'},
+  { glType: gl.UNSIGNED_INT_SAMPLER_CUBE, size: 1, type: 'usamplerCube', access: 'texture(uniform0, vec3(0,1,0)).x'},
+  { glType: gl.UNSIGNED_INT_SAMPLER_3D,   size: 1, type: 'usampler3D',   access: 'texture(uniform0, vec3(0,1,0)).x'},
+  { glType: gl.UNSIGNED_INT_SAMPLER_2D_ARRAY,   size: 1, type: 'usampler2DArray',   access: 'texture(uniform0, vec3(0,1,0)).x'},
+];
+
+var vs = wtu.loadShaderFromScript(gl, 'vshader', gl.VERTEX_SHADER);
+var source = document.getElementById('fshader').text;
+
+function createProgram(type, access) {
+  var fs = wtu.loadShader(
+      gl,
+      source.replace('$type', type).replace('$access', access),
+      gl.FRAGMENT_SHADER);
+  var program = wtu.setupProgram(gl, [vs, fs]);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "no errors from setup");
+  return program;
+}
+
+for (var tt = 0; tt < tests.length; ++tt) {
+  var t = tests[tt];
+  debug("");
+  debug("Testing uniform sampler type : " + t.type);
+  var program = createProgram(t.type, t.access);
+  var numUniforms = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+  assertMsg(numUniforms >= 1, "at least 1 sampler uniform");
+  var found = false;
+  for (var ii = 0; ii < numUniforms; ++ii) {
+    var info = gl.getActiveUniform(program, ii);
+    if (info.name == 'uniform0') {
+      found = true;
+      assertMsg(info.type == t.glType,
+                "type must be " + wtu.glEnumToString(gl, t.glType) + " was " +
+                wtu.glEnumToString(gl, info.type));
+      assertMsg(info.size == t.size,
+                "size must be " + t.size + ' was ' + info.size);
+    }
+  }
+  assertMsg(found, "uniform 'uniform0' should exist");
+  var loc = gl.getUniformLocation(program, 'uniform0');
+  assertMsg(loc != null, "getUniformLocation must return non null");
+  gl.uniform1i(loc, tt + 1);
+  var val = gl.getUniform(program, loc);
+  assertMsg(val == tt + 1, "getUniform must return set value");
+}
+
+debug("");
+wtu.glErrorShouldBe(gl, gl.NO_ERROR, "no errors running the tests");
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

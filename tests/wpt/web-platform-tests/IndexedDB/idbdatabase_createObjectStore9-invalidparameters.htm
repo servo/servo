@@ -11,7 +11,7 @@
         var t = async_test(document.title + " - " + desc);
 
         createdb(t).onupgradeneeded = function(e) {
-            assert_throws(exception, function() {
+            assert_throws_dom(exception, function() {
                 e.target.result.createObjectStore("store", params);
             });
 

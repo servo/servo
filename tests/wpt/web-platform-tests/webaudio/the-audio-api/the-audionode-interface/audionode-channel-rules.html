@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      audionode-channel-rules.html
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+    <script src="/webaudio/resources/mixing-rules.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      let audit = Audit.createTaskRunner();
+      let context = 0;
+      // Use a power of two to eliminate round-off converting frames to time.
+      let sampleRate = 32768;
+      let renderNumberOfChannels = 8;
+      let singleTestFrameLength = 8;
+      let testBuffers;
+
+      // A list of connections to an AudioNode input, each of which is to be
+      // used in one or more specific test cases.  Each element in the list is a
+      // string, with the number of connections corresponding to the length of
+      // the string, and each character in the string is from '1' to '8'
+      // representing a 1 to 8 channel connection (from an AudioNode output).
+
+      // For example, the string "128" means 3 connections, having 1, 2, and 8
+      // channels respectively.
+
+      let connectionsList = [
+        '1', '2', '3', '4', '5', '6', '7', '8', '11', '12', '14', '18', '111',
+        '122', '123', '124', '128'
+      ];
+
+      // A list of mixing rules, each of which will be tested against all of the
+      // connections in connectionsList.
+      let mixingRulesList = [
+        {
+          channelCount: 2,
+          channelCountMode: 'max',
+          channelInterpretation: 'speakers'
+        },
+        {
+          channelCount: 4,
+          channelCountMode: 'clamped-max',
+          channelInterpretation: 'speakers'
+        },
+
+        // Test up-down-mix to some explicit speaker layouts.
+        {
+          channelCount: 1,
+          channelCountMode: 'explicit',
+          channelInterpretation: 'speakers'
+        },
+        {
+          channelCount: 2,
+          channelCountMode: 'explicit',
+          channelInterpretation: 'speakers'
+        },
+        {
+          channelCount: 4,
+          channelCountMode: 'explicit',
+          channelInterpretation: 'speakers'
+        },
+        {
+          channelCount: 6,
+          channelCountMode: 'explicit',
+          channelInterpretation: 'speakers'
+        },
+
+        {
+          channelCount: 2,
+          channelCountMode: 'max',
+          channelInterpretation: 'discrete'
+        },
+        {
+          channelCount: 4,
+          channelCountMode: 'clamped-max',
+          channelInterpretation: 'discrete'
+        },
+        {
+          channelCount: 4,
+          channelCountMode: 'explicit',
+          channelInterpretation: 'discrete'
+        },
+        {
+          channelCount: 8,
+          channelCountMode: 'explicit',
+          channelInterpretation: 'discrete'
+        },
+      ];
+
+      let numberOfTests = mixingRulesList.length * connectionsList.length;
+
+      // Print out the information for an individual test case.
+      function printTestInformation(
+          testNumber, actualBuffer, expectedBuffer, frameLength, frameOffset) {
+        let actual = stringifyBuffer(actualBuffer, frameLength);
+        let expected =
+            stringifyBuffer(expectedBuffer, frameLength, frameOffset);
+        debug('TEST CASE #' + testNumber + '\n');
+        debug('actual channels:\n' + actual);
+        debug('expected channels:\n' + expected);
+      }
+
+      function scheduleTest(
+          testNumber, connections, channelCount, channelCountMode,
+          channelInterpretation) {
+        let mixNode = context.createGain();
+        mixNode.channelCount = channelCount;
+        mixNode.channelCountMode = channelCountMode;
+        mixNode.channelInterpretation = channelInterpretation;
+        mixNode.connect(context.destination);
+
+        for (let i = 0; i < connections.length; ++i) {
+          let connectionNumberOfChannels =
+              connections.charCodeAt(i) - '0'.charCodeAt(0);
+
+          let source = context.createBufferSource();
+          // Get a buffer with the right number of channels, converting from
+          // 1-based to 0-based index.
+          let buffer = testBuffers[connectionNumberOfChannels - 1];
+          source.buffer = buffer;
+          source.connect(mixNode);
+
+          // Start at the right offset.
+          let sampleFrameOffset = testNumber * singleTestFrameLength;
+          let time = sampleFrameOffset / sampleRate;
+          source.start(time);
+        }
+      }
+
+      function checkTestResult(
+          renderedBuffer, testNumber, connections, channelCount,
+          channelCountMode, channelInterpretation, should) {
+        let s = 'connections: ' + connections + ', ' + channelCountMode;
+
+        // channelCount is ignored in "max" mode.
+        if (channelCountMode == 'clamped-max' ||
+            channelCountMode == 'explicit') {
+          s += '(' + channelCount + ')';
+        }
+
+        s += ', ' + channelInterpretation;
+
+        let computedNumberOfChannels = computeNumberOfChannels(
+            connections, channelCount, channelCountMode);
+
+        // Create a zero-initialized silent AudioBuffer with
+        // computedNumberOfChannels.
+        let destBuffer = context.createBuffer(
+            computedNumberOfChannels, singleTestFrameLength,
+            context.sampleRate);
+
+        // Mix all of the connections into the destination buffer.
+        for (let i = 0; i < connections.length; ++i) {
+          let connectionNumberOfChannels =
+              connections.charCodeAt(i) - '0'.charCodeAt(0);
+          let sourceBuffer =
+              testBuffers[connectionNumberOfChannels - 1];  // convert from
+                                                            // 1-based to
+                                                            // 0-based index
+
+          if (channelInterpretation == 'speakers') {
+            speakersSum(sourceBuffer, destBuffer);
+          } else if (channelInterpretation == 'discrete') {
+            discreteSum(sourceBuffer, destBuffer);
+          } else {
+            alert('Invalid channel interpretation!');
+          }
+        }
+
+        // Use this when debugging mixing rules.
+        // printTestInformation(testNumber, renderedBuffer, destBuffer,
+        // singleTestFrameLength, sampleFrameOffset);
+
+        // Validate that destBuffer matches the rendered output.  We need to
+        // check the rendered output at a specific sample-frame-offset
+        // corresponding to the specific test case we're checking for based on
+        // testNumber.
+
+        let sampleFrameOffset = testNumber * singleTestFrameLength;
+        for (let c = 0; c < renderNumberOfChannels; ++c) {
+          let renderedData = renderedBuffer.getChannelData(c);
+          for (let frame = 0; frame < singleTestFrameLength; ++frame) {
+            let renderedValue = renderedData[frame + sampleFrameOffset];
+
+            let expectedValue = 0;
+            if (c < destBuffer.numberOfChannels) {
+              let expectedData = destBuffer.getChannelData(c);
+              expectedValue = expectedData[frame];
+            }
+
+            // We may need to add an epsilon in the comparison if we add more
+            // test vectors.
+            if (renderedValue != expectedValue) {
+              let message = s + 'rendered: ' + renderedValue +
+                  ' expected: ' + expectedValue + ' channel: ' + c +
+                  ' frame: ' + frame;
+              // testFailed(s);
+              should(renderedValue, s).beEqualTo(expectedValue);
+              return;
+            }
+          }
+        }
+
+        should(true, s).beTrue();
+      }
+
+      function checkResult(buffer, should) {
+        // Sanity check result.
+        should(buffer.length, 'Rendered number of frames')
+            .beEqualTo(numberOfTests * singleTestFrameLength);
+        should(buffer.numberOfChannels, 'Rendered number of channels')
+            .beEqualTo(renderNumberOfChannels);
+
+        // Check all the tests.
+        let testNumber = 0;
+        for (let m = 0; m < mixingRulesList.length; ++m) {
+          let mixingRules = mixingRulesList[m];
+          for (let i = 0; i < connectionsList.length; ++i, ++testNumber) {
+            checkTestResult(
+                buffer, testNumber, connectionsList[i],
+                mixingRules.channelCount, mixingRules.channelCountMode,
+                mixingRules.channelInterpretation, should);
+          }
+        }
+      }
+
+      audit.define(
+          {label: 'test', description: 'Channel mixing rules for AudioNodes'},
+          function(task, should) {
+
+            // Create 8-channel offline audio context.  Each test will render 8
+            // sample-frames starting at sample-frame position testNumber * 8.
+            let totalFrameLength = numberOfTests * singleTestFrameLength;
+            context = new OfflineAudioContext(
+                renderNumberOfChannels, totalFrameLength, sampleRate);
+
+            // Set destination to discrete mixing.
+            context.destination.channelCount = renderNumberOfChannels;
+            context.destination.channelCountMode = 'explicit';
+            context.destination.channelInterpretation = 'discrete';
+
+            // Create test buffers from 1 to 8 channels.
+            testBuffers = new Array();
+            for (let i = 0; i < renderNumberOfChannels; ++i) {
+              testBuffers[i] = createShiftedImpulseBuffer(
+                  context, i + 1, singleTestFrameLength);
+            }
+
+            // Schedule all the tests.
+            let testNumber = 0;
+            for (let m = 0; m < mixingRulesList.length; ++m) {
+              let mixingRules = mixingRulesList[m];
+              for (let i = 0; i < connectionsList.length; ++i, ++testNumber) {
+                scheduleTest(
+                    testNumber, connectionsList[i], mixingRules.channelCount,
+                    mixingRules.channelCountMode,
+                    mixingRules.channelInterpretation);
+              }
+            }
+
+            // Render then check results.
+            // context.oncomplete = checkResult;
+            context.startRendering().then(buffer => {
+              checkResult(buffer, should);
+              task.done();
+            });
+            ;
+          });
+
+      audit.run();
+    </script>
+  </body>
+</html>

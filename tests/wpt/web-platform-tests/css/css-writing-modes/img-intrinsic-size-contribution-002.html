@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html style="writing-mode: vertical-lr;">
+<title>CSS Test: intrinsic size contributions of images in vertical writing mode (with the image itself in horizontal writing mode)</title>
+<meta name="assert" content="The image's parent element's intrinsic inline size should be contributed to by the image's height, not the image's width">
+<link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#vertical-layout" title="7.1 Principles of Layout in Vertical Writing Modes">
+<link rel="author" title="Zhang Junzhi" href="mailto:zjz@zjz.name">
+<link rel="match" href="img-intrinsic-size-contribution-ref.html">
+
+<style>
+* { margin: 0; padding: 0; }
+</style>
+
+<div style="border: 1px solid blue; display: grid; height: 150px;">
+	<div style="border: 1px solid orange;">
+		<img src="support/blue-200x100.png" style="writing-mode: horizontal-tb;">
+	</div>
+</div>
+
+</html>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>Space</title>
-<link rel="help" href="http://www.mathml-association.org/MathMLinHTML5/S3.html#SS2.SSS6">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#space-mspace">
 <meta name="assert" content="Verify mspace metrics for different values of height, depth and width">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -63,11 +63,58 @@
       }
     }, "Various combinations of height, depth and width.");
 
+    test(function() {
+      var container = document.getElementById("containerForPreferredWidth");
+      var mspace = container.getElementsByTagName("mspace")[0];
+      var containerWidth = container.getBoundingClientRect().width;
+      var mspaceWidth = mspace.getBoundingClientRect().width;
+      assert_approx_equals(containerWidth, mspaceWidth, epsilon);
+    }, "Preferred width");
+
+    // Dynamically set attributes.
+    ["width", "height", "depth"].forEach(function (name, index) {
+        document.getElementById("dynamic-remove").removeAttribute(name);
+        let length = `${50 + index * 10}px`;
+        document.getElementById("dynamic-attach").setAttribute(name, length);
+        document.getElementById("dynamic-modify").setAttribute(name, length);
+    });
+    let baseline = getBox("baseline2").bottom;
+
+    test(function() {
+        let remove = getBox("dynamic-remove");
+        assert_approx_equals(remove.width, 0, epsilon);
+        assert_approx_equals(remove.height, 0, epsilon);
+        assert_approx_equals(remove.top, baseline, epsilon);
+    }, "dynamic attributes (remove)");
+
+    test(function() {
+        let attach = getBox("dynamic-attach");
+        assert_approx_equals(attach.width, 50, epsilon);
+        assert_approx_equals(attach.height, 60 + 70, epsilon);
+        assert_approx_equals(baseline - attach.top, 60, epsilon);
+    }, "dynamic attributes (attach)");
+
+    test(function() {
+        let modify = getBox("dynamic-modify");
+        assert_approx_equals(modify.width, 50, epsilon);
+        assert_approx_equals(modify.height, 60 + 70, epsilon);
+        assert_approx_equals(baseline - modify.top, 60, epsilon);
+    }, "dynamic attributes (modify)");
+
     done();
   }
 </script>
+<style>
+div.shrink-wrap {
+  background: yellow;
+  display: inline-block;
+  margin-top: 5px;
+  padding-top: 5px;
+}
+</style>
 </head>
 <body>
+  <div id="log"></div>
   <p>
     <span id="baseline" style="display: inline-block; width: 30px; height: 5px; background: blue"></span>
     <math>
@@ -81,11 +128,23 @@
       <mspace id="depth0" depth="25px"/>
       <mspace id="depth1" depth="50px"/>
       <mspace id="depth2" depth="75px"/>
-      <mspace id="mspace0" width="25px" height="50px" depth="75px" mathbackground="green"/>
-      <mspace id="mspace1" width="50px" height="75px" depth="25px" mathbackground="blue"/>
-      <mspace id="mspace2" width="75px" height="25px" depth="50px" mathbackground="green"/>
+      <mspace id="mspace0" width="25px" height="50px" depth="75px" style="background: green"/>
+      <mspace id="mspace1" width="50px" height="75px" depth="25px" style="background: blue"/>
+      <mspace id="mspace2" width="75px" height="25px" depth="50px" style="background: green"/>
     </math>
   </p>
-  <hr/>
+  <div>
+    <div id="containerForPreferredWidth" class="shrink-wrap">
+      <math><mspace width="75px" height="25px" depth="50px" style="background: green"/></math>
+    </div>
+  </div>
+  <p>
+    <span id="baseline2" style="display: inline-block; width: 30px; height: 5px; background: blue"></span>
+    <math>
+      <mspace id="dynamic-attach" style="background: lightgreen"/>
+      <mspace id="dynamic-remove" width="10px" height="20px" depth="30px" style="background: lightyellow"/>
+      <mspace id="dynamic-modify" width="100px" height="200px" depth="300px" style="background: pink"/>
+    </math>
+  </p>
 </body>
 </html>

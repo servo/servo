@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/utils.js"></script>
+<div id=outer>
+  <div id=div></div>
+</div>
+<script>
+
+test_with_at_property({
+  syntax: '"<length>"',
+  inherits: false,
+  initialValue: '0px'
+}, (name) => {
+  with_style_node(`
+    @keyframes test {
+      from { ${name}: 100px; }
+      to { ${name}: 200px; }
+    }
+    #div { animation: test 100s -50s linear; }
+  `, () => {
+    assert_equals(getComputedStyle(div).getPropertyValue(name), '150px');
+  });
+}, '@keyframes works with @property');
+
+test_with_at_property({
+  syntax: '"<length>"',
+  inherits: false,
+  initialValue: '0px'
+}, (name) => {
+  with_style_node(`
+    @property ${name} {
+      syntax: "<color>";
+      inherits: false;
+      initial-value: black;
+    }
+    @keyframes test {
+      from { ${name}: rgb(100, 100, 100); }
+      to { ${name}: rgb(200, 200, 200); }
+    }
+    #div { animation: test 100s -50s linear; }
+  `, () => {
+    assert_equals(getComputedStyle(div).getPropertyValue(name), 'rgb(150, 150, 150)');
+  });
+}, '@keyframes picks up the latest @property in the document');
+
+test_with_at_property({
+  syntax: '"<length>"',
+  inherits: false,
+  initialValue: '0px'
+}, (name) => {
+  // These keyframes are initially invalid for the declared custom property.
+  let animation = div.animate([
+    { [name]: 'rgb(100, 100, 100)'},
+    { [name]: 'rgb(200, 200, 200)'},
+  ], { duration: 10000, delay: -5000, easing: 'linear' });
+  let cs = getComputedStyle(div);
+  assert_equals(cs.getPropertyValue(name), '0px');
+
+  // Redeclare the property as a <color>, effectively making the existing
+  // keyframes valid.
+  with_at_property({
+    name: name,
+    syntax: '"<color>"',
+    inherits: false,
+    initialValue: 'black'
+  }, (name) => {
+    assert_equals(cs.getPropertyValue(name), 'rgb(150, 150, 150)');
+  });
+
+  animation.finish();
+}, 'Ongoing animation picks up redeclared custom property');
+
+test_with_at_property({
+  syntax: '"<length>"',
+  inherits: false,
+  initialValue: '0px'
+}, (name) => {
+  // These keyframes are initially invalid for the declared custom property.
+  let animation = div.animate([
+    { [name]: 'rgb(100, 100, 100)'},
+    { [name]: 'rgb(200, 200, 200)'},
+  ], { duration: 10000, delay: -5000, easing: 'linear' });
+  let cs = getComputedStyle(div);
+  assert_equals(cs.getPropertyValue(name), '0px');
+
+  // Setting the keyframes to something that matches <length> makes the
+  // interpolation valid.
+  animation.effect.setKeyframes([
+    {[name]: '100px'},
+    {[name]: '200px'}
+  ]);
+  assert_equals(cs.getPropertyValue(name), '150px');
+
+  animation.finish();
+}, 'Ongoing animation matches new keyframes against the current registration');
+
+test_with_at_property({
+  syntax: '"<length>"',
+  inherits: false,
+  initialValue: '0px'
+}, (name) => {
+  let animation = div.animate([
+    { [name]: 'initial'},
+    { [name]: '400px'},
+  ], { duration: 10000, delay: -5000, easing: 'linear' });
+  let cs = getComputedStyle(div);
+  assert_equals(cs.getPropertyValue(name), '200px');
+
+  // Change initial value.
+  with_at_property({
+    name: name,
+    syntax: '"<length>"',
+    inherits: false,
+    initialValue: '100px'
+  }, (name) => {
+    assert_equals(cs.getPropertyValue(name), '250px');
+  });
+
+  animation.finish();
+}, 'Ongoing animation picks up redeclared intial value');
+
+test_with_at_property({
+  syntax: '"<length>"',
+  inherits: false,
+  initialValue: '0px'
+}, (name) => {
+  try {
+    document.body.style = `${name}: 100px`;
+    // Note that 'inherit' here refers to #outer, which has the initial
+    // value. (#outer did not inherit from body, since the property is not
+    // yet declared as inherited).
+    let animation = div.animate([
+      { [name]: 'inherit'},
+      { [name]: '400px'},
+    ], { duration: 10000, delay: -5000, easing: 'linear' });
+    let cs = getComputedStyle(div);
+    assert_equals(cs.getPropertyValue(name), '200px');
+
+    // Change inherits to 'true'. The value should now propagate from body
+    // to #outer.
+    with_at_property({
+      name: name,
+      syntax: '"<length>"',
+      inherits: true,
+      initialValue: '0px'
+    }, (name) => {
+      assert_equals(cs.getPropertyValue(name), '250px');
+    });
+
+    animation.finish();
+  } finally {
+    document.body.style = '';
+  }
+}, 'Ongoing animation picks up redeclared inherits flag');
+
+test_with_at_property({
+  syntax: '"<length>"',
+  inherits: false,
+  initialValue: '0px'
+}, (name) => {
+  try {
+    outer.style = `${name}: 100px`;
+    // 'unset' should take the initial value (not the value from #outer), since
+    // the property is not declared as inherited.
+    let animation = div.animate([
+      { [name]: 'unset'},
+      { [name]: '400px'},
+    ], { duration: 10000, delay: -5000, easing: 'linear' });
+    let cs = getComputedStyle(div);
+    assert_equals(cs.getPropertyValue(name), '200px');
+
+    // Change inherits to 'true'. 'unset' now refers to #outer's value.
+    with_at_property({
+      name: name,
+      syntax: '"<length>"',
+      inherits: true,
+      initialValue: '0px'
+    }, (name) => {
+      assert_equals(cs.getPropertyValue(name), '250px');
+    });
+
+    animation.finish();
+  } finally {
+    outer.style = '';
+  }
+}, 'Ongoing animation picks up redeclared meaning of \'unset\'');
+
+test_with_at_property({
+  syntax: '"<color>"',
+  inherits: false,
+  initialValue: 'red'
+}, (name) => {
+  try {
+    assert_equals(getComputedStyle(div).getPropertyValue(name), 'rgb(255, 0, 0)');
+    div.style = `transition: ${name} steps(2, start) 100s; ${name}: blue`;
+    assert_equals(getComputedStyle(div).getPropertyValue(name), 'rgb(128, 0, 128)');
+  } finally {
+    div.style = '';
+  }
+}, 'Transitioning from initial value');
+
+test_with_at_property({
+  syntax: '"<color>"',
+  inherits: false,
+  initialValue: 'red'
+}, (name) => {
+  try {
+    div.style = `${name}: blue;`;
+    assert_equals(getComputedStyle(div).getPropertyValue(name), 'rgb(0, 0, 255)');
+    div.style = `transition: ${name} steps(2, start) 100s; ${name}: green`;
+    assert_equals(getComputedStyle(div).getPropertyValue(name), 'rgb(0, 64, 128)');
+  } finally {
+    div.style = '';
+  }
+}, 'Transitioning from specified value');
+
+test_with_at_property({
+  syntax: '"<length>"',
+  inherits: false,
+  initialValue: '100px'
+}, (name) => {
+    with_style_node(`div { transition: ${name} steps(2, start) 100s; }`, () => {
+      assert_equals(getComputedStyle(div).getPropertyValue(name), '100px');
+      // Re-declaring the property with a different initial value effectively
+      // means the computed value has changed. This means we should transition
+      // from the old initial value to the new initial value.
+      with_at_property({
+        name: name,
+        syntax: '"<length>"',
+        inherits: false,
+        initialValue: '200px'
+      }, () => {
+        assert_equals(getComputedStyle(div).getPropertyValue(name), '150px');
+      });
+    });
+}, 'Transition triggered by initial value change');
+
+test_with_at_property({
+  syntax: '"<length>"',
+  inherits: false,
+  initialValue: '100px'
+}, (name) => {
+    with_style_node(`div { transition: ${name} steps(2, start) 100s; }`, () => {
+      assert_equals(getComputedStyle(div).getPropertyValue(name), '100px');
+      with_at_property({
+        name: name,
+        syntax: '"<color>"',
+        inherits: false,
+        initialValue: 'green'
+      }, () => {
+        assert_equals(getComputedStyle(div).getPropertyValue(name), 'rgb(0, 128, 0)');
+      });
+    });
+}, 'No transition when changing types');
+
+test(() => {
+  let name = generate_name();
+  with_style_node(`div { ${name}: 100px; transition: ${name} steps(2, start) 100s; }`, () => {
+    assert_equals(getComputedStyle(div).getPropertyValue(name), ' 100px');
+
+    let style1 = document.createElement('style');
+    style1.textContent = `
+      @property ${name} {
+        syntax: "<length>";
+        inherits: false;
+        initial-value: 200px;
+      }
+    `;
+
+    let style2 = document.createElement('style');
+    style2.textContent = `div { ${name}: 400px; }`;
+
+    try {
+      // Register the property:
+      document.body.append(style1);
+      // The token sequence ' 100px' is now interpreted as a length '100px'.
+      assert_equals(getComputedStyle(div).getPropertyValue(name), '100px');
+
+      // Change the computed value:
+      document.body.append(style2);
+      // This should cause an interpolation between 100px and 400px:
+      assert_equals(getComputedStyle(div).getPropertyValue(name), '250px');
+
+      // In the middle of the transition above, remove the @property rule
+      // (making the computed value a token sequence again). We should snap
+      // to the new token sequence.
+      style1.remove();
+      assert_equals(getComputedStyle(div).getPropertyValue(name), ' 400px');
+    } finally {
+      style1.remove();
+      style2.remove();
+    }
+  });
+}, 'No transition when removing @property rule');
+
+</script>

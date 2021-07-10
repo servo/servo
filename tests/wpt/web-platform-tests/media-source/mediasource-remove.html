@@ -17,7 +17,7 @@
 
               mediaSource.duration = 10;
 
-              assert_throws(new TypeError(), function()
+              assert_throws_js(TypeError, function()
               {
                   sourceBuffer.remove(-1, 2);
               }, "remove");
@@ -33,7 +33,7 @@
 
               [ undefined, NaN, Infinity, -Infinity ].forEach(function(item)
               {
-                  assert_throws(new TypeError(), function()
+                  assert_throws_js(TypeError, function()
                   {
                       sourceBuffer.remove(item, 2);
                   }, "remove");
@@ -48,7 +48,7 @@
 
               mediaSource.duration = 10;
 
-              assert_throws(new TypeError(), function()
+              assert_throws_js(TypeError, function()
               {
                   sourceBuffer.remove(11, 12);
               }, "remove");
@@ -62,7 +62,7 @@
 
               mediaSource.duration = 10;
 
-              assert_throws(new TypeError(), function()
+              assert_throws_js(TypeError, function()
               {
                   sourceBuffer.remove(2, 1);
               }, "remove");
@@ -76,7 +76,7 @@
 
               mediaSource.duration = 10;
 
-              assert_throws(new TypeError(), function()
+              assert_throws_js(TypeError, function()
               {
                   sourceBuffer.remove(0, Number.NEGATIVE_INFINITY);
               }, "remove");
@@ -90,7 +90,7 @@
 
               mediaSource.duration = 10;
 
-              assert_throws(new TypeError(), function()
+              assert_throws_js(TypeError, function()
               {
                   sourceBuffer.remove(0, Number.NaN);
               }, "remove");
@@ -106,7 +106,7 @@
 
               mediaSource.removeSourceBuffer(sourceBuffer);
 
-              assert_throws("InvalidStateError", function()
+              assert_throws_dom("InvalidStateError", function()
               {
                   sourceBuffer.remove(1, 2);
               }, "remove");
@@ -121,7 +121,7 @@
               assert_false(sourceBuffer.updating, "updating is false");
               assert_equals(mediaSource.duration, NaN, "duration isn't set");
 
-              assert_throws(new TypeError(), function()
+              assert_throws_js(TypeError, function()
               {
                   sourceBuffer.remove(0, 0);
               }, "remove");
@@ -142,7 +142,7 @@
 
               assert_true(sourceBuffer.updating, "updating");
 
-              assert_throws("InvalidStateError", function()
+              assert_throws_dom("InvalidStateError", function()
               {
                   sourceBuffer.remove(3, 4);
               }, "remove");
@@ -166,7 +166,7 @@
 
               assert_true(sourceBuffer.updating, "updating");
 
-              assert_throws("InvalidStateError", function()
+              assert_throws_dom("InvalidStateError", function()
               {
                   sourceBuffer.abort();
               }, "abort");

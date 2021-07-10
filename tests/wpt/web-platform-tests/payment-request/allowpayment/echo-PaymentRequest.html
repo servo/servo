@@ -1,0 +1,25 @@
+<!doctype html>
+<script>
+window.onmessage = (e) => {
+  const paymentArgs = [[{supportedMethods: 'foo'}], {total: {label: 'label', amount: {currency: 'USD', value: '5.00'}}}];
+
+  if (e.data === 'What is the result of new PaymentRequest(...)?') {
+    const result = {urlQuery: location.search.substring(1)}; // Used to distinguish subtests
+    try {
+      new PaymentRequest(...paymentArgs);
+      result.message = 'Success';
+      e.source.postMessage(result, '*');
+    } catch(ex) {
+      result.message = 'Exception';
+      const isDomException = ex instanceof DOMException;
+      const stack = "stack" in ex ? ex.stack : "";
+      result.details = [ isDomException, ex.code, ex.name, stack ];
+      e.source.postMessage(result, '*');
+    }
+  } else {
+    result.message = 'Incorrect message';
+    e.source.postMessage(result, '*');
+  }
+}
+</script>
+<p>This page echos the result of new PaymentRequest(...).</p>

@@ -34,15 +34,15 @@
       </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
-	<p>This test requires user interaction. Run the test, then click on the grey rectangle.
-	  If it turns green, click it again.
-	</p>
+  <p>This test requires user interaction. Run the test, then click on the grey rectangle.
+    If it turns green, click it again.
+  </p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
-        After clicking once on the button, the rectangle should have a green fill 
-	and the text "Event listeners supported" should appear, once.
-        
+        After clicking once on the button, the rectangle should have a green fill
+  and the text "Event listeners supported" should appear, once.
+
       </p>
     </d:passCriteria>
   </d:SVGTestCase>

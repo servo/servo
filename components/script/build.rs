@@ -1,72 +1,60 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-extern crate cmake;
-extern crate phf_codegen;
-extern crate phf_shared;
-extern crate serde_json;
-
-use serde_json::Value;
+use phf_shared::{self, FmtConst};
+use serde_json::{self, Value};
 use std::env;
 use std::fmt;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
+use std::process::Command;
 use std::time::Instant;
 
 fn main() {
     let start = Instant::now();
 
-    // This must use the Ninja generator -- it's the only one that
-    // parallelizes cmake's output properly.  (Cmake generates
-    // separate makefiles, each of which try to build
-    // ParserResults.pkl, and then stomp on eachother.)
-    let mut build = cmake::Config::new(".");
+    let style_out_dir = PathBuf::from(env::var_os("DEP_SERVO_STYLE_CRATE_OUT_DIR").unwrap());
+    let out_dir = PathBuf::from(env::var_os("OUT_DIR").unwrap());
 
-    let target = env::var("TARGET").unwrap();
-    if target.contains("windows-msvc") {
-        // We must use Ninja on Windows for this -- msbuild is painfully slow,
-        // and ninja is easier to install than make.
-        build.generator("Ninja");
-        // because we're using ninja, we need to explicitly set these
-        // to VC++, otherwise it'll try to use cc
-        build.define("CMAKE_C_COMPILER", "cl.exe")
-             .define("CMAKE_CXX_COMPILER", "cl.exe");
-        // We have to explicitly specify the full path to link.exe,
-        // for reasons that I don't understand.  If we just give
-        // link.exe, it tries to use script-*/out/link.exe, which of
-        // course does not exist.
-        let link = std::process::Command::new("where").arg("link.exe").output().unwrap();
-        let link_path: Vec<&str> = std::str::from_utf8(&link.stdout).unwrap().split("\r\n").collect();
-        build.define("CMAKE_LINKER", link_path[0]);
+    let status = Command::new(find_python())
+        .arg("dom/bindings/codegen/run.py")
+        .arg(style_out_dir.join("css-properties.json"))
+        .arg(&out_dir)
+        .status()
+        .unwrap();
+    if !status.success() {
+        std::process::exit(1)
     }
 
-    build.build();
+    println!("Binding generation completed in {:?}", start.elapsed());
 
-    println!("Binding generation completed in {}s", start.elapsed().as_secs());
-
-    let json = PathBuf::from(env::var("OUT_DIR").unwrap()).join("build").join("InterfaceObjectMapData.json");
+    let json = out_dir.join("InterfaceObjectMapData.json");
     let json: Value = serde_json::from_reader(File::open(&json).unwrap()).unwrap();
     let mut map = phf_codegen::Map::new();
     for (key, value) in json.as_object().unwrap() {
         map.entry(Bytes(key), value.as_str().unwrap());
     }
-    let phf = PathBuf::from(env::var("OUT_DIR").unwrap()).join("InterfaceObjectMapPhf.rs");
+    let phf = PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("InterfaceObjectMapPhf.rs");
     let mut phf = File::create(&phf).unwrap();
-    write!(&mut phf, "pub static MAP: phf::Map<&'static [u8], unsafe fn(*mut JSContext, HandleObject)> = ").unwrap();
-    map.build(&mut phf).unwrap();
-    write!(&mut phf, ";\n").unwrap();
+    write!(
+        &mut phf,
+        "pub static MAP: phf::Map<&'static [u8], fn(JSContext, HandleObject)> = {};\n",
+        map.build(),
+    )
+    .unwrap();
 }
 
-#[derive(Eq, PartialEq, Hash)]
+#[derive(Eq, Hash, PartialEq)]
 struct Bytes<'a>(&'a str);
 
-impl<'a> fmt::Debug for Bytes<'a> {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("b\"")?;
-        formatter.write_str(self.0)?;
-        formatter.write_str("\" as &'static [u8]")
+impl<'a> FmtConst for Bytes<'a> {
+    fn fmt_const(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        // https://github.com/rust-lang/rust/issues/55223
+        // should technically be just `write!(formatter, "b\"{}\"", self.0)
+        // but the referenced issue breaks promotion in the surrounding code
+        write!(formatter, "{{ const FOO: &[u8] = b\"{}\"; FOO }}", self.0)
     }
 }
 
@@ -74,4 +62,28 @@ impl<'a> phf_shared::PhfHash for Bytes<'a> {
     fn phf_hash<H: std::hash::Hasher>(&self, hasher: &mut H) {
         self.0.as_bytes().phf_hash(hasher)
     }
+}
+
+fn find_python() -> String {
+    env::var("PYTHON3").ok().unwrap_or_else(|| {
+        let candidates = if cfg!(windows) {
+            ["python3.8.exe", "python38.exe", "python.exe"]
+        } else {
+            ["python3.8", "python3", "python"]
+        };
+        for &name in &candidates {
+            if Command::new(name)
+                .arg("--version")
+                .output()
+                .ok()
+                .map_or(false, |out| out.status.success())
+            {
+                return name.to_owned();
+            }
+        }
+        panic!(
+            "Can't find python (tried {})! Try fixing PATH or setting the PYTHON3 env var",
+            candidates.join(", ")
+        )
+    })
 }

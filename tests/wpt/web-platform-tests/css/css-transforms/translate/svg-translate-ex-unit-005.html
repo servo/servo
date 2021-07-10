@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: SVG presentation attribute and translation-value negative arguments with ex units in scientific notation on translate</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-number">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+		<link rel="help" href="http://www.w3.org/TR/css-transforms-1/#funcdef-transform-translate">
+    <link rel="match" href="reference/svg-translate-ex-unit-ref.html">
+    <meta name="flags" content="svg ahem">
+    <meta name="assert" content="The translate transform function must support the relative length unit 'ex' in negative scientific numbers on translation-value arguments. The rect in the test should be moved 40 pixels in the X direction and 40 pixels in the Y direction">
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+    <style type="text/css">
+    svg {
+        width: 300px;
+        height: 300px;
+        line-height: 1;
+        font: 50px Ahem;
+    }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a green square and no red.</p>
+    <svg>
+        <rect x="41" y="41" width="98" height="98" fill="red"/>
+        <rect x="80" y="80" width="100" height="100" fill="green" transform="translate(-0.1e1ex -0.1e1ex)"/>
+    </svg>
+</body>
+</html>

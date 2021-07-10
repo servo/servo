@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+  -->
+<html lang="ja" xmlns="http://www.w3.org/1999/xhtml">
+<meta charset="utf-8"/>
+<title>CSS Ruby Test: :root element with 'display:ruby'.</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com"/>
+<link rel="help" href="https://drafts.csswg.org/css-display/#propdef-display"/>
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#box-fixup"/>
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#inlinify"/>
+<link rel="match" href="root-ruby-ref.xhtml"/>
+<style>
+:root { display: ruby; }
+rbc {
+  display: ruby-base-container;
+}
+rtc {
+  display: ruby-text-container;
+}
+</style>
+べ
+<rtc>
+  <rt>る</rt>
+</rtc>
+<rbc>
+  <rb>A</rb>
+  <rb>B</rb>
+</rbc>
+
+<pre></pre>
+<script>
+let ruby = Array.prototype.slice.call(document.querySelectorAll(':root'));
+let result = ruby.map(e => window.getComputedStyle(e).display + ', ').reduce((s, t) => s + t, "");
+document.querySelector('pre').appendChild(document.createTextNode(result));
+</script>
+</html>

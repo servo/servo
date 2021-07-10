@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Test Setting of channelCountMode and channelInterpretation
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      // Fairly arbitrary sample rate and number of frames, except the number of
+      // frames should be more than a few render quantums.
+      let sampleRate = 16000;
+      let renderFrames = 10 * 128;
+
+      let audit = Audit.createTaskRunner();
+
+      audit.define('interp', (task, should) => {
+        let context = new OfflineAudioContext(1, renderFrames, sampleRate);
+        let node = context.createGain();
+
+        // Set a new interpretation and verify that it changed.
+        node.channelInterpretation = 'discrete';
+        let value = node.channelInterpretation;
+        should(value, 'node.channelInterpretation').beEqualTo('discrete');
+        node.connect(context.destination);
+
+        context.startRendering()
+            .then(function(buffer) {
+              // After rendering, the value should have been changed.
+              should(
+                  node.channelInterpretation,
+                  'After rendering node.channelInterpretation')
+                  .beEqualTo('discrete');
+            })
+            .then(() => task.done());
+      });
+
+      audit.define('mode', (task, should) => {
+        let context = new OfflineAudioContext(1, renderFrames, sampleRate);
+        let node = context.createGain();
+
+        // Set a new mode and verify that it changed.
+        node.channelCountMode = 'explicit';
+        let value = node.channelCountMode;
+        should(value, 'node.channelCountMode').beEqualTo('explicit');
+        node.connect(context.destination);
+
+        context.startRendering()
+            .then(function(buffer) {
+              // After rendering, the value should have been changed.
+              should(
+                  node.channelCountMode,
+                  'After rendering node.channelCountMode')
+                  .beEqualTo('explicit');
+            })
+            .then(() => task.done());
+      });
+
+      audit.run();
+    </script>
+  </body>
+</html>

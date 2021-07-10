@@ -1,7 +1,4 @@
 <!doctype html>
-<!--
-This test uses the legacy callback API with no media, and thus does not require fake media devices.
--->
 
 <html>
 <head>
@@ -17,6 +14,7 @@ This test uses the legacy callback API with no media, and thus does not require 
   <!-- These files are in place when executing on W3C. -->
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
+  <script src="RTCPeerConnection-helper.js"></script>
   <script type="text/javascript">
   var test = async_test('Can set up a basic WebRTC call with no data.');
 
@@ -36,10 +34,9 @@ This test uses the legacy callback API with no media, and thus does not require 
 
     var parsedOffer = new RTCSessionDescription({ type: 'offer',
                                                   sdp: offerSdp });
-    // These functions use the legacy interface extensions to RTCPeerConnection.
-    gSecondConnection.setRemoteDescription(parsedOffer,
+    gSecondConnection.setRemoteDescription(parsedOffer).then(
       function() {
-        gSecondConnection.createAnswer(onAnswerCreated,
+        gSecondConnection.createAnswer().then(onAnswerCreated,
                                        failed('createAnswer'));
       },
       failed('setRemoteDescription second'));
@@ -56,21 +53,16 @@ This test uses the legacy callback API with no media, and thus does not require 
   function handleAnswer(answerSdp) {
     var parsedAnswer = new RTCSessionDescription({ type: 'answer',
                                                    sdp: answerSdp });
-    gFirstConnection.setRemoteDescription(parsedAnswer, ignoreSuccess,
+    gFirstConnection.setRemoteDescription(parsedAnswer).then(ignoreSuccess,
                                           failed('setRemoteDescription first'));
   };
 
   var onIceCandidateToFirst = test.step_func(function(event) {
-    // If event.candidate is null = no more candidates.
-    if (event.candidate) {
-      gSecondConnection.addIceCandidate(event.candidate);
-    }
+    gSecondConnection.addIceCandidate(event.candidate);
   });
 
   var onIceCandidateToSecond = test.step_func(function(event) {
-    if (event.candidate) {
-      gFirstConnection.addIceCandidate(event.candidate);
-    }
+    gFirstConnection.addIceCandidate(event.candidate);
   });
 
   var onIceConnectionStateChange = test.step_func(function(event) {
@@ -116,17 +108,17 @@ This test uses the legacy callback API with no media, and thus does not require 
   // This function starts the test.
   test.step(function() {
     gFirstConnection = new RTCPeerConnection(null);
+    test.add_cleanup(() => gFirstConnection.close());
     gFirstConnection.onicecandidate = onIceCandidateToFirst;
     gFirstConnection.oniceconnectionstatechange = onIceConnectionStateChange;
 
     gSecondConnection = new RTCPeerConnection(null);
+    test.add_cleanup(() => gSecondConnection.close());
     gSecondConnection.onicecandidate = onIceCandidateToSecond;
     gSecondConnection.oniceconnectionstatechange = onIceConnectionStateChange;
 
-    // The offerToReceiveVideo is necessary and sufficient to make
-    // an actual connection.
-    gFirstConnection.createOffer(onOfferCreated, failed('createOffer'),
-        {offerToReceiveVideo: true});
+    generateVideoReceiveOnlyOffer(gFirstConnection)
+      .then(onOfferCreated, failed('createOffer'));
   });
 </script>
 

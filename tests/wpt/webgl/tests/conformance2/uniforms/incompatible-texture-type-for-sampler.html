@@ -1,0 +1,336 @@
+<!--
+
+/*
+** Copyright (c) 2018 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL uniform samplers with incompatible texture formats tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script id="vshader" type="x-shader/x-vertex">#version 300 es
+in vec4 a_vertex;
+void main(void) {
+  gl_Position = a_vertex;
+  gl_PointSize = 1.0;
+}
+</script>
+</head>
+<body>
+<canvas id="example" width="100", height="100"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+debug("");
+
+description("Test that using an incompatible texture type generates INVALID_OPERATION at draw time");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("example", undefined, 2);
+
+function makeFragmentShader(samplerType, uvType) {
+   return `#version 300 es
+     precision mediump float;
+     uniform mediump ${samplerType} u_tex;
+     out vec4 color;
+     void main() {
+       color = vec4(texture(u_tex, ${uvType}));
+     }
+   `;
+}
+
+const textureInternalFormatInfo = {};
+{
+  const t = textureInternalFormatInfo;
+  // unsized formats
+  t[gl.ALPHA]              = { textureFormat: gl.ALPHA,           colorRenderable: true,  textureFilterable: true,  bytesPerElement: [1, 2, 2, 4],        type: [gl.UNSIGNED_BYTE, gl.HALF_FLOAT, gl.HALF_FLOAT_OES, gl.FLOAT], };
+  t[gl.LUMINANCE]          = { textureFormat: gl.LUMINANCE,       colorRenderable: true,  textureFilterable: true,  bytesPerElement: [1, 2, 2, 4],        type: [gl.UNSIGNED_BYTE, gl.HALF_FLOAT, gl.HALF_FLOAT_OES, gl.FLOAT], };
+  t[gl.LUMINANCE_ALPHA]    = { textureFormat: gl.LUMINANCE_ALPHA, colorRenderable: true,  textureFilterable: true,  bytesPerElement: [2, 4, 4, 8],        type: [gl.UNSIGNED_BYTE, gl.HALF_FLOAT, gl.HALF_FLOAT_OES, gl.FLOAT], };
+  t[gl.RGB]                = { textureFormat: gl.RGB,             colorRenderable: true,  textureFilterable: true,  bytesPerElement: [3, 6, 6, 12, 2],    type: [gl.UNSIGNED_BYTE, gl.HALF_FLOAT, gl.HALF_FLOAT_OES, gl.FLOAT, gl.UNSIGNED_SHORT_5_6_5], };
+  t[gl.RGBA]               = { textureFormat: gl.RGBA,            colorRenderable: true,  textureFilterable: true,  bytesPerElement: [4, 8, 8, 16, 2, 2], type: [gl.UNSIGNED_BYTE, gl.HALF_FLOAT, gl.HALF_FLOAT_OES, gl.FLOAT, gl.UNSIGNED_SHORT_4_4_4_4, gl.UNSIGNED_SHORT_5_5_5_1], };
+
+  // sized formats
+  t[gl.R8]                 = { textureFormat: gl.RED,             colorRenderable: true,  textureFilterable: true,  bytesPerElement: [1],        type: [gl.UNSIGNED_BYTE], };
+  t[gl.R8_SNORM]           = { textureFormat: gl.RED,             colorRenderable: false, textureFilterable: true,  bytesPerElement: [1],        type: [gl.BYTE], };
+  t[gl.R16F]               = { textureFormat: gl.RED,             colorRenderable: false, textureFilterable: true,  bytesPerElement: [4, 2],     type: [gl.FLOAT, gl.HALF_FLOAT], };
+  t[gl.R32F]               = { textureFormat: gl.RED,             colorRenderable: false, textureFilterable: false, bytesPerElement: [4],        type: [gl.FLOAT], };
+  t[gl.R8UI]               = { textureFormat: gl.RED_INTEGER,     colorRenderable: true,  textureFilterable: false, bytesPerElement: [1],        type: [gl.UNSIGNED_BYTE], };
+  t[gl.R8I]                = { textureFormat: gl.RED_INTEGER,     colorRenderable: true,  textureFilterable: false, bytesPerElement: [1],        type: [gl.BYTE], };
+  t[gl.R16UI]              = { textureFormat: gl.RED_INTEGER,     colorRenderable: true,  textureFilterable: false, bytesPerElement: [2],        type: [gl.UNSIGNED_SHORT], };
+  t[gl.R16I]               = { textureFormat: gl.RED_INTEGER,     colorRenderable: true,  textureFilterable: false, bytesPerElement: [2],        type: [gl.SHORT], };
+  t[gl.R32UI]              = { textureFormat: gl.RED_INTEGER,     colorRenderable: true,  textureFilterable: false, bytesPerElement: [4],        type: [gl.UNSIGNED_INT], };
+  t[gl.R32I]               = { textureFormat: gl.RED_INTEGER,     colorRenderable: true,  textureFilterable: false, bytesPerElement: [4],        type: [gl.INT], };
+  t[gl.RG8]                = { textureFormat: gl.RG,              colorRenderable: true,  textureFilterable: true,  bytesPerElement: [2],        type: [gl.UNSIGNED_BYTE], };
+  t[gl.RG8_SNORM]          = { textureFormat: gl.RG,              colorRenderable: false, textureFilterable: true,  bytesPerElement: [2],        type: [gl.BYTE], };
+  t[gl.RG16F]              = { textureFormat: gl.RG,              colorRenderable: false, textureFilterable: true,  bytesPerElement: [8, 4],     type: [gl.FLOAT, gl.HALF_FLOAT], };
+  t[gl.RG32F]              = { textureFormat: gl.RG,              colorRenderable: false, textureFilterable: false, bytesPerElement: [8],        type: [gl.FLOAT], };
+  t[gl.RG8UI]              = { textureFormat: gl.RG_INTEGER,      colorRenderable: true,  textureFilterable: false, bytesPerElement: [2],        type: [gl.UNSIGNED_BYTE], };
+  t[gl.RG8I]               = { textureFormat: gl.RG_INTEGER,      colorRenderable: true,  textureFilterable: false, bytesPerElement: [2],        type: [gl.BYTE], };
+  t[gl.RG16UI]             = { textureFormat: gl.RG_INTEGER,      colorRenderable: true,  textureFilterable: false, bytesPerElement: [4],        type: [gl.UNSIGNED_SHORT], };
+  t[gl.RG16I]              = { textureFormat: gl.RG_INTEGER,      colorRenderable: true,  textureFilterable: false, bytesPerElement: [4],        type: [gl.SHORT], };
+  t[gl.RG32UI]             = { textureFormat: gl.RG_INTEGER,      colorRenderable: true,  textureFilterable: false, bytesPerElement: [8],        type: [gl.UNSIGNED_INT], };
+  t[gl.RG32I]              = { textureFormat: gl.RG_INTEGER,      colorRenderable: true,  textureFilterable: false, bytesPerElement: [8],        type: [gl.INT], };
+  t[gl.RGB8]               = { textureFormat: gl.RGB,             colorRenderable: true,  textureFilterable: true,  bytesPerElement: [3],        type: [gl.UNSIGNED_BYTE], };
+  t[gl.SRGB8]              = { textureFormat: gl.RGB,             colorRenderable: false, textureFilterable: true,  bytesPerElement: [3],        type: [gl.UNSIGNED_BYTE], };
+  t[gl.RGB565]             = { textureFormat: gl.RGB,             colorRenderable: true,  textureFilterable: true,  bytesPerElement: [3, 2],     type: [gl.UNSIGNED_BYTE, gl.UNSIGNED_SHORT_5_6_5], };
+  t[gl.RGB8_SNORM]         = { textureFormat: gl.RGB,             colorRenderable: false, textureFilterable: true,  bytesPerElement: [3],        type: [gl.BYTE], };
+  t[gl.R11F_G11F_B10F]     = { textureFormat: gl.RGB,             colorRenderable: false, textureFilterable: true,  bytesPerElement: [12, 6, 4], type: [gl.FLOAT, gl.HALF_FLOAT, gl.UNSIGNED_INT_10F_11F_11F_REV], };
+  t[gl.RGB9_E5]            = { textureFormat: gl.RGB,             colorRenderable: false, textureFilterable: true,  bytesPerElement: [12, 6, 4], type: [gl.FLOAT, gl.HALF_FLOAT, gl.UNSIGNED_INT_5_9_9_9_REV], };
+  t[gl.RGB16F]             = { textureFormat: gl.RGB,             colorRenderable: false, textureFilterable: true,  bytesPerElement: [12, 6],    type: [gl.FLOAT, gl.HALF_FLOAT], };
+  t[gl.RGB32F]             = { textureFormat: gl.RGB,             colorRenderable: false, textureFilterable: false, bytesPerElement: [12],       type: [gl.FLOAT], };
+  t[gl.RGB8UI]             = { textureFormat: gl.RGB_INTEGER,     colorRenderable: false, textureFilterable: false, bytesPerElement: [3],        type: [gl.UNSIGNED_BYTE], };
+  t[gl.RGB8I]              = { textureFormat: gl.RGB_INTEGER,     colorRenderable: false, textureFilterable: false, bytesPerElement: [3],        type: [gl.BYTE], };
+  t[gl.RGB16UI]            = { textureFormat: gl.RGB_INTEGER,     colorRenderable: false, textureFilterable: false, bytesPerElement: [6],        type: [gl.UNSIGNED_SHORT], };
+  t[gl.RGB16I]             = { textureFormat: gl.RGB_INTEGER,     colorRenderable: false, textureFilterable: false, bytesPerElement: [6],        type: [gl.SHORT], };
+  t[gl.RGB32UI]            = { textureFormat: gl.RGB_INTEGER,     colorRenderable: false, textureFilterable: false, bytesPerElement: [12],       type: [gl.UNSIGNED_INT], };
+  t[gl.RGB32I]             = { textureFormat: gl.RGB_INTEGER,     colorRenderable: false, textureFilterable: false, bytesPerElement: [12],       type: [gl.INT], };
+  t[gl.RGBA8]              = { textureFormat: gl.RGBA,            colorRenderable: true,  textureFilterable: true,  bytesPerElement: [4],        type: [gl.UNSIGNED_BYTE], };
+  t[gl.SRGB8_ALPHA8]       = { textureFormat: gl.RGBA,            colorRenderable: true,  textureFilterable: true,  bytesPerElement: [4],        type: [gl.UNSIGNED_BYTE], };
+  t[gl.RGBA8_SNORM]        = { textureFormat: gl.RGBA,            colorRenderable: false, textureFilterable: true,  bytesPerElement: [4],        type: [gl.BYTE], };
+  t[gl.RGB5_A1]            = { textureFormat: gl.RGBA,            colorRenderable: true,  textureFilterable: true,  bytesPerElement: [4, 2, 4],  type: [gl.UNSIGNED_BYTE, gl.UNSIGNED_SHORT_5_5_5_1, gl.UNSIGNED_INT_2_10_10_10_REV], };
+  t[gl.RGBA4]              = { textureFormat: gl.RGBA,            colorRenderable: true,  textureFilterable: true,  bytesPerElement: [4, 2],     type: [gl.UNSIGNED_BYTE, gl.UNSIGNED_SHORT_4_4_4_4], };
+  t[gl.RGB10_A2]           = { textureFormat: gl.RGBA,            colorRenderable: true,  textureFilterable: true,  bytesPerElement: [4],        type: [gl.UNSIGNED_INT_2_10_10_10_REV], };
+  t[gl.RGBA16F]            = { textureFormat: gl.RGBA,            colorRenderable: false, textureFilterable: true,  bytesPerElement: [16, 8],    type: [gl.FLOAT, gl.HALF_FLOAT], };
+  t[gl.RGBA32F]            = { textureFormat: gl.RGBA,            colorRenderable: false, textureFilterable: false, bytesPerElement: [16],       type: [gl.FLOAT], };
+  t[gl.RGBA8UI]            = { textureFormat: gl.RGBA_INTEGER,    colorRenderable: true,  textureFilterable: false, bytesPerElement: [4],        type: [gl.UNSIGNED_BYTE], };
+  t[gl.RGBA8I]             = { textureFormat: gl.RGBA_INTEGER,    colorRenderable: true,  textureFilterable: false, bytesPerElement: [4],        type: [gl.BYTE], };
+  t[gl.RGB10_A2UI]         = { textureFormat: gl.RGBA_INTEGER,    colorRenderable: true,  textureFilterable: false, bytesPerElement: [4],        type: [gl.UNSIGNED_INT_2_10_10_10_REV], };
+  t[gl.RGBA16UI]           = { textureFormat: gl.RGBA_INTEGER,    colorRenderable: true,  textureFilterable: false, bytesPerElement: [8],        type: [gl.UNSIGNED_SHORT], };
+  t[gl.RGBA16I]            = { textureFormat: gl.RGBA_INTEGER,    colorRenderable: true,  textureFilterable: false, bytesPerElement: [8],        type: [gl.SHORT], };
+  t[gl.RGBA32I]            = { textureFormat: gl.RGBA_INTEGER,    colorRenderable: true,  textureFilterable: false, bytesPerElement: [16],       type: [gl.INT], };
+  t[gl.RGBA32UI]           = { textureFormat: gl.RGBA_INTEGER,    colorRenderable: true,  textureFilterable: false, bytesPerElement: [16],       type: [gl.UNSIGNED_INT], };
+
+  // Sized Internal
+  t[gl.DEPTH_COMPONENT16]  = { textureFormat: gl.DEPTH_COMPONENT, colorRenderable: true,  textureFilterable: false, bytesPerElement: [2, 4],     type: [gl.UNSIGNED_SHORT, gl.UNSIGNED_INT], };
+  t[gl.DEPTH_COMPONENT24]  = { textureFormat: gl.DEPTH_COMPONENT, colorRenderable: true,  textureFilterable: false, bytesPerElement: [4],        type: [gl.UNSIGNED_INT], };
+  t[gl.DEPTH_COMPONENT32F] = { textureFormat: gl.DEPTH_COMPONENT, colorRenderable: true,  textureFilterable: false, bytesPerElement: [4],        type: [gl.FLOAT], };
+  t[gl.DEPTH24_STENCIL8]   = { textureFormat: gl.DEPTH_STENCIL,   colorRenderable: true,  textureFilterable: false, bytesPerElement: [4],        type: [gl.UNSIGNED_INT_24_8], };
+  t[gl.DEPTH32F_STENCIL8]  = { textureFormat: gl.DEPTH_STENCIL,   colorRenderable: true,  textureFilterable: false, bytesPerElement: [4],        type: [gl.FLOAT_32_UNSIGNED_INT_24_8_REV], };
+
+  Object.keys(t).forEach(function(internalFormat) {
+    const info = t[internalFormat];
+    info.bytesPerElementMap = {};
+    info.bytesPerElement.forEach(function(bytesPerElement, ndx) {
+      const type = info.type[ndx];
+      info.bytesPerElementMap[type] = bytesPerElement;
+    });
+  });
+}
+
+const depthTextureFormats = [
+  gl.DEPTH_COMPONENT16,
+  gl.DEPTH_COMPONENT24,
+  gl.DEPTH_COMPONENT32F,
+  gl.DEPTH24_STENCIL8,
+  gl.DEPTH32F_STENCIL8,
+];
+
+const intTextureFormats = [
+  gl.R8I,
+  gl.R16I,
+  gl.R32I,
+  gl.RG8I,
+  gl.RG16I,
+  gl.RG32I,
+  gl.RGB8I,
+  gl.RGB16I,
+  gl.RGB32I,
+  gl.RGBA8I,
+  gl.RGBA16I,
+  gl.RGBA32I,
+];
+
+const unsignedIntTextureFormats = [
+  gl.R8UI,
+  gl.R16UI,
+  gl.R32UI,
+  gl.RG8UI,
+  gl.RG16UI,
+  gl.RG32UI,
+  gl.RGB8UI,
+  gl.RGB16UI,
+  gl.RGB32UI,
+  gl.RGBA8UI,
+  gl.RGB10_A2UI,
+  gl.RGBA16UI,
+  gl.RGBA32UI,
+];
+
+const floatTextureFormats = Object.keys(textureInternalFormatInfo).map(function(v) {
+  return parseInt(v);
+}).filter(function(format) {
+  return intTextureFormats.indexOf(format) < 0 && unsignedIntTextureFormats.indexOf(format) < 0;
+});
+
+const floatSamplerTypes = [
+  { type: 'sampler2D',            uvType: 'vec2(0)', target: gl.TEXTURE_2D, },
+  { type: 'sampler3D',            uvType: 'vec3(0)', target: gl.TEXTURE_3D, },
+  { type: 'samplerCube',          uvType: 'vec3(0)', target: gl.TEXTURE_CUBE_MAP, },
+  { type: 'sampler2DArray',       uvType: 'vec3(0)', target: gl.TEXTURE_2D_ARRAY, },
+
+  // these sampler types should probably be tested separtely as they have
+  // various texParameter requirements
+  // { type: 'samplerCubeShadow',    uvType: 'vec4(0)', target: gl.TEXTURE_, },
+  // { type: 'sampler2DShadow',      uvType: 'vec3(0)', target: gl.TEXTURE_, },
+  // { type: 'sampler2DArrayShadow', uvType: 'vec4(0)', target: gl.TEXTURE_, },
+];
+
+const signedIntSamplerTypes = [
+  { type: 'isampler2D',           uvType: 'vec2(0)', target: gl.TEXTURE_2D, },
+  { type: 'isampler3D',           uvType: 'vec3(0)', target: gl.TEXTURE_3D, },
+  { type: 'isamplerCube',         uvType: 'vec3(0)', target: gl.TEXTURE_CUBE_MAP, },
+  { type: 'isampler2DArray',      uvType: 'vec3(0)', target: gl.TEXTURE_2D_ARRAY, },
+];
+
+const unsignedIntSamplerTypes = [
+  { type: 'usampler2D',           uvType: 'vec2(0)', target: gl.TEXTURE_2D, },
+  { type: 'usampler3D',           uvType: 'vec3(0)', target: gl.TEXTURE_3D, },
+  { type: 'usamplerCube',         uvType: 'vec3(0)', target: gl.TEXTURE_CUBE_MAP, },
+  { type: 'usampler2DArray',      uvType: 'vec3(0)', target: gl.TEXTURE_2D_ARRAY, },
+];
+
+/**
+ * Gets the number of bytes per element for a given internalFormat / type
+ * @param {number} internalFormat The internalFormat parameter from texImage2D etc..
+ * @param {number} type The type parameter for texImage2D etc..
+ * @return {number} the number of bytes per element for the given internalFormat, type combo
+ * @memberOf module:twgl/textures
+ */
+function getBytesPerElementForInternalFormat(internalFormat, type) {
+  const info = textureInternalFormatInfo[internalFormat];
+  if (!info) {
+    throw "unknown internal format";
+  }
+  const bytesPerElement = info.bytesPerElementMap[type];
+  if (bytesPerElement === undefined) {
+    throw "unknown internal format";
+  }
+  return bytesPerElement;
+}
+
+function make2DTexture(target, internalFormat, format, type) {
+  gl.texImage2D(target, 0, internalFormat, 1, 1, 0, format, type, null);
+}
+
+function make3DTexture(target, internalFormat, format, type) {
+  gl.texImage3D(target, 0, internalFormat, 1, 1, 1, 0, format, type, null);
+}
+
+function makeCubeMapTexture(target, internalFormat, format, type) {
+  [
+    gl.TEXTURE_CUBE_MAP_POSITIVE_X,
+    gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
+    gl.TEXTURE_CUBE_MAP_POSITIVE_Y,
+    gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
+    gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
+    gl.TEXTURE_CUBE_MAP_NEGATIVE_Z,
+  ].forEach(function(target) {
+    gl.texImage2D(target, 0, internalFormat, 1, 1, 0, format, type, null);
+  });
+}
+
+function runTest() {
+    const targets = {};
+    targets[gl.TEXTURE_2D]       = { fn: make2DTexture, },
+    targets[gl.TEXTURE_3D]       = { fn: make3DTexture, },
+    targets[gl.TEXTURE_CUBE_MAP] = { fn: makeCubeMapTexture, },
+    targets[gl.TEXTURE_2D_ARRAY] = { fn: make3DTexture, },
+
+    Object.keys(targets).forEach(function(target) {
+        target = parseInt(target);
+        const targetInfo = targets[target];
+        targetInfo.textures = [];
+        Object.keys(textureInternalFormatInfo).forEach(function(internalFormat) {
+            internalFormat = parseInt(internalFormat);
+            const isDepthFormat = depthTextureFormats.indexOf(internalFormat) >= 0;
+            if (target === gl.TEXTURE_3D && isDepthFormat) {
+              return;
+            }
+            const info = textureInternalFormatInfo[internalFormat];
+            const texture = gl.createTexture();
+            gl.bindTexture(target, texture);
+            targetInfo.fn(target, internalFormat, info.textureFormat, info.type[0]);
+            targetInfo.textures.push({
+                internalFormat: internalFormat,
+                texture: texture,
+            });
+            gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+            gl.texParameteri(target, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+            gl.texParameteri(target, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(target, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(target, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);
+            wtu.glErrorShouldBe(gl, gl.NO_ERROR, `No errors from setup for ${wtu.glEnumToString(gl, target)} ${wtu.glEnumToString(gl, internalFormat)}`);
+        });
+    });
+
+    testSamplerTypes(floatSamplerTypes, floatTextureFormats);
+    testSamplerTypes(signedIntSamplerTypes, intTextureFormats);
+    testSamplerTypes(unsignedIntSamplerTypes, unsignedIntTextureFormats);
+
+    function testSamplerTypes(samplerTypes, compatibleFormats) {
+        samplerTypes.forEach(function(samplerInfo) {
+            debug(`\nchecking ${samplerInfo.type}`);
+            const program = wtu.setupProgram(gl, ['vshader', makeFragmentShader(samplerInfo.type, samplerInfo.uvType)], [], console.log.bind(console));
+            if (!program) {
+                testFailed("Loading program failed");
+                return;
+            }
+            testPassed("Loading program succeeded");
+
+            const target = samplerInfo.target;
+            const targetInfo = targets[target];
+            targetInfo.textures.forEach(function(textureInfo) {
+                const internalFormat = textureInfo.internalFormat;
+                const desc = wtu.glEnumToString(gl, internalFormat);
+                gl.bindTexture(target, textureInfo.texture);
+                gl.drawArrays(gl.POINTS, 0, 1);
+                const expected = compatibleFormats.indexOf(internalFormat) < 0 ? gl.INVALID_OPERATION : gl.NONE;
+                wtu.glErrorShouldBe(gl, expected, `from draw with ${desc}`);
+            });
+
+        });
+    };
+}
+
+if (!gl) {
+    testFailed("WebGL context creation failed");
+} else {
+    testPassed("WebGL context creation succeeded");
+    runTest();
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

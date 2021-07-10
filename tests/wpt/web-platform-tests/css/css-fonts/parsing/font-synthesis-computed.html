@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Fonts Module Level 3: getComputedStyle().fontSynthesis</title>
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-synthesis-prop">
+<meta name="assert" content="font-synthesis computed value is as specified.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value('font-synthesis', 'none');
+test_computed_value('font-synthesis', 'weight');
+test_computed_value('font-synthesis', 'style');
+test_computed_value('font-synthesis', 'weight style');
+</script>
+</body>
+</html>

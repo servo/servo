@@ -1,0 +1,45 @@
+<!doctype HTML>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>Content Visibility: hidden image</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="content-visibility-021-ref.html">
+<meta name="assert" content="content-visibility hidden img element does not paint replaced content">
+
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+div {
+  background: blue;
+}
+img {
+  width: 400px;
+  height: 200px;
+  background: lightblue;
+  border: 1px solid black;
+}
+.hidden {
+  content-visibility: hidden;
+}
+</style>
+
+<div>lorem ipsum</div>
+<img id="img1" src="resources/dice.png"></img>
+<img id="img2" src="resources/circles.svg"></img>
+<div>consectetur adipiscing elit</div>
+
+<script>
+async function runTest() {
+  document.getElementById("img1").classList.add("hidden");
+  document.getElementById("img2").classList.add("hidden");
+  requestAnimationFrame(takeScreenshot);
+}
+
+window.onload = () => {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(runTest);
+  });
+};
+</script>
+</html>

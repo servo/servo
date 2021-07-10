@@ -3,7 +3,7 @@ Stash
 
 Object for storing cross-request state. This is unusual in that keys
 must be UUIDs, in order to prevent different clients setting the same
-key, and values are write-once, read-once to minimise the chances of
+key, and values are write-once, read-once to minimize the chances of
 state persisting indefinitely. The stash defines two operations;
 `put`, to add state and `take` to remove state. Furthermore, the view
 of the stash is path-specific; by default a request will only see the
@@ -24,8 +24,8 @@ A typical example of using a stash to store state might be::
           assert request.server.stash.take(key) is None
           return key
 
-:mod:`Interface <stash>`
-------------------------
+:mod:`Interface <wptserve.stash>`
+---------------------------------
 
 .. automodule:: wptserve.stash
    :members:

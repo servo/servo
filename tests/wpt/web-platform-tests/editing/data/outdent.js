@@ -1,3 +1,4 @@
+// For documentation of the format, see README in this directory.
 var browserTests = [
 ["<blockquote><p>foo[bar]</p><p>baz</p></blockquote><p>extra",
     [["outdent",""]],
@@ -872,6 +873,11 @@ var browserTests = [
 ["<blockquote><span>foo<br>[bar]</span></blockquote>",
     [["outdent",""]],
     "<blockquote>foo</blockquote><span>[bar]</span>",
+    [true],
+    {"outdent":[false,false,"",false,false,""]}],
+["<ul><ul><li><span style=\"color:rgb(255, 0, 0)\">[]foo</span></li></ul></ul>",
+    [["outdent",""]],
+    "<ul><li><span style=\"color:rgb(255, 0, 0)\">[]foo</span></li></ul>",
     [true],
     {"outdent":[false,false,"",false,false,""]}]
 ]

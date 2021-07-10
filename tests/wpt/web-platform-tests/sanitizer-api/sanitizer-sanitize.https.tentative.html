@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="support/testcases.sub.js"></script>
+</head>
+
+<body>
+<script>
+    function getString(fragment) {
+      d = document.createElement("div");
+      d.appendChild(fragment);
+      return d.innerHTML;
+    }
+
+    testcases.forEach(c => test(t => {
+        let s = new Sanitizer(c.config_input);
+
+        fragment = s.sanitize(c.value);
+        assert_true(fragment instanceof DocumentFragment);
+        assert_equals(getString(fragment), c.result);
+    }, "SanitizerAPI sanitize function for " + c.message));
+</script>
+</body>
+</html>

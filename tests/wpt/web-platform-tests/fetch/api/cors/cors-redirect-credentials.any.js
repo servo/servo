@@ -1,3 +1,4 @@
+// META: timeout=long
 // META: script=../resources/utils.js
 // META: script=/common/get-host-info.sub.js
 
@@ -13,7 +14,7 @@ function corsRedirectCredentials(desc, redirectUrl, redirectLocation, redirectSt
     if(locationCredentials === "") {
       return result;
     } else {
-      return promise_rejects(t, new TypeError(), result);
+      return promise_rejects_js(t, TypeError, result);
     }
   }, desc);
 }

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>Last block with negative in container that reduces container height</title>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS22/box.html#collapsing-margins" title="8.3.1 Collapsing margins">
+<link rel="match" href="../../reference/ref-filled-green-200px-square.html">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width:200px; background:red;">
+  <div style="height:200px;">
+    <div style="height:80px; background:green;"></div>
+  </div>
+  <div style="margin-top:-120px; height:20px; background:green;"></div>
+</div>
+<div style="width:200px; height:100px; background:green;"></div>

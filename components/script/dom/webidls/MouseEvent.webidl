@@ -1,15 +1,21 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://w3c.github.io/uievents/#interface-mouseevent
-[Constructor(DOMString typeArg, optional MouseEventInit mouseEventInitDict),
- Exposed=Window]
+[Exposed=Window]
 interface MouseEvent : UIEvent {
+    [Throws] constructor(DOMString typeArg, optional MouseEventInit mouseEventInitDict = {});
     readonly    attribute long           screenX;
     readonly    attribute long           screenY;
     readonly    attribute long           clientX;
     readonly    attribute long           clientY;
+    readonly    attribute long           pageX;
+    readonly    attribute long           pageY;
+    readonly    attribute long           x;
+    readonly    attribute long           y;
+    readonly    attribute long           offsetX;
+    readonly    attribute long           offsetY;
     readonly    attribute boolean        ctrlKey;
     readonly    attribute boolean        shiftKey;
     readonly    attribute boolean        altKey;
@@ -17,7 +23,7 @@ interface MouseEvent : UIEvent {
     readonly    attribute short          button;
     readonly    attribute EventTarget?   relatedTarget;
     // Introduced in DOM Level 3
-    //readonly    attribute unsigned short buttons;
+    readonly    attribute unsigned short buttons;
     //boolean getModifierState (DOMString keyArg);
 
     [Pref="dom.mouseevent.which.enabled"]
@@ -31,7 +37,7 @@ dictionary MouseEventInit : EventModifierInit {
     long           clientX = 0;
     long           clientY = 0;
     short          button = 0;
-    //unsigned short buttons = 0;
+    unsigned short buttons = 0;
     EventTarget?   relatedTarget = null;
 };
 

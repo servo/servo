@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: % max height of grid items</title>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#grid-item-sizing">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="% max-height of replaced grid items is respected">
+
+<p>Test passes if there is a filled green square.</p>
+
+<div style="display: grid; grid-template-rows: 200px;">
+  <img src="support/200x200-green.png" style="max-height: 50%;">
+</div>

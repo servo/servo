@@ -1,10 +1,14 @@
 Introduction
 ------------
 
-This directory contains all testsuites for all CSS specifications still using
-the [CSS test harness][harness].
+This directory contains testsuites for CSS WG specifications, including ones
+that do not strictly speaking define CSS features, e.g.,
+[Geometry Interfaces](https://drafts.fxtf.org/geometry/).
 
-As the test harness relies on the largely undocumented(!) old CSS build system,
+The directories should be named like the specification's shortname, but without
+any level suffix.
+
+As the test harness relies on the largely undocumented old CSS build system,
 this directory has a number of test requirements specific to it:
 
  * support files for a given test must live in an adjacent `support` directory;
@@ -18,21 +22,14 @@ this directory has a number of test requirements specific to it:
    `css` directory.
 
 
-Odd Directories
----------------
+vendor-imports/ Directory
+-------------------------
 
-There are a few special directories that do not map to specifications:
-
-vendor-imports/ is a legacy directory where third parties historically imported
-their tests that originate and are maintained in an external repo. Files in
-this directory should never be modified in this repo, but should go through the
-vendor's process to be imported here.
-
-work-in-progress/ is a legacy directory that contains all the work that was
-once submitted to the repo, but was not yet ready for review. As pull requests
-are now used, no new files should be added here. The subdirectories here are
-named by test author or contributing organization.
-
+vendor-imports/ is the remains of a legacy directory where third parties
+historically imported their tests. These tests should be moved into the correct
+directory under css/, see
+[#8615](https://github.com/web-platform-tests/wpt/issues/8615). In the meantime,
+feel free to fix any test bugs in the usual way.
 
 Importing Old Branches
 ----------------------
@@ -70,5 +67,5 @@ complicated:
 
 
 [harness]: https://test.csswg.org/harness/
-[spec-link]: http://web-platform-tests.org/writing-tests/css-metadata.html#specification-links
+[spec-link]: https://web-platform-tests.org/writing-tests/css-metadata.html#specification-links
 [hg-patch-to-git-patch]: https://raw.githubusercontent.com/mozilla/moz-git-tools/master/hg-patch-to-git-patch

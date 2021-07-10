@@ -1,22 +1,22 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::URLBinding::{self, URLMethods};
-use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::js::{MutNullableJS, Root};
-use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::str::{DOMString, USVString};
-use dom::blob::Blob;
-use dom::globalscope::GlobalScope;
-use dom::urlhelper::UrlHelper;
-use dom::urlsearchparams::URLSearchParams;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::URLBinding::URLMethods;
+use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::blob::Blob;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::urlhelper::UrlHelper;
+use crate::dom::urlsearchparams::URLSearchParams;
 use dom_struct::dom_struct;
-use ipc_channel::ipc;
-use net_traits::{CoreResourceMsg, IpcSend};
 use net_traits::blob_url_store::{get_blob_origin, parse_blob_url};
 use net_traits::filemanager_thread::FileManagerThreadMsg;
+use net_traits::{CoreResourceMsg, IpcSend};
+use profile_traits::ipc;
 use servo_url::ServoUrl;
 use std::default::Default;
 use uuid::Uuid;
@@ -27,55 +27,72 @@ pub struct URL {
     reflector_: Reflector,
 
     // https://url.spec.whatwg.org/#concept-url-url
-    url: DOMRefCell<ServoUrl>,
+    url: DomRefCell<ServoUrl>,
 
     // https://url.spec.whatwg.org/#dom-url-searchparams
-    search_params: MutNullableJS<URLSearchParams>,
+    search_params: MutNullableDom<URLSearchParams>,
 }
 
 impl URL {
     fn new_inherited(url: ServoUrl) -> URL {
         URL {
             reflector_: Reflector::new(),
-            url: DOMRefCell::new(url),
+            url: DomRefCell::new(url),
             search_params: Default::default(),
         }
     }
 
-    pub fn new(global: &GlobalScope, url: ServoUrl) -> Root<URL> {
-        reflect_dom_object(box URL::new_inherited(url),
-                           global, URLBinding::Wrap)
+    pub fn new(global: &GlobalScope, url: ServoUrl) -> DomRoot<URL> {
+        reflect_dom_object(Box::new(URL::new_inherited(url)), global)
     }
 
     pub fn query_pairs(&self) -> Vec<(String, String)> {
-        self.url.borrow().as_url().query_pairs().into_owned().collect()
+        self.url
+            .borrow()
+            .as_url()
+            .query_pairs()
+            .into_owned()
+            .collect()
     }
 
     pub fn set_query_pairs(&self, pairs: &[(String, String)]) {
         let mut url = self.url.borrow_mut();
-        url.as_mut_url().query_pairs_mut().clear().extend_pairs(pairs);
+
+        if pairs.is_empty() {
+            url.as_mut_url().set_query(None);
+        } else {
+            url.as_mut_url()
+                .query_pairs_mut()
+                .clear()
+                .extend_pairs(pairs);
+        }
     }
 }
 
+#[allow(non_snake_case)]
 impl URL {
     // https://url.spec.whatwg.org/#constructors
-    pub fn Constructor(global: &GlobalScope, url: USVString,
-                       base: Option<USVString>)
-                       -> Fallible<Root<URL>> {
+    pub fn Constructor(
+        global: &GlobalScope,
+        url: USVString,
+        base: Option<USVString>,
+    ) -> Fallible<DomRoot<URL>> {
         let parsed_base = match base {
             None => {
                 // Step 1.
                 None
             },
             Some(base) =>
-                // Step 2.1.
+            // Step 2.1.
+            {
                 match ServoUrl::parse(&base.0) {
                     Ok(base) => Some(base),
                     Err(error) => {
                         // Step 2.2.
                         return Err(Error::Type(format!("could not parse base: {}", error)));
-                    }
+                    },
                 }
+            }
         };
         // Step 3.
         let parsed_url = match ServoUrl::parse_with_base(parsed_base.as_ref(), &url.0) {
@@ -83,7 +100,7 @@ impl URL {
             Err(error) => {
                 // Step 4.
                 return Err(Error::Type(format!("could not parse URL: {}", error)));
-            }
+            },
         };
         // Step 5: Skip (see step 8 below).
         // Steps 6-7.
@@ -96,8 +113,8 @@ impl URL {
 
     // https://w3c.github.io/FileAPI/#dfn-createObjectURL
     pub fn CreateObjectURL(global: &GlobalScope, blob: &Blob) -> DOMString {
-        /// XXX: Second field is an unicode-serialized Origin, it is a temporary workaround
-        ///      and should not be trusted. See issue https://github.com/servo/servo/issues/11722
+        // XXX: Second field is an unicode-serialized Origin, it is a temporary workaround
+        //      and should not be trusted. See issue https://github.com/servo/servo/issues/11722
         let origin = get_blob_origin(&global.get_url());
 
         let id = blob.get_blob_url_id();
@@ -107,22 +124,21 @@ impl URL {
 
     // https://w3c.github.io/FileAPI/#dfn-revokeObjectURL
     pub fn RevokeObjectURL(global: &GlobalScope, url: DOMString) {
-        /*
-            If the value provided for the url argument is not a Blob URL OR
-            if the value provided for the url argument does not have an entry in the Blob URL Store,
-
-            this method call does nothing. User agents may display a message on the error console.
-        */
+        // If the value provided for the url argument is not a Blob URL OR
+        // if the value provided for the url argument does not have an entry in the Blob URL Store,
+        // this method call does nothing. User agents may display a message on the error console.
         let origin = get_blob_origin(&global.get_url());
 
         if let Ok(url) = ServoUrl::parse(&url) {
-             if let Ok((id, _)) = parse_blob_url(&url) {
-                let resource_threads = global.resource_threads();
-                let (tx, rx) = ipc::channel().unwrap();
-                let msg = FileManagerThreadMsg::RevokeBlobURL(id, origin, tx);
-                let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));
+            if url.fragment().is_none() && origin == get_blob_origin(&url) {
+                if let Ok((id, _)) = parse_blob_url(&url) {
+                    let resource_threads = global.resource_threads();
+                    let (tx, rx) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
+                    let msg = FileManagerThreadMsg::RevokeBlobURL(id, origin, tx);
+                    let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));
 
-                let _ = rx.recv().unwrap();
+                    let _ = rx.recv().unwrap();
+                }
             }
         }
     }
@@ -139,7 +155,7 @@ impl URL {
         result.push('/');
 
         // Step 5
-        result.push_str(&id.simple().to_string());
+        result.push_str(&id.to_string());
 
         result
     }
@@ -186,12 +202,10 @@ impl URLMethods for URL {
         match ServoUrl::parse(&value.0) {
             Ok(url) => {
                 *self.url.borrow_mut() = url;
-                self.search_params.set(None);  // To be re-initialized in the SearchParams getter.
+                self.search_params.set(None); // To be re-initialized in the SearchParams getter.
                 Ok(())
             },
-            Err(error) => {
-                Err(Error::Type(format!("could not parse URL: {}", error)))
-            },
+            Err(error) => Err(Error::Type(format!("could not parse URL: {}", error))),
         }
     }
 
@@ -254,15 +268,9 @@ impl URLMethods for URL {
     }
 
     // https://url.spec.whatwg.org/#dom-url-searchparams
-    fn SearchParams(&self) -> Root<URLSearchParams> {
-        self.search_params.or_init(|| {
-            URLSearchParams::new(&self.global(), Some(self))
-        })
-    }
-
-    // https://url.spec.whatwg.org/#dom-url-href
-    fn Stringifier(&self) -> DOMString {
-        DOMString::from(self.Href().0)
+    fn SearchParams(&self) -> DomRoot<URLSearchParams> {
+        self.search_params
+            .or_init(|| URLSearchParams::new(&self.global(), Some(self)))
     }
 
     // https://url.spec.whatwg.org/#dom-url-username
@@ -273,5 +281,10 @@ impl URLMethods for URL {
     // https://url.spec.whatwg.org/#dom-url-username
     fn SetUsername(&self, value: USVString) {
         UrlHelper::SetUsername(&mut self.url.borrow_mut(), value);
+    }
+
+    // https://url.spec.whatwg.org/#dom-url-tojson
+    fn ToJSON(&self) -> USVString {
+        self.Href()
     }
 }

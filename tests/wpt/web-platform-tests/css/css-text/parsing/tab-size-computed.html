@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text: getComputedStyle().tabSize</title>
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#propdef-tab-size">
+<meta name="assert" content="tab-size computed value is the specified number or an absolute length.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #target {
+    font-size: 40px;
+  }
+</style>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("tab-size", "0");
+test_computed_value("tab-size", "16");
+test_computed_value("tab-size", "4");
+test_computed_value("tab-size", "2.5");
+
+test_computed_value("tab-size", "0px");
+test_computed_value("tab-size", "10px");
+test_computed_value("tab-size", "calc(10px + 0.5em)", "30px");
+test_computed_value("tab-size", "calc(10px - 0.5em)", "0px");
+</script>
+</body>
+</html>

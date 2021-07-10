@@ -1,0 +1,104 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Tests for PaymentRequestEvent</title>
+<link rel="help" href="https://w3c.github.io/payment-handler/#the-paymentrequestevent">
+<link rel="manifest" href="/payment-handler/basic-card.json">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="register-and-activate-service-worker.js"></script>
+<p>When the payment sheet is shown, please authorize the mock payment.</p>
+<script>
+async function setInstrumentsAndRunTests(registration) {
+  await registration.paymentManager.instruments.clear();
+  await registration.paymentManager.instruments.set('instrument-key', {
+    name: 'Instrument Name',
+    icons: [
+      {src: '/images/rgrg-256x256.png', sizes: '256x256', type: 'image/png'},
+    ],
+    method: 'basic-card',
+    capabilities: {supportedNetworks: ['mir']},
+  });
+  runTests();
+}
+
+function runTests() {
+  promise_test(async t => {
+    const response = await new PaymentRequest(
+      [
+        {supportedMethods: 'basic-card', data: {}},
+        {supportedMethods: 'interledger', data: {supportedNetworks: ['mir']}},
+      ],
+      {
+        id: 'test-payment-request-identifier',
+        total: {label: 'Total', amount: {currency: 'USD', value: '0.01'}},
+        displayItems: [
+          {label: 'Item 1', amount: {currency: 'CAD', value: '0.005'}},
+          {label: 'Item 2', amount: {currency: 'EUR', value: '0.005'}},
+        ],
+        modifiers: [
+          {
+            supportedMethods: 'basic-card',
+            data: {supportedNetworks: ['mir']},
+            total: {
+              label: 'MIR total',
+              amount: {currency: 'USD', value: '0.0099'},
+            },
+            additionalDisplayItems: [
+              {label: 'Item 3', amount: {currency: 'GBP', value: '-0.0001'}},
+            ],
+          },
+          {
+            supportedMethods: 'basic-card',
+            data: {supportedNetworks: ['visa']},
+            total: {
+              label: 'VISA total',
+              amount: {currency: 'USD', value: '0.0098'},
+            },
+            additionalDisplayItems: [
+              {label: 'Item 4', amount: {currency: 'CNY', value: '-0.0002'}},
+            ],
+          },
+          {
+            supportedMethods: 'interledger',
+            data: {},
+            total: {
+              label: 'Prepaid total',
+              amount: {currency: 'USD', value: '0.0097'},
+            },
+            additionalDisplayItems: [
+              {label: 'Item 5', amount: {currency: 'JPY', value: '-0.0003'}},
+            ],
+          },
+        ],
+      },
+    ).show();
+    const promise = response.complete('success');
+    assert_equals(response.requestId, 'test-payment-request-identifier');
+    assert_equals(response.methodName, 'basic-card');
+    assert_array_equals(response.details.billingAddress.addressLine, [
+      '1875 Explorer St #1000',
+    ]);
+    assert_equals(response.details.billingAddress.city, 'Reston');
+    assert_equals(response.details.billingAddress.country, 'US');
+    assert_equals(response.details.billingAddress.dependentLocality, '');
+    assert_equals(response.details.billingAddress.organization, 'Google');
+    assert_equals(response.details.billingAddress.phone, '+15555555555');
+    assert_equals(response.details.billingAddress.postalCode, '20190');
+    assert_equals(response.details.billingAddress.recipient, 'Jon Doe');
+    assert_equals(response.details.billingAddress.region, 'VA');
+    assert_equals(response.details.billingAddress.sortingCode, '');
+    assert_equals(response.details.cardNumber, '4111111111111111');
+    assert_equals(response.details.cardSecurityCode, '123');
+    assert_equals(response.details.cardholderName, 'Jon Doe');
+    assert_equals(response.details.expiryMonth, '12');
+    assert_equals(response.details.expiryYear, '2028');
+    return promise;
+  }, 'Can perform payment');
+}
+
+registerAndActiveServiceWorker(
+  'basic-card.js',
+  'payment-app/',
+  setInstrumentsAndRunTests,
+);
+</script>

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
 <title>Access-Control-Allow-Origin handling</title>
+<meta name="timeout" content="long">
 <link rel=help href=https://fetch.spec.whatwg.org/>
 <meta name=author title="Odin Hørthe Omdal" href="mailto:odiho@opera.com">
 
@@ -47,7 +48,7 @@ function shouldFail(origin) {
                             + '/resources/cors-makeheader.py?origin='
                             + encodeURIComponent(origin),
                     false)
-        assert_throws("NetworkError", function() { client.send() }, 'send')
+        assert_throws_dom("NetworkError", function() { client.send() }, 'send')
     }, 'Disallow origin: ' + origin.replace(/\0/g, "\\0"));
 }
 
@@ -71,8 +72,14 @@ shouldFail((location.protocol + "//" + location.host).toUpperCase())
 shouldFail(location.protocol.toUpperCase() + "//" + location.host)
 shouldFail("-")
 shouldFail("**")
+shouldFail(",*");
+shouldFail("*,");
 shouldFail("\0*")
+shouldFail("\u000B*");
+shouldFail("\u000C*");
 shouldFail("*\0")
+shouldFail("*\u000B");
+shouldFail("*\u000C");
 shouldFail("'*'")
 shouldFail('"*"')
 shouldFail("* *")
@@ -105,7 +112,7 @@ function doubleOrigin(origin, origin2) {
                             + encodeURIComponent(origin)
                             + '&origin2=' + encodeURIComponent(origin2),
                     false)
-        assert_throws("NetworkError", function() { client.send() }, 'send')
+        assert_throws_dom("NetworkError", function() { client.send() }, 'send')
     }, 'Disallow multiple headers (' + origin + ', ' + origin2 + ')');
 }
 

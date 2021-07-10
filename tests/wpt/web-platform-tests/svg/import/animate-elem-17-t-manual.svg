@@ -28,13 +28,13 @@
       </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
-    	<p>
+      <p>
         Run the test. No interaction required.
-      </p>  
+      </p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
-      	The blue rectangle should animate its width so that the right edge of the rectangle lines up with the ruler line at the indicated times. Between 4 and 8 seconds the animation should show an ease-in/ease-out motion (i.e. a gradual change in speed).
+        The blue rectangle should animate its width so that the right edge of the rectangle lines up with the ruler line at the indicated times. Between 4 and 8 seconds the animation should show an ease-in/ease-out motion (i.e. a gradual change in speed).
       </p>
     </d:passCriteria>
   </d:SVGTestCase>

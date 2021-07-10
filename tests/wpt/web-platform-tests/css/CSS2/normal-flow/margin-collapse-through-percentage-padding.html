@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS22/box.html#collapsing-margins">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=967193">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="A vertical percentage padding that resolves to 0 shouldn't prevent margins from collapsing through the box">
+<p>Test passes if there is a filled green square.</p>
+<div style="float:left; width:100px; background:green;">
+  <div id="container" style="width:100px;">
+    <div style="width:100px; margin-bottom:100px;"></div>
+    <div style="padding:100% 0;"></div>
+    <div style="width:100px; margin-top:100px;"></div>
+  </div>
+</div>
+<script>
+  document.body.offsetTop;
+  container.style.width = "0";
+</script>

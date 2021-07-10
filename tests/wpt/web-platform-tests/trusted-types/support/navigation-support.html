@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<head>
+</head>
+<body>
+<p>Support page for trusted-types-navigation.*.html tests.</p>
+<a id="anchor" href="#">link</a>
+<script>
+  if (location.search == "?defaultpolicy") {
+    trustedTypes.createPolicy("default", {
+        createScript: s => s.replace("continue", "defaultpolicywashere"),
+    });
+  }
+
+  function bounceEventToOpener(e) {
+    const msg = {};
+    for (const field of ["effectiveDirective", "sample", "type"]) {
+      msg[field] = e[field];
+    }
+    msg["uri"] = location.href;
+    window.opener.postMessage(msg, "*");
+  }
+
+  // If a navigation is blocked by Trusted Types, we expect this window to
+  // throw a SecurityPolicyViolationEvent. If it's not blocked, we expect the
+  // loaded frame to through DOMContentLoaded. In either case there should be
+  // _some_ event that we can expect.
+  document.addEventListener("DOMContentLoaded", bounceEventToOpener);
+  document.addEventListener("securitypolicyviolation", bounceEventToOpener);
+
+  // We'll use a javascript:-url to navigate to ourselves, so that we can
+  // re-use the messageing mechanisms above. In order to not end up in a loop,
+  // we'll only click if we don't find fragment in the current URL.
+  const target_script = `location.href='${location.href}&continue';`;
+  const target = `javascript:"<script>${target_script}</scri${""}pt>"`;
+
+  const anchor = document.getElementById("anchor");
+  anchor.href = target;
+  if (!location.hash)
+    document.addEventListener("DOMContentLoaded", _ => anchor.click());
+</script>
+</body>
+

@@ -1,45 +1,29 @@
+from __future__ import print_function
+
 import os
 import re
 import subprocess
 import sys
-import urlparse
+import six.moves.urllib as urllib
+from six.moves import input
+from six import iteritems
 
 from wptrunner.update.sync import UpdateCheckout
 from wptrunner.update.tree import get_unique_name
 from wptrunner.update.base import Step, StepRunner, exit_clean, exit_unclean
 
 from .tree import Commit, GitTree, Patch
-import github
 from .github import GitHub
 
 
 def rewrite_patch(patch, strip_dir):
-    """Take a Patch and convert to a different repository by stripping a prefix from the
-    file paths. Also rewrite the message to remove the bug number and reviewer, but add
+    """Take a Patch and  rewrite the message to remove the bug number and reviewer, but add
     a bugzilla link in the summary.
 
     :param patch: the Patch to convert
-    :param strip_dir: the path prefix to remove
     """
 
-    if not strip_dir.startswith("/"):
-        strip_dir = "/%s"% strip_dir
-
-    new_diff = []
-    line_starts = ["diff ", "+++ ", "--- "]
-    for line in patch.diff.split("\n"):
-        for start in line_starts:
-            if line.startswith(start):
-                new_diff.append(line.replace(strip_dir, "").encode("utf8"))
-                break
-        else:
-            new_diff.append(line)
-
-    new_diff = "\n".join(new_diff)
-
-    assert new_diff != patch
-
-    return Patch(patch.author, patch.email, rewrite_message(patch), None, new_diff)
+    return Patch(patch.author, patch.email, rewrite_message(patch), None, patch.diff)
 
 def rewrite_message(patch):
     if patch.merge_message and patch.merge_message.bug:
@@ -174,9 +158,9 @@ class SelectCommits(Step):
         while True:
             commits = state.source_commits[:]
             for i, commit in enumerate(commits):
-                print "%i:\t%s" % (i, commit.message.summary)
+                print("%i:\t%s" % (i, commit.message.summary))
 
-            remove = raw_input("Provide a space-separated list of any commits numbers to remove from the list to upstream:\n").strip()
+            remove = input("Provide a space-separated list of any commits numbers to remove from the list to upstream:\n").strip()
             remove_idx = set()
             invalid = False
             for item in remove.split(" "):
@@ -197,10 +181,10 @@ class SelectCommits(Step):
 
             keep_commits = [(i,cmt) for i,cmt in enumerate(commits) if i not in remove_idx]
             #TODO: consider printed removed commits
-            print "Selected the following commits to keep:"
+            print("Selected the following commits to keep:")
             for i, commit in keep_commits:
-                print "%i:\t%s" % (i, commit.message.summary)
-            confirm = raw_input("Keep the above commits? y/n\n").strip().lower()
+                print("%i:\t%s" % (i, commit.message.summary))
+            confirm = input("Keep the above commits? y/n\n").strip().lower()
 
             if confirm == "y":
                 state.source_commits = [item[1] for item in keep_commits]
@@ -223,10 +207,13 @@ class MovePatches(Step):
             self.logger.info("Moving commit %i: %s" % (i, commit.message.full_summary))
             patch = commit.export_patch(state.tests_path)
             stripped_patch = rewrite_patch(patch, strip_path)
+            strip_count = strip_path.count('/')
+            if strip_path[-1] != '/':
+                strip_count += 1
             try:
-                state.sync_tree.import_patch(stripped_patch)
+                state.sync_tree.import_patch(stripped_patch, 1 + strip_count)
             except:
-                print patch.diff
+                print(patch.diff)
                 raise
             state.commits_loaded = i
 
@@ -278,7 +265,7 @@ class MergeUpstream(Step):
         if "merge_index" not in state:
             state.merge_index = 0
 
-        org, name = urlparse.urlsplit(state.sync["remote_url"]).path[1:].split("/")
+        org, name = urllib.parse.urlsplit(state.sync["remote_url"]).path[1:].split("/")
         if name.endswith(".git"):
             name = name[:-4]
         state.gh_repo = gh.repo(org, name)
@@ -301,7 +288,7 @@ class UpdateLastSyncData(Step):
         data = {"local": state.local_tree.rev,
                 "upstream": state.sync_tree.rev}
         with open(state.sync_data_path, "w") as f:
-            for key, value in data.iteritems():
+            for key, value in iteritems(data):
                 f.write("%s: %s\n" % (key, value))
         # This gets added to the patch later on
 
@@ -355,6 +342,7 @@ class PRAddComment(Step):
     """Add an issue comment indicating that the code has been reviewed already"""
     def create(self, state):
         state.pr.issue.add_comment("Code reviewed upstream.")
+        state.pr.issue.add_label("servo-export")
 
 
 class MergePR(Step):

@@ -1,46 +1,54 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::attr::Attr;
-use dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding;
-use dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding::HTMLOptGroupElementMethods;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
-use dom::bindings::str::DOMString;
-use dom::document::Document;
-use dom::element::{AttributeMutation, Element};
-use dom::htmlelement::HTMLElement;
-use dom::htmloptionelement::HTMLOptionElement;
-use dom::node::Node;
-use dom::virtualmethods::VirtualMethods;
+use crate::dom::attr::Attr;
+use crate::dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding::HTMLOptGroupElementMethods;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::document::Document;
+use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::htmlelement::HTMLElement;
+use crate::dom::htmloptionelement::HTMLOptionElement;
+use crate::dom::node::Node;
+use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever_atoms::LocalName;
-use style::element_state::*;
+use html5ever::{LocalName, Prefix};
+use style::element_state::ElementState;
 
 #[dom_struct]
 pub struct HTMLOptGroupElement {
-    htmlelement: HTMLElement
+    htmlelement: HTMLElement,
 }
 
 impl HTMLOptGroupElement {
-    fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
-                     document: &Document) -> HTMLOptGroupElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLOptGroupElement {
         HTMLOptGroupElement {
-            htmlelement:
-                HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
-                                                      local_name, prefix, document)
+            htmlelement: HTMLElement::new_inherited_with_state(
+                ElementState::IN_ENABLED_STATE,
+                local_name,
+                prefix,
+                document,
+            ),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
-               document: &Document) -> Root<HTMLOptGroupElement> {
-        Node::reflect_node(box HTMLOptGroupElement::new_inherited(local_name, prefix, document),
-                           document,
-                           HTMLOptGroupElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLOptGroupElement> {
+        Node::reflect_node(
+            Box::new(HTMLOptGroupElement::new_inherited(
+                local_name, prefix, document,
+            )),
+            document,
+        )
     }
 }
 
@@ -53,8 +61,8 @@ impl HTMLOptGroupElementMethods for HTMLOptGroupElement {
 }
 
 impl VirtualMethods for HTMLOptGroupElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
@@ -72,9 +80,11 @@ impl VirtualMethods for HTMLOptGroupElement {
                 let el = self.upcast::<Element>();
                 el.set_disabled_state(disabled_state);
                 el.set_enabled_state(!disabled_state);
-                let options = el.upcast::<Node>().children().filter(|child| {
-                    child.is::<HTMLOptionElement>()
-                }).map(|child| Root::from_ref(child.downcast::<HTMLOptionElement>().unwrap()));
+                let options = el
+                    .upcast::<Node>()
+                    .children()
+                    .filter(|child| child.is::<HTMLOptionElement>())
+                    .map(|child| DomRoot::from_ref(child.downcast::<HTMLOptionElement>().unwrap()));
                 if disabled_state {
                     for option in options {
                         let el = option.upcast::<Element>();

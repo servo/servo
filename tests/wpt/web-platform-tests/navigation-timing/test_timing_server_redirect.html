@@ -7,6 +7,7 @@
         <link rel="help" href="http://www.w3.org/TR/navigation-timing/#sec-navigation-timing-interface"/>
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
+        <script src="/common/performance-timeline-utils.js"></script>
         <script src="resources/webperftestharness.js"></script>
 
         <script>
@@ -31,6 +32,7 @@
                 test_timing_order('redirectStart', 'navigationStart');
                 test_timing_order('redirectEnd', 'redirectStart');
                 test_timing_order('fetchStart', 'redirectEnd');
+                test_timing_order('requestStart', 'fetchStart');
             }
         </script>
 

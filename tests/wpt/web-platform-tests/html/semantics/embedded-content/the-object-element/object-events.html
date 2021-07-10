@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <title>HTML Test: object-events</title>
+<meta name="timeout" content="long">
 <link rel="author" title="Intel" href="http://www.intel.com">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -61,7 +62,7 @@ async_test(function(t) {
 async_test(function(t) {
   var obj = document.createElement("object");
   obj.onload = t.step_func_done(function(e){
-    assert_true(obj.contentWindow instanceof Window, "The object element should represent a nested browsing context.")
+    assert_true(obj.contentWindow instanceof obj.contentWindow.Window, "The object element should represent a nested browsing context.")
     assert_equals(Object.getPrototypeOf(e).constructor, Event, "The load event should use the Event interface.");
     assert_true(e.isTrusted, "The load event should be a trusted event.");
     assert_false(e.cancelable, "The load event should not be a cancelable event.");

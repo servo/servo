@@ -1,0 +1,59 @@
+<!doctype html>
+<title>Test promises from MediaDevices methods in a discarded browsing
+  context</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<body></body>
+<script>
+let devices;
+let child_DOMException;
+setup(() => {
+  const frame = document.createElement('iframe');
+  document.body.appendChild(frame);
+  devices = frame.contentWindow.navigator.mediaDevices;
+  child_DOMException = frame.contentWindow.DOMException;
+  frame.remove();
+});
+
+// https://w3c.github.io/mediacapture-main/#dom-mediadevices-getusermedia
+// If the current settings object's responsible document is NOT fully active,
+// return a promise rejected with a DOMException object whose name attribute
+// has the value "InvalidStateError".
+promise_test(async () => {
+  // `catch()` is used rather than static Promise methods because microtasks
+  // for `PromiseResolve()` do not run when Promises in inactive Documents are
+  // involved.  Whether microtasks for `catch()` run depends on the realm of
+  // the handler rather than the realm of the Promise.
+  // See https://github.com/whatwg/html/issues/5319.
+  let promise_already_rejected = false;
+  let rejected_reason;
+  devices.getUserMedia({audio:true}).catch(reason => {
+    promise_already_rejected = true;
+    rejected_reason = reason;
+  });
+  // Race a settled promise to check that the returned promise is already
+  // rejected.
+  await Promise.reject().catch(() => {
+    assert_true(promise_already_rejected,
+                'should have returned an already-rejected promise.');
+    assert_throws_dom('InvalidStateError', child_DOMException,
+                      () => { throw rejected_reason });
+  });
+}, 'getUserMedia() in a discarded browsing context');
+
+// https://w3c.github.io/mediacapture-main/#dom-mediadevices-enumeratedevices
+// https://html.spec.whatwg.org/multipage/webappapis.html#event-loop-for-spec-authors
+// Promise resolution occurs only in parallel steps, so, if there is any
+// manipulation of the Promise, it would occur through a queued task.
+promise_test(() => {
+  let promise_is_pending = true;
+  // Don't use `finally()`, because it uses `PromiseResolve()` and so
+  // microtasks don't run.
+  devices.enumerateDevices().then(() => promise_is_pending = false,
+                                  () => promise_is_pending = false);
+  return Promise.resolve().then(() => {
+    assert_true(promise_is_pending,
+                'should have returned a pending promise.');
+  });
+}, 'enumerateDevices() in a discarded browsing context');
+</script>

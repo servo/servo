@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang=en>
+  <meta charset=utf-8>
+  <title>CSS-contain test: size containment on ruby-text</title>
+  <link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+  <meta name=flags content="">
+  <meta name=assert content="size containment does not to apply ruby-text, which is an internal ruby element">
+  <link rel="match" href="reference/contain-size-005-ref.html">
+  <link rel=help href="https://drafts.csswg.org/css-contain-1/#containment-size">
+  <link rel=help href="https://drafts.csswg.org/css-display-3/#internal-ruby-element">
+
+<style>
+div {
+  overflow: hidden;
+  position: absolute;
+}
+rt {
+  contain: size;
+  display: ruby-text;
+  font-size: 1rem;
+}
+</style>
+
+<p>This test passes if you can see the word PASS below.
+<div><ruby><rt>PASS</rt></ruby></div>

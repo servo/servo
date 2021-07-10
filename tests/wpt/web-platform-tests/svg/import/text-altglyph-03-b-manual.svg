@@ -42,7 +42,7 @@
       </p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
-      <p>The test passes if each pair of (actual,expected) text strings 
+      <p>The test passes if each pair of (actual,expected) text strings
       render identically.</p>
     </d:passCriteria>
   </d:SVGTestCase>

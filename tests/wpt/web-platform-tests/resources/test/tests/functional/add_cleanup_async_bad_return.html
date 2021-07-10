@@ -1,0 +1,52 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta name="variant" content="?keep-promise">
+<title>Test#add_cleanup with non-thenable-returning function</title>
+<script src="../../variants.js"></script>
+<script src="../../../testharness.js"></script>
+<script src="../../../testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+
+<script>
+"use strict";
+
+promise_test(function(t) {
+  t.add_cleanup(function() {});
+  t.add_cleanup(function() {
+    return { then: 9 };
+  });
+  t.add_cleanup(function() { return Promise.resolve(); });
+
+  return Promise.resolve();
+}, "promise_test that returns a non-thenable object in one \"cleanup\" callback");
+
+promise_test(function() {}, "The test runner is in an unpredictable state ('NOT RUN')");
+</script>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "ERROR",
+    "message": "Test named 'promise_test that returns a non-thenable object in one \"cleanup\" callback' specified 3 'cleanup' functions, and 1 returned a non-thenable value."
+  },
+  "summarized_tests": [
+    {
+      "status_string": "NOTRUN",
+      "name": "The test runner is in an unpredictable state ('NOT RUN')",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "promise_test that returns a non-thenable object in one \"cleanup\" callback",
+      "message": null,
+      "properties": {}
+    }
+  ],
+  "type": "complete"
+}
+</script>
+</body>
+</html>

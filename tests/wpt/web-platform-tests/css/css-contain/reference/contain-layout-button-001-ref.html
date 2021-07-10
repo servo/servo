@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Containment Test: Reference file</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<style>
+div.fakeButton {
+  display: inline-block;
+  border: 5px solid green;
+  padding: 0;
+  margin-bottom: 2px;
+  color: transparent;
+  width: 0;
+  height: 0px;
+  /* Layout containment creates a stacking context, the following lines simuluate the same in the reference file. */
+  position: relative;
+  z-index: 1;
+}
+</style>
+
+<p>This test passes if it has the same output as the reference. You see the word "before", a 10px green square aligned 2px above the text's baseline, and then the word "after".</p>
+before<div class="fakeButton"></div>after

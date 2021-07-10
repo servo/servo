@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>ethiopic-numeric, 0-9</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#ethiopic-numeric-counter-style'>
+<link rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+<meta name='flags' content='font'>
+<meta name="assert" content="Setting list-style-type to ethiopic-numeric will produce numbering for a list of up to 9 items as described in the CSS3 Counter Styles module.">
+<style type='text/css'>
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+ol li { list-style-type: ethiopic-numeric;  }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, ignoring the suffix.</p>
+
+
+<div class='test'>
+  <ol>
+    <li title='1'>፩.</li>
+    <li title='2'>፪.</li>
+    <li title='3'>፫.</li>
+    <li title='4'>፬.</li>
+    <li title='5'>፭.</li>
+    <li title='6'>፮.</li>
+    <li title='7'>፯.</li>
+    <li title='8'>፰.</li>
+    <li title='9'>፱.</li>
+  </ol>
+</div>
+
+
+<!--Notes:
+You will need an appropriate font to run this test.
+
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+
+
+</body>
+</html>

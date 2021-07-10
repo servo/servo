@@ -38,14 +38,6 @@ test(function() {
     assert_equals('exist', that.prop, 'Confirm to prevent deleting a property.');
   });
 });
-
-
-test(function() {
-  ['foo', 42, null, undefined].forEach(function(that) {
-    assert_throws(new TypeError(),
-        function() { Object.freeze(that) });
-  });
-});
 </script>
 
 </body>

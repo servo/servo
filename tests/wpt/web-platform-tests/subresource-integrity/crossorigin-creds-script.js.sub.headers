@@ -1,2 +1,0 @@
-Access-Control-Allow-Origin: {{location[scheme]}}://{{domains[]}}{{GET[acao_port]}}
-Access-Control-Allow-Credentials: true

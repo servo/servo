@@ -6,7 +6,7 @@
 <iframe id="test" name="test"></iframe>
 <a target="test" onclick="parent.events.push('click');" href="javascript:parent.events.push('href')">Test</a>
 <script>
-var t = async_test(undefined, {timeout:4000});
+var t = async_test();
 var events = [];
 t.step(function() {
   document.getElementsByTagName("a")[0].click();

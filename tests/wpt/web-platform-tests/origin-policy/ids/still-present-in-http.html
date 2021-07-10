@@ -1,0 +1,16 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>originPolicyIds must return an empty array in http: pages</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+test(() => {
+  assert_equals(location.protocol, "http:");
+}, "Prerequisite check: running on HTTP, not HTTPS");
+
+test(() => {
+  assert_array_equals(window.originPolicyIds, []);
+}, "The attribute is still present and returns an empty frozen array");
+</script>

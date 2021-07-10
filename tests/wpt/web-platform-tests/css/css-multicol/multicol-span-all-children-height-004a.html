@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Multi-column Layout Test: Test the block-size distribution across column-span split in a balancing multicol container</title>
+  <link rel="author" title="Ting-Yu Lin" href="tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-multicol-1/#column-span">
+  <link rel="match" href="multicol-span-all-children-height-004a-ref.html">
+  <meta name="assert" content="This test verifies that a block container with a fixed block-size, split by column-span, distributes just enough block-size to hold its children.">
+
+  <style>
+  article {
+    column-count: 2;
+    width: 400px;
+    background-color: lightgreen;
+  }
+  div.container {
+    height: 450px;
+    background-color: pink;
+  }
+  div.block {
+    width: 100px;
+    height: 200px;
+    background-color: yellow;
+  }
+  div.column-span {
+    column-span: all;
+    height: 50px;
+    background-color: lightblue;
+  }
+  </style>
+
+  <article>
+    <!-- The container is split by the column-spans.
+         a) Before column-span1, it distributes 200px height into two columns,
+            and each column takes 100px height.
+         b) In between column-span1 and column-span2, same distribution as a).
+         c) After column-span2, it has 50px height left, which goes to the first
+            column.
+    -->
+    <div class="container">
+      <!-- Each block spreads its height evenly into two columns, and
+           each column contains 100px height. -->
+      <div class="block">block1</div>
+      <div class="column-span">column-span1</div>
+      <div class="block">block2</div>
+      <div class="column-span">column-span2</div>
+      <div class="block">block3</div>
+    </div>
+  </article>
+</html>

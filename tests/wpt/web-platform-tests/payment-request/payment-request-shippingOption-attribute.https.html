@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<!-- Copyright © 2017 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<meta charset="utf-8">
+<title>Test for PaymentRequest shippingOption attribute</title>
+<link rel="help" href="https://w3c.github.io/payment-request/#shippingoption-attribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const validMethod = Object.freeze({ supportedMethods: "foo" });
+const validMethods = Object.freeze([validMethod]);
+const validAmount = Object.freeze({ currency: "USD", value: "5.00" });
+const validTotal = Object.freeze({
+  label: "label",
+  amount: validAmount,
+});
+const validDetails = Object.freeze({ total: validTotal });
+const validShippingOption = Object.freeze({
+  id: "valid",
+  label: "Valid shipping option",
+  amount: validAmount,
+  selected: false,
+});
+
+const requestShipping = Object.freeze({
+  requestShipping: true,
+});
+
+test(() => {
+  const request = new PaymentRequest(validMethods, validDetails);
+  assert_idl_attribute(request, "shippingOption");
+}, "Must have a .shippingOption IDL attribute.");
+
+test(() => {
+  const request = new PaymentRequest(validMethods, validDetails);
+  assert_equals(request.shippingOption, null, "expected null");
+}, ".shippingOption attribute must default to null.");
+
+test(() => {
+  const detailsWithShippingOptions = Object.assign({}, validDetails, {
+    shippingOptions: [validShippingOption],
+  });
+  const request = new PaymentRequest(
+    validMethods,
+    detailsWithShippingOptions,
+    requestShipping
+  );
+  assert_equals(request.shippingOption, null, "expected null");
+}, "If there is a single shipping option, but selected is false, then .shippingOption must be null.");
+
+test(() => {
+  const shippingOption2 = Object.assign({}, validShippingOption, {
+    id: "valid2",
+  });
+  const detailsWithShippingOptions = Object.assign({}, validDetails, {
+    shippingOptions: [validShippingOption, shippingOption2],
+  });
+  const request = new PaymentRequest(
+    validMethods,
+    detailsWithShippingOptions,
+    requestShipping
+  );
+  assert_equals(request.shippingOption, null, "expected null");
+}, "If there are multiple shipping options all with `selected` set to false, then .shippingOption is null.");
+
+test(() => {
+  const shippingOption2 = Object.assign({}, validShippingOption, {
+    id: "pass",
+    selected: true,
+  });
+  const detailsWithShippingOptions = Object.assign({}, validDetails, {
+    shippingOptions: [shippingOption2, validShippingOption],
+  });
+  const request = new PaymentRequest(
+    validMethods,
+    detailsWithShippingOptions,
+    requestShipping
+  );
+  assert_equals(request.shippingOption, "pass", "expected 'pass'");
+}, "Given multiple shipping options, it must use the selected shipping option for .shippingOption value.");
+
+test(() => {
+  const shippingOption1 = Object.assign({}, validShippingOption, {
+    id: "fail",
+    selected: true,
+  });
+  const shippingOption2 = Object.assign({}, validShippingOption, {
+    id: "pass",
+    selected: true,
+  });
+  const detailsWithShippingOptions = Object.assign({}, validDetails, {
+    shippingOptions: [shippingOption1, shippingOption2, validShippingOption],
+  });
+  const request = new PaymentRequest(
+    validMethods,
+    detailsWithShippingOptions,
+    requestShipping
+  );
+  assert_equals(request.shippingOption, "pass", "expected 'pass'");
+}, "If there are multiple of the shipping options with selected true, then .shippingOption is the last selected shipping option in order.");
+</script>

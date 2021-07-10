@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+
+// cross-origin resources
+const IMAGE_URL =
+    "https://{{domains[www1]}}:{{ports[https][0]}}/images/green.png";
+const VIDEO_URL =
+    "https://{{domains[www1]}}:{{ports[https][0]}}/media/white.webm";
+
+const crossOriginTests =
+    [
+      {
+        createDetector: () => { return new FaceDetector(); },
+        detectorType: "FaceDetector"
+      },
+      {
+        createDetector: () => { return new BarcodeDetector(); },
+        detectorType: "BarcodeDetector"
+      },
+      {
+        createDetector: () => { return new TextDetector(); },
+        detectorType: "TextDetector"
+      }
+    ];
+
+for (let crossOriginTest of crossOriginTests) {
+
+  // Verifies that Detector rejects a cross-origin HTMLImageElement.
+  promise_test(async t => {
+    const img = new Image();
+    const imgWatcher = new EventWatcher(t, img, ["load", "error"]);
+    img.src = IMAGE_URL;
+    await imgWatcher.wait_for("load");
+    const detector = crossOriginTest.createDetector();
+    promise_rejects_dom(t, "SecurityError", detector.detect(img));
+  }, crossOriginTest.detectorType
+  + " should reject cross-origin HTMLImageElements with a SecurityError.");
+
+  // Verifies that Detector rejects a cross-origin ImageBitmap.
+  promise_test(async t => {
+    const img = new Image();
+    const imgWatcher = new EventWatcher(t, img, ["load", "error"]);
+    img.src = IMAGE_URL;
+    await imgWatcher.wait_for("load");
+    const imgBitmap = await createImageBitmap(img);
+    const detector = crossOriginTest.createDetector();
+    promise_rejects_dom(t, "SecurityError", detector.detect(imgBitmap));
+  }, crossOriginTest.detectorType
+  + " should reject cross-origin ImageBitmaps with a SecurityError.");
+
+  // Verifies that Detector rejects a cross-origin HTMLVideoElement.
+  promise_test(async t => {
+    const video = document.createElement('video');
+    const videoWatcher = new EventWatcher(t, video, ["loadeddata", "error"]);
+    video.src = VIDEO_URL;
+    await videoWatcher.wait_for("loadeddata");
+    const detector = crossOriginTest.createDetector();
+    promise_rejects_dom(t, "SecurityError", detector.detect(video));
+  }, crossOriginTest.detectorType
+  + " should reject cross-origin HTMLVideoElements with a SecurityError.");
+
+}
+
+</script>

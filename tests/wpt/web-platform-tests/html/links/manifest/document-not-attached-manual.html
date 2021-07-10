@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>
+  Manifest attached to document without a browsing context
+</title>
+<link rel="help" href="https://html.spec.whatwg.org/#link-type-manifest" />
+<script>
+  // Create an orphan document, and make sure it doesn't get used
+  const doc = document.implementation.createHTMLDocument("Orphan document");
+  const link = doc.createElement("link");
+  link.rel = "manifest";
+  link.href = "/appmanifest/name-member/name-member-fail.webmanifest";
+  doc.head.append(link);
+</script>
+<h1>Manifest attached to document that does not have a browsing context</h1>
+<p>
+  To pass, the user agent must not use the manifest in the unattached document.
+</p>

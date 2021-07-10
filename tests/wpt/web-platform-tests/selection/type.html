@@ -1,0 +1,31 @@
+<!doctype html>
+<title>Selection.type tests</title>
+<div id=log></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=common.js></script>
+<script>
+"use strict";
+
+test(() => {
+  assert_equals(getSelection().rangeCount, 0, "Sanity check");
+  assert_equals(getSelection().type, "None");
+}, "Empty selection");
+
+for (var i = 0; i < testRanges.length; i++) {
+  var endpoints = eval(testRanges[i]);
+  if (!isSelectableNode(endpoints[0]) || !isSelectableNode(endpoints[2])) {
+      continue;
+  }
+  test(() => {
+    var range = rangeFromEndpoints(endpoints);
+    getSelection().removeAllRanges();
+    getSelection().addRange(range);
+    if (endpoints[0] == endpoints[2] && endpoints[1] == endpoints[3]) {
+      assert_equals(getSelection().type, "Caret");
+    } else {
+      assert_equals(getSelection().type, "Range");
+    }
+  }, testRanges[i]);
+}
+</script>

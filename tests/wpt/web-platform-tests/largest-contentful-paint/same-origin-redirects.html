@@ -1,0 +1,35 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>This test validates LargestContentfulPaint for same-origin redirect chain.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/largest-contentful-paint-helpers.js"></script>
+</head>
+<body>
+<script>
+async_test(t => {
+    assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+    // First redirect
+    let destUrl = '/common/redirect.py?location='
+    // Second redirect
+    destUrl += '/common/redirect.py?location='
+    // Image without TAO headers.
+    destUrl += '/element-timing/resources/square20.png';
+    let beforeLoad;
+    new PerformanceObserver(t.step_func_done(entries => {
+        assert_equals(entries.getEntries().length, 1, 'There should be one entry');
+        const entry = entries.getEntries()[0];
+        checkImage(entry, location.origin + destUrl, 'id', 20*20, beforeLoad);
+    })).observe({entryTypes: ['largest-contentful-paint']});
+    const image = document.createElement('img');
+    image.src = destUrl;
+    image.setAttribute('id', 'id')
+    document.body.appendChild(image);
+    beforeLoad = performance.now();
+}, 'Same-origin image redirect without TAO should have its renderTime set.');
+</script>
+</body>
+</html>
+

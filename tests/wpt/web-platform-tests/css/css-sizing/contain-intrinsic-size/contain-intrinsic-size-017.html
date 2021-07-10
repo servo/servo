@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf8">
+<title>CSS contain-intrinsic-size: replaced content (vertical-lr)</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="match" href="contain-intrinsic-size-017-ref.html">
+<meta name="assert" content="contain-intrinsic-size specifies physical dimensions on replaced content">
+
+<style>
+body {
+  writing-mode: vertical-lr;
+}
+#target {
+  contain-intrinsic-size: 100px 200px;
+  contain: size;
+  inline-size: min-content;
+  block-size: auto;
+}
+</style>
+
+<img id=target src="resources/dice.png"></img>

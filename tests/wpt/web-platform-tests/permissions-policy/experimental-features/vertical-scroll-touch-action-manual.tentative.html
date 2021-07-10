@@ -1,0 +1,103 @@
+<!doctype html>
+<meta name="timeout" content="long">
+<title>vertical-scroll test for touch-action</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/permissions-policy/experimental-features/resources/common.js"></script>
+<script src="/permissions-policy/experimental-features/resources/vertical-scroll.js"></script>
+<style>
+html, body {
+  height: 100%;
+  width: 100%;
+}
+
+iframe {
+  width: 90%;
+  height: 90%;
+  margin: 0;
+  padding: 0;
+}
+
+.spacer {
+  width: 100%;
+  height: 100%;
+  margin: 100%;
+}
+</style>
+<iframe></iframe>
+<br/>
+<p>Spacers below to make page scrollable</p>
+<br/>
+<div class="spacer"></div>
+<div class="spacer"></div>
+<p> EOF </p>
+
+<script>
+  "use strict";
+
+  let url = url_base + "vertical-scroll-touch-action.html";
+  let iframeElement = document.querySelector("iframe");
+
+  // Wait for the helper scripts to load.
+  promise_test(async() => {
+    if (window.input_api_ready)
+      return Promise.resolve();
+    await new Promise( (r) => {
+      window.resolve_on_input_api_ready = r;
+    });
+  }, "Make sure input injection API is ready.");
+
+  // Sanity-check: Verify we can scroll using the test-API (empty <iframe>).
+  promise_test(async() => {
+    window.scrollTo(0, 0);
+
+    await inject_input("down");
+    assert_greater_than(window.scrollY, 0, "Page must have scrolled down.");
+
+    await inject_input("right");
+    assert_greater_than(window.scrollX, 0, "Page must have scrolled right.");
+  }, "Verify that the page normally scrolls.");
+
+  // Enable 'vertical-scroll': "touch-action" should be able to block scroll.
+  promise_test(async() => {
+    // Make sure <window> can scroll both towards right and bottom.
+    window.scrollTo(0, 0);
+
+    await loadUrlInIframe(iframeElement, url);
+
+    // Apply the scroll gesture.
+    await inject_input("down");
+
+    // The scroll should normally bubble and affect this page, but the <iframe>
+    // is allowed to block it.
+    assert_equals(window.scrollY,
+                  0,
+                  "Main frame must not scroll vertically");
+  }, "Vertical scrolling through 'touch-action' can normally be blocked if" +
+     " 'pan-y' is not present.");
+
+  // Disable 'vertical-scroll': "touch-action" should not be able to block
+  // scroll.
+  promise_test(async() => {
+    window.scrollTo(0, 0);
+
+    // Disallow vertical scroll and reload the <iframe>.
+    setFeatureState(iframeElement, "vertical-scroll", "'none'");
+    await loadUrlInIframe(iframeElement, url);
+
+    // Apply the scroll gesture. Main frame should scroll vertically.
+    await inject_input("down");
+
+    assert_greater_than(window.scrollY,
+                        0,
+                        "Main frame must scroll vertically.");
+    window.scrollTo(0, 0);
+
+    await inject_input("right");
+    assert_equals(
+        window.scrollX,
+        0,
+        "'pan-x' can be blocked even when 'vertical-scroll' is disabled");
+  }, "Vertical scrolling (and only vertical scrolling) through 'touch-action'" +
+     " cannot be blocked by a disabled frame.");
+</script>

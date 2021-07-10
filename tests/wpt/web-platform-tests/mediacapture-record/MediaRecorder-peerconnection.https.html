@@ -1,0 +1,83 @@
+<!doctype html>
+<html>
+<meta name="timeout" content="long">
+
+<head>
+  <title>MediaRecorder peer connection</title>
+  <link rel="help"
+        href="https://w3c.github.io/mediacapture-record/MediaRecorder.html#dom-mediarecorder-mimeType">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="utils/peerconnection.js"></script>
+</head>
+
+<body>
+  <video id="remote" autoplay width="240" />
+  <script>
+
+promise_setup(async () => {
+  const t = {add_cleanup: add_completion_callback};
+  const [, pc, stream] = await startConnection(t, true, true);
+  const [audio] = stream.getAudioTracks();
+  const [video] = stream.getVideoTracks();
+
+  // Needed for the tests to get exercised in Chrome (bug)
+  document.getElementById('remote').srcObject = stream;
+
+  for (const {kinds, mimeType} of [
+   { kinds: { video }, mimeType: "" },
+   { kinds: { audio }, mimeType: "" },
+   { kinds: { video, audio }, mimeType: "" },
+   { kinds: { audio }, mimeType: "audio/webm;codecs=opus" },
+   { kinds: { video }, mimeType: "video/webm;codecs=vp8" },
+   { kinds: { video, audio }, mimeType: "video/webm;codecs=vp8,opus" },
+   { kinds: { video }, mimeType: "video/webm;codecs=vp9" },
+   { kinds: { video, audio }, mimeType: "video/webm;codecs=vp9,opus" }
+  ]) {
+    const tag = `${JSON.stringify(kinds)} mimeType "${mimeType}"`;
+    const stream = new MediaStream([kinds.audio, kinds.video].filter(n => n));
+
+    // Spec doesn't mandate codecs, so if not supported, test failure instead.
+    if (mimeType && !MediaRecorder.isTypeSupported(mimeType)) {
+      promise_test(async t => {
+        assert_throws_dom('NotSupportedError',
+                          () => new MediaRecorder(stream, { mimeType }));
+      }, `MediaRecorder constructor throws on no support, ${tag}`);
+      continue;
+    }
+
+    promise_test(async t => {
+      const recorder = new MediaRecorder(stream, { mimeType });
+      recorder.start(200);
+      await new Promise(r => recorder.onstart = r);
+      let combinedSize = 0;
+      // Wait for a small amount of data to appear. Kept small for mobile tests
+      while (combinedSize < 2000) {
+        const {data} = await new Promise(r => recorder.ondataavailable = r);
+        combinedSize += data.size;
+      }
+      recorder.stop();
+    }, `PeerConnection MediaRecorder receives data after onstart, ${tag}`);
+
+    promise_test(async t => {
+      const clone = stream.clone();
+      const recorder = new MediaRecorder(clone, { mimeType });
+      recorder.start();
+      await new Promise(r => recorder.onstart = r);
+      await waitForReceivedFramesOrPackets(t, pc, kinds.audio, kinds.video, 10);
+      for (const track of clone.getTracks()) {
+        track.stop();
+      }
+      // As the tracks ended, expect data from the recorder.
+      await Promise.all([
+        new Promise(r => recorder.onstop = r),
+        new Promise(r => recorder.ondataavailable = r)
+      ]);
+    }, `PeerConnection MediaRecorder gets ondata on stopping tracks, ${tag}`);
+  }
+});
+
+  </script>
+</body>
+
+</html>

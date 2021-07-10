@@ -31,7 +31,7 @@ promise_test(testCase => {
 
         index = store.index('not_by_author');
         store.deleteIndex('not_by_author');
-        assert_throws(
+        assert_throws_dom(
             'InvalidStateError', () => index.get('query'),
             'IDBIndex.get should throw InvalidStateError, indicating that ' +
             'the index is marked for deletion, immediately after ' +
@@ -42,12 +42,12 @@ promise_test(testCase => {
             'immediately after IDBObjectStore.deleteIndex() returns');
 
         transaction.abort();
-        assert_throws(
+        assert_throws_dom(
             'InvalidStateError', () => store.get('query'),
             'IDBObjectStore.get should throw InvalidStateError, indicating ' +
             'that the store is marked for deletion, immediately after ' +
             'IDBTransaction.abort() returns');
-        assert_throws(
+        assert_throws_dom(
             'InvalidStateError', () => index.get('query'),
             'IDBIndex.get should throw InvalidStateError, indicating that ' +
             'the index is still marked for deletion, immediately after ' +
@@ -65,12 +65,12 @@ promise_test(testCase => {
             'IDBObjectStore.indexNames for the newly created store should be ' +
             'empty immediately after IDBTransaction.abort() returns');
     })).then(() => {
-        assert_throws(
+        assert_throws_dom(
             'InvalidStateError', () => store.get('query'),
             'IDBObjectStore.get should throw InvalidStateError, indicating ' +
             'that the store is marked for deletion, after the transaction is ' +
             'aborted');
-        assert_throws(
+        assert_throws_dom(
             'InvalidStateError', () => index.get('query'),
             'IDBIndex.get should throw InvalidStateError, indicating that ' +
             'the index is still marked for deletion, after the transaction ' +
@@ -105,7 +105,7 @@ promise_test(testCase => {
         store = transaction.objectStore('not_books');
         index = store.index('not_by_author');
         store.deleteIndex('not_by_author');
-        assert_throws(
+        assert_throws_dom(
             'InvalidStateError', () => index.get('query'),
             'IDBIndex.get should throw InvalidStateError, indicating that ' +
             'the index is marked for deletion, immediately after ' +
@@ -116,12 +116,12 @@ promise_test(testCase => {
             'immediately after IDBObjectStore.deleteIndex() returns');
 
         database.deleteObjectStore('not_books');
-        assert_throws(
+        assert_throws_dom(
             'InvalidStateError', () => store.get('query'),
             'IDBObjectStore.get should throw InvalidStateError, indicating ' +
             'that the store is marked for deletion, immediately after ' +
             'IDBDatabase.deleteObjectStore() returns');
-        assert_throws(
+        assert_throws_dom(
             'InvalidStateError', () => index.get('query'),
             'IDBIndex.get should throw InvalidStateError, indicating that ' +
             'the index is still marked for deletion, immediately after ' +
@@ -142,12 +142,12 @@ promise_test(testCase => {
             'immediately after IDBDatabase.deleteObjectStore() returns');
 
         transaction.abort();
-        assert_throws(
+        assert_throws_dom(
             'TransactionInactiveError', () => store.get('query'),
             'IDBObjectStore.get should throw TransactionInactiveError, ' +
             'indicating that the store is no longer marked for deletion, ' +
             'immediately after IDBTransaction.abort() returns');
-        assert_throws(
+        assert_throws_dom(
             'TransactionInactiveError', () => index.get('query'),
             'IDBIndex.get should throw TransactionInactiveError, indicating ' +
             'that the index is no longer marked for deletion, immediately ' +
@@ -165,12 +165,12 @@ promise_test(testCase => {
             'IDBObjectStore.indexNames for the deleted store should not be ' +
             'empty any more immediately after IDBTransaction.abort() returns');
     })).then(() => {
-        assert_throws(
+        assert_throws_dom(
             'TransactionInactiveError', () => store.get('query'),
             'IDBObjectStore.get should throw TransactionInactiveError, ' +
             'indicating that the store is no longer marked for deletion, ' +
             'after the transaction is aborted');
-        assert_throws(
+        assert_throws_dom(
             'TransactionInactiveError', () => index.get('query'),
             'IDBIndex.get should throw TransactionInactiveError, indicating ' +
             'that the index is no longer marked for deletion, after the ' +
@@ -204,7 +204,7 @@ promise_test(testCase => {
         migrationTransaction = transaction;
         index = store.index('not_by_author');
         store.deleteIndex('not_by_author');
-        assert_throws(
+        assert_throws_dom(
             'InvalidStateError', () => index.get('query'),
             'IDBIndex.get should throw InvalidStateError, indicating that ' +
             'the index is marked for deletion, immediately after ' +
@@ -215,12 +215,12 @@ promise_test(testCase => {
             'immediately after IDBObjectStore.deleteIndex() returns');
 
         database.deleteObjectStore('not_books');
-        assert_throws(
+        assert_throws_dom(
             'InvalidStateError', () => store.get('query'),
             'IDBObjectStore.get should throw InvalidStateError, indicating ' +
             'that the store is marked for deletion, immediately after ' +
             'IDBDatabase.deleteObjectStore() returns');
-        assert_throws(
+        assert_throws_dom(
             'InvalidStateError', () => index.get('query'),
             'IDBIndex.get should throw InvalidStateError, indicating that ' +
             'the index is still marked for deletion, immediately after ' +
@@ -241,12 +241,12 @@ promise_test(testCase => {
             'IDBDatabase.deleteObjectStore() returns');
 
         transaction.abort();
-        assert_throws(
+        assert_throws_dom(
             'InvalidStateError', () => store.get('query'),
             'IDBObjectStore.get should throw InvalidStateError, indicating ' +
             'that the store is still marked for deletion, immediately after ' +
             'IDBTransaction.abort() returns');
-        assert_throws(
+        assert_throws_dom(
             'InvalidStateError', () => index.get('query'),
             'IDBIndex.get should throw InvalidStateError, indicating that ' +
             'the index is still marked for deletion, immediately after ' +
@@ -264,12 +264,12 @@ promise_test(testCase => {
             'IDBObjectStore.indexNames should be empty immediately after ' +
             'IDBTransaction.abort() returns');
     })).then(() => {
-        assert_throws(
+        assert_throws_dom(
             'InvalidStateError', () => store.get('query'),
             'IDBObjectStore.get should throw InvalidStateError, indicating ' +
             'that the store is still marked for deletion, after the ' +
             'transaction is aborted');
-        assert_throws(
+        assert_throws_dom(
             'InvalidStateError', () => index.get('query'),
             'IDBIndex.get should throw InvalidStateError, indicating that ' +
             'the index is still marked for deletion, after the transaction ' +

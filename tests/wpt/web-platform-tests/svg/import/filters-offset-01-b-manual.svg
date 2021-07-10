@@ -83,7 +83,7 @@
 
     <circle cx="160" cy="50" r="40" fill="#000" filter="url(#FOMTest)"/>
 
-    <!--  Add some crosshairs of the same color of the 
+    <!--  Add some crosshairs of the same color of the
             flood at the same location as the offset -->
 
     <!-- 20 pixel cross hair at 120,90 -->

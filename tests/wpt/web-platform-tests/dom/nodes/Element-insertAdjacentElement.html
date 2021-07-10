@@ -16,11 +16,11 @@ var target = document.getElementById("target");
 var target2 = document.getElementById("target2");
 
 test(function() {
-  assert_throws("SyntaxError", function() {
+  assert_throws_dom("SyntaxError", function() {
     target.insertAdjacentElement("test", document.getElementById("test1"))
   });
 
-  assert_throws("SyntaxError", function() {
+  assert_throws_dom("SyntaxError", function() {
     target2.insertAdjacentElement("test", document.getElementById("test1"))
   });
 }, "Inserting to an invalid location should cause a Syntax Error exception")
@@ -69,7 +69,7 @@ test(function() {
   var docElement = document.documentElement;
   docElement.style.visibility="hidden";
 
-  assert_throws("HierarchyRequestError", function() {
+  assert_throws_dom("HierarchyRequestError", function() {
     var el = docElement.insertAdjacentElement("beforebegin", document.getElementById("test1"));
     assert_equals(el, null);
   });
@@ -82,7 +82,7 @@ test(function() {
   assert_equals(docElement.lastChild.id, "test3");
   assert_equals(el.id, "test3");
 
-  assert_throws("HierarchyRequestError", function() {
+  assert_throws_dom("HierarchyRequestError", function() {
     var el = docElement.insertAdjacentElement("afterend", document.getElementById("test4"));
     assert_equals(el, null);
   });

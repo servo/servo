@@ -1,0 +1,33 @@
+<!doctype html>
+<title>foreignObject: Element.prototype.getBoundingClientRect()</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/single-page.html#embedded-ForeignObjectElement">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#descendant {
+  width: 100px;
+  height: 60px;
+  margin: 6px 12px;
+  background-color: blue;
+}
+</style>
+<svg>
+  <foreignObject x="20" y="10" width="200" height="100">
+    <div id="descendant"></div>
+  </foreignObject>
+</svg>
+<script>
+function checkBoundingRect(element, bounds) {
+  let boundingRect = element.getBoundingClientRect();
+  for (let prop of ['left', 'top', 'width', 'height'])
+    assert_equals(boundingRect[prop], bounds[prop], prop);
+}
+
+test(function() {
+  checkBoundingRect(document.querySelector('foreignObject'),
+                    { left: 28, top: 18, width: 200, height: 100 });
+  checkBoundingRect(document.querySelector('foreignObject > div'),
+                    { left: 40, top: 24, width: 100, height: 60 });
+});
+</script>

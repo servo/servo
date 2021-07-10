@@ -1,0 +1,503 @@
+<!doctype html>
+<meta name="timeout" content="long"/>
+<meta charset=utf-8>
+<title>RTCPeerConnection-transceivers.https.html</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+// The following helper functions are called from RTCPeerConnection-helper.js:
+//   exchangeOffer
+//   exchangeOfferAndListenToOntrack
+//   exchangeAnswer
+//   exchangeAnswerAndListenToOntrack
+//   addEventListenerPromise
+//   createPeerConnectionWithCleanup
+//   createTrackAndStreamWithCleanup
+//   findTransceiverForSender
+
+promise_test(async t => {
+  const pc = createPeerConnectionWithCleanup(t);
+  const [track, stream] = await createTrackAndStreamWithCleanup(t);
+  const sender = pc.addTrack(track, stream);
+  const transceiver = findTransceiverForSender(pc, sender);
+  assert_true(transceiver instanceof RTCRtpTransceiver);
+  assert_true(transceiver.sender instanceof RTCRtpSender);
+  assert_equals(transceiver.sender, sender);
+}, 'addTrack: creates a transceiver for the sender');
+
+promise_test(async t => {
+  const pc = createPeerConnectionWithCleanup(t);
+  const [track, stream] = await createTrackAndStreamWithCleanup(t);
+  const transceiver = findTransceiverForSender(pc, pc.addTrack(track, stream));
+  assert_array_equals(pc.getTransceivers(), [transceiver],
+                      'pc.getTransceivers() equals [transceiver]');
+  assert_array_equals(pc.getSenders(), [transceiver.sender],
+                      'pc.getSenders() equals [transceiver.sender]');
+  assert_array_equals(pc.getReceivers(), [transceiver.receiver],
+                      'pc.getReceivers() equals [transceiver.receiver]');
+}, 'addTrack: "transceiver == {sender,receiver}"');
+
+promise_test(async t => {
+  const pc = createPeerConnectionWithCleanup(t);
+  const [track, stream] = await createTrackAndStreamWithCleanup(t);
+  const transceiver = findTransceiverForSender(pc, pc.addTrack(track, stream));
+  assert_true(transceiver.sender.track instanceof MediaStreamTrack,
+              'transceiver.sender.track instanceof MediaStreamTrack');
+  assert_equals(transceiver.sender.track, track,
+                'transceiver.sender.track == track');
+}, 'addTrack: transceiver.sender is associated with the track');
+
+promise_test(async t => {
+  const pc = createPeerConnectionWithCleanup(t);
+  const [track, stream] = await createTrackAndStreamWithCleanup(t);
+  const transceiver = findTransceiverForSender(pc, pc.addTrack(track, stream));
+  assert_true(transceiver.receiver instanceof RTCRtpReceiver,
+              'transceiver.receiver instanceof RTCRtpReceiver');
+  assert_true(transceiver.receiver.track instanceof MediaStreamTrack,
+              'transceiver.receiver.track instanceof MediaStreamTrack');
+  assert_not_equals(transceiver.receiver.track, track,
+                    'transceiver.receiver.track != track');
+}, 'addTrack: transceiver.receiver has its own track');
+
+promise_test(async t => {
+  const pc = createPeerConnectionWithCleanup(t);
+  const [track, stream] = await createTrackAndStreamWithCleanup(t);
+  const transceiver = findTransceiverForSender(pc, pc.addTrack(track, stream));
+  assert_true(transceiver.receiver.track.muted);
+}, 'addTrack: transceiver.receiver\'s track is muted');
+
+promise_test(async t => {
+  const pc = createPeerConnectionWithCleanup(t);
+  const [track, stream] = await createTrackAndStreamWithCleanup(t);
+  const transceiver = findTransceiverForSender(pc, pc.addTrack(track, stream));
+  assert_equals(transceiver.mid, null);
+}, 'addTrack: transceiver is not associated with an m-section');
+
+promise_test(async t => {
+  const pc = createPeerConnectionWithCleanup(t);
+  const [track, stream] = await createTrackAndStreamWithCleanup(t);
+  const transceiver = findTransceiverForSender(pc, pc.addTrack(track, stream));
+  assert_false(transceiver.stopped);
+}, 'addTrack: transceiver is not stopped');
+
+promise_test(async t => {
+  const pc = createPeerConnectionWithCleanup(t);
+  const [track, stream] = await createTrackAndStreamWithCleanup(t);
+  const transceiver = findTransceiverForSender(pc, pc.addTrack(track, stream));
+  assert_equals(transceiver.direction, 'sendrecv');
+}, 'addTrack: transceiver\'s direction is sendrecv');
+
+promise_test(async t => {
+  const pc = createPeerConnectionWithCleanup(t);
+  const [track, stream] = await createTrackAndStreamWithCleanup(t);
+  const transceiver = findTransceiverForSender(pc, pc.addTrack(track, stream));
+  assert_equals(transceiver.currentDirection, null);
+}, 'addTrack: transceiver\'s currentDirection is null');
+
+promise_test(async t => {
+  const pc = createPeerConnectionWithCleanup(t);
+  const [track, stream] = await createTrackAndStreamWithCleanup(t);
+  const transceiver = findTransceiverForSender(pc, pc.addTrack(track, stream));
+  await pc.setLocalDescription(await pc.createOffer());
+  assert_not_equals(transceiver.mid, null, 'transceiver.mid != null');
+}, 'setLocalDescription(offer): transceiver gets associated with an m-section');
+
+promise_test(async t => {
+  const pc = createPeerConnectionWithCleanup(t);
+  const [track, stream] = await createTrackAndStreamWithCleanup(t);
+  const transceiver = findTransceiverForSender(pc, pc.addTrack(track, stream));
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  let sdp = offer.sdp;
+  let sdpMidLineStart = sdp.indexOf('a=mid:');
+  let sdpMidLineEnd = sdp.indexOf('\r\n', sdpMidLineStart);
+  assert_true(sdpMidLineStart != -1 && sdpMidLineEnd != -1,
+              'Failed to parse offer SDP for a=mid');
+  let parsedMid = sdp.substring(sdpMidLineStart + 6, sdpMidLineEnd);
+  assert_equals(transceiver.mid, parsedMid, 'transceiver.mid == parsedMid');
+}, 'setLocalDescription(offer): transceiver.mid matches the offer SDP');
+
+promise_test(async t => {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  pc1.addTrack(... await createTrackAndStreamWithCleanup(t));
+  const pc2 = createPeerConnectionWithCleanup(t);
+  const trackEvent = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
+  assert_true(trackEvent instanceof RTCTrackEvent,
+              'trackEvent instanceof RTCTrackEvent');
+  assert_true(trackEvent.track instanceof MediaStreamTrack,
+              'trackEvent.track instanceof MediaStreamTrack');
+}, 'setRemoteDescription(offer): ontrack fires with a track');
+
+promise_test(async t => {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  const [track, stream] = await createTrackAndStreamWithCleanup(t);
+  pc1.addTrack(track, stream);
+  const pc2 = createPeerConnectionWithCleanup(t);
+  const trackEvent = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
+  assert_true(trackEvent.track instanceof MediaStreamTrack,
+              'trackEvent.track instanceof MediaStreamTrack');
+  assert_equals(trackEvent.streams.length, 1,
+                'trackEvent contains a single stream');
+  assert_true(trackEvent.streams[0] instanceof MediaStream,
+              'trackEvent has a MediaStream');
+  assert_equals(trackEvent.streams[0].id, stream.id,
+                'trackEvent.streams[0].id == stream.id');
+}, 'setRemoteDescription(offer): ontrack\'s stream.id is the same as stream.id');
+
+promise_test(async t => {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  pc1.addTrack(... await createTrackAndStreamWithCleanup(t));
+  const pc2 = createPeerConnectionWithCleanup(t);
+  const trackEvent = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
+  assert_true(trackEvent.transceiver instanceof RTCRtpTransceiver,
+              'trackEvent.transceiver instanceof RTCRtpTransceiver');
+}, 'setRemoteDescription(offer): ontrack fires with a transceiver.');
+
+promise_test(async t => {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  const [track, stream] = await createTrackAndStreamWithCleanup(t);
+  const transceiver = findTransceiverForSender(pc1, pc1.addTrack(track, stream));
+  const pc2 = createPeerConnectionWithCleanup(t);
+  const trackEvent = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
+  assert_equals(transceiver.mid, trackEvent.transceiver.mid);
+}, 'setRemoteDescription(offer): transceiver.mid is the same on both ends');
+
+promise_test(async t => {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  pc1.addTrack(... await createTrackAndStreamWithCleanup(t));
+  const pc2 = createPeerConnectionWithCleanup(t);
+  const trackEvent = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
+  const transceiver = trackEvent.transceiver;
+  assert_array_equals(pc2.getTransceivers(), [transceiver],
+                      'pc2.getTransceivers() equals [transceiver]');
+  assert_array_equals(pc2.getSenders(), [transceiver.sender],
+                      'pc2.getSenders() equals [transceiver.sender]');
+  assert_array_equals(pc2.getReceivers(), [transceiver.receiver],
+                      'pc2.getReceivers() equals [transceiver.receiver]');
+}, 'setRemoteDescription(offer): "transceiver == {sender,receiver}"');
+
+promise_test(async t => {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  pc1.addTrack(... await createTrackAndStreamWithCleanup(t));
+  const pc2 = createPeerConnectionWithCleanup(t);
+  const trackEvent = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
+  assert_equals(trackEvent.transceiver.direction, 'recvonly');
+}, 'setRemoteDescription(offer): transceiver.direction is recvonly');
+
+promise_test(async t => {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  pc1.addTrack(... await createTrackAndStreamWithCleanup(t));
+  const pc2 = createPeerConnectionWithCleanup(t);
+  const trackEvent = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
+  assert_equals(trackEvent.transceiver.currentDirection, null);
+}, 'setRemoteDescription(offer): transceiver.currentDirection is null');
+
+promise_test(async t => {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  pc1.addTrack(... await createTrackAndStreamWithCleanup(t));
+  const pc2 = createPeerConnectionWithCleanup(t);
+  const trackEvent = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
+  assert_false(trackEvent.transceiver.stopped);
+}, 'setRemoteDescription(offer): transceiver.stopped is false');
+
+promise_test(async t => {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  pc1.addTrack(... await createTrackAndStreamWithCleanup(t));
+  const pc2 = createPeerConnectionWithCleanup(t);
+  const trackEvent = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
+  const transceiver = trackEvent.transceiver;
+  assert_equals(transceiver.currentDirection, null,
+                'SRD(offer): transceiver.currentDirection is null');
+  await pc2.setLocalDescription(await pc2.createAnswer());
+  assert_equals(transceiver.currentDirection, 'recvonly',
+                'SLD(answer): transceiver.currentDirection is recvonly');
+}, 'setLocalDescription(answer): transceiver.currentDirection is recvonly');
+
+promise_test(async t => {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  const [track, stream] = await createTrackAndStreamWithCleanup(t);
+  const transceiver = findTransceiverForSender(pc1, pc1.addTrack(track, stream));
+  const pc2 = createPeerConnectionWithCleanup(t);
+  await exchangeOffer(pc1, pc2);
+  assert_equals(transceiver.currentDirection, null,
+                'SLD(offer): transceiver.currentDirection is null');
+  await exchangeAnswer(pc1, pc2);
+  assert_equals(transceiver.currentDirection, 'sendonly',
+                'SRD(answer): transceiver.currentDirection is sendonly');
+}, 'setLocalDescription(answer): transceiver.currentDirection is sendonly');
+
+promise_test(async t => {
+  const pc = createPeerConnectionWithCleanup(t);
+  const [track, stream] = await createTrackAndStreamWithCleanup(t);
+  const transceiver = pc.addTransceiver(track);
+  assert_true(transceiver instanceof RTCRtpTransceiver);
+  assert_true(transceiver.sender instanceof RTCRtpSender);
+  assert_true(transceiver.receiver instanceof RTCRtpReceiver);
+  assert_equals(transceiver.sender.track, track);
+}, 'addTransceiver(track): creates a transceiver for the track');
+
+promise_test(async t => {
+  const pc = createPeerConnectionWithCleanup(t);
+  const [track, stream] = await createTrackAndStreamWithCleanup(t);
+  const transceiver = pc.addTransceiver(track);
+  assert_array_equals(pc.getTransceivers(), [transceiver],
+                      'pc.getTransceivers() equals [transceiver]');
+  assert_array_equals(pc.getSenders(), [transceiver.sender],
+                      'pc.getSenders() equals [transceiver.sender]');
+  assert_array_equals(pc.getReceivers(), [transceiver.receiver],
+                      'pc.getReceivers() equals [transceiver.receiver]');
+}, 'addTransceiver(track): "transceiver == {sender,receiver}"');
+
+promise_test(async t => {
+  const pc = createPeerConnectionWithCleanup(t);
+  const [track, stream] = await createTrackAndStreamWithCleanup(t);
+  const transceiver = pc.addTransceiver(track, {direction:'inactive'});
+  assert_equals(transceiver.direction, 'inactive');
+}, 'addTransceiver(track, init): initialize direction to inactive');
+
+promise_test(async t => {
+  const pc = createPeerConnectionWithCleanup(t);
+  const otherPc = createPeerConnectionWithCleanup(t);
+  const [track, stream] = await createTrackAndStreamWithCleanup(t);
+  const transceiver = pc.addTransceiver(track, {
+    sendEncodings: [{active:false}]
+  });
+
+  // Negotiate parameters.
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  await otherPc.setRemoteDescription(offer);
+  const answer = await otherPc.createAnswer();
+  await otherPc.setLocalDescription(answer);
+  await pc.setRemoteDescription(answer);
+
+  const params = transceiver.sender.getParameters();
+  assert_false(params.encodings[0].active);
+}, 'addTransceiver(track, init): initialize sendEncodings[0].active to false');
+
+promise_test(async t => {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  const pc2 = createPeerConnectionWithCleanup(t);
+  const [track] = await createTrackAndStreamWithCleanup(t);
+  pc1.addTransceiver(track, {streams:[]});
+  const trackEvent = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
+  assert_equals(trackEvent.streams.length, 0, 'trackEvent.streams.length == 0');
+}, 'addTransceiver(0 streams): ontrack fires with no stream');
+
+promise_test(async t => {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  const pc2 = createPeerConnectionWithCleanup(t);
+  const [track] = await createTrackAndStreamWithCleanup(t);
+  const stream = new MediaStream();
+  pc1.addTransceiver(track, {streams:[stream]});
+  const trackEvent = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
+  assert_equals(trackEvent.streams.length, 1, 'trackEvent.streams.length == 1');
+  assert_equals(trackEvent.streams[0].id, stream.id,
+                'trackEvent.streams[0].id == stream.id');
+}, 'addTransceiver(1 stream): ontrack fires with corresponding stream');
+
+promise_test(async t => {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  const pc2 = createPeerConnectionWithCleanup(t);
+  const [track] = await createTrackAndStreamWithCleanup(t);
+  const stream0 = new MediaStream();
+  const stream1 = new MediaStream();
+  pc1.addTransceiver(track, {streams:[stream0, stream1]});
+  const trackEvent = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
+  assert_equals(trackEvent.streams.length, 2, 'trackEvent.streams.length == 2');
+  assert_equals(trackEvent.streams[0].id, stream0.id,
+                'trackEvent.streams[0].id == stream0.id');
+  assert_equals(trackEvent.streams[1].id, stream1.id,
+                'trackEvent.streams[1].id == stream1.id');
+}, 'addTransceiver(2 streams): ontrack fires with corresponding two streams');
+
+promise_test(async t => {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  const pc2 = createPeerConnectionWithCleanup(t);
+  const [track] = await createTrackAndStreamWithCleanup(t);
+  pc1.addTrack(track);
+  const trackEvent = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
+  assert_equals(trackEvent.streams.length, 0, 'trackEvent.streams.length == 0');
+}, 'addTrack(0 streams): ontrack fires with no stream');
+
+promise_test(async t => {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  const pc2 = createPeerConnectionWithCleanup(t);
+  const [track] = await createTrackAndStreamWithCleanup(t);
+  const stream = new MediaStream();
+  pc1.addTrack(track, stream);
+  const trackEvent = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
+  assert_equals(trackEvent.streams.length, 1, 'trackEvent.streams.length == 1');
+  assert_equals(trackEvent.streams[0].id, stream.id,
+                'trackEvent.streams[0].id == stream.id');
+}, 'addTrack(1 stream): ontrack fires with corresponding stream');
+
+promise_test(async t => {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  const pc2 = createPeerConnectionWithCleanup(t);
+  const [track] = await createTrackAndStreamWithCleanup(t);
+  const stream0 = new MediaStream();
+  const stream1 = new MediaStream();
+  pc1.addTrack(track, stream0, stream1);
+  const trackEvent = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
+  assert_equals(trackEvent.streams.length, 2, 'trackEvent.streams.length == 2');
+  assert_equals(trackEvent.streams[0].id, stream0.id,
+                'trackEvent.streams[0].id == stream0.id');
+  assert_equals(trackEvent.streams[1].id, stream1.id,
+                'trackEvent.streams[1].id == stream1.id');
+}, 'addTrack(2 streams): ontrack fires with corresponding two streams');
+
+promise_test(async t => {
+  const pc = createPeerConnectionWithCleanup(t);
+  const [track, stream] = await createTrackAndStreamWithCleanup(t);
+  const transceiver = pc.addTransceiver('audio');
+  assert_equals(transceiver.direction, 'sendrecv');
+}, 'addTransceiver(\'audio\'): creates a transceiver with direction sendrecv');
+
+promise_test(async t => {
+  const pc = createPeerConnectionWithCleanup(t);
+  const [track, stream] = await createTrackAndStreamWithCleanup(t);
+  const transceiver = pc.addTransceiver('audio');
+  assert_equals(transceiver.receiver.track.kind, 'audio');
+}, 'addTransceiver(\'audio\'): transceiver.receiver.track.kind == \'audio\'');
+
+promise_test(async t => {
+  const pc = createPeerConnectionWithCleanup(t);
+  const [track, stream] = await createTrackAndStreamWithCleanup(t);
+  const transceiver = pc.addTransceiver('video');
+  assert_equals(transceiver.receiver.track.kind, 'video');
+}, 'addTransceiver(\'video\'): transceiver.receiver.track.kind == \'video\'');
+
+promise_test(async t => {
+  const pc = createPeerConnectionWithCleanup(t);
+  const [track, stream] = await createTrackAndStreamWithCleanup(t);
+  const transceiver = pc.addTransceiver('audio');
+  assert_equals(transceiver.sender.track, null);
+}, 'addTransceiver(\'audio\'): transceiver.sender.track == null');
+
+promise_test(async t => {
+  const pc = createPeerConnectionWithCleanup(t);
+  const [track, stream] = await createTrackAndStreamWithCleanup(t);
+  const transceiver = pc.addTransceiver('audio');
+  assert_equals(transceiver.currentDirection, null);
+}, 'addTransceiver(\'audio\'): transceiver.currentDirection is null');
+
+promise_test(async t => {
+  const pc = createPeerConnectionWithCleanup(t);
+  const [track, stream] = await createTrackAndStreamWithCleanup(t);
+  const transceiver = pc.addTransceiver('audio');
+  assert_false(transceiver.stopped);
+}, 'addTransceiver(\'audio\'): transceiver.stopped is false');
+
+promise_test(async t => {
+  const pc = createPeerConnectionWithCleanup(t);
+  const [track, stream] = await createTrackAndStreamWithCleanup(t, 'audio');
+  const transceiver = pc.addTransceiver('audio');
+  const sender = pc.addTrack(track, stream);
+  assert_equals(sender, transceiver.sender, 'sender == transceiver.sender');
+  assert_equals(sender.track, track, 'sender.track == track');
+}, 'addTrack reuses reusable transceivers');
+
+promise_test(async t => {
+  const pc = createPeerConnectionWithCleanup(t);
+  const [track, stream] = await createTrackAndStreamWithCleanup(t, 'audio');
+  const t1 = pc.addTransceiver('audio');
+  const t2 = pc.addTransceiver(track);
+  assert_not_equals(t2, t1, 't2 != t1');
+  assert_equals(t2.sender.track, track, 't2.sender.track == track');
+}, 'addTransceiver does not reuse reusable transceivers');
+
+promise_test(async t => {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  const pc2 = createPeerConnectionWithCleanup(t);
+  const [track, stream] = await createTrackAndStreamWithCleanup(t);
+  const pc1Transceiver = findTransceiverForSender(pc1, pc1.addTrack(track, stream));
+  const pc2TrackEvent = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
+  const pc2Transceiver = pc2TrackEvent.transceiver;
+  assert_equals(pc2Transceiver.direction, 'recvonly',
+                'pc2Transceiver.direction is recvonly after SRD(offer)');
+  const pc2Sender = pc2.addTrack(track, stream);
+  assert_equals(pc2Transceiver.sender, pc2Sender,
+                'pc2Transceiver.sender == sender');
+  assert_equals(pc2Transceiver.direction, 'sendrecv',
+                'pc2Transceiver.direction is sendrecv after addTrack()');
+  assert_equals(pc2Transceiver.currentDirection, null,
+                'pc2Transceiver.currentDirection is null before answer');
+  const pc1TrackEvent = await exchangeAnswerAndListenToOntrack(t, pc1, pc2);
+  assert_equals(pc2Transceiver.currentDirection, 'sendrecv',
+                'pc2Transceiver.currentDirection is sendrecv after SLD(answer)');
+  assert_equals(pc1TrackEvent.transceiver, pc1Transceiver,
+                'Answer: pc1.ontrack fires with the existing transceiver.');
+  assert_equals(pc1Transceiver.currentDirection, 'sendrecv',
+                'pc1Transceiver.currentDirection is sendrecv');
+  assert_equals(pc2.getTransceivers().length, 1,
+                'pc2.getTransceivers().length == 1');
+  assert_equals(pc1.getTransceivers().length, 1,
+                'pc1.getTransceivers().length == 1');
+}, 'Can setup two-way call using a single transceiver');
+
+promise_test(async t => {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  const pc2 = createPeerConnectionWithCleanup(t);
+  const [track, stream] = await createTrackAndStreamWithCleanup(t, 'audio');
+  const transceiver = pc1.addTransceiver(track);
+  await exchangeOffer(pc1, pc2);
+  await exchangeAnswer(pc1, pc2);
+  assert_equals(transceiver.currentDirection, 'sendonly');
+  assert_false(transceiver.stopped);
+  pc1.close();
+  assert_equals(transceiver.currentDirection, null);
+  assert_true(transceiver.stopped);
+}, 'Closing the PC stops the transceivers');
+
+promise_test(async t => {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  const pc1Sender = pc1.addTrack(... await createTrackAndStreamWithCleanup(t));
+  const localTransceiver = findTransceiverForSender(pc1, pc1Sender);
+  const pc2 = createPeerConnectionWithCleanup(t);
+  exchangeIceCandidates(pc1, pc2);
+
+  const e = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
+  await exchangeAnswer(pc1, pc2);
+  localTransceiver.direction = 'inactive';
+  await exchangeOfferAnswer(pc1, pc2);
+
+  localTransceiver.direction = 'sendrecv';
+  await exchangeOfferAndListenToOntrack(t, pc1, pc2);
+}, 'Changing transceiver direction to \'sendrecv\' makes ontrack fire');
+
+// Regression test coverage for https://crbug.com/950280.
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  const pc2Promise = pc2.createOffer()
+    .then((offer) => { return pc1.setRemoteDescription(offer); })
+    .then(() => { return pc1.createAnswer(); })
+    .then((answer) => { return pc1.setLocalDescription(answer); });
+  const pc1Promise = pc1.createOffer({ offerToReceiveAudio: true})
+    .then(() => { pc1.addTrack(pc1.getReceivers()[0].track); });
+  await Promise.all([pc1Promise, pc2Promise]);
+  assert_equals(pc1.getSenders()[0].track, pc1.getReceivers()[0].track);
+}, 'transceiver.sender.track does not revert to an old state');
+
+// Regression test coverage for https://crbug.com/950280.
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  const pc2Promise = pc2.createOffer()
+    .then((offer) => { return pc1.setRemoteDescription(offer); })
+    .then(() => { return pc1.createAnswer(); });
+  const pc1Promise = pc1.createOffer({ offerToReceiveAudio: true})
+    .then(() => { pc1.getTransceivers()[0].direction = 'inactive'; });
+  await Promise.all([pc1Promise, pc2Promise]);
+  assert_equals(pc1.getTransceivers()[0].direction, 'inactive');
+}, 'transceiver.direction does not revert to an old state');
+
+</script>

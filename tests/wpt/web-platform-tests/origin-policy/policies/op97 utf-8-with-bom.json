@@ -1,0 +1,9 @@
+﻿{
+  "ids" : ["this-file-has-a-utf8-bom"],
+  "content_security" : {
+    "policies": [
+      "script-src 'self' 'unsafe-inline'",
+      "img-src 'none'"
+    ]
+  }
+}

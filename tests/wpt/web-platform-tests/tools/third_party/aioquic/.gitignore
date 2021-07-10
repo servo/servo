@@ -1,0 +1,10 @@
+*.egg-info
+*.pyc
+*.so
+.coverage
+.eggs
+.mypy_cache
+.vscode
+/build
+/dist
+/docs/_build

@@ -1,0 +1,127 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>Reference: Masonry layout with `align-content` in grid axis</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <style>
+html,body {
+  color:black; background-color:white; font:15px/1 monospace; padding:0; margin:0;
+}
+
+grid {
+  display: inline-grid;
+  gap: 1px 2px;
+  grid-template-columns: 1ch auto;
+  grid-template-rows: repeat(4,auto);
+  background: content-box silver;
+  border: 1px solid;
+  padding: 0 3px 2px 0;
+  width: 100px;
+  height: 120px;
+  align-content: center;
+  justify-items: start;
+}
+
+item {
+  background-color: #444;
+  color: #fff;
+}
+
+.tall { grid-row: span 2; padding: 3px 11px 1px 13px; }
+</style>
+</head>
+<body>
+
+<grid style="align-content:start">
+  <item class="tall" style="grid-row:1/2">1</item>
+  <item style="grid-row:2/3">2</item>
+  <item style="grid-row:3/4">3</item>
+  <item style="grid-row:4/5">4</item>
+  <item style="grid-row:2/3">5</item>
+  <item style="grid-row:3/4">6</item>
+</grid>
+
+<grid style="align-content:start">
+  <item style="grid-row:1/2">1</item>
+  <item class="tall" style="grid-row:2/3">2</item>
+  <item style="grid-row:3/4">3</item>
+  <item style="grid-row:4/5">4</item>
+  <item style="grid-row:1/2">5</item>
+  <item style="grid-row:3/4">6</item>
+</grid>
+
+<grid style="align-content:end">
+  <item class="tall" style="grid-row:1/2">1</item>
+  <item style="grid-row:2/3">2</item>
+  <item style="grid-row:3/4">3</item>
+  <item style="grid-row:4/5">4</item>
+  <item style="grid-row:2/3">5</item>
+  <item style="grid-row:3/4">6</item>
+</grid>
+
+<grid style="align-content:end">
+  <item style="grid-row:1/2">1</item>
+  <item class="tall" style="grid-row:2/3">2</item>
+  <item style="grid-row:3/4">3</item>
+  <item style="grid-row:4/5">4</item>
+  <item style="grid-row:1/2">5</item>
+  <item style="grid-row:3/4">6</item>
+</grid>
+
+<grid style="align-content:center">
+  <item class="tall" style="grid-row:1/2">1</item>
+  <item style="grid-row:2/3">2</item>
+  <item style="grid-row:3/4">3</item>
+  <item style="grid-row:4/5">4</item>
+  <item style="grid-row:2/3">5</item>
+  <item style="grid-row:3/4">6</item>
+</grid>
+
+<grid style="align-content:center">
+  <item style="grid-row:1/2">1</item>
+  <item class="tall" style="grid-row:2/3">2</item>
+  <item style="grid-row:3/4">3</item>
+  <item style="grid-row:4/5">4</item>
+  <item style="grid-row:1/2">5</item>
+  <item style="grid-row:3/4">6</item>
+</grid>
+
+<grid style="align-content:stretch">
+  <item class="tall" style="grid-row:1/2">1</item>
+  <item style="grid-row:2/3">2</item>
+  <item style="grid-row:3/4">3</item>
+  <item style="grid-row:4/5">4</item>
+  <item style="grid-row:2/3">5</item>
+  <item style="grid-row:3/4">6</item>
+</grid>
+
+<grid style="align-content:space-between">
+  <item class="tall" style="grid-row:1/2">1</item>
+  <item style="grid-row:2/3">2</item>
+  <item style="grid-row:3/4">3</item>
+  <item style="grid-row:4/5">4</item>
+  <item style="grid-row:2/3">5</item>
+  <item style="grid-row:3/4">6</item>
+</grid>
+
+<grid style="align-content:space-around">
+  <item class="tall" style="grid-row:1/2">1</item>
+  <item style="grid-row:2/3">2</item>
+  <item style="grid-row:3/4">3</item>
+  <item style="grid-row:4/5">4</item>
+  <item style="grid-row:2/3">5</item>
+  <item style="grid-row:3/4">6</item>
+</grid>
+
+<grid style="align-content:space-evenly">
+  <item class="tall" style="grid-row:1/2">1</item>
+  <item style="grid-row:2/3">2</item>
+  <item style="grid-row:3/4">3</item>
+  <item style="grid-row:4/5">4</item>
+  <item style="grid-row:2/3">5</item>
+  <item style="grid-row:3/4">6</item>
+</grid>

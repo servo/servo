@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script type="module">
+  import { getOppositeOrientation } from "/screen-orientation/resources/orientation-utils.js";
+  promise_test(async t => {
+    t.add_cleanup(async () => {
+      try {
+        await document.exitFullscreen();
+      } catch (e) {}
+      screen.orientation.unlock();
+    });
+    await test_driver.bless("request full screen", () => {
+      return document.documentElement.requestFullscreen();
+    });
+    const newOrientation = getOppositeOrientation();
+    // This will reject, because the event will call lock() again.
+    const pMustReject = screen.orientation.lock(newOrientation);
+    // This one resolves, because we are re-locking.
+    const pMustResolve = new Promise(r => {
+      screen.orientation.onchange = () => {
+        r(screen.orientation.lock("any"));
+      };
+    });
+    await promise_rejects_dom(t, "AbortError", pMustReject);
+    await pMustResolve;
+  }, "Re-locking orientation during event dispatch must reject existing orientationPendingPromise");
+</script>

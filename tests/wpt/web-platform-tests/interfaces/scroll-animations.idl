@@ -1,0 +1,49 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Scroll-linked Animations (https://drafts.csswg.org/scroll-animations-1/)
+
+enum ScrollDirection {
+  "block",
+  "inline",
+  "horizontal",
+  "vertical"
+};
+
+enum ScrollTimelineAutoKeyword { "auto" };
+
+typedef (CSSNumericValue or CSSKeywordish) ContainerBasedOffset;
+typedef (ContainerBasedOffset or ElementBasedOffset) ScrollTimelineOffset;
+
+dictionary ScrollTimelineOptions {
+  Element? source;
+  ScrollDirection orientation = "block";
+  sequence<ScrollTimelineOffset> scrollOffsets = [];
+  (double or ScrollTimelineAutoKeyword) timeRange = "auto";
+};
+
+[Exposed=Window]
+interface ScrollTimeline : AnimationTimeline {
+  constructor(optional ScrollTimelineOptions options = {});
+  readonly attribute Element? source;
+  readonly attribute ScrollDirection orientation;
+  readonly attribute FrozenArray<ScrollTimelineOffset> scrollOffsets;
+  readonly attribute (double or ScrollTimelineAutoKeyword) timeRange;
+};
+
+enum Edge { "start", "end" };
+
+dictionary ElementBasedOffset {
+  Element target;
+  Edge edge = "start";
+  double threshold = 0.0;
+};
+
+[Exposed=Window]
+interface CSSScrollTimelineRule : CSSRule {
+    readonly attribute CSSOMString name;
+    readonly attribute CSSOMString source;
+    readonly attribute CSSOMString orientation;
+    readonly attribute CSSOMString scrollOffsets;
+    readonly attribute CSSOMString timeRange;
+};

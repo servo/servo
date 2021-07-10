@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>Empty cues</title>
+<script src="/common/media.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async_test(function(t) {
+    var video = document.createElement("video");
+    video.src = getVideoURI("/media/test");
+    video.addTextTrack("captions", "regular captions track", "en");
+    video.textTracks[0].addCue(new VTTCue(0, 4, ""));
+
+    video.onplaying = t.step_func_done();
+    video.play();
+});
+</script>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>SVGElement.prototype.className: Reflects to .classList</title>
+  <h:link rel="help" href="https://svgwg.org/svg2-draft/types.html#__svg__SVGElement__className"/>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <script>
+    test(() => {
+      const element = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
+      assert_false(element.classList.contains('one'), "classList is initially empty");
+      element.className.baseVal = 'one';
+      assert_true(element.classList.contains('one'), "className should reflect to classList");
+    });
+</script>
+</svg>

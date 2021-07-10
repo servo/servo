@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Parent is site-keyed, subdomain child 1 is site-keyed, same-subdomain child 2 is origin-keyed</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<script type="module">
+import {
+  insertIframe,
+  testSameAgentCluster,
+  testGetter
+} from "../resources/helpers.mjs";
+
+promise_setup(async () => {
+  // Must be sequential, not parallel: the site-keyed frame must load first.
+  await insertIframe("{{hosts[][www]}}");
+  await insertIframe("{{hosts[][www]}}", "?1");
+});
+
+
+// Since they're different-origin, the parent's non-request is respected, as is
+// child 1's non-request. child 2 requests origin-keying but is ignored, since
+// child 1 is in the same browsing context group.
+//
+// So, everyone ends up in the site-keyed agent cluster.
+testSameAgentCluster([self, 0], "Parent to child1");
+testSameAgentCluster([self, 1], "Parent to child2");
+testSameAgentCluster([0, 1], "child1 to child2");
+testSameAgentCluster([1, 0], "child2 to child1");
+
+testGetter(self, false, "parent");
+testGetter(0, false, "child1");
+testGetter(1, false, "child2");
+</script>

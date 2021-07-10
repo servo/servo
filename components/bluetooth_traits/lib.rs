@@ -1,20 +1,17 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-extern crate ipc_channel;
-extern crate regex;
 #[macro_use]
-extern crate serde_derive;
-extern crate servo_config;
+extern crate serde;
 
 pub mod blocklist;
 pub mod scanfilter;
 
+use crate::scanfilter::{BluetoothScanfilterSequence, RequestDeviceoptions};
 use ipc_channel::ipc::IpcSender;
-use scanfilter::{BluetoothScanfilterSequence, RequestDeviceoptions};
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum BluetoothError {
     Type(String),
     Network,
@@ -24,7 +21,7 @@ pub enum BluetoothError {
     InvalidState,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum GATTType {
     PrimaryService,
     Characteristic,
@@ -32,21 +29,21 @@ pub enum GATTType {
     Descriptor,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct BluetoothDeviceMsg {
     // Bluetooth Device properties
     pub id: String,
     pub name: Option<String>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct BluetoothServiceMsg {
     pub uuid: String,
     pub is_primary: bool,
     pub instance_id: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct BluetoothCharacteristicMsg {
     // Characteristic
     pub uuid: String,
@@ -63,7 +60,7 @@ pub struct BluetoothCharacteristicMsg {
     pub writable_auxiliaries: bool,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct BluetoothDescriptorMsg {
     pub uuid: String,
     pub instance_id: String,
@@ -79,12 +76,18 @@ pub type BluetoothResult<T> = Result<T, BluetoothError>;
 
 pub type BluetoothResponseResult = Result<BluetoothResponse, BluetoothError>;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum BluetoothRequest {
     RequestDevice(RequestDeviceoptions, IpcSender<BluetoothResponseResult>),
     GATTServerConnect(String, IpcSender<BluetoothResponseResult>),
     GATTServerDisconnect(String, IpcSender<BluetoothResult<()>>),
-    GetGATTChildren(String, Option<String>, bool, GATTType, IpcSender<BluetoothResponseResult>),
+    GetGATTChildren(
+        String,
+        Option<String>,
+        bool,
+        GATTType,
+        IpcSender<BluetoothResponseResult>,
+    ),
     ReadValue(String, IpcSender<BluetoothResponseResult>),
     WriteValue(String, Vec<u8>, IpcSender<BluetoothResponseResult>),
     EnableNotification(String, bool, IpcSender<BluetoothResponseResult>),
@@ -92,12 +95,16 @@ pub enum BluetoothRequest {
     SetRepresentedToNull(Vec<String>, Vec<String>, Vec<String>),
     IsRepresentedDeviceNull(String, IpcSender<bool>),
     GetAvailability(IpcSender<BluetoothResponseResult>),
-    MatchesFilter(String, BluetoothScanfilterSequence, IpcSender<BluetoothResult<bool>>),
+    MatchesFilter(
+        String,
+        BluetoothScanfilterSequence,
+        IpcSender<BluetoothResult<bool>>,
+    ),
     Test(String, IpcSender<BluetoothResult<()>>),
     Exit,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum BluetoothResponse {
     RequestDevice(BluetoothDeviceMsg),
     GATTServerConnect(bool),

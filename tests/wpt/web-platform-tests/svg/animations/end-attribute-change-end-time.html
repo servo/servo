@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>Mutation of the 'end' attribute changes current interval end</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg>
+  <rect width="100" height="100" fill="green">
+    <set attributeName="fill" to="red"/>
+  </rect>
+</svg>
+<script>
+  async_test(t => {
+    onload = t.step_func(() => {
+      t.step_timeout(() => {
+        let set = document.querySelector('set');
+        set.setAttribute('end', '0s');
+        requestAnimationFrame(t.step_func_done(() => {
+          assert_equals(getComputedStyle(set.targetElement, null).fill, 'rgb(0, 128, 0)');
+        }));
+      });
+    });
+  });
+</script>

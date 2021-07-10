@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Containment Test: 'contain: size' applies to inline replaced element (basic)</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-contain-1/#containment-size">
+  <link rel="match" href="reference/contain-size-025-ref.html">
+
+  <meta content="This test checks that when laying out an inline replaced element with 'contain: size', the inline replaced element must be treated as having an intrinsic width and height of 0." name="assert">
+  <meta name="flags" content="">
+
+  <style>
+  img#blue-test
+    {
+      background-color: blue;
+      contain: size;
+      padding: 50px;
+    }
+
+  div#orange-reference
+    {
+      background-color: orange;
+      height: 100px;
+      width: 100px;
+    }
+  </style>
+
+  <p>This test passes if the painted blue area is <strong>exactly as wide as</strong> the orange square.
+
+  <div><img id="blue-test" src="support/blue-100x100.png" alt="Image download support must be enabled"></div>
+
+  <div id="orange-reference"></div>

@@ -4,9 +4,9 @@
 <title>Changing object content during drag and drop of link</title>
 <style type="text/css">
 object
-	{height:100px;
-	width:300px;
-	border:solid medium navy;}
+  {height:100px;
+  width:300px;
+  border:solid medium navy;}
 </style>
 </head>
 <body ondragenter="event.preventDefault();document.querySelector('object').setAttribute('data','data:text/plain,Drop%20link%20outside%20this%20frame')" ondragover="return false" ondrop="document.querySelector('p').firstChild.nodeValue = (event.dataTransfer.getData('text/uri-list').replace(/\r\n$/,'') == 'data:text/plain,1')?'PASS':'FAIL'">

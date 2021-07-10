@@ -1,22 +1,25 @@
 <!DOCTYPE html>
 <title>Service Worker: Skip waiting without using registration</title>
+<meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
-<script src="resources/testharness-helpers.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/test-helpers.sub.js"></script>
 <script>
+'use strict';
 
 promise_test(function(t) {
-    var scope = 'resources/blank.html';
+    var scope = 'resources/blank.html?skip-waiting-without-using-registration';
     var url = 'resources/skip-waiting-worker.js';
-    var frame, frame_sw, sw_registration;
+    var frame_sw, sw_registration;
 
     return service_worker_unregister(t, scope)
       .then(function() {
           return with_iframe(scope);
         })
       .then(function(f) {
-          frame = f;
+          t.add_cleanup(function() {
+              f.remove();
+            });
           frame_sw = f.contentWindow.navigator.serviceWorker;
           assert_equals(frame_sw.controller, null,
                         'Document controller should be null');
@@ -24,9 +27,8 @@ promise_test(function(t) {
         })
       .then(function(registration) {
           sw_registration = registration;
-          add_completion_callback(function() {
-              frame.remove();
-              registration.unregister();
+          t.add_cleanup(function() {
+              return registration.unregister();
             });
           return wait_for_state(t, registration.installing, 'activated');
         })
@@ -35,7 +37,7 @@ promise_test(function(t) {
                         'Document controller should still be null');
           assert_not_equals(sw_registration.active, null,
                             'Registration active worker should not be null');
-          fetch_tests_from_worker(sw_registration.active);
+          return fetch_tests_from_worker(sw_registration.active);
         });
   }, 'Test skipWaiting while a client is not being controlled');
 

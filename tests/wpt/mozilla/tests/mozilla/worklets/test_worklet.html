@@ -1,0 +1,35 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Test worklet loading</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script>
+var testWorklet = new TestWorklet();
+var host_info = get_host_info();
+
+promise_test(function() {
+  return testWorklet.addModule("test_worklet.js")
+    .then(function () {
+      assert_equals(testWorklet.lookup("hello"), "world");
+    });
+}, "Loading a test worklet.");
+
+promise_test(function(t) {
+   var path = new URL("test_worklet.js", document.location).pathname;
+   var url = new URL(path, host_info.HTTP_REMOTE_ORIGIN);
+   return promise_rejects_dom(t, "AbortError", testWorklet.addModule(url));
+}, "Loading a cross-origin test worklet.");
+
+promise_test(function(t) {
+   return promise_rejects_dom(t, "AbortError", testWorklet.addModule("nonexistent_worklet.js"));
+}, "Loading a nonexistent test worklet.");
+
+promise_test(function(t) {
+   return promise_rejects_dom(t, "AbortError", testWorklet.addModule("syntax_error.js"));
+}, "Loading a syntactically incorrect test worklet.");
+
+promise_test(function(t) {
+   return promise_rejects_dom(t, "AbortError", testWorklet.addModule("throw_exception.js"));
+}, "Loading an exception-throwing test worklet.");
+</script>

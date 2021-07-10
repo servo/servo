@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>The 'pathLength' attribute ('path' element)</title>
+  <h:link rel="help" href="https://svgwg.org/svg2-draft/paths.html#PathLengthAttribute"/>
+  <h:link rel="match" href="reference/pathlength-path-ref.svg"/>
+  <path d="M10,10L110,10L110,110L10,110Z" pathLength="4"
+        stroke-dashoffset="1" stroke-dasharray="1 1"
+        fill="none" stroke="black" stroke-width="10"/>
+</svg>

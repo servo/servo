@@ -28,7 +28,7 @@
 
         cursor_rq.onsuccess = t.step_func(function(e) {
             var cursor = e.target.result;
-            assert_throws('ReadOnlyError', function() { cursor.update(cursor.value); });
+            assert_throws_dom('ReadOnlyError', function() { cursor.update(cursor.value); });
             t.done();
         });
     }

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// Dispatch of these events is tested elsewhere.
+// This test merely ensures that the event handler content attributes work.
+let eventNames = ["load", "message", "messageerror"];
+test(() => {
+  try {
+    assert_implements("HTMLPortalElement" in self);
+    let portal = document.createElement("portal");
+    for (let eventName of eventNames) {
+      window.testValue = "not fired";
+      portal.setAttribute("on" + eventName, "window.testValue = 'fired'");
+      portal.dispatchEvent(new Event(eventName));
+      assert_equals(window.testValue, "fired", `${eventName} should have fired`);
+
+      window.testValue = "not fired";
+      portal.removeAttribute("on" + eventName);
+      portal.dispatchEvent(new Event(eventName));
+      assert_equals(window.testValue, "not fired", `${eventName} should not have fired`);
+    }
+  } finally {
+    delete window.testValue;
+  }
+}, "Tests that event handler content attributes for supported event names work.");
+</script>

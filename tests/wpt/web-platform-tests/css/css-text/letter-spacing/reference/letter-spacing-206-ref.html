@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<meta charset="utf-8">
+<title>letter-spacing at element boundaries</title>
+<link rel='author' title='Elika J. Etemad' href='http://fantasai.inkedblade.net/contact'>
+<style type='text/css'>
+  @import "/fonts/ahem.css";
+  .contain {
+    font: 20px/1 Ahem;
+    border: solid blue;
+    margin: 1em;
+    float: left; }
+  .control p {
+    white-space: pre;
+  }
+  p {
+    letter-spacing: 0;
+    margin: 0;
+    word-break: break-all;
+    float: left;
+    clear: left;
+    border-right: solid orange 1em;
+    background: yellow;
+  }
+</style>
+
+<div id='instructions'>Test passes if the pattern is identical in all three blue boxes.</div>
+
+<div class="contain control">
+<p>A A A B B B</p>
+<!-- middle owned by containing block: simple -->
+<p>AAA BBB</p>
+<p>A A AB B B</p>
+<!-- middle owned by containing block: double nesting -->
+<p>AAA   B B B</p>
+<p>A A A   B B B</p>
+<!-- middle owned by inline: simple -->
+<p>AAA BBB</p>
+<p>A A AB B B</p>
+<!-- middle owned by inline: double nesting -->
+<p>AAAB B B</p>
+<p>A A A   B B B</p>
+<!-- middle containing space -->
+<p>AAA   BBB</p>
+<p>AAA     B B B</p>
+</div>
+
+<div class="contain control">
+<p>A A A B B B</p>
+<!-- middle owned by containing block: simple -->
+<p>AAA BBB</p>
+<p>A A AB B B</p>
+<!-- middle owned by containing block: double nesting -->
+<p>AAA   B B B</p>
+<p>A A A   B B B</p>
+<!-- middle owned by inline: simple -->
+<p>AAA BBB</p>
+<p>A A AB B B</p>
+<!-- middle owned by inline: double nesting -->
+<p>AAAB B B</p>
+<p>A A A   B B B</p>
+<!-- middle containing space -->
+<p>AAA   BBB</p>
+<p>AAA     B B B</p>
+</div>
+
+<div class="contain control">
+<p>A A A B B B</p>
+<!-- middle owned by containing block: simple -->
+<p>AAA BBB</p>
+<p>A A AB B B</p>
+<!-- middle owned by containing block: double nesting -->
+<p>AAA   B B B</p>
+<p>A A A   B B B</p>
+<!-- middle owned by inline: simple -->
+<p>AAA BBB</p>
+<p>A A AB B B</p>
+<!-- middle owned by inline: double nesting -->
+<p>AAAB B B</p>
+<p>A A A   B B B</p>
+<!-- middle containing space -->
+<p>AAA   BBB</p>
+<p>AAA     B B B</p>
+</div>

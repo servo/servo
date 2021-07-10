@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Fieldset with a border-radius and non-opaque border-color</title>
+<link rel="match" href="fieldset-border-radius-with-alpha-ref.html">
+<style>
+fieldset {
+    background-color: green;
+    border: 3px solid rgba(255, 0, 0, 0.9);
+    border-radius: 4px;
+    height: 100px;
+    width: 100px;
+}
+legend {
+    height: 50px;
+    width: 50px;
+}
+div {
+    background-color: green;
+    height: 110px;
+    position: absolute;
+    width: 150px;
+    top: 70px;
+}
+</style>
+<p>There should be no red.</p>
+<fieldset><legend></legend></fieldset>
+<div></div>

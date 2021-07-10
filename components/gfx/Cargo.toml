@@ -4,56 +4,59 @@ name = "gfx"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
+edition = "2018"
 publish = false
 
 [lib]
 name = "gfx"
 path = "lib.rs"
+test = false
+doctest = false
 
 [dependencies]
-app_units = "0.4"
-bitflags = "0.7"
-euclid = "0.11"
+app_units = "0.7"
+bitflags = "1.0"
+euclid = "0.20"
 fnv = "1.0"
-fontsan = {git = "https://github.com/servo/fontsan"}
-gfx_traits = {path = "../gfx_traits"}
-harfbuzz-sys = "0.1"
-heapsize = "0.3.0"
-heapsize_derive = "0.1"
-ipc-channel = "0.7"
-lazy_static = "0.2"
+fontsan = { git = "https://github.com/servo/fontsan" }
+gfx_traits = { path = "../gfx_traits" }
+harfbuzz-sys = "0.5"
+ipc-channel = "0.14"
+lazy_static = "1"
 libc = "0.2"
-log = "0.3.5"
-msg = {path = "../msg"}
-net_traits = {path = "../net_traits"}
-ordered-float = "0.4"
-range = {path = "../range"}
-serde = "0.9"
-serde_derive = "0.9"
-servo_atoms = {path = "../atoms"}
-servo_geometry = {path = "../geometry"}
-servo_url = {path = "../url"}
-smallvec = "0.3"
-style = {path = "../style"}
-style_traits = {path = "../style_traits"}
-time = "0.1.12"
-unicode-script = {version = "0.1", features = ["harfbuzz"]}
-webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+log = "0.4"
+malloc_size_of = { path = "../malloc_size_of" }
+net_traits = { path = "../net_traits" }
+range = { path = "../range" }
+serde = "1.0"
+servo_arc = { path = "../servo_arc" }
+servo_atoms = { path = "../atoms" }
+servo_url = { path = "../url" }
+smallvec = { version = "0.6", features = ["std", "union"] }
+style = { path = "../style", features = ["servo"] }
+time = "0.1.41"
+ucd = "0.1.1"
+unicode-bidi = { version = "0.3", features = ["with_serde"] }
+unicode-script = "0.5"
+webrender_api = { git = "https://github.com/servo/webrender" }
 xi-unicode = "0.1.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 byteorder = "1.0"
-core-foundation = "0.3"
-core-graphics = "0.7"
-core-text = "4.0"
+core-foundation = "0.9"
+core-graphics = "0.22"
+core-text = "19.0"
 
 [target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]
-freetype = "0.2"
-servo-fontconfig = "0.2.1"
+freetype = "0.7"
+servo_allocator = { path = "../allocator" }
 
-[target.'cfg(any(target_feature = "sse2", target_feature = "neon"))'.dependencies]
-simd = "0.2.0"
+[target.'cfg(target_os = "linux")'.dependencies]
+servo-fontconfig = "0.5"
+
+[target.'cfg(target_os = "android")'.dependencies]
+xml-rs = "0.8"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-dwrote = "0.3"
-truetype = "0.26"
+dwrote = "0.11"
+truetype = "0.30"

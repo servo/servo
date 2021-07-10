@@ -1,37 +1,44 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::activation::Activatable;
-use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
-use dom::bindings::codegen::Bindings::HTMLAreaElementBinding;
-use dom::bindings::codegen::Bindings::HTMLAreaElementBinding::HTMLAreaElementMethods;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{MutNullableJS, Root};
-use dom::bindings::str::DOMString;
-use dom::document::Document;
-use dom::domtokenlist::DOMTokenList;
-use dom::element::Element;
-use dom::event::Event;
-use dom::eventtarget::EventTarget;
-use dom::htmlanchorelement::follow_hyperlink;
-use dom::htmlelement::HTMLElement;
-use dom::node::{Node, document_from_node};
-use dom::virtualmethods::VirtualMethods;
+use crate::dom::activation::Activatable;
+use crate::dom::bindings::codegen::Bindings::HTMLAreaElementBinding::HTMLAreaElementMethods;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::document::Document;
+use crate::dom::domtokenlist::DOMTokenList;
+use crate::dom::element::Element;
+use crate::dom::event::Event;
+use crate::dom::eventtarget::EventTarget;
+use crate::dom::htmlanchorelement::follow_hyperlink;
+use crate::dom::htmlelement::HTMLElement;
+use crate::dom::node::Node;
+use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use euclid::point::Point2D;
-use html5ever_atoms::LocalName;
-use net_traits::ReferrerPolicy;
+use euclid::default::Point2D;
+use html5ever::{LocalName, Prefix};
+use servo_atoms::Atom;
 use std::default::Default;
 use std::f32;
+use std::str;
 use style::attr::AttrValue;
 
-#[derive(PartialEq)]
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Area {
-    Circle { left: f32, top: f32, radius: f32 },
-    Rectangle { top_left: (f32, f32), bottom_right: (f32, f32) },
-    Polygon { points: Vec<f32> },
+    Circle {
+        left: f32,
+        top: f32,
+        radius: f32,
+    },
+    Rectangle {
+        top_left: (f32, f32),
+        bottom_right: (f32, f32),
+    },
+    Polygon {
+        points: Vec<f32>,
+    },
 }
 
 pub enum Shape {
@@ -44,7 +51,7 @@ pub enum Shape {
 // https://html.spec.whatwg.org/multipage/#image-map-processing-model
 impl Area {
     pub fn parse(coord: &str, target: Shape) -> Option<Area> {
-        let points_count =  match target {
+        let points_count = match target {
             Shape::Circle => 3,
             Shape::Rectangle => 4,
             Shape::Polygon => 0,
@@ -58,7 +65,7 @@ impl Area {
         while index < size {
             let val = num[index];
             match val {
-                b',' | b';' | b' ' | b'\t' | b'\n' | 0x0C | b'\r'  => {},
+                b',' | b';' | b' ' | b'\t' | b'\n' | 0x0C | b'\r' => {},
                 _ => break,
             }
 
@@ -68,7 +75,6 @@ impl Area {
         //This vector will hold all parsed coordinates
         let mut number_list = Vec::new();
         let mut array = Vec::new();
-        let ar_ref = &mut array;
 
         // Step 5: walk till end of string
         while index < size {
@@ -76,7 +82,7 @@ impl Area {
             while index < size {
                 let val = num[index];
                 match val {
-                    b'0'...b'9' | b'.' | b'-' | b'E' | b'e' => break,
+                    b'0'..=b'9' | b'.' | b'-' | b'E' | b'e' => break,
                     _ => {},
                 }
 
@@ -89,24 +95,27 @@ impl Area {
 
                 match val {
                     b',' | b';' | b' ' | b'\t' | b'\n' | 0x0C | b'\r' => break,
-                    _ => (*ar_ref).push(val),
+                    _ => array.push(val),
                 }
 
                 index += 1;
             }
 
             // The input does not consist any valid charecters
-            if (*ar_ref).is_empty() {
+            if array.is_empty() {
                 break;
             }
 
             // Convert String to float
-            match String::from_utf8((*ar_ref).clone()).unwrap().parse::<f32>() {
-                Ok(v) => number_list.push(v),
-                Err(_) => number_list.push(0.0),
+            match str::from_utf8(&array)
+                .ok()
+                .and_then(|s| s.parse::<f32>().ok())
+            {
+                Some(v) => number_list.push(v),
+                None => number_list.push(0.0),
             };
 
-            (*ar_ref).clear();
+            array.clear();
 
             // For rectangle and circle, stop parsing once we have three
             // and four coordinates respectively
@@ -124,10 +133,10 @@ impl Area {
                         None
                     } else {
                         Some(Area::Circle {
-                                 left: number_list[0],
-                                 top: number_list[1],
-                                 radius: number_list[2]
-                             })
+                            left: number_list[0],
+                            top: number_list[1],
+                            radius: number_list[2],
+                        })
                     }
                 } else {
                     None
@@ -145,9 +154,9 @@ impl Area {
                     }
 
                     Some(Area::Rectangle {
-                             top_left: (number_list[0], number_list[1]),
-                             bottom_right: (number_list[2], number_list[3])
-                         })
+                        top_left: (number_list[0], number_list[1]),
+                        bottom_right: (number_list[2], number_list[3]),
+                    })
                 } else {
                     None
                 }
@@ -159,7 +168,9 @@ impl Area {
                         // Drop last element if there are odd number of coordinates
                         number_list.remove(final_size - 1);
                     }
-                    Some(Area::Polygon { points: number_list })
+                    Some(Area::Polygon {
+                        points: number_list,
+                    })
                 } else {
                     None
                 }
@@ -167,17 +178,20 @@ impl Area {
         }
     }
 
-    pub fn hit_test(&self, p: Point2D<f32>) -> bool {
+    pub fn hit_test(&self, p: &Point2D<f32>) -> bool {
         match *self {
             Area::Circle { left, top, radius } => {
-                (p.x - left) * (p.x - left) +
-                (p.y - top) * (p.y - top) -
-                radius * radius <= 0.0
+                (p.x - left) * (p.x - left) + (p.y - top) * (p.y - top) - radius * radius <= 0.0
             },
 
-            Area::Rectangle { top_left, bottom_right } => {
-                p.x <= bottom_right.0 && p.x >= top_left.0 &&
-                p.y <= bottom_right.1 && p.y >= top_left.1
+            Area::Rectangle {
+                top_left,
+                bottom_right,
+            } => {
+                p.x <= bottom_right.0 &&
+                    p.x >= top_left.0 &&
+                    p.y <= bottom_right.1 &&
+                    p.y >= top_left.1
             },
 
             //TODO polygon hit_test
@@ -187,28 +201,30 @@ impl Area {
 
     pub fn absolute_coords(&self, p: Point2D<f32>) -> Area {
         match *self {
-            Area::Rectangle { top_left, bottom_right } => {
-                Area::Rectangle {
-                    top_left: (top_left.0 + p.x, top_left.1 + p.y),
-                    bottom_right: (bottom_right.0 + p.x, bottom_right.1 + p.y)
-                }
+            Area::Rectangle {
+                top_left,
+                bottom_right,
+            } => Area::Rectangle {
+                top_left: (top_left.0 + p.x, top_left.1 + p.y),
+                bottom_right: (bottom_right.0 + p.x, bottom_right.1 + p.y),
             },
-            Area::Circle { left, top, radius } => {
-                Area::Circle {
-                    left: (left + p.x),
-                    top: (top + p.y),
-                    radius: radius
-                }
+            Area::Circle { left, top, radius } => Area::Circle {
+                left: (left + p.x),
+                top: (top + p.y),
+                radius: radius,
             },
             Area::Polygon { ref points } => {
-//                let new_points = Vec::new();
-                let iter = points.iter().enumerate().map(|(index, point)| {
-                    match index % 2 {
+                //                let new_points = Vec::new();
+                let iter = points
+                    .iter()
+                    .enumerate()
+                    .map(|(index, point)| match index % 2 {
                         0 => point + p.x as f32,
                         _ => point + p.y as f32,
-                    }
-                });
-                Area::Polygon { points: iter.collect::<Vec<_>>() }
+                    });
+                Area::Polygon {
+                    points: iter.collect::<Vec<_>>(),
+                }
             },
         }
     }
@@ -217,11 +233,15 @@ impl Area {
 #[dom_struct]
 pub struct HTMLAreaElement {
     htmlelement: HTMLElement,
-    rel_list: MutNullableJS<DOMTokenList>,
+    rel_list: MutNullableDom<DOMTokenList>,
 }
 
 impl HTMLAreaElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> HTMLAreaElement {
+    fn new_inherited(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> HTMLAreaElement {
         HTMLAreaElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             rel_list: Default::default(),
@@ -229,18 +249,21 @@ impl HTMLAreaElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
-               document: &Document) -> Root<HTMLAreaElement> {
-        Node::reflect_node(box HTMLAreaElement::new_inherited(local_name, prefix, document),
-                           document,
-                           HTMLAreaElementBinding::Wrap)
+    pub fn new(
+        local_name: LocalName,
+        prefix: Option<Prefix>,
+        document: &Document,
+    ) -> DomRoot<HTMLAreaElement> {
+        Node::reflect_node(
+            Box::new(HTMLAreaElement::new_inherited(local_name, prefix, document)),
+            document,
+        )
     }
 
     pub fn get_shape_from_coords(&self) -> Option<Area> {
-       let elem = self.upcast::<Element>();
-       let shape = elem.get_string_attribute(&"shape".into());
-       let shp: Shape = match shape.to_lowercase().as_ref() {
+        let elem = self.upcast::<Element>();
+        let shape = elem.get_string_attribute(&"shape".into());
+        let shp: Shape = match_ignore_ascii_case! { &shape,
            "circle" => Shape::Circle,
            "circ" => Shape::Circle,
            "rectangle" => Shape::Rectangle,
@@ -259,23 +282,49 @@ impl HTMLAreaElement {
 }
 
 impl VirtualMethods for HTMLAreaElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match name {
             &local_name!("rel") => AttrValue::from_serialized_tokenlist(value.into()),
-            _ => self.super_type().unwrap().parse_plain_attribute(name, value),
+            _ => self
+                .super_type()
+                .unwrap()
+                .parse_plain_attribute(name, value),
         }
     }
 }
 
 impl HTMLAreaElementMethods for HTMLAreaElement {
+    // https://html.spec.whatwg.org/multipage/#attr-hyperlink-target
+    make_getter!(Target, "target");
+
+    // https://html.spec.whatwg.org/multipage/#attr-hyperlink-target
+    make_setter!(SetTarget, "target");
+
+    // https://html.spec.whatwg.org/multipage/#dom-a-rel
+    make_getter!(Rel, "rel");
+
+    // https://html.spec.whatwg.org/multipage/#dom-a-rel
+    fn SetRel(&self, rel: DOMString) {
+        self.upcast::<Element>()
+            .set_tokenlist_attribute(&local_name!("rel"), rel);
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-area-rellist
-    fn RelList(&self) -> Root<DOMTokenList> {
+    fn RelList(&self) -> DomRoot<DOMTokenList> {
         self.rel_list.or_init(|| {
-            DOMTokenList::new(self.upcast(), &local_name!("rel"))
+            DOMTokenList::new(
+                self.upcast(),
+                &local_name!("rel"),
+                Some(vec![
+                    Atom::from("noopener"),
+                    Atom::from("noreferrer"),
+                    Atom::from("opener"),
+                ]),
+            )
         })
     }
 }
@@ -290,29 +339,7 @@ impl Activatable for HTMLAreaElement {
         self.as_element().has_attribute(&local_name!("href"))
     }
 
-    fn pre_click_activation(&self) {
-    }
-
-    fn canceled_activation(&self) {
-    }
-
-    fn implicit_submission(&self, _ctrl_key: bool, _shift_key: bool,
-                           _alt_key: bool, _meta_key: bool) {
-    }
-
     fn activation_behavior(&self, _event: &Event, _target: &EventTarget) {
-        // Step 1
-        let doc = document_from_node(self);
-        if !doc.is_fully_active() {
-            return;
-        }
-        // Step 2
-        // TODO : We should be choosing a browsing context and navigating to it.
-        // Step 3
-        let referrer_policy = match self.RelList().Contains("noreferrer".into()) {
-            true => Some(ReferrerPolicy::NoReferrer),
-            false => None,
-        };
-        follow_hyperlink(self.upcast::<Element>(), None, referrer_policy);
+        follow_hyperlink(self.as_element(), None);
     }
 }

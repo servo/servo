@@ -1,14 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetooth
 
 dictionary BluetoothDataFilterInit {
-  // BufferSource dataPrefix;
-  sequence<octet> dataPrefix;
-  // BufferSource mask;
-  sequence<octet> mask;
+  BufferSource dataPrefix;
+  BufferSource mask;
 };
 
 dictionary BluetoothLEScanFilterInit {
@@ -16,18 +14,18 @@ dictionary BluetoothLEScanFilterInit {
   DOMString name;
   DOMString namePrefix;
   // Maps unsigned shorts to BluetoothDataFilters.
-  MozMap<BluetoothDataFilterInit> manufacturerData;
+  record<DOMString, BluetoothDataFilterInit> manufacturerData;
   // Maps BluetoothServiceUUIDs to BluetoothDataFilters.
-  MozMap<BluetoothDataFilterInit> serviceData;
+  record<DOMString, BluetoothDataFilterInit> serviceData;
 };
 
 dictionary RequestDeviceOptions {
   sequence<BluetoothLEScanFilterInit> filters;
-  sequence<BluetoothServiceUUID> optionalServices /*= []*/;
+  sequence<BluetoothServiceUUID> optionalServices = [];
   boolean acceptAllDevices = false;
 };
 
-[Pref="dom.bluetooth.enabled"]
+[Exposed=Window, Pref="dom.bluetooth.enabled"]
 interface Bluetooth : EventTarget {
   [SecureContext]
   Promise<boolean> getAvailability();
@@ -36,9 +34,9 @@ interface Bluetooth : EventTarget {
   // [SecureContext, SameObject]
   // readonly attribute BluetoothDevice? referringDevice;
   [SecureContext]
-  Promise<BluetoothDevice> requestDevice(optional RequestDeviceOptions options);
+  Promise<BluetoothDevice> requestDevice(optional RequestDeviceOptions options = {});
 };
 
-// Bluetooth implements BluetoothDeviceEventHandlers;
-// Bluetooth implements CharacteristicEventHandlers;
-// Bluetooth implements ServiceEventHandlers;
+// Bluetooth includes BluetoothDeviceEventHandlers;
+// Bluetooth includes CharacteristicEventHandlers;
+// Bluetooth includes ServiceEventHandlers;

@@ -2,25 +2,14 @@
 <title>IndexedDB: Test IDBIndex.getAllKeys.</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
 <script>
-setup({explicit_done: true});
 
 var alphabet = 'abcdefghijklmnopqrstuvwxyz'.split('');
 
-function doSetup(dbName, dbVersion, onsuccess) {
-  var delete_request = indexedDB.deleteDatabase(dbName);
-  delete_request.onerror = function() {
-    assert_unreached('deleteDatabase should not fail');
-  };
-  delete_request.onsuccess = function(e) {
-    var req = indexedDB.open(dbName, dbVersion);
-    req.onsuccess = onsuccess;
-    req.onerror = function() {
-      assert_unreached('open should not fail');
-    };
-    req.onupgradeneeded = function(evt) {
-      var connection = evt.target.result;
-
+function getall_test(func, name) {
+  indexeddb_test(
+    function(t, connection, tx) {
       var store = connection.createObjectStore('generated',
             {autoIncrement: true, keyPath: 'id'});
       var index = store.createIndex('test_idx', 'upper');
@@ -51,8 +40,10 @@ function doSetup(dbName, dbVersion, onsuccess) {
 
       store = connection.createObjectStore('empty', null);
       index = store.createIndex('test_idx', 'upper');
-    };
-  };
+    },
+    func,
+    name
+  );
 }
 
 function createGetAllKeysRequest(t, storeName, connection, range, maxCount) {
@@ -64,9 +55,7 @@ function createGetAllKeysRequest(t, storeName, connection, range, maxCount) {
     return req;
 }
 
-doSetup(location.pathname + '-IDBIndex.getAllKeys', 1, function(evt) {
-    var connection = evt.target.result;
-    async_test(function(t) {
+getall_test(function(t, connection) {
       var req = createGetAllKeysRequest(t, 'out-of-line', connection, 'C');
       req.onsuccess = t.step_func(function(evt) {
           var data = evt.target.result;
@@ -75,7 +64,7 @@ doSetup(location.pathname + '-IDBIndex.getAllKeys', 1, function(evt) {
       });
     }, 'Single item get');
 
-    async_test(function(t) {
+getall_test(function(t, connection) {
       var req = createGetAllKeysRequest(t, 'empty', connection);
       req.onsuccess = t.step_func(function(evt) {
           assert_array_equals(evt.target.result, [],
@@ -84,7 +73,7 @@ doSetup(location.pathname + '-IDBIndex.getAllKeys', 1, function(evt) {
       });
     }, 'Empty object store');
 
-    async_test(function(t) {
+getall_test(function(t, connection) {
       var req = createGetAllKeysRequest(t, 'out-of-line', connection);
       req.onsuccess = t.step_func(function(evt) {
           assert_array_equals(evt.target.result, alphabet,
@@ -93,7 +82,7 @@ doSetup(location.pathname + '-IDBIndex.getAllKeys', 1, function(evt) {
       });
     }, 'Get all keys');
 
-    async_test(function(t) {
+getall_test(function(t, connection) {
       var req = createGetAllKeysRequest(t, 'generated', connection);
       req.onsuccess = t.step_func(function(evt) {
           assert_array_equals(evt.target.result,
@@ -104,7 +93,7 @@ doSetup(location.pathname + '-IDBIndex.getAllKeys', 1, function(evt) {
       });
     }, 'Get all generated keys');
 
-    async_test(function(t) {
+getall_test(function(t, connection) {
       var req = createGetAllKeysRequest(t, 'out-of-line', connection, undefined,
                                     10);
       req.onsuccess = t.step_func(function(evt) {
@@ -115,7 +104,7 @@ doSetup(location.pathname + '-IDBIndex.getAllKeys', 1, function(evt) {
       });
     }, 'maxCount=10');
 
-    async_test(function(t) {
+getall_test(function(t, connection) {
       var req = createGetAllKeysRequest(t, 'out-of-line', connection,
                                     IDBKeyRange.bound('G', 'M'));
       req.onsuccess = t.step_func(function(evt) {
@@ -126,7 +115,7 @@ doSetup(location.pathname + '-IDBIndex.getAllKeys', 1, function(evt) {
       });
     }, 'Get bound range');
 
-    async_test(function(t) {
+getall_test(function(t, connection) {
       var req = createGetAllKeysRequest(t, 'out-of-line', connection,
                                     IDBKeyRange.bound('G', 'M'), 3);
       req.onsuccess = t.step_func(function(evt) {
@@ -137,7 +126,7 @@ doSetup(location.pathname + '-IDBIndex.getAllKeys', 1, function(evt) {
       });
     }, 'Get bound range with maxCount');
 
-    async_test(function(t) {
+getall_test(function(t, connection) {
       var req = createGetAllKeysRequest(t, 'out-of-line', connection,
           IDBKeyRange.bound('G', 'K', false, true));
       req.onsuccess = t.step_func(function(evt) {
@@ -148,7 +137,7 @@ doSetup(location.pathname + '-IDBIndex.getAllKeys', 1, function(evt) {
       });
     }, 'Get upper excluded');
 
-    async_test(function(t) {
+getall_test(function(t, connection) {
       var req = createGetAllKeysRequest(t, 'out-of-line', connection,
           IDBKeyRange.bound('G', 'K', true, false));
       req.onsuccess = t.step_func(function(evt) {
@@ -159,7 +148,7 @@ doSetup(location.pathname + '-IDBIndex.getAllKeys', 1, function(evt) {
       });
     }, 'Get lower excluded');
 
-    async_test(function(t) {
+getall_test(function(t, connection) {
       var req = createGetAllKeysRequest(t, 'generated',
           connection, IDBKeyRange.bound(4, 15), 3);
       req.onsuccess = t.step_func(function(evt) {
@@ -169,7 +158,7 @@ doSetup(location.pathname + '-IDBIndex.getAllKeys', 1, function(evt) {
       });
     }, 'Get bound range (generated) with maxCount');
 
-    async_test(function(t) {
+getall_test(function(t, connection) {
       var req = createGetAllKeysRequest(t, 'out-of-line',
           connection, "Doesn't exist");
       req.onsuccess = t.step_func(function(evt) {
@@ -180,7 +169,7 @@ doSetup(location.pathname + '-IDBIndex.getAllKeys', 1, function(evt) {
       });
     }, 'Non existent key');
 
-    async_test(function(t) {
+getall_test(function(t, connection) {
       var req = createGetAllKeysRequest(t, 'out-of-line', connection,
           undefined, 0);
       req.onsuccess = t.step_func(function(evt) {
@@ -190,7 +179,7 @@ doSetup(location.pathname + '-IDBIndex.getAllKeys', 1, function(evt) {
       });
     }, 'maxCount=0');
 
-    async_test(function(t) {
+getall_test(function(t, connection) {
       var req = createGetAllKeysRequest(t, 'out-of-line-multi', connection,
                                         'vowel');
       req.onsuccess = t.step_func(function(evt) {
@@ -199,9 +188,5 @@ doSetup(location.pathname + '-IDBIndex.getAllKeys', 1, function(evt) {
       });
       req.onerror = t.unreached_func('getAllKeys request should succeed');
     }, 'Retrieve multiEntry keys');
-
-    // Explicit done needed in case async_test body fails synchronously.
-    done();
-});
 
 </script>

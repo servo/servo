@@ -1,0 +1,62 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>This test validates some Timing-Allow-Origin header usage in multiple redirects.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/element-timing-helpers.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+</head>
+<body>
+<script>
+async_test(t => {
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    let destUrl = get_host_info().HTTP_REMOTE_ORIGIN
+        + '/element-timing/resources/multiple-redirects.py?';
+    destUrl += 'redirect_count=2';
+    // The final resource has '*' in TAO header, so will not affect the result.
+    destUrl += '&final_resource=/element-timing/resources/circle-tao.svg';
+    destUrl += '&origin1=' + get_host_info().UNAUTHENTICATED_ORIGIN;
+    destUrl += '&origin2=' + get_host_info().HTTP_REMOTE_ORIGIN;
+    const taoCombinations = [
+        {tao1: location.origin, tao2: location.origin, passes: false},
+        {tao1: location.origin, tao2: get_host_info().HTTP_REMOTE_ORIGIN, passes: false},
+        {tao1: location.origin, tao2: 'null', passes: true},
+        {tao1: location.origin, tao2: '*', passes: true},
+        {tao1: location.origin, tao2: location.origin, passes: false},
+        {tao1: 'null', tao2: '*', passes: false},
+        {tao1: '*', tao2: 'null', passes: true},
+    ];
+    function getURL(item) {
+        return destUrl + '&tao1=' + item.tao1 + '&tao2=' + item.tao2;
+    }
+    taoCombinations.forEach((item, index) => {
+        const image = document.createElement('img');
+        image.src = getURL(item);
+        image.setAttribute('elementtiming', item.passes.toString());
+        image.setAttribute('id', index);
+        document.body.appendChild(image);
+    });
+    let observed = new Array(taoCombinations.length).fill(false);
+    let observedCount = 0;
+    const beforeRender = performance.now();
+    new PerformanceObserver(t.step_func(entries => {
+        entries.getEntries().forEach(e => {
+            const index = parseInt(e.id);
+            assert_false(observed[index]);
+            const item = taoCombinations[index];
+            const url = getURL(item);
+            checkElement(e, url, item.passes.toString(), e.id, item.passes ? beforeRender : 0,
+                document.getElementById(e.id));
+            observed[index] = true;
+            observedCount++;
+            if (observedCount === taoCombinations.length)
+                t.done();
+        });
+    })).observe({entryTypes: ['element']});
+}, 'Cross-origin images with passing/failing TAO should/shouldn\'t have its renderTime set.');
+</script>
+</body>
+</html>
+

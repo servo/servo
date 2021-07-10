@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<div id="target"></div>
+<script>
+
+// Runs a function while a stylesheet is temporarily inserted into the
+// document.
+function with_stylesheet(text, func) {
+  let s = document.createElement('style');
+  try {
+    s.textContent = text;
+    document.documentElement.append(s);
+    func(s.sheet.rules);
+  } finally {
+    s.remove();
+  }
+}
+
+// Runs a test while a stylesheet is temporarily inserted into the
+// document.
+function test_stylesheet(text, func, description) {
+  test(() => {
+    with_stylesheet(text, func);
+  }, description);
+}
+
+function test_valid_rule(text, description) {
+  test_stylesheet(text, (rules) => {
+    assert_equals(rules.length, 1);
+    assert_equals(rules[0].constructor.name, 'CSSScrollTimelineRule');
+  }, description);
+}
+
+function test_invalid_rule(text, description) {
+  test_stylesheet(text, (rules) => {
+    assert_equals(rules.length, 0);
+  }, description);
+}
+
+// Verify that for the _specifed_ value for a given _descriptor_, the _expected_
+// string can be observed via the equivalent attribute on CSSScrollTimelineRule.
+function test_descriptor(descriptor, specified, expected) {
+  if (typeof(expected) == 'undefined')
+    expected = specified;
+  let attribute = descriptor.replaceAll(/\-./g, x => x[1].toUpperCase());
+  test_stylesheet(`@scroll-timeline test { ${descriptor}:${specified}; }`, (rules) => {
+    assert_equals(rules.length, 1);
+    assert_equals(rules[0].constructor.name, 'CSSScrollTimelineRule');
+    assert_equals(rules[0][attribute], expected);
+  }, `CSSScrollTimelineRule.${attribute} ${specified}`);
+}
+
+test_valid_rule('@scroll-timeline foo {}', 'Empty block');
+test_valid_rule('@scroll-timeline foo {', 'EOF ends block');
+test_valid_rule('@scroll-timeline "foo" {}', 'Timeline name can be a <string>');
+
+test_invalid_rule('@scroll-timeline', 'Missing prelude');
+test_invalid_rule('@scroll-timeline foo', 'Missing block');
+test_invalid_rule('@scroll-timeline {}', 'Missing timeline name');
+test_invalid_rule('@scroll-timeline 123 {}', 'Timeline name must be an identifier');
+test_invalid_rule('@scroll-timeline none {}', 'Timeline name must match <custom-ident>');
+test_invalid_rule('@scroll-timeline NONE {}', 'Timeline name must match <custom-ident> (caps)');
+test_invalid_rule('@scroll-timeline NoNe {}', 'Timeline name must match <custom-ident> (mixed)');
+test_invalid_rule('@scroll-timeline initial {}', 'Timeline name may not be initial');
+test_invalid_rule('@scroll-timeline inherit {}', 'Timeline name may not be inherit');
+test_invalid_rule('@scroll-timeline unset {}', 'Timeline name may not be unset');
+test_invalid_rule('@scroll-timeline revert {}', 'Timeline name may not be revert');
+test_invalid_rule('@scroll-timeline default {}', 'Timeline name may not be default');
+test_invalid_rule('@scroll-timeline foo bar {}', 'Extra timeline name');
+
+// CSSRule.type
+
+test(() => {
+  with_stylesheet(`@scroll-timeline valid { }`, (rules) => {
+    assert_equals(rules.length, 1);
+    let rule = rules[0];
+    assert_equals(rule.constructor.name, 'CSSScrollTimelineRule');
+    assert_equals(rule.type, 0);
+  });
+}, 'CSSRule.type returns 0');
+
+// CSSScrollTimelineRule.name
+
+function test_name(specified, expected) {
+  if (typeof(expected) == 'undefined')
+    expected = specified;
+  test_stylesheet(`@scroll-timeline ${specified} { }`, (rules) => {
+    assert_equals(rules.length, 1);
+    assert_equals(rules[0].constructor.name, 'CSSScrollTimelineRule');
+    assert_equals(rules[0].name, expected);
+  }, `CSSScrollTimelineRule.name ${specified}`);
+}
+
+test_name('foo');
+test_name('Foo');
+test_name('f___123');
+test_name('a\\9 b', 'a\tb'); // U+0009 CHARACTER TABULATION
+test_name('"foo"', 'foo');
+test_name('"none"', 'none');
+
+// CSSScrollTimelineRule.cssText
+
+function test_csstext(description, specified, expected) {
+  if (typeof(expected) == 'undefined')
+    expected = specified;
+  test_stylesheet(specified, (rules) => {
+    assert_equals(rules.length, 1);
+    assert_equals(rules[0].constructor.name, 'CSSScrollTimelineRule');
+    assert_equals(rules[0].cssText, expected);
+  }, `CSSScrollTimelineRule.cssText: ${description}`);
+}
+
+test_csstext(
+  'empty rule',
+  `@scroll-timeline timeline {}`,
+  `@scroll-timeline timeline { }`);
+
+// U+0009 CHARACTER TABULATION
+test_csstext(
+  'escaped name',
+  `@scroll-timeline tab\\9 tab {}`,
+  `@scroll-timeline tab\\9 tab { }`);
+
+test_csstext(
+  'source descriptor',
+  `@scroll-timeline timeline { source: selector(#foo); }`);
+
+test_csstext(
+  'orientation descriptor',
+  `@scroll-timeline timeline { orientation: inline; }`);
+
+test_csstext(
+  'start descriptor (px)',
+  `@scroll-timeline timeline { start: 100px; }`);
+
+test_csstext(
+  'start descriptor (offset)',
+  `@scroll-timeline timeline { start: selector(#bar); }`);
+
+test_csstext(
+  'start descriptor (offset with edge)',
+  `@scroll-timeline timeline { start: selector(#bar) start; }`);
+
+test_csstext(
+  'start descriptor (offset with threshold)',
+  `@scroll-timeline timeline { start: selector(#bar) 1; }`);
+
+test_csstext(
+  'start descriptor (offset with edge and threshold)',
+  `@scroll-timeline timeline { start: selector(#bar) start 1; }`);
+
+test_csstext(
+  'start descriptor (offset with threshold and edge)',
+  `@scroll-timeline timeline { start: selector(#bar) 1 start; }`,
+  `@scroll-timeline timeline { start: selector(#bar) start 1; }`);
+
+test_csstext(
+  'time-range descriptor',
+  `@scroll-timeline timeline { time-range: 10s; }`);
+
+test_csstext(
+  'defaults',
+  `@scroll-timeline timeline { source: none; orientation: auto; start: auto; end: auto; time-range: auto; }`);
+
+test_csstext(
+  'order',
+  `@scroll-timeline timeline { orientation: auto; time-range: auto; source: none; end: auto; start: auto; }`,
+  `@scroll-timeline timeline { source: none; orientation: auto; start: auto; end: auto; time-range: auto; }`);
+
+// CSSScrollTimelineRule.source
+
+function test_source(specified, expected) {
+  test_descriptor('source', specified, expected);
+}
+
+test_source('selector(#foo)');
+test_source('selector( #foo )', 'selector(#foo)');
+test_source(' selector(#foo) ', 'selector(#foo)');
+test_source('none');
+test_source(' none ', 'none');
+test_source('selector(#a\\9 b)');
+test_source('auto');
+
+test_source('#foo', 'none');
+test_source('', 'none');
+test_source('element(#foo)', 'none');
+test_source('selector(#foo more)', 'none');
+test_source('selector(html)', 'none');
+test_source('selector(foo)', 'none');
+test_source('selector(:before)', 'none');
+test_source('selector(*)', 'none');
+test_source('selector(.a)', 'none');
+test_source('selector(.a, .b)', 'none');
+
+// CSSScrollTimelineRule.orientation
+
+function test_orientation(specified, expected) {
+  test_descriptor('orientation', specified, expected);
+}
+
+test_orientation('auto');
+test_orientation('block');
+test_orientation('inline');
+test_orientation('horizontal');
+test_orientation('vertical');
+test_orientation('  vertical  ', 'vertical');
+
+test_orientation('', 'auto');
+test_orientation('foo', 'auto');
+test_orientation('10px', 'auto');
+test_orientation('red', 'auto');
+
+// CSSScrollTimelineRule.start
+// CSSScrollTimelineRule.end
+
+function test_offsets(specified, expected) {
+  test_descriptor('start', specified, expected);
+  test_descriptor('end', specified, expected);
+}
+
+test_offsets('auto');
+test_offsets(' auto ', 'auto');
+test_offsets('10px',);
+test_offsets(' 10px ', '10px');
+test_offsets('10em');
+test_offsets('10%');
+test_offsets('calc(1px + 1%)');
+
+test_offsets('', 'auto');
+test_offsets('red', 'auto');
+test_offsets('#fff', 'auto');
+test_offsets('unset', 'auto');
+test_offsets('unknown(#foo)', 'auto');
+test_offsets('start', 'auto');
+test_offsets('end', 'auto');
+test_offsets('3', 'auto');
+test_offsets('selector(#foo)');
+test_offsets(' selector(#foo)', 'selector(#foo)');
+test_offsets('selector(#foo) start');
+test_offsets('selector(#foo) start 3');
+test_offsets('selector(#foo) 3');
+test_offsets('selector(#foo) 3.5');
+test_offsets('selector(#foo) end');
+test_offsets('selector(#foo) end 3');
+test_offsets('selector(#foo) 3 end', 'selector(#foo) end 3');
+
+// CSSScrollTimelineRule.timeRange
+
+function test_scroll_time_range(specified, expected) {
+  test_descriptor('time-range', specified, expected);
+}
+
+test_scroll_time_range('auto');
+test_scroll_time_range(' auto ', 'auto');
+test_scroll_time_range('1s');
+test_scroll_time_range(' 1s ', '1s');
+test_scroll_time_range('1000ms');
+
+test_scroll_time_range('', 'auto');
+test_scroll_time_range('red', 'auto');
+test_scroll_time_range('#fff', 'auto');
+test_scroll_time_range('unset', 'auto');
+
+</script>

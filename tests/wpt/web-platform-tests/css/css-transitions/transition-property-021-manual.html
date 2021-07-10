@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Transitions Test: transition-property - left</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/#animation-type">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visuren.html#position-props">
+<meta name="assert" content="Test checks that the 'left' property is animatable.">
+<style>
+  #test {
+    background-color: blue;
+    height: 100px;
+    left: 10px;
+    position: relative;
+    transition-duration: 4s;
+    transition-property: left;
+    transition-timing-function: linear;
+    width: 100px;
+  }
+</style>
+<body>
+  <p>Click the blue square inside the box with black border below. Test passes if the blue square moves gradually not immediately from left to right until it stops.</p>
+  <div id="test"></div>
+  <script>
+    (function() {
+      var test = document.querySelector("#test");
+      test.addEventListener("click", function(evt) {
+        test.setAttribute("style", "left: 400px;");
+      }, false);
+    })();
+  </script>
+</body>

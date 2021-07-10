@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>Dynamic handling of :empty</title>
+  <style type="text/css"><![CDATA[
+   #test1 { background: red; display: block; padding: 1em; margin: 1em; }
+   #test1:empty { background: lime; }
+   #test2 { background: lime; display: block; padding: 1em; margin: 1em; }
+   #test2:empty { background: red; }
+]]></style>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <meta name="flags" content=" dom" />
+ </head>
+ <body>
+
+ <div>
+
+  <script type="text/javascript">
+   <![CDATA[
+
+    function test() {
+      document.getElementById('test1').appendChild(document.createTextNode(''));
+      document.getElementById('test2').appendChild(document.createTextNode(' '));
+    }
+
+    window.setTimeout("test()", 100);
+   ]]>
+  </script>
+
+  <p> The following two bars should be green. </p>
+
+  <div id="test1"></div>
+  <div id="test2"></div>
+
+ </div>
+
+</body>
+</html>

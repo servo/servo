@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+<script>
+    test(t => {
+      let s = new Sanitizer();
+      assert_true(s instanceof Sanitizer);
+    }, "SanitizerAPI creator without config.");
+
+    test(t => {
+      let s = new Sanitizer({});
+      assert_true(s instanceof Sanitizer);
+    }, "SanitizerAPI creator with empty config.");
+
+    test(t => {
+      let s = new Sanitizer({testConfig: [1,2,3], attr: ["test", "i", "am"]});
+      assert_true(s instanceof Sanitizer);
+    }, "SanitizerAPI creator with config ignore unknown values.");
+
+    const config_names = ["dropElements", "blockElements", "allowElements", "dropAttributes", "blockAttributes", "allowAttributes"];
+    config_names.forEach(cname => {
+      let options = {};
+      options[cname] = [];
+      test(t => {
+        let s = new Sanitizer(options);
+        assert_true(s instanceof Sanitizer);
+        assert_equals(s.sanitizeToString("<div>balabala<i>test</i></div>"), "<div>balabala<i>test</i></div>");
+      }, "SanitizerAPI creator with config " + JSON.stringify(options) + ".");
+  });
+
+</script>
+</body>
+</html>

@@ -1,13 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 /*
  * The origin of this IDL file is
  * https://dom.spec.whatwg.org/#interface-attr
  *
  */
 
-interface Attr {
+[Exposed=Window]
+interface Attr : Node {
   [Constant]
   readonly attribute DOMString? namespaceURI;
   [Constant]
@@ -16,14 +17,8 @@ interface Attr {
   readonly attribute DOMString localName;
   [Constant]
   readonly attribute DOMString name;
-  [Constant]
-  readonly attribute DOMString nodeName; // historical alias of .name
-  [Pure]
+  [CEReactions, Pure]
            attribute DOMString value;
-  [Pure]
-           attribute DOMString textContent; // historical alias of .value
-  [Pure]
-           attribute DOMString nodeValue; // historical alias of .value
 
   [Pure]
   readonly attribute Element? ownerElement;

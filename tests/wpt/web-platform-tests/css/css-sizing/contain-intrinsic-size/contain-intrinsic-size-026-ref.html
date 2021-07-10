@@ -1,0 +1,53 @@
+<!doctype html>
+<meta charset="utf8">
+<title>CSS contain-intrinsic-size: grid auto-fit, min- max- size interactions</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+
+<style>
+.grid {
+  display: inline-grid;
+  border: 1px solid black;
+  height: 40px;
+}
+.one {
+  width: 200px;
+}
+.two {
+  width: 200px;
+}
+.three {
+  width: 200px;
+}
+.four {
+  width: 150px;
+}
+.item {
+  background: green;
+  height: 100%;
+}
+</style>
+
+<p>min-width larger than contain-intrinsic-width:
+<div class="grid one">
+  <div class="item">one</div>
+  <div class="item">two</div>
+</div>
+
+<p>min-width smaller than contain-intrinsic-width:
+<div class="grid two">
+  <div class="item">one</div>
+  <div class="item">two</div>
+</div>
+
+<p>max-width ignored since min-width is larger:
+<div class="grid three">
+  <div class="item">one</div>
+  <div class="item">two</div>
+</div>
+
+<p>min-width shrinks grid since it overrides contain-intrinsic-width:
+<div class="grid four">
+  <div class="item">one</div>
+  <div class="item">two</div>
+</div>

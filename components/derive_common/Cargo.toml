@@ -1,0 +1,16 @@
+[package]
+name = "derive_common"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+publish = false
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+darling = { version = "0.10", default-features = false }
+proc-macro2 = "1"
+quote = "1"
+syn = { version = "1", default-features = false, features = ["clone-impls", "parsing"] }
+synstructure = "0.12"

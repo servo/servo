@@ -1,0 +1,381 @@
+group if "If Statements"
+
+	case single_statement
+		version 300 es
+		values
+		{
+			input float in0 = [ 0.0 | 1.0 | 2.0 ];
+			output float out0 = [ 0.0 | 1.0 | 1.0 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = 0.0;
+				if (in0 >= 1.0)
+					out0 = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case compound_statement
+		version 300 es
+		values
+		{
+			input float in0 = [ 0.0 | 1.0 | 2.0 ];
+			output float out0 = [ 0.0 | 1.0 | 1.0 ];
+			output float out1 = [ 1.0 | 0.0 | 0.0 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = 0.0;
+				out1 = 1.0;
+				if (in0 >= 1.0)
+				{
+					out0 = 1.0;
+					out1 = 0.0;
+				}
+				${OUTPUT}
+			}
+		""
+	end
+
+	case sequence_statements
+		version 300 es
+		values
+		{
+			input float in0 = [ 0.0 | 1.0 | 2.0 ];
+			output float out0 = [ 0.0 | 1.0 | 1.0 ];
+			output float out1 = [ 1.0 | 0.0 | 0.0 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = 0.0;
+				out1 = 1.0;
+				if (in0 >= 1.0)
+					out0 = 1.0, out1 = 0.0;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case sequence_condition
+		version 300 es
+		values
+		{
+			input float in0 = [ 0.0 | 1.0 | 2.0 ];
+			output float out0 = [ 0.0 | 1.0 | 1.0 ];
+			output float out1 = [ 1.0 | 0.0 | 0.0 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = 0.0;
+				out1 = 1.0;
+				if (false, in0 >= 1.0)
+					out0 = 1.0, out1 = 0.0;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case complex_condition
+		version 300 es
+		values
+		{
+			input float in0 = [ 0.0 | 1.0 | 2.0 ];
+			output float out0 = [ 0.0 | 1.0 | 1.0 ];
+			output float out1 = [ 1.0 | 0.0 | 0.0 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = 0.0;
+				out1 = 1.0;
+				if (false || (in0 >= 1.0) && (in0 - 2.0*in0 < 0.0))
+					out0 = 1.0, out1 = 0.0;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case if_else
+		version 300 es
+		values
+		{
+			input float in0 = [ 0.0 | 1.0 | 2.0 ];
+			output float out0 = [ 0.0 | 1.0 | 1.0 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				if (in0 >= 1.0)
+					out0 = 1.0;
+				else
+					out0 = 0.0;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case if_elseif
+		version 300 es
+		values
+		{
+			input float in0 = [ 0.0 | 1.0 | 2.0 ];
+			output float out0 = [ 0.0 | 1.0 | 2.0 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				out0 = 0.0;
+				if (in0 >= 2.0)
+					out0 = 2.0;
+				else if (in0 >= 1.0)
+					out0 = 1.0;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case if_elseif_else
+		version 300 es
+		values
+		{
+			input float in0 = [ 0.0 | 1.0 | 2.0 ];
+			output float out0 = [ 0.0 | 1.0 | 2.0 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				if (in0 >= 2.0)
+					out0 = 2.0;
+				else if (in0 >= 1.0)
+					out0 = 1.0;
+				else
+					out0 = 0.0;
+				${OUTPUT}
+			}
+		""
+	end
+
+	case mixed_if_elseif_else
+		version 300 es
+		values
+		{
+			input float in0 = [ 0.0 | 1.0 | 2.0 ];
+			output float out0 = [ 0.0 | 1.0 | 2.0 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				if (in0 >= 2.0)
+				{
+					out0 = 2.0;
+				}
+				else if (in0 >= 1.0)
+					out0 = 2.0, out0 = 1.0;
+				else
+					out0 = 0.0;
+				${OUTPUT}
+			}
+		""
+	end
+
+end # if
+
+group invalid_if "Invalid If Conditionals"
+
+	case missing_parenthesis
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				if true
+					${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case unclosed_parenthesis
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				if (true
+					${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case int_condition
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				if (5)
+					${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case int_zero_condition
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				if (0)
+					${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case int_one_condition
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				if (1)
+					${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case int_uniform_condition
+		version 300 es
+		expect compile_fail
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+			uniform int u0;
+			${DECLARATIONS}
+			void main()
+			{
+				if (u0)
+					${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case float_condition
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				if (5.0)
+					${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case float_zero_condition
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				if (0.0)
+					${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case float_one_condition
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			${DECLARATIONS}
+			void main()
+			{
+				if (1.0)
+					${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+	case sampler_condition
+		version 300 es
+		expect compile_fail
+		both ""
+			#version 300 es
+			precision mediump float;
+			uniform sampler2D s0;
+			${DECLARATIONS}
+			void main()
+			{
+				if (s0)
+					${POSITION_FRAG_COLOR} = vec4(1.0);
+			}
+		""
+	end
+
+end # invalid_if

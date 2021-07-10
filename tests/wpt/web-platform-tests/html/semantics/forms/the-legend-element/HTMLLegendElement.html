@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: HTMLLegendElement</title>
+<link rel="author" title="Intel" href="http://www.intel.com/">
+<link rel="help" title="4.10.17 The legend element" href="http://www.whatwg.org/specs/web-apps/current-work/multipage/the-button-element.html#the-legend-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<div style="display:none">
+  <form>
+    <legend id="lgd1">test</legend>
+  </form>
+  <form id="fm">
+    <fieldset id="fs">
+      <legend id="lgd2">test</legend>
+    </fieldset>
+  </form>
+</div>
+<script>
+  test(function() {
+    assert_equals(document.getElementById("lgd1").form, null,
+                  "The legend.form return null if it has no fieldset parent.");
+  }, "The legend.form return null when it has no fieldset parent");
+
+  test(function() {
+    assert_equals(document.getElementById("lgd2").form, document.getElementById("fs").form,
+                  "The legend.form should be same as fieldset.form.");
+    assert_equals(document.getElementById("lgd2").form, document.getElementById("fm"),
+                  "The legend.form should be the correct form.");
+  }, "The legend.form must be same value as fieldset.form");
+
+  test(function() {
+    assert_true(document.getElementById("lgd1") instanceof HTMLLegendElement, "legend should be a HTMLLegendElement");
+    assert_readonly(document.getElementById("lgd1"), "form", "The form is not readonly");
+  }, "Interface HTMLLegendElement");
+</script>
+

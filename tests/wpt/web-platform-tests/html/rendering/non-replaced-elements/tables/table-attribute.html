@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Table attribute test</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#tables-2">
+<link rel="author" title="Intel" href="http://www.intel.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  .div_tbl table {
+    width: 400px;
+    height: 300px;
+    border-spacing: 0px;
+  }
+  .div_tbl td {
+    padding: 0px;
+  }
+  .div_tbl th {
+    padding: 0px;
+  }
+  .div_200 {
+    height: 200px;
+  }
+</style>
+
+<div id="div">
+  <table id="table">
+    <thead id="thead">
+      <tr>
+        <th id="th">Month</th>
+        <th>Savings</th>
+      </tr>
+    </thead>
+    <tbody id="tbody">
+      <tr id="tr">
+        <td>January</td>
+        <td>$60</td>
+      </tr>
+      <tr>
+        <td id="td">February</td>
+        <td>$80</td>
+      </tr>
+    </tbody>
+    <tfoot id="tfoot">
+      <tr>
+        <td>Sum</td>
+        <td>$140</td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+
+<script>
+
+const ids = ["table", "thead", "tbody", "tfoot", "tr", "td", "th"];
+const alignIds = ["thead", "tbody", "tfoot", "tr", "td", "th"];
+const heightIds = ["tr", "td", "th"];
+const div = document.getElementById("div");
+const table = document.getElementById("table");
+const aligns = [
+  ["center", "center"],
+  ["middle", "center"],
+  ["left", "left"],
+  ["right", "right"],
+  ["justify", "justify"]
+];
+
+function commonTest(id, attr, value, cssProp, expected) {
+  test(t => {
+    let elem = document.getElementById(id);
+    t.add_cleanup(() => {
+      elem.removeAttribute(attr);
+    });
+    elem.setAttribute(attr, value);
+    let css = window.getComputedStyle(elem, null).getPropertyValue(cssProp);
+    assert_equals(css, expected);
+  }, `${id} ${attr} attribute is correct`);
+}
+
+function commonAlignTest(id, attr, value, cssProp, expected) {
+  test(t => {
+    let elem = document.getElementById(id);
+    t.add_cleanup(() => {
+      elem.removeAttribute(attr);
+    });
+    elem.setAttribute(attr, value);
+    let css = window.getComputedStyle(elem, null).getPropertyValue(cssProp);
+    assert_equals(css, expected);
+  }, `table ${id} align attribute ${value} is correct`);
+}
+
+function commonHeightTest(id, attr, value, cssProp, expected, type="", divClass) {
+  test(t => {
+    let elem = document.getElementById(id);
+    t.add_cleanup(() => {
+      elem.removeAttribute(attr);
+      div.classList.remove(divClass);
+    });
+    elem.setAttribute(attr, value);
+    div.classList.add(divClass);
+    let css = window.getComputedStyle(elem, null).getPropertyValue(cssProp);
+    assert_equals(css, expected);
+  }, `${id} ${attr} attribute ${type} is correct`);
+}
+
+// table#bordercolor
+commonTest("table", "bordercolor", "red", "border-color", "rgb(255, 0, 0)");
+// table#cellspacing
+commonTest("table", "cellspacing", "10", "border-spacing", "10px 10px", "10");
+
+// {table, thead, body, tfoot, tr, td, th}#background
+// {table, thead, body, tfoot, tr, td, th}#bgcolor
+const url = new URL('/images/threecolors.png', window.location.href).href;
+for (let id of ids) {
+  commonTest(id, "background", "/images/threecolors.png", "background-image", `url(\"${url}\")`);
+
+  commonTest(id, "bgcolor", "red", "background-color", "rgb(255, 0, 0)");
+}
+
+// {thead, body, tfoot, tr, td, th}#align#{center, middle, left, right, justify}
+for (let id of alignIds) {
+  for (let [value, expected] of aligns) {
+    commonAlignTest(id, "align", value, "text-align", expected);
+  }
+}
+
+// {tr, td, th}#height#pixel
+for (let id of heightIds) {
+  commonHeightTest(id, "height", "60", "height", "60px", "pixel", "div_tbl");
+}
+
+// {tr, td, th}#height#percentage
+let tbl = document.createElement("table");
+tbl.innerHTML = '<tr id="table_tr"><th id="table_th"></th></tr><tr><td id="table_td"></td></tr>';
+div.appendChild(tbl);
+const heightPercIds = ["table_tr", "table_td", "table_th"];
+for (let id of heightPercIds) {
+  commonHeightTest(id, "height", "20%", "height", "60px", "percentage", "div_tbl");
+}
+div.removeChild(tbl);
+
+// table#height#{pixel, percentage}
+commonHeightTest("table", "height", "180", "height", "180px", "pixel", "div_200");
+commonHeightTest("table", "height", "90%", "height", "180px", "90%", "div_200");
+commonHeightTest("table", "height", "110%", "height", "220px", "110%", "div_200");
+
+// table#cellpadding
+test(t => {
+  t.add_cleanup(() => {
+    table.removeAttribute("cellpadding");
+  });
+  table.setAttribute("cellpadding", "10");
+
+  let th = document.getElementById("th");
+  let th_css = window.getComputedStyle(th, null).getPropertyValue("padding");
+  assert_equals(th_css, "10px");
+
+  let td = document.getElementById("td");
+  let td_css = window.getComputedStyle(td, null).getPropertyValue("padding");
+  assert_equals(td_css, "10px");
+}, "table cellpadding attribute is correct");
+
+// th default text-align property is center
+test(t => {
+  let elem = document.getElementById("th");
+  let css = window.getComputedStyle(elem, null).getPropertyValue("text-align");
+  assert_equals(css, "center");
+}, "th default align attribute is center");
+
+// col#width#{pixel, percentage}
+test(t => {
+  let colgroup = document.createElement("colgroup");
+  let col1 = document.createElement("col");
+  let col2 = document.createElement("col");
+  t.add_cleanup(() => {
+    table.removeChild(colgroup);
+    div.classList.remove("div_tbl");
+  });
+  colgroup.appendChild(col1);
+  colgroup.appendChild(col2);
+  table.insertBefore(colgroup, table.firstChild);
+  div.classList.add("div_tbl");
+
+  col1.setAttribute("width", "100");
+  let td = document.getElementById("td");
+  let css = window.getComputedStyle(td, null).getPropertyValue("width");
+  assert_equals(css, "100px");
+
+  col1.setAttribute("width", "50%");
+  css = window.getComputedStyle(td, null).getPropertyValue("width");
+  assert_equals(css, "200px");
+}, "table col width attribute is correct");
+
+</script>

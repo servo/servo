@@ -1,16 +1,20 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use construct::ConstructionResult;
-use script_layout_interface::PartialPersistentLayoutData;
+use crate::construct::ConstructionResult;
+use atomic_refcell::AtomicRefCell;
+use script_layout_interface::StyleData;
+
+pub struct StyleAndLayoutData<'dom> {
+    /// The style data associated with a node.
+    pub style_data: &'dom StyleData,
+    /// The layout data associated with a node.
+    pub layout_data: &'dom AtomicRefCell<LayoutData>,
+}
 
 /// Data that layout associates with a node.
-pub struct PersistentLayoutData {
-    /// Data accessed by script_layout_interface. This must be first to allow
-    /// casting between PersistentLayoutData and PartialPersistentLayoutData.
-    pub base: PartialPersistentLayoutData,
-
+pub struct LayoutData {
     /// The current results of flow construction for this node. This is either a
     /// flow or a `ConstructionItem`. See comments in `construct.rs` for more
     /// details.
@@ -28,11 +32,10 @@ pub struct PersistentLayoutData {
     pub flags: LayoutDataFlags,
 }
 
-impl PersistentLayoutData {
+impl LayoutData {
     /// Creates new layout data.
-    pub fn new() -> PersistentLayoutData {
-        PersistentLayoutData {
-            base: PartialPersistentLayoutData::new(),
+    pub fn new() -> LayoutData {
+        Self {
             flow_construction_result: ConstructionResult::None,
             before_flow_construction_result: ConstructionResult::None,
             after_flow_construction_result: ConstructionResult::None,
@@ -44,10 +47,10 @@ impl PersistentLayoutData {
 }
 
 bitflags! {
-    pub flags LayoutDataFlags: u8 {
+    pub struct LayoutDataFlags: u8 {
         #[doc = "Whether a flow has been newly constructed."]
-        const HAS_NEWLY_CONSTRUCTED_FLOW = 0x01,
+        const HAS_NEWLY_CONSTRUCTED_FLOW = 0x01;
         #[doc = "Whether this node has been traversed by layout."]
-        const HAS_BEEN_TRAVERSED = 0x02,
+        const HAS_BEEN_TRAVERSED = 0x02;
     }
 }

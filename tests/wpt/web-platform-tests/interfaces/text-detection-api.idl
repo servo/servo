@@ -1,0 +1,18 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Accelerated Text Detection in Images (https://wicg.github.io/shape-detection-api/text.html)
+
+[
+    Exposed=(Window,Worker),
+    SecureContext
+] interface TextDetector {
+    constructor();
+    Promise<sequence<DetectedText>> detect(ImageBitmapSource image);
+};
+
+dictionary DetectedText {
+  required DOMRectReadOnly boundingBox;
+  required DOMString rawValue;
+  required FrozenArray<Point2D> cornerPoints;
+};

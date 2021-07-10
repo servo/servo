@@ -23,7 +23,7 @@
       <p>
         The upper area has the placed glyphs as path elements filled with
         white over a solid black background (creating a white cutout). The
-        embedded SVG font text is then drawn over the cutout. 
+        embedded SVG font text is then drawn over the cutout.
       </p>
       <p>
         The lower area is the reverse of the upper area, with the placed
@@ -34,13 +34,13 @@
       </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
-	<p>Run the test. No interaction required.</p>
+  <p>Run the test. No interaction required.</p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
-	The test is passed iff the black text exactly overlays the white text 
-	on black, giving a solid black area. Some slight antialiasing effects may 
-	remain and do not cause the test to fail.
+  The test is passed iff the black text exactly overlays the white text
+  on black, giving a solid black area. Some slight antialiasing effects may
+  remain and do not cause the test to fail.
       </p>
     </d:passCriteria>
   </d:SVGTestCase>

@@ -1,0 +1,7 @@
+{
+    "icons": [{
+        "src": "https://{{host}}:{{ports[https][1]}}/appmanifest/icons-member/pass.png",
+        "sizes": "256x256",
+        "type": "image/png"
+    }]
+}

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Backgrounds and Borders Module Level 3: parsing background-size with valid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#background-size">
+<meta name="assert" content="background-size supports the full grammar '<bg-size>#'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("background-size", "1px", ["1px", "1px auto"]);
+test_valid_value("background-size", "1px auto", ["1px", "1px auto"]);
+test_valid_value("background-size", "2% 3%");
+test_valid_value("background-size", "auto", ["auto", "auto auto"]);
+test_valid_value("background-size", "auto auto", ["auto", "auto auto"]);
+test_valid_value("background-size", "auto 4%");
+test_valid_value("background-size", "contain");
+test_valid_value("background-size", "cover");
+
+test_valid_value("background-size", "auto 1px, 2% 3%, contain");
+</script>
+</body>
+</html>

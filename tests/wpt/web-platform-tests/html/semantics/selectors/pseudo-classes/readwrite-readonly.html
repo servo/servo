@@ -51,17 +51,28 @@
 
   testSelectorIdsMatch("#set1 :read-write", ["input1"], "The :read-write pseudo-class must match input elements to which the readonly attribute applies, and that are mutable");
 
-  testSelectorIdsMatch("#set1 :read-only", ["input2"], "The :read-only pseudo-class must not match input elements to which the readonly attribute applies, and that are mutable");
+  testSelectorIdsMatch("#set1 :read-only", ["input2", "input3", "input4", "input5"], "The :read-only pseudo-class must not match input elements to which the readonly attribute applies, and that are mutable");
 
   document.getElementById("input1").setAttribute("readonly", "readonly");
   testSelectorIdsMatch("#set1 :read-write", [], "The :read-write pseudo-class must not match input elements after the readonly attribute has been added");
 
-  testSelectorIdsMatch("#set1 :read-only", ["input1", "input2"], "The :read-only pseudo-class must match input elements after the readonly attribute has been added");
+  testSelectorIdsMatch("#set1 :read-only", ["input1", "input2", "input3", "input4", "input5"], "The :read-only pseudo-class must match input elements after the readonly attribute has been added");
 
   document.getElementById("input1").removeAttribute("readonly");
   testSelectorIdsMatch("#set1 :read-write", ["input1"], "The :read-write pseudo-class must not match input elements after the readonly attribute has been removed");
 
-  testSelectorIdsMatch("#set1 :read-only", ["input2"], "The :read-only pseudo-class must match input elements after the readonly attribute has been removed");
+  testSelectorIdsMatch("#set1 :read-only", ["input2", "input3", "input4", "input5"], "The :read-only pseudo-class must match input elements after the readonly attribute has been removed");
+
+  document.getElementById("input1").disabled = true;
+  testSelectorIdsMatch("#set1 :read-write", [], "The :read-write pseudo-class must not match input elements after the disabled attribute has been added");
+
+  testSelectorIdsMatch("#set1 :read-only", ["input1", "input2", "input3", "input4", "input5"], "The :read-only pseudo-class must match input elements after the disabled attribute has been added");
+
+  document.getElementById("input1").disabled = false;
+
+  testSelectorIdsMatch("#set1 :read-write", ["input1"], "The :read-write pseudo-class must match input elements after the disabled attribute has been removed");
+
+  testSelectorIdsMatch("#set1 :read-only", ["input2", "input3", "input4", "input5"], "The :read-only pseudo-class must not match input elements after the disabled attribute has been removed");
 
   testSelectorIdsMatch("#set2 :read-write", ["textarea1"], "The :read-write pseudo-class must match textarea elements that do not have a readonly attribute, and that are not disabled");
 

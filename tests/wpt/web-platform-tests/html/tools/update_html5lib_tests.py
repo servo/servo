@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import sys
 import os
 import hashlib
@@ -14,7 +16,7 @@ try:
 
     from html5lib.tests import support
 except ImportError:
-    print """This script requires the Genshi templating library and html5lib source
+    print("""This script requires the Genshi templating library and html5lib source
 
 It is recommended that these are installed in a virtualenv:
 
@@ -30,12 +32,12 @@ pip install -e ./
 
 Then run this script again, with the virtual environment still active.
 When you are done, type "deactivate" to deactivate the virtual environment.
-"""
+""")
 
 TESTS_PATH = "html/syntax/parsing/"
 
 def get_paths():
-    script_path = os.path.split(os.path.abspath(__file__))[0]
+    script_path = os.path.dirname(os.path.abspath(__file__))
     repo_base = get_repo_base(script_path)
     tests_path = os.path.join(repo_base, TESTS_PATH)
     return script_path, tests_path
@@ -45,7 +47,7 @@ def get_repo_base(path):
         if os.path.exists(os.path.join(path, ".git")):
             return path
         else:
-            path = os.path.split(path)[0]
+            path = os.path.dirname(path)
 
 def get_expected(data):
     data = "#document\n" + data
@@ -54,14 +56,14 @@ def get_expected(data):
 def get_hash(data, container=None):
     if container == None:
         container = ""
-    return hashlib.sha1("#container%s#data%s"%(container.encode("utf8"),
+    return hashlib.sha1(b"#container%s#data%s"%(container.encode("utf8"),
                                                data.encode("utf8"))).hexdigest()
 
 def make_tests(script_dir, out_dir, input_file_name, test_data):
     tests = []
     innerHTML_tests = []
     ids_seen = {}
-    print input_file_name
+    print(input_file_name)
     for test in test_data:
         if "script-off" in test:
             continue
@@ -73,13 +75,13 @@ def make_tests(script_dir, out_dir, input_file_name, test_data):
         test_list = innerHTML_tests if is_innerHTML else tests
         test_id = get_hash(data, container)
         if test_id in ids_seen:
-            print "WARNING: id %s seen multiple times in file %s this time for test (%s, %s) before for test %s, skipping"%(test_id, input_file_name, container, data, ids_seen[test_id])
+            print("WARNING: id %s seen multiple times in file %s this time for test (%s, %s) before for test %s, skipping"%(test_id, input_file_name, container, data, ids_seen[test_id]))
             continue
         ids_seen[test_id] = (container, data)
-        test_list.append({'string_uri_encoded_input':"\"%s\""%urllib.quote(data.encode("utf8")),
+        test_list.append({'string_uri_encoded_input':"\"%s\""%urllib.parse.quote(data.encode("utf8")),
                           'input':data,
                           'expected':expected,
-                          'string_escaped_expected':json.dumps(urllib.quote(expected.encode("utf8"))),
+                          'string_escaped_expected':json.dumps(urllib.parse.quote(expected.encode("utf8"))),
                           'id':test_id,
                           'container':container
                           })
@@ -98,7 +100,7 @@ def make_tests(script_dir, out_dir, input_file_name, test_data):
 
 def write_test_file(script_dir, out_dir, tests, file_name, template_file_name):
     file_name = os.path.join(out_dir, file_name + ".html")
-    short_name = os.path.split(file_name)[1]
+    short_name = os.path.basename(file_name)
 
     with open(os.path.join(script_dir, template_file_name), "r") as f:
         template = MarkupTemplate(f)
@@ -106,8 +108,8 @@ def write_test_file(script_dir, out_dir, tests, file_name, template_file_name):
     stream = template.generate(file_name=short_name, tests=tests)
 
     with open(file_name, "w") as f:
-        f.write(stream.render('html', doctype='html5',
-                              encoding="utf8"))
+        f.write(str(stream.render('html', doctype='html5',
+                              encoding="utf8"), "utf-8"))
     return file_name
 
 def escape_js_string(in_data):
@@ -124,20 +126,20 @@ def main():
     inner_html_files = []
 
     if len(sys.argv) > 2:
-        test_iterator = itertools.izip(
+        test_iterator = zip(
             itertools.repeat(False),
             sorted(os.path.abspath(item) for item in
                    glob.glob(os.path.join(sys.argv[2], "*.dat"))))
     else:
         test_iterator = itertools.chain(
-            itertools.izip(itertools.repeat(False),
+            zip(itertools.repeat(False),
                            sorted(support.get_data_files("tree-construction"))),
-            itertools.izip(itertools.repeat(True),
+            zip(itertools.repeat(True),
                            sorted(support.get_data_files(
                         os.path.join("tree-construction", "scripted")))))
 
     for (scripted, test_file) in test_iterator:
-        input_file_name = os.path.splitext(os.path.split(test_file)[1])[0]
+        input_file_name = os.path.splitext(os.path.basename(test_file))[0]
         if scripted:
             input_file_name = "scripted_" + input_file_name
         test_data = support.TestData(test_file)

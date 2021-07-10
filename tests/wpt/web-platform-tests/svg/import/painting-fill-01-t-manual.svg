@@ -16,7 +16,7 @@
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/painting.html#FillProperties">
         <p>
           Verify the basic capability to handle the fill properties fill:none,
-          and fill with a color			(fill:green)
+          and fill with a color      (fill:green)
         </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">

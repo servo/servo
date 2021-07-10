@@ -1,7 +1,3 @@
-<!--
-postMessage(1);
-/*
--->
 <!doctype html>
 <title>creating 3 sibling dedicated workers</title>
 <script src="/resources/testharness.js"></script>
@@ -9,9 +5,9 @@ postMessage(1);
 <div id=log></div>
 <script>
 async_test(function(t) {
-  var w1 = new Worker('#');
-  var w2 = new Worker('#');
-  var w3 = new Worker('#');
+  var w1 = new Worker('002.js');
+  var w2 = new Worker('002.js');
+  var w3 = new Worker('002.js');
   var got = [false, false, false];
   var check_done = t.step_func(function() {
                        if (got.every(function(x) {return x})) {
@@ -23,6 +19,3 @@ async_test(function(t) {
   w3.onmessage = t.step_func(function(e) {got[2] = true; check_done()});
 });
 </script>
-<!--
-*/
-//-->

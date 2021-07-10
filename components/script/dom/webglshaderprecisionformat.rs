@@ -1,15 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #![allow(dead_code)]
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use dom::bindings::codegen::Bindings::WebGLShaderPrecisionFormatBinding;
-use dom::bindings::codegen::Bindings::WebGLShaderPrecisionFormatBinding::WebGLShaderPrecisionFormatMethods;
-use dom::bindings::js::Root;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::window::Window;
+use crate::dom::bindings::codegen::Bindings::WebGLShaderPrecisionFormatBinding::WebGLShaderPrecisionFormatMethods;
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::window::Window;
 use dom_struct::dom_struct;
 
 #[dom_struct]
@@ -30,14 +29,18 @@ impl WebGLShaderPrecisionFormat {
         }
     }
 
-    pub fn new(window: &Window,
-               range_min: i32,
-               range_max: i32,
-               precision: i32) -> Root<WebGLShaderPrecisionFormat> {
+    pub fn new(
+        window: &Window,
+        range_min: i32,
+        range_max: i32,
+        precision: i32,
+    ) -> DomRoot<WebGLShaderPrecisionFormat> {
         reflect_dom_object(
-            box WebGLShaderPrecisionFormat::new_inherited(range_min, range_max, precision),
+            Box::new(WebGLShaderPrecisionFormat::new_inherited(
+                range_min, range_max, precision,
+            )),
             window,
-            WebGLShaderPrecisionFormatBinding::Wrap)
+        )
     }
 }
 

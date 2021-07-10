@@ -45,6 +45,9 @@ function setupSpecialElements(doc, parent) {
 
   parent.appendChild(anyNS);
   parent.appendChild(noNS);
+
+  var span = doc.getElementById("attr-presence-i1");
+  span.setAttributeNS("http://www.example.org/ns", "title", "");
 }
 
 /*
@@ -99,6 +102,8 @@ function verifyStaticList(type, doc, root) {
  * null and undefined, and the handling of the empty string.
  */
 function runSpecialSelectorTests(type, root) {
+  let global = (root.ownerDocument || root).defaultView;
+
   test(function() { // 1
     assert_equals(root.querySelectorAll(null).length, 1, "This should find one element with the tag name 'NULL'.");
   }, type + ".querySelectorAll null")
@@ -108,7 +113,7 @@ function runSpecialSelectorTests(type, root) {
   }, type + ".querySelectorAll undefined")
 
   test(function() { // 3
-    assert_throws(TypeError(), function() {
+    assert_throws_js(global.TypeError, function() {
       root.querySelectorAll();
     }, "This should throw a TypeError.")
   }, type + ".querySelectorAll no parameter")
@@ -126,7 +131,7 @@ function runSpecialSelectorTests(type, root) {
   }, type + ".querySelector undefined")
 
   test(function() { // 6
-    assert_throws(TypeError(), function() {
+    assert_throws_js(global.TypeError, function() {
       root.querySelector();
     }, "This should throw a TypeError.")
   }, type + ".querySelector no parameter")
@@ -202,6 +207,10 @@ function runValidSelectorTest(type, root, selectors, testType, docType) {
   }
 }
 
+function windowFor(root) {
+  return root.defaultView || root.ownerDocument.defaultView;
+}
+
 /*
  * Execute queries with the specified invalid selectors for both querySelector() and querySelectorAll()
  * Only run these tests when errors are expected. Don't run for valid selector tests.
@@ -213,15 +222,15 @@ function runInvalidSelectorTest(type, root, selectors) {
     var q = s["selector"];
 
     test(function() {
-      assert_throws("SyntaxError", function() {
+      assert_throws_dom("SyntaxError", windowFor(root).DOMException, function() {
         root.querySelector(q)
-      })
+      });
     }, type + ".querySelector: " + n + ": " + q);
 
     test(function() {
-      assert_throws("SyntaxError", function() {
+      assert_throws_dom("SyntaxError", windowFor(root).DOMException, function() {
         root.querySelectorAll(q)
-      })
+      });
     }, type + ".querySelectorAll: " + n + ": " + q);
   }
 }

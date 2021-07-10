@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Box Alignment Level 3: parsing place-items with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-place-items">
+<meta name="assert" content="place-items supports only the grammar '<align-items> <justify-items>?'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("place-items", "auto");
+
+test_invalid_value("place-items", "space-around");
+test_invalid_value("place-items", "space-between");
+test_invalid_value("place-items", "space-evenly");
+
+test_invalid_value("place-items", "left");
+test_invalid_value("place-items", "unsafe right");
+test_invalid_value("place-items", "left baseline");
+test_invalid_value("place-items", "unsafe right flex-end");
+
+test_invalid_value("place-items", "legacy center");
+test_invalid_value("place-items", "legacy left");
+test_invalid_value("place-items", "legacy");
+test_invalid_value("place-items", "legacy right flex-start");
+test_invalid_value("place-items", "legacy normal");
+
+test_invalid_value("place-items", "normal flex-start baseline");
+
+test_invalid_value("place-items", "baseline safe");
+</script>
+</body>
+</html>

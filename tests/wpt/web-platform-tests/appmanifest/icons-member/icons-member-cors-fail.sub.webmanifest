@@ -1,0 +1,7 @@
+{
+    "icons": [{
+        "src": "https://{{host}}:{{ports[https][1]}}/appmanifest/icons-member/fail.png",
+        "sizes": "256x256",
+        "type": "image/png"
+    }]
+}

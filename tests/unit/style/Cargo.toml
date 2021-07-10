@@ -9,20 +9,19 @@ name = "style_tests"
 path = "lib.rs"
 doctest = false
 
-[features]
-testing = ["style/testing"]
-
 [dependencies]
-app_units = "0.4"
-cssparser = "0.13"
-euclid = "0.11"
-html5ever-atoms = "0.3"
-parking_lot = "0.3"
-rayon = "0.6"
-rustc-serialize = "0.3"
+app_units = "0.7"
+cssparser = "0.28"
+euclid = "0.20"
+html5ever = "0.25"
+rayon = "1"
+serde_json = "1.0"
 selectors = {path = "../../../components/selectors"}
+servo_arc = {path = "../../../components/servo_arc"}
 servo_atoms = {path = "../../../components/atoms"}
 servo_config = {path = "../../../components/config"}
-style = {path = "../../../components/style"}
-style_traits = {path = "../../../components/style_traits"}
 servo_url = {path = "../../../components/url"}
+size_of_test = {path = "../../../components/size_of_test"}
+style = {path = "../../../components/style", features = ["servo"]}
+style_traits = {path = "../../../components/style_traits"}
+std_test_override = { path = "../../../components/std_test_override" }

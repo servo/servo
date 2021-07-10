@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="David Grogan" href="dgrogan@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS22/tables.html#model">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<meta name="flags" content="" />
+<meta name="assert" content="margins between parent and child block collapse inside caption" />
+<title>
+Caption block containers are rendered same as normal block boxes
+</title>
+
+<style>
+div {
+  margin-top: 100px;
+}
+</style>
+
+<p>Test passes if there is a filled green square.</p>
+
+<table>
+  <caption style="width:100px; background:green">
+    <div>
+      <div></div>
+    </div>
+  </caption>
+</table>

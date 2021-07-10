@@ -1,0 +1,33 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>Image intrinsic size specified via sizes attribute reacts properly to media changes in Shadow DOM</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="match" href="sizes-dynamic-001-ref.html">
+<link rel="help" href="https://html.spec.whatwg.org/#sizes-attributes">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1149357">
+<script>
+function frameLoaded(frame) {
+  let doc = frame.contentDocument;
+  let shadow = doc.getElementById("host").attachShadow({ mode: "open" });
+
+  let img = doc.createElement("img");
+  img.srcset = "/images/green-256x256.png 100w";
+  img.style.maxWidth = "100%";
+  img.setAttribute("sizes", "(min-width: 400px) 10px, 20px");
+
+  img.onload = function() {
+    img.offsetWidth; // Flush layout.
+
+    frame.width = "500";
+
+    // Trigger the viewport resize, which will trigger the image load task.
+    img.offsetWidth;
+
+    // Wait for the image load task to run.
+    setTimeout(() => document.documentElement.removeAttribute("class"), 0);
+  };
+
+  shadow.appendChild(img);
+}
+</script>
+<iframe onload="frameLoaded(this)" width="200" height="500" srcdoc='<!doctype html><div id="host"></div>'></iframe>

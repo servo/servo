@@ -43,7 +43,7 @@ promise_test(testCase => {
             store.index('renamed_by_author'), renamedAuthorIndex,
             'IDBObjectStore.index should return the renamed index store when ' +
             'queried using the new name immediately after the rename');
-        assert_throws(
+        assert_throws_dom(
             'NotFoundError', () => store.index('by_author'),
             'IDBObjectStore.index should throw when queried using the ' +
             "renamed index's old name immediately after the rename");
@@ -96,7 +96,7 @@ promise_test(testCase => {
             store.index('renamed_by_author'), renamedAuthorIndex,
             'IDBObjectStore.index should return the renamed index store when ' +
             'queried using the new name immediately after the rename');
-        assert_throws(
+        assert_throws_dom(
             'NotFoundError', () => store.index('by_author'),
             'IDBObjectStore.index should throw when queried using the ' +
             "renamed index's old name immediately after the rename");

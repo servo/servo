@@ -1,0 +1,31 @@
+<!doctype html>
+<title>max-height cannot shrink a table under its intrinsic size</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1651530">
+<link rel="help" href="https://drafts.csswg.org/css-tables/#computing-the-table-height">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5336">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="match" href="max-height-table-ref.html">
+<style>
+td {
+  padding: 0;
+}
+
+table {
+  border-spacing: 0;
+  max-height: 0;
+  border: 1px solid black;
+  background: green;
+  padding: 5px;
+}
+
+div {
+  width: 5px;
+  height: 5px;
+}
+</style>
+<table>
+  <tr>
+    <td><div></div></td>
+  </tr>
+</table>

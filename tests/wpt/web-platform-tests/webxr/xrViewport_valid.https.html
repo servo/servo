@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+
+<script>
+let testName = "XRViewport attributes are valid";
+
+let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+let testFunction = function(session, fakeDeviceController, t, sessionObjects) {
+  return session.requestReferenceSpace('local')
+    .then((referenceSpace) => new Promise((resolve) =>{
+      let webglLayer = sessionObjects.glLayer;
+      function onFrame(time, xrFrame) {
+        let pose = xrFrame.getViewerPose(referenceSpace);
+        assert_not_equals(pose, null);
+        assert_not_equals(pose.views, null);
+        assert_equals(pose.views.length, 2);
+
+        let leftView = pose.views[0];
+        let rightView = pose.views[1];
+
+        let leftViewport = webglLayer.getViewport(leftView);
+        let rightViewport = webglLayer.getViewport(rightView);
+
+        t.step(() => {
+          // Ensure the views report the expected viewports into the WebGL layer.
+          assert_true(leftViewport instanceof XRViewport);
+          assert_true(rightViewport instanceof XRViewport);
+
+          assert_not_equals(leftViewport, null);
+          assert_not_equals(rightViewport, null);
+
+          // Exact viewport values don't matter, but they must pass several tests:
+
+          // Viewports have non-zero widths and heights.
+          assert_greater_than(leftViewport.width, 0);
+          assert_greater_than(leftViewport.height, 0);
+          assert_greater_than(rightViewport.width, 0);
+          assert_greater_than(rightViewport.height, 0);
+
+          // Viewports are located within the framebuffer.
+          assert_greater_than_equal(leftViewport.x, 0);
+          assert_greater_than_equal(leftViewport.y, 0);
+          assert_greater_than_equal(leftViewport.x, 0);
+          assert_greater_than_equal(leftViewport.y, 0);
+
+          assert_less_than_equal(
+            leftViewport.x + leftViewport.width, webglLayer.framebufferWidth);
+          assert_less_than_equal(
+            leftViewport.y + leftViewport.height, webglLayer.framebufferHeight);
+          assert_less_than_equal(
+            rightViewport.x + rightViewport.width, webglLayer.framebufferWidth);
+          assert_less_than_equal(
+            rightViewport.y + rightViewport.height, webglLayer.framebufferHeight);
+
+          // Assumes that the left viewport will always be physically to the left
+          // of the right viewport.
+          assert_less_than_equal(leftViewport.x + leftViewport.width, rightViewport.x);
+        });
+
+        resolve();
+      }
+      session.requestAnimationFrame(onFrame);
+  }));
+};
+
+xr_session_promise_test(
+  testName, testFunction, fakeDeviceInitParams, 'immersive-vr');
+
+</script>

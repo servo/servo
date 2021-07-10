@@ -1,0 +1,320 @@
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL ReadPixels conformance test.</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/desktop-gl-constants.js"></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"> </script>
+</head>
+<body>
+<canvas id="example" width="200" height="200" style="width: 20px; height: 20px"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("Checks that ReadPixels works as expected.");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("example");
+var gl = wtu.create3DContext(canvas);
+var contextVersion = wtu.getDefault3DContextVersion();
+
+var actual;
+var expected;
+var width = 2;
+var height = 2;
+var continueTestFunc = continueTestPart1;
+
+gl.clearColor(1, 1, 1, 1);
+gl.clear(gl.COLOR_BUFFER_BIT);
+
+// Resize the canvas to 2x2. This is an attempt to get stuff in the backbuffer.
+// that shouldn't be there.
+canvas.addEventListener("webglcontextlost", function(e) { e.preventDefault(); }, false);
+canvas.addEventListener("webglcontextrestored", continueTestAfterContextRestored, false);
+canvas.width = width;
+canvas.height = height;
+if (gl.getError() != gl.CONTEXT_LOST_WEBGL) {
+  continueTestPart1();
+}
+
+function continueTestAfterContextRestored() {
+  window.gl = wtu.create3DContext(canvas);
+  var func = continueTestFunc;
+  window.continueTestFunc = function() { testFailed("should not be here"); };
+  func();
+}
+
+function continueTestPart1() {
+  gl.clearColor(0.2, 0.6, 0.4, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  var innerColor = [51, 153, 102, 255]; // (0.2, 0.6, 0.4, 1)
+  var outerColor = [19, 72, 0, 198]; // Random color other than [0, 0, 0, 0]
+
+  var tests = [
+    { msg: 'in range', checkColor: innerColor, x:  0, y:  0,
+      oneColor: innerColor, oneX: 0, oneY: 0},
+    { msg: 'off top left', checkColor: outerColor, x: -1, y: -1,
+      oneColor: innerColor, oneX: 1, oneY: 1},
+    { msg: 'off bottom right', checkColor: outerColor, x:  1, y:  1,
+      oneColor: innerColor, oneX: 0, oneY: 0},
+    { msg: 'completely off top ', checkColor: outerColor, x:  0, y: -2,
+      oneColor: outerColor, oneX: 0, oneY: 0},
+    { msg: 'completely off bottom', checkColor: outerColor, x:  0, y:  2,
+      oneColor: outerColor, oneX: 0, oneY: 0},
+    { msg: 'completely off left', checkColor: outerColor, x: -2, y:  0,
+      oneColor: outerColor, oneX: 0, oneY: 0},
+    { msg: 'completeley off right', checkColor: outerColor, x:  2, y:  0,
+      oneColor: outerColor, oneX: 0, oneY: 0}
+  ];
+
+  for (var tt = 0; tt < tests.length; ++tt) {
+    var test = tests[tt];
+    debug("");
+    debug("checking: " + test.msg);
+    checkBuffer(test.checkColor, test.x, test.y,
+                test.oneColor, test.oneX, test.oneY);
+  }
+
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no GL errors");
+
+  function checkBuffer(checkColor, x, y, oneColor, oneX, oneY) {
+    var buf = new Uint8Array(width * height * 4);
+    // Initialize buf.
+    for (var ii = 0; ii < width * height; ++ii) {
+      buf[ii * 4] = outerColor[0];
+      buf[ii * 4 + 1] = outerColor[1];
+      buf[ii * 4 + 2] = outerColor[2];
+      buf[ii * 4 + 3] = outerColor[3];
+    }
+    gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    for (var yy = 0; yy < height; ++yy) {
+      for (var xx = 0; xx < width; ++xx) {
+        var offset = (yy * width + xx) * 4;
+        var expectedColors = (oneX == xx && oneY == yy) ? oneColor : checkColor;
+        var mismatch = false;
+        for (var cc = 0; cc < 4; ++cc) {
+          var expectedColor = expectedColors[cc];
+          var color = buf[offset + cc];
+          var diff = Math.abs(expectedColor - color);
+          if (diff >= 3) {
+            mismatch = true;
+            break;
+          }
+        }
+        assertMsg(!mismatch,
+                  "color pixel at " + xx + ", " + yy + " should be about " + expectedColors +
+                  ", was = " + [buf[offset], buf[offset + 1], buf[offset + 2], buf[offset + 3]]);
+      }
+    }
+  }
+
+  continueTestPart2();
+}
+
+function continueTestPart2() {
+  var invalidFormat = [gl.DEPTH_COMPONENT, gl.DEPTH_STENCIL, desktopGL.R8, gl.RGBA4, gl.LUMINANCE, gl.LUMINANCE_ALPHA];
+  if (contextVersion < 2) {
+  // They are valid in WebGL 2 or higher
+    invalidFormat = invalidFormat.concat([desktopGL.RED, desktopGL.RG_INTEGER, desktopGL.RGBA_INTEGER]);
+  }
+
+  var invalidTypeInfo = [
+    {type: desktopGL.UNSIGNED_INT_24_8,       dest: new Uint32Array(4)}
+  ];
+  if (contextVersion < 2) {
+  // They are valid in WebGL 2 or Higher
+    invalidTypeInfo = invalidTypeInfo.concat([
+      {type: gl.UNSIGNED_SHORT,                     dest: new Uint16Array(4)},
+      {type: gl.SHORT,                              dest: new Int16Array(4)},
+      {type: gl.BYTE,                               dest: new Int8Array(4)},
+      {type: gl.UNSIGNED_INT,                       dest: new Uint32Array(4)},
+      {type: desktopGL.UNSIGNED_INT_2_10_10_10_REV, dest: new Uint32Array(4)}
+    ]);
+  }
+
+  debug("");
+  debug("check invalid format or type");
+  for (var ff = 0; ff < invalidFormat.length; ++ff) {
+    var format = invalidFormat[ff];
+    var buf = new Uint8Array(4);
+    gl.readPixels(0, 0, 1, 1, format, gl.UNSIGNED_BYTE, buf);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "Should not be able to read as " + wtu.glEnumToString(gl, format));
+  }
+
+  for (var tt = 0; tt < invalidTypeInfo.length; ++tt) {
+    var info = invalidTypeInfo[tt];
+    var type = info.type;
+    var dest = info.dest;
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, type, dest);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "Should not be able to read as " + wtu.glEnumToString(gl, type));
+  }
+
+  var combinations = [
+    {
+      format: gl.RGBA,
+      type: gl.UNSIGNED_BYTE,
+      dest: new Uint8Array(4),
+    },
+    {
+      format: gl.RGB,
+      type: gl.UNSIGNED_BYTE,
+      dest: new Uint8Array(3),
+    },
+    {
+      format: gl.RGB,
+      type: gl.UNSIGNED_SHORT_5_6_5,
+      dest: new Uint8Array(3),
+    },
+    {
+      format: gl.RGBA,
+      type: gl.UNSIGNED_SHORT_5_5_5_1,
+      dest: new Uint16Array(1),
+    },
+    {
+      format: gl.RGBA,
+      type: gl.UNSIGNED_SHORT_4_4_4_4,
+      dest: new Uint16Array(1),
+    },
+    {
+      format: gl.ALPHA,
+      type: gl.UNSIGNED_BYTE,
+      dest: new Uint8Array(1),
+    }
+  ];
+  if (contextVersion > 1) {
+    combinations = combinations.concat([
+      {
+        format: gl.RED,
+        type: gl.UNSIGNED_BYTE,
+        dest: new Uint8Array(1),
+      },
+      {
+        format: gl.RGBA_INTEGER,
+        type: gl.UNSIGNED_INT,
+        dest: new Uint32Array(4),
+      },
+      {
+        format: gl.RGBA_INTEGER,
+        type: gl.INT,
+        dest: new Int32Array(4),
+      }
+    ]);
+  }
+
+  debug("");
+  debug("check invalid combinations of format/type");
+
+  var implFormat = gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_FORMAT);
+  var implType = gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_TYPE);
+
+  for (var tt = 0; tt < combinations.length; ++ tt) {
+    var info = combinations[tt];
+    var format = info.format;
+    var type = info.type;
+    var dest = info.dest;
+    gl.readPixels(0, 0, 1, 1, format, type, dest);
+    // Only two format/type parameter pairs are accepted. GL_RGBA/GL_UNSIGNED_BYTE is always
+    // accepted on default readbuffer. The other acceptable pair can be discovered by querying
+    // GL_IMPLEMENTATION_COLOR_READ_FORMAT and GL_IMPLEMENTATION_COLOR_READ_TYPE.
+    if ((format == gl.RGBA && type == gl.UNSIGNED_BYTE) || (format == implFormat && type == implType)) {
+      wtu.glErrorShouldBe(
+          gl, gl.NO_ERROR,
+          "Should be able to read as " + wtu.glEnumToString(gl, format) +
+          " / " + wtu.glEnumToString(gl, type));
+    } else {
+      wtu.glErrorShouldBe(
+          gl, gl.INVALID_OPERATION,
+          "Should not be able to read as " + wtu.glEnumToString(gl, format) +
+          " / " + wtu.glEnumToString(gl, type));
+    }
+  }
+
+  debug("");
+  debug("check reading with lots of drawing");
+  continueTestFunc = continueTestPart3;
+  width = 1024;
+  height = 1024;
+  canvas.width = width;
+  canvas.height = height;
+  if (gl.getError() != gl.CONTEXT_LOST_WEBGL) {
+    continueTestPart3();
+  }
+}
+
+function continueTestPart3() {
+  gl.viewport(0, 0, 1024, 1024);
+  var program = wtu.setupTexturedQuad(gl);
+  var loc = gl.getUniformLocation(program, "tex");
+  gl.disable(gl.BLEND);
+  gl.disable(gl.DEPTH_TEST);
+  var colors = [[255, 0, 0, 255], [0, 255, 0, 255], [0, 0, 255, 255]];
+  var textures = [];
+  var results = [];
+  for (var ii = 0; ii < colors.length; ++ii) {
+    gl.activeTexture(gl.TEXTURE0 + ii);
+    var tex = gl.createTexture();
+    wtu.fillTexture(gl, tex, 1, 1, colors[ii]);
+    textures.push(tex);
+  }
+  for (var ii = 0; ii < colors.length; ++ii) {
+    for (var jj = 0; jj < 300 + ii + 1; ++jj) {
+      gl.uniform1i(loc, jj % 3);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    }
+    var buf = new Uint8Array(4);
+    gl.readPixels(512, 512, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    results.push(buf);
+    for (var kk = 0; kk < 99; ++kk) {
+      gl.uniform1i(loc, (jj + kk) % 3);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    }
+  }
+  for (var ii = 0; ii < colors.length; ++ii) {
+    var buf = results[ii];
+    var color = colors[ii];
+    actual = [buf[0], buf[1], buf[2], buf[3]];
+    expected = [color[0], color[1], color[2], color[3]];
+    shouldBe("actual", "expected");
+  }
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no GL errors");
+
+  debug("");
+  finishTest();
+}
+</script>
+</body>
+</html>
+

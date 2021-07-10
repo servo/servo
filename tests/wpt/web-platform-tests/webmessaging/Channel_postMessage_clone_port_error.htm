@@ -16,7 +16,7 @@
         var channel = new MessageChannel();
         channel.port1.start();
 
-        assert_throws("DATA_CLONE_ERR", function()
+        assert_throws_dom("DATA_CLONE_ERR", function()
         {
             channel.port1.postMessage("ports", [channel.port1]);
         });

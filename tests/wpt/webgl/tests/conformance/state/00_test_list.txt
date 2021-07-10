@@ -1,0 +1,8 @@
+gl-enable-enum-test.html
+--max-version 1.9.9 gl-enum-tests.html
+gl-get-calls.html
+gl-geterror.html
+--max-version 1.9.9 gl-getstring.html
+--min-version 1.0.4 gl-initial-state.html
+--max-version 1.9.9 gl-object-get-calls.html
+--min-version 1.0.3 state-uneffected-after-compositing.html

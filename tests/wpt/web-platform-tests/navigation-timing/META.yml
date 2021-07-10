@@ -1,0 +1,5 @@
+spec: https://w3c.github.io/navigation-timing/
+suggested_reviewers:
+  - plehegar
+  - igrigorik
+  - yoavweiss

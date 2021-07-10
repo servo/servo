@@ -1,0 +1,588 @@
+<!--
+
+/*
+** Copyright (c) 2014 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Conformance test for WebGL2 texture image formats specification</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" width="64" height="64"> </canvas>
+<div id="console"></div>
+
+
+<script>
+"use strict";
+description("This test verifies that texture image specification entry points " +
+            "accept new formats introduced in WebGL2, and accept sized internalformats.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, null, 2);
+var vao = null;
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    runTexFormatsTest();
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+}
+
+function enumToString(value) {
+  return wtu.glEnumToString(gl, value);
+}
+
+function runTexFormatsTest()
+{
+    // texFormats is Table 3.2 and Table 3.3 from the OpenGL ES 3.0.4 spec.
+    var texFormats = [
+        {
+            sizedformat: "RGBA8",
+            unsizedformat: "RGBA",
+            type: "UNSIGNED_BYTE",
+        },
+        {
+            sizedformat: "RGB5_A1",
+            unsizedformat: "RGBA",
+            type: "UNSIGNED_BYTE",
+        },
+        {
+            sizedformat: "RGBA4",
+            unsizedformat: "RGBA",
+            type: "UNSIGNED_BYTE",
+        },
+        {
+            sizedformat: "SRGB8_ALPHA8",
+            unsizedformat: "RGBA",
+            type: "UNSIGNED_BYTE",
+        },
+        {
+            sizedformat: "RGBA8_SNORM",
+            unsizedformat: "RGBA",
+            type: "BYTE",
+        },
+        {
+            sizedformat: "RGBA4",
+            unsizedformat: "RGBA",
+            type: "UNSIGNED_SHORT_4_4_4_4",
+        },
+        {
+            sizedformat: "RGB5_A1",
+            unsizedformat: "RGBA",
+            type: "UNSIGNED_SHORT_5_5_5_1",
+        },
+        {
+            sizedformat: "RGB10_A2",
+            unsizedformat: "RGBA",
+            type: "UNSIGNED_INT_2_10_10_10_REV",
+        },
+        {
+            sizedformat: "RGB5_A1",
+            unsizedformat: "RGBA",
+            type: "UNSIGNED_INT_2_10_10_10_REV",
+        },
+        {
+            sizedformat: "RGBA16F",
+            unsizedformat: "RGBA",
+            type: "HALF_FLOAT",
+        },
+        {
+            sizedformat: "RGBA32F",
+            unsizedformat: "RGBA",
+            type: "FLOAT",
+        },
+        {
+            sizedformat: "RGBA16F",
+            unsizedformat: "RGBA",
+            type: "FLOAT",
+        },
+        {
+            sizedformat: "RGBA8UI",
+            unsizedformat: "RGBA_INTEGER",
+            type: "UNSIGNED_BYTE",
+        },
+        {
+            sizedformat: "RGBA8I",
+            unsizedformat: "RGBA_INTEGER",
+            type: "BYTE",
+        },
+        {
+            sizedformat: "RGBA16UI",
+            unsizedformat: "RGBA_INTEGER",
+            type: "UNSIGNED_SHORT",
+        },
+        {
+            sizedformat: "RGBA16I",
+            unsizedformat: "RGBA_INTEGER",
+            type: "SHORT",
+        },
+        {
+            sizedformat: "RGBA32UI",
+            unsizedformat: "RGBA_INTEGER",
+            type: "UNSIGNED_INT",
+        },
+        {
+            sizedformat: "RGBA32I",
+            unsizedformat: "RGBA_INTEGER",
+            type: "INT",
+        },
+        {
+            sizedformat: "RGB10_A2UI",
+            unsizedformat: "RGBA_INTEGER",
+            type: "UNSIGNED_INT_2_10_10_10_REV",
+        },
+        {
+            sizedformat: "RGB8",
+            unsizedformat: "RGB",
+            type: "UNSIGNED_BYTE",
+        },
+        {
+            sizedformat: "RGB565",
+            unsizedformat: "RGB",
+            type: "UNSIGNED_BYTE",
+        },
+        {
+            sizedformat: "SRGB8",
+            unsizedformat: "RGB",
+            type: "UNSIGNED_BYTE",
+        },
+        {
+            sizedformat: "RGB8_SNORM",
+            unsizedformat: "RGB",
+            type: "BYTE",
+        },
+        {
+            sizedformat: "RGB565",
+            unsizedformat: "RGB",
+            type: "UNSIGNED_SHORT_5_6_5",
+        },
+        {
+            sizedformat: "R11F_G11F_B10F",
+            unsizedformat: "RGB",
+            type: "UNSIGNED_INT_10F_11F_11F_REV",
+        },
+        {
+            sizedformat: "RGB9_E5",
+            unsizedformat: "RGB",
+            type: "UNSIGNED_INT_5_9_9_9_REV",
+        },
+        {
+            sizedformat: "RGB16F",
+            unsizedformat: "RGB",
+            type: "HALF_FLOAT",
+        },
+        {
+            sizedformat: "R11F_G11F_B10F",
+            unsizedformat: "RGB",
+            type: "HALF_FLOAT",
+        },
+        {
+            sizedformat: "RGB9_E5",
+            unsizedformat: "RGB",
+            type: "HALF_FLOAT",
+        },
+        {
+            sizedformat: "RGB32F",
+            unsizedformat: "RGB",
+            type: "FLOAT",
+        },
+        {
+            sizedformat: "RGB16F",
+            unsizedformat: "RGB",
+            type: "FLOAT",
+        },
+        {
+            sizedformat: "R11F_G11F_B10F",
+            unsizedformat: "RGB",
+            type: "FLOAT",
+        },
+        {
+            sizedformat: "RGB9_E5",
+            unsizedformat: "RGB",
+            type: "FLOAT",
+        },
+        {
+            sizedformat: "RGB8UI",
+            unsizedformat: "RGB_INTEGER",
+            type: "UNSIGNED_BYTE",
+        },
+        {
+            sizedformat: "RGB8I",
+            unsizedformat: "RGB_INTEGER",
+            type: "BYTE",
+        },
+        {
+            sizedformat: "RGB16UI",
+            unsizedformat: "RGB_INTEGER",
+            type: "UNSIGNED_SHORT",
+        },
+        {
+            sizedformat: "RGB16I",
+            unsizedformat: "RGB_INTEGER",
+            type: "SHORT",
+        },
+        {
+            sizedformat: "RGB32UI",
+            unsizedformat: "RGB_INTEGER",
+            type: "UNSIGNED_INT",
+        },
+        {
+            sizedformat: "RGB32I",
+            unsizedformat: "RGB_INTEGER",
+            type: "INT",
+        },
+        {
+            sizedformat: "RG8",
+            unsizedformat: "RG",
+            type: "UNSIGNED_BYTE",
+        },
+        {
+            sizedformat: "RG8_SNORM",
+            unsizedformat: "RG",
+            type: "BYTE",
+        },
+        {
+            sizedformat: "RG16F",
+            unsizedformat: "RG",
+            type: "HALF_FLOAT",
+        },
+        {
+            sizedformat: "RG32F",
+            unsizedformat: "RG",
+            type: "FLOAT",
+        },
+        {
+            sizedformat: "RG16F",
+            unsizedformat: "RG",
+            type: "FLOAT",
+        },
+        {
+            sizedformat: "RG8UI",
+            unsizedformat: "RG_INTEGER",
+            type: "UNSIGNED_BYTE",
+        },
+        {
+            sizedformat: "RG8I",
+            unsizedformat: "RG_INTEGER",
+            type: "BYTE",
+        },
+        {
+            sizedformat: "RG16UI",
+            unsizedformat: "RG_INTEGER",
+            type: "UNSIGNED_SHORT",
+        },
+        {
+            sizedformat: "RG16I",
+            unsizedformat: "RG_INTEGER",
+            type: "SHORT",
+        },
+        {
+            sizedformat: "RG32UI",
+            unsizedformat: "RG_INTEGER",
+            type: "UNSIGNED_INT",
+        },
+        {
+            sizedformat: "RG32I",
+            unsizedformat: "RG_INTEGER",
+            type: "INT",
+        },
+        {
+            sizedformat: "R8",
+            unsizedformat: "RED",
+            type: "UNSIGNED_BYTE",
+        },
+        {
+            sizedformat: "R8_SNORM",
+            unsizedformat: "RED",
+            type: "BYTE",
+        },
+        {
+            sizedformat: "R16F",
+            unsizedformat: "RED",
+            type: "HALF_FLOAT",
+        },
+        {
+            sizedformat: "R32F",
+            unsizedformat: "RED",
+            type: "FLOAT",
+        },
+        {
+            sizedformat: "R16F",
+            unsizedformat: "RED",
+            type: "FLOAT",
+        },
+        {
+            sizedformat: "R8UI",
+            unsizedformat: "RED_INTEGER",
+            type: "UNSIGNED_BYTE",
+        },
+        {
+            sizedformat: "R8I",
+            unsizedformat: "RED_INTEGER",
+            type: "BYTE",
+        },
+        {
+            sizedformat: "R16UI",
+            unsizedformat: "RED_INTEGER",
+            type: "UNSIGNED_SHORT",
+        },
+        {
+            sizedformat: "R16I",
+            unsizedformat: "RED_INTEGER",
+            type: "SHORT",
+        },
+        {
+            sizedformat: "R32UI",
+            unsizedformat: "RED_INTEGER",
+            type: "UNSIGNED_INT",
+        },
+        {
+            sizedformat: "R32I",
+            unsizedformat: "RED_INTEGER",
+            type: "INT",
+        },
+        {
+            sizedformat: "DEPTH_COMPONENT16",
+            unsizedformat: "DEPTH_COMPONENT",
+            type: "UNSIGNED_SHORT",
+        },
+        {
+            sizedformat: "DEPTH_COMPONENT24",
+            unsizedformat: "DEPTH_COMPONENT",
+            type: "UNSIGNED_INT",
+        },
+        {
+            sizedformat: "DEPTH_COMPONENT16",
+            unsizedformat: "DEPTH_COMPONENT",
+            type: "UNSIGNED_INT",
+        },
+        {
+            sizedformat: "DEPTH_COMPONENT32F",
+            unsizedformat: "DEPTH_COMPONENT",
+            type: "FLOAT",
+        },
+        {
+            sizedformat: "DEPTH24_STENCIL8",
+            unsizedformat: "DEPTH_STENCIL",
+            type: "UNSIGNED_INT_24_8",
+        },
+        // No good typed array type for this format, just allow this format when  pixel is null.
+        {
+            sizedformat: "DEPTH32F_STENCIL8",
+            unsizedformat: "DEPTH_STENCIL",
+            type: "FLOAT_32_UNSIGNED_INT_24_8_REV",
+        },
+        // internalFormat of texImage2D may be unsized format according Table 3.3 in OpenGL ES 3.0.4 spec.
+        {
+            sizedformat: undefined,
+            unsizedformat: "RGBA",
+            type: "UNSIGNED_BYTE",
+        },
+        {
+            sizedformat: undefined,
+            unsizedformat: "RGBA",
+            type: "UNSIGNED_SHORT_4_4_4_4",
+        },
+        {
+            sizedformat: undefined,
+            unsizedformat: "RGBA",
+            type: "UNSIGNED_SHORT_5_5_5_1",
+        },
+        {
+            sizedformat: undefined,
+            unsizedformat: "RGB",
+            type: "UNSIGNED_BYTE",
+        },
+        {
+            sizedformat: undefined,
+            unsizedformat: "RGB",
+            type: "UNSIGNED_SHORT_5_6_5",
+        },
+        {
+            sizedformat: undefined,
+            unsizedformat: "LUMINANCE_ALPHA",
+            type: "UNSIGNED_BYTE",
+        },
+        {
+            sizedformat: undefined,
+            unsizedformat: "LUMINANCE",
+            type: "UNSIGNED_BYTE",
+        },
+        {
+            sizedformat: undefined,
+            unsizedformat: "ALPHA",
+            type: "UNSIGNED_BYTE",
+        },
+    ];
+
+    texFormats.forEach(function(texformat){
+        debug("");
+        debug("Testing sized format " + texformat.sizedformat
+              + ", unsized format " + texformat.unsizedformat
+              + ", type " + texformat.type);
+        var tex = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+
+        var sizedformat = gl[texformat.sizedformat];
+        var unsizedformat = gl[texformat.unsizedformat];
+        var type = gl[texformat.type];
+
+        // prepare some good data to feed texImage2D and friends for this type
+        var data;
+        switch(type) {
+            case gl.UNSIGNED_BYTE:
+                data = new Uint8Array(4);
+                break;
+            case gl.BYTE:
+                data = new Int8Array(4);
+                break;
+            case gl.UNSIGNED_SHORT:
+            case gl.UNSIGNED_SHORT_4_4_4_4:
+            case gl.UNSIGNED_SHORT_5_5_5_1:
+            case gl.UNSIGNED_SHORT_5_6_5:
+            case gl.HALF_FLOAT:
+                data = new Uint16Array(4);
+                break;
+            case gl.SHORT:
+                data = new Int16Array(4);
+                break;
+            case gl.UNSIGNED_INT:
+            case gl.UNSIGNED_INT_5_9_9_9_REV:
+            case gl.UNSIGNED_INT_10F_11F_11F_REV:
+            case gl.UNSIGNED_INT_2_10_10_10_REV:
+            case gl.UNSIGNED_INT_24_8:
+                data = new Uint32Array(4);
+                break;
+            case gl.INT:
+                data = new Int32Array(4);
+                break;
+            case gl.FLOAT:
+                data = new Float32Array(4);
+                break;
+            case gl.FLOAT_32_UNSIGNED_INT_24_8_REV:
+                data = null;
+        }
+
+        // prepare some bad data that doesn't fit this type
+        var baddata = (data instanceof Float32Array)
+                      ? new Uint8Array(4)
+                      : new Float32Array(4);
+
+        // test texImage2D with unsized internalformat
+        if (!sizedformat) {
+            gl.texImage2D(gl.TEXTURE_2D, 0, unsizedformat, 1, 1, 0, unsizedformat, type, data);
+            wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texImage2D should succeed with unsized internalformat");
+            gl.texImage2D(gl.TEXTURE_2D, 0, unsizedformat, 1, 1, 0, unsizedformat, type, baddata);
+            wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "texImage2D should fail with unsized internalformat and data of wrong type");
+        } else {
+            // test texImage2D with sized internalformat
+            gl.texImage2D(gl.TEXTURE_2D, 0, sizedformat, 1, 1, 0, unsizedformat, type, data);
+            wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texImage2D should succeed with sized internalformat");
+            gl.texImage2D(gl.TEXTURE_2D, 0, sizedformat, 1, 1, 0, unsizedformat, type, baddata);
+            wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "texImage2D should fail with sized internalformat and data of wrong type");
+        }
+
+        // test texSubImage2D
+        if (gl.FLOAT_32_UNSIGNED_INT_24_8_REV != type) {
+            gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 1, 1, unsizedformat, type, data);
+            wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texSubImage2D should succeed");
+            gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 1, 1, unsizedformat, type, baddata);
+            wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "texSubImage2D should fail with data of wrong type");
+        }
+
+        // test texStorage2D
+        if (sizedformat) {
+            gl.texStorage2D(gl.TEXTURE_2D, 1, sizedformat, 1, 1);
+            wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texStorage2D should succeed");
+            if (gl.FLOAT_32_UNSIGNED_INT_24_8_REV != type) {
+                gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 1, 1, unsizedformat, type, data);
+                wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texSubImage2D should succeed on immutable-format texture");
+                gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 1, 1, unsizedformat, type, baddata);
+                wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "texSubImage2D should fail on immutable-format texture with data of wrong type");
+            }
+        }
+
+        // Test a 3D texture.
+        // Formats containing a depth component can't be used for 3D textures.
+        var isdepthformat =
+            unsizedformat == gl.DEPTH_COMPONENT ||
+            unsizedformat == gl.DEPTH_STENCIL;
+        if (!isdepthformat) {
+            var tex3d = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_3D, tex3d);
+
+            // test texImage3D with unsized internalformat
+            if (!sizedformat) {
+                gl.texImage3D(gl.TEXTURE_3D, 0, unsizedformat, 1, 1, 1, 0, unsizedformat, type, data);
+                wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texImage3D should succeed with unsized internalformat");
+                gl.texImage3D(gl.TEXTURE_3D, 0, unsizedformat, 1, 1, 1, 0, unsizedformat, type, baddata);
+                wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "texImage3D should fail with unsized internalformat and data of wrong type");
+            } else {
+                // test texImage3D with sized internalformat
+                gl.texImage3D(gl.TEXTURE_3D, 0, sizedformat, 1, 1, 1, 0, unsizedformat, type, data);
+                wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texImage3D should succeed with sized internalformat");
+                gl.texImage3D(gl.TEXTURE_3D, 0, sizedformat, 1, 1, 1, 0, unsizedformat, type, baddata);
+                wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "texImage3D should fail with sized internalformat and data of wrong type");
+            }
+
+            // test texSubImage3D
+            gl.texSubImage3D(gl.TEXTURE_3D, 0, 0, 0, 0, 1, 1, 1, unsizedformat, type, data);
+            wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texSubImage3D should succeed");
+            gl.texSubImage3D(gl.TEXTURE_3D, 0, 0, 0, 0, 1, 1, 1, unsizedformat, type, baddata);
+            wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "texSubImage3D should fail with data of wrong type");
+
+            if (sizedformat) {
+                gl.texStorage3D(gl.TEXTURE_3D, 1, sizedformat, 1, 1, 1);
+                wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texStorage3D should succeed");
+                gl.texSubImage3D(gl.TEXTURE_3D, 0, 0, 0, 0, 1, 1, 1, unsizedformat, type, data);
+                wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texSubImage3D should succeed on immutable-format texture");
+                gl.texSubImage3D(gl.TEXTURE_3D, 0, 0, 0, 0, 1, 1, 1, unsizedformat, type, baddata);
+                wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "texSubImage3D should fail on immutable-format texture with data of wrong type");
+            }
+        }
+    });
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+
+</body>
+</html>

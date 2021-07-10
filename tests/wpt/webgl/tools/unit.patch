@@ -1,0 +1,38 @@
+--- a/conformance/conformance/more/unit.js
++++ b/conformance/conformance/more/unit.js
+@@ -53,6 +53,10 @@ if (window.internals) {
+   window.internals.settings.setWebGLErrorsToConsoleEnabled(false);
+ }
+
++if (window.async_test) {
++    var __overall_test = async_test('Overall test');
++}
++
+ /* -- end platform specific code --*/
+ Tests = {
+   autorun : true,
+@@ -892,9 +892,14 @@ GLConstants = [
+ 0x809D
+ ];
+
++var WPT_TEST_ID = 0;
+ function reportTestResultsToHarness(success, msg) {
+   if (window.parent.webglTestHarness) {
+     window.parent.webglTestHarness.reportResults(window.location.pathname, success, msg);
++  } else if (window.test) { // WPT test harness
++    test(function () {
++      assert_true(success, msg);
++    }, "WebGL test #" + (WPT_TEST_ID++) + ": " + msg);
+   }
+ }
+ 
+@@ -907,6 +911,9 @@ function notifyFinishedToHarness() {
+   if (window.parent.webglTestHarness) {
+     window.parent.webglTestHarness.notifyFinished(window.location.pathname);
+   }
++  if (window.__overall_test) {
++    window.__overall_test.done();
++  }
+ }
+
+ function initTests() {

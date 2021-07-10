@@ -120,7 +120,7 @@ indexeddb_test(
           } else {
             calledContinue = true;
             if('exception' in testCase) {
-              assert_throws(
+              assert_throws_dom(
                   testCase.exception, () => { testCase.call(cursor); },
                   testCase.call.toString());
             } else {

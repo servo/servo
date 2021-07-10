@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Containment Test: Layout containment supress baseline</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain-1/#containment-layout">
+<link rel="match" href="reference/contain-layout-baseline-005-ref.html">
+<meta name=assert content="This test checks that baseline is suppressed for elements with 'contain: layout', so they are treated as having no baseline (thus its baseline is synthetized).">
+<style>
+.wrapper {
+  height: 110px;
+}
+.wrapper > * {
+  contain: layout;
+  background: cyan;
+  font-size: 20px;
+  vertical-align: baseline;
+}
+.wrapper > :nth-child(1) {
+  background: magenta;
+}
+.inline-block {
+  display: inline-block;
+}
+canvas {
+  width: 100px;
+  height: 100px;
+}
+fieldset, details {
+  display: inline-block;
+  width: max-content;
+}
+</style>
+<p>Test passes if it has the same output than the reference (all elements are aligned on the bottom edge).</p>
+<div class="wrapper">
+  <div class="inline-block" style="font-size: 80px;">foo</div>
+  <div class="inline-block">foo</div>
+  <div class="inline-block" style="border: solid thick; padding: 2px;">foo</div>
+  <div style="display: inline-flex;">foo</div>
+  <div style="display: inline-flex; border: solid thick; padding: 2px;">foo</div>
+  <div style="display: inline-grid;">foo</div>
+  <div style="display: inline-grid; border: solid thick; padding: 2px;">foo</div>
+</div>
+<div class="wrapper">
+  <canvas></canvas>
+  <div class="inline-block">foo</div>
+  <button>foo</button>
+  <select><option>foo</option></select>
+  <select multiple style="height: 40px;"><option>foo</option></select>
+  <textarea style="height: 40px;"></textarea>
+</div>
+<div class="wrapper">
+  <canvas></canvas>
+  <input value="foo" size="3"></input>
+  <input type="file"></input>
+</div>
+<div class="wrapper">
+  <canvas></canvas>
+  <table style="display: inline-table;"><tr><td>foo</td></tr></table>
+  <canvas></canvas>
+  <fieldset></fieldset>
+  <fieldset><legend>foo</legend></fieldset>
+  <fieldset><legend>foo</legend>foo</fieldset>
+  <details></details>
+  <details><summary>foo</summary>foo</details> <details open="true"><summary>foo</summary>foo</details>
+</div>

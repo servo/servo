@@ -7,7 +7,7 @@ function runTest(config)
         var invalidLicense = new Uint8Array([0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77]);
         var messageEventFired = false;
 
-        return navigator.requestMediaKeySystemAccess(keySystem, getSimpleConfiguration()).then(function (access) {
+        var p = navigator.requestMediaKeySystemAccess(keySystem, getSimpleConfiguration()).then(function (access) {
             initDataType = access.getConfiguration().initDataTypes[0];
             initData = getInitData(initDataType);
             return access.createMediaKeys();
@@ -20,14 +20,19 @@ function runTest(config)
         }).then(function (messageEvent) {
             messageEventFired = true;
             return messageEvent.target.update(invalidLicense);
-        }).then(function () {
-            assert_unreached('Error: update() should fail because of an invalid license.');
         }).catch(function (error) {
-            if(messageEventFired) {
-                assert_equals(error.name, 'TypeError');
-            } else {
-                assert_unreached('Error: ' + error.name);
+            // Ensure we reached the update() call we are trying to test.
+            if (!messageEventFired) {
+                assert_unreached(
+                    `Failed to reach the update() call.  Error: '${error.name}' '${error.message}'`);
             }
+
+            // Propagate the error on through.
+            throw error;
         });
+
+        return promise_rejects_js(
+            test, TypeError, p,
+            'update() should fail because of an invalid license.');
     }, 'Update with invalid Clear Key license');
 }

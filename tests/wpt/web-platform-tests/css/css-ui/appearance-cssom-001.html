@@ -1,0 +1,236 @@
+<!doctype html>
+<title>CSS Basic User Interface Test: appearance CSSOM</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#appearance-switching">
+<meta name="assert" content="CSSOM for the appearance/-webkit-appearance property is correct.">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<button id=button>Test</button>
+<script>
+  const button = document.getElementById('button');
+  const values = ["none",
+                  "auto",
+                  "button",
+                  "checkbox",
+                  "listbox",
+                  "menulist",
+                  "menulist-button",
+                  "meter",
+                  "progress-bar",
+                  "push-button",
+                  "radio",
+                  "searchfield",
+                  "slider-horizontal",
+                  "square-button",
+                  "textarea",
+                  "textfield",
+                 ];
+  const initial_appearance = getComputedStyle(button).appearance;
+  function assert_style_for_prop(style, prop, value) {
+    if (prop === '-webkit-appearance') {
+      assert_equals(style.WebkitAppearance, value, 'style.WebkitAppearance (uppercase W)');
+      assert_equals(style.webkitAppearance, value, 'style.webkitAppearance (lowercase w)');
+    } else {
+      assert_equals(style.appearance, value, 'style.appearance');
+    }
+    assert_equals(style.getPropertyValue(prop), value, `getPropertyValue(${prop})`);
+  }
+  for (const prop of ["-webkit-appearance", "appearance"]) {
+    for (const value of values) {
+      test(() => {
+        button.removeAttribute('style');
+        button.style.setProperty(prop, value);
+        assert_style_for_prop(button.style, prop, value);
+        const style = getComputedStyle(button);
+        assert_style_for_prop(style, prop, value);
+        button.style.setProperty('background-color', 'black');
+        assert_style_for_prop(style, prop, value,
+                              'Computed value should be the specified value');
+      }, `${prop}: ${value}`);
+    }
+
+    const invalidValues = ["bogus-button",
+                           "attachment",
+                           "button-bevel",
+                           "borderless-attachment",
+                           "button-arrow-down",
+                           "button-arrow-next",
+                           "button-arrow-previous",
+                           "button-arrow-up",
+                           "button-focus",
+                           "caps-lock-indicator",
+                           "caret",
+                           "checkbox-container",
+                           "checkbox-label",
+                           "checkmenuitem",
+                           "color-well",
+                           "continuous-capacity-level-indicator",
+                           "default-button",
+                           "discrete-capacity-level-indicator",
+                           "dualbutton",
+                           "groupbox",
+                           "image-controls-button",
+                           "inner-spin-button",
+                           "list-button",
+                           "listitem",
+                           "media-controls-background",
+                           "media-controls-dark-bar-background",
+                           "media-controls-fullscreen-background",
+                           "media-controls-light-bar-background",
+                           "media-current-time-display",
+                           "media-enter-fullscreen-button",
+                           "media-exit-fullscreen-button",
+                           "media-fullscreen-volume-slider",
+                           "media-fullscreen-volume-slider-thumb",
+                           "media-mute-button",
+                           "media-overlay-play-button",
+                           "media-play-button",
+                           "media-return-to-realtime-button",
+                           "media-rewind-button",
+                           "media-seek-back-button",
+                           "media-seek-forward-button",
+                           "media-slider",
+                           "media-sliderthumb",
+                           "media-time-remaining-display",
+                           "media-toggle-closed-captions-button",
+                           "media-volume-slider",
+                           "media-volume-slider-container",
+                           "media-volume-slider-mute-button",
+                           "media-volume-sliderthumb",
+                           "menuarrow",
+                           "menubar",
+                           "menucheckbox",
+                           "menuimage",
+                           "menuitem",
+                           "menuitemtext",
+                           "menulist-text",
+                           "menulist-textfield",
+                           "menupopup",
+                           "menuradio",
+                           "menuseparator",
+                           "meterbar",
+                           "meterchunk",
+                           "number-input",
+                           "progress-bar-value",
+                           "progressbar",
+                           "progressbar-vertical",
+                           "progresschunk",
+                           "progresschunk-vertical",
+                           "radio-container",
+                           "radio-label",
+                           "radiomenuitem",
+                           "range",
+                           "range-thumb",
+                           "rating-level-indicator",
+                           "relevancy-level-indicator",
+                           "resizer",
+                           "resizerpanel",
+                           "scale-horizontal",
+                           "scale-vertical",
+                           "scalethumb-horizontal",
+                           "scalethumb-vertical",
+                           "scalethumbend",
+                           "scalethumbstart",
+                           "scalethumbtick",
+                           "scrollbarbutton-down",
+                           "scrollbarbutton-left",
+                           "scrollbarbutton-right",
+                           "scrollbarbutton-up",
+                           "scrollbarthumb-horizontal",
+                           "scrollbarthumb-vertical",
+                           "scrollbartrack-horizontal",
+                           "scrollbartrack-vertical",
+                           "searchfield-cancel-button",
+                           "searchfield-decoration",
+                           "searchfield-results-button",
+                           "searchfield-results-decoration",
+                           "separator",
+                           "sheet",
+                           "slider-vertical",
+                           "sliderthumb-horizontal",
+                           "sliderthumb-vertical",
+                           "snapshotted-plugin-overlay",
+                           "spinner",
+                           "spinner-downbutton",
+                           "spinner-textfield",
+                           "spinner-upbutton",
+                           "splitter",
+                           "statusbar",
+                           "statusbarpanel",
+                           "tab",
+                           "tab-scroll-arrow-back",
+                           "tab-scroll-arrow-forward",
+                           "tabpanel",
+                           "tabpanels",
+                           "textfield-multiline",
+                           "toolbar",
+                           "toolbarbutton",
+                           "toolbarbutton-dropdown",
+                           "toolbargripper",
+                           "toolbox",
+                           "tooltip",
+                           "treeheader",
+                           "treeheadercell",
+                           "treeheadersortarrow",
+                           "treeitem",
+                           "treeline",
+                           "treetwisty",
+                           "treetwistyopen",
+                           "treeview",
+                           "-apple-pay-button",
+                           "-moz-win-borderless-glass",
+                           "-moz-win-browsertabbar-toolbox",
+                           "-moz-win-communications-toolbox",
+                           "-moz-win-communicationstext",
+                           "-moz-win-exclude-glass",
+                           "-moz-win-glass",
+                           "-moz-win-media-toolbox",
+                           "-moz-window-button-box",
+                           "-moz-window-button-box-maximized",
+                           "-moz-window-button-close",
+                           "-moz-window-button-maximize",
+                           "-moz-window-button-minimize",
+                           "-moz-window-button-restore",
+                           "-moz-window-frame-bottom",
+                           "-moz-window-frame-left",
+                           "-moz-window-frame-right",
+                           "-moz-window-titlebar",
+                           "-moz-window-titlebar-maximized",
+                           ];
+    for (const invalidValue of invalidValues) {
+      test(() => {
+        button.removeAttribute('style');
+        button.style.setProperty(prop, invalidValue);
+        assert_style_for_prop(button.style, prop, "");
+        const style = getComputedStyle(button);
+        assert_style_for_prop(style, prop, initial_appearance);
+      }, `${prop}: ${invalidValue} (invalid)`);
+    }
+  }
+
+  for (const prefix of ["-ms-",
+                        "mso-",
+                        "-moz-",
+                        "-o-",
+                        "-xv-",
+                        "-atsc-",
+                        "-wap-",
+                        "-khtml-",
+                        "-konq-",
+                        "-apple-",
+                        "prince-",
+                        "-ah-",
+                        "-hp-",
+                        "-ro-",
+                        "-rim-",
+                        "-tc-",
+                        ]) {
+    const prop = `${prefix}appearance`;
+    test(() => {
+      button.removeAttribute('style');
+      button.style.setProperty(prop, 'none');
+      assert_equals(button.style.getPropertyValue(prop), '');
+      const style = getComputedStyle(button);
+      assert_equals(style.getPropertyValue(prop), '');
+    }, `${prop} (should not be supported)`);
+  }
+</script>

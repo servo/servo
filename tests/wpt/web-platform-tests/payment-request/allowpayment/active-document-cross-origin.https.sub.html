@@ -1,0 +1,28 @@
+<!doctype html>
+<title>PaymentRequest &lt;iframe allow="payment"> in non-active document (cross-origin)</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/common/utils.js></script>
+<iframe id="iframe" allow="payment"></iframe>
+<script>
+async_test((t) => {
+  const iframe = document.getElementById('iframe');
+  const paymentArgs = [[{supportedMethods: 'foo'}], {total: {label: 'label', amount: {currency: 'USD', value: '5.00'}}}];
+
+  onload = () => {
+    const win = window[0];
+    const domException = win.DOMException;
+    const prConstructor = win.PaymentRequest;
+    win.location.href = make_absolute_url({
+      hostname: '{{domains[www1]}}',
+      path: '/common/blank.html'
+    });
+    iframe.onload = t.step_func_done(() => {
+      const func = () => {
+        new prConstructor(...paymentArgs);
+      }
+      assert_throws_dom('SecurityError', domException, func);
+    });
+  }
+});
+</script>

@@ -20,6 +20,10 @@
     var error_count = 0;
     window.onerror = function(msg, url, lineno) {
       ++error_count;
+      test(function() {assert_equals(url, window.location.href)},
+           "correct url passed to window.onerror");
+      test(function() {assert_equals(lineno, 36)},
+           "correct line number passed to window.onerror");
     };
   </script>
   <script>

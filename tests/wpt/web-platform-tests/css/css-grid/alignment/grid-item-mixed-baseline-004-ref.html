@@ -1,0 +1,98 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>Reference: mixed align-content/self:baseline/last baseline in fragmentated grid</title>
+  <link rel="author" title="Mats Palmgren" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1256429">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+  <style type="text/css">
+html,body {
+    color:black; background-color:white; font:20px/1 Ahem; padding:0; margin:0;
+}
+
+.columns {
+  position:relative;
+     columns: 5;
+      -ms-columns: 5;
+  -webkit-columns: 5;
+          columns: 5;
+     column-fill: auto;
+      -ms-column-fill: auto;
+  -webkit-column-fill: auto;
+          column-fill: auto;
+  border: 2px dashed;
+  margin-bottom: 5px;
+  height: 120px;
+}
+
+.grid {
+  display: grid;
+  grid: 100px / repeat(3, auto);
+  grid-auto-rows: 100px;
+  border: 2px solid;
+  margin: 1px;
+}
+.g1 {
+  border-bottom-width: 0;
+  grid-template-rows: 100px 0 0;
+}
+.g2 {
+  border-top-width: 0;
+  grid-template-rows: 0 100px 100px;
+}
+
+.h {
+  visibility: hidden;
+  height: 0;
+}
+
+span {
+  background: lime;
+  display: inline-block;
+  border: 1px solid black;
+}
+
+span:nth-child(1) { font-size:30px; }
+span:nth-child(2) { font-size:15px; }
+span:nth-child(3) { font-size:10px; }
+span:nth-child(4) { font-size:20px; }
+
+.pbs { padding-block-start: 15px; margin-block-start: 5px; }
+.pbe { padding-block-end: 7px; margin-block-end: 3px; }
+
+.fb { align-content:baseline; align-self:self-start; justify-self:self-start; }
+.lb { align-content:last baseline; align-self:self-end; justify-self:self-end; }
+.s  { align-self:stretch; justify-self:stretch; }
+
+.sfb { align-self:baseline; }
+.slb { align-self:last baseline; align-content:self-end; }
+
+.hl { writing-mode: horizontal-tb; direction:ltr; }
+.hr { writing-mode: horizontal-tb; direction:rtl; }
+.vl { writing-mode: vertical-lr; text-orientation: sideways; }
+.vr { writing-mode: vertical-rl; text-orientation: sideways; }
+.vlr { writing-mode: vertical-lr; direction:rtl; text-orientation: sideways; }
+.vrl { writing-mode: vertical-rl; direction:ltr; text-orientation: sideways; }
+
+</style>
+</head>
+<body>
+
+<div class="columns">
+<div class="grid hl g1">
+<span class="sfb">A<br>B</span><span class="fb">M<br>N</span><span class="fb s">X<br>Z</span>
+<span class="sfb h">A<br>B</span><span class="fb h">M<br>N</span><span class="fb h">X<br>Z</span>
+<span class="sfb h">A<br>B</span><span class="fb h">M<br>N</span><span class="fb s h">X<br>Z</span>
+</div>
+<div class="grid hl g2">
+<span class="sfb h ">A<br>B</span><span class="fb h">M<br>N</span><span class="fb s h">X<br>Z</span>
+<span class="sfb">A<br>B</span><span class="fb">M<br>N</span><span class="fb">X<br>Z</span>
+<span class="sfb">A<br>B</span><span class="fb">M<br>N</span><span class="fb s">X<br>Z</span>
+</div>
+</div>
+
+</body>
+</html>

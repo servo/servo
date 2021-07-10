@@ -1,0 +1,11 @@
+{
+    "icons": [{
+        "src": "fail.png",
+        "sizes": "256x256",
+        "type": "image/png"
+    }, {
+        "src": "pass.png",
+        "sizes": "256x256",
+        "type": "image/png"
+    }]
+}

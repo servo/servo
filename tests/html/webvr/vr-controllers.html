@@ -192,10 +192,9 @@ found in the LICENSE file.
         }
       }
 
-      if (navigator.vr || navigator.getVRDisplays) {
+      if (navigator.getVRDisplays) {
         frameData = new VRFrameData();
-        navigator.vr.getDisplays().then(function (displays) {
-         // navigator.getVRDisplays().then(function (displays) {
+        navigator.getVRDisplays().then(function (displays) {
           if (displays.length > 0) {
             vrDisplay = displays[displays.length - 1];
             vrDisplay.depthNear = 0.1;
@@ -214,9 +213,9 @@ found in the LICENSE file.
             if (vrDisplay.capabilities.canPresent)
               vrPresentButton = VRSamplesUtil.addButton("Enter VR", "E", "media/icons/cardboard64.png", onVRRequestPresent);
 
-            vrDisplay.addEventListener('presentchange', onVRPresentChange, false);
-            //vrDisplay.addEventListener('vrdisplayactivate', onVRRequestPresent, false);
-            //vrDisplay.addEventListener('vrdisplaydeactivate', onVRExitPresent, false);
+            window.addEventListener('vrdisplaypresentchange', onVRPresentChange, false);
+            window.addEventListener('vrdisplayactivate', onVRRequestPresent, false);
+            window.addEventListener('vrdisplaydeactivate', onVRExitPresent, false);
             console.log(navigator.getGamepads());
             setTimeout(function(){
                 onVRRequestPresent();

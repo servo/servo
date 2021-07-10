@@ -1,0 +1,48 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Gamepad Extensions (https://w3c.github.io/gamepad/extensions.html)
+
+enum GamepadHand {
+  "",  /* unknown, both hands, or not applicable */
+  "left",
+  "right"
+};
+
+[Exposed=Window]
+interface GamepadHapticActuator {
+  readonly attribute GamepadHapticActuatorType type;
+  Promise<boolean> pulse(double value, double duration);
+};
+
+enum GamepadHapticActuatorType {
+  "vibration"
+};
+
+[Exposed=Window]
+interface GamepadPose {
+  readonly attribute boolean hasOrientation;
+  readonly attribute boolean hasPosition;
+
+  readonly attribute Float32Array? position;
+  readonly attribute Float32Array? linearVelocity;
+  readonly attribute Float32Array? linearAcceleration;
+  readonly attribute Float32Array? orientation;
+  readonly attribute Float32Array? angularVelocity;
+  readonly attribute Float32Array? angularAcceleration;
+};
+
+[Exposed=Window, SecureContext]
+interface GamepadTouch {
+  readonly attribute unsigned long touchId;
+  readonly attribute octet surfaceId;
+  readonly attribute Float32Array position;
+  readonly attribute Uint32Array? surfaceDimensions;
+};
+
+partial interface Gamepad {
+  readonly attribute GamepadHand hand;
+  readonly attribute FrozenArray<GamepadHapticActuator> hapticActuators;
+  readonly attribute GamepadPose? pose;
+  readonly attribute FrozenArray<GamepadTouch>? touchEvents;
+};

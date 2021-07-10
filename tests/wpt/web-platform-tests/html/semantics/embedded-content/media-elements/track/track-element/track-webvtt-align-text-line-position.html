@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<title>Cue alignment, line and text position from settings</title>
+<script src="track-helpers.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video>
+    <track src="resources/align-text-line-position.vtt">
+    <track src="resources/align-text-line-position-bad.vtt">
+</video>
+<script>
+async_test(function(t) {
+    var video = document.querySelector("video");
+
+    var trackElements = document.querySelectorAll("track");
+    assert_equals(trackElements.length, video.textTracks.length);
+    for (var i = 0; i < trackElements.length; i++)
+        trackElements[i].onload = t.step_func(trackLoaded);
+
+    enableAllTextTracks(video.textTracks);
+
+    var numberOfTracksLoaded = 0;
+    function trackLoaded() {
+        numberOfTracksLoaded++;
+        if (numberOfTracksLoaded != 2)
+            return;
+
+        testTrack(0);
+        testTrackError(1);
+        t.done();
+    }
+
+    function testTrack(index) {
+        var expected = [
+            { align : "start",  position : 10,     line : 0,  snapToLines : false },
+            { align : "start",  position : "auto", line : 0,  snapToLines : true  },
+            { align : "center", position : 80,     line : 80, snapToLines : false },
+            { align : "end",    position : 30,     line : 5,  snapToLines : true  },
+            { align : "center", position : 60,     line : -3, snapToLines : true  }
+        ];
+
+        assert_cues_match(video.textTracks[index].cues, expected);
+    }
+
+    function testTrackError(index) {
+        var expected = [
+            { align : "center", position : "auto", line : "auto", snapToLines : true },
+            { align : "end",    position : 0,      line : "auto", snapToLines : true },
+            { align : "center", position : 60,     line : -3,     snapToLines : true }
+        ];
+
+        assert_cues_match(video.textTracks[index].cues, expected);
+    }
+});
+</script>

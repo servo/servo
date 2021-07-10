@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>Script @type and @language: unknown type parameters</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#scriptingLanguages">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#prepare-a-script">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- Setup -->
+<script>
+window.run1 = window.run2 = window.run3 = false;
+</script>
+
+<!-- Systems under test -->
+<script type="text/javascript;charset=UTF-8">
+window.run1 = true;
+</script>
+
+<script type="text/javascript;x-test=abc">
+window.run2 = true;
+</script>
+
+<script language="javascript" type="text/javascript;charset=UTF-8">
+window.run3 = true;
+</script>
+
+<!-- Asserts -->
+<script>
+test(() => {
+  assert_false(window.run1);
+}, "A script with a charset param in its type should not run");
+
+test(() => {
+  assert_false(window.run2);
+}, "A script with an x-test param in its type should not run");
+
+test(() => {
+  assert_false(window.run3);
+}, "A script with a charset param in its type should not run, even with language=javascript");
+</script>

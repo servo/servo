@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Compositing and Blending Level 1: getComputedStyle().mixBlendMode</title>
+<link rel="help" href="https://drafts.fxtf.org/compositing-1/#propdef-mix-blend-mode">
+<meta name="assert" content="mix-blend-mode computed value is as specified.">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("mix-blend-mode", "normal");
+test_computed_value("mix-blend-mode", "multiply");
+test_computed_value("mix-blend-mode", "screen");
+test_computed_value("mix-blend-mode", "overlay");
+test_computed_value("mix-blend-mode", "darken");
+test_computed_value("mix-blend-mode", "lighten");
+test_computed_value("mix-blend-mode", "color-dodge");
+test_computed_value("mix-blend-mode", "color-burn");
+test_computed_value("mix-blend-mode", "hard-light");
+test_computed_value("mix-blend-mode", "soft-light");
+test_computed_value("mix-blend-mode", "difference");
+test_computed_value("mix-blend-mode", "exclusion");
+test_computed_value("mix-blend-mode", "hue");
+test_computed_value("mix-blend-mode", "saturation");
+test_computed_value("mix-blend-mode", "color");
+test_computed_value("mix-blend-mode", "luminosity");
+</script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+[package]
+name = "fallible"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+publish = false
+
+[lib]
+name = "fallible"
+path = "lib.rs"
+
+[dependencies]
+hashglobe = { path = "../hashglobe" }
+smallvec = "1.0"
+
+# This crate effectively does nothing except if the `known_system_malloc`
+# feature is specified.
+#
+# In that case, we actually call the system malloc functions to reserve space,
+# otherwise we just let Rust do its thing (aborting on OOM).
+#
+# This is effectively a stop-gap measure until we can do this properly in
+# stable Rust.
+[features]
+known_system_malloc = []

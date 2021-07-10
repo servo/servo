@@ -1,0 +1,68 @@
+<!doctype html>
+<title>legend sans fieldset and CSS display</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+ * { margin: 0; padding: 0; }
+ .table, table { display: table; width: 200px; border-collapse: collapse; }
+ .tbody { display: table-row-group; }
+ .tr { display: table-row; }
+ .td, td { display: table-cell; }
+ .col { display: table-column; }
+ .caption { display: table-caption; }
+ .li { display: list-item; }
+ .inline { display: inline; }
+ .inline-block { display: inline-block; }
+ .inline-table { display: inline-table; }
+ .ruby { display: ruby; }
+ .rt { display: ruby-text; }
+ rt { font-size: inherit; }
+</style>
+<legend class=table>
+  <legend class=caption>caption</legend>
+  <legend class=col></legend><legend class=col></legend>
+  <legend class=tbody>
+    <legend class=tr>
+      <legend class=td>td</legend><legend class=td>td</legend>
+    </legend>
+  </legend>
+</legend>
+<table>
+  <caption>caption</caption>
+  <col><col>
+  <tbody>
+    <tr>
+      <td>td<td>td
+</table>
+<ul>
+  <legend class=li>li</legend>
+  <li>li</li>
+</ul>
+<p>foo <legend class=inline>inline</legend> <span>inline</span>
+<p>foo <legend class=inline-block>inline-block</legend> <span class=inline-block>inline-block</span>
+<p><legend class=ruby>ruby<legend class=rt>rt</legend></legend> <ruby>ruby<rt>rt</ruby>
+<script>
+  function test_display(testSelector, refSelector) {
+    test(() => {
+      const testElm = document.querySelector(testSelector);
+      const refElm = document.querySelector(refSelector);
+      const testStyle = getComputedStyle(testElm);
+      const refStyle = getComputedStyle(refElm);
+      assert_equals(testStyle.display, refStyle.display, testSelector + ' display');
+      assert_equals(testStyle.width, refStyle.width, testSelector + ' width');
+      assert_equals(testStyle.height, refStyle.height, testSelector + ' height');
+    }, testSelector);
+  }
+
+  test_display('.table', 'table');
+  test_display('.caption', 'caption');
+  test_display('.col', 'col');
+  test_display('.tbody', 'tbody');
+  test_display('.tr', 'tr');
+  test_display('.td', 'td');
+  test_display('.li', 'li');
+  test_display('.inline', 'span');
+  test_display('.inline-block', 'span.inline-block');
+  test_display('.ruby', 'ruby');
+  test_display('.rt', 'rt');
+</script>

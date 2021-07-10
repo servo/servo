@@ -1,0 +1,13 @@
+<!doctype html>
+<title>First input before the legend</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../common/accesskey.js></script>
+<p>Press the access key combination for "a". <kbd></kbd></p>
+<fieldset>
+ <input onfocus="pass()">
+ <legend accesskey=a>legend
+  <input onfocus="fail('input in legend was focused')">
+ </legend>
+ <input onfocus="fail('input after legend was focused')">
+</fieldset>

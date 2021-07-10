@@ -1,0 +1,12 @@
+{
+  "serve-quic-transport": {
+    "path": "serve.py",
+    "script": "run",
+    "parser": "get_parser",
+    "help": "Start the QUIC server for WebTransport",
+    "virtualenv": true,
+    "requirements": [
+      "requirements.txt"
+    ]
+  }
+}

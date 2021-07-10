@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<title>Layout Instability: shift with counterscroll not counted</title>
+<link rel="help" href="https://wicg.github.io/layout-instability/" />
+<style>
+
+#s {
+  overflow: scroll;
+  position: absolute;
+  left: 20px;
+  top: 20px;
+  width: 200px;
+  height: 200px;
+}
+#sp {
+  width: 170px;
+  height: 600px;
+}
+#ch {
+  position: relative;
+  background: yellow;
+  left: 10px;
+  top: 100px;
+  width: 150px;
+  height: 150px;
+}
+
+</style>
+<div id="s">
+  <div id="sp">
+    <div id="ch"></div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<script>
+
+promise_test(async () => {
+  const watcher = new ScoreWatcher;
+
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  let scroller = document.querySelector("#s");
+  let changer = document.querySelector("#ch");
+
+  changer.style.top = "200px";
+  scroller.scrollTop = 100;
+
+  await waitForAnimationFrames(3);
+  assert_equals(watcher.score, 0);
+}, "Shift with counterscroll not counted.");
+
+</script>

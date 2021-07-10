@@ -15,7 +15,7 @@
       <p>
         The 'fill' attribute has no effect on the 'line' element.
       </p>
-    </d:testDescription>    
+    </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
       <p>
         Run the test. No interaction required.

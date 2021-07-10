@@ -1,0 +1,81 @@
+<html manifest="resources/appcache-worker.manifest">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+var resolveInitPromise;
+var initPromise = new Promise(r => { resolveInitPromise = r; });
+
+applicationCache.addEventListener('cached', resolveInitPromise, false);
+applicationCache.addEventListener('noupdate', resolveInitPromise, false);
+
+promise_test(t => {
+    return initPromise.then(_ => {
+      var worker =
+          new Worker('resources/appcache-worker.py?type=cached');
+      return new Promise(r => { worker.onmessage = r; });
+    }).then(event => {
+      assert_equals(event.data, 'Done: cached');
+    });
+  }, 'Dedicated worker of the cached script');
+
+promise_test(t => {
+    return initPromise.then(_ => {
+      var worker =
+          new Worker('resources/appcache-worker.py?type=fallingback');
+      return new Promise(r => { worker.onmessage = r; });
+    }).then(event => {
+      assert_equals(event.data, 'Done: fallbacked');
+    });
+  }, 'Dedicated worker of the fallbacked script');
+
+promise_test(t => {
+    return initPromise.then(_ => {
+      var worker =
+          new Worker('resources/appcache-dedicated-worker-not-in-cache.js');
+      return new Promise((resolve, reject) => {
+          worker.onerror = resolve;
+          worker.onmessage = _ => {
+            reject('The worker not in the AppCache must not be executed.');
+          };
+        });
+    });
+  }, 'Dedicated worker of the not-in-cache script');
+
+promise_test(t => {
+    return initPromise.then(_ => {
+      var worker =
+          new SharedWorker('resources/appcache-worker.py?type=cached');
+      var promise = new Promise(r => { worker.port.onmessage = r; });
+      worker.port.start();
+      return promise;
+    }).then(event => {
+      assert_equals(event.data, 'Done: cached');
+    });
+  }, 'Shared worker of the cached script');
+
+promise_test(t => {
+    return initPromise.then(_ => {
+      var worker =
+          new SharedWorker('resources/appcache-worker.py?type=fallingback');
+      var promise = new Promise(r => { worker.port.onmessage = r; });
+      worker.port.start();
+      return promise;
+    }).then(event => {
+      assert_equals(event.data, 'Done: fallbacked');
+    });
+  }, 'Shared worker of the fallbacked script');
+
+promise_test(t => {
+    return initPromise.then(_ => {
+      var worker =
+          new SharedWorker(
+              'resources/appcache-shared-worker-not-in-cache.js');
+      var promise = new Promise(r => { worker.port.onmessage = r; });
+      worker.port.start();
+      return promise;
+    }).then(event => {
+      assert_equals(event.data, 'Done');
+    });
+  }, 'Shared worker of the not-in-cache script');
+</script>
+</html>

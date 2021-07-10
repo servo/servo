@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<head>
+  <title>In-viewport loading=lazy iframes do not block the window load event</title>
+  <link rel="author" title="Dom Farolino" href="mailto:dom@chromium.org">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="../resources/common.js"></script>
+</head>
+
+<body>
+  <!-- This image blocks the window load event for 1 second -->
+  <img src="/common/square.png?pipe=trickle(d1)">
+
+  <!-- These iframes must load because they intersect the viewport, but they must
+       not block the window load event, because they are loading=lazy -->
+  <iframe id="visible" loading="lazy"
+       src="resources/subframe.html?visible&pipe=trickle(d3)"></iframe>
+  <iframe id="visibility_hidden" style="visibility:hidden;" loading="lazy"
+       src="resources/subframe.html?visibility_hidden&pipe=trickle(d3)"></iframe>
+</body>
+
+<script>
+  const visible_iframe = document.querySelector('#visible');
+  const hidden_iframe = document.querySelector('#visibility_hidden');
+
+  const visible_iframe_t =
+    async_test('In-viewport loading=lazy iframe does not block the load event');
+
+  const hidden_iframe_t =
+    async_test('In-viewport loading=lazy visibility:hidden iframe does not ' +
+               'block the load event');
+
+  let has_window_loaded = false;
+  window.addEventListener("load", () => {
+    has_window_loaded = true;
+  });
+
+  visible_iframe.onload = visible_iframe_t.step_func_done(() => {
+    assert_true(has_window_loaded,
+                "The visible iframe should not block the load event");
+  });
+
+  hidden_iframe.onload = hidden_iframe_t.step_func_done(() => {
+    assert_true(has_window_loaded,
+                "The hidden iframe should not block the load event");
+  });
+</script>

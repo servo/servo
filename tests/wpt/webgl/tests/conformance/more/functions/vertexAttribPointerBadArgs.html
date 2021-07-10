@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<!--
+
+/*
+** Copyright (c) 2012 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<link rel="stylesheet" type="text/css" href="../unit.css" />
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script type="application/javascript" src="../unit.js"></script>
+<script type="application/javascript" src="../util.js"></script>
+<script type="application/javascript">
+
+Tests.startUnit = function () {
+  var canvas = document.createElement('canvas');
+  var gl = wrapGLContext(getGLContext(canvas));
+  return [gl];
+}
+
+Tests.setup = function(gl) {
+  assert(0 == gl.getError());
+  return [gl];
+}
+
+Tests.teardown = function(gl) {
+}
+
+Tests.endUnit = function(gl) {
+}
+
+Tests.testVertexAttribPointerVBO = function(gl) {
+  var vbo = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(4), gl.STATIC_DRAW);
+  gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+  assertFail("negative offset",
+      function(){gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, -4);});
+  assertOk("out of range offset (OK because we can change the buffer later)",
+      function(){gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 1200);});
+  assertFail("Offset that is incompatible with type",
+      function(){gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 3);});
+  assertFail("negative stride",
+      function(){gl.vertexAttribPointer(0, 3, gl.FLOAT, false, -1, 0);});
+  assertFail("bad size",
+      function(){gl.vertexAttribPointer(0, 5, gl.FLOAT, false, 0, 0);});
+  assertFail("stride that doesn't match type",
+      function(){gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 1, 0);});
+  assertFail("bad type",
+      function(){gl.vertexAttribPointer(0, 3, gl.TEXTURE_2D, false, 0, 0);});
+  assertFail("bad index",
+      function(){gl.vertexAttribPointer(-1, 3, gl.FLOAT, false, 0, 0);});
+  assertFail("bad index (big negative)",
+      function(){gl.vertexAttribPointer(-8693948, 3, gl.FLOAT, false, 0, 0);});
+  assertFail("bad index (big positive)",
+      function(){gl.vertexAttribPointer(8693948, 3, gl.FLOAT, false, 0, 0);});
+  gl.bindBuffer(gl.ARRAY_BUFFER, null);
+  assertOk("binding to null buffer with offset=0",
+      function(){gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);});
+  assertFail("binding to null buffer with offset!=0",
+      function(){gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 16);});
+  gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+  gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+  gl.bindBuffer(gl.ARRAY_BUFFER, null);
+  gl.deleteBuffer(vbo);
+  throwError(gl);
+}
+
+</script>
+</head><body>
+</body></html>

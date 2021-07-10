@@ -18,9 +18,9 @@
         Test that the viewer can handle the spreadMethod attribute on linear gradients.
       </p>
     </d:testDescription>
-    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">            
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
       <p>
-				Run the test. No interaction required.
+        Run the test. No interaction required.
       </p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">

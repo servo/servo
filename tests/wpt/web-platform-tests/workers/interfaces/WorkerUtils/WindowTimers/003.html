@@ -1,7 +1,3 @@
-<!--
-setInterval(function() { postMessage(1); }, 10);
-/*
--->
 <!doctype html>
 <title>setInterval</title>
 <script src="/resources/testharness.js"></script>
@@ -9,14 +5,10 @@ setInterval(function() { postMessage(1); }, 10);
 <div id=log></div>
 <script>
 async_test(function() {
-  var worker = new Worker('#');
+  var worker = new Worker('003.js');
   worker.onmessage = this.step_func(function(e) {
     assert_equals(e.data, 1);
     this.done();
   });
 });
 </script>
-<!--
-*/
-//-->
-

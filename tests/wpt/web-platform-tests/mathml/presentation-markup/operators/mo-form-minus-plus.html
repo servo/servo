@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>form plus/minus</title>
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
+    <meta name="assert" content="Verifies behavior of form of plus/minus etc.">
+    <link rel="match" href="mo-form-minus-plus-ref.html">
+  </head>
+  <body>
+
+    <!-- These operators should have form "prefix" -->
+
+    _<math><merror><mo>−</mo><mi>x</mi></merror></math>_
+    _<math><mo>−</mo><mi>x</mi></math>_
+    _<math><mphantom><mo>−</mo><mi>x</mi></mphantom></math>_
+    _<math><mrow><mo>−</mo><mi>x</mi></mrow></math>_
+    _<math><msqrt><mo>−</mo><mi>x</mi></msqrt></math>_
+    _<math><mstyle><mo>−</mo><mi>x</mi></mstyle></math>_
+
+    <br/>
+
+    _<math><merror><mo>+</mo><mi>x</mi></merror></math>_
+    _<math><mo>+</mo><mi>x</mi></math>_
+    _<math><mphantom><mo>+</mo><mi>x</mi></mphantom></math>_
+    _<math><mrow><mo>+</mo><mi>x</mi></mrow></math>_
+    _<math><msqrt><mo>+</mo><mi>x</mi></msqrt></math>_
+    _<math><mstyle><mo>+</mo><mi>x</mi></mstyle></math>_
+
+    <br/>
+
+    _<math><merror><mo>±</mo><mi>x</mi></merror></math>_
+    _<math><mo>±</mo><mi>x</mi></math>_
+    _<math><mphantom><mo>±</mo><mi>x</mi></mphantom></math>_
+    _<math><mrow><mo>±</mo><mi>x</mi></mrow></math>_
+    _<math><msqrt><mo>±</mo><mi>x</mi></msqrt></math>_
+    _<math><mstyle><mo>±</mo><mi>x</mi></mstyle></math>_
+
+    <br/>
+
+    _<math><merror><mo>∓</mo><mi>x</mi></merror></math>_
+    _<math><mo>∓</mo><mi>x</mi></math>_
+    _<math><mphantom><mo>∓</mo><mi>x</mi></mphantom></math>_
+    _<math><mrow><mo>∓</mo><mi>x</mi></mrow></math>_
+    _<math><msqrt><mo>∓</mo><mi>x</mi></msqrt></math>_
+    _<math><mstyle><mo>∓</mo><mi>x</mi></mstyle></math>_
+
+    <br/>
+
+    <!-- These operators should have form "infix" -->
+
+    _<math><merror><mi>x</mi><mo>−</mo><mi>y</mi></merror></math>_
+    _<math><mi>x</mi><mo>−</mo><mi>y</mi></math>_
+    _<math><mphantom><mi>x</mi><mo>−</mo><mi>y</mi></mphantom></math>_
+    _<math><mrow><mi>x</mi><mo>−</mo><mi>y</mi></mrow></math>_
+    _<math><msqrt><mi>x</mi><mo>−</mo><mi>y</mi></msqrt></math>_
+    _<math><mstyle><mi>x</mi><mo>−</mo><mi>y</mi></mstyle></math>_
+
+    <br/>
+
+    _<math><merror><mi>x</mi><mo>+</mo><mi>y</mi></merror></math>_
+    _<math><mi>x</mi><mo>+</mo><mi>y</mi></math>_
+    _<math><mphantom><mi>x</mi><mo>+</mo><mi>y</mi></mphantom></math>_
+    _<math><mrow><mi>x</mi><mo>+</mo><mi>y</mi></mrow></math>_
+    _<math><msqrt><mi>x</mi><mo>+</mo><mi>y</mi></msqrt></math>_
+    _<math><mstyle><mi>x</mi><mo>+</mo><mi>y</mi></mstyle></math>_
+
+    <br/>
+
+    _<math><merror><mi>x</mi><mo>±</mo><mi>y</mi></merror></math>_
+    _<math><mi>x</mi><mo>±</mo><mi>y</mi></math>_
+    _<math><mphantom><mi>x</mi><mo>±</mo><mi>y</mi></mphantom></math>_
+    _<math><mrow><mi>x</mi><mo>±</mo><mi>y</mi></mrow></math>_
+    _<math><msqrt><mi>x</mi><mo>±</mo><mi>y</mi></msqrt></math>_
+    _<math><mstyle><mi>x</mi><mo>±</mo><mi>y</mi></mstyle></math>_
+
+    <br/>
+
+    _<math><merror><mi>x</mi><mo>∓</mo><mi>y</mi></merror></math>_
+    _<math><mi>x</mi><mo>∓</mo><mi>y</mi></math>_
+    _<math><mphantom><mi>x</mi><mo>∓</mo><mi>y</mi></mphantom></math>_
+    _<math><mrow><mi>x</mi><mo>∓</mo><mi>y</mi></mrow></math>_
+    _<math><msqrt><mi>x</mi><mo>∓</mo><mi>y</mi></msqrt></math>_
+    _<math><mstyle><mi>x</mi><mo>∓</mo><mi>y</mi></mstyle></math>_
+
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>MathMLFeatureDetection.ensure_for_match_reftest("has_operator_spacing");</script>
+  </body>
+</html>

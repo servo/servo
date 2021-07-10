@@ -1,0 +1,92 @@
+<!doctype html>
+<title>Geometry APIs spec examples</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<link rel=help href="https://drafts.fxtf.org/geometry/">
+<script>
+test(() => {
+  var point = new DOMPoint(5, 4);
+  var matrix = new DOMMatrix([2, 0, 0, 2, 10, 10]);
+  var transformedPoint = point.matrixTransform(matrix);
+  // The point variable is set to a new DOMPoint object with x coordinate initialized to 5 and y
+  // coordinate initialized to 4.
+  assert_equals(point.x, 5, 'point.x');
+  assert_equals(point.y, 4, 'point.y');
+  assert_equals(point.z, 0, 'point.z');
+  assert_equals(point.w, 1, 'point.w');
+  // This new DOMPoint is now scaled and the translated by matrix. This resulting transformedPoint
+  // has the x coordinate 20 and y coordinate 18.
+  assert_equals(transformedPoint.x, 20, 'transformedPoint.x');
+  assert_equals(transformedPoint.y, 18, 'transformedPoint.x');
+  assert_equals(transformedPoint.z, 0, 'transformedPoint.z');
+  assert_equals(transformedPoint.w, 1, 'transformedPoint.w');
+}, 'matrixTransform');
+
+test(() => {
+  var point = new DOMPoint(2, 0);
+  var quad1 = new DOMQuad(point, {x: 12, y: 0}, {x: 12, y: 10}, {x: 2, y: 10});
+  // The attribute values of the resulting DOMQuad quad1 above are also equivalent to the attribute
+  // values of the following DOMQuad quad2:
+  var rect = new DOMRect(2, 0, 10, 10);
+  var quad2 = DOMQuad.fromRect(rect);
+  for (var p of ['p1', 'p2', 'p3', 'p4']) {
+    for (var attr of ['x', 'y', 'z', 'w']) {
+      assert_equals(quad2[p][attr], quad1[p][attr], `${p}.${attr}`);
+    }
+  }
+}, 'DOMQuad');
+
+test(() => {
+  var quad = new DOMQuad({x: 40, y: 25}, {x: 180, y: 8}, {x: 210, y: 150}, {x: 10, y: 180});
+  // <circle cx="40" cy="25" r="3" fill="rgb(204, 51, 51)"/>
+  assert_equals(quad.p1.x, 40, 'p1.x');
+  assert_equals(quad.p1.y, 25, 'p1.y');
+  // <circle cx="180" cy="8" r="3" fill="rgb(204, 51, 51)"/>
+  assert_equals(quad.p2.x, 180, 'p2.x');
+  assert_equals(quad.p2.y, 8, 'p2.y');
+  // <circle cx="210" cy="150" r="3" fill="rgb(204, 51, 51)"/>
+  assert_equals(quad.p3.x, 210, 'p3.x');
+  assert_equals(quad.p3.y, 150, 'p3.y');
+  // <circle cx="10" cy="180" r="3" fill="rgb(204, 51, 51)"/>
+  assert_equals(quad.p4.x, 10, 'p4.x');
+  assert_equals(quad.p4.y, 180, 'p4.y');
+  var bounds = quad.getBounds();
+  // <rect x="10" y="8" width="200" height="172" fill="none" stroke="black" stroke-dasharray="3 2"/>
+  assert_equals(bounds.x, 10, 'bounds.x');
+  assert_equals(bounds.y, 8, 'bounds.x');
+  assert_equals(bounds.width, 200, 'bounds.width');
+  assert_equals(bounds.height, 172, 'bounds.height');
+}, 'DOMQuad irregular');
+
+test(() => {
+  // In this example, a matrix is created and several 2D transformation methods are called:
+  var matrix = new DOMMatrix();
+  matrix.scaleSelf(2);
+  matrix.translateSelf(20,20);
+  assert_equals(matrix.toString(), "matrix(2, 0, 0, 2, 40, 40)");
+}, 'DOMMatrix 2D transformation');
+
+test(() => {
+  // In the following example, a matrix is created and several 3D transformation methods are called:
+  var matrix = new DOMMatrix();
+  matrix.scale3dSelf(2);
+  assert_equals(matrix.toString(), "matrix3d(2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1)");
+}, 'DOMMatrix 3D transformation');
+
+test(() => {
+  // This example will throw an exception because there are non-finite values in the matrix.
+  var matrix = new DOMMatrix([NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN]);
+  assert_throws_dom("InvalidStateError", () => { var string = matrix + " Batman!"; });
+}, 'DOMMatrix NaN');
+
+test(() => {
+  var matrix = new DOMMatrix();
+  matrix.translateSelf(20, 20);
+  matrix.scaleSelf(2);
+  matrix.translateSelf(-20, -20);
+  // is equivalent to:
+  var matrix2 = new DOMMatrix();
+  matrix2.translateSelf(20, 20).scaleSelf(2).translateSelf(-20, -20);
+  assert_equals(matrix.toString(), matrix2.toString());
+}, 'DOMMatrix mutable');
+</script>

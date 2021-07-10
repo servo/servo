@@ -27,13 +27,13 @@
         The top-most (yellow) arrows link to an external SVG file, which is
         local (in the same directory).  The target file contains SVG 'text' elements
         which comprise a TOC and brief description of all of the test files
-        for Linking. 
+        for Linking.
       </p>
       <p>
-        The middle (green) arrows links to the same external SVG file, but with xlink:show="new". 
+        The middle (green) arrows links to the same external SVG file, but with xlink:show="new".
       </p>
       <p>
-        The bottom-most (blue) arrows links to the same external SVG file, but with xlink:show="replace". 
+        The bottom-most (blue) arrows links to the same external SVG file, but with xlink:show="replace".
       </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
@@ -46,13 +46,13 @@
         The test has passed if:
       </p>
       <ul>
-	      <li>Upon clicking the left-most yellow arrow, the image of the linkingToc-t.svg
-	      file replaces the initial view of this test case in the viewer frame. On clicking the right-most yellow arrow,
-	      the image of the linkingToc-t.svg appears in a new frame.</li>
-	      <li>Upon clicking any of the green arrows the image of the linkingToc-t.svg appears in a new frame.</li>
-	      <li>Upon clicking the left-most blue arrow, the image of the linkingToc-t.svg file replaces the initial 
-	      view of this test case in the viewer frame. 
-	      On clicking the right blue arrow produces the image of the linkingToc-t.svg in a new frame.</li>
+        <li>Upon clicking the left-most yellow arrow, the image of the linkingToc-t.svg
+        file replaces the initial view of this test case in the viewer frame. On clicking the right-most yellow arrow,
+        the image of the linkingToc-t.svg appears in a new frame.</li>
+        <li>Upon clicking any of the green arrows the image of the linkingToc-t.svg appears in a new frame.</li>
+        <li>Upon clicking the left-most blue arrow, the image of the linkingToc-t.svg file replaces the initial
+        view of this test case in the viewer frame.
+        On clicking the right blue arrow produces the image of the linkingToc-t.svg in a new frame.</li>
       </ul>
     </d:passCriteria>
   </d:SVGTestCase>

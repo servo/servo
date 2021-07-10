@@ -1,0 +1,12 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  async_test(t => {
+    window.addEventListener('message', t.step_func_done(e => {
+      assert_equals(e.data, "can navigate");
+    }));
+  }, "A => B => B: B should be able to navigate B.");
+</script>
+<iframe src="https://{{hosts[][www]}}:{{ports[https][0]}}/html/semantics/embedded-content/the-iframe-element/support/iframe-tried-to-be-navigated-by-its-child.html"></iframe>

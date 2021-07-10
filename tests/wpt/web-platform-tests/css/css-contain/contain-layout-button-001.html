@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Containment Test: Layout containment on button</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain-1/#containment-layout">
+<link rel="help" href="https://drafts.csswg.org/css2/visudet.html#propdef-vertical-align">
+<link rel="match" href="reference/contain-layout-button-001-ref.html">
+<meta name=assert content="Layout containment does apply to buttons, thus their baseline is their margin-bottom edge.">
+<style>
+button {
+  border: 5px solid green;
+  padding: 0;
+  /* We use a nonzero margin-bottom to be sure we're synthesizing a baseline
+     from the margin-box rather than from the border-box: */
+  margin-bottom: 2px;
+  contain: layout;
+  color: transparent;
+  width: 0;
+  height: 0;
+}
+</style>
+
+<p>This test passes if it has the same output as the reference. You see the word "before", a 10px green square aligned 2px above the text's baseline, and then the word "after".</p>
+before<button>b</button>after

@@ -16,13 +16,15 @@ function echo(worker, data) {
   });
 }
 
-async_test(t => {
+promise_test(t => {
   let script = 'resources/echo-message-to-source-worker.js';
   let scope = 'resources/client-postmessage-from-wait-serviceworker';
   let registration;
   let frame;
-  service_worker_unregister_and_register(t, script, scope)
+  return service_worker_unregister_and_register(t, script, scope)
     .then(swr => {
+      t.add_cleanup(() => service_worker_unregister(t, scope));
+
       registration = swr;
       return wait_for_state(t, registration.installing, 'activated');
     }).then(_ => {
@@ -43,7 +45,6 @@ async_test(t => {
       assert_equals(evt.source, registration.active,
                     'message event source should be correct');
       frame.remove();
-    }).then(_ => service_worker_unregister_and_done(t, scope) )
-    .catch(unreached_rejection(t));
+    });
 }, 'Client.postMessage() from waiting serviceworker.');
 </script>

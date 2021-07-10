@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../resources/orientation-event-helpers.js"></script>
+<script>
+'use strict';
+
+sensor_test(async (t, sensorProvider) => {
+  const orientationData = generateOrientationData(1.1, 2.2, 3.3, false);
+  setMockOrientationData(sensorProvider, orientationData);
+  return waitForEvent(getExpectedOrientationEvent(orientationData));
+}, 'Tests basic operation of deviceorientation event using mock data.');
+
+sensor_test(async (t, sensorProvider) => {
+  const orientationData = generateOrientationData(null, null, null, false);
+  const watcher = new EventWatcher(t, window, ['deviceorientation']);
+
+  // Make the orientation sensor unavailable
+  sensorProvider.setGetSensorShouldFail('AbsoluteOrientationEulerAngles', true);
+  sensorProvider.setGetSensorShouldFail('RelativeOrientationEulerAngles', true);
+  const event = await watcher.wait_for('deviceorientation');
+  assert_equals(event.type, 'deviceorientation', 'type is set to \"deviceorientation\"');
+  assert_true(event instanceof DeviceOrientationEvent, 'event is DeviceOrientationEvent');
+
+  assertEventEquals(event, getExpectedOrientationEvent(orientationData));
+}, 'If UA can never provide orientation information, the event should be fired as a null event.');
+</script>

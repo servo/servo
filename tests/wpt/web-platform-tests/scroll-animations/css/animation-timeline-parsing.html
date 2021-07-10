@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#animation-timeline">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<div id="target"></div>
+<script>
+test_valid_value('animation-timeline', 'initial');
+test_valid_value('animation-timeline', 'inherit');
+test_valid_value('animation-timeline', 'unset');
+test_valid_value('animation-timeline', 'revert');
+test_valid_value('animation-timeline', 'auto');
+test_valid_value('animation-timeline', 'none');
+test_valid_value('animation-timeline', 'auto, auto');
+test_valid_value('animation-timeline', 'none, none');
+test_valid_value('animation-timeline', 'auto, none');
+test_valid_value('animation-timeline', 'none, auto');
+test_valid_value('animation-timeline', '"test"');
+test_valid_value('animation-timeline', '"none"');
+test_valid_value('animation-timeline', '"auto"');
+test_valid_value('animation-timeline', '"initial"');
+test_valid_value('animation-timeline', '"inherit"');
+test_valid_value('animation-timeline', '"unset"');
+test_valid_value('animation-timeline', '"revert"');
+test_valid_value('animation-timeline', 'test');
+test_valid_value('animation-timeline', 'test1, test2');
+test_valid_value('animation-timeline', 'test1, "test2", none, test3, auto');
+
+test_invalid_value('animation-timeline', '10px');
+test_invalid_value('animation-timeline', 'auto auto');
+test_invalid_value('animation-timeline', 'none none');
+test_invalid_value('animation-timeline', 'foo bar');
+test_invalid_value('animation-timeline', '"foo" "bar"');
+test_invalid_value('animation-timeline', 'rgb(1, 2, 3)');
+test_invalid_value('animation-timeline', '#fefefe');
+</script>

@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
-<title>Animation constructor tests</title>
-<link rel="help" href="http://w3c.github.io/web-animations/#dom-animation-animation">
-<link rel="author" title="Hiroyuki Ikezoe" href="mailto:hiikezoe@mozilla-japan.org">
+<title>Animation constructor</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#dom-animation-animation">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../testcommon.js"></script>
@@ -10,106 +9,105 @@
 <div id="log"></div>
 <div id="target"></div>
 <script>
-"use strict";
+'use strict';
 
-var gTarget = document.getElementById("target");
+const gTarget = document.getElementById('target');
 
 function createEffect() {
-  return new KeyframeEffectReadOnly(gTarget, { opacity: [0, 1] });
+  return new KeyframeEffect(gTarget, { opacity: [0, 1] });
 }
 
 function createNull() {
   return null;
 }
 
-var gTestArguments = [
+const gTestArguments = [
   {
     createEffect: createNull,
     timeline: null,
     expectedTimeline: null,
-    expectedTimelineDescription: "null",
-    description: "with null effect and null timeline"
+    expectedTimelineDescription: 'null',
+    description: 'with null effect and null timeline'
   },
   {
     createEffect: createNull,
     timeline: document.timeline,
     expectedTimeline: document.timeline,
-    expectedTimelineDescription: "document.timeline",
-    description: "with null effect and non-null timeline"
+    expectedTimelineDescription: 'document.timeline',
+    description: 'with null effect and non-null timeline'
   },
   {
     createEffect: createNull,
     expectedTimeline: document.timeline,
-    expectedTimelineDescription: "document.timeline",
-    description: "with null effect and no timeline parameter"
+    expectedTimelineDescription: 'document.timeline',
+    description: 'with null effect and no timeline parameter'
   },
   {
     createEffect: createEffect,
     timeline: null,
     expectedTimeline: null,
-    expectedTimelineDescription: "null",
-    description: "with non-null effect and null timeline"
+    expectedTimelineDescription: 'null',
+    description: 'with non-null effect and null timeline'
   },
   {
     createEffect: createEffect,
     timeline: document.timeline,
     expectedTimeline: document.timeline,
-    expectedTimelineDescription: "document.timeline",
-    description: "with non-null effect and non-null timeline"
+    expectedTimelineDescription: 'document.timeline',
+    description: 'with non-null effect and non-null timeline'
   },
   {
     createEffect: createEffect,
     expectedTimeline: document.timeline,
-    expectedTimelineDescription: "document.timeline",
-    description: "with non-null effect and no timeline parameter"
+    expectedTimelineDescription: 'document.timeline',
+    description: 'with non-null effect and no timeline parameter'
   },
 ];
 
-gTestArguments.forEach(function(args) {
-  test(function(t) {
-    var effect = args.createEffect();
-    var animation = new Animation(effect, args.timeline);
+for (const args of gTestArguments) {
+  test(t => {
+    const effect = args.createEffect();
+    const animation = new Animation(effect, args.timeline);
 
     assert_not_equals(animation, null,
-                      "An animation sohuld be created");
+                      'An animation sohuld be created');
     assert_equals(animation.effect, effect,
-                  "Animation returns the same effect passed to " +
-                  "the Constructor");
+                  'Animation returns the same effect passed to ' +
+                  'the Constructor');
     assert_equals(animation.timeline, args.expectedTimeline,
-                  "Animation timeline should be " + args.expectedTimelineDescription);
-    assert_equals(animation.playState, "idle",
-                  "Animation.playState should be initially 'idle'");
-  }, "Animation can be constructed " + args.description);
-});
+                  'Animation timeline should be ' + args.expectedTimelineDescription);
+    assert_equals(animation.playState, 'idle',
+                  'Animation.playState should be initially \'idle\'');
+  }, 'Animation can be constructed ' + args.description);
+}
 
-test(function(t) {
-  var effect = new KeyframeEffectReadOnly(null,
-                                          { left: ["10px", "20px"] },
-                                          { duration: 10000,
-                                            fill: "forwards" });
-  var anim = new Animation(effect, document.timeline);
+test(t => {
+  const effect = new KeyframeEffect(null,
+                                    { left: ['10px', '20px'] },
+                                    { duration: 10000, fill: 'forwards' });
+  const anim = new Animation(effect, document.timeline);
   anim.pause();
   assert_equals(effect.getComputedTiming().progress, 0.0);
   anim.currentTime += 5000;
   assert_equals(effect.getComputedTiming().progress, 0.5);
   anim.finish();
   assert_equals(effect.getComputedTiming().progress, 1.0);
-}, "Animation constructed by an effect with null target runs normally");
+}, 'Animation constructed by an effect with null target runs normally');
 
-async_test(function(t) {
-  var iframe = document.createElement('iframe');
+async_test(t => {
+  const iframe = document.createElement('iframe');
 
-  iframe.addEventListener('load', t.step_func(function() {
-    var div = createDiv(t, iframe.contentDocument);
-    var effect = new KeyframeEffectReadOnly(div, null, 10000);
-    var anim = new Animation(effect);
+  iframe.addEventListener('load', t.step_func(() => {
+    const div = createDiv(t, iframe.contentDocument);
+    const effect = new KeyframeEffect(div, null, 10000);
+    const anim = new Animation(effect);
     assert_equals(anim.timeline, document.timeline);
     iframe.remove();
     t.done();
   }));
 
   document.body.appendChild(iframe);
-}, "Animation constructed with a keyframe that target element is in iframe");
+}, 'Animation constructed with a keyframe that target element is in iframe');
 
 </script>
 </body>

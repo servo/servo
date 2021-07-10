@@ -1,53 +1,52 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
-#![feature(step_trait)]
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #![deny(unsafe_code)]
 
-extern crate heapsize;
-#[macro_use] extern crate heapsize_derive;
-extern crate num_traits;
 #[macro_use]
-extern crate serde_derive;
+extern crate malloc_size_of_derive;
+#[macro_use]
+extern crate serde;
 
 use std::cmp::{self, max, min};
 use std::fmt;
-use std::iter;
-use std::marker::PhantomData;
 use std::ops;
 
 pub trait Int:
-    Copy
-    + ops::Add<Self, Output=Self>
-    + ops::Sub<Self, Output=Self>
-    + cmp::Ord
+    Copy + ops::Add<Self, Output = Self> + ops::Sub<Self, Output = Self> + cmp::Ord
 {
     fn zero() -> Self;
     fn one() -> Self;
-    fn max_value() -> Self;
-    fn from_usize(n: usize) -> Option<Self>;
+    fn to_usize(self) -> usize;
 }
 impl Int for isize {
     #[inline]
-    fn zero() -> isize { 0 }
+    fn zero() -> isize {
+        0
+    }
     #[inline]
-    fn one() -> isize { 1 }
+    fn one() -> isize {
+        1
+    }
     #[inline]
-    fn max_value() -> isize { ::std::isize::MAX }
-    #[inline]
-    fn from_usize(n: usize) -> Option<isize> { num_traits::NumCast::from(n) }
+    fn to_usize(self) -> usize {
+        num_traits::NumCast::from(self).unwrap()
+    }
 }
 impl Int for usize {
     #[inline]
-    fn zero() -> usize { 0 }
+    fn zero() -> usize {
+        0
+    }
     #[inline]
-    fn one() -> usize { 1 }
+    fn one() -> usize {
+        1
+    }
     #[inline]
-    fn max_value() -> usize { ::std::usize::MAX }
-    #[inline]
-    fn from_usize(n: usize) -> Option<usize> { Some(n) }
+    fn to_usize(self) -> usize {
+        self
+    }
 }
 
 /// An index type to be used by a `Range`
@@ -60,26 +59,34 @@ pub trait RangeIndex: Int + fmt::Debug {
 impl RangeIndex for isize {
     type Index = isize;
     #[inline]
-    fn new(x: isize) -> isize { x }
+    fn new(x: isize) -> isize {
+        x
+    }
 
     #[inline]
-    fn get(self) -> isize { self }
+    fn get(self) -> isize {
+        self
+    }
 }
 
 impl RangeIndex for usize {
     type Index = usize;
     #[inline]
-    fn new(x: usize) -> usize { x }
+    fn new(x: usize) -> usize {
+        x
+    }
 
     #[inline]
-    fn get(self) -> usize { self }
+    fn get(self) -> usize {
+        self
+    }
 }
 
 /// Implements a range index type with operator overloads
 #[macro_export]
 macro_rules! int_range_index {
     ($(#[$attr:meta])* struct $Self_:ident($T:ty)) => (
-        #[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Debug, Copy)]
+        #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
         $(#[$attr])*
         pub struct $Self_(pub $T);
 
@@ -90,7 +97,7 @@ macro_rules! int_range_index {
             }
         }
 
-        impl RangeIndex for $Self_ {
+        impl $crate::RangeIndex for $Self_ {
             type Index = $T;
             #[inline]
             fn new(x: $T) -> $Self_ {
@@ -109,9 +116,7 @@ macro_rules! int_range_index {
             #[inline]
             fn one() -> $Self_ { $Self_($crate::Int::one()) }
             #[inline]
-            fn max_value() -> $Self_ { $Self_($crate::Int::max_value()) }
-            #[inline]
-            fn from_usize(n: usize) -> Option<$Self_> { $crate::Int::from_usize(n).map($Self_) }
+            fn to_usize(self) -> usize { self.to_usize() }
         }
 
         impl ::std::ops::Add<$Self_> for $Self_ {
@@ -144,7 +149,7 @@ macro_rules! int_range_index {
 }
 
 /// A range of indices
-#[derive(Clone, Copy, Deserialize, HeapSizeOf, Serialize)]
+#[derive(Clone, Copy, Deserialize, MallocSizeOf, Serialize)]
 pub struct Range<I> {
     begin: I,
     length: I,
@@ -157,27 +162,37 @@ impl<I: RangeIndex> fmt::Debug for Range<I> {
 }
 
 /// An iterator over each index in a range
-pub struct EachIndex<T, I> {
-    it: ops::Range<T>,
-    phantom: PhantomData<I>,
+pub struct EachIndex<I: RangeIndex> {
+    start: I,
+    stop: I,
 }
 
-pub fn each_index<T: Int, I: RangeIndex<Index=T>>(start: I, stop: I) -> EachIndex<T, I> {
-    EachIndex { it: start.get()..stop.get(), phantom: PhantomData }
+pub fn each_index<I: RangeIndex>(start: I, stop: I) -> EachIndex<I> {
+    EachIndex { start, stop }
 }
 
-impl<T: Int, I: RangeIndex<Index=T>> Iterator for EachIndex<T, I>
-where T: Int + iter::Step, for<'a> &'a T: ops::Add<&'a T, Output = T> {
+impl<I: RangeIndex> Iterator for EachIndex<I> {
     type Item = I;
 
     #[inline]
     fn next(&mut self) -> Option<I> {
-        self.it.next().map(RangeIndex::new)
+        if self.start < self.stop {
+            let next = self.start;
+            self.start = next + I::one();
+            Some(next)
+        } else {
+            None
+        }
     }
 
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
-        self.it.size_hint()
+        if self.start < self.stop {
+            let len = (self.stop - self.start).to_usize();
+            (len, Some(len))
+        } else {
+            (0, Some(0))
+        }
     }
 }
 
@@ -192,7 +207,10 @@ impl<I: RangeIndex> Range<I> {
     /// ~~~
     #[inline]
     pub fn new(begin: I, length: I) -> Range<I> {
-        Range { begin: begin, length: length }
+        Range {
+            begin: begin,
+            length: length,
+        }
     }
 
     #[inline]
@@ -208,7 +226,9 @@ impl<I: RangeIndex> Range<I> {
     /// <- o - - - - - +============+ - - - ->
     /// ~~~
     #[inline]
-    pub fn begin(&self) -> I { self.begin  }
+    pub fn begin(&self) -> I {
+        self.begin
+    }
 
     /// The index offset from the beginning to the end of the range.
     ///
@@ -218,7 +238,9 @@ impl<I: RangeIndex> Range<I> {
     /// <- o - - - - - +============+ - - - ->
     /// ~~~
     #[inline]
-    pub fn length(&self) -> I { self.length }
+    pub fn length(&self) -> I {
+        self.length
+    }
 
     /// The index offset to the end of the range.
     ///
@@ -228,7 +250,9 @@ impl<I: RangeIndex> Range<I> {
     /// <- o - - - - - +============+ - - - ->
     /// ~~~
     #[inline]
-    pub fn end(&self) -> I { self.begin + self.length }
+    pub fn end(&self) -> I {
+        self.begin + self.length
+    }
 
     /// `true` if the index is between the beginning and the end of the range.
     ///
@@ -318,10 +342,10 @@ impl<I: RangeIndex> Range<I> {
 }
 
 /// Methods for `Range`s with indices based on integer values
-impl<T: Int, I: RangeIndex<Index=T>> Range<I> {
+impl<I: RangeIndex> Range<I> {
     /// Returns an iterater that increments over `[begin, end)`.
     #[inline]
-    pub fn each_index(&self) -> EachIndex<T, I> {
+    pub fn each_index(&self) -> EachIndex<I> {
         each_index(self.begin(), self.end())
     }
 }

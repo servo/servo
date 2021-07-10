@@ -1,0 +1,5 @@
+spec: https://dom.spec.whatwg.org/
+suggested_reviewers:
+  - jdm
+  - zqzhang
+  - annevk

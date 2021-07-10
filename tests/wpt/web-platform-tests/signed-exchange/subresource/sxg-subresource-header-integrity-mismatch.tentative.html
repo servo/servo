@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<title>Subresource signed exchange prefetch.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/network-error-logging/support/nel.sub.js"></script>
+<script src="../resources/sxg-util.js"></script>
+<body>
+<script>
+nel_iframe_test(async t => {
+  const alt_origin = get_host_info().HTTPS_NOTSAMESITE_ORIGIN;
+  const test_origin = get_host_info().HTTPS_ORIGIN;
+  await loadResourceWithBasicPolicyInIframe();
+  const iframe_path =
+      alt_origin +
+      '/signed-exchange/resources/sxg-subresource-mismatch-iframe.html';
+  const wait_message = (new Promise((resolve) => {
+    const on_message = (event) => {
+      window.removeEventListener('message', on_message);
+      resolve(event.data);
+    };
+    window.addEventListener('message', on_message);
+  }));
+  withIframe(iframe_path);
+  const message = await wait_message;
+  assert_equals(message, 'from server');
+  const cert_url = test_origin + '/signed-exchange/resources/127.0.0.1.sxg.pem.cbor';
+
+  const main_outer_url = alt_origin + '/signed-exchange/resources/sxg/sxg-subresource-header-integrity-mismatch.sxg';
+  const main_inner_url = innerURLOrigin() + '/signed-exchange/resources/sxg-subresource-sxg.html';
+  const sub_outer_url = alt_origin + '/signed-exchange/resources/sxg/sxg-subresource-script.sxg';
+  const sub_inner_url = innerURLOrigin() + '/signed-exchange/resources/sxg-subresource-script.js';
+  const iframe_url = alt_origin + '/signed-exchange/resources/sxg-subresource-mismatch-iframe.html';
+  assert_true(await reportsExist([
+    // Normal NEL report for the iframe's HTML.
+    {
+      url: iframe_url,
+      user_agent: navigator.userAgent,
+      type: "network-error",
+      body: {
+        phase: "application",
+        type: "ok",
+        status_code: 200,
+        referrer: location.origin + '/',
+      },
+      metadata: {
+        content_type: "application/reports+json",
+      },
+    },
+    // Normal NEL report for the main resource signed exchange.
+    {
+      url: main_outer_url,
+      user_agent: navigator.userAgent,
+      type: "network-error",
+      body: {
+        phase: "application",
+        type: "ok",
+        status_code: 200,
+        referrer: iframe_url,
+      },
+      metadata: {
+        content_type: "application/reports+json",
+      },
+    },
+    // Signed Exchange NEL report for the main resource signed exchange.
+    {
+      url: main_outer_url,
+      user_agent: navigator.userAgent,
+      type: "network-error",
+      body: {
+        phase: "sxg",
+        type: "ok",
+        status_code: 200,
+        referrer: iframe_url,
+        sxg: {
+          outer_url: main_outer_url,
+          inner_url: main_inner_url,
+          cert_url: [cert_url]
+        }
+      },
+      metadata: {
+        content_type: "application/reports+json",
+      },
+    },
+    // Signed Exchange NEL report for the subresource signed exchange header
+    // integrity mismatch.
+    {
+      url: sub_outer_url,
+      user_agent: navigator.userAgent,
+      type: "network-error",
+      body: {
+        phase: "sxg",
+        type: "sxg.header_integrity_mismatch",
+        status_code: 200,
+        referrer: main_outer_url,
+        sxg: {
+          outer_url: sub_outer_url,
+          inner_url: sub_inner_url,
+          cert_url: [cert_url]
+        }
+      },
+      metadata: {
+        content_type: "application/reports+json",
+      },
+    },
+    // Normal NEL report for the main resource signed exchange.
+    {
+      url: sub_outer_url,
+      user_agent: navigator.userAgent,
+      type: "network-error",
+      body: {
+        phase: "application",
+        type: "ok",
+        status_code: 200,
+        referrer: iframe_url,
+      },
+      metadata: {
+        content_type: "application/reports+json",
+      },
+    },
+    // Signed Exchange NEL report for the sub resource signed exchange.
+    {
+      url: sub_outer_url,
+      user_agent: navigator.userAgent,
+      type: "network-error",
+      body: {
+        phase: "sxg",
+        type: "ok",
+        status_code: 200,
+        referrer: iframe_url,
+        sxg: {
+          outer_url: sub_outer_url,
+          inner_url: sub_inner_url,
+          cert_url: [cert_url]
+        }
+      },
+      metadata: {
+        content_type: "application/reports+json",
+      },
+    },
+  ]));
+}, 'Subresource signed exchange prefetch.');
+</script>
+</body>

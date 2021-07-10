@@ -11,11 +11,17 @@ function runTest(config, qualifier) {
             modifiedtestname = testname.replace( '%audiocontenttype', audiocontenttypes ).replace( '%videocontenttype', videocontenttypes );
 
         promise_test(function(test) {
-            return navigator.requestMediaKeySystemAccess(keySystem, configurations).then(function(a) {
-                assert_unreached('Unexpected requestMediaKeySystemAccess() success.');
-            }, function(e) {
-                assert_equals(e.name, expectedError);
-            });
+            var p = navigator.requestMediaKeySystemAccess(keySystem, configurations);
+            // expectedError is a string name for the error.  We can differentiate
+            // JS Errors from DOMExceptions by checking whether
+            // window[expectedError] exists.  If it does, expectedError is the name
+            // of a JS Error subclass and window[expectedError] is the constructor
+            // for that subclass.  Otherwise it's a name for a DOMException.
+            if (window[expectedError]) {
+                return promise_rejects_js(test, window[expectedError], p);
+            } else {
+                return promise_rejects_dom(test, expectedError, p);
+            }
         }, prefix + modifiedtestname + ' should result in ' + expectedError );
     }
 
@@ -84,17 +90,19 @@ function runTest(config, qualifier) {
 
     // Tests for trivial configurations.
     expect_error(config.keysystem, [], 'TypeError', 'Empty supportedConfigurations');
-    expect_config(config.keysystem, [{}], {}, 'Empty configuration');
+    expect_error(config.keysystem, [{}], 'NotSupportedError', 'Empty configuration');
 
     // Various combinations of supportedConfigurations.
     expect_config(config.keysystem, [{
         initDataTypes: [config.initDataType],
         audioCapabilities: [{contentType: config.audioType}],
         videoCapabilities: [{contentType: config.videoType}],
+        label: 'abcd',
     }], {
         initDataTypes: [config.initDataType],
         audioCapabilities: [{contentType: config.audioType}],
         videoCapabilities: [{contentType: config.videoType}],
+        label: 'abcd',
     }, 'Basic supported configuration');
 
     expect_config(config.keysystem, [{
@@ -155,15 +163,28 @@ function runTest(config, qualifier) {
         ],
     }], 'NotSupportedError', 'Mismatched audio container/codec (%audiocontenttype)');
 
-    expect_config(config.keysystem, [
-        {initDataTypes: ['fakeidt']},
-        {initDataTypes: [config.initDataType]}
-    ], {initDataTypes: [config.initDataType]}, 'Two configurations, one supported');
+    expect_config(config.keysystem, [{
+        initDataTypes: ['fakeidt'],
+        videoCapabilities: [{contentType: config.videoType}]
+      }, {
+        initDataTypes: [config.initDataType],
+        videoCapabilities: [{contentType: config.videoType}]
+      }
+    ], {
+        initDataTypes: [config.initDataType],
+        videoCapabilities: [{contentType: config.videoType}]
+    }, 'Two configurations, one supported');
 
-    expect_config(config.keysystem, [
-        {initDataTypes: [config.initDataType]},
-        {}
-    ], {initDataTypes: [config.initDataType]}, 'Two configurations, both supported');
+    expect_config(config.keysystem, [{
+        initDataTypes: [config.initDataType],
+        videoCapabilities: [{contentType: config.videoType}]
+      }, {
+        videoCapabilities: [{contentType: config.videoType}]
+      }
+    ], {
+        initDataTypes: [config.initDataType],
+        videoCapabilities: [{contentType: config.videoType}]
+    }, 'Two configurations, both supported');
 
     // Audio MIME type does not support video codecs.
     expect_error(config.keysystem, [{

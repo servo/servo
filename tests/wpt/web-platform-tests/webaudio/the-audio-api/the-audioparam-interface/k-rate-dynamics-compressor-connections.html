@@ -1,0 +1,145 @@
+<!doctype html>
+<html>
+  <head>
+    <title>k-rate AudioParams with inputs for DynamicsCompressorNode</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+  </head>
+
+  <body>
+    <script>
+      let audit = Audit.createTaskRunner();
+
+      // Fairly abitrary sampleRate and somewhat duration
+      const sampleRate = 48000;
+      const testDuration = 0.25;
+
+      ['attack', 'knee', 'ratio', 'release', 'threshold'].forEach(param => {
+        audit.define(
+            {label: param, description: `Dynamics compressor ${param}`},
+            async (task, should) => {
+              await doTest(should, {prefix: task.label, paramName: param});
+              task.done();
+            });
+      });
+
+      audit.run();
+
+      async function doTest(should, options) {
+        // Test k-rate automation of DynamicsCompressorNode with connected
+        // input.
+        //
+        // A reference compressor node is created with an automation on the
+        // selected AudioParam. For simplicity, we just use a linear ramp from
+        // the minValue to the maxValue of the AudioParam.
+        //
+        // The test node has an input signal connected to the AudioParam.  This
+        // input signal is created to match the automation on the reference
+        // node.
+        //
+        // Finally, the output from the two nodes must be identical if k-rate
+        // inputs are working correctly.
+        //
+        // Options parameter is a dictionary with the following required
+        // members:
+        //   prefix    - prefix to use for the messages.
+        //   paramName - Name of the AudioParam to be tested
+
+        let {prefix, paramName} = options;
+
+        let context = new OfflineAudioContext({
+          numberOfChannels: 2,
+          sampleRate: sampleRate,
+          length: testDuration * sampleRate
+        });
+
+        let merger = new ChannelMergerNode(
+            context, {numberOfInputs: context.destination.channelCount});
+        merger.connect(context.destination);
+
+        // Use an oscillator for the source.  Pretty arbitrary parameters.
+        let src =
+            new OscillatorNode(context, {type: 'sawtooth', frequency: 440});
+
+        // Create the reference and test nodes.
+        let refNode;
+        let tstNode;
+
+        should(
+            () => refNode = new DynamicsCompressorNode(context),
+            `${prefix}: refNode = new DynamicsCompressorNode(context)`)
+            .notThrow();
+
+        let tstOptions = {};
+        tstOptions[paramName] = refNode[paramName].minValue;
+        should(
+            () => tstNode = new DynamicsCompressorNode(context, tstOptions),
+            `${prefix}: tstNode = new DynamicsCompressorNode(context, ${
+                JSON.stringify(tstOptions)})`)
+            .notThrow();
+
+
+        // Automate the AudioParam of the reference node with a linear ramp
+        should(
+            () => refNode[paramName].setValueAtTime(
+                refNode[paramName].minValue, 0),
+            `${prefix}: refNode[${paramName}].setValueAtTime(refNode[${
+                paramName}].minValue, 0)`)
+            .notThrow();
+
+        should(
+            () => refNode[paramName].linearRampToValueAtTime(
+                refNode[paramName].maxValue, testDuration),
+            `${prefix}: refNode[${paramName}].linearRampToValueAtTime(refNode[${
+                paramName}].minValue, ${testDuration})`)
+            .notThrow();
+
+
+        // Create the input node and automate it so that it's output when added
+        // to the intrinsic value of the AudioParam we get the same values as
+        // the automations on the ference node.  We need to do it this way
+        // because the ratio AudioParam has a nominal range of [1, 20] so we
+        // can't just set the value to 0, which is what we'd normally do.
+        let mod;
+        should(
+            () => mod = new ConstantSourceNode(context, {offset: 0}),
+            `${prefix}: mod = new ConstantSourceNode(context, {offset: 0})`)
+            .notThrow();
+        let endValue =
+            refNode[paramName].maxValue - refNode[paramName].minValue;
+        should(
+            () => mod.offset.setValueAtTime(0, 0),
+            `${prefix}: mod.offset.setValueAtTime(0, 0)`)
+            .notThrow();
+        should(
+            () => mod.offset.linearRampToValueAtTime(endValue, testDuration),
+            `${prefix}: mod.offset.linearRampToValueAtTime(${endValue}, ${
+                testDuration})`)
+            .notThrow();
+
+        // Connect up everything.
+        should(
+            () => mod.connect(tstNode[paramName]),
+            `${prefix}: mod.connect(tstNode[${paramName}])`)
+            .notThrow();
+
+        src.connect(refNode).connect(merger, 0, 0);
+        src.connect(tstNode).connect(merger, 0, 1);
+
+        // Go!
+        src.start();
+        mod.start();
+
+        const buffer = await context.startRendering();
+        let expected = buffer.getChannelData(0);
+        let actual = buffer.getChannelData(1);
+
+        // The expected and actual results must be EXACTLY the same.
+        should(actual, `k-rate ${paramName} AudioParam with input`)
+            .beCloseToArray(expected, {absoluteThreshold: 0});
+      }
+    </script>
+  </body>
+</html>

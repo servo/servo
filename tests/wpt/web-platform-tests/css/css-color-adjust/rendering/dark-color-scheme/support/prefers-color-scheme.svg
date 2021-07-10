@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width='100px' height='100px'>
+  <style>
+    @media (prefers-color-scheme: dark) {
+      rect {
+        fill: green;
+      }
+    }
+  </style>
+  <rect fill='blue' width='100px' height='100px' />
+</svg>

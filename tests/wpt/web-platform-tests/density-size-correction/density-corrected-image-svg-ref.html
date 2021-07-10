@@ -1,0 +1,24 @@
+<html>
+  <head>
+    <title>Density Corrected Size: SVG</title>
+    <link rel="author" title="Noam Rosenthal" href="noam@webkit.org">
+  </head>
+  <body>
+    <svg width="200" height="200">
+      <image href="resources/exif-resolution-none.jpg" />
+    </svg>
+    <svg width="200" height="200">
+      <image href="resources/exif-resolution-none.jpg" preserveAspectRatio="none" width="50" height="25"/>
+    </svg>
+    <svg width="200" height="200">
+      <image href="resources/exif-resolution-none.jpg" preserveAspectRatio="none" width="200" height="100" />
+    </svg>
+    <svg width="200" height="200">
+      <image href="resources/exif-resolution-none.jpg" preserveAspectRatio="none" width="50" height="100" />
+    </svg>
+    <svg width="200" height="200"  style="transform-origin: 25% 25%;  transform: rotate(90deg)">
+      <image href="resources/exif-resolution-none.jpg" preserveAspectRatio="none" width="200" height="100" />
+    </svg>
+    </div>
+  </body>
+</html>

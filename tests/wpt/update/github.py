@@ -1,9 +1,11 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+from __future__ import print_function
 
 import json
-from urlparse import urljoin
+from six.moves.urllib.parse import urljoin
 requests = None
 
 class GitHubError(Exception):
@@ -46,6 +48,7 @@ class GitHub(object):
         if 200 <= resp.status_code < 300:
             return resp.json()
         else:
+            print(resp.status_code, resp.json())
             raise GitHubError(resp.status_code, resp.json())
 
     def repo(self, owner, name):
@@ -158,6 +161,13 @@ class Issue(object):
 
     def path(self, suffix):
         return urljoin(self.repo.path("issues/%i/" % self.number), suffix)
+
+    def add_label(self, label):
+        """Add a label to the issue.
+
+        :param label: The name of the label
+        """
+        self.repo.gh.post(self.path("labels"), [label])
 
     def add_comment(self, message):
         """Add a comment to the issue

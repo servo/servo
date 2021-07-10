@@ -3,17 +3,23 @@ name = "msg"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
+edition = "2018"
 publish = false
 
 [lib]
 name = "msg"
 path = "lib.rs"
+test = false
+doctest = false
 
 [dependencies]
-bitflags = "0.7"
-cssparser = "0.13"
-heapsize = "0.3.0"
-heapsize_derive = "0.1"
-serde = "0.9"
-serde_derive = "0.9"
-webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+ipc-channel = "0.14"
+lazy_static = "1"
+malloc_size_of = { path = "../malloc_size_of" }
+malloc_size_of_derive = "0.1"
+parking_lot = "0.10"
+serde = "1.0.60"
+webrender_api = { git = "https://github.com/servo/webrender" }
+
+[dev-dependencies]
+size_of_test = { path = "../size_of_test" }

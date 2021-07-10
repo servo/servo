@@ -1,1 +1,0 @@
-invalid/idl/enum.widl: 1: at '1': expected string in enum

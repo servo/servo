@@ -56,7 +56,7 @@
 <defs>
   <foreignObject>
     <svg>
-	<text id="hello">Hello</text>
+  <text id="hello">Hello</text>
     </svg>
   </foreignObject>
 </defs>

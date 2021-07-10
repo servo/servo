@@ -1,17 +1,19 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Liberally derived from the [Firefox JS implementation]
 //! (http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/inspector.js).
 
-use actor::{Actor, ActorMessageStatus, ActorRegistry};
-use devtools_traits::{ComputedNodeLayout, DevtoolScriptControlMsg, NodeInfo};
+use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actors::browsing_context::BrowsingContextActor;
+use crate::protocol::JsonPacketStream;
+use crate::StreamId;
 use devtools_traits::DevtoolScriptControlMsg::{GetChildren, GetDocumentElement, GetRootNode};
 use devtools_traits::DevtoolScriptControlMsg::{GetLayout, ModifyAttribute};
+use devtools_traits::{ComputedNodeLayout, DevtoolScriptControlMsg, NodeInfo};
 use ipc_channel::ipc::{self, IpcSender};
 use msg::constellation_msg::PipelineId;
-use protocol::JsonPacketStream;
 use serde_json::{self, Map, Value};
 use std::cell::RefCell;
 use std::net::TcpStream;
@@ -22,7 +24,7 @@ pub struct InspectorActor {
     pub pageStyle: RefCell<Option<String>>,
     pub highlighter: RefCell<Option<String>>,
     pub script_chan: IpcSender<DevtoolScriptControlMsg>,
-    pub pipeline: PipelineId,
+    pub browsing_context: String,
 }
 
 #[derive(Serialize)]
@@ -61,27 +63,26 @@ impl Actor for HighlighterActor {
         self.name.clone()
     }
 
-    fn handle_message(&self,
-                      _registry: &ActorRegistry,
-                      msg_type: &str,
-                      _msg: &Map<String, Value>,
-                      stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
+    fn handle_message(
+        &self,
+        _registry: &ActorRegistry,
+        msg_type: &str,
+        _msg: &Map<String, Value>,
+        stream: &mut TcpStream,
+        _id: StreamId,
+    ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "showBoxModel" => {
-                let msg = ShowBoxModelReply {
-                    from: self.name(),
-                };
-                stream.write_json_packet(&msg);
+                let msg = ShowBoxModelReply { from: self.name() };
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
-            }
+            },
 
             "hideBoxModel" => {
-                let msg = HideBoxModelReply {
-                    from: self.name(),
-                };
-                stream.write_json_packet(&msg);
+                let msg = HideBoxModelReply { from: self.name() };
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
-            }
+            },
 
             _ => ActorMessageStatus::Ignored,
         })
@@ -98,29 +99,36 @@ impl Actor for NodeActor {
         self.name.clone()
     }
 
-    fn handle_message(&self,
-                      registry: &ActorRegistry,
-                      msg_type: &str,
-                      msg: &Map<String, Value>,
-                      stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
+    fn handle_message(
+        &self,
+        registry: &ActorRegistry,
+        msg_type: &str,
+        msg: &Map<String, Value>,
+        stream: &mut TcpStream,
+        _id: StreamId,
+    ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "modifyAttributes" => {
                 let target = msg.get("to").unwrap().as_str().unwrap();
                 let mods = msg.get("modifications").unwrap().as_array().unwrap();
-                let modifications = mods.iter().map(|json_mod| {
-                    serde_json::from_str(&serde_json::to_string(json_mod).unwrap()).unwrap()
-                }).collect();
+                let modifications = mods
+                    .iter()
+                    .map(|json_mod| {
+                        serde_json::from_str(&serde_json::to_string(json_mod).unwrap()).unwrap()
+                    })
+                    .collect();
 
-                self.script_chan.send(ModifyAttribute(self.pipeline,
-                                                      registry.actor_to_script(target.to_owned()),
-                                                      modifications))
-                                .unwrap();
-                let reply = ModifyAttributeReply {
-                    from: self.name(),
-                };
-                stream.write_json_packet(&reply);
+                self.script_chan
+                    .send(ModifyAttribute(
+                        self.pipeline,
+                        registry.actor_to_script(target.to_owned()),
+                        modifications,
+                    ))
+                    .unwrap();
+                let reply = ModifyAttributeReply { from: self.name() };
+                let _ = stream.write_json_packet(&reply);
                 ActorMessageStatus::Processed
-            }
+            },
 
             _ => ActorMessageStatus::Ignored,
         })
@@ -175,19 +183,23 @@ struct NodeActorMsg {
 }
 
 trait NodeInfoToProtocol {
-    fn encode(self,
-              actors: &ActorRegistry,
-              display: bool,
-              script_chan: IpcSender<DevtoolScriptControlMsg>,
-              pipeline: PipelineId) -> NodeActorMsg;
+    fn encode(
+        self,
+        actors: &ActorRegistry,
+        display: bool,
+        script_chan: IpcSender<DevtoolScriptControlMsg>,
+        pipeline: PipelineId,
+    ) -> NodeActorMsg;
 }
 
 impl NodeInfoToProtocol for NodeInfo {
-    fn encode(self,
-              actors: &ActorRegistry,
-              display: bool,
-              script_chan: IpcSender<DevtoolScriptControlMsg>,
-              pipeline: PipelineId) -> NodeActorMsg {
+    fn encode(
+        self,
+        actors: &ActorRegistry,
+        display: bool,
+        script_chan: IpcSender<DevtoolScriptControlMsg>,
+        pipeline: PipelineId,
+    ) -> NodeActorMsg {
         let actor_name = if !actors.script_actor_registered(self.uniqueId.clone()) {
             let name = actors.new_name("node");
             let node_actor = NodeActor {
@@ -196,7 +208,7 @@ impl NodeInfoToProtocol for NodeInfo {
                 pipeline: pipeline.clone(),
             };
             actors.register_script_actor(self.uniqueId, name.clone());
-            actors.register_later(box node_actor);
+            actors.register_later(Box::new(node_actor));
             name
         } else {
             actors.script_to_actor(self.uniqueId)
@@ -215,15 +227,17 @@ impl NodeInfoToProtocol for NodeInfo {
             publicId: self.publicId,
             systemId: self.systemId,
 
-            attrs: self.attrs.into_iter().map(|attr| {
-                AttrMsg {
+            attrs: self
+                .attrs
+                .into_iter()
+                .map(|attr| AttrMsg {
                     namespace: attr.namespace,
                     name: attr.name,
                     value: attr.value,
-                }
-            }).collect(),
+                })
+                .collect(),
 
-            pseudoClassLocks: vec!(), //TODO get this data from script
+            pseudoClassLocks: vec![], //TODO get this data from script
 
             isDisplayed: display,
 
@@ -272,62 +286,70 @@ impl Actor for WalkerActor {
         self.name.clone()
     }
 
-    fn handle_message(&self,
-                      registry: &ActorRegistry,
-                      msg_type: &str,
-                      msg: &Map<String, Value>,
-                      stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
+    fn handle_message(
+        &self,
+        registry: &ActorRegistry,
+        msg_type: &str,
+        msg: &Map<String, Value>,
+        stream: &mut TcpStream,
+        _id: StreamId,
+    ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "querySelector" => {
-                let msg = QuerySelectorReply {
-                    from: self.name(),
-                };
-                stream.write_json_packet(&msg);
+                let msg = QuerySelectorReply { from: self.name() };
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
-            }
+            },
 
             "documentElement" => {
                 let (tx, rx) = ipc::channel().unwrap();
-                self.script_chan.send(GetDocumentElement(self.pipeline, tx)).unwrap();
-                let doc_elem_info = try!(rx.recv().unwrap().ok_or(()));
-                let node = doc_elem_info.encode(registry, true, self.script_chan.clone(), self.pipeline);
+                self.script_chan
+                    .send(GetDocumentElement(self.pipeline, tx))
+                    .unwrap();
+                let doc_elem_info = rx.recv().unwrap().ok_or(())?;
+                let node =
+                    doc_elem_info.encode(registry, true, self.script_chan.clone(), self.pipeline);
 
                 let msg = DocumentElementReply {
                     from: self.name(),
                     node: node,
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
-            }
+            },
 
             "clearPseudoClassLocks" => {
-                let msg = ClearPseudoclassesReply {
-                    from: self.name(),
-                };
-                stream.write_json_packet(&msg);
+                let msg = ClearPseudoclassesReply { from: self.name() };
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
-            }
+            },
 
             "children" => {
                 let target = msg.get("node").unwrap().as_str().unwrap();
                 let (tx, rx) = ipc::channel().unwrap();
-                self.script_chan.send(GetChildren(self.pipeline,
-                                                  registry.actor_to_script(target.to_owned()),
-                                                  tx))
-                                .unwrap();
-                let children = try!(rx.recv().unwrap().ok_or(()));
+                self.script_chan
+                    .send(GetChildren(
+                        self.pipeline,
+                        registry.actor_to_script(target.to_owned()),
+                        tx,
+                    ))
+                    .unwrap();
+                let children = rx.recv().unwrap().ok_or(())?;
 
                 let msg = ChildrenReply {
                     hasFirst: true,
                     hasLast: true,
-                    nodes: children.into_iter().map(|child| {
-                        child.encode(registry, true, self.script_chan.clone(), self.pipeline)
-                    }).collect(),
+                    nodes: children
+                        .into_iter()
+                        .map(|child| {
+                            child.encode(registry, true, self.script_chan.clone(), self.pipeline)
+                        })
+                        .collect(),
                     from: self.name(),
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
-            }
+            },
 
             _ => ActorMessageStatus::Ignored,
         })
@@ -447,52 +469,74 @@ impl Actor for PageStyleActor {
         self.name.clone()
     }
 
-    fn handle_message(&self,
-                      registry: &ActorRegistry,
-                      msg_type: &str,
-                      msg: &Map<String, Value>,
-                      stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
+    fn handle_message(
+        &self,
+        registry: &ActorRegistry,
+        msg_type: &str,
+        msg: &Map<String, Value>,
+        stream: &mut TcpStream,
+        _id: StreamId,
+    ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "getApplied" => {
                 //TODO: query script for relevant applied styles to node (msg.node)
                 let msg = GetAppliedReply {
-                    entries: vec!(),
-                    rules: vec!(),
-                    sheets: vec!(),
+                    entries: vec![],
+                    rules: vec![],
+                    sheets: vec![],
                     from: self.name(),
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
-            }
+            },
 
             "getComputed" => {
                 //TODO: query script for relevant computed styles on node (msg.node)
                 let msg = GetComputedReply {
-                    computed: vec!(),
+                    computed: vec![],
                     from: self.name(),
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
-            }
+            },
 
             //TODO: query script for box layout properties of node (msg.node)
             "getLayout" => {
                 let target = msg.get("node").unwrap().as_str().unwrap();
                 let (tx, rx) = ipc::channel().unwrap();
-                self.script_chan.send(GetLayout(self.pipeline,
-                                      registry.actor_to_script(target.to_owned()),
-                                      tx))
-                                .unwrap();
+                self.script_chan
+                    .send(GetLayout(
+                        self.pipeline,
+                        registry.actor_to_script(target.to_owned()),
+                        tx,
+                    ))
+                    .unwrap();
                 let ComputedNodeLayout {
-                    display, position, zIndex, boxSizing,
-                    autoMargins, marginTop, marginRight, marginBottom, marginLeft,
-                    borderTopWidth, borderRightWidth, borderBottomWidth, borderLeftWidth,
-                    paddingTop, paddingRight, paddingBottom, paddingLeft,
-                    width, height,
-                } = try!(rx.recv().unwrap().ok_or(()));
+                    display,
+                    position,
+                    zIndex,
+                    boxSizing,
+                    autoMargins,
+                    marginTop,
+                    marginRight,
+                    marginBottom,
+                    marginLeft,
+                    borderTopWidth,
+                    borderRightWidth,
+                    borderBottomWidth,
+                    borderLeftWidth,
+                    paddingTop,
+                    paddingRight,
+                    paddingBottom,
+                    paddingLeft,
+                    width,
+                    height,
+                } = rx.recv().unwrap().ok_or(())?;
 
-                let auto_margins = msg.get("autoMargins")
-                    .and_then(&Value::as_bool).unwrap_or(false);
+                let auto_margins = msg
+                    .get("autoMargins")
+                    .and_then(&Value::as_bool)
+                    .unwrap_or(false);
 
                 // http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/styles.js
                 let msg = GetLayoutReply {
@@ -504,10 +548,18 @@ impl Actor for PageStyleActor {
                     autoMargins: if auto_margins {
                         let mut m = Map::new();
                         let auto = serde_json::value::Value::String("auto".to_owned());
-                        if autoMargins.top { m.insert("top".to_owned(), auto.clone()); }
-                        if autoMargins.right { m.insert("right".to_owned(), auto.clone()); }
-                        if autoMargins.bottom { m.insert("bottom".to_owned(), auto.clone()); }
-                        if autoMargins.left { m.insert("left".to_owned(), auto.clone()); }
+                        if autoMargins.top {
+                            m.insert("top".to_owned(), auto.clone());
+                        }
+                        if autoMargins.right {
+                            m.insert("right".to_owned(), auto.clone());
+                        }
+                        if autoMargins.bottom {
+                            m.insert("bottom".to_owned(), auto.clone());
+                        }
+                        if autoMargins.left {
+                            m.insert("left".to_owned(), auto);
+                        }
                         serde_json::value::Value::Object(m)
                     } else {
                         serde_json::value::Value::Null
@@ -529,9 +581,9 @@ impl Actor for PageStyleActor {
                 };
                 let msg = serde_json::to_string(&msg).unwrap();
                 let msg = serde_json::from_str::<Value>(&msg).unwrap();
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
-            }
+            },
 
             _ => ActorMessageStatus::Ignored,
         })
@@ -543,51 +595,56 @@ impl Actor for InspectorActor {
         self.name.clone()
     }
 
-    fn handle_message(&self,
-                      registry: &ActorRegistry,
-                      msg_type: &str,
-                      _msg: &Map<String, Value>,
-                      stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
+    fn handle_message(
+        &self,
+        registry: &ActorRegistry,
+        msg_type: &str,
+        _msg: &Map<String, Value>,
+        stream: &mut TcpStream,
+        _id: StreamId,
+    ) -> Result<ActorMessageStatus, ()> {
+        let browsing_context = registry.find::<BrowsingContextActor>(&self.browsing_context);
+        let pipeline = browsing_context.active_pipeline.get();
         Ok(match msg_type {
             "getWalker" => {
                 if self.walker.borrow().is_none() {
                     let walker = WalkerActor {
                         name: registry.new_name("walker"),
                         script_chan: self.script_chan.clone(),
-                        pipeline: self.pipeline,
+                        pipeline: pipeline,
                     };
                     let mut walker_name = self.walker.borrow_mut();
                     *walker_name = Some(walker.name());
-                    registry.register_later(box walker);
+                    registry.register_later(Box::new(walker));
                 }
 
                 let (tx, rx) = ipc::channel().unwrap();
-                self.script_chan.send(GetRootNode(self.pipeline, tx)).unwrap();
-                let root_info = try!(rx.recv().unwrap().ok_or(()));
+                self.script_chan.send(GetRootNode(pipeline, tx)).unwrap();
+                let root_info = rx.recv().unwrap().ok_or(())?;
 
-                let node = root_info.encode(registry, false, self.script_chan.clone(), self.pipeline);
+                let node = root_info.encode(registry, false, self.script_chan.clone(), pipeline);
 
                 let msg = GetWalkerReply {
                     from: self.name(),
                     walker: WalkerMsg {
                         actor: self.walker.borrow().clone().unwrap(),
                         root: node,
-                    }
+                    },
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
-            }
+            },
 
             "getPageStyle" => {
                 if self.pageStyle.borrow().is_none() {
                     let style = PageStyleActor {
                         name: registry.new_name("pageStyle"),
                         script_chan: self.script_chan.clone(),
-                        pipeline: self.pipeline,
+                        pipeline: pipeline,
                     };
                     let mut pageStyle = self.pageStyle.borrow_mut();
                     *pageStyle = Some(style.name());
-                    registry.register_later(box style);
+                    registry.register_later(Box::new(style));
                 }
 
                 let msg = GetPageStyleReply {
@@ -596,9 +653,9 @@ impl Actor for InspectorActor {
                         actor: self.pageStyle.borrow().clone().unwrap(),
                     },
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
-            }
+            },
 
             //TODO: this is an old message; try adding highlightable to the root traits instead
             //      and support getHighlighter instead
@@ -610,7 +667,7 @@ impl Actor for InspectorActor {
                     };
                     let mut highlighter = self.highlighter.borrow_mut();
                     *highlighter = Some(highlighter_actor.name());
-                    registry.register_later(box highlighter_actor);
+                    registry.register_later(Box::new(highlighter_actor));
                 }
 
                 let msg = GetHighlighterReply {
@@ -619,9 +676,9 @@ impl Actor for InspectorActor {
                         actor: self.highlighter.borrow().clone().unwrap(),
                     },
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
-            }
+            },
 
             _ => ActorMessageStatus::Ignored,
         })

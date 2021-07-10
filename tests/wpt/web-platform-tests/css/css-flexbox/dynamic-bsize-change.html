@@ -1,0 +1,28 @@
+<!doctype html>
+<title>CSS Test: Dynamic change to the block size inside an auto-sized flex item</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1496833">
+<link rel="match" href="dynamic-bsize-change-ref.html">
+<style>
+  div {
+    border: 1px solid;
+  }
+  #myHeightChanges {
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+</style>
+<div style="display:flex; flex-direction:column">
+  <div style="height:auto">
+    <div id="myHeightChanges"></div>
+  </div>
+</div>
+<script>
+onload = function() {
+  window.unused = myHeightChanges.offsetTop;
+  myHeightChanges.style.height = "200px";
+}
+</script>

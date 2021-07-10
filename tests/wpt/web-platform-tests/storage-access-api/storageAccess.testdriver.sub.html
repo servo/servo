@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<head>
+  <title>TestDriver - Set Storage Access Command Tests</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="helpers.js"></script>
+</head>
+<body>
+  <script>
+    "use strict";
+
+    promise_test(async t => {
+      // Allow a third-party site embedded in this first-party site.
+      await window.test_driver.set_storage_access("http://{{domains[www]}}:{{ports[http][0]}}/", "http://{{domains[]}}:{{ports[http][0]}}/", "allowed");
+      // Block a third-party site embedded in this first-party site.
+      await window.test_driver.set_storage_access("http://{{domains[www1]}}:{{ports[http][0]}}/", "http://{{domains[]}}:{{ports[http][0]}}/", "blocked");
+      // Block a third-party site on all first-party sites.
+      await window.test_driver.set_storage_access("http://{{domains[www2]}}:{{ports[http][0]}}/", "*", "blocked");
+    }, "Set up storage access rules");
+
+    RunTestsInIFrame("http://{{domains[]}}:{{ports[http][0]}}/storage-access-api/resources/set-cookie.py?name=hello0&value=world0&allowed=true&testcase=same-site");
+
+    RunTestsInIFrame("http://{{domains[www]}}:{{ports[http][0]}}/storage-access-api/resources/set-cookie.py?name=hello&value=world&allowed=true&testcase=third-party-allowed-on-first-party-site");
+
+    RunTestsInIFrame("http://{{domains[www1]}}:{{ports[http][0]}}/storage-access-api/resources/set-cookie.py?name=hello1&value=world1&allowed=false&testcase=third-party-blocked-on-first-party-site");
+
+    RunTestsInIFrame("http://{{domains[www2]}}:{{ports[http][0]}}/storage-access-api/resources/set-cookie.py?name=hello2&value=world2&allowed=false&testcase=third-party-blocked-all");
+  </script>
+</body>

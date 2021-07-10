@@ -1,0 +1,183 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content Visibility: intersection observer interactions</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="content-visibility hidden is not intersecting from IO perspective">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+div {
+  width: 100px;
+  height: 100px;
+}
+#spacer {
+  height: 3000px;
+}
+.hidden {
+  content-visibility: hidden;
+}
+</style>
+
+<div id="target1">
+  <div id="target2"></div>
+</div>
+<div id="target3">
+  <div id="target4"></div>
+</div>
+<div id="spacer"></div>
+<div id="find_me"></div>
+
+<script>
+async_test((t) => {
+  let target1, target2, target3, target4;
+  let observer;
+  let entries = [];
+
+  // Set everything up.
+  function enqueueStep1() {
+    target1 = document.getElementById("target1");
+    target2 = document.getElementById("target2");
+    target3 = document.getElementById("target3");
+    target4 = document.getElementById("target4");
+
+    observer = new IntersectionObserver((new_entries) => {
+      entries = entries.concat(new_entries);
+    });
+    observer.observe(target1);
+    observer.observe(target2);
+    observer.observe(target3);
+    observer.observe(target4);
+
+    entries = entries.concat(observer.takeRecords());
+    t.step(() => { assert_equals(entries.length, 0, "No initial notifications") });
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        runStep1();
+      });
+    });
+  }
+
+  // Verify that all elements are visible at the start, with intersection events.
+  function runStep1() {
+    const step = arguments.callee.name;
+    t.step(() => {
+      assert_equals(entries.length, 4, step);
+      // Clear the observed visible targets.
+      for (let i = 0; i < entries.length; ++i) {
+        assert_true(entries[i].isIntersecting);
+        assert_true(entries[i].target === target1 ||
+                    entries[i].target === target2 ||
+                    entries[i].target === target3 ||
+                    entries[i].target === target4, step);
+      }
+    });
+
+    entries = [];
+    enqueueStep2();
+  }
+
+  // Lock target3.
+  async function enqueueStep2() {
+    target3.classList.add("hidden");
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        runStep2();
+      });
+    });
+  }
+
+  // Verify that the hidden element received a not-intersecting event.
+  function runStep2() {
+    const step = arguments.callee.name;
+    t.step(() => {
+      assert_equals(entries.length, 1, step);
+      assert_false(entries[0].isIntersecting, step);
+      assert_equals(entries[0].target, target4, step);
+    });
+
+    entries = [];
+    enqueueStep3();
+  }
+
+  // Scroll all elements off screen.
+  function enqueueStep3() {
+    document.getElementById("find_me").scrollIntoView();
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        runStep3();
+      });
+    });
+  }
+
+  // Verify that all elements received not intersecting event, except
+  // target4, which was already not intersecting due to being hidden.
+  function runStep3() {
+    const step = arguments.callee.name;
+    t.step(() => {
+      assert_equals(entries.length, 3, step);
+      for (let i = 0; i < entries.length; ++i) {
+        assert_false(entries[i].isIntersecting, step);
+        assert_not_equals(entries[i].target, target4, step);
+      }
+    });
+
+    entries = [];
+    enqueueStep4();
+  }
+
+  // Scroll the elements back on screen.
+  function enqueueStep4() {
+    target1.scrollIntoView();
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        runStep4();
+      });
+    });
+  }
+
+  // Verify that all elements received not intersecting event, except
+  // target4, which remains not intersecting.
+  function runStep4() {
+    const step = arguments.callee.name;
+    t.step(() => {
+      assert_equals(entries.length, 3, step);
+      for (let i = 0; i < entries.length; ++i) {
+        assert_true(entries[i].isIntersecting);
+        assert_not_equals(entries[i].target, target4, step);
+      }
+    });
+
+    entries = [];
+    enqueueStep5();
+  }
+
+  // Unlock target3.
+  async function enqueueStep5() {
+    target3.classList.remove("hidden");
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        runStep5();
+      });
+    });
+  }
+
+  function runStep5() {
+    const step = arguments.callee.name;
+    t.step(() => {
+      assert_equals(entries.length, 1, step);
+      assert_true(entries[0].isIntersecting, step);
+      assert_equals(entries[0].target, target4, step);
+    });
+    t.done();
+  }
+
+
+  window.onload = () => {
+    requestAnimationFrame(enqueueStep1);
+  };
+}, "IntersectionObserver interactions");
+</script>

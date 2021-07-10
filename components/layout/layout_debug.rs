@@ -1,24 +1,24 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Supports writing a trace file created during each layout scope
 //! that can be viewed by an external tool to make layout debugging easier.
 
-use flow;
-use flow_ref::FlowRef;
+use crate::flow::GetBaseFlow;
+use crate::flow_ref::FlowRef;
 use serde_json::{to_string, to_value, Value};
 use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::fs::File;
 use std::io::Write;
 #[cfg(debug_assertions)]
-use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 thread_local!(static STATE_KEY: RefCell<Option<State>> = RefCell::new(None));
 
 #[cfg(debug_assertions)]
-static DEBUG_ID_COUNTER: AtomicUsize = ATOMIC_USIZE_INIT;
+static DEBUG_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 pub struct Scope;
 
@@ -47,7 +47,7 @@ impl ScopeData {
             name: name,
             pre: pre,
             post: Value::Null,
-            children: vec!(),
+            children: vec![],
         }
     }
 }
@@ -63,8 +63,8 @@ impl Scope {
     pub fn new(name: String) -> Scope {
         STATE_KEY.with(|ref r| {
             if let Some(ref mut state) = *r.borrow_mut() {
-                let flow_trace = to_value(&flow::base(&*state.flow_root)).unwrap();
-                let data = box ScopeData::new(name.clone(), flow_trace);
+                let flow_trace = to_value(&state.flow_root.base()).unwrap();
+                let data = Box::new(ScopeData::new(name.clone(), flow_trace));
                 state.scope_stack.push(data);
             }
         });
@@ -78,7 +78,7 @@ impl Drop for Scope {
         STATE_KEY.with(|ref r| {
             if let Some(ref mut state) = *r.borrow_mut() {
                 let mut current_scope = state.scope_stack.pop().unwrap();
-                current_scope.post = to_value(&flow::base(&*state.flow_root)).unwrap();
+                current_scope.post = to_value(&state.flow_root.base()).unwrap();
                 let previous_scope = state.scope_stack.last_mut().unwrap();
                 previous_scope.children.push(current_scope);
             }
@@ -100,9 +100,9 @@ pub fn begin_trace(flow_root: FlowRef) {
     assert!(STATE_KEY.with(|ref r| r.borrow().is_none()));
 
     STATE_KEY.with(|ref r| {
-        let flow_trace = to_value(&flow::base(&*flow_root)).unwrap();
+        let flow_trace = to_value(&flow_root.base()).unwrap();
         let state = State {
-            scope_stack: vec![box ScopeData::new("root".to_owned(), flow_trace)],
+            scope_stack: vec![Box::new(ScopeData::new("root".to_owned(), flow_trace))],
             flow_root: flow_root.clone(),
         };
         *r.borrow_mut() = Some(state);
@@ -114,9 +114,9 @@ pub fn begin_trace(flow_root: FlowRef) {
 /// file can then be viewed with an external tool.
 pub fn end_trace(generation: u32) {
     let mut thread_state = STATE_KEY.with(|ref r| r.borrow_mut().take().unwrap());
-    assert!(thread_state.scope_stack.len() == 1);
+    assert_eq!(thread_state.scope_stack.len(), 1);
     let mut root_scope = thread_state.scope_stack.pop().unwrap();
-    root_scope.post = to_value(&flow::base(&*thread_state.flow_root)).unwrap();
+    root_scope.post = to_value(&thread_state.flow_root.base()).unwrap();
 
     let result = to_string(&root_scope).unwrap();
     let mut file = File::create(format!("layout_trace-{}.json", generation)).unwrap();

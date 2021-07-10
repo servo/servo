@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCRtpSender.prototype.setParameters</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  /*
+    5.2.  setParameters
+        6.  If transceiver.stopped is true, abort these steps and return a promise
+            rejected with a newly created InvalidStateError.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const transceiver = pc.addTransceiver('audio');
+    const { sender } = transceiver;
+
+    const param = sender.getParameters();
+    transceiver.stop();
+
+    return promise_rejects_dom(t, 'InvalidStateError',
+      sender.setParameters(param));
+  }, `setParameters() when transceiver is stopped should reject with InvalidStateError`);
+
+</script>

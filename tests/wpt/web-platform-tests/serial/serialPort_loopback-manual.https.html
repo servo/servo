@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/common.js"></script>
+    <script src="resources/manual.js"></script>
+  </head>
+  <body>
+    <p>
+      These tests require a connected serial device configured to act as a
+      "loopback" device, with the transmit and receive pins wired together.
+    </p>
+    <script>
+      manual_loopback_serial_test(async (t, port) => {
+        await port.open({baudRate: 115200, bufferSize: 1024});
+
+        // Create something much smaller than bufferSize above.
+        const data = new Uint8Array(64);
+        for (let i = 0; i < data.byteLength; ++i)
+          data[i] = i & 0xff;
+
+        const reader = port.readable.getReader();
+
+        for (let i = 0; i < 10; ++i) {
+          const writer = port.writable.getWriter();
+          writer.write(data);
+          const writePromise = writer.close();
+
+          const value = await readWithLength(reader, data.byteLength);
+          await writePromise;
+
+          compareArrays(value, data);
+        }
+
+        reader.releaseLock();
+        await port.close();
+      }, 'Can perform a series of small writes.');
+
+      manual_loopback_serial_test(async (t, port) => {
+        await port.open({baudRate: 115200, bufferSize: 1024});
+
+        // Create something much larger than bufferSize above.
+        const data = new Uint8Array(10 * 1024);
+        for (let i = 0; i < data.byteLength; ++i)
+          data[i] = (i / 1024) & 0xff;
+
+        const reader = port.readable.getReader();
+
+        for (let i = 0; i < 10; ++i) {
+          const writer = port.writable.getWriter();
+          writer.write(data);
+          const writePromise = writer.close();
+
+          const value = await readWithLength(reader, data.byteLength);
+          await writePromise;
+
+          compareArrays(value, data);
+        }
+
+        reader.releaseLock();
+        await port.close();
+      }, 'Can perform a series of large writes.');
+
+      manual_loopback_serial_test(async (t, port) => {
+        await port.open({baudRate: 115200, bufferSize: 64});
+
+        const writer = port.writable.getWriter();
+        // |data| is small enough to be completely transmitted.
+        let data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+        await writer.write(data);
+
+        // Wait a little bit for the device to process the incoming data.
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        // ...before discarding the receive buffers.
+        await port.readable.cancel();
+
+        data = new Uint8Array([9, 10, 11, 12, 13, 14, 15, 16]);
+        const reader = port.readable.getReader();
+        const readPromise = readWithLength(reader, data.byteLength);
+
+        // The next block of data should be received successfully.
+        await writer.write(data);
+        writer.releaseLock();
+
+        const value = await readPromise;
+        reader.releaseLock();
+
+        compareArrays(value, data);
+
+        await port.close();
+      }, 'Canceling the reader discards buffered data.');
+    </script>
+  </body>
+</html>

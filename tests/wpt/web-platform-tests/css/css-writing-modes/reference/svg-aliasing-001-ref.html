@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Writing modes test reference</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<p>The test passes if you can see “1 2 3” 6 times below (without the quotation marks). If any of them is reversed (“3 2 1”) the test fails.</p>
+<svg
+   xmlns="http://www.w3.org/2000/svg"
+   width="300"
+   height="600">
+<g>
+  <text x="0" y="50" style="fill: blue;">1 2 3</text>
+  <text x="0" y="150" style="fill: blue;">1 2 3</text>
+</g>
+<g>
+  <text x="150" y="50" style="fill: blue;">1 2 3</text>
+  <text x="150" y="150" style="fill: blue;">1 2 3</text>
+</g>
+<g>
+  <text x="300" y="50" style="direction: rtl; fill: blue;">3 2 1</text>
+  <text x="300" y="150" style="direction: rtl; fill: blue;">3 2 1</text>
+</g>
+</svg>
+

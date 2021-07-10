@@ -1,0 +1,35 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: 'contain: size' on select objects should cause them to be sized as if they have no contents.</title>
+  <link rel="author" title="Morgan Rae Reschenberg" href="mailto:mreschenberg@berkeley.edu">
+  <link rel="help" href="https://drafts.csswg.org/css-contain/#containment-size">
+  <link rel="match" href="contain-size-select-elem-002-ref.html">
+  <style>
+  select {
+    contain: size;
+    color: transparent;
+  }
+  .floatLBasic {
+    float: left;
+  }
+  </style>
+</head>
+<body>
+  <select>
+    <option>CSS Test: A size-contained select with no specified size should size itself as if it had no contents.</option>
+    <option>aaaaaa</option>
+    <option>b</option>
+    <option>c</option>
+  </select>
+  <br>
+
+  <select class="floatLBasic">
+    <option>CSS Test: A size-contained floated select with no specified size should size itself as if it had no contents.</option>
+    <option>a</option>
+    <option>b</option>
+    <option>c</option>
+  </select>
+</body>
+</html>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>font face</title>
+<link rel="help" href="https://html.spec.whatwg.org/#the-font-element-text-decoration-color-quirk">
+<link rel="author" title="Intel" href="http://www.intel.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+
+const types = ["serif", "sans-serif", "cursive", "fantasy", "monospace"];
+for (let type of types) {
+  test(() => {
+    let elem = document.createElement("font");
+    elem.setAttribute("face", type);
+    document.body.appendChild(elem);
+    let exp_type = window.getComputedStyle(elem, null).getPropertyValue("font-family");
+    assert_equals(exp_type, type);
+  }, `font face attribute ${type} is correct`);
+}
+
+</script>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS basic box model: parsing max-height with invalid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-box-3/#propdef-max-height">
+<meta name="assert" content="max-height supports only the grammar '[ [<length> | <percentage>] && [border-box | content-box]? ] | available | min-content | max-content | fit-content | none'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("max-height", "complex");
+test_invalid_value("max-height", "auto");
+test_invalid_value("max-height", "none available");
+test_invalid_value("max-height", "max-content 10px");
+test_invalid_value("max-height", "20% available");
+
+test_invalid_value("max-height", "-10px");
+test_invalid_value("max-height", "-20%");
+test_invalid_value("max-height", "60");
+test_invalid_value("max-height", "10px 20%");
+test_invalid_value("max-height", "content-box border-box");
+test_invalid_value("max-height", "10px border-box 20%");
+test_invalid_value("max-height", "content-box 20% border-box");
+</script>
+</body>
+</html>

@@ -31,7 +31,7 @@
   </fieldset>
   <fieldset id=fs4 disabled>
     <legend>
-      <fieldset><input type=checkbox id=club4></fieldset>
+      <fieldset id=fs4-1><input type=checkbox id=club4></fieldset>
     </legend>
     <p><label>Name on card: <input id=clubname4 required></label></p>
     <p><label>Card number: <input id=clubnum4 required pattern="[-0-9]+"></label></p>
@@ -68,4 +68,11 @@
     assert_false(document.getElementById('clubnum4').willValidate, "fieldset is disabled so is input 'clubnum4'");
     assert_true(document.getElementById('club4').willValidate, "the first legend a child of the disabled fieldset: input 'club4' is disabled");
   }, "The <legend> element is child of the disabled fieldset: Its descendants should be disabled.");
+
+  test(function () {
+    let fs41 = document.querySelector('#fs4-1');
+    fs41.disabled = true;
+    assert_true(fs41.disabled, "The fieldset in a legend is disabled");
+    assert_false(document.getElementById('club4').willValidate, "In a disabled fieldset in the first legend child of another disabled fieldset: input 'club4' is disabled");
+  }, "A <fieldset> element is in the <legend> element of another disabled <fieldset>: Its descendants should be disabled.");
 </script>

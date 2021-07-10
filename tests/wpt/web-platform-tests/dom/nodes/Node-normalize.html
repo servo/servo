@@ -51,4 +51,33 @@ test(function() {
   div.normalize();
   assert_array_equals(div.childNodes, [])
 }, "Empty text nodes")
+
+// The specification for normalize is clear that only "exclusive Text
+// nodes" are to be modified. This excludes CDATASection nodes, which
+// derive from Text. Naïve implementations may fail to skip
+// CDATASection nodes, or even worse, try to test textContent or
+// nodeValue without taking care to check the node type. They will
+// fail this test.
+test(function() {
+  // We create an XML document so that we can create CDATASection.
+  // Except for the CDATASection the result should be the same for
+  // an HTML document. (No non-Text node should be touched.)
+  var doc = new DOMParser().parseFromString("<div/>", "text/xml")
+  var div = doc.documentElement
+  var t1 = div.appendChild(doc.createTextNode("a"))
+  // The first parameter is the "target" of the processing
+  // instruction, and the 2nd is the text content.
+  var t2 = div.appendChild(doc.createProcessingInstruction("pi", ""))
+  var t3 = div.appendChild(doc.createTextNode("b"))
+  var t4 = div.appendChild(doc.createCDATASection(""))
+  var t5 = div.appendChild(doc.createTextNode("c"))
+  var t6 = div.appendChild(doc.createComment(""))
+  var t7 = div.appendChild(doc.createTextNode("d"))
+  var t8 = div.appendChild(doc.createElement("el"))
+  var t9 = div.appendChild(doc.createTextNode("e"))
+  var expected = [t1, t2, t3, t4, t5, t6, t7, t8, t9]
+  assert_array_equals(div.childNodes, expected)
+  div.normalize()
+  assert_array_equals(div.childNodes, expected)
+}, "Non-text nodes with empty textContent values.")
 </script>

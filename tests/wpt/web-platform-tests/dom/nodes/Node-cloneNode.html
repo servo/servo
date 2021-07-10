@@ -11,27 +11,33 @@ function assert_equal_node(nodeA, nodeB) {
   assert_equals(nodeB.nodeName, nodeA.nodeName, "nodeName");
 
   if (nodeA.nodeType === Node.ELEMENT_NODE) {
-    assert_equals(nodeB.prefix, nodeA.prefix);
-    assert_equals(nodeB.namespaceURI, nodeA.namespaceURI);
-    assert_equals(nodeB.localName, nodeA.localName);
-    assert_equals(nodeB.tagName, nodeA.tagName);
-    assert_not_equals(nodeB.attributes != nodeA.attributes);
-    assert_equals(nodeB.attributes.length, nodeA.attributes.length);
+    assert_equals(nodeB.prefix, nodeA.prefix, "prefix");
+    assert_equals(nodeB.namespaceURI, nodeA.namespaceURI, "namespaceURI");
+    assert_equals(nodeB.localName, nodeA.localName, "localName");
+    assert_equals(nodeB.tagName, nodeA.tagName, "tagName");
+    assert_not_equals(nodeB.attributes != nodeA.attributes, "attributes");
+    assert_equals(nodeB.attributes.length, nodeA.attributes.length,
+                  "attributes.length");
     for (var i = 0, il = nodeA.attributes.length; i < il; ++i) {
-      assert_not_equals(nodeB.attributes[i], nodeA.attributes[i]);
-      assert_equals(nodeB.attributes[i].name, nodeA.attributes[i].name);
-      assert_equals(nodeB.attributes[i].prefix, nodeA.attributes[i].prefix);
-      assert_equals(nodeB.attributes[i].namespaceURI, nodeA.attributes[i].namespaceURI);
-      assert_equals(nodeB.attributes[i].value, nodeA.attributes[i].value);
+      assert_not_equals(nodeB.attributes[i], nodeA.attributes[i],
+                        "attributes[" + i + "]");
+      assert_equals(nodeB.attributes[i].name, nodeA.attributes[i].name,
+                    "attributes[" + i + "].name");
+      assert_equals(nodeB.attributes[i].prefix, nodeA.attributes[i].prefix,
+                    "attributes[" + i + "].prefix");
+      assert_equals(nodeB.attributes[i].namespaceURI, nodeA.attributes[i].namespaceURI,
+                    "attributes[" + i + "].namespaceURI");
+      assert_equals(nodeB.attributes[i].value, nodeA.attributes[i].value,
+                    "attributes[" + i + "].value");
     }
   }
 }
 
 function check_copy(orig, copy, type) {
-    assert_not_equals(orig, copy);
-    assert_equal_node(orig, copy);
-    assert_true(orig instanceof type, "Should be type");
-    assert_true(copy instanceof type, "Should be type");
+    assert_not_equals(orig, copy, "Object equality");
+    assert_equal_node(orig, copy, "Node equality");
+    assert_true(orig instanceof type, "original instanceof " + type);
+    assert_true(copy instanceof type, "copy instanceof " + type);
 }
 
 function create_element_and_check(localName, typeName) {
@@ -48,7 +54,6 @@ create_element_and_check("a",         "HTMLAnchorElement");
 create_element_and_check("abbr",      "HTMLElement");
 create_element_and_check("acronym",   "HTMLElement");
 create_element_and_check("address",   "HTMLElement");
-create_element_and_check("applet",    "HTMLAppletElement");
 create_element_and_check("area",      "HTMLAreaElement");
 create_element_and_check("article",   "HTMLElement");
 create_element_and_check("aside",     "HTMLElement");
@@ -212,40 +217,84 @@ test(function() {
     var pi = document.createProcessingInstruction("target", "data");
     var copy = pi.cloneNode();
     check_copy(pi, copy, ProcessingInstruction);
-    assert_equals(pi.data, copy.data);
-    assert_equals(pi.target, pi.target);
+    assert_equals(pi.data, copy.data, "data");
+    assert_equals(pi.target, pi.target, "target");
 }, "createProcessingInstruction");
+
+test(function() {
+    var attr = document.createAttribute("class");
+    var copy = attr.cloneNode();
+    check_copy(attr, copy, Attr);
+    assert_equals(attr.namespaceURI, copy.namespaceURI);
+    assert_equals(attr.prefix, copy.prefix);
+    assert_equals(attr.localName, copy.localName);
+    assert_equals(attr.value, copy.value);
+
+    attr.value = "abc";
+    assert_equals(attr.namespaceURI, copy.namespaceURI);
+    assert_equals(attr.prefix, copy.prefix);
+    assert_equals(attr.localName, copy.localName);
+    assert_not_equals(attr.value, copy.value);
+
+    var copy2 = attr.cloneNode();
+    check_copy(attr, copy2, Attr);
+    assert_equals(attr.namespaceURI, copy.namespaceURI);
+    assert_equals(attr.prefix, copy.prefix);
+    assert_equals(attr.localName, copy2.localName);
+    assert_equals(attr.value, copy2.value);
+}, "createAttribute");
+
+test(function() {
+    var attr = document.createAttributeNS("http://www.w3.org/1999/xhtml", "foo:class");
+    var copy = attr.cloneNode();
+    check_copy(attr, copy, Attr);
+    assert_equals(attr.namespaceURI, copy.namespaceURI);
+    assert_equals(attr.prefix, copy.prefix);
+    assert_equals(attr.localName, copy.localName);
+    assert_equals(attr.value, copy.value);
+
+    attr.value = "abc";
+    assert_equals(attr.namespaceURI, copy.namespaceURI);
+    assert_equals(attr.prefix, copy.prefix);
+    assert_equals(attr.localName, copy.localName);
+    assert_not_equals(attr.value, copy.value);
+
+    var copy2 = attr.cloneNode();
+    check_copy(attr, copy2, Attr);
+    assert_equals(attr.namespaceURI, copy.namespaceURI);
+    assert_equals(attr.prefix, copy.prefix);
+    assert_equals(attr.localName, copy2.localName);
+    assert_equals(attr.value, copy2.value);
+}, "createAttributeNS");
 
 test(function() {
     var doctype = document.implementation.createDocumentType("html", "public", "system");
     var copy = doctype.cloneNode();
     check_copy(doctype, copy, DocumentType);
-    assert_equals(doctype.name, copy.name);
-    assert_equals(doctype.publicId, copy.publicId);
-    assert_equals(doctype.systemId, copy.systemId);
+    assert_equals(doctype.name, copy.name, "name");
+    assert_equals(doctype.publicId, copy.publicId, "publicId");
+    assert_equals(doctype.systemId, copy.systemId, "systemId");
 }, "implementation.createDocumentType");
 
 test(function() {
     var doc = document.implementation.createDocument(null, null);
     var copy = doc.cloneNode();
     check_copy(doc, copy, Document);
-    assert_equals(doc.charset, "UTF-8");
-    assert_equals(doc.charset, copy.charset);
-    assert_equals(doc.contentType, "application/xml");
-    assert_equals(doc.contentType, copy.contentType);
-    assert_equals(doc.URL, "about:blank")
-    assert_equals(doc.URL, copy.URL);
-    assert_equals(doc.origin, "null")
-    assert_equals(doc.origin, copy.origin);
-    assert_equals(doc.compatMode, "CSS1Compat");
-    assert_equals(doc.compatMode, copy.compatMode);
+    assert_equals(doc.charset, "UTF-8", "charset value");
+    assert_equals(doc.charset, copy.charset, "charset equality");
+    assert_equals(doc.contentType, "application/xml", "contentType value");
+    assert_equals(doc.contentType, copy.contentType, "contentType equality");
+    assert_equals(doc.URL, "about:blank", "URL value")
+    assert_equals(doc.URL, copy.URL, "URL equality");
+    assert_equals(doc.compatMode, "CSS1Compat", "compatMode value");
+    assert_equals(doc.compatMode, copy.compatMode, "compatMode equality");
 }, "implementation.createDocument");
 
 test(function() {
     var html = document.implementation.createHTMLDocument("title");
     var copy = html.cloneNode();
     check_copy(html, copy, Document);
-    assert_equals(copy.title, "");
+    assert_equals(copy.title, "", "title value");
 }, "implementation.createHTMLDocument");
 
 test(function() {
@@ -262,19 +311,36 @@ test(function() {
     var copy = parent.cloneNode(deep);
 
     check_copy(parent, copy, HTMLDivElement);
-    assert_equals(copy.childNodes.length, 2);
+    assert_equals(copy.childNodes.length, 2,
+                  "copy.childNodes.length with deep copy");
 
     check_copy(child1, copy.childNodes[0], HTMLDivElement);
-    assert_equals(copy.childNodes[0].childNodes.length, 0);
+    assert_equals(copy.childNodes[0].childNodes.length, 0,
+                  "copy.childNodes[0].childNodes.length");
 
     check_copy(child2, copy.childNodes[1], HTMLDivElement);
-    assert_equals(copy.childNodes[1].childNodes.length, 1);
+    assert_equals(copy.childNodes[1].childNodes.length, 1,
+                  "copy.childNodes[1].childNodes.length");
     check_copy(grandChild, copy.childNodes[1].childNodes[0], HTMLDivElement);
 
     deep = false;
     copy = parent.cloneNode(deep);
 
     check_copy(parent, copy, HTMLDivElement);
-    assert_equals(copy.childNodes.length, 0);
+    assert_equals(copy.childNodes.length, 0,
+                  "copy.childNodes.length with non-deep copy");
 }, "node with children");
+
+test(() => {
+  const proto = Object.create(HTMLElement.prototype),
+        node = document.createElement("hi");
+  Object.setPrototypeOf(node, proto);
+  assert_true(proto.isPrototypeOf(node));
+  const clone = node.cloneNode();
+  assert_false(proto.isPrototypeOf(clone));
+  assert_true(HTMLUnknownElement.prototype.isPrototypeOf(clone));
+  const deepClone = node.cloneNode(true);
+  assert_false(proto.isPrototypeOf(deepClone));
+  assert_true(HTMLUnknownElement.prototype.isPrototypeOf(deepClone));
+}, "Node with custom prototype")
 </script>

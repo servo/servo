@@ -1,0 +1,158 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.setLocalDescription rollback</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+
+  // The following helper functions are called from RTCPeerConnection-helper.js:
+  //   assert_session_desc_similar
+  //   generateAudioReceiveOnlyOffer
+
+  /*
+    4.3.2.  Interface Definition
+      [Constructor(optional RTCConfiguration configuration)]
+      interface RTCPeerConnection : EventTarget {
+        Promise<void>                      setLocalDescription(
+            RTCSessionDescriptionInit description);
+
+        readonly attribute RTCSessionDescription? localDescription;
+        readonly attribute RTCSessionDescription? currentLocalDescription;
+        readonly attribute RTCSessionDescription? pendingLocalDescription;
+
+        Promise<void>                      setRemoteDescription(
+            RTCSessionDescriptionInit description);
+
+        readonly attribute RTCSessionDescription? remoteDescription;
+        readonly attribute RTCSessionDescription? currentRemoteDescription;
+        readonly attribute RTCSessionDescription? pendingRemoteDescription;
+        ...
+      };
+
+    4.6.2.  RTCSessionDescription Class
+      dictionary RTCSessionDescriptionInit {
+        required RTCSdpType type;
+                 DOMString  sdp = "";
+      };
+
+    4.6.1.  RTCSdpType
+      enum RTCSdpType {
+        "offer",
+        "pranswer",
+        "answer",
+        "rollback"
+      };
+   */
+
+  /*
+    4.3.1.6.  Set the RTCSessionSessionDescription
+      2.2.2.  If description is set as a local description, then run one of the
+              following steps:
+        - If description is of type "rollback", then this is a rollback. Set
+          connection.pendingLocalDescription to null and signaling state to stable.
+   */
+  promise_test(t=> {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const states = [];
+    pc.addEventListener('signalingstatechange', () => states.push(pc.signalingState));
+
+    return pc.createOffer()
+    .then(offer => pc.setLocalDescription(offer))
+    .then(() => {
+      assert_equals(pc.signalingState, 'have-local-offer');
+      assert_not_equals(pc.localDescription, null);
+      assert_not_equals(pc.pendingLocalDescription, null);
+      assert_equals(pc.currentLocalDescription, null);
+
+      return pc.setLocalDescription({ type: 'rollback' });
+    })
+    .then(() => {
+      assert_equals(pc.signalingState, 'stable');
+      assert_equals(pc.localDescription, null);
+      assert_equals(pc.pendingLocalDescription, null);
+      assert_equals(pc.currentLocalDescription, null);
+
+      assert_array_equals(states, ['have-local-offer', 'stable']);
+    });
+  }, 'setLocalDescription(rollback) from have-local-offer state should reset back to stable state');
+
+  /*
+    4.3.1.6.  Set the RTCSessionSessionDescription
+      2.3.  If the description's type is invalid for the current signaling state of
+            connection, then reject p with a newly created InvalidStateError and abort
+            these steps. Note that this implies that once the answerer has performed
+            setLocalDescription with his answer, this cannot be rolled back.
+
+    [jsep]
+      4.1.8.2.  Rollback
+        - Rollback can only be used to cancel proposed changes;
+          there is no support for rolling back from a stable state to a
+          previous stable state
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    return promise_rejects_dom(t, 'InvalidStateError',
+      pc.setLocalDescription({ type: 'rollback' }));
+  }, `setLocalDescription(rollback) from stable state should reject with InvalidStateError`);
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    return generateAudioReceiveOnlyOffer(pc)
+    .then(offer =>
+      pc.setRemoteDescription(offer)
+      .then(() => pc.createAnswer()))
+    .then(answer => pc.setLocalDescription(answer))
+    .then(() => {
+      return promise_rejects_dom(t, 'InvalidStateError',
+        pc.setLocalDescription({ type: 'rollback' }));
+    });
+  }, `setLocalDescription(rollback) after setting answer description should reject with InvalidStateError`);
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    return pc.createOffer()
+    .then(offer => pc.setLocalDescription(offer))
+    .then(() => pc.setLocalDescription({
+      type: 'rollback',
+      sdp: '!<Invalid SDP Content>;'
+    }));
+  }, `setLocalDescription(rollback) should ignore invalid sdp content and succeed`);
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    await pc.setLocalDescription(await pc.createOffer({offerToReceiveAudio: true}));
+    const sldPromise = pc.setLocalDescription({type: "rollback"});
+
+    assert_equals(pc.signalingState, "have-local-offer", "signalingState should not be set synchronously after a call to sLD");
+
+    assert_not_equals(pc.pendingLocalDescription, null, "pendingLocalDescription should not be set synchronously after a call to sLD");
+    assert_equals(pc.pendingLocalDescription.type, "offer");
+    assert_equals(pc.pendingLocalDescription.sdp, pc.localDescription.sdp);
+    assert_equals(pc.pendingRemoteDescription, null, "pendingRemoteDescription should never be set due to sLD(offer)");
+
+    const stablePromise = new Promise(resolve => {
+      pc.onsignalingstatechange = () => {
+        resolve(pc.signalingState);
+      }
+    });
+    const raceValue = await Promise.race([stablePromise, sldPromise]);
+    assert_equals(raceValue, "stable", "signalingstatechange event should fire before sLD resolves");
+    assert_equals(pc.pendingLocalDescription, null, "pendingLocalDescription should be updated before the signalingstatechange event");
+    assert_equals(pc.pendingRemoteDescription, null, "pendingRemoteDescription should never be set due to sLD(offer)");
+
+    await sldPromise;
+  }, "setLocalDescription(rollback) should update internal state with a queued tassk, in the right order");
+
+</script>

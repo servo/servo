@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <meta http-equiv="Content-Security-Policy"
+        content="require-trusted-types-for 'script'">
+</head>
+<body>
+  <div id="log"></div>
+  <div id="div"></div>
+  <script id="script"></script>
+  <script>
+    var current_case = undefined;
+    function checker(...args) {
+      assert_equals(args.length, 3);
+      assert_true(current_case && current_case.length == 4);
+      assert_equals(args[0], current_case[0], "Expecting the value.");
+      assert_equals(args[1], current_case[1], "Expecting the type name.");
+      assert_equals(args[2], current_case[2], "Expecting the sink name.");
+      return args[0];
+    }
+
+    trustedTypes.createPolicy("default", {
+      createHTML: checker,
+      createScript: checker,
+      createScriptURL: checker
+    });
+
+    const div = document.getElementById("div");
+    const script = document.getElementById("script");
+    const cases = [
+      [ "abc", "TrustedHTML", "Element innerHTML",
+          _ => div.innerHTML = "abc" ],
+      [ "2+2", "TrustedScript", "Node textContent",
+          _ => script.textContent = "2+2" ],
+      [ "about:blank", "TrustedScriptURL", "HTMLScriptElement src",
+          _ => script.src = "about:blank" ],
+      [ "2+2", "TrustedScript", "eval", _ => eval("2+2") ],
+      [ "(function anonymous(\n) {\nreturn 2+2\n})", "TrustedScript",
+        "Function", _ => new Function("return 2+2") ],
+    ];
+    for (var tc of cases) {
+      test(t => {
+        current_case = tc;
+        tc[3]();
+      }, `Test callback arguments, case ${tc[2]}`);
+    }
+  </script>
+</body>
+

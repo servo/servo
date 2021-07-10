@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>Declarative Shadow DOM after attachShadow</title>
+<link rel='author' title='Mason Freed' href='mailto:masonfreed@chromium.org'>
+<link rel='help' href='https://github.com/whatwg/dom/issues/831'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+
+<body>
+<script>
+let gotHost = false;
+function myObserver(mutationsList, observer) {
+  for (let mutation of mutationsList) {
+    for (let n of mutation.addedNodes) {
+      if (n.id === 'host') {
+        gotHost = true;
+        const shadowRoot = n.attachShadow( {mode: 'closed'});
+        assert_true(!!shadowRoot, 'Unable to attach shadow imperatively');
+      }
+    }
+  }
+}
+const observer = new MutationObserver(myObserver);
+observer.observe(document.body, { childList: true, subtree: true });
+assert_false(gotHost, 'No mutations yet');
+</script>
+
+<div id=host>
+  <script></script> <!-- Make sure MutationObserver gets to run -->
+  <template shadowroot=open>
+    <slot></slot>
+  </template>
+</div>
+
+<script>
+test(t => {
+  t.add_cleanup(function() { observer.disconnect(); });
+  assert_true(gotHost);
+  let host = document.querySelector('#host');
+  let template = host.querySelector('template');
+  assert_true(!!template, 'Declarative shadow attach should fail, so template should be left over');
+  assert_true(!host.shadowRoot, 'Shadow root should be closed (from attachShadow call)');
+}, 'Declarative Shadow DOM: declarative shadow should fail if attachShadow() already called');
+</script>
+</body>

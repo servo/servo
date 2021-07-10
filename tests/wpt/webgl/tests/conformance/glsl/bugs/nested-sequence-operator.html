@@ -1,0 +1,70 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Nested sequence operator</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fshaderNestedSequenceOperator" type="x-shader/x-fragment">
+precision mediump float;
+// Note that keep_flop_positive is expected to keep its default value false.
+uniform bool keep_flop_positive;
+float flop;
+void main()
+{
+    flop = -1.0,
+    (flop *= -1.0,
+    keep_flop_positive ? 0.0 : flop *= -1.0),
+    gl_FragColor = vec4(0, -flop, 0, 1);
+}
+</script>
+<script type="text/javascript">
+"use strict";
+description("Test a nested sequence operator with a ternary operator inside. The ternary operator needs to be converted into an if statement on a HLSL based WebGL backend, which makes this case tricky.");
+
+GLSLConformanceTester.runRenderTests([
+{
+  fShaderId: 'fshaderNestedSequenceOperator',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "Nested sequence operator is evaluated in the expected order."
+}
+]);
+</script>
+</body>
+</html>

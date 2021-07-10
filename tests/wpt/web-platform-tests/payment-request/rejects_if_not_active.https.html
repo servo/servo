@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>PaymentRequest show() rejects if doc is not fully active</title>
+<link rel="help" href="https://w3c.github.io/payment-request/#show-method">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script>
+const applePay = Object.freeze({
+  supportedMethods: "https://apple.com/apple-pay",
+  data: {
+    version: 3,
+    merchantIdentifier: "merchant.com.example",
+    countryCode: "US",
+    merchantCapabilities: ["supports3DS"],
+    supportedNetworks: ["visa"],
+  }
+});
+const validMethod = Object.freeze({
+  supportedMethods: "basic-card",
+});
+const validMethods = Object.freeze([validMethod, applePay]);
+const validAmount = Object.freeze({
+  currency: "USD",
+  value: "5.00",
+});
+const validTotal = Object.freeze({
+  label: "Total due",
+  amount: validAmount,
+});
+const validDetails = Object.freeze({
+  total: validTotal,
+});
+
+function getLoadedPaymentRequest(iframe, url) {
+  return new Promise(resolve => {
+    iframe.addEventListener(
+      "load",
+      () => {
+        const { PaymentRequest } = iframe.contentWindow;
+        const request = new PaymentRequest(validMethods, validDetails);
+        resolve(request);
+      },
+      { once: true }
+    );
+    iframe.src = url;
+  });
+}
+
+promise_test(async t => {
+  const iframe = document.createElement("iframe");
+  iframe.allow = "payment";
+  document.body.appendChild(iframe);
+  // Make a request in the iframe.
+  const request = await getLoadedPaymentRequest(
+    iframe,
+    "/payment-request/resources/page1.html"
+  );
+  const [showPromise] = await test_driver.bless("show payment request", () => {
+    return [request.show()];
+  });
+  // Navigate the iframe to a new location. Wait for the load event to fire.
+  await new Promise(resolve => {
+    iframe.addEventListener("load", resolve);
+    iframe.src = "/payment-request/resources/page2.html";
+    // An implementation may optionally reject |showPromise|.
+    showPromise.catch(e => {});
+  });
+
+  // The navigaton should have dismissed the previous payment request so it
+  // should be possible to show another one now.
+  const request2 = new iframe.contentWindow.PaymentRequest(
+    validMethods, validDetails);
+  const [showPromise2] = await test_driver.bless(
+    "show 2nd payment request", () => {
+      return [request2.show()];
+    });
+
+  // Stop the test in 1 second if it has not rejected, which means that a
+  // payment sheet is successfully shown.
+  t.step_timeout(async () => {
+    // We are done, so clean up.
+    iframe.remove();
+    t.done();
+  }, 1000);
+
+  // This should never settle because the payment sheet should be pending.
+  await showPromise2.then(() => {
+    assert_true(false, "Second payment should be pending but is resolved.");
+  })
+  .catch(e => {
+    assert_true(false, "Second payment should be pending but is rejected.");
+  });
+}, "If a payment request is showing, but its document is navigated away (so no longer fully active), the payment sheet is dismissed.");
+</script>

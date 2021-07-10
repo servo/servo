@@ -1,6 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 /*
  * The origin of this IDL file is
  * https://xhr.spec.whatwg.org/#interface-formdata
@@ -8,9 +8,9 @@
 
 typedef (File or USVString) FormDataEntryValue;
 
-[Constructor(optional HTMLFormElement form),
- Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface FormData {
+  [Throws] constructor(optional HTMLFormElement form);
   void append(USVString name, USVString value);
   void append(USVString name, Blob value, optional USVString filename);
   void delete(USVString name);

@@ -26,7 +26,7 @@
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
-      	Both lines of text must be working links, and must take you to <a href="../../images/linkingToc-t.svg">the linking TOC svg</a> in the same frame.
+        Both lines of text must be working links, and must take you to <a href="../../images/linkingToc-t.svg">the linking TOC svg</a> in the same frame.
       </p>
     </d:passCriteria>
   </d:SVGTestCase>

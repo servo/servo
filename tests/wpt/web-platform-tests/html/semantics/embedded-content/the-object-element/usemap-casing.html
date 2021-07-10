@@ -61,18 +61,7 @@
 setup({ explicit_done: true });
 
 onload = () => {
-  test(() => {
-    const object = document.querySelector(`object[usemap="#sanityCheck"]`);
-    const objectRect = object.getBoundingClientRect();
-    const x = objectRect.left + objectRect.width / 2;
-    const y = objectRect.top + objectRect.height / 2;
-    const element = document.elementFromPoint(x, y);
-    const area = document.querySelector(`map[name="sanityCheck"] > area`);
-
-    assert_equals(element, area);
-  }, `Object with usemap of #sanityCheck should match the area with map named sanityCheck`);
-
-  const objects = Array.from(document.querySelectorAll(`object:not([usemap="#sanityCheck"])`));
+  const objects = Array.from(document.querySelectorAll(`object`));
 
   for (let object of objects) {
     test(() => {
@@ -85,7 +74,7 @@ onload = () => {
       const messageSuffix = name ? `; used <map> with name "${name}"` : "";
 
       assert_equals(element, object, "The element retrieved must be the object, not an area" + messageSuffix);
-    }, `Object with usemap of ${object.useMap} should not match any of the areas`);
+    }, `Object with usemap of ${object.useMap} should not match any of the areas (it does not support usemap)`);
   }
 
   done();

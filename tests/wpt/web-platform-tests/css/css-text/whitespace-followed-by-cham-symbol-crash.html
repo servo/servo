@@ -1,0 +1,7 @@
+<title>CSS Text Test: Under quirks mode, a white space, followed by a Cham symbol, makes chrome to crash</title>
+<link rel="help" href="https://crbug.com/1130288">
+<style>
+    body { margin: 40 91 18446744073709551526px 5307% }
+    #tCF9 { line-break: anywhere; }
+</style>
+s	a<custom-element-middle id=tCF9> <highlight>&#xaa2c;</highlight>

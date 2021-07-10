@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang=en>
+<meta charset=utf-8>
+<title>CSS test: font selection and writing sytem</title>
+<link rel=author title="Ambrose Li" href="http://port.ambroseli.ca/">
+<link rel=author title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel=help href="https://drafts.csswg.org/css-text-3/#languages">
+<link rel=help href="https://drafts.csswg.org/css-text-3/#script-tagging">
+<link rel=help href="https://drafts.csswg.org/css-fonts-4/#language-specific-support">
+<link rel=match href="reference/writing-system-font-001-ref.html">
+<meta name=assert content="An explicit writing system takes precedence over the content language for font selection">
+
+<p>The test passes if the word pairs below are all displayed in the same font.
+
+<table>
+  <tr>
+    <td>ping4 on1
+    <td>salaam
+    <td>shalom
+  <tr>
+    <td><span lang=zh-yue-latn>ping4 on1</span>
+    <td><span lang=ar-latn>salaam</span>
+    <td><span lang=he-latn>shalom</span>
+</table>
+

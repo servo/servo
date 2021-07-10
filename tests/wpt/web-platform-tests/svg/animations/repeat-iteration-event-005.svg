@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <title>No repeat iteration at interval end</title>
+  <script xmlns="http://www.w3.org/1999/xhtml" src="/resources/testharness.js"/>
+  <script xmlns="http://www.w3.org/1999/xhtml" src="/resources/testharnessreport.js"/>
+  <rect width="100" height="100" fill="green">
+    <animate id="anim" attributeName="visibility" to="visible" begin="0s" dur="2s" repeatCount="4"/>
+    <set attributeName="width" to="0" begin="anim.repeat(4)"/>
+  </rect>
+  <script>
+  function waitForFrame() {
+    return new Promise(resolve => {
+      window.requestAnimationFrame(resolve);
+    });
+  }
+
+  promise_test(t => {
+    document.documentElement.setCurrentTime(7.995);
+    let set = document.querySelector("set");
+    new EventWatcher(t, set, 'beginEvent');
+    let anim = document.getElementById("anim");
+    let animWatcher = new EventWatcher(t, anim, 'endEvent');
+    return animWatcher.wait_for('endEvent').then(() => {
+      return waitForFrame();
+    }).then(() => {
+      assert_equals(set.parentNode.getBBox().width, 100);
+    });
+  });
+  </script>
+</svg>

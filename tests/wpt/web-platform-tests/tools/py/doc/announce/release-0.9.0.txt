@@ -1,7 +1,0 @@
-py lib 1.0.0: XXX
-======================================================================
-
-Welcome to the 1.0.0 py lib release - a library aiming to
-support agile and test-driven python development on various levels.
-
-XXX

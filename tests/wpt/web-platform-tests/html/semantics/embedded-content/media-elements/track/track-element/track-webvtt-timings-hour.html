@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<title>Cue timings and various syntax errors in timings, with hours</title>
+<script src="track-helpers.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video>
+    <track src="resources/timings-hour.vtt">
+    <track src="resources/timings-hour-error.vtt">
+</video>
+<script>
+async_test(function(t) {
+    var video = document.querySelector("video");
+
+    var trackElements = document.querySelectorAll("track");
+    for (var i = 0; i < video.textTracks.length; i++)
+        trackElements[i].onload = t.step_func(trackLoaded);
+
+    enableAllTextTracks(video.textTracks);
+
+    var numberOfTracksLoaded = 0;
+    function trackLoaded() {
+        numberOfTracksLoaded++;
+        if (numberOfTracksLoaded != 2)
+            return;
+
+        testTrack0();
+        testTrack1();
+        t.done();
+    }
+
+    function testTrack0() {
+        var expected = [
+            {
+                id : "1",
+                startTime : 0,
+                endTime : 30.5,
+                text : "Bear is Coming!!!!!"
+            },
+            {
+                id : "2",
+                startTime : 31,
+                endTime : 60.5,
+                text : "I said Bear is coming!!!!"
+            },
+            {
+                id : "3",
+                startTime : 61,
+                endTime : 361200.5,
+                text : "I said Bear is coming now!!!!"
+            }
+        ];
+
+        assert_cues_equal(video.textTracks[0].cues, expected);
+    }
+
+    function testTrack1() {
+        // Test that all the cues are ignored.
+        assert_cues_equal(video.textTracks[1].cues, []);
+    }
+});
+</script>

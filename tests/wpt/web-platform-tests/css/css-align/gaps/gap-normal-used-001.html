@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Box Alignment Test: used value of *-gap:normal on grid</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://www.w3.org/TR/css-align-3/#column-row-gap">
+<meta assert="The used value of row-gap and column-gap normal for grids is 0">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+<style>
+#grid {
+  colum-gap: normal;
+  row-gap: normal;
+  display: grid;
+  grid-template-columns: 50px 50px;
+  grid-template-rows: 50px 50px;
+
+  position: absolute;
+}
+#grid * { background: green; }
+#red {
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id=grid><span></span><span></span><span></span><span></span></div>
+<div id=red></div>

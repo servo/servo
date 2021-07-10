@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#scroll-timeline-at-rule">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#descdef-scroll-timeline-orientation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+  #scroller_horizontal_tb, #scroller_vertical_lr{
+    overflow: scroll;
+    width: 100px;
+    height: 100px;
+  }
+  #scroller_horizontal_tb {
+    writing-mode: horizontal-tb;
+  }
+  #scroller_vertical_lr {
+    writing-mode: vertical-lr;
+  }
+  .contents {
+    height: 300px;
+    width: 300px;
+  }
+  @keyframes expand {
+    from { width: 100px; }
+    to { width: 200px; }
+  }
+  @scroll-timeline timeline_auto {
+    source: selector(#scroller_horizontal_tb);
+    orientation: auto;
+    time-range: 10s;
+    start: 0px;
+    end: 100px;
+  }
+  @scroll-timeline timeline_vertical {
+    source: selector(#scroller_horizontal_tb);
+    orientation: vertical;
+    time-range: 10s;
+    start: 0px;
+    end: 100px;
+  }
+  @scroll-timeline timeline_horizontal {
+    source: selector(#scroller_horizontal_tb);
+    orientation: horizontal;
+    time-range: 10s;
+    start: 0px;
+    end: 100px;
+  }
+  @scroll-timeline timeline_block_in_horizontal {
+    source: selector(#scroller_horizontal_tb);
+    orientation: block;
+    time-range: 10s;
+    start: 0px;
+    end: 100px;
+  }
+  @scroll-timeline timeline_inline_in_horizontal {
+    source: selector(#scroller_horizontal_tb);
+    orientation: inline;
+    time-range: 10s;
+    start: 0px;
+    end: 100px;
+  }
+  @scroll-timeline timeline_block_in_vertical {
+    source: selector(#scroller_vertical_lr);
+    orientation: block;
+    time-range: 10s;
+    start: 0px;
+    end: 100px;
+  }
+  @scroll-timeline timeline_inline_in_vertical {
+    source: selector(#scroller_vertical_lr);
+    orientation: inline;
+    time-range: 10s;
+    start: 0px;
+    end: 100px;
+  }
+  #container > div {
+    width: 0px;
+    animation-name: expand;
+    animation-duration: 10s;
+    animation-timing-function: linear;
+  }
+  /* Ensure stable expectations if feature is not supported */
+  @supports not (animation-timeline:foo) {
+    #container > div { animation-play-state: paused; }
+  }
+  #element_auto { animation-timeline: timeline_auto; }
+  #element_vertical { animation-timeline: timeline_vertical; }
+  #element_horizontal { animation-timeline: timeline_horizontal; }
+  #element_block_in_horizontal { animation-timeline: timeline_block_in_horizontal; }
+  #element_inline_in_horizontal { animation-timeline: timeline_inline_in_horizontal; }
+  #element_block_in_vertical { animation-timeline: timeline_block_in_vertical; }
+  #element_inline_in_vertical { animation-timeline: timeline_inline_in_vertical; }
+</style>
+<div id=scroller_horizontal_tb>
+  <div class=contents></div>
+</div>
+<div id=scroller_vertical_lr>
+  <div class=contents></div>
+</div>
+<div id=container>
+  <div id=element_auto></div>
+  <div id=element_vertical></div>
+  <div id=element_horizontal></div>
+  <div id=element_block_in_horizontal></div>
+  <div id=element_inline_in_horizontal></div>
+  <div id=element_block_in_vertical></div>
+  <div id=element_inline_in_vertical></div>
+</div>
+<script>
+  // Animations linked to vertical scroll-timelines are at 75% progress.
+  scroller_horizontal_tb.scrollTop = 75;
+  scroller_vertical_lr.scrollTop = 75;
+  // Animations linked to horizontal scroll-timelines are at 25% progress.
+  scroller_horizontal_tb.scrollLeft = 25;
+  scroller_vertical_lr.scrollLeft = 25;
+
+  promise_test(async (t) => {
+    await waitForNextFrame();
+    assert_equals(getComputedStyle(element_auto).width, '175px');
+  }, 'Orientation auto behaves as expected');
+
+  promise_test(async (t) => {
+    await waitForNextFrame();
+    assert_equals(getComputedStyle(element_vertical).width, '175px');
+  }, 'Orientation vertical behaves as expected');
+
+  promise_test(async (t) => {
+    await waitForNextFrame();
+    assert_equals(getComputedStyle(element_horizontal).width, '125px');
+  }, 'Orientation horizontal behaves as expected');
+
+  promise_test(async (t) => {
+    await waitForNextFrame();
+    assert_equals(getComputedStyle(element_block_in_horizontal).width, '175px');
+  }, 'Orientation block behaves as expected in horizontal writing-mode');
+
+  promise_test(async (t) => {
+    await waitForNextFrame();
+    assert_equals(getComputedStyle(element_inline_in_horizontal).width, '125px');
+  }, 'Orientation inline behaves as expected in horizontal writing-mode');
+
+  promise_test(async (t) => {
+    await waitForNextFrame();
+    assert_equals(getComputedStyle(scroller_vertical_lr).writingMode, 'vertical-lr');
+    assert_equals(getComputedStyle(element_block_in_vertical).width, '125px');
+  }, 'Orientation block behaves as expected in vertical writing-mode');
+
+  promise_test(async (t) => {
+    await waitForNextFrame();
+    assert_equals(getComputedStyle(scroller_vertical_lr).writingMode, 'vertical-lr');
+    assert_equals(getComputedStyle(element_inline_in_vertical).width, '175px');
+  }, 'Orientation inline behaves as expected in vertical writing-mode');
+
+</script>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     width="800px" height="800px">
+  <title>SVG Text: parsing text-decoration-fill with valid values</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/text.html#TextDecorationFillProperty"/>
+    <h:meta name="assert" content="text-decoration-fill supports the full paint grammar 'none | color | url [none | color]? | context-fill | context-stroke'."/>
+  </metadata>
+  <g id="target"></g>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="/css/support/parsing-testcommon.js"/>
+  <script><![CDATA[
+
+test_valid_value("text-decoration-fill", "none");
+test_valid_value("text-decoration-fill", "context-fill");
+test_valid_value("text-decoration-fill", "context-stroke");
+test_valid_value("text-decoration-fill", "rgb(12, 34, 56)");
+
+test_valid_value("text-decoration-fill", 'url("https://example.com/")');
+test_valid_value("text-decoration-fill", 'url("https://example.com/") none');
+test_valid_value("text-decoration-fill", 'url("https://example.com/") rgb(12, 34, 56)');
+
+  ]]></script>
+</svg>

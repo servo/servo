@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSSOM test: Media query serialization quirks</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#serializing-media-queries">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  assert_equals(matchMedia("(min-width: 10px) and (min-height: 10px)").media, "(min-width: 10px) and (min-height: 10px)");
+} , "Media queries are not sorted lexicographically");
+test(function() {
+  assert_equals(matchMedia("(color) and (color)").media, "(color) and (color)");
+}, "Media queries are not deduplicated");
+</script>

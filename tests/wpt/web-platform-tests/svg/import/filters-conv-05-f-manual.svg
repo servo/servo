@@ -1,5 +1,5 @@
-<svg id="svg-root" width="100%" height="100%" 
-  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg" 
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
   xmlns:xlink="http://www.w3.org/1999/xlink">
   <!--======================================================================-->
   <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
@@ -39,45 +39,45 @@
     </font-face>
   </defs>
   <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
-		<defs>
-			<filter id="emNone" filterUnits="objectBoundingBox" primitiveUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
+    <defs>
+      <filter id="emNone" filterUnits="objectBoundingBox" primitiveUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
         <feConvolveMatrix kernelMatrix="1 1 1 1 -7 1 1 1 1" preserveAlpha="false" edgeMode="none"/>
-			</filter>
-			<filter id="emWrap" filterUnits="objectBoundingBox" primitiveUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
-				<feConvolveMatrix kernelMatrix="1 1 1 1 -7 1 1 1 1" preserveAlpha="false" edgeMode="wrap"/>
-			</filter>
-			<filter id="emDuplicate" filterUnits="objectBoundingBox" primitiveUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
-				<feConvolveMatrix kernelMatrix="1 1 1 1 -7 1 1 1 1" preserveAlpha="false" edgeMode="duplicate"/>
-			</filter>
-	
+      </filter>
+      <filter id="emWrap" filterUnits="objectBoundingBox" primitiveUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
+        <feConvolveMatrix kernelMatrix="1 1 1 1 -7 1 1 1 1" preserveAlpha="false" edgeMode="wrap"/>
+      </filter>
+      <filter id="emDuplicate" filterUnits="objectBoundingBox" primitiveUnits="objectBoundingBox" x="0" y="0" width="1" height="1">
+        <feConvolveMatrix kernelMatrix="1 1 1 1 -7 1 1 1 1" preserveAlpha="false" edgeMode="duplicate"/>
+      </filter>
+
       <g id="box">
         <rect width="10" height="100" fill="blue"/>
         <rect x="10" width="100" height="10" fill="yellow"/>
         <rect x="110" width="10" height="100" fill="lime"/>
         <rect x="10" y="90" width="100" height="10" fill="black"/>
       </g>
-  	</defs>
+    </defs>
 
-		<text x="50%" y="3em" style="font-size:18px; text-anchor:middle">feConvolveMatrix 'edgeMode'</text>
-    
+    <text x="50%" y="3em" style="font-size:18px; text-anchor:middle">feConvolveMatrix 'edgeMode'</text>
+
     <use xlink:href="#box" filter="url(#emNone)" transform="translate(40 100)"/>
     <text x="100" y="220" font-size="14" text-anchor="middle">none</text>
-    
+
     <use xlink:href="#box" filter="url(#emWrap)" transform="translate(180 100)"/>
     <text x="240" y="220" font-size="14" text-anchor="middle">wrap</text>
-    
+
     <use xlink:href="#box" filter="url(#emDuplicate)" transform="translate(320 100)"/>
     <text x="380" y="220" font-size="14" text-anchor="middle">duplicate</text>
-	</g>
+  </g>
   <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
-  <text id="revision" x="10" y="340" stroke="none" 
+  <text id="revision" x="10" y="340" stroke="none"
     fill="black">$Revision: 1.2 $</text>
   </g>
   <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
   <!-- comment out this watermark once the test is approved -->
   <g id="draft-watermark">
     <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
-    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240" 
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
       text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
   </g>
 </svg>

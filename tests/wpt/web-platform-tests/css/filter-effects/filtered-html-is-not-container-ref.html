@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Filter: Filtered html element does not establish a containing block.</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+
+<style>
+#spacer {
+  width: 2000px;
+  height: 2000px;
+  background-color: lightgreen;
+}
+#fixed, #absolute {
+  width: 100px;
+  height: 100px;
+}
+#fixed {
+  position: fixed;
+  top: 100px;
+  left: 150px;
+  background-color: green;
+}
+#absolute {
+  position: absolute;
+  top: 200px;
+  left: 300px;
+  background-color: blue;
+}
+</style>
+
+<div id="fixed"></div>
+<div id="absolute"></div>
+<div id="spacer"></div>
+
+<script>
+window.onload = function() { window.scrollTo(50, 100); };
+</script>
+
+

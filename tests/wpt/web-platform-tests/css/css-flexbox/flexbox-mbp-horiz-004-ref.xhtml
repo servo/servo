@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Reference case - identical to the testcase, but with with the flex items'
+     margin and padding values set to explicit pixel values.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <style>
+      div { border: 0; }
+      div.flexbox {
+        width: 200px;
+        display: flex;
+        margin-bottom: 2px;
+        border: 1px dotted black;
+      }
+      div.height50 { height: 50px; }
+
+      .marginA  { margin:  20px 16px 12px  8px; }
+      .marginB  { margin:  16px 20px 24px 28px; }
+      .paddingA { padding: 16px 12px  8px  4px; }
+      .paddingB { padding: 12px 16px 20px 24px; }
+
+
+      div.child1 {
+        flex: none;
+        width: 10px;
+        height: 10px;
+        background: lightgreen;
+      }
+      div.child2 {
+        flex: none;
+        width: 10px;
+        height: 10px;
+        background: purple;
+      }
+
+      div.filler {
+        /* Filler-div to fill up content-box and make padding easier to see. */
+        height: 10px;
+        width: 100%;
+        background: lightgrey;
+      }
+
+    </style>
+  </head>
+  <body>
+    <div class="flexbox"
+         ><div class="child1 paddingA"><div class="filler"/></div
+         ><div class="child2 paddingB"><div class="filler"/></div
+         ><div class="child1 marginA"></div
+         ><div class="child2 marginB"></div
+    ></div>
+
+    <div class="flexbox height50"
+         ><div class="child1 paddingA"><div class="filler"/></div
+         ><div class="child2 paddingB"><div class="filler"/></div
+         ><div class="child1 marginA"></div
+         ><div class="child2 marginB"></div
+    ></div>
+
+    <div class="flexbox height50" style="align-items: flex-end"
+         ><div class="child1 paddingA"><div class="filler"/></div
+         ><div class="child2 paddingB"><div class="filler"/></div
+         ><div class="child1 marginA"></div
+         ><div class="child2 marginB"></div
+    ></div>
+
+    <div class="flexbox height50"
+         ><div class="child1 paddingA marginA"><div class="filler"/></div
+         ><div class="child2 paddingB marginB"><div class="filler"/></div
+    ></div>
+  </body>
+</html>

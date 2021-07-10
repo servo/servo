@@ -32,7 +32,7 @@
             var cursor = e.target.result;
 
             assert_true(cursor instanceof IDBCursor, "cursor exist");
-            assert_throws('ReadOnlyError', function() { cursor.delete(); });
+            assert_throws_dom('ReadOnlyError', function() { cursor.delete(); });
             t.done();
         });
     }

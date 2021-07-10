@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>&lt;form rel> with &lt;button formtarget></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src=resources/reltester.js></script>
+<div id=log></div>
+<form action=resources/endpoint.html><input type=hidden name=channelname><button type=submit formtarget=_blank></form>
+<script>
+const submitter = document.querySelector("button"),
+      channelInput = document.querySelector("input");
+relTester(submitter, channelInput, "<button formtarget>");
+</script>

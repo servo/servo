@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<head>
+    <title>Density corrected size: background images</title>
+    <link rel="author" title="Noam Rosenthal" href="noam@webkit.org">
+</head>
+<body>
+    <style>
+        body {
+            --default: url(resources/exif-resolution-none.jpg);
+        }
+        .default-bg {background-image: var(--default); }
+        .lores-bg {background-image: var(--default); background-size: 200px 100px; }
+        .hires-bg {background-image: var(--default); background-size: 50px 25px; }
+        .invalid-bg {background-image: var(--invalid); }
+        .non-uniform-bg {background-image: var(--default); background-size: 50px 100px; }
+        .box { width: 200px; height: 200px; display: inline-block; }
+        .tiled {background-repeat: repeat; }
+        .stretch {background-repeat: no-repeat; background-size: contain; }
+        .non-uniform-bg.stretch { background-size: 100px 200px; }
+    </style>
+    <div class="default-bg tiled box"></div>
+    <div class="lores-bg tiled box"></div>
+    <div class="hires-bg tiled box"></div>
+    <div class="non-uniform-bg tiled box"></div>
+    <br/>
+    <div class="default-bg stretch box"></div>
+    <div class="default-bg stretch box"></div>
+    <div class="non-uniform-bg stretch box"></div>
+</body>
+</html>

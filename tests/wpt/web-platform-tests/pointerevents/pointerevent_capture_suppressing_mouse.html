@@ -1,0 +1,225 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Set/Release capture</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <!-- Additional helper script for common checks across event types -->
+        <script type="text/javascript" src="pointerevent_support.js"></script>
+    </head>
+    <body>
+        <h1>Pointer Events capture test</h1>
+        <h4>
+            Test Description: This test checks if setCapture/releaseCapture functions works properly. Complete the following actions:
+            <ol>
+                <li> Put your mouse over the black rectangle. pointerover and pointerenter should be logged inside of it.</li>
+                <li> Move your mouse out of the black rectangle. pointerout and pointerleave should be logged inside of it</li>
+                <li> Put your mouse over the purple rectangle. pointerover and pointerenter should be logged inside of it.</li>
+                <li> Move your mouse out of the purple rectangle. pointerout and pointerleave should be logged inside of it</li>
+                <li> Press and hold left mouse button over "Set Capture" button and move mouse a litte inside the button. "gotpointercapture", "pointerover", and "pointerenter" should be logged in the black rectangle</li>
+                <li> Put your mouse over the purple rectangle and then move it out. Nothing should happen</li>
+                <li> Put your mouse over the black rectangle and then move it out. Nothing should happen.</li>
+                <li> Put your mouse over the purple rectangle and then release left mouse button. "lostpointercapture" should be logged in the black rectangle. Move your mouse in the purple rectangle a little. "pointerout" and "pointerleave" should be logged in the black rectangle. Also "pointerover" and "pointerenter" should be logged in the purple rectangle"</li>
+            </ol>
+        </h4>
+        Test passes if the proper behaviour of the events is observed.
+        <div id="target0"></div>
+        <br>
+        <div id="target1"></div>
+        <br>
+        <input type="button" id="btnCapture" value="Set Capture">
+        <script type='text/javascript'>
+            var isPointerCapture = false;
+            var isRelatedTargetValueTested = false;
+            var isTargetAuthenticityTested = false;
+            var lostPointerCaptureReceived = false;
+            var count = 0;
+            var event_log = [];
+
+            var detected_pointertypes = {};
+            add_completion_callback(end_of_test);
+            function end_of_test() {
+                showLoggedEvents();
+                showPointerTypes();
+            }
+
+            var target0 = document.getElementById('target0');
+            var target1 = document.getElementById('target1');
+            var captureButton = document.getElementById('btnCapture');
+
+            var test_gotpointercapture = async_test("gotpointercapture event received");
+            var test_lostpointercapture = async_test("lostpointercapture event received");
+
+            var test_pointerover_no_capture = async_test("pointerover event without capture received");
+
+            var test_pointerover_capture = async_test("pointerover event with capture received");
+
+            var test_pointerout_no_capture = async_test("pointerout event without capture received");
+            var test_pointerout_after_capture = async_test("pointerout event after lostpointercapture received");
+
+            var test_pointerenter_no_capture = async_test("pointerenter event without capture received");
+            var test_pointerenter_capture = async_test("pointerenter event with capture received");
+
+            var test_pointerleave_no_capture = async_test("pointerleave event without capture received");
+            var test_pointerleave_after_capture = async_test("pointerleave event after lostpointercapture received");
+
+            var actions_promise;
+
+            window.onload = function() {
+                on_event(captureButton, 'pointerdown', function(e) {
+                    if(isPointerCapture == false) {
+                        sPointerCapture(e);
+                        isPointerCapture = true;
+                    }
+                });
+
+                on_event(target0, 'gotpointercapture', function(e) {
+                    test_gotpointercapture.done();
+                    event_log.push('gotpointercapture@target0');
+                });
+
+                on_event(target0, 'lostpointercapture', function(e) {
+                    isPointerCapture = false;
+                    lostPointerCaptureReceived = true;
+                    test_lostpointercapture.done();
+                    event_log.push('lostpointercapture@target0');
+                });
+
+                run();
+            }
+
+            function run() {
+                on_event(target0, "pointerover", function (event) {
+                    detected_pointertypes[ event.pointerType ] = true;
+                    event_log.push('pointerover@target0');
+                    if(isPointerCapture) {
+                        test_pointerover_capture.done();
+                        if (!isRelatedTargetValueTested) {
+                            test(function() {
+                                assert_not_equals(event.relatedTarget, null, "relatedTarget should behave the same as when the capture is not set")
+                            }, "relatedTarget is not null for boundary events even when the capture is set.");
+                            isRelatedTargetValueTested = true;
+                        }
+                        var hitTest = document.elementFromPoint(event.clientX, event.clientY);
+                        if(event.target !== hitTest && !isTargetAuthenticityTested) {
+                            test(function () {
+                                assert_not_equals(event.target, hitTest, "pointerover should be fired on capture target even if the pointer it not over the capture target");
+                            }, "pointerover should trigger the black rectangle even when pointer is not over black rectangle.");
+                            isTargetAuthenticityTested = true;
+                        }
+                    }
+                    else {
+                        test_pointerover_no_capture.done();
+                    }
+                });
+
+                on_event(target0, "pointerout", function (event) {
+                    event_log.push('pointerout@target0');
+                    if(isPointerCapture) {
+                        test(function() {
+                            assert_unreached("pointerout shouldn't be sent to captured node as all the events are targeted at the capturing node");
+                        }, "pointerout shouldn't be sent to captured node as all the events are targeted at the capturing node.");
+                    }
+                    else {
+                        if (lostPointerCaptureReceived) {
+                            test_pointerout_after_capture.done();
+                        } else {
+                            test_pointerout_no_capture.done();
+                        }
+                    }
+                });
+
+                on_event(target0, "pointerenter", function (event) {
+                    event_log.push('pointerenter@target0');
+                    if(isPointerCapture) {
+                        test_pointerenter_capture.done();
+                    }
+                    else {
+                        test_pointerenter_no_capture.done();
+                    }
+                });
+
+                on_event(target0, "pointerleave", function (event) {
+                    event_log.push('pointerleave@target0');
+                    if(isPointerCapture) {
+                        test(function() {
+                            assert_unreached("pointerleave shouldn't be sent to captured node as all the events are targeted at the capturing node");
+                        }, "pointerleave shouldn't be sent to captured node as all the events are targeted at the capturing node.");
+                    }
+                    else {
+                        if (lostPointerCaptureReceived) {
+                            // Make sure the test finishes after all the input actions are completed.
+                            actions_promise.then( () => {
+                                test_pointerleave_after_capture.done();
+                            });
+                        } else {
+                            test_pointerleave_no_capture.done();
+                        }
+                    }
+                });
+
+                // fail if capture is set but event is received for the non-captured target
+                on_event(target1, "pointerover", function (event) {
+                    event_log.push('pointerover@target1');
+                    if(isPointerCapture == true) {
+                        test(function() {
+                            assert_unreached("pointerover shouldn't trigger for this target when capture is enabled");
+                        }, "pointerover shouldn't trigger for the purple rectangle while the black rectangle has capture");
+                    }
+                });
+
+                on_event(target1, "pointerout", function (event) {
+                    event_log.push('pointerout@target1');
+                    if(isPointerCapture == true) {
+                        test(function() {
+                            assert_unreached("pointerout shouldn't trigger for this target when capture is enabled");
+                        }, "pointerout shouldn't trigger for the purple rectangle while the black rectangle has capture");
+                    }
+                });
+
+                on_event(target1, "pointerenter", function (event) {
+                    event_log.push('pointerenter@target1');
+                    if(isPointerCapture == true) {
+                        test(function() {
+                            assert_unreached("pointerenter shouldn't trigger for this target when capture is enabled");
+                        }, "pointerenter shouldn't trigger for the purple rectangle while the black rectangle has capture");
+                    }
+                });
+
+                on_event(target1, "pointerleave", function (event) {
+                    event_log.push('pointerleave@target1');
+                    if(isPointerCapture == true) {
+                        test(function() {
+                            assert_unreached("pointerleave shouldn't trigger for this target when capture is enabled");
+                        }, "pointerleave shouldn't trigger for the purple rectangle while the black rectangle has capture");
+                    }
+                });
+
+                actions_promise = new test_driver.Actions()
+                    .pointerMove(0, 0, {origin: target0})
+                    .pointerMove(0, 0, {origin: target1})
+                    .pointerMove(0, 0, {origin: btnCapture})
+                    .pointerDown()
+                    .pointerMove(1, 1, {origin: btnCapture})
+                    .pointerMove(10, 0, {origin: btnCapture})
+                    .pointerMove(0, 0, {origin: target1})
+                    .pointerMove(0, 0, {origin: target0})
+                    .pointerMove(0, 0, {origin: target1})
+                    .pointerUp()
+                    .pointerMove(1, 1, {origin: target1})
+                    .send();
+            }
+        </script>
+        <h1>Pointer Events Capture Test</h1>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+            <p>The following events were logged: <span id="event-log"></span>.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

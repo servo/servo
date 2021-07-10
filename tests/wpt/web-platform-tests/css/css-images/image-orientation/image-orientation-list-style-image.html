@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Images Module Level 3: image-orientation does apply to list-style-image</title>
+<link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#propdef-image-orientation">
+<link rel="match" href="reference/image-orientation-list-style-image-ref.html">
+<meta name=fuzzy content="0-3;0-50">
+<style>
+ul { margin-left: 100px; list-style-image: url(support/exif-orientation-2-ur.jpg); }
+.no-orient { image-orientation: none; }
+</style>
+<ul><li>&nbsp;</li></ul>
+<ul class="no-orient"><li>&nbsp;</li></ul>

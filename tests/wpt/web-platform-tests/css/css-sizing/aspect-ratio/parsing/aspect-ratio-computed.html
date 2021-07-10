@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio Test: aspect-ratio with computed values</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<meta name="assert" content="aspect-ratio supports the full grammar '[auto | <ratio>]'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+
+<div id=target></div>
+<div id=scratch></div>
+<script>
+
+test_computed_value("aspect-ratio", "auto");
+test_computed_value("aspect-ratio", "1", "1 / 1");
+test_computed_value("aspect-ratio", "1.3", "1.3 / 1");
+test_computed_value("aspect-ratio", "1 / 1", "1 / 1");
+test_computed_value("aspect-ratio", "16 / 9");
+test_computed_value("aspect-ratio", "16.3 / 9.5");
+test_computed_value("aspect-ratio", "16/9", "16 / 9");
+test_computed_value("aspect-ratio", "0 / 9");
+test_computed_value("aspect-ratio", "16 / 0");
+test_computed_value("aspect-ratio", "auto 1", "auto 1 / 1");
+test_computed_value("aspect-ratio", "auto 1 / 1", "auto 1 / 1");
+test_computed_value("aspect-ratio", "0 auto", "auto 0 / 1");
+test_computed_value("aspect-ratio", "0 / 0");
+</script>

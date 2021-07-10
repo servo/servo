@@ -1,0 +1,12 @@
+<html class="reftest-wait">
+  <title>Mix requestAnimationFrame with reftest-wait</title>
+  <link rel=match href=/_mozilla/mozilla/request_animation_frame_reftest_wait_ref.html>
+  <script>
+    // A regression test for https://github.com/servo/servo/issues/17408
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        document.documentElement.classList.remove("reftest-wait");
+      });
+    });
+ </script>
+</html>

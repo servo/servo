@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: no automatic hyphenation without language tagging</title>
+<link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#hyphens-property">
+<meta name="flags" content="">
+<link rel="match" href="reference/hyphens-auto-001-ref.html">
+<meta name="assert" content="automatic hyphenation must not work without language tagging">
+<style>
+div {
+  width: 4ch;
+  hyphens: auto;
+}
+</style>
+
+<p>Test passes if none of the words below are hyphenated.
+<div>implementation
+initialization
+realization
+hyphenation
+anticonstitutionnellement
+intergouvernementalisation
+dichlorodiphényltrichloroéthane
+honorificabilitudinitatibus
+Wiedervereinigung
+Rechtsschutzversicherungsgesellschaften</div>
+

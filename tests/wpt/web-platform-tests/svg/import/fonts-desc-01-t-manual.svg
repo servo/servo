@@ -19,7 +19,7 @@
         based on the font-size attribute.
       </p>
       <!-- the test creator appears to have misunderstood the specification here.
-      None of the supplied fonts specifies a font-size descriptor. 
+      None of the supplied fonts specifies a font-size descriptor.
       Its not clear what this test is trying to test.
       -->
     </d:testDescription>

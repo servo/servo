@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">
+  <metadata>
+    <link xmlns="http://www.w3.org/1999/xhtml" rel="help" href="https://www.w3.org/TR/svg-paths/#PathDataBearingCommands"/>
+    <link xmlns="http://www.w3.org/1999/xhtml" rel="help" href="https://www.w3.org/TR/SVG2/paths.html#PathDataBearingCommands"/>
+    <link xmlns="http://www.w3.org/1999/xhtml" rel="help" href="https://svgwg.org/svg2-draft/changes.html#paths"/>
+    <link xmlns="http://www.w3.org/1999/xhtml" rel="match" href="absolute-ref.svg"/>
+    <meta xmlns="http://www.w3.org/1999/xhtml" name="assert" content="path element with B commands renders correctly."/>
+  </metadata>
+  <style>
+    path {
+      stroke-width: 3;
+      stroke: blue;
+    }
+  </style>
+  <path d="M 20 150 B -90 h 120 B 0 h 140 B 90 h 120 z" />
+</svg>

@@ -1,0 +1,46 @@
+<!DOCTYPE HTML>
+<html>
+<link rel="match" href="table-background-print-ref.html">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#tables-2">
+<link rel="help" href="https://drafts.csswg.org/css-break/">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=816498">
+<body>
+<table background="resources/aqua-yellow-32x32.png">
+  <thead background="resources/blue-16x20-green-16x20.png">
+    <tr>
+      <td>
+        Foo
+      </td>
+      <td background="resources/yellow-32x32.png">
+        Bar
+      </td>
+    </tr>
+  </thead>
+  <tbody background="resources/red-32x32.png">
+    <tr>
+      <th background="resources/fuchsia-32x32.png">
+        Foo
+      </th>
+      <th>
+        Bar
+      </th>
+    </tr>
+    <tr background="resources/fuchsia-32x32.png">
+      <td>
+        Foo
+      </td>
+      <td background="resources/yellow-32x32.png">
+        Bar
+      </td>
+    </tr>
+  </tbody>
+  <tfoot background="resources/yellow-32x32.png">
+    <tr>
+      <td>
+        Baz
+      </td>
+    </tr>
+  </tfoot>
+</table>
+</body>
+</html>

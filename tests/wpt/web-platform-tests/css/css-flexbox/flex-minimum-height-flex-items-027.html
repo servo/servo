@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#flex-direction-property">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="Nested flex item shrinks correctly when its parent has a % height that resolves to smaller than the item's flex-basis." />
+<p>Test passes if there is a filled green square.</p>
+
+<style>
+.OuterFlexbox {
+  display: flex;
+  flex-direction: column;
+  height: 100px;
+  width: 100px;
+}
+
+.InnerFlexbox {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.InnerFlexbox-body {
+  background: green;
+  min-height: 0;
+}
+</style>
+
+<div class="OuterFlexbox">
+  <div class="InnerFlexbox">
+    <div class="InnerFlexbox-body">
+      <div style="height: 200px;">
+    </div>
+  </div>
+</div>

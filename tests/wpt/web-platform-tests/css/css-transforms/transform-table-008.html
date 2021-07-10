@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): Table Without Preserve-3D 3</title>
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-2/#transform-style-property">
+    <meta name="assert" content="This is essentially the same as
+    transform-table-006.html, except using divs with 'display' specified
+    instead of actual table elements.">
+    <link rel="match" href="transform-blank-ref.html">
+    <style>
+      body > div {
+        transform: rotateX(90deg);
+        transform-style: preserve-3d;
+      }
+      body > div > div {
+        display: table;
+      }
+      body > div > div > div {
+        display: table-row;
+      }
+      body > div > div > div > div {
+        display: table-cell;
+        transform-style: preserve-3d;
+      }
+      body > div > div > div > div > div {
+        transform: rotateX(90deg);
+      }
+  </head>
+  <body>
+    <p>Nothing should appear except this sentence.</p>
+    <div>
+      <div>
+        <div>
+          <div>
+            <div>Some text</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

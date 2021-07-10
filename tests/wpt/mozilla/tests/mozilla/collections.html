@@ -27,7 +27,6 @@
 <p>pppppppppp</p>
 <q>qqqqqqqqqqqqqqqqqqqqqqqqqqq</q>
 <progress max="100" value="80">80%</progress>
-<applet></applet>
 <input type="text" value="input"/>
 <iframe></iframe>
 <ol type="1">
@@ -63,7 +62,7 @@
   <track></track>
 </video>
 
-<foo-á>hi</foo-á>
+<fooá>hi</fooá>
 
 <script>
 test(function() {
@@ -100,7 +99,6 @@ test(function() {
   check_collection(document.embeds,  1, [HTMLEmbedElement],  "EMBED");
   check_collection(document.plugins, 1, [HTMLEmbedElement],  "EMBED");
   check_collection(document.scripts, 3, [HTMLScriptElement], "SCRIPT");
-  check_collection(document.applets, 1, [HTMLAppletElement], "APPLET");
   check_collection(document.forms,   1, [HTMLFormElement],   "FORM");
 
   check_collection(document.getElementsByTagName("nosuchtag"), 0);
@@ -125,8 +123,8 @@ test(function() {
   check_tag("caption",  1, [HTMLTableCaptionElement]);
   check_tag("textarea", 1, [HTMLTextAreaElement]);
   check_tag("q",        1, [HTMLQuoteElement]);
-  check_tag("th",       1, [HTMLTableCellElement, HTMLTableHeaderCellElement]);
-  check_tag("td",       1, [HTMLTableCellElement, HTMLTableDataCellElement]);
+  check_tag("th",       1, [HTMLTableCellElement]);
+  check_tag("td",       1, [HTMLTableCellElement]);
   check_tag("col",      1, [HTMLTableColElement]);
   check_tag("colgroup", 1, [HTMLTableColElement]);
   check_tag("input",    2, [HTMLInputElement]);
@@ -142,7 +140,7 @@ test(function() {
 
   // Test non-ASCII tag names.  Uppercasing is ASCII-only per spec:
   // http://dom.spec.whatwg.org/#dom-element-tagname
-  check_tag("foo-á", 1, [HTMLUnknownElement], "FOO-á");
+  check_tag("fooá", 1, [HTMLUnknownElement], "FOOá");
 });
 </script>
 </body>

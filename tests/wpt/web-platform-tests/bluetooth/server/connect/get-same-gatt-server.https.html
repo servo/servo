@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/bluetooth/resources/bluetooth-test.js"></script>
+<script src="/bluetooth/resources/bluetooth-fake-devices.js"></script>
+<script>
+'use strict';
+const test_desc = 'Multiple connects should return the same gatt object.';
+let device, fake_peripheral;
+
+bluetooth_test(() => getDiscoveredHealthThermometerDevice()
+    .then(_ => ({device, fake_peripheral} = _))
+    .then(() =>
+      fake_peripheral.setNextGATTConnectionResponse({code: HCI_SUCCESS}))
+    .then(() => device.gatt.connect())
+    // No second response is necessary because an ATT Bearer
+    // already exists from the first connection.
+    // See https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-connect
+    // step 5.1.
+    .then(gatt1 => device.gatt.connect()
+        .then(gatt2 => [gatt1, gatt2]))
+    .then(([gatt1, gatt2]) => assert_equals(gatt1, gatt2)),
+    test_desc);
+</script>

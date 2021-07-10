@@ -364,7 +364,7 @@ function runTests( container_url, annotation_url ) {
     return thePrefRequest
       .then(function(res) {
         var h = res.xhr.getResponseHeader('Prefer');
-        assert_true(h === null, "Reponse contains the `Prefer` header when it SHOULD NOT");
+        assert_equals(h, null, "Reponse contains the `Prefer` header when it SHOULD NOT");
         });
       }, 'SHOULD NOT [receive] the Prefer header when requesting the page');
 

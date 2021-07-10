@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Inheritance of CSS Writing Modes properties</title>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#property-index">
+<meta name="assert" content="Properties inherit or not according to the spec.">
+<meta name="assert" content="Properties have initial values according to the spec.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/inheritance-testcommon.js"></script>
+</head>
+<body>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+assert_inherited('direction', 'ltr', 'rtl');
+assert_inherited('text-combine-upright', 'none', 'all');
+assert_inherited('text-orientation', 'mixed', 'upright');
+assert_not_inherited('unicode-bidi', 'normal', 'embed');
+assert_inherited('writing-mode', 'horizontal-tb', 'vertical-rl');
+</script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>CSS Overflow and Transforms: css-overflow-3</title>
+<link rel="author" title="mailto:atotic@google.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#scrollable">
+<meta name="assert" content="css transform is used to compute scroll overflow of abspos children">
+<style>
+  #container {
+    position: relative;
+    overflow: auto;
+    width: 200px;
+    height: 200px;
+  }
+  #target {
+    position: absolute;
+    width: 150px;
+    height: 150px;
+    margin-left: 100px;
+    transform: translateX(-100px);
+    background: green;
+  }
+</style>
+<!-- There should be no scrollbars on this page -->
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+  test(() => {
+    assert_equals(document.querySelector("#container").scrollWidth, 200);
+  }, '#target used transform when computing scroll overflow');
+</script>

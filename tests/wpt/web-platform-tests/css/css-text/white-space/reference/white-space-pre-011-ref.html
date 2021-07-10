@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Reference Test</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style>
+  div
+    {
+      border: black solid 2px;
+      font-family: monospace;
+      font-size: 32px;
+      margin-bottom: 0.25em;
+      width: 16ch;
+    }
+  </style>
+
+  <body>
+
+  <p>Test passes if the characters inside of each black-bordered rectangles are laid out identically. Only "Dolor" should be outside of black-bordered rectangles.
+
+    <div id="reference">Lorem&nbsp;ipsum.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dolor<br>
+&nbsp;&nbsp;&nbsp;sit&nbsp;&nbsp;amet.&nbsp;<br>
+consectetur</div>
+
+    <div id="reference">Lorem&nbsp;ipsum.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dolor<br>
+&nbsp;&nbsp;&nbsp;sit&nbsp;&nbsp;amet.&nbsp;<br>
+consectetur</div>

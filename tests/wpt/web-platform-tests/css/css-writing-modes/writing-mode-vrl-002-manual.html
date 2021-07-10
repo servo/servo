@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>writing mode:vertical-rl, line wrap</title>
+<link rel="author" title="Richard Ishida" href="mailto:ishida@w3.org"/>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#block-flow"/>
+<meta name="assert" content="writing-mode:vertical-rl will wrap lines from right to left."/>
+<style type="text/css">
+@font-face {
+    font-family: "webfont";
+    src: url("/fonts/mplus-1p-regular.woff") format("woff");
+    font-weight: normal;
+    font-style: normal;
+    }
+.test, .ref { font-family: webfont, serif; font-size: 24px; height: 300px; width: 300px; }
+.test span { background-color:orange; color:orange;  }
+.test span#end { background-color:blue; color:blue;  }
+</style>
+<!-- this is the test -->
+<style type="text/css">
+.test { writing-mode: vertical-rl; }
+</style>
+</head>
+<body>
+<p class="instructions" dir="ltr">Test passes if the blue rectangle is on the left-most side.</p>
+<div class="test">
+<span lang="zh-hans">国际化活动万维网联盟国际化活动万维<span id="end">网联盟</span></span>
+</div>
+</body>
+</html>

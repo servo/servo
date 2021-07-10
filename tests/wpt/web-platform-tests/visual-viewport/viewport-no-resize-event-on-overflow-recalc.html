@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Viewport: No Resize Event Fired on Overflow Recalc</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, minimum-scale=1">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <style>
+          html {
+              height: 100%;
+          }
+          body {
+              /* Ensure overflow to start */
+              height: 200%;
+          }
+        </style>
+    </head>
+    <body>
+    <h1>No Resize Event Fired on Overflow Recalc</h1>
+    <h4>
+        Test Description: This test ensures we don't fire spurrious resize
+        events when overflow is recalculated.
+    </h4>
+    <script>
+      function runTest() {
+        var t = async_test(
+            "Resize event not fired at window.visualViewport when content is added");
+        var viewResized = false;
+        window.visualViewport.addEventListener('resize', function() {
+            viewResized = true;
+        });
+
+        requestAnimationFrame(t.step_func_done(function() {
+            assert_equals(viewResized, false);
+        }));
+
+        document.body.style.height = "400%";
+      }
+
+      // Run the test after load to make sure any resize from load doesn't
+      // interfere.
+      window.onload = requestAnimationFrame(function() {
+        requestAnimationFrame(runTest);
+      });
+    </script>
+    <div id="log"></div>
+    </body>
+</html>
+

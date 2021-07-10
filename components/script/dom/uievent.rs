@@ -1,17 +1,17 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::codegen::Bindings::UIEventBinding;
-use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
-use dom::bindings::error::Fallible;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{MutNullableJS, Root, RootedReference};
-use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::str::DOMString;
-use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::window::Window;
+use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
+use crate::dom::bindings::codegen::Bindings::UIEventBinding;
+use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
+use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
+use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use servo_atoms::Atom;
 use std::cell::Cell;
@@ -21,8 +21,8 @@ use std::default::Default;
 #[dom_struct]
 pub struct UIEvent {
     event: Event,
-    view: MutNullableJS<Window>,
-    detail: Cell<i32>
+    view: MutNullableDom<Window>,
+    detail: Cell<i32>,
 }
 
 impl UIEvent {
@@ -34,39 +34,52 @@ impl UIEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &Window) -> Root<UIEvent> {
-        reflect_dom_object(box UIEvent::new_inherited(),
-                           window,
-                           UIEventBinding::Wrap)
+    pub fn new_uninitialized(window: &Window) -> DomRoot<UIEvent> {
+        reflect_dom_object(Box::new(UIEvent::new_inherited()), window)
     }
 
-    pub fn new(window: &Window,
-               type_: DOMString,
-               can_bubble: EventBubbles,
-               cancelable: EventCancelable,
-               view: Option<&Window>,
-               detail: i32) -> Root<UIEvent> {
+    pub fn new(
+        window: &Window,
+        type_: DOMString,
+        can_bubble: EventBubbles,
+        cancelable: EventCancelable,
+        view: Option<&Window>,
+        detail: i32,
+    ) -> DomRoot<UIEvent> {
         let ev = UIEvent::new_uninitialized(window);
-        ev.InitUIEvent(type_, bool::from(can_bubble), bool::from(cancelable), view, detail);
+        ev.InitUIEvent(
+            type_,
+            bool::from(can_bubble),
+            bool::from(cancelable),
+            view,
+            detail,
+        );
         ev
     }
 
-    pub fn Constructor(window: &Window,
-                       type_: DOMString,
-                       init: &UIEventBinding::UIEventInit) -> Fallible<Root<UIEvent>> {
+    #[allow(non_snake_case)]
+    pub fn Constructor(
+        window: &Window,
+        type_: DOMString,
+        init: &UIEventBinding::UIEventInit,
+    ) -> Fallible<DomRoot<UIEvent>> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
-        let event = UIEvent::new(window,
-                                 type_,
-                                 bubbles, cancelable,
-                                 init.view.r(), init.detail);
+        let event = UIEvent::new(
+            window,
+            type_,
+            bubbles,
+            cancelable,
+            init.view.as_deref(),
+            init.detail,
+        );
         Ok(event)
     }
 }
 
 impl UIEventMethods for UIEvent {
     // https://w3c.github.io/uievents/#widl-UIEvent-view
-    fn GetView(&self) -> Option<Root<Window>> {
+    fn GetView(&self) -> Option<DomRoot<Window>> {
         self.view.get()
     }
 
@@ -76,12 +89,14 @@ impl UIEventMethods for UIEvent {
     }
 
     // https://w3c.github.io/uievents/#widl-UIEvent-initUIEvent
-    fn InitUIEvent(&self,
-                   type_: DOMString,
-                   can_bubble: bool,
-                   cancelable: bool,
-                   view: Option<&Window>,
-                   detail: i32) {
+    fn InitUIEvent(
+        &self,
+        type_: DOMString,
+        can_bubble: bool,
+        cancelable: bool,
+        view: Option<&Window>,
+        detail: i32,
+    ) {
         let event = self.upcast::<Event>();
         if event.dispatching() {
             return;

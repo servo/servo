@@ -1,10 +1,18 @@
 def main(request, response):
-    allow = request.GET.first("allow", "false")
+    allow = request.GET.first(b"allow", b"false")
 
-    headers = [("Content-Type", "application/javascript")]
-    if allow != "false":
-        headers.append(("Access-Control-Allow-Origin", "*"))
+    headers = [(b"Content-Type", b"application/javascript")]
+    if allow != b"false":
+        headers.append((b"Access-Control-Allow-Origin", b"*"))
 
-    body = "new Promise(function(resolve, reject) { reject(42); })"
+    body = b"""
+    	function handleRejectedPromise(promise) {
+    		promise.catch(() => {});
+    	}
+
+    	(function() {
+    		new Promise(function(resolve, reject) { reject(42); });
+    	})();
+    """
 
     return headers, body

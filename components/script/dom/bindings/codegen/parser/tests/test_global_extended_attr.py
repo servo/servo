@@ -1,9 +1,10 @@
 def WebIDLTest(parser, harness):
     parser.parse("""
-      [Global]
+      [Global, Exposed=Foo]
       interface Foo : Bar {
         getter any(DOMString name);
       };
+      [Exposed=Foo]
       interface Bar {};
     """)
 
@@ -18,7 +19,7 @@ def WebIDLTest(parser, harness):
     threw = False
     try:
         parser.parse("""
-          [Global]
+          [Global, Exposed=Foo]
           interface Foo {
             getter any(DOMString name);
             setter void(DOMString name, any arg);
@@ -36,25 +37,7 @@ def WebIDLTest(parser, harness):
     threw = False
     try:
         parser.parse("""
-          [Global]
-          interface Foo {
-            getter any(DOMString name);
-            creator void(DOMString name, any arg);
-          };
-        """)
-        results = parser.finish()
-    except:
-        threw = True
-
-    harness.ok(threw,
-               "Should have thrown for [Global] used on an interface with a "
-               "named creator")
-
-    parser = parser.reset()
-    threw = False
-    try:
-        parser.parse("""
-          [Global]
+          [Global, Exposed=Foo]
           interface Foo {
             getter any(DOMString name);
             deleter void(DOMString name);
@@ -72,7 +55,7 @@ def WebIDLTest(parser, harness):
     threw = False
     try:
         parser.parse("""
-          [Global, OverrideBuiltins]
+          [Global, OverrideBuiltins, Exposed=Foo]
           interface Foo {
           };
         """)
@@ -88,10 +71,10 @@ def WebIDLTest(parser, harness):
     threw = False
     try:
         parser.parse("""
-          [Global]
+          [Global, Exposed=Foo]
           interface Foo : Bar {
           };
-          [OverrideBuiltins]
+          [OverrideBuiltins, Exposed=Foo]
           interface Bar {
           };
         """)
@@ -107,9 +90,10 @@ def WebIDLTest(parser, harness):
     threw = False
     try:
         parser.parse("""
-          [Global]
+          [Global, Exposed=Foo]
           interface Foo {
           };
+          [Exposed=Foo]
           interface Bar : Foo {
           };
         """)

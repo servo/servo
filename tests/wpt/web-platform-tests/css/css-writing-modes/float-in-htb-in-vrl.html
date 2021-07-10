@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>Fixed-size float in autosized htr in vrl</title>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-sizing-3/#intrinsic" title="4. Intrinsic Size Determination">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width:100px; height:100px; background:red;">
+  <div style="writing-mode:vertical-rl; background:green;">
+    <div style="writing-mode:horizontal-tb;">
+      <div style="float:left; width:100px; height:100px;"></div>
+    </div>
+  </div>
+</div>

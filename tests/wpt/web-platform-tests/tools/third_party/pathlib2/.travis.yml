@@ -1,0 +1,47 @@
+language: python
+sudo: false
+matrix:
+  include:
+    - python: "3.7"
+      dist: xenial
+      env: LC_ALL="en_US.utf-8"
+    - python: "3.7"
+      dist: xenial
+      env: LC_ALL="en_US.ascii"
+    - python: "3.6"
+      dist: xenial
+    - python: "3.5"
+      dist: xenial
+    - python: "3.4"
+      dist: xenial
+    - python: "2.7"
+      dist: xenial
+    - python: "2.6"
+      dist: trusty
+    - python: "pypy"
+      dist: xenial
+    - python: "pypy3"
+      dist: xenial
+  allow_failures:
+  # pypy occasionally has some bugs
+  - python: "pypy"
+  - python: "pypy3"
+branches:
+  only:
+    - develop
+install:
+  - "python -c \"import sys; print(sys.getfilesystemencoding())\""
+  - "pip install --upgrade setuptools"
+  - "pip install --upgrade pytest"
+  - "pip install pytest-cov"
+  - "pip install -r requirements.txt"
+  - "if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; then pip install unittest2; fi"
+  - "if [[ $TRAVIS_PYTHON_VERSION == '3.7' ]]; then pip install check-manifest flake8; fi"
+  - "pip install ."
+script:
+  - "if [[ $TRAVIS_PYTHON_VERSION == '3.7' ]]; then check-manifest; fi"
+  - "if [[ $TRAVIS_PYTHON_VERSION == '3.7' ]]; then flake8; fi"
+  - cd tests
+  - "pytest --cov-report=xml --cov=pathlib2 ."
+after_success:
+  - bash <(curl -s https://codecov.io/bash)

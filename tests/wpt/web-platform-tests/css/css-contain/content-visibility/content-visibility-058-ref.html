@@ -1,0 +1,59 @@
+<!doctype HTML>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>CSS Content Visibility: auto, scrollIntoView() (reference)</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+.spacer {
+  height: 10000px;
+}
+.container {
+  position: relative;
+  width: 150px;
+  background: lightblue;
+  contain-intrinsic-size: 50px 250px;
+}
+.size_contained {
+  contain: size;
+}
+.child {
+  width: 50px;
+  height: 300px;
+  background: lightgreen;
+}
+#target {
+  position: absolute;
+  bottom: 0;
+
+  width: 10px;
+  height: 10px;
+  background: blue;
+}
+</style>
+
+<div class=spacer></div>
+<div id=container class="container">
+  <div class=child></div>
+  <div id=target></div>
+</div>
+<div class=spacer></div>
+
+<script>
+
+function runReference() {
+  document.getElementById("target").scrollIntoView(true /* alignToTop */);
+  requestAnimationFrame(takeScreenshot);
+}
+
+window.onload = requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      runReference();
+    });
+  });
+});
+
+</script>

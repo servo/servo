@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="timeout" content="long">
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+</head>
+<body>
+  <script src=/permissions-policy/resources/permissions-policy.js></script>
+  <!-- Permissions-Policy: fullscreen=self cross_origin https://www.example.com; -->
+  <script>
+  'use strict';
+  var same_origin = 'https://{{domains[]}}:{{ports[https][0]}}';
+  var cross_origin = 'https://{{domains[www]}}:{{ports[https][0]}}';
+  var cross_origin1 = 'https://{{domains[www1]}}:{{ports[https][0]}}';
+  var same_origin_src = '/permissions-policy/resources/permissions-policy-allowedfeatures.html';
+  var cross_origin_src = cross_origin + same_origin_src;
+  var cross_origin_src1 = cross_origin1 + same_origin_src;
+  var data_src = 'data:text/html,<h1>data: URL</h1>';
+  // Test permissions policy with same_origin_src and cross_origin_src.
+  var policies = [
+    {allow: "*", sameOriginTestExpect: true, crossOriginTestExpect: true, crossOrigin1TestExpect: true, dataOriginTestExpect: false},
+    {allow: "'self'", sameOriginTestExpect: true, crossOriginTestExpect: false, crossOrigin1TestExpect: false, dataOriginTestExpect: false},
+    {allow: "'none'", sameOriginTestExpect: false, crossOriginTestExpect: false, crossOrigin1TestExpect: false, dataOriginTestExpect: false},
+    {allow: "'self' " + cross_origin + " https://www.example.com", sameOriginTestExpect: true, crossOriginTestExpect: true, crossOrigin1TestExpect: false, dataOriginTestExpect: false}];
+
+  // Test that the allow attribute overrides allowfullscreen.
+  for (var i = 0; i < policies.length; i++) {
+    test(function() {
+      test_frame_policy(
+        'fullscreen', same_origin_src, undefined,
+        policies[i].sameOriginTestExpect,
+        'fullscreen ' + policies[i].allow + ';', /*allowfullscreen*/true);
+    }, 'Test frame policy on same origin iframe with allow = "' + policies[i].allow +
+       '" and allowfullscreen.');
+    test(function() {
+      test_frame_policy(
+        'fullscreen', cross_origin_src, undefined,
+        policies[i].crossOriginTestExpect,
+        'fullscreen ' + policies[i].allow + ';', /*allowfullscreen*/true);
+    }, 'Test frame policy on cross origin iframe with allow = "' + policies[i].allow +
+       '" and allowfullscreen.');
+    test(function() {
+      test_frame_policy(
+        'fullscreen', cross_origin_src1, undefined,
+        policies[i].crossOrigin1TestExpect,
+        'fullscreen ' + policies[i].allow + ';', /*allowfullscreen*/true);
+    }, 'Test frame policy on another cross origin iframe with allow = "' + policies[i].allow +
+       '" and allowfullscreen.');
+    test(function() {
+      test_frame_policy(
+        'fullscreen', undefined, true, policies[i].sameOriginTestExpect,
+        'fullscreen ' + policies[i].allow + ';', /*allowfullscreen*/true);
+    }, 'Test frame policy on srcdoc iframe with allow = "' + policies[i].allow +
+       '" and allowfullscreen.');
+    test(function() {
+      test_frame_policy(
+        'fullscreen', same_origin_src, true, policies[i].sameOriginTestExpect,
+        'fullscreen ' + policies[i].allow + ';', /*allowfullscreen*/true);
+    }, 'Test frame policy on srcdoc + same origin iframe with allow = "' + policies[i].allow +
+       '" and allowfullscreen.');
+    test(function() {
+      test_frame_policy(
+        'fullscreen', cross_origin_src, true, policies[i].sameOriginTestExpect,
+        'fullscreen ' + policies[i].allow + ';', /*allowfullscreen*/true);
+    }, 'Test frame policy on srcdoc + cross origin iframe with allow = "' + policies[i].allow +
+       '" and allowfullscreen.');
+    test(function() {
+      test_frame_policy(
+        'fullscreen', cross_origin_src1, true, policies[i].sameOriginTestExpect,
+        'fullscreen ' + policies[i].allow + ';', /*allowfullscreen*/true);
+    }, 'Test frame policy on srcdoc + another cross origin iframe with allow = "' + policies[i].allow +
+       '" and allowfullscreen.');
+    test(function() {
+      test_frame_policy(
+        'fullscreen', data_src, undefined, policies[i].dataOriginTestExpect,
+        'fullscreen ' + policies[i].allow + ';', /*allowfullscreen*/true);
+    }, 'Test frame policy on data: URL cross origin iframe with allow = "' + policies[i].allow +
+       '" and allowfullscreen.');
+  }
+  </script>
+</body>
+</html>

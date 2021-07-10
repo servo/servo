@@ -1,0 +1,128 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCRtpSender.prototype.setStreams</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const caller = new RTCPeerConnection();
+  t.add_cleanup(() => caller.close());
+  const callee = new RTCPeerConnection();
+  t.add_cleanup(() => callee.close());
+  const stream = await getNoiseStream({audio: true});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  const [track] = stream.getTracks();
+
+  const sender = caller.addTrack(track);
+  const stream1 = new MediaStream();
+  const stream2 = new MediaStream();
+  sender.setStreams(stream1, stream2);
+
+  const offer = await caller.createOffer();
+  callee.setRemoteDescription(offer);
+  return new Promise(resolve => callee.ontrack = t.step_func(event =>{
+    assert_equals(event.streams.length, 2);
+    const calleeStreamIds = event.streams.map(s => s.id);
+    assert_in_array(stream1.id, calleeStreamIds);
+    assert_in_array(stream2.id, calleeStreamIds);
+    resolve();
+  }));
+}, 'setStreams causes streams to be reported via ontrack on callee');
+
+promise_test(async t => {
+  const caller = new RTCPeerConnection();
+  t.add_cleanup(() => caller.close());
+  const callee = new RTCPeerConnection();
+  t.add_cleanup(() => callee.close());
+  const stream = await getNoiseStream({audio: true});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  const [track] = stream.getTracks();
+
+  const sender = caller.addTrack(track);
+  sender.setStreams(stream);
+
+  const offer = await caller.createOffer();
+  callee.setRemoteDescription(offer);
+  return new Promise(resolve => callee.ontrack = t.step_func(event =>{
+    assert_equals(event.streams.length, 1);
+    assert_equals(stream.id, event.streams[0].id);
+    assert_equals(track.id, event.track.id);
+    assert_equals(event.streams[0].getTracks()[0], event.track);
+    resolve();
+  }));
+}, 'setStreams can be used to reconstruct a stream with a track on the remote side');
+
+
+promise_test(async t => {
+  const caller = new RTCPeerConnection();
+  t.add_cleanup(() => caller.close());
+  const callee = new RTCPeerConnection();
+  t.add_cleanup(() => callee.close());
+
+  callee.ontrack = t.unreached_func();
+  const transceiver = caller.addTransceiver('audio', {direction: 'inactive'});
+  await exchangeOfferAnswer(caller, callee);
+
+  const stream1 = new MediaStream();
+  const stream2 = new MediaStream();
+  transceiver.direction = 'sendrecv';
+  transceiver.sender.setStreams(stream1, stream2);
+
+  const offer = await caller.createOffer();
+  callee.setRemoteDescription(offer);
+  return new Promise(resolve => callee.ontrack = t.step_func(event =>{
+    assert_equals(event.streams.length, 2);
+    const calleeStreamIds = event.streams.map(s => s.id);
+    assert_in_array(stream1.id, calleeStreamIds);
+    assert_in_array(stream2.id, calleeStreamIds);
+    assert_in_array(event.track, event.streams[0].getTracks());
+    assert_in_array(event.track, event.streams[1].getTracks());
+    resolve();
+  }));
+}, 'Adding streams and changing direction causes new streams to be reported via ontrack on callee');
+
+promise_test(async t => {
+  const caller = new RTCPeerConnection();
+  t.add_cleanup(() => caller.close());
+  const callee = new RTCPeerConnection();
+  t.add_cleanup(() => callee.close());
+
+  const stream1 = new MediaStream();
+  const stream2 = new MediaStream();
+  let calleeTrack = null;
+  callee.ontrack = t.step_func(event => {
+    assert_equals(event.streams.length, 0);
+    calleeTrack = event.track;
+  });
+  const transceiver = caller.addTransceiver('audio', {direction: 'sendrecv'});
+  await exchangeOfferAnswer(caller, callee);
+  assert_true(calleeTrack instanceof MediaStreamTrack);
+
+  transceiver.sender.setStreams(stream1, stream2);
+  const offer = await caller.createOffer();
+  callee.setRemoteDescription(offer);
+  return new Promise(resolve => callee.ontrack = t.step_func(event =>{
+    assert_equals(event.streams.length, 2);
+    const calleeStreamIds = event.streams.map(s => s.id);
+    assert_in_array(stream1.id, calleeStreamIds);
+    assert_in_array(stream2.id, calleeStreamIds);
+    assert_in_array(event.track, event.streams[0].getTracks());
+    assert_in_array(event.track, event.streams[1].getTracks());
+    assert_equals(event.track, calleeTrack);
+    resolve();
+  }));
+}, 'Adding streams to an active transceiver causes new streams to be reported via ontrack on callee');
+
+test(t => {
+  const pc = new RTCPeerConnection();
+  const stream1 = new MediaStream();
+  const stream2 = new MediaStream();
+  const transceiver = pc.addTransceiver('audio');
+
+  pc.close();
+  assert_throws_dom('InvalidStateError', () => transceiver.sender.setStreams(stream1, stream2));
+}, 'setStreams() fires InvalidStateError on a closed peer connection.');
+</script>

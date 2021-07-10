@@ -1,0 +1,665 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL 2 ReadPixels Test.</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"> </script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("Checks that ReadPixels from a fbo works as expected.");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext(undefined, undefined, 2);
+gl.pixelStorei(gl.PACK_ALIGNMENT, 1);
+
+function getChannelCount(format) {
+  switch (format) {
+    case gl.RED:
+    case gl.RED_INTEGER:
+    case gl.ALPHA:
+    case gl.LUMINANCE:
+      return 1;
+    case gl.RB:
+    case gl.RB_INTEGER:
+    case gl.LUMINANCE_ALPHA:
+      return 2;
+    case gl.RGB:
+    case gl.RGB_INTEGER:
+      return 3;
+    case gl.RGBA:
+    case gl.RGBA_INTEGER:
+      return 4;
+    default:
+      return 0;
+  }
+}
+
+function getUnpackInfo(type) {
+  switch (type) {
+    case gl.UNSIGNED_SHORT_5_6_5:
+      return {bitsCount: [5, 6, 5], isReverse: false};
+    case gl.UNSIGNED_SHORT_4_4_4_4:
+      return {bitsCount: [4, 4, 4, 4], isReverse: false};
+    case gl.UNSIGNED_SHORT_5_5_5_1:
+      return {bitsCount: [5, 5, 5, 1], isReverse: false};
+    case gl.UNSIGNED_INT_2_10_10_10_REV:
+      return {bitsCount: [2, 10, 10, 10], isReverse: true};
+    case gl.UNSIGNED_INT_10F_11F_11F_REV:
+      return {bitsCount: [10, 11, 11], isReverse: true};
+    case gl.UNSIGNED_INT_5_9_9_9_REV:
+      return {bitsCount: [5, 9, 9, 9], isReverse: true};
+    default:
+      return null;
+  }
+}
+
+// bitsCount is an array contains bit count for each component.
+function unpack(value, channelCount, bitsCount, isReverse) {
+  var result = new Array(channelCount);
+
+  var accumBitsCount = 0;
+  for (var i = channelCount - 1; i >= 0; --i) {
+    var currentChannel = isReverse ? (channelCount - i - 1) : i;
+    var mask = 0xFFFFFFFF >>> (32 - bitsCount[i]);
+    result[currentChannel] = ((value >> accumBitsCount) & mask);
+    accumBitsCount += bitsCount[i];
+  }
+
+  return result;
+}
+
+function getColor(buf, index, readFormat, readType) {
+  var channelCount = getChannelCount(readFormat);
+  var result = new Array(channelCount);
+
+  var unpackInfo = getUnpackInfo(readType);
+  if (unpackInfo) {
+    result = unpack(buf[index], channelCount, unpackInfo.bitsCount, unpackInfo.isReverse);
+  } else {
+    for (var i = 0; i < channelCount; ++i) {
+      result[i] = buf[index + i];
+    }
+  }
+
+  return result;
+}
+
+function convertToSRGB(val) {
+  if (val <= 0) {
+    return 0;
+  } else if (val < 0.0031308) {
+    return 12.92 * val;
+  } else if (val < 1) {
+    return 1.055 * Math.pow(val, 0.41666) - 0.055;
+  } else {
+    return 1;
+  }
+}
+
+function denormalizeColor(srcInternalFormat, destType, color) {
+  var result = color.slice();
+  var tol = 0;
+
+  var srcIsNormalized = false;
+
+  switch (srcInternalFormat) {
+    case gl.R8:
+    case gl.RG8:
+    case gl.RGB8:
+    case gl.RGBA8:
+    case gl.RGB5_A1:
+    case gl.SRGB8_ALPHA8:
+    case gl.RGB10_A2:
+      srcIsNormalized = true;
+      tol = 6;
+      break;
+    case gl.RGB565:
+      // RGB565 needs slightly extra tolerance, at least on Google Pixel. crbug.com/682753
+      srcIsNormalized = true;
+      tol = 7;
+      break;
+    case gl.RGBA4:
+      srcIsNormalized = true;
+      tol = 10;
+      break;
+  }
+
+  if (!srcIsNormalized) {
+    return { color: result, tol: tol };
+  }
+
+  if (srcInternalFormat == gl.SRGB8_ALPHA8) {
+    for (var i = 0; i < 3; ++i) {
+      result[i] = convertToSRGB(result[i]);
+    }
+  }
+
+  switch (destType) {
+    case gl.UNSIGNED_BYTE:
+      result = result.map(val => { return val * 0xFF});
+      break;
+    case gl.UNSIGNED_SHORT:
+      // On Linux NVIDIA, tol of 33 is necessary to pass the test.
+      tol = 40;
+      result = result.map(val => { return val * 0xFFFF});
+      break;
+    case gl.UNSIGNED_INT:
+      tol = 40;
+      result = result.map(val => { return val * 0xFFFFFFFF});
+      break;
+    case gl.UNSIGNED_SHORT_4_4_4_4:
+      result = result.map(val => { return val * 0xF});
+      break;
+    case gl.UNSIGNED_SHORT_5_5_5_1:
+      result[0] = result[0] * 0x1F;
+      result[1] = result[1] * 0x1F;
+      result[2] = result[2] * 0x1F;
+      result[3] = result[3] * 0x1;
+      break;
+    case gl.UNSIGNED_SHORT_5_6_5:
+      result[0] = result[0] * 0x1F;
+      result[1] = result[1] * 0x3F;
+      result[2] = result[2] * 0x1F;
+      break;
+    case gl.UNSIGNED_INT_2_10_10_10_REV:
+      tol = 25;
+      result[0] = result[0] * 0x3FF;
+      result[1] = result[1] * 0x3FF;
+      result[2] = result[2] * 0x3FF;
+      result[3] = result[3] * 0x3;
+      break;
+    case gl.UNSIGNED_INT_5_9_9_9_REV:
+      result[0] = result[0] * 0x1FF;
+      result[1] = result[1] * 0x1FF;
+      result[2] = result[2] * 0x1FF;
+      result[3] = result[3] * 0x1F;
+      break;
+  }
+
+  return { color: result, tol: tol };
+}
+
+function compareColor(buf, index, expectedColor, srcInternalFormat,
+                      srcFormat, srcType, readFormat, readType) {
+  var srcChannelCount = getChannelCount(srcFormat);
+  var readChannelCount = getChannelCount(readFormat);
+
+  var color = getColor(buf, index, readFormat, readType);
+  expectedColor = denormalizeColor(srcInternalFormat, readType, expectedColor);
+
+  var minChannel = Math.min(srcChannelCount, readChannelCount);
+  for (var i = 0; i < minChannel; ++i) {
+    if (Math.abs(expectedColor.color[i] - color[i]) > expectedColor.tol) {
+      testFailed("Expected color = " + expectedColor.color + ", was = " + color);
+      return false;
+    }
+  }
+
+  return true;
+}
+
+var textureTestCases = [
+  {
+    texInternalFormat: 'R8', texFormat: 'RED', texType: 'UNSIGNED_BYTE',
+    readFormat: 'RGBA', readType: 'UNSIGNED_BYTE',
+    clearColor: [0.5, 0.0, 0.0, 0],
+  },
+  {
+    texInternalFormat: 'R8UI', texFormat: 'RED_INTEGER', texType: 'UNSIGNED_BYTE',
+    readFormat: 'RGBA_INTEGER', readType: 'UNSIGNED_INT',
+    clearColor: [250, 0, 0, 0],
+  },
+  {
+    texInternalFormat: 'R8I', texFormat: 'RED_INTEGER', texType: 'BYTE',
+    readFormat: 'RGBA_INTEGER', readType: 'INT',
+    clearColor: [-126, 0, 0, 0],
+  },
+  {
+    texInternalFormat: 'R16UI', texFormat: 'RED_INTEGER', texType: 'UNSIGNED_SHORT',
+    readFormat: 'RGBA_INTEGER', readType: 'UNSIGNED_INT',
+    clearColor: [30001, 0, 0, 0],
+  },
+  {
+    texInternalFormat: 'R16I', texFormat: 'RED_INTEGER', texType: 'SHORT',
+    readFormat: 'RGBA_INTEGER', readType: 'INT',
+    clearColor: [-14189, 0, 0, 0],
+  },
+  {
+    texInternalFormat: 'R32UI', texFormat: 'RED_INTEGER', texType: 'UNSIGNED_INT',
+    readFormat: 'RGBA_INTEGER', readType: 'UNSIGNED_INT',
+    clearColor: [126726, 0, 0, 0],
+  },
+  {
+    texInternalFormat: 'R32I', texFormat: 'RED_INTEGER', texType: 'INT',
+    readFormat: 'RGBA_INTEGER', readType: 'INT',
+    clearColor: [-126726, 0, 0, 0],
+  },
+
+  {
+    texInternalFormat: 'RG8', texFormat: 'RG', texType: 'UNSIGNED_BYTE',
+    readFormat: 'RGBA', readType: 'UNSIGNED_BYTE',
+    clearColor: [0.5, 0.7, 0.0, 0],
+  },
+  {
+    texInternalFormat: 'RG8UI', texFormat: 'RG_INTEGER', texType: 'UNSIGNED_BYTE',
+    readFormat: 'RGBA_INTEGER', readType: 'UNSIGNED_INT',
+    clearColor: [250, 124, 0, 0],
+  },
+  {
+    texInternalFormat: 'RG8I', texFormat: 'RG_INTEGER', texType: 'BYTE',
+    readFormat: 'RGBA_INTEGER', readType: 'INT',
+    clearColor: [-55, 124, 0, 0],
+  },
+  {
+    texInternalFormat: 'RG16UI', texFormat: 'RG_INTEGER', texType: 'UNSIGNED_SHORT',
+    readFormat: 'RGBA_INTEGER', readType: 'UNSIGNED_INT',
+    clearColor: [30001, 18, 0, 0],
+  },
+  {
+    texInternalFormat: 'RG16I', texFormat: 'RG_INTEGER', texType: 'SHORT',
+    readFormat: 'RGBA_INTEGER', readType: 'INT',
+    clearColor: [-14189, 6735, 0, 0],
+  },
+  {
+    texInternalFormat: 'RG32UI', texFormat: 'RG_INTEGER', texType: 'UNSIGNED_INT',
+    readFormat: 'RGBA_INTEGER', readType: 'UNSIGNED_INT',
+    clearColor: [126726, 1976, 0, 0],
+  },
+  {
+    texInternalFormat: 'RG32I', texFormat: 'RG_INTEGER', texType: 'INT',
+    readFormat: 'RGBA_INTEGER', readType: 'INT',
+    clearColor: [-126726, 126726, 0, 0],
+  },
+
+  {
+    texInternalFormat: 'RGB8', texFormat: 'RGB', texType: 'UNSIGNED_BYTE',
+    readFormat: 'RGBA', readType: 'UNSIGNED_BYTE',
+    clearColor: [0.5, 1, 0, 0],
+  },
+  {
+    texInternalFormat: 'RGB565', texFormat: 'RGB', texType: 'UNSIGNED_BYTE',
+    readFormat: 'RGBA', readType: 'UNSIGNED_BYTE',
+    clearColor: [0.5, 0.7, 0.2, 0],
+  },
+  {
+    texInternalFormat: 'RGB565', texFormat: 'RGB', texType: 'UNSIGNED_SHORT_5_6_5',
+    readFormat: 'RGBA', readType: 'UNSIGNED_BYTE',
+    clearColor: [0.5, 0.7, 0.2, 0],
+  },
+
+  {
+    texInternalFormat: 'RGBA8', texFormat: 'RGBA', texType: 'UNSIGNED_BYTE',
+    readFormat: 'RGBA', readType: 'UNSIGNED_BYTE',
+    clearColor: [0.5, 0, 1, 0.7],
+  },
+  {
+    texInternalFormat: 'SRGB8_ALPHA8', texFormat: 'RGBA', texType: 'UNSIGNED_BYTE',
+    readFormat: 'RGBA', readType: 'UNSIGNED_BYTE',
+    clearColor: [0.5, 0, 1, 0.7],
+  },
+  {
+    texInternalFormat: 'RGB5_A1', texFormat: 'RGBA', texType: 'UNSIGNED_BYTE',
+    readFormat: 'RGBA', readType: 'UNSIGNED_BYTE',
+    clearColor: [0.5, 0, 0.7, 1],
+  },
+  {
+    texInternalFormat: 'RGB5_A1', texFormat: 'RGBA', texType: 'UNSIGNED_SHORT_5_5_5_1',
+    readFormat: 'RGBA', readType: 'UNSIGNED_BYTE',
+    clearColor: [0.5, 0.7, 1, 0],
+  },
+  {
+    texInternalFormat: 'RGB5_A1', texFormat: 'RGBA', texType: 'UNSIGNED_INT_2_10_10_10_REV',
+    readFormat: 'RGBA', readType: 'UNSIGNED_BYTE',
+    clearColor: [0.5, 0.7, 0, 1],
+  },
+  {
+    texInternalFormat: 'RGBA4', texFormat: 'RGBA', texType: 'UNSIGNED_BYTE',
+    readFormat: 'RGBA', readType: 'UNSIGNED_BYTE',
+    clearColor: [0.5, 0.7, 1, 0],
+  },
+  {
+    texInternalFormat: 'RGBA4', texFormat: 'RGBA', texType: 'UNSIGNED_SHORT_4_4_4_4',
+    readFormat: 'RGBA', readType: 'UNSIGNED_BYTE',
+    clearColor: [1, 0, 0.5, 0.7],
+  },
+  {
+    texInternalFormat: 'RGBA8UI', texFormat: 'RGBA_INTEGER', texType: 'UNSIGNED_BYTE',
+    readFormat: 'RGBA_INTEGER', readType: 'UNSIGNED_INT',
+    clearColor: [127, 0, 255, 178],
+  },
+  {
+    texInternalFormat: 'RGBA8I', texFormat: 'RGBA_INTEGER', texType: 'BYTE',
+    readFormat: 'RGBA_INTEGER', readType: 'INT',
+    clearColor: [-55, 56, 80, 127],
+  },
+  {
+    texInternalFormat: 'RGB10_A2UI', texFormat: 'RGBA_INTEGER', texType: 'UNSIGNED_INT_2_10_10_10_REV',
+    readFormat: 'RGBA_INTEGER', readType: 'UNSIGNED_INT',
+    clearColor: [178, 0, 127, 3],
+  },
+  {
+    texInternalFormat: 'RGBA16UI', texFormat: 'RGBA_INTEGER', texType: 'UNSIGNED_SHORT',
+    readFormat: 'RGBA_INTEGER', readType: 'UNSIGNED_INT',
+    clearColor: [14189, 6735, 0, 19],
+  },
+  {
+    texInternalFormat: 'RGBA16I', texFormat: 'RGBA_INTEGER', texType: 'SHORT',
+    readFormat: 'RGBA_INTEGER', readType: 'INT',
+    clearColor: [14189, -6735, 0, 19],
+  },
+  {
+    texInternalFormat: 'RGBA32UI', texFormat: 'RGBA_INTEGER', texType: 'UNSIGNED_INT',
+    readFormat: 'RGBA_INTEGER', readType: 'UNSIGNED_INT',
+    clearColor: [126726, 6726, 98765, 2015],
+  },
+  {
+    texInternalFormat: 'RGBA32I', texFormat: 'RGBA_INTEGER', texType: 'INT',
+    readFormat: 'RGBA_INTEGER', readType: 'INT',
+    clearColor: [126726, -6726, -98765, 2015],
+  },
+
+  {
+    texInternalFormat: 'RGB10_A2', texFormat: 'RGBA', texType: 'UNSIGNED_INT_2_10_10_10_REV',
+    readFormat: 'RGBA', readType: 'UNSIGNED_BYTE',
+    clearColor: [0.7, 0, 0.5, 1],
+  },
+
+  // TODO(zmo): add float/half_float test cases with extension supports.
+];
+
+function getArrayTypeFromReadPixelsType(gl, type) {
+  switch (type) {
+    case gl.UNSIGNED_BYTE:
+      return Uint8Array;
+    case gl.BYTE:
+      return Int8Array;
+    case gl.UNSIGNED_SHORT:
+    case gl.UNSIGNED_SHORT_5_6_5:
+    case gl.UNSIGNED_SHORT_4_4_4_4:
+    case gl.UNSIGNED_SHORT_5_5_5_1:
+      return Uint16Array;
+    case gl.SHORT:
+      return Int16Array;
+    case gl.UNSIGNED_INT:
+    case gl.UNSIGNED_INT_2_10_10_10_REV:
+    case gl.UNSIGNED_INT_10F_11F_11F_REV:
+    case gl.UNSIGNED_INT_5_9_9_9_REV:
+      return Uint32Array;
+    case gl.INT:
+      return Int32Array;
+    case gl.HALF_FLOAT:
+      return Uint16Array;
+    case gl.FLOAT:
+      return Float32Array;
+    default:
+      return null;
+  }
+}
+
+function getFormatString(gl, format) {
+  switch (format) {
+    case gl.RED:
+      return 'RED';
+    case gl.RED_INTEGER:
+      return 'RED_INTEGER';
+    case gl.RG:
+      return 'RG';
+    case gl.RG_INTEGER:
+      return 'RG_INTEGER';
+    case gl.RGB:
+      return 'RGB';
+    case gl.RGB_INTEGER:
+      return 'RGB_INTEGER';
+    case gl.RGBA:
+      return 'RGBA';
+    case gl.RGBA_INTEGER:
+      return 'RGBA_INTEGER';
+    case gl.LUMINANCE:
+      return 'LUMINANCE';
+    case gl.LUMINANCE_ALPHA:
+      return 'LUMINANCE_ALPHA';
+    case gl.ALPHA:
+      return 'ALPHA';
+    default:
+      return '';
+  };
+}
+
+function getTypeString(gl, type) {
+  switch (type) {
+    case gl.UNSIGNED_BYTE:
+      return 'UNSIGNED_BYTE';
+    case gl.BYTE:
+      return 'BYTE';
+    case gl.UNSIGNED_SHORT:
+      return 'UNSIGNED_SHORT';
+    case gl.SHORT:
+      return 'SHORT';
+    case gl.UNSIGNED_INT:
+      return 'UNSIGNED_INT';
+    case gl.INT:
+      return 'INT';
+    case gl.UNSIGNED_SHORT_5_6_5:
+      return 'UNSIGNED_SHORT_5_6_5';
+    case gl.UNSIGNED_SHORT_5_5_5_1:
+      return 'UNSIGNED_SHORT_5_5_5_1';
+    case gl.UNSIGNED_INT_2_10_10_10_REV:
+      return 'UNSIGNED_INT_2_10_10_10_REV';
+    case gl.UNSIGNED_SHORT_4_4_4_4:
+      return 'UNSIGNED_SHORT_4_4_4_4';
+    case gl.UNSIGNED_INT_10F_11F_11F_REV:
+      return 'UNSIGNED_INT_10F_11F_11F_REV';
+    case gl.UNSIGNED_INT_5_9_9_9_REV:
+      return 'UNSIGNED_INT_5_9_9_9_REV';
+    default:
+      return '';
+  };
+}
+
+function elementCountPerPixel(gl, readFormat, readType) {
+  switch (readFormat) {
+    case gl.RED:
+    case gl.RED_INTEGER:
+    case gl.ALPHA:
+    case gl.LUMINANCE:
+      return 1;
+    case gl.RG:
+    case gl.RG_INTEGER:
+    case gl.LUMINANCE_ALPHA:
+      return 2;
+    case gl.RGB:
+    case gl.RGB_INTEGER:
+      switch (readType) {
+        case gl.UNSIGNED_SHORT_5_6_5:
+          return 1;
+        default:
+          return 3;
+      }
+    case gl.RGBA:
+    case gl.RGBA_INTEGER:
+      switch (readType) {
+        case gl.UNSIGNED_SHORT_4_4_4_4:
+        case gl.UNSIGNED_SHORT_5_5_5_1:
+        case gl.UNSIGNED_INT_2_10_10_10_REV:
+        case gl.UNSIGNED_INT_10F_11F_11F_REV:
+        case gl.UNSIGNED_INT_5_9_9_9_REV:
+          return 1;
+        default:
+          return 4;
+      }
+    default:
+      testFailed("Unexpected read format/type = " + readFormat + "/" + readType);
+      return 0;
+  }
+}
+
+function testReadPixels(gl, srcInternalFormat, srcFormat, srcType,
+                        readFormat, readType, expectedColor) {
+  var arrayType = getArrayTypeFromReadPixelsType(gl, readType);
+  var buf = new arrayType(width * height * 4);
+  gl.readPixels(0, 0, width, height, readFormat, readType, buf);
+  wtu.glErrorShouldBe(
+      gl, gl.NO_ERROR, "readPixels should generate no error");
+  var diffFound = false;
+  for (var ii = 0; ii < width * height; ++ii) {
+    var offset = ii * elementCountPerPixel(gl, readFormat, readType);
+    if (!compareColor(buf, offset, expectedColor, srcInternalFormat, srcFormat, srcType,
+                      readFormat, readType)) {
+      diffFound = true;
+      break;
+    }
+  }
+  if (!diffFound) {
+    testPassed("Color read back as expected");
+  }
+}
+
+function clearBuffer(gl, texInternalFormat, clearColor) {
+  var value;
+  switch (texInternalFormat) {
+    case gl.R8UI:
+    case gl.R16UI:
+    case gl.R32UI:
+    case gl.RG8UI:
+    case gl.RG16UI:
+    case gl.RG32UI:
+    case gl.RGBA8UI:
+    case gl.RGBA16UI:
+    case gl.RGBA32UI:
+    case gl.RGB10_A2UI:
+      value = new Uint32Array(4);
+      for (var ii = 0; ii < 4; ++ii)
+        value[ii] = clearColor[ii];
+      gl.clearBufferuiv(gl.COLOR, 0, value);
+      break;
+    case gl.R8I:
+    case gl.R16I:
+    case gl.R32I:
+    case gl.RG8I:
+    case gl.RG16I:
+    case gl.RG32I:
+    case gl.RGBA8I:
+    case gl.RGBA16I:
+    case gl.RGBA32I:
+      value = new Int32Array(4);
+      for (var ii = 0; ii < 4; ++ii)
+        value[ii] = clearColor[ii];
+      gl.clearBufferiv(gl.COLOR, 0, value);
+      break;
+    default:
+      gl.clearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      break;
+  }
+}
+
+for (var tt = 0; tt < textureTestCases.length; ++tt) {
+  var test = textureTestCases[tt];
+  debug("");
+  debug("ReadPixels from fbo with texture = (" + test.texInternalFormat +
+        ", " + test.texFormat + ", " + test.texType +
+        "), format = " + test.readFormat + ", type = " + test.readType);
+  var width = 2;
+  var height = 2;
+  var fbo = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+  var colorImage = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, colorImage);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl[test.texInternalFormat], width, height, 0,
+                gl[test.texFormat], gl[test.texType], null);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,
+                          gl.TEXTURE_2D, colorImage, 0);
+  wtu.glErrorShouldBe(
+      gl, gl.NO_ERROR, "Setting up fbo should generate no error");
+  if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE) {
+    debug("fbo is not complete, skip");
+    continue;
+  }
+  clearBuffer(gl, gl[test.texInternalFormat], test.clearColor);
+  wtu.glErrorShouldBe(
+      gl, gl.NO_ERROR, "Clear color should generate no error");
+
+  var implFormat = gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_FORMAT);
+  var implType = gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_TYPE);
+  var implFormatString = getFormatString(gl, implFormat);
+  var implTypeString = getTypeString(gl, implType);
+
+  if (gl[test.texInternalFormat] == gl.RGB10_A2) {
+    // This is a special case where three read format/type are supported.
+    var readTypes = [gl.UNSIGNED_BYTE, gl.UNSIGNED_INT_2_10_10_10_REV];
+    var readTypeStrings = ['UNSIGNED_BYTE', 'UNSIGNED_INT_2_10_10_10_REV'];
+    if (implFormat == gl.RGBA && implTypeString != '') {
+      readTypes.push(implType);
+      readTypeStrings.push(implTypeString);
+    } else {
+      testFailed("Unimplemented Implementation dependent color read format/type = " +
+                 implFormat + "/" + implType);
+    }
+    for (var rr = 0; rr < readTypes.length; ++rr) {
+      debug("Special case RGB10_A2, format = RGBA, type = " + readTypeStrings[rr]);
+      testReadPixels(gl, gl[test.texInternalFormat], gl[test.texFormat], gl[test.texType],
+                     gl.RGBA, readTypes[rr], test.clearColor);
+    }
+  } else {
+    testReadPixels(gl, gl[test.texInternalFormat], gl[test.texFormat], gl[test.texType],
+                   gl[test.readFormat], gl[test.readType], test.clearColor);
+
+    debug("Testing implementation dependent color read format = " + implFormatString +
+          ", type = " + implTypeString);
+    if (implFormatString == '') {
+      testFailed("Invalid IMPLEMENTATION_COLOR_READ_FORMAT = " + implFormat);
+      continue;
+    }
+    if (implTypeString == '') {
+      testFailed("Invalid IMPLEMENTATION_COLOR_READ_TYPE = " + implType);
+      continue;
+    }
+    testReadPixels(gl, gl[test.texInternalFormat], gl[test.texFormat], gl[test.texType],
+                   implFormat, implType, test.clearColor);
+
+    gl.deleteTexture(colorImage);
+    gl.deleteFramebuffer(fbo);
+  }
+}
+
+debug("")
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!doctype html>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#missing-cells-fixup">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#total-horizontal-border-spacing">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#outer-max-content">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1692607">
+<link rel="match" href="col-definite-size-001-ref.html">
+
+<table border="1" cellspacing="10">
+  <colgroup>
+    <col style="min-width:100px">
+    <col style="min-width:100px">
+    <col style="min-width:100px">
+    <col style="min-width:100px">
+  </colgroup>
+  <thead>
+    <tr>
+      <td>1</td>
+      <td>2</td>
+    </tr>
+  </thead>
+</table>
+
+<table border="1" cellspacing="10">
+  <colgroup>
+    <col style="min-width:calc(100px + 1%)">
+    <col style="min-width:calc(100px + 1%)">
+    <col style="min-width:calc(100px + 1%)">
+    <col style="min-width:calc(100px + 1%)">
+  </colgroup>
+  <thead>
+    <tr>
+      <td>1</td>
+      <td>2</td>
+    </tr>
+  </thead>
+</table>
+
+<table border="1" cellspacing="10">
+  <colgroup>
+    <col style="min-width:50%">
+    <col style="min-width:50%">
+    <col style="min-width:50%">
+    <col style="min-width:50%">
+  </colgroup>
+  <thead>
+    <tr>
+      <td>1</td>
+      <td>2</td>
+    </tr>
+  </thead>
+</table>
+
+<table border="1" cellspacing="10">
+  <colgroup>
+    <col>
+    <col>
+    <col style="min-width:0">
+    <col style="min-width:0">
+  </colgroup>
+  <thead>
+    <tr>
+      <td>1</td>
+      <td>2</td>
+    </tr>
+  </thead>
+</table>

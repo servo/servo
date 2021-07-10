@@ -50,7 +50,7 @@ function runTest(t, i, desc) {
         }
         var namespace = t[0], qualifiedName = t[1], expected = t[2]
         if (expected != null) {
-          assert_throws(expected, function() { doc.createElementNS(namespace, qualifiedName) })
+          assert_throws_dom(expected, doc.defaultView.DOMException, function() {doc.createElementNS(namespace, qualifiedName) });
         } else {
           var element = doc.createElementNS(namespace, qualifiedName)
           assert_not_equals(element, null)

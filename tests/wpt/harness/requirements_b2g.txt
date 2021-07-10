@@ -1,7 +1,0 @@
-fxos_appgen >= 0.5
-mozdevice >= 0.41
-gaiatest >= 0.26
-marionette_client >= 0.7.10
-moznetwork >= 0.24
-mozprofile >= 0.21
-mozrunner >= 6.1

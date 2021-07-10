@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Test AudioBufferSourceNode With Looping And Duration
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      let audit = Audit.createTaskRunner();
+      audit.define('loop with duration', (task, should) => {
+        // Create the context
+        let context = new OfflineAudioContext(1, 4096, 48000);
+
+        // Create the sample buffer and fill the second half with 1
+        let buffer = context.createBuffer(1, 2048, context.sampleRate);
+        for(let i = 1024; i < 2048; i++) {
+          buffer.getChannelData(0)[i] = 1;
+        }
+
+        // Create the source and set its value
+        let source = context.createBufferSource();
+        source.loop = true;
+        source.loopStart = 1024 / context.sampleRate;
+        source.loopEnd = 2048 / context.sampleRate;
+        source.buffer = buffer;
+        source.connect(context.destination);
+        source.start(0, 1024 / context.sampleRate, 2048 / context.sampleRate);
+        // Expectations
+        let expected = new Float32Array(4096);
+        for(let i = 0; i < 2048; i++) {
+          expected[i] = 1;
+        }
+        // Render it!
+        context.startRendering()
+          .then(function(audioBuffer) {
+            should(audioBuffer.getChannelData, "audioBuffer.getChannelData").beEqualToArray(expected);
+          })
+          .then(task.done());
+      });
+
+      audit.run();
+
+    </script>
+  </body>
+</html>

@@ -1,0 +1,17 @@
+<!doctype html>
+<html manifest="appcache.manifest">
+<title>Iframe that will be cached using application cache.</title>
+<meta charset='utf-8'>
+<link rel='author' href='jarrydg@chromium.org' title='Jarryd Goodman'>
+<script>
+(async () => {
+  const initPromise = new Promise(resolve => {
+    applicationCache.addEventListener('cached', resolve);
+    applicationCache.addEventListener('noupdate', resolve);
+  });
+  await initPromise;
+
+  window.parent.postMessage('document cached');
+})();
+</script>
+</html>

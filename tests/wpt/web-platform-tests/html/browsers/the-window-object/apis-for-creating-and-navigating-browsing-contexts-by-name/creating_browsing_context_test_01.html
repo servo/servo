@@ -20,6 +20,7 @@ test(function() {
   var win = window.open('', '', 'height=1,width=1');
   this.add_cleanup(function() { win.close(); });
   assert_equals(win.location.href, 'about:blank', 'win.location.href');
+  assert_equals(win.document.charset, 'UTF-8', 'win.document.charset');
 }, 'first argument: empty url');
 
 test(function () {

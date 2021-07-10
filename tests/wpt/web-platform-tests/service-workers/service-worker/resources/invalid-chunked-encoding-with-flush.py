@@ -1,11 +1,9 @@
 import time
 def main(request, response):
-    response.headers.set("Content-Type", "application/javascript")
-    response.headers.set("Transfer-encoding", "chunked")
+    response.headers.set(b"Content-Type", b"application/javascript")
+    response.headers.set(b"Transfer-encoding", b"chunked")
     response.write_status_headers()
 
     time.sleep(1)
-    response.explicit_flush = True
 
-    response.writer.write("XX\r\n\r\n")
-    response.writer.flush()
+    response.writer.write(b"XX\r\n\r\n")

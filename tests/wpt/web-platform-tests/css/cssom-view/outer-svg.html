@@ -1,0 +1,35 @@
+<!doctype html>
+<title>CSS Tests: client* and scroll* APIs work as expected with outer SVG elements</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#extension-to-the-element-interface">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=874811">
+<link rel="author" title="violet" href="mailto:violet.bugreport@gmail.com">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#u {
+  padding: 30px;
+  transform: translate(50px,60px) scale(2,3);
+  border: 5px solid lime;
+  width: 50px;
+  height: 100px;
+}
+</style>
+<div style="width: 100px; height: 2000px; border: 1px solid blue"></div>
+<svg id="u"></svg>
+<script>
+let u = document.getElementById("u");
+test(function() {
+  assert_equals(u.clientTop, 5, "u.clientTop");
+  assert_equals(u.clientLeft, 5, "u.clientLeft");
+  assert_equals(u.clientWidth, 110, "u.clientWidth");
+  assert_equals(u.clientHeight, 160, "u.clientHeight");
+}, "clientWidth, clientHeight, clientTop and clientLeft work on outer svg element");
+test(function() {
+  assert_equals(u.scrollTop, 0, "u.scrollTop");
+  assert_equals(u.scrollLeft, 0, "u.scrollLeft");
+  assert_equals(u.scrollWidth, 110, "u.scrollWidth");
+  assert_equals(u.scrollHeight, 160, "u.scrollHeight");
+}, "scrollWidth, scrollHeight, scrollTop and scrollLeft work on outer svg element");
+</script>

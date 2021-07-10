@@ -13,8 +13,8 @@
 test(function() {
   var form = document.querySelector('form');
   var elements = form.elements;
-  assert_true(elements === form.elements);
+  assert_equals(elements, form.elements);
   form.appendChild(document.createElement('input'));
-  assert_true(elements === form.elements);
+  assert_equals(elements, form.elements);
 }, "[SameObject] should apply to 'elements' attr on <form>");
 </script>

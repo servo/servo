@@ -7,7 +7,7 @@
 setup(function(){
     window.video = document.createElement('video');
     document.body.appendChild(video);
-}, {timeout:5000});
+});
 test(function() {
     var t1 = video.addTextTrack('subtitles');
     var t2 = video.addTextTrack('subtitles');

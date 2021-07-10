@@ -1,0 +1,25 @@
+<!doctype html>
+<title>Constructable Stylesheet Objects IDL tests</title>
+<link rel="help" href="https://wicg.github.io/construct-stylesheets/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<div id="shadowHost"></div>
+<script>
+  'use strict';
+
+  idl_test(
+    ['construct-stylesheets'],
+    ['cssom', 'dom'],
+    idl_array => {
+      idl_array.add_objects({
+        CSSStyleSheet: ['new CSSStyleSheet()'],
+        Document: ['document'],
+        ShadowRoot: ['shadowRoot'],
+      });
+      const shadowHost = document.getElementById('shadowHost');
+      self.shadowRoot = shadowHost.attachShadow({mode: 'open'});
+    }
+  );
+</script>

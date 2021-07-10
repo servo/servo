@@ -9,6 +9,9 @@
         <meta name="flags" content="" />
         <meta name="assert" content="Floating a box will first lay out the box then shift it to the left." />
         <style type="text/css">
+            /* Disable kerning because kerning may differ for different node tree. */
+            html { font-kerning: none; font-feature-settings: "kern" off; }
+
             div
             {
                 font-size: 3em;

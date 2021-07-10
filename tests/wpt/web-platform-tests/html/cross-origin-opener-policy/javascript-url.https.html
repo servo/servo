@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<title>Cross-Origin-Opener-Policy and a "javascript:" URL popup</title>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+
+<p>According to HTML's navigate algorithm, requests to <code>javascript:</code>
+URLs should inherit the cross-origin opener policy of the active document. To
+observe this, each subtest uses the following procedure.</p>
+
+<ol>
+  <li>create popup with a given COOP (the <code>parentCOOP</code>)</li>
+  <li>navigate the popup to a <code>javascript:</code> URL (the new document is
+  expected to inherit the <code>parentCOOP</code>)</li>
+  <li>from the popup, create a second popup window with a given COOP (the
+  <code>childCOOP</code>)</li>
+</ol>
+
+<p>Both popup windows inspect state and report back to the test context using
+BroadcastChannels.</p>
+
+<pre>
+    .---- test ----.
+    | open(https:) |
+    |  parentCOOP  |   .----- subject -------.
+    |      '---------> | --------.           |
+    |              |   |         v           |
+    |              |   | assign(javascript:) |
+    |              |   |  (COOP under test)  |
+    |              |   |         |           |
+    |              |   |    open(https:)     |
+    |              |   |     childCOOP       |    .- child -.
+    |              |   |         '--------------> |         |
+    |              |   '---------------------'    '---------'
+    |              |             |                     |
+    |  validate    | <--status---+---------------------'
+    '--------------'
+</pre>
+
+<script>
+'use strict';
+
+function run(t, parentCOOP, childCOOP, origin, name) {
+  const bc = new BroadcastChannel(name);
+  const childURL = encodeURIComponent(`${origin}/html/cross-origin-opener-policy/resources/coop-coep.py?coop=${childCOOP}&coep=&channel=${name}`);
+
+  open(
+    `/html/cross-origin-opener-policy/resources/javascript-url-same-origin.https.html` +
+      `?pipe=header(cross-origin-opener-policy,${parentCOOP})` +
+      `&childURL=${childURL}` +
+      `&childName=${name}`
+  );
+
+  t.add_cleanup(() => {
+    bc.postMessage('close');
+  });
+
+  return new Promise((resolve) => {
+    bc.addEventListener('message', ({data}) => {
+      resolve(data);
+    }, {once: true});
+  }).then(({name: childName, opener: childOpener}) => {
+    return new Promise((resolve) => {
+      bc.postMessage('inspectChild');
+
+      bc.addEventListener('message', function handle({data}) {
+        if (typeof data !== 'object' || !('childClosed' in data)) { return; }
+
+        bc.removeEventListener('message', handle);
+
+        resolve({
+          childName,
+          childOpener,
+          childClosed: data.childClosed
+        });
+      });
+    });
+  });
+}
+const { HTTPS_ORIGIN, HTTPS_REMOTE_ORIGIN } = get_host_info();
+
+function assert_isolated(results) {
+  assert_equals(results.childName, '', 'child name');
+  assert_false(results.childOpener, 'child opener');
+  // The test subject's reference to the  "child" window must report "closed"
+  // when COOP enforces isolation because the document initially created during
+  // the window open steps must be discarded when a new document object is
+  // created at the end of the navigation.
+  assert_true(results.childClosed, 'child closed');
+}
+
+function assert_not_isolated(results, expectedName) {
+  assert_equals(results.childName, expectedName, 'child name');
+  assert_true(results.childOpener, 'child opener');
+  assert_false(results.childClosed, 'child closed');
+}
+
+async_test((t) => {
+  const name = token();
+  run(t, 'unsafe-none', 'unsafe-none', HTTPS_ORIGIN, name)
+    .then((results) => {
+      assert_not_isolated(results, name);
+    })
+    .then(t.step_func_done(), t.step_func((e) => { throw e; }));
+}, 'navigation: same origin; parentCOOP: unsafe-none; childCOOP: unsafe-none');
+
+async_test((t) => {
+  const name = token();
+  run(t, 'unsafe-none', 'unsafe-none', HTTPS_REMOTE_ORIGIN, name)
+    .then((results) => {
+      assert_not_isolated(results, name);
+    })
+    .then(t.step_func_done(), t.step_func((e) => { throw e; }));
+}, 'navigation: cross origin; parentCOOP: unsafe-none; childCOOP: unsafe-none');
+
+async_test((t) => {
+  const name = token();
+  run(t, 'unsafe-none', 'same-origin-allow-popups', HTTPS_ORIGIN, name)
+    .then((results) => {
+      assert_isolated(results);
+    })
+    .then(t.step_func_done(), t.step_func((e) => { throw e; }));
+}, 'navigation: same origin; parentCOOP: unsafe-none; childCOOP: same-origin-allow-popups');
+
+async_test((t) => {
+  const name = token();
+  run(t, 'unsafe-none', 'same-origin-allow-popups', HTTPS_REMOTE_ORIGIN, name)
+    .then((results) => {
+      assert_isolated(results);
+    })
+    .then(t.step_func_done(), t.step_func((e) => { throw e; }));
+}, 'navigation: cross origin; parentCOOP: unsafe-none; childCOOP: same-origin-allow-popups');
+
+async_test((t) => {
+  const name = token();
+  run(t, 'unsafe-none', 'same-origin', HTTPS_ORIGIN, name)
+    .then((results) => {
+      assert_isolated(results);
+    })
+    .then(t.step_func_done(), t.step_func((e) => { throw e; }));
+}, 'navigation: same origin; parentCOOP: unsafe-none; childCOOP: same-origin');
+
+async_test((t) => {
+  const name = token();
+  run(t, 'unsafe-none', 'same-origin', HTTPS_REMOTE_ORIGIN, name)
+    .then((results) => {
+      assert_isolated(results);
+    })
+    .then(t.step_func_done(), t.step_func((e) => { throw e; }));
+}, 'navigation: cross origin; parentCOOP: unsafe-none; childCOOP: same-origin');
+
+async_test((t) => {
+  const name = token();
+  run(t, 'same-origin-allow-popups', 'unsafe-none', HTTPS_ORIGIN, name)
+    .then((results) => {
+      assert_not_isolated(results, name);
+    })
+    .then(t.step_func_done(), t.step_func((e) => { throw e; }));
+}, 'navigation: same origin; parentCOOP: same-origin-allow-popups; childCOOP: unsafe-none');
+
+async_test((t) => {
+  const name = token();
+  run(t, 'same-origin-allow-popups', 'unsafe-none', HTTPS_REMOTE_ORIGIN, name)
+    .then((results) => {
+      assert_not_isolated(results, name);
+    })
+    .then(t.step_func_done(), t.step_func((e) => { throw e; }));
+}, 'navigation: cross origin; parentCOOP: same-origin-allow-popups; childCOOP: unsafe-none');
+
+async_test((t) => {
+  const name = token();
+  run(t, 'same-origin-allow-popups', 'same-origin-allow-popups', HTTPS_ORIGIN, name)
+    .then((results) => {
+      assert_not_isolated(results, name);
+    })
+    .then(t.step_func_done(), t.step_func((e) => { throw e; }));
+}, 'navigation: same origin; parentCOOP: same-origin-allow-popups; childCOOP: same-origin-allow-popups');
+
+async_test((t) => {
+  const name = token();
+  run(t, 'same-origin-allow-popups', 'same-origin-allow-popups', HTTPS_REMOTE_ORIGIN, name)
+    .then((results) => {
+      assert_isolated(results);
+    })
+    .then(t.step_func_done(), t.step_func((e) => { throw e; }));
+}, 'navigation: cross origin; parentCOOP: same-origin-allow-popups; childCOOP: same-origin-allow-popups');
+
+async_test((t) => {
+  const name = token();
+  run(t, 'same-origin-allow-popups', 'same-origin', HTTPS_ORIGIN, name)
+    .then((results) => {
+      assert_isolated(results);
+    })
+    .then(t.step_func_done(), t.step_func((e) => { throw e; }));
+}, 'navigation: same origin; parentCOOP: same-origin-allow-popups; childCOOP: same-origin');
+
+async_test((t) => {
+  const name = token();
+  run(t, 'same-origin-allow-popups', 'same-origin', HTTPS_REMOTE_ORIGIN, name)
+    .then((results) => {
+      assert_isolated(results);
+    })
+    .then(t.step_func_done(), t.step_func((e) => { throw e; }));
+}, 'navigation: cross origin; parentCOOP: same-origin-allow-popups; childCOOP: same-origin');
+
+async_test((t) => {
+  const name = token();
+  run(t, 'same-origin', 'unsafe-none', HTTPS_ORIGIN, name)
+    .then((results) => {
+      assert_isolated(results);
+    })
+    .then(t.step_func_done(), t.step_func((e) => { throw e; }));
+}, 'navigation: same origin; parentCOOP: same-origin; childCOOP: unsafe-none');
+
+async_test((t) => {
+  const name = token();
+  run(t, 'same-origin', 'unsafe-none', HTTPS_REMOTE_ORIGIN, name)
+    .then((results) => {
+      assert_isolated(results);
+    })
+    .then(t.step_func_done(), t.step_func((e) => { throw e; }));
+}, 'navigation: cross origin; parentCOOP: same-origin; childCOOP: unsafe-none');
+
+async_test((t) => {
+  const name = token();
+  run(t, 'same-origin', 'same-origin-allow-popups', HTTPS_ORIGIN, name)
+    .then((results) => {
+      assert_isolated(results);
+    })
+    .then(t.step_func_done(), t.step_func((e) => { throw e; }));
+}, 'navigation: same origin; parentCOOP: same-origin; childCOOP: same-origin-allow-popups');
+
+async_test((t) => {
+  const name = token();
+  run(t, 'same-origin', 'same-origin-allow-popups', HTTPS_REMOTE_ORIGIN, name)
+    .then((results) => {
+      assert_isolated(results);
+    })
+    .then(t.step_func_done(), t.step_func((e) => { throw e; }));
+}, 'navigation: cross origin; parentCOOP: same-origin; childCOOP: same-origin-allow-popups');
+
+async_test((t) => {
+  const name = token();
+  run(t, 'same-origin', 'same-origin', HTTPS_ORIGIN, name)
+    .then((results) => {
+      assert_not_isolated(results, name);
+    })
+    .then(t.step_func_done(), t.step_func((e) => { throw e; }));
+}, 'navigation: same origin; parentCOOP: same-origin; childCOOP: same-origin');
+
+async_test((t) => {
+  const name = token();
+  run(t, 'same-origin', 'same-origin', HTTPS_REMOTE_ORIGIN, name)
+    .then((results) => {
+      assert_isolated(results);
+    })
+    .then(t.step_func_done(), t.step_func((e) => { throw e; }));
+}, 'navigation: cross origin; parentCOOP: same-origin; childCOOP: same-origin');
+</script>

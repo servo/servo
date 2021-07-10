@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<title>Fraction parameters</title>
+<style>
+  math, mspace {
+    font-size: 20px;
+  }
+  @font-face {
+    font-family: denominatorgapmin4000-rulethickness1000;
+    src: url("/fonts/math/fraction-denominatorgapmin4000-rulethickness1000.woff");
+  }
+  #reference {
+    background: green;
+  }
+  #frame {
+    position: absolute;
+    border-top: 4px solid black;
+    border-bottom: 4px solid black;
+    width: 100%;
+  }
+</style>
+<script>
+  function runTests() {
+    var div = document.getElementById("frame");
+    var refBox = document.getElementById("reference").getBoundingClientRect();
+    div.style.top = `${refBox.top-2}px`;
+    div.style.height = `${refBox.height-4}px`;
+    document.documentElement.classList.remove('reftest-wait');
+  }
+  window.addEventListener("load", () => { document.fonts.ready.then(runTests); });
+</script>
+</head>
+<body>
+  <p>
+    This test passes if the blue squares are aligned:
+  </p>
+  <p>
+    <math style="font-family: denominatorgapmin4000-rulethickness1000;">
+      <mspace height="2em" depth="20em"/>
+      <mfrac>
+        <mspace width="3em"/>
+        <mspace id="reference" width="3em" height=".5em" depth=".5em"/>
+      </mfrac>
+      <mfrac>
+        <mspace width="3em"/>
+        <mspace width="1em" height=".5em" depth=".5em" style="background: blue"/>
+      </mfrac>
+      <mfrac>
+        <mspace width="3em"/>
+        <mspace width="1em" height="1em" style="background: blue"/>
+      </mfrac>
+      <mfrac>
+        <mspace width="3em"/>
+        <mspace width="1em" depth="1em" style="background: blue"/>
+      </mfrac>
+    </math>
+  </p>
+  <div id="frame"></div>
+</body>
+</html>

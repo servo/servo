@@ -1,0 +1,18 @@
+{
+	"global" : {},
+	"materials" : 
+	[
+		{
+			"albedo" : "Icon/Model/Model_UFO_Albedo.png",
+			"blendmode" : "opaque",
+			"name" : "com_magicleap_iconcreation_Model_UFO_Mat",
+			"shaderName" : "UnlitTextured"
+		},
+		{
+			"albedo" : "Icon/Model/Model_UFO_Albedo_Ring.png",
+			"blendmode" : "opaque",
+			"name" : "com_magicleap_iconcreation_Model_UFO_Ring_Mat",
+			"shaderName" : "UnlitTextured"
+		}
+	]
+}

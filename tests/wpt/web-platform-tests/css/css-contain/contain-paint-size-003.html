@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Containment Test: a block with 'contain: paint size' alongside a float</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-contain-1/#contain-property">
+  <link rel="match" href="reference/contain-layout-size-003-ref.html">
+
+  <meta name="flags" content="">
+
+  <style>
+  div
+    {
+      color: transparent;
+      font-size: 16px;
+      padding: 8px;
+    }
+
+  div#floated-left
+    {
+      background-color: blue;
+      float: left;
+      margin: 8px;
+      width: 6em;
+    }
+
+  div#with-contain-paint-size
+    {
+      background-color: orange;
+      width: 12em;
+
+      contain: paint size;
+    }
+  </style>
+
+  <p>Test passes if the orange rectangle and blue rectangle do not overlap.
+
+  <div id="floated-left">Some text in a blue rectangle.</div>
+
+  <div id="with-contain-paint-size">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore.</div>

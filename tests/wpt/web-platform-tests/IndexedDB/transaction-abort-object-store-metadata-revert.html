@@ -29,7 +29,7 @@ promise_test(testCase => {
             'store before the transaction is aborted');
 
         transaction.abort();
-        assert_throws(
+        assert_throws_dom(
             'InvalidStateError', () => store.get('query'),
             'IDBObjectStore.get should throw InvalidStateError, indicating ' +
             'that the store is marked for deletion, immediately after ' +
@@ -43,7 +43,7 @@ promise_test(testCase => {
             'IDBDatabase.objectStoreNames should stop including the newly ' +
             'created store immediately after IDBTransaction.abort() returns');
     })).then(() => {
-        assert_throws(
+        assert_throws_dom(
             'InvalidStateError', () => store.get('query'),
             'IDBObjectStore.get should throw InvalidStateError, indicating ' +
             'that the store is marked for deletion, after the transaction is ' +
@@ -72,7 +72,7 @@ promise_test(testCase => {
         store = transaction.objectStore('not_books');
 
         database.deleteObjectStore('not_books');
-        assert_throws(
+        assert_throws_dom(
             'InvalidStateError', () => store.get('query'),
             'IDBObjectStore.get should throw InvalidStateError, indicating ' +
             'that the store is marked for deletion, immediately after ' +
@@ -89,7 +89,7 @@ promise_test(testCase => {
             'returns');
 
         transaction.abort();
-        assert_throws(
+        assert_throws_dom(
             'TransactionInactiveError', () => store.get('query'),
             'IDBObjectStore.get should throw TransactionInactiveError, ' +
             'indicating that the store is no longer marked for deletion, ' +
@@ -103,7 +103,7 @@ promise_test(testCase => {
             'IDBTransaction.objectStoreNames should include the deleted ' +
             'store immediately after IDBTransaction.abort() returns');
     })).then(() => {
-        assert_throws(
+        assert_throws_dom(
             'TransactionInactiveError', () => store.get('query'),
             'IDBObjectStore.get should throw TransactionInactiveError, ' +
             'indicating that the store is no longer marked for deletion, ' +
@@ -139,7 +139,7 @@ promise_test(testCase => {
             'store before the transaction is aborted');
 
         database.deleteObjectStore('not_books');
-        assert_throws(
+        assert_throws_dom(
             'InvalidStateError', () => store.get('query'),
             'IDBObjectStore.get should throw InvalidStateError, indicating ' +
             'that the store is marked for deletion, immediately after ' +
@@ -156,7 +156,7 @@ promise_test(testCase => {
             'returns');
 
         transaction.abort();
-        assert_throws(
+        assert_throws_dom(
             'InvalidStateError', () => store.get('query'),
             'IDBObjectStore.get should throw InvalidStateError, indicating ' +
             'that the store is still marked for deletion, immediately after ' +
@@ -170,7 +170,7 @@ promise_test(testCase => {
             'IDBDatabase.objectStoreNames should not include the newly ' +
             'created store immediately after IDBTransaction.abort() returns');
     })).then(() => {
-        assert_throws(
+        assert_throws_dom(
             'InvalidStateError', () => store.get('query'),
             'IDBObjectStore.get should throw InvalidStateError, indicating ' +
             'that the store is still marked for deletion, after the ' +

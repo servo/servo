@@ -14,7 +14,7 @@
     template-version="1.4" reviewer="SVGWG" author="Jon Ferraiolo" status="accepted"
     version="$Revision: 1.6 $" testname="$RCSfile: animate-elem-19-t.svg,v $">
     <d:testDescription xmlns="http://www.w3.org/1999/xhtml" href="http://www.w3.org/TR/SVG11/animate.html#Animation">
-    	<p>
+      <p>
         Test 'calcMode'=linear.
       </p>
       <p>
@@ -33,7 +33,7 @@
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
-      	The blue rectangle should animate its width so that the right edge of the rectangle lines up with the ruler line at the indicated times. The rate of change will increase after each ruler line is passed.
+        The blue rectangle should animate its width so that the right edge of the rectangle lines up with the ruler line at the indicated times. The rate of change will increase after each ruler line is passed.
       </p>
     </d:passCriteria>
   </d:SVGTestCase>

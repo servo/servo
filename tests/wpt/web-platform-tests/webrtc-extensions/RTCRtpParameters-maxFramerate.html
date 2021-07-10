@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCRtpParameters encodings</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webrtc/dictionary-helper.js"></script>
+<script src="/webrtc/RTCRtpParameters-helper.js"></script>
+<script>
+'use strict';
+
+test(function(t) {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  assert_throws_js(RangeError, () => pc.addTransceiver('video', {
+    sendEncodings: [{
+      maxFramerate: -10
+    }]
+  }));
+}, `addTransceiver() with sendEncoding.maxFramerate field set to less than 0 should reject with RangeError`);
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const { sender } = pc.addTransceiver('video');
+  await doOfferAnswerExchange(t, pc);
+
+  const param = sender.getParameters();
+  validateSenderRtpParameters(param);
+  const encoding = getFirstEncoding(param);
+
+  encoding.maxFramerate = -10;
+  return promise_rejects_js(t, RangeError,
+    sender.setParameters(param));
+}, `setParameters() with encoding.maxFramerate field set to less than 0 should reject with RangeError`);
+
+test_modified_encoding('video', 'maxFramerate', 24, 16,
+  'setParameters() with modified encoding.maxFramerate should succeed');
+
+</script>

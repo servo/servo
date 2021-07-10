@@ -1,6 +1,4 @@
 <!DOCTYPE html>
-<html>
-<body>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
@@ -10,29 +8,21 @@
 <iframe id="disallowedIframe" sandbox="allow-scripts allow-same-origin" style="display:none">
 </iframe>
 <script>
-    var testNotAllowed = async_test("Test without 'allow-orientation-lock' sandboxing directive");
-    var testAllowed = async_test("Test with 'allow-orientation-lock' sandboxing directive");
+promise_test(async t => {
+  const messageWatcher = new EventWatcher(t, window, "message");
+  const disallowedIframe = document.getElementById("disallowedIframe");
+  disallowedIframe.src = "resources/sandboxed-iframe-locking.html";
 
-    function runTestAllowed() {
-        window.onmessage = testAllowed.step_func(function (ev) {
-            assert_equals(ev.data, "portrait-primary", "screen.orientation lock to portrait-primary");
-            screen.orientation.unlock();
-            testAllowed.done();
-        });
-        var allowedIframe = document.getElementById("allowedIframe");
-        allowedIframe.src = "resources/sandboxed-iframe-locking.html";
-    }
+  const message = await messageWatcher.wait_for("message");
+  assert_equals(message.data, "SecurityError", "screen.lockOrientation() throws a SecurityError");
+}, "Test without 'allow-orientation-lock' sandboxing directive");
 
-    function runTestNotAllowed() {
-        window.onmessage = testNotAllowed.step_func(function (ev) {
-            assert_equals(ev.data, "SecurityError", "screen.lockOrientation() throws a SecurityError");
-            testNotAllowed.done();
-            runTestAllowed();
-        });
-        var disallowedIframe = document.getElementById("disallowedIframe");
-        disallowedIframe.src = "resources/sandboxed-iframe-locking.html";
-    }
-    runTestNotAllowed();
+promise_test(async t => {
+  const messageWatcher = new EventWatcher(t, window, "message");
+  const disallowedIframe = document.getElementById("allowedIframe");
+  disallowedIframe.src = "resources/sandboxed-iframe-locking.html";
+
+  const message = await messageWatcher.wait_for("message");
+  assert_equals(message.data, "portrait-primary", "screen.orientation lock to portrait-primary");
+}, "Test with 'allow-orientation-lock' sandboxing directive");
 </script>
-</body>
-</html>

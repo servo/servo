@@ -9,6 +9,7 @@
 test(function() {
   assert_equals(window, window.self);
   assert_true(window.self instanceof Window, "Should be Window");
+  assert_true(window.closed === false);
 });
 </script>
 </body>

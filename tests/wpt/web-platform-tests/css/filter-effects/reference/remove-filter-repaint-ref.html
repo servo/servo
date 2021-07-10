@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Filters: Repaint a compositing layer</title>
+    <style>
+    .backdrop {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100px;
+        width: 100px;
+        background-color: silver;
+    }
+
+    .overlay {
+        position: absolute;
+        top: 50px;
+        left: 50px;
+        width: 400px;
+        height: 100px;
+        background: gray;
+        box-shadow: 0 0 4px black;
+    }
+
+    .play {
+        font-size: 36pt;
+        background-color: navy;
+        color: white;
+    }
+    .composited {
+        will-change: transform;
+    }
+    </style>
+</head>
+<body>
+    <div class="composited backdrop"></div>
+    <div class="overlay">
+        <span id="play" class="play changed">this should be visible</span>
+    </div>
+</body>
+</html>

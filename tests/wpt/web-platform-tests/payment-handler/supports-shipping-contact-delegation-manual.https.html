@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Tests for Delegation of shipping and contact collection to PH</title>
+<link rel="manifest" href="/payment-handler/basic-card.json" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="register-and-activate-service-worker.js"></script>
+<p>If the payment sheet is shown, please authorize the mock payment.</p>
+<script>
+  async function runTests(registration) {
+    const methodName = window.location.origin + '/payment-handler/payment-app/';
+    await registration.paymentManager.instruments.clear();
+    await registration.paymentManager.instruments.set('instrument-key', {
+      name: 'Instrument Name',
+      method: methodName,
+    });
+    await navigator.serviceWorker.ready;
+    await registration.paymentManager.enableDelegations(
+        ['shippingAddress', 'payerName', 'payerPhone', 'payerEmail']);
+
+    promise_test(async (t) => {
+      const request = new PaymentRequest([{supportedMethods: methodName}], {
+        total: {label: 'Total', amount: {currency: 'USD', value: '0.01'}},
+        shippingOptions: [{
+          id: 'freeShippingOption',
+          label: 'Free global shipping',
+          amount: {
+            currency: 'USD',
+            value: '0',
+          },
+          selected: true,
+        }],
+      }, {requestShipping: true});
+
+      const response = await test_driver.bless('showing a payment sheet', () =>
+        request.show()
+      );
+      const complete_promise = response.complete('success');
+
+      // Validate response
+      assert_equals('freeShippingOption', response.shippingOption);
+      assert_equals('Reston', response.shippingAddress.city);
+      assert_equals('US', response.shippingAddress.country);
+      assert_equals('20190', response.shippingAddress.postalCode);
+      assert_equals('VA', response.shippingAddress.region);
+
+      return complete_promise;
+    }, 'Payment handler response should include shipping address and selected shipping option id.');
+
+    promise_test(async (t) => {
+      const request = new PaymentRequest([{
+        supportedMethods: methodName
+      }], {
+        total: {
+          label: 'Total',
+          amount: {
+            currency: 'USD',
+            value: '0.01'
+          }
+        }
+      }, {
+        requestPayerName: true,
+        requestPayerEmail: true,
+        requestPayerPhone: true
+      });
+
+      const response = await test_driver.bless('showing a payment sheet', () =>
+        request.show()
+      );
+      const complete_promise = response.complete('success');
+
+      // Validate response.
+      assert_equals('John Smith', response.payerName);
+      assert_equals('smith@gmail.com', response.payerEmail);
+      assert_equals('+15555555555', response.payerPhone);
+
+      return complete_promise;
+    }, 'Payment handler response should include payer\'s contact information.');
+  }
+
+  registerAndActiveServiceWorker(
+    'app-supports-shipping-contact-delegation.js',
+    'payment-app/',
+    runTests
+  );
+</script>

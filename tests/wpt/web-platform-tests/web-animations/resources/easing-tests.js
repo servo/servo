@@ -1,4 +1,6 @@
-var gEasingTests = [
+'use strict';
+
+const gEasingTests = [
   {
     desc: 'step-start function',
     easing: 'step-start',
@@ -39,11 +41,6 @@ var gEasingTests = [
     serialization: 'steps(2)'
   },
   {
-    desc: 'frames function',
-    easing: 'frames(5)',
-    easingFunction: framesTiming(5)
-  },
-  {
     desc: 'linear function',
     easing: 'linear', // cubic-bezier(0, 0, 1.0, 1.0)
     easingFunction: cubicBezier(0, 0, 1.0, 1.0)
@@ -80,6 +77,13 @@ var gEasingTests = [
   }
 ];
 
+const gEasingParsingTests = [
+  ['linear', 'linear'],
+  ['ease-in-out', 'ease-in-out'],
+  ['Ease\\2d in-out', 'ease-in-out'],
+  ['ease /**/', 'ease'],
+];
+
 const gInvalidEasings = [
   '',
   '7',
@@ -87,6 +91,9 @@ const gInvalidEasings = [
   'initial',
   'inherit',
   'unset',
+  'unrecognized',
+  'var(--x)',
+  'ease-in-out, ease-out',
   'cubic-bezier(1.1, 0, 1, 1)',
   'cubic-bezier(0, 0, 1.1, 1)',
   'cubic-bezier(-0.1, 0, 1, 1)',
@@ -99,14 +106,6 @@ const gInvalidEasings = [
   'function (a){return a}',
   'function (x){return x}',
   'function(x, y){return 0.3}',
-  'frames(1)',
-  'frames',
-  'frames()',
-  'frames(,)',
-  'frames(a)',
-  'frames(2.0)',
-  'frames(2.5)',
-  'frames(2 3)',
 ];
 
 // Easings that should serialize to the same string
@@ -119,5 +118,4 @@ const gRoundtripEasings = [
   'cubic-bezier(0.1, 5, 0.23, 0)',
   'steps(3, start)',
   'steps(3)',
-  'frames(3)',
 ];

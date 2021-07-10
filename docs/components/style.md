@@ -1,22 +1,21 @@
 # Servo's style system overview
 
-This needs to be filled more extensively. Meanwhile, you can also take a look to
+This needs to be filled more extensively. Meanwhile, you can also take a look at
 the [style doc comments][style-doc], or the [Styling
-Overview][wiki-styling-overview] in the wiki, which is a conversation between
+Overview][wiki-styling-overview] in the wiki, a conversation between
 Boris Zbarsky and Patrick Walton about how style sharing works.
 
 <a name="selector-impl"></a>
 ## Selector Implementation
 
-The style system is generic over quite a few things, in order to be shareable
-with Servo's layout system, and with [Stylo][stylo], an ambitious project that
-aims to integrate Servo's style system into Gecko.
+In order to be sharable and compatible with [Stylo][stylo](a project that aims 
+to integrate Servo's style system into Gecko), the style must be consistent.
 
-The main generic trait is [selectors' SelectorImpl][selector-impl], that has all
-the logic related to parsing pseudo-elements and other pseudo-classes appart
-from [tree-structural ones][tree-structural-pseudo-classes].
+The consistency is implemented in [selectors' SelectorImpl][selector-impl], 
+containing the logic related to parsing pseudo-elements and other pseudo-classes 
+apart from [tree-structural ones][tree-structural-pseudo-classes].
 
-Servo [extends][selector-impl-ext] that trait in order to allow a few more
+Servo extends the selector implementation trait in order to allow a few more
 things to be shared between Stylo and Servo.
 
 The main Servo implementation (the one that is used in regular builds) is
@@ -31,34 +30,30 @@ traits involved.
 Style's [`dom` traits][style-dom-traits] (`TDocument`, `TElement`, `TNode`,
 `TRestyleDamage`) are the main "wall" between layout and style.
 
-Layout's [`wrapper`][layout-wrapper] module is the one that makes sure that
+Layout's [`wrapper`][layout-wrapper] module makes sure that
 layout traits have the required traits implemented.
 
 <a name="stylist"></a>
 ## The Stylist
 
-The [`stylist`][stylist] structure is the one that holds all the selectors and
+The [`stylist`][stylist] structure holds all the selectors and
 device characteristics for a given document.
 
-The stylesheets' CSS rules are converted into [`Rule`][selectors-rule]s, and
-introduced in a [`SelectorMap`][selectors-selectormap] depending on the
-pseudo-element (see [`PerPseudoElementSelectorMap`][per-pseudo-selectormap]),
+The stylesheets' CSS rules are converted into [`Rule`][selectors-rule]s.
+They are then introduced in a [`SelectorMap`][selectors-selectormap] depending
+on the pseudo-element (see [`PerPseudoElementSelectorMap`][per-pseudo-selectormap]),
 stylesheet origin (see [`PerOriginSelectorMap`][per-origin-selectormap]), and
 priority (see the `normal` and `important` fields in
 [`PerOriginSelectorMap`][per-origin-selectormap]).
 
 This structure is effectively created once per [pipeline][docs-pipeline], in the
-LayoutThread corresponding to that pipeline.
+corresponding LayoutThread.
 
 <a name="properties"></a>
 ## The `properties` module
 
-The [properties module][properties-module] is a mako template where all the
-properties, computed value computation and cascading logic resides.
-
-It's a complex template with a **lot** of code, but the main function it exposes
-is the [`cascade` function][properties-cascade-fn], which performs all the
-computation.
+The [properties module][properties-module] is a mako template. Its complexity is derived 
+from the code that stores properties, [`cascade` function][properties-cascade-fn] and computation logic of the returned value which is exposed in the main function.
 
 <a name="pseudo-elements"></a>
 ## Pseudo-Element resolution
@@ -134,25 +129,25 @@ pseudo-elements**.
 Feel free to ping @SimonSapin, @mbrubeck or @emilio on irc, and please mention
 that you didn't find it here so it can be added :)
 
-[style-doc]: http://doc.servo.org/style/index.html
+[style-doc]: https://doc.servo.org/style/index.html
 [wiki-styling-overview]: https://github.com/servo/servo/wiki/Styling-overview
 [stylo]: https://public.etherpad-mozilla.org/p/stylo
-[selector-impl]: http://doc.servo.org/selectors/parser/trait.SelectorImpl.html
-[selector-impl-ext]: http://doc.servo.org/style/selector_parser/trait.SelectorImplExt.html
-[servo-selector-impl]: http://doc.servo.org/style/servo_selector_parser/struct.SelectorImpl.html
+[selector-impl]: https://doc.servo.org/selectors/parser/trait.SelectorImpl.html
+[selector-impl-ext]: https://doc.servo.org/style/selector_parser/trait.SelectorImplExt.html
+[servo-selector-impl]: https://doc.servo.org/style/servo/selector_parser/struct.SelectorImpl.html
 [tree-structural-pseudo-classes]: https://www.w3.org/TR/selectors4/#structural-pseudos
-[style-dom-traits]: http://doc.servo.org/style/dom/index.html
-[layout-wrapper]: http://doc.servo.org/layout/wrapper/index.html
-[pseudo-cascade-type]: http://doc.servo.org/style/selector_parser/enum.PseudoElementCascadeType.html
-[servo-pseudo-elements]: http://doc.servo.org/style/selector_parser/enum.PseudoElement.html
+[style-dom-traits]: https://doc.servo.org/style/dom/index.html
+[layout-wrapper]: https://doc.servo.org/layout/wrapper/index.html
+[pseudo-cascade-type]: https://doc.servo.org/style/selector_parser/enum.PseudoElementCascadeType.html
+[servo-pseudo-elements]: https://doc.servo.org/style/selector_parser/enum.PseudoElement.html
 [mdn-pseudo-before]: https://developer.mozilla.org/en/docs/Web/CSS/::before
 [mdn-pseudo-after]: https://developer.mozilla.org/en/docs/Web/CSS/::after
 [mdn-pseudo-selection]: https://developer.mozilla.org/en/docs/Web/CSS/::selection
-[stylist]: http://doc.servo.org/style/stylist/struct.Stylist.html
-[selectors-selectormap]: http://doc.servo.org/selectors/matching/struct.SelectorMap.html
-[selectors-rule]: http://doc.servo.org/selectors/matching/struct.Rule.html
-[per-pseudo-selectormap]: http://doc.servo.org/style/stylist/struct.PerPseudoElementSelectorMap.html
-[per-origin-selectormap]: http://doc.servo.org/style/stylist/struct.PerOriginSelectorMap.html
+[stylist]: https://doc.servo.org/style/stylist/struct.Stylist.html
+[selectors-selectormap]: https://doc.servo.org/style/selector_map/struct.SelectorMap.html
+[selectors-rule]: https://doc.servo.org/style/stylist/struct.Rule.html
+[per-pseudo-selectormap]: https://doc.servo.org/style/selector_parser/struct.PerPseudoElementMap.html
+[per-origin-selectormap]: https://doc.servo.org/style/stylist/struct.PerOriginSelectorMap.html
 [docs-pipeline]: https://github.com/servo/servo/blob/master/docs/glossary.md#pipeline
-[properties-module]: http://doc.servo.org/style/properties/index.html
-[properties-cascade-fn]: http://doc.servo.org/style/properties/fn.cascade.html
+[properties-module]: https://doc.servo.org/style/properties/index.html
+[properties-cascade-fn]: https://doc.servo.org/style/properties/fn.cascade.html

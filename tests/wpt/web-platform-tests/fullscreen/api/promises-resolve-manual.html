@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Promises#resolve</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../trusted-click.js"></script>
+<div id="log"></div>
+<script>
+async_test(function(t)
+{
+    var div = document.querySelector("div");
+    trusted_request_with_promise(t, div, document.body,
+    () => {
+        assert_equals(document.fullscreenElement, div, "fullscreenElement before exitFullscreen()");
+        document.exitFullscreen().then(()=> {
+          assert_equals(document.fullscreenElement, null, "fullscreenElement after exiting fullscreen");
+          t.done();
+        });
+        assert_equals(document.fullscreenElement, div, "fullscreenElement after exitFullscreen()");
+    }, t.unreached_func("Request fullscreen failed"));
+});
+</script>

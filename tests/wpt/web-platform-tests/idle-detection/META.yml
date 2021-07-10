@@ -1,0 +1,5 @@
+spec: https://wicg.github.io/idle-detection/
+suggested_reviewers:
+  - goto
+  - jsbell
+  - reillyg

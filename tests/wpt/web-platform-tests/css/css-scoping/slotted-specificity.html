@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: the selector inside ::slotted() affects specificity</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#slotted-pseudo">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/1915">
+<link rel="help" href="https://bugzil.la/1454165">
+<link rel="match" href="reference/green-box.html">
+<p>Test passes if you see a single 100px by 100px green box below.</p>
+<div id="host"><div id="slotted"></div></div>
+<script>
+  host.attachShadow({ mode: 'open' }).innerHTML = `
+    <style>
+      ::slotted(#slotted) {
+        width: 100px;
+        height: 100px;
+        background: green;
+      }
+      ::slotted(*) {
+        background: red;
+      }
+    </style>
+    <slot></slot>
+  `;
+</script>

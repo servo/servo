@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#interaction-sizing">
+<link rel="match" href="auto-block-size-negative-ref.html">
+<meta name="assert" content="This test checks that auto-block-size is correctly clamped to zero." />
+
+<style>
+
+.test {
+  background: red;
+  border: solid 2px;
+  margin: 20px 0;
+}
+
+.width-100 {
+  width: 100px;
+  writing-mode: horizontal-tb;
+}
+
+.height-100 {
+  height: 100px;
+  writing-mode: vertical-rl;
+}
+
+@supports (display: layout(block-size-negative)) {
+  .test {
+    display: layout(block-size-negative);
+    background: green;
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div class="test width-100"></div>
+<div class="test height-100"></div>
+
+<script id="code" type="text/worklet">
+registerLayout('block-size-negative', class {
+  async intrinsicSizes() {}
+  async layout() {
+    return {autoBlockSize: -100};
+  }
+});
+</script>
+
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, document.getElementById('code').textContent);
+</script>
+</html>

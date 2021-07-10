@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script>
+window.onload = function() {
+  try {
+    top.location = "data:text/html,\u003c!DOCTYPE html\u003e\u003cscript\u003eopener.postMessage('can navigate', '*');\u003c/script\u003e";
+  } catch(e) {
+    top.postMessage("cannot navigate", "*");
+  }
+}
+</script>
+</body>
+</html>

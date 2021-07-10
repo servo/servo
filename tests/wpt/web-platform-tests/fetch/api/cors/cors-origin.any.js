@@ -20,7 +20,7 @@ function corsOrigin(desc, baseURL, method, origin, shouldPass) {
           assert_equals(resp.status, 200, "Response's status is 200");
         });
       } else {
-        return promise_rejects(test, new TypeError(), fetch(url + urlParameters, requestInit));
+        return promise_rejects_js(test, TypeError, fetch(url + urlParameters, requestInit));
       }
     });
   }, desc);

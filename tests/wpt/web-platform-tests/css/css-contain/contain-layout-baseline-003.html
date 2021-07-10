@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Containment Test: Layout containment supress baseline in grid items</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain-1/#containment-layout">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-baselines">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name=assert content="Grid items with layout containment are treated as having no baseline, for that reason their baseline is synthesized from the grid item's border box when they're baseline aligned.">
+<style>
+#grid {
+  display: inline-grid;
+  align-items: baseline;
+  background: red;
+  grid-auto-flow: column;
+}
+
+canvas {
+  background: green;
+  width: 50px;
+  height: 100px;
+}
+
+#item {
+  contain: layout;
+  color: transparent;
+  background: green;
+  width: 50px;
+  height: 100px;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="grid">
+  <canvas></canvas>
+  <div id="item">item</div>
+</div>

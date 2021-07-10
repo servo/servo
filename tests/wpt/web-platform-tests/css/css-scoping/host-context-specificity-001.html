@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: the selector inside :host-context() affects specificity</title>
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#host-selector">
+<link rel="match" href="reference/green-box.html">
+<p>Test passes if you see a single 100px by 100px green box below.</p>
+<div id="host"></div>
+<script>
+  host.attachShadow({ mode: 'open' }).innerHTML = `
+    <style>
+      :host-context(#host) {
+        width: 100px;
+        height: 100px;
+        background: green;
+      }
+      :host {
+        background: red;
+      }
+    </style>
+  `;
+</script>

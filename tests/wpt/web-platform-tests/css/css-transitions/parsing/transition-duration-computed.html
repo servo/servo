@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Transitions: getComputedStyle().transitionDuration</title>
+<link rel="help" href="https://drafts.csswg.org/css-transitions/#propdef-transition-duration">
+<meta name="assert" content="transition-duration converts to seconds.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("transition-duration", "500ms", "0.5s");
+test_computed_value("transition-duration", "calc(2 * 3s)", "6s");
+test_computed_value("transition-duration", "20s, 10s");
+</script>
+</body>
+</html>

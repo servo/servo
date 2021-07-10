@@ -4,18 +4,18 @@
 <title>Large text selection drag and drop</title>
 <style type="text/css">
 textarea
-	{width:300px;
-	height:100px;
-	margin-top:20px;
-	padding:10px;}
+  {width:300px;
+  height:100px;
+  margin-top:20px;
+  padding:10px;}
 </style>
 <script type="application/ecmascript">
 function start(event)
-	{var p = document.querySelector('p:last-child'), s = p.firstChild.nodeValue;
-	for(var i = 0; i != 12; i++)
-		{s = s + ' ' + s;}
-	p.firstChild.nodeValue = 'Start of selection. ' + s + ' End of selection';
-	window.getSelection().selectAllChildren(p);}
+  {var p = document.querySelector('p:last-child'), s = p.firstChild.nodeValue;
+  for(var i = 0; i != 12; i++)
+    {s = s + ' ' + s;}
+  p.firstChild.nodeValue = 'Start of selection. ' + s + ' End of selection';
+  window.getSelection().selectAllChildren(p);}
 </script>
 </head>
 <body onload="start()">

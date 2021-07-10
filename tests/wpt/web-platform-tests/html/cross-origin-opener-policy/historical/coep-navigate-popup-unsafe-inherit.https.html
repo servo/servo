@@ -1,0 +1,39 @@
+<!doctype html>
+<title>Historical: Cross-Origin-Opener-Policy and Cross-Origin-Embedder-Policy: a navigating popup</title>
+<meta name=timeout content=long>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="../resources/common.js"></script>
+<script>
+[
+  {
+    "title": "coop unsafe-inherit/coep",
+    "coop": "unsafe-inherit", // historical value, equivalent to "unsafe-none"
+    "coep": "require-corp",
+    "opener": false
+  },
+  {
+    "title": "coop unsafe-inherit/no coep",
+    "coop": "unsafe-inherit", // historical value, equivalent to "unsafe-none"
+    "coep": "",
+    "opener": false
+  }
+].forEach(variant => {
+  ["same-origin", "same-site"].forEach(site => {
+    const title = `Popup navigating to ${site} with ${variant.title}`;
+    const channel = title.replace(/ /g,"-");
+    const navigateHost = site === "same-origin" ? SAME_ORIGIN : SAME_SITE;
+    const navigateURL = `${navigateHost.origin}/html/cross-origin-opener-policy/resources/coop-coep.py?coop=${variant.coop}&coep=${variant.coep}&channel=${channel}`;
+    const opener = site === "same-origin" ? variant.opener : false;
+
+    async_test(t => {
+      // For each test we open a COOP: same-origin/COEP: require-corp document in a popup and then
+      // navigate that to either a document with same origin (site=="same-origin") or
+      // not-same-origin (site=="same-site") whose COOP and COEP are set as per the top-most array.
+      // We then verify that this document has the correct opener for its specific setup.
+      url_test(t, `${SAME_ORIGIN.origin}/html/cross-origin-opener-policy/resources/coop-coep.py?coop=same-origin&coep=require-corp&navigate=${encodeURIComponent(navigateURL)}`, channel, opener);
+    }, title);
+  });
+});
+</script>

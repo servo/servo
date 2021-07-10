@@ -3,7 +3,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <title>﻿A div element with style="display:none" has aria-hidden="true", and then script sets style to "display: block".</title>
-    <script type="text/javascript">
+    <script>
       function replaceStyle (/* Element */ element, /* String */ selector, /* String */ newValue) {
           element.setAttribute ('style', selector + ':' + newValue);
           if (newValue == 'block')

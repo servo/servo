@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset="utf8">
+<title>CSS contain-intrinsic-size: flex row</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override">
+<link rel="match" href="contain-intrinsic-size-010-ref.html">
+<meta name="assert" content="items are flexed correctly when they are sized by intrinsic-size in a flex row">
+
+<style>
+#flex {
+  display: flex;
+  flex-direction: row;
+  width: 500px;
+  height: 100px;
+}
+.item {
+  border: 1px solid black;
+}
+#one {
+  background: lightblue;
+  contain-intrinsic-size: 55px 11px;
+  contain: size;
+  flex-grow: 3;
+}
+#two {
+  background: lightgreen;
+  contain-intrinsic-size: 66px 22px;
+  contain: size;
+  flex-grow: 2;
+}
+#three {
+  background: lightgrey;
+  contain-intrinsic-size: 77px 33px;
+  contain: size;
+  flex-grow: 1;
+}
+</style>
+
+<div id=flex>
+  <div class=item id=one></div>
+  <div class=item id=two></div>
+  <div class=item id=three></div>
+</div>

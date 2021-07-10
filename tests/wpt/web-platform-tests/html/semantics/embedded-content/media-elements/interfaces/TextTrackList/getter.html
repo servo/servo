@@ -25,7 +25,7 @@ test(function(){
 test(function(){
     'use strict';
     var track_before = video.textTracks[0];
-    assert_throws(new TypeError(), function(){ video.textTracks[0] = 'foo'; });
+    assert_throws_js(TypeError, function(){ video.textTracks[0] = 'foo'; });
     assert_equals(video.textTracks[0], track_before);
 }, document.title+', no indexed set/create (strict)');
 

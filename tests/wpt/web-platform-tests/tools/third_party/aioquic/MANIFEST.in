@@ -1,0 +1,4 @@
+include LICENSE
+recursive-include docs *.py *.rst Makefile
+recursive-include examples *.html *.py
+recursive-include tests *.bin *.pem *.py

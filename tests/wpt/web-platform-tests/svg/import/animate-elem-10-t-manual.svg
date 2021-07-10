@@ -35,7 +35,7 @@
       <p>
         The test is passed if the two orange rects are animated so that the bottom part of each rectangle is at the position
         indicated by the ruler lines at the particular time noted next to each ruler line. Between two noted times the
-        bottom part of each rect must be between the two corresponding ruler lines.  
+        bottom part of each rect must be between the two corresponding ruler lines.
       </p>
     </d:passCriteria>
   </d:SVGTestCase>
@@ -65,7 +65,7 @@
           <animate attributeName="height" values="210;177;121;10" begin="0s" dur="9s" fill="freeze"/>
         </rect>
       </g>
-      
+
       <g transform="translate(250,50)">
         <text x="0" y="203">at 0 sec.</text>
         <text x="0" y="170">at 3 sec. </text>

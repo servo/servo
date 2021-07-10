@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Multi-column Layout Test: Test fragmentation for a nested multi-column container with column-span</title>
+  <link rel="author" title="Ting-Yu Lin" href="tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+  <link rel="help" href="https://drafts.csswg.org/css-multicol-1/#column-span">
+  <link rel="help" href="https://drafts.csswg.org/css-break/#breaking-rules">
+  <link rel="match" href="multicol-span-all-children-height-007-ref.html">
+  <meta name="assert" content="This test verifies a nested multi-column container with non-auto height and column-span child can be fragmented.">
+
+  <style>
+  .outer {
+    column-count: 2;
+    column-rule: 6px solid black;
+    width: 400px;
+    height: 110px;
+  }
+  .inner {
+    column-count: 2;
+    column-rule: 3px solid green;
+    height: 270px;
+    background-color: lightgreen;
+    border: 10px solid purple;
+  }
+  .block1 {
+    background-color: yellow;
+    height: 200px;
+  }
+  .spanner {
+    column-span: all;
+    height: 50px;
+    background-color: lightblue;
+  }
+  .block2 {
+    background-color: yellow;
+    height: 240px;
+  }
+  </style>
+
+  <article class="outer">
+    <article class="inner">
+      <div class="block1">block1</div>
+      <div class="spanner">spanner</div>
+      <div class="block2">block2</div>
+    </article>
+  </article>
+</html>

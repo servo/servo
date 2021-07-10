@@ -25,7 +25,7 @@
     {
         test(function()
         {
-            assert_throws("DATA_CLONE_ERR", function()
+            assert_throws_dom("DATA_CLONE_ERR", TARGET.contentWindow.DOMException, function()
             {
                 assert_own_property(window, "MessageChannel", "window");
                 var channel = new MessageChannel();

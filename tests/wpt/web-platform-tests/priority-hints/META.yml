@@ -1,0 +1,5 @@
+spec: https://wicg.github.io/priority-hints/
+suggested_reviewers:
+  - addyosmani
+  - domfarolino
+  - yoavweiss

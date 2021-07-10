@@ -1,12 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 /*
  * The origin of this IDL file is
  * https://dom.spec.whatwg.org/#interface-nodefilter
  */
 // Import from http://hg.mozilla.org/mozilla-central/file/a5a720259d79/dom/webidl/NodeFilter.webidl
 
+[Exposed=Window]
 callback interface NodeFilter {
   // Constants for acceptNode()
   const unsigned short FILTER_ACCEPT = 1;

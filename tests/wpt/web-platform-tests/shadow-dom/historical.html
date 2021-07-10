@@ -1,0 +1,25 @@
+<!doctype html>
+<title>Shadow DOM v0 features</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+test(() => {
+  assert_false('createShadowRoot' in Element.prototype)
+}, 'element.createShadowRoot should not exist')
+
+test(() => {
+  assert_false('getDestinationInsertionPoints' in Element.prototype)
+}, 'element.getDestinationInsertionPoints should not exist')
+
+test(() => {
+  assert_false('getDestinationInsertionPoints' in Text.prototype)
+}, 'text.getDestinationInsertionPoints should not exist')
+
+test(() => {
+  assert_false('path' in Event.prototype)
+}, 'event.path should not exist')
+
+test(() => {
+  assert_false('HTMLContentElement' in window)
+}, 'HTMLContentElement should not exist')
+</script>

@@ -14,10 +14,10 @@
 <script>
 test(function() {
   var table = document.getElementById("test").getElementsByTagName("table")[0];
-  assert_throws("INDEX_SIZE_ERR", function() {
+  assert_throws_dom("INDEX_SIZE_ERR", function() {
     table.insertRow(-2);
   })
-  assert_throws("INDEX_SIZE_ERR", function() {
+  assert_throws_dom("INDEX_SIZE_ERR", function() {
     table.insertRow(2);
   })
 });

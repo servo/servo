@@ -1,0 +1,30 @@
+<!doctype html>
+<title>button with grid/inline-grid</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+#inline-grid { display: inline-grid }
+#grid { display: grid }
+#ref > div { display: grid }
+#inline-grid, #grid, #ref > div { grid-template: auto auto / auto auto }
+</style>
+<button id=inline-grid><div>1</div><div>2</div><div>3</div><div>4</div></button>
+<button id=grid><div>1</div><div>2</div><div>3</div><div>4</div></button>
+<button id=ref><div><div>1</div><div>2</div><div>3</div><div>4</div></div></button>
+<script>
+const ref = document.getElementById('ref');
+const expectedWidth = ref.clientWidth;
+const expectedHeight = ref.clientHeight;
+for (const elm of [document.getElementById('inline-grid'),
+                   document.getElementById('grid')]) {
+  test(() => {
+    // check that grid is supported
+    const gridValue = elm.id;
+    assert_equals(getComputedStyle(elm).display, gridValue, `${gridValue} is not supported`);
+    const width = elm.clientWidth;
+    const height = elm.clientHeight;
+    assert_equals(width, expectedWidth, 'clientWidth');
+    assert_equals(height, expectedHeight, 'clientHeight');
+  }, elm.id);
+}
+</script>

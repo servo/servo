@@ -9,10 +9,18 @@ setup({
   explicit_done: true
 });
 
-function expect_error(error, message, origin, description) {
+function expect_error_js(error, message, origin, description) {
   return function(setlistener, removelistener, type) {
     test(function(t) {
-      assert_throws(error, function() { postMessage(message, origin) });
+      assert_throws_js(error, function() { postMessage(message, origin) });
+    }, description + ' (' + type + ')');
+  }
+}
+
+function expect_error_dom(error, message, origin, description) {
+  return function(setlistener, removelistener, type) {
+    test(function(t) {
+      assert_throws_dom(error, function() { postMessage(message, origin) });
     }, description + ' (' + type + ')');
   }
 }
@@ -48,8 +56,8 @@ var base_tests = [
   function() { return expect_message('basic', '/', 'same origin, cloneable string message') },
   function() { return expect_message('basic', HTTP_ORIGIN, 'explicit same origin, cloneable string message') },
   function() { return expect_no_message('basic', HTTPS_ORIGIN, 'explicit cross origin, cloneable string message') },
-  function() { return expect_error(new SyntaxError(), 'basic', 'not-a-url', 'explicit invalid url, cloneable string message') },
-  function() { return expect_error('DATA_CLONE_ERR', window, '*', 'any origin, non-cloneable message') },
+  function() { return expect_error_dom('SyntaxError', 'basic', 'not-a-url', 'explicit invalid url, cloneable string message') },
+  function() { return expect_error_dom('DATA_CLONE_ERR', window, '*', 'any origin, non-cloneable message') },
 ];
 
 var tests = [];

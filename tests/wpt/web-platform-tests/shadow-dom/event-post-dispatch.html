@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<title>Shadow DOM: Event dispatch post result for event properties.</title>
+<meta name="author" title="Eriko Kurimoto" href="mailto:elkurin@google.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/shadow-dom.js"></script>
+<script src="resources/event-path-test-helpers.js"></script>
+
+<div id="test1">
+  <div id="d1">
+    <div id="target"></div>
+  </div>
+</div>
+
+<script>
+let n1 = createTestTree(test1);
+document.body.appendChild(n1.test1);
+test(() => {
+  let log = dispatchEventWithEventLog(n1, n1.target, new Event('my-event', { bubbles: true, composed: true }));
+  assert_equals(log.event.target, n1.target);
+  assert_equals(log.event.eventPhase, 0);
+  assert_equals(log.event.currentTarget, null);
+  assert_equals(log.event.composedPath().length, 0);
+}, 'Event properties post dispatch without ShadowRoots (composed: true).');
+
+test(() => {
+  let log = dispatchEventWithEventLog(n1, n1.target, new Event('my-event', { bubbles: true, composed: false }));
+  assert_equals(log.event.target, n1.target);
+  assert_equals(log.event.eventPhase, 0);
+  assert_equals(log.event.currentTarget, null);
+  assert_equals(log.event.composedPath().length, 0);
+}, 'Event properties post dispatch without ShadowRoots (composed: false).');
+document.body.removeChild(n1.test1);
+</script>
+
+<div id="test2">
+  <div id="host">
+    <template id="sr" data-mode="open">
+      <div id="target"></div>
+    </template>
+  </div>
+</div>
+
+<script>
+let n2 = createTestTree(test2);
+document.body.appendChild(n2.test2);
+test(() => {
+  let log = dispatchEventWithEventLog(n2, n2.target, new Event('my-event', { bubbles: true, composed: true }));
+  assert_equals(log.event.target, n2.host);
+  assert_equals(log.event.eventPhase, 0);
+  assert_equals(log.event.currentTarget, null);
+  assert_equals(log.event.composedPath().length, 0);
+}, 'Event properties post dispatch with an open ShadowRoot (composed: true).');
+
+test(() => {
+  let log = dispatchEventWithEventLog(n2, n2.target, new Event('my-event', { bubbles: true, composed: false }));
+  assert_equals(log.event.target, null);
+  assert_equals(log.event.eventPhase, 0);
+  assert_equals(log.event.currentTarget, null);
+  assert_equals(log.event.composedPath().length, 0);
+}, 'Event properties post dispatch with an open ShadowRoot (composed: false).');
+document.body.removeChild(n2.test2);
+</script>
+
+<div id="test3">
+  <div id="host">
+    <template id="sr" data-mode="closed">
+      <div id="target"></div>
+    </template>
+  </div>
+</div>
+
+<script>
+let n3 = createTestTree(test3);
+document.body.appendChild(n3.test3);
+test(() => {
+  let log = dispatchEventWithEventLog(n3, n3.target, new Event('my-event', { bubbles: true, composed: true }));
+  assert_equals(log.event.target, n3.host);
+  assert_equals(log.event.eventPhase, 0);
+  assert_equals(log.event.currentTarget, null);
+  assert_equals(log.event.composedPath().length, 0);
+}, 'Event properties post dispatch with a closed ShadowRoot (composed: true).');
+
+test(() => {
+  let log = dispatchEventWithEventLog(n3, n3.target, new Event('my-event', { bubbles: true, composed: false }));
+  assert_equals(log.event.target, null);
+  assert_equals(log.event.eventPhase, 0);
+  assert_equals(log.event.currentTarget, null);
+  assert_equals(log.event.composedPath().length, 0);
+}, 'Event properties post dispatch with a closed ShadowRoot (composed: false).');
+document.body.removeChild(n3.test3);
+</script>
+
+<div id="test4">
+  <div id="host1">
+    <template id="sr" data-mode="open">
+      <div id="host2">
+        <template id="sr" data-mode="open">
+          <div id="target"></div>
+        </template>
+      </div>
+    </template>
+  </div>
+</div>
+
+<script>
+let n4 = createTestTree(test4);
+document.body.appendChild(n4.test4);
+test(() => {
+  let log = dispatchEventWithEventLog(n4, n4.target, new Event('my-event', { bubbles: true, composed: true }));
+  assert_equals(log.event.target, n4.host1);
+  assert_equals(log.event.eventPhase, 0);
+  assert_equals(log.event.currentTarget, null);
+  assert_equals(log.event.composedPath().length, 0);
+}, 'Event properties post dispatch with nested ShadowRoots (composed: true).');
+
+test(() => {
+  let log = dispatchEventWithEventLog(n4, n4.target, new Event('my-event', { bubbles: true, composed: false }));
+  assert_equals(log.event.target, null);
+  assert_equals(log.event.eventPhase, 0);
+  assert_equals(log.event.currentTarget, null);
+  assert_equals(log.event.composedPath().length, 0);
+}, 'Event properties post dispatch with nested ShadowRoots (composed: false).');
+document.body.removeChild(n4.test4);
+</script>
+
+<div id="test5">
+  <div id="host">
+    <template id="sr" data-mode="open">
+      <div id="relatedTarget">
+        <div id="target"></div>
+      </div>
+    </template>
+  </div>
+</div>
+
+<script>
+let n5 = createTestTree(test5);
+document.body.appendChild(n5.test5);
+test(() => {
+  let log = dispatchEventWithEventLog(n5, n5.target, new MouseEvent('my-event', {bubbles: true, compoesed: true, relatedTarget: n5.relatedTarget}));
+  assert_equals(log.event.target, null);
+  assert_equals(log.event.relatedTarget, null);
+  assert_equals(log.event.eventPhase, 0);
+  assert_equals(log.event.currentTarget, null);
+  assert_equals(log.event.composedPath().length, 0);
+}, 'Event properties post dispatch with relatedTarget in the same shadow tree. (composed: true)');
+
+test(() => {
+  let log = dispatchEventWithEventLog(n5, n5.target, new MouseEvent('my-event', {bubbles: true, compoesed: false, relatedTarget: n5.relatedTarget}));
+  assert_equals(log.event.target, null);
+  assert_equals(log.event.relatedTarget, null);
+  assert_equals(log.event.eventPhase, 0);
+  assert_equals(log.event.currentTarget, null);
+  assert_equals(log.event.composedPath().length, 0);
+}, 'Event properties post dispatch with relatedTarget in the same shadow tree. (composed: false)');
+document.body.removeChild(n5.test5);
+</script>
+
+<div id="test6">
+  <div id="host">
+    <template id="sr" data-mode="open">
+      <div id="target"></div>
+    </template>
+  </div>
+  <div id="relatedTarget"></div>
+</div>
+
+<script>
+let n6 = createTestTree(test6);
+document.body.appendChild(n6.test6);
+test(() => {
+  let log = dispatchEventWithEventLog(n6, n6.target, new MouseEvent('my-event', {bubbles: true, composed: true, relatedTarget: n6.relatedTarget}));
+  assert_equals(log.event.target, n6.host);
+  assert_equals(log.event.relatedTarget, n6.relatedTarget);
+  assert_equals(log.event.eventPhase, 0);
+  assert_equals(log.event.currentTarget, null);
+  assert_equals(log.event.composedPath().length, 0);
+}, 'Event properties post dispatch with relatedTarget in the document tree and the shadow tree. (composed: true)');
+
+test(() => {
+  let log = dispatchEventWithEventLog(n6, n6.target, new MouseEvent('my-event', {bubbles: true, composed: false, relatedTarget: n6.relatedTarget}));
+  assert_equals(log.event.target, null);
+  assert_equals(log.event.relatedTarget, null);
+  assert_equals(log.event.eventPhase, 0);
+  assert_equals(log.event.currentTarget, null);
+  assert_equals(log.event.composedPath().length, 0);
+}, 'Event properties post dispatch with relatedTarget in the document tree and the shadow tree. (composed: false)');
+document.body.removeChild(n6.test6);
+</script>
+
+<div id="test7">
+  <div id="host1">
+    <template id="sr1" data-mode="open">
+      <div id="target"></div>
+    </template>
+  </div>
+  <div id="host2">
+    <template id="sr2" data-mode="open">
+      <div id="relatedTarget"></div>
+    </template>
+  </div>
+</div>
+
+<script>
+let n7 = createTestTree(test7);
+document.body.appendChild(n7.test7);
+test(() => {
+  let log = dispatchEventWithEventLog(n7, n7.target, new MouseEvent('my-event', {bubbles: true, composed: true, relatedTarget: n7.relatedTarget}));
+  assert_equals(log.event.target, n7.host1);
+  assert_equals(log.event.relatedTarget, n7.host2);
+  assert_equals(log.event.eventPhase, 0);
+  assert_equals(log.event.currentTarget, null);
+  assert_equals(log.event.composedPath().length, 0);
+}, 'Event properties post dispatch with relatedTarget in the different shadow trees. (composed: true)');
+
+test(() => {
+  let log = dispatchEventWithEventLog(n7, n7.target, new MouseEvent('my-event', {bubbles: true, composed: false, relatedTarget: n7.relatedTarget}));
+  assert_equals(log.event.target, null);
+  assert_equals(log.event.relatedTarget, null);
+  assert_equals(log.event.eventPhase, 0);
+  assert_equals(log.event.currentTarget, null);
+  assert_equals(log.event.composedPath().length, 0);
+}, 'Event properties post dispatch with relatedTarget in the different shadow trees. (composed: false)');
+document.body.removeChild(n7.test7);
+</script>

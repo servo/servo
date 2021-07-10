@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>scroll anchoring accounts for scroll-padding</title>
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/#anchor-node-selection">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#optimal-viewing-region">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #scroller {
+    overflow: auto;
+    height: 500px;
+    scroll-padding-top: 200px;
+  }
+  #changer {
+    height: 100px;
+  }
+  #content {
+    height: 1000px;
+  }
+</style>
+<div id="scroller">
+  <div id="changer"></div>
+  <div id="content"></div>
+</div>
+<script>
+  test(() => {
+    scroller.scrollTop = 50;
+    changer.style.height = "200px";
+    assert_equals(scroller.scrollTop, 150, "Shouldn't anchor to #changer, since it's covered by scroll-padding");
+  });
+</script>

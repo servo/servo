@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>CSS Masking: Test clip-path property and polygon function with absolute and percentage values</title>
+	<link rel="author" title="Dirk Schulze" href="mailto:dschulze@adobe.com">
+	<link rel="help" href="http://www.w3.org/TR/css-masking-1/#clipping-paths">
+	<link rel="help" href="http://www.w3.org/TR/css-masking-1/#propdef-clip-path">
+	<link rel="match" href="reference/clip-path-rectangle-ref.html">
+	<meta name="assert" content="The clip-path property takes the basic shape
+	'polygon' for clipping. Test absolute and percentage value arguments. On
+	pass you should see a green square and no red.">
+</head>
+<body>
+	<p>The test passes if there is a green box.</p>
+	<div style="width: 150px; height: 100px; border: solid red 50px; background-color: green; position: absolute; clip-path: polygon(20% 50px, 200px 25%, 200px 150px, 20% 75%)"></div>
+</body>
+</html>

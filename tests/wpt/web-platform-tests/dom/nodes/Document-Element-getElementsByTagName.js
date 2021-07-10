@@ -23,7 +23,7 @@ function test_getElementsByTagName(context, element) {
 
   test(function() {
     var l = context.getElementsByTagName("nosuchtag")
-    assert_throws(new TypeError(), function() {
+    assert_throws_js(TypeError, function() {
       "use strict";
       l[5] = "foopy"
     })
@@ -190,4 +190,19 @@ function test_getElementsByTagName(context, element) {
     get_elements(context);
     assert_array_equals(actual, expected);
   }, "getElementsByTagName('*')")
+
+  test(function() {
+    var t1 = element.appendChild(document.createElement("abc"));
+    this.add_cleanup(function() {element.removeChild(t1)});
+
+    var l = context.getElementsByTagName("abc");
+    assert_true(l instanceof HTMLCollection);
+    assert_equals(l.length, 1);
+
+    var t2 = element.appendChild(document.createElement("abc"));
+    assert_equals(l.length, 2);
+
+    element.removeChild(t2);
+    assert_equals(l.length, 1);
+  }, "getElementsByTagName() should be a live collection");
 }

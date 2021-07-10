@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8"/>
+<title>korean-hangul-formal, 0-9</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='http://www.w3.org/TR/css-counter-styles-3/#complex-cjk'>
+<link rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+<meta name='flags' content='font'>
+<meta name="assert" content="Setting list-style-type to korean-hangul-formal will produce list of up to 9 items numbering as described in the CSS3 Counter Styles module.">
+<style type='text/css'>
+.test { font-size: 25px; }
+ol { margin: 0; padding-left: 8em; }
+ol li { list-style-type: korean-hangul-formal;  }
+</style>
+</head>
+<body>
+<p class="instructions">Test passes if the two columns are the same, ignoring the suffix.</p>
+
+
+<div class="test"><ol start='0'><div><bdi>영, </bdi>영,</div></ol>
+<ol start='1'><div><bdi>일, </bdi>일,</div></ol>
+<ol start='2'><div><bdi>이, </bdi>이,</div></ol>
+<ol start='3'><div><bdi>삼, </bdi>삼,</div></ol>
+<ol start='4'><div><bdi>사, </bdi>사,</div></ol>
+<ol start='5'><div><bdi>오, </bdi>오,</div></ol>
+<ol start='6'><div><bdi>육, </bdi>육,</div></ol>
+<ol start='7'><div><bdi>칠, </bdi>칠,</div></ol>
+<ol start='8'><div><bdi>팔, </bdi>팔,</div></ol>
+<ol start='9'><div><bdi>구, </bdi>구,</div></ol>
+</div>
+
+
+<!--Notes:
+You will need an appropriate font to run this test.
+
+To see the ASCII decimal number associated with a row, mouse over it and the number will pop up in a tooltip.
+-->
+
+
+</body>
+</html>

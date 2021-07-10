@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Sockets test: open without remotePort</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+  </head>
+  <body>
+    <script>
+      'use strict';
+
+      // Omits remotePort
+      const options = {
+        localAddress: "127.0.0.1",
+        localPort: 0,
+        remoteAddress: "127.0.0.1",
+      };
+
+      promise_test(async t => {
+        await test_driver.bless("open socket", () => {
+          return promise_rejects_js(t, TypeError, navigator.openTCPSocket());
+        });
+      }, "openTCPSocket with no arguments (same as empty dictionary)");
+
+      promise_test(async t => {
+        await test_driver.bless("open socket", () => {
+          return promise_rejects_js(t, TypeError, navigator.openUDPSocket({}));
+        });
+      }, "openUDPSocket with an empty dictionary");
+
+      promise_test(async t => {
+        await test_driver.bless("open socket", () => {
+          return promise_rejects_js(t, TypeError, navigator.openTCPSocket(undefined));
+        });
+      }, "openTCPSocket with a undefined argument (same as empty dictionary)");
+
+      promise_test(async t => {
+        await test_driver.bless("open socket", () => {
+          return promise_rejects_js(t, TypeError, navigator.openUDPSocket(null));
+        });
+      }, "openUDPSocket with a null argument (same as empty dictionary)");
+
+      promise_test(async t => {
+        await test_driver.bless("open socket", () => {
+          return promise_rejects_js(
+            t,
+            TypeError,
+            navigator.openTCPSocket(options)
+          );
+        });
+      }, "openTCPSocket with a dictionary omitting remotePort");
+
+      promise_test(async t => {
+        await test_driver.bless("open socket", () => {
+          return promise_rejects_js(
+            t,
+            TypeError,
+            navigator.openUDPSocket(options)
+          );
+        });
+      }, "openUDPSocket with a dictionary omitting remotePort");
+    </script>
+  </body>
+</html>

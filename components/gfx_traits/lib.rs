@@ -1,26 +1,25 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #![crate_name = "gfx_traits"]
 #![crate_type = "rlib"]
-
 #![deny(unsafe_code)]
 
-extern crate heapsize;
-#[macro_use] extern crate heapsize_derive;
+#[macro_use]
+extern crate malloc_size_of_derive;
 #[macro_use]
 extern crate range;
 #[macro_use]
-extern crate serde_derive;
+extern crate serde;
 
 pub mod print_tree;
 
 use range::RangeIndex;
-use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 /// A newtype struct for denoting the age of messages; prevents race conditions.
-#[derive(PartialEq, Eq, Debug, Copy, Clone, PartialOrd, Ord, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct Epoch(pub u32);
 
 impl Epoch {
@@ -30,11 +29,11 @@ impl Epoch {
 }
 
 /// A unique ID for every stacking context.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct StackingContextId(
     /// The identifier for this StackingContext, derived from the Flow's memory address
     /// and fragment type.  As a space optimization, these are combined into a single word.
-    u64
+    pub u64,
 );
 
 impl StackingContextId {
@@ -44,10 +43,9 @@ impl StackingContextId {
         StackingContextId(0)
     }
 
-    /// Returns a new sacking context id with the given numeric id.
-    #[inline]
-    pub fn new(id: u64) -> StackingContextId {
-        StackingContextId(id)
+    pub fn next(&self) -> StackingContextId {
+        let StackingContextId(id) = *self;
+        StackingContextId(id + 1)
     }
 }
 
@@ -55,16 +53,16 @@ int_range_index! {
     #[derive(Deserialize, Serialize)]
     #[doc = "An index that refers to a byte offset in a text run. This could \
              point to the middle of a glyph."]
-    #[derive(HeapSizeOf)]
+    #[derive(MallocSizeOf)]
     struct ByteIndex(isize)
 }
 
-/// The type of fragment that a stacking context represents.
+/// The type of fragment that a scroll root is created for.
 ///
 /// This can only ever grow to maximum 4 entries. That's because we cram the value of this enum
-/// into the lower 2 bits of the `StackingContextId`, which otherwise contains a 32-bit-aligned
+/// into the lower 2 bits of the `ScrollRootId`, which otherwise contains a 32-bit-aligned
 /// heap address.
-#[derive(Clone, Debug, PartialEq, Eq, Copy, Hash, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum FragmentType {
     /// A StackingContext for the fragment body itself.
     FragmentBody,
@@ -74,26 +72,23 @@ pub enum FragmentType {
     AfterPseudoContent,
 }
 
-/// The next ID that will be used for a special stacking context.
+/// The next ID that will be used for a special scroll root id.
 ///
-/// A special stacking context is a stacking context that is one of (a) the outer stacking context
-/// of an element with `overflow: scroll`; (b) generated content; (c) both (a) and (b).
-static NEXT_SPECIAL_STACKING_CONTEXT_ID: AtomicUsize = ATOMIC_USIZE_INIT;
+/// A special scroll root is a scroll root that is created for generated content.
+static NEXT_SPECIAL_SCROLL_ROOT_ID: AtomicUsize = AtomicUsize::new(0);
 
-/// If none of the bits outside this mask are set, the stacking context is a special stacking
-/// context.
-///
+/// If none of the bits outside this mask are set, the scroll root is a special scroll root.
 /// Note that we assume that the top 16 bits of the address space are unused on the platform.
-const SPECIAL_STACKING_CONTEXT_ID_MASK: usize = 0xffff;
+const SPECIAL_SCROLL_ROOT_ID_MASK: usize = 0xffff;
 
-/// Returns a new stacking context ID for a special stacking context.
+/// Returns a new scroll root ID for a scroll root.
 fn next_special_id() -> usize {
     // We shift this left by 2 to make room for the fragment type ID.
-    ((NEXT_SPECIAL_STACKING_CONTEXT_ID.fetch_add(1, Ordering::SeqCst) + 1) << 2) &
-        SPECIAL_STACKING_CONTEXT_ID_MASK
+    ((NEXT_SPECIAL_SCROLL_ROOT_ID.fetch_add(1, Ordering::SeqCst) + 1) << 2) &
+        SPECIAL_SCROLL_ROOT_ID_MASK
 }
 
-pub fn combine_id_with_fragment_type(id: usize, fragment_type: FragmentType) ->  usize {
+pub fn combine_id_with_fragment_type(id: usize, fragment_type: FragmentType) -> usize {
     debug_assert_eq!(id & (fragment_type as usize), 0);
     if fragment_type == FragmentType::FragmentBody {
         id
@@ -102,9 +97,23 @@ pub fn combine_id_with_fragment_type(id: usize, fragment_type: FragmentType) -> 
     }
 }
 
-pub fn node_id_from_clip_id(id: usize) -> Option<usize> {
-    if (id & !SPECIAL_STACKING_CONTEXT_ID_MASK) != 0 {
+pub fn node_id_from_scroll_id(id: usize) -> Option<usize> {
+    if (id & !SPECIAL_SCROLL_ROOT_ID_MASK) != 0 {
         return Some((id & !3) as usize);
     }
     None
+}
+
+pub enum FontData {
+    Raw(Vec<u8>),
+    Native(webrender_api::NativeFontHandle),
+}
+
+pub trait WebrenderApi {
+    fn add_font_instance(
+        &self,
+        font_key: webrender_api::FontKey,
+        size: f32,
+    ) -> webrender_api::FontInstanceKey;
+    fn add_font(&self, data: FontData) -> webrender_api::FontKey;
 }

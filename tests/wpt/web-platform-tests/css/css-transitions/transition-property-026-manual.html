@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Transitions Test: transition-property - margin-right</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/#animation-type">
+<link rel="help" href="https://drafts.csswg.org/css-box-3/#margin-physical">
+<meta name="assert" content="Test checks that the 'margin-right' property is animatable.">
+<style>
+  div {
+    float: left;
+  }
+  #ref {
+    height: 100px;
+    margin-right: 1px;
+    transition-duration: 4s;
+    transition-property: margin-right;
+    transition-timing-function: linear;
+    width: 1px;
+  }
+  #test {
+    background-color: blue;
+    height: 100px;
+    width: 100px;
+  }
+</style>
+<body>
+  <p>Click the blue square below. Test passes if the blue square moves gradually not immediately from left to right until it stops.</p>
+  <div id="ref"></div>
+  <div id="test"></div>
+  <script>
+    (function() {
+      var test = document.querySelector("#test");
+      test.addEventListener("click", function(evt) {
+        document.querySelector("#ref").setAttribute("style", "margin-right: 200px;");
+      }, false);
+    })();
+  </script>
+</body>

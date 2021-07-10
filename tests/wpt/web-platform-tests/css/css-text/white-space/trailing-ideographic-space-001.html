@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text level 3 Test: ideographic space at the end of line must hang</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="match" href="reference/trailing-ideographic-space-001-ref.html">
+<meta name="assert" content="An ideographic space (U+3000) at the end of the line must hang.">
+<style>
+div {
+  position: absolute;
+  width: max-content;
+  line-height: 1;
+  color: transparent;
+}
+.red { background: red; }
+.green { background: green; }
+</style>
+
+<p>Test passes if the shape below is green and if there is no red.
+
+<div class=red>あああ</div>
+<div class=red>ああ<span class=green>&#x3000;</span><br>ああ</div>
+<div class=green>ああ<br>ああ</div>
+<!-- the ideographic space must not be removed,
+  so it should hide the third red あ of the first div.
+  However, it should hang and therefore not extend the width of its parent div,
+  which would be visible as red on the second line if it were expanded.
+-->

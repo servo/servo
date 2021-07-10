@@ -2,6 +2,7 @@
 <html>
 <head>
 <title>HTML Templates: ownerDocument property of the element in template</title>
+<meta name="timeout" content="long">
 <meta name="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
 <meta name="author" title="Aleksei Yu. Semenov" href="mailto:a.semenov@unipro.ru">
 <meta name="assert" content="ownerDocument property of the element appended to template must be set to the template contents owner of the ownerDocument of the template element">
@@ -170,9 +171,9 @@ function compare_owners(element, template) {
     assert_equals(element.ownerDocument, template.content.ownerDocument)
 }
 
-generate_tests(compare_owners, parameters,
-        'Test ownerDocument property of all HTML5 elements in a template. '
-            + 'Current DOCUMENT has no browsing context.');
+// Test ownerDocument property of all HTML5 elements in a template.
+// Current DOCUMENT has no browsing context.
+generate_tests(compare_owners, parameters);
 
 var context = newContext();
 parameters = [];

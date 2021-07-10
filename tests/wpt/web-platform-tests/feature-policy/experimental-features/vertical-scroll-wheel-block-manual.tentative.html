@@ -1,0 +1,145 @@
+<!doctype html>
+<title>vertical-scroll test for 'mousewheel'</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/feature-policy/experimental-features/resources/common.js"></script>
+<script src="/feature-policy/experimental-features/resources/vertical-scroll.js"></script>
+<style>
+html, body {
+  height: 100%;
+  width: 100%;
+}
+
+iframe {
+  width: 90%;
+  height: 90%;
+  margin: 0;
+  padding: 0;
+}
+
+.spacer {
+  width: 100%;
+  height: 100%;
+  margin: 100%;
+}
+
+</style>
+<iframe></iframe>
+<br/>
+<p>Spacers below to make page scrollable</p>
+<br/>
+<div class="spacer"></div>
+<div class="spacer"></div>
+<p> EOF </p>
+<script>
+  "use strict";
+
+  let url = url_base + "vertical-scroll-wheel-block.html";
+  function iframeElement() {
+    return document.querySelector("iframe");
+  }
+
+  // Used as the polling interval when waiting for a specific condition.
+  let verify_scroll_offset_delay = 5;
+  let no_scroll_timout = 50;
+
+  function waitUntilSatisfied(testInstance, predicate) {
+    return new Promise((r) => {
+      function testPredicate() {
+        if (predicate()) {
+          r();
+        } else {
+          testInstance.step_timeout(testPredicate, verify_scroll_offset_delay);
+        }
+      }
+      testPredicate();
+    });
+  }
+
+  function resetScroll(testInstance) {
+    window.scrollTo({top: 0, left: 0, behavior: "instant"});
+    return waitUntilSatisfied(testInstance, () => {
+      return window.scrollX === 0 && window.scrollY === 0;
+    });
+  }
+
+  function waitForMinimumScrollOffset(testInstance, minX, minY) {
+    return waitUntilSatisfied(testInstance, () => {
+      return window.scrollX >= minX && window.scrollY >= minY;
+    });
+  }
+
+  function waitFor(testInstance, delay) {
+    let checked_once = false;
+    return waitUntilSatisfied(testInstance, () => {
+      if (checked_once)
+        return true;
+      checked_once = true;
+      return false;
+    });
+  }
+
+  // Wait for the helper scripts to load.
+  promise_test(async() => {
+    if (window.input_api_ready)
+      return Promise.resolve();
+    await new Promise((r) => {
+      window.resolve_on_input_api_ready = r;
+    });
+  }, "Make sure input injection API is ready.");
+
+  // Sanity-check: Test API for scrolling along y-axis works as expected.
+  promise_test(async(testInstance) => {
+    await resetScroll(testInstance);
+    await inject_wheel_scroll("down");
+    await waitForMinimumScrollOffset(testInstance, 0, 1);
+    assert_greater_than(window.scrollY, 0, "Expected vertical scroll.");
+  }, "Sanity-check: the page scrolls vertically in response to vertical wheel.");
+
+  // Sanity-check: Test API for scrolling along x-axis works as expected.
+  promise_test(async(testInstance) => {
+    await resetScroll(testInstance);
+    await inject_wheel_scroll("right");
+    await waitForMinimumScrollOffset(testInstance, 1, 0);
+    assert_greater_than(window.scrollX, 0, "Expected horizontal scroll.");
+  }, "Sanity-check: the page scrolls horizontally in response to horizontal wheel.");
+
+  // Test that when 'vertical-scroll' is enabled, vertical scroll can be
+  // blocked by canceling 'wheel' event.
+  promise_test(async(testInstance) => {
+    setFeatureState(iframeElement(), "vertical-scroll", "*");
+    await loadUrlInIframe(iframeElement(), url);
+
+    await resetScroll(testInstance);
+    await inject_wheel_scroll("down")
+    await waitFor(testInstance, no_scroll_timout);
+    assert_equals(window.scrollY, 0, "Did not expected vertical scroll.");
+  }, "When 'vertical-scroll' is enabled canceling vertical 'wheel' " +
+     "blocks vertical scrolling.");
+
+  // Test that when 'vertical-scroll' is disabled, vertical scroll cannot
+  // be blocked by canceling 'wheel' event.
+  promise_test(async(testInstance) => {
+    setFeatureState(iframeElement(), "vertical-scroll", "'none'");
+    await loadUrlInIframe(iframeElement(), url);
+
+    await resetScroll(testInstance);
+    await inject_wheel_scroll("down");
+    await waitForMinimumScrollOffset(testInstance, 0, 1);
+    assert_greater_than(window.scrollY, 0, "Expected vertical scroll.");
+  }, "When 'vertical-scroll' is disabled canceling vertical 'wheel' " +
+     "does not block vertical scrolling.");
+
+  // Test that when 'vertical-scroll' is disabled, horizontal scroll can be
+  // blocked by canceling 'wheel' event.
+  promise_test(async(testInstance) => {
+    setFeatureState(iframeElement(), "vertical-scroll", "'none'");
+    await loadUrlInIframe(iframeElement(), url);
+
+    await resetScroll(testInstance);
+    await inject_wheel_scroll("right");
+    await waitFor(testInstance, no_scroll_timout);
+    assert_equals(window.scrollX, 0, "Did not expect horizontal scroll.");
+  }, "When 'vertical-scroll' is disabled canceling horizontal 'wheel' " +
+     "blocks horizontal scrolling.");
+</script>

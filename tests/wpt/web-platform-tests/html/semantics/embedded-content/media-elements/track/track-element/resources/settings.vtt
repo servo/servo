@@ -1,0 +1,18 @@
+WEBVTT
+Cue settings may be separated by spaces or tabs.
+
+1
+00:00:00.000 --> 00:00:30.500 line:100% align:start
+Bear is Coming!!!!! One blank.
+
+2
+00:00:31.000 --> 00:01:00.500   position:40% vertical:rl line:15%
+I said Bear is coming!!!! Several blanks.
+
+3
+00:01:01.000 --> 00:02:00.500	align:middle position:10%
+I said Bear is coming now!!!! Tab separator.
+
+4
+00:02:01.000 --> 100:20:00.500		line:95%	vertical:lr align:end
+I said Bear is coming now!!!! Tab separators.

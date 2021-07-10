@@ -1,0 +1,36 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8" />
+<link rel="help" href="http://www.w3.org/TR/resource-timing/#performanceresourcetiming"/>
+<title>This test validates that resource timing implementations have a finite number of entries in their buffer.</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+    const t = async_test("Finite resource timing entries buffer size");
+    performance.onresourcetimingbufferfull = t.step_func_done(function() {
+    });
+    let counter = 0;
+    function appendScripts() {
+        const documentFragment = document.createDocumentFragment();
+        // Add 8 elements at a time to avoid page reflow every time.
+        let numScriptsAccumulated = 0;
+        while (numScriptsAccumulated < 8) {
+            const src = "resources/empty.js?" + counter;
+            const script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.src = src;
+            documentFragment.appendChild(script);
+            ++counter;
+            ++numScriptsAccumulated;
+        }
+        document.body.appendChild(documentFragment);
+        t.step_timeout(appendScripts, 20);
+    }
+    appendScripts();
+</script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSSOM: resolved values of the inset properties when the element generates no box</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#resolved-value">
+<link rel="help" href="https://drafts.csswg.org/css-position/#pos-sch">
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script type="module">
+import {runTests} from "./support/getComputedStyle-insets.js";
+runTests({
+  style: "display: none",
+  containingBlockElement: null,
+  preservesPercentages: true,
+  preservesAuto: true,
+  canStretchAutoSize: false,
+});
+</script>

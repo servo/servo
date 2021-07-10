@@ -1,0 +1,51 @@
+<!doctype html>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<link rel='stylesheet' href='../support/base.css' />
+
+<link rel="author" title="Greg Whitworth" href="gwhit@microsoft.com" />
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#width-distribution" />
+
+<style>
+    x-td {
+        background: blue;
+    }
+
+    x-table span {
+        display: inline-block;
+        background: green;
+        height: 50px;
+    }
+</style>
+<main>
+    <h1>Width Distribution</h1>
+    <h4>"Distribution Algorithm - min-content-specified guess"</h4>
+    <p>Tests that the size of the column as the spec states that if the cell is constrained then the
+         <a href="https://drafts.csswg.org/css-tables-3/#width-distribution-algorithm">Spec Text</a>
+    </p>
+    <x-table style="width: 50px; border: 1px solid black;">
+        <x-tr>
+            <x-td id="one" style="width: 100px;">
+                <span style="width: 75px;">Cell 2</span>
+            </x-td>
+        </x-tr>
+    </x-table>
+</main>
+
+<script>
+    while(true) {
+        var xtd = document.querySelector('x-td[rowspan], x-td[colspan]'); if(!xtd) break;
+        var td = document.createElement('td'); for(var i = xtd.attributes.length; i--;) { td.setAttribute(xtd.attributes[i].name,xtd.attributes[i].value) }
+        xtd.parentNode.replaceChild(td,xtd);
+    }
+
+    var i = 1;
+    generate_tests(assert_equals, [
+        [
+            'The box should be 75px due to its min-content size.',
+            document.getElementById('one').offsetWidth,
+            75
+        ]
+    ]);
+</script>
+</html>

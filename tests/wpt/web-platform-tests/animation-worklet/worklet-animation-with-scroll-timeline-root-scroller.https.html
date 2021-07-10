@@ -1,0 +1,69 @@
+<html class="reftest-wait">
+<title>Scroll timeline with WorkletAnimation using the root scroller</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-animationworklet/">
+<meta name="assert"
+  content="Worklet animation correctly updates values when using the root scroller as the source for the ScrollTimeline">
+<link rel="match" href="worklet-animation-with-scroll-timeline-root-scroller-ref.html">
+
+<script src="/web-animations/testcommon.js"></script>
+<script src="/common/reftest-wait.js"></script>
+<script src="common.js"></script>
+
+<style>
+  /* Hide scrollbars to avoid unnecessary visual issues related to them */
+  html::-webkit-scrollbar {
+    display: none;
+  }
+
+  html {
+    scrollbar-width: none;
+    min-height: 100%;
+    min-width: 100%;
+    padding-bottom: 100px;
+    padding-right: 100px;
+  }
+
+  #box {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+  }
+
+  #covered {
+    width: 100px;
+    height: 100px;
+    background-color: red;
+  }
+</style>
+
+<div id="box"></div>
+<div id="covered"></div>
+
+<script>
+  registerPassthroughAnimator().then(() => {
+    const box = document.getElementById('box');
+    const effect = new KeyframeEffect(box,
+      [
+        { transform: 'translateY(0)', opacity: 1 },
+        { transform: 'translateY(200px)', opacity: 0 }
+      ], {
+      duration: 1000,
+    }
+    );
+
+    const scroller = document.scrollingElement;
+    const timeline = new ScrollTimeline({ scrollSource: scroller, timeRange: 1000, orientation: 'block' });
+    const animation = new WorkletAnimation('passthrough', effect, timeline);
+    animation.play();
+
+    // Move the scroller to the halfway point.
+    const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+    scroller.scrollTop = 0.5 * maxScroll;
+
+    waitForAnimationFrameWithCondition(_ => {
+      return getComputedStyle(box).transform != 'matrix(1, 0, 0, 1, 0, 0)';
+    }).then(_ => {
+      takeScreenshot();
+    });
+  });
+</script>

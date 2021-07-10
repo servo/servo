@@ -1,5 +1,6 @@
 <html>
 <head>
+<title>Even in the AT_TARGET phase, capture handlers fire before bubble handlers.</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 </head>
@@ -7,25 +8,33 @@
 <div id="foo"></div>
 <script>
 test(function() {
+
   var sawBubble = false;
   var sawCapture = false;
   var sawBubbleTwice = false;
   function handler(ev) {
+    // Added first, but it's a bubble so it shouldn't fire until
+    // after the capture.
     assert_equals(ev.eventPhase, ev.AT_TARGET);
+    assert_equals(sawCapture, true);
     assert_equals(sawBubble, false);
-    assert_equals(sawCapture, false);
+    assert_equals(sawBubbleTwice, false);
     sawBubble = true;
   }
   function handler2(ev) {
+    // Capture: this should fire before both bubbles
     assert_equals(ev.eventPhase, ev.AT_TARGET);
-    assert_equals(sawBubble, true);
     assert_equals(sawCapture, false);
+    assert_equals(sawBubble, false);
+    assert_equals(sawBubbleTwice, false);
     sawCapture = true;
   }
   function handler3(ev) {
+    // And this one fires last.
     assert_equals(ev.eventPhase, ev.AT_TARGET);
-    assert_equals(sawBubble, true);
     assert_equals(sawCapture, true);
+    assert_equals(sawBubble, true);
+    assert_equals(sawBubbleTwice, false);
     sawBubbleTwice = true;
   }
 

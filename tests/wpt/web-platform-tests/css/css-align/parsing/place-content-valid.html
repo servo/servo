@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Box Alignment Level 3: parsing place-content with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-place-content">
+<meta name="assert" content="place-content supports the full grammar '<align-content> <justify-content>?'.">
+<meta name="assert" content="<baseline-position> and <baseline-position> start are equivalent.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("place-content", "normal normal", "normal");
+
+test_valid_value("place-content", "first baseline", "baseline start");
+test_valid_value("place-content", "baseline", "baseline start");
+test_valid_value("place-content", "first baseline start", "baseline start");
+test_valid_value("place-content", "last baseline", "last baseline start");
+test_valid_value("place-content", "first baseline stretch", "baseline stretch");
+test_valid_value("place-content", "last baseline flex-start");
+
+test_valid_value("place-content", "baseline stretch");
+
+test_valid_value("place-content", "space-between");
+test_valid_value("place-content", "space-around");
+test_valid_value("place-content", "space-evenly");
+test_valid_value("place-content", "stretch");
+
+test_valid_value("place-content", "center");
+test_valid_value("place-content", "end");
+test_valid_value("place-content", "flex-start flex-start", "flex-start");
+test_valid_value("place-content", "unsafe end unsafe end", "unsafe end");
+test_valid_value("place-content", "safe flex-start");
+
+test_valid_value("place-content", "normal stretch");
+test_valid_value("place-content", "baseline space-around");
+test_valid_value("place-content", "space-evenly unsafe end");
+test_valid_value("place-content", "center normal");
+
+test_valid_value("place-content", "normal right");
+test_valid_value("place-content", "baseline unsafe left");
+</script>
+</body>
+</html>

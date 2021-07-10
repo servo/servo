@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<style>
+.test {
+  background: green;
+  border: solid 2px;
+}
+
+.container-1 {
+  height: 100px;
+  width: 300px;
+}
+
+.container-2 {
+  height: 50px;
+  width: 50px;
+}
+
+.container-3 {
+  height: 80px;
+  width: 80px;
+}
+
+.left {
+  float: left;
+  writing-mode: horizontal-tb;
+}
+
+.right {
+  float: right;
+  writing-mode: vertical-rl;
+}
+</style>
+
+<div class="container-1">
+  <div class="left test" style="height: 100px; width: 96px;"></div>
+  <div class="right test" style="height: 96px; width: 100px;"></div>
+</div>
+
+<div class="container-2">
+  <div class="left test" style="height: 25px; width: 46px;"></div>
+  <div class="right test" style="height: 46px; width: 25px;"></div>
+</div>
+
+<div class="container-3">
+  <div class="left test" style="height: 25px; width: 76px;"></div>
+  <div class="right test" style="height: 76px; width: 25px;"></div>
+</div>

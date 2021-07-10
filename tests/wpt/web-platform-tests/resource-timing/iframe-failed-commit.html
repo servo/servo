@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Resource Timing - test that unsuccessful iframes create entries</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+<script>
+test(() => {
+  const entries = performance.getEntriesByType("resource");
+  assert_equals(entries.length, 3, "Precondition - Entries for blocking scripts fired");
+}, "Precondition");
+
+const run_test = async (t, url, csp) => {
+  const setPerformanceObserver = new Promise(resolve => {
+    const po = new PerformanceObserver(resolve);
+    po.observe({type: "resource"});
+  });
+  const timeout = new Promise(resolve => t.step_timeout(resolve, 1000));
+  const frame = document.createElement("iframe");
+  frame.src = url;
+  if (csp) {
+    frame.csp = csp;
+  }
+  document.body.appendChild(frame);
+  const list = await Promise.race([setPerformanceObserver, timeout]);
+  assert_equals(typeof(list), "object", "No iframe entry was fired");
+  const entries = list.getEntriesByName(url);
+  assert_equals(entries.length, 1);
+  assert_greater_than(entries[0].duration, 0, "Duration greater than 0");
+}
+
+const {REMOTE_ORIGIN, ORIGINAL_HOST, HTTPS_PORT} = get_host_info();
+const nonexistent_url = "https://nonexistent." + ORIGINAL_HOST + ":" + HTTPS_PORT + "/";
+
+promise_test(t => {
+  return run_test(t, nonexistent_url);
+}, "Test iframe from non-existent host");
+
+promise_test(t => {
+  const url = new URL("resources/fake_responses.py?redirect=" + nonexistent_url, location.href);
+  return run_test(t, url.toString());
+}, "Test iframe redirecting to non-existent host");
+
+const csp_directive = "default-src 'none'";
+promise_test(t => {
+  const url = new URL("/resource-timing/resources/csp-default-none.html", location.href);
+  return run_test(t, url, csp_directive);
+}, "Same-origin iframe that complies with CSP attribute gets reported");
+
+promise_test(t => {
+  const url = new URL("/resource-timing/resources/green_frame.htm", location.href);
+  return run_test(t, url.toString(), csp_directive);
+}, "Same-origin iframe that doesn't comply with CSP attribute gets reported");
+
+promise_test(t => {
+  const url = new URL("/resource-timing/resources/csp-default-none.html", REMOTE_ORIGIN);
+  return run_test(t, url.toString(), csp_directive);
+}, "Cross-origin iframe that complies with CSP attribute gets reported");
+
+promise_test(t => {
+  const url = new URL("/resource-timing/resources/green_frame.htm", REMOTE_ORIGIN);
+  return run_test(t, url.toString(), csp_directive);
+}, "Cross-origin iframe that doesn't comply with CSP attribute gets reported");
+
+promise_test(t => {
+  const url = new URL("/resource-timing/resources/200_empty.asis", location.href);
+  return run_test(t, url.toString(), csp_directive);
+}, "Same-origin empty iframe with a 200 status gets reported");
+
+promise_test(t => {
+  const url = new URL("/resource-timing/resources/200_empty.asis", REMOTE_ORIGIN);
+  return run_test(t, url.toString(), csp_directive);
+}, "Cross-origin empty iframe with a 200 status gets reported");
+
+</script>
+</body>
+</html>

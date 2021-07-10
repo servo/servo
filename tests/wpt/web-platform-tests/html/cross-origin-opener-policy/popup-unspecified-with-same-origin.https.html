@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name=timeout content=long>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/common.js"></script>
+
+<div id=log></div>
+<script>
+
+let tests = [
+  // popup Origin, popup COOP, expect opener
+  [SAME_ORIGIN, "", true],
+  [SAME_ORIGIN, "unsafe-none", true],
+  [SAME_ORIGIN, "jibberish", true],
+  [SAME_ORIGIN, "same-site", true], // historical value, equivalent to "unsafe-none"
+  [SAME_ORIGIN, "same-site unsafe-allow-outgoing", true], // historical value, equivalent to "unsafe-none"
+  [SAME_ORIGIN, "same-origin unsafe-allow-outgoing", true], // historical value, equivalent to "unsafe-none"
+  [SAME_ORIGIN, "same-origin", false],
+  [SAME_ORIGIN, "same-origin-allow-popups", false],
+];
+
+run_coop_tests("unspecified", tests);
+
+</script>

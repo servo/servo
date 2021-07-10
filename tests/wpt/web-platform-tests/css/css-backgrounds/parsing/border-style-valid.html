@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Backgrounds and Borders Module Level 3: parsing border-style with valid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#border-style">
+<meta name="assert" content="border-style supports the full grammar '<line-style>{1,4}'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("border-style", "none");
+test_valid_value("border-style", "none hidden dotted dashed");
+test_valid_value("border-style", "solid double groove ridge");
+test_valid_value("border-style", "inset outset");
+
+test_valid_value("border-top-style", "solid");
+test_valid_value("border-right-style", "double");
+test_valid_value("border-bottom-style", "groove");
+test_valid_value("border-left-style", "ridge");
+</script>
+</body>
+</html>

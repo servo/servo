@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>CSS Reftest Reference</title>
+		<!-- reftest for text-decoration-line-011.xht -->
+		<link rel="author" title="Taka Oshiyama" href="mailto:takaoshiyama@gmail.com" />
+		<meta http-equiv="content-language" content="en, ja" />
+		<style type="text/css">
+				@font-face
+				{
+					font-family: "mplus-1p-regular";
+					src: url("/fonts/mplus-1p-regular.woff") format("woff");
+					/* filesize: 803300 bytes (784.5 KBytes) */
+					/*
+					mplus-1p-regular.ttf can be downloaded at/from [TBD later]
+					*/
+				}
+				div
+				{
+					font-family: "mplus-1p-regular";
+					//font-size: 1.5em;
+					font-size: 1.0em;
+					line-height: 1.5;
+				}
+				.control
+				{
+					text-decoration: underline;
+				}
+		</style>
+	</head>
+	<body lang="en, ja">
+		<p>Test passes if the 2 "Text sample サンプル文" are <strong>identical</strong> and <strong>underlined</strong>.</p>
+		<!-- underline -->
+		<div class="control">Text sample サンプル文</div>
+		<div class="control">Text sample サンプル文</div>
+	</body>
+</html>

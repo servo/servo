@@ -1,12 +1,14 @@
+# flake8: noqa
+
 from __future__ import print_function
 
 import argparse
 import json
 import sys
+import types
+
 from cgi import escape
 from collections import defaultdict
-
-import types
 
 
 def html_escape(item, escape_quote=False):
@@ -42,7 +44,7 @@ class Node(object):
             attrs_unicode = " " + " ".join("%s=\"%s\"" % (html_escape(key),
                                                           html_escape(value,
                                                                       escape_quote=True))
-                                           for key, value in self.attrs.iteritems())
+                                           for key, value in self.attrs.items())
         else:
             attrs_unicode = ""
         return "<%s%s>%s</%s>\n" % (self.name,
@@ -155,10 +157,10 @@ def test_id(id):
 
 def all_tests(data):
     tests = defaultdict(set)
-    for UA, results in data.iteritems():
+    for UA, results in iteritems(data):
         for result in results["results"]:
             id = test_id(result["test"])
-            tests[id] |= set(subtest["name"] for subtest in result["subtests"])
+            tests[id] |= {subtest["name"] for subtest in result["subtests"]}
     return tests
 
 
@@ -177,21 +179,21 @@ def group_results(data):
 
     def result():
         return {
-            "harness": dict((UA, (None, None)) for UA in UAs),
+            "harness": {UA: (None, None) for UA in UAs},
             "subtests": None  # init this later
         }
 
     results_by_test = defaultdict(result)
 
-    for UA, results in data.iteritems():
+    for UA, results in iteritems(data):
         for test_data in results["results"]:
             id = test_id(test_data["test"])
             result = results_by_test[id]
 
             if result["subtests"] is None:
-                result["subtests"] = dict(
-                    (name, dict((UA, (None, None)) for UA in UAs)) for name in tests[id]
-                )
+                result["subtests"] = {
+                    name: {UA: (None, None) for UA in UAs} for name in tests[id]
+                }
 
             result["harness"][UA] = (test_data["status"], test_data["message"])
             for subtest in test_data["subtests"]:
@@ -228,10 +230,10 @@ def test_link(test_id, subtest=None):
 def summary(UAs, results_by_test):
     """Render the implementation report summary"""
     not_passing = []
-    for test, results in results_by_test.iteritems():
+    for test, results in iteritems(results_by_test):
         if not any(item[0] in ("PASS", "OK") for item in results["harness"].values()):
             not_passing.append((test, None))
-        for subtest_name, subtest_results in results["subtests"].iteritems():
+        for subtest_name, subtest_results in iteritems(results["subtests"]):
             if not any(item[0] == "PASS" for item in subtest_results.values()):
                 not_passing.append((test, subtest_name))
     if not_passing:
@@ -258,7 +260,7 @@ def result_rows(UAs, test, result):
         class_="test"
     )
 
-    for name, subtest_result in sorted(result["subtests"].iteritems()):
+    for name, subtest_result in sorted(iteritems(result["subtests"])):
         yield h.tr(
             h.td(name),
             [status_cell(status, message)
@@ -269,7 +271,7 @@ def result_rows(UAs, test, result):
 
 def result_bodies(UAs, results_by_test):
     return [h.tbody(result_rows(UAs, test, result))
-            for test, result in sorted(results_by_test.iteritems())]
+            for test, result in sorted(iteritems(results_by_test))]
 
 
 def generate_html(UAs, results_by_test):

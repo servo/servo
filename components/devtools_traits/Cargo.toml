@@ -3,6 +3,7 @@ name = "devtools_traits"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
+edition = "2018"
 publish = false
 
 [lib]
@@ -10,14 +11,13 @@ name = "devtools_traits"
 path = "lib.rs"
 
 [dependencies]
-bitflags = "0.7"
-heapsize = "0.3.0"
-heapsize_derive = "0.1"
-hyper = "0.10"
-hyper_serde = "0.6"
-ipc-channel = "0.7"
-msg = {path = "../msg"}
-serde = "0.9"
-serde_derive = "0.9"
-servo_url = {path = "../url"}
+bitflags = "1.0"
+http = "0.1"
+ipc-channel = "0.14"
+malloc_size_of = { path = "../malloc_size_of" }
+malloc_size_of_derive = "0.1"
+msg = { path = "../msg" }
+serde = "1.0"
+servo_url = { path = "../url" }
 time = "0.1"
+uuid = { version = "0.8", features = ["v4", "serde"] }

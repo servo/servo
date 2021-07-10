@@ -1,12 +1,11 @@
 <!DOCTYPE html>
 <html>
-<head></head>
-<body>
+<title>Makes sure that preloaded resources trigger the onerror event</title>
+<meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/preload/resources/preload_helper.js"></script>
 <script>
-    var t = async_test('Makes sure that preloaded resources trigger the onerror event');
     var scriptFailed = false;
     var styleFailed = false;
     var imageFailed = false;
@@ -15,7 +14,7 @@
     var audioFailed = false;
     var trackFailed = false;
     var gibberishFailed = false;
-    var noTypeFailed = false;
+    var fetchFailed = false;
 </script>
 <link rel=preload href="non-existent/dummy.js" as=script onerror="scriptFailed = true;">
 <link rel=preload href="non-existent/dummy.css" as=style onerror="styleFailed = true;">
@@ -24,22 +23,42 @@
 <link rel=preload href="non-existent/test.mp4" as=video onerror="videoFailed = true;">
 <link rel=preload href="non-existent/test.oga" as=audio onerror="audioFailed = true;">
 <link rel=preload href="non-existent/security/captions.vtt" as=track onerror="trackFailed = true;">
-<link rel=preload href="non-existent/dummy.xml" as=foobarxmlthing onerror="gibberishFailed = true;">
-<link rel=preload href="non-existent/dummy.xml" onerror="noTypeFailed = true;">
-<script src="resources/dummy.js?pipe=trickle(d5)"></script>
+<link rel=preload href="non-existent/dummy.xml?fetch" as=fetch onerror="fetchFailed = true;">
+<link rel=preload href="non-existent/dummy.xml?foo" as=foobarxmlthing onerror="assert_unreached('invalid as value should not fire error event')">
+<link rel=preload href="non-existent/dummy.xml?empty" onerror="assert_unreached('empty as value should not fire error event')">
+<link rel=preload href="non-existent/dummy.xml?media" as=style media=print onerror="assert_unreached('non-matching media should not fire error event')">
+<link rel=preload href="non-existent/dummy.xml?media" as=style type='text/html' onerror="assert_unreached('invalid mime type should not fire error event')">
+<body>
 <script>
-    window.onload = t.step_func(function() {
+    setup({single_test: true});
+
+    var iterations = 0;
+
+    function check_finished() {
+        if (styleFailed && scriptFailed && imageFailed && fontFailed && videoFailed && audioFailed &&
+            trackFailed && fetchFailed) {
+            done();
+        }
+        iterations++;
+        if (iterations == 10) {
+            // At least one is expected to fail, but this should give details to the exact failure(s).
+            assert_true(styleFailed, "style triggered error event");
+            assert_true(scriptFailed, "script triggered error event");
+            assert_true(imageFailed, "image triggered error event");
+            assert_true(fontFailed, "font triggered error event");
+            assert_true(videoFailed, "video triggered error event");
+            assert_true(audioFailed, "audio triggered error event");
+            assert_true(trackFailed, "track triggered error event");
+            assert_true(fetchFailed, "fetch as triggered error event");
+            done();
+        } else {
+            step_timeout(check_finished, 500);
+        }
+    }
+
+    window.addEventListener("load", function() {
         verifyPreloadAndRTSupport();
-        assert_true(styleFailed, "style triggered error event");
-        assert_true(scriptFailed, "script triggered error event");
-        assert_true(imageFailed, "image triggered error event");
-        assert_true(fontFailed, "font triggered error event");
-        assert_true(videoFailed, "video triggered error event");
-        assert_true(audioFailed, "audio triggered error event");
-        assert_true(trackFailed, "track triggered error event");
-        assert_true(gibberishFailed, "gibberish as value triggered error event");
-        assert_true(noTypeFailed, "empty as triggered error event");
-        t.done();
+        step_timeout(check_finished, 500);
     });
 </script>
 </body>

@@ -1,12 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://fetch.spec.whatwg.org/#response-class
 
- [Constructor(optional BodyInit? body = null, optional ResponseInit init),
-  Exposed=(Window,Worker)]
+ [Exposed=(Window,Worker)]
 interface Response {
+  [Throws] constructor(optional BodyInit? body = null, optional ResponseInit init = {});
   [NewObject] static Response error();
   [NewObject, Throws] static Response redirect(USVString url, optional unsigned short status = 302);
 
@@ -23,11 +23,11 @@ interface Response {
 
   [NewObject, Throws] Response clone();
 };
-Response implements Body;
+Response includes Body;
 
 dictionary ResponseInit {
   unsigned short status = 200;
-  ByteString statusText = "OK";
+  ByteString statusText = "";
   HeadersInit headers;
 };
 

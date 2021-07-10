@@ -35,7 +35,7 @@
         cursor_rq.onsuccess = t.step_func(function(e) {
             var cursor = e.target.result;
 
-            assert_throws("DataError",
+            assert_throws_dom("DataError",
                 function() { cursor.continue(document); });
 
             assert_true(cursor instanceof IDBCursorWithValue, "cursor");

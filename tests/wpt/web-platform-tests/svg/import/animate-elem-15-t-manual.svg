@@ -29,12 +29,12 @@
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
       <p>
-      	Run the test. No interaction required.
+        Run the test. No interaction required.
       </p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
-      	The blue rectangle should animate its width at a constant speed so that the right edge of the rectangle lines up with the ruler line at the indicated times.
+        The blue rectangle should animate its width at a constant speed so that the right edge of the rectangle lines up with the ruler line at the indicated times.
       </p>
     </d:passCriteria>
   </d:SVGTestCase>

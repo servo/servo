@@ -85,12 +85,12 @@ test(function() {
     assert_equals(doc.querySelectorAll('.bar').length, 1);
     assert_equals(doc.getElementsByClassName('bar')[0].getAttribute('label'), 'doc-div');
 
-    assert_array_equals(hostOpen.querySelectorAll('.bar').length, 0);
+    assert_equals(hostOpen.querySelectorAll('.bar').length, 0);
 
     assert_equals(shadowOpen.querySelectorAll('.bar').length, 1);
     assert_equals(shadowOpen.querySelectorAll('.bar')[0].getAttribute('label'), 'shadow-open-div');
 
-    assert_array_equals(hostClosed.querySelectorAll('.bar').length, 0);
+    assert_equals(hostClosed.querySelectorAll('.bar').length, 0);
 
     assert_equals(shadowClosed.querySelectorAll('.bar').length, 1);
     assert_equals(shadowClosed.querySelectorAll('.bar')[0].getAttribute('label'), 'shadow-closed-div');
@@ -106,11 +106,11 @@ test(function() {
 
     assert_equals(doc.querySelectorAll('[name=baz]').length, 1);
 
-    assert_array_equals(hostOpen.querySelectorAll('[name=baz]').length, 0);
+    assert_equals(hostOpen.querySelectorAll('[name=baz]').length, 0);
     assert_equals(shadowOpen.querySelectorAll('[name=baz]').length, 1);
     assert_equals(shadowOpen.querySelectorAll('[name=baz]')[0].getAttribute('label'), 'shadow-open-form');
 
-    assert_array_equals(hostClosed.querySelectorAll('[name=baz]').length, 0);
+    assert_equals(hostClosed.querySelectorAll('[name=baz]').length, 0);
     assert_equals(shadowClosed.querySelectorAll('[name=baz]').length, 1);
     assert_equals(shadowClosed.querySelectorAll('[name=baz]')[0].getAttribute('label'), 'shadow-closed-form');
 }, 'getElementsByName() should not leak nodes in shadow tree');
@@ -126,12 +126,12 @@ test(function() {
     assert_equals(doc.querySelectorAll('my-element').length, 1);
     assert_equals(doc.getElementsByTagName('my-element')[0].getAttribute('label'), 'doc-my-element');
 
-    assert_array_equals(hostOpen.querySelectorAll('my-element').length, 0);
+    assert_equals(hostOpen.querySelectorAll('my-element').length, 0);
     // ShadowRoot isn't an Element, does not have getElementsByTagName().
     assert_equals(shadowOpen.querySelectorAll('my-element').length, 1);
     assert_equals(shadowOpen.querySelectorAll('my-element')[0].getAttribute('label'), 'shadow-open-my-element');
 
-    assert_array_equals(hostClosed.querySelectorAll('my-element').length, 0);
+    assert_equals(hostClosed.querySelectorAll('my-element').length, 0);
     assert_equals(shadowClosed.querySelectorAll('my-element').length, 1);
     assert_equals(shadowClosed.querySelectorAll('my-element')[0].getAttribute('label'), 'shadow-closed-my-element');
 }, 'getElementsByTagName() should not leak nodes in shadow tree');

@@ -1,44 +1,50 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::callback::ExceptionHandling::Report;
-use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use dom::bindings::reflector::DomObject;
-use dom::bindings::str::DOMString;
-use dom::document::FakeRequestAnimationFrameCallback;
-use dom::eventsource::EventSourceTimeoutCallback;
-use dom::globalscope::GlobalScope;
-use dom::testbinding::TestBindingCallback;
-use dom::xmlhttprequest::XHRTimeoutCallback;
-use euclid::length::Length;
-use heapsize::HeapSizeOf;
+use crate::dom::bindings::callback::ExceptionHandling::Report;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
+use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::document::FakeRequestAnimationFrameCallback;
+use crate::dom::eventsource::EventSourceTimeoutCallback;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::testbinding::TestBindingCallback;
+use crate::dom::xmlhttprequest::XHRTimeoutCallback;
+use crate::script_module::ScriptFetchOptions;
+use crate::script_thread::ScriptThread;
+use euclid::Length;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::{HandleValue, Heap};
+use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
-use script_traits::{MsDuration, precise_time_ms};
+use js::rust::HandleValue;
+use script_traits::{precise_time_ms, MsDuration};
 use script_traits::{TimerEvent, TimerEventId, TimerEventRequest};
 use script_traits::{TimerSchedulerMsg, TimerSource};
-use servo_config::prefs::PREFS;
+use servo_config::pref;
 use std::cell::Cell;
 use std::cmp::{self, Ord, Ordering};
 use std::collections::HashMap;
 use std::default::Default;
 use std::rc::Rc;
 
-#[derive(JSTraceable, PartialEq, Eq, Copy, Clone, HeapSizeOf, Hash, PartialOrd, Ord, Debug)]
+#[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, MallocSizeOf, Ord, PartialEq, PartialOrd)]
 pub struct OneshotTimerHandle(i32);
 
-#[derive(DenyPublicFields, HeapSizeOf, JSTraceable)]
+#[derive(DenyPublicFields, JSTraceable, MallocSizeOf)]
 pub struct OneshotTimers {
     js_timers: JsTimers,
-    #[ignore_heap_size_of = "Defined in std"]
-    timer_event_chan: IpcSender<TimerEvent>,
-    #[ignore_heap_size_of = "Defined in std"]
+    #[ignore_malloc_size_of = "Defined in std"]
+    /// The sender, to be cloned for each timer,
+    /// on which the timer scheduler in the constellation can send an event
+    /// when the timer is due.
+    timer_event_chan: DomRefCell<Option<IpcSender<TimerEvent>>>,
+    #[ignore_malloc_size_of = "Defined in std"]
+    /// The sender to the timer scheduler in the constellation.
     scheduler_chan: IpcSender<TimerSchedulerMsg>,
     next_timer_handle: Cell<OneshotTimerHandle>,
-    timers: DOMRefCell<Vec<OneshotTimer>>,
+    timers: DomRefCell<Vec<OneshotTimer>>,
     suspended_since: Cell<Option<MsDuration>>,
     /// Initially 0, increased whenever the associated document is reactivated
     /// by the amount of ms the document was inactive. The current time can be
@@ -54,7 +60,7 @@ pub struct OneshotTimers {
     expected_event_id: Cell<TimerEventId>,
 }
 
-#[derive(DenyPublicFields, HeapSizeOf, JSTraceable)]
+#[derive(DenyPublicFields, JSTraceable, MallocSizeOf)]
 struct OneshotTimer {
     handle: OneshotTimerHandle,
     source: TimerSource,
@@ -65,7 +71,7 @@ struct OneshotTimer {
 // This enum is required to work around the fact that trait objects do not support generic methods.
 // A replacement trait would have a method such as
 //     `invoke<T: DomObject>(self: Box<Self>, this: &T, js_timers: &JsTimers);`.
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub enum OneshotTimerCallback {
     XhrTimeout(XHRTimeoutCallback),
     EventSourceTimeout(EventSourceTimeoutCallback),
@@ -90,7 +96,7 @@ impl Ord for OneshotTimer {
     fn cmp(&self, other: &OneshotTimer) -> Ordering {
         match self.scheduled_for.cmp(&other.scheduled_for).reverse() {
             Ordering::Equal => self.handle.cmp(&other.handle).reverse(),
-            res => res
+            res => res,
         }
     }
 }
@@ -109,28 +115,34 @@ impl PartialEq for OneshotTimer {
 }
 
 impl OneshotTimers {
-    pub fn new(timer_event_chan: IpcSender<TimerEvent>,
-               scheduler_chan: IpcSender<TimerSchedulerMsg>)
-               -> OneshotTimers {
+    pub fn new(scheduler_chan: IpcSender<TimerSchedulerMsg>) -> OneshotTimers {
         OneshotTimers {
             js_timers: JsTimers::new(),
-            timer_event_chan: timer_event_chan,
+            timer_event_chan: DomRefCell::new(None),
             scheduler_chan: scheduler_chan,
             next_timer_handle: Cell::new(OneshotTimerHandle(1)),
-            timers: DOMRefCell::new(Vec::new()),
+            timers: DomRefCell::new(Vec::new()),
             suspended_since: Cell::new(None),
             suspension_offset: Cell::new(Length::new(0)),
             expected_event_id: Cell::new(TimerEventId(0)),
         }
     }
 
-    pub fn schedule_callback(&self,
-                             callback: OneshotTimerCallback,
-                             duration: MsDuration,
-                             source: TimerSource)
-                             -> OneshotTimerHandle {
+    pub fn setup_scheduling(&self, timer_event_chan: IpcSender<TimerEvent>) {
+        let mut chan = self.timer_event_chan.borrow_mut();
+        assert!(chan.is_none());
+        *chan = Some(timer_event_chan);
+    }
+
+    pub fn schedule_callback(
+        &self,
+        callback: OneshotTimerCallback,
+        duration: MsDuration,
+        source: TimerSource,
+    ) -> OneshotTimerHandle {
         let new_handle = self.next_timer_handle.get();
-        self.next_timer_handle.set(OneshotTimerHandle(new_handle.0 + 1));
+        self.next_timer_handle
+            .set(OneshotTimerHandle(new_handle.0 + 1));
 
         let scheduled_for = self.base_time() + duration;
 
@@ -168,14 +180,17 @@ impl OneshotTimers {
     fn is_next_timer(&self, handle: OneshotTimerHandle) -> bool {
         match self.timers.borrow().last() {
             None => false,
-            Some(ref max_timer) => max_timer.handle == handle
+            Some(ref max_timer) => max_timer.handle == handle,
         }
     }
 
     pub fn fire_timer(&self, id: TimerEventId, global: &GlobalScope) {
         let expected_id = self.expected_event_id.get();
         if expected_id != id {
-            debug!("ignoring timer fire event {:?} (expected {:?})", id, expected_id);
+            debug!(
+                "ignoring timer fire event {:?} (expected {:?})",
+                id, expected_id
+            );
             return;
         }
 
@@ -204,6 +219,13 @@ impl OneshotTimers {
         }
 
         for timer in timers_to_run {
+            // Since timers can be coalesced together inside a task,
+            // this loop can keep running, including after an interrupt of the JS,
+            // and prevent a clean-shutdown of a JS-running thread.
+            // This check prevents such a situation.
+            if !global.can_continue_running() {
+                return;
+            }
             let callback = timer.callback;
             callback.invoke(global, &self.js_timers);
         }
@@ -221,7 +243,7 @@ impl OneshotTimers {
     }
 
     pub fn slow_down(&self) {
-        let duration = PREFS.get("js.timers.minimum_duration").as_u64().unwrap_or(1000);
+        let duration = pref!(js.timers.minimum_duration) as u64;
         self.js_timers.set_min_duration(MsDuration::new(duration));
     }
 
@@ -241,14 +263,15 @@ impl OneshotTimers {
     }
 
     pub fn resume(&self) {
-        // Suspend is idempotent: do nothing if the timers are already suspended.
+        // Resume is idempotent: do nothing if the timers are already resumed.
         let additional_offset = match self.suspended_since.get() {
             Some(suspended_since) => precise_time_ms() - suspended_since,
             None => return warn!("Resuming an already resumed timer."),
         };
 
         debug!("Resuming timers.");
-        self.suspension_offset.set(self.suspension_offset.get() + additional_offset);
+        self.suspension_offset
+            .set(self.suspension_offset.get() + additional_offset);
         self.suspended_since.set(None);
 
         self.schedule_timer_call();
@@ -265,35 +288,55 @@ impl OneshotTimers {
         if let Some(timer) = timers.last() {
             let expected_event_id = self.invalidate_expected_event_id();
 
-            let delay = Length::new(timer.scheduled_for.get().saturating_sub(precise_time_ms().get()));
-            let request = TimerEventRequest(self.timer_event_chan.clone(), timer.source,
-                                            expected_event_id, delay);
-            self.scheduler_chan.send(TimerSchedulerMsg::Request(request)).unwrap();
+            let delay = Length::new(
+                timer
+                    .scheduled_for
+                    .get()
+                    .saturating_sub(precise_time_ms().get()),
+            );
+            let request = TimerEventRequest(
+                self.timer_event_chan
+                    .borrow()
+                    .clone()
+                    .expect("Timer event chan not setup to schedule timers."),
+                timer.source,
+                expected_event_id,
+                delay,
+            );
+            self.scheduler_chan
+                .send(TimerSchedulerMsg(request))
+                .unwrap();
         }
     }
 
     fn invalidate_expected_event_id(&self) -> TimerEventId {
         let TimerEventId(currently_expected) = self.expected_event_id.get();
         let next_id = TimerEventId(currently_expected + 1);
-        debug!("invalidating expected timer (was {:?}, now {:?}", currently_expected, next_id);
+        debug!(
+            "invalidating expected timer (was {:?}, now {:?}",
+            currently_expected, next_id
+        );
         self.expected_event_id.set(next_id);
         next_id
     }
 
-    pub fn set_timeout_or_interval(&self,
-                               global: &GlobalScope,
-                               callback: TimerCallback,
-                               arguments: Vec<HandleValue>,
-                               timeout: i32,
-                               is_interval: IsInterval,
-                               source: TimerSource)
-                               -> i32 {
-        self.js_timers.set_timeout_or_interval(global,
-                                               callback,
-                                               arguments,
-                                               timeout,
-                                               is_interval,
-                                               source)
+    pub fn set_timeout_or_interval(
+        &self,
+        global: &GlobalScope,
+        callback: TimerCallback,
+        arguments: Vec<HandleValue>,
+        timeout: i32,
+        is_interval: IsInterval,
+        source: TimerSource,
+    ) -> i32 {
+        self.js_timers.set_timeout_or_interval(
+            global,
+            callback,
+            arguments,
+            timeout,
+            is_interval,
+            source,
+        )
     }
 
     pub fn clear_timeout_or_interval(&self, global: &GlobalScope, handle: i32) {
@@ -301,20 +344,21 @@ impl OneshotTimers {
     }
 }
 
-#[derive(JSTraceable, PartialEq, Eq, Copy, Clone, HeapSizeOf, Hash, PartialOrd, Ord)]
+#[derive(Clone, Copy, Eq, Hash, JSTraceable, MallocSizeOf, Ord, PartialEq, PartialOrd)]
 pub struct JsTimerHandle(i32);
 
-#[derive(DenyPublicFields, HeapSizeOf, JSTraceable)]
+#[derive(DenyPublicFields, JSTraceable, MallocSizeOf)]
 pub struct JsTimers {
     next_timer_handle: Cell<JsTimerHandle>,
-    active_timers: DOMRefCell<HashMap<JsTimerHandle, JsTimerEntry>>,
+    /// https://html.spec.whatwg.org/multipage/#list-of-active-timers
+    active_timers: DomRefCell<HashMap<JsTimerHandle, JsTimerEntry>>,
     /// The nesting level of the currently executing timer task or 0.
     nesting_level: Cell<u32>,
     /// Used to introduce a minimum delay in event intervals
     min_duration: Cell<Option<MsDuration>>,
 }
 
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(JSTraceable, MallocSizeOf)]
 struct JsTimerEntry {
     oneshot_handle: OneshotTimerHandle,
 }
@@ -323,19 +367,20 @@ struct JsTimerEntry {
 // (ie. function value to invoke and all arguments to pass
 //      to the function when calling it)
 // TODO: Handle rooting during invocation when movable GC is turned on
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub struct JsTimerTask {
-    #[ignore_heap_size_of = "Because it is non-owning"]
+    #[ignore_malloc_size_of = "Because it is non-owning"]
     handle: JsTimerHandle,
     source: TimerSource,
     callback: InternalTimerCallback,
     is_interval: IsInterval,
     nesting_level: u32,
     duration: MsDuration,
+    is_user_interacting: bool,
 }
 
 // Enum allowing more descriptive values for the is_interval field
-#[derive(JSTraceable, PartialEq, Copy, Clone, HeapSizeOf)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum IsInterval {
     Interval,
     NonInterval,
@@ -347,41 +392,39 @@ pub enum TimerCallback {
     FunctionTimerCallback(Rc<Function>),
 }
 
-#[derive(JSTraceable, Clone)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
 enum InternalTimerCallback {
     StringTimerCallback(DOMString),
-    FunctionTimerCallback(Rc<Function>, Rc<Vec<Heap<JSVal>>>),
-}
-
-impl HeapSizeOf for InternalTimerCallback {
-    fn heap_size_of_children(&self) -> usize {
-        // FIXME: Rc<T> isn't HeapSizeOf and we can't ignore it due to #6870 and #6871
-        0
-    }
+    FunctionTimerCallback(
+        #[ignore_malloc_size_of = "Rc"] Rc<Function>,
+        #[ignore_malloc_size_of = "Rc"] Rc<Box<[Heap<JSVal>]>>,
+    ),
 }
 
 impl JsTimers {
     pub fn new() -> JsTimers {
         JsTimers {
             next_timer_handle: Cell::new(JsTimerHandle(1)),
-            active_timers: DOMRefCell::new(HashMap::new()),
+            active_timers: DomRefCell::new(HashMap::new()),
             nesting_level: Cell::new(0),
             min_duration: Cell::new(None),
         }
     }
 
     // see https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
-    pub fn set_timeout_or_interval(&self,
-                               global: &GlobalScope,
-                               callback: TimerCallback,
-                               arguments: Vec<HandleValue>,
-                               timeout: i32,
-                               is_interval: IsInterval,
-                               source: TimerSource)
-                               -> i32 {
+    pub fn set_timeout_or_interval(
+        &self,
+        global: &GlobalScope,
+        callback: TimerCallback,
+        arguments: Vec<HandleValue>,
+        timeout: i32,
+        is_interval: IsInterval,
+        source: TimerSource,
+    ) -> i32 {
         let callback = match callback {
-            TimerCallback::StringTimerCallback(code_str) =>
-                InternalTimerCallback::StringTimerCallback(code_str),
+            TimerCallback::StringTimerCallback(code_str) => {
+                InternalTimerCallback::StringTimerCallback(code_str)
+            },
             TimerCallback::FunctionTimerCallback(function) => {
                 // This is a bit complicated, but this ensures that the vector's
                 // buffer isn't reallocated (and moved) after setting the Heap values
@@ -392,8 +435,11 @@ impl JsTimers {
                 for (i, item) in arguments.iter().enumerate() {
                     args.get_mut(i).unwrap().set(item.get());
                 }
-                InternalTimerCallback::FunctionTimerCallback(function, Rc::new(args))
-            }
+                InternalTimerCallback::FunctionTimerCallback(
+                    function,
+                    Rc::new(args.into_boxed_slice()),
+                )
+            },
         };
 
         // step 2
@@ -408,6 +454,7 @@ impl JsTimers {
             source: source,
             callback: callback,
             is_interval: is_interval,
+            is_user_interacting: ScriptThread::is_user_interacting(),
             nesting_level: 0,
             duration: Length::new(0),
         };
@@ -441,10 +488,8 @@ impl JsTimers {
     // see step 13 of https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
     fn user_agent_pad(&self, current_duration: MsDuration) -> MsDuration {
         match self.min_duration.get() {
-            Some(min_duration) => {
-                cmp::max(min_duration, current_duration)
-            },
-            None => current_duration
+            Some(min_duration) => cmp::max(min_duration, current_duration),
+            None => current_duration,
         }
     }
 
@@ -475,11 +520,7 @@ impl JsTimers {
 
 // see step 7 of https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
 fn clamp_duration(nesting_level: u32, unclamped: MsDuration) -> MsDuration {
-    let lower_bound = if nesting_level > 5 {
-        4
-    } else {
-        0
-    };
+    let lower_bound = if nesting_level > 5 { 4 } else { 0 };
 
     cmp::max(Length::new(lower_bound), unclamped)
 }
@@ -494,20 +535,27 @@ impl JsTimerTask {
         timers.nesting_level.set(self.nesting_level);
 
         // step 4.2
+        let was_user_interacting = ScriptThread::is_user_interacting();
+        ScriptThread::set_user_interacting(self.is_user_interacting);
         match self.callback {
             InternalTimerCallback::StringTimerCallback(ref code_str) => {
                 let global = this.global();
                 let cx = global.get_cx();
-                rooted!(in(cx) let mut rval = UndefinedValue());
-
+                rooted!(in(*cx) let mut rval = UndefinedValue());
+                // FIXME(cybai): Use base url properly by saving private reference for timers (#27260)
                 global.evaluate_js_on_global_with_result(
-                    code_str, rval.handle_mut());
+                    code_str,
+                    rval.handle_mut(),
+                    ScriptFetchOptions::default_classic_script(&global),
+                    global.api_base_url(),
+                );
             },
             InternalTimerCallback::FunctionTimerCallback(ref function, ref arguments) => {
-                let arguments = arguments.iter().map(|arg| arg.handle()).collect();
+                let arguments = self.collect_heap_args(arguments);
                 let _ = function.Call_(this, arguments, Report);
             },
         };
+        ScriptThread::set_user_interacting(was_user_interacting);
 
         // reset nesting level (see above)
         timers.nesting_level.set(0);
@@ -516,8 +564,18 @@ impl JsTimerTask {
         // Since we choose proactively prevent execution (see 4.1 above), we must only
         // reschedule repeating timers when they were not canceled as part of step 4.2.
         if self.is_interval == IsInterval::Interval &&
-            timers.active_timers.borrow().contains_key(&self.handle) {
+            timers.active_timers.borrow().contains_key(&self.handle)
+        {
             timers.initialize_and_schedule(&this.global(), self);
         }
+    }
+
+    // Returning Handles directly from Heap values is inherently unsafe, but here it's
+    // always done via rooted JsTimers, which is safe.
+    #[allow(unsafe_code)]
+    fn collect_heap_args<'b>(&self, args: &'b [Heap<JSVal>]) -> Vec<HandleValue<'b>> {
+        args.iter()
+            .map(|arg| unsafe { HandleValue::from_raw(arg.handle()) })
+            .collect()
     }
 }

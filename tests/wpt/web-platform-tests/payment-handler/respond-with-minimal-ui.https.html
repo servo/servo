@@ -1,0 +1,89 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Tests for CanMakePaymentEvent.respondWithMinimalUI</title>
+<link rel="help" href="https://gist.github.com/rsolomakhin/eba91c185028899883d2c7f37f357d7c">
+<link rel="manifest" href="manifest.json">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const methodName = window.location.origin;
+
+async function registerApp(methodName) {
+  await navigator.serviceWorker.register('app-respond-with-minimal-ui.js');
+  const registration = await navigator.serviceWorker.ready;
+  if (!registration.paymentManager) {
+    return;
+  }
+  if (registration.paymentManager.requestPermission) {
+    const permission = await registration.paymentManager.requestPermission();
+    if (permission !== 'granted') {
+      return;
+    }
+  }
+  await registration.paymentManager.instruments.set('instrument-key', {
+    name: 'Test Payment Method',
+    method: methodName,
+  });
+  return registration;
+}
+
+async function hasEnrolledInstrument(supportedMethods, data) {
+  return (new PaymentRequest(
+    [{supportedMethods, data}],
+    {total: {label: 'Total', amount: {currency: 'USD', value: '0.01'}}}))
+  .hasEnrolledInstrument();
+}
+
+promise_test(async t => {
+  await registerApp(methodName);
+  assert_false(await hasEnrolledInstrument(methodName, {test: 0}));
+}, 'respondWithMinimalUI(0) causes hasEnrolledInstrument() to return "false"');
+
+promise_test(async t => {
+  await registerApp(methodName);
+  assert_false(await hasEnrolledInstrument(methodName, {test: {}}));
+}, 'respondWithMinimalUI({}) causes hasEnrolledInstrument() to return "false"');
+
+promise_test(async t => {
+  await registerApp(methodName);
+  assert_true(await hasEnrolledInstrument(methodName,
+    {test: {canMakePayment: true}}));
+}, 'respondWithMinimalUI({canMakePayment: true}) causes '
+ + 'hasEnrolledInstrument() to return "true"');
+
+promise_test(async t => {
+  await registerApp(methodName);
+  assert_false(await hasEnrolledInstrument(methodName,
+    {test: {canMakePayment: false}}));
+}, 'respondWithMinimalUI({canMakePayment: false}) causes '
+ + 'hasEnrolledInstrument() to return "false"');
+
+promise_test(async t => {
+  await registerApp(methodName);
+  assert_true(await hasEnrolledInstrument(methodName, {test:
+    {canMakePayment: true, readyForMinimalUI: true}}));
+}, 'respondWithMinimalUI({canMakePayment: true, readyForMinimalUI: true}) does '
+ + 'not crash');
+
+promise_test(async t => {
+  await registerApp(methodName);
+  assert_true(await hasEnrolledInstrument(methodName, {test:
+    {canMakePayment: true, readyForMinimalUI: true, accountBalance: ''}}));
+}, 'respondWithMinimalUI({canMakePayment: true, readyForMinimalUI: true, '
+ + 'accountBalance: ""}) does not crash');
+
+promise_test(async t => {
+  await registerApp(methodName);
+  assert_true(await hasEnrolledInstrument(methodName, {test:
+    {canMakePayment: true, readyForMinimalUI: true, accountBalance: '--'}}));
+}, 'respondWithMinimalUI({canMakePayment: true, readyForMinimalUI: true, '
+ + 'accountBalance: "--"}) does not crash');
+
+promise_test(async t => {
+  await registerApp(methodName);
+  assert_true(await hasEnrolledInstrument(methodName, {test:
+    {canMakePayment: true, readyForMinimalUI: true, accountBalance: '6.78'}}));
+}, 'respondWithMinimalUI({canMakePayment: true, readyForMinimalUI: true, '
+ + 'accountBalance: "6.78"}) does not crash');
+
+</script>

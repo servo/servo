@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSS-Text test: word-break keep-all does not affect punctuation</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<meta name=flags content="">
+<meta name=assert content="word-break:keep-all does not affect rules governing the soft wrap opportunities created by punctuation">
+<link rel="match" href="reference/word-break-keep-all-005-ref.html">
+<link rel=help href="https://drafts.csswg.org/css-text-3/#propdef-word-break">
+<style>
+div {
+  width: 4em;
+  word-break: keep-all;
+}
+span { color: transparent }
+</style>
+
+<p>This test passes if the four characters below are arranged in a two-by-two square.
+<div>字字<span>、</span>字字</div>
+<!--
+U+3001 : IDEOGRAPHIC COMMA is made transparent for visual simplicity,
+the change in color has no effect on layout.
+
+If keep-all has no effect at all, breaks are allowed everywhere
+(except before U+3001, but this has no incidence in this case)
+and the result will be:
+  字字、字
+  字
+
+If keep-all correctly suppresses wrapping opportunities between CJK ideographs
+but also incorrectly suppresses the wrapping opportunity after U+3001,
+no wrapping is possible, and the result will be:
+  字字、字字
+-->

@@ -1,0 +1,97 @@
+{
+  "name": "Mismatching the top-level schema",
+  "importMapBaseURL": "https://base.example/",
+  "tests": {
+    "should throw for top-level non-objects": {
+      "expectedParsedImportMap": null,
+      "tests": {
+        "null": {
+          "importMap": null
+        },
+        "boolean": {
+          "importMap": true
+        },
+        "number": {
+          "importMap": 1
+        },
+        "string": {
+          "importMap": "foo"
+        },
+        "array": {
+          "importMap": []
+        }
+      }
+    },
+    "should throw if imports is a non-object": {
+      "expectedParsedImportMap": null,
+      "tests": {
+        "null": {
+          "importMap": {
+            "imports": null
+          }
+        },
+        "boolean": {
+          "importMap": {
+            "imports": true
+          }
+        },
+        "number": {
+          "importMap": {
+            "imports": 1
+          }
+        },
+        "string": {
+          "importMap": {
+            "imports": "foo"
+          }
+        },
+        "array": {
+          "importMap": {
+            "imports": []
+          }
+        }
+      }
+    },
+    "should throw if scopes is a non-object": {
+      "expectedParsedImportMap": null,
+      "tests": {
+        "null": {
+          "importMap": {
+            "scopes": null
+          }
+        },
+        "boolean": {
+          "importMap": {
+            "scopes": true
+          }
+        },
+        "number": {
+          "importMap": {
+            "scopes": 1
+          }
+        },
+        "string": {
+          "importMap": {
+            "scopes": "foo"
+          }
+        },
+        "array": {
+          "importMap": {
+            "scopes": []
+          }
+        }
+      }
+    },
+    "should ignore unspecified top-level entries": {
+      "importMap": {
+        "imports": {},
+        "new-feature": {},
+        "scops": {}
+      },
+      "expectedParsedImportMap": {
+        "imports": {},
+        "scopes": {}
+      }
+    }
+  }
+}

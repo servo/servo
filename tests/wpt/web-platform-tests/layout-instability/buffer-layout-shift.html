@@ -1,0 +1,45 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Layout Instability entries are not available via the performance timeline</title>
+<body>
+<style>
+#myDiv { position: relative; width: 300px; height: 100px; }
+</style>
+<div id='myDiv'></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<script>
+promise_test(async t => {
+  assert_implements(window.LayoutShift, 'Layout Instability is not supported.');
+  // Wait for the initial render to complete.
+  await waitForAnimationFrames(2);
+
+  const startTime = performance.now();
+  return new Promise(resolve => {
+    new PerformanceObserver(t.step_func(list => {
+      const endTime = performance.now();
+      assert_equals(list.getEntries().length, 1);
+      const entry = list.getEntries()[0];
+      assert_equals(entry.entryType, "layout-shift");
+      assert_equals(entry.name, "");
+      assert_greater_than_equal(entry.startTime, startTime);
+      assert_less_than_equal(entry.startTime, endTime);
+      assert_equals(entry.duration, 0.0);
+      // The layout shift value should be:
+      // 300 * (100 + 60) * (60 / maxDimension) / viewport size.
+      assert_equals(entry.value, computeExpectedScore(300 * (100 + 60),  60));
+
+      // The entry should not be available via getEntries* methods.
+      assert_equals(performance.getEntriesByType('layout-shift').length, 0, 'getEntriesByType should have no layout-shift entries');
+      assert_equals(performance.getEntriesByName('', 'layout-shift').length, 0, 'getEntriesByName should have no layout-shift entries');
+      assert_equals(performance.getEntries().filter(e => e.entryType === 'layout-shift').length, 0, 'getEntries should have no layout-shift entries');
+      resolve();
+    })).observe({type: 'layout-shift'});
+    // Modify the position of the div.
+    document.getElementById('myDiv').style = "top: 60px";
+  });
+}, 'Layout shift before onload is not buffered into the performance timeline.');
+</script>
+
+</body>

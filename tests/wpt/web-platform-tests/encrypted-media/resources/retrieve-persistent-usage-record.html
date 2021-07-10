@@ -55,7 +55,7 @@
 
                     assertions.push( { actual: false, expected: true, message: error } );
 
-                    window.opener.postMessage(assertions, '*');
+                    window.opener.postMessage({ testResult: assertions }, '*');
                 });
             });
         }
@@ -71,7 +71,7 @@
             mediaKeySession.addEventListener( 'message', onMessage );
             mediaKeySession.closed.then( function() {
 
-                window.opener.postMessage(assertions, '*');
+                window.opener.postMessage({ testResult: assertions }, '*');
 
             });
 
@@ -81,7 +81,7 @@
 
             assertions.push( { actual: false, expected: true, message: error.toString() } );
 
-            window.opener.postMessage(assertions, '*');
+            window.opener.postMessage({ testResult: assertions }, '*');
 
         });
 

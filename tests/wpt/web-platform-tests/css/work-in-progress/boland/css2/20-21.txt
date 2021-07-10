@@ -1,2 +1,0 @@
-<?xml version=1 ?>
-<name>tim boland</name>

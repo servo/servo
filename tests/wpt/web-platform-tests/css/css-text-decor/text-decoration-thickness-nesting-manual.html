@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>CSS Text Decoration Test: Thickness on decorating element</title>
+      <link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-width-property"/>
+      <meta name="assert" content="text-decoration-thickness affects all decorations originating from this element."/>
+      <link rel="author" title="Dominik Röttsches" href="mailto:drott@chromium.org"/>
+      <style>
+.test {
+font-size: 32px;
+}
+
+.underline {
+text-decoration: underline;
+text-underline-position: from-font;
+}
+
+.thickness_outer_9 {
+text-decoration-thickness: 90px;
+text-decoration-color: #ff3366;
+}
+.thickness_outer_8 {
+text-decoration-thickness: 80px;
+text-decoration-color: #ff6633;
+}
+
+.thickness_outer_7 {
+text-decoration-thickness: 70px;
+text-decoration-color: #FFCC33;
+}
+
+.thickness_outer_6 {
+text-decoration-thickness: 60px;
+text-decoration-color: #33FF66;
+}
+
+.thickness_outer_5 {
+text-decoration-thickness: 50px;
+text-decoration-color: #33FFCC;
+}
+
+.thickness_outer_4 {
+text-decoration-thickness: 40px;
+text-decoration-color: #33CCFF;
+}
+
+.thickness_outer_3 {
+text-decoration-thickness: 30px;
+text-decoration-color: #3366FF;
+}
+
+.thickness_outer_2 {
+text-decoration-thickness: 20px;
+text-decoration-color: #6633FF;
+}
+
+.thickness_outer_1 {
+text-decoration-thickness: 10px;
+text-decoration-color: #CC33FF;
+}
+</style>
+    </head>
+    <body>
+      <p>Test passes if a rainbow pattern is seen in equal portions horizontally from left to right and vertically on the
+right side, with L shaped segments of underline for each color.</p>
+      <div class="test">
+        <span class="underline thickness_outer_9">X<span class="underline thickness_outer_8">X<span class="underline thickness_outer_7">X<span class="underline thickness_outer_6">X<span class="underline thickness_outer_5">X<span class="underline thickness_outer_4">X<span class="underline thickness_outer_3">X<span class="underline thickness_outer_2">X<span class="underline thickness_outer_1">X</span></span>
+                    </span>
+                  </span>
+                </span>
+              </span>
+            </span>
+          </span>
+        </span>
+      </div>
+    </div>
+  </body>
+</html>

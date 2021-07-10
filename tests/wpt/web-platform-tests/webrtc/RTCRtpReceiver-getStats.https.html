@@ -1,0 +1,83 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCRtpReceiver.prototype.getStats</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script src="dictionary-helper.js"></script>
+<script src="RTCStats-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
+  // https://w3c.github.io/webrtc-stats/archives/20170614/webrtc-stats.html
+
+  // The following helper functions are called from RTCPeerConnection-helper.js:
+  //   exchangeOfferAnswer
+
+  // The following helper function is called from RTCStats-helper.js
+  //   validateStatsReport
+  //   assert_stats_report_has_stats
+
+  /*
+    5.3.  RTCRtpReceiver Interface
+      interface RTCRtpReceiver {
+         Promise<RTCStatsReport> getStats();
+          ...
+      };
+
+      getStats
+        1.  Let selector be the RTCRtpReceiver object on which the method was invoked.
+        2.  Let p be a new promise, and run the following steps in parallel:
+          1.  Gather the stats indicated by selector according to the stats selection
+              algorithm.
+          2.  Resolve p with the resulting RTCStatsReport object, containing the
+              gathered stats.
+        3.  Return p.
+
+    8.5. The stats selection algorithm
+      4.  If selector is an RTCRtpReceiver, gather stats for and add the following objects
+          to result:
+        - All RTCInboundRTPStreamStats objects corresponding to selector.
+        - All stats objects referenced directly or indirectly by the RTCInboundRTPStreamStats
+          added.
+   */
+
+  promise_test(async t => {
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+    const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
+
+    const stream = await getNoiseStream({audio:true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+    callee.addTrack(track, stream);
+
+    const { receiver } = caller.addTransceiver('audio');
+
+    await exchangeOfferAnswer(caller, callee);
+    const statsReport = await receiver.getStats();
+    validateStatsReport(statsReport);
+    assert_stats_report_has_stats(statsReport, ['inbound-rtp']);
+  }, 'receiver.getStats() via addTransceiver should return stats report containing inbound-rtp stats');
+
+  promise_test(async t => {
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+    const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
+    const stream = await getNoiseStream({audio:true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+    caller.addTrack(track, stream);
+
+    await exchangeOfferAnswer(caller, callee);
+    const receiver = callee.getReceivers()[0];
+    const statsReport = await receiver.getStats();
+    validateStatsReport(statsReport);
+    assert_stats_report_has_stats(statsReport, ['inbound-rtp']);
+  }, 'receiver.getStats() via addTrack should return stats report containing inbound-rtp stats');
+
+</script>

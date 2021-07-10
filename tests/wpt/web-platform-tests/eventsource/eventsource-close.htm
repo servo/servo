@@ -20,7 +20,7 @@
         })
       })
 
-      var test2 = async_test(document.title + ", test events", { timeout: 9000 });
+      var test2 = async_test(document.title + ", test events");
       test2.step(function() {
         var count = 0, reconnected = false,
             source = new EventSource("resources/reconnect-fail.py?id=" + new Date().getTime());

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: Row flex container cross size with the replaced-element item</title>
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#algo-cross-item">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="display: flex; width: 100px;">
+  <img src="support/20x50-green.png" style="width: 50px; aspect-ratio: 1/1; flex: 1; min-height: 0;">
+</div>

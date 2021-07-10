@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<script>
+'use strict';
+
+promise_test(async () => {
+  let w = window.open('resources/moving-autofocus-to-parent.html');
+  await waitForLoad(w);
+  await waitUntilStableAutofocusState(w);
+  assert_equals(w.document.activeElement, w.document.body);
+  assert_equals(document.activeElement, document.body);
+  w.close();
+}, 'Autofocus elements queued in another top-level browsing context\'s ' +
+   'documents should be skipped.');
+</script>

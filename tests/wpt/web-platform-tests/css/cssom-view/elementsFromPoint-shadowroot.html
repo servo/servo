@@ -1,0 +1,87 @@
+<!DOCTYPE HTML>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/elementsFromPoint.js"></script>
+<style>
+html, body {
+    margin: 0;
+    padding: 0;
+}
+body {
+    height: 500px;
+}
+</style>
+<body>
+<div id="host"></div>
+<div id="blockHost"></div>
+<span id="inlineBlockHost" style="display:inline-block;"></span>
+<input type="submit" id="submit">
+<script>
+function assertElementsFromPoint(doc, x, y, expected) {
+  var query = doc + '.elementsFromPoint(' + x + ',' + y + ')';
+  var sequence = eval(query);
+  assert_equals(nodeListToString(sequence), nodeListToString(expected), query);
+}
+
+function createBox(id) {
+    var div = document.createElement('div');
+    div.id = id;
+    div.style.width = '100px';
+    div.style.height = '10px';
+    return div;
+}
+
+function centerX(element) {
+    return element.offsetLeft + element.offsetWidth / 2;
+}
+
+function centerY(element) {
+    return element.offsetTop + element.offsetHeight / 2;
+}
+
+var shadowRoot = host.attachShadow({mode: 'closed'});
+var box11 = createBox('box11');
+var box12 = createBox('box12');
+var box13 = createBox('box13');
+shadowRoot.appendChild(box11);
+shadowRoot.appendChild(box12);
+shadowRoot.appendChild(box13);
+
+var nestedHost = document.createElement('div');
+var nestedShadowRoot = nestedHost.attachShadow({mode: 'closed'});
+var box21 = createBox('box21');
+var box22 = createBox('box22');
+var box23 = createBox('box23');
+nestedShadowRoot.appendChild(box21);
+nestedShadowRoot.appendChild(box22);
+nestedShadowRoot.appendChild(box23);
+
+shadowRoot.appendChild(nestedHost);
+
+var x12 = centerX(box12);
+var y12 = centerY(box12);
+var x22 = centerX(box22);
+var y22 = centerY(box22);
+
+var root3 = blockHost.attachShadow({mode: 'closed'});
+root3.appendChild(document.createTextNode('text1'));
+var root4 = inlineBlockHost.attachShadow({mode: 'closed'});
+root4.appendChild(document.createTextNode('text2'));
+
+test(function() {
+    assertElementsFromPoint('document', x22, y22, [host, document.body, document.documentElement]);
+    assertElementsFromPoint('document', centerX(blockHost), centerY(blockHost),
+        [blockHost, document.body, document.documentElement]);
+    assertElementsFromPoint('document', centerX(inlineBlockHost), centerY(inlineBlockHost),
+        [inlineBlockHost, document.body, document.documentElement]);
+    assertElementsFromPoint('document', centerX(submit), centerY(submit),
+        [submit, document.body, document.documentElement]);
+}, 'elementsFromPoint on the document root should not return elements in shadow trees');
+
+test(function() {
+    assert_not_equals(shadowRoot.elementsFromPoint(x12, y12).indexOf(box12), -1);
+    assert_not_equals(shadowRoot.elementsFromPoint(x22, y22).indexOf(nestedHost), -1);
+    assert_not_equals(nestedShadowRoot.elementsFromPoint(x22, y22).indexOf(box22), -1);
+}, 'elementsFromPoint on a shadow root should include elements in that shadow tree');
+</script>
+</body>

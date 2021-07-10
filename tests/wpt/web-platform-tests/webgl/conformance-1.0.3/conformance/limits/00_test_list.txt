@@ -1,5 +1,0 @@
-gl-min-attribs.html
-gl-max-texture-dimensions.html
-gl-min-textures.html
-gl-min-uniforms.html
-

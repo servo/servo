@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+  <head>
+    <title>aria-sort=other</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "sort:other"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXSortDirection",
+                  "is",
+                  "AXUnknownSortDirection"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "sort:other"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "AriaProperties.sort",
+                  "is",
+                  "other"
+               ],
+               [
+                  "property",
+                  "ItemStatus",
+                  "is",
+                  "other"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "aria-sort=other"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for aria-sort=other.</p>
+    <div role='grid'>
+    <div role='row'>
+      <div role='columnheader' id='test' aria-sort='other'>content</div>
+    </div>
+  </div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>

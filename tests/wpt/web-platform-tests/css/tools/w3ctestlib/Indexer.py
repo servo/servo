@@ -83,7 +83,7 @@ class Indexer:
     # Load toc data
     self.sections = {}
     for uri, numstr, title in sections:
-      uri = intern(uri.encode('ascii'))
+      uri = intern(uri.encode('utf-8'))
       uriKey = intern(self._normalizeScheme(uri))
       numstr = escapeToNamedASCII(numstr)
       title = escapeToNamedASCII(title) if title else None
@@ -124,9 +124,8 @@ class Indexer:
 
   def __writeTemplate(self, template, data, outfile):
     o = self.tt.process(template, data)
-    f = open(outfile, 'w')
-    f.write(o.encode('utf-8'))
-    f.close()
+    with open(outfile, 'w') as f:
+      f.write(o.encode('utf-8'))
 
   def writeOverview(self, destDir, errorOut=sys.stderr, addTests=[]):
     """Write format-agnostic pages such as test suite overview pages,

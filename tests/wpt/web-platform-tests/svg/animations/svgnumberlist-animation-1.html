@@ -1,0 +1,90 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>Test SVGNumberList animation on 'rotate' attribute of text.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<svg>
+</svg>
+
+<script>
+var rootSVGElement = document.querySelector("svg");
+var epsilon = 1.0;
+
+// Setup test document
+var text = createSVGElement("text");
+text.textContent = "ABCD";
+text.setAttribute("x", "40 60 80 100");
+text.setAttribute("y", "60");
+text.setAttribute("rotate", "15");
+text.setAttribute("fill", "green");
+text.setAttribute("onclick", "executeTest()");
+
+var animate = createSVGElement("animate");
+animate.setAttribute("id", "animation");
+animate.setAttribute("attributeName", "rotate");
+animate.setAttribute("begin", "0s");
+animate.setAttribute("dur", "4s");
+animate.setAttribute("from", "0 0 0 0");
+animate.setAttribute("to", "45 90 135 180");
+text.appendChild(animate);
+rootSVGElement.appendChild(text);
+
+// Setup animation test
+function sample1() {
+    assert_equals(text.rotate.animVal.numberOfItems, 1);
+    assert_approx_equals(text.rotate.animVal.getItem(0).value, 15, epsilon);
+
+    assert_equals(text.rotate.baseVal.numberOfItems, 1);
+    assert_equals(text.rotate.baseVal.getItem(0).value, 15);
+}
+
+function sample2() {
+    assert_equals(text.rotate.animVal.numberOfItems, 4);
+    assert_approx_equals(text.rotate.animVal.getItem(0).value, 0, epsilon);
+    assert_approx_equals(text.rotate.animVal.getItem(1).value, 0, epsilon);
+    assert_approx_equals(text.rotate.animVal.getItem(2).value, 0, epsilon);
+    assert_approx_equals(text.rotate.animVal.getItem(3).value, 0, epsilon);
+
+    assert_equals(text.rotate.baseVal.numberOfItems, 1);
+    assert_equals(text.rotate.baseVal.getItem(0).value, 15);
+}
+
+function sample3() {
+    assert_equals(text.rotate.animVal.numberOfItems, 4);
+    assert_approx_equals(text.rotate.animVal.getItem(0).value, 22.5, epsilon);
+    assert_approx_equals(text.rotate.animVal.getItem(1).value, 45, epsilon);
+    assert_approx_equals(text.rotate.animVal.getItem(2).value, 67.5, epsilon);
+    assert_approx_equals(text.rotate.animVal.getItem(3).value, 90, epsilon);
+
+    assert_equals(text.rotate.baseVal.numberOfItems, 1);
+    assert_equals(text.rotate.baseVal.getItem(0).value, 15);
+}
+
+function sample4() {
+    assert_equals(text.rotate.animVal.numberOfItems, 4);
+    assert_approx_equals(text.rotate.animVal.getItem(0).value, 45, epsilon);
+    assert_approx_equals(text.rotate.animVal.getItem(1).value, 90, epsilon);
+    assert_approx_equals(text.rotate.animVal.getItem(2).value, 135, epsilon);
+    assert_approx_equals(text.rotate.animVal.getItem(3).value, 180, epsilon);
+
+    assert_equals(text.rotate.baseVal.numberOfItems, 1);
+    assert_equals(text.rotate.baseVal.getItem(0).value, 15);
+}
+
+smil_async_test((t) => {
+    const expectedValues = [
+        // [animationId, time, sampleCallback]
+        ["animation", 0.0,   sample1],
+        ["animation", 0.001, sample2],
+        ["animation", 2.0,   sample3],
+        ["animation", 3.999, sample4],
+        ["animation", 4.001, sample1]
+    ];
+
+    runAnimationTest(t, expectedValues);
+});
+
+</script>

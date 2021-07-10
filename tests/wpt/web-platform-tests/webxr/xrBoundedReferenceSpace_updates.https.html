@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<script src="resources/webxr_test_asserts.js"></script>
+
+<script>
+let testName =
+  "'XRBoundedReferenceSpace updates properly when the changes are applied";
+
+let fakeDeviceInitParams = {
+    supportsImmersive: true,
+    supportedModes: ["inline", "immersive-vr"],
+    views: VALID_VIEWS,
+    viewerOrigin: IDENTITY_TRANSFORM,
+    floorOrigin: VALID_FLOOR_ORIGIN,
+    supportedFeatures: ALL_FEATURES
+};
+
+let testFunction = function(session, fakeDeviceController, t) {
+
+  return new Promise((resolve, reject) => {
+    session.requestReferenceSpace('bounded-floor')
+      .then((referenceSpace) => {
+          t.step(() => {
+              // A bounded space may be created if no bounds have been set but the system has the capability to support bounded-floor
+              // A lack of bounds is indicated by an empty boundsGeometry
+              assert_equals(referenceSpace.boundsGeometry.length, 0);
+          });
+
+          function onFrame(time, xrFrame) {
+            // After the bounds have been explicitly set, they should be what we expect.
+            t.step(() => {
+              assert_equals(referenceSpace.boundsGeometry.length, VALID_BOUNDS.length);
+              for (i = 0; i < VALID_BOUNDS.length; ++i) {
+                let valid_point = VALID_BOUNDS[i];
+                let bounds_point = referenceSpace.boundsGeometry[i];
+                assert_equals(valid_point.x, bounds_point.x);
+                assert_equals(bounds_point.y, 0.0);
+                assert_equals(valid_point.z, bounds_point.z);
+                assert_equals(bounds_point.w, 1.0);
+              }
+            });
+
+            resolve();
+          }
+
+          // Now set the bounds explicitly and check again on the next frame.
+          fakeDeviceController.setBoundsGeometry(VALID_BOUNDS);
+          requestSkipAnimationFrame(session, onFrame);
+        });
+    });
+};
+
+xr_session_promise_test(testName, testFunction, fakeDeviceInitParams, 'immersive-vr', { 'requiredFeatures': ['bounded-floor'] });
+
+</script>

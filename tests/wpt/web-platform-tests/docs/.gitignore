@@ -1,6 +1,4 @@
-_site
-.sass-cache
-.jekyll-metadata
-.bundle/
-Gemfile.lock
-vendor/bundle/
+_build/
+
+# This directory is created to store symbolic links to additional input
+tools/

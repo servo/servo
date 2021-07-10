@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+  </head>
+  <body>
+    <script>
+var check_report_format = (reports, observer) => {
+  let report = reports[0];
+  assert_equals(report.type, "feature-policy-violation");
+  assert_equals(report.url, document.location.href);
+  assert_equals(report.body.featureId, "encrypted-media");
+  assert_equals(report.body.disposition, "enforce");
+  assert_equals(report.body.sourceFile, document.location.href);
+  assert_equals(typeof report.body.lineNumber, "number");
+  assert_equals(typeof report.body.columnNumber, "number");
+};
+
+promise_test(async t => {
+  const report = new Promise(resolve => {
+    new ReportingObserver((reports, observer) => resolve([reports, observer]),
+                          {types: ['feature-policy-violation']}).observe();
+  });
+  await promise_rejects_dom(t, "SecurityError",
+    navigator.requestMediaKeySystemAccess("org.w3.clearkey",
+      [{
+        initDataTypes: ["webm"],
+        videoCapabilities: [{contentType: 'video/webm;codecs="vp8"'}],
+      }]),
+      "requestMediaKeySystemAccess() should not be allowed in this document.");
+  const [reports, observer] = await report;
+  check_report_format(reports, observer);
+}, "Encrypted Media report format");
+    </script>
+  </body>
+</html>

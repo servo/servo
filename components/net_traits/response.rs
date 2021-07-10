@@ -1,19 +1,21 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! The [Response](https://fetch.spec.whatwg.org/#responses) object
 //! resulting from a [fetch operation](https://fetch.spec.whatwg.org/#concept-fetch)
-use {FetchMetadata, FilteredMetadata, Metadata, NetworkError};
-use hyper::header::{AccessControlExposeHeaders, ContentType, Headers};
-use hyper::status::StatusCode;
+use crate::{FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
+use crate::{ResourceFetchTiming, ResourceTimingType};
+use headers::{ContentType, HeaderMapExt};
+use http::{HeaderMap, StatusCode};
 use hyper_serde::Serde;
+use servo_arc::Arc;
 use servo_url::ServoUrl;
-use std::ascii::AsciiExt;
-use std::sync::{Arc, Mutex};
+use std::sync::atomic::AtomicBool;
+use std::sync::Mutex;
 
 /// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)
-#[derive(Clone, PartialEq, Debug, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum ResponseType {
     Basic,
     Cors,
@@ -24,7 +26,7 @@ pub enum ResponseType {
 }
 
 /// [Response termination reason](https://fetch.spec.whatwg.org/#concept-response-termination-reason)
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum TerminationReason {
     EndUserAbort,
     Fatal,
@@ -33,7 +35,7 @@ pub enum TerminationReason {
 
 /// The response body can still be pushed to after fetch
 /// This provides a way to store unfinished response bodies
-#[derive(Clone, Debug, PartialEq, HeapSizeOf)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 pub enum ResponseBody {
     Empty, // XXXManishearth is this necessary, or is Done(vec![]) enough?
     Receiving(Vec<u8>),
@@ -44,15 +46,13 @@ impl ResponseBody {
     pub fn is_done(&self) -> bool {
         match *self {
             ResponseBody::Done(..) => true,
-            ResponseBody::Empty |
-            ResponseBody::Receiving(..) => false,
+            ResponseBody::Empty | ResponseBody::Receiving(..) => false,
         }
     }
 }
 
-
 /// [Cache state](https://fetch.spec.whatwg.org/#concept-response-cache-state)
-#[derive(Clone, Debug, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum CacheState {
     None,
     Local,
@@ -61,61 +61,96 @@ pub enum CacheState {
 }
 
 /// [Https state](https://fetch.spec.whatwg.org/#concept-response-https-state)
-#[derive(Debug, Clone, Copy, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum HttpsState {
     None,
     Deprecated,
     Modern,
 }
 
-pub enum ResponseMsg {
-    Chunk(Vec<u8>),
-    Finished,
-    Errored,
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct ResponseInit {
+    pub url: ServoUrl,
+    #[serde(
+        deserialize_with = "::hyper_serde::deserialize",
+        serialize_with = "::hyper_serde::serialize"
+    )]
+    #[ignore_malloc_size_of = "Defined in hyper"]
+    pub headers: HeaderMap,
+    pub status_code: u16,
+    pub referrer: Option<ServoUrl>,
+    pub location_url: Option<Result<ServoUrl, String>>,
 }
 
 /// A [Response](https://fetch.spec.whatwg.org/#concept-response) as defined by the Fetch spec
-#[derive(Debug, Clone, HeapSizeOf)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub struct Response {
     pub response_type: ResponseType,
     pub termination_reason: Option<TerminationReason>,
     url: Option<ServoUrl>,
     pub url_list: Vec<ServoUrl>,
     /// `None` can be considered a StatusCode of `0`.
-    #[ignore_heap_size_of = "Defined in hyper"]
-    pub status: Option<StatusCode>,
+    #[ignore_malloc_size_of = "Defined in hyper"]
+    pub status: Option<(StatusCode, String)>,
     pub raw_status: Option<(u16, Vec<u8>)>,
-    #[ignore_heap_size_of = "Defined in hyper"]
-    pub headers: Headers,
-    #[ignore_heap_size_of = "Mutex heap size undefined"]
+    #[ignore_malloc_size_of = "Defined in hyper"]
+    pub headers: HeaderMap,
+    #[ignore_malloc_size_of = "Mutex heap size undefined"]
     pub body: Arc<Mutex<ResponseBody>>,
     pub cache_state: CacheState,
     pub https_state: HttpsState,
     pub referrer: Option<ServoUrl>,
+    pub referrer_policy: Option<ReferrerPolicy>,
+    /// [CORS-exposed header-name list](https://fetch.spec.whatwg.org/#concept-response-cors-exposed-header-name-list)
+    pub cors_exposed_header_name_list: Vec<String>,
+    /// [Location URL](https://fetch.spec.whatwg.org/#concept-response-location-url)
+    pub location_url: Option<Result<ServoUrl, String>>,
     /// [Internal response](https://fetch.spec.whatwg.org/#concept-internal-response), only used if the Response
     /// is a filtered response
     pub internal_response: Option<Box<Response>>,
     /// whether or not to try to return the internal_response when asked for actual_response
     pub return_internal: bool,
+    /// https://fetch.spec.whatwg.org/#concept-response-aborted
+    #[ignore_malloc_size_of = "AtomicBool heap size undefined"]
+    pub aborted: Arc<AtomicBool>,
+    /// track network metrics
+    #[ignore_malloc_size_of = "Mutex heap size undefined"]
+    pub resource_timing: Arc<Mutex<ResourceFetchTiming>>,
 }
 
 impl Response {
-    pub fn new(url: ServoUrl) -> Response {
+    pub fn new(url: ServoUrl, resource_timing: ResourceFetchTiming) -> Response {
         Response {
             response_type: ResponseType::Default,
             termination_reason: None,
             url: Some(url),
             url_list: vec![],
-            status: Some(StatusCode::Ok),
-            raw_status: Some((200, b"OK".to_vec())),
-            headers: Headers::new(),
+            status: Some((StatusCode::OK, "".to_string())),
+            raw_status: Some((200, b"".to_vec())),
+            headers: HeaderMap::new(),
             body: Arc::new(Mutex::new(ResponseBody::Empty)),
             cache_state: CacheState::None,
             https_state: HttpsState::None,
             referrer: None,
+            referrer_policy: None,
+            cors_exposed_header_name_list: vec![],
+            location_url: None,
             internal_response: None,
             return_internal: true,
+            aborted: Arc::new(AtomicBool::new(false)),
+            resource_timing: Arc::new(Mutex::new(resource_timing)),
         }
+    }
+
+    pub fn from_init(init: ResponseInit, resource_timing_type: ResourceTimingType) -> Response {
+        let mut res = Response::new(init.url, ResourceFetchTiming::new(resource_timing_type));
+        res.location_url = init.location_url;
+        res.headers = init.headers;
+        res.referrer = init.referrer;
+        res.status = StatusCode::from_u16(init.status_code)
+            .map(|s| (s, s.to_string()))
+            .ok();
+        res
     }
 
     pub fn network_error(e: NetworkError) -> Response {
@@ -126,13 +161,20 @@ impl Response {
             url_list: vec![],
             status: None,
             raw_status: None,
-            headers: Headers::new(),
+            headers: HeaderMap::new(),
             body: Arc::new(Mutex::new(ResponseBody::Empty)),
             cache_state: CacheState::None,
             https_state: HttpsState::None,
             referrer: None,
+            referrer_policy: None,
+            cors_exposed_header_name_list: vec![],
+            location_url: None,
             internal_response: None,
             return_internal: true,
+            aborted: Arc::new(AtomicBool::new(false)),
+            resource_timing: Arc::new(Mutex::new(ResourceFetchTiming::new(
+                ResourceTimingType::Error,
+            ))),
         }
     }
 
@@ -178,6 +220,10 @@ impl Response {
         }
     }
 
+    pub fn get_resource_timing(&self) -> Arc<Mutex<ResourceFetchTiming>> {
+        Arc::clone(&self.resource_timing)
+    }
+
     /// Convert to a filtered response, of type `filter_type`.
     /// Do not use with type Error or Default
     #[cfg_attr(rustfmt, rustfmt_skip)]
@@ -195,6 +241,7 @@ impl Response {
         }
 
         let old_headers = old_response.headers.clone();
+        let exposed_headers = old_response.cors_exposed_header_name_list.clone();
         let mut response = old_response.clone();
         response.internal_response = Some(Box::new(old_response));
         response.response_type = filter_type;
@@ -204,45 +251,40 @@ impl Response {
             ResponseType::Error(..) => unreachable!(),
 
             ResponseType::Basic => {
-                let headers = old_headers.iter().filter(|header| {
-                    match &*header.name().to_ascii_lowercase() {
+                let headers = old_headers.iter().filter(|(name, _)| {
+                    match &*name.as_str().to_ascii_lowercase() {
                         "set-cookie" | "set-cookie2" => false,
                         _ => true
                     }
-                }).collect();
+                }).map(|(n, v)| (n.clone(), v.clone())).collect();
                 response.headers = headers;
             },
 
             ResponseType::Cors => {
-                let access = old_headers.get::<AccessControlExposeHeaders>();
-                let allowed_headers = access.as_ref().map(|v| &v[..]).unwrap_or(&[]);
-
-                let headers = old_headers.iter().filter(|header| {
-                    match &*header.name().to_ascii_lowercase() {
+                let headers = old_headers.iter().filter(|(name, _)| {
+                    match &*name.as_str().to_ascii_lowercase() {
                         "cache-control" | "content-language" | "content-type" |
                         "expires" | "last-modified" | "pragma" => true,
                         "set-cookie" | "set-cookie2" => false,
                         header => {
-                            let result =
-                                allowed_headers.iter().find(|h| *header == *h.to_ascii_lowercase());
-                            result.is_some()
+                            exposed_headers.iter().any(|h| *header == h.as_str().to_ascii_lowercase())
                         }
                     }
-                }).collect();
+                }).map(|(n, v)| (n.clone(), v.clone())).collect();
                 response.headers = headers;
             },
 
             ResponseType::Opaque => {
                 response.url_list = vec![];
                 response.url = None;
-                response.headers = Headers::new();
+                response.headers = HeaderMap::new();
                 response.status = None;
                 response.body = Arc::new(Mutex::new(ResponseBody::Empty));
                 response.cache_state = CacheState::None;
             },
 
             ResponseType::OpaqueRedirect => {
-                response.headers = Headers::new();
+                response.headers = HeaderMap::new();
                 response.status = None;
                 response.body = Arc::new(Mutex::new(ResponseBody::Empty));
                 response.cache_state = CacheState::None;
@@ -255,16 +297,22 @@ impl Response {
     pub fn metadata(&self) -> Result<FetchMetadata, NetworkError> {
         fn init_metadata(response: &Response, url: &ServoUrl) -> Metadata {
             let mut metadata = Metadata::default(url.clone());
-            metadata.set_content_type(match response.headers.get() {
-                Some(&ContentType(ref mime)) => Some(mime),
-                None => None,
-            });
+            metadata.set_content_type(
+                response
+                    .headers
+                    .typed_get::<ContentType>()
+                    .map(|v| v.into())
+                    .as_ref(),
+            );
+            metadata.location_url = response.location_url.clone();
             metadata.headers = Some(Serde(response.headers.clone()));
             metadata.status = response.raw_status.clone();
             metadata.https_state = response.https_state;
             metadata.referrer = response.referrer.clone();
+            metadata.referrer_policy = response.referrer_policy.clone();
+            metadata.redirected = response.actual_response().url_list.len() > 1;
             metadata
-        };
+        }
 
         if let Some(error) = self.get_network_error() {
             return Err(error.clone());
@@ -280,26 +328,27 @@ impl Response {
                     match self.response_type {
                         ResponseType::Basic => Ok(FetchMetadata::Filtered {
                             filtered: FilteredMetadata::Basic(metadata.unwrap()),
-                            unsafe_: unsafe_metadata
+                            unsafe_: unsafe_metadata,
                         }),
                         ResponseType::Cors => Ok(FetchMetadata::Filtered {
                             filtered: FilteredMetadata::Cors(metadata.unwrap()),
-                            unsafe_: unsafe_metadata
+                            unsafe_: unsafe_metadata,
                         }),
                         ResponseType::Default => unreachable!(),
-                        ResponseType::Error(ref network_err) =>
-                            Err(network_err.clone()),
+                        ResponseType::Error(ref network_err) => Err(network_err.clone()),
                         ResponseType::Opaque => Ok(FetchMetadata::Filtered {
                             filtered: FilteredMetadata::Opaque,
-                            unsafe_: unsafe_metadata
+                            unsafe_: unsafe_metadata,
                         }),
                         ResponseType::OpaqueRedirect => Ok(FetchMetadata::Filtered {
-                            filtered: FilteredMetadata::OpaqueRedirect,
-                            unsafe_: unsafe_metadata
-                        })
+                            filtered: FilteredMetadata::OpaqueRedirect(url.clone()),
+                            unsafe_: unsafe_metadata,
+                        }),
                     }
                 },
-                None => Err(NetworkError::Internal("No url found in unsafe response".to_owned()))
+                None => Err(NetworkError::Internal(
+                    "No url found in unsafe response".to_owned(),
+                )),
             }
         } else {
             assert_eq!(self.response_type, ResponseType::Default);

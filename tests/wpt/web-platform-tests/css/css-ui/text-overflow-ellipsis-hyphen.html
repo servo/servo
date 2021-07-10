@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>Ellipsizing hyphens should not crash</title>
+<link rel="author" href="kojii@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-ui-3/#ellipsing-details">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+div {
+  width: 0.1ch;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+</style>
+<body>
+  <div dir="rtl">12345&shy;999</div>
+<script>
+test(() => {}, 'No crash or DCHECK failure');
+</script>
+</body>

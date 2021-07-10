@@ -36,7 +36,7 @@
                     connection.terminate();
             });
 
-            return promise_rejects(t, 'NotAllowedError', request.start().then(function(c) { connection = c; }));
+            return promise_rejects_dom(t, 'NotAllowedError', request.start().then(function(c) { connection = c; }));
         });
     };
     // -----------------------------------------

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Non-CORS-safelisted value in the Content-Type header results in a request preflight</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+  </head>
+  <body>
+    <script type="text/javascript">
+    test(function() {
+      const xhr = new XMLHttpRequest;
+
+      xhr.open("POST", get_host_info().HTTP_ORIGIN +
+          "/xhr/resources/access-control-basic-options-not-supported.py", false);
+
+      xhr.setRequestHeader("Content-Type", "application/xml");
+
+      xhr.send();
+
+      assert_equals(xhr.status, 200, "Same-origin access doesn't issue preflight; not denied.");
+    }, "Same-origin request with non-safelisted content type succeeds");
+
+    test(function() {
+      const xhr = new XMLHttpRequest;
+
+      xhr.open("POST", get_host_info().HTTP_REMOTE_ORIGIN +
+          "/xhr/resources/access-control-basic-options-not-supported.py", false);
+
+      xhr.setRequestHeader("Content-Type", "application/xml");
+
+      assert_throws_dom("NetworkError", () => xhr.send());
+      assert_equals(xhr.status, 0, "Cross-domain access was denied in 'send'.");
+    }, "CORS request with non-safelisted content type sends preflight and fails");
+    </script>
+  </body>
+</html>

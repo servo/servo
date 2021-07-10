@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1/#dependency-cycles-via-relative-units" />
+<meta name="assert" content="This test verifies that reference cycles via units are detected" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    function register_length(name, inherits=false) {
+        CSS.registerProperty({
+            name: name,
+            syntax: '<length>',
+            initialValue: '0px',
+            inherits: inherits
+        });
+    }
+
+    register_length('--font-size-em');
+    register_length('--font-size-rem');
+    register_length('--font-size-ex');
+    register_length('--font-size-ch');
+    register_length('--font-size-px');
+    register_length('--font-size-em-via-var');
+    register_length('--font-size-rem-via-var');
+    register_length('--font-size-ex-via-var');
+    register_length('--font-size-ch-via-var');
+    register_length('--font-size-em-inherited', true);
+    register_length('--font-size-ex-inherited', true);
+    register_length('--font-size-ch-inherited', true);
+</script>
+<style>
+    :root {
+        --unregistered-em: 10em;
+        --unregistered-rem: 10rem;
+        --unregistered-ex: 10ex;
+        --unregistered-ch: 10ch;
+    }
+
+    :root, #target {
+        --font-size-em: 2em;
+        --font-size-rem: 2rem;
+        --font-size-ex: 2ex;
+        --font-size-ch: 2ch;
+        --font-size-px: 42px;
+        --font-size-em-via-var: var(--unregistered-em);
+        --font-size-rem-via-var: var(--unregistered-rem);
+        --font-size-ex-via-var: var(--unregistered-ex);
+        --font-size-ch-via-var: var(--unregistered-ch);
+    }
+
+    #parent {
+        --font-size-em-inherited: 4em;
+        --font-size-ex-inherited: 4ex;
+        --font-size-ch-inherited: 4ch;
+    }
+
+    #target {
+        font-size: 11px;
+    }
+</style>
+
+<div id=parent>
+    <div id=target></div>
+</div>
+<div id=ref></div>
+
+<script>
+
+    // Compute a dimension (e.g. 1em) given a certain fontSize.
+    function compute_dimension(dimension, fontSize, element = ref) {
+        try {
+            element.attributeStyleMap.set('font-size', fontSize);
+            element.attributeStyleMap.set('margin-bottom', dimension);
+            return getComputedStyle(element).marginBottom;
+        } finally {
+            element.attributeStyleMap.clear();
+        }
+    }
+
+    function assert_property_equals(name, value, element = target) {
+        var computedStyle = getComputedStyle(element);
+        assert_equals(computedStyle.getPropertyValue(name), value);
+    }
+
+    let unsetFontSize = compute_dimension('1em', 'unset');
+
+    add_result_callback(function(){
+        target.attributeStyleMap.clear();
+        document.documentElement.attributeStyleMap.clear();
+    });
+
+    test(function() {
+        target.style = 'font-size: var(--font-size-px);';
+        assert_property_equals('font-size', '42px');
+        assert_property_equals('--font-size-px', '42px');
+    }, 'Non-font-dependent variables can be used in font-size');
+
+    test(function() {
+        target.style = 'font-size: var(--font-size-em);';
+        assert_property_equals('font-size', unsetFontSize);
+        assert_property_equals('--font-size-em', '0px');
+    }, 'Lengths with em units may not be referenced from font-size');
+
+    test(function() {
+        target.style = 'font-size: var(--font-size-ex);';
+        assert_property_equals('font-size', unsetFontSize);
+        assert_property_equals('--font-size-ex', '0px');
+    }, 'Lengths with ex units may not be referenced from font-size');
+
+    test(function() {
+        target.style = 'font-size: var(--font-size-ch);';
+        assert_property_equals('font-size', unsetFontSize);
+        assert_property_equals('--font-size-ch', '0px');
+    }, 'Lengths with ch units may not be referenced from font-size');
+
+    test(function() {
+        target.style = 'font-size: var(--font-size-rem);';
+        let expected = compute_dimension('2rem', 'unset', document.documentElement);
+        assert_property_equals('--font-size-rem', expected);
+        assert_property_equals('font-size', expected);
+    }, 'Lengths with rem units may be referenced from font-size on non-root element');
+
+    test(function() {
+        let root = document.documentElement;
+        root.style = 'font-size: var(--font-size-rem);';
+        assert_property_equals('font-size', unsetFontSize, root);
+        assert_property_equals('--font-size-rem', '0px', root);
+    }, 'Lengths with rem units may not be referenced from font-size on root element');
+
+    test(function() {
+        target.style = 'font-size: var(--noexist, var(--font-size-em));';
+        assert_property_equals('font-size', unsetFontSize);
+    }, 'Fallback may not use font-relative units');
+
+    test(function() {
+        target.style = 'font-size: var(--font-size-em, 42px);';
+        assert_property_equals('font-size', unsetFontSize);
+    }, 'Fallback not triggered while inside em unit cycle');
+
+    test(function() {
+        target.style = 'font-size: var(--font-size-ex, 42px);';
+        assert_property_equals('font-size', unsetFontSize);
+    }, 'Fallback not triggered while inside ex unit cycle');
+
+    test(function() {
+        target.style = 'font-size: var(--font-size-ch, 42px);';
+        assert_property_equals('font-size', unsetFontSize);
+    }, 'Fallback not triggered while inside ch unit cycle');
+
+    test(function() {
+        let root = document.documentElement;
+        root.style = 'font-size: var(--font-size-rem, 42px);';
+        assert_property_equals('font-size', unsetFontSize, root);
+        root.style = 'font-size: unset;';
+    }, 'Fallback not triggered while inside rem unit cycle on root element');
+
+    test(function() {
+        target.style = 'font-size: var(--font-size-em-via-var);';
+        assert_property_equals('font-size', unsetFontSize);
+        assert_property_equals('--font-size-em-via-var', '0px');
+    }, 'Lengths with em units are detected via var references');
+
+    test(function() {
+        target.style = 'font-size: var(--font-size-ex-via-var);';
+        assert_property_equals('font-size', unsetFontSize);
+        assert_property_equals('--font-size-ex-via-var', '0px');
+    }, 'Lengths with ex units are detected via var references');
+
+    test(function() {
+        target.style = 'font-size: var(--font-size-ch-via-var);';
+        assert_property_equals('font-size', unsetFontSize);
+        assert_property_equals('--font-size-ch-via-var', '0px');
+    }, 'Lengths with ch units are detected via var references');
+
+    test(function() {
+        let root = document.documentElement;
+        root.style = 'font-size: var(--font-size-rem-via-var);';
+        assert_property_equals('font-size', unsetFontSize, root);
+        assert_property_equals('--font-size-rem-via-var', '0px', root);
+        root.style = 'font-size: unset';
+    }, 'Lengths with rem units are detected via var references');
+
+    test(function() {
+        let expected4em = compute_dimension('4em', 'unset');
+        target.style = 'font-size: var(--font-size-em-inherited);';
+        assert_property_equals('font-size', expected4em);
+        assert_property_equals('--font-size-em-inherited', expected4em);
+    }, 'Inherited lengths with em units may be used');
+
+    test(function() {
+        let expected4ex = compute_dimension('4ex', 'unset');
+        target.style = 'font-size: var(--font-size-ex-inherited);';
+        assert_property_equals('font-size', expected4ex);
+        assert_property_equals('--font-size-ex-inherited', expected4ex);
+    }, 'Inherited lengths with ex units may be used');
+
+    test(function() {
+        let expected4ch = compute_dimension('4ch', 'unset');
+        target.style = 'font-size: var(--font-size-ch-inherited);';
+        assert_property_equals('font-size', expected4ch);
+        assert_property_equals('--font-size-ch-inherited', expected4ch);
+    }, 'Inherited lengths with ch units may be used');
+
+</script>

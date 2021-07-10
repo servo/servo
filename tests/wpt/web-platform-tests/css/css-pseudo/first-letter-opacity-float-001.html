@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>CSS Test: floating ::first-letter with opacity</title>
+<link rel="author" title="Rune Lillesveen" href="mailto:futhark@chromium.org">
+<link rel="match" href="first-letter-opacity-float-001-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-letter-styling">
+<meta name="assert" content="Test checks that a floated ::first-letter with opacity is rendered correctly with dynamic changes.">
+<style>
+  #one::first-letter { float: left; opacity: 0.5 }
+  #two { opacity: 0.5 }
+/* Disable kerning because kerning may differ for different node tree. */
+html { font-kerning: none; font-feature-settings: "kern" off; }
+</style>
+<div id="one">PASS</div>
+<div id="two"></div>
+<script>
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      // This used to crash the compositing code in Blink.
+      one.appendChild(two);
+    }));
+</script>

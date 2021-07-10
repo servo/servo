@@ -31,6 +31,13 @@
       });
     }
 
+    function blobToTypeViaFetch(blob) {
+      var url = URL.createObjectURL(blob);
+      return fetch(url).then(function(response) {
+        return response.headers.get('Content-Type');
+      });
+    }
+
     function responsePromise(body, responseInit) {
       return new Promise(function(resolve, reject) {
         resolve(new Response(body, responseInit));
@@ -75,15 +82,18 @@
       return response.blob().then(function(bodyAsBlob) {
         assert_equals(bodyAsBlob.type, expectedType || "text/plain", "Blob body type should be computed from the response Content-Type");
 
-        var promise = new Promise( function (resolve, reject) {
-          var reader = new FileReader();
-          reader.onload = function(evt) {
-            resolve(reader.result)
-          };
-          reader.onerror = function () {
-            reject("Blob's reader failed");
-          };
-          reader.readAsText(bodyAsBlob);
+        var promise = blobToTypeViaFetch(bodyAsBlob).then(function(type) {
+          assert_equals(type, expectedType || "text/plain", 'Type via blob URL');
+          return new Promise( function (resolve, reject) {
+            var reader = new FileReader();
+            reader.onload = function(evt) {
+              resolve(reader.result)
+            };
+            reader.onerror = function () {
+              reject("Blob's reader failed");
+            };
+            reader.readAsText(bodyAsBlob);
+          });
         });
         return promise.then(function(body) {
           assert_equals(body, expectedBody, "Retrieve and verify response's body");
@@ -128,7 +138,7 @@
     }
 
     function checkBodyFormDataError(test, response, expectedBody) {
-      return promise_rejects(test, new TypeError(), response.formData()).then(function() {
+      return promise_rejects_js(test, TypeError, response.formData()).then(function() {
         assert_true(response.bodyUsed, "body as formData: bodyUsed turned true");
       });
     }
@@ -157,11 +167,22 @@
     var urlSearchParamsBlob = new Blob([urlSearchParamsData], { "type": urlSearchParamsType });
     formData.append("name", textData);
 
+    // https://fetch.spec.whatwg.org/#concept-body-package-data
+    // "UTF-8 decoded without BOM" is used for formData(), either in
+    // "multipart/form-data" and "application/x-www-form-urlencoded" cases,
+    // so BOMs in the values should be kept.
+    // (The "application/x-www-form-urlencoded" cases are tested in
+    // url/urlencoded-parser.any.js)
+    var textDataWithBom = "\uFEFFquick\uFEFFfox\uFEFF";
+    var formTextDataWithBom = stringToMultipartFormTextData(multipartBoundary, "name", textDataWithBom);
+    var formTextDataWithBomExpectedForMultipartFormData = stringToMultipartFormTextData(multipartBoundary, "name", textDataWithBom);
+
     checkResponseBody(responsePromise(textData, textResponseInit), textData, checkBodyText, "from text to text");
     checkResponseBody(responsePromise(textData, textResponseInit), textData, checkBodyBlob, "from text to blob");
     checkResponseBody(responsePromise(textData, textResponseInit), textData, checkBodyArrayBuffer, "from text to arrayBuffer");
     checkResponseBody(responsePromise(textData, textResponseInit), textData, checkBodyJSON, "from text to json");
     checkResponseBody(responsePromise(formTextData, formTextResponseInit), formTextData, checkBodyFormDataMultipart, "from text with correct multipart type to formData");
+    checkResponseBody(responsePromise(formTextDataWithBom, formTextResponseInit), formTextDataWithBomExpectedForMultipartFormData, checkBodyFormDataMultipart, "from text with correct multipart type to formData with BOM");
     checkResponseBody(responsePromise(formTextData, textResponseInit), undefined, checkBodyFormDataError, "from text without correct multipart type to formData (error case)");
     checkResponseBody(responsePromise(urlSearchParamsData, urlSearchParamsResponseInit), urlSearchParamsData, checkBodyFormDataUrlencoded, "from text with correct urlencoded type to formData");
     checkResponseBody(responsePromise(urlSearchParamsData, textResponseInit), undefined, checkBodyFormDataError, "from text without correct urlencoded type to formData (error case)");

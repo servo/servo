@@ -1,0 +1,25 @@
+<!doctype html>
+<title>CSS Test Reference</title>
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<style>
+  table {
+    font-size: 2em;
+    border-collapse: collapse;
+    border: 5px solid green;
+  }
+</style>
+
+<p>You should see no non-solid borders and no red.</p>
+
+<table>
+  <tr>
+    <td colspan="4" style="border: 5px solid purple;">hello</td>
+  </tr>
+  <tr>
+    <td style="border-right: 5px solid blue; border-bottom: 9px hidden red;">one</td>
+    <td style="border-right: 5px solid blue;">two</td>
+    <td>three</td>
+    <td style="border-left: 5px solid blue">four</td>
+  </tr>
+</table>

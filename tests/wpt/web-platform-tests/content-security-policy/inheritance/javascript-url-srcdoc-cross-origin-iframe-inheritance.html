@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <title>Content Security Policy: nested inheritance</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <script>
+    // This test creates a page with CSP: frame-src 'self'. The page is
+    // navigated to a javascript URL creating a cross-origin iframe inside a
+    // srcdoc iframe. If everything works correctly, the cross-origin iframe
+    // should be blocked.
+    //
+    // Note that most of the logic is performed by the iframe. This file is only
+    // for managing testharness assertions.
+    async_test(t => {
+      window.addEventListener("message", t.step_func(function(e) {
+        if (e.data === "frame allowed") {
+          assert_unreached("Frame should have been blocked.");
+        } else if (e.data === "frame blocked") {
+          t.done();
+        }
+      }));
+    }, "Nested cross-origin iframe should be blocked by frame-src 'self'.");
+  </script>
+  <iframe src="./support/javascript-url-srcdoc-cross-origin-iframe-inheritance-helper.sub.html"></iframe>
+</body>

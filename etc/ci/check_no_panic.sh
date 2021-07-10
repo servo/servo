@@ -2,7 +2,7 @@
 
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 # Make sure listed paths do not use unwrap() or panic!()
 
@@ -17,8 +17,9 @@ cd "$(git rev-parse --show-toplevel)"
 PATHS=(
     "components/compositing/compositor.rs"
     "components/constellation/"
-    "ports/glutin/lib.rs"
-    "ports/glutin/window.rs"
+    "ports/winit/headed_window.rs"
+    "ports/winit/headless_window.rs"
+    "ports/winit/embedder.rs"
 )
 
 # Make sure the paths exist

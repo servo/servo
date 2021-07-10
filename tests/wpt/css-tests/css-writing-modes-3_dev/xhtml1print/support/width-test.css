@@ -1,7 +1,0 @@
-@font-face {
-  font-family: WidthTest;
-  src: url(WidthTest-Regular.otf);
-}
-.test {
-  font: 72px/1 WidthTest;
-}

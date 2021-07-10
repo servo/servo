@@ -39,7 +39,7 @@ function runTest(config)
         };
 
         // Create a MediaKeys object and assign it to video.
-        return navigator.requestMediaKeySystemAccess(keysystem, [configuration]).then(test.step_func(function (access) {
+        navigator.requestMediaKeySystemAccess(keysystem, [configuration]).then(test.step_func(function (access) {
             assert_equals(access.keySystem, keysystem);
             return access.createMediaKeys();
         })).then(test.step_func(function (result) {

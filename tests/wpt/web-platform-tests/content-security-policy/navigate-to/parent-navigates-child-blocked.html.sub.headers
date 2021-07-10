@@ -1,0 +1,5 @@
+Expires: Mon, 26 Jul 1997 05:00:00 GMT
+Cache-Control: no-store, no-cache, must-revalidate
+Pragma: no-cache
+Set-Cookie: parent-navigates-child-blocked={{$id:uuid()}}; Path=/content-security-policy/navigate-to/
+Content-Security-Policy: navigate-to support/wait_for_navigation.html; report-uri /reporting/resources/report.py?op=put&reportID={{$id}}

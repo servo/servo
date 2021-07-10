@@ -4,13 +4,13 @@
 <title>Selection drag and drop: events after drag is cancelled</title>
 <script type="application/ecmascript">
 function selectText()
-	{window.getSelection().selectAllChildren(document.querySelector('p'))}
+  {window.getSelection().selectAllChildren(document.querySelector('p'))}
 function dragMe(event)
-	{event.preventDefault();}
+  {event.preventDefault();}
 function dropIt(event)
-	{say('FAIL (no drop should occur after drag is cancelled)')}
+  {say('FAIL (no drop should occur after drag is cancelled)')}
 function say(it)
-	{document.querySelector('pre').appendChild(document.createTextNode(it + '\n'));}
+  {document.querySelector('pre').appendChild(document.createTextNode(it + '\n'));}
 </script>
 </head>
 <body onload="selectText()" dropzone="copy string:text/plain" ondrop="dropIt(event)">

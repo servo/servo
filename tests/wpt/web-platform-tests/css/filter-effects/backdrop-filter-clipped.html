@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>backdrop-filter: A rounded-corner clip rect parent should not form a Backdrop Root</title>
+<link rel="author" title="Mason Freed" href="mailto:masonfreed@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="match"  href="backdrop-filter-clipped-ref.html">
+
+<p>Expected: A green box</p>
+<div class="colorbox"></div>
+<div class="clipper">
+  <div class="filterbox"></div>
+</div>
+
+<style>
+div {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    left: 10px;
+    top: 50px;
+}
+.colorbox {
+    background: #ff7fff;
+}
+.clipper {
+    overflow: hidden;
+    border-radius: 0.001px;
+}
+.filterbox {
+    top:0;
+    left:0;
+    backdrop-filter: invert(1);
+}
+</style>

@@ -19,7 +19,7 @@
         All the g elements for this test are in the g element whose id=allGs.
       </p>
     </d:testDescription>
-    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">      
+    <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
       <p>
         The test uses the 'rect' element, as well as basic fill (solid primary colors),
         stroke (black 1-pixel lines), font-family and font-size properties.

@@ -1,0 +1,112 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Timelines</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#timelines">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<style>
+@keyframes opacity-animation {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+</style>
+<div id="log"></div>
+<script>
+'use strict';
+
+promise_test(t => {
+  const valueAtStart = document.timeline.currentTime;
+  const timeAtStart = window.performance.now();
+  while (window.performance.now() - timeAtStart < 50) {
+    // Wait 50ms
+  }
+  assert_equals(document.timeline.currentTime, valueAtStart,
+    'Timeline time does not change within an animation frame');
+  return waitForAnimationFrames(1).then(() => {
+    assert_greater_than(document.timeline.currentTime, valueAtStart,
+      'Timeline time increases between animation frames');
+  });
+}, 'Timeline time increases once per animation frame');
+
+async_test(t => {
+  const iframe = document.createElement('iframe');
+  iframe.width = 10;
+  iframe.height = 10;
+
+  iframe.addEventListener('load', t.step_func(() => {
+    const iframeTimeline = iframe.contentDocument.timeline;
+    const valueAtStart   = iframeTimeline.currentTime;
+    const timeAtStart    = window.performance.now();
+    while (iframe.contentWindow.performance.now() - timeAtStart < 50) {
+      // Wait 50ms
+    }
+    assert_equals(iframeTimeline.currentTime, valueAtStart,
+      'Timeline time within an iframe does not change within an '
+      + ' animation frame');
+
+    iframe.contentWindow.requestAnimationFrame(t.step_func_done(() => {
+      assert_greater_than(iframeTimeline.currentTime, valueAtStart,
+        'Timeline time within an iframe increases between animation frames');
+      iframe.remove();
+    }));
+  }));
+
+  document.body.appendChild(iframe);
+}, 'Timeline time increases once per animation frame in an iframe');
+
+async_test(t => {
+  const startTime = document.timeline.currentTime;
+  let firstRafTime;
+
+  requestAnimationFrame(() => {
+    t.step(() => {
+      assert_greater_than_equal(document.timeline.currentTime, startTime,
+                                'Timeline time should have progressed');
+      firstRafTime = document.timeline.currentTime;
+    });
+  });
+
+  requestAnimationFrame(() => {
+    t.step(() => {
+      assert_equals(document.timeline.currentTime, firstRafTime,
+                    'Timeline time should be the same');
+    });
+    t.done();
+  });
+}, 'Timeline time should be the same for all RAF callbacks in an animation'
+   + ' frame');
+
+async_test(t => {
+  const div = createDiv(t);
+  const animation = div.animate(null, 100 * MS_PER_SEC);
+
+  animation.ready.then(t.step_func(() => {
+    const readyTimelineTime = document.timeline.currentTime;
+    requestAnimationFrame(t.step_func_done(() => {
+      assert_equals(readyTimelineTime, document.timeline.currentTime,
+                    'There should be a microtask checkpoint');
+    }));
+  }));
+}, 'Performs a microtask checkpoint after updating timelins');
+
+async_test(t => {
+  const div = createDiv(t);
+  let readyPromiseRan = false;
+  let finishedPromiseRan = false;
+  div.style.animation = 'opacity-animation 1ms';
+  let anim = div.getAnimations()[0];
+  anim.ready.then(t.step_func(() => {
+    readyPromiseRan = true;
+  }));
+  div.addEventListener('animationstart', t.step_func(() => {
+    assert_true(readyPromiseRan, 'It should run ready promise before animationstart event');
+  }));
+  anim.finished.then(t.step_func(() => {
+    finishedPromiseRan = true;
+  }));
+  div.addEventListener('animationend', t.step_func_done(() => {
+    assert_true(finishedPromiseRan, 'It should run finished promise before animationend event');
+  }));
+}, 'Runs finished promise before animation events');
+</script>

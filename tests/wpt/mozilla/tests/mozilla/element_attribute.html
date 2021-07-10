@@ -52,13 +52,13 @@
     });
 
     test(function() {
-      assert_throws(null, function () {
+      assert_throws_dom("NamespaceError", function () {
         element.setAttributeNS("http://example.com", "xmlns", "foo");
       });
-      assert_throws(null, function () {
+      assert_throws_dom("NamespaceError", function () {
         element.setAttributeNS("http://www.w3.org/2000/xmlns/", "attr", "value");
       });
-      assert_throws(null, function () {
+      assert_throws_dom("NamespaceError", function () {
         element.setAttributeNS("http://www.w3.org/2000/xmlns/", "prefix:attr", "value");
       });
     });

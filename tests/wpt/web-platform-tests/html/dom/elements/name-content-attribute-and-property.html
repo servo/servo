@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<title>Only certain HTML elements reflect the name content attribute as a property</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+  function doesReflect(tagName) {
+    var element = document.createElement(tagName);
+    element.setAttribute("name", "foo");
+    assert_equals(element.getAttribute("name"), "foo", "setAttribute should change content attribute");
+    element.name = "bar";
+    assert_equals(element.getAttribute("name"), "bar", "assignment to .name should change content attribute");
+  }
+
+  function doesNotReflect(tagName) {
+    var element = document.createElement(tagName);
+    element.setAttribute("name", "foo");
+    assert_equals(element.getAttribute("name"), "foo", "setAttribute should change content attribute");
+    element.name = "bar";
+    assert_equals(element.getAttribute("name"), "foo", "assignment to .name should not change content attribute");
+  }
+
+  var nonReflectingTagNames = [
+    "abbr", "acronym", "address", "area", "article", "aside", "audio",
+    "b", "base", "bdi", "bdo", "bgsound", "big", "blink", "blockquote", "body","br",
+    "canvas", "caption", "center", "cite", "code", "col", "colgroup",
+    "data", "datalist", "dd", "del", "details", "dfn", "dialog", "dir", "div", "dl", "dt",
+    "em",
+    "figcaption", "figure", "font", "footer", "frameset",
+    "h1", "h2", "h3", "h4", "h5", "h6", "head", "header", "hgroup", "hr", "html",
+    "i", "ins", "isindex",
+    "kbd",
+    "label", "legend", "li", "link", "listing",
+    "main", "mark", "marquee", "meter", "multicol",
+    "nav", "nextid", "nobr", "noframes", "noscript",
+    "option",
+    "p", "picture", "plaintext", "pre", "progress",
+    "q",
+    "rp", "rt", "ruby",
+    "s", "samp", "script", "section", "small", "source", "spacer",
+    "span", "strike", "strong", "style", "sub", "summary", "sup",
+    "table", "tbody", "td", "template", "tfoot",
+    "th", "thead", "time", "title", "tr", "tt", "track",
+    "u", "ul",
+    "var", "video",
+    "wbr",
+    "xmp",
+    "unknown"
+  ];
+
+  var reflectingTagNames = [
+    "a", "button", "embed",
+    "fieldset", "form", "frame",
+    "iframe", "img", "input",
+    "map", "meta",
+    "object", "output",
+    "param",
+    "select", "slot",
+    "textarea",
+  ];
+
+  reflectingTagNames.forEach(function(tagName) {
+    test(function() {
+      doesReflect(tagName)
+    }, tagName + " element's name property reflects its content attribute");
+  });
+
+  nonReflectingTagNames.forEach(function(tagName) {
+    test(function() {
+      doesNotReflect(tagName)
+    }, tagName + " element's name property does not reflect its content attribute");
+  });
+</script>
+

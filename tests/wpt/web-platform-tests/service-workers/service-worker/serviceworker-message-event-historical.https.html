@@ -10,6 +10,10 @@ promise_test(function(t) {
     var url = 'resources/postmessage-to-client-worker.js';
     return service_worker_unregister_and_register(t, url, scope)
       .then(function(r) {
+          t.add_cleanup(function() {
+              return service_worker_unregister(t, scope);
+            });
+
           return wait_for_state(t, r.installing, 'activated');
         })
       .then(function() {
@@ -35,9 +39,6 @@ promise_test(function(t) {
                 });
               worker.postMessage('PING');
             });
-        })
-      .then(function() {
-          return service_worker_unregister_and_done(t, scope);
         });
   }, 'Test MessageEvent supplants ServiceWorkerMessageEvent.');
 

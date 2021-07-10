@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<meta charset="utf-8">
+<title>letter-spacing on zero-width characters</title>
+<link rel='author' title='Elika J. Etemad' href='http://fantasai.inkedblade.net/contact'>
+<link rel='help' href='https://www.w3.org/TR/css-text-3/#letter-spacing'>
+<link rel='match' href='reference/letter-spacing-202-ref.html'>
+<meta name="assert" content="Letter spacing ignores zero-width formatting characters.">
+<style type='text/css'>
+  @import "/fonts/ahem.css";
+  .test { letter-spacing: 1em; float: left; color: green; background: red; font: 20px/1 Ahem; }
+  .spacing { position: absolute; width: 1em; height: 2em; margin: 0 1em; background: green; }
+</style>
+
+<div id='instructions'>Test passes if there is a green rectangle below and no red.</div>
+
+<div class="test">
+<div class="spacing"></div>
+<!--
+-->&#x200B;&#x200C;&#x200D;&#xFEFF;<!-- zwsp etc.
+-->&#x200E;&#x200F;&#x2066;&#x2067;&#x2068;&#x202A;&#x202B;&#x202C;&#x202D;&#x202E;&#x2069;&#x2069;<!-- bidi
+-->&#x206A;&#x206B;&#x206C;&#x206D;&#x206B;&#x206E;&#x206F;<!-- Arabic/compat
+-->&#x2060;&#x2061;&#x2062;&#x2063;&#x2064;<!-- math
+-->x<!--
+-->&#x200B;&#x200C;&#x200D;&#xFEFF;<!-- zwsp etc.
+-->&#x200E;&#x200F;&#x2066;&#x2067;&#x2068;&#x202A;&#x202B;&#x202C;&#x202D;&#x202E;&#x2069;&#x2069;<!-- bidi
+-->&#x206A;&#x206B;&#x206C;&#x206D;&#x206B;&#x206E;&#x206F;<!-- Arabic/compat
+-->&#x2060;&#x2061;&#x2062;&#x2063;&#x2064;<!-- math
+-->x<!--
+-->&#x200B;&#x200C;&#x200D;&#xFEFF;<!-- zwsp etc.
+-->&#x200E;&#x200F;&#x2066;&#x2067;&#x2068;&#x202A;&#x202B;&#x202C;&#x202D;&#x202E;&#x2069;&#x2069;<!-- bidi
+-->&#x206A;&#x206B;&#x206C;&#x206D;&#x206B;&#x206E;&#x206F;<!-- Arabic/compat
+-->&#x2060;&#x2061;&#x2062;&#x2063;&#x2064;<!-- math
+--><br>
+<!--
+-->&#x200B;&#x200C;&#x200D;&#xFEFF;<!-- zwsp etc.
+-->&#x200E;&#x200F;&#x2066;&#x2067;&#x2068;&#x202A;&#x202B;&#x202C;&#x202D;&#x202E;&#x2069;&#x2069;<!-- bidi
+-->&#x206A;&#x206B;&#x206C;&#x206D;&#x206B;&#x206E;&#x206F;<!-- Arabic/compat
+-->&#x2060;&#x2061;&#x2062;&#x2063;&#x2064;<!-- math
+-->xx<!--
+-->&#x200B;&#x200C;&#x200D;&#xFEFF;<!-- zwsp etc.
+-->&#x200E;&#x200F;&#x2066;&#x2067;&#x2068;&#x202A;&#x202B;&#x202C;&#x202D;&#x202E;&#x2069;&#x2069;<!-- bidi
+-->&#x206A;&#x206B;&#x206C;&#x206D;&#x206B;&#x206E;&#x206F;<!-- Arabic/compat
+-->&#x2060;&#x2061;&#x2062;&#x2063;&#x2064;<!-- math
+-->
+</div></div>

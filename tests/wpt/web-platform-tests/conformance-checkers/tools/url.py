@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 ccdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# based on https://github.com/w3c/web-platform-tests/blob/275544eab54a0d0c7f74ccc2baae9711293d8908/url/urltestdata.txt
+# based on https://github.com/web-platform-tests/wpt/blob/275544eab54a0d0c7f74ccc2baae9711293d8908/url/urltestdata.txt
 invalid = {
     "scheme-trailing-space": "a: foo.com",
     "scheme-trailing-tab": "a:\tfoo.com",
@@ -17,7 +17,6 @@ invalid = {
     "scheme-data-single-slash": "data:/example.com/",
     "scheme-ftp-no-slash": "ftp:example.com/",
     "scheme-https-no-slash": "https:example.com/",
-    "scheme-javascript-no-slash-malformed": "javascript:example.com/",
     "userinfo-password-bad-chars": "http://&a:foo(b]c@d:2/",
     "userinfo-username-contains-at-sign": "http://::@c@d:2",
     "userinfo-backslash": "http://a\\b:c\\d@foo.com",
@@ -209,7 +208,6 @@ element_attribute_pairs = [
     "input value", # type=url
     "ins cite",
     "link href",
-    #"menuitem icon", # skip until parser is updated
     "object data",
     "q cite",
     "script src",

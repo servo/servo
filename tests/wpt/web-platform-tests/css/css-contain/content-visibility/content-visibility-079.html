@@ -1,0 +1,16 @@
+<!doctype HTML>
+<meta charset="utf8">
+<title>CSS Content Visibility: auto in overflow hidden paints</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="content-visibility-079-ref.html">
+<meta name="assert" content="content-visibility auto element paints in an overflow hidden element that is not sized">
+
+<style>
+.auto { content-visibility: auto; }
+.overflow { overflow: hidden; }
+</style>
+
+<div class=overflow>
+  <div class=auto>content</div>
+</div>

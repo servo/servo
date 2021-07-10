@@ -7,6 +7,9 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
+<div style="display: none">
+  <ul id='test'><li>1</li><li>2</li><li>3</li><li>4</li></ul>
+</div>
 <script>
 test(function() {
   var element = document.createElement("p");
@@ -96,4 +99,19 @@ test(function() {
   assert_equals(list.entries, Array.prototype.entries);
   assert_equals(list.forEach, Array.prototype.forEach);
 }, "Iterator behavior of Node.childNodes");
+
+
+test(() => {
+  var node = document.getElementById("test");
+  var children = node.childNodes;
+  assert_true(children instanceof NodeList);
+  var li = document.createElement("li");
+  assert_equals(children.length, 4);
+
+  node.appendChild(li);
+  assert_equals(children.length, 5);
+
+  node.removeChild(li);
+  assert_equals(children.length, 4);
+}, "Node.childNodes should be a live collection");
 </script>

@@ -7,4 +7,11 @@ fetch('clientId')
   .then(function(text) {
       parent.postMessage({clientId: text}, '*');
     });
+
+onmessage = function(e) {
+  if (e.data == 'StartWorker') {
+    var w = new Worker('clients-get-client-types-frame-worker.js');
+    w.postMessage({cmd:'GetClientId', port:e.ports[0]}, [e.ports[0]]);
+  }
+}
 </script>

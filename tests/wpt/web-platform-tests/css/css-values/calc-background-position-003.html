@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Values and Units Test: serialization of 'background-position' when specified with calc() function</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-values-4/#calc-serialize">
+
+  <meta name="flags" content="">
+  <meta content="This test verifies how 6 calc() functions are serialized for 'background-position'." name="assert">
+
+  <script src="/resources/testharness.js"></script>
+
+  <script src="/resources/testharnessreport.js"></script>
+
+  <div id="target"></div>
+
+  <script>
+  function startTesting()
+  {
+
+  var targetElement = document.getElementById("target");
+
+    function verifySerialization(specified_value, serialization_expected, description)
+    {
+
+    test(function()
+      {
+
+      targetElement.style.backgroundPosition = specified_value;
+
+      assert_equals(targetElement.style.backgroundPosition, serialization_expected);
+
+      }, description);
+    }
+
+  /*
+    verifySerialization(specified_value, serialization_expected, description)
+  */
+
+    verifySerialization("calc(2px + 3px) calc(4px + 5px)", "calc(5px) calc(9px)", "testing background-position: calc(2px + 3px) calc(4px + 5px)");
+
+    verifySerialization("calc(18px - 7px) calc(19px - 7px)", "calc(11px) calc(12px)", "testing background-position: calc(18px - 7px) calc(19px - 7px)");
+
+    verifySerialization("calc(4 * 5px) calc(6px * 4)", "calc(20px) calc(24px)", "testing background-position: calc(4 * 5px) calc(6px * 4)");
+
+    verifySerialization("calc(100px / 4) calc(119px / 7)", "calc(25px) calc(17px)", "testing background-position: calc(100px / 4) calc(119px / 7)");
+
+  /*
+    verifySerialization(specified_value, serialization_expected, description)
+  */
+
+    verifySerialization("calc(6px + 21%) calc(7em + 22%)", "calc(21% + 6px) calc(22% + 7em)", "testing background-position: calc(6px + 21%) calc(7em + 22%)");
+
+    verifySerialization("calc(-8px + 23%) calc(-9em + 24%)", "calc(23% - 8px) calc(24% - 9em)", "testing background-position: calc(-8px + 23%) calc(-9em + 24%)");
+
+  /*
+
+  "
+  Sort the terms in the following order:
+
+    The number, if present
+
+    The percentage, if present
+
+    The dimensions, ordered by their units ASCII case-insensitive alphabetically
+  "
+  https://www.w3.org/TR/css-values-4/#math-function-serialize-a-summation
+
+  */
+
+  }
+
+  startTesting();
+
+  </script>

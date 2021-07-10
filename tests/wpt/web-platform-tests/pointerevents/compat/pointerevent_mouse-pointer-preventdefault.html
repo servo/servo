@@ -1,0 +1,204 @@
+<!DOCTYPE HTML>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script type="text/javascript" src="../pointerevent_support.js"></script>
+<style>
+div.box {
+  margin: 10px;
+  padding: 50px;
+  float: left;
+}
+</style>
+<h1>Verifies the effect of pointer event prevent-default on following pointer & mouse events.</h1>
+<div id="target" class="box" style="background-color:green;">
+</div>
+
+<script>
+var receivedEvents = [];
+var receivedMouseEvents = [];
+var receivedPointerEvents = [];
+var mouseEventList = ["mousedown", "mouseup", "mouseenter", "mouseleave", "mouseover", "mouseout", "mousemove"];
+var pointerEventList = ["pointerdown", "pointerup", "pointerenter", "pointerleave", "pointerover", "pointerout", "pointermove"];
+
+var preventDefaultList = ["none"].concat(pointerEventList);
+var eventToPreventDefault = "";
+
+function init() {
+  var targetDiv = document.getElementById("target");
+
+  mouseEventList.forEach(function(eventName) {
+    targetDiv.addEventListener(eventName, function(event) {
+      receivedEvents.push(eventName);
+      receivedMouseEvents.push(eventName);
+    });
+  });
+
+  pointerEventList.forEach(function(eventName) {
+    targetDiv.addEventListener(eventName, function(event) {
+      if (event.type == eventToPreventDefault) {
+        event.preventDefault();
+      }
+      receivedEvents.push(eventName);
+      receivedPointerEvents.push(eventName);
+    });
+  });
+}
+
+var expectedPointerEvents = new Map([
+  ["none", ["pointerover", "pointerenter", "pointermove", "pointerdown", "pointerup",
+            "pointerdown", "pointermove", "pointerout", "pointerleave",
+            "pointerover", "pointerenter", "pointermove", "pointerup", "pointerout",
+            "pointerleave"
+            ]],
+  ["pointerdown", ["pointerover", "pointerenter", "pointermove", "pointerdown",
+            "pointerup", "pointerdown", "pointermove", "pointerout", "pointerleave",
+            "pointerover", "pointerenter", "pointermove", "pointerup", "pointerout",
+            "pointerleave"
+            ]],
+  ["pointerup", ["pointerover", "pointerenter", "pointermove", "pointerdown",
+            "pointerup", "pointerdown", "pointermove", "pointerout", "pointerleave",
+            "pointerover", "pointerenter", "pointermove", "pointerup",
+            "pointerout", "pointerleave"
+            ]],
+  ["pointerenter", ["pointerover", "pointerenter", "pointermove",
+            "pointerdown", "pointerup", "pointerdown", "pointermove",
+            "pointerout", "pointerleave", "pointerover", "pointerenter",
+            "pointermove", "pointerup", "pointerout", "pointerleave"
+            ]],
+  ["pointerleave", ["pointerover", "pointerenter", "pointermove",
+            "pointerdown", "pointerup", "pointerdown", "pointermove",
+            "pointerout", "pointerleave", "pointerover", "pointerenter",
+            "pointermove", "pointerup", "pointerout", "pointerleave"
+            ]],
+  ["pointerover", ["pointerover", "pointerenter", "pointermove",
+            "pointerdown", "pointerup", "pointerdown", "pointermove",
+            "pointerout", "pointerleave", "pointerover", "pointerenter",
+            "pointermove", "pointerup", "pointerout",
+            "pointerleave"
+            ]],
+  ["pointerout", ["pointerover", "pointerenter", "pointermove",
+            "pointerdown", "pointerup", "pointerdown", "pointermove",
+            "pointerout", "pointerleave", "pointerover", "pointerenter",
+            "pointermove", "pointerup", "pointerout",
+            "pointerleave"
+            ]],
+  ["pointermove", ["pointerover", "pointerenter", "pointermove",
+            "pointerdown", "pointerup", "pointerdown", "pointermove",
+            "pointerout", "pointerleave", "pointerover", "pointerenter",
+            "pointermove", "pointerup", "pointerout", "pointerleave"
+            ]]
+  ]);
+var expectedMouseEvents = new Map([
+  ["none", ["mouseover", "mouseenter", "mousemove", "mousedown", "mouseup",
+            "mousedown", "mousemove", "mouseout", "mouseleave",
+            "mouseover", "mouseenter", "mousemove", "mouseup", "mouseout", "mouseleave"
+            ]],
+  ["pointerdown", ["mouseover", "mouseenter", "mousemove",
+            "mouseout", "mouseleave", "mouseover", "mouseenter",
+            "mouseout", "mouseleave"
+            ]],
+  ["pointerup", ["mouseover", "mouseenter", "mousemove",
+            "mousedown", "mouseup", "mousedown", "mousemove",
+            "mouseout", "mouseleave", "mouseover",
+            "mouseenter", "mousemove", "mouseup", "mouseout", "mouseleave"
+            ]],
+  ["pointerenter", ["mouseover", "mouseenter", "mousemove", "mousedown",
+            "mouseup", "mousedown", "mousemove", "mouseout", "mouseleave",
+            "mouseover", "mouseenter", "mousemove", "mouseup", "mouseout", "mouseleave"
+            ]],
+  ["pointerleave", ["mouseover", "mouseenter", "mousemove", "mousedown",
+            "mouseup", "mousedown", "mousemove", "mouseout", "mouseleave",
+            "mouseover", "mouseenter", "mousemove", "mouseup",
+            "mouseout", "mouseleave"
+            ]],
+  ["pointerover", ["mouseover", "mouseenter", "mousemove",
+            "mousedown", "mouseup", "mousedown", "mousemove", "mouseout",
+            "mouseleave", "mouseover", "mouseenter", "mousemove", "mouseup",
+            "mouseout", "mouseleave"
+            ]],
+  ["pointerout", ["mouseover", "mouseenter", "mousemove",
+            "mousedown", "mouseup", "mousedown", "mousemove",
+            "mouseout", "mouseleave", "mouseover", "mouseenter",
+            "mousemove", "mouseup", "mouseout", "mouseleave"
+            ]],
+  ["pointermove", ["mouseover", "mouseenter", "mousemove",
+            "mousedown", "mouseup", "mousedown", "mousemove",
+            "mouseout", "mouseleave", "mouseover", "mouseenter",
+            "mousemove", "mouseup", "mouseout", "mouseleave"
+            ]]
+  ]);
+
+async function runTestForDefaultEvent(preventDefaultEvent) {
+    promise_test((test)=>
+    new Promise(async (resolve, reject)=>{
+        test.add_cleanup(()=>{
+          receivedEvents = [];
+          receivedPointerEvents = [];
+          receivedMouseEvents = [];
+          eventToPreventDefault = "";
+        });
+        eventToPreventDefault = preventDefaultEvent;
+
+        try{
+          // if awaited Promise rejects then fail the test
+          await performActions(test, preventDefaultEvent);
+        }
+        catch(e){
+          reject(e);
+        }
+        test.step(()=>{
+          if(eventToPreventDefault === 'none'){
+            assert_true(arePointerEventsBeforeCompatMouseEvents(receivedEvents), "There are no compatible mouse events for all pointer events:" + receivedEvents);
+          }
+          assert_array_equals(receivedPointerEvents, expectedPointerEvents.get(preventDefaultEvent));
+          assert_array_equals(receivedMouseEvents, expectedMouseEvents.get(preventDefaultEvent));
+        });
+        resolve();
+    }), `Verifies the effect of pointer event prevent-default on ${preventDefaultEvent}`);
+}
+
+async function runTests(){
+  // create one test for each event in preventDefaultList
+  // run all tests one by one
+  preventDefaultList.forEach(preventDefaultEvent=>runTestForDefaultEvent(preventDefaultEvent));
+}
+
+function performActions(test, preventDefaultEvent){
+  let targetDiv = document.getElementById("target");
+  let rect = targetDiv.getBoundingClientRect();
+  let x1 = Math.ceil(rect.left - 3);
+  let y1 = Math.ceil(rect.top - 5);
+  let x2 = Math.ceil(rect.left + 3);
+  let y2 = Math.ceil(rect.top + 5);
+
+  let eventWatcher = new EventWatcher(test, targetDiv, ["mouseleave"]);
+  // wait for all expected events to happen.
+  // Because each test ends with mouseleave and there are 2 mouseleave events,
+  // we use EventWatcher to wait for the two mouseleave events to happen
+  let donePromise = eventWatcher.wait_for(["mouseleave", "mouseleave"], { record: 'all' });
+  let actionsPromise = new test_driver.Actions()
+                .pointerMove(0, 0)
+                // start with mouse outside target
+                .pointerMove(x1, y1)
+                // move into target and click
+                .pointerMove(x2, y2)
+                .pointerDown()
+                .pointerUp()
+                // drag out of and into target & release within target
+                .pointerDown()
+                .pointerMove(x2+5, y2+5)
+                .pointerMove(x1, y1)
+                .pointerMove(x2+1, y2+1)
+                .pointerUp()
+                // move outside target again
+                .pointerMove(x1, y1)
+                .send();
+  return Promise.all([donePromise, actionsPromise]);
+}
+
+init();
+runTests();
+</script>

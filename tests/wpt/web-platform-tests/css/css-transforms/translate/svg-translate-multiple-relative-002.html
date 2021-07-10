@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: SVG presentation attribute and translation-value arguments with translate applied twice in percentage units</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+		<link rel="help" href="http://www.w3.org/TR/css-transforms-1/#funcdef-transform-translate">
+    <link rel="match" href="reference/svg-translate-multiple-relative-ref.html">
+    <meta name="flags" content="svg">
+    <meta name="assert" content="The translate transform function can be called multiple times in relative translation-values. The rect in the test should be moved 50 pixels in the X direction and 100 pixels in the Y direction">
+    <style type="text/css">
+    svg {
+        width: 300px;
+        height: 300px;
+    }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a green rectangle and no red.</p>
+    <svg>
+        <rect x="51" y="101" width="198" height="98" fill="red"/>
+        <rect width="200" height="100" fill="green" transform="translate(10% 25%) translate(15% 75%)"/>
+    </svg>
+</body>
+</html>

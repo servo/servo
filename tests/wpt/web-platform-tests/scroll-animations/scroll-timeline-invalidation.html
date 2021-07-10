@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>ScrollTimeline invalidation</title>
+<link rel="help" href="https://wicg.github.io/scroll-animations/#current-time-algorithm">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="testcommon.js"></script>
+<style>
+  .scroller {
+    overflow: auto;
+    height: 100px;
+    width: 100px;
+    will-change: transform;
+  }
+  .contents {
+    height: 1000px;
+    width: 100%;
+  }
+</style>
+<div id="log"></div>
+
+<script>
+'use strict';
+
+promise_test(async t => {
+  const animation = createScrollLinkedAnimation(t);
+  animation.effect.updateTiming({ duration: 350 });
+  const scroller = animation.timeline.scrollSource;
+  const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+  scroller.scrollTop = 0.2 * maxScroll;
+  // Wait for new animation frame  which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
+
+  animation.play();
+  await animation.ready;
+
+  // Change scroller content size.
+  scroller.firstChild.style.height = "500px";
+
+  await animation.finished;
+  const newTime = animation.effect.getTiming().duration;
+  assert_times_equal(animation.currentTime, newTime,
+    'Animation current time is updated after scroller invalidation.');
+
+  assert_times_equal(
+    animation.effect.getComputedTiming().localTime, newTime,
+    'Effect local time is updated after scroller invalidation.');
+}, 'Animation current time and effect local time are updated after scroller ' +
+   'content size changes.');
+
+promise_test(async t => {
+  const animation = createScrollLinkedAnimation(t);
+  animation.effect.updateTiming({ duration: 350 });
+  const scroller = animation.timeline.scrollSource;
+  const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+  scroller.scrollTop = 0.2 * maxScroll;
+  // Wait for new animation frame  which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
+
+  animation.play();
+  await animation.ready;
+
+  // Change scroller size.
+  scroller.style.height = "500px";
+
+  await animation.finished;
+  const newTime = animation.effect.getTiming().duration;
+  assert_times_equal(animation.currentTime, newTime,
+    'Animation current time is updated after scroller invalidation.');
+
+  assert_times_equal(
+    animation.effect.getComputedTiming().localTime, newTime,
+    'Effect local time is updated after scroller invalidation.');
+}, 'Animation current time and effect local time are updated after scroller ' +
+   'size changes.');
+
+promise_test(async t => {
+  const timeline = createScrollTimeline(t);
+  const scroller = timeline.scrollSource;
+  const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+  // Instantiate scroll animation that resizes its scroll timeline scroller.
+  const animation = new Animation(
+    new KeyframeEffect(
+      timeline.scrollSource.firstChild,
+      [{ height: '1000px' }, { height: '2000px' }],
+      { duration: 1000, }
+    ), timeline);
+  animation.play();
+  await animation.ready;
+  await waitForNextFrame();
+  scroller.scrollTop = 0.2 * maxScroll;
+  // Wait for new animation frame  which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
+  assert_times_equal(timeline.currentTime, 200,
+    'Timeline current time is updated after animation frame.');
+  await waitForNextFrame();
+  assert_times_equal(timeline.currentTime, 163.636,
+    'Timeline current time is updated after two animation frames and ' +
+    'reflects single layout run.');
+}, 'If scroll animation resizes its scroll timeline scroller, ' +
+   'layout runs only once to reflect the initial update.');
+</script>

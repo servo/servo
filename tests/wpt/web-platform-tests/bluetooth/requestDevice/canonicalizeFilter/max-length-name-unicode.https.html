@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/bluetooth/resources/bluetooth-test.js"></script>
+<script src="/bluetooth/resources/bluetooth-fake-devices.js"></script>
+<script>
+'use strict';
+const test_desc = 'A unicode device name of 248 bytes is valid.';
+// \u00A1's UTF-8 respresentation is 2 bytes long.
+// 124 chars * 2 bytes/char = 248 bytes
+const DEVICE_NAME = '\u00A1'.repeat(124);
+
+bluetooth_test(
+    () => setUpPreconnectedDevice({name: DEVICE_NAME})
+              .then(
+                  () => requestDeviceWithTrustedClick(
+                      {filters: [{name: DEVICE_NAME}]}))
+              .then(device => assert_equals(device.name, DEVICE_NAME)),
+    test_desc);
+</script>

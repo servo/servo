@@ -1,0 +1,61 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Calling "reconnect" with a wrong presentation ID fails with a NotFoundError exception</title>
+<link rel="author" title="Franck William Taffo" href="http://www.fokus.fraunhofer.de">
+<link rel="author" title="Louay Bassbouss" href="http://www.fokus.fraunhofer.de">
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs">
+<link rel="help" href="http://w3c.github.io/presentation-api/#dom-presentationrequest-reconnect">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="common.js"></script>
+
+<p>Click the button below to start the manual test. Select a presentation device after the selection dialog is prompted.
+  The test assumes that at least one presentation device is available. The test passes if a "PASS" result appears.</p>
+<button id="startBtn">Start Test</button>
+
+<script>
+  promise_test(async t => {
+    const startBtn = document.getElementById('startBtn');
+    const wrongPresentationId = "wrongPresentationId";
+    const request1 = new PresentationRequest(presentationUrls);
+    const request2 = new PresentationRequest('https://www.w3.org');
+    let connection1, eventWatcher1;
+
+    t.add_cleanup(() => {
+      if (connection1) {
+        connection1.onconnect = () => { connection1.terminate(); }
+        if (connection1.state === 'closed')
+          request1.reconnect(connection1.id);
+        else
+          connection1.terminate();
+      }
+    });
+
+    await promise_rejects_dom(t, 'NotFoundError', request1.reconnect(wrongPresentationId),
+      'Reconnecting with an unknown presentation ID fails with a NotFoundError exception.');
+
+    setup({explicit_timeout: true});
+    const clickWatcher = new EventWatcher(t, startBtn, 'click');
+    await clickWatcher.wait_for('click');
+    connection1 = await request1.start();
+
+    t.step_timeout(() => {
+      t.force_timeout();
+      t.done();
+    }, 5000);
+
+    startBtn.disabled = true;
+    eventWatcher1 = new EventWatcher(t, connection1, ['connect', 'close', 'terminate']);
+    await eventWatcher1.wait_for('connect');
+    connection1.close();
+    await eventWatcher1.wait_for('close');
+
+    await promise_rejects_dom(t, 'NotFoundError', request2.reconnect(connection1.id),
+      'Reconnecting with a presentation ID on a presentation request with a different URL fails with a NotFoundError exception.');
+
+    await request1.reconnect(connection1.id);
+    await eventWatcher1.wait_for('connect');
+    connection1.terminate();
+    await eventWatcher1.wait_for('terminate');
+  });
+</script>

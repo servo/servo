@@ -1,0 +1,18 @@
+[package]
+name = "servo_config_plugins"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+edition = "2018"
+publish = false
+
+[lib]
+name = "servo_config_plugins"
+proc-macro = true
+path = "lib.rs"
+
+[dependencies]
+itertools = "0.8"
+proc-macro2 = "1"
+quote = "1"
+syn = { version = "1", default-features = false, features = ["clone-impls", "parsing"] }

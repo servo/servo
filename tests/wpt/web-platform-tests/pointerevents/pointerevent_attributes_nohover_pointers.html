@@ -1,0 +1,138 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Pointer Events properties tests</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <!-- Additional helper script for common checks across event types -->
+        <script type="text/javascript" src="pointerevent_support.js"></script>
+        <script>
+            var detected_pointertypes = {};
+            var detected_eventTypes = {};
+            var eventList = ['pointerover', 'pointerenter', 'pointerdown', 'pointerup', 'pointerout', 'pointerleave'];
+            var expectedPointerId = NaN;
+
+            function resetTestState() {
+                detected_eventTypes = {};
+                document.getElementById("square1").style.visibility = 'visible';
+                document.getElementById('innerFrame').contentDocument.getElementById("square2").style.visibility = 'hidden';
+            }
+            function checkPointerEventAttributes(event, targetBoundingClientRect, testNamePrefix) {
+                if (detected_eventTypes[event.type])
+                    return;
+                var expectedEventType =  eventList[Object.keys(detected_eventTypes).length];
+                detected_eventTypes[event.type] = true;
+                var pointerTestName = testNamePrefix + ' ' + expectedPointerType + ' ' + expectedEventType;
+
+                detected_pointertypes[event.pointerType] = true;
+
+                test(function() {
+                    assert_equals(event.type, expectedEventType, "Event.type should be " + expectedEventType)
+                }, pointerTestName + "'s type should be " + expectedEventType);
+
+                // Test button and buttons
+                test(function() {
+                    assert_equals(event.button, 0, "Button attribute is 0")
+                }, pointerTestName + "'s button attribute is 0 when left mouse button is pressed.");
+
+                if (event.type == 'pointerdown' || event.type == 'pointerover' || event.type == 'pointerenter') {
+                    test(function() {
+                        assert_equals(event.buttons, 1, "Buttons attribute is 1")
+                    }, pointerTestName + "'s buttons attribute is 1 when left mouse button is pressed.");
+                } else {
+                    test(function() {
+                        assert_equals(event.buttons, 0, "Buttons attribute is 0")
+                    }, pointerTestName + "'s buttons is 0 when mouse buttons are in released state.");
+                }
+
+                // Test clientX and clientY
+                test(function () {
+                    assert_true(event.clientX >= targetBoundingClientRect.left && event.clientX < targetBoundingClientRect.right && event.clientY >= targetBoundingClientRect.top && event.clientY < targetBoundingClientRect.bottom, "ClientX/Y should be in the boundaries of the box");
+                }, pointerTestName + "'s ClientX and ClientY attributes are correct.");
+
+                check_PointerEvent(event, testNamePrefix);
+
+                // Test isPrimary
+                test(function () {
+                    assert_equals(event.isPrimary, true, "isPrimary should be true");
+                }, pointerTestName + ".isPrimary attribute is correct.");
+
+                // Test pointerId value
+                if (isNaN(expectedPointerId)) {
+                    expectedPointerId = event.pointerId;
+                } else {
+                    test(function () {
+                        assert_equals(event.pointerId, expectedPointerId, "pointerId should remain the same for the same active pointer");
+                    }, pointerTestName + ".pointerId should be the same as previous pointer events for this active pointer.");
+                }
+            }
+
+            function run() {
+                var test_pointerEvent = setup_pointerevent_test("pointerevent attributes", NOHOVER_POINTERS);
+                var square1 = document.getElementById("square1");
+                var rectSquare1 = square1.getBoundingClientRect();
+                var innerFrame = document.getElementById('innerFrame');
+                var square2 = innerFrame.contentDocument.getElementById('square2');
+                var rectSquare2 = square2.getBoundingClientRect();
+                var actions_promise;
+
+                eventList.forEach(function(eventName) {
+                    on_event(square1, eventName, function (event) {
+                        if (square1.style.visibility == 'hidden')
+                            return;
+                        checkPointerEventAttributes(event, rectSquare1, "");
+                        if (Object.keys(detected_eventTypes).length == eventList.length) {
+                            square1.style.visibility = 'hidden';
+                            detected_eventTypes = {};
+                            square2.style.visibility = 'visible';
+                            expectedPointerId = NaN;
+                        }
+                    });
+                    on_event(square2, eventName, function (event) {
+                        checkPointerEventAttributes(event, rectSquare2, "Inner frame ");
+                        if (Object.keys(detected_eventTypes).length == eventList.length) {
+                            square2.style.visibility = 'hidden';
+                            // Make sure the test finishes after all the input actions are completed.
+                            actions_promise.then( () => {
+                                test_pointerEvent.done();
+                            });
+                        }
+                    });
+                });
+
+                // Inject touch inputs.
+                actions_promise = clickInTarget("touch", square1).then(function() {
+                    return clickInTarget("touch", square2);
+                });
+            }
+        </script>
+    </head>
+    <body onload="run()">
+        <h1>Pointer Events no-hover pointer attributes test</h1>
+        <h2 id="pointerTypeDescription"></h2>
+        <h4>
+            Test Description: This test checks the properties of pointer events that do not support hover.
+            <ol>
+                 <li>Tap the black square.</li>
+                 <li>Then move it off the black square so that it disappears.</li>
+                 <li>When the red square appears tap on that as well.</li>
+            </ol>
+
+            Test passes if the proper behavior of the events is observed.
+        </h4>
+        <div id="square1" class="square"></div>
+        <iframe id="innerFrame" src="resources/pointerevent_attributes_hoverable_pointers-iframe.html"></iframe>
+        <div class="spacer"></div>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+            <p>Refresh the page to run the tests again with a different pointer type.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>
+

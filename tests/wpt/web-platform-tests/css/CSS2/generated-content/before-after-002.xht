@@ -4,12 +4,13 @@
         <title>CSS Test: Before, after is included in formatting changes</title>
         <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
         <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#before-after-content" />
+        <link rel="match" href="content-003-ref.html" />
         <meta name="flags" content="" />
         <meta name="assert" content="Generated content is included in any formatting changes made to an element." />
         <style type="text/css">
             div
             {
-                border: solid;
+                border: 2px solid black;
                 color: green;
             }
             div:before
@@ -23,7 +24,7 @@
         </style>
     </head>
     <body>
-        <p>Test passes if the words "PASS PASS" appear in green inside the box.</p>
+        <p>Test passes if the words "PASS PASS" appear in the box below.</p>
         <div></div>
     </body>
 </html>

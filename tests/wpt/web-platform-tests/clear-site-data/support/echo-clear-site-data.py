@@ -1,11 +1,11 @@
 import json
 
-RESPONSE = """
+RESPONSE = u"""
 <!DOCTYPE html>
 <html>
   <head>
     <title>Clear-Site-Data</title>
-    <script src="test_utils.js"></script>
+    <script src="test_utils.sub.js"></script>
   </head>
   <body>
     <script>
@@ -34,7 +34,7 @@ RESPONSE = """
 # embedder whether the data deletion succeeded.
 def main(request, response):
     types = [key for key in request.GET.keys()]
-    header = json.dumps({ "types": types })
-    return ([("Clear-Site-Data", header),
-             ("Content-Type", "text/html")],
+    header = b",".join(b"\"" + type + b"\"" for type in types)
+    return ([(b"Clear-Site-Data", header),
+             (b"Content-Type", b"text/html")],
             RESPONSE)

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - background-image.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<link rel=match href="forced-colors-mode-28-ref.html">
+<style>
+  :root {
+    --url-image: url("resources/test-image.jpg");
+  }
+  div {
+    height: 20px;
+    width: 10px;
+  }
+  #div1 {
+    background-image: var(--url-image);
+    background-image: linear-gradient(red, yellow);
+  }
+  #div2 {
+    background-image: linear-gradient(red, yellow);
+    background-image: var(--url-image);
+  }
+  #div3 {
+    background-image: var(--url-image);
+  }
+  #div4 {
+    background-image: linear-gradient(red, yellow);
+  }
+</style>
+<body>
+  The background-image should be reverted in Forced Colors Mode unless the value
+  is a url() function.
+  <div id="div1"></div>
+  <div id="div2"></div>
+  <div id="div3"></div>
+  <div id="div4"></div>
+</body>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.css-houdini.org/css-paint-api/">
+<link rel="match" href="one-custom-property-animation-ref.html">
+<style>
+.container {
+  width: 100px;
+  height: 100px;
+}
+@keyframes expand {
+  0% { --foo: 0; }
+  100% { --foo: 100; }
+}
+.animate {
+  background-image: paint(geometry);
+  /* Use a long animation that start at 50% progress where the slope of the
+     selected timing function is zero. By setting up the animation in this way,
+     we accommodate lengthy delays in running the test without a potential drift
+     in the animated property value. This is important for avoiding flakes,
+     especially on debug builds. The screenshots are taken as soon as the
+     animation is ready, thus the long animation duration has no bearing on
+     the actual duration of the test. */
+  animation: expand 1000000s cubic-bezier(0,1,1,0) -500000s;
+}
+
+#canvas-geometry {
+  background-color: blue;
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<body>
+<div id="canvas-geometry" class="container"></div>
+
+<script id="code" type="text/worklet">
+registerPaint('geometry', class {
+  static get inputProperties() { return ['--foo']; }
+  paint(ctx, geom, properties) {
+    let fooValue = parseFloat(properties.get('--foo').toString());
+    ctx.fillStyle = 'green';
+    ctx.fillRect(0, 0, fooValue, fooValue);
+  }
+});
+</script>
+
+<script>
+CSS.registerProperty({
+  name: '--foo',
+  syntax: '<number>',
+  initialValue: '0',
+  inherits: false
+});
+</script>
+
+<script>
+var blob = new Blob([document.getElementById('code').textContent],
+                    {type: 'text/javascript'});
+CSS.paintWorklet.addModule(URL.createObjectURL(blob)).then(function() {
+    document.getElementById('canvas-geometry').classList.add('animate');
+    const animations = document.getAnimations();
+    // Wait for the animation to start before completing the test.
+    document.getAnimations()[0].ready.then(() => {
+        takeScreenshot();
+    });
+});
+</script>
+</body>
+</html>

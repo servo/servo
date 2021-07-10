@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<meta charset="utf-8">
+<title>letter-spacing at element boundaries</title>
+<link rel='author' title='Elika J. Etemad' href='http://fantasai.inkedblade.net/contact'>
+<link rel='help' href='https://www.w3.org/TR/css-text-3/#letter-spacing'>
+<link rel='match' href='reference/letter-spacing-203-ref.html'>
+<meta name="assert" content="Letter spacing between two characters is given by their closest mutual ancestor.">
+<style type='text/css'>
+  @import "/fonts/ahem.css";
+  .contain {
+    font: 20px/1 Ahem;
+    border: solid blue;
+    margin: 1em;
+    float: left; }
+  .ls0 {
+    letter-spacing: 0;
+  }
+  .ls1 {
+    letter-spacing: 1em;
+  }
+  .ls3 {
+    letter-spacing: 3em;
+  }
+  .control p {
+    white-space: pre-wrap;
+  }
+  p {
+    letter-spacing: 0;
+    margin: 0;
+    word-break: break-all;
+  }
+</style>
+
+<div id='instructions'>Test passes if the pattern is identical in both blue boxes.</div>
+
+<div class="contain">
+  <!-- middle owned by containing block: simple -->
+  <p class="ls1"><span class="ls0">AAA</span><span class="ls0">BBB</span></p>
+  <p><span class="ls1">AAA</span><span class="ls1">BBB</span></p>
+  <!-- middle owned by containing block: double nesting -->
+  <p><span class="ls1"><span class="ls0">AAA</span></span><span class="ls1">BBB</span></p>
+  <p><span class="ls0"><span class="ls1">AAA</span></span><span class="ls1">BBB</span></p>
+  <!-- middle owned by inline: simple -->
+  <p><span class="ls1"><span class="ls0">AAA</span><span class="ls0">BBB</span></span></p>
+  <p><span><span class="ls1">AAA</span><span class="ls1">BBB</span></span></p>
+  <!-- middle owned by inline: double nesting -->
+  <p><span><span class="ls1"><span class="ls0">AAA</span></span><span class="ls1">BBB</span></span></p>
+  <p><span class="ls3"><span class="ls0"><span class="ls1">AAA</span></span><span class="ls1">BBB</span></span></p>
+  <!-- middle containing space -->
+  <p class="ls1"><span class="ls0">AAA</span> <span class="ls0">BBB</span></p>
+  <p><span class="ls3"><span class="ls1"><span class="ls0">AAA</span> </span><span class="ls1">BBB</span></span></p>
+</div>
+
+<div class="contain control">
+  <!-- middle owned by containing block: simple -->
+  <p>AAA BBB</p>
+  <p>A A AB B B</p>
+  <!-- middle owned by containing block: double nesting -->
+  <p>AAAB B B</p>
+  <p>A A AB B B</p>
+  <!-- middle owned by inline: simple -->
+  <p>AAA BBB</p>
+  <p>A A AB B B</p>
+  <!-- middle owned by inline: double nesting -->
+  <p>AAAB B B</p>
+  <p>A A A   B B B</p>
+  <!-- middle containing space -->
+  <p>AAA   BBB</p>
+  <p>AAA     B B B</p>
+</div>

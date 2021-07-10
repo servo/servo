@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Resource Timing: PerformanceResourceTiming attributes</title>
+<link rel="help" href="https://www.w3.org/TR/resource-timing-2/#sec-performanceresourcetiming"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+// Returns a promise that settles once the given path has been fetched as an
+// image resource.
+function load_image(path) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = img.onerror = resolve;
+    img.src = path;
+  });
+}
+
+// Returns a promise that settles once the given path has been fetched as a
+// font resource.
+function load_font(path) {
+  document.getElementById('forFonts').innerHTML = `
+    <style>
+    @font-face {
+        font-family: ahem;
+        src: url('${path}');
+    }
+    </style>
+    <div style="font-family: ahem;">This fetches ahem font.</div>
+  `;
+  return document.fonts.ready;
+}
+
+function assert_ordered(entry, attributes) {
+  let before = attributes[0];
+  attributes.slice(1).forEach(after => {
+    assert_greater_than_equal(entry[after], entry[before],
+      `${after} should be greater than ${before}`);
+    before = after;
+  });
+}
+
+function assert_zeroed(entry, attributes) {
+  attributes.forEach(attribute => {
+    assert_equals(entry[attribute], 0, `${attribute} should be 0`);
+  });
+}
+
+function assert_not_negative(entry, attributes) {
+  attributes.forEach(attribute => {
+    assert_greater_than_equal(entry[attribute], 0,
+      `${attribute} should be greater than or equal to 0`);
+  });
+}
+
+function assert_positive(entry, attributes) {
+  attributes.forEach(attribute => {
+    assert_greater_than(entry[attribute], 0,
+      `${attribute} should be greater than 0`);
+  });
+}
+
+function assert_http_resource(entry) {
+  assert_ordered(entry, [
+    "fetchStart",
+    "domainLookupStart",
+    "domainLookupEnd",
+    "connectStart",
+    "connectEnd",
+    "requestStart",
+    "responseStart",
+    "responseEnd",
+  ]);
+
+  assert_zeroed(entry, [
+    "workerStart",
+    "secureConnectionStart",
+    "redirectStart",
+    "redirectEnd",
+  ]);
+
+  assert_not_negative(entry, [
+    "duration",
+  ]);
+
+  assert_positive(entry, [
+    "fetchStart",
+    "transferSize",
+    "encodedBodySize",
+    "decodedBodySize",
+  ]);
+}
+
+function assert_same_origin_redirected_resource(entry) {
+  assert_positive(entry, [
+    "redirectStart",
+  ]);
+
+  assert_equals(entry.redirectStart, entry.startTime,
+    "redirectStart should be equal to startTime");
+
+  assert_ordered(entry, [
+    "redirectStart",
+    "redirectEnd",
+    "fetchStart",
+    "domainLookupStart",
+    "domainLookupEnd",
+    "connectStart",
+  ]);
+}
+
+// Given a resource-loader and a PerformanceResourceTiming validator, loads a
+// resource and validates the resulting entry.
+function attribute_test(load_resource, validate, test_label) {
+  promise_test(
+    async () => {
+      // Clear out everything that isn't the one ResourceTiming entry under test.
+      performance.clearResourceTimings();
+
+      await load_resource();
+
+      const entry_list = performance.getEntriesByType("resource");
+      if (entry_list.length != 1) {
+        throw new Error(`There should be one entry for one resource (found ${entry_list.length})`);
+      }
+
+      validate(entry_list[0]);
+  }, test_label);
+}
+
+attribute_test(
+  () => load_image("resources/fake_responses.py#hash=1"),
+  entry => {
+    assert_true(entry.name.includes('#hash=1'),
+      "There should be a hash in the resource name");
+    assert_http_resource(entry);
+  },
+  "Image resources should generate conformant entries");
+
+attribute_test(
+  () => load_font("/fonts/Ahem.ttf"),
+  assert_http_resource,
+  "Font resources should generate conformant entries");
+
+attribute_test(
+  () => load_image("/common/redirect.py?location=resources/fake_responses.py"),
+  assert_same_origin_redirected_resource,
+  "Same-origin redirects should populate redirectStart/redirectEnd");
+</script>
+</head>
+<body>
+<h1>Description</h1>
+<p>This test validates that PerformanceResourceTiming entries' attributes are
+populated with the correct values.</p>
+<div id="forFonts"></div>
+</body>
+</html>

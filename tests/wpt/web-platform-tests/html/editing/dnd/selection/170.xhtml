@@ -4,15 +4,15 @@
 <title>Dragging multiline text selection from scrolled textarea to block element</title>
 <style type="text/css">
 div[ondragenter]
-	{width:300px;
-	height:100px;
-	margin-top:20px;
-	padding:10px;
-	color:white;
-	background-color:navy;}
+  {width:300px;
+  height:100px;
+  margin-top:20px;
+  padding:10px;
+  color:white;
+  background-color:navy;}
 textarea
-	{width:300px;
-	height:100px;}
+  {width:300px;
+  height:100px;}
 </style>
 </head>
 <body onload="var t = document.querySelector('textarea');t.select();t.setSelectionRange(163,185)">
@@ -25,9 +25,9 @@ Try to drag this text.
 </textarea>
 </p>
 <div
-	ondragenter="event.preventDefault()"
-	ondragover="return false"
-	ondrop="document.querySelector('div').appendChild(document.createTextNode(event.dataTransfer.getData('text/plain')))"
+  ondragenter="event.preventDefault()"
+  ondragover="return false"
+  ondrop="document.querySelector('div').appendChild(document.createTextNode(event.dataTransfer.getData('text/plain')))"
 />
 </body>
 </html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_asserts.js"></script>
+
+<script>
+
+let immersiveTestName = "XRWebGLLayer reports a valid viewports for immersive sessions";
+let inlineTestName = "XRWebGLLayer reports a valid viewports for inline sessions";
+
+let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
+
+let testFunction = function(session, fakeDeviceController, t) {
+  return session.requestReferenceSpace('viewer')
+      .then((space) => new Promise((resolve) => {
+    function onFrame(time, xrFrame) {
+      let viewer_pose = xrFrame.getViewerPose(space);
+
+      let layer = xrFrame.session.renderState.baseLayer;
+      for (view of viewer_pose.views) {
+        let viewport = layer.getViewport(view);
+
+        t.step(() => {
+          // Ensure the returned object is an XRViewport object
+          assert_not_equals(viewport, null);
+          assert_true(viewport instanceof XRViewport);
+
+          // Ensure the viewport dimensions are valid
+          assert_greater_than_equal(viewport.x, 0);
+          assert_greater_than_equal(viewport.y, 0);
+          assert_greater_than_equal(viewport.width, 1);
+          assert_greater_than_equal(viewport.height, 1);
+        });
+
+        // Ensure none of the viewports overlap
+        for (other of viewer_pose.views) {
+          if (view !== other) {
+            let otherport = layer.getViewport(other);
+            let no_overlap = (viewport.x + viewport.width <= otherport.x) ||
+              (otherport.x + otherport.width <= viewport.x) ||
+              (viewport.y + viewport.height <= otherport.y) ||
+              (otherport.y + otherport.height <= viewport.y);
+
+            t.step(() => {
+              assert_true(no_overlap, "Overlap between viewport " + view.eye + " and " + other.eye);
+            });
+          }
+        }
+      }
+
+      // Finished test.
+      resolve();
+    }
+
+    session.requestAnimationFrame(onFrame);
+  }));
+};
+
+xr_session_promise_test(immersiveTestName, testFunction,
+  fakeDeviceInitParams, 'immersive-vr');
+xr_session_promise_test(inlineTestName, testFunction,
+  fakeDeviceInitParams, 'inline');
+
+</script>

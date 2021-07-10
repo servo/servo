@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>backdrop-filter: Clip the filter at border box of element</title>
+<link rel="author" title="Mason Freed" href="mailto:masonfreed@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="match"  href="backdrop-filter-clip-rect-ref.html">
+
+<div>
+  <p>Expected: A green box, color-inverted inside the short, wide box with a<br>
+  blue border and rounded corners, and not color-inverted anywhere else. In<br>
+  particular, there should be no color inversion inside the tall, narrow box,<br>
+  or anywhere outside that.</p>
+</div>
+<div class="box"></div>
+<div class="navbar">
+  <div class="menu"></div>
+  <div class="menu2"></div>
+</div>
+<style>
+div {
+  position: absolute;
+}
+.box {
+  width: 200px;
+  height: 200px;
+  top: 100px;
+  left: 100px;
+  background: green;
+}
+.navbar {
+  width: 300px;
+  height: 50px;
+  top: 150px;
+  left: 50px;
+  border: 2px solid blue;
+  backdrop-filter: invert(1);
+  border-radius: 10px 20px 30px 40px;
+}
+.menu {
+  width: 100px;
+  height: 150px;
+  top: 50px;
+  left: 95px;
+  border: 2px solid red;
+}
+.menu2 {
+  width: 100px;
+  height: 30px;
+  top: -34px;
+  left: 95px;
+  border: 2px solid red;
+}
+</style>

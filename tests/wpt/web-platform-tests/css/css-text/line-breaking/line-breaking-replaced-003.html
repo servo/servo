@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>CSS Text — WORD JOINER and replaced element</title>
+<meta name=assert content="There is a soft wrap opportunity between replaced elements and adjacent WORD JOINER">
+<link rel=help href="https://www.w3.org/TR/css-text-3/#line-break-details">
+<link rel=match href="reference/line-breaking-replaced-003-ref.html">
+<link rel=author title="Florian Rivoal" href="https://florian.rivoal.net">
+<style>
+.red {
+	position: absolute;
+	z-index: -1;
+}
+.test {
+	width: 0;
+}
+</style>
+
+<p>Test passes if there is no red.
+
+<div class=red><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==" width=50><br>&#8288;<br><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==" width=50></div>
+
+<div class=test><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkaGD4DwACiQGBU29HsgAAAABJRU5ErkJggg==" width=50><br>&#8288;<br><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkaGD4DwACiQGBU29HsgAAAABJRU5ErkJggg==" width=50></div>

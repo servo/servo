@@ -1,0 +1,65 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>This test validates some Timing-Allow-Origin header usage in multiple redirects.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/largest-contentful-paint-helpers.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+</head>
+<img id='image'></img>
+<body>
+<script>
+async_test(t => {
+    assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+    let destUrl = get_host_info().HTTP_REMOTE_ORIGIN
+        + '/element-timing/resources/multiple-redirects.py?';
+    destUrl += 'redirect_count=2';
+    // The final resource has '*' in TAO header, so will not affect the result.
+    destUrl += '&final_resource=/element-timing/resources/circle-tao.svg';
+    destUrl += '&origin1=' + get_host_info().UNAUTHENTICATED_ORIGIN;
+    destUrl += '&origin2=' + get_host_info().HTTP_REMOTE_ORIGIN;
+    const taoCombinations = [
+        {tao1: location.origin, tao2: location.origin, passes: false},
+        {tao1: location.origin, tao2: get_host_info().HTTP_REMOTE_ORIGIN, passes: false},
+        {tao1: location.origin, tao2: 'null', passes: true},
+        {tao1: location.origin, tao2: '*', passes: true},
+        {tao1: location.origin, tao2: location.origin, passes: false},
+        {tao1: 'null', tao2: '*', passes: false},
+        {tao1: '*', tao2: 'null', passes: true},
+    ];
+    const sizes = [28*28, 33*33, 40*40, 50*50, 66*66, 100*100, 200*200];
+    function getURL(item) {
+        return destUrl + '&tao1=' + item.tao1 + '&tao2=' + item.tao2;
+    }
+    function setImage(index) {
+        const image = document.getElementById('image');
+        const item = taoCombinations[index];
+        image.src = getURL(item);
+        // Use monotonic sizes to get all the images!
+        image.width = 200 / (7 - index);
+    }
+    let observedCount = 0;
+    let beforeLoad = performance.now();
+    new PerformanceObserver(t.step_func(entries => {
+        assert_equals(entries.getEntries().length, 1, 'There should be a single entry.');
+        const e = entries.getEntries()[0];
+        const item = taoCombinations[observedCount];
+        const url = getURL(item);
+        const options = item.passes ? [] : ['renderTimeIs0'];
+        checkImage(e, url, 'image', sizes[observedCount], beforeLoad, options);
+        observedCount++;
+        if (observedCount === taoCombinations.length) {
+            t.done();
+        } else {
+            beforeLoad = performance.now();
+            setImage(observedCount);
+        }
+    })).observe({entryTypes: ['largest-contentful-paint']});
+    setImage(0);
+}, 'Cross-origin images with passing/failing TAO should/shouldn\'t have its renderTime set.');
+</script>
+</body>
+</html>
+

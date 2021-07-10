@@ -1,0 +1,125 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>RTCSctpTransport constructor</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+// Test is based on the following revision:
+// https://rawgit.com/w3c/webrtc-pc/1cc5bfc3ff18741033d804c4a71f7891242fb5b3/webrtc.html
+
+// The following helper functions are called from RTCPeerConnection-helper.js:
+//   generateDataChannelOffer()
+//   generateAnswer()
+
+/*
+  6.1.
+
+    partial interface RTCPeerConnection {
+      readonly attribute RTCSctpTransport? sctp;
+      ...
+    };
+
+  6.1.1.
+
+    interface RTCSctpTransport {
+        readonly attribute RTCDtlsTransport      transport;
+        readonly attribute RTCSctpTransportState state;
+        readonly attribute unrestricted double   maxMessageSize;
+                 attribute EventHandler          onstatechange;
+    };
+
+  4.4.1.1.  Constructor
+    9.      Let connection have an [[SctpTransport]] internal slot, initialized to null.
+
+  4.4.1.6.  Set the RTCSessionSessionDescription
+    2.2.6.  If description is of type "answer" or "pranswer", then run the
+            following steps:
+      1.    If description initiates the establishment of a new SCTP association, as defined in
+            [SCTP-SDP], Sections 10.3 and 10.4, create an RTCSctpTransport with an initial state
+            of "connecting" and assign the result to the [[SctpTransport]] slot.
+ */
+
+promise_test(async (t) => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+
+  assert_equals(pc1.sctp, null, 'RTCSctpTransport must be null');
+
+  const offer = await generateAudioReceiveOnlyOffer(pc1);
+  await Promise.all([pc1.setLocalDescription(offer), pc2.setRemoteDescription(offer)]);
+  const answer = await pc2.createAnswer();
+  await pc1.setRemoteDescription(answer);
+
+  assert_equals(pc1.sctp, null, 'RTCSctpTransport must remain null');
+}, 'setRemoteDescription() with answer not containing data media should not initialize pc.sctp');
+
+promise_test(async (t) => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+
+  assert_equals(pc1.sctp, null, 'RTCSctpTransport must be null');
+
+  const offer = await generateAudioReceiveOnlyOffer(pc2);
+  await Promise.all([pc2.setLocalDescription(offer), pc1.setRemoteDescription(offer)]);
+  const answer = await pc1.createAnswer();
+  await pc1.setLocalDescription(answer);
+
+  assert_equals(pc1.sctp, null, 'RTCSctpTransport must remain null');
+}, 'setLocalDescription() with answer not containing data media should not initialize pc.sctp');
+
+function validateSctpTransport(sctp) {
+  assert_not_equals(sctp, null, 'RTCSctpTransport must be available');
+
+  assert_true(sctp instanceof RTCSctpTransport,
+    'Expect pc.sctp to be instance of RTCSctpTransport');
+
+  assert_true(sctp.transport instanceof RTCDtlsTransport,
+    'Expect sctp.transport to be instance of RTCDtlsTransport');
+
+  assert_equals(sctp.state, 'connecting', 'RTCSctpTransport should be in the connecting state');
+
+  // Note: Yes, Number.POSITIVE_INFINITY is also a 'number'
+  assert_equals(typeof sctp.maxMessageSize, 'number',
+    'Expect sctp.maxMessageSize to be a number');
+}
+
+promise_test(async (t) => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+
+  assert_equals(pc1.sctp, null, 'RTCSctpTransport must be null');
+
+  const offer = await generateDataChannelOffer(pc1);
+  await Promise.all([pc1.setLocalDescription(offer), pc2.setRemoteDescription(offer)]);
+  const answer = await pc2.createAnswer();
+  await pc1.setRemoteDescription(answer);
+
+  validateSctpTransport(pc1.sctp);
+}, 'setRemoteDescription() with answer containing data media should initialize pc.sctp');
+
+promise_test(async (t) => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+
+  assert_equals(pc1.sctp, null, 'RTCSctpTransport must be null');
+
+  const offer = await generateDataChannelOffer(pc2);
+  await Promise.all([pc2.setLocalDescription(offer), pc1.setRemoteDescription(offer)]);
+  const answer = await pc1.createAnswer();
+  await pc1.setLocalDescription(answer);
+
+  validateSctpTransport(pc1.sctp);
+}, 'setLocalDescription() with answer containing data media should initialize pc.sctp');
+
+</script>

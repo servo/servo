@@ -1,22 +1,26 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Base classes to work with IDL callbacks.
 
-use dom::bindings::error::{Error, Fallible, report_pending_exception};
-use dom::bindings::js::{JS, Root};
-use dom::bindings::reflector::DomObject;
-use dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript};
-use dom::bindings::utils::AsCCharPtrPtr;
-use dom::globalscope::GlobalScope;
-use js::jsapi::{Heap, MutableHandleObject};
-use js::jsapi::{IsCallable, JSContext, JSObject, JS_WrapObject, AddRawValueRoot};
-use js::jsapi::{JSCompartment, JS_EnterCompartment, JS_LeaveCompartment, RemoveRawValueRoot};
-use js::jsapi::JSAutoCompartment;
-use js::jsapi::JS_GetProperty;
-use js::jsval::{JSVal, UndefinedValue, ObjectValue};
-use js::rust::Runtime;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
+use crate::dom::bindings::error::{report_pending_exception, Error, Fallible};
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript};
+use crate::dom::bindings::utils::AsCCharPtrPtr;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::window::Window;
+use crate::realms::{enter_realm, InRealm};
+use crate::script_runtime::JSContext;
+use js::jsapi::Heap;
+use js::jsapi::{AddRawValueRoot, IsCallable, JSObject};
+use js::jsapi::{EnterRealm, LeaveRealm, Realm, RemoveRawValueRoot};
+use js::jsval::{JSVal, ObjectValue, UndefinedValue};
+use js::rust::wrappers::{JS_GetProperty, JS_WrapObject};
+use js::rust::{MutableHandleObject, Runtime};
 use std::default::Default;
 use std::ffi::CString;
 use std::mem::drop;
@@ -25,7 +29,7 @@ use std::ptr;
 use std::rc::Rc;
 
 /// The exception handling used for a call.
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum ExceptionHandling {
     /// Report any exception and don't throw it to the caller code.
     Report,
@@ -36,7 +40,7 @@ pub enum ExceptionHandling {
 /// A common base class for representing IDL callback function and
 /// callback interface types.
 #[derive(JSTraceable)]
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 pub struct CallbackObject {
     /// The underlying `JSObject`.
     callback: Heap<*mut JSObject>,
@@ -53,7 +57,7 @@ pub struct CallbackObject {
     ///
     /// ["callback context"]: https://heycam.github.io/webidl/#dfn-callback-context
     /// [sometimes]: https://github.com/whatwg/html/issues/2248
-    incumbent: Option<JS<GlobalScope>>
+    incumbent: Option<Dom<GlobalScope>>,
 }
 
 impl Default for CallbackObject {
@@ -69,7 +73,7 @@ impl CallbackObject {
         CallbackObject {
             callback: Heap::default(),
             permanent_js_root: Heap::default(),
-            incumbent: GlobalScope::incumbent().map(|i| JS::from_ref(&*i)),
+            incumbent: GlobalScope::incumbent().map(|i| Dom::from_ref(&*i)),
         }
     }
 
@@ -78,11 +82,14 @@ impl CallbackObject {
     }
 
     #[allow(unsafe_code)]
-    unsafe fn init(&mut self, cx: *mut JSContext, callback: *mut JSObject) {
+    unsafe fn init(&mut self, cx: JSContext, callback: *mut JSObject) {
         self.callback.set(callback);
         self.permanent_js_root.set(ObjectValue(callback));
-        assert!(AddRawValueRoot(cx, self.permanent_js_root.get_unsafe(),
-                                b"CallbackObject::root\n".as_c_char_ptr()));
+        assert!(AddRawValueRoot(
+            *cx,
+            self.permanent_js_root.get_unsafe(),
+            b"CallbackObject::root\n".as_c_char_ptr()
+        ));
     }
 }
 
@@ -94,7 +101,6 @@ impl Drop for CallbackObject {
             RemoveRawValueRoot(cx, self.permanent_js_root.get_unsafe());
         }
     }
-
 }
 
 impl PartialEq for CallbackObject {
@@ -103,12 +109,11 @@ impl PartialEq for CallbackObject {
     }
 }
 
-
 /// A trait to be implemented by concrete IDL callback function and
 /// callback interface types.
 pub trait CallbackContainer {
     /// Create a new CallbackContainer object for the given `JSObject`.
-    unsafe fn new(cx: *mut JSContext, callback: *mut JSObject) -> Rc<Self>;
+    unsafe fn new(cx: JSContext, callback: *mut JSObject) -> Rc<Self>;
     /// Returns the underlying `CallbackObject`.
     fn callback_holder(&self) -> &CallbackObject;
     /// Returns the underlying `JSObject`.
@@ -120,14 +125,13 @@ pub trait CallbackContainer {
     ///
     /// ["callback context"]: https://heycam.github.io/webidl/#dfn-callback-context
     fn incumbent(&self) -> Option<&GlobalScope> {
-        self.callback_holder().incumbent.as_ref().map(JS::deref)
+        self.callback_holder().incumbent.as_ref().map(Dom::deref)
     }
 }
 
-
 /// A common base class for representing IDL callback function types.
 #[derive(JSTraceable, PartialEq)]
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 pub struct CallbackFunction {
     object: CallbackObject,
 }
@@ -148,17 +152,14 @@ impl CallbackFunction {
 
     /// Initialize the callback function with a value.
     /// Should be called once this object is done moving.
-    pub unsafe fn init(&mut self, cx: *mut JSContext, callback: *mut JSObject) {
+    pub unsafe fn init(&mut self, cx: JSContext, callback: *mut JSObject) {
         self.object.init(cx, callback);
     }
 }
 
-
-
-
 /// A common base class for representing IDL callback interface types.
 #[derive(JSTraceable, PartialEq)]
-#[must_root]
+#[unrooted_must_root_lint::must_root]
 pub struct CallbackInterface {
     object: CallbackObject,
 }
@@ -178,62 +179,60 @@ impl CallbackInterface {
 
     /// Initialize the callback function with a value.
     /// Should be called once this object is done moving.
-    pub unsafe fn init(&mut self, cx: *mut JSContext, callback: *mut JSObject) {
+    pub unsafe fn init(&mut self, cx: JSContext, callback: *mut JSObject) {
         self.object.init(cx, callback);
     }
 
     /// Returns the property with the given `name`, if it is a callable object,
     /// or an error otherwise.
-    pub fn get_callable_property(&self, cx: *mut JSContext, name: &str) -> Fallible<JSVal> {
-        rooted!(in(cx) let mut callable = UndefinedValue());
-        rooted!(in(cx) let obj = self.callback_holder().get());
+    pub fn get_callable_property(&self, cx: JSContext, name: &str) -> Fallible<JSVal> {
+        rooted!(in(*cx) let mut callable = UndefinedValue());
+        rooted!(in(*cx) let obj = self.callback_holder().get());
         unsafe {
             let c_name = CString::new(name).unwrap();
-            if !JS_GetProperty(cx, obj.handle(), c_name.as_ptr(), callable.handle_mut()) {
+            if !JS_GetProperty(*cx, obj.handle(), c_name.as_ptr(), callable.handle_mut()) {
                 return Err(Error::JSFailed);
             }
 
             if !callable.is_object() || !IsCallable(callable.to_object()) {
-                return Err(Error::Type(format!("The value of the {} property is not callable",
-                                               name)));
+                return Err(Error::Type(format!(
+                    "The value of the {} property is not callable",
+                    name
+                )));
             }
         }
         Ok(callable.get())
     }
 }
 
-
-/// Wraps the reflector for `p` into the compartment of `cx`.
-pub fn wrap_call_this_object<T: DomObject>(cx: *mut JSContext,
-                                           p: &T,
-                                           rval: MutableHandleObject) {
+/// Wraps the reflector for `p` into the realm of `cx`.
+pub fn wrap_call_this_object<T: DomObject>(cx: JSContext, p: &T, mut rval: MutableHandleObject) {
     rval.set(p.reflector().get_jsobject().get());
     assert!(!rval.get().is_null());
 
     unsafe {
-        if !JS_WrapObject(cx, rval) {
+        if !JS_WrapObject(*cx, rval) {
             rval.set(ptr::null_mut());
         }
     }
 }
-
 
 /// A class that performs whatever setup we need to safely make a call while
 /// this class is on the stack. After `new` returns, the call is safe to make.
 pub struct CallSetup {
     /// The global for reporting exceptions. This is the global object of the
     /// (possibly wrapped) callback object.
-    exception_global: Root<GlobalScope>,
+    exception_global: DomRoot<GlobalScope>,
     /// The `JSContext` used for the call.
-    cx: *mut JSContext,
-    /// The compartment we were in before the call.
-    old_compartment: *mut JSCompartment,
+    cx: JSContext,
+    /// The realm we were in before the call.
+    old_realm: *mut Realm,
     /// The exception handling used for the call.
     handling: ExceptionHandling,
-    /// https://heycam.github.io/webidl/#es-invoking-callback-functions
+    /// <https://heycam.github.io/webidl/#es-invoking-callback-functions>
     /// steps 8 and 18.2.
     entry_script: Option<AutoEntryScript>,
-    /// https://heycam.github.io/webidl/#es-invoking-callback-functions
+    /// <https://heycam.github.io/webidl/#es-invoking-callback-functions>
     /// steps 9 and 18.1.
     incumbent_script: Option<AutoIncumbentScript>,
 }
@@ -241,10 +240,11 @@ pub struct CallSetup {
 impl CallSetup {
     /// Performs the setup needed to make a call.
     #[allow(unrooted_must_root)]
-    pub fn new<T: CallbackContainer>(callback: &T,
-                                     handling: ExceptionHandling)
-                                     -> CallSetup {
+    pub fn new<T: CallbackContainer>(callback: &T, handling: ExceptionHandling) -> CallSetup {
         let global = unsafe { GlobalScope::from_object(callback.callback()) };
+        if let Some(window) = global.downcast::<Window>() {
+            window.Document().ensure_safe_to_run_script_or_layout();
+        }
         let cx = global.get_cx();
 
         let aes = AutoEntryScript::new(&global);
@@ -252,7 +252,7 @@ impl CallSetup {
         CallSetup {
             exception_global: global,
             cx: cx,
-            old_compartment: unsafe { JS_EnterCompartment(cx, callback.callback()) },
+            old_realm: unsafe { EnterRealm(*cx, callback.callback()) },
             handling: handling,
             entry_script: Some(aes),
             incumbent_script: ais,
@@ -260,7 +260,7 @@ impl CallSetup {
     }
 
     /// Returns the `JSContext` used for the call.
-    pub fn get_context(&self) -> *mut JSContext {
+    pub fn get_context(&self) -> JSContext {
         self.cx
     }
 }
@@ -268,11 +268,10 @@ impl CallSetup {
 impl Drop for CallSetup {
     fn drop(&mut self) {
         unsafe {
-            JS_LeaveCompartment(self.cx, self.old_compartment);
+            LeaveRealm(*self.cx, self.old_realm);
             if self.handling == ExceptionHandling::Report {
-                let _ac = JSAutoCompartment::new(self.cx,
-                                                 self.exception_global.reflector().get_jsobject().get());
-                report_pending_exception(self.cx, true);
+                let ar = enter_realm(&*self.exception_global);
+                report_pending_exception(*self.cx, true, InRealm::Entered(&ar));
             }
             drop(self.incumbent_script.take());
             drop(self.entry_script.take().unwrap());

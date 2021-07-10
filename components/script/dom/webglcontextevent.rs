@@ -1,18 +1,17 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::codegen::Bindings::WebGLContextEventBinding;
-use dom::bindings::codegen::Bindings::WebGLContextEventBinding::WebGLContextEventInit;
-use dom::bindings::codegen::Bindings::WebGLContextEventBinding::WebGLContextEventMethods;
-use dom::bindings::error::Fallible;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
-use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::str::DOMString;
-use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::window::Window;
+use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
+use crate::dom::bindings::codegen::Bindings::WebGLContextEventBinding::WebGLContextEventInit;
+use crate::dom::bindings::codegen::Bindings::WebGLContextEventBinding::WebGLContextEventMethods;
+use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
+use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use servo_atoms::Atom;
 
@@ -42,26 +41,17 @@ impl WebGLContextEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &Window) -> Root<WebGLContextEvent> {
-        // according to https://www.khronos.org/registry/webgl/specs/1.0/#5.15 this is
-        // additional information or the empty string if no additional information is
-        // available.
-        let status_message = DOMString::new();
-        reflect_dom_object(
-                        box WebGLContextEvent::new_inherited(status_message),
-                        window,
-                        WebGLContextEventBinding::Wrap)
-    }
-
-    pub fn new(window: &Window,
-               type_: Atom,
-               bubbles: EventBubbles,
-               cancelable: EventCancelable,
-               status_message: DOMString) -> Root<WebGLContextEvent> {
+    pub fn new(
+        window: &Window,
+        type_: Atom,
+        bubbles: EventBubbles,
+        cancelable: EventCancelable,
+        status_message: DOMString,
+    ) -> DomRoot<WebGLContextEvent> {
         let event = reflect_dom_object(
-                        box WebGLContextEvent::new_inherited(status_message),
-                        window,
-                        WebGLContextEventBinding::Wrap);
+            Box::new(WebGLContextEvent::new_inherited(status_message)),
+            window,
+        );
 
         {
             let parent = event.upcast::<Event>();
@@ -71,9 +61,12 @@ impl WebGLContextEvent {
         event
     }
 
-    pub fn Constructor(window: &Window,
-                       type_: DOMString,
-                       init: &WebGLContextEventInit) -> Fallible<Root<WebGLContextEvent>> {
+    #[allow(non_snake_case)]
+    pub fn Constructor(
+        window: &Window,
+        type_: DOMString,
+        init: &WebGLContextEventInit,
+    ) -> Fallible<DomRoot<WebGLContextEvent>> {
         let status_message = match init.statusMessage.as_ref() {
             Some(message) => message.clone(),
             None => DOMString::new(),
@@ -83,10 +76,12 @@ impl WebGLContextEvent {
 
         let cancelable = EventCancelable::from(init.parent.cancelable);
 
-        Ok(WebGLContextEvent::new(window,
-                                  Atom::from(type_),
-                                  bubbles,
-                                  cancelable,
-                                  status_message))
+        Ok(WebGLContextEvent::new(
+            window,
+            Atom::from(type_),
+            bubbles,
+            cancelable,
+            status_message,
+        ))
     }
 }

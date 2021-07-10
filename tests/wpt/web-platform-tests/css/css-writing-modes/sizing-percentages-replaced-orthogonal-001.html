@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Writing Modes Test: Percentage size on orthogonal replaced elements</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#orthogonal-auto">
+<link rel="match" href="sizing-percentages-replaced-orthogonal-001-ref.html">
+<meta name="assert" content="Checks that orthogonal replaced elements resolve properly their percentage sizes against the expected axis from their containing block.">
+<style>
+.container {
+  display: inline-block;
+  border: solid 5px black;
+  margin: 10px;
+  vertical-align: top;
+  width: 200px;
+  height: 100px;
+  background: red;
+}
+
+img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.horizontalTB { writing-mode: horizontal-tb; }
+.verticalLR { writing-mode: vertical-lr; }
+.verticalRL {  writing-mode: vertical-rl; }
+</style>
+
+<p>The test passes if you see four filled lime rectangles with black border and <strong>no red</strong>.</p>
+
+<div class="container horizontalTB">
+  <img class="verticalLR" src="support/100x100-lime.png" />
+</div>
+
+<div class="container horizontalTB">
+  <img class="verticalRL" src="support/100x100-lime.png" />
+</div>
+
+<div class="container verticalLR">
+  <img class="horizontalTB" src="support/100x100-lime.png" />
+</div>
+
+<div class="container verticalRL">
+  <img class="horizontalTB" src="support/100x100-lime.png" />
+</div>

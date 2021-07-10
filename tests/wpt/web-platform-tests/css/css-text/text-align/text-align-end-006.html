@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8">
+<title>text-align: end, direction: ltr</title>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#text-align-property'>
+<link rel='match' href='reference/text-align-end-ref-006.html'>
+<meta name="assert" content="text-align:end aligns inline-level content to the end edge of the line box – ie. right when direction is horizontal, ltr.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style type='text/css'>
+.test { text-align: end; direction: ltr; }
+/* the CSS below is not part of the test */
+.test, .ref { border: 1px solid orange;  margin: 20px; width: 290px; color: orange; font: 24px/24px Ahem; }
+.ref { position: relative;  height: 72px; }
+#rb1 { position: absolute; top: 0; right: 0; background-color: orange; width: 72px;  height: 72px; }
+#rb2 { position: absolute; top: 0; right: 96px; background-color: orange; width: 72px;  height: 72px; }
+#rb3 { position: absolute; top: 0; right: 192px; background-color: orange; width: 72px;  height: 48px; }
+</style>
+</head>
+<body>
+<div id='instructions'>Test passes if the shading in both orange boxes is identical.</div>
+<div style="direction: rtl;">
+<div class="test">XXX XXX XXX XXX XXX XXX XXX XXX</div>
+<div class="ref"><div id="rb1"></div><div id="rb2"></div><div id="rb3"></div></div>
+</div>
+</body>
+</html>

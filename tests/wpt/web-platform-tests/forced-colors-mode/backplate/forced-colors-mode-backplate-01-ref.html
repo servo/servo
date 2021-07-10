@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>
+  Forced colors mode - backplate reference.
+</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  body {
+    background-image: url("../resources/test-image.jpg");
+    font-family: Ahem;
+    font-size: 10px;
+    forced-color-adjust: none; /* This turns the backplate feature off in
+                                  forced colors mode. The backplate is
+                                  simulated in testing using a Canvas
+                                  background-color behind the text.
+                                */
+    line-height: 10px;
+    text-align: justify;
+    width: 100px;
+  }
+  #a {
+    background-color: Canvas;
+  }
+</style>
+<body>
+  <div id="a">
+    A backplate should be drawn behind the text
+    <br>
+    in forced colors mode
+    <br>
+    (forced-color-adjust is set to auto.)
+  </div>
+  <br><br><br>
+  <div>
+    There should NOT be a backplate drawn behind the text
+    <br>
+    in forced colors mode
+    <br>
+    (forced-color-adjust is set to none.)
+  </div>
+</body>

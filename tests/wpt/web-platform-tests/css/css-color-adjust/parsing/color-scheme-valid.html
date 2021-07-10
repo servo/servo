@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>CSS Color Adjust: parsing color-scheme with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-adjust/#color-scheme-prop">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  test_valid_value("color-scheme", "normal");
+  test_valid_value("color-scheme", "light");
+  test_valid_value("color-scheme", "dark");
+  test_valid_value("color-scheme", "light dark");
+  test_valid_value("color-scheme", "dark light");
+  test_valid_value("color-scheme", "only light");
+  test_valid_value("color-scheme", "light only");
+  test_valid_value("color-scheme", "light light");
+  test_valid_value("color-scheme", "dark dark");
+  test_valid_value("color-scheme", "light purple");
+  test_valid_value("color-scheme", "purple dark interesting");
+  test_valid_value("color-scheme", "none");
+  test_valid_value("color-scheme", "light none");
+  test_valid_value("color-scheme", "inherit");
+  test_valid_value("color-scheme", "initial");
+  test_valid_value("color-scheme", "unset");
+  test_valid_value("color-scheme", "revert");
+  test_valid_value("color-scheme", "only");
+  test_valid_value("color-scheme", "only only");
+  test_valid_value("color-scheme", "only light dark");
+  test_valid_value("color-scheme", "only light light");
+  test_valid_value("color-scheme", "only light purple");
+  test_valid_value("color-scheme", "only none");
+</script>

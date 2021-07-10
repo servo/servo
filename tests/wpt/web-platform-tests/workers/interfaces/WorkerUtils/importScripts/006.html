@@ -1,25 +1,12 @@
-<!--
-var x;
-var y;
-var z;
-try {
-  importScripts('data:text/javascript,x=1',
-                'data:text/javascript,throw 2',
-                'data:text/javascript,z=3');
-} catch(e) {
-  y = e;
-}
-postMessage([x, y, z]);
-/*
--->
 <!doctype html>
 <title>importScripts uncaught exception</title>
+<meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
 <script>
 async_test(function() {
-  var worker = new Worker('#');
+  var worker = new Worker('006.js');
   worker.onmessage = this.step_func(function(e) {
     assert_equals(e.data[0], 1);
     assert_equals(e.data[1], 2);
@@ -28,6 +15,3 @@ async_test(function() {
   });
 });
 </script>
-<!--
-*/
-//-->

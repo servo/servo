@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Clipboard API on detached iframe</title>
+<link rel='help' href='https://w3c.github.io/clipboard-apis/#async-clipboard-api'>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<iframe id="iframe"></iframe>
+<script>
+'use strict';
+
+promise_test(async () => {
+  const iframe = document.getElementById('iframe');
+  const iframeNavigator = iframe.contentWindow.navigator;
+  assert_not_equals(navigator.clipboard, null,
+      "parent frame's clipboard should exist with iframe attached");
+  assert_not_equals(iframeNavigator.clipboard, null,
+      "attached child iframe's clipboard should exist");
+
+  iframe.parentNode.removeChild(iframe);
+  assert_not_equals(navigator.clipboard, null,
+      "parent frame's clipboard should exist with iframe detached");
+  assert_not_equals(iframeNavigator.clipboard, null,
+      "detached child iframe's clipboard should still exist");
+}, 'Verify navigator.clipboard behavior in detached frames');
+</script>

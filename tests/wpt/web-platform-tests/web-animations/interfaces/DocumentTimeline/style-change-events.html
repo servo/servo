@@ -1,0 +1,92 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>DocumentTimeline interface: style change events</title>
+<link rel="help"
+      href="https://drafts.csswg.org/web-animations-1/#model-liveness">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+// NOTE: If more members are added to the DocumentTimeline interface it might be
+// better to rewrite these test in the same style as:
+//
+//  web-animations/interfaces/Animation/style-change-events.html
+//  web-animations/interfaces/KeyframeEffect/style-change-events.html
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  let gotTransition = false;
+  div.addEventListener('transitionrun', () => {
+    gotTransition = true;
+  });
+
+  // Create a covering animation but don't play it yet.
+  const coveringAnimation = new Animation(
+    new KeyframeEffect(div, { opacity: [0, 1] }, 100 * MS_PER_SEC)
+  );
+
+  // Setup transition start point.
+  div.style.transition = 'opacity 100s';
+  getComputedStyle(div).opacity;
+
+  // Update specified style but don't flush style.
+  div.style.opacity = '0.5';
+
+  // Get the currentTime
+  document.timeline.currentTime;
+
+  // Run the covering animation
+  coveringAnimation.play();
+
+  // If getting DocumentTimeline.currentTime produced a style change event it
+  // will trigger a transition. Otherwise, the covering animation will cause
+  // the before-change and after-change styles to be the same such that no
+  // transition is triggered on the next restyle.
+
+  // Wait for a couple of animation frames to give the transitionrun event
+  // a chance to be dispatched.
+  await waitForAnimationFrames(2);
+
+  assert_false(gotTransition, 'A transition should NOT have been triggered');
+}, 'DocumentTimeline.currentTime does NOT trigger a style change event');
+
+promise_test(async t => {
+  const div = createDiv(t);
+
+  let gotTransition = false;
+  div.addEventListener('transitionrun', () => {
+    gotTransition = true;
+  });
+
+  // Create a covering animation but don't play it yet.
+  const coveringAnimation = new Animation(
+    new KeyframeEffect(div, { opacity: [0, 1] }, 100 * MS_PER_SEC)
+  );
+
+  // Setup transition start point.
+  div.style.transition = 'opacity 100s';
+  getComputedStyle(div).opacity;
+
+  // Update specified style but don't flush style.
+  div.style.opacity = '0.5';
+
+  // Create a new DocumentTimeline
+  new DocumentTimeline();
+
+  // Run the covering animation
+  coveringAnimation.play();
+
+  // Wait for a couple of animation frames to give the transitionrun event
+  // a chance to be dispatched.
+  await waitForAnimationFrames(2);
+
+  assert_false(gotTransition, 'A transition should NOT have been triggered');
+}, 'DocumentTimeline constructor does NOT trigger a style change event');
+
+</script>
+</body>
