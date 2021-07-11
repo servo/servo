@@ -19,7 +19,10 @@ use crate::script_runtime::JSContext as SafeJSContext;
 use js::conversions::ToJSValConvertible;
 use js::glue::JS_GetReservedSlot;
 use js::glue::{CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, IsWrapper};
-use js::glue::{CreateRustJSPrincipals, GetRustJSPrincipalsPrivate, JSPrincipalsCallbacks};
+use js::glue::{
+    CreateRustJSPrincipals, DestroyRustJSPrincipals, GetRustJSPrincipalsPrivate,
+    JSPrincipalsCallbacks,
+};
 use js::glue::{UnwrapObjectDynamic, UnwrapObjectStatic, RUST_JSID_TO_INT, RUST_JSID_TO_STRING};
 use js::glue::{
     RUST_FUNCTION_VALUE_TO_JITINFO, RUST_JSID_IS_INT, RUST_JSID_IS_STRING, RUST_JSID_IS_VOID,
@@ -84,7 +87,8 @@ impl ServoJSPrincipal {
 }
 
 pub unsafe extern "C" fn destroy_servo_jsprincipal(principals: *mut JSPrincipals) {
-    (GetRustJSPrincipalsPrivate(principals) as *mut Box<MutableOrigin>).drop_in_place();
+    Box::from_raw(GetRustJSPrincipalsPrivate(principals) as *mut MutableOrigin);
+    DestroyRustJSPrincipals(principals);
 }
 
 const PRINCIPALS_CALLBACKS: JSPrincipalsCallbacks = JSPrincipalsCallbacks {
