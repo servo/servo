@@ -935,7 +935,6 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-frames
     fn Frames(&self) -> DomRoot<WindowProxy> {
-        println!("frames!");
         self.window_proxy()
     }
 
