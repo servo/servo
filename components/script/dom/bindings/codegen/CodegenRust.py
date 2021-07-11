@@ -2911,8 +2911,8 @@ class CGWrapGlobalMethod(CGAbstractMethod):
         values["members"] = "\n".join(members)
 
         return CGGeneric("""\
-let origin = object.origin().clone();
 let raw = Root::new(MaybeUnreflectedDom::from_box(object));
+let origin = (*raw.as_ptr()).origin();  // `MutableOrigin` or `&MutableOrigin`
 
 rooted!(in(*cx) let mut obj = ptr::null_mut::<JSObject>());
 create_global_object(
