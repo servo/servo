@@ -9,7 +9,7 @@ use crate::dom::bindings::codegen::PrototypeList;
 use crate::dom::bindings::constant::{define_constants, ConstantSpec};
 use crate::dom::bindings::conversions::{get_dom_class, DOM_OBJECT_SLOT};
 use crate::dom::bindings::guard::Guard;
-use crate::dom::bindings::utils::{ProtoOrIfaceArray, DOM_PROTOTYPE_SLOT};
+use crate::dom::bindings::utils::{ProtoOrIfaceArray, ServoJSPrincipal, DOM_PROTOTYPE_SLOT};
 use crate::dom::window::Window;
 use crate::script_runtime::JSContext as SafeJSContext;
 use js::error::throw_type_error;
@@ -149,14 +149,12 @@ pub unsafe fn create_global_object(
     options.creationOptions_.streams_ = true;
     select_compartment(cx, &mut options);
 
-    let origin = Box::new(origin.clone());
-    let mut principal =
-        CreateRustJSPrincipal(Box::into_raw(origin) as *const ::libc::c_void, None, None);
+    let principal = ServoJSPrincipal::new(origin);
 
     rval.set(JS_NewGlobalObject(
         *cx,
         class,
-        principal,
+        principal.0,
         OnNewGlobalHookOption::DontFireOnNewGlobalHook,
         &*options,
     ));

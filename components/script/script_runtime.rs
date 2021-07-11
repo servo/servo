@@ -61,7 +61,7 @@ use js::jsapi::{
     JSJitCompilerOption, JS_SetOffthreadIonCompilationEnabled, JS_SetParallelParsingEnabled,
 };
 use js::jsapi::{JSObject, PromiseRejectionHandlingState, SetPreserveWrapperCallbacks};
-use js::jsapi::{JSSecurityCallbacks, JS_SetSecurityCallbacks};
+use js::jsapi::{JSSecurityCallbacks, JS_InitDestroyPrincipalsCallback, JS_SetSecurityCallbacks};
 use js::jsapi::{SetJobQueue, SetProcessBuildIdOp, SetPromiseRejectionTrackerCallback};
 use js::jsval::UndefinedValue;
 use js::panic::wrap_panic;
@@ -474,6 +474,8 @@ unsafe fn new_rt_and_cx_with_parent(
     JS_AddExtraGCRootsTracer(cx, Some(trace_rust_roots), ptr::null_mut());
 
     JS_SetSecurityCallbacks(cx, &SECURITY_CALLBACKS);
+
+    JS_InitDestroyPrincipalsCallback(cx, Some(utils::destroy_servo_jsprincipal));
 
     // Needed for debug assertions about whether GC is running.
     if cfg!(debug_assertions) {

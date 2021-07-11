@@ -29,7 +29,10 @@ use js::glue::{
     CreateCrossOriginWrapper, GetCrossCompartmentWrapper, GetOpaqueWrapper, GetSecurityWrapper,
     JS_GetReservedSlot, WrapperNew,
 };
-use js::glue::{CreateWrapperProxyHandler, GetPrincipalOrigin, UncheckedUnwrapObject};
+use js::glue::{
+    CreateRustJSPrincipals, CreateWrapperProxyHandler, GetRustJSPrincipalsPrivate,
+    JSPrincipalsCallbacks, UncheckedUnwrapObject,
+};
 use js::glue::{UnwrapObjectDynamic, UnwrapObjectStatic, RUST_JSID_TO_INT, RUST_JSID_TO_STRING};
 use js::glue::{
     RUST_FUNCTION_VALUE_TO_JITINFO, RUST_JSID_IS_INT, RUST_JSID_IS_STRING, RUST_JSID_IS_VOID,
@@ -83,17 +86,32 @@ impl MallocSizeOf for WindowProxyHandler {
 }
 
 //TODO make principal.rs
-pub struct ServoJSPrincipal(*mut JSPrincipals);
+// TODO: RAII ref-counting
+pub struct ServoJSPrincipal(pub *mut JSPrincipals);
 
 impl ServoJSPrincipal {
+    pub fn new(origin: &MutableOrigin) -> Self {
+        let private: Box<MutableOrigin> = Box::new(origin.clone());
+        Self(unsafe { CreateRustJSPrincipals(&PRINCIPALS_CALLBACKS, Box::into_raw(private) as _) })
+    }
+
     pub unsafe fn origin(&self) -> MutableOrigin {
-        let origin = GetPrincipalOrigin(self.0) as *mut MutableOrigin;
+        let origin = GetRustJSPrincipalsPrivate(self.0) as *mut MutableOrigin;
         (*origin).clone()
     }
 }
 
-pub unsafe fn destroy_servo_jsprincipal(principal: &mut ServoJSPrincipal) {
-    let origin = GetPrincipalOrigin(principal.0) as *mut Box<MutableOrigin>;
+pub unsafe extern "C" fn destroy_servo_jsprincipal(principals: *mut JSPrincipals) {
+    (GetRustJSPrincipalsPrivate(principals) as *mut Box<MutableOrigin>).drop_in_place();
+}
+
+const PRINCIPALS_CALLBACKS: JSPrincipalsCallbacks = JSPrincipalsCallbacks {
+    write: None,
+    isSystemOrAddonPrincipal: Some(principals_is_system_or_addon_principal),
+};
+
+unsafe extern "C" fn principals_is_system_or_addon_principal(_: *mut JSPrincipals) -> bool {
+    false
 }
 
 #[derive(Debug, PartialEq)]
