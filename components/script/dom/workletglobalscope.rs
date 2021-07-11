@@ -84,6 +84,10 @@ impl WorkletGlobalScope {
         }
     }
 
+    pub fn origin(&self) -> &MutableOrigin {
+        self.globalscope.origin()
+    }
+
     /// Get the JS context.
     pub fn get_cx(&self) -> JSContext {
         self.globalscope.get_cx()

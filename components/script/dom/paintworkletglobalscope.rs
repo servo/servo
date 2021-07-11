@@ -52,6 +52,7 @@ use script_traits::Painter;
 use script_traits::{DrawAPaintImageResult, PaintWorkletError};
 use servo_atoms::Atom;
 use servo_config::pref;
+use servo_url::MutableOrigin;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::collections::hash_map::Entry;
@@ -134,6 +135,10 @@ impl PaintWorkletGlobalScope {
 
     pub fn image_cache(&self) -> Arc<dyn ImageCache> {
         self.image_cache.clone()
+    }
+
+    pub fn origin(&self) -> &MutableOrigin {
+        self.worklet_global.origin()
     }
 
     pub fn perform_a_worklet_task(&self, task: PaintWorkletTask) {
