@@ -4,57 +4,40 @@
 
 //! Various utilities to glue JavaScript and the DOM implementation together.
 
-use crate::dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionBinding::DOMExceptionMethods;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::InterfaceObjectMap;
 use crate::dom::bindings::codegen::PrototypeList;
 use crate::dom::bindings::codegen::PrototypeList::{MAX_PROTO_CHAIN_LENGTH, PROTO_OR_IFACE_LENGTH};
 use crate::dom::bindings::conversions::{
     jsstring_to_str, private_from_proto_check, PrototypeCheck,
 };
-use crate::dom::bindings::error::{throw_dom_exception, throw_invalid_this, Error};
+use crate::dom::bindings::error::throw_invalid_this;
 use crate::dom::bindings::inheritance::TopTypeId;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::trace_object;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::windowproxy;
-use crate::realms::AlreadyInRealm;
-use crate::realms::InRealm;
 use crate::script_runtime::JSContext as SafeJSContext;
 use js::conversions::ToJSValConvertible;
-use js::glue::SetIsFrameIdCallback;
-use js::glue::SetThrowDOMExceptionCallback;
+use js::glue::JS_GetReservedSlot;
 use js::glue::{CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, IsWrapper};
-use js::glue::{
-    CreateCrossOriginWrapper, GetCrossCompartmentWrapper, GetOpaqueWrapper, GetSecurityWrapper,
-    JS_GetReservedSlot, WrapperNew,
-};
-use js::glue::{
-    CreateRustJSPrincipals, CreateWrapperProxyHandler, GetRustJSPrincipalsPrivate,
-    JSPrincipalsCallbacks, UncheckedUnwrapObject,
-};
+use js::glue::{CreateRustJSPrincipals, GetRustJSPrincipalsPrivate, JSPrincipalsCallbacks};
 use js::glue::{UnwrapObjectDynamic, UnwrapObjectStatic, RUST_JSID_TO_INT, RUST_JSID_TO_STRING};
 use js::glue::{
     RUST_FUNCTION_VALUE_TO_JITINFO, RUST_JSID_IS_INT, RUST_JSID_IS_STRING, RUST_JSID_IS_VOID,
 };
-use js::jsapi::jsid;
 use js::jsapi::HandleId as RawHandleId;
 use js::jsapi::HandleObject as RawHandleObject;
+use js::jsapi::JSPrincipals;
 use js::jsapi::MutableHandleIdVector as RawMutableHandleIdVector;
-use js::jsapi::MutableHandleObject as RawMutableHandleObject;
-use js::jsapi::RootedId;
 use js::jsapi::{AtomToLinearString, GetLinearStringCharAt, GetLinearStringLength};
 use js::jsapi::{CallArgs, DOMCallbacks, GetNonCCWObjectGlobal};
-use js::jsapi::{Heap, JSAutoRealm, JSContext, JS_FreezeObject};
+use js::jsapi::{Heap, JSContext, JS_FreezeObject};
 use js::jsapi::{JSAtom, JS_IsExceptionPending, JS_IsGlobalObject};
-use js::jsapi::{JSJitInfo, JSObject, JSTracer, JSWrapObjectCallbacks};
-use js::jsapi::{JSPrincipals, JS_GetClass, JS_GetCompartmentPrincipals};
+use js::jsapi::{JSJitInfo, JSObject, JSTracer};
 use js::jsapi::{
     JS_DeprecatedStringHasLatin1Chars, JS_ResolveStandardClass, ObjectOpResult, StringIsArrayIndex,
 };
 use js::jsapi::{JS_EnumerateStandardClasses, JS_GetLatin1StringCharsAndLength};
 use js::jsval::{JSVal, UndefinedValue};
-use js::rust::is_window;
 use js::rust::wrappers::JS_DeletePropertyById;
 use js::rust::wrappers::JS_ForwardGetPropertyTo;
 use js::rust::wrappers::JS_GetProperty;
@@ -62,14 +45,13 @@ use js::rust::wrappers::JS_GetPrototype;
 use js::rust::wrappers::JS_HasProperty;
 use js::rust::wrappers::JS_HasPropertyById;
 use js::rust::wrappers::JS_SetProperty;
-use js::rust::{get_context_compartment, get_object_compartment};
-use js::rust::{get_object_class, is_dom_class, GCMethods, ToString, ToWindowProxyIfWindow};
+use js::rust::{get_object_class, is_dom_class, GCMethods, ToString};
 use js::rust::{Handle, HandleId, HandleObject, HandleValue, MutableHandleValue};
 use js::typedarray::{CreateWith, Float32Array};
 use js::JS_CALLEE;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use servo_url::MutableOrigin;
-use std::ffi::{CStr, CString};
+use std::ffi::CString;
 use std::os::raw::{c_char, c_void};
 use std::ptr;
 use std::slice;
@@ -114,70 +96,6 @@ unsafe extern "C" fn principals_is_system_or_addon_principal(_: *mut JSPrincipal
     false
 }
 
-#[derive(Debug, PartialEq)]
-enum WrapperType {
-    CrossCompartment,
-    CrossOrigin,
-    Opaque,
-}
-
-/* this is duplicate code. there's some in C in jsglue.cpp.
- * TODO decide what to do about this
- */
-#[derive(Debug, PartialEq)]
-enum CrossOriginObjectType {
-    CrossOriginWindow,
-    CrossOriginLocation,
-    CrossOriginOpaque,
-}
-
-unsafe fn identify_cross_origin_object(obj: RawHandleObject) -> CrossOriginObjectType {
-    let obj = UncheckedUnwrapObject(obj.get(), /* stopAtWindowProxy = */ 0);
-    let obj_class = JS_GetClass(obj);
-    let name = str::from_utf8(CStr::from_ptr((*obj_class).name).to_bytes())
-        .unwrap()
-        .to_owned();
-    match &*name {
-        "Location" => CrossOriginObjectType::CrossOriginLocation,
-        "Window" => CrossOriginObjectType::CrossOriginWindow,
-        _ => CrossOriginObjectType::CrossOriginOpaque,
-    }
-}
-
-unsafe fn target_subsumes_obj(cx: *mut JSContext, obj: RawHandleObject) -> bool {
-    //step 1 get compartment
-    let obj_c = get_object_compartment(obj.get());
-    let ctx_c = get_context_compartment(cx);
-
-    //step 2 get principals
-    let obj_p = JS_GetCompartmentPrincipals(obj_c);
-    let ctx_p = JS_GetCompartmentPrincipals(ctx_c);
-
-    //TODO determine what subsumes check is sufficient
-    subsumes(obj_p, ctx_p)
-    //step 3 check document.domain
-
-    //step 4
-
-    //step 5 if nested, get base uri
-
-    //step 6 compare schemes. if files, return false unless identical
-
-    //step 7 compare hosts
-
-    //step 8 compare ports
-    //false
-}
-
-unsafe fn get_opaque_wrapper() -> *const ::libc::c_void {
-    //GetSecurityWrapper()
-    GetOpaqueWrapper()
-}
-
-unsafe fn get_cross_origin_wrapper() -> *const ::libc::c_void {
-    CreateCrossOriginWrapper()
-}
-
 //TODO is same_origin_domain equivalent to subsumes for our purposes
 pub unsafe extern "C" fn subsumes(obj: *mut JSPrincipals, other: *mut JSPrincipals) -> bool {
     let obj = &ServoJSPrincipal(obj);
@@ -185,19 +103,6 @@ pub unsafe extern "C" fn subsumes(obj: *mut JSPrincipals, other: *mut JSPrincipa
     let obj_origin = obj.origin();
     let other_origin = other.origin();
     obj_origin.same_origin_domain(&other_origin)
-}
-
-unsafe fn select_wrapper(cx: *mut JSContext, obj: RawHandleObject) -> *const libc::c_void {
-    let security_wrapper = !target_subsumes_obj(cx, obj);
-    if !security_wrapper {
-        return GetCrossCompartmentWrapper();
-    };
-
-    if identify_cross_origin_object(obj) != CrossOriginObjectType::CrossOriginOpaque {
-        return get_cross_origin_wrapper();
-    };
-
-    get_opaque_wrapper()
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -610,71 +515,6 @@ pub unsafe extern "C" fn resolve_global(
     }
     true
 }
-
-unsafe extern "C" fn wrap(
-    cx: *mut JSContext,
-    _existing: RawHandleObject,
-    obj: RawHandleObject,
-) -> *mut JSObject {
-    // FIXME terrible idea. need security wrappers
-    // https://github.com/servo/servo/issues/2382
-    let wrapper = select_wrapper(cx, obj);
-    WrapperNew(cx, obj, wrapper, ptr::null(), false)
-}
-
-unsafe extern "C" fn throw_dom_exception_callback(cx: *mut JSContext) {
-    //TODO it might not always be a SecurityError?
-    let cx = SafeJSContext::from_ptr(cx);
-    let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
-    throw_dom_exception(
-        cx,
-        &GlobalScope::from_context(*cx, InRealm::in_realm(&in_realm_proof)),
-        Error::Security,
-    );
-}
-
-unsafe extern "C" fn is_frame_id(cx: *mut JSContext, obj: *mut JSObject, id_arg: jsid) -> bool {
-    // println!("is frame id");
-    /*if IsWrapper(obj) {
-        return false;
-    }
-    //let id = RootedId{_base: cx, ptr: idArg};
-
-    //will this work for window and dissimilaroriginwindow? probs not
-    if !is_window(obj) {
-        return false;
-    }
-    let win = obj as Window;
-
-    let col = win.Frames();
-    println!("{:?}", col);
-    //let clasp = get_object_class(obj);
-    //let name = str::from_utf8(CStr::from_ptr((*clasp).name).to_bytes()).unwrap().to_owned();
-    //println!("{:?}", name);*/
-    false
-}
-
-unsafe extern "C" fn pre_wrap(
-    cx: *mut JSContext,
-    _scope: RawHandleObject,
-    _orig_obj: RawHandleObject,
-    obj: RawHandleObject,
-    _object_passed_to_wrap: RawHandleObject,
-    rval: RawMutableHandleObject,
-) {
-    SetThrowDOMExceptionCallback(Some(throw_dom_exception_callback));
-    SetIsFrameIdCallback(Some(is_frame_id));
-    let _ac = JSAutoRealm::new(cx, obj.get());
-    let obj = ToWindowProxyIfWindow(obj.get());
-    assert!(!obj.is_null());
-    rval.set(obj)
-}
-
-/// Callback table for use with JS_SetWrapObjectCallbacks
-pub static WRAP_CALLBACKS: JSWrapObjectCallbacks = JSWrapObjectCallbacks {
-    wrap: Some(wrap),
-    preWrap: Some(pre_wrap),
-};
 
 /// Deletes the property `id` from `object`.
 pub unsafe fn delete_property_by_id(
