@@ -98,8 +98,8 @@ static JOB_QUEUE_TRAPS: JobQueueTraps = JobQueueTraps {
     empty: Some(empty),
 };
 
-//TODO contentsecuritypolicy
 static SECURITY_CALLBACKS: JSSecurityCallbacks = JSSecurityCallbacks {
+    // TODO: Content Security Policy <https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP>
     contentSecurityPolicyAllows: None,
     subsumes: Some(utils::subsumes),
 };
