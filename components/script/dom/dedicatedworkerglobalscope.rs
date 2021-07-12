@@ -464,7 +464,7 @@ impl DedicatedWorkerGlobalScope {
                     .mem_profiler_chan()
                     .run_with_memory_reporting(
                         || {
-                            // Step 29, Run the responsible event loop specified
+                            // Step 27, Run the responsible event loop specified
                             // by inside settings until it is destroyed.
                             // The worker processing model remains on this step
                             // until the event loop is destroyed,
