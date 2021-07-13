@@ -2912,7 +2912,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
 
         return CGGeneric("""\
 let raw = Root::new(MaybeUnreflectedDom::from_box(object));
-let origin = (*raw.as_ptr()).origin();  // `MutableOrigin` or `&MutableOrigin`
+let origin = (*raw.as_ptr()).upcast::<GlobalScope>().origin();
 
 rooted!(in(*cx) let mut obj = ptr::null_mut::<JSObject>());
 create_global_object(
@@ -2921,7 +2921,7 @@ create_global_object(
     raw.as_ptr() as *const %(concreteType)s as *const libc::c_void,
     _trace,
     obj.handle_mut(),
-    &origin);
+    origin);
 assert!(!obj.is_null());
 
 let root = raw.reflect_with(obj.get());
