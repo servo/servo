@@ -155,7 +155,7 @@ pub unsafe fn create_global_object(
     rval.set(JS_NewGlobalObject(
         *cx,
         class,
-        principal.0,
+        principal.as_raw(),
         OnNewGlobalHookOption::DontFireOnNewGlobalHook,
         &*options,
     ));
