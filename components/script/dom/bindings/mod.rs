@@ -145,6 +145,7 @@ pub mod interface;
 pub mod iterable;
 pub mod namespace;
 pub mod num;
+pub mod principals;
 pub mod proxyhandler;
 pub mod record;
 pub mod refcounted;

@@ -19,17 +19,12 @@ use crate::script_runtime::JSContext as SafeJSContext;
 use js::conversions::ToJSValConvertible;
 use js::glue::JS_GetReservedSlot;
 use js::glue::{CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, IsWrapper};
-use js::glue::{
-    CreateRustJSPrincipals, DestroyRustJSPrincipals, GetRustJSPrincipalsPrivate,
-    JSPrincipalsCallbacks,
-};
 use js::glue::{UnwrapObjectDynamic, UnwrapObjectStatic, RUST_JSID_TO_INT, RUST_JSID_TO_STRING};
 use js::glue::{
     RUST_FUNCTION_VALUE_TO_JITINFO, RUST_JSID_IS_INT, RUST_JSID_IS_STRING, RUST_JSID_IS_VOID,
 };
 use js::jsapi::HandleId as RawHandleId;
 use js::jsapi::HandleObject as RawHandleObject;
-use js::jsapi::JSPrincipals;
 use js::jsapi::MutableHandleIdVector as RawMutableHandleIdVector;
 use js::jsapi::{AtomToLinearString, GetLinearStringCharAt, GetLinearStringLength};
 use js::jsapi::{CallArgs, DOMCallbacks, GetNonCCWObjectGlobal};
@@ -53,7 +48,6 @@ use js::rust::{Handle, HandleId, HandleObject, HandleValue, MutableHandleValue};
 use js::typedarray::{CreateWith, Float32Array};
 use js::JS_CALLEE;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use servo_url::MutableOrigin;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_void};
 use std::ptr;
@@ -68,45 +62,6 @@ impl MallocSizeOf for WindowProxyHandler {
         // FIXME(#6907) this is a pointer to memory allocated by `new` in NewProxyHandler in rust-mozjs.
         0
     }
-}
-
-//TODO make principal.rs
-// TODO: RAII ref-counting
-pub struct ServoJSPrincipal(pub *mut JSPrincipals);
-
-impl ServoJSPrincipal {
-    pub fn new(origin: &MutableOrigin) -> Self {
-        let private: Box<MutableOrigin> = Box::new(origin.clone());
-        Self(unsafe { CreateRustJSPrincipals(&PRINCIPALS_CALLBACKS, Box::into_raw(private) as _) })
-    }
-
-    pub unsafe fn origin(&self) -> MutableOrigin {
-        let origin = GetRustJSPrincipalsPrivate(self.0) as *mut MutableOrigin;
-        (*origin).clone()
-    }
-}
-
-pub unsafe extern "C" fn destroy_servo_jsprincipal(principals: *mut JSPrincipals) {
-    Box::from_raw(GetRustJSPrincipalsPrivate(principals) as *mut MutableOrigin);
-    DestroyRustJSPrincipals(principals);
-}
-
-const PRINCIPALS_CALLBACKS: JSPrincipalsCallbacks = JSPrincipalsCallbacks {
-    write: None,
-    isSystemOrAddonPrincipal: Some(principals_is_system_or_addon_principal),
-};
-
-unsafe extern "C" fn principals_is_system_or_addon_principal(_: *mut JSPrincipals) -> bool {
-    false
-}
-
-//TODO is same_origin_domain equivalent to subsumes for our purposes
-pub unsafe extern "C" fn subsumes(obj: *mut JSPrincipals, other: *mut JSPrincipals) -> bool {
-    let obj = ServoJSPrincipal(obj);
-    let other = ServoJSPrincipal(other);
-    let obj_origin = obj.origin();
-    let other_origin = other.origin();
-    obj_origin.same_origin_domain(&other_origin)
 }
 
 #[derive(JSTraceable, MallocSizeOf)]

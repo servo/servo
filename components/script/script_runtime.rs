@@ -16,13 +16,14 @@ use crate::dom::bindings::conversions::private_from_object;
 use crate::dom::bindings::conversions::root_from_handleobject;
 use crate::dom::bindings::error::{throw_dom_exception, Error};
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::principals;
 use crate::dom::bindings::refcounted::{trace_refcounted_objects, LiveDOMReferences};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::trace_roots;
 use crate::dom::bindings::settings_stack;
 use crate::dom::bindings::trace::{trace_traceables, JSTraceable};
-use crate::dom::bindings::utils::{self, DOM_CALLBACKS};
+use crate::dom::bindings::utils::DOM_CALLBACKS;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -101,7 +102,7 @@ static JOB_QUEUE_TRAPS: JobQueueTraps = JobQueueTraps {
 static SECURITY_CALLBACKS: JSSecurityCallbacks = JSSecurityCallbacks {
     // TODO: Content Security Policy <https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP>
     contentSecurityPolicyAllows: None,
-    subsumes: Some(utils::subsumes),
+    subsumes: Some(principals::subsumes),
 };
 
 /// Common messages used to control the event loops in both the script and the worker
@@ -475,7 +476,7 @@ unsafe fn new_rt_and_cx_with_parent(
 
     JS_SetSecurityCallbacks(cx, &SECURITY_CALLBACKS);
 
-    JS_InitDestroyPrincipalsCallback(cx, Some(utils::destroy_servo_jsprincipal));
+    JS_InitDestroyPrincipalsCallback(cx, Some(principals::destroy_servo_jsprincipal));
 
     // Needed for debug assertions about whether GC is running.
     if cfg!(debug_assertions) {
