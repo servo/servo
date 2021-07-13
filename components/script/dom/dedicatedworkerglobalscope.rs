@@ -53,7 +53,7 @@ use net_traits::IpcSend;
 use parking_lot::Mutex;
 use script_traits::{WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use servo_rand::random;
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, ServoUrl};
 use std::mem::replace;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
@@ -310,7 +310,7 @@ impl DedicatedWorkerGlobalScope {
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#run-a-worker
     pub fn run_worker_scope(
-        init: WorkerGlobalScopeInit,
+        mut init: WorkerGlobalScopeInit,
         worker_url: ServoUrl,
         from_devtools_receiver: IpcReceiver<DevtoolScriptControlMsg>,
         worker: TrustedWorkerAddress,
@@ -386,6 +386,17 @@ impl DedicatedWorkerGlobalScope {
                     from_devtools_receiver,
                     devtools_mpsc_chan,
                 );
+
+                // Step 8 "Set up a worker environment settings object [...]"
+                //
+                // <https://html.spec.whatwg.org/multipage/workers.html#script-settings-for-workers>
+                //
+                // > The origin: Return a unique opaque origin if `worker global
+                // > scope`'s url's scheme is "data", and `inherited origin`
+                // > otherwise.
+                if worker_url.scheme() == "data" {
+                    init.origin = ImmutableOrigin::new_opaque();
+                }
 
                 let global = DedicatedWorkerGlobalScope::new(
                     init,
