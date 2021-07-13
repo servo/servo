@@ -389,7 +389,7 @@ impl DedicatedWorkerGlobalScope {
 
                 // Step 8 "Set up a worker environment settings object [...]"
                 //
-                // <https://html.spec.whatwg.org/multipage/workers.html#script-settings-for-workers>
+                // <https://html.spec.whatwg.org/multipage/#script-settings-for-workers>
                 //
                 // > The origin: Return a unique opaque origin if `worker global
                 // > scope`'s url's scheme is "data", and `inherited origin`
