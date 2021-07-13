@@ -6,9 +6,9 @@ use js::jsapi::JSPrincipals;
 use servo_url::MutableOrigin;
 
 // TODO: RAII ref-counting
-pub struct ServoJSPrincipal(pub *mut JSPrincipals);
+pub struct ServoJSPrincipals(pub *mut JSPrincipals);
 
-impl ServoJSPrincipal {
+impl ServoJSPrincipals {
     pub fn new(origin: &MutableOrigin) -> Self {
         let private: Box<MutableOrigin> = Box::new(origin.clone());
         Self(unsafe { CreateRustJSPrincipals(&PRINCIPALS_CALLBACKS, Box::into_raw(private) as _) })
@@ -36,8 +36,8 @@ unsafe extern "C" fn principals_is_system_or_addon_principal(_: *mut JSPrincipal
 
 //TODO is same_origin_domain equivalent to subsumes for our purposes
 pub unsafe extern "C" fn subsumes(obj: *mut JSPrincipals, other: *mut JSPrincipals) -> bool {
-    let obj = ServoJSPrincipal(obj);
-    let other = ServoJSPrincipal(other);
+    let obj = ServoJSPrincipals(obj);
+    let other = ServoJSPrincipals(other);
     let obj_origin = obj.origin();
     let other_origin = other.origin();
     obj_origin.same_origin_domain(&other_origin)
