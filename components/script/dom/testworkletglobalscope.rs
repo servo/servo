@@ -15,7 +15,7 @@ use crossbeam_channel::Sender;
 use dom_struct::dom_struct;
 use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
-use servo_url::{MutableOrigin, ServoUrl};
+use servo_url::ServoUrl;
 use std::collections::HashMap;
 
 // check-tidy: no specs after this line
@@ -51,10 +51,6 @@ impl TestWorkletGlobalScope {
             lookup_table: Default::default(),
         });
         unsafe { TestWorkletGlobalScopeBinding::Wrap(JSContext::from_ptr(runtime.cx()), global) }
-    }
-
-    pub fn origin(&self) -> &MutableOrigin {
-        self.worklet_global.origin()
     }
 
     pub fn perform_a_worklet_task(&self, task: TestWorkletTask) {

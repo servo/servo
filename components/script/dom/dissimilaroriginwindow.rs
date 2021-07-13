@@ -20,7 +20,7 @@ use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use msg::constellation_msg::PipelineId;
 use script_traits::{ScriptMsg, StructuredSerializedData};
-use servo_url::{MutableOrigin, ServoUrl};
+use servo_url::ServoUrl;
 
 /// Represents a dissimilar-origin `Window` that exists in another script thread.
 ///
@@ -194,10 +194,6 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
 }
 
 impl DissimilarOriginWindow {
-    pub fn origin(&self) -> &MutableOrigin {
-        self.globalscope.origin()
-    }
-
     /// https://html.spec.whatwg.org/multipage/#window-post-message-steps
     fn post_message_impl(
         &self,
