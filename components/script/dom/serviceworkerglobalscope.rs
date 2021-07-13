@@ -43,7 +43,7 @@ use parking_lot::Mutex;
 use script_traits::{ScopeThings, ServiceWorkerMsg, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use servo_config::pref;
 use servo_rand::random;
-use servo_url::{MutableOrigin, ServoUrl};
+use servo_url::ServoUrl;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::thread::{self, JoinHandle};
@@ -277,10 +277,6 @@ impl ServiceWorkerGlobalScope {
             closing,
         ));
         unsafe { ServiceWorkerGlobalScopeBinding::Wrap(SafeJSContext::from_ptr(cx), scope) }
-    }
-
-    pub fn origin(&self) -> MutableOrigin {
-        MutableOrigin::new(self.scope_url.origin())
     }
 
     #[allow(unsafe_code)]

@@ -53,7 +53,7 @@ use net_traits::IpcSend;
 use parking_lot::Mutex;
 use script_traits::{WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use servo_rand::random;
-use servo_url::{MutableOrigin, ServoUrl};
+use servo_url::ServoUrl;
 use std::mem::replace;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
@@ -305,10 +305,6 @@ impl DedicatedWorkerGlobalScope {
             control_receiver,
         ));
         unsafe { DedicatedWorkerGlobalScopeBinding::Wrap(SafeJSContext::from_ptr(cx), scope) }
-    }
-
-    pub fn origin(&self) -> MutableOrigin {
-        MutableOrigin::new(self.workerglobalscope.get_url().origin())
     }
 
     #[allow(unsafe_code)]
