@@ -1656,9 +1656,14 @@ class MethodDefiner(PropertyDefiner):
     """
     A class for defining methods on a prototype object.
     """
-    def __init__(self, descriptor, name, static, unforgeable):
+    def __init__(self, descriptor, name, static, unforgeable, crossorigin=False):
         assert not (static and unforgeable)
+        assert not (static and crossorigin)
+        assert not (unforgeable and crossorigin)
         PropertyDefiner.__init__(self, descriptor, name)
+
+        # TODO: Separate the `(static, unforgeable, crossorigin) = (False, False, True)` case
+        #       to a separate class or something.
 
         # FIXME https://bugzilla.mozilla.org/show_bug.cgi?id=772822
         #       We should be able to check for special operations without an
@@ -1668,14 +1673,15 @@ class MethodDefiner(PropertyDefiner):
         if not descriptor.interface.isCallback() or static:
             methods = [m for m in descriptor.interface.members if
                        m.isMethod() and m.isStatic() == static
+                       and (bool(m.getExtendedAttribute("CrossOriginCallable")) or not crossorigin)
                        and not m.isIdentifierLess()
-                       and MemberIsUnforgeable(m, descriptor) == unforgeable]
+                       and (MemberIsUnforgeable(m, descriptor) == unforgeable or crossorigin)]
         else:
             methods = []
         self.regular = [{"name": m.identifier.name,
                          "methodInfo": not m.isStatic(),
                          "length": methodLength(m),
-                         "flags": "JSPROP_ENUMERATE",
+                         "flags": "JSPROP_READONLY" if crossorigin else "JSPROP_ENUMERATE",
                          "condition": PropertyDefiner.getControllingCondition(m, descriptor)}
                         for m in methods]
 
@@ -1693,6 +1699,7 @@ class MethodDefiner(PropertyDefiner):
         # neither.
         if (not static
             and not unforgeable
+            and not crossorigin
             and descriptor.supportsIndexedProperties()):  # noqa
             if hasIterator(methods, self.regular):  # noqa
                 raise TypeError("Cannot have indexed getter/attr on "
@@ -1709,7 +1716,7 @@ class MethodDefiner(PropertyDefiner):
 
         # Generate the keys/values/entries aliases for value iterables.
         maplikeOrSetlikeOrIterable = descriptor.interface.maplikeOrSetlikeOrIterable
-        if (not static and not unforgeable
+        if (not static and not unforgeable and not crossorigin
                 and maplikeOrSetlikeOrIterable
                 and maplikeOrSetlikeOrIterable.isIterable()
                 and maplikeOrSetlikeOrIterable.isValueIterator()):
@@ -1754,7 +1761,7 @@ class MethodDefiner(PropertyDefiner):
             })
 
         isUnforgeableInterface = bool(descriptor.interface.getExtendedAttribute("Unforgeable"))
-        if not static and unforgeable == isUnforgeableInterface:
+        if not static and unforgeable == isUnforgeableInterface and not crossorigin:
             stringifier = descriptor.operations['Stringifier']
             if stringifier:
                 self.regular.append({
@@ -1765,6 +1772,7 @@ class MethodDefiner(PropertyDefiner):
                     "condition": PropertyDefiner.getControllingCondition(stringifier, descriptor)
                 })
         self.unforgeable = unforgeable
+        self.crossorigin = crossorigin
 
     def generateArray(self, array, name):
         if len(array) == 0:
@@ -1796,36 +1804,59 @@ class MethodDefiner(PropertyDefiner):
                     jitinfo = "ptr::null()"
                     accessor = 'Some(%s)' % m.get("nativeName", m["name"])
             if m["name"].startswith("@@"):
+                assert not self.crossorigin
                 name = 'JSPropertySpec_Name { symbol_: SymbolCode::%s as usize + 1 }' % m["name"][2:]
             else:
                 name = ('JSPropertySpec_Name { string_: %s as *const u8 as *const libc::c_char }'
                         % str_to_const_array(m["name"]))
             return (name, accessor, jitinfo, m["length"], flags, selfHostedName)
 
-        return self.generateGuardedArray(
-            array, name,
+        specTemplate = (
             '    JSFunctionSpec {\n'
             '        name: %s,\n'
             '        call: JSNativeWrapper { op: %s, info: %s },\n'
             '        nargs: %s,\n'
             '        flags: (%s) as u16,\n'
             '        selfHostedName: %s\n'
-            '    }',
+            '    }')
+        specTerminator = (
             '    JSFunctionSpec {\n'
             '        name: JSPropertySpec_Name { string_: ptr::null() },\n'
             '        call: JSNativeWrapper { op: None, info: ptr::null() },\n'
             '        nargs: 0,\n'
             '        flags: 0,\n'
             '        selfHostedName: ptr::null()\n'
-            '    }',
-            'JSFunctionSpec',
-            condition, specData)
+            '    }')
+
+        if self.crossorigin:
+            groups = groupby(array, lambda m: condition(m, self.descriptor))
+            assert len(list(groups)) == 1  # can't handle mixed condition
+            elems = [specTemplate % specData(m) for m in array]
+            return dedent(
+                """
+                const %s: &[JSFunctionSpec] = &[
+                %s,
+                %s,
+                ];
+                """) % (name, ',\n'.join(elems), specTerminator)
+        else:
+            return self.generateGuardedArray(
+                array, name,
+                specTemplate, specTerminator,
+                'JSFunctionSpec',
+                condition, specData)
 
 
 class AttrDefiner(PropertyDefiner):
-    def __init__(self, descriptor, name, static, unforgeable):
+    def __init__(self, descriptor, name, static, unforgeable, crossorigin=False):
         assert not (static and unforgeable)
+        assert not (static and crossorigin)
+        assert not (unforgeable and crossorigin)
         PropertyDefiner.__init__(self, descriptor, name)
+
+        # TODO: Separate the `(static, unforgeable, crossorigin) = (False, False, True)` case
+        #       to a separate class or something.
+
         self.name = name
         self.descriptor = descriptor
         self.regular = [
@@ -1837,12 +1868,16 @@ class AttrDefiner(PropertyDefiner):
             }
             for m in descriptor.interface.members if
             m.isAttr() and m.isStatic() == static
-            and MemberIsUnforgeable(m, descriptor) == unforgeable
+            and (MemberIsUnforgeable(m, descriptor) == unforgeable or crossorigin)
+            and (not crossorigin
+                 or m.getExtendedAttribute("CrossOriginReadable")
+                 or m.getExtendedAttribute("CrossOriginWritable"))
         ]
         self.static = static
         self.unforgeable = unforgeable
+        self.crossorigin = crossorigin
 
-        if not static and not unforgeable and not (
+        if not static and not unforgeable and not crossorigin and not (
                 descriptor.interface.isNamespace() or descriptor.interface.isCallback()
         ):
             self.regular.append({
@@ -1858,6 +1893,10 @@ class AttrDefiner(PropertyDefiner):
 
         def getter(attr):
             attr = attr['attr']
+
+            if self.crossorigin and not attr.getExtendedAttribute("CrossOriginReadable"):
+                return "JSNativeWrapper { op: None, info: 0 as *const JSJitInfo }"
+
             if self.static:
                 accessor = 'get_' + self.descriptor.internalNameFor(attr.identifier.name)
                 jitinfo = "0 as *const JSJitInfo"
@@ -1874,8 +1913,10 @@ class AttrDefiner(PropertyDefiner):
 
         def setter(attr):
             attr = attr['attr']
-            if (attr.readonly and not attr.getExtendedAttribute("PutForwards")
-                    and not attr.getExtendedAttribute("Replaceable")):
+
+            if ((attr.readonly and not attr.getExtendedAttribute("PutForwards")
+                    and not attr.getExtendedAttribute("Replaceable"))
+                    or (self.crossorigin and not attr.getExtendedAttribute("CrossOriginReadable"))):
                 return "JSNativeWrapper { op: None, info: 0 as *const JSJitInfo }"
 
             if self.static:
@@ -1941,12 +1982,24 @@ class AttrDefiner(PropertyDefiner):
                 }
 """
 
-        return self.generateGuardedArray(
-            array, name,
-            template,
-            '    JSPropertySpec::ZERO',
-            'JSPropertySpec',
-            condition, specData)
+        if self.crossorigin:
+            groups = groupby(array, lambda m: condition(m, self.descriptor))
+            assert len(list(groups)) == 1  # can't handle mixed condition
+            elems = [template(m) % specData(m) for m in array]
+            return dedent(
+                """
+                const %s: &[JSPropertySpec] = &[
+                %s,
+                    JSPropertySpec::ZERO,
+                ];
+                """) % (name, ',\n'.join(elems))
+        else:
+            return self.generateGuardedArray(
+                array, name,
+                template,
+                '    JSPropertySpec::ZERO',
+                'JSPropertySpec',
+                condition, specData)
 
 
 class ConstDefiner(PropertyDefiner):
@@ -3071,6 +3124,25 @@ class PropertyArrays():
         return define
 
 
+class CGCrossOriginProperties(CGThing):
+    def __init__(self, descriptor):
+        self.methods = MethodDefiner(descriptor, "CrossOriginMethods", static=False,
+                                     unforgeable=False, crossorigin=True)
+        self.attributes = AttrDefiner(descriptor, "CrossOriginAttributes", static=False,
+                                      unforgeable=False, crossorigin=True)
+
+    def define(self):
+        return str(self.methods) + str(self.attributes) + dedent(
+            """
+            const CROSS_ORIGIN_PROPERTIES: proxyhandler::CrossOriginProperties =
+                proxyhandler::CrossOriginProperties {
+                    attributes: sCrossOriginAttributes,
+                    methods: sCrossOriginMethods,
+                };
+            """
+        )
+
+
 class CGCollectJSONAttributesMethod(CGAbstractMethod):
     """
     Generate the CollectJSONAttributes method for an interface descriptor
@@ -3451,11 +3523,12 @@ class CGDefineProxyHandler(CGAbstractMethod):
 
     def definition_body(self):
         customDefineProperty = 'proxyhandler::define_property'
-        if self.descriptor.operations['IndexedSetter'] or self.descriptor.operations['NamedSetter']:
+        if self.descriptor.isMaybeCrossOriginObject() or self.descriptor.operations['IndexedSetter'] or \
+           self.descriptor.operations['NamedSetter']:
             customDefineProperty = 'defineProperty'
 
         customDelete = 'proxyhandler::delete'
-        if self.descriptor.operations['NamedDeleter']:
+        if self.descriptor.isMaybeCrossOriginObject() or self.descriptor.operations['NamedDeleter']:
             customDelete = 'delete'
 
         getOwnEnumerablePropertyKeys = "own_property_keys"
@@ -5353,6 +5426,26 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
         indexedGetter = self.descriptor.operations['IndexedGetter']
 
         get = "let cx = SafeJSContext::from_ptr(cx);\n"
+
+        if self.descriptor.isMaybeCrossOriginObject():
+            get += dedent(
+                """
+                if !proxyhandler::is_platform_object_same_origin(cx, proxy) {
+                    if !proxyhandler::cross_origin_get_own_property_helper(
+                        cx, proxy, &CROSS_ORIGIN_PROPERTIES, id, desc
+                    ) {
+                        return false;
+                    }
+                    if desc.obj.is_null() {
+                        return proxyhandler::cross_origin_property_fallback(cx, proxy, id, desc);
+                    }
+                    return true;
+                }
+
+                // Safe to enter the Realm of proxy now.
+                let _ac = JSAutoRealm::new(*cx, proxy.get());
+                """)
+
         if indexedGetter:
             get += "let index = get_array_index_from_id(*cx, Handle::from_raw(id));\n"
 
@@ -5450,6 +5543,17 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
     def getBody(self):
         set = "let cx = SafeJSContext::from_ptr(cx);\n"
 
+        if self.descriptor.isMaybeCrossOriginObject():
+            set += dedent(
+                """
+                if !proxyhandler::is_platform_object_same_origin(cx, proxy) {
+                    return proxyhandler::report_cross_origin_denial(cx, id, "define");
+                }
+
+                // Safe to enter the Realm of proxy now.
+                let _ac = JSAutoRealm::new(*cx, proxy.get());
+                """)
+
         indexedSetter = self.descriptor.operations['IndexedSetter']
         if indexedSetter:
             set += ("let index = get_array_index_from_id(*cx, Handle::from_raw(id));\n"
@@ -5497,6 +5601,18 @@ class CGDOMJSProxyHandler_delete(CGAbstractExternMethod):
 
     def getBody(self):
         set = "let cx = SafeJSContext::from_ptr(cx);\n"
+
+        if self.descriptor.isMaybeCrossOriginObject():
+            set += dedent(
+                """
+                if !proxyhandler::is_platform_object_same_origin(cx, proxy) {
+                    return proxyhandler::report_cross_origin_denial(cx, id, "delete");
+                }
+
+                // Safe to enter the Realm of proxy now.
+                let _ac = JSAutoRealm::new(*cx, proxy.get());
+                """)
+
         if self.descriptor.operations['NamedDeleter']:
             if self.descriptor.hasUnforgeableMembers:
                 raise TypeError("Can't handle a deleter on an interface that has "
@@ -5523,6 +5639,17 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
             let cx = SafeJSContext::from_ptr(cx);
             let unwrapped_proxy = UnwrapProxy(proxy);
             """)
+
+        if self.descriptor.isMaybeCrossOriginObject():
+            body += dedent(
+                """
+                if !proxyhandler::is_platform_object_same_origin(cx, proxy) {
+                    return proxyhandler::cross_origin_own_property_keys(cx, proxy, &CROSS_ORIGIN_PROPERTIES, props);
+                }
+
+                // Safe to enter the Realm of proxy now.
+                let _ac = JSAutoRealm::new(*cx, proxy.get());
+                """)
 
         if self.descriptor.operations['IndexedGetter']:
             body += dedent(
@@ -5583,6 +5710,18 @@ class CGDOMJSProxyHandler_getOwnEnumerablePropertyKeys(CGAbstractExternMethod):
             let unwrapped_proxy = UnwrapProxy(proxy);
             """)
 
+        if self.descriptor.isMaybeCrossOriginObject():
+            body += dedent(
+                """
+                if !proxyhandler::is_platform_object_same_origin(cx, proxy) {
+                    // There are no enumerable cross-origin props, so we're done.
+                    return true;
+                }
+
+                // Safe to enter the Realm of proxy now.
+                let _ac = JSAutoRealm::new(*cx, proxy.get());
+                """)
+
         if self.descriptor.operations['IndexedGetter']:
             body += dedent(
                 """
@@ -5621,6 +5760,18 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
     def getBody(self):
         indexedGetter = self.descriptor.operations['IndexedGetter']
         indexed = "let cx = SafeJSContext::from_ptr(cx);\n"
+
+        if self.descriptor.isMaybeCrossOriginObject():
+            indexed += dedent(
+                """
+                if !proxyhandler::is_platform_object_same_origin(cx, proxy) {
+                    return proxyhandler::cross_origin_has_own(cx, proxy, &CROSS_ORIGIN_PROPERTIES, id, bp);
+                }
+
+                // Safe to enter the Realm of proxy now.
+                let _ac = JSAutoRealm::new(*cx, proxy.get());
+                """)
+
         if indexedGetter:
             indexed += ("let index = get_array_index_from_id(*cx, Handle::from_raw(id));\n"
                         + "if let Some(index) = index {\n"
@@ -5682,6 +5833,18 @@ class CGDOMJSProxyHandler_get(CGAbstractExternMethod):
 
     # https://heycam.github.io/webidl/#LegacyPlatformObjectGetOwnProperty
     def getBody(self):
+        if self.descriptor.isMaybeCrossOriginObject():
+            maybeCrossOriginGet = dedent(
+                """
+                if !proxyhandler::is_platform_object_same_origin(cx, proxy) {
+                    return proxyhandler::cross_origin_get(cx, proxy, receiver, id, vp);
+                }
+
+                // Safe to enter the Realm of proxy now.
+                let _ac = JSAutoRealm::new(*cx, proxy.get());
+                """)
+        else:
+            maybeCrossOriginGet = ""
         getFromExpando = """\
 rooted!(in(*cx) let mut expando = ptr::null_mut::<JSObject>());
 get_expando_object(proxy, expando.handle_mut());
@@ -5737,6 +5900,9 @@ if !expando.is_null() {
 //MOZ_ASSERT(!xpc::WrapperFactory::IsXrayWrapper(proxy),
 //"Should not have a XrayWrapper here");
 let cx = SafeJSContext::from_ptr(cx);
+
+%s
+
 let proxy_lt = Handle::from_raw(proxy);
 let vp_lt = MutableHandle::from_raw(vp);
 let id_lt = Handle::from_raw(id);
@@ -5753,7 +5919,7 @@ if found {
 }
 %s
 vp.set(UndefinedValue());
-return true;""" % (getIndexedOrExpando, getNamed)
+return true;""" % (maybeCrossOriginGet, getIndexedOrExpando, getNamed)
 
     def definition_body(self):
         return CGGeneric(self.getBody())
@@ -6392,6 +6558,9 @@ class CGDescriptor(CGThing):
         if descriptor.proxy:
             cgThings.append(CGDefineProxyHandler(descriptor))
 
+        if descriptor.isMaybeCrossOriginObject():
+            cgThings.append(CGCrossOriginProperties(descriptor))
+
         properties = PropertyArrays(descriptor)
 
         if defaultToJSONMethod:
@@ -6410,14 +6579,23 @@ class CGDescriptor(CGThing):
                 cgThings.append(CGDOMJSProxyHandler_get(descriptor))
                 cgThings.append(CGDOMJSProxyHandler_hasOwn(descriptor))
 
-                if descriptor.operations['IndexedSetter'] or descriptor.operations['NamedSetter']:
+                if descriptor.isMaybeCrossOriginObject() or descriptor.operations['IndexedSetter'] or \
+                   descriptor.operations['NamedSetter']:
                     cgThings.append(CGDOMJSProxyHandler_defineProperty(descriptor))
 
                 # We want to prevent indexed deleters from compiling at all.
                 assert not descriptor.operations['IndexedDeleter']
 
-                if descriptor.operations['NamedDeleter']:
+                if descriptor.isMaybeCrossOriginObject() or descriptor.operations['NamedDeleter']:
                     cgThings.append(CGDOMJSProxyHandler_delete(descriptor))
+
+                if descriptor.isMaybeCrossOriginObject():
+                    # TODO: CGDOMJSProxyHandler_getPrototype(descriptor),
+                    # TODO: CGDOMJSProxyHandler_getPrototypeIfOrdinary(descriptor),
+                    # TODO: CGDOMJSProxyHandler_setPrototype(descriptor),
+                    # TODO: CGDOMJSProxyHandler_setImmutablePrototype(descriptor),
+                    # TODO: CGDOMJSProxyHandler_set(descriptor),
+                    pass
 
                 # cgThings.append(CGDOMJSProxyHandler(descriptor))
                 # cgThings.append(CGIsMethod(descriptor))

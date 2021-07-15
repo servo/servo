@@ -299,6 +299,9 @@ class Descriptor(DescriptorProvider):
                 if iface:
                     iface.setUserData('hasConcreteDescendant', True)
 
+            if self.isMaybeCrossOriginObject():
+                self.proxy = True
+
             if self.proxy:
                 iface = self.interface
                 while iface.parent:
@@ -403,6 +406,11 @@ class Descriptor(DescriptorProvider):
 
     def supportsIndexedProperties(self):
         return self.operations['IndexedGetter'] is not None
+
+    def isMaybeCrossOriginObject(self):
+        # If we're isGlobal and have cross-origin members, we're a Window, and
+        # that's not a cross-origin object.  The WindowProxy is.
+        return self.concrete and self.interface.hasCrossOriginMembers and not self.isGlobal()
 
     def hasDescendants(self):
         return (self.interface.getUserData("hasConcreteDescendant", False)
