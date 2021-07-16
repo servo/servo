@@ -3531,6 +3531,17 @@ class CGDefineProxyHandler(CGAbstractMethod):
         if self.descriptor.isMaybeCrossOriginObject() or self.descriptor.operations['NamedDeleter']:
             customDelete = 'delete'
 
+        customGetPrototypeIfOrdinary = 'Some(proxyhandler::get_prototype_if_ordinary)'
+        customGetPrototype = 'None'
+        customSetPrototype = 'None'
+        if self.descriptor.isMaybeCrossOriginObject():
+            customGetPrototypeIfOrdinary = 'Some(proxyhandler::maybe_cross_origin_get_prototype_if_ordinary_rawcx)'
+            customGetPrototype = 'Some(getPrototype)'
+            customSetPrototype = 'Some(proxyhandler::maybe_cross_origin_set_prototype_rawcx)'
+        # The base class `BaseProxyHandler`'s `setImmutablePrototype` (not to be
+        # confused with ECMAScript's `[[SetImmutablePrototype]]`) always fails.
+        # This is the desired behavior, so we don't override it.
+
         getOwnEnumerablePropertyKeys = "own_property_keys"
         if self.descriptor.interface.getExtendedAttribute("LegacyUnenumerableNamedProperties"):
             getOwnEnumerablePropertyKeys = "getOwnEnumerablePropertyKeys"
@@ -3538,6 +3549,9 @@ class CGDefineProxyHandler(CGAbstractMethod):
         args = {
             "defineProperty": customDefineProperty,
             "delete": customDelete,
+            "getPrototypeIfOrdinary": customGetPrototypeIfOrdinary,
+            "getPrototype": customGetPrototype,
+            "setPrototype": customSetPrototype,
             "getOwnEnumerablePropertyKeys": getOwnEnumerablePropertyKeys,
             "trace": TRACE_HOOK_NAME,
             "finalize": FINALIZE_HOOK_NAME,
@@ -3551,9 +3565,9 @@ let traps = ProxyTraps {
     ownPropertyKeys: Some(own_property_keys),
     delete_: Some(%(delete)s),
     enumerate: None,
-    getPrototypeIfOrdinary: Some(proxyhandler::get_prototype_if_ordinary),
-    getPrototype: None,
-    setPrototype: None,
+    getPrototypeIfOrdinary: %(getPrototypeIfOrdinary)s,
+    getPrototype: %(getPrototype)s,
+    setPrototype: %(setPrototype)s,
     setImmutablePrototype: None,
     preventExtensions: Some(proxyhandler::prevent_extensions),
     isExtensible: Some(proxyhandler::is_extensible),
@@ -5925,6 +5939,25 @@ return true;""" % (maybeCrossOriginGet, getIndexedOrExpando, getNamed)
         return CGGeneric(self.getBody())
 
 
+class CGDOMJSProxyHandler_getPrototype(CGAbstractExternMethod):
+    def __init__(self, descriptor):
+        args = [Argument('*mut JSContext', 'cx'), Argument('RawHandleObject', 'proxy'),
+                Argument('RawMutableHandleObject', 'proto')]
+        CGAbstractExternMethod.__init__(self, descriptor, "getPrototype", "bool", args)
+        assert self.descriptor.isMaybeCrossOriginObject()
+        self.descriptor = descriptor
+
+    def getBody(self):
+        return dedent(
+            """
+            let cx = SafeJSContext::from_ptr(cx);
+            proxyhandler::maybe_cross_origin_get_prototype(cx, proxy, GetProtoObject, proto)
+            """)
+
+    def definition_body(self):
+        return CGGeneric(self.getBody())
+
+
 class CGDOMJSProxyHandler_className(CGAbstractExternMethod):
     def __init__(self, descriptor):
         args = [Argument('*mut JSContext', 'cx'), Argument('RawHandleObject', '_proxy')]
@@ -6590,10 +6623,7 @@ class CGDescriptor(CGThing):
                     cgThings.append(CGDOMJSProxyHandler_delete(descriptor))
 
                 if descriptor.isMaybeCrossOriginObject():
-                    # TODO: CGDOMJSProxyHandler_getPrototype(descriptor),
-                    # TODO: CGDOMJSProxyHandler_getPrototypeIfOrdinary(descriptor),
-                    # TODO: CGDOMJSProxyHandler_setPrototype(descriptor),
-                    # TODO: CGDOMJSProxyHandler_setImmutablePrototype(descriptor),
+                    cgThings.append(CGDOMJSProxyHandler_getPrototype(descriptor))
                     # TODO: CGDOMJSProxyHandler_set(descriptor),
                     pass
 

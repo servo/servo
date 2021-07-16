@@ -9,6 +9,8 @@
 use crate::dom::bindings::conversions::is_dom_proxy;
 use crate::dom::bindings::error::{throw_dom_exception, Error};
 use crate::dom::bindings::principals::ServoJSPrincipalsRef;
+use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::delete_property_by_id;
 use crate::dom::globalscope::GlobalScope;
 use crate::realms::{AlreadyInRealm, InRealm};
@@ -24,6 +26,7 @@ use js::jsapi::Handle as RawHandle;
 use js::jsapi::HandleId as RawHandleId;
 use js::jsapi::HandleObject as RawHandleObject;
 use js::jsapi::HandleValue as RawHandleValue;
+use js::jsapi::JSAutoRealm;
 use js::jsapi::JS_AtomizeAndPinString;
 use js::jsapi::JS_DefinePropertyById;
 use js::jsapi::JS_GetOwnPropertyDescriptorById;
@@ -139,7 +142,7 @@ pub unsafe extern "C" fn is_extensible(
 ///
 /// This implementation always handles the case of the ordinary
 /// `[[GetPrototypeOf]]` behavior. An alternative implementation will be
-/// necessary for the Location object.
+/// necessary for maybe-cross-origin objects.
 pub unsafe extern "C" fn get_prototype_if_ordinary(
     _: *mut JSContext,
     proxy: RawHandleObject,
@@ -203,13 +206,29 @@ pub unsafe fn is_platform_object_same_origin(cx: SafeJSContext, obj: RawHandleOb
     let obj_realm = GetObjectRealmOrNull(*obj);
     assert!(!obj_realm.is_null());
 
-    let subject = ServoJSPrincipalsRef::from_raw_unchecked(GetRealmPrincipals(subject_realm));
-    let obj = ServoJSPrincipalsRef::from_raw_unchecked(GetRealmPrincipals(obj_realm));
+    let subject_principals =
+        ServoJSPrincipalsRef::from_raw_unchecked(GetRealmPrincipals(subject_realm));
+    let obj_principals = ServoJSPrincipalsRef::from_raw_unchecked(GetRealmPrincipals(obj_realm));
 
-    let subject_origin = subject.origin();
-    let obj_origin = obj.origin();
+    let subject_origin = subject_principals.origin();
+    let obj_origin = obj_principals.origin();
 
-    subject_origin.same_origin_domain(&obj_origin)
+    let result = subject_origin.same_origin_domain(&obj_origin);
+    log::trace!(
+        "object {:p} (realm = {:p}, principalls = {:p}, origin = {:?}) is {} \
+        with reference to the current Realm (realm = {:p}, principals = {:p}, \
+        origin = {:?})",
+        obj.get(),
+        obj_realm,
+        obj_principals.as_raw(),
+        obj_origin.immutable(),
+        ["NOT same domain-origin", "same domain-origin"][result as usize],
+        subject_realm,
+        subject_principals.as_raw(),
+        subject_origin.immutable()
+    );
+
+    result
 }
 
 /// Report a cross-origin denial for a property, Always returns `false`, so it
@@ -218,11 +237,12 @@ pub unsafe fn is_platform_object_same_origin(cx: SafeJSContext, obj: RawHandleOb
 /// What this function does corresponds to the operations in
 /// <https://html.spec.whatwg.org/multipage/#the-location-interface> denoted as
 /// "Throw a `SecurityError` DOMException".
-pub unsafe fn report_cross_origin_denial(
-    cx: SafeJSContext,
-    _id: RawHandleId,
-    _access: &str,
-) -> bool {
+pub unsafe fn report_cross_origin_denial(cx: SafeJSContext, id: RawHandleId, access: &str) -> bool {
+    debug!(
+        "permission denied to {} property {} on cross-origin object",
+        access,
+        id_to_source(cx, id).as_deref().unwrap_or("< error >"),
+    );
     let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
     if !JS_IsExceptionPending(*cx) {
         let global = GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
@@ -230,6 +250,18 @@ pub unsafe fn report_cross_origin_denial(
         throw_dom_exception(cx, &*global, Error::Security);
     }
     false
+}
+
+unsafe fn id_to_source(cx: SafeJSContext, id: RawHandleId) -> Option<DOMString> {
+    rooted!(in(*cx) let mut value = UndefinedValue());
+    rooted!(in(*cx) let mut jsstr = ptr::null_mut::<jsapi::JSString>());
+    jsapi::JS_IdToValue(*cx, id.get(), value.handle_mut().into())
+        .then(|| {
+            jsstr.set(jsapi::JS_ValueToSource(*cx, value.handle().into()));
+            jsstr.get()
+        })
+        .filter(|jsstr| !jsstr.is_null())
+        .map(|jsstr| crate::dom::bindings::conversions::jsstring_to_str(*cx, jsstr))
 }
 
 /// Property and method specs that correspond to the elements of
@@ -269,6 +301,76 @@ pub unsafe fn cross_origin_own_property_keys(
         RUST_INTERNED_STRING_TO_JSID(*cx, rooted.handle().get(), rooted_jsid.handle_mut());
         AppendToIdVector(props, rooted_jsid.handle());
     }
+    true
+}
+
+pub unsafe extern "C" fn maybe_cross_origin_get_prototype_if_ordinary_rawcx(
+    _: *mut JSContext,
+    _proxy: RawHandleObject,
+    is_ordinary: *mut bool,
+    _proto: RawMutableHandleObject,
+) -> bool {
+    // We have a custom `[[GetPrototypeOf]]`, so return `false`
+    *is_ordinary = false;
+    true
+}
+
+/// Implementation of `[[GetPrototypeOf]]` for [`History`].
+///
+/// [`History`]: https://html.spec.whatwg.org/multipage/#location-getprototypeof
+pub unsafe fn maybe_cross_origin_get_prototype(
+    cx: SafeJSContext,
+    proxy: RawHandleObject,
+    get_proto_object: unsafe fn(cx: SafeJSContext, global: HandleObject, rval: MutableHandleObject),
+    proto: RawMutableHandleObject,
+) -> bool {
+    // > 1. If ! IsPlatformObjectSameOrigin(this) is true, then return ! OrdinaryGetPrototypeOf(this).
+    if is_platform_object_same_origin(cx, proxy) {
+        let ac = JSAutoRealm::new(*cx, proxy.get());
+        let global = GlobalScope::from_context(*cx, InRealm::Entered(&ac));
+        get_proto_object(
+            cx,
+            global.reflector().get_jsobject(),
+            MutableHandleObject::from_raw(proto),
+        );
+        return !proto.is_null();
+    }
+
+    // > 2. Return null.
+    proto.set(ptr::null_mut());
+    true
+}
+
+/// Implementation of `[[SetPrototypeOf]]` for [`History`] and [`WindowProxy`].
+///
+/// [`History`]: https://html.spec.whatwg.org/multipage/#location-setprototypeof
+/// [`WindowProxy`]: https://html.spec.whatwg.org/multipage/window-object.html#windowproxy-setprototypeof
+pub unsafe extern "C" fn maybe_cross_origin_set_prototype_rawcx(
+    cx: *mut JSContext,
+    proxy: RawHandleObject,
+    proto: RawHandleObject,
+    result: *mut ObjectOpResult,
+) -> bool {
+    // > 1. Return `! SetImmutablePrototype(this, V)`.
+    //
+    // <https://tc39.es/ecma262/#sec-set-immutable-prototype>
+    //
+    // > 1. Assert: Either `Type(V)` is Object or `Type(V)` is Null.
+    //
+    // > 2. Let current be `? O.[[GetPrototypeOf]]()`.
+    rooted!(in(cx) let mut current = ptr::null_mut::<JSObject>());
+    if !jsapi::GetObjectProto(cx, proxy, current.handle_mut().into()) {
+        return false;
+    }
+
+    // > 3. If `SameValue(V, current)` is true, return true.
+    if proto.get() == current.get() {
+        (*result).code_ = 0 /* OkCode */;
+        return true;
+    }
+
+    // > 4. Return false.
+    (*result).code_ = JSErrNum::JSMSG_CANT_SET_PROTO as usize;
     true
 }
 
