@@ -42,7 +42,7 @@ use style_traits::DevicePixel;
 #[cfg(feature = "servo")]
 use style_traits::SpeculativePainter;
 use time;
-use uluru::{Entry, LRUCache};
+use uluru::LRUCache;
 
 pub use selectors::matching::QuirksMode;
 
@@ -542,7 +542,7 @@ pub struct SelectorFlagsMap<E: TElement> {
     map: FxHashMap<SendElement<E>, ElementSelectorFlags>,
     /// An LRU cache to avoid hashmap lookups, which can be slow if the map
     /// gets big.
-    cache: LRUCache<[Entry<CacheItem<E>>; 4 + 1]>,
+    cache: LRUCache<CacheItem<E>, { 4 + 1 }>,
 }
 
 #[cfg(debug_assertions)]
@@ -583,7 +583,7 @@ impl<E: TElement> SelectorFlagsMap<E> {
     /// Applies the flags. Must be called on the main thread.
     fn apply_flags(&mut self) {
         debug_assert_eq!(thread_state::get(), ThreadState::LAYOUT);
-        self.cache.evict_all();
+        self.cache.clear();
         for (el, flags) in self.map.drain() {
             unsafe {
                 el.set_selector_flags(flags);
