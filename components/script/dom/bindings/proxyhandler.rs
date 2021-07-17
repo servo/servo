@@ -436,9 +436,75 @@ pub unsafe fn cross_origin_get(
     )
 }
 
+/// Implementation of [`CrossOriginSet`].
+///
+/// [`CrossOriginSet`]: https://html.spec.whatwg.org/multipage/#crossoriginset-(-o,-p,-v,-receiver-)
+pub unsafe fn cross_origin_set(
+    cx: SafeJSContext,
+    proxy: RawHandleObject,
+    id: RawHandleId,
+    v: RawHandleValue,
+    receiver: RawHandleValue,
+    result: *mut ObjectOpResult,
+) -> bool {
+    // > 1. Let desc be ? O.[[GetOwnProperty]](P).
+    rooted!(in(*cx) let mut descriptor = PropertyDescriptor::default());
+    if !InvokeGetOwnPropertyDescriptor(
+        GetProxyHandler(*proxy),
+        *cx,
+        proxy,
+        id,
+        descriptor.handle_mut().into(),
+    ) {
+        return false;
+    }
+
+    // > 2. Assert: desc is not undefined.
+    assert!(
+        !descriptor.obj.is_null(),
+        "Callees should throw in all cases when they are not finding \
+        a property decriptor"
+    );
+
+    // > 3. If desc.[[Set]] is present and its value is not undefined,
+    // >    then: [...]
+    rooted!(in(*cx) let mut setter = ptr::null_mut::<JSObject>());
+    get_setter_object(&descriptor, setter.handle_mut().into());
+    if setter.get().is_null() {
+        // > 4. Throw a "SecurityError" DOMException.
+        return report_cross_origin_denial(cx, id, "set");
+    }
+
+    rooted!(in(*cx) let mut setter_jsval = UndefinedValue());
+    setter.get().to_jsval(*cx, setter_jsval.handle_mut());
+
+    // > 3.1. Perform ? Call(setter, Receiver, «V»).
+    // >
+    // > 3.2. Return true.
+    rooted!(in(*cx) let mut ignored = UndefinedValue());
+    if !jsapi::Call(
+        *cx,
+        receiver,
+        setter_jsval.handle().into(),
+        &jsapi::HandleValueArray::from_rooted_slice(&[v.get()]),
+        ignored.handle_mut().into(),
+    ) {
+        return false;
+    }
+
+    (*result).code_ = 0 /* OkCode */;
+    true
+}
+
 unsafe fn get_getter_object(d: &PropertyDescriptor, out: RawMutableHandleObject) {
     if (d.attrs & jsapi::JSPROP_GETTER as u32) != 0 {
         out.set(std::mem::transmute(d.getter));
+    }
+}
+
+unsafe fn get_setter_object(d: &PropertyDescriptor, out: RawMutableHandleObject) {
+    if (d.attrs & jsapi::JSPROP_SETTER as u32) != 0 {
+        out.set(std::mem::transmute(d.setter));
     }
 }
 

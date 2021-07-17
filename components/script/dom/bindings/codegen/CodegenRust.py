@@ -3554,6 +3554,10 @@ class CGDefineProxyHandler(CGAbstractMethod):
         # confused with ECMAScript's `[[SetImmutablePrototype]]`) always fails.
         # This is the desired behavior, so we don't override it.
 
+        customSet = 'None'
+        if self.descriptor.isMaybeCrossOriginObject():
+            customSet = 'Some(set)'
+
         getOwnEnumerablePropertyKeys = "own_property_keys"
         if self.descriptor.interface.getExtendedAttribute("LegacyUnenumerableNamedProperties"):
             getOwnEnumerablePropertyKeys = "getOwnEnumerablePropertyKeys"
@@ -3564,6 +3568,7 @@ class CGDefineProxyHandler(CGAbstractMethod):
             "getPrototypeIfOrdinary": customGetPrototypeIfOrdinary,
             "getPrototype": customGetPrototype,
             "setPrototype": customSetPrototype,
+            "set": customSet,
             "getOwnEnumerablePropertyKeys": getOwnEnumerablePropertyKeys,
             "trace": TRACE_HOOK_NAME,
             "finalize": FINALIZE_HOOK_NAME,
@@ -3585,7 +3590,7 @@ let traps = ProxyTraps {
     isExtensible: Some(proxyhandler::is_extensible),
     has: None,
     get: Some(get),
-    set: None,
+    set: %(set)s,
     call: None,
     construct: None,
     hasOwn: Some(hasOwn),
@@ -5951,12 +5956,61 @@ return true;""" % (maybeCrossOriginGet, getIndexedOrExpando, getNamed)
         return CGGeneric(self.getBody())
 
 
+class CGDOMJSProxyHandler_set(CGAbstractExternMethod):
+    def __init__(self, descriptor):
+        args = [Argument('*mut JSContext', 'cx'), Argument('RawHandleObject', 'proxy'),
+                Argument('RawHandleId', 'id'), Argument('RawHandleValue', 'v'),
+                Argument('RawHandleValue', 'receiver'),
+                Argument('*mut ObjectOpResult', 'opresult')]
+        CGAbstractExternMethod.__init__(self, descriptor, "set", "bool", args)
+        self.descriptor = descriptor
+
+    def getBody(self):
+        descriptor = self.descriptor
+
+        # `CGDOMJSProxyHandler_set` doesn't support legacy platform objects'
+        # `[[Set]]` (https://heycam.github.io/webidl/#legacy-platform-object-set) yet.
+        #
+        assert descriptor.isMaybeCrossOriginObject()
+        assert not descriptor.operations['IndexedGetter']
+        assert not descriptor.operations['NamedGetter']
+
+        maybeCrossOriginSet = dedent(
+            """
+            if !proxyhandler::is_platform_object_same_origin(cx, proxy) {
+                return proxyhandler::cross_origin_set(cx, proxy, id, v, receiver, opresult);
+            }
+
+            // Safe to enter the Realm of proxy now.
+            let _ac = JSAutoRealm::new(*cx, proxy.get());
+            """)
+
+        return dedent(
+            """
+            let cx = SafeJSContext::from_ptr(cx);
+            %(maybeCrossOriginSet)s
+
+            // OrdinarySet
+            // <https://tc39.es/ecma262/#sec-ordinaryset>
+            rooted!(in(*cx) let mut own_desc = PropertyDescriptor::default());
+            if !getOwnPropertyDescriptor(*cx, proxy, id, own_desc.handle_mut().into()) {
+                return false;
+            }
+
+            js::jsapi::SetPropertyIgnoringNamedGetter(
+                *cx, proxy, id, v, receiver, own_desc.handle().into(), opresult)
+            """) % { "maybeCrossOriginSet": maybeCrossOriginSet }
+
+    def definition_body(self):
+        return CGGeneric(self.getBody())
+
+
 class CGDOMJSProxyHandler_getPrototype(CGAbstractExternMethod):
     def __init__(self, descriptor):
         args = [Argument('*mut JSContext', 'cx'), Argument('RawHandleObject', 'proxy'),
                 Argument('RawMutableHandleObject', 'proto')]
         CGAbstractExternMethod.__init__(self, descriptor, "getPrototype", "bool", args)
-        assert self.descriptor.isMaybeCrossOriginObject()
+        assert descriptor.isMaybeCrossOriginObject()
         self.descriptor = descriptor
 
     def getBody(self):
@@ -6636,7 +6690,7 @@ class CGDescriptor(CGThing):
 
                 if descriptor.isMaybeCrossOriginObject():
                     cgThings.append(CGDOMJSProxyHandler_getPrototype(descriptor))
-                    # TODO: CGDOMJSProxyHandler_set(descriptor),
+                    cgThings.append(CGDOMJSProxyHandler_set(descriptor))
                     pass
 
                 # cgThings.append(CGDOMJSProxyHandler(descriptor))
