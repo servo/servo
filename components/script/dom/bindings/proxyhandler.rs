@@ -353,7 +353,7 @@ pub unsafe extern "C" fn maybe_cross_origin_set_prototype_rawcx(
 ) -> bool {
     // > 1. Return `! SetImmutablePrototype(this, V)`.
     //
-    // <https://tc39.es/ecma262/#sec-set-immutable-prototype>
+    // <https://tc39.es/ecma262/#sec-set-immutable-prototype>:
     //
     // > 1. Assert: Either `Type(V)` is Object or `Type(V)` is Null.
     //
@@ -376,6 +376,9 @@ pub unsafe extern "C" fn maybe_cross_origin_set_prototype_rawcx(
 
 /// Implementation of [`CrossOriginGet`].
 ///
+/// `cx` and `proxy` are expected to be different-Realm here. `proxy` is a proxy
+/// for a maybe-cross-origin object.
+///
 /// [`CrossOriginGet`]: https://html.spec.whatwg.org/multipage/#crossoriginget-(-o,-p,-receiver-)
 pub unsafe fn cross_origin_get(
     cx: SafeJSContext,
@@ -395,7 +398,6 @@ pub unsafe fn cross_origin_get(
     ) {
         return false;
     }
-    //    let descriptor = descriptor.get();
 
     // > 2. Assert: `desc` is not undefined.
     assert!(
@@ -437,6 +439,9 @@ pub unsafe fn cross_origin_get(
 }
 
 /// Implementation of [`CrossOriginSet`].
+///
+/// `cx` and `proxy` are expected to be different-Realm here. `proxy` is a proxy
+/// for a maybe-cross-origin object.
 ///
 /// [`CrossOriginSet`]: https://html.spec.whatwg.org/multipage/#crossoriginset-(-o,-p,-v,-receiver-)
 pub unsafe fn cross_origin_set(
@@ -526,13 +531,19 @@ fn is_data_descriptor(d: &PropertyDescriptor) -> bool {
 }
 
 /// Evaluate `CrossOriginGetOwnPropertyHelper(proxy, id) != null`.
+/// SpiderMonkey-specific.
+///
+/// `cx` and `proxy` are expected to be different-Realm here. `proxy` is a proxy
+/// for a maybe-cross-origin object.
 pub unsafe fn cross_origin_has_own(
     cx: SafeJSContext,
-    _proxy: RawHandleObject,
+    proxy: RawHandleObject,
     cross_origin_properties: &'static CrossOriginProperties,
     id: RawHandleId,
     bp: *mut bool,
 ) -> bool {
+    let _ = proxy;
+
     // TODO: Once we have the slot for the holder, it'd be more efficient to
     //       use `ensure_cross_origin_property_holder`.
     *bp = if let Some(key) =
@@ -551,9 +562,8 @@ pub unsafe fn cross_origin_has_own(
 
 /// Implementation of [`CrossOriginGetOwnPropertyHelper`].
 ///
-/// `cx` and `obj` are expected to be different-Realm here. `obj` can be a
-/// `WindowProxy` or a `Location` or a `DissimilarOrigin*` proxy for one of
-/// those.
+/// `cx` and `proxy` are expected to be different-Realm here. `proxy` is a proxy
+/// for a maybe-cross-origin object.
 ///
 /// [`CrossOriginGetOwnPropertyHelper`]: https://html.spec.whatwg.org/multipage/#crossorigingetownpropertyhelper-(-o,-p-)
 pub unsafe fn cross_origin_get_own_property_helper(
@@ -585,7 +595,9 @@ pub unsafe fn cross_origin_get_own_property_helper(
 
 /// Implementation of [`CrossOriginPropertyFallback`].
 ///
-
+/// `cx` and `proxy` are expected to be different-Realm here. `proxy` is a proxy
+/// for a maybe-cross-origin object.
+///
 /// [`CrossOriginPropertyFallback`]: https://html.spec.whatwg.org/multipage/#crossoriginpropertyfallback-(-p-)
 pub unsafe fn cross_origin_property_fallback(
     cx: SafeJSContext,
@@ -644,6 +656,10 @@ unsafe fn is_cross_origin_allowlisted_prop(cx: SafeJSContext, id: RawHandleId) -
 ///
 /// This essentially creates a cache of [`CrossOriginGetOwnPropertyHelper`]'s
 /// results for all property keys.
+///
+/// `cx` and `proxy` are expected to be different-Realm here. `proxy` is a proxy
+/// for a maybe-cross-origin object. The `out_holder` return value will always
+/// be in the Realm of `cx`.
 ///
 /// [`CrossOriginGetOwnPropertyHelper`]: https://html.spec.whatwg.org/multipage/#crossorigingetownpropertyhelper-(-o,-p-)
 unsafe fn ensure_cross_origin_property_holder(
