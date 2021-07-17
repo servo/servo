@@ -2874,6 +2874,13 @@ class CGWrapMethod(CGAbstractMethod):
     def definition_body(self):
         unforgeable = CopyUnforgeablePropertiesToInstance(self.descriptor)
         if self.descriptor.proxy:
+            if self.descriptor.isMaybeCrossOriginObject():
+                proto = "ptr::null_mut()"
+                lazyProto = "true"  # Our proxy handler will manage the prototype
+            else:
+                proto = "proto.get()"
+                lazyProto = "false"
+
             create = """
 let handler: *const libc::c_void =
     RegisterBindings::proxy_handlers::%(concreteType)s
@@ -2882,8 +2889,9 @@ rooted!(in(*cx) let obj = NewProxyObject(
     *cx,
     handler,
     Handle::from_raw(UndefinedHandleValue),
-    proto.get(),
+    %(proto)s,
     ptr::null(),
+    %(lazyProto)s,
 ));
 assert!(!obj.is_null());
 SetProxyReservedSlot(
@@ -2892,7 +2900,11 @@ SetProxyReservedSlot(
     &PrivateValue(raw.as_ptr() as *const %(concreteType)s as *const libc::c_void),
 );
 """
+            create = create % {"concreteType": self.descriptor.concreteType,
+                               "proto": proto,
+                               "lazyProto": lazyProto}
         else:
+            lazyProto = None
             create = """
 rooted!(in(*cx) let obj = JS_NewObjectWithGivenProto(
     *cx,
@@ -2906,7 +2918,7 @@ JS_SetReservedSlot(
     &PrivateValue(raw.as_ptr() as *const %(concreteType)s as *const libc::c_void),
 );
 """
-        create = create % {"concreteType": self.descriptor.concreteType}
+            create = create % {"concreteType": self.descriptor.concreteType}
         if self.descriptor.weakReferenceable:
             create += """
 let val = PrivateValue(ptr::null());
