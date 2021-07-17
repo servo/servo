@@ -3559,7 +3559,8 @@ class CGDefineProxyHandler(CGAbstractMethod):
             customSet = 'Some(set)'
 
         getOwnEnumerablePropertyKeys = "own_property_keys"
-        if self.descriptor.interface.getExtendedAttribute("LegacyUnenumerableNamedProperties"):
+        if self.descriptor.interface.getExtendedAttribute("LegacyUnenumerableNamedProperties") or \
+           self.descriptor.isMaybeCrossOriginObject():
             getOwnEnumerablePropertyKeys = "getOwnEnumerablePropertyKeys"
 
         args = {
@@ -5726,7 +5727,8 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
 class CGDOMJSProxyHandler_getOwnEnumerablePropertyKeys(CGAbstractExternMethod):
     def __init__(self, descriptor):
         assert (descriptor.operations["IndexedGetter"]
-                and descriptor.interface.getExtendedAttribute("LegacyUnenumerableNamedProperties"))
+                and descriptor.interface.getExtendedAttribute("LegacyUnenumerableNamedProperties")
+                or descriptor.isMaybeCrossOriginObject())
         args = [Argument('*mut JSContext', 'cx'),
                 Argument('RawHandleObject', 'proxy'),
                 Argument('RawMutableHandleIdVector', 'props')]
@@ -6671,7 +6673,8 @@ class CGDescriptor(CGThing):
                 cgThings.append(CGProxyUnwrap(descriptor))
                 cgThings.append(CGDOMJSProxyHandlerDOMClass(descriptor))
                 cgThings.append(CGDOMJSProxyHandler_ownPropertyKeys(descriptor))
-                if descriptor.interface.getExtendedAttribute("LegacyUnenumerableNamedProperties"):
+                if descriptor.interface.getExtendedAttribute("LegacyUnenumerableNamedProperties") or \
+                   descriptor.isMaybeCrossOriginObject():
                     cgThings.append(CGDOMJSProxyHandler_getOwnEnumerablePropertyKeys(descriptor))
                 cgThings.append(CGDOMJSProxyHandler_getOwnPropertyDescriptor(descriptor))
                 cgThings.append(CGDOMJSProxyHandler_className(descriptor))
