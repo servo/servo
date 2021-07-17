@@ -46,7 +46,7 @@ use js::rust::wrappers::JS_AlreadyHasOwnPropertyById;
 use js::rust::wrappers::JS_NewObjectWithGivenProto;
 use js::rust::wrappers::{AppendToIdVector, RUST_INTERNED_STRING_TO_JSID};
 use js::rust::{get_context_realm, Handle, HandleObject, MutableHandle, MutableHandleObject};
-use std::{ffi::CStr, ptr};
+use std::{ffi::CStr, os::raw::c_char, ptr};
 
 /// Determine if this id shadows any existing properties for this proxy.
 pub unsafe extern "C" fn shadow_check_callback(
@@ -294,6 +294,8 @@ pub unsafe fn cross_origin_own_property_keys(
     cross_origin_properties: &'static CrossOriginProperties,
     props: RawMutableHandleIdVector,
 ) -> bool {
+    // > 2. For each `e` of `! CrossOriginProperties(O)`, append
+    // >    `e.[[Property]]` to `keys`.
     for key in cross_origin_properties.keys() {
         let jsstring = JS_AtomizeAndPinString(*cx, key);
         rooted!(in(*cx) let rooted = jsstring);
@@ -301,6 +303,11 @@ pub unsafe fn cross_origin_own_property_keys(
         RUST_INTERNED_STRING_TO_JSID(*cx, rooted.handle().get(), rooted_jsid.handle_mut());
         AppendToIdVector(props, rooted_jsid.handle());
     }
+
+    // > 3. Return the concatenation of `keys` and `« "then", @@toStringTag,
+    // > @@hasInstance, @@isConcatSpreadable »`.
+    append_cross_origin_allowlisted_prop_keys(cx, props);
+
     true
 }
 
@@ -626,13 +633,13 @@ pub unsafe fn cross_origin_property_fallback(
     report_cross_origin_denial(cx, id, "access")
 }
 
-unsafe fn is_cross_origin_allowlisted_prop(cx: SafeJSContext, id: RawHandleId) -> bool {
-    const ALLOWLISTED_SYMBOL_CODES: &[SymbolCode] = &[
-        SymbolCode::toStringTag,
-        SymbolCode::hasInstance,
-        SymbolCode::isConcatSpreadable,
-    ];
+const ALLOWLISTED_SYMBOL_CODES: &[SymbolCode] = &[
+    SymbolCode::toStringTag,
+    SymbolCode::hasInstance,
+    SymbolCode::isConcatSpreadable,
+];
 
+unsafe fn is_cross_origin_allowlisted_prop(cx: SafeJSContext, id: RawHandleId) -> bool {
     crate::dom::bindings::conversions::jsid_to_string(*cx, Handle::from_raw(id))
         .filter(|st| st == "then")
         .is_some() ||
@@ -648,6 +655,31 @@ unsafe fn is_cross_origin_allowlisted_prop(cx: SafeJSContext, id: RawHandleId) -
                 allowed_id.get().asBits == id.asBits
             })
         }
+}
+
+/// Append `« "then", @@toStringTag, @@hasInstance, @@isConcatSpreadable »` to
+/// `props`. This is used to implement [`CrossOriginOwnPropertyKeys`].
+///
+/// [`CrossOriginOwnPropertyKeys`]: https://html.spec.whatwg.org/multipage/#crossoriginownpropertykeys-(-o-)
+unsafe fn append_cross_origin_allowlisted_prop_keys(
+    cx: SafeJSContext,
+    props: RawMutableHandleIdVector,
+) {
+    rooted!(in(*cx) let mut id: jsid);
+    {
+        let jsstring = JS_AtomizeAndPinString(*cx, b"then\0".as_ptr() as *const c_char);
+        rooted!(in(*cx) let rooted = jsstring);
+        RUST_INTERNED_STRING_TO_JSID(*cx, rooted.handle().get(), id.handle_mut());
+        AppendToIdVector(props, id.handle());
+    }
+
+    for &allowed_code in ALLOWLISTED_SYMBOL_CODES.iter() {
+        RUST_SYMBOL_TO_JSID(
+            GetWellKnownSymbol(*cx, allowed_code),
+            id.handle_mut().into(),
+        );
+        AppendToIdVector(props, id.handle());
+    }
 }
 
 /// Get the holder for cross-origin properties for the current global of the
