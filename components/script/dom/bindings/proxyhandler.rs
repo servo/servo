@@ -351,7 +351,7 @@ pub unsafe fn maybe_cross_origin_get_prototype(
 /// Implementation of `[[SetPrototypeOf]]` for [`History`] and [`WindowProxy`].
 ///
 /// [`History`]: https://html.spec.whatwg.org/multipage/#location-setprototypeof
-/// [`WindowProxy`]: https://html.spec.whatwg.org/multipage/window-object.html#windowproxy-setprototypeof
+/// [`WindowProxy`]: https://html.spec.whatwg.org/multipage/#windowproxy-setprototypeof
 pub unsafe extern "C" fn maybe_cross_origin_set_prototype_rawcx(
     cx: *mut JSContext,
     proxy: RawHandleObject,

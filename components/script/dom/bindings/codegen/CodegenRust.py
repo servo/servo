@@ -6001,7 +6001,7 @@ class CGDOMJSProxyHandler_set(CGAbstractExternMethod):
 
             js::jsapi::SetPropertyIgnoringNamedGetter(
                 *cx, proxy, id, v, receiver, own_desc.handle().into(), opresult)
-            """) % { "maybeCrossOriginSet": maybeCrossOriginSet }
+            """) % {"maybeCrossOriginSet": maybeCrossOriginSet}
 
     def definition_body(self):
         return CGGeneric(self.getBody())
