@@ -71,7 +71,7 @@ impl BluetoothThreadFactory for IpcSender<BluetoothRequest> {
         }
         .ok();
         thread::Builder::new()
-            .name("BluetoothThread".to_owned())
+            .name("Bluetooth".to_owned())
             .spawn(move || {
                 BluetoothManager::new(receiver, adapter, embedder_proxy).start();
             })

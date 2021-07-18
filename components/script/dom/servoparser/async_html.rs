@@ -256,7 +256,7 @@ impl Tokenizer {
         // will be generated from the input provided. These parser actions are then passed
         // onto the main thread to be executed.
         thread::Builder::new()
-            .name(String::from("HTML Parser"))
+            .name(format!("Parse:{}", tokenizer.url.debug_compact()))
             .spawn(move || {
                 run(
                     sink,

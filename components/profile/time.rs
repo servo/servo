@@ -174,7 +174,7 @@ impl Profiler {
                 // Spawn the time profiler thread
                 let outputoption = option.clone();
                 thread::Builder::new()
-                    .name("Time profiler".to_owned())
+                    .name("TimeProfiler".to_owned())
                     .spawn(move || {
                         let trace = file_path.as_ref().and_then(|p| TraceDump::new(p).ok());
                         let mut profiler = Profiler::new(port, trace, Some(outputoption));
@@ -188,7 +188,7 @@ impl Profiler {
                         // Spawn a timer thread
                         let chan = chan.clone();
                         thread::Builder::new()
-                            .name("Time profiler timer".to_owned())
+                            .name("TimeProfTimer".to_owned())
                             .spawn(move || loop {
                                 thread::sleep(duration_from_seconds(period));
                                 if chan.send(ProfilerMsg::Print).is_err() {
@@ -204,7 +204,7 @@ impl Profiler {
                 if file_path.is_some() {
                     // Spawn the time profiler
                     thread::Builder::new()
-                        .name("Time profiler".to_owned())
+                        .name("TimeProfiler".to_owned())
                         .spawn(move || {
                             let trace = file_path.as_ref().and_then(|p| TraceDump::new(p).ok());
                             let mut profiler = Profiler::new(port, trace, None);
@@ -214,7 +214,7 @@ impl Profiler {
                 } else {
                     // No-op to handle messages when the time profiler is not printing:
                     thread::Builder::new()
-                        .name("Time profiler".to_owned())
+                        .name("TimeProfiler".to_owned())
                         .spawn(move || loop {
                             match port.recv() {
                                 Err(_) => break,

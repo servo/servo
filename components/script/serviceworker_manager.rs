@@ -499,7 +499,7 @@ impl ServiceWorkerManagerFactory for ServiceWorkerManager {
         let resource_port = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(resource_port);
         let _ = resource_sender.send(CoreResourceMsg::NetworkMediator(resource_chan, origin));
         if thread::Builder::new()
-            .name("ServiceWorkerManager".to_owned())
+            .name("SvcWorkerManager".to_owned())
             .spawn(move || {
                 ServiceWorkerManager::new(
                     own_sender,

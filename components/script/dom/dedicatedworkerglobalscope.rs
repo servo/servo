@@ -328,7 +328,6 @@ impl DedicatedWorkerGlobalScope {
         context_sender: Sender<ContextForRequestInterrupt>,
     ) -> JoinHandle<()> {
         let serialized_worker_url = worker_url.to_string();
-        let name = format!("WebWorker for {}", serialized_worker_url);
         let top_level_browsing_context_id = TopLevelBrowsingContextId::installed();
         let current_global = GlobalScope::current().expect("No current global object");
         let origin = current_global.origin().immutable().clone();
@@ -337,7 +336,7 @@ impl DedicatedWorkerGlobalScope {
         let current_global_https_state = current_global.get_https_state();
 
         thread::Builder::new()
-            .name(name)
+            .name(format!("WW:{}", worker_url.debug_compact()))
             .spawn(move || {
                 thread_state::initialize(ThreadState::SCRIPT | ThreadState::IN_WORKER);
 

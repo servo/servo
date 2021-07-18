@@ -307,7 +307,7 @@ where
                         }
                     } else {
                         thread::Builder::new()
-                            .name("display alert dialog".to_owned())
+                            .name("AlertDialog".to_owned())
                             .spawn(move || match definition {
                                 PromptDefinition::Alert(mut message, sender) => {
                                     if origin == PromptOrigin::Untrusted {
@@ -554,10 +554,8 @@ fn prompt_user(_prompt: PermissionPrompt) -> PermissionRequest {
 
 #[cfg(target_os = "linux")]
 fn platform_get_selected_devices(devices: Vec<String>) -> Option<String> {
-    let picker_name = "Choose a device";
-
     thread::Builder::new()
-        .name(picker_name.to_owned())
+        .name("DevicePicker".to_owned())
         .spawn(move || {
             let dialog_rows: Vec<&str> = devices.iter().map(|s| s.as_ref()).collect();
             let dialog_rows: Option<&[&str]> = Some(dialog_rows.as_slice());
@@ -592,7 +590,7 @@ fn get_selected_files(patterns: Vec<FilterPattern>, multiple_files: bool) -> Opt
         "Pick a file"
     };
     thread::Builder::new()
-        .name(picker_name.to_owned())
+        .name("FilePicker".to_owned())
         .spawn(move || {
             let mut filters = vec![];
             for p in patterns {

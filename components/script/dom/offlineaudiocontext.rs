@@ -153,7 +153,7 @@ impl OfflineAudioContextMethods for OfflineAudioContext {
             .task_manager()
             .dom_manipulation_task_source_with_canceller();
         Builder::new()
-            .name("OfflineAudioContextResolver".to_owned())
+            .name("OfflineACResolver".to_owned())
             .spawn(move || {
                 let _ = receiver.recv();
                 let _ = task_source.queue_with_canceller(

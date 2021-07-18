@@ -444,7 +444,7 @@ impl FontCacheThread {
 
         let channel_to_self = chan.clone();
         thread::Builder::new()
-            .name("FontCacheThread".to_owned())
+            .name("FontCache".to_owned())
             .spawn(move || {
                 // TODO: Allow users to specify these.
                 let generic_fonts = populate_generic_fonts();

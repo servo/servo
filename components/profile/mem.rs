@@ -37,7 +37,7 @@ impl Profiler {
         if let Some(period) = period {
             let chan = chan.clone();
             thread::Builder::new()
-                .name("Memory profiler timer".to_owned())
+                .name("MemoryProfTimer".to_owned())
                 .spawn(move || loop {
                     thread::sleep(duration_from_seconds(period));
                     if chan.send(ProfilerMsg::Print).is_err() {
@@ -50,7 +50,7 @@ impl Profiler {
         // Always spawn the memory profiler. If there is no timer thread it won't receive regular
         // `Print` events, but it will still receive the other events.
         thread::Builder::new()
-            .name("Memory profiler".to_owned())
+            .name("MemoryProfiler".to_owned())
             .spawn(move || {
                 let mut mem_profiler = Profiler::new(port);
                 mem_profiler.start();

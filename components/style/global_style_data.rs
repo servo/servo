@@ -37,7 +37,7 @@ pub struct StyleThreadPool {
 }
 
 fn thread_name(index: usize) -> String {
-    format!("StyleThread#{}", index)
+    format!("Style#{}", index)
 }
 
 // A counter so that we can wait for shutdown of all threads. See
