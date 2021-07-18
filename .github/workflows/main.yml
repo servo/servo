@@ -128,7 +128,8 @@ jobs:
   #   runs-on: macos-10.15
   #   strategy:
   #     matrix:
-  #       i: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+  #       max_chunk_id: [20]
+  #       chunk_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
   #   steps:
   #     - uses: actions/checkout@v2
   #       with:
@@ -156,7 +157,7 @@ jobs:
   #       run: |
   #         python3 ./mach test-wpt \
   #           --release --processes=3 --timeout-multiplier=8 \
-  #           --total-chunks=20 --this-chunk=${{ matrix.i }} \
+  #           --total-chunks=${{ matrix.max_chunk_id }} --this-chunk=${{ matrix.chunk_id }} \
   #           --log-raw=test-wpt.log \
   #           --log-servojson=wpt-jsonsummary.log \
   #           --always-succeed | cat
@@ -168,7 +169,7 @@ jobs:
   #     - name: Archive logs
   #       uses: actions/upload-artifact@v2
   #       with:
-  #         name: wpt${{ matrix.i }}-logs-macos
+  #         name: wpt${{ matrix.chunk_id }}-logs-macos
   #         path: |
   #           test-wpt.log
   #           wpt-jsonsummary.log
@@ -207,7 +208,8 @@ jobs:
     needs: ["build-linux"]
     strategy:
       matrix:
-        i: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+        max_chunk_id: [20]
+        chunk_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
     steps:
       - uses: actions/checkout@v2
         with:
@@ -230,23 +232,23 @@ jobs:
         run: |
           python3 ./mach test-wpt \
             --release --processes $(nproc) --timeout-multiplier 2 \
-            --total-chunks 20 --this-chunk ${{ matrix.i }} \
-            --log-raw test-wpt.${{ matrix.i }}.log \
-            --log-servojson wpt-jsonsummary.${{ matrix.i }}.log \
+            --total-chunks ${{ matrix.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
+            --log-raw test-wpt.${{ matrix.chunk_id }}.log \
+            --log-servojson wpt-jsonsummary.${{ matrix.chunk_id }}.log \
             --always-succeed
-          python3 ./mach filter-intermittents wpt-jsonsummary.${{ matrix.i }}.log \
-            --log-intermittents=intermittents.${{ matrix.i }}.log \
-            --log-filteredsummary=filtered-wpt-summary.${{ matrix.i }}.log \
+          python3 ./mach filter-intermittents wpt-jsonsummary.${{ matrix.chunk_id }}.log \
+            --log-intermittents=intermittents.${{ matrix.chunk_id }}.log \
+            --log-filteredsummary=filtered-wpt-summary.${{ matrix.chunk_id }}.log \
             --tracker-api=default --reporter-api=default
       - name: Archive logs
         uses: actions/upload-artifact@v2
         with:
-          name: wpt${{ matrix.i }}-logs-linux
+          name: wpt${{ matrix.chunk_id }}-logs-linux
           path: |
-            test-wpt.${{ matrix.i }}.log
-            wpt-jsonsummary.${{ matrix.i }}.log
-            filtered-wpt-summary.${{ matrix.i }}.log
-            intermittents.${{ matrix.i }}.log
+            test-wpt.${{ matrix.chunk_id }}.log
+            wpt-jsonsummary.${{ matrix.chunk_id }}.log
+            filtered-wpt-summary.${{ matrix.chunk_id }}.log
+            intermittents.${{ matrix.chunk_id }}.log
 
   build_result:
     name: homu build finished
