@@ -126,9 +126,10 @@ jobs:
   # mac-wpt:
   #   #needs: build-mac
   #   runs-on: macos-10.15
+  #   env:
+  #     max_chunk_id: 20
   #   strategy:
   #     matrix:
-  #       max_chunk_id: [20]
   #       chunk_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
   #   steps:
   #     - uses: actions/checkout@v2
@@ -157,7 +158,7 @@ jobs:
   #       run: |
   #         python3 ./mach test-wpt \
   #           --release --processes=3 --timeout-multiplier=8 \
-  #           --total-chunks=${{ matrix.max_chunk_id }} --this-chunk=${{ matrix.chunk_id }} \
+  #           --total-chunks=${{ env.max_chunk_id }} --this-chunk=${{ matrix.chunk_id }} \
   #           --log-raw=test-wpt.log \
   #           --log-servojson=wpt-jsonsummary.log \
   #           --always-succeed | cat
@@ -206,9 +207,10 @@ jobs:
     name: Linux WPT Tests
     runs-on: ubuntu-20.04
     needs: ["build-linux"]
+    env:
+      max_chunk_id: 20
     strategy:
       matrix:
-        max_chunk_id: [20]
         chunk_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
     steps:
       - uses: actions/checkout@v2
@@ -232,7 +234,7 @@ jobs:
         run: |
           python3 ./mach test-wpt \
             --release --processes $(nproc) --timeout-multiplier 2 \
-            --total-chunks ${{ matrix.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
+            --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
             --log-raw test-wpt.${{ matrix.chunk_id }}.log \
             --log-servojson wpt-jsonsummary.${{ matrix.chunk_id }}.log \
             --always-succeed
