@@ -950,6 +950,40 @@ jobs:
           name: release-binary
           path: target.tar.gz
 
+  build-linux-flatpak:
+    name: Build (Linux, flatpak)
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: Bootstrap
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          sudo apt update
+          sudo apt install -qy flatpak flatpak-builder
+          sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          sudo flatpak install -y org.freedesktop.Sdk/x86_64/20.08 org.freedesktop.Platform/x86_64/20.08
+      - name: Release build
+        run: flatpak-builder --repo=repo org.servo.Servo data/org.servo.Servo.json --force-clean
+      - name: Export build
+        run: flatpak build-export repo org.servo.Servo
+      - name: Bundle build
+        run: flatpak build-bundle repo org.servo.Servo.flatpak org.servo.Servo
+      - name: Archive binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: release-binary
+          path: org.servo.Servo.flatpak
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: flatpak
+          prerelease: true
+          title: "Flatpak Build"
+          files: |
+            org.servo.Servo.flatpak
+
   linux-wpt-1:
     name: Linux WPT Tests 1
     runs-on: ubuntu-20.04
@@ -1659,6 +1693,7 @@ jobs:
       - "build-uwp-x64"
       - "build-uwp-arm64"
       - "build-linux"
+      - "build-linux-flatpak"
       - "build-mac"
       - "linux-wpt-1"
       - "linux-wpt-2"
