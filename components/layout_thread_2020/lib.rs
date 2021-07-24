@@ -253,7 +253,7 @@ impl LayoutThreadFactory for LayoutThread {
         dump_flow_tree: bool,
     ) {
         thread::Builder::new()
-            .name(format!("LayoutThread {:?}", id))
+            .name(format!("Layout{}", id))
             .spawn(move || {
                 thread_state::initialize(ThreadState::LAYOUT);
 

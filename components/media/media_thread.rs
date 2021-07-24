@@ -34,7 +34,7 @@ impl GLPlayerThread {
     ) -> GLPlayerSender<GLPlayerMsg> {
         let (sender, receiver) = glplayer_channel::<GLPlayerMsg>().unwrap();
         thread::Builder::new()
-            .name("GLPlayerThread".to_owned())
+            .name("GLPlayer".to_owned())
             .spawn(move || {
                 let mut renderer = GLPlayerThread::new(external_images);
                 loop {

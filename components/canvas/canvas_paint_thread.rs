@@ -62,7 +62,7 @@ impl<'a> CanvasPaintThread<'a> {
         let msg_receiver = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(ipc_receiver);
         let (create_sender, create_receiver) = unbounded();
         thread::Builder::new()
-            .name("CanvasThread".to_owned())
+            .name("Canvas".to_owned())
             .spawn(move || {
                 let mut canvas_paint_thread = CanvasPaintThread::new(webrender_api, font_cache_thread);
                 loop {

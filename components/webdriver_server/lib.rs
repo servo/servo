@@ -109,7 +109,7 @@ fn cookie_msg_to_cookie(cookie: cookie::Cookie) -> Cookie {
 pub fn start_server(port: u16, constellation_chan: Sender<ConstellationMsg>) {
     let handler = Handler::new(constellation_chan);
     thread::Builder::new()
-        .name("WebdriverHttpServer".to_owned())
+        .name("WebDriverHttpServer".to_owned())
         .spawn(move || {
             let address = SocketAddrV4::new("0.0.0.0".parse().unwrap(), port);
             match server::start(SocketAddr::V4(address), handler, extension_routes()) {

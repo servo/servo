@@ -773,7 +773,7 @@ impl ScriptThreadFactory for ScriptThread {
         let (sender, receiver) = unbounded();
         let layout_chan = sender.clone();
         thread::Builder::new()
-            .name(format!("ScriptThread {:?}", state.id))
+            .name(format!("Script{}", state.id))
             .spawn(move || {
                 thread_state::initialize(ThreadState::SCRIPT);
                 PipelineNamespace::install(state.pipeline_namespace_id);

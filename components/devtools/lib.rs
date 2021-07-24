@@ -573,7 +573,7 @@ fn run_server(
     }
 
     thread::Builder::new()
-        .name("DevtoolsClientAcceptor".to_owned())
+        .name("DevtCliAcceptor".to_owned())
         .spawn(move || {
             // accept connections and process them, spawning a new thread for each one
             for stream in listener.incoming() {

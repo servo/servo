@@ -158,7 +158,7 @@ impl TimelineActor {
         }
 
         thread::Builder::new()
-            .name("PullTimelineMarkers".to_owned())
+            .name("PullTimelineData".to_owned())
             .spawn(move || loop {
                 if !*is_recording.lock().unwrap() {
                     break;

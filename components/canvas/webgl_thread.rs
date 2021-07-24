@@ -312,7 +312,7 @@ impl WebGLThread {
     /// in parallel on its own dedicated thread.
     pub(crate) fn run_on_own_thread(init: WebGLThreadInit) {
         thread::Builder::new()
-            .name("WebGL thread".to_owned())
+            .name("WebGL".to_owned())
             .spawn(move || {
                 let mut data = WebGLThread::new(init);
                 data.process();
