@@ -297,8 +297,7 @@ pub unsafe fn cross_origin_own_property_keys(
     // > 2. For each `e` of `! CrossOriginProperties(O)`, append
     // >    `e.[[Property]]` to `keys`.
     for key in cross_origin_properties.keys() {
-        let jsstring = JS_AtomizeAndPinString(*cx, key);
-        rooted!(in(*cx) let rooted = jsstring);
+        rooted!(in(*cx) let rooted = JS_AtomizeAndPinString(*cx, key));
         rooted!(in(*cx) let mut rooted_jsid: jsid);
         RUST_INTERNED_STRING_TO_JSID(*cx, rooted.handle().get(), rooted_jsid.handle_mut());
         AppendToIdVector(props, rooted_jsid.handle());
