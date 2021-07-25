@@ -321,9 +321,9 @@ pub unsafe extern "C" fn maybe_cross_origin_get_prototype_if_ordinary_rawcx(
     true
 }
 
-/// Implementation of `[[GetPrototypeOf]]` for [`History`].
+/// Implementation of `[[GetPrototypeOf]]` for [`Location`].
 ///
-/// [`History`]: https://html.spec.whatwg.org/multipage/#location-getprototypeof
+/// [`Location`]: https://html.spec.whatwg.org/multipage/#location-getprototypeof
 pub unsafe fn maybe_cross_origin_get_prototype(
     cx: SafeJSContext,
     proxy: RawHandleObject,
@@ -347,9 +347,9 @@ pub unsafe fn maybe_cross_origin_get_prototype(
     true
 }
 
-/// Implementation of `[[SetPrototypeOf]]` for [`History`] and [`WindowProxy`].
+/// Implementation of `[[SetPrototypeOf]]` for [`Location`] and [`WindowProxy`].
 ///
-/// [`History`]: https://html.spec.whatwg.org/multipage/#location-setprototypeof
+/// [`Location`]: https://html.spec.whatwg.org/multipage/#location-setprototypeof
 /// [`WindowProxy`]: https://html.spec.whatwg.org/multipage/#windowproxy-setprototypeof
 pub unsafe extern "C" fn maybe_cross_origin_set_prototype_rawcx(
     cx: *mut JSContext,
