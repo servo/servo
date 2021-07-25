@@ -310,6 +310,50 @@ pub unsafe fn cross_origin_own_property_keys(
     true
 }
 
+/// Implementation of `[[Set]]` for [`Location`].
+///
+/// [`Location`]: https://html.spec.whatwg.org/multipage/#location-set
+pub unsafe extern "C" fn maybe_cross_origin_set_rawcx(
+    cx: *mut JSContext,
+    proxy: RawHandleObject,
+    id: RawHandleId,
+    v: RawHandleValue,
+    receiver: RawHandleValue,
+    result: *mut ObjectOpResult,
+) -> bool {
+    let cx = SafeJSContext::from_ptr(cx);
+
+    if !is_platform_object_same_origin(cx, proxy) {
+        return cross_origin_set(cx, proxy, id, v, receiver, result);
+    }
+
+    // Safe to enter the Realm of proxy now.
+    let _ac = JSAutoRealm::new(*cx, proxy.get());
+
+    // OrdinarySet
+    // <https://tc39.es/ecma262/#sec-ordinaryset>
+    rooted!(in(*cx) let mut own_desc = PropertyDescriptor::default());
+    if !InvokeGetOwnPropertyDescriptor(
+        GetProxyHandler(*proxy),
+        *cx,
+        proxy,
+        id,
+        own_desc.handle_mut().into(),
+    ) {
+        return false;
+    }
+
+    js::jsapi::SetPropertyIgnoringNamedGetter(
+        *cx,
+        proxy,
+        id,
+        v,
+        receiver,
+        own_desc.handle().into(),
+        result,
+    )
+}
+
 pub unsafe extern "C" fn maybe_cross_origin_get_prototype_if_ordinary_rawcx(
     _: *mut JSContext,
     _proxy: RawHandleObject,
