@@ -11,7 +11,6 @@ use crate::dom::bindings::conversions::{get_dom_class, DOM_OBJECT_SLOT};
 use crate::dom::bindings::guard::Guard;
 use crate::dom::bindings::principals::ServoJSPrincipals;
 use crate::dom::bindings::utils::{ProtoOrIfaceArray, DOM_PROTOTYPE_SLOT};
-use crate::dom::window::Window;
 use crate::script_runtime::JSContext as SafeJSContext;
 use js::error::throw_type_error;
 use js::glue::UncheckedUnwrapObject;
@@ -38,7 +37,6 @@ use js::rust::wrappers::{JS_DefineProperty3, JS_DefineProperty4, JS_DefineProper
 use js::rust::wrappers::{JS_LinkConstructorAndPrototype, JS_NewObjectWithGivenProto};
 use js::rust::{define_methods, define_properties, get_object_class};
 use js::rust::{HandleObject, HandleValue, MutableHandleObject, RealmOptions};
-use libc;
 use servo_url::MutableOrigin;
 use std::convert::TryFrom;
 use std::ptr;

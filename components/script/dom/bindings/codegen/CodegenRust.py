@@ -6694,7 +6694,6 @@ class CGDescriptor(CGThing):
                 if descriptor.isMaybeCrossOriginObject():
                     cgThings.append(CGDOMJSProxyHandler_getPrototype(descriptor))
                     cgThings.append(CGDOMJSProxyHandler_set(descriptor))
-                    pass
 
                 # cgThings.append(CGDOMJSProxyHandler(descriptor))
                 # cgThings.append(CGIsMethod(descriptor))

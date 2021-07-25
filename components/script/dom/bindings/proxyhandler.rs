@@ -6,7 +6,7 @@
 
 #![deny(missing_docs)]
 
-use crate::dom::bindings::conversions::is_dom_proxy;
+use crate::dom::bindings::conversions::{is_dom_proxy, jsid_to_string, jsstring_to_str};
 use crate::dom::bindings::error::{throw_dom_exception, Error};
 use crate::dom::bindings::principals::ServoJSPrincipalsRef;
 use crate::dom::bindings::reflector::DomObject;
@@ -261,7 +261,7 @@ unsafe fn id_to_source(cx: SafeJSContext, id: RawHandleId) -> Option<DOMString> 
             jsstr.get()
         })
         .filter(|jsstr| !jsstr.is_null())
-        .map(|jsstr| crate::dom::bindings::conversions::jsstring_to_str(*cx, jsstr))
+        .map(|jsstr| jsstring_to_str(*cx, jsstr))
 }
 
 /// Property and method specs that correspond to the elements of
@@ -275,7 +275,7 @@ pub struct CrossOriginProperties {
 
 impl CrossOriginProperties {
     /// Enumerate the property keys defined by `self`.
-    fn keys(&self) -> impl Iterator<Item = *const std::os::raw::c_char> + '_ {
+    fn keys(&self) -> impl Iterator<Item = *const c_char> + '_ {
         // Safety: All cross-origin property keys are strings, not symbols
         self.attributes
             .iter()
@@ -552,16 +552,12 @@ pub unsafe fn cross_origin_has_own(
 
     // TODO: Once we have the slot for the holder, it'd be more efficient to
     //       use `ensure_cross_origin_property_holder`.
-    *bp = if let Some(key) =
-        crate::dom::bindings::conversions::jsid_to_string(*cx, Handle::from_raw(id))
-    {
+    *bp = jsid_to_string(*cx, Handle::from_raw(id)).map_or(false, |key| {
         cross_origin_properties.keys().any(|defined_key| {
             let defined_key = CStr::from_ptr(defined_key);
             defined_key.to_bytes() == key.as_bytes()
         })
-    } else {
-        false
-    };
+    });
 
     true
 }
@@ -639,21 +635,20 @@ const ALLOWLISTED_SYMBOL_CODES: &[SymbolCode] = &[
 ];
 
 unsafe fn is_cross_origin_allowlisted_prop(cx: SafeJSContext, id: RawHandleId) -> bool {
-    crate::dom::bindings::conversions::jsid_to_string(*cx, Handle::from_raw(id))
-        .filter(|st| st == "then")
-        .is_some() ||
-        {
-            rooted!(in(*cx) let mut allowed_id: jsid);
-            ALLOWLISTED_SYMBOL_CODES.iter().any(|&allowed_code| {
-                RUST_SYMBOL_TO_JSID(
-                    GetWellKnownSymbol(*cx, allowed_code),
-                    allowed_id.handle_mut().into(),
-                );
-                // `jsid`s containing `JS::Symbol *` can be compared by
-                // referential equality
-                allowed_id.get().asBits == id.asBits
-            })
-        }
+    if jsid_to_string(*cx, Handle::from_raw(id)).map_or(false, |st| st == "then") {
+        return true;
+    }
+
+    rooted!(in(*cx) let mut allowed_id: jsid);
+    ALLOWLISTED_SYMBOL_CODES.iter().any(|&allowed_code| {
+        RUST_SYMBOL_TO_JSID(
+            GetWellKnownSymbol(*cx, allowed_code),
+            allowed_id.handle_mut().into(),
+        );
+        // `jsid`s containing `JS::Symbol *` can be compared by
+        // referential equality
+        allowed_id.get().asBits == id.asBits
+    })
 }
 
 /// Append `« "then", @@toStringTag, @@hasInstance, @@isConcatSpreadable »` to
@@ -665,12 +660,11 @@ unsafe fn append_cross_origin_allowlisted_prop_keys(
     props: RawMutableHandleIdVector,
 ) {
     rooted!(in(*cx) let mut id: jsid);
-    {
-        let jsstring = JS_AtomizeAndPinString(*cx, b"then\0".as_ptr() as *const c_char);
-        rooted!(in(*cx) let rooted = jsstring);
-        RUST_INTERNED_STRING_TO_JSID(*cx, rooted.handle().get(), id.handle_mut());
-        AppendToIdVector(props, id.handle());
-    }
+
+    let jsstring = JS_AtomizeAndPinString(*cx, b"then\0".as_ptr() as *const c_char);
+    rooted!(in(*cx) let rooted = jsstring);
+    RUST_INTERNED_STRING_TO_JSID(*cx, rooted.handle().get(), id.handle_mut());
+    AppendToIdVector(props, id.handle());
 
     for &allowed_code in ALLOWLISTED_SYMBOL_CODES.iter() {
         RUST_SYMBOL_TO_JSID(
