@@ -11,7 +11,7 @@ use js::{
     rust::Runtime,
 };
 use servo_url::MutableOrigin;
-use std::{marker::PhantomData, ops::Deref, ptr::NonNull};
+use std::{marker::PhantomData, mem::ManuallyDrop, ops::Deref, ptr::NonNull};
 
 /// An owned reference to Servo's `JSPrincipals` instance.
 #[repr(transparent)]
@@ -67,25 +67,42 @@ impl Drop for ServoJSPrincipals {
     }
 }
 
-/// A borrowed reference to Servo's `JSPrincipals` instance.
-#[derive(Clone, Copy)]
-pub struct ServoJSPrincipalsRef<'a>(NonNull<JSPrincipals>, PhantomData<&'a ()>);
+/// A borrowed reference to Servo's `JSPrincipals` instance. Does not update the
+/// reference count on creation and deletion.
+pub struct ServoJSPrincipalsRef<'a>(ManuallyDrop<ServoJSPrincipals>, PhantomData<&'a ()>);
 
 impl ServoJSPrincipalsRef<'_> {
     /// Construct `Self` from a raw `NonNull<JSPrincipals>`.
+    ///
+    /// # Safety
+    ///
+    /// `ServoJSPrincipalsRef` does not update the reference count of the
+    /// wrapped `JSPrincipals` object. It's up to the caller to ensure the
+    /// returned `ServoJSPrincipalsRef` object or any clones are not used past
+    /// the lifetime of the wrapped object.
     #[inline]
     pub unsafe fn from_raw_nonnull(raw: NonNull<JSPrincipals>) -> Self {
-        Self(raw, PhantomData)
+        // Don't use `ServoJSPrincipals::from_raw_nonnull`; we don't want to
+        // update the reference count
+        Self(ManuallyDrop::new(ServoJSPrincipals(raw)), PhantomData)
     }
 
     /// Construct `Self` from a raw `*mut JSPrincipals`.
     ///
     /// # Safety
     ///
-    /// The behavior is undefined if `raw` is null.
+    /// The behavior is undefined if `raw` is null. See also
+    /// [`Self::from_raw_nonnull`].
     #[inline]
     pub unsafe fn from_raw_unchecked(raw: *mut JSPrincipals) -> Self {
         Self::from_raw_nonnull(NonNull::new_unchecked(raw))
+    }
+}
+
+impl Clone for ServoJSPrincipalsRef<'_> {
+    #[inline]
+    fn clone(&self) -> Self {
+        Self(ManuallyDrop::new(ServoJSPrincipals(self.0 .0)), PhantomData)
     }
 }
 
@@ -94,7 +111,7 @@ impl Deref for ServoJSPrincipalsRef<'_> {
 
     #[inline]
     fn deref(&self) -> &Self::Target {
-        unsafe { &*(&self.0 as *const NonNull<JSPrincipals> as *const ServoJSPrincipals) }
+        &self.0
     }
 }
 
