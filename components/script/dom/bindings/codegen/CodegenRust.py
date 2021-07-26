@@ -1642,6 +1642,33 @@ class PropertyDefiner:
                      + "];\n") % (name, specType)
         return specsArray + prefArray
 
+    def generateUnguardedArray(self, array, name, specTemplate, specTerminator,
+                               specType, getCondition, getDataTuple):
+        """
+        Takes the same set of parameters as generateGuardedArray but instead
+        generates a single, flat array of type `&[specType]` that contains all
+        provided members. The provided members' conditions shall be homogeneous,
+        or else this method will fail.
+        """
+
+        # this method can't handle heterogeneous condition
+        groups = groupby(array, lambda m: getCondition(m, self.descriptor))
+        assert len(list(groups)) == 1
+
+        origTemplate = specTemplate
+        if isinstance(specTemplate, str):
+            specTemplate = lambda _: origTemplate  # noqa
+
+        specsArray = [specTemplate(m) % getDataTuple(m) for m in array]
+        specsArray.append(specTerminator)
+
+        return dedent(
+            """
+            const %s: &[%s] = &[
+            %s
+            ];
+            """) % (name, specType, ',\n'.join(specsArray))
+
 
 # The length of a method is the minimum of the lengths of the
 # argument lists of all its overloads.
@@ -1829,16 +1856,11 @@ class MethodDefiner(PropertyDefiner):
             '    }')
 
         if self.crossorigin:
-            groups = groupby(array, lambda m: condition(m, self.descriptor))
-            assert len(list(groups)) == 1  # can't handle mixed condition
-            elems = [specTemplate % specData(m) for m in array]
-            return dedent(
-                """
-                const %s: &[JSFunctionSpec] = &[
-                %s,
-                %s,
-                ];
-                """) % (name, ',\n'.join(elems), specTerminator)
+            return self.generateUnguardedArray(
+                array, name,
+                specTemplate, specTerminator,
+                'JSFunctionSpec',
+                condition, specData)
         else:
             return self.generateGuardedArray(
                 array, name,
@@ -1983,16 +2005,12 @@ class AttrDefiner(PropertyDefiner):
 """
 
         if self.crossorigin:
-            groups = groupby(array, lambda m: condition(m, self.descriptor))
-            assert len(list(groups)) == 1  # can't handle mixed condition
-            elems = [template(m) % specData(m) for m in array]
-            return dedent(
-                """
-                const %s: &[JSPropertySpec] = &[
-                %s,
-                    JSPropertySpec::ZERO,
-                ];
-                """) % (name, ',\n'.join(elems))
+            return self.generateUnguardedArray(
+                array, name,
+                template,
+                '    JSPropertySpec::ZERO',
+                'JSPropertySpec',
+                condition, specData)
         else:
             return self.generateGuardedArray(
                 array, name,
