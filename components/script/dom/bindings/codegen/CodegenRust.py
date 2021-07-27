@@ -1936,9 +1936,10 @@ class AttrDefiner(PropertyDefiner):
         def setter(attr):
             attr = attr['attr']
 
-            if ((attr.readonly and not attr.getExtendedAttribute("PutForwards")
-                    and not attr.getExtendedAttribute("Replaceable"))
-                    or (self.crossorigin and not attr.getExtendedAttribute("CrossOriginReadable"))):
+            if ((self.crossorigin and not attr.getExtendedAttribute("CrossOriginReadable"))
+                or (attr.readonly
+                    and not attr.getExtendedAttribute("PutForwards")
+                    and not attr.getExtendedAttribute("Replaceable"))):
                 return "JSNativeWrapper { op: None, info: 0 as *const JSJitInfo }"
 
             if self.static:
