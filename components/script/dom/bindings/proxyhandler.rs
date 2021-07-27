@@ -587,15 +587,14 @@ fn is_data_descriptor(d: &PropertyDescriptor) -> bool {
 /// for a maybe-cross-origin object.
 pub unsafe fn cross_origin_has_own(
     cx: SafeJSContext,
-    proxy: RawHandleObject,
+    _proxy: RawHandleObject,
     cross_origin_properties: &'static CrossOriginProperties,
     id: RawHandleId,
     bp: *mut bool,
 ) -> bool {
-    let _ = proxy;
-
     // TODO: Once we have the slot for the holder, it'd be more efficient to
-    //       use `ensure_cross_origin_property_holder`.
+    //       use `ensure_cross_origin_property_holder`. We'll need `_proxy` to
+    //       do that.
     *bp = jsid_to_string(*cx, Handle::from_raw(id)).map_or(false, |key| {
         cross_origin_properties.keys().any(|defined_key| {
             let defined_key = CStr::from_ptr(defined_key);
