@@ -541,7 +541,12 @@ pub unsafe fn cross_origin_set(
         *cx,
         receiver,
         setter_jsval.handle().into(),
-        &jsapi::HandleValueArray::from_rooted_slice(&[v.get()]),
+        // FIXME: Our binding lacks `HandleValueArray(Handle<Value>)`
+        // <https://searchfox.org/mozilla-central/rev/072710086ddfe25aa2962c8399fefb2304e8193b/js/public/ValueArray.h#54-55>
+        &jsapi::HandleValueArray {
+            length_: 1,
+            elements_: v.ptr,
+        },
         ignored.handle_mut().into(),
     ) {
         return false;
