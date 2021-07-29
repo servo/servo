@@ -6,6 +6,9 @@ use crate::dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::proxyhandler::{
+    CrossOriginPropertiesHolderMap, CrossOriginPropertiesHolderMapAccess,
+};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
@@ -21,6 +24,7 @@ use servo_url::{MutableOrigin, ServoUrl};
 pub struct Location {
     reflector_: Reflector,
     window: Dom<Window>,
+    holder_map: CrossOriginPropertiesHolderMap,
 }
 
 impl Location {
@@ -28,6 +32,7 @@ impl Location {
         Location {
             reflector_: Reflector::new(),
             window: Dom::from_ref(window),
+            holder_map: CrossOriginPropertiesHolderMap::default(),
         }
     }
 
@@ -90,6 +95,12 @@ impl Location {
     #[allow(dead_code)]
     pub fn origin(&self) -> &MutableOrigin {
         self.window.origin()
+    }
+}
+
+impl CrossOriginPropertiesHolderMapAccess for Location {
+    fn holder_map(&self) -> &CrossOriginPropertiesHolderMap {
+        &self.holder_map
     }
 }
 
