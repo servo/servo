@@ -1084,6 +1084,9 @@ pub fn new_window_proxy_handler() -> WindowProxyHandler {
 // These traps often throw security errors, and only pass on calls to methods
 // defined in the DissimilarOriginWindow IDL.
 
+// TODO: reuse the infrastructure in `proxyhandler.rs`. For starters, the calls
+//       to this function should be replaced with those to
+//       `report_cross_origin_denial`.
 #[allow(unsafe_code)]
 unsafe fn throw_security_error(cx: *mut JSContext, realm: InRealm) -> bool {
     if !JS_IsExceptionPending(cx) {

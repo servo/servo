@@ -16,6 +16,7 @@ use crate::dom::bindings::conversions::private_from_object;
 use crate::dom::bindings::conversions::root_from_handleobject;
 use crate::dom::bindings::error::{throw_dom_exception, Error};
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::principals;
 use crate::dom::bindings::refcounted::{trace_refcounted_objects, LiveDOMReferences};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomObject;
@@ -61,6 +62,7 @@ use js::jsapi::{
     JSJitCompilerOption, JS_SetOffthreadIonCompilationEnabled, JS_SetParallelParsingEnabled,
 };
 use js::jsapi::{JSObject, PromiseRejectionHandlingState, SetPreserveWrapperCallbacks};
+use js::jsapi::{JSSecurityCallbacks, JS_InitDestroyPrincipalsCallback, JS_SetSecurityCallbacks};
 use js::jsapi::{SetJobQueue, SetProcessBuildIdOp, SetPromiseRejectionTrackerCallback};
 use js::jsval::UndefinedValue;
 use js::panic::wrap_panic;
@@ -95,6 +97,12 @@ static JOB_QUEUE_TRAPS: JobQueueTraps = JobQueueTraps {
     getIncumbentGlobal: Some(get_incumbent_global),
     enqueuePromiseJob: Some(enqueue_promise_job),
     empty: Some(empty),
+};
+
+static SECURITY_CALLBACKS: JSSecurityCallbacks = JSSecurityCallbacks {
+    // TODO: Content Security Policy <https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP>
+    contentSecurityPolicyAllows: None,
+    subsumes: Some(principals::subsumes),
 };
 
 /// Common messages used to control the event loops in both the script and the worker
@@ -465,6 +473,10 @@ unsafe fn new_rt_and_cx_with_parent(
     };
 
     JS_AddExtraGCRootsTracer(cx, Some(trace_rust_roots), ptr::null_mut());
+
+    JS_SetSecurityCallbacks(cx, &SECURITY_CALLBACKS);
+
+    JS_InitDestroyPrincipalsCallback(cx, Some(principals::destroy_servo_jsprincipal));
 
     // Needed for debug assertions about whether GC is running.
     if cfg!(debug_assertions) {

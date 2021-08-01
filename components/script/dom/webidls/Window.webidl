@@ -6,13 +6,14 @@
 [Global=Window, Exposed=Window /*, LegacyUnenumerableNamedProperties */]
 /*sealed*/ interface Window : GlobalScope {
   // the current browsing context
-  [Unforgeable] readonly attribute WindowProxy window;
-  [BinaryName="Self_", Replaceable] readonly attribute WindowProxy self;
+  [Unforgeable, CrossOriginReadable] readonly attribute WindowProxy window;
+  [BinaryName="Self_", Replaceable, CrossOriginReadable] readonly attribute WindowProxy self;
   [Unforgeable] readonly attribute Document document;
 
   attribute DOMString name;
 
-  [PutForwards=href, Unforgeable] readonly attribute Location location;
+  [PutForwards=href, Unforgeable, CrossOriginReadable, CrossOriginWritable]
+    readonly attribute Location location;
   readonly attribute History history;
   [Pref="dom.customelements.enabled"]
   readonly attribute CustomElementRegistry customElements;
@@ -23,22 +24,22 @@
   //[Replaceable] readonly attribute BarProp statusbar;
   //[Replaceable] readonly attribute BarProp toolbar;
   attribute DOMString status;
-  void close();
-  readonly attribute boolean closed;
+  [CrossOriginCallable] void close();
+  [CrossOriginReadable] readonly attribute boolean closed;
   void stop();
-  //void focus();
-  //void blur();
+  //[CrossOriginCallable] void focus();
+  //[CrossOriginCallable] void blur();
 
   // other browsing contexts
-  [Replaceable] readonly attribute WindowProxy frames;
-  [Replaceable] readonly attribute unsigned long length;
+  [Replaceable, CrossOriginReadable] readonly attribute WindowProxy frames;
+  [Replaceable, CrossOriginReadable] readonly attribute unsigned long length;
   // Note that this can return null in the case that the browsing context has been discarded.
   // https://github.com/whatwg/html/issues/2115
-  [Unforgeable] readonly attribute WindowProxy? top;
-  attribute any opener;
+  [Unforgeable, CrossOriginReadable] readonly attribute WindowProxy? top;
+  [CrossOriginReadable] attribute any opener;
   // Note that this can return null in the case that the browsing context has been discarded.
   // https://github.com/whatwg/html/issues/2115
-  [Replaceable] readonly attribute WindowProxy? parent;
+  [Replaceable, CrossOriginReadable] readonly attribute WindowProxy? parent;
   readonly attribute Element? frameElement;
   [Throws] WindowProxy? open(optional USVString url = "", optional DOMString target = "_blank",
                              optional DOMString features = "");
@@ -63,9 +64,9 @@
   unsigned long requestAnimationFrame(FrameRequestCallback callback);
   void cancelAnimationFrame(unsigned long handle);
 
-  [Throws]
+  [Throws, CrossOriginCallable]
   void postMessage(any message, USVString targetOrigin, optional sequence<object> transfer = []);
-  [Throws]
+  [Throws, CrossOriginCallable]
   void postMessage(any message, optional WindowPostMessageOptions options = {});
 
   // also has obsolete members

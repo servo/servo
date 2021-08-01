@@ -9,6 +9,7 @@ use crate::dom::bindings::codegen::PrototypeList;
 use crate::dom::bindings::constant::{define_constants, ConstantSpec};
 use crate::dom::bindings::conversions::{get_dom_class, DOM_OBJECT_SLOT};
 use crate::dom::bindings::guard::Guard;
+use crate::dom::bindings::principals::ServoJSPrincipals;
 use crate::dom::bindings::utils::{ProtoOrIfaceArray, DOM_PROTOTYPE_SLOT};
 use crate::script_runtime::JSContext as SafeJSContext;
 use js::error::throw_type_error;
@@ -36,6 +37,7 @@ use js::rust::wrappers::{JS_DefineProperty3, JS_DefineProperty4, JS_DefineProper
 use js::rust::wrappers::{JS_LinkConstructorAndPrototype, JS_NewObjectWithGivenProto};
 use js::rust::{define_methods, define_properties, get_object_class};
 use js::rust::{HandleObject, HandleValue, MutableHandleObject, RealmOptions};
+use servo_url::MutableOrigin;
 use std::convert::TryFrom;
 use std::ptr;
 
@@ -136,6 +138,7 @@ pub unsafe fn create_global_object(
     private: *const libc::c_void,
     trace: TraceHook,
     mut rval: MutableHandleObject,
+    origin: &MutableOrigin,
 ) {
     assert!(rval.is_null());
 
@@ -145,10 +148,12 @@ pub unsafe fn create_global_object(
     options.creationOptions_.streams_ = true;
     select_compartment(cx, &mut options);
 
+    let principal = ServoJSPrincipals::new(origin);
+
     rval.set(JS_NewGlobalObject(
         *cx,
         class,
-        ptr::null_mut(),
+        principal.as_raw(),
         OnNewGlobalHookOption::DontFireOnNewGlobalHook,
         &*options,
     ));

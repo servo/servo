@@ -17,8 +17,8 @@ use crate::dom::bindings::trace::trace_object;
 use crate::dom::windowproxy;
 use crate::script_runtime::JSContext as SafeJSContext;
 use js::conversions::ToJSValConvertible;
+use js::glue::JS_GetReservedSlot;
 use js::glue::{CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, IsWrapper};
-use js::glue::{GetCrossCompartmentWrapper, JS_GetReservedSlot, WrapperNew};
 use js::glue::{UnwrapObjectDynamic, UnwrapObjectStatic, RUST_JSID_TO_INT, RUST_JSID_TO_STRING};
 use js::glue::{
     RUST_FUNCTION_VALUE_TO_JITINFO, RUST_JSID_IS_INT, RUST_JSID_IS_STRING, RUST_JSID_IS_VOID,
@@ -26,12 +26,11 @@ use js::glue::{
 use js::jsapi::HandleId as RawHandleId;
 use js::jsapi::HandleObject as RawHandleObject;
 use js::jsapi::MutableHandleIdVector as RawMutableHandleIdVector;
-use js::jsapi::MutableHandleObject as RawMutableHandleObject;
 use js::jsapi::{AtomToLinearString, GetLinearStringCharAt, GetLinearStringLength};
 use js::jsapi::{CallArgs, DOMCallbacks, GetNonCCWObjectGlobal};
-use js::jsapi::{Heap, JSAutoRealm, JSContext, JS_FreezeObject};
+use js::jsapi::{Heap, JSContext, JS_FreezeObject};
 use js::jsapi::{JSAtom, JS_IsExceptionPending, JS_IsGlobalObject};
-use js::jsapi::{JSJitInfo, JSObject, JSTracer, JSWrapObjectCallbacks};
+use js::jsapi::{JSJitInfo, JSObject, JSTracer};
 use js::jsapi::{
     JS_DeprecatedStringHasLatin1Chars, JS_ResolveStandardClass, ObjectOpResult, StringIsArrayIndex,
 };
@@ -44,7 +43,7 @@ use js::rust::wrappers::JS_GetPrototype;
 use js::rust::wrappers::JS_HasProperty;
 use js::rust::wrappers::JS_HasPropertyById;
 use js::rust::wrappers::JS_SetProperty;
-use js::rust::{get_object_class, is_dom_class, GCMethods, ToString, ToWindowProxyIfWindow};
+use js::rust::{get_object_class, is_dom_class, GCMethods, ToString};
 use js::rust::{Handle, HandleId, HandleObject, HandleValue, MutableHandleValue};
 use js::typedarray::{CreateWith, Float32Array};
 use js::JS_CALLEE;
@@ -53,6 +52,7 @@ use std::ffi::CString;
 use std::os::raw::{c_char, c_void};
 use std::ptr;
 use std::slice;
+use std::str;
 
 /// Proxy handler for a WindowProxy.
 pub struct WindowProxyHandler(pub *const libc::c_void);
@@ -474,36 +474,6 @@ pub unsafe extern "C" fn resolve_global(
     }
     true
 }
-
-unsafe extern "C" fn wrap(
-    cx: *mut JSContext,
-    _existing: RawHandleObject,
-    obj: RawHandleObject,
-) -> *mut JSObject {
-    // FIXME terrible idea. need security wrappers
-    // https://github.com/servo/servo/issues/2382
-    WrapperNew(cx, obj, GetCrossCompartmentWrapper(), ptr::null(), false)
-}
-
-unsafe extern "C" fn pre_wrap(
-    cx: *mut JSContext,
-    _scope: RawHandleObject,
-    _orig_obj: RawHandleObject,
-    obj: RawHandleObject,
-    _object_passed_to_wrap: RawHandleObject,
-    rval: RawMutableHandleObject,
-) {
-    let _ac = JSAutoRealm::new(cx, obj.get());
-    let obj = ToWindowProxyIfWindow(obj.get());
-    assert!(!obj.is_null());
-    rval.set(obj)
-}
-
-/// Callback table for use with JS_SetWrapObjectCallbacks
-pub static WRAP_CALLBACKS: JSWrapObjectCallbacks = JSWrapObjectCallbacks {
-    wrap: Some(wrap),
-    preWrap: Some(pre_wrap),
-};
 
 /// Deletes the property `id` from `object`.
 pub unsafe fn delete_property_by_id(

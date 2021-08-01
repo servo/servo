@@ -35,7 +35,6 @@ use crate::dom::bindings::root::ThreadLocalStackRoots;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootCollection};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::JSTraceable;
-use crate::dom::bindings::utils::WRAP_CALLBACKS;
 use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReactionStack,
 };
@@ -99,7 +98,6 @@ use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::GetWindowProxyClass;
-use js::jsapi::JS_SetWrapObjectCallbacks;
 use js::jsapi::{
     JSContext as UnsafeJSContext, JSTracer, JS_AddInterruptCallback, SetWindowProxyClass,
 };
@@ -1295,7 +1293,6 @@ impl ScriptThread {
         let cx = runtime.cx();
 
         unsafe {
-            JS_SetWrapObjectCallbacks(cx, &WRAP_CALLBACKS);
             SetWindowProxyClass(cx, GetWindowProxyClass());
             JS_AddInterruptCallback(cx, Some(interrupt_callback));
         }
