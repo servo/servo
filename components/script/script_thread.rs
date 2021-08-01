@@ -45,7 +45,7 @@ use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
-use crate::dom::htmliframeelement::{HTMLIFrameElement, NavigationType};
+use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::identityhub::Identities;
 use crate::dom::mutationobserver::MutationObserver;
 use crate::dom::node::{window_from_node, Node, ShadowIncluding};
@@ -3705,11 +3705,7 @@ impl ScriptThread {
             .borrow()
             .find_iframe(parent_pipeline_id, browsing_context_id);
         if let Some(iframe) = iframe {
-            iframe.navigate_or_reload_child_browsing_context(
-                load_data,
-                NavigationType::Regular,
-                replace,
-            );
+            iframe.navigate_or_reload_child_browsing_context(load_data, replace);
         }
     }
 
