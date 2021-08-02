@@ -721,6 +721,7 @@ pub struct CrossOriginPropertiesHolderMap {
 /// [`CrossOriginGetOwnPropertyHelper`]: https://html.spec.whatwg.org/multipage/#crossorigingetownpropertyhelper-(-o,-p-)
 pub unsafe fn ensure_cross_origin_property_holder(
     cx: SafeJSContext,
+    proxy: RawHandleObject,
     holder_map: &CrossOriginPropertiesHolderMap,
     cross_origin_properties: &'static CrossOriginProperties,
     out_holder: RawMutableHandleObject,
@@ -729,6 +730,7 @@ pub unsafe fn ensure_cross_origin_property_holder(
 
     // Create an inner holder map if it doesn't exist yet.
     if inner_holder_map_slot.get().is_null() {
+        let _ac = JSAutoRealm::new(*cx, proxy.get());
         inner_holder_map_slot.set(jsapi::NewWeakMapObject(*cx));
         if inner_holder_map_slot.get().is_null() {
             return false;

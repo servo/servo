@@ -5498,6 +5498,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                     rooted!(in(*cx) let mut holder = ptr::null_mut::<JSObject>());
                     proxyhandler::ensure_cross_origin_property_holder(
                         cx,
+                        proxy,
                         holder_map,
                         &CROSS_ORIGIN_PROPERTIES,
                         holder.handle_mut().into(),
@@ -5728,6 +5729,7 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
                     rooted!(in(*cx) let mut holder = ptr::null_mut::<JSObject>());
                     proxyhandler::ensure_cross_origin_property_holder(
                         cx,
+                        proxy,
                         holder_map,
                         &CROSS_ORIGIN_PROPERTIES,
                         holder.handle_mut().into(),
@@ -5862,6 +5864,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
                     rooted!(in(*cx) let mut holder = ptr::null_mut::<JSObject>());
                     proxyhandler::ensure_cross_origin_property_holder(
                         cx,
+                        proxy,
                         holder_map,
                         &CROSS_ORIGIN_PROPERTIES,
                         holder.handle_mut().into(),
