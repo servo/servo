@@ -25,7 +25,6 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::ReflowReason;
 use crate::dom::windowproxy::WindowProxy;
 use crate::script_thread::ScriptThread;
-use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
@@ -239,6 +238,7 @@ impl HTMLIFrameElement {
 
     /// <https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes>
     fn process_the_iframe_attributes(&self, mode: ProcessingMode) {
+        // > 1. If `element`'s `srcdoc` attribute is specified, then:
         if self
             .upcast::<Element>()
             .has_attribute(&local_name!("srcdoc"))
@@ -280,22 +280,16 @@ impl HTMLIFrameElement {
             }
         }
 
-        // https://github.com/whatwg/html/issues/490
         if mode == ProcessingMode::FirstTime &&
             !self.upcast::<Element>().has_attribute(&local_name!("src"))
         {
-            let this = Trusted::new(self);
-            let pipeline_id = self.pipeline_id().unwrap();
-            // FIXME(nox): Why are errors silenced here?
-            let _ = window.task_manager().dom_manipulation_task_source().queue(
-                task!(iframe_load_event_steps: move || {
-                    this.root().iframe_load_event_steps(pipeline_id);
-                }),
-                window.upcast(),
-            );
             return;
         }
 
+        // > 2. Otherwise, if `element` has a `src` attribute specified, or
+        // >    `initialInsertion` is false, then run the shared attribute
+        // >    processing steps for `iframe` and `frame` elements given
+        // >    `element`.
         let url = self.get_url();
 
         // TODO(#25748):
@@ -355,6 +349,19 @@ impl HTMLIFrameElement {
     fn create_nested_browsing_context(&self) {
         // Synchronously create a new browsing context, which will present
         // `about:blank`. (This is not a navigation.)
+        //
+        // The pipeline started here will synchronously "completely finish
+        // loading", which will then asynchronously call
+        // `iframe_load_event_steps`.
+        //
+        // The precise event timing differs between implementations and
+        // remains controversial:
+        //
+        //  - [Unclear "iframe load event steps" for initial load of about:blank
+        //    in an iframe #490](https://github.com/whatwg/html/issues/490)
+        //  - [load event handling for iframes with no src may not be web
+        //    compatible #4965](https://github.com/whatwg/html/issues/4965)
+        //
         let url = ServoUrl::parse("about:blank").unwrap();
         let document = document_from_node(self);
         let window = window_from_node(self);
