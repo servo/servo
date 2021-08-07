@@ -25,7 +25,6 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::ReflowReason;
 use crate::dom::windowproxy::WindowProxy;
 use crate::script_thread::ScriptThread;
-use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
@@ -57,9 +56,9 @@ bitflags! {
 }
 
 #[derive(PartialEq)]
-pub enum NavigationType {
+enum PipelineType {
     InitialAboutBlank,
-    Regular,
+    Navigation,
 }
 
 #[derive(PartialEq)]
@@ -106,8 +105,16 @@ impl HTMLIFrameElement {
 
     pub fn navigate_or_reload_child_browsing_context(
         &self,
+        load_data: LoadData,
+        replace: HistoryEntryReplacement,
+    ) {
+        self.start_new_pipeline(load_data, PipelineType::Navigation, replace);
+    }
+
+    fn start_new_pipeline(
+        &self,
         mut load_data: LoadData,
-        nav_type: NavigationType,
+        pipeline_type: PipelineType,
         replace: HistoryEntryReplacement,
     ) {
         let sandboxed = if self.is_sandboxed() {
@@ -117,12 +124,12 @@ impl HTMLIFrameElement {
         };
 
         let browsing_context_id = match self.browsing_context_id() {
-            None => return warn!("Navigating unattached iframe."),
+            None => return warn!("Attempted to start a new pipeline on an unattached iframe."),
             Some(id) => id,
         };
 
         let top_level_browsing_context_id = match self.top_level_browsing_context_id() {
-            None => return warn!("Navigating unattached iframe."),
+            None => return warn!("Attempted to start a new pipeline on an unattached iframe."),
             Some(id) => id,
         };
 
@@ -181,8 +188,8 @@ impl HTMLIFrameElement {
             device_pixel_ratio: window.device_pixel_ratio(),
         };
 
-        match nav_type {
-            NavigationType::InitialAboutBlank => {
+        match pipeline_type {
+            PipelineType::InitialAboutBlank => {
                 let (pipeline_sender, pipeline_receiver) = ipc::channel().unwrap();
 
                 self.about_blank_pipeline_id.set(Some(new_pipeline_id));
@@ -213,7 +220,7 @@ impl HTMLIFrameElement {
                 self.pipeline_id.set(Some(new_pipeline_id));
                 ScriptThread::process_attach_layout(new_layout_info, document.origin().clone());
             },
-            NavigationType::Regular => {
+            PipelineType::Navigation => {
                 let load_info = IFrameLoadInfoWithData {
                     info: load_info,
                     load_data: load_data,
@@ -231,6 +238,7 @@ impl HTMLIFrameElement {
 
     /// <https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes>
     fn process_the_iframe_attributes(&self, mode: ProcessingMode) {
+        // > 1. If `element`'s `srcdoc` attribute is specified, then:
         if self
             .upcast::<Element>()
             .has_attribute(&local_name!("srcdoc"))
@@ -251,7 +259,6 @@ impl HTMLIFrameElement {
             load_data.srcdoc = String::from(element.get_string_attribute(&local_name!("srcdoc")));
             self.navigate_or_reload_child_browsing_context(
                 load_data,
-                NavigationType::Regular,
                 HistoryEntryReplacement::Disabled,
             );
             return;
@@ -273,22 +280,16 @@ impl HTMLIFrameElement {
             }
         }
 
-        // https://github.com/whatwg/html/issues/490
         if mode == ProcessingMode::FirstTime &&
             !self.upcast::<Element>().has_attribute(&local_name!("src"))
         {
-            let this = Trusted::new(self);
-            let pipeline_id = self.pipeline_id().unwrap();
-            // FIXME(nox): Why are errors silenced here?
-            let _ = window.task_manager().dom_manipulation_task_source().queue(
-                task!(iframe_load_event_steps: move || {
-                    this.root().iframe_load_event_steps(pipeline_id);
-                }),
-                window.upcast(),
-            );
             return;
         }
 
+        // > 2. Otherwise, if `element` has a `src` attribute specified, or
+        // >    `initialInsertion` is false, then run the shared attribute
+        // >    processing steps for `iframe` and `frame` elements given
+        // >    `element`.
         let url = self.get_url();
 
         // TODO(#25748):
@@ -342,11 +343,25 @@ impl HTMLIFrameElement {
         } else {
             HistoryEntryReplacement::Disabled
         };
-        self.navigate_or_reload_child_browsing_context(load_data, NavigationType::Regular, replace);
+        self.navigate_or_reload_child_browsing_context(load_data, replace);
     }
 
     fn create_nested_browsing_context(&self) {
-        // Synchronously create a new context and navigate it to about:blank.
+        // Synchronously create a new browsing context, which will present
+        // `about:blank`. (This is not a navigation.)
+        //
+        // The pipeline started here will synchronously "completely finish
+        // loading", which will then asynchronously call
+        // `iframe_load_event_steps`.
+        //
+        // The precise event timing differs between implementations and
+        // remains controversial:
+        //
+        //  - [Unclear "iframe load event steps" for initial load of about:blank
+        //    in an iframe #490](https://github.com/whatwg/html/issues/490)
+        //  - [load event handling for iframes with no src may not be web
+        //    compatible #4965](https://github.com/whatwg/html/issues/4965)
+        //
         let url = ServoUrl::parse("about:blank").unwrap();
         let document = document_from_node(self);
         let window = window_from_node(self);
@@ -366,9 +381,9 @@ impl HTMLIFrameElement {
         self.top_level_browsing_context_id
             .set(Some(top_level_browsing_context_id));
         self.browsing_context_id.set(Some(browsing_context_id));
-        self.navigate_or_reload_child_browsing_context(
+        self.start_new_pipeline(
             load_data,
-            NavigationType::InitialAboutBlank,
+            PipelineType::InitialAboutBlank,
             HistoryEntryReplacement::Disabled,
         );
     }
