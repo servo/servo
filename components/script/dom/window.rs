@@ -674,6 +674,27 @@ impl WindowMethods for Window {
         doc.abort();
     }
 
+    /// Implements <https://html.spec.whatwg.org/multipage/#dom-window-focus>.
+    fn Focus(&self) {
+        // > 1. Let `current` be this `Window` object's browsing context.
+        // >
+        // > 2. If `current` is null, then return.
+        // >
+        // > 3. Run the focusing steps with `current`.
+        // >
+        // > 4. If current is a top-level browsing context, user agents are
+        // >    encouraged to trigger some sort of notification to indicate to
+        // >    the user that the page is attempting to gain focus.
+        //
+        // TODO: All of them
+    }
+
+    /// Implements <https://html.spec.whatwg.org/multipage/#dom-window-blur>.
+    fn Blur(&self) {
+        // > User agents are encouraged to ignore calls to this `blur()` method
+        // > entirely.
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-open
     fn Open(
         &self,
