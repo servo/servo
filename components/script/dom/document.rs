@@ -218,12 +218,9 @@ pub enum IsHTMLDocument {
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[unrooted_must_root_lint::must_root]
-enum FocusTransaction {
-    /// No focus operation is in effect.
-    NotInTransaction,
-    /// A focus operation is in effect.
-    /// Contains the element that has most recently requested focus for itself.
-    InTransaction(Option<Dom<Element>>),
+struct FocusTransaction {
+    /// The element that has most recently requested focus for itself.
+    element: Option<Dom<Element>>,
 }
 
 /// <https://dom.spec.whatwg.org/#document>
@@ -266,7 +263,7 @@ pub struct Document {
     /// Whether the DOMContentLoaded event has already been dispatched.
     domcontentloaded_dispatched: Cell<bool>,
     /// The state of this document's focus transaction.
-    focus_transaction: DomRefCell<FocusTransaction>,
+    focus_transaction: DomRefCell<Option<FocusTransaction>>,
     /// The element that currently has the document focus context.
     focused: MutNullableDom<Element>,
     /// The script element that is currently executing.
@@ -1043,7 +1040,7 @@ impl Document {
     /// Initiate a new round of checking for elements requesting focus. The last element to call
     /// `request_focus` before `commit_focus_transaction` is called will receive focus.
     fn begin_focus_transaction(&self) {
-        *self.focus_transaction.borrow_mut() = FocusTransaction::InTransaction(Default::default());
+        *self.focus_transaction.borrow_mut() = Some(FocusTransaction { element: None });
     }
 
     /// <https://html.spec.whatwg.org/multipage/#focus-fixup-rule>
@@ -1061,16 +1058,13 @@ impl Document {
     /// If None is passed, then whatever element is currently focused will no longer be focused
     /// once the transaction is complete.
     pub(crate) fn request_focus(&self, elem: Option<&Element>, focus_type: FocusType) {
-        let implicit_transaction = matches!(
-            *self.focus_transaction.borrow(),
-            FocusTransaction::NotInTransaction
-        );
+        let implicit_transaction = self.focus_transaction.borrow().is_none();
         if implicit_transaction {
             self.begin_focus_transaction();
         }
         if elem.map_or(true, |e| e.is_focusable_area()) {
-            *self.focus_transaction.borrow_mut() =
-                FocusTransaction::InTransaction(elem.map(Dom::from_ref));
+            let mut focus_transaction = self.focus_transaction.borrow_mut();
+            focus_transaction.as_mut().unwrap().element = elem.map(Dom::from_ref);
         }
         if implicit_transaction {
             self.commit_focus_transaction(focus_type);
@@ -1080,13 +1074,17 @@ impl Document {
     /// Reassign the focus context to the element that last requested focus during this
     /// transaction, or none if no elements requested it.
     fn commit_focus_transaction(&self, focus_type: FocusType) {
-        let possibly_focused = match *self.focus_transaction.borrow() {
-            FocusTransaction::NotInTransaction => unreachable!(),
-            FocusTransaction::InTransaction(ref elem) => {
-                elem.as_ref().map(|e| DomRoot::from_ref(&**e))
-            },
+        let possibly_focused = {
+            let focus_transaction = self.focus_transaction.borrow();
+            let focus_transaction = focus_transaction
+                .as_ref()
+                .expect("no focus transaction in progress");
+            focus_transaction
+                .element
+                .as_ref()
+                .map(|e| DomRoot::from_ref(&**e))
         };
-        *self.focus_transaction.borrow_mut() = FocusTransaction::NotInTransaction;
+        *self.focus_transaction.borrow_mut() = None;
         if self.focused == possibly_focused.as_ref().map(|e| &**e) {
             return;
         }
@@ -3172,7 +3170,7 @@ impl Document {
             stylesheet_list: MutNullableDom::new(None),
             ready_state: Cell::new(ready_state),
             domcontentloaded_dispatched: Cell::new(domcontentloaded_dispatched),
-            focus_transaction: DomRefCell::new(FocusTransaction::NotInTransaction),
+            focus_transaction: DomRefCell::new(None),
             focused: Default::default(),
             current_script: Default::default(),
             pending_parsing_blocking_script: Default::default(),
