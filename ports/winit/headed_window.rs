@@ -6,12 +6,14 @@
 
 use crate::events_loop::{EventsLoop, ServoEvent};
 use crate::keyutils::keyboard_event_from_winit;
-use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
+use crate::window_trait::{WindowEvent, WindowPortsMethods, LINE_HEIGHT};
 use euclid::{Angle, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector2D, Vector3D};
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use image;
 use keyboard_types::{Key, KeyState, KeyboardEvent};
-use servo::compositing::windowing::{AnimationState, MouseWindowEvent, WindowEvent};
+use servo::compositing::windowing::{
+    AnimationState, MouseWindowEvent, WindowEvent as ServoWindowEvent,
+};
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
 use servo::embedder_traits::Cursor;
 use servo::script_traits::{TouchEventType, WheelDelta, WheelMode};
@@ -228,7 +230,7 @@ impl Window {
         }
         self.event_queue
             .borrow_mut()
-            .push(WindowEvent::Keyboard(event));
+            .push(ServoWindowEvent::Keyboard(event).into());
     }
 
     fn handle_keyboard_input(&self, input: KeyboardInput) {
@@ -256,7 +258,7 @@ impl Window {
             }
             self.event_queue
                 .borrow_mut()
-                .push(WindowEvent::Keyboard(event));
+                .push(ServoWindowEvent::Keyboard(event).into());
         }
     }
 
@@ -292,9 +294,9 @@ impl Window {
                             ((pixel_dist.x * pixel_dist.x + pixel_dist.y * pixel_dist.y) as f32)
                                 .sqrt();
                         if pixel_dist < max_pixel_dist {
-                            self.event_queue
-                                .borrow_mut()
-                                .push(WindowEvent::MouseWindowEventClass(mouse_up_event));
+                            self.event_queue.borrow_mut().push(
+                                ServoWindowEvent::MouseWindowEventClass(mouse_up_event).into(),
+                            );
                             MouseWindowEvent::Click(mouse_button, coords.to_f32())
                         } else {
                             mouse_up_event
@@ -306,7 +308,7 @@ impl Window {
         };
         self.event_queue
             .borrow_mut()
-            .push(WindowEvent::MouseWindowEventClass(event));
+            .push(ServoWindowEvent::MouseWindowEventClass(event).into());
     }
 
     fn device_hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
@@ -442,11 +444,10 @@ impl WindowPortsMethods for Window {
             winit::event::WindowEvent::CursorMoved { position, .. } => {
                 let (x, y): (i32, i32) = position.into();
                 self.mouse_pos.set(Point2D::new(x, y));
-                self.event_queue
-                    .borrow_mut()
-                    .push(WindowEvent::MouseWindowMoveEventClass(Point2D::new(
-                        x as f32, y as f32,
-                    )));
+                self.event_queue.borrow_mut().push(
+                    ServoWindowEvent::MouseWindowMoveEventClass(Point2D::new(x as f32, y as f32))
+                        .into(),
+                );
             },
             winit::event::WindowEvent::MouseWheel { delta, phase, .. } => {
                 let (mut dx, mut dy, mode) = match delta {
@@ -469,7 +470,7 @@ impl WindowPortsMethods for Window {
                 };
                 let pos = self.mouse_pos.get();
                 let position = Point2D::new(pos.x as f32, pos.y as f32);
-                let wheel_event = WindowEvent::Wheel(wheel_delta, position);
+                let wheel_event = ServoWindowEvent::Wheel(wheel_delta, position);
 
                 // Scroll events snap to the major axis of movement, with vertical
                 // preferred over horizontal.
@@ -482,11 +483,11 @@ impl WindowPortsMethods for Window {
                 let scroll_location = ScrollLocation::Delta(Vector2D::new(dx as f32, dy as f32));
                 let phase = winit_phase_to_touch_event_type(phase);
                 let scroll_event =
-                    WindowEvent::Scroll(scroll_location, self.mouse_pos.get(), phase);
+                    ServoWindowEvent::Scroll(scroll_location, self.mouse_pos.get(), phase);
 
                 // Send events
-                self.event_queue.borrow_mut().push(wheel_event);
-                self.event_queue.borrow_mut().push(scroll_event);
+                self.event_queue.borrow_mut().push(wheel_event.into());
+                self.event_queue.borrow_mut().push(scroll_event.into());
             },
             winit::event::WindowEvent::Touch(touch) => {
                 use servo::script_traits::TouchId;
@@ -497,10 +498,12 @@ impl WindowPortsMethods for Window {
                 let point = Point2D::new(position.x as f32, position.y as f32);
                 self.event_queue
                     .borrow_mut()
-                    .push(WindowEvent::Touch(phase, id, point));
+                    .push(ServoWindowEvent::Touch(phase, id, point).into());
             },
             winit::event::WindowEvent::CloseRequested => {
-                self.event_queue.borrow_mut().push(WindowEvent::Quit);
+                self.event_queue
+                    .borrow_mut()
+                    .push(ServoWindowEvent::Quit.into());
             },
             winit::event::WindowEvent::Resized(physical_size) => {
                 let (width, height) = physical_size.into();
@@ -511,7 +514,9 @@ impl WindowPortsMethods for Window {
                         .resize(physical_size.to_i32())
                         .expect("Failed to resize");
                     self.inner_size.set(new_size);
-                    self.event_queue.borrow_mut().push(WindowEvent::Resize);
+                    self.event_queue
+                        .borrow_mut()
+                        .push(ServoWindowEvent::Resize.into());
                 }
             },
             _ => {},

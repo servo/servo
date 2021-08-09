@@ -7,9 +7,9 @@
 use crate::browser::Browser;
 use crate::embedder::EmbedderCallbacks;
 use crate::events_loop::{EventsLoop, ServoEvent};
-use crate::window_trait::WindowPortsMethods;
+use crate::window_trait::{WindowEvent, WindowPortsMethods};
 use crate::{headed_window, headless_window};
-use servo::compositing::windowing::WindowEvent;
+use servo::compositing::windowing::WindowEvent as ServoWindowEvent;
 use servo::config::opts::{self, parse_url_or_filename};
 use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
@@ -99,7 +99,10 @@ impl App {
 
                 let mut servo = Servo::new(embedder, window.clone(), user_agent.clone());
                 let browser_id = BrowserId::new();
-                servo.handle_events(vec![WindowEvent::NewBrowser(get_default_url(), browser_id)]);
+                servo.handle_events(vec![ServoWindowEvent::NewBrowser(
+                    get_default_url(),
+                    browser_id,
+                )]);
                 servo.setup_logging();
 
                 register_window(window.clone());
@@ -150,15 +153,21 @@ impl App {
             },
             winit::event::Event::Resumed => {
                 self.suspended.set(false);
-                self.event_queue.borrow_mut().push(WindowEvent::Idle);
+                self.event_queue
+                    .borrow_mut()
+                    .push(ServoWindowEvent::Idle.into());
             },
             winit::event::Event::UserEvent(_) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Idle);
+                self.event_queue
+                    .borrow_mut()
+                    .push(ServoWindowEvent::Idle.into());
             },
             winit::event::Event::DeviceEvent { .. } => {},
 
             winit::event::Event::RedrawRequested(_) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Idle);
+                self.event_queue
+                    .borrow_mut()
+                    .push(ServoWindowEvent::Idle.into());
             },
 
             // Window level events

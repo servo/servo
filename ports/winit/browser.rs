@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::keyutils::{CMD_OR_ALT, CMD_OR_CONTROL};
-use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
+use crate::window_trait::{WindowEvent, WindowPortsMethods, LINE_HEIGHT};
 use clipboard::{ClipboardContext, ClipboardProvider};
 use euclid::{Point2D, Vector2D};
 use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
-use servo::compositing::windowing::{WebRenderDebugOption, WindowEvent};
+use servo::compositing::windowing::{WebRenderDebugOption, WindowEvent as ServoWindowEvent};
 use servo::embedder_traits::{
     ContextMenuResult, EmbedderMsg, FilterPattern, PermissionPrompt, PermissionRequest,
     PromptDefinition, PromptOrigin, PromptResult,
@@ -44,7 +44,7 @@ pub struct Browser<Window: WindowPortsMethods + ?Sized> {
     title: Option<String>,
 
     window: Rc<Window>,
-    event_queue: Vec<WindowEvent>,
+    event_queue: Vec<ServoWindowEvent>,
     clipboard_ctx: Option<ClipboardContext>,
     shutdown_requested: bool,
 }
@@ -72,17 +72,17 @@ where
         }
     }
 
-    pub fn get_events(&mut self) -> Vec<WindowEvent> {
+    pub fn get_events(&mut self) -> Vec<ServoWindowEvent> {
         mem::replace(&mut self.event_queue, Vec::new())
     }
 
     pub fn handle_window_events(&mut self, events: Vec<WindowEvent>) {
         for event in events {
             match event {
-                WindowEvent::Keyboard(key_event) => {
+                WindowEvent::Servo(ServoWindowEvent::Keyboard(key_event)) => {
                     self.handle_key_from_window(key_event);
                 },
-                event => {
+                WindowEvent::Servo(event) => {
                     self.event_queue.push(event);
                 },
             }
@@ -98,7 +98,7 @@ where
         ShortcutMatcher::from_event(key_event.clone())
             .shortcut(CMD_OR_CONTROL, 'R', || {
                 if let Some(id) = self.browser_id {
-                    self.event_queue.push(WindowEvent::Reload(id));
+                    self.event_queue.push(ServoWindowEvent::Reload(id));
                 }
             })
             .shortcut(CMD_OR_CONTROL, 'L', || {
@@ -112,13 +112,13 @@ where
                 if let Some(input) = input {
                     if let Some(url) = sanitize_url(&input) {
                         if let Some(id) = self.browser_id {
-                            self.event_queue.push(WindowEvent::LoadUrl(id, url));
+                            self.event_queue.push(ServoWindowEvent::LoadUrl(id, url));
                         }
                     }
                 }
             })
             .shortcut(CMD_OR_CONTROL, 'Q', || {
-                self.event_queue.push(WindowEvent::Quit);
+                self.event_queue.push(ServoWindowEvent::Quit);
             })
             .shortcut(CMD_OR_CONTROL, 'P', || {
                 let rate = env::var("SAMPLING_RATE")
@@ -129,38 +129,42 @@ where
                     .ok()
                     .and_then(|s| s.parse().ok())
                     .unwrap_or(10);
-                self.event_queue.push(WindowEvent::ToggleSamplingProfiler(
-                    Duration::from_millis(rate),
-                    Duration::from_secs(duration),
-                ));
+                self.event_queue
+                    .push(ServoWindowEvent::ToggleSamplingProfiler(
+                        Duration::from_millis(rate),
+                        Duration::from_secs(duration),
+                    ));
             })
             .shortcut(Modifiers::CONTROL, Key::F9, || {
-                self.event_queue.push(WindowEvent::CaptureWebRender)
+                self.event_queue.push(ServoWindowEvent::CaptureWebRender)
             })
             .shortcut(Modifiers::CONTROL, Key::F10, || {
-                self.event_queue.push(WindowEvent::ToggleWebRenderDebug(
-                    WebRenderDebugOption::RenderTargetDebug,
-                ));
+                self.event_queue
+                    .push(ServoWindowEvent::ToggleWebRenderDebug(
+                        WebRenderDebugOption::RenderTargetDebug,
+                    ));
             })
             .shortcut(Modifiers::CONTROL, Key::F11, || {
-                self.event_queue.push(WindowEvent::ToggleWebRenderDebug(
-                    WebRenderDebugOption::TextureCacheDebug,
-                ));
+                self.event_queue
+                    .push(ServoWindowEvent::ToggleWebRenderDebug(
+                        WebRenderDebugOption::TextureCacheDebug,
+                    ));
             })
             .shortcut(Modifiers::CONTROL, Key::F12, || {
-                self.event_queue.push(WindowEvent::ToggleWebRenderDebug(
-                    WebRenderDebugOption::Profiler,
-                ));
+                self.event_queue
+                    .push(ServoWindowEvent::ToggleWebRenderDebug(
+                        WebRenderDebugOption::Profiler,
+                    ));
             })
             .shortcut(CMD_OR_ALT, Key::ArrowRight, || {
                 if let Some(id) = self.browser_id {
-                    let event = WindowEvent::Navigation(id, TraversalDirection::Forward(1));
+                    let event = ServoWindowEvent::Navigation(id, TraversalDirection::Forward(1));
                     self.event_queue.push(event);
                 }
             })
             .shortcut(CMD_OR_ALT, Key::ArrowLeft, || {
                 if let Some(id) = self.browser_id {
-                    let event = WindowEvent::Navigation(id, TraversalDirection::Back(1));
+                    let event = ServoWindowEvent::Navigation(id, TraversalDirection::Back(1));
                     self.event_queue.push(event);
                 }
             })
@@ -168,11 +172,11 @@ where
                 let state = self.window.get_fullscreen();
                 if state {
                     if let Some(id) = self.browser_id {
-                        let event = WindowEvent::ExitFullScreen(id);
+                        let event = ServoWindowEvent::ExitFullScreen(id);
                         self.event_queue.push(event);
                     }
                 } else {
-                    self.event_queue.push(WindowEvent::Quit);
+                    self.event_queue.push(ServoWindowEvent::Quit);
                 }
             })
             .otherwise(|| self.platform_handle_key(key_event));
@@ -183,12 +187,12 @@ where
         if let Some(id) = self.browser_id {
             if let Some(event) = ShortcutMatcher::from_event(key_event.clone())
                 .shortcut(CMD_OR_CONTROL, '[', || {
-                    WindowEvent::Navigation(id, TraversalDirection::Back(1))
+                    ServoWindowEvent::Navigation(id, TraversalDirection::Back(1))
                 })
                 .shortcut(CMD_OR_CONTROL, ']', || {
-                    WindowEvent::Navigation(id, TraversalDirection::Forward(1))
+                    ServoWindowEvent::Navigation(id, TraversalDirection::Forward(1))
                 })
-                .otherwise(|| WindowEvent::Keyboard(key_event))
+                .otherwise(|| ServoWindowEvent::Keyboard(key_event))
             {
                 self.event_queue.push(event)
             }
@@ -202,16 +206,16 @@ where
     fn handle_key_from_servo(&mut self, _: Option<BrowserId>, event: KeyboardEvent) {
         ShortcutMatcher::from_event(event)
             .shortcut(CMD_OR_CONTROL, '=', || {
-                self.event_queue.push(WindowEvent::Zoom(1.1))
+                self.event_queue.push(ServoWindowEvent::Zoom(1.1))
             })
             .shortcut(CMD_OR_CONTROL, '+', || {
-                self.event_queue.push(WindowEvent::Zoom(1.1))
+                self.event_queue.push(ServoWindowEvent::Zoom(1.1))
             })
             .shortcut(CMD_OR_CONTROL, '-', || {
-                self.event_queue.push(WindowEvent::Zoom(1.0 / 1.1))
+                self.event_queue.push(ServoWindowEvent::Zoom(1.0 / 1.1))
             })
             .shortcut(CMD_OR_CONTROL, '0', || {
-                self.event_queue.push(WindowEvent::ResetZoom)
+                self.event_queue.push(ServoWindowEvent::ResetZoom)
             })
             .shortcut(Modifiers::empty(), Key::PageDown, || {
                 let scroll_location = ScrollLocation::Delta(Vector2D::new(
@@ -260,7 +264,7 @@ where
     }
 
     fn scroll_window_from_key(&mut self, scroll_location: ScrollLocation, phase: TouchEventType) {
-        let event = WindowEvent::Scroll(scroll_location, Point2D::zero(), phase);
+        let event = ServoWindowEvent::Scroll(scroll_location, Point2D::zero(), phase);
         self.event_queue.push(event);
     }
 
@@ -366,7 +370,7 @@ where
                     if let Err(e) = res {
                         let reason = format!("Failed to send Prompt response: {}", e);
                         self.event_queue
-                            .push(WindowEvent::SendError(browser_id, reason));
+                            .push(ServoWindowEvent::SendError(browser_id, reason));
                     }
                 },
                 EmbedderMsg::AllowUnload(sender) => {
@@ -374,13 +378,13 @@ where
                     if let Err(e) = sender.send(true) {
                         let reason = format!("Failed to send AllowUnload response: {}", e);
                         self.event_queue
-                            .push(WindowEvent::SendError(browser_id, reason));
+                            .push(ServoWindowEvent::SendError(browser_id, reason));
                     }
                 },
                 EmbedderMsg::AllowNavigationRequest(pipeline_id, _url) => {
                     if let Some(_browser_id) = browser_id {
                         self.event_queue
-                            .push(WindowEvent::AllowNavigationResponse(pipeline_id, true));
+                            .push(ServoWindowEvent::AllowNavigationResponse(pipeline_id, true));
                     }
                 },
                 EmbedderMsg::AllowOpeningBrowser(response_chan) => {
@@ -399,7 +403,7 @@ where
                         error!("Multiple top level browsing contexts not supported yet.");
                     }
                     self.event_queue
-                        .push(WindowEvent::SelectBrowser(new_browser_id));
+                        .push(ServoWindowEvent::SelectBrowser(new_browser_id));
                 },
                 EmbedderMsg::Keyboard(key_event) => {
                     self.handle_key_from_servo(browser_id, key_event);
@@ -453,9 +457,9 @@ where
                     if let Some(prev_browser_id) = self.browsers.last() {
                         self.browser_id = Some(*prev_browser_id);
                         self.event_queue
-                            .push(WindowEvent::SelectBrowser(*prev_browser_id));
+                            .push(ServoWindowEvent::SelectBrowser(*prev_browser_id));
                     } else {
-                        self.event_queue.push(WindowEvent::Quit);
+                        self.event_queue.push(ServoWindowEvent::Quit);
                     }
                 },
                 EmbedderMsg::Shutdown => {
@@ -467,7 +471,8 @@ where
                     if let Err(e) = sender.send(selected) {
                         let reason =
                             format!("Failed to send GetSelectedBluetoothDevice response: {}", e);
-                        self.event_queue.push(WindowEvent::SendError(None, reason));
+                        self.event_queue
+                            .push(ServoWindowEvent::SendError(None, reason));
                     };
                 },
                 EmbedderMsg::SelectFiles(patterns, multiple_files, sender) => {
@@ -480,7 +485,8 @@ where
                     };
                     if let Err(e) = res {
                         let reason = format!("Failed to send SelectFiles response: {}", e);
-                        self.event_queue.push(WindowEvent::SendError(None, reason));
+                        self.event_queue
+                            .push(ServoWindowEvent::SendError(None, reason));
                     };
                 },
                 EmbedderMsg::PromptPermission(prompt, sender) => {
