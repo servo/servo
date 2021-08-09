@@ -4128,14 +4128,42 @@ impl DocumentMethods for Document {
         )
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-hasfocus
+    /// Implements <https://html.spec.whatwg.org/multipage/#dom-document-hasfocus>.
     fn HasFocus(&self) -> bool {
-        // Step 1-2.
-        if self.window().parent_info().is_none() && self.is_fully_active() {
-            return true;
+        // <https://html.spec.whatwg.org/multipage/#has-focus-steps>
+        //
+        // > The has focus steps, given a `Document` object `target`, are as
+        // > follows:
+        // >
+        // > 1. If `target`'s browsing context's top-level browsing context does
+        // >    not have system focus, then return false.
+        if !self.has_system_focus.get() {
+            return false;
         }
-        // TODO Step 3.
-        false
+
+        // > 2. Let `candidate` be `target`'s browsing context's top-level
+        // >    browsing context's active document.
+        // >
+        // > 3. While true:
+        // >
+        // >    3.1. If `candidate` is target, then return true.
+        // >
+        // >    3.2. If the focused area of `candidate` is a browsing context
+        // >         container with a non-null nested browsing context, then set
+        // >         `candidate` to the active document of that browsing context
+        // >         container's nested browsing context.
+        // >
+        // >    3.3. Otherwise, return false.
+        if self.window().parent_info().is_none() {
+            // 2 → 3 → (3.1 || ⋯ → 3.3)
+            self.is_fully_active()
+        } else {
+            // 2 → 3 → 3.2 → (⋯ → 3.1 || ⋯ → 3.3)
+            // TODO: We can't distinguish between "the container is not focused"
+            //       and "the container is focused, but this document has no
+            //       focused area"
+            false
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-domain
