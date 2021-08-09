@@ -47,6 +47,7 @@ pub struct Browser<Window: WindowPortsMethods + ?Sized> {
     event_queue: Vec<ServoWindowEvent>,
     clipboard_ctx: Option<ClipboardContext>,
     shutdown_requested: bool,
+    has_system_focus: bool,
 }
 
 impl<Window> Browser<Window>
@@ -69,6 +70,7 @@ where
             },
             event_queue: Vec::new(),
             shutdown_requested: false,
+            has_system_focus: true,
         }
     }
 
@@ -84,6 +86,13 @@ where
                 },
                 WindowEvent::Servo(event) => {
                     self.event_queue.push(event);
+                },
+                WindowEvent::Focus(new_focus_state) => {
+                    self.has_system_focus = new_focus_state;
+                    if let Some(browser_id) = self.browser_id {
+                        self.event_queue
+                            .push(ServoWindowEvent::Focus(browser_id, new_focus_state))
+                    }
                 },
             }
         }
@@ -404,6 +413,17 @@ where
                     }
                     self.event_queue
                         .push(ServoWindowEvent::SelectBrowser(new_browser_id));
+
+                    // Focus the new browser
+                    self.event_queue.push(ServoWindowEvent::Focus(
+                        new_browser_id,
+                        self.has_system_focus,
+                    ));
+
+                    // Unfocus the last browser
+                    if let [.., prev, _] = &self.browsers[..] {
+                        self.event_queue.push(ServoWindowEvent::Focus(*prev, false));
+                    }
                 },
                 EmbedderMsg::Keyboard(key_event) => {
                     self.handle_key_from_servo(browser_id, key_event);
@@ -458,6 +478,10 @@ where
                         self.browser_id = Some(*prev_browser_id);
                         self.event_queue
                             .push(ServoWindowEvent::SelectBrowser(*prev_browser_id));
+                        self.event_queue.push(ServoWindowEvent::Focus(
+                            *prev_browser_id,
+                            self.has_system_focus,
+                        ));
                     } else {
                         self.event_queue.push(ServoWindowEvent::Quit);
                     }

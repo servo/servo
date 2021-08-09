@@ -519,6 +519,11 @@ impl WindowPortsMethods for Window {
                         .push(ServoWindowEvent::Resize.into());
                 }
             },
+            winit::event::WindowEvent::Focused(new_focus_state) => {
+                self.event_queue
+                    .borrow_mut()
+                    .push(WindowEvent::Focus(new_focus_state));
+            },
             _ => {},
         }
     }

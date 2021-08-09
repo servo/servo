@@ -36,6 +36,9 @@ pub trait WindowPortsMethods: WindowMethods {
 pub enum WindowEvent {
     /// [`servo::compositing::windowing::WindowEvent`]
     Servo(ServoWindowEvent),
+    /// A change in the system focus state, which must be dispatched to the
+    /// currently visible browser.
+    Focus(bool),
 }
 
 impl From<ServoWindowEvent> for WindowEvent {
