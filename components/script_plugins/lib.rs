@@ -34,9 +34,8 @@ use rustc_span::source_map::{ExpnKind, MacroKind, Span};
 use rustc_span::symbol::sym;
 use rustc_span::symbol::Symbol;
 
-#[allow(deprecated)]
-#[plugin_registrar]
-pub fn plugin_registrar(reg: &mut Registry) {
+#[no_mangle]
+fn __rustc_plugin_registrar(reg: &mut Registry) {
     registrar(reg)
 }
 
