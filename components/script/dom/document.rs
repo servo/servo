@@ -1175,7 +1175,16 @@ impl Document {
                 // Update the focus state for all elements in the focus chain.
                 // https://html.spec.whatwg.org/multipage/#focus-chain
                 if focus_type == FocusType::Element {
-                    self.window().send_to_constellation(ScriptMsg::Focus);
+                    // When a container with a non-null nested browsing context
+                    // is focused, its active document becomes the focused area
+                    // of the top-level browsing context instead. Therefore we
+                    // need to let the constellation know if such a container is
+                    // focused.
+                    let child_browsing_context_id = elem
+                        .downcast::<HTMLIFrameElement>()
+                        .and_then(|iframe| iframe.browsing_context_id());
+                    self.window()
+                        .send_to_constellation(ScriptMsg::Focus(child_browsing_context_id));
                 }
 
                 // Notify the embedder to display an input method.
@@ -5344,11 +5353,13 @@ pub fn determine_policy_for_token(token: &str) -> Option<ReferrerPolicy> {
     }
 }
 
-/// Specifies the type of focus event that is sent to a pipeline
+/// Specifies the relationship to the focus operation that led to the current
+/// focus transaction.
 #[derive(Clone, Copy, PartialEq)]
 pub enum FocusType {
     Element, // The first focus message - focus the element itself
     Parent,  // Focusing a parent element (an iframe)
+    Child,   // Focusing a child document
 }
 
 /// Focus events

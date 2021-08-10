@@ -179,8 +179,12 @@ pub enum ScriptMsg {
         UntypedSize2D<u64>,
         IpcSender<(IpcSender<CanvasMsg>, CanvasId)>,
     ),
-    /// Notifies the constellation that this frame has received focus.
-    Focus,
+    /// Notifies the constellation that this browsing context's active document
+    /// or element is requesting focus.
+    ///
+    /// Contains the browsing context ID of the container element if one was
+    /// focused.
+    Focus(Option<BrowsingContextId>),
     /// Get the top-level browsing context info for a given browsing context.
     GetTopForBrowsingContext(
         BrowsingContextId,
@@ -309,7 +313,7 @@ impl fmt::Debug for ScriptMsg {
             BroadcastStorageEvent(..) => "BroadcastStorageEvent",
             ChangeRunningAnimationsState(..) => "ChangeRunningAnimationsState",
             CreateCanvasPaintThread(..) => "CreateCanvasPaintThread",
-            Focus => "Focus",
+            Focus(..) => "Focus",
             GetBrowsingContextInfo(..) => "GetBrowsingContextInfo",
             GetTopForBrowsingContext(..) => "GetParentBrowsingContext",
             GetChildBrowsingContextId(..) => "GetChildBrowsingContextId",

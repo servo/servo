@@ -1800,6 +1800,7 @@ impl ScriptThread {
                 UpdateHistoryState(id, ..) => Some(id),
                 RemoveHistoryStates(id, ..) => Some(id),
                 FocusIFrame(id, ..) => Some(id),
+                FocusDocument(id) => Some(id),
                 WebDriverScriptCommand(id, ..) => Some(id),
                 TickAllAnimations(id, ..) => Some(id),
                 WebFontLoaded(id) => Some(id),
@@ -1998,6 +1999,9 @@ impl ScriptThread {
             },
             ConstellationControlMsg::FocusIFrame(parent_pipeline_id, frame_id) => {
                 self.handle_focus_iframe_msg(parent_pipeline_id, frame_id)
+            },
+            ConstellationControlMsg::FocusDocument(pipeline_id) => {
+                self.handle_focus_document_msg(pipeline_id)
             },
             ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, msg) => {
                 self.handle_webdriver_msg(pipeline_id, msg)
@@ -2634,6 +2638,11 @@ impl ScriptThread {
         if let Some(ref frame_element) = frame_element {
             doc.request_focus(Some(frame_element.upcast()), FocusType::Parent);
         }
+    }
+
+    fn handle_focus_document_msg(&self, pipeline_id: PipelineId) {
+        let doc = self.documents.borrow().find_document(pipeline_id).unwrap();
+        doc.request_focus(None, FocusType::Child);
     }
 
     fn handle_post_message_msg(

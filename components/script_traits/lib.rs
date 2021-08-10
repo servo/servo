@@ -379,6 +379,8 @@ pub enum ConstellationControlMsg {
     /// Set an iframe to be focused. Used when an element in an iframe gains focus.
     /// PipelineId is for the parent, BrowsingContextId is for the nested browsing context
     FocusIFrame(PipelineId, BrowsingContextId),
+    /// Focus the document. Used when the container gains focus.
+    FocusDocument(PipelineId),
     /// Passes a webdriver command to the script thread for execution
     WebDriverScriptCommand(PipelineId, WebDriverScriptCommand),
     /// Notifies script thread that all animations are done
@@ -443,6 +445,7 @@ impl fmt::Debug for ConstellationControlMsg {
             RemoveHistoryStates(..) => "RemoveHistoryStates",
             SystemFocus(..) => "SystemFocus",
             FocusIFrame(..) => "FocusIFrame",
+            FocusDocument(..) => "FocusDocument",
             WebDriverScriptCommand(..) => "WebDriverScriptCommand",
             TickAllAnimations(..) => "TickAllAnimations",
             WebFontLoaded(..) => "WebFontLoaded",
