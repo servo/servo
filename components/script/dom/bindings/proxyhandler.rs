@@ -47,7 +47,9 @@ use js::rust::wrappers::JS_NewObjectWithGivenProto;
 use js::rust::wrappers::{
     AppendToIdVector, SetDataPropertyDescriptor, RUST_INTERNED_STRING_TO_JSID,
 };
-use js::rust::{get_context_realm, Handle, HandleObject, HandleValue, MutableHandle, MutableHandleObject};
+use js::rust::{
+    get_context_realm, Handle, HandleObject, HandleValue, MutableHandle, MutableHandleObject,
+};
 use std::{os::raw::c_char, ptr};
 
 /// Determine if this id shadows any existing properties for this proxy.

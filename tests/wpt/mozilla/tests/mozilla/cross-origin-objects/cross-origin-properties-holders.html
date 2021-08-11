@@ -1,0 +1,124 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Cross-origin property descriptor maps</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#cross-origin-objects">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<div id=log></div>
+<iframe id="C"></iframe>
+<iframe id="E"></iframe>
+<iframe id="G"></iframe>
+<script>
+
+/*
+ * Setup boilerplate. This gives us
+ *
+ *  - a cross-origin window "C",
+ *  - an initially same-origin but then changing document.domain window "E",
+ *  - and a not-same-site (also cross-origin, of course) window "G".
+ */
+var host_info = get_host_info();
+
+path = location.pathname.substring(0, location.pathname.lastIndexOf('/')) + '/support/frame.html';
+var C = document.getElementById('C');
+var E = document.getElementById('E');
+var G = document.getElementById('G');
+C.src = C.uriToLoad = host_info.HTTP_REMOTE_ORIGIN + path;
+E.src = E.uriToLoad = path + "?setdomain";
+G.src = G.uriToLoad = host_info.HTTP_NOTSAMESITE_ORIGIN + path;
+
+const waitWindowLoad = new Promise(r => window.addEventListener('load', r));
+
+function promise_test_for_each_case(func, desc) {
+  promise_test(t => func(t, C), desc + " (cross-origin)");
+  promise_test(t => func(t, E), desc + " (same-origin + document.domain)");
+  promise_test(t => func(t, G), desc + " (cross-site)");
+}
+
+const interfaces = [
+  ['windowProxy', windowProxy => windowProxy, ['close', 'frames'], 'open'],
+  ['windowProxy.location', windowProxy => windowProxy.location, ['href', 'replace'], 'hash'],
+];
+
+for (let [lensName, lensFn, propKeys, nonXoPropKey] of interfaces) {
+  promise_test_for_each_case(async (t, frame) => {
+    await waitWindowLoad;
+    const win = frame.contentWindow;
+    const theObject = lensFn(win);
+    const myObject = lensFn(window);
+
+    // Precondition: `IsPlatformObjectSameOrigin(theObject) == false`
+    assert_throws_dom("SecurityError", () => theObject[nonXoPropKey],
+      `Sanity check: Accessing non-cross-origin property ${nonXoPropKey} ` +
+      `should throw SecurityError`);
+
+    for (let propKey of propKeys) {
+      const desc = Object.getOwnPropertyDescriptor(theObject, propKey);
+      assert_not_equals(desc, null, `Property ${propKey} has a non-null property descriptor`);
+
+      // `CrossOriginGetOwnPropertyHelper` creates descriptors lazily for given property keys.
+      // The created descriptors must be held in `[[CrossOriginPropertyDescriptorMap]]` and
+      // returned in next calls.
+      const desc2 = Object.getOwnPropertyDescriptor(theObject, propKey);
+      assert_equals(desc.get, desc2.get, `Property ${propKey} has a stable getter`);
+      assert_equals(desc.set, desc2.set, `Property ${propKey} has a stable setter`);
+      assert_equals(desc.value, desc2.value, `Property ${propKey} has a stable value`);
+
+      // Check the descriptors' globals. The getters, setters, and values must
+      // be created in our Realm (rather than those of these documents).
+      const myDesc = Object.getOwnPropertyDescriptor(myObject, propKey);
+      if (desc.get) {
+        assert_equals(desc.get.__proto__, myDesc.get.__proto__,
+          `Property ${propKey}'s getter should be created in the current Realm`);
+      }
+      if (desc.set) {
+        assert_equals(desc.set.__proto__, myDesc.set.__proto__,
+          `Property ${propKey}'s setter should be created in the current Realm`);
+      }
+      if (desc.value) {
+        assert_equals(desc.value.__proto__, myDesc.value.__proto__,
+          `Property ${propKey}'s value should be created in the current Realm`);
+      }
+    }
+  }, `property descriptors of ${lensName}, no navigation`);
+}
+
+let i = 0;
+
+for (let [lensName, lensFn, propKeys] of interfaces) {
+  promise_test_for_each_case(async (t, frame) => {
+    // Get the old descriptors
+    const oldDescs = propKeys.map(propKey => {
+      const theObject = lensFn(frame.contentWindow);
+      return Object.getOwnPropertyDescriptor(theObject, propKey);
+    });
+
+    // Navigate the frame
+    const waitFrameLoad = new Promise(r => frame.addEventListener('load', r));
+    frame.src = frame.uriToLoad + '?' + (i++);
+    await waitFrameLoad;
+
+    // Check the new descriptors
+    for (let propKey of propKeys) {
+      const oldDesc = oldDescs.shift();
+
+      const theObject = lensFn(frame.contentWindow);
+      const desc = Object.getOwnPropertyDescriptor(theObject, propKey);
+
+      // Since each `O` has a unique instance of `[[CrossOriginPropertyDescriptorMap]]`, the result
+      // of `CrossOriginGetOwnPropertyHelper(O, P)` should change if `O` changes
+      if (desc.get) {
+        assert_not_equals(desc.get, oldDesc.get, `${lensName}.${propKey} should change across navigation`);
+      }
+      if (desc.set) {
+        assert_not_equals(desc.set, oldDesc.set, `${lensName}.${propKey} should change across navigation`);
+      }
+      if (desc.value) {
+        assert_not_equals(desc.value, oldDesc.value, `${lensName}.${propKey} should change across navigation`);
+      }
+    }
+  }, `property descriptors of ${lensName} across navigation`);
+}
+
+</script>
