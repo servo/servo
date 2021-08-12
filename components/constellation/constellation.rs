@@ -5535,7 +5535,30 @@ where
                         parent_pipeline_id
                     );
                 },
-                Some(parent_pipeline) => parent_pipeline.remove_child(browsing_context_id),
+                Some(parent_pipeline) => {
+                    parent_pipeline.remove_child(browsing_context_id);
+
+                    // If `browsing_context_id` has focus, focus the parent
+                    // browsing context
+                    if let Some(browser) = self.browsers.get_mut(&browsing_context.top_level_id) {
+                        if browser.focused_browsing_context_id == browsing_context_id {
+                            trace!(
+                                "About-to-be-closed browsing context {} is currently focused, so \
+                                focusing its parent {}",
+                                browsing_context_id,
+                                parent_pipeline.browsing_context_id
+                            );
+                            browser.focused_browsing_context_id =
+                                parent_pipeline.browsing_context_id;
+                        }
+                    } else {
+                        warn!(
+                            "Browsing context {} contains a reference to \
+                                a non-existent top-level browsing context {}",
+                            browsing_context_id, browsing_context.top_level_id
+                        );
+                    }
+                },
             };
         }
         debug!("Closed browsing context {:?}.", browsing_context_id);
