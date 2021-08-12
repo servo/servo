@@ -224,6 +224,8 @@ struct FocusTransaction {
     element: Option<Dom<Element>>,
     /// The top-level browsing context's system focus state.
     has_system_focus: bool,
+    /// See [`Document::has_focus`].
+    has_focus: bool,
 }
 
 /// <https://dom.spec.whatwg.org/#document>
@@ -273,6 +275,10 @@ pub struct Document {
     focus_sequence: Cell<FocusSequenceNumber>,
     /// The top-level browsing context's system focus state.
     has_system_focus: Cell<bool>,
+    /// Indicates whether the container is included in the top-level browsing
+    /// context's focus chain (not considering system focus). Permanently `true`
+    /// for a top-level document.
+    has_focus: Cell<bool>,
     /// The script element that is currently executing.
     current_script: MutNullableDom<HTMLScriptElement>,
     /// <https://html.spec.whatwg.org/multipage/#pending-parsing-blocking-script>
@@ -1100,6 +1106,7 @@ impl Document {
         *self.focus_transaction.borrow_mut() = Some(FocusTransaction {
             element: self.focused.get().as_deref().map(Dom::from_ref),
             has_system_focus: self.has_system_focus.get(),
+            has_focus: self.has_focus.get(),
         });
     }
 
@@ -1130,17 +1137,48 @@ impl Document {
         }
         {
             let mut focus_transaction = self.focus_transaction.borrow_mut();
-            focus_transaction.as_mut().unwrap().element = elem.map(Dom::from_ref);
+            let focus_transaction = focus_transaction.as_mut().unwrap();
+            focus_transaction.element = elem.map(Dom::from_ref);
+            focus_transaction.has_focus = true;
         }
         if implicit_transaction {
             self.commit_focus_transaction(focus_type);
         }
     }
 
+    /// Update the local focus state accordingly after being notified that the
+    /// document's container is removed from the top-level browsing context's
+    /// focus chain (not considering system focus).
+    pub(crate) fn handle_container_unfocus(&self) {
+        assert!(
+            self.window().parent_info().is_some(),
+            "top-level document cannot be unfocused",
+        );
+
+        // Since this method is called from an event loop, there mustn't be
+        // an in-progress focus transaction
+        assert!(
+            self.focus_transaction.borrow().is_none(),
+            "there mustn't be an in-progress focus transaction at this point"
+        );
+
+        // Start an implicit focus transaction
+        self.begin_focus_transaction();
+
+        // Update the transaction
+        {
+            let mut focus_transaction = self.focus_transaction.borrow_mut();
+            focus_transaction.as_mut().unwrap().has_focus = false;
+        }
+
+        // Commit the implicit focus transaction
+        self.commit_focus_transaction(FocusType::Parent);
+    }
+
     /// Reassign the focus context to the element that last requested focus during this
     /// transaction, or the document if no elements requested it.
     fn commit_focus_transaction(&self, focus_type: FocusType) {
-        let (new_focused, new_system_focus_state) = {
+        let (mut new_focused, new_system_focus_state, new_focus_state) = {
             let focus_transaction = self.focus_transaction.borrow();
             let focus_transaction = focus_transaction
                 .as_ref()
@@ -1151,25 +1189,49 @@ impl Document {
                     .as_ref()
                     .map(|e| DomRoot::from_ref(&**e)),
                 focus_transaction.has_system_focus,
+                focus_transaction.has_focus,
             )
         };
         *self.focus_transaction.borrow_mut() = None;
+
+        if !new_focus_state {
+            // In many browsers, a document forgets its focused area when the
+            // document is removed from the top-level BC's focus chain
+            if new_focused.take().is_some() {
+                trace!(
+                    "Forgetting the document's focused area because the \
+                    document's container was removed from the top-level BC's \
+                    focus chain"
+                );
+            }
+        }
 
         let old_focused = self.focused.get();
 
         debug!(
             "Committing focus transaction: {:?} → {:?}",
-            (&old_focused, self.has_system_focus.get()),
-            (&new_focused, new_system_focus_state),
+            (
+                &old_focused,
+                self.has_system_focus.get(),
+                self.has_focus.get()
+            ),
+            (&new_focused, new_system_focus_state, new_focus_state),
         );
 
         // The document's focused area won't be reflected to the top-level
         // BC's currently focused area and current focus chain [if the top-level
-        // BC doesn't have system focus][1].
+        // BC doesn't have system focus, or there is no path that leads from
+        // the top-level BC's active document to the current document through
+        // browsing context containers that are designated as the focused areas
+        // of their respective documents][1].
         //
         // [1]: https://html.spec.whatwg.org/multipage/interaction.html#currently-focused-area-of-a-top-level-browsing-context
-        let old_focused_filtered = old_focused.as_ref().filter(|_| self.has_system_focus.get());
-        let new_focused_filtered = new_focused.as_ref().filter(|_| new_system_focus_state);
+        let old_focused_filtered = old_focused
+            .as_ref()
+            .filter(|_| self.has_system_focus.get() && self.has_focus.get());
+        let new_focused_filtered = new_focused
+            .as_ref()
+            .filter(|_| new_system_focus_state && new_focus_state);
 
         trace!("Old local focus chain: {:?}", old_focused_filtered);
         trace!("New local focus chain: {:?}", new_focused_filtered);
@@ -1190,6 +1252,7 @@ impl Document {
 
         self.focused.set(new_focused.as_ref().map(|e| &**e));
         self.has_system_focus.set(new_system_focus_state);
+        self.has_focus.set(new_focus_state);
 
         if old_focused_filtered != new_focused_filtered {
             if let Some(elem) = &new_focused_filtered {
@@ -1235,7 +1298,9 @@ impl Document {
             }
         }
 
-        if focus_type == FocusType::Element {
+        if focus_type == FocusType::Element && new_focus_state {
+            // FIXME: Why check `new_focus_state` here?
+
             // Update the focus state for all elements in the focus chain.
             // https://html.spec.whatwg.org/multipage/#focus-chain
             //
@@ -3243,6 +3308,8 @@ impl Document {
             .and_then(|charset| Encoding::for_label(charset.as_str().as_bytes()))
             .unwrap_or(UTF_8);
 
+        let has_focus = window.parent_info().is_none();
+
         let has_browsing_context = has_browsing_context == HasBrowsingContext::Yes;
         Document {
             node: Node::new_document_node(),
@@ -3294,6 +3361,7 @@ impl Document {
             focused: Default::default(),
             focus_sequence: Cell::new(FocusSequenceNumber::default()),
             has_system_focus: Cell::new(false),
+            has_focus: Cell::new(has_focus),
             current_script: Default::default(),
             pending_parsing_blocking_script: Default::default(),
             script_blocking_stylesheets_count: Cell::new(0u32),
@@ -4213,10 +4281,7 @@ impl DocumentMethods for Document {
             self.is_fully_active()
         } else {
             // 2 → 3 → 3.2 → (⋯ → 3.1 || ⋯ → 3.3)
-            // TODO: We can't distinguish between "the container is not focused"
-            //       and "the container is focused, but this document has no
-            //       focused area"
-            false
+            self.is_fully_active() && self.has_focus.get()
         }
     }
 

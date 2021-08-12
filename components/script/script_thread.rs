@@ -2680,7 +2680,7 @@ impl ScriptThread {
             );
             return;
         }
-        doc.request_focus(None, FocusType::Parent);
+        doc.handle_container_unfocus();
     }
 
     fn handle_post_message_msg(
