@@ -369,6 +369,13 @@ pub enum ConstellationControlMsg {
     UpdateHistoryState(PipelineId, Option<HistoryStateId>, ServoUrl),
     /// Removes inaccesible history states.
     RemoveHistoryStates(PipelineId, Vec<HistoryStateId>),
+    /// Advertises the top-level browsing context's system focus state.
+    ///
+    /// This is sent regardless of the pipeline's focus state. While this seems
+    /// like extra work, this makes it possible to handle `Element#focus`
+    /// without consulting the constellation about the current system focus
+    /// state.
+    SystemFocus(PipelineId, bool),
     /// Set an iframe to be focused. Used when an element in an iframe gains focus.
     /// PipelineId is for the parent, BrowsingContextId is for the nested browsing context
     FocusIFrame(PipelineId, BrowsingContextId),
@@ -434,6 +441,7 @@ impl fmt::Debug for ConstellationControlMsg {
             UpdatePipelineId(..) => "UpdatePipelineId",
             UpdateHistoryState(..) => "UpdateHistoryState",
             RemoveHistoryStates(..) => "RemoveHistoryStates",
+            SystemFocus(..) => "SystemFocus",
             FocusIFrame(..) => "FocusIFrame",
             WebDriverScriptCommand(..) => "WebDriverScriptCommand",
             TickAllAnimations(..) => "TickAllAnimations",

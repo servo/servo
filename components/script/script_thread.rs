@@ -1815,6 +1815,7 @@ impl ScriptThread {
                 ExitFullScreen(id, ..) => Some(id),
                 MediaSessionAction(..) => None,
                 SetWebGPUPort(..) => None,
+                SystemFocus(id, ..) => Some(id),
             },
             MixedMessage::FromDevtools(_) => None,
             MixedMessage::FromScript(ref inner_msg) => match *inner_msg {
@@ -2040,6 +2041,9 @@ impl ScriptThread {
                     let p = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(port);
                     *self.webgpu_port.borrow_mut() = Some(p);
                 }
+            },
+            ConstellationControlMsg::SystemFocus(pipeline_id, new_system_focus_state) => {
+                self.handle_system_focus(pipeline_id, new_system_focus_state)
             },
             msg @ ConstellationControlMsg::AttachLayout(..) |
             msg @ ConstellationControlMsg::Viewport(..) |
@@ -3986,6 +3990,13 @@ impl ScriptThread {
         } else {
             warn!("No MediaSession for this pipeline ID");
         };
+    }
+
+    fn handle_system_focus(&self, pipeline_id: PipelineId, new_system_focus_state: bool) {
+        let document = self.documents.borrow().find_document(pipeline_id);
+        if let Some(document) = document {
+            // TODO
+        }
     }
 
     pub fn enqueue_microtask(job: Microtask) {

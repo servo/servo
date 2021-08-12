@@ -113,6 +113,8 @@ pub enum ConstellationMsg {
     ChangeBrowserVisibility(TopLevelBrowsingContextId, bool),
     /// Virtual keyboard was dismissed
     IMEDismissed,
+    /// System focus state change
+    Focus(TopLevelBrowsingContextId, bool),
 }
 
 impl fmt::Debug for ConstellationMsg {
@@ -146,6 +148,7 @@ impl fmt::Debug for ConstellationMsg {
             ChangeBrowserVisibility(..) => "ChangeBrowserVisibility",
             IMEDismissed => "IMEDismissed",
             ClearCache => "ClearCache",
+            Focus(..) => "Focus",
         };
         write!(formatter, "ConstellationMsg::{}", variant)
     }

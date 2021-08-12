@@ -478,6 +478,16 @@ impl Pipeline {
         }
         self.compositor_proxy.send(compositor_msg);
     }
+
+    /// Notify the script thread about the top-level browsing context's system
+    /// focus state.
+    pub fn notify_system_focus(&self, new_system_focus_state: bool) {
+        let msg = ConstellationControlMsg::SystemFocus(self.id, new_system_focus_state);
+        let err = self.event_loop.send(msg);
+        if let Err(e) = err {
+            warn!("Sending system focus state change failed: {}", e);
+        }
+    }
 }
 
 /// Creating a new pipeline may require creating a new event loop.

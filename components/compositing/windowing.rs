@@ -76,6 +76,12 @@ pub enum WindowEvent {
     Navigation(TopLevelBrowsingContextId, TraversalDirection),
     /// Sent when the user quits the application
     Quit,
+    /// Set the system focus status
+    ///
+    /// The browsers created by contents are assumed to have a system focus by
+    /// default. It's up to the embedder to send this event if it doesn't match
+    /// the reality.
+    Focus(TopLevelBrowsingContextId, bool),
     /// Sent when the user exits from fullscreen mode
     ExitFullScreen(TopLevelBrowsingContextId),
     /// Sent when a key input state changes
@@ -127,6 +133,7 @@ impl Debug for WindowEvent {
             WindowEvent::ResetZoom => write!(f, "ResetZoom"),
             WindowEvent::Navigation(..) => write!(f, "Navigation"),
             WindowEvent::Quit => write!(f, "Quit"),
+            WindowEvent::Focus(..) => write!(f, "Focus"),
             WindowEvent::Reload(..) => write!(f, "Reload"),
             WindowEvent::NewBrowser(..) => write!(f, "NewBrowser"),
             WindowEvent::SendError(..) => write!(f, "SendError"),
