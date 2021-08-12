@@ -220,7 +220,7 @@ pub enum IsHTMLDocument {
 #[derive(JSTraceable, MallocSizeOf)]
 #[unrooted_must_root_lint::must_root]
 struct FocusTransaction {
-    /// The element that has most recently requested focus for itself.
+    /// The focused element of this document.
     element: Option<Dom<Element>>,
     /// The top-level browsing context's system focus state.
     has_system_focus: bool,
@@ -1221,14 +1221,12 @@ impl Document {
         }
 
         let old_focused = self.focused.get();
+        let old_system_focus_state = self.has_system_focus.get();
+        let old_focus_state = self.has_focus.get();
 
         debug!(
             "Committing focus transaction: {:?} → {:?}",
-            (
-                &old_focused,
-                self.has_system_focus.get(),
-                self.has_focus.get()
-            ),
+            (&old_focused, old_system_focus_state, old_focus_state),
             (&new_focused, new_system_focus_state, new_focus_state),
         );
 
@@ -1242,7 +1240,7 @@ impl Document {
         // [1]: https://html.spec.whatwg.org/multipage/interaction.html#currently-focused-area-of-a-top-level-browsing-context
         let old_focused_filtered = old_focused
             .as_ref()
-            .filter(|_| self.has_system_focus.get() && self.has_focus.get());
+            .filter(|_| old_system_focus_state && old_focus_state);
         let new_focused_filtered = new_focused
             .as_ref()
             .filter(|_| new_system_focus_state && new_focus_state);
@@ -1312,43 +1310,56 @@ impl Document {
             }
         }
 
-        if focus_initiator == FocusInitiator::Local {
-            assert!(
-                new_focus_state,
-                "Can't initiate a focus operation that would lose \
-                this document's focus"
-            );
+        if focus_initiator != FocusInitiator::Local {
+            return;
+        }
 
-            // Update the focus state for all elements in the focus chain.
-            // https://html.spec.whatwg.org/multipage/#focus-chain
-            //
-            // If the top-level BC doesn't have system focus, this won't have an
-            // immediate effect, but it will when we gain system focus again.
-            // Therefore we still have to send `ScriptMsg::Focus`.
-            //
-            // When a container with a non-null nested browsing context is
-            // focused, its active document becomes the focused area of the top-
-            // level browsing context instead. Therefore we need to let the
-            // constellation know if such a container is focused.
-            let child_browsing_context_id = new_focused
-                .as_ref()
-                .and_then(|elem| elem.downcast::<HTMLIFrameElement>())
-                .and_then(|iframe| iframe.browsing_context_id());
-
-            let sequence = self.increment_fetch_focus_sequence();
-
-            debug!(
-                "Advertising the focus request to the constellation \
-                        with sequence number {} and child BC ID {}",
-                sequence,
-                child_browsing_context_id
+        // We are the initiator of the focus operation, so we must broadcast
+        // the change we intend to make.
+        match (old_focus_state, new_focus_state) {
+            (_, true) => {
+                // Advertise the change in the focus chain.
+                // https://html.spec.whatwg.org/multipage/#focus-chain
+                //
+                // If the top-level BC doesn't have system focus, this won't
+                // have an immediate effect, but it will when we gain system
+                // focus again. Therefore we still have to send `ScriptMsg::
+                // Focus`.
+                //
+                // When a container with a non-null nested browsing context is
+                // focused, its active document becomes the focused area of the
+                // top-level browsing context instead. Therefore we need to let
+                // the constellation know if such a container is focused.
+                let child_browsing_context_id = new_focused
                     .as_ref()
-                    .map(|id| id as &dyn std::fmt::Display)
-                    .unwrap_or(&"(none)"),
-            );
+                    .and_then(|elem| elem.downcast::<HTMLIFrameElement>())
+                    .and_then(|iframe| iframe.browsing_context_id());
 
-            self.window()
-                .send_to_constellation(ScriptMsg::Focus(child_browsing_context_id, sequence));
+                let sequence = self.increment_fetch_focus_sequence();
+
+                debug!(
+                    "Advertising the focus request to the constellation \
+                        with sequence number {} and child BC ID {}",
+                    sequence,
+                    child_browsing_context_id
+                        .as_ref()
+                        .map(|id| id as &dyn std::fmt::Display)
+                        .unwrap_or(&"(none)"),
+                );
+
+                self.window()
+                    .send_to_constellation(ScriptMsg::Focus(child_browsing_context_id, sequence));
+            },
+            (false, false) => {
+                // Our `Document` doesn't have focus, and we intend to keep it
+                // this way.
+            },
+            (true, false) => {
+                unreachable!(
+                    "Can't lose the document's focus without specifying \
+                    another one to focus"
+                );
+            },
         }
     }
 
