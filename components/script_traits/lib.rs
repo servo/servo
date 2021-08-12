@@ -450,6 +450,12 @@ pub enum ConstellationControlMsg {
     FocusIFrame(PipelineId, BrowsingContextId, FocusSequenceNumber),
     /// Focus the document. Used when the container gains focus.
     FocusDocument(PipelineId, FocusSequenceNumber),
+    /// Notifies that the document's container (e.g., an iframe) is not included
+    /// in the top-level browsing context's focus chain (not considering system
+    /// focus) anymore.
+    ///
+    /// Obviously, this message is invalid for a top-level document.
+    Unfocus(PipelineId, FocusSequenceNumber),
     /// Passes a webdriver command to the script thread for execution
     WebDriverScriptCommand(PipelineId, WebDriverScriptCommand),
     /// Notifies script thread that all animations are done
@@ -515,6 +521,7 @@ impl fmt::Debug for ConstellationControlMsg {
             SystemFocus(..) => "SystemFocus",
             FocusIFrame(..) => "FocusIFrame",
             FocusDocument(..) => "FocusDocument",
+            Unfocus(..) => "Unfocus",
             WebDriverScriptCommand(..) => "WebDriverScriptCommand",
             TickAllAnimations(..) => "TickAllAnimations",
             WebFontLoaded(..) => "WebFontLoaded",

@@ -4432,9 +4432,13 @@ where
 
         // > For each entry `entry` in `old chain`, in order, run these
         // > substeps: [...]
-        //
-        // TODO: Send "unfocus" messages to pipelines in
-        //       `old_focus_chain_pipelines`
+        for &pipeline in old_focus_chain_pipelines.iter() {
+            let msg = ConstellationControlMsg::Unfocus(pipeline.id, pipeline.focus_sequence);
+            trace!("Sending {:?} to {:?}", msg, pipeline.id);
+            if let Err(e) = pipeline.event_loop.send(msg) {
+                send_errors.push((pipeline.id, e));
+            }
+        }
 
         // > For each entry entry in `new chain`, in reverse order, run these
         // > substeps: [...]
@@ -5089,11 +5093,13 @@ where
         pipeline.notify_system_focus(system_focus_state);
 
         // If the browsing context is focused, focus the document
-        if is_focused {
-            let msg = ConstellationControlMsg::FocusDocument(pipeline_id, pipeline.focus_sequence);
-            if let Err(e) = pipeline.event_loop.send(msg) {
-                self.handle_send_error(pipeline_id, e);
-            }
+        let msg = if is_focused {
+            ConstellationControlMsg::FocusDocument(pipeline_id, pipeline.focus_sequence)
+        } else {
+            ConstellationControlMsg::Unfocus(pipeline_id, pipeline.focus_sequence)
+        };
+        if let Err(e) = pipeline.event_loop.send(msg) {
+            self.handle_send_error(pipeline_id, e);
         }
     }
 

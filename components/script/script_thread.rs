@@ -1801,6 +1801,7 @@ impl ScriptThread {
                 RemoveHistoryStates(id, ..) => Some(id),
                 FocusIFrame(id, ..) => Some(id),
                 FocusDocument(id, ..) => Some(id),
+                Unfocus(id, ..) => Some(id),
                 WebDriverScriptCommand(id, ..) => Some(id),
                 TickAllAnimations(id, ..) => Some(id),
                 WebFontLoaded(id) => Some(id),
@@ -2002,6 +2003,9 @@ impl ScriptThread {
             },
             ConstellationControlMsg::FocusDocument(pipeline_id, sequence) => {
                 self.handle_focus_document_msg(pipeline_id, sequence)
+            },
+            ConstellationControlMsg::Unfocus(pipeline_id, sequence) => {
+                self.handle_unfocus_msg(pipeline_id, sequence)
             },
             ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, msg) => {
                 self.handle_webdriver_msg(pipeline_id, msg)
@@ -2663,6 +2667,20 @@ impl ScriptThread {
             return;
         }
         doc.request_focus(None, FocusType::Child);
+    }
+
+    fn handle_unfocus_msg(&self, pipeline_id: PipelineId, sequence: FocusSequenceNumber) {
+        let doc = self.documents.borrow().find_document(pipeline_id).unwrap();
+        if doc.get_focus_sequence() > sequence {
+            debug!(
+                "Disregarding the Unfocus message because the contained sequence number is \
+                too old ({:?} < {:?})",
+                sequence,
+                doc.get_focus_sequence()
+            );
+            return;
+        }
+        doc.request_focus(None, FocusType::Parent);
     }
 
     fn handle_post_message_msg(
