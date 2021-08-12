@@ -3995,7 +3995,7 @@ impl ScriptThread {
     fn handle_system_focus(&self, pipeline_id: PipelineId, new_system_focus_state: bool) {
         let document = self.documents.borrow().find_document(pipeline_id);
         if let Some(document) = document {
-            // TODO
+            document.set_has_system_focus(new_system_focus_state);
         }
     }
 

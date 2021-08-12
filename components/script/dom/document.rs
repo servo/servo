@@ -221,6 +221,8 @@ pub enum IsHTMLDocument {
 struct FocusTransaction {
     /// The element that has most recently requested focus for itself.
     element: Option<Dom<Element>>,
+    /// The top-level browsing context's system focus state.
+    has_system_focus: bool,
 }
 
 /// <https://dom.spec.whatwg.org/#document>
@@ -266,6 +268,8 @@ pub struct Document {
     focus_transaction: DomRefCell<Option<FocusTransaction>>,
     /// The element that currently has the document focus context.
     focused: MutNullableDom<Element>,
+    /// The top-level browsing context's system focus state.
+    has_system_focus: Cell<bool>,
     /// The script element that is currently executing.
     current_script: MutNullableDom<HTMLScriptElement>,
     /// <https://html.spec.whatwg.org/multipage/#pending-parsing-blocking-script>
@@ -1037,10 +1041,43 @@ impl Document {
         self.focused.get()
     }
 
+    /// Respond to a possible change in the top-level browsing context's [system
+    /// focus][1] state.
+    ///
+    /// [1]: https://html.spec.whatwg.org/multipage/#tlbc-system-focus
+    pub fn set_has_system_focus(&self, new_system_focus_state: bool) {
+        if self.has_system_focus.get() == new_system_focus_state {
+            return;
+        }
+
+        // Since this method is called from an event loop, there mustn't be
+        // an in-progress focus transaction
+        assert!(
+            self.focus_transaction.borrow().is_none(),
+            "there mustn't be an in-progress focus transaction at this point"
+        );
+
+        // Start an implicit focus transaction
+        self.begin_focus_transaction();
+
+        // Update the transaction
+        {
+            let mut focus_transaction = self.focus_transaction.borrow_mut();
+            focus_transaction.as_mut().unwrap().has_system_focus = new_system_focus_state;
+        }
+
+        // Commit the implicit focus transaction
+        self.commit_focus_transaction(FocusType::Parent);
+    }
+
     /// Initiate a new round of checking for elements requesting focus. The last element to call
     /// `request_focus` before `commit_focus_transaction` is called will receive focus.
     fn begin_focus_transaction(&self) {
-        *self.focus_transaction.borrow_mut() = Some(FocusTransaction { element: None });
+        // Initialize it with the current state
+        *self.focus_transaction.borrow_mut() = Some(FocusTransaction {
+            element: self.focused.get().as_deref().map(Dom::from_ref),
+            has_system_focus: self.has_system_focus.get(),
+        });
     }
 
     /// <https://html.spec.whatwg.org/multipage/#focus-fixup-rule>
@@ -1058,11 +1095,17 @@ impl Document {
     /// If None is passed, then whatever element is currently focused will no longer be focused
     /// once the transaction is complete.
     pub(crate) fn request_focus(&self, elem: Option<&Element>, focus_type: FocusType) {
+        // If an element is specified, and it's non-focusable, ignore the
+        // request.
+        if !elem.map_or(true, |e| e.is_focusable_area()) {
+            return;
+        }
+
         let implicit_transaction = self.focus_transaction.borrow().is_none();
         if implicit_transaction {
             self.begin_focus_transaction();
         }
-        if elem.map_or(true, |e| e.is_focusable_area()) {
+        {
             let mut focus_transaction = self.focus_transaction.borrow_mut();
             focus_transaction.as_mut().unwrap().element = elem.map(Dom::from_ref);
         }
@@ -1074,77 +1117,101 @@ impl Document {
     /// Reassign the focus context to the element that last requested focus during this
     /// transaction, or none if no elements requested it.
     fn commit_focus_transaction(&self, focus_type: FocusType) {
-        let possibly_focused = {
+        let (new_focused, new_system_focus_state) = {
             let focus_transaction = self.focus_transaction.borrow();
             let focus_transaction = focus_transaction
                 .as_ref()
                 .expect("no focus transaction in progress");
-            focus_transaction
-                .element
-                .as_ref()
-                .map(|e| DomRoot::from_ref(&**e))
+            (
+                focus_transaction
+                    .element
+                    .as_ref()
+                    .map(|e| DomRoot::from_ref(&**e)),
+                focus_transaction.has_system_focus,
+            )
         };
         *self.focus_transaction.borrow_mut() = None;
-        if self.focused == possibly_focused.as_ref().map(|e| &**e) {
-            return;
-        }
-        if let Some(ref elem) = self.focused.get() {
-            let node = elem.upcast::<Node>();
-            elem.set_focus_state(false);
-            // FIXME: pass appropriate relatedTarget
-            self.fire_focus_event(FocusEventType::Blur, node, None);
 
-            // Notify the embedder to hide the input method.
-            if elem.input_method_type().is_some() {
-                self.send_to_embedder(EmbedderMsg::HideIME);
+        debug!(
+            "Committing focus transaction: {:?} → {:?}",
+            (self.focused.get(), self.has_system_focus.get()),
+            (&new_focused, new_system_focus_state),
+        );
+
+        // The document's focused area won't be reflected to the top-level
+        // BC's currently focused area and current focus chain [if the top-level
+        // BC doesn't have system focus][1].
+        //
+        // [1]: https://html.spec.whatwg.org/multipage/interaction.html#currently-focused-area-of-a-top-level-browsing-context
+        let old_focused_filtered = self.focused.get().filter(|_| self.has_system_focus.get());
+        let new_focused_filtered = new_focused.clone().filter(|_| new_system_focus_state);
+
+        trace!("Old local focus chain: {:?}", old_focused_filtered);
+        trace!("New local focus chain: {:?}", new_focused_filtered);
+
+        if old_focused_filtered != new_focused_filtered {
+            if let Some(elem) = &old_focused_filtered {
+                let node = elem.upcast::<Node>();
+                elem.set_focus_state(false);
+                // FIXME: pass appropriate relatedTarget
+                self.fire_focus_event(FocusEventType::Blur, node, None);
+
+                // Notify the embedder to hide the input method.
+                if elem.input_method_type().is_some() {
+                    self.send_to_embedder(EmbedderMsg::HideIME);
+                }
             }
         }
 
-        self.focused.set(possibly_focused.as_ref().map(|e| &**e));
+        self.focused.set(new_focused.as_ref().map(|e| &**e));
+        self.has_system_focus.set(new_system_focus_state);
 
-        if let Some(ref elem) = self.focused.get() {
-            elem.set_focus_state(true);
-            let node = elem.upcast::<Node>();
-            // FIXME: pass appropriate relatedTarget
-            self.fire_focus_event(FocusEventType::Focus, node, None);
-            // Update the focus state for all elements in the focus chain.
-            // https://html.spec.whatwg.org/multipage/#focus-chain
-            if focus_type == FocusType::Element {
-                self.window().send_to_constellation(ScriptMsg::Focus);
-            }
+        if old_focused_filtered != new_focused_filtered {
+            if let Some(elem) = &new_focused_filtered {
+                elem.set_focus_state(true);
+                let node = elem.upcast::<Node>();
+                // FIXME: pass appropriate relatedTarget
+                self.fire_focus_event(FocusEventType::Focus, node, None);
+                // Update the focus state for all elements in the focus chain.
+                // https://html.spec.whatwg.org/multipage/#focus-chain
+                if focus_type == FocusType::Element {
+                    self.window().send_to_constellation(ScriptMsg::Focus);
+                }
 
-            // Notify the embedder to display an input method.
-            if let Some(kind) = elem.input_method_type() {
-                let rect = elem.upcast::<Node>().bounding_content_box_or_zero();
-                let rect = Rect::new(
-                    Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
-                    Size2D::new(rect.size.width.to_px(), rect.size.height.to_px()),
-                );
-                let (text, multiline) = if let Some(input) = elem.downcast::<HTMLInputElement>() {
-                    (
-                        Some((
-                            (&input.Value()).to_string(),
-                            input.GetSelectionEnd().unwrap_or(0) as i32,
-                        )),
-                        false,
-                    )
-                } else if let Some(textarea) = elem.downcast::<HTMLTextAreaElement>() {
-                    (
-                        Some((
-                            (&textarea.Value()).to_string(),
-                            textarea.GetSelectionEnd().unwrap_or(0) as i32,
-                        )),
-                        true,
-                    )
-                } else {
-                    (None, false)
-                };
-                self.send_to_embedder(EmbedderMsg::ShowIME(
-                    kind,
-                    text,
-                    multiline,
-                    DeviceIntRect::from_untyped(&rect),
-                ));
+                // Notify the embedder to display an input method.
+                if let Some(kind) = elem.input_method_type() {
+                    let rect = elem.upcast::<Node>().bounding_content_box_or_zero();
+                    let rect = Rect::new(
+                        Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
+                        Size2D::new(rect.size.width.to_px(), rect.size.height.to_px()),
+                    );
+                    let (text, multiline) = if let Some(input) = elem.downcast::<HTMLInputElement>()
+                    {
+                        (
+                            Some((
+                                (&input.Value()).to_string(),
+                                input.GetSelectionEnd().unwrap_or(0) as i32,
+                            )),
+                            false,
+                        )
+                    } else if let Some(textarea) = elem.downcast::<HTMLTextAreaElement>() {
+                        (
+                            Some((
+                                (&textarea.Value()).to_string(),
+                                textarea.GetSelectionEnd().unwrap_or(0) as i32,
+                            )),
+                            true,
+                        )
+                    } else {
+                        (None, false)
+                    };
+                    self.send_to_embedder(EmbedderMsg::ShowIME(
+                        kind,
+                        text,
+                        multiline,
+                        DeviceIntRect::from_untyped(&rect),
+                    ));
+                }
             }
         }
     }
@@ -3172,6 +3239,7 @@ impl Document {
             domcontentloaded_dispatched: Cell::new(domcontentloaded_dispatched),
             focus_transaction: DomRefCell::new(None),
             focused: Default::default(),
+            has_system_focus: Cell::new(false),
             current_script: Default::default(),
             pending_parsing_blocking_script: Default::default(),
             script_blocking_stylesheets_count: Cell::new(0u32),
