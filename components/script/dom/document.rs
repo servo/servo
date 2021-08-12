@@ -1253,22 +1253,38 @@ impl Document {
         // of their respective documents][1].
         //
         // [1]: https://html.spec.whatwg.org/multipage/interaction.html#currently-focused-area-of-a-top-level-browsing-context
-        let old_focused_filtered = old_focused
-            .as_ref()
-            .filter(|_| old_system_focus_state && old_focus_state);
-        let new_focused_filtered = new_focused
-            .as_ref()
-            .filter(|_| new_system_focus_state && new_focus_state);
+        //
+        // `*_doc_filtered` indicates whether the document is included in
+        // the top-level BC's focus chain.
+        let old_doc_filtered = old_system_focus_state && old_focus_state;
+        let new_doc_filtered = new_system_focus_state && new_focus_state;
 
-        trace!("Old local focus chain: {:?}", old_focused_filtered);
-        trace!("New local focus chain: {:?}", new_focused_filtered);
+        // `*_focused_filtered` indicates the local element (if any) included in
+        // the top-level BC's focus chain.
+        let old_focused_filtered = old_focused.as_ref().filter(|_| old_doc_filtered);
+        let new_focused_filtered = new_focused.as_ref().filter(|_| new_doc_filtered);
+
+        let trace_focus_chain = |name, element, doc| {
+            trace!(
+                "{} local focus chain: {}",
+                name,
+                match (element, doc) {
+                    (Some(e), _) => format!("[{:?}, document]", e),
+                    (None, true) => "[document]".to_owned(),
+                    (None, false) => "[]".to_owned(),
+                }
+            );
+        };
+
+        trace_focus_chain("Old", old_focused_filtered, old_doc_filtered);
+        trace_focus_chain("New", new_focused_filtered, new_doc_filtered);
 
         if old_focused_filtered != new_focused_filtered {
             if let Some(elem) = &old_focused_filtered {
                 let node = elem.upcast::<Node>();
                 elem.set_focus_state(false);
                 // FIXME: pass appropriate relatedTarget
-                self.fire_focus_event(FocusEventType::Blur, node, None);
+                self.fire_focus_event(FocusEventType::Blur, node.upcast(), None);
 
                 // Notify the embedder to hide the input method.
                 if elem.input_method_type().is_some() {
@@ -1277,16 +1293,28 @@ impl Document {
             }
         }
 
+        if old_doc_filtered != new_doc_filtered {
+            if !new_doc_filtered {
+                self.fire_focus_event(FocusEventType::Blur, self.global().upcast(), None);
+            }
+        }
+
         self.focused.set(new_focused.as_ref().map(|e| &**e));
         self.has_system_focus.set(new_system_focus_state);
         self.has_focus.set(new_focus_state);
+
+        if old_doc_filtered != new_doc_filtered {
+            if new_doc_filtered {
+                self.fire_focus_event(FocusEventType::Focus, self.global().upcast(), None);
+            }
+        }
 
         if old_focused_filtered != new_focused_filtered {
             if let Some(elem) = &new_focused_filtered {
                 elem.set_focus_state(true);
                 let node = elem.upcast::<Node>();
                 // FIXME: pass appropriate relatedTarget
-                self.fire_focus_event(FocusEventType::Focus, node, None);
+                self.fire_focus_event(FocusEventType::Focus, node.upcast(), None);
 
                 // Notify the embedder to display an input method.
                 if let Some(kind) = elem.input_method_type() {
@@ -2944,7 +2972,7 @@ impl Document {
     fn fire_focus_event(
         &self,
         focus_event_type: FocusEventType,
-        node: &Node,
+        event_target: &EventTarget,
         related_target: Option<&EventTarget>,
     ) {
         let (event_name, does_bubble) = match focus_event_type {
@@ -2962,7 +2990,7 @@ impl Document {
         );
         let event = event.upcast::<Event>();
         event.set_trusted(true);
-        let target = node.upcast();
+        let target = event_target.upcast();
         event.fire(target);
     }
 
