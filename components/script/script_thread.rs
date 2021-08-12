@@ -39,7 +39,7 @@ use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReactionStack,
 };
 use crate::dom::document::{
-    Document, DocumentSource, FocusType, HasBrowsingContext, IsHTMLDocument, TouchEventResult,
+    Document, DocumentSource, FocusInitiator, HasBrowsingContext, IsHTMLDocument, TouchEventResult,
 };
 use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
@@ -2651,7 +2651,7 @@ impl ScriptThread {
         }
 
         if let Some(ref frame_element) = frame_element {
-            doc.request_focus(Some(frame_element.upcast()), FocusType::Parent);
+            doc.request_focus(Some(frame_element.upcast()), FocusInitiator::Remote);
         }
     }
 
@@ -2666,7 +2666,7 @@ impl ScriptThread {
             );
             return;
         }
-        doc.request_focus(None, FocusType::Child);
+        doc.request_focus(None, FocusInitiator::Remote);
     }
 
     fn handle_unfocus_msg(&self, pipeline_id: PipelineId, sequence: FocusSequenceNumber) {
