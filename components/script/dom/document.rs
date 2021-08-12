@@ -1112,13 +1112,28 @@ impl Document {
 
     /// <https://html.spec.whatwg.org/multipage/#focus-fixup-rule>
     pub(crate) fn perform_focus_fixup_rule(&self, not_focusable: &Element) {
+        // Return if `not_focusable` is not the designated focused area of the
+        // `Document`.
         if Some(not_focusable) != self.focused.get().as_ref().map(|e| &**e) {
             return;
         }
-        self.request_focus(
-            self.GetBody().as_ref().map(|e| &*e.upcast()),
-            FocusInitiator::Local,
-        )
+
+        let implicit_transaction = self.focus_transaction.borrow().is_none();
+
+        if implicit_transaction {
+            self.begin_focus_transaction();
+        }
+
+        // Designate the viewport as the new focused area of the `Document`, but
+        // do not run the focusing steps.
+        {
+            let mut focus_transaction = self.focus_transaction.borrow_mut();
+            focus_transaction.as_mut().unwrap().element = None;
+        }
+
+        if implicit_transaction {
+            self.commit_focus_transaction(FocusInitiator::Local);
+        }
     }
 
     /// Request that the given element receive focus once the current
