@@ -154,6 +154,54 @@
 
     assert_true(f1.contentDocument.hasFocus(), "f1's contentDocument has focus");
   }, "When a focused container navigates, the new document should receive focus");
+
+  promise_test(async t => {
+    const f2 = document.getElementById("f2");
+
+    const p0 = waitForEvent(f2, 'focus');
+    const p1 = waitForEvent(f2.contentWindow, 'focus');
+
+    f2.contentWindow.focus();
+
+    await p0;   // FIXME: doesn't fire on Firefox, Blink, Edge, and WebKit
+    assert_true(await p1, "`f2.contentWindow.focus` fires in time");
+
+    assert_equals(document.activeElement, f2, "The top-level document's activeElement is `f2`");
+    assert_true(f2.contentDocument.hasFocus(), "f2's contentDocument has focus");
+  }, "Focusing the window of a nested browsing context also focuses the container");
+
+  promise_test(async t => {
+    const f2 = document.getElementById("f2");
+    const d2 = f2.contentDocument.getElementById("d2");
+
+    {
+      const p = waitForEvent(d2, 'focus');
+      f2.focus();
+      d2.focus();
+      await p;
+    }
+
+    const p0 = waitForEvent(d2, 'blur');
+    d2.blur();
+    assert_true(await p0, "`d2.blur` fires in time");
+
+    // FIXME: This passes on Firefox, Blink, and WebKit but is not spec-
+    //        compliant. Per spec, the top-level document's viewport should be
+    //        focused instead.
+    //
+    // <https://html.spec.whatwg.org/multipage/#get-the-focusable-area>
+    //
+    // > The unfocusing steps for an object `old focus target`` that is either a
+    // > focusable area or an element that is not a focusable area are as
+    // > follows: [...]
+    // >
+    // >  7. If `topDocument`'s browsing context has system focus, then run the
+    // >     focusing steps for topDocument's viewport.
+
+    assert_equals(document.activeElement, f2, "The top-level document's activeElement is `f2`");
+    assert_equals(f2.contentDocument.activeElement, f2.contentDocument.body, "f2's contentDocument's activeElement is its body");
+    assert_true(f2.contentDocument.hasFocus(), "f2's contentDocument has focus");
+  }, "Blurring an element in a nested browsing context focuses its node document");
   </script>
 </body>
 </html>
