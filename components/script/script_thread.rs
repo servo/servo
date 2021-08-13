@@ -133,12 +133,12 @@ use script_traits::CompositorEvent::{
 };
 use script_traits::{
     AnimationTickType, CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext,
-    DocumentActivity, EventResult, HistoryEntryReplacement, InitialScriptState, JsEvalResult,
-    LayoutMsg, LoadData, LoadOrigin, MediaSessionActionType, MouseButton, MouseEventType,
-    NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptMsg, ScriptThreadFactory,
-    ScriptToConstellationChan, StructuredSerializedData, TimerSchedulerMsg, TouchEventType,
-    TouchId, UntrustedNodeAddress, UpdatePipelineIdReason, WebrenderIpcSender, WheelDelta,
-    WindowSizeData, WindowSizeType,
+    DocumentActivity, EventResult, FocusSequenceNumber, HistoryEntryReplacement,
+    InitialScriptState, JsEvalResult, LayoutMsg, LoadData, LoadOrigin, MediaSessionActionType,
+    MouseButton, MouseEventType, NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptMsg,
+    ScriptThreadFactory, ScriptToConstellationChan, StructuredSerializedData, TimerSchedulerMsg,
+    TouchEventType, TouchId, UntrustedNodeAddress, UpdatePipelineIdReason, WebrenderIpcSender,
+    WheelDelta, WindowSizeData, WindowSizeType,
 };
 use servo_atoms::Atom;
 use servo_config::opts;
@@ -1800,7 +1800,7 @@ impl ScriptThread {
                 UpdateHistoryState(id, ..) => Some(id),
                 RemoveHistoryStates(id, ..) => Some(id),
                 FocusIFrame(id, ..) => Some(id),
-                FocusDocument(id) => Some(id),
+                FocusDocument(id, ..) => Some(id),
                 WebDriverScriptCommand(id, ..) => Some(id),
                 TickAllAnimations(id, ..) => Some(id),
                 WebFontLoaded(id) => Some(id),
@@ -1997,11 +1997,11 @@ impl ScriptThread {
             ConstellationControlMsg::RemoveHistoryStates(pipeline_id, history_states) => {
                 self.handle_remove_history_states(pipeline_id, history_states)
             },
-            ConstellationControlMsg::FocusIFrame(parent_pipeline_id, frame_id) => {
-                self.handle_focus_iframe_msg(parent_pipeline_id, frame_id)
+            ConstellationControlMsg::FocusIFrame(parent_pipeline_id, frame_id, sequence) => {
+                self.handle_focus_iframe_msg(parent_pipeline_id, frame_id, sequence)
             },
-            ConstellationControlMsg::FocusDocument(pipeline_id) => {
-                self.handle_focus_document_msg(pipeline_id)
+            ConstellationControlMsg::FocusDocument(pipeline_id, sequence) => {
+                self.handle_focus_document_msg(pipeline_id, sequence)
             },
             ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, msg) => {
                 self.handle_webdriver_msg(pipeline_id, msg)
@@ -2627,6 +2627,7 @@ impl ScriptThread {
         &self,
         parent_pipeline_id: PipelineId,
         browsing_context_id: BrowsingContextId,
+        sequence: FocusSequenceNumber,
     ) {
         let doc = self
             .documents
@@ -2635,13 +2636,32 @@ impl ScriptThread {
             .unwrap();
         let frame_element = doc.find_iframe(browsing_context_id);
 
+        if doc.get_focus_sequence() > sequence {
+            debug!(
+                "Disregarding the FocusIFrame message because the contained sequence number is \
+                too old ({:?} < {:?})",
+                sequence,
+                doc.get_focus_sequence()
+            );
+            return;
+        }
+
         if let Some(ref frame_element) = frame_element {
             doc.request_focus(Some(frame_element.upcast()), FocusType::Parent);
         }
     }
 
-    fn handle_focus_document_msg(&self, pipeline_id: PipelineId) {
+    fn handle_focus_document_msg(&self, pipeline_id: PipelineId, sequence: FocusSequenceNumber) {
         let doc = self.documents.borrow().find_document(pipeline_id).unwrap();
+        if doc.get_focus_sequence() > sequence {
+            debug!(
+                "Disregarding the FocusDocument message because the contained sequence number is \
+                too old ({:?} < {:?})",
+                sequence,
+                doc.get_focus_sequence()
+            );
+            return;
+        }
         doc.request_focus(None, FocusType::Child);
     }
 

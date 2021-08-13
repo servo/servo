@@ -6,6 +6,7 @@ use crate::AnimationState;
 use crate::AuxiliaryBrowsingContextLoadInfo;
 use crate::BroadcastMsg;
 use crate::DocumentState;
+use crate::FocusSequenceNumber;
 use crate::IFrameLoadInfoWithData;
 use crate::LayoutControlMsg;
 use crate::LoadData;
@@ -182,9 +183,12 @@ pub enum ScriptMsg {
     /// Notifies the constellation that this browsing context's active document
     /// or element is requesting focus.
     ///
-    /// Contains the browsing context ID of the container element if one was
-    /// focused.
-    Focus(Option<BrowsingContextId>),
+    /// The first field contains the browsing context ID of the container
+    /// element if one was focused.
+    ///
+    /// The second field is a sequence number that the constellation should use
+    /// when sending a focus-related message next time.
+    Focus(Option<BrowsingContextId>, FocusSequenceNumber),
     /// Get the top-level browsing context info for a given browsing context.
     GetTopForBrowsingContext(
         BrowsingContextId,

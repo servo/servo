@@ -34,7 +34,8 @@ use net_traits::ResourceThreads;
 use profile_traits::mem as profile_mem;
 use profile_traits::time;
 use script_traits::{
-    AnimationState, ConstellationControlMsg, DiscardBrowsingContext, ScriptToConstellationChan,
+    AnimationState, ConstellationControlMsg, DiscardBrowsingContext, FocusSequenceNumber,
+    ScriptToConstellationChan,
 };
 use script_traits::{DocumentActivity, InitialScriptState};
 use script_traits::{LayoutControlMsg, LayoutMsg, LoadData};
@@ -100,6 +101,8 @@ pub struct Pipeline {
 
     /// The title of this pipeline's document.
     pub title: String,
+
+    pub focus_sequence: FocusSequenceNumber,
 }
 
 /// Initial setup data needed to construct a pipeline.
@@ -383,6 +386,7 @@ impl Pipeline {
             history_states: HashSet::new(),
             completely_loaded: false,
             title: String::new(),
+            focus_sequence: FocusSequenceNumber::default(),
         };
 
         pipeline.notify_visibility(is_visible);

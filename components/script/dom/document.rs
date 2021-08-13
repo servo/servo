@@ -142,6 +142,7 @@ use profile_traits::ipc as profile_ipc;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
 use script_layout_interface::message::{Msg, PendingRestyle, ReflowGoal};
 use script_layout_interface::TrustedNodeAddress;
+use script_traits::FocusSequenceNumber;
 use script_traits::{AnimationState, DocumentActivity, MouseButton, MouseEventType};
 use script_traits::{
     MsDuration, ScriptMsg, TouchEventType, TouchId, UntrustedNodeAddress, WheelDelta,
@@ -268,6 +269,8 @@ pub struct Document {
     focus_transaction: DomRefCell<Option<FocusTransaction>>,
     /// The element that currently has the document focus context.
     focused: MutNullableDom<Element>,
+    /// The last sequence number sent to the constellation.
+    focus_sequence: Cell<FocusSequenceNumber>,
     /// The top-level browsing context's system focus state.
     has_system_focus: Cell<bool>,
     /// The script element that is currently executing.
@@ -1041,6 +1044,26 @@ impl Document {
         self.focused.get()
     }
 
+    /// Get the last sequence number sent to the constellation.
+    ///
+    /// Received focus-related messages with sequence numbers less than the one
+    /// returned by this method must be discarded.
+    pub fn get_focus_sequence(&self) -> FocusSequenceNumber {
+        self.focus_sequence.get()
+    }
+
+    /// Generate the next sequence number for focus-related messages.
+    fn increment_fetch_focus_sequence(&self) -> FocusSequenceNumber {
+        self.focus_sequence.set(FocusSequenceNumber(
+            self.focus_sequence
+                .get()
+                .0
+                .checked_add(1)
+                .expect("too many focus messages have been sent"),
+        ));
+        self.focus_sequence.get()
+    }
+
     /// Respond to a possible change in the top-level browsing context's [system
     /// focus][1] state.
     ///
@@ -1183,8 +1206,23 @@ impl Document {
                     let child_browsing_context_id = elem
                         .downcast::<HTMLIFrameElement>()
                         .and_then(|iframe| iframe.browsing_context_id());
-                    self.window()
-                        .send_to_constellation(ScriptMsg::Focus(child_browsing_context_id));
+
+                    let sequence = self.increment_fetch_focus_sequence();
+
+                    debug!(
+                        "Advertising the focus request to the constellation \
+                        with sequence number {} and child browsing context ID {}",
+                        sequence,
+                        child_browsing_context_id
+                            .map(|id| id.to_string())
+                            .as_deref()
+                            .unwrap_or("(none)"),
+                    );
+
+                    self.window().send_to_constellation(ScriptMsg::Focus(
+                        child_browsing_context_id,
+                        sequence,
+                    ));
                 }
 
                 // Notify the embedder to display an input method.
@@ -3248,6 +3286,7 @@ impl Document {
             domcontentloaded_dispatched: Cell::new(domcontentloaded_dispatched),
             focus_transaction: DomRefCell::new(None),
             focused: Default::default(),
+            focus_sequence: Cell::new(FocusSequenceNumber::default()),
             has_system_focus: Cell::new(false),
             current_script: Default::default(),
             pending_parsing_blocking_script: Default::default(),

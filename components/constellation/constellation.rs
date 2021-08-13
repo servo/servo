@@ -147,7 +147,9 @@ use net_traits::{self, FetchResponseMsg, IpcSend, ResourceThreads};
 use profile_traits::mem;
 use profile_traits::time;
 use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent};
-use script_traits::{webdriver_msg, LogEntry, ScriptToConstellationChan, ServiceWorkerMsg};
+use script_traits::{
+    webdriver_msg, FocusSequenceNumber, LogEntry, ScriptToConstellationChan, ServiceWorkerMsg,
+};
 use script_traits::{
     AnimationState, AnimationTickType, AuxiliaryBrowsingContextLoadInfo, BroadcastMsg,
     CompositorEvent,
@@ -1819,8 +1821,12 @@ where
                     data,
                 );
             },
-            FromScriptMsg::Focus(focused_child_browsing_context_id) => {
-                self.handle_focus_msg(source_pipeline_id, focused_child_browsing_context_id);
+            FromScriptMsg::Focus(focused_child_browsing_context_id, sequence) => {
+                self.handle_focus_msg(
+                    source_pipeline_id,
+                    focused_child_browsing_context_id,
+                    sequence,
+                );
             },
             FromScriptMsg::VisibilityChangeComplete(is_visible) => {
                 self.handle_visibility_change_complete(source_pipeline_id, is_visible);
@@ -4281,15 +4287,36 @@ where
         &mut self,
         pipeline_id: PipelineId,
         focused_child_browsing_context_id: Option<BrowsingContextId>,
+        sequence: FocusSequenceNumber,
     ) {
         let (browsing_context_id, top_level_browsing_context_id) =
-            match self.pipelines.get(&pipeline_id) {
-                Some(pipeline) => (
-                    pipeline.browsing_context_id,
-                    pipeline.top_level_browsing_context_id,
-                ),
+            match self.pipelines.get_mut(&pipeline_id) {
+                Some(pipeline) => {
+                    // Remember the last sequence number sent by the
+                    // script thread
+                    pipeline.focus_sequence = sequence;
+
+                    (
+                        pipeline.browsing_context_id,
+                        pipeline.top_level_browsing_context_id,
+                    )
+                },
                 None => return warn!("Pipeline {:?} focus parent after closure.", pipeline_id),
             };
+
+        if let Some(focused_child_browsing_context_id) = focused_child_browsing_context_id {
+            debug!(
+                "Pipeline {} requested focus (sequence number = {}) for \
+                its element which is a container of {}",
+                pipeline_id, sequence, focused_child_browsing_context_id,
+            )
+        } else {
+            debug!(
+                "Pipeline {} requested focus (sequence number = {}) for \
+                its element or document",
+                pipeline_id, sequence,
+            )
+        }
 
         // If a container with a non-null nested browsing context is focused,
         // the nested browsing context's active document becomes the focused
@@ -4335,9 +4362,12 @@ where
                 );
             },
         };
-        let msg = ConstellationControlMsg::FocusDocument(pipeline_id);
         let result = match self.pipelines.get(&pipeline_id) {
-            Some(pipeline) => pipeline.event_loop.send(msg),
+            Some(pipeline) => {
+                let msg =
+                    ConstellationControlMsg::FocusDocument(pipeline_id, pipeline.focus_sequence);
+                pipeline.event_loop.send(msg)
+            },
             None => return warn!("Pipeline {:?} focus child after closure.", pipeline_id),
         };
         if let Err(e) = result {
@@ -4369,9 +4399,13 @@ where
 
         // Send a message to the parent of the provided browsing context (if it
         // exists) telling it to mark the iframe element as focused.
-        let msg = ConstellationControlMsg::FocusIFrame(parent_pipeline_id, browsing_context_id);
         let (result, parent_browsing_context_id) = match self.pipelines.get(&parent_pipeline_id) {
             Some(pipeline) => {
+                let msg = ConstellationControlMsg::FocusIFrame(
+                    parent_pipeline_id,
+                    browsing_context_id,
+                    pipeline.focus_sequence,
+                );
                 let result = pipeline.event_loop.send(msg);
                 (result, pipeline.browsing_context_id)
             },
@@ -4989,7 +5023,7 @@ where
 
         // If the browsing context is focused, focus the document
         if is_focused {
-            let msg = ConstellationControlMsg::FocusDocument(pipeline_id);
+            let msg = ConstellationControlMsg::FocusDocument(pipeline_id, pipeline.focus_sequence);
             if let Err(e) = pipeline.event_loop.send(msg) {
                 self.handle_send_error(pipeline_id, e);
             }
