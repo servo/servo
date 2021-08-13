@@ -9,7 +9,6 @@
 
 #![deny(unsafe_code)]
 #![feature(plugin)]
-#![feature(plugin_registrar)]
 #![feature(rustc_private)]
 #![cfg(feature = "unrooted_must_root_lint")]
 
