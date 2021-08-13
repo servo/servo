@@ -29,6 +29,6 @@ pub trait WindowPortsMethods: WindowMethods {
     fn set_cursor(&self, _cursor: Cursor) {}
     fn new_glwindow(
         &self,
-        events_loop: &winit::event_loop::EventLoopWindowTarget<ServoEvent>
+        events_loop: &winit::event_loop::EventLoopWindowTarget<ServoEvent>,
     ) -> Box<dyn webxr::glwindow::GlWindow>;
 }
