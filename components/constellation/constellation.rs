@@ -1866,6 +1866,9 @@ where
                     sequence,
                 );
             },
+            FromScriptMsg::FocusRemoteDocument(focused_browsing_context_id) => {
+                self.handle_focus_remote_document_msg(focused_browsing_context_id);
+            },
             FromScriptMsg::VisibilityChangeComplete(is_visible) => {
                 self.handle_visibility_change_complete(source_pipeline_id, is_visible);
             },
@@ -4377,6 +4380,25 @@ where
         // `initiator_pipeline_id`, which has already its local focus state
         // updated.
         self.focus_browsing_context(Some(initiator_pipeline_id), focused_browsing_context_id);
+    }
+
+    fn handle_focus_remote_document_msg(&mut self, focused_browsing_context_id: BrowsingContextId) {
+        let pipeline_id = match self.browsing_contexts.get(&focused_browsing_context_id) {
+            Some(browsing_context) => browsing_context.pipeline_id,
+            None => return warn!("Browsing context {} not found", focused_browsing_context_id),
+        };
+
+        // Ignore if its active document isn't fully active.
+        if self.get_activity(pipeline_id) != DocumentActivity::FullyActive {
+            debug!(
+                "Ignoring the remote focus request because pipeline {} of \
+                browsing context {} is not fully active",
+                pipeline_id, focused_browsing_context_id,
+            );
+            return;
+        }
+
+        self.focus_browsing_context(None, focused_browsing_context_id);
     }
 
     /// Perform [the focusing steps][1] for the active document of

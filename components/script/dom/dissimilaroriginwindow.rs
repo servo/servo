@@ -184,7 +184,7 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
 
     // https://html.spec.whatwg.org/multipage/#dom-window-focus
     fn Focus(&self) {
-        // TODO: Implement x-origin focus
+        self.window_proxy().focus();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location
