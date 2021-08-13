@@ -180,14 +180,18 @@ pub enum ScriptMsg {
         UntypedSize2D<u64>,
         IpcSender<(IpcSender<CanvasMsg>, CanvasId)>,
     ),
-    /// Notifies the constellation that this browsing context's active document
-    /// or element is requesting focus.
+    /// Notifies the constellation that this pipeline is requesting focus.
+    ///
+    /// When this message is sent, the sender pipeline has already its local
+    /// focus state updated. The constellation, after receiving this message,
+    /// will broadcast messages to other pipelines that are affected by this
+    /// focus operation.
     ///
     /// The first field contains the browsing context ID of the container
     /// element if one was focused.
     ///
     /// The second field is a sequence number that the constellation should use
-    /// when sending a focus-related message next time.
+    /// when sending a focus-related message to the sender pipeline next time.
     Focus(Option<BrowsingContextId>, FocusSequenceNumber),
     /// Get the top-level browsing context info for a given browsing context.
     GetTopForBrowsingContext(

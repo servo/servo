@@ -176,13 +176,13 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
         // TODO: Implement x-origin opener
     }
 
-    /// Implements <https://html.spec.whatwg.org/multipage/#dom-window-blur>.
+    // https://html.spec.whatwg.org/multipage/#dom-window-blur
     fn Blur(&self) {
         // > User agents are encouraged to ignore calls to this `blur()` method
         // > entirely.
     }
 
-    /// Implements <https://html.spec.whatwg.org/multipage/#dom-window-focus>.
+    // https://html.spec.whatwg.org/multipage/#dom-window-focus
     fn Focus(&self) {
         // TODO: Implement x-origin focus
     }

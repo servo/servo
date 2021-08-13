@@ -1243,7 +1243,7 @@ impl Document {
         // browsing context containers that are designated as the focused areas
         // of their respective documents][1].
         //
-        // [1]: https://html.spec.whatwg.org/multipage/interaction.html#currently-focused-area-of-a-top-level-browsing-context
+        // [1]: https://html.spec.whatwg.org/multipage/#currently-focused-area-of-a-top-level-browsing-context
         //
         // `*_doc_filtered` indicates whether the document is included in
         // the top-level BC's focus chain.
@@ -1353,7 +1353,8 @@ impl Document {
         match (old_focus_state, new_focus_state) {
             (_, true) => {
                 // Advertise the change in the focus chain.
-                // https://html.spec.whatwg.org/multipage/#focus-chain
+                // <https://html.spec.whatwg.org/multipage/#focus-chain>
+                // <https://html.spec.whatwg.org/multipage/#focusing-steps>
                 //
                 // If the top-level BC doesn't have system focus, this won't
                 // have an immediate effect, but it will when we gain system
@@ -1364,6 +1365,13 @@ impl Document {
                 // focused, its active document becomes the focused area of the
                 // top-level browsing context instead. Therefore we need to let
                 // the constellation know if such a container is focused.
+                //
+                // > The focusing steps for an object `new focus target` [...]
+                // >
+                // >  3. If `new focus target` is a browsing context container
+                // >     with non-null nested browsing context, then set
+                // >     `new focus target` to the nested browsing context's
+                // >     active document.
                 let child_browsing_context_id = new_focused
                     .as_ref()
                     .and_then(|elem| elem.downcast::<HTMLIFrameElement>())
@@ -4319,7 +4327,7 @@ impl DocumentMethods for Document {
         )
     }
 
-    /// Implements <https://html.spec.whatwg.org/multipage/#dom-document-hasfocus>.
+    // https://html.spec.whatwg.org/multipage/#dom-document-hasfocus
     fn HasFocus(&self) -> bool {
         // <https://html.spec.whatwg.org/multipage/#has-focus-steps>
         //

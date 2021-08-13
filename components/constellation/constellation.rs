@@ -4400,7 +4400,7 @@ where
         // ultimately up to the script threads to fire focus events at the
         // affected objects.
         //
-        // [1]: https://html.spec.whatwg.org/multipage/interaction.html#focus-update-steps
+        // [1]: https://html.spec.whatwg.org/multipage/#focus-update-steps
         let mut old_focus_chain_pipelines: Vec<&Pipeline> = self
             .ancestor_or_self_pipelines_of_browsing_context_iter(old_focused_browsing_context_id)
             .collect();
