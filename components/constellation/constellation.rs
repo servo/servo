@@ -4361,6 +4361,16 @@ where
             )
         }
 
+        // Ignore if the pipeline isn't fully active.
+        if self.get_activity(initiator_pipeline_id) != DocumentActivity::FullyActive {
+            debug!(
+                "Ignoring the focus request because pipeline {} is not \
+                fully active",
+                initiator_pipeline_id
+            );
+            return;
+        }
+
         // If a container with a non-null nested browsing context is focused,
         // the nested browsing context's active document becomes the focused
         // area of the top-level browsing context instead.
@@ -4412,6 +4422,19 @@ where
                 .map(|p| p.id)
                 .collect::<Vec<_>>()
         );
+
+        // At least the last entries should match. Otherwise something is wrong,
+        // and we don't want to proceed and crash the top-level pipeline by
+        // sending an impossible `Unfocus` message to it.
+        match (
+            &old_focus_chain_pipelines[..],
+            &new_focus_chain_pipelines[..],
+        ) {
+            ([.., p1], [.., p2]) if p1.id == p2.id => {},
+            _ => {
+                warn!("Aborting the focus operation - focus chain sanity check failed");
+            },
+        }
 
         // > If the last entry in `old chain` and the last entry in `new chain`
         // > are the same, pop the last entry from `old chain` and the last
