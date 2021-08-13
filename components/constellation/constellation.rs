@@ -4327,25 +4327,21 @@ where
         focused_child_browsing_context_id: Option<BrowsingContextId>,
         sequence: FocusSequenceNumber,
     ) {
-        let (browsing_context_id, top_level_browsing_context_id) =
-            match self.pipelines.get_mut(&initiator_pipeline_id) {
-                Some(pipeline) => {
-                    // Remember the last sequence number sent by the
-                    // script thread
-                    pipeline.focus_sequence = sequence;
+        let browsing_context_id = match self.pipelines.get_mut(&initiator_pipeline_id) {
+            Some(pipeline) => {
+                // Remember the last sequence number sent by the
+                // script thread
+                pipeline.focus_sequence = sequence;
 
-                    (
-                        pipeline.browsing_context_id,
-                        pipeline.top_level_browsing_context_id,
-                    )
-                },
-                None => {
-                    return warn!(
-                        "Pipeline {:?} focus parent after closure.",
-                        initiator_pipeline_id
-                    )
-                },
-            };
+                pipeline.browsing_context_id
+            },
+            None => {
+                return warn!(
+                    "Pipeline {:?} focus parent after closure.",
+                    initiator_pipeline_id
+                )
+            },
+        };
 
         if let Some(focused_child_browsing_context_id) = focused_child_browsing_context_id {
             debug!(
@@ -4374,11 +4370,35 @@ where
         // If a container with a non-null nested browsing context is focused,
         // the nested browsing context's active document becomes the focused
         // area of the top-level browsing context instead.
-        //
-        // This variable indicates the browsing context that contains the new
-        // focused area of the top-level browsing context.
         let focused_browsing_context_id =
             focused_child_browsing_context_id.unwrap_or(browsing_context_id);
+
+        // Send focus messages to the affected pipelines, except
+        // `initiator_pipeline_id`, which has already its local focus state
+        // updated.
+        self.focus_browsing_context(Some(initiator_pipeline_id), focused_browsing_context_id);
+    }
+
+    /// Perform [the focusing steps][1] for the active document of
+    /// `focused_browsing_context_id`.
+    ///
+    /// If `initiator_pipeline_id` is specified, this method avoids sending
+    /// a message to `initiator_pipeline_id`, assuming its local focus state has
+    /// already been updated. This is necessary for performing the focusing
+    /// steps for an object that is not the document itself but something that
+    /// belongs to the document.
+    ///
+    /// [1]: https://html.spec.whatwg.org/multipage/#focusing-steps
+    fn focus_browsing_context(
+        &mut self,
+        initiator_pipeline_id: Option<PipelineId>,
+        focused_browsing_context_id: BrowsingContextId,
+    ) {
+        let top_level_browsing_context_id =
+            match self.browsing_contexts.get(&focused_browsing_context_id) {
+                Some(browsing_context) => &browsing_context.top_level_id,
+                None => return warn!("Browsing context {} not found", focused_browsing_context_id),
+            };
 
         // Update the focused browsing context in its browser in `browsers`.
         let old_focused_browsing_context_id =
@@ -4388,10 +4408,7 @@ where
                     focused_browsing_context_id,
                 ),
                 None => {
-                    return warn!(
-                        "Browser {} for focus msg does not exist",
-                        top_level_browsing_context_id
-                    );
+                    return warn!("Browser {} does not exist", top_level_browsing_context_id);
                 },
             };
 
@@ -4412,14 +4429,14 @@ where
             "old_focus_chain_pipelines = {:?}",
             old_focus_chain_pipelines
                 .iter()
-                .map(|p| p.id)
+                .map(|p| p.id.to_string())
                 .collect::<Vec<_>>()
         );
         debug!(
             "new_focus_chain_pipelines = {:?}",
             new_focus_chain_pipelines
                 .iter()
-                .map(|p| p.id)
+                .map(|p| p.id.to_string())
                 .collect::<Vec<_>>()
         );
 
@@ -4456,10 +4473,17 @@ where
         // > For each entry `entry` in `old chain`, in order, run these
         // > substeps: [...]
         for &pipeline in old_focus_chain_pipelines.iter() {
-            let msg = ConstellationControlMsg::Unfocus(pipeline.id, pipeline.focus_sequence);
-            trace!("Sending {:?} to {:?}", msg, pipeline.id);
-            if let Err(e) = pipeline.event_loop.send(msg) {
-                send_errors.push((pipeline.id, e));
+            if Some(pipeline.id) != initiator_pipeline_id {
+                let msg = ConstellationControlMsg::Unfocus(pipeline.id, pipeline.focus_sequence);
+                trace!("Sending {:?} to {}", msg, pipeline.id);
+                if let Err(e) = pipeline.event_loop.send(msg) {
+                    send_errors.push((pipeline.id, e));
+                }
+            } else {
+                trace!(
+                    "Not notifying {} - it's the initiator of this focus operation",
+                    pipeline.id
+                );
             }
         }
 
@@ -4469,7 +4493,7 @@ where
         for &pipeline in new_focus_chain_pipelines.iter().rev() {
             // Don't send a message to the browsing context that initiated this
             // focus operation. It already knows that it has gotten focus.
-            if pipeline.id != initiator_pipeline_id {
+            if Some(pipeline.id) != initiator_pipeline_id {
                 let msg = if let Some(child_browsing_context_id) = child_browsing_context_id {
                     // Focus the container element of `child_browsing_context_id`.
                     ConstellationControlMsg::FocusIFrame(
@@ -4481,10 +4505,15 @@ where
                     // Focus the document.
                     ConstellationControlMsg::FocusDocument(pipeline.id, pipeline.focus_sequence)
                 };
-                trace!("Sending {:?} to {:?}", msg, pipeline.id);
+                trace!("Sending {:?} to {}", msg, pipeline.id);
                 if let Err(e) = pipeline.event_loop.send(msg) {
                     send_errors.push((pipeline.id, e));
                 }
+            } else {
+                trace!(
+                    "Not notifying {} - it's the initiator of this focus operation",
+                    pipeline.id
+                );
             }
             child_browsing_context_id = Some(pipeline.browsing_context_id);
         }
@@ -4492,14 +4521,14 @@ where
         if let (Some(pipeline), Some(child_browsing_context_id)) =
             (first_common_pipeline_in_chain, child_browsing_context_id)
         {
-            if pipeline.id != initiator_pipeline_id {
+            if Some(pipeline.id) != initiator_pipeline_id {
                 // Focus the container element of `child_browsing_context_id`.
                 let msg = ConstellationControlMsg::FocusIFrame(
                     pipeline.id,
                     child_browsing_context_id,
                     pipeline.focus_sequence,
                 );
-                trace!("Sending {:?} to {:?}", msg, pipeline.id);
+                trace!("Sending {:?} to {}", msg, pipeline.id);
                 if let Err(e) = pipeline.event_loop.send(msg) {
                     send_errors.push((pipeline.id, e));
                 }
