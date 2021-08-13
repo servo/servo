@@ -1142,28 +1142,15 @@ impl Document {
     /// If there's no ongoing transaction, this method automatically starts and
     /// commits an implicit transaction.
     pub(crate) fn request_focus(&self, elem: Option<&Element>, focus_initiator: FocusInitiator) {
-        let implicit_transaction = self.focus_transaction.borrow().is_none();
-
-        self.begin_focus_transaction_and_request_focus(elem);
-
-        if implicit_transaction && self.focus_transaction.borrow().is_some() {
-            self.commit_focus_transaction(focus_initiator);
-        }
-    }
-
-    /// Similar to [`Self::request_focus`] but does not commit the implicit
-    /// transaction.
-    ///
-    /// Note that this method does nothing and does not start an implicit
-    /// transaction if the specified element is not focusable.
-    pub(crate) fn begin_focus_transaction_and_request_focus(&self, elem: Option<&Element>) {
         // If an element is specified, and it's non-focusable, ignore the
         // request.
         if !elem.map_or(true, |e| e.is_focusable_area()) {
             return;
         }
 
-        if self.focus_transaction.borrow().is_none() {
+        let implicit_transaction = self.focus_transaction.borrow().is_none();
+
+        if implicit_transaction {
             self.begin_focus_transaction();
         }
 
@@ -1172,6 +1159,10 @@ impl Document {
             let focus_transaction = focus_transaction.as_mut().unwrap();
             focus_transaction.element = elem.map(Dom::from_ref);
             focus_transaction.has_focus = true;
+        }
+
+        if implicit_transaction {
+            self.commit_focus_transaction(focus_initiator);
         }
     }
 
@@ -1488,7 +1479,12 @@ impl Document {
                 return;
             }
 
-            self.begin_focus_transaction_and_request_focus(Some(&*el));
+            self.begin_focus_transaction();
+
+            // Try to focus `el`. If it's not focusable, focus the document
+            // instead.
+            self.request_focus(None, FocusInitiator::Local);
+            self.request_focus(Some(&*el), FocusInitiator::Local);
         }
 
         // https://w3c.github.io/uievents/#event-type-click
