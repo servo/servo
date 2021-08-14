@@ -9,7 +9,6 @@
 
 #![deny(unsafe_code)]
 #![feature(plugin)]
-#![feature(plugin_registrar)]
 #![feature(rustc_private)]
 #![cfg(feature = "unrooted_must_root_lint")]
 
@@ -34,9 +33,9 @@ use rustc_span::source_map::{ExpnKind, MacroKind, Span};
 use rustc_span::symbol::sym;
 use rustc_span::symbol::Symbol;
 
-#[allow(deprecated)]
-#[plugin_registrar]
-pub fn plugin_registrar(reg: &mut Registry) {
+#[allow(unsafe_code)] // #[no_mangle] is unsafe
+#[no_mangle]
+fn __rustc_plugin_registrar(reg: &mut Registry) {
     registrar(reg)
 }
 
