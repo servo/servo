@@ -636,7 +636,7 @@ macro_rules! handle_potential_webgl_error {
         }
     };
     ($context:expr, $call:expr) => {
-        handle_potential_webgl_error!($context, $call, ());
+        handle_potential_webgl_error!($context, $call, ())
     };
 }
 

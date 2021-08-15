@@ -136,7 +136,7 @@ impl SpecifiedValueInfo for CounterStyle {
         // approach here.
         macro_rules! predefined {
             ($($name:expr,)+) => {
-                f(&["symbols", $($name,)+]);
+                f(&["symbols", $($name,)+])
             }
         }
         include!("../../counter_style/predefined.rs");

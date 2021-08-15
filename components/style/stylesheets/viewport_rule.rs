@@ -753,7 +753,7 @@ impl MaybeNew for ViewportConstraints {
                     })
                 } else {
                     None
-                };
+                }
             };
         }
 

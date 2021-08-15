@@ -627,7 +627,7 @@ bitflags! {
         #[doc = "virtual call is too expensive."]
         const FLOATS_RIGHT = 0b0000_0000_0000_0100_0000_0000;
         #[doc = "Text alignment. \
-
+                 \
                  NB: If you update this, update `TEXT_ALIGN_SHIFT` below."]
         const TEXT_ALIGN = 0b0000_0000_0111_1000_0000_0000;
         #[doc = "Whether this flow has a fragment with `counter-reset` or `counter-increment` \
