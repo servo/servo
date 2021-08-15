@@ -292,10 +292,12 @@ fn fixup_stops(
                 // FIXME: approximate like in:
                 // https://searchfox.org/mozilla-central/rev/f98dad153b59a985efd4505912588d4651033395/layout/painting/nsCSSRenderingGradients.cpp#315-391
                 // Ensure that interpolation hints influence fixup. This does not yet implement midpoints
-                stops.push( ColorStop {
+                stops.push(ColorStop {
                     color: None,
-                    position: Some(position.percentage_relative_to(gradient_line_length).px() /
-                        gradient_line_length.px())
+                    position: Some(
+                        position.percentage_relative_to(gradient_line_length).px() /
+                            gradient_line_length.px(),
+                    ),
                 })
             },
         }
@@ -328,7 +330,9 @@ fn fixup_stops(
     let first_stop_position = first.position.unwrap();
     wr_stops.push(wr::GradientStop {
         offset: first_stop_position,
-        color: first.color.expect("Interpolation hints can only be interior items"),
+        color: first
+            .color
+            .expect("Interpolation hints can only be interior items"),
     });
 
     let mut last_positioned_stop_index = 0;

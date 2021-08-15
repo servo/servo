@@ -90,16 +90,13 @@ fn convert_gradient_stops(
                 color: Some(color),
                 position: None,
             }),
-            GradientItem::ComplexColorStop {
-                color,
-                position,
-            } => Some(ColorStop {
+            GradientItem::ComplexColorStop { color, position } => Some(ColorStop {
                 color: Some(color),
                 position: Some(position.clone()),
             }),
             GradientItem::InterpolationHint(position) => Some(ColorStop {
                 color: None,
-                position: Some(position.clone())
+                position: Some(position.clone()),
             }),
         })
         .collect::<Vec<_>>();

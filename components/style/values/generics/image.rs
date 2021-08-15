@@ -346,15 +346,10 @@ impl<Color, T> ColorStop<Color, T> {
     #[inline]
     pub fn into_item(self) -> GradientItem<Color, T> {
         match (self.position, self.color) {
-            (Some(position), Some(color)) => {
-                GradientItem::ComplexColorStop {
-                    color,
-                    position,
-                }
-            },
-            (Some(position), None) => {GradientItem::InterpolationHint(position)},
-            (None, Some(color)) => {GradientItem::SimpleColorStop(color)},
-            (None, None) => panic!("Non-positioned, non-colored GradientItems don't exist yet")
+            (Some(position), Some(color)) => GradientItem::ComplexColorStop { color, position },
+            (Some(position), None) => GradientItem::InterpolationHint(position),
+            (None, Some(color)) => GradientItem::SimpleColorStop(color),
+            (None, None) => panic!("Non-positioned, non-colored GradientItems don't exist yet"),
         }
     }
 }
