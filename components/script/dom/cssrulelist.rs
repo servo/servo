@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#![allow(unsafe_code)]
+
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CSSRuleListBinding::CSSRuleListMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -21,7 +23,6 @@ use style::stylesheets::{
     AllowImportRules, CssRules, CssRulesHelpers, KeyframesRule, RulesMutateError,
 };
 
-#[allow(unsafe_code)]
 unsafe_no_jsmanaged_fields!(RulesSource);
 
 unsafe_no_jsmanaged_fields!(CssRules);
