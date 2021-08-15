@@ -261,12 +261,13 @@ fn fixup_stops(
     items: &[GradientItem<Color, LengthPercentage>],
     gradient_line_length: Length,
 ) -> Vec<wr::GradientStop> {
-    // Remove color transititon hints, which are not supported yet.
+    // Color transition hints are not supported yet so we only use their position for the fixup, not
+    // for display
     // https://drafts.csswg.org/css-images-4/#color-transition-hint
     //
     // This gives an approximation of the gradient that might be visibly wrong,
     // but maybe better than not parsing that value at all?
-    // It’s debatble whether that’s better or worse
+    // It’s debatable whether that’s better or worse
     // than not parsing and allowing authors to set a fallback.
     // Either way, the best outcome is to add support.
     // Gecko does so by approximating the non-linear interpolation
@@ -275,11 +276,11 @@ fn fixup_stops(
     for item in items {
         match item {
             GradientItem::SimpleColorStop(color) => stops.push(ColorStop {
-                color: super::rgba(style.resolve_color(*color)),
+                color: Some(super::rgba(style.resolve_color(*color))),
                 position: None,
             }),
             GradientItem::ComplexColorStop { color, position } => stops.push(ColorStop {
-                color: super::rgba(style.resolve_color(*color)),
+                color: Some(super::rgba(style.resolve_color(*color))),
                 position: Some(if gradient_line_length.px() == 0. {
                     0.
                 } else {
@@ -287,9 +288,15 @@ fn fixup_stops(
                         gradient_line_length.px()
                 }),
             }),
-            GradientItem::InterpolationHint(_) => {
+            GradientItem::InterpolationHint(position) => {
                 // FIXME: approximate like in:
                 // https://searchfox.org/mozilla-central/rev/f98dad153b59a985efd4505912588d4651033395/layout/painting/nsCSSRenderingGradients.cpp#315-391
+                // Ensure that interpolation hints influence fixup. This does not yet implement midpoints
+                stops.push( ColorStop {
+                    color: None,
+                    position: Some(position.percentage_relative_to(gradient_line_length).px() /
+                        gradient_line_length.px())
+                })
             },
         }
     }
@@ -321,7 +328,7 @@ fn fixup_stops(
     let first_stop_position = first.position.unwrap();
     wr_stops.push(wr::GradientStop {
         offset: first_stop_position,
-        color: first.color,
+        color: first.color.expect("Interpolation hints can only be interior items"),
     });
 
     let mut last_positioned_stop_index = 0;
@@ -334,15 +341,19 @@ fn fixup_stops(
                 for j in 1..step_count {
                     let color = stops[last_positioned_stop_index + j].color;
                     let offset = last_positioned_stop_position + j as f32 * step;
-                    wr_stops.push(wr::GradientStop { offset, color })
+                    if let Some(color) = color {
+                        wr_stops.push(wr::GradientStop { offset, color })
+                    }
                 }
             }
             last_positioned_stop_index = i;
             last_positioned_stop_position = position;
-            wr_stops.push(wr::GradientStop {
-                offset: position,
-                color: stop.color,
-            })
+            if let Some(stop_color) = stop.color {
+                wr_stops.push(wr::GradientStop {
+                    offset: position,
+                    color: stop_color,
+                })
+            }
         }
     }
 

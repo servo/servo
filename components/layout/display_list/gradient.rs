@@ -83,22 +83,24 @@ fn convert_gradient_stops(
 ) -> GradientBuilder {
     // Determine the position of each stop per CSS-IMAGES § 3.4.
 
-    // Only keep the color stops, discard the color interpolation hints.
     let mut stop_items = gradient_items
         .iter()
-        .filter_map(|item| match *item {
+        .filter_map(|item| match item {
             GradientItem::SimpleColorStop(color) => Some(ColorStop {
-                color,
+                color: Some(color),
                 position: None,
             }),
             GradientItem::ComplexColorStop {
                 color,
-                ref position,
+                position,
             } => Some(ColorStop {
-                color,
+                color: Some(color),
                 position: Some(position.clone()),
             }),
-            _ => None,
+            GradientItem::InterpolationHint(position) => Some(ColorStop {
+                color: None,
+                position: Some(position.clone())
+            }),
         })
         .collect::<Vec<_>>();
 
@@ -111,15 +113,15 @@ fn convert_gradient_stops(
     // If the first color stop does not have a position, set its position to 0%.
     {
         let first = stop_items.first_mut().unwrap();
-        if first.position.is_none() {
-            first.position = Some(LengthPercentage::new_percent(Percentage(0.)));
+        if let first_position @ None = &mut first.position {
+            *first_position = Some(LengthPercentage::new_percent(Percentage(0.)));
         }
     }
     // If the last color stop does not have a position, set its position to 100%.
     {
         let last = stop_items.last_mut().unwrap();
-        if last.position.is_none() {
-            last.position = Some(LengthPercentage::new_percent(Percentage(1.0)));
+        if let last_position @ None = &mut last.position {
+            *last_position = Some(LengthPercentage::new_percent(Percentage(1.0)));
         }
     }
 
@@ -189,10 +191,12 @@ fn convert_gradient_stops(
             },
         };
         assert!(offset.is_finite());
-        stops.push(GradientStop {
-            offset: offset,
-            color: style.resolve_color(stop.color).to_layout(),
-        })
+        if let Some(stop_color) = stop.color {
+            stops.push(GradientStop {
+                offset,
+                color: style.resolve_color(*stop_color).to_layout(),
+            })
+        }
     }
     stops
 }

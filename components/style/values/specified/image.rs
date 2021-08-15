@@ -1187,7 +1187,7 @@ impl<T> generic::ColorStop<Color, T> {
         ) -> Result<T, ParseError<'i1>>,
     ) -> Result<Self, ParseError<'i>> {
         Ok(generic::ColorStop {
-            color: Color::parse(context, input)?,
+            color: Some(Color::parse(context, input)?),
             position: input.try_parse(|i| parse_position(context, i)).ok(),
         })
     }

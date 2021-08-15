@@ -335,7 +335,8 @@ pub use self::GenericGradientItem as GradientItem;
 )]
 pub struct ColorStop<Color, T> {
     /// The color of this stop.
-    pub color: Color,
+    /// If the color is None, this stop is used for color-stop fixup only, not for display.
+    pub color: Option<Color>,
     /// The position of this stop.
     pub position: Option<T>,
 }
@@ -344,12 +345,16 @@ impl<Color, T> ColorStop<Color, T> {
     /// Convert the color stop into an appropriate `GradientItem`.
     #[inline]
     pub fn into_item(self) -> GradientItem<Color, T> {
-        match self.position {
-            Some(position) => GradientItem::ComplexColorStop {
-                color: self.color,
-                position,
+        match (self.position, self.color) {
+            (Some(position), Some(color)) => {
+                GradientItem::ComplexColorStop {
+                    color,
+                    position,
+                }
             },
-            None => GradientItem::SimpleColorStop(self.color),
+            (Some(position), None) => {GradientItem::InterpolationHint(position)},
+            (None, Some(color)) => {GradientItem::SimpleColorStop(color)},
+            (None, None) => panic!("Non-positioned, non-colored GradientItems don't exist yet")
         }
     }
 }
