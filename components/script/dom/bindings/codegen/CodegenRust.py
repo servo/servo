@@ -1936,7 +1936,7 @@ class AttrDefiner(PropertyDefiner):
         def setter(attr):
             attr = attr['attr']
 
-            if ((self.crossorigin and not attr.getExtendedAttribute("CrossOriginReadable"))
+            if ((self.crossorigin and not attr.getExtendedAttribute("CrossOriginWritable"))
                 or (attr.readonly
                     and not attr.getExtendedAttribute("PutForwards")
                     and not attr.getExtendedAttribute("Replaceable"))):
