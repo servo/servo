@@ -190,8 +190,12 @@ function main() {
         if [[ "${code}" == "255" ]]; then
             echo "No changes to sync."
             return 0
-        elif [[ "${code}" != "" ]]; then
+        fi
+
+        if [[ "${code}" != "" ]]; then
             return "${code}"
+        else
+            return 0
         fi
     fi
 
