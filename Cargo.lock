@@ -4479,7 +4479,7 @@ dependencies = [
 [[package]]
 name = "peek-poke"
 version = "0.2.0"
-source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#920168aff79a7cf52980b0c90965a591f2f4204a"
+source = "git+https://github.com/servo/webrender?rev=96f08780#96f087803b126ff04bdb09830c129ec73f2437a1"
 dependencies = [
  "euclid",
  "peek-poke-derive",
@@ -4488,7 +4488,7 @@ dependencies = [
 [[package]]
 name = "peek-poke-derive"
 version = "0.2.1"
-source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#920168aff79a7cf52980b0c90965a591f2f4204a"
+source = "git+https://github.com/servo/webrender?rev=96f08780#96f087803b126ff04bdb09830c129ec73f2437a1"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7173,9 +7173,8 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.61.0"
-source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#920168aff79a7cf52980b0c90965a591f2f4204a"
+source = "git+https://github.com/servo/webrender?rev=96f08780#96f087803b126ff04bdb09830c129ec73f2437a1"
 dependencies = [
- "backtrace",
  "base64 0.10.1",
  "bincode",
  "bitflags",
@@ -7203,11 +7202,11 @@ dependencies = [
  "ron 0.5.1",
  "serde",
  "serde_json",
- "sig",
  "smallvec 1.6.1",
  "svg_fmt",
  "time",
  "tracy-rs",
+ "uuid",
  "webrender_api",
  "webrender_build",
  "wr_malloc_size_of",
@@ -7217,7 +7216,7 @@ dependencies = [
 [[package]]
 name = "webrender_api"
 version = "0.61.0"
-source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#920168aff79a7cf52980b0c90965a591f2f4204a"
+source = "git+https://github.com/servo/webrender?rev=96f08780#96f087803b126ff04bdb09830c129ec73f2437a1"
 dependencies = [
  "app_units",
  "bitflags",
@@ -7238,7 +7237,7 @@ dependencies = [
 [[package]]
 name = "webrender_build"
 version = "0.0.1"
-source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#920168aff79a7cf52980b0c90965a591f2f4204a"
+source = "git+https://github.com/servo/webrender?rev=96f08780#96f087803b126ff04bdb09830c129ec73f2437a1"
 dependencies = [
  "bitflags",
  "lazy_static",
@@ -7430,7 +7429,7 @@ dependencies = [
 [[package]]
 name = "wr_malloc_size_of"
 version = "0.0.1"
-source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#920168aff79a7cf52980b0c90965a591f2f4204a"
+source = "git+https://github.com/servo/webrender?rev=96f08780#96f087803b126ff04bdb09830c129ec73f2437a1"
 dependencies = [
  "app_units",
  "euclid",
