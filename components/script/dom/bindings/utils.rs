@@ -485,11 +485,43 @@ pub unsafe fn delete_property_by_id(
     JS_DeletePropertyById(cx, object, id, bp)
 }
 
+pub trait CallPolicy {
+    const INFO: CallPolicyInfo;
+}
+
+pub mod call_policies {
+    use super::*;
+
+    pub struct Normal;
+    pub struct LenientThis;
+
+    impl CallPolicy for Normal {
+        const INFO: CallPolicyInfo = CallPolicyInfo {
+            lenient_this: false,
+        };
+    }
+
+    impl CallPolicy for LenientThis {
+        const INFO: CallPolicyInfo = CallPolicyInfo { lenient_this: true };
+    }
+}
+
+/// Controls various details of an IDL operation, such as whether a
+/// `[`[`LegacyLenientThis`][1]`]` attribute is specified.
+///
+/// [1]: https://heycam.github.io/webidl/#LegacyLenientThis
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub struct CallPolicyInfo {
+    /// Specifies whether a `[LegacyLenientThis]` attribute is specified on the
+    /// interface member this operation is associated with.
+    pub lenient_this: bool,
+}
+
 unsafe fn generic_call(
     cx: *mut JSContext,
     argc: libc::c_uint,
     vp: *mut JSVal,
-    is_lenient: bool,
+    CallPolicyInfo { lenient_this }: CallPolicyInfo,
     call: unsafe extern "C" fn(
         *const JSJitInfo,
         *mut JSContext,
@@ -520,7 +552,7 @@ unsafe fn generic_call(
     let this = match private_from_proto_check(obj.get(), cx, proto_check) {
         Ok(val) => val,
         Err(()) => {
-            if is_lenient {
+            if lenient_this {
                 debug_assert!(!JS_IsExceptionPending(cx));
                 *vp = UndefinedValue();
                 return true;
@@ -541,30 +573,21 @@ unsafe fn generic_call(
 }
 
 /// Generic method of IDL interface.
-pub unsafe extern "C" fn generic_method(
+pub unsafe extern "C" fn generic_method<Policy: CallPolicy>(
     cx: *mut JSContext,
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
-    generic_call(cx, argc, vp, false, CallJitMethodOp)
+    generic_call(cx, argc, vp, Policy::INFO, CallJitMethodOp)
 }
 
 /// Generic getter of IDL interface.
-pub unsafe extern "C" fn generic_getter(
+pub unsafe extern "C" fn generic_getter<Policy: CallPolicy>(
     cx: *mut JSContext,
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
-    generic_call(cx, argc, vp, false, CallJitGetterOp)
-}
-
-/// Generic lenient getter of IDL interface.
-pub unsafe extern "C" fn generic_lenient_getter(
-    cx: *mut JSContext,
-    argc: libc::c_uint,
-    vp: *mut JSVal,
-) -> bool {
-    generic_call(cx, argc, vp, true, CallJitGetterOp)
+    generic_call(cx, argc, vp, Policy::INFO, CallJitGetterOp)
 }
 
 unsafe extern "C" fn call_setter(
@@ -583,21 +606,12 @@ unsafe extern "C" fn call_setter(
 }
 
 /// Generic setter of IDL interface.
-pub unsafe extern "C" fn generic_setter(
+pub unsafe extern "C" fn generic_setter<Policy: CallPolicy>(
     cx: *mut JSContext,
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
-    generic_call(cx, argc, vp, false, call_setter)
-}
-
-/// Generic lenient setter of IDL interface.
-pub unsafe extern "C" fn generic_lenient_setter(
-    cx: *mut JSContext,
-    argc: libc::c_uint,
-    vp: *mut JSVal,
-) -> bool {
-    generic_call(cx, argc, vp, true, call_setter)
+    generic_call(cx, argc, vp, Policy::INFO, call_setter)
 }
 
 unsafe extern "C" fn instance_class_has_proto_at_depth(

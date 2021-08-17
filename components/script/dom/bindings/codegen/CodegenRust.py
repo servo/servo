@@ -1821,12 +1821,13 @@ class MethodDefiner(PropertyDefiner):
                 selfHostedName = "0 as *const libc::c_char"
                 if m.get("methodInfo", True):
                     identifier = m.get("nativeName", m["name"])
+                    callPolicy = 'Normal'
                     # Go through an intermediate type here, because it's not
                     # easy to tell whether the methodinfo is a JSJitInfo or
                     # a JSTypedMethodJitInfo here.  The compiler knows, though,
                     # so let it do the work.
                     jitinfo = "&%s_methodinfo as *const _ as *const JSJitInfo" % identifier
-                    accessor = "Some(generic_method)"
+                    accessor = "Some(generic_method::<call_policies::%s>)" % callPolicy
                 else:
                     jitinfo = "ptr::null()"
                     accessor = 'Some(%s)' % m.get("nativeName", m["name"])
@@ -1923,10 +1924,8 @@ class AttrDefiner(PropertyDefiner):
                 accessor = 'get_' + self.descriptor.internalNameFor(attr.identifier.name)
                 jitinfo = "0 as *const JSJitInfo"
             else:
-                if attr.hasLenientThis():
-                    accessor = "generic_lenient_getter"
-                else:
-                    accessor = "generic_getter"
+                callPolicy = 'LenientThis' if attr.hasLenientThis() else 'Normal'
+                accessor = "generic_getter::<call_policies::%s>" % callPolicy
                 jitinfo = "&%s_getterinfo" % self.descriptor.internalNameFor(attr.identifier.name)
 
             return ("JSNativeWrapper { op: Some(%(native)s), info: %(info)s }"
@@ -1946,10 +1945,8 @@ class AttrDefiner(PropertyDefiner):
                 accessor = 'set_' + self.descriptor.internalNameFor(attr.identifier.name)
                 jitinfo = "0 as *const JSJitInfo"
             else:
-                if attr.hasLenientThis():
-                    accessor = "generic_lenient_setter"
-                else:
-                    accessor = "generic_setter"
+                callPolicy = 'LenientThis' if attr.hasLenientThis() else 'Normal'
+                accessor = "generic_setter::<call_policies::%s>" % callPolicy
                 jitinfo = "&%s_setterinfo" % self.descriptor.internalNameFor(attr.identifier.name)
 
             return ("JSNativeWrapper { op: Some(%(native)s), info: %(info)s }"
@@ -6468,9 +6465,8 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'crate::dom::bindings::utils::ProtoOrIfaceArray',
         'crate::dom::bindings::utils::enumerate_global',
         'crate::dom::bindings::utils::finalize_global',
+        'crate::dom::bindings::utils::call_policies',
         'crate::dom::bindings::utils::generic_getter',
-        'crate::dom::bindings::utils::generic_lenient_getter',
-        'crate::dom::bindings::utils::generic_lenient_setter',
         'crate::dom::bindings::utils::generic_method',
         'crate::dom::bindings::utils::generic_setter',
         'crate::dom::bindings::utils::get_array_index_from_id',
