@@ -44,6 +44,9 @@ use crate::codegen::PrototypeList::{self, MAX_PROTO_CHAIN_LENGTH, PROTO_OR_IFACE
 use crate::conversions::{PrototypeCheck, private_from_proto_check};
 use crate::error::throw_invalid_this;
 use crate::interfaces::DomHelpers;
+use crate::proxyhandler::{
+    is_cross_origin_object, report_cross_origin_denial,
+};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::str::DOMString;
 use crate::trace::trace_object;
@@ -397,11 +400,87 @@ pub(crate) unsafe fn delete_property_by_id(
     JS_DeletePropertyById(cx, object, id, bp)
 }
 
-unsafe fn generic_call<const EXCEPTION_TO_REJECTION: bool>(
+pub trait CallPolicy {
+    const INFO: CallPolicyInfo;
+}
+pub mod call_policies {
+    use super::*;
+    pub struct Normal;
+    pub struct TargetClassMaybeCrossOrigin;
+    pub struct LenientThis;
+    pub struct LenientThisTargetClassMaybeCrossOrigin;
+    pub struct CrossOriginCallable;
+    impl CallPolicy for Normal {
+        const INFO: CallPolicyInfo = CallPolicyInfo {
+            lenient_this: false,
+            needs_security_check_on_interface_match: false,
+        };
+    }
+    impl CallPolicy for TargetClassMaybeCrossOrigin {
+        const INFO: CallPolicyInfo = CallPolicyInfo {
+            lenient_this: false,
+            needs_security_check_on_interface_match: true,
+        };
+    }
+    impl CallPolicy for LenientThis {
+        const INFO: CallPolicyInfo = CallPolicyInfo {
+            lenient_this: true,
+            needs_security_check_on_interface_match: false,
+        };
+    }
+    impl CallPolicy for LenientThisTargetClassMaybeCrossOrigin {
+        const INFO: CallPolicyInfo = CallPolicyInfo {
+            lenient_this: true,
+            needs_security_check_on_interface_match: true,
+        };
+    }
+    impl CallPolicy for CrossOriginCallable {
+        const INFO: CallPolicyInfo = CallPolicyInfo {
+            lenient_this: false,
+            needs_security_check_on_interface_match: false,
+        };
+    }
+}
+/// Controls various details of an IDL operation, such as whether a
+/// `[`[`LegacyLenientThis`][1]`]` attribute is specified and preconditions that
+/// affect the outcome of the "[perform a security check][2]" steps.
+///
+/// [1]: https://heycam.github.io/webidl/#LegacyLenientThis
+/// [2]: https://html.spec.whatwg.org/multipage/#integration-with-idl
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub struct CallPolicyInfo {
+    /// Specifies whether a `[LegacyLenientThis]` attribute is specified on the
+    /// interface member this operation is associated with.
+    pub lenient_this: bool,
+    /// Indicates whether a [security check][1] is required if the target object
+    /// implements this operation's interface.
+    ///
+    /// Regardless of this value, performing a security check is always
+    /// necessary if the target object doesn't implement this operation's
+    /// interface.
+    ///
+    /// This field is `false` iff any of the following are true:
+    ///
+    ///  - The operation is not implemented by any cross-origin objects (i.e.,
+    ///    any `Window` or `Location` objects).
+    ///
+    ///  - The operation is defined as cross origin (i.e., it's included in
+    ///    [`CrossOriginProperties`][2]`(obj)`, given `obj` implementing the
+    ///    operation's interface).
+    ///
+    /// [1]: https://html.spec.whatwg.org/multipage/#integration-with-idl
+    /// [2]: https://html.spec.whatwg.org/multipage/#crossoriginproperties-(-o-)
+    pub needs_security_check_on_interface_match: bool,
+}
+
+unsafe fn generic_call<D: DomTypes, const EXCEPTION_TO_REJECTION: bool>(
     cx: *mut JSContext,
     argc: libc::c_uint,
     vp: *mut JSVal,
-    is_lenient: bool,
+    CallPolicyInfo {
+        lenient_this,
+        needs_security_check_on_interface_match,
+    }: CallPolicyInfo,
     call: unsafe extern "C" fn(
         *const JSJitInfo,
         *mut JSContext,
@@ -412,49 +491,165 @@ unsafe fn generic_call<const EXCEPTION_TO_REJECTION: bool>(
     ) -> bool,
     can_gc: CanGc,
 ) -> bool {
+    let mut cx = unsafe {
+        js::context::JSContext::from_ptr(NonNull::new(cx).unwrap())
+    };
     let args = CallArgs::from_vp(vp, argc);
 
-    let info = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));
+    let info = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx.raw_cx_no_gc(), vp));
     let proto_id = (*info).__bindgen_anon_2.protoID;
-    let cx = SafeJSContext::from_ptr(cx);
+
+   // <https://heycam.github.io/webidl/#es-operations>
+    //
+    // > To create an operation function, given an operation `op`, a namespace
+    // > or interface `target`, and a Realm `realm`:
+    // >
+    // > 2. Let `steps` be the following series of steps, [...]
+    // >
+    // > 2.1.2.1. Let `esValue` be the `this` value, if it is not `null` or
+    // >          `undefined`, or `realm`’s global object otherwise. [...]
+    // >
+    // > 2.1.2.2. If `esValue` is a platform object, then perform a security
+    // >          check, passing `esValue`, `id`, and "method".
+    // >
+    // > 2.1.2.3. If `esValue` does not implement the interface `target`, throw
+    // >          a `TypeError`. [...]
+    //
+    // <https://html.spec.whatwg.org/multipage/#integration-with-idl>
+    //
+    // > When perform a security check is invoked, with a `platformObject`,
+    // > `identifier`, and `type`, run these steps:
+    // >
+    // > 1. If `platformObject` is not a `Window` or `Location` object, then
+    // >    return.
+    // >
+    // > 2. For each `e` of `! CrossOriginProperties(platformObject)`:
+    // >
+    // > 2.1. If `SameValue(e.[[Property]], identifier)` is true, then:
+    // >
+    // > 2.1.1. If type is "method" and `e` has neither `[[NeedsGet]]` nor
+    // >        `[[NeedsSet]]`, then return. [... ditto for other types]
+    // >
+    // > 3. If `! IsPlatformObjectSameOrigin(platformObject)` is false, then
+    // >    throw a "SecurityError" `DOMException`.
+    //
+    // According to the above steps, the outcome of an IDL operation is
+    // determined be the following boolean variables:
+    //
+    //  - `this_same_origin`: The current principals object subsumes that of
+    //    `thisobj`
+    //  - `this_class_cross_origin`: `thisobj`'s class provides a cross-origin
+    //    member
+    //  - `cross_origin_operation`: The tuple `(operation_name, operation_type)`
+    //    (e.g., `("focus", "method")`) is a member of
+    //    `CrossOriginProperties(thisobj)`
+    //  - `this_implements_operation`: `thisobj`'s class implements the
+    //    current operation.
+    //
+    // The Karnaugh-esque map of the expected outcome is shown below:
+    //
+    //                            this_same_origin
+    //                                ,-------,
+    //                            ,---+---+---+---,
+    //                            | T | T | o | o |
+    //                          ,-+---+---+---+---+
+    //                          | | S | T | o | S |
+    //  this_class_cross_origin | +---+---+---+---+-,
+    //                          | | T | T | o | o | |
+    //                          '-+---+---+---+---+ | cross_origin_operation
+    //                            | T | T |   |   | |
+    //                            '---+---+---+---+-'
+    //                                    '-------'
+    //                            this_implements_operation
+    //
+    //       T: TypeError (generated by WebIDL opration function step 2.1.2.3)
+    //       S: SecurityError (generated by HTML security check step 3)
+    //       o: OK
+    //   blank: don't-care (impossible cases)
+    //
+    // Under some circumstances, we can rule out some cases from this map.
+    // E.g., if the operation is known to be not implemented by any cross-origin
+    // objects, `this_implements_operation → ¬this_class_cross_origin`, so in
+    // this case, we don't have to perform the security check at all if
+    // `thisobj`'s class implements the expected interface. `CallPolicyInfo::
+    // needs_security_check_on_interface_match` indicates whether this applies.
 
     let thisobj = args.thisv();
     if !thisobj.get().is_null_or_undefined() && !thisobj.get().is_object() {
-        throw_invalid_this(cx, proto_id);
+        // `thisobj` is not a platform object, so the security check is not
+        // invoked in this case
+        throw_invalid_this((&mut cx).into(), proto_id);
         return if EXCEPTION_TO_REJECTION {
-            exception_to_promise(*cx, args.rval(), can_gc)
+            exception_to_promise(cx.raw_cx(), args.rval(), can_gc)
         } else {
             false
         };
     }
 
-    rooted!(in(*cx) let obj = if thisobj.get().is_object() {
+    rooted!(&in(cx) let obj = if thisobj.get().is_object() {
         thisobj.get().to_object()
     } else {
-        GetNonCCWObjectGlobal(JS_CALLEE(*cx, vp).to_object_or_null())
+        GetNonCCWObjectGlobal(JS_CALLEE(cx.raw_cx_no_gc(), vp).to_object_or_null())
     });
     let depth = (*info).__bindgen_anon_3.depth as usize;
     let proto_check = PrototypeCheck::Depth { depth, proto_id };
-    let this = match private_from_proto_check(obj.get(), *cx, proto_check) {
+    let this = match private_from_proto_check(obj.get(), cx.raw_cx_no_gc(), proto_check) {
         Ok(val) => val,
         Err(()) => {
-            if is_lenient {
-                debug_assert!(!JS_IsExceptionPending(*cx));
+            // [this_implements_operation == false]
+            //
+            // For now, We don't check the conditions for `SecurityError` in
+            // this case, following WebKit's behavior.
+            //
+            // FIXME: Implement a different browser or the specification's
+            //        behavior? (They all differ subtly.) Some behavior is more
+            //        challenging to implement - for example, implementing the
+            //        specification's behavior requires `generic_call`'s code to
+            //        have access to the current IDL operation's name and type
+            //        and the target object's `CrossOriginProperties`.
+            if lenient_this {
+                debug_assert!(!JS_IsExceptionPending(cx.raw_cx_no_gc()));
                 *vp = UndefinedValue();
                 return true;
             } else {
-                throw_invalid_this(cx, proto_id);
+                throw_invalid_this((&mut cx).into(), proto_id);
                 return if EXCEPTION_TO_REJECTION {
-                    exception_to_promise(*cx, args.rval(), can_gc)
+                    exception_to_promise(cx.raw_cx(), args.rval(), can_gc)
                 } else {
                     false
                 };
             }
         },
     };
+
+    // [this_implements_operation == true]
+
+    if needs_security_check_on_interface_match {
+        let mut realm = js::realm::CurrentRealm::assert(&mut cx);
+        // [cross_origin_operation == false]
+        if is_cross_origin_object::<D>((&mut realm).into(), obj.handle().into()) &&
+            !<D as DomHelpers<D>>::is_platform_object_same_origin(&mut realm, obj.handle().into())
+        {
+            // [this_class_cross_origin == true && this_same_origin == false]
+            // Throw a `SecurityError` `DOMException`.
+            // FIXME: `Handle<jsid>` could have a default constructor
+            //        like `Handle<Value>::null`
+            rooted!(&in(*realm) let mut void_jsid: js::jsapi::jsid);
+            let result = report_cross_origin_denial::<D>(&mut realm, void_jsid.handle().into(), "call");
+            return if EXCEPTION_TO_REJECTION {
+                exception_to_promise(cx.raw_cx(), args.rval(), can_gc)
+            } else {
+                result
+            };
+        }
+    } else {
+        // [(cross_origin_operation == true && this_class_cross_origin == true)
+        //  || cross_origin_operation == false && this_class_cross_origin == false]
+    }
+
     call(
         info,
-        *cx,
+        cx.raw_cx(),
         obj.handle().into(),
         this as *mut libc::c_void,
         argc,
@@ -467,12 +662,12 @@ unsafe fn generic_call<const EXCEPTION_TO_REJECTION: bool>(
 /// # Safety
 /// `cx` must point to a valid, non-null JSContext.
 /// `vp` must point to a VALID, non-null JSVal.
-pub(crate) unsafe extern "C" fn generic_method<const EXCEPTION_TO_REJECTION: bool>(
+pub(crate) unsafe extern "C" fn generic_method<D: DomTypes, Policy: CallPolicy, const EXCEPTION_TO_REJECTION: bool>(
     cx: *mut JSContext,
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
-    generic_call::<EXCEPTION_TO_REJECTION>(cx, argc, vp, false, CallJitMethodOp, CanGc::note())
+    generic_call::<D, EXCEPTION_TO_REJECTION>(cx, argc, vp, Policy::INFO, CallJitMethodOp, CanGc::note())
 }
 
 /// Generic getter of IDL interface.
@@ -480,25 +675,12 @@ pub(crate) unsafe extern "C" fn generic_method<const EXCEPTION_TO_REJECTION: boo
 /// # Safety
 /// `cx` must point to a valid, non-null JSContext.
 /// `vp` must point to a VALID, non-null JSVal.
-pub(crate) unsafe extern "C" fn generic_getter<const EXCEPTION_TO_REJECTION: bool>(
+pub(crate) unsafe extern "C" fn generic_getter<D: DomTypes, Policy: CallPolicy, const EXCEPTION_TO_REJECTION: bool>(
     cx: *mut JSContext,
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
-    generic_call::<EXCEPTION_TO_REJECTION>(cx, argc, vp, false, CallJitGetterOp, CanGc::note())
-}
-
-/// Generic lenient getter of IDL interface.
-///
-/// # Safety
-/// `cx` must point to a valid, non-null JSContext.
-/// `vp` must point to a VALID, non-null JSVal.
-pub(crate) unsafe extern "C" fn generic_lenient_getter<const EXCEPTION_TO_REJECTION: bool>(
-    cx: *mut JSContext,
-    argc: libc::c_uint,
-    vp: *mut JSVal,
-) -> bool {
-    generic_call::<EXCEPTION_TO_REJECTION>(cx, argc, vp, true, CallJitGetterOp, CanGc::note())
+    generic_call::<D, EXCEPTION_TO_REJECTION>(cx, argc, vp, Policy::INFO, CallJitGetterOp, CanGc::note())
 }
 
 unsafe extern "C" fn call_setter(
@@ -521,25 +703,12 @@ unsafe extern "C" fn call_setter(
 /// # Safety
 /// `cx` must point to a valid, non-null JSContext.
 /// `vp` must point to a VALID, non-null JSVal.
-pub(crate) unsafe extern "C" fn generic_setter(
+pub(crate) unsafe extern "C" fn generic_setter<D: DomTypes, Policy: CallPolicy>(
     cx: *mut JSContext,
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
-    generic_call::<false>(cx, argc, vp, false, call_setter, CanGc::note())
-}
-
-/// Generic lenient setter of IDL interface.
-///
-/// # Safety
-/// `cx` must point to a valid, non-null JSContext.
-/// `vp` must point to a VALID, non-null JSVal.
-pub(crate) unsafe extern "C" fn generic_lenient_setter(
-    cx: *mut JSContext,
-    argc: libc::c_uint,
-    vp: *mut JSVal,
-) -> bool {
-    generic_call::<false>(cx, argc, vp, true, call_setter, CanGc::note())
+    generic_call::<D, false>(cx, argc, vp, Policy::INFO, call_setter, CanGc::note())
 }
 
 /// <https://searchfox.org/mozilla-central/rev/7279a1df13a819be254fd4649e07c4ff93e4bd45/dom/bindings/BindingUtils.cpp#3300>

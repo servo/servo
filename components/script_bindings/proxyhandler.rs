@@ -32,7 +32,7 @@ use js::rust::{
 use js::{jsapi, rooted};
 
 use crate::DomTypes;
-use crate::conversions::{is_dom_proxy, jsid_to_string};
+use crate::conversions::{is_dom_proxy, jsid_to_string, native_from_object};
 use crate::error::Error;
 use crate::interfaces::{DomHelpers, GlobalScopeHelpers};
 use crate::reflector::DomObject;
@@ -516,6 +516,17 @@ fn ensure_cross_origin_property_holder(
     // TODO: Store the holder in the slot that we don't have yet.
 
     true
+}
+
+/// Check if `obj` is a `Location` or `Window` object.
+///
+/// IDL operations on a cross-origin object involve [a security check][1].
+///
+/// [1]: https://html.spec.whatwg.org/multipage/#integration-with-idl
+pub unsafe fn is_cross_origin_object<D: DomTypes>(cx: SafeJSContext, obj: RawHandleObject) -> bool {
+    jsapi::IsWindowProxy(*obj) ||
+        native_from_object::<D::Location>(*obj, *cx).is_ok() ||
+        native_from_object::<D::DissimilarOriginLocation>(*obj, *cx).is_ok()
 }
 
 /// Report a cross-origin denial for a property, Always returns `false`, so it

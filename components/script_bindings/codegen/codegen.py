@@ -2024,13 +2024,14 @@ class MethodDefiner(PropertyDefiner):
                     else:
                         exceptionToRejection = "false"
                     identifier = m.get("nativeName", m["name"])
+                    callPolicy = 'Normal'
                     # Go through an intermediate type here, because it's not
                     # easy to tell whether the methodinfo is a JSJitInfo or
                     # a JSTypedMethodJitInfo here.  The compiler knows, though,
                     # so let it do the work.
                     jitinfo = (f"unsafe {{ {identifier}_methodinfo.get() }}"
                                " as *const _ as *const JSJitInfo")
-                    accessor = f"Some(generic_method::<{exceptionToRejection}>)"
+                    accessor = f"Some(generic_method::<D, call_policies::{callPolicy}, {exceptionToRejection}>)"
                 else:
                     if m.get("returnsPromise", False):
                         jitinfo = f"unsafe {{ {m.get('nativeName', m['name'])}_methodinfo.get() }}"
@@ -2134,10 +2135,8 @@ class AttrDefiner(PropertyDefiner):
                     exceptionToRejection = "true"
                 else:
                     exceptionToRejection = "false"
-                if attr.hasLegacyLenientThis():
-                    accessor = f"generic_lenient_getter::<{exceptionToRejection}>"
-                else:
-                    accessor = f"generic_getter::<{exceptionToRejection}>"
+                callPolicy = 'LenientThis' if attr.legacyLenientThis else 'Normal'
+                accessor = f"generic_getter::<D, call_policies::{callPolicy}, {exceptionToRejection}>"
                 internalName = self.descriptor.internalNameFor(attr.identifier.name)
                 jitinfo = f"unsafe {{ {internalName}_getterinfo.get() }}"
 
@@ -2156,10 +2155,8 @@ class AttrDefiner(PropertyDefiner):
                 accessor = f'set_{self.descriptor.internalNameFor(attr.identifier.name)}::<D>'
                 jitinfo = "ptr::null()"
             else:
-                if attr.hasLegacyLenientThis():
-                    accessor = "generic_lenient_setter"
-                else:
-                    accessor = "generic_setter"
+                callPolicy = 'LenientThis' if attr.legacyLenientThis else 'Normal'
+                accessor = f"generic_setter::<D, call_policies::{callPolicy}>"
                 internalName = self.descriptor.internalNameFor(attr.identifier.name)
                 jitinfo = f"unsafe {{ {internalName}_setterinfo.get() }}"
 
