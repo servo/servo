@@ -2281,9 +2281,9 @@ checksum = "9b919933a397b79c37e33b77bb2aa3dc8eb6e165ad809e58ff75bc7db2e34574"
 
 [[package]]
 name = "glslopt"
-version = "0.1.8"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6c6fe80551c01b577d6f63f2227c485c0cb6827defeaa13dacbf84b42012853"
+checksum = "74a3f5c04450dfdadb4b08f6e5ee6f5110f674de1acbd6199bfec68392a8cbaf"
 dependencies = [
  "cc",
 ]
@@ -4479,7 +4479,6 @@ dependencies = [
 [[package]]
 name = "peek-poke"
 version = "0.2.0"
-source = "git+https://github.com/servo/webrender?rev=96f08780#96f087803b126ff04bdb09830c129ec73f2437a1"
 dependencies = [
  "euclid",
  "peek-poke-derive",
@@ -4488,7 +4487,6 @@ dependencies = [
 [[package]]
 name = "peek-poke-derive"
 version = "0.2.1"
-source = "git+https://github.com/servo/webrender?rev=96f08780#96f087803b126ff04bdb09830c129ec73f2437a1"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7173,7 +7171,6 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.61.0"
-source = "git+https://github.com/servo/webrender?rev=96f08780#96f087803b126ff04bdb09830c129ec73f2437a1"
 dependencies = [
  "base64 0.10.1",
  "bincode",
@@ -7216,7 +7213,6 @@ dependencies = [
 [[package]]
 name = "webrender_api"
 version = "0.61.0"
-source = "git+https://github.com/servo/webrender?rev=96f08780#96f087803b126ff04bdb09830c129ec73f2437a1"
 dependencies = [
  "app_units",
  "bitflags",
@@ -7237,7 +7233,6 @@ dependencies = [
 [[package]]
 name = "webrender_build"
 version = "0.0.1"
-source = "git+https://github.com/servo/webrender?rev=96f08780#96f087803b126ff04bdb09830c129ec73f2437a1"
 dependencies = [
  "bitflags",
  "lazy_static",
@@ -7429,7 +7424,6 @@ dependencies = [
 [[package]]
 name = "wr_malloc_size_of"
 version = "0.0.1"
-source = "git+https://github.com/servo/webrender?rev=96f08780#96f087803b126ff04bdb09830c129ec73f2437a1"
 dependencies = [
  "app_units",
  "euclid",

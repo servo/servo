@@ -33,3 +33,7 @@ winit = { git = "https://github.com/rust-windowing/winit.git", rev = "4192d04a53
 
 [patch."https://github.com/jrmuizel/raqote"]
 raqote = { git = "https://github.com/jdm/raqote", branch = "fkup" }
+
+[patch."https://github.com/servo/webrender"]
+"webrender" = { path = "/Users/bryce/randomProj/webrender/webrender" }
+"webrender_api" = { path = "/Users/bryce/randomProj/webrender/webrender_api" }
