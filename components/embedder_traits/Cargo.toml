@@ -21,5 +21,5 @@ num-derive = "0.3"
 num-traits = "0.2"
 serde = "1.0"
 servo_url = { path = "../url" }
-webrender_api = { git = "https://github.com/servo/webrender", rev = "562be3c5"  }
+webrender_api = { git = "https://github.com/servo/webrender", rev = "585e757b"  }
 webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }

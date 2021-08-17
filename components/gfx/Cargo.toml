@@ -38,13 +38,13 @@ time = "0.1.41"
 ucd = "0.1.1"
 unicode-bidi = { version = "0.3", features = ["with_serde"] }
 unicode-script = "0.5"
-webrender_api = { git = "https://github.com/servo/webrender", rev = "562be3c5"  }
+webrender_api = { git = "https://github.com/servo/webrender", rev = "585e757b"  }
 xi-unicode = "0.1.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 byteorder = "1.0"
 core-foundation = "0.9"
-core-graphics = "0.22"
+core-graphics = "0.17.1"
 core-text = "19.0"
 
 [target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]
