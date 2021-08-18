@@ -81,8 +81,8 @@ style_traits = { path = "../style_traits", features = ["servo"] }
 surfman = "0.4"
 webdriver_server = { path = "../webdriver_server", optional = true }
 webgpu = { path = "../webgpu" }
-webrender = { git = "https://github.com/servo/webrender", rev = "6966ed2f"  }
-webrender_api = { git = "https://github.com/servo/webrender", rev = "6966ed2f"  }
+webrender = { git = "https://github.com/servo/webrender", rev = "8f678e8d"  }
+webrender_api = { git = "https://github.com/servo/webrender", rev = "8f678e8d"  }
 webrender_surfman = { path = "../webrender_surfman" }
 webrender_traits = { path = "../webrender_traits" }
 webxr = { git = "https://github.com/servo/webxr" }

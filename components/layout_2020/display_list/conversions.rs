@@ -19,7 +19,7 @@ impl ToWebRender for ComputedFilter {
     type Type = wr::FilterOp;
     fn to_webrender(&self) -> Self::Type {
         match *self {
-            ComputedFilter::Blur(radius) => wr::FilterOp::Blur(radius.px(), radius.px()),
+            ComputedFilter::Blur(radius) => wr::FilterOp::Blur(radius.px()),
             ComputedFilter::Brightness(amount) => wr::FilterOp::Brightness(amount.0),
             ComputedFilter::Contrast(amount) => wr::FilterOp::Contrast(amount.0),
             ComputedFilter::Grayscale(amount) => wr::FilterOp::Grayscale(amount.0),

@@ -12,4 +12,4 @@ path = "lib.rs"
 
 [dependencies]
 euclid = "0.20"
-webrender_api = { git = "https://github.com/servo/webrender", rev = "6966ed2f"  }
+webrender_api = { git = "https://github.com/servo/webrender", rev = "8f678e8d"  }

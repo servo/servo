@@ -39,7 +39,7 @@ impl ToLayout for Filter {
     type Type = wr::FilterOp;
     fn to_layout(&self) -> Self::Type {
         match *self {
-            Filter::Blur(radius) => wr::FilterOp::Blur(radius.px(), radius.px()),
+            Filter::Blur(radius) => wr::FilterOp::Blur(radius.px()),
             Filter::Brightness(amount) => wr::FilterOp::Brightness(amount.0),
             Filter::Contrast(amount) => wr::FilterOp::Contrast(amount.0),
             Filter::Grayscale(amount) => wr::FilterOp::Grayscale(amount.0),
