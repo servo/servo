@@ -30,7 +30,6 @@ use webxr_api::LayerGrandManager as WebXRLayerGrandManager;
 pub struct WebGLComm {
     pub webgl_threads: WebGLThreads,
     pub image_handler: Box<dyn WebrenderExternalImageApi>,
-    pub output_handler: Option<Box<dyn webrender_api::OutputImageHandler>>,
     pub webxr_layer_grand_manager: WebXRLayerGrandManager<WebXRSurfman>,
 }
 
@@ -38,7 +37,6 @@ impl WebGLComm {
     /// Creates a new `WebGLComm` object.
     pub fn new(
         surfman: WebrenderSurfman,
-        webrender_gl: Rc<dyn gleam::gl::Gl>,
         webrender_api_sender: webrender_api::RenderApiSender,
         webrender_doc: webrender_api::DocumentId,
         external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
@@ -64,12 +62,6 @@ impl WebGLComm {
             webxr_init,
         };
 
-        let output_handler = if pref!(dom.webgl.dom_to_texture.enabled) {
-            Some(Box::new(OutputHandler::new(webrender_gl.clone())))
-        } else {
-            None
-        };
-
         let external = WebGLExternalImages::new(surfman, webrender_swap_chains);
 
         WebGLThread::run_on_own_thread(init);
@@ -77,8 +69,7 @@ impl WebGLComm {
         WebGLComm {
             webgl_threads: WebGLThreads(sender),
             image_handler: Box::new(external),
-            output_handler: output_handler.map(|b| b as Box<_>),
-            webxr_layer_grand_manager: webxr_layer_grand_manager,
+            webxr_layer_grand_manager,
         }
     }
 }
@@ -156,31 +147,6 @@ impl OutputHandler {
         OutputHandler {
             webrender_gl,
             sync_objects: Default::default(),
-        }
-    }
-}
-
-/// Bridge between the WR frame outputs and WebGL to implement DOMToTexture synchronization.
-impl webrender_api::OutputImageHandler for OutputHandler {
-    fn lock(
-        &mut self,
-        id: webrender_api::PipelineId,
-    ) -> Option<(u32, webrender_api::units::FramebufferIntSize)> {
-        // Insert a fence in the WR command queue
-        let gl_sync = self
-            .webrender_gl
-            .fence_sync(gl::SYNC_GPU_COMMANDS_COMPLETE, 0);
-        self.sync_objects.insert(id, gl_sync);
-        // https://github.com/servo/servo/issues/24615
-        None
-    }
-
-    fn unlock(&mut self, id: webrender_api::PipelineId) {
-        if let Some(gl_sync) = self.sync_objects.remove(&id) {
-            // Flush the Sync object into the GPU's command queue to guarantee that it it's signaled.
-            self.webrender_gl.flush();
-            // Mark the sync object for deletion.
-            self.webrender_gl.delete_sync(gl_sync);
         }
     }
 }

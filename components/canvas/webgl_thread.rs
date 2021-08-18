@@ -921,9 +921,6 @@ impl WebGLThread {
                         size,
                     },
                 );
-                let mut txn = webrender_api::Transaction::new();
-                txn.enable_frame_output(pipeline_id, true);
-                self.webrender_api.send_transaction(document_id, txn);
             },
             DOMToTextureCommand::Lock(pipeline_id, gl_sync, sender) => {
                 let result = self.handle_dom_to_texture_lock(pipeline_id, gl_sync);
@@ -937,9 +934,6 @@ impl WebGLThread {
                     .find(|&(_, v)| v.texture_id == texture_id)
                     .map(|(k, v)| (*k, v.document_id))
                 {
-                    let mut txn = webrender_api::Transaction::new();
-                    txn.enable_frame_output(pipeline_id, false);
-                    self.webrender_api.send_transaction(document_id, txn);
                     self.dom_outputs.remove(&pipeline_id);
                 }
             },

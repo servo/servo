@@ -425,10 +425,8 @@ where
             webgl_threads,
             webxr_layer_grand_manager,
             image_handler,
-            output_handler,
         } = WebGLComm::new(
             webrender_surfman.clone(),
-            webrender_gl.clone(),
             webrender_api.create_sender(),
             webrender_document,
             external_images.clone(),
@@ -437,11 +435,6 @@ where
 
         // Set webrender external image handler for WebGL textures
         external_image_handlers.set_handler(image_handler, WebrenderImageHandlerType::WebGL);
-
-        // Set DOM to texture handler, if enabled.
-        if let Some(output_handler) = output_handler {
-            webrender.set_output_image_handler(output_handler);
-        }
 
         // Create the WebXR main thread
         let mut webxr_main_thread =
