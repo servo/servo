@@ -1120,7 +1120,6 @@ pub enum WebrenderMsg {
     /// Inform WebRender of a new display list for the given pipeline.
     SendDisplayList(
         webrender_api::Epoch,
-        LayoutSize,
         webrender_api::PipelineId,
         LayoutSize,
         Vec<u8>,
@@ -1178,14 +1177,13 @@ impl WebrenderIpcSender {
         &self,
         epoch: Epoch,
         size: LayoutSize,
-        (pipeline, size2, list): (webrender_api::PipelineId, LayoutSize, BuiltDisplayList),
+        (pipeline, list): (webrender_api::PipelineId, BuiltDisplayList),
     ) {
         let (data, descriptor) = list.into_data();
         if let Err(e) = self.0.send(WebrenderMsg::SendDisplayList(
             webrender_api::Epoch(epoch.0),
-            size,
             pipeline,
-            size2,
+            size,
             data,
             descriptor,
         )) {

@@ -590,7 +590,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     webrender_api::Epoch(0),
                     None,
                     Default::default(),
-                    (pipeline, Default::default(), Default::default()),
+                    (pipeline, Default::default()),
                     false,
                 );
                 self.webrender_api
@@ -610,7 +610,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
             WebrenderMsg::Layout(script_traits::WebrenderMsg::SendDisplayList(
                 epoch,
-                size,
                 pipeline,
                 size2,
                 data,
@@ -621,10 +620,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 txn.set_display_list(
                     epoch,
                     None,
-                    size,
+                    size2,
                     (
                         pipeline,
-                        size2,
                         webrender_api::BuiltDisplayList::from_data(data, descriptor),
                     ),
                     true,

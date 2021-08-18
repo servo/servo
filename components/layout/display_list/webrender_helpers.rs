@@ -59,7 +59,6 @@ impl DisplayList {
 
         let mut builder = DisplayListBuilder::with_capacity(
             webrender_pipeline,
-            self.bounds().size,
             1024 * 1024, // 1 MB of space
         );
 

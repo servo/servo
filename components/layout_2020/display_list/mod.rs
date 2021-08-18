@@ -65,7 +65,7 @@ impl<'a> DisplayListBuilder<'a> {
             element_for_canvas_background: fragment_tree.canvas_background.from_element,
             is_contentful: false,
             context,
-            wr: wr::DisplayListBuilder::new(pipeline_id, fragment_tree.scrollable_overflow()),
+            wr: wr::DisplayListBuilder::new(pipeline_id),
         }
     }
 
