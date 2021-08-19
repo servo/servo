@@ -19,7 +19,7 @@ compositing = { path = "../compositing" }
 crossbeam-channel = "0.4"
 devtools_traits = { path = "../devtools_traits" }
 embedder_traits = { path = "../embedder_traits" }
-euclid = "0.20"
+euclid = "0.22"
 gfx = { path = "../gfx" }
 gfx_traits = { path = "../gfx_traits" }
 http = "0.1"
@@ -41,7 +41,7 @@ servo_remutex = { path = "../remutex" }
 servo_url = { path = "../url" }
 style_traits = { path = "../style_traits" }
 webgpu = { path = "../webgpu" }
-webrender_api = { git = "https://github.com/servo/webrender", rev = "fef897f4"  }
+webrender_api = { git = "https://github.com/servo/webrender", rev = "d94af7fa"  }
 webrender_traits = { path = "../webrender_traits" }
 webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
 

@@ -31,5 +31,21 @@ mio = { git = "https://github.com/servo/mio.git", branch = "servo-mio-0.6.22" }
 # Work around bug in winit 0.24 crashing servo headless in macOS
 winit = { git = "https://github.com/rust-windowing/winit.git", rev = "4192d04a53202c199f94d1b7d883a34c9ad09272" }
 
-[patch."https://github.com/jrmuizel/raqote"]
-raqote = { git = "https://github.com/jdm/raqote", branch = "fkup" }
+# TODO(bryce): Remove this when the PR is merged: https://github.com/servo/surfman/pull/234
+surfman = { git = "https://github.com/Bryce-MW/surfman", branch = "euclid-update" }
+# TODO(bryce): Remove this when the PR is merged: https://github.com/asajeffrey/surfman-chains/pull/12
+surfman-chains = { git = "https://github.com/Bryce-MW/surfman-chains", branch = "euclid-update" }
+
+# TODO(bryce): Remove this when the PR is merged: https://github.com/servo/webxr/pull/198
+[patch."https://github.com/servo/webxr"]
+webxr = { git = "https://github.com/Bryce-MW/webxr", branch = "euclid-update" }
+webxr-api = { git = "https://github.com/Bryce-MW/webxr", branch = "euclid-update" }
+
+# TODO(bryce): Remove this once the PR is merged: https://github.com/servo/media/pull/383
+[patch."https://github.com/servo/media"]
+servo-media = { git = "https://github.com/Bryce-MW/media", branch = "euclid-update" }
+servo-media-audio = { git = "https://github.com/Bryce-MW/media", branch = "euclid-update" }
+servo-media-player = { git = "https://github.com/Bryce-MW/media", branch = "euclid-update" }
+servo-media-streams = { git = "https://github.com/Bryce-MW/media", branch = "euclid-update" }
+servo-media-traits = { git = "https://github.com/Bryce-MW/media", branch = "euclid-update" }
+servo-media-webrtc = { git = "https://github.com/Bryce-MW/media", branch = "euclid-update" }

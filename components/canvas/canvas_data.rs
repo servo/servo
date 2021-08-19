@@ -687,7 +687,7 @@ impl<'a> CanvasData<'a> {
             stroke_opts.set_line_cap(LineCapStyle::Butt);
             self.drawtarget.stroke_line(
                 rect.origin,
-                rect.bottom_right(),
+                Point2D::new(rect.max_x(), rect.min_y()),
                 self.state.stroke_style.clone(),
                 &stroke_opts,
                 &self.state.draw_options,
@@ -1213,9 +1213,7 @@ impl<'a> CanvasData<'a> {
             ),
             self.drawtarget.get_format(),
         );
-        let matrix = Transform2D::identity()
-            .pre_translate(-source_rect.origin.to_vector().cast::<f32>())
-            .pre_transform(&self.state.transform);
+        let matrix = self.state.transform.then_translate(-source_rect.origin.to_vector().cast::<f32>());
         draw_target.set_transform(&matrix);
         draw_target
     }
@@ -1224,7 +1222,7 @@ impl<'a> CanvasData<'a> {
     where
         F: FnOnce(&mut dyn GenericDrawTarget),
     {
-        let shadow_src_rect = self.state.transform.transform_rect(rect);
+        let shadow_src_rect = self.state.transform.outer_transformed_rect(rect);
         let mut new_draw_target = self.create_draw_target_for_shadow(&shadow_src_rect);
         draw_shadow_source(&mut *new_draw_target);
         self.drawtarget.draw_surface_with_shadow(

@@ -355,10 +355,10 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
             .to_untyped();
         let transformed_overflow = Overflow {
             paint: f32_rect_to_au_rect(
-                transform_2d.transform_rect(&au_rect_to_f32_rect(overflow.paint)),
+                transform_2d.outer_transformed_rect(&au_rect_to_f32_rect(overflow.paint)),
             ),
             scroll: f32_rect_to_au_rect(
-                transform_2d.transform_rect(&au_rect_to_f32_rect(overflow.scroll)),
+                transform_2d.outer_transformed_rect(&au_rect_to_f32_rect(overflow.scroll)),
             ),
         };
 

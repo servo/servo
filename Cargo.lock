@@ -548,7 +548,7 @@ dependencies = [
  "canvas_traits",
  "crossbeam-channel 0.4.4",
  "cssparser",
- "euclid",
+ "euclid 0.22.6",
  "fnv",
  "font-kit",
  "gfx",
@@ -556,7 +556,7 @@ dependencies = [
  "half",
  "ipc-channel",
  "log",
- "lyon_geom 0.14.1",
+ "lyon_geom",
  "num-traits",
  "pathfinder_geometry",
  "pixels",
@@ -566,7 +566,7 @@ dependencies = [
  "sparkle",
  "style",
  "style_traits",
- "surfman",
+ "surfman 0.5.0",
  "surfman-chains",
  "surfman-chains-api",
  "time",
@@ -584,7 +584,7 @@ version = "0.0.1"
 dependencies = [
  "crossbeam-channel 0.4.4",
  "cssparser",
- "euclid",
+ "euclid 0.22.6",
  "ipc-channel",
  "lazy_static",
  "malloc_size_of",
@@ -840,7 +840,7 @@ dependencies = [
  "canvas",
  "crossbeam-channel 0.4.4",
  "embedder_traits",
- "euclid",
+ "euclid 0.22.6",
  "gfx_traits",
  "gleam 0.12.1",
  "image",
@@ -890,7 +890,7 @@ dependencies = [
  "crossbeam-channel 0.4.4",
  "devtools_traits",
  "embedder_traits",
- "euclid",
+ "euclid 0.22.6",
  "gaol",
  "gfx",
  "gfx_traits",
@@ -1639,6 +1639,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2bb7ef65b3777a325d1eeefefab5b6d4959da54747e33bd6258e789640f307ad"
 dependencies = [
  "num-traits",
+]
+
+[[package]]
+name = "euclid"
+version = "0.22.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da96828553a086d7b18dcebfc579bd9628b016f86590d7453c115e490fa74b80"
+dependencies = [
+ "num-traits",
  "serde",
 ]
 
@@ -2002,7 +2011,7 @@ dependencies = [
  "core-graphics 0.22.0",
  "core-text",
  "dwrote",
- "euclid",
+ "euclid 0.22.6",
  "fnv",
  "fontsan",
  "freetype",
@@ -3063,7 +3072,7 @@ dependencies = [
  "bitflags",
  "canvas_traits",
  "embedder_traits",
- "euclid",
+ "euclid 0.22.6",
  "fnv",
  "gfx",
  "gfx_traits",
@@ -3108,7 +3117,7 @@ dependencies = [
  "canvas_traits",
  "cssparser",
  "embedder_traits",
- "euclid",
+ "euclid 0.22.6",
  "fnv",
  "fxhash",
  "gfx",
@@ -3146,7 +3155,7 @@ dependencies = [
  "atomic_refcell",
  "crossbeam-channel 0.4.4",
  "embedder_traits",
- "euclid",
+ "euclid 0.22.6",
  "fnv",
  "fxhash",
  "gfx",
@@ -3191,7 +3200,7 @@ dependencies = [
  "atomic_refcell",
  "crossbeam-channel 0.4.4",
  "embedder_traits",
- "euclid",
+ "euclid 0.22.6",
  "fnv",
  "fxhash",
  "gfx",
@@ -3353,7 +3362,7 @@ dependencies = [
  "devtools_traits",
  "embedder_traits",
  "env_logger 0.8.2",
- "euclid",
+ "euclid 0.22.6",
  "gaol",
  "gfx",
  "gfx_traits",
@@ -3383,7 +3392,7 @@ dependencies = [
  "sparkle",
  "style",
  "style_traits",
- "surfman",
+ "surfman 0.5.0",
  "webdriver_server",
  "webgpu",
  "webrender",
@@ -3461,23 +3470,12 @@ dependencies = [
 
 [[package]]
 name = "lyon_geom"
-version = "0.14.1"
+version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca04310c9807612a311506106000b6eccb2e27bca9bfb594ce80fb8a31231f9d"
-dependencies = [
- "arrayvec 0.4.12",
- "euclid",
- "num-traits",
-]
-
-[[package]]
-name = "lyon_geom"
-version = "0.15.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e2a8bde54788e0eb4f1b9f072910bfa1cba95688698f7bb206d13a2f8fd06b3"
+checksum = "6ce4e12203c428a58200b8cf1c0a3aad1cda907008ea11310bb3729593e5f933"
 dependencies = [
  "arrayvec 0.5.1",
- "euclid",
+ "euclid 0.22.6",
  "num-traits",
 ]
 
@@ -3520,7 +3518,7 @@ dependencies = [
  "content-security-policy",
  "crossbeam-channel 0.4.4",
  "cssparser",
- "euclid",
+ "euclid 0.22.6",
  "hashglobe",
  "hyper",
  "hyper_serde",
@@ -3590,7 +3588,7 @@ checksum = "60302e4db3a61da70c0cb7991976248362f30319e88850c487b9b95bbf059e00"
 name = "media"
 version = "0.0.1"
 dependencies = [
- "euclid",
+ "euclid 0.22.6",
  "fnv",
  "ipc-channel",
  "lazy_static",
@@ -4479,14 +4477,16 @@ dependencies = [
 [[package]]
 name = "peek-poke"
 version = "0.2.0"
+source = "git+https://github.com/servo/webrender?rev=d94af7fa#d94af7fa5c966d26e2f3f94c4032190a4e88d6ef"
 dependencies = [
- "euclid",
+ "euclid 0.22.6",
  "peek-poke-derive",
 ]
 
 [[package]]
 name = "peek-poke-derive"
 version = "0.2.1"
+source = "git+https://github.com/servo/webrender?rev=d94af7fa#d94af7fa5c966d26e2f3f94c4032190a4e88d6ef"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4646,7 +4646,7 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 name = "pixels"
 version = "0.0.1"
 dependencies = [
- "euclid",
+ "euclid 0.22.6",
  "malloc_size_of",
  "malloc_size_of_derive",
  "serde",
@@ -4660,12 +4660,12 @@ checksum = "3831453b3449ceb48b6d9c7ad7c96d5ea673e9b470a1dc578c2ce6521230884c"
 
 [[package]]
 name = "plane-split"
-version = "0.15.0"
+version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ffe16a646a08f4b4dd74035b9ff8e378eb1a4012a74f14f5889e7001cdbece33"
+checksum = "f3f7075ec146b897b6e0faca47adeb7ed3d4f6eaa8145bf19db17311081b3f63"
 dependencies = [
  "binary-space-partition",
- "euclid",
+ "euclid 0.22.6",
  "log",
  "num-traits",
 ]
@@ -4874,11 +4874,11 @@ checksum = "a871f1e45a3a3f0c73fb60343c811238bb5143a81642e27c2ac7aac27ff01a63"
 [[package]]
 name = "raqote"
 version = "0.8.1-alpha.0"
-source = "git+https://github.com/jdm/raqote?branch=fkup#ff5d2d1aa7813dbcacb0d028cf7d17c82a35d9d4"
+source = "git+https://github.com/jrmuizel/raqote#dea376474966fe91f0fa3c5115171e0df86bac22"
 dependencies = [
- "euclid",
+ "euclid 0.22.6",
  "font-kit",
- "lyon_geom 0.15.0",
+ "lyon_geom",
  "pathfinder_geometry",
  "png",
  "sw-composite",
@@ -5141,7 +5141,7 @@ dependencies = [
  "embedder_traits",
  "encoding_rs",
  "enum-iterator",
- "euclid",
+ "euclid 0.22.6",
  "fnv",
  "fxhash",
  "headers",
@@ -5222,7 +5222,7 @@ dependencies = [
  "atomic_refcell",
  "canvas_traits",
  "crossbeam-channel 0.4.4",
- "euclid",
+ "euclid 0.22.6",
  "fxhash",
  "gfx_traits",
  "html5ever",
@@ -5261,7 +5261,7 @@ dependencies = [
 name = "script_tests"
 version = "0.0.1"
 dependencies = [
- "euclid",
+ "euclid 0.22.6",
  "keyboard-types",
  "script",
  "servo_url",
@@ -5278,7 +5278,7 @@ dependencies = [
  "crossbeam-channel 0.4.4",
  "devtools_traits",
  "embedder_traits",
- "euclid",
+ "euclid 0.22.6",
  "gfx_traits",
  "http 0.1.21",
  "hyper",
@@ -5440,7 +5440,7 @@ dependencies = [
  "backtrace",
  "cc",
  "clipboard",
- "euclid",
+ "euclid 0.22.6",
  "getopts",
  "image",
  "keyboard-types",
@@ -5451,7 +5451,7 @@ dependencies = [
  "servo-media",
  "shellwords",
  "sig",
- "surfman",
+ "surfman 0.5.0",
  "tinyfiledialogs",
  "webxr",
  "winapi",
@@ -5494,7 +5494,7 @@ name = "servo-gst-plugin"
 version = "0.0.1"
 dependencies = [
  "crossbeam-channel 0.4.4",
- "euclid",
+ "euclid 0.22.6",
  "glib",
  "gst-plugin-version-helper",
  "gstreamer",
@@ -5508,7 +5508,7 @@ dependencies = [
  "log",
  "servo-media",
  "sparkle",
- "surfman",
+ "surfman 0.5.0",
  "surfman-chains",
  "surfman-chains-api",
  "webxr",
@@ -5517,7 +5517,7 @@ dependencies = [
 [[package]]
 name = "servo-media"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#b23e72285ecbe352737eafa4100e65763cc9ccfc"
+source = "git+https://github.com/Bryce-MW/media?branch=euclid-update#aff128f547d3408a6996c485fcdf500811b7a87b"
 dependencies = [
  "servo-media-audio",
  "servo-media-player",
@@ -5528,12 +5528,12 @@ dependencies = [
 
 [[package]]
 name = "servo-media-audio"
-version = "0.1.0"
-source = "git+https://github.com/servo/media#b23e72285ecbe352737eafa4100e65763cc9ccfc"
+version = "0.2.0"
+source = "git+https://github.com/Bryce-MW/media?branch=euclid-update#aff128f547d3408a6996c485fcdf500811b7a87b"
 dependencies = [
  "boxfnonce",
  "byte-slice-cast",
- "euclid",
+ "euclid 0.22.6",
  "log",
  "num-complex",
  "num-traits",
@@ -5638,7 +5638,7 @@ dependencies = [
 [[package]]
 name = "servo-media-player"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#b23e72285ecbe352737eafa4100e65763cc9ccfc"
+source = "git+https://github.com/Bryce-MW/media?branch=euclid-update#aff128f547d3408a6996c485fcdf500811b7a87b"
 dependencies = [
  "ipc-channel",
  "serde",
@@ -5650,7 +5650,7 @@ dependencies = [
 [[package]]
 name = "servo-media-streams"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#b23e72285ecbe352737eafa4100e65763cc9ccfc"
+source = "git+https://github.com/Bryce-MW/media?branch=euclid-update#aff128f547d3408a6996c485fcdf500811b7a87b"
 dependencies = [
  "lazy_static",
  "uuid",
@@ -5659,12 +5659,12 @@ dependencies = [
 [[package]]
 name = "servo-media-traits"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#b23e72285ecbe352737eafa4100e65763cc9ccfc"
+source = "git+https://github.com/Bryce-MW/media?branch=euclid-update#aff128f547d3408a6996c485fcdf500811b7a87b"
 
 [[package]]
 name = "servo-media-webrtc"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#b23e72285ecbe352737eafa4100e65763cc9ccfc"
+source = "git+https://github.com/Bryce-MW/media?branch=euclid-update#aff128f547d3408a6996c485fcdf500811b7a87b"
 dependencies = [
  "boxfnonce",
  "lazy_static",
@@ -5704,7 +5704,7 @@ version = "0.0.1"
 dependencies = [
  "dirs",
  "embedder_traits",
- "euclid",
+ "euclid 0.22.6",
  "getopts",
  "lazy_static",
  "log",
@@ -5733,7 +5733,7 @@ name = "servo_geometry"
 version = "0.0.1"
 dependencies = [
  "app_units",
- "euclid",
+ "euclid 0.22.6",
  "malloc_size_of",
  "malloc_size_of_derive",
  "webrender_api",
@@ -5742,7 +5742,7 @@ dependencies = [
 [[package]]
 name = "servo_media_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#b23e72285ecbe352737eafa4100e65763cc9ccfc"
+source = "git+https://github.com/Bryce-MW/media?branch=euclid-update#aff128f547d3408a6996c485fcdf500811b7a87b"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5863,7 +5863,7 @@ dependencies = [
  "log",
  "serde_json",
  "servo-media",
- "surfman",
+ "surfman 0.4.3",
  "webxr",
  "webxr-api",
  "winapi",
@@ -5881,7 +5881,7 @@ dependencies = [
  "libc",
  "log",
  "simpleservo",
- "surfman",
+ "surfman 0.5.0",
  "winapi",
 ]
 
@@ -6077,7 +6077,7 @@ dependencies = [
  "cssparser",
  "derive_more",
  "encoding_rs",
- "euclid",
+ "euclid 0.22.6",
  "fallible",
  "fxhash",
  "hashglobe",
@@ -6140,7 +6140,7 @@ version = "0.0.1"
 dependencies = [
  "app_units",
  "cssparser",
- "euclid",
+ "euclid 0.22.6",
  "html5ever",
  "rayon",
  "selectors",
@@ -6162,7 +6162,7 @@ dependencies = [
  "app_units",
  "bitflags",
  "cssparser",
- "euclid",
+ "euclid 0.22.6",
  "lazy_static",
  "malloc_size_of",
  "malloc_size_of_derive",
@@ -6178,9 +6178,9 @@ dependencies = [
 
 [[package]]
 name = "surfman"
-version = "0.4.1"
+version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbbf3b7f873f25cb7791b06a00f0626a141c05f1b95e5b34bc498358876e1a58"
+checksum = "7e4a723d26074814c0896e20ad30bbf32b9961c8f659e25cc414fc7dac2c3608"
 dependencies = [
  "bitflags",
  "cfg_aliases",
@@ -6189,7 +6189,36 @@ dependencies = [
  "core-foundation 0.6.4",
  "core-graphics 0.17.3",
  "display-link",
- "euclid",
+ "euclid 0.20.14",
+ "gl_generator 0.14.0",
+ "io-surface",
+ "lazy_static",
+ "libc",
+ "log",
+ "mach",
+ "metal 0.18.0",
+ "objc",
+ "parking_lot 0.10.2",
+ "raw-window-handle",
+ "wayland-sys 0.24.1",
+ "winapi",
+ "winit",
+ "wio",
+]
+
+[[package]]
+name = "surfman"
+version = "0.5.0"
+source = "git+https://github.com/Bryce-MW/surfman?branch=euclid-update#27069c59e8078b33fb7b838cbfe33da50c001657"
+dependencies = [
+ "bitflags",
+ "cfg_aliases",
+ "cgl",
+ "cocoa 0.19.1",
+ "core-foundation 0.6.4",
+ "core-graphics 0.17.3",
+ "display-link",
+ "euclid 0.22.6",
  "gl_generator 0.14.0",
  "io-surface",
  "lazy_static",
@@ -6209,15 +6238,14 @@ dependencies = [
 
 [[package]]
 name = "surfman-chains"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "99e707090691623a80d36f4faaba50105cc7a611eda51b0312b53eeec36a0a25"
+version = "0.7.0"
+source = "git+https://github.com/Bryce-MW/surfman-chains?branch=euclid-update#ed34df4448162875ec51edbf5accd92979a7f8da"
 dependencies = [
- "euclid",
+ "euclid 0.22.6",
  "fnv",
  "log",
  "sparkle",
- "surfman",
+ "surfman 0.5.0",
  "surfman-chains-api",
 ]
 
@@ -7130,7 +7158,7 @@ dependencies = [
  "compositing",
  "cookie",
  "crossbeam-channel 0.4.4",
- "euclid",
+ "euclid 0.22.6",
  "hyper",
  "image",
  "ipc-channel",
@@ -7154,7 +7182,7 @@ name = "webgpu"
 version = "0.0.1"
 dependencies = [
  "arrayvec 0.5.1",
- "euclid",
+ "euclid 0.22.6",
  "ipc-channel",
  "log",
  "malloc_size_of",
@@ -7171,6 +7199,7 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.61.0"
+source = "git+https://github.com/servo/webrender?rev=d94af7fa#d94af7fa5c966d26e2f3f94c4032190a4e88d6ef"
 dependencies = [
  "base64 0.10.1",
  "bincode",
@@ -7183,7 +7212,7 @@ dependencies = [
  "core-text",
  "cstr",
  "dwrote",
- "euclid",
+ "euclid 0.22.6",
  "freetype",
  "fxhash",
  "gleam 0.12.1",
@@ -7213,6 +7242,7 @@ dependencies = [
 [[package]]
 name = "webrender_api"
 version = "0.61.0"
+source = "git+https://github.com/servo/webrender?rev=d94af7fa#d94af7fa5c966d26e2f3f94c4032190a4e88d6ef"
 dependencies = [
  "app_units",
  "bitflags",
@@ -7221,7 +7251,7 @@ dependencies = [
  "core-graphics 0.22.0",
  "crossbeam-channel 0.4.4",
  "derive_more",
- "euclid",
+ "euclid 0.22.6",
  "malloc_size_of_derive",
  "peek-poke",
  "serde",
@@ -7234,6 +7264,7 @@ dependencies = [
 [[package]]
 name = "webrender_build"
 version = "0.0.1"
+source = "git+https://github.com/servo/webrender?rev=d94af7fa#d94af7fa5c966d26e2f3f94c4032190a4e88d6ef"
 dependencies = [
  "bitflags",
  "lazy_static",
@@ -7243,8 +7274,8 @@ dependencies = [
 name = "webrender_surfman"
 version = "0.0.1"
 dependencies = [
- "euclid",
- "surfman",
+ "euclid 0.22.6",
+ "surfman 0.5.0",
  "surfman-chains",
 ]
 
@@ -7252,26 +7283,26 @@ dependencies = [
 name = "webrender_traits"
 version = "0.0.1"
 dependencies = [
- "euclid",
+ "euclid 0.22.6",
  "webrender_api",
 ]
 
 [[package]]
 name = "webxr"
-version = "0.0.1"
-source = "git+https://github.com/servo/webxr#af2e84a28d52521212816584e0553aaf364a9162"
+version = "0.0.2"
+source = "git+https://github.com/Bryce-MW/webxr?branch=euclid-update#551e01480902977969eee5610077e27a732b6a68"
 dependencies = [
  "android_injected_glue",
  "bindgen",
  "crossbeam-channel 0.4.4",
- "euclid",
+ "euclid 0.22.6",
  "gl_generator 0.13.1",
  "gvr-sys",
  "log",
  "openxr",
  "serde",
  "sparkle",
- "surfman",
+ "surfman 0.5.0",
  "surfman-chains",
  "time",
  "webxr-api",
@@ -7281,10 +7312,10 @@ dependencies = [
 
 [[package]]
 name = "webxr-api"
-version = "0.0.1"
-source = "git+https://github.com/servo/webxr#af2e84a28d52521212816584e0553aaf364a9162"
+version = "0.0.2"
+source = "git+https://github.com/Bryce-MW/webxr?branch=euclid-update#551e01480902977969eee5610077e27a732b6a68"
 dependencies = [
- "euclid",
+ "euclid 0.22.6",
  "ipc-channel",
  "log",
  "serde",
@@ -7425,9 +7456,10 @@ dependencies = [
 [[package]]
 name = "wr_malloc_size_of"
 version = "0.0.1"
+source = "git+https://github.com/servo/webrender?rev=d94af7fa#d94af7fa5c966d26e2f3f94c4032190a4e88d6ef"
 dependencies = [
  "app_units",
- "euclid",
+ "euclid 0.22.6",
 ]
 
 [[package]]

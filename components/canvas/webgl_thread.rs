@@ -606,7 +606,7 @@ impl WebGLThread {
 
         let size = clamp_viewport(&gl, requested_size);
         if safe_size != size {
-            debug!("Resizing swap chain from {} to {}", safe_size, size);
+            debug!("Resizing swap chain from {:?} to {:?}", safe_size, size);
             swap_chain
                 .resize(&mut self.device, &mut ctx, size.to_i32())
                 .map_err(|err| format!("Failed to resize swap chain: {:?}", err))?;

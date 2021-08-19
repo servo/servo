@@ -3205,21 +3205,19 @@ impl Fragment {
             .to_f32_px();
         let transform_origin_z = transform_origin.depth.px();
 
-        let pre_transform = LayoutTransform::create_translation(
+        let pre_transform = LayoutTransform::translation(
             transform_origin_x,
             transform_origin_y,
             transform_origin_z,
         );
-        let post_transform = LayoutTransform::create_translation(
+        let post_transform = LayoutTransform::translation(
             -transform_origin_x,
             -transform_origin_y,
             -transform_origin_z,
         );
 
         Some(
-            pre_transform
-                .pre_transform(&transform)
-                .pre_transform(&post_transform),
+            post_transform.then(&transform).then(&pre_transform)
         )
     }
 
@@ -3241,12 +3239,12 @@ impl Fragment {
                 )
                 .to_layout();
 
-                let pre_transform = LayoutTransform::create_translation(
+                let pre_transform = LayoutTransform::translation(
                     perspective_origin.x,
                     perspective_origin.y,
                     0.0,
                 );
-                let post_transform = LayoutTransform::create_translation(
+                let post_transform = LayoutTransform::translation(
                     -perspective_origin.x,
                     -perspective_origin.y,
                     0.0,
@@ -3257,9 +3255,7 @@ impl Fragment {
                 );
 
                 Some(
-                    pre_transform
-                        .pre_transform(&perspective_matrix)
-                        .pre_transform(&post_transform),
+                    post_transform.then(&perspective_matrix).then(&pre_transform)
                 )
             },
             Perspective::None => None,

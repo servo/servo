@@ -15,7 +15,7 @@ base64 = "0.10"
 compositing = { path = "../compositing" }
 cookie = "0.11"
 crossbeam-channel = "0.4"
-euclid = "0.20"
+euclid = "0.22"
 hyper = "0.12"
 image = "0.23"
 ipc-channel = "0.14"

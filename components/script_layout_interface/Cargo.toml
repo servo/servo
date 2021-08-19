@@ -15,7 +15,7 @@ app_units = "0.7"
 atomic_refcell = "0.1"
 canvas_traits = { path = "../canvas_traits" }
 crossbeam-channel = "0.4"
-euclid = "0.20"
+euclid = "0.22"
 fxhash = "0.2"
 gfx_traits = { path = "../gfx_traits" }
 html5ever = "0.25"
@@ -36,4 +36,4 @@ servo_atoms = { path = "../atoms" }
 servo_url = { path = "../url" }
 style = { path = "../style", features = ["servo"] }
 style_traits = { path = "../style_traits", features = ["servo"] }
-webrender_api = { git = "https://github.com/servo/webrender", rev = "fef897f4"  }
+webrender_api = { git = "https://github.com/servo/webrender", rev = "d94af7fa"  }

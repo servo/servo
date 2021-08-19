@@ -11,7 +11,6 @@ name = "webrender_surfman"
 path = "lib.rs"
 
 [dependencies]
-euclid = "0.20"
-surfman = "0.4"
-surfman-chains = "0.6"
-
+euclid = "0.22"
+surfman = "0.5"
+surfman-chains = "0.7"

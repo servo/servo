@@ -139,7 +139,7 @@ impl XRRayMethods for XRRay {
             // however euclid uses row vectors so we use .to_row_major_array()
             let arr = RigidTransform3D::new(rotation, translation)
                 .to_transform()
-                .to_row_major_array();
+                .to_array();
             create_typed_array(cx, &arr, &self.matrix);
         }
         NonNull::new(self.matrix.get()).unwrap()

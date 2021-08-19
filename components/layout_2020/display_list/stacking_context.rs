@@ -355,7 +355,7 @@ impl StackingContext {
             if let Some(transformed) = reference_frame_data
                 .transform
                 .inverse()
-                .and_then(|inversed| inversed.transform_rect(&painting_area))
+                .and_then(|inversed| inversed.outer_transformed_rect(&painting_area))
             {
                 painting_area = transformed
             } else {
@@ -802,7 +802,7 @@ impl BoxFragment {
             ),
             (Some(transform), None) => (transform, wr::ReferenceFrameKind::Transform),
             (Some(transform), Some(perspective)) => (
-                transform.pre_transform(&perspective),
+                perspective.then(&transform),
                 wr::ReferenceFrameKind::Perspective {
                     scrolling_relative_to: None,
                 },
@@ -850,21 +850,21 @@ impl BoxFragment {
             .px();
         let transform_origin_z = transform_origin.depth.px();
 
-        let pre_transform = LayoutTransform::create_translation(
+        let pre_transform = LayoutTransform::translation(
             transform_origin_x,
             transform_origin_y,
             transform_origin_z,
         );
-        let post_transform = LayoutTransform::create_translation(
+        let post_transform = LayoutTransform::translation(
             -transform_origin_x,
             -transform_origin_y,
             -transform_origin_z,
         );
 
         Some(
-            pre_transform
-                .pre_transform(&transform)
-                .pre_transform(&post_transform),
+            post_transform
+                .then(&transform)
+                .then(&pre_transform),
         )
     }
 
@@ -887,12 +887,12 @@ impl BoxFragment {
                         .px(),
                 );
 
-                let pre_transform = LayoutTransform::create_translation(
+                let pre_transform = LayoutTransform::translation(
                     perspective_origin.x,
                     perspective_origin.y,
                     0.0,
                 );
-                let post_transform = LayoutTransform::create_translation(
+                let post_transform = LayoutTransform::translation(
                     -perspective_origin.x,
                     -perspective_origin.y,
                     0.0,
@@ -903,9 +903,9 @@ impl BoxFragment {
                 );
 
                 Some(
-                    pre_transform
-                        .pre_transform(&perspective_matrix)
-                        .pre_transform(&post_transform),
+                    post_transform
+                        .then(&perspective_matrix)
+                        .then(&pre_transform),
                 )
             },
             Perspective::None => None,

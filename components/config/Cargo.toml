@@ -15,7 +15,7 @@ path = "lib.rs"
 
 [dependencies]
 embedder_traits = { path = "../embedder_traits" }
-euclid = "0.20"
+euclid = "0.22"
 getopts = "0.2.11"
 lazy_static = "1"
 log = "0.4"

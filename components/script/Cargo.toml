@@ -51,7 +51,7 @@ domobject_derive = { path = "../domobject_derive" }
 embedder_traits = { path = "../embedder_traits" }
 encoding_rs = "0.8"
 enum-iterator = "0.3"
-euclid = "0.20"
+euclid = "0.22"
 fnv = "1.0"
 fxhash = "0.2"
 headers = "0.2"
@@ -115,7 +115,7 @@ utf-8 = "0.7"
 uuid = { version = "0.8", features = ["v4", "serde"] }
 webdriver = "0.40"
 webgpu = { path = "../webgpu" }
-webrender_api = { git = "https://github.com/servo/webrender", rev = "fef897f4"  }
+webrender_api = { git = "https://github.com/servo/webrender", rev = "d94af7fa"  }
 webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
 xml5ever = "0.16"
 

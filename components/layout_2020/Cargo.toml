@@ -18,7 +18,7 @@ atomic_refcell = "0.1.6"
 canvas_traits = { path = "../canvas_traits" }
 cssparser = "0.28"
 embedder_traits = { path = "../embedder_traits" }
-euclid = "0.20"
+euclid = "0.22"
 fnv = "1.0"
 fxhash = "0.2"
 gfx = { path = "../gfx" }
@@ -43,7 +43,7 @@ servo_url = { path = "../url" }
 style = { path = "../style", features = ["servo", "servo-layout-2020"] }
 style_traits = { path = "../style_traits" }
 unicode-script = "0.5"
-webrender_api = { git = "https://github.com/servo/webrender", rev = "fef897f4"  }
+webrender_api = { git = "https://github.com/servo/webrender", rev = "d94af7fa"  }
 
 [dev-dependencies]
 lazy_static = "1"

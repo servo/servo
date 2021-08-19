@@ -19,7 +19,7 @@ gl = ["gleam", "pixels"]
 canvas = { path = "../canvas" }
 crossbeam-channel = "0.4"
 embedder_traits = { path = "../embedder_traits" }
-euclid = "0.20"
+euclid = "0.22"
 gfx_traits = { path = "../gfx_traits" }
 gleam = { version = "0.12", optional = true }
 image = "0.23"
@@ -38,8 +38,8 @@ servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
 style_traits = { path = "../style_traits" }
 time = "0.1.41"
-webrender = { git = "https://github.com/servo/webrender", rev = "fef897f4" , features = ["capture"] }
-webrender_api = { git = "https://github.com/servo/webrender", rev = "fef897f4"  }
+webrender = { git = "https://github.com/servo/webrender", rev = "d94af7fa" , features = ["capture"] }
+webrender_api = { git = "https://github.com/servo/webrender", rev = "d94af7fa"  }
 webrender_surfman = { path = "../webrender_surfman" }
 webxr = { git = "https://github.com/servo/webxr" }
 
