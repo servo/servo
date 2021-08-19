@@ -38,7 +38,7 @@ servo_url = { path = "../url" }
 time = "0.1"
 url = "2.0"
 uuid = { version = "0.8", features = ["v4", "serde"] }
-webrender_api = { git = "https://github.com/servo/webrender", rev = "12c8e881"  }
+webrender_api = { git = "https://github.com/servo/webrender", rev = "92fd77a5"  }
 
 [dev-dependencies]
 std_test_override = { path = "../std_test_override" }
