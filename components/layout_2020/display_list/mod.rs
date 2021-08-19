@@ -81,7 +81,6 @@ impl<'a> DisplayListBuilder<'a> {
             clip_rect,
             spatial_id: self.current_space_and_clip.spatial_id,
             clip_id: self.current_space_and_clip.clip_id,
-            hit_info: None,
             flags: style.get_webrender_primitive_flags(),
         }
     }
@@ -157,7 +156,6 @@ impl Fragment {
         }
 
         let mut common = builder.common_properties(rect.to_webrender(), &fragment.parent_style);
-        common.hit_info = hit_info(&fragment.parent_style, fragment.tag, Cursor::Text);
 
         let color = fragment.parent_style.clone_color();
         let font_metrics = &fragment.font_metrics;
@@ -352,13 +350,12 @@ impl<'a> BuilderForBoxFragment<'a> {
 
     fn build_hit_test(&self, builder: &mut DisplayListBuilder) {
         let hit_info = hit_info(&self.fragment.style, self.fragment.tag, Cursor::Default);
-        if hit_info.is_some() {
+        if let Some(hit_tag) = hit_info {
             let mut common = builder.common_properties(self.border_rect, &self.fragment.style);
-            common.hit_info = hit_info;
             if let Some(clip_id) = self.border_edge_clip(builder) {
                 common.clip_id = clip_id
             }
-            builder.wr.push_hit_test(&common)
+            builder.wr.push_hit_test(&common, hit_tag)
         }
     }
 

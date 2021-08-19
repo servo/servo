@@ -483,7 +483,6 @@ pub fn empty_common_item_properties() -> CommonItemProperties {
         clip_rect: LayoutRect::max_rect(),
         clip_id: ClipId::root(wr::PipelineId::dummy()),
         spatial_id: SpatialId::root_scroll_node(wr::PipelineId::dummy()),
-        hit_info: None,
         flags: PrimitiveFlags::empty(),
     }
 }

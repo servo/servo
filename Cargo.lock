@@ -4477,7 +4477,6 @@ dependencies = [
 [[package]]
 name = "peek-poke"
 version = "0.2.0"
-source = "git+https://github.com/servo/webrender?rev=d94af7fa#d94af7fa5c966d26e2f3f94c4032190a4e88d6ef"
 dependencies = [
  "euclid 0.22.6",
  "peek-poke-derive",
@@ -4486,7 +4485,6 @@ dependencies = [
 [[package]]
 name = "peek-poke-derive"
 version = "0.2.1"
-source = "git+https://github.com/servo/webrender?rev=d94af7fa#d94af7fa5c966d26e2f3f94c4032190a4e88d6ef"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7199,7 +7197,6 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.61.0"
-source = "git+https://github.com/servo/webrender?rev=d94af7fa#d94af7fa5c966d26e2f3f94c4032190a4e88d6ef"
 dependencies = [
  "base64 0.10.1",
  "bincode",
@@ -7242,7 +7239,6 @@ dependencies = [
 [[package]]
 name = "webrender_api"
 version = "0.61.0"
-source = "git+https://github.com/servo/webrender?rev=d94af7fa#d94af7fa5c966d26e2f3f94c4032190a4e88d6ef"
 dependencies = [
  "app_units",
  "bitflags",
@@ -7264,7 +7260,6 @@ dependencies = [
 [[package]]
 name = "webrender_build"
 version = "0.0.1"
-source = "git+https://github.com/servo/webrender?rev=d94af7fa#d94af7fa5c966d26e2f3f94c4032190a4e88d6ef"
 dependencies = [
  "bitflags",
  "lazy_static",
@@ -7456,7 +7451,6 @@ dependencies = [
 [[package]]
 name = "wr_malloc_size_of"
 version = "0.0.1"
-source = "git+https://github.com/servo/webrender?rev=d94af7fa#d94af7fa5c966d26e2f3f94c4032190a4e88d6ef"
 dependencies = [
  "app_units",
  "euclid 0.22.6",

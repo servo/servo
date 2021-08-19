@@ -344,6 +344,5 @@ fn build_common_item_properties(
         clip_id: state.active_clip_id,
         // TODO(gw): Make use of the WR backface visibility functionality.
         flags: PrimitiveFlags::default(),
-        hit_info: tag,
     }
 }
