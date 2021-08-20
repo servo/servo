@@ -1217,20 +1217,11 @@ impl LayoutThread {
                 },
                 &QueryMsg::StyleQuery => {},
                 &QueryMsg::NodesFromPointQuery(client_point, ref reflow_goal) => {
-                    let mut flags = match reflow_goal {
-                        &NodesFromPointQueryType::Topmost => webrender_api::HitTestFlags::empty(),
-                        &NodesFromPointQueryType::All => webrender_api::HitTestFlags::FIND_ALL,
-                    };
-
-                    // The point we get is not relative to the entire WebRender scene, but to this
-                    // particular pipeline, so we need to tell WebRender about that.
-                    flags.insert(webrender_api::HitTestFlags::POINT_RELATIVE_TO_PIPELINE_VIEWPORT);
-
                     let client_point = webrender_api::units::WorldPoint::from_untyped(client_point);
+                    // TODO(bryce): The client_point may have to be transformed
                     let results = self.webrender_api.hit_test(
                         Some(self.id.to_webrender()),
                         client_point,
-                        flags,
                     );
 
                     rw_data.nodes_from_point_response = results

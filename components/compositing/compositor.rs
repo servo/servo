@@ -13,6 +13,7 @@ use crate::windowing::{
     self, EmbedderCoordinates, MouseWindowEvent, WebRenderDebugOption, WindowMethods,
 };
 use crate::{CompositionPipeline, ConstellationMsg, SendableFrameTree};
+use crate::dom::node::from_untrusted_node_address;
 use canvas::canvas_paint_thread::ImageUpdate;
 use crossbeam_channel::Sender;
 use embedder_traits::Cursor;
@@ -47,7 +48,7 @@ use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use time::{now, precise_time_ns, precise_time_s};
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePoint, LayoutVector2D};
-use webrender_api::{self, HitTestFlags, HitTestResult, ScrollLocation};
+use webrender_api::{self, HitTestResult, ScrollLocation, ExternalScrollId, ScrollClamping};
 use webrender_surfman::WebrenderSurfman;
 
 #[derive(Debug, PartialEq)]
@@ -635,12 +636,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             WebrenderMsg::Layout(script_traits::WebrenderMsg::HitTest(
                 pipeline,
                 point,
-                flags,
                 sender,
             )) => {
                 let result =
                     self.webrender_api
-                        .hit_test(self.webrender_document, pipeline, point, flags);
+                        .hit_test(self.webrender_document, pipeline, point);
                 let _ = sender.send(result);
             },
 
@@ -909,8 +909,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.webrender_api.hit_test(
             self.webrender_document,
             None,
-            world_cursor,
-            HitTestFlags::empty(),
+            world_cursor
         )
     }
 
@@ -1140,7 +1139,29 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             let cursor = (combined_event.cursor.to_f32() / self.scale).to_untyped();
             let cursor = webrender_api::units::WorldPoint::from_untyped(cursor);
             let mut txn = webrender_api::Transaction::new();
-            txn.scroll(scroll_location, cursor);
+
+            let hit = self.webrender_api.hit_test(self.webrender_document, None, cursor);
+            // TODO(bryce): Find the right item (don't iterate through all items like I did) and
+            //  actually do this correctly. Note that the results are from front to back
+            for item in hit.items {
+                let new_point = match scroll_location {
+                    ScrollLocation::Delta(delta) => {delta},
+                    // TODO(bryce): I have no idea what to do here
+                    ScrollLocation::Start => {LayoutVector2D::new(-1000f32, -1000f32)},
+                    ScrollLocation::End => {LayoutVector2D::new(1000f32, 1000f32)},
+                };
+                // TODO(bryce): Figure this out. I don't understand why scrolling does not work even
+                //  a little
+                //println!("{:?}", new_point);
+                //item.point_relative_to_item +
+                //let node_address = UntrustedNodeAddress(item.tag.0 as *const c_void);
+                //let node = unsafe { from_untrusted_node_address(node_address) };
+                txn.scroll_node_with_id(
+                    new_point.to_point() * 100f32,
+                    ExternalScrollId(0, item.pipeline),
+                    ScrollClamping::NoClamping // TODO(bryce): This should probably be ToContentBounds
+                );
+            }
             if combined_event.magnification != 1.0 {
                 let old_zoom = self.pinch_zoom_level();
                 self.set_pinch_zoom_level(old_zoom * combined_event.magnification);

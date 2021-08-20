@@ -74,7 +74,7 @@ use webrender_api::{
     BuiltDisplayList, DocumentId, ExternalScrollId, ImageData, ImageDescriptor, ImageKey,
     ScrollClamping,
 };
-use webrender_api::{BuiltDisplayListDescriptor, HitTestFlags, HitTestResult};
+use webrender_api::{BuiltDisplayListDescriptor, HitTestResult};
 
 pub use crate::script_msg::{
     DOMMessage, HistoryEntryReplacement, Job, JobError, JobResult, JobResultValue, JobType,
@@ -1130,7 +1130,6 @@ pub enum WebrenderMsg {
     HitTest(
         Option<webrender_api::PipelineId>,
         WorldPoint,
-        HitTestFlags,
         IpcSender<HitTestResult>,
     ),
     /// Create a new image key. The result will be returned via the
@@ -1197,11 +1196,10 @@ impl WebrenderIpcSender {
         &self,
         pipeline: Option<webrender_api::PipelineId>,
         point: WorldPoint,
-        flags: HitTestFlags,
     ) -> HitTestResult {
         let (sender, receiver) = ipc::channel().unwrap();
         self.0
-            .send(WebrenderMsg::HitTest(pipeline, point, flags, sender))
+            .send(WebrenderMsg::HitTest(pipeline, point, sender))
             .expect("error sending hit test");
         receiver.recv().expect("error receiving hit test result")
     }
