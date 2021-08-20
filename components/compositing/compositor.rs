@@ -13,7 +13,6 @@ use crate::windowing::{
     self, EmbedderCoordinates, MouseWindowEvent, WebRenderDebugOption, WindowMethods,
 };
 use crate::{CompositionPipeline, ConstellationMsg, SendableFrameTree};
-use crate::dom::node::from_untrusted_node_address;
 use canvas::canvas_paint_thread::ImageUpdate;
 use crossbeam_channel::Sender;
 use embedder_traits::Cursor;
