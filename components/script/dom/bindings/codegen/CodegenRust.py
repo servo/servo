@@ -1709,7 +1709,8 @@ class MethodDefiner(PropertyDefiner):
                          "methodInfo": not m.isStatic(),
                          "length": methodLength(m),
                          "flags": "JSPROP_READONLY" if crossorigin else "JSPROP_ENUMERATE",
-                         "condition": PropertyDefiner.getControllingCondition(m, descriptor)}
+                         "condition": PropertyDefiner.getControllingCondition(m, descriptor),
+                         "allowCrossOriginThis": m.getExtendedAttribute("CrossOriginCallable") is not None}
                         for m in methods]
 
         # TODO: Once iterable is implemented, use tiebreak rules instead of
@@ -1821,7 +1822,12 @@ class MethodDefiner(PropertyDefiner):
                 selfHostedName = "0 as *const libc::c_char"
                 if m.get("methodInfo", True):
                     identifier = m.get("nativeName", m["name"])
-                    callPolicy = 'Normal'
+                    if m.get("allowCrossOriginThis", False):
+                        callPolicy = 'CrossOriginCallable'
+                    elif self.descriptor.interface.hasDescendantWithCrossOriginMembers:
+                        callPolicy = 'TargetClassMaybeCrossOrigin'
+                    else:
+                        callPolicy = 'Normal'
                     # Go through an intermediate type here, because it's not
                     # easy to tell whether the methodinfo is a JSJitInfo or
                     # a JSTypedMethodJitInfo here.  The compiler knows, though,
@@ -1924,7 +1930,19 @@ class AttrDefiner(PropertyDefiner):
                 accessor = 'get_' + self.descriptor.internalNameFor(attr.identifier.name)
                 jitinfo = "0 as *const JSJitInfo"
             else:
-                callPolicy = 'LenientThis' if attr.hasLenientThis() else 'Normal'
+                if attr.getExtendedAttribute("CrossOriginReadable"):
+                    assert not attr.hasLenientThis(), \
+                        "CrossOriginReadable && LenientThis: not supported"
+                    callPolicy = 'CrossOriginCallable'
+                elif self.descriptor.interface.hasDescendantWithCrossOriginMembers:
+                    if attr.hasLenientThis():
+                        callPolicy = 'LenientThisTargetClassMaybeCrossOrigin'
+                    else:
+                        callPolicy = 'TargetClassMaybeCrossOrigin'
+                elif attr.hasLenientThis():
+                    callPolicy = 'LenientThis'
+                else:
+                    callPolicy = 'Normal'
                 accessor = "generic_getter::<call_policies::%s>" % callPolicy
                 jitinfo = "&%s_getterinfo" % self.descriptor.internalNameFor(attr.identifier.name)
 
@@ -1945,7 +1963,19 @@ class AttrDefiner(PropertyDefiner):
                 accessor = 'set_' + self.descriptor.internalNameFor(attr.identifier.name)
                 jitinfo = "0 as *const JSJitInfo"
             else:
-                callPolicy = 'LenientThis' if attr.hasLenientThis() else 'Normal'
+                if attr.getExtendedAttribute("CrossOriginWritable"):
+                    assert not attr.hasLenientThis(), \
+                        "CrossOriginWritable && LenientThis: not supported"
+                    callPolicy = 'CrossOriginCallable'
+                elif self.descriptor.interface.hasDescendantWithCrossOriginMembers:
+                    if attr.hasLenientThis():
+                        callPolicy = 'LenientThisTargetClassMaybeCrossOrigin'
+                    else:
+                        callPolicy = 'TargetClassMaybeCrossOrigin'
+                elif attr.hasLenientThis():
+                    callPolicy = 'LenientThis'
+                else:
+                    callPolicy = 'Normal'
                 accessor = "generic_setter::<call_policies::%s>" % callPolicy
                 jitinfo = "&%s_setterinfo" % self.descriptor.internalNameFor(attr.identifier.name)
 

@@ -6,13 +6,17 @@
 
 #![deny(missing_docs)]
 
-use crate::dom::bindings::conversions::{is_dom_proxy, jsid_to_string, jsstring_to_str};
+use crate::dom::bindings::conversions::{
+    is_dom_proxy, jsid_to_string, jsstring_to_str, native_from_object,
+};
 use crate::dom::bindings::error::{throw_dom_exception, Error};
 use crate::dom::bindings::principals::ServoJSPrincipalsRef;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::delete_property_by_id;
+use crate::dom::dissimilaroriginlocation::DissimilarOriginLocation;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::location::Location;
 use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_runtime::JSContext as SafeJSContext;
 use js::conversions::ToJSValConvertible;
@@ -231,6 +235,17 @@ pub unsafe fn is_platform_object_same_origin(cx: SafeJSContext, obj: RawHandleOb
     result
 }
 
+/// Check if `obj` is a `Location` or `Window` object.
+///
+/// IDL operations on a cross-origin object involve [a security check][1].
+///
+/// [1]: https://html.spec.whatwg.org/multipage/#integration-with-idl
+pub unsafe fn is_cross_origin_object(cx: SafeJSContext, obj: RawHandleObject) -> bool {
+    jsapi::IsWindowProxy(*obj) ||
+        native_from_object::<Location>(*obj, *cx).is_ok() ||
+        native_from_object::<DissimilarOriginLocation>(*obj, *cx).is_ok()
+}
+
 /// Report a cross-origin denial for a property, Always returns `false`, so it
 /// can be used as `return report_cross_origin_denial(...);`.
 ///
@@ -238,11 +253,14 @@ pub unsafe fn is_platform_object_same_origin(cx: SafeJSContext, obj: RawHandleOb
 /// <https://html.spec.whatwg.org/multipage/#the-location-interface> denoted as
 /// "Throw a `SecurityError` DOMException".
 pub unsafe fn report_cross_origin_denial(cx: SafeJSContext, id: RawHandleId, access: &str) -> bool {
-    debug!(
-        "permission denied to {} property {} on cross-origin object",
-        access,
-        id_to_source(cx, id).as_deref().unwrap_or("< error >"),
-    );
+    if let Some(id) = id_to_source(cx, id) {
+        debug!(
+            "permission denied to {} property {} on cross-origin object",
+            access, id
+        );
+    } else {
+        debug!("permission denied to {} on cross-origin object", access);
+    }
     let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
     if !JS_IsExceptionPending(*cx) {
         let global = GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
@@ -253,6 +271,10 @@ pub unsafe fn report_cross_origin_denial(cx: SafeJSContext, id: RawHandleId, acc
 }
 
 unsafe fn id_to_source(cx: SafeJSContext, id: RawHandleId) -> Option<DOMString> {
+    if js::glue::RUST_JSID_IS_VOID(id) {
+        return None;
+    }
+
     rooted!(in(*cx) let mut value = UndefinedValue());
     rooted!(in(*cx) let mut jsstr = ptr::null_mut::<jsapi::JSString>());
     jsapi::JS_IdToValue(*cx, id.get(), value.handle_mut().into())
