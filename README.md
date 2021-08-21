@@ -261,38 +261,48 @@ linker = "lld-link.exe"
 Run `./mach bootstrap-android --build` to get Android-specific tools. See wiki for
 [details](https://github.com/servo/servo/wiki/Building-for-Android).
 
-## The Rust compiler
+### Cloning the Repo
+Your CARGO_HOME needs to point to (or be in) the same drive as your Servo repository (See #28530).
+``` sh
+git clone https://github.com/servo/servo
+cd servo
+```
+
+## Building
+
+Servo is built with [Cargo](https://crates.io/), the Rust package manager.
+We also use Mozilla's Mach tools to orchestrate the build and other tasks.
+You can call Mach like this:
+
+On Unix sytems:
+```
+./mach [command] [arguments]
+```
+On Windows Commandline:
+```
+mach.bat [command] [arguments]
+```
+The examples below will use Unix, but the same applies to Windows.
+
+### The Rust compiler
 
 Servo's build system uses rustup.rs to automatically download a Rust compiler.
 This is a specific version of Rust Nightly determined by the
 [`rust-toolchain`](https://github.com/servo/servo/blob/master/rust-toolchain) file.
 
-## Building
-
-Servo is built with [Cargo](https://crates.io/), the Rust package manager. We also use Mozilla's
-Mach tools to orchestrate the build and other tasks.
-
 ### Normal build
 
-To build Servo in development mode.  This is useful for development, but
-the resulting binary is very slow.
+To build Servo in development mode.
+This is useful for development, but the resulting binary is very slow:
 
 ``` sh
-git clone https://github.com/servo/servo
-cd servo
 ./mach build --dev
 ./mach run tests/html/about-mozilla.html
 ```
 
-Or on Windows MSVC, in a normal Command Prompt (cmd.exe):
-``` cmd
-git clone https://github.com/servo/servo
-cd servo
-mach.bat build --dev
-```
-
-For benchmarking, performance testing, or
-real-world use, add the `--release` flag to create an optimized build:
+### Release build
+For benchmarking, performance testing, or real-world use.
+Add the `--release` flag to create an optimized build:
 
 ``` sh
 ./mach build --release
