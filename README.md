@@ -262,7 +262,7 @@ Run `./mach bootstrap-android --build` to get Android-specific tools. See wiki f
 [details](https://github.com/servo/servo/wiki/Building-for-Android).
 
 ### Cloning the Repo
-Your CARGO_HOME needs to point to (or be in) the same drive as your Servo repository (See #28530).
+Your CARGO_HOME needs to point to (or be in) the same drive as your Servo repository (See [#28530](https://github.com/servo/servo/issues/28530)).
 ``` sh
 git clone https://github.com/servo/servo
 cd servo
