@@ -1995,7 +1995,8 @@ class MethodDefiner(PropertyDefiner):
             "length": methodLength(m),
             "flags": "JSPROP_READONLY" if crossorigin else "JSPROP_ENUMERATE",
             "condition": PropertyDefiner.getControllingCondition(m, descriptor),
-            "returnsPromise": m.returnsPromise()
+            "allowCrossOriginThis": m.getExtendedAttribute("CrossOriginCallable") is not None,
+            "returnsPromise": m.returnsPromise(),
         }
 
     def generateArray(self, array: list[dict[str, Any]], name: str) -> str:
@@ -2024,7 +2025,12 @@ class MethodDefiner(PropertyDefiner):
                     else:
                         exceptionToRejection = "false"
                     identifier = m.get("nativeName", m["name"])
-                    callPolicy = 'Normal'
+                    if m.get("allowCrossOriginThis", False):
+                        callPolicy = 'CrossOriginCallable'
+                    elif self.descriptor.interface.hasDescendantWithCrossOriginMembers:
+                        callPolicy = 'TargetClassMaybeCrossOrigin'
+                    else:
+                        callPolicy = 'Normal'
                     # Go through an intermediate type here, because it's not
                     # easy to tell whether the methodinfo is a JSJitInfo or
                     # a JSTypedMethodJitInfo here.  The compiler knows, though,
@@ -2135,7 +2141,21 @@ class AttrDefiner(PropertyDefiner):
                     exceptionToRejection = "true"
                 else:
                     exceptionToRejection = "false"
-                callPolicy = 'LenientThis' if attr.legacyLenientThis else 'Normal'
+
+                if attr.getExtendedAttribute("CrossOriginReadable"):
+                    assert not attr.legacyLenientThis, \
+                        "CrossOriginReadable && LenientThis: not supported"
+                    callPolicy = 'CrossOriginCallable'
+                elif self.descriptor.interface.hasDescendantWithCrossOriginMembers:
+                    if attr.legacyLenientThis:
+                        callPolicy = 'LenientThisTargetClassMaybeCrossOrigin'
+                    else:
+                        callPolicy = 'TargetClassMaybeCrossOrigin'
+                elif attr.legacyLenientThis:
+                    callPolicy = 'LenientThis'
+                else:
+                    callPolicy = 'Normal'
+
                 accessor = f"generic_getter::<D, call_policies::{callPolicy}, {exceptionToRejection}>"
                 internalName = self.descriptor.internalNameFor(attr.identifier.name)
                 jitinfo = f"unsafe {{ {internalName}_getterinfo.get() }}"
@@ -2155,7 +2175,20 @@ class AttrDefiner(PropertyDefiner):
                 accessor = f'set_{self.descriptor.internalNameFor(attr.identifier.name)}::<D>'
                 jitinfo = "ptr::null()"
             else:
-                callPolicy = 'LenientThis' if attr.legacyLenientThis else 'Normal'
+                if attr.getExtendedAttribute("CrossOriginWritable"):
+                    assert not attr.legacyLenientThis, \
+                        "CrossOriginWritable && LenientThis: not supported"
+                    callPolicy = 'CrossOriginCallable'
+                elif self.descriptor.interface.hasDescendantWithCrossOriginMembers:
+                    if attr.legacyLenientThis:
+                        callPolicy = 'LenientThisTargetClassMaybeCrossOrigin'
+                    else:
+                        callPolicy = 'TargetClassMaybeCrossOrigin'
+                elif attr.legacyLenientThis:
+                    callPolicy = 'LenientThis'
+                else:
+                    callPolicy = 'Normal'
+
                 accessor = f"generic_setter::<D, call_policies::{callPolicy}>"
                 internalName = self.descriptor.internalNameFor(attr.identifier.name)
                 jitinfo = f"unsafe {{ {internalName}_setterinfo.get() }}"

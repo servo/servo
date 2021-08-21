@@ -222,6 +222,9 @@ pub fn set_property_descriptor(
 
 pub(crate) fn id_to_source(cx: SafeJSContext, id: RawHandleId) -> Option<DOMString> {
     unsafe {
+        if js::glue::RUST_JSID_IS_VOID(id) {
+            return None;
+        }
         rooted!(in(*cx) let mut value = UndefinedValue());
         rooted!(in(*cx) let mut jsstr = ptr::null_mut::<jsapi::JSString>());
         jsapi::JS_IdToValue(*cx, id.get(), value.handle_mut().into())
@@ -540,15 +543,14 @@ pub(crate) fn report_cross_origin_denial<D: DomTypes>(
     id: RawHandleId,
     access: &str,
 ) -> bool {
-    debug!(
-        "permission denied to {} property {} on cross-origin object",
-        access,
-        id_to_source(cx.into(), id)
-            .as_ref()
-            .map(|source| source.str())
-            .as_deref()
-            .unwrap_or("< error >"),
-    );
+    if let Some(id) = id_to_source(cx.into(), id) {
+        debug!(
+            "permission denied to {} property {} on cross-origin object",
+            access, &*id.str(),
+        );
+    } else {
+        debug!("permission denied to {} on cross-origin object", access);
+    }
     unsafe {
         if !js::rust::wrappers2::JS_IsExceptionPending(cx) {
             let global = D::GlobalScope::from_current_realm(cx);
