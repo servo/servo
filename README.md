@@ -36,7 +36,7 @@ curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain none
 ```
 
 See also [Other installation methods](
-https://github.com/rust-lang-nursery/rustup.rs/#other-installation-methods)
+https://rust-lang.github.io/rustup/installation/other.html)
 
 ### Other dependencies
 
@@ -197,7 +197,7 @@ The `/m` will set it system-wide for all future command windows.
 
 2. Install virtualenv.
 
- In a normal Windows Shell (cmd.exe or "Command Prompt" from the start menu), do:
+ In a normal Windows Shell (cmd), do:
  ```
 pip install virtualenv
 ```
@@ -208,7 +208,7 @@ pip install virtualenv
 - [gstreamer-1.0-msvc-x86_64-1.16.0.msi](https://gstreamer.freedesktop.org/data/pkg/windows/1.16.0/gstreamer-1.0-msvc-x86_64-1.16.0.msi)
 - [gstreamer-1.0-devel-msvc-x86_64-1.16.0.msi](https://gstreamer.freedesktop.org/data/pkg/windows/1.16.0/gstreamer-1.0-devel-msvc-x86_64-1.16.0.msi)
 
-Note that the MinGW binaries will not work, so make sure that you install the MSVC the ones.
+Note that the MinGW binaries will not work, so make sure that you install the MSVC ones.
 
 Note that you should ensure that _all_ components are installed from gstreamer, as we require many of the optional libraries that are not installed by default.
 
