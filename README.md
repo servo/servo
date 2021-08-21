@@ -215,17 +215,13 @@ Note that you should ensure that _all_ components are installed from gstreamer, 
 4. Install Git for Windows (https://git-scm.com/download/win). DO allow it to add git.exe to the PATH (default
 settings for the installer are fine).
 
-5. Install Visual Studio Community 2017 (https://www.visualstudio.com/vs/community/). You MUST add "Visual C++" to the
-list of installed components as well as the "Windows Universal C runtime." They are not on by default. Visual Studio 2017 MUST installed to the default location or mach.bat will not find it.
-
-Note that version is hard to download online and is easier to install via [Chocolatey](https://chocolatey.org/install#installing-chocolatey) with:
+5. Install Visual Studio Build Tools 2019 (https://visualstudio.microsoft.com/de/downloads/#build-tools-for-visual-studio-2019). It is easiest to install via [Chocolatey](https://chocolatey.org/install#installing-chocolatey) with:
 ```
-choco install -y visualstudio2017community --package-parameters="'--add Microsoft.VisualStudio.Component.Git'"
-Update-SessionEnvironment #refreshing env due to Git install
-
-#--- UWP Workload and installing Windows Template Studio ---
-choco install -y visualstudio2017-workload-nativedesktop
+choco install -y visualstudio2019buildtools --package-parameters="--add Microsoft.VisualStudio.Component.Roslyn.Compiler --add Microsoft.Component.MSBuild --add Microsoft.VisualStudio.Component.CoreBuildTools --add Microsoft.VisualStudio.Workload.MSBuildTools --add Microsoft.VisualStudio.Component.Windows10SDK --add Microsoft.VisualStudio.Component.VC.CoreBuildTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.VC.Redist.14.Latest --add Microsoft.VisualStudio.Component.VC.ATL --add Microsoft.VisualStudio.Component.VC.ATLMFC --add Microsoft.VisualStudio.Component.TextTemplating --add Microsoft.VisualStudio.Component.VC.CoreIde --add Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Core --add Microsoft.VisualStudio.Workload.VCTools"
 ```
+If you really need to use the Visual Studio Installer (UI), choose "Desktop development with C++" and add the optional "MSVC", "C++-ATL" and "C++-MFC" (latest).
+
+The Visual Studio 2019 Build Tools MUST be installed to the default location or mach.bat will not find them.
 
 ##### [Optional] Install LLVM for faster link times
 
@@ -242,13 +238,8 @@ linker = "lld-link.exe"
 
 ##### Troubleshooting a Windows environment
 
-> If you encountered errors with the environment above, do the following for a workaround:
-> 1.  Download and install [Build Tools for Visual Studio 2017](https://www.visualstudio.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=15)
-> 2.  Install `python3.9 x86-x64` and `virtualenv`
-> 3.  Run `mach.bat build -d`.
-
 >If you have troubles with `x64 type` prompt as `mach.bat` set by default:
-> 1. You may need to choose and launch the type manually, such as `x86_x64 Cross Tools Command Prompt for VS 2017` in the Windows menu.)
+> 1. You may need to choose and launch the type manually, such as `x86_x64 Cross Tools Command Prompt for VS 2019` in the Windows menu.)
 > 2. `cd to/the/path/servo`
 > 3. `python mach build -d`
 
