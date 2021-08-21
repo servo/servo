@@ -758,7 +758,7 @@ class MachCommands(CommandBase):
         return status
 
     @Command('clean',
-             description='Clean the build directory.',
+             description='Clean the target/ and python/_virtualenv[version]/ and support/hololens/ directories',
              category='build')
     @CommandArgument('--manifest-path',
                      default=None,
@@ -786,7 +786,7 @@ class MachCommands(CommandBase):
         return check_call(["cargo", "clean"] + opts, env=self.build_env(), verbose=verbose)
 
     @Command('clean-uwp',
-             description='Clean the support/hololens/ directory.',
+             description='Clean the support/hololens/ directory',
              category='build')
     def clean_uwp(self):
         uwp_artifacts = [
