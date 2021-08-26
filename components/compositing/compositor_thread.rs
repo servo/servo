@@ -24,6 +24,7 @@ use style_traits::CSSPixel;
 use webrender_api;
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use webrender_surfman::WebrenderSurfman;
+use webrender::render_api;
 
 /// Sends messages to the compositor.
 pub struct CompositorProxy {
@@ -191,7 +192,7 @@ pub struct InitialCompositorState {
     /// Instance of webrender API
     pub webrender: webrender::Renderer,
     pub webrender_document: webrender_api::DocumentId,
-    pub webrender_api: webrender_api::RenderApi,
+    pub webrender_api: render_api::RenderApi,
     pub webrender_surfman: WebrenderSurfman,
     pub webrender_gl: Rc<dyn gleam::gl::Gl>,
     pub webxr_main_thread: webxr::MainThreadRegistry,

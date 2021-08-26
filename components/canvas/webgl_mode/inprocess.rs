@@ -24,6 +24,7 @@ use webrender_surfman::WebrenderSurfman;
 use webrender_traits::{
     WebrenderExternalImageApi, WebrenderExternalImageRegistry, WebrenderImageSource,
 };
+use webrender::render_api;
 use webxr::SurfmanGL as WebXRSurfman;
 use webxr_api::LayerGrandManager as WebXRLayerGrandManager;
 
@@ -37,7 +38,7 @@ impl WebGLComm {
     /// Creates a new `WebGLComm` object.
     pub fn new(
         surfman: WebrenderSurfman,
-        webrender_api_sender: webrender_api::RenderApiSender,
+        webrender_api_sender: render_api::RenderApiSender,
         webrender_doc: webrender_api::DocumentId,
         external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
         api_type: GlType,

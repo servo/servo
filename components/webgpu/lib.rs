@@ -31,6 +31,7 @@ use webrender_traits::{
     WebrenderExternalImageApi, WebrenderExternalImageRegistry, WebrenderImageHandlerType,
     WebrenderImageSource,
 };
+use webrender::render_api;
 use wgpu::{
     binding_model::{BindGroupDescriptor, BindGroupLayoutDescriptor, PipelineLayoutDescriptor},
     command::{
@@ -267,7 +268,7 @@ pub struct WebGPU(pub IpcSender<(Option<ErrorScopeId>, WebGPURequest)>);
 
 impl WebGPU {
     pub fn new(
-        webrender_api_sender: webrender_api::RenderApiSender,
+        webrender_api_sender: render_api::RenderApiSender,
         webrender_document: webrender_api::DocumentId,
         external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
         wgpu_image_map: Arc<Mutex<HashMap<u64, PresentationData>>>,
@@ -342,7 +343,7 @@ struct WGPU<'a> {
         HashMap<id::BufferId, Rc<BufferMapInfo<'a, (Option<ErrorScopeId>, WebGPURequest)>>>,
     //TODO: Remove this (https://github.com/gfx-rs/wgpu/issues/867)
     error_command_encoders: RefCell<HashMap<id::CommandEncoderId, String>>,
-    webrender_api: webrender_api::RenderApi,
+    webrender_api: render_api::RenderApi,
     webrender_document: webrender_api::DocumentId,
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     wgpu_image_map: Arc<Mutex<HashMap<u64, PresentationData>>>,
@@ -354,7 +355,7 @@ impl<'a> WGPU<'a> {
         receiver: IpcReceiver<(Option<ErrorScopeId>, WebGPURequest)>,
         sender: IpcSender<(Option<ErrorScopeId>, WebGPURequest)>,
         script_sender: IpcSender<WebGPUMsg>,
-        webrender_api_sender: webrender_api::RenderApiSender,
+        webrender_api_sender: render_api::RenderApiSender,
         webrender_document: webrender_api::DocumentId,
         external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
         wgpu_image_map: Arc<Mutex<HashMap<u64, PresentationData>>>,
@@ -767,7 +768,7 @@ impl<'a> WGPU<'a> {
                             },
                         );
 
-                        let mut txn = webrender_api::Transaction::new();
+                        let mut txn = render_api::Transaction::new();
                         txn.add_image(image_key, image_desc, image_data, None);
                         self.webrender_api
                             .send_transaction(self.webrender_document, txn);
@@ -839,7 +840,7 @@ impl<'a> WGPU<'a> {
                                 warn!("Unable to send FreeBuffer({:?}) ({:?})", *b_id, e);
                             };
                         }
-                        let mut txn = webrender_api::Transaction::new();
+                        let mut txn = render_api::Transaction::new();
                         txn.delete_image(image_key);
                         self.webrender_api
                             .send_transaction(self.webrender_document, txn);
@@ -1189,7 +1190,7 @@ impl<'a> WGPU<'a> {
                             self.wgpu_image_map.lock().unwrap().get_mut(&external_id)
                         {
                             present_data.data = data;
-                            let mut txn = webrender_api::Transaction::new();
+                            let mut txn = render_api::Transaction::new();
                             txn.update_image(
                                 present_data.image_key,
                                 present_data.image_desc,

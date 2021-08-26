@@ -49,6 +49,7 @@ use time::{now, precise_time_ns, precise_time_s};
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePoint, LayoutVector2D};
 use webrender_api::{self, HitTestResult, ScrollLocation, ExternalScrollId, ScrollClamping};
 use webrender_surfman::WebrenderSurfman;
+use webrender::render_api;
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -176,7 +177,7 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     webrender_document: webrender_api::DocumentId,
 
     /// The webrender interface, if enabled.
-    webrender_api: webrender_api::RenderApi,
+    webrender_api: render_api::RenderApi,
 
     /// The surfman instance that webrender targets
     webrender_surfman: WebrenderSurfman,
@@ -585,7 +586,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         match msg {
             WebrenderMsg::Layout(script_traits::WebrenderMsg::SendInitialTransaction(pipeline)) => {
                 self.waiting_on_pending_frame = true;
-                let mut txn = webrender_api::Transaction::new();
+                let mut txn = render_api::Transaction::new();
                 txn.set_display_list(
                     webrender_api::Epoch(0),
                     None,
@@ -602,7 +603,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 scroll_id,
                 clamping,
             )) => {
-                let mut txn = webrender_api::Transaction::new();
+                let mut txn = render_api::Transaction::new();
                 txn.scroll_node_with_id(point, scroll_id, clamping);
                 self.webrender_api
                     .send_transaction(self.webrender_document, txn);
@@ -616,7 +617,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 descriptor,
             )) => {
                 self.waiting_on_pending_frame = true;
-                let mut txn = webrender_api::Transaction::new();
+                let mut txn = render_api::Transaction::new();
                 txn.set_display_list(
                     epoch,
                     None,
@@ -649,7 +650,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
 
             WebrenderMsg::Layout(script_traits::WebrenderMsg::UpdateImages(updates)) => {
-                let mut txn = webrender_api::Transaction::new();
+                let mut txn = render_api::Transaction::new();
                 for update in updates {
                     match update {
                         script_traits::ImageUpdate::AddImage(key, desc, data) => {
@@ -666,7 +667,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
 
             WebrenderMsg::Net(net_traits::WebrenderImageMsg::AddImage(key, desc, data)) => {
-                let mut txn = webrender_api::Transaction::new();
+                let mut txn = render_api::Transaction::new();
                 txn.add_image(key, desc, data, None);
                 self.webrender_api
                     .send_transaction(self.webrender_document, txn);
@@ -674,7 +675,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
             WebrenderMsg::Font(WebrenderFontMsg::AddFontInstance(font_key, size, sender)) => {
                 let key = self.webrender_api.generate_font_instance_key();
-                let mut txn = webrender_api::Transaction::new();
+                let mut txn = render_api::Transaction::new();
                 txn.add_font_instance(key, font_key, size, None, None, Vec::new());
                 self.webrender_api
                     .send_transaction(self.webrender_document, txn);
@@ -683,7 +684,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
             WebrenderMsg::Font(WebrenderFontMsg::AddFont(data, sender)) => {
                 let font_key = self.webrender_api.generate_font_key();
-                let mut txn = webrender_api::Transaction::new();
+                let mut txn = render_api::Transaction::new();
                 match data {
                     FontData::Raw(bytes) => txn.add_raw_font(font_key, bytes, 0),
                     FontData::Native(native_font) => txn.add_native_font(font_key, native_font),
@@ -698,7 +699,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
 
             WebrenderMsg::Canvas(WebrenderCanvasMsg::UpdateImages(updates)) => {
-                let mut txn = webrender_api::Transaction::new();
+                let mut txn = render_api::Transaction::new();
                 for update in updates {
                     match update {
                         ImageUpdate::Add(key, descriptor, data) => {
@@ -781,7 +782,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.root_pipeline = Some(frame_tree.pipeline.clone());
 
         let pipeline_id = frame_tree.pipeline.id.to_webrender();
-        let mut txn = webrender_api::Transaction::new();
+        let mut txn = render_api::Transaction::new();
         txn.set_root_pipeline(pipeline_id);
         txn.generate_frame();
         self.webrender_api
@@ -1137,7 +1138,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             };
             let cursor = (combined_event.cursor.to_f32() / self.scale).to_untyped();
             let cursor = webrender_api::units::WorldPoint::from_untyped(cursor);
-            let mut txn = webrender_api::Transaction::new();
+            let mut txn = render_api::Transaction::new();
 
             let hit = self.webrender_api.hit_test(self.webrender_document, None, cursor);
             // TODO(bryce): Find the right item (don't iterate through all items like I did) and
@@ -1272,7 +1273,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     fn update_page_zoom_for_webrender(&mut self) {
         let page_zoom = webrender_api::ZoomFactor::new(self.page_zoom.get());
 
-        let mut txn = webrender_api::Transaction::new();
+        let mut txn = render_api::Transaction::new();
         txn.set_page_zoom(page_zoom);
         self.webrender_api
             .send_transaction(self.webrender_document, txn);
@@ -1761,7 +1762,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         flags.toggle(flag);
         self.webrender.set_debug_flags(flags);
 
-        let mut txn = webrender_api::Transaction::new();
+        let mut txn = render_api::Transaction::new();
         txn.generate_frame();
         self.webrender_api
             .send_transaction(self.webrender_document, txn);
@@ -1793,7 +1794,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     &revision_file_path
                 );
                 self.webrender_api
-                    .save_capture(capture_path, webrender_api::CaptureBits::all());
+                    .save_capture(capture_path, render_api::CaptureBits::all());
 
                 match File::create(revision_file_path) {
                     Ok(mut file) => {

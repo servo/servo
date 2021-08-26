@@ -71,6 +71,7 @@ use surfman::SurfaceType;
 use surfman_chains::SwapChains;
 use surfman_chains_api::SwapChainsAPI;
 use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
+use webrender::render_api;
 use webxr::SurfmanGL as WebXRSurfman;
 use webxr_api::ContextId as WebXRContextId;
 use webxr_api::Error as WebXRError;
@@ -231,7 +232,7 @@ pub(crate) struct WebGLThread {
     /// The GPU device.
     device: Device,
     /// Channel used to generate/update or delete `webrender_api::ImageKey`s.
-    webrender_api: webrender_api::RenderApi,
+    webrender_api: render_api::RenderApi,
     webrender_doc: webrender_api::DocumentId,
     /// Map of live WebGLContexts.
     contexts: FnvHashMap<WebGLContextId, GLContextData>,
@@ -258,7 +259,7 @@ pub(crate) struct WebGLThread {
 
 /// The data required to initialize an instance of the WebGLThread type.
 pub(crate) struct WebGLThreadInit {
-    pub webrender_api_sender: webrender_api::RenderApiSender,
+    pub webrender_api_sender: render_api::RenderApiSender,
     pub webrender_doc: webrender_api::DocumentId,
     pub external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     pub sender: WebGLSender<WebGLMsg>,
@@ -751,7 +752,7 @@ impl WebGLThread {
     fn remove_webgl_context(&mut self, context_id: WebGLContextId) {
         // Release webrender image keys.
         if let Some(info) = self.cached_context_info.remove(&context_id) {
-            let mut txn = webrender_api::Transaction::new();
+            let mut txn = render_api::Transaction::new();
             txn.delete_image(info.image_key);
             self.webrender_api.send_transaction(self.webrender_doc, txn)
         }
@@ -1006,7 +1007,7 @@ impl WebGLThread {
 
     /// Creates a `webrender_api::ImageKey` that uses shared textures.
     fn create_wr_external_image(
-        webrender_api: &mut webrender_api::RenderApi,
+        webrender_api: &mut render_api::RenderApi,
         webrender_doc: webrender_api::DocumentId,
         size: Size2D<i32>,
         alpha: bool,
@@ -1017,7 +1018,7 @@ impl WebGLThread {
         let data = Self::external_image_data(context_id, target);
 
         let image_key = webrender_api.generate_image_key();
-        let mut txn = webrender_api::Transaction::new();
+        let mut txn = render_api::Transaction::new();
         txn.add_image(image_key, descriptor, data, None);
         webrender_api.send_transaction(webrender_doc, txn);
 
@@ -1026,7 +1027,7 @@ impl WebGLThread {
 
     /// Updates a `webrender_api::ImageKey` that uses shared textures.
     fn update_wr_external_image(
-        webrender_api: &mut webrender_api::RenderApi,
+        webrender_api: &mut render_api::RenderApi,
         webrender_doc: webrender_api::DocumentId,
         size: Size2D<i32>,
         alpha: bool,
@@ -1037,7 +1038,7 @@ impl WebGLThread {
         let descriptor = Self::image_descriptor(size, alpha);
         let data = Self::external_image_data(context_id, target);
 
-        let mut txn = webrender_api::Transaction::new();
+        let mut txn = render_api::Transaction::new();
         txn.update_image(image_key, descriptor, data, &webrender_api::DirtyRect::All);
         webrender_api.send_transaction(webrender_doc, txn);
     }

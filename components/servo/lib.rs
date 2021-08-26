@@ -52,6 +52,7 @@ pub use webgpu;
 pub use webrender_api;
 pub use webrender_surfman;
 pub use webrender_traits;
+pub use webrender::render_api;
 
 #[cfg(feature = "webdriver")]
 fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
@@ -851,7 +852,7 @@ fn create_constellation(
     mem_profiler_chan: mem::ProfilerChan,
     devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
     webrender_document: webrender_api::DocumentId,
-    webrender_api_sender: webrender_api::RenderApiSender,
+    webrender_api_sender: render_api::RenderApiSender,
     webxr_registry: webxr_api::Registry,
     player_context: WindowGLContext,
     webgl_threads: Option<WebGLThreads>,

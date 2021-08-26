@@ -183,6 +183,7 @@ use style_traits::viewport::ViewportConstraints;
 use style_traits::CSSPixel;
 use webgpu::{self, WebGPU, WebGPURequest};
 use webrender_traits::WebrenderExternalImageRegistry;
+use webrender::render_api;
 
 type PendingApprovalNavigations = HashMap<PipelineId, (LoadData, HistoryEntryReplacement)>;
 
@@ -225,7 +226,7 @@ struct MessagePortInfo {
 /// Webrender related objects required by WebGPU threads
 struct WebrenderWGPU {
     /// Webrender API.
-    webrender_api: webrender_api::RenderApi,
+    webrender_api: render_api::RenderApi,
 
     /// List of Webrender external images
     webrender_external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
@@ -550,7 +551,7 @@ pub struct InitialConstellationState {
     pub webrender_document: webrender_api::DocumentId,
 
     /// Webrender API.
-    pub webrender_api_sender: webrender_api::RenderApiSender,
+    pub webrender_api_sender: render_api::RenderApiSender,
 
     /// Webrender external images
     pub webrender_external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
