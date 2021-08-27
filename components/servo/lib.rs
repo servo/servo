@@ -373,9 +373,6 @@ where
 
             let render_notifier = Box::new(RenderNotifier::new(compositor_proxy.clone()));
 
-            // Cast from `DeviceIndependentPixel` to `DevicePixel`
-            let window_size = Size2D::from_untyped(viewport_size.to_i32().to_untyped());
-
             webrender::Renderer::new(
                 webrender_gl.clone(),
                 render_notifier,
@@ -394,8 +391,7 @@ where
                     clear_color: None,
                     ..Default::default()
                 },
-                None,
-                window_size,
+                None
             )
             .expect("Unable to initialize webrender!")
         };
