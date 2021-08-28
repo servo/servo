@@ -253,7 +253,7 @@ impl webrender_api::RenderNotifier for RenderNotifier {
         Box::new(RenderNotifier::new(self.compositor_proxy.clone()))
     }
 
-    fn wake_up(&self) {
+    fn wake_up(&self, _composite_needed: bool) {
         self.compositor_proxy
             .recomposite(CompositingReason::NewWebRenderFrame);
     }
@@ -269,7 +269,7 @@ impl webrender_api::RenderNotifier for RenderNotifier {
             self.compositor_proxy
                 .send(Msg::NewScrollFrameReady(composite_needed));
         } else {
-            self.wake_up();
+            self.wake_up(composite_needed);
         }
     }
 }
