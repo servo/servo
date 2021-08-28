@@ -1012,7 +1012,7 @@ impl WebGLThread {
         size: Size2D<i32>,
         alpha: bool,
         context_id: WebGLContextId,
-        target: webrender_api::TextureTarget,
+        target: webrender_api::ImageBufferKind,
     ) -> webrender_api::ImageKey {
         let descriptor = Self::image_descriptor(size, alpha);
         let data = Self::external_image_data(context_id, target);
@@ -1033,7 +1033,7 @@ impl WebGLThread {
         alpha: bool,
         context_id: WebGLContextId,
         image_key: webrender_api::ImageKey,
-        target: webrender_api::TextureTarget,
+        target: webrender_api::ImageBufferKind,
     ) {
         let descriptor = Self::image_descriptor(size, alpha);
         let data = Self::external_image_data(context_id, target);
@@ -1059,7 +1059,7 @@ impl WebGLThread {
     /// Helper function to create a `webrender_api::ImageData::External` instance.
     fn external_image_data(
         context_id: WebGLContextId,
-        target: webrender_api::TextureTarget,
+        target: webrender_api::ImageBufferKind,
     ) -> webrender_api::ImageData {
         let data = webrender_api::ExternalImageData {
             id: webrender_api::ExternalImageId(context_id.0 as u64),
@@ -1094,10 +1094,10 @@ struct WebGLContextInfo {
 }
 
 // TODO(pcwalton): Add `GL_TEXTURE_EXTERNAL_OES`?
-fn current_wr_texture_target(device: &Device) -> webrender_api::TextureTarget {
+fn current_wr_texture_target(device: &Device) -> webrender_api::ImageBufferKind {
     match device.surface_gl_texture_target() {
-        gl::TEXTURE_RECTANGLE => webrender_api::TextureTarget::Rect,
-        _ => webrender_api::TextureTarget::Default,
+        gl::TEXTURE_RECTANGLE => webrender_api::ImageBufferKind::TextureRect,
+        _ => webrender_api::ImageBufferKind::Texture2D,
     }
 }
 
