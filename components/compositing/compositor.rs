@@ -1480,7 +1480,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 // Paint the scene.
                 // TODO(gw): Take notice of any errors the renderer returns!
                 self.clear_background();
-                self.webrender.render(size).ok();
+                self.webrender.render(size, 0).ok();
             },
         );
 
