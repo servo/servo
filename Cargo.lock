@@ -800,7 +800,7 @@ dependencies = [
  "bitflags",
  "block",
  "cocoa-foundation",
- "core-foundation 0.9.0",
+ "core-foundation 0.9.1",
  "core-graphics 0.22.0",
  "foreign-types",
  "libc",
@@ -815,7 +815,7 @@ checksum = "7ade49b65d560ca58c403a479bb396592b155c0185eada742ee323d1d68d6318"
 dependencies = [
  "bitflags",
  "block",
- "core-foundation 0.9.0",
+ "core-foundation 0.9.1",
  "core-graphics-types",
  "foreign-types",
  "libc",
@@ -978,11 +978,11 @@ dependencies = [
 
 [[package]]
 name = "core-foundation"
-version = "0.9.0"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b5ed8e7e76c45974e15e41bfa8d5b0483cd90191639e01d8f5f1e606299d3fb"
+checksum = "0a89e2ae426ea83155dccf10c0fa6b1463ef6d5fcb44cee0b224a408fa640a62"
 dependencies = [
- "core-foundation-sys 0.8.0",
+ "core-foundation-sys 0.8.2",
  "libc",
 ]
 
@@ -1000,9 +1000,9 @@ checksum = "b3a71ab494c0b5b860bdc8407ae08978052417070c2ced38573a9157ad75b8ac"
 
 [[package]]
 name = "core-foundation-sys"
-version = "0.8.0"
+version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a21fa21941700a3cd8fcb4091f361a6a712fac632f85d9f487cc892045d55c6"
+checksum = "ea221b5284a47e40033bf9b66f35f984ec0ea2931eb03505246cd27a963f981b"
 
 [[package]]
 name = "core-graphics"
@@ -1035,7 +1035,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f6082396a349fa49674ba1bda4077332a18bf150e8fa75745ece07085e29a113"
 dependencies = [
  "bitflags",
- "core-foundation 0.9.0",
+ "core-foundation 0.9.1",
  "core-graphics-types",
  "foreign-types",
  "libc",
@@ -1048,7 +1048,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e92f5d519093a4178296707dbaa3880eae85a5ef5386675f361a1cf25376e93c"
 dependencies = [
  "bitflags",
- "core-foundation 0.9.0",
+ "core-foundation 0.9.1",
  "foreign-types",
  "libc",
 ]
@@ -1059,7 +1059,7 @@ version = "19.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "04dfae50af11e72657fe7174cddb1ecddc5398037f7f6f39533ad69207c9a4e2"
 dependencies = [
- "core-foundation 0.9.0",
+ "core-foundation 0.9.1",
  "core-graphics 0.22.0",
  "foreign-types",
  "libc",
@@ -1720,7 +1720,7 @@ checksum = "1f9042cb45150fb2b2a012fc03d0f1d2071f18e90397b9d2a5ec8ade8464bf20"
 dependencies = [
  "bitflags",
  "byteorder",
- "core-foundation 0.9.0",
+ "core-foundation 0.9.1",
  "core-graphics 0.22.0",
  "core-text",
  "dirs",
@@ -2008,7 +2008,7 @@ dependencies = [
  "app_units",
  "bitflags",
  "byteorder",
- "core-foundation 0.9.0",
+ "core-foundation 0.9.1",
  "core-graphics 0.22.0",
  "core-text",
  "dwrote",
@@ -5292,8 +5292,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1759c2e3c8580017a484a7ac56d3abc5a6c1feadf88db2f3633f12ae4268c69"
 dependencies = [
  "bitflags",
- "core-foundation 0.9.0",
- "core-foundation-sys 0.8.0",
+ "core-foundation 0.9.1",
+ "core-foundation-sys 0.8.2",
  "libc",
  "security-framework-sys",
 ]
@@ -5304,7 +5304,7 @@ version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f99b9d5e26d2a71633cc4f2ebae7cc9f874044e0c351a27e17892d76dce5678b"
 dependencies = [
- "core-foundation-sys 0.8.0",
+ "core-foundation-sys 0.8.2",
  "libc",
 ]
 
@@ -7185,7 +7185,7 @@ dependencies = [
  "build-parallel",
  "byteorder",
  "cfg-if 0.1.10",
- "core-foundation 0.9.0",
+ "core-foundation 0.9.1",
  "core-graphics 0.22.0",
  "core-text",
  "cstr",
@@ -7225,7 +7225,7 @@ dependencies = [
  "app_units",
  "bitflags",
  "byteorder",
- "core-foundation 0.9.0",
+ "core-foundation 0.9.1",
  "core-graphics 0.22.0",
  "crossbeam-channel 0.4.4",
  "derive_more",
@@ -7390,7 +7390,7 @@ source = "git+https://github.com/rust-windowing/winit.git?rev=4192d04a53202c199f
 dependencies = [
  "bitflags",
  "cocoa 0.24.0",
- "core-foundation 0.9.0",
+ "core-foundation 0.9.1",
  "core-graphics 0.22.0",
  "core-video-sys",
  "dispatch",
