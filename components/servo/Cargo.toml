@@ -53,7 +53,7 @@ env_logger = "0.8"
 euclid = "0.22"
 gfx = { path = "../gfx" }
 gfx_traits = { path = "../gfx_traits" }
-gleam = "0.12"
+gleam = "0.13"
 gstreamer = { version = "0.15", features = ["v1_16"], optional = true }
 ipc-channel = "0.14"
 keyboard-types = "0.5"
@@ -81,8 +81,8 @@ style_traits = { path = "../style_traits", features = ["servo"] }
 surfman = "0.5"
 webdriver_server = { path = "../webdriver_server", optional = true }
 webgpu = { path = "../webgpu" }
-webrender = { git = "https://github.com/servo/webrender", rev = "d22a5069"  }
-webrender_api = { git = "https://github.com/servo/webrender", rev = "d22a5069"  }
+webrender = { git = "https://github.com/servo/webrender", rev = "947e441b"  }
+webrender_api = { git = "https://github.com/servo/webrender", rev = "947e441b"  }
 webrender_surfman = { path = "../webrender_surfman" }
 webrender_traits = { path = "../webrender_traits" }
 webxr = { git = "https://github.com/servo/webxr" }

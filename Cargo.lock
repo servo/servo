@@ -558,7 +558,7 @@ dependencies = [
  "fnv",
  "font-kit",
  "gfx",
- "gleam 0.12.1",
+ "gleam 0.13.2",
  "half",
  "ipc-channel",
  "log",
@@ -848,7 +848,7 @@ dependencies = [
  "embedder_traits",
  "euclid 0.22.6",
  "gfx_traits",
- "gleam 0.12.1",
+ "gleam 0.13.2",
  "image",
  "ipc-channel",
  "keyboard-types",
@@ -2248,9 +2248,9 @@ dependencies = [
 
 [[package]]
 name = "gleam"
-version = "0.12.1"
+version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3fdef5b9df6d3a261b80a5ac55e13bf93945725df2463c1b0a2e5a527dce0d37"
+checksum = "2ebd4abf655b7c9aaf26c648542e6a4f1a6476e379f5286fa3aa098f181c9704"
 dependencies = [
  "gl_generator 0.14.0",
 ]
@@ -3367,7 +3367,7 @@ dependencies = [
  "gaol",
  "gfx",
  "gfx_traits",
- "gleam 0.12.1",
+ "gleam 0.13.2",
  "gstreamer",
  "ipc-channel",
  "keyboard-types",
@@ -7194,7 +7194,7 @@ dependencies = [
  "euclid 0.22.6",
  "freetype",
  "fxhash",
- "gleam 0.12.1",
+ "gleam 0.13.2",
  "glslopt",
  "image",
  "lazy_static",

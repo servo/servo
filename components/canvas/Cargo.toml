@@ -25,7 +25,7 @@ euclid = "0.22"
 font-kit = "0.10"
 fnv = "1.0"
 gfx = { path = "../gfx" }
-gleam = "0.12"
+gleam = "0.13"
 half = "1"
 ipc-channel = "0.14"
 log = "0.4"
@@ -44,8 +44,8 @@ surfman = { version = "0.5", features = ["sm-angle","sm-angle-default"] }
 surfman-chains = "0.7"
 surfman-chains-api = "0.2"
 time = { version = "0.1.41", optional = true }
-webrender = { git = "https://github.com/servo/webrender", rev = "d22a5069"  }
-webrender_api = { git = "https://github.com/servo/webrender", rev = "d22a5069"  }
+webrender = { git = "https://github.com/servo/webrender", rev = "947e441b"  }
+webrender_api = { git = "https://github.com/servo/webrender", rev = "947e441b"  }
 webrender_surfman = { path = "../webrender_surfman" }
 webrender_traits = { path = "../webrender_traits" }
 webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
