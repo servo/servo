@@ -49,7 +49,7 @@ style = { path = "../style", features = ["servo", "servo-layout-2013"] }
 style_traits = { path = "../style_traits" }
 unicode-bidi = { version = "0.3", features = ["with_serde"] }
 unicode-script = "0.5"
-webrender_api = { git = "https://github.com/servo/webrender", rev = "4fee99a7"  }
+webrender_api = { git = "https://github.com/servo/webrender", rev = "d21616d8"  }
 xi-unicode = "0.1.0"
 
 [dev-dependencies]

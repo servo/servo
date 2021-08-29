@@ -1150,8 +1150,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     ScrollLocation::Start => {LayoutVector2D::new(-1000f32, -1000f32)},
                     ScrollLocation::End => {LayoutVector2D::new(1000f32, 1000f32)},
                 };
-                // TODO(bryce): Figure this out. I don't understand why scrolling does not work even
-                //  a little
+                // TODO(bryce): Figure this out
                 //println!("{:?}", new_point);
                 //item.point_relative_to_item +
                 //let node_address = UntrustedNodeAddress(item.tag.0 as *const c_void);

@@ -295,7 +295,7 @@ impl DisplayItem {
                                 clip_id: parent_clip_id,
                                 spatial_id: parent_spatial_id,
                             },
-                            Some(external_id),
+                            external_id,
                             node.content_rect,
                             node.clip.main,
                             scroll_sensitivity,

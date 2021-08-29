@@ -1630,6 +1630,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "etagere"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "520d7de540904fd09b11c03a47d50a7ce4ff37d1aa763f454fa60d9088ef8356"
+dependencies = [
+ "euclid 0.22.6",
+ "serde",
+ "svg_fmt",
+]
+
+[[package]]
 name = "euclid"
 version = "0.20.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7175,6 +7186,7 @@ dependencies = [
  "cstr",
  "derive_more",
  "dwrote",
+ "etagere",
  "euclid 0.22.6",
  "freetype",
  "fxhash",
