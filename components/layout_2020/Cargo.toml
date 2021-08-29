@@ -43,7 +43,7 @@ servo_url = { path = "../url" }
 style = { path = "../style", features = ["servo", "servo-layout-2020"] }
 style_traits = { path = "../style_traits" }
 unicode-script = "0.5"
-webrender_api = { git = "https://github.com/servo/webrender", rev = "d21616d8"  }
+webrender_api = { git = "https://github.com/servo/webrender", rev = "04ed99b8"  }
 
 [dev-dependencies]
 lazy_static = "1"

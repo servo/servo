@@ -20,8 +20,8 @@ msg = { path = "../msg" }
 serde = { version = "1.0", features = ["serde_derive"] }
 servo_config = { path = "../config" }
 smallvec = { version = "0.6", features = ["serde"] }
-webrender_api = { git = "https://github.com/servo/webrender", rev = "d21616d8"  }
-webrender = { git = "https://github.com/servo/webrender", rev = "d21616d8"  }
+webrender_api = { git = "https://github.com/servo/webrender", rev = "04ed99b8"  }
+webrender = { git = "https://github.com/servo/webrender", rev = "04ed99b8"  }
 webrender_traits = { path = "../webrender_traits" }
 wgpu-core = { version = "0.6.0", features = ["replay", "trace", "serial-pass"] }
 wgpu-types = { version = "0.6.0", features = ["replay", "trace"] }

@@ -45,4 +45,4 @@ servo_config = { path = "../config" }
 servo_url = { path = "../url" }
 style = { path = "../style" }
 style_traits = { path = "../style_traits" }
-webrender_api = { git = "https://github.com/servo/webrender", rev = "d21616d8"  }
+webrender_api = { git = "https://github.com/servo/webrender", rev = "04ed99b8"  }

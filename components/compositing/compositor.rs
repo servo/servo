@@ -805,20 +805,21 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.pipeline_details.remove(&pipeline_id);
     }
 
-    fn send_window_size(&self, size_type: WindowSizeType) {
+    fn send_window_size(&mut self, size_type: WindowSizeType) {
         let dppx = self.page_zoom * self.embedder_coordinates.hidpi_factor;
 
-        self.webrender_api.set_document_view(
-            self.webrender_document,
+        let mut txn = render_api::Transaction::new();
+        txn.set_document_view(
             self.embedder_coordinates.get_flipped_viewport(),
-            self.embedder_coordinates.hidpi_factor.get(),
+            self.embedder_coordinates.hidpi_factor.get()
         );
+        self.webrender_api.send_transaction(self.webrender_document, txn);
 
         let initial_viewport = self.embedder_coordinates.viewport.size.to_f32() / dppx;
 
         let data = WindowSizeData {
             device_pixel_ratio: dppx,
-            initial_viewport: initial_viewport,
+            initial_viewport,
         };
 
         let top_level_browsing_context_id = self
@@ -1141,16 +1142,17 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             let mut txn = render_api::Transaction::new();
 
             let hit = self.webrender_api.hit_test(self.webrender_document, None, cursor);
-            // TODO(bryce): Find the right item (don't iterate through all items like I did) and
+            // TODO(bryce): Find the right item (don't just pick the first like I did) and
             //  actually do this correctly. Note that the results are from front to back
-            for item in hit.items {
+            if let Some(item) = hit.items.first() {
                 let new_point = match scroll_location {
                     ScrollLocation::Delta(delta) => {delta},
                     // TODO(bryce): I have no idea what to do here
-                    ScrollLocation::Start => {LayoutVector2D::new(-1000f32, -1000f32)},
+                    ScrollLocation::Start => {LayoutVector2D::new(0f32, 0f32)},
                     ScrollLocation::End => {LayoutVector2D::new(1000f32, 1000f32)},
                 };
-                // TODO(bryce): Figure this out
+                // TODO(bryce): Figure this out. I think the pre-scrolled location in the display
+                //  list needs to be modified but I don't know how to do that yet
                 //println!("{:?}", new_point);
                 //item.point_relative_to_item +
                 //let node_address = UntrustedNodeAddress(item.tag.0 as *const c_void);
