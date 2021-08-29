@@ -628,7 +628,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     ),
                     true,
                 );
-                txn.generate_frame();
+                txn.generate_frame(0);
                 self.webrender_api
                     .send_transaction(self.webrender_document, txn);
             },
@@ -784,7 +784,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         let pipeline_id = frame_tree.pipeline.id.to_webrender();
         let mut txn = render_api::Transaction::new();
         txn.set_root_pipeline(pipeline_id);
-        txn.generate_frame();
+        txn.generate_frame(0);
         self.webrender_api
             .send_transaction(self.webrender_document, txn);
 
@@ -1157,7 +1157,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 //let node_address = UntrustedNodeAddress(item.tag.0 as *const c_void);
                 //let node = unsafe { from_untrusted_node_address(node_address) };
                 txn.scroll_node_with_id(
-                    new_point.to_point() * 100f32,
+                    new_point.to_point(),
                     ExternalScrollId(0, item.pipeline),
                     ScrollClamping::NoClamping // TODO(bryce): This should probably be ToContentBounds
                 );
@@ -1167,7 +1167,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 self.set_pinch_zoom_level(old_zoom * combined_event.magnification);
                 txn.set_pinch_zoom(webrender_api::ZoomFactor::new(self.pinch_zoom_level()));
             }
-            txn.generate_frame();
+            txn.generate_frame(0);
             self.webrender_api
                 .send_transaction(self.webrender_document, txn);
             self.waiting_for_results_of_scroll = true
@@ -1763,7 +1763,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.webrender.set_debug_flags(flags);
 
         let mut txn = render_api::Transaction::new();
-        txn.generate_frame();
+        txn.generate_frame(0);
         self.webrender_api
             .send_transaction(self.webrender_document, txn);
     }

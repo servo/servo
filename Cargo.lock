@@ -1227,22 +1227,12 @@ dependencies = [
 
 [[package]]
 name = "cstr"
-version = "0.1.7"
+version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19f7a08ed4ecd7e077d4cee63937473e6f7cf57b702a9114ef41751b2cbc0f60"
+checksum = "c11a39d776a3b35896711da8a04dc1835169dcd36f710878187637314e47941b"
 dependencies = [
- "cstr-macros",
- "procedural-masquerade",
-]
-
-[[package]]
-name = "cstr-macros"
-version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd670e5ff58768ef624207fb95709ce63b8d05573fb9a05165f0eef471ea6a3a"
-dependencies = [
- "procedural-masquerade",
- "syn",
+ "proc-macro2",
+ "quote",
 ]
 
 [[package]]
@@ -4718,12 +4708,6 @@ checksum = "1e0704ee1a7e00d7bb417d0770ea303c1bccbabf0ef1667dae92b5967f5f8a71"
 dependencies = [
  "unicode-xid",
 ]
-
-[[package]]
-name = "procedural-masquerade"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f1383dff4092fe903ac180e391a8d4121cc48f08ccf850614b0290c6673b69d"
 
 [[package]]
 name = "profile"
