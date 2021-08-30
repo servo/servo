@@ -7174,12 +7174,10 @@ dependencies = [
 name = "webrender"
 version = "0.61.0"
 dependencies = [
- "base64 0.12.0",
  "bincode",
  "bitflags",
  "build-parallel",
  "byteorder",
- "cfg-if 0.1.10",
  "core-foundation 0.9.1",
  "core-graphics 0.22.0",
  "core-text",
@@ -7192,7 +7190,6 @@ dependencies = [
  "fxhash",
  "gleam 0.13.2",
  "glslopt",
- "image",
  "lazy_static",
  "libc",
  "log",
@@ -7203,7 +7200,6 @@ dependencies = [
  "rayon",
  "ron",
  "serde",
- "serde_json",
  "smallvec 1.6.1",
  "svg_fmt",
  "time",
@@ -7212,7 +7208,6 @@ dependencies = [
  "webrender_api",
  "webrender_build",
  "wr_malloc_size_of",
- "ws",
 ]
 
 [[package]]
@@ -7434,24 +7429,6 @@ version = "0.0.1"
 dependencies = [
  "app_units",
  "euclid 0.22.6",
-]
-
-[[package]]
-name = "ws"
-version = "0.9.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c51a2c47b5798ccc774ffb93ff536aec7c4275d722fd9c740c83cdd1af1f2d94"
-dependencies = [
- "byteorder",
- "bytes 0.4.12",
- "httparse",
- "log",
- "mio",
- "mio-extras",
- "rand",
- "sha-1 0.8.2",
- "slab",
- "url",
 ]
 
 [[package]]

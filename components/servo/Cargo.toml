@@ -34,7 +34,6 @@ webgl_backtrace = [
     "canvas/webgl_backtrace",
     "canvas_traits/webgl_backtrace",
 ]
-webrender_debugger = ["webrender/debugger"]
 xr-profile = ["canvas/xr-profile", "canvas_traits/xr-profile", "script/xr-profile", "webxr/profile"]
 
 [dependencies]
@@ -81,8 +80,8 @@ style_traits = { path = "../style_traits", features = ["servo"] }
 surfman = "0.5"
 webdriver_server = { path = "../webdriver_server", optional = true }
 webgpu = { path = "../webgpu" }
-webrender = { git = "https://github.com/servo/webrender", rev = "f59b13c6"  }
-webrender_api = { git = "https://github.com/servo/webrender", rev = "f59b13c6"  }
+webrender = { git = "https://github.com/servo/webrender", rev = "19aca39f"  }
+webrender_api = { git = "https://github.com/servo/webrender", rev = "19aca39f"  }
 webrender_surfman = { path = "../webrender_surfman" }
 webrender_traits = { path = "../webrender_traits" }
 webxr = { git = "https://github.com/servo/webxr" }
