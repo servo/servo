@@ -806,12 +806,13 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     fn send_window_size(&mut self, size_type: WindowSizeType) {
-        let dppx = self.page_zoom * self.embedder_coordinates.hidpi_factor;
+        // TODO(bryce): Do the hidpi factor correctly as mentioned elsewhere
+        //  let dppx = self.page_zoom * self.embedder_coordinates.hidpi_factor;
+        let dppx: Scale<f32, CSSPixel, DevicePixel> = self.page_zoom * Scale::identity();
 
         let mut txn = render_api::Transaction::new();
         txn.set_document_view(
-            self.embedder_coordinates.get_flipped_viewport(),
-            self.embedder_coordinates.hidpi_factor.get()
+            self.embedder_coordinates.get_flipped_viewport()
         );
         self.webrender_api.send_transaction(self.webrender_document, txn);
 
@@ -1166,7 +1167,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             if combined_event.magnification != 1.0 {
                 let old_zoom = self.pinch_zoom_level();
                 self.set_pinch_zoom_level(old_zoom * combined_event.magnification);
-                txn.set_pinch_zoom(webrender_api::ZoomFactor::new(self.pinch_zoom_level()));
+                // TODO(bryce): Pinch zoom levels are no longer supported by webrender directly but
+                //  they can still be done. If they are wanted then implement what it says Gecko
+                //  does: https://bugzilla.mozilla.org/show_bug.cgi?id=171264
+                //  txn.set_pinch_zoom(webrender_api::ZoomFactor::new(self.pinch_zoom_level()));
             }
             txn.generate_frame(0);
             self.webrender_api
@@ -1272,10 +1276,12 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     fn update_page_zoom_for_webrender(&mut self) {
-        let page_zoom = webrender_api::ZoomFactor::new(self.page_zoom.get());
+        // TODO(bryce): Page zoom is no longer supported directly. We would have to do this manually
+        //  if we wanted it. See how Gecko does it: https://bugzilla.mozilla.org/show_bug.cgi?id=1712645
+        //  let page_zoom = webrender_api::ZoomFactor::new(self.page_zoom.get());
 
         let mut txn = render_api::Transaction::new();
-        txn.set_page_zoom(page_zoom);
+        //  txn.set_page_zoom(page_zoom);
         self.webrender_api
             .send_transaction(self.webrender_document, txn);
     }

@@ -364,7 +364,12 @@ where
         };
 
         let coordinates = window.get_coordinates();
-        let device_pixel_ratio = coordinates.hidpi_factor.get();
+        // TODO(bryce): Actually account for the hidpi_factor since we can't just have webrender do
+        //  it anymore. On my machine, this is set to 2 and thus things don't look quite right at
+        //  the moment
+        //  let device_pixel_ratio = coordinates.hidpi_factor.get();
+        //  println!("{}", device_pixel_ratio);
+        let device_pixel_ratio = 1f32;
         let viewport_size = coordinates.viewport.size.to_f32() / device_pixel_ratio;
 
         let (mut webrender, webrender_api_sender) = {
@@ -377,10 +382,9 @@ where
                 webrender_gl.clone(),
                 render_notifier,
                 webrender::RendererOptions {
-                    device_pixel_ratio,
                     resource_override_path: opts.shaders_dir.clone(),
                     enable_aa: opts.enable_text_antialiasing,
-                    debug_flags: debug_flags,
+                    debug_flags,
                     precache_flags: if opts.precache_shaders {
                         ShaderPrecacheFlags::FULL_COMPILE
                     } else {

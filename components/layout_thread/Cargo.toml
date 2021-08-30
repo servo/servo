@@ -49,4 +49,4 @@ servo_url = { path = "../url" }
 style = { path = "../style" }
 style_traits = { path = "../style_traits" }
 time = "0.1.41"
-webrender_api = { git = "https://github.com/servo/webrender", rev = "19aca39f"  }
+webrender_api = { git = "https://github.com/servo/webrender", rev = "4fe98909"  }
