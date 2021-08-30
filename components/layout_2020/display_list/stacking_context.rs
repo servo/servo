@@ -800,7 +800,10 @@ impl BoxFragment {
                     scrolling_relative_to: None,
                 },
             ),
-            (Some(transform), None) => (transform, wr::ReferenceFrameKind::Transform),
+            (Some(transform), None) => (transform, wr::ReferenceFrameKind::Transform {
+                is_2d_scale_translation: false,
+                should_snap: false,
+            }),
             (Some(transform), Some(perspective)) => (
                 perspective.then(&transform),
                 wr::ReferenceFrameKind::Perspective {

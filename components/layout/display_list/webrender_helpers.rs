@@ -201,7 +201,10 @@ impl DisplayItem {
                                         scrolling_relative_to: None,
                                     },
                                 ),
-                                (Some(t), None) => (t, ReferenceFrameKind::Transform),
+                                (Some(t), None) => (t, ReferenceFrameKind::Transform {
+                                    is_2d_scale_translation: false,
+                                    should_snap: false,
+                                }),
                                 (Some(t), Some(p)) => (
                                     p.then(&t),
                                     ReferenceFrameKind::Perspective {

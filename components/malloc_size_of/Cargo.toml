@@ -49,5 +49,5 @@ time = { version = "0.1.41", optional = true }
 url = { version = "2.0", optional = true }
 uuid = { version = "0.8", features = ["v4"], optional = true }
 void = "1.0.2"
-webrender_api = { git = "https://github.com/servo/webrender", rev = "04ed99b8" , optional = true }
+webrender_api = { git = "https://github.com/servo/webrender", rev = "f59b13c6" , optional = true }
 xml5ever = { version = "0.16", optional = true }
