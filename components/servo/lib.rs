@@ -131,6 +131,7 @@ pub use keyboard_types;
 pub use msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
 pub use servo_config as config;
 pub use servo_url as url;
+use crate::webrender_api::ColorF;
 
 #[cfg(feature = "media-gstreamer")]
 mod media_platform {
@@ -392,7 +393,7 @@ where
                     },
                     enable_subpixel_aa: opts.enable_subpixel_text_antialiasing,
                     allow_texture_swizzling: pref!(gfx.texture_swizzling.enabled),
-                    clear_color: None,
+                    clear_color: ColorF::new(1.0, 1.0, 1.0, 1.0),
                     ..Default::default()
                 },
                 None

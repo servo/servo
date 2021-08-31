@@ -29,5 +29,5 @@ servo_config = { path = "../config" }
 sparkle = "0.1"
 style = { path = "../style" }
 time = { version = "0.1.41", optional = true }
-webrender_api = { git = "https://github.com/servo/webrender", rev = "9aa15cef"  }
+webrender_api = { git = "https://github.com/servo/webrender", rev = "f7ab6ccb"  }
 webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }

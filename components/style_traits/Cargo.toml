@@ -28,4 +28,4 @@ servo_atoms = { path = "../atoms", optional = true }
 servo_url = { path = "../url", optional = true }
 to_shmem = { path = "../to_shmem" }
 to_shmem_derive = { path = "../to_shmem_derive" }
-webrender_api = { git = "https://github.com/servo/webrender", rev = "9aa15cef" , optional = true }
+webrender_api = { git = "https://github.com/servo/webrender", rev = "f7ab6ccb" , optional = true }
