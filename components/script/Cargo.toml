@@ -115,7 +115,7 @@ utf-8 = "0.7"
 uuid = { version = "0.8", features = ["v4", "serde"] }
 webdriver = "0.40"
 webgpu = { path = "../webgpu" }
-webrender_api = { git = "https://github.com/servo/webrender", rev = "19a37585"  }
+webrender_api = { git = "https://github.com/servo/webrender", rev = "9aa15cef"  }
 webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
 xml5ever = "0.16"
 

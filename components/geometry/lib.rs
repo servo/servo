@@ -10,7 +10,6 @@ use euclid::{
     default::{Point2D, Rect, Size2D},
     Length,
 };
-use std::f32;
 use webrender_api::units::{FramebufferPixel, LayoutPoint, LayoutRect, LayoutSize};
 
 // Units for use with euclid::length and euclid::scale_factor.
@@ -56,7 +55,7 @@ impl MaxRect for LayoutRect {
     fn max_rect() -> LayoutRect {
         LayoutRect::new(
             LayoutPoint::new(f32::MIN / 2.0, f32::MIN / 2.0),
-            LayoutSize::new(f32::MAX, f32::MAX),
+            LayoutPoint::new(f32::MAX, f32::MAX),
         )
     }
 }

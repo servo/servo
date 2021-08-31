@@ -96,9 +96,9 @@ pub(super) fn layout_layer(
         Cover,
     }
     let size_contain_or_cover = |background_size| {
-        let mut tile_size = positioning_area.size;
+        let mut tile_size = positioning_area.size();
         if let Some(intrinsic_ratio) = intrinsic.ratio {
-            let positioning_ratio = positioning_area.size.width / positioning_area.size.height;
+            let positioning_ratio = positioning_area.width() / positioning_area.height();
             // Whether the tile width (as opposed to height)
             // is scaled to that of the positioning area
             let fit_width = match background_size {
@@ -119,10 +119,10 @@ pub(super) fn layout_layer(
         Size::Cover => size_contain_or_cover(ContainOrCover::Cover),
         Size::ExplicitSize { width, height } => {
             let mut width = width.non_auto().map(|lp| {
-                lp.0.percentage_relative_to(Length::new(positioning_area.size.width))
+                lp.0.percentage_relative_to(Length::new(positioning_area.width()))
             });
             let mut height = height.non_auto().map(|lp| {
-                lp.0.percentage_relative_to(Length::new(positioning_area.size.height))
+                lp.0.percentage_relative_to(Length::new(positioning_area.height()))
             });
 
             if width.is_none() && height.is_none() {
@@ -141,7 +141,7 @@ pub(super) fn layout_layer(
                         intrinsic_height
                     } else {
                         // Treated as 100%
-                        Length::new(positioning_area.size.height)
+                        Length::new(positioning_area.height())
                     };
                     units::LayoutSize::new(w.px(), h.px())
                 },
@@ -152,7 +152,7 @@ pub(super) fn layout_layer(
                         intrinsic_width
                     } else {
                         // Treated as 100%
-                        Length::new(positioning_area.size.width)
+                        Length::new(positioning_area.width())
                     };
                     units::LayoutSize::new(w.px(), h.px())
                 },
@@ -171,20 +171,20 @@ pub(super) fn layout_layer(
         &mut tile_size.width,
         repeat_x,
         get_cyclic(&b.background_position_x.0, layer_index),
-        painting_area.origin.x - positioning_area.origin.x,
-        painting_area.size.width,
-        positioning_area.size.width,
+        painting_area.min.x - positioning_area.min.x,
+        painting_area.width(),
+        positioning_area.width(),
     );
     let result_y = layout_1d(
         &mut tile_size.height,
         repeat_y,
         get_cyclic(&b.background_position_y.0, layer_index),
-        painting_area.origin.y - positioning_area.origin.y,
-        painting_area.size.height,
-        positioning_area.size.height,
+        painting_area.min.y - positioning_area.min.y,
+        painting_area.height(),
+        positioning_area.height(),
     );
-    let bounds = units::LayoutRect::new(
-        positioning_area.origin + Vector2D::new(result_x.bounds_origin, result_y.bounds_origin),
+    let bounds = units::LayoutRect::from_origin_and_size(
+        positioning_area.min + Vector2D::new(result_x.bounds_origin, result_y.bounds_origin),
         Size2D::new(result_x.bounds_size, result_y.bounds_size),
     );
     let tile_spacing = units::LayoutSize::new(result_x.tile_spacing, result_y.tile_spacing);

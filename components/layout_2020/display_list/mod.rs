@@ -212,7 +212,7 @@ impl Fragment {
         color: cssparser::RGBA,
     ) {
         let rect = rect.to_webrender();
-        let wavy_line_thickness = (0.33 * rect.size.height).ceil();
+        let wavy_line_thickness = (0.33 * rect.height()).ceil();
         let text_decoration_color = fragment
             .parent_style
             .clone_text_decoration_color()
@@ -259,8 +259,8 @@ impl<'a> BuilderForBoxFragment<'a> {
             };
             let corner = |corner: &style::values::computed::BorderCornerRadius| {
                 Size2D::new(
-                    resolve(&corner.0.width.0, border_rect.size.width),
-                    resolve(&corner.0.height.0, border_rect.size.height),
+                    resolve(&corner.0.width.0, border_rect.width()),
+                    resolve(&corner.0.height.0, border_rect.height()),
                 )
             };
             let b = fragment.style.get_border();

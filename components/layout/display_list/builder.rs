@@ -1393,7 +1393,7 @@ impl Fragment {
         );
         // TODO(gw): Use a better estimate for wavy line thickness.
         let area = baseline.to_layout();
-        let wavy_line_thickness = (0.33 * area.size.height).ceil();
+        let wavy_line_thickness = (0.33 * area.height()).ceil();
         state.add_display_item(DisplayItem::Line(CommonDisplayItem::new(
             base,
             webrender_api::LineDisplayItem {
@@ -1844,7 +1844,7 @@ impl Fragment {
                     //         looks bogus.
                     state.iframe_sizes.push(IFrameSize {
                         id: browsing_context_id,
-                        size: euclid::Size2D::new(bounds.size.width, bounds.size.height),
+                        size: euclid::Size2D::new(bounds.width(), bounds.height()),
                     });
 
                     let pipeline_id = match fragment_info.pipeline_id {
@@ -2187,7 +2187,7 @@ impl Fragment {
 
         // TODO(gw): Use a better estimate for wavy line thickness.
         let area = stacking_relative_box.to_layout();
-        let wavy_line_thickness = (0.33 * area.size.height).ceil();
+        let wavy_line_thickness = (0.33 * area.height()).ceil();
         state.add_display_item(DisplayItem::Line(CommonDisplayItem::new(
             base,
             webrender_api::LineDisplayItem {
@@ -3065,6 +3065,6 @@ trait ToF32Px {
 impl ToF32Px for Rect<Au> {
     type Output = LayoutRect;
     fn to_f32_px(&self) -> LayoutRect {
-        LayoutRect::from_untyped(&servo_geometry::au_rect_to_f32_rect(*self))
+        LayoutRect::from_untyped(&servo_geometry::au_rect_to_f32_rect(*self).to_box2d())
     }
 }

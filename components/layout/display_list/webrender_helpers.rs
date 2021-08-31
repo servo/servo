@@ -215,7 +215,7 @@ impl DisplayItem {
                             };
 
                         let spatial_id = builder.push_reference_frame(
-                            stacking_context.bounds.origin,
+                            stacking_context.bounds.min,
                             state.active_spatial_id,
                             stacking_context.transform_style,
                             PropertyBinding::Value(transform),
@@ -225,7 +225,7 @@ impl DisplayItem {
                         state.spatial_ids[frame_index.to_index()] = Some(spatial_id);
                         state.clip_ids[frame_index.to_index()] = Some(cur_clip_id);
 
-                        bounds.origin = LayoutPoint::zero();
+                        bounds.translate(-bounds.min.to_vector());
                         spatial_id
                     } else {
                         state.active_spatial_id
@@ -243,7 +243,7 @@ impl DisplayItem {
                 //            before we start collecting stacking contexts so that
                 //            information will be available when we reach this point.
                 let wr_item = PushStackingContextDisplayItem {
-                    origin: bounds.origin,
+                    origin: bounds.min,
                     spatial_id,
                     prim_flags: PrimitiveFlags::default(),
                     stacking_context: StackingContext {

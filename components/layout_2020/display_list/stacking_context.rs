@@ -351,13 +351,13 @@ impl StackingContext {
         if let Some(reference_frame_data) =
             box_fragment.reference_frame_data_if_necessary(containing_block_rect)
         {
-            painting_area.origin -= reference_frame_data.origin.to_webrender().to_vector();
+            painting_area.translate(-reference_frame_data.origin.to_webrender().to_vector());
             if let Some(transformed) = reference_frame_data
                 .transform
                 .inverse()
-                .and_then(|inversed| inversed.outer_transformed_rect(&painting_area))
+                .and_then(|inversed| inversed.outer_transformed_rect(&painting_area.to_rect()))
             {
-                painting_area = transformed
+                painting_area = transformed.to_box2d()
             } else {
                 // The desired rect cannot be represented, so skip painting this background-image
                 return;
