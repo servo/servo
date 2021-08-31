@@ -816,7 +816,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         );
         self.webrender_api.send_transaction(self.webrender_document, txn);
 
-        let initial_viewport = self.embedder_coordinates.viewport.size.to_f32() / dppx;
+        let initial_viewport = self.embedder_coordinates.viewport.size().to_f32() / dppx;
 
         let data = WindowSizeData {
             device_pixel_ratio: dppx,
@@ -1637,10 +1637,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         // Make the viewport white.
         let viewport = self.embedder_coordinates.get_flipped_viewport();
         gl.scissor(
-            viewport.origin.x,
-            viewport.origin.y,
-            viewport.size.width,
-            viewport.size.height,
+            viewport.min.x,
+            viewport.min.y,
+            viewport.width(),
+            viewport.height(),
         );
         gl.clear_color(1.0, 1.0, 1.0, 1.0);
         gl.enable(gleam::gl::SCISSOR_TEST);

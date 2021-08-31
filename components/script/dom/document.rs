@@ -174,6 +174,7 @@ use style::stylesheets::{Origin, OriginSet, Stylesheet};
 use url::Host;
 use uuid::Uuid;
 use webrender_api::units::DeviceIntRect;
+use euclid::Box2D;
 
 /// The number of times we are allowed to see spurious `requestAnimationFrame()` calls before
 /// falling back to fake ones.
@@ -1118,9 +1119,10 @@ impl Document {
             // Notify the embedder to display an input method.
             if let Some(kind) = elem.input_method_type() {
                 let rect = elem.upcast::<Node>().bounding_content_box_or_zero();
-                let rect = Rect::new(
+                let rect = Box2D::new(
                     Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
-                    Size2D::new(rect.size.width.to_px(), rect.size.height.to_px()),
+                    Point2D::new(rect.origin.x.to_px() + rect.size.width.to_px(),
+                                 rect.origin.y.to_px() + rect.size.height.to_px()),
                 );
                 let (text, multiline) = if let Some(input) = elem.downcast::<HTMLInputElement>() {
                     (

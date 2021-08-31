@@ -547,8 +547,8 @@ impl WindowMethods for Window {
             .winit_window
             .inner_size();
         let inner_size = (Size2D::new(width as f32, height as f32) * dpr).to_i32();
-        let viewport = DeviceIntRect::new(Point2D::zero(), inner_size);
-        let framebuffer = DeviceIntSize::from_untyped(viewport.size.to_untyped());
+        let viewport = DeviceIntRect::new(Point2D::zero(), Point2D::zero().add_size(&inner_size));
+        let framebuffer = DeviceIntSize::from_untyped(viewport.size().to_untyped());
         EmbedderCoordinates {
             viewport,
             framebuffer,

@@ -370,7 +370,7 @@ where
         //  let device_pixel_ratio = coordinates.hidpi_factor.get();
         //  println!("{}", device_pixel_ratio);
         let device_pixel_ratio = 1f32;
-        let viewport_size = coordinates.viewport.size.to_f32() / device_pixel_ratio;
+        let viewport_size = coordinates.viewport.size().to_f32() / device_pixel_ratio;
 
         let (mut webrender, webrender_api_sender) = {
             let mut debug_flags = webrender::DebugFlags::empty();

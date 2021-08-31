@@ -119,7 +119,7 @@ impl WindowMethods for Window {
             .unwrap_or(None)
             .map(|info| Size2D::from_untyped(info.size))
             .unwrap_or(Size2D::new(0, 0));
-        let viewport = DeviceIntRect::new(Point2D::zero(), size);
+        let viewport = DeviceIntRect::new(Point2D::zero(), Point2D::zero().add_size(&size));
         EmbedderCoordinates {
             viewport,
             framebuffer: size,
