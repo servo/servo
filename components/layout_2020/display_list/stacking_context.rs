@@ -26,6 +26,7 @@ use style::values::generics::transform;
 use style::values::specified::box_::DisplayOutside;
 use webrender_api as wr;
 use webrender_api::units::{LayoutPoint, LayoutTransform, LayoutVector2D};
+use webrender_api::SpaceAndClipInfo;
 
 #[derive(Clone)]
 pub(crate) struct ContainingBlock {
@@ -764,15 +765,19 @@ impl BoxFragment {
                 .to_physical(self.style.writing_mode, &containing_block_info.rect)
                 .translate(containing_block_info.rect.origin.to_vector())
                 .to_webrender();
-            builder.current_space_and_clip = builder.wr.define_scroll_frame(
-                &original_scroll_and_clip_info,
+            // TODO(bryce): Figure out how to make this work properly
+            builder.current_space_and_clip = SpaceAndClipInfo {
+                spatial_id: builder.wr.define_scroll_frame(
+                original_scroll_and_clip_info.spatial_id,
                 external_id,
-                self.scrollable_overflow(&containing_block_info.rect)
-                    .to_webrender(),
+                self.scrollable_overflow( & containing_block_info.rect)
+                .to_webrender(),
                 padding_rect,
                 sensitivity,
                 LayoutVector2D::zero(),
-            );
+                ),
+                clip_id: original_scroll_and_clip_info.clip_id
+            }
         }
     }
 
