@@ -47,7 +47,7 @@ use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use time::{now, precise_time_ns, precise_time_s};
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePoint, LayoutVector2D};
-use webrender_api::{self, HitTestResult, ScrollLocation, ExternalScrollId, ScrollClamping};
+use webrender_api::{self, HitTestResult, ScrollLocation, ExternalScrollId, ScrollClamping, DisplayListPayload};
 use webrender_surfman::WebrenderSurfman;
 use webrender::render_api;
 
@@ -624,7 +624,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     size2,
                     (
                         pipeline,
-                        webrender_api::BuiltDisplayList::from_data(data, descriptor),
+                        webrender_api::BuiltDisplayList::from_data(DisplayListPayload {data}, descriptor),
                     ),
                     true,
                 );
