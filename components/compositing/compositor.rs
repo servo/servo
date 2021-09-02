@@ -624,7 +624,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     size2,
                     (
                         pipeline,
-                        webrender_api::BuiltDisplayList::from_data(DisplayListPayload {data}, descriptor),
+                        webrender_api::BuiltDisplayList::from_data(DisplayListPayload {items_data: data, cache_data: Vec::new()}, descriptor),
                     ),
                     true,
                 );

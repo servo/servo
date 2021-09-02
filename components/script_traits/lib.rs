@@ -1183,7 +1183,7 @@ impl WebrenderIpcSender {
             webrender_api::Epoch(epoch.0),
             pipeline,
             size,
-            data.data,
+            data.items_data,
             descriptor,
         )) {
             warn!("Error sending display list: {}", e);

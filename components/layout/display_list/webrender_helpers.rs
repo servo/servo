@@ -11,11 +11,7 @@ use crate::display_list::items::{BaseDisplayItem, ClipScrollNode, ClipScrollNode
 use crate::display_list::items::{DisplayItem, DisplayList, StackingContextType};
 use msg::constellation_msg::PipelineId;
 use webrender_api::units::LayoutPoint;
-use webrender_api::{
-    self, ClipId, CommonItemProperties, DisplayItem as WrDisplayItem, DisplayListBuilder,
-    PrimitiveFlags, PropertyBinding, PushStackingContextDisplayItem, RasterSpace,
-    ReferenceFrameKind, SpaceAndClipInfo, SpatialId, StackingContext,
-};
+use webrender_api::{self, ClipId, CommonItemProperties, DisplayItem as WrDisplayItem, DisplayListBuilder, PrimitiveFlags, PropertyBinding, PushStackingContextDisplayItem, RasterSpace, ReferenceFrameKind, SpaceAndClipInfo, SpatialId, StackingContext, DisplayListCapacity};
 
 struct ClipScrollState {
     clip_ids: Vec<Option<ClipId>>,
@@ -57,10 +53,13 @@ impl DisplayList {
             active_spatial_id: SpatialId::root_scroll_node(webrender_pipeline),
         };
 
-        let mut builder = DisplayListBuilder::with_capacity(
-            webrender_pipeline,
-            1024 * 1024, // 1 MB of space
-        );
+        let mut builder = DisplayListBuilder::new(webrender_pipeline);
+        // TODO(bryce): Figure out how to add a starting capacity
+        //      DisplayListCapacity {
+        //          items_size: 1024 * 1024, // 1 MB of space
+        //          cache_size: 0
+        //      },
+        //  );
 
         let mut is_contentful = IsContentful(false);
         for item in &mut self.list {
