@@ -38,7 +38,7 @@ time = "0.1.41"
 ucd = "0.1.1"
 unicode-bidi = { version = "0.3", features = ["with_serde"] }
 unicode-script = "0.5"
-webrender_api = { git = "https://github.com/servo/webrender", rev = "d7f3312a"  }
+webrender_api = { git = "https://github.com/servo/webrender", rev = "d748dde7"  }
 xi-unicode = "0.1.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]

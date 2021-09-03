@@ -20,4 +20,4 @@ net_traits = { path = "../net_traits" }
 profile_traits = { path = "../profile_traits" }
 script_traits = { path = "../script_traits" }
 servo_url = { path = "../url" }
-webrender_api = { git = "https://github.com/servo/webrender", rev = "d7f3312a"  }
+webrender_api = { git = "https://github.com/servo/webrender", rev = "d748dde7"  }
