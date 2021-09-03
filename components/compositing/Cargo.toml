@@ -38,8 +38,8 @@ servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
 style_traits = { path = "../style_traits" }
 time = "0.1.41"
-webrender = { git = "https://github.com/servo/webrender", rev = "d748dde7" , features = ["capture"] }
-webrender_api = { git = "https://github.com/servo/webrender", rev = "d748dde7"  }
+webrender = { git = "https://github.com/servo/webrender", rev = "25527f94" , features = ["capture"] }
+webrender_api = { git = "https://github.com/servo/webrender", rev = "25527f94"  }
 webrender_surfman = { path = "../webrender_surfman" }
 webxr = { git = "https://github.com/servo/webxr" }
 

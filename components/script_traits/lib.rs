@@ -1124,7 +1124,6 @@ pub enum WebrenderMsg {
         LayoutSize,
         Vec<u8>, // items_data
         Vec<u8>, // cache_data
-        Vec<u8>, // spatial_tree
         BuiltDisplayListDescriptor,
     ),
     /// Perform a hit test operation. The result will be returned via
@@ -1187,7 +1186,6 @@ impl WebrenderIpcSender {
             size,
             data.items_data,
             data.cache_data,
-            data.spatial_tree,
             descriptor,
         )) {
             warn!("Error sending display list: {}", e);

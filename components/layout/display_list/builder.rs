@@ -858,7 +858,6 @@ impl Fragment {
                 base,
                 webrender_api::RepeatingImageDisplayItem {
                     bounds: placement.bounds.to_f32_px(),
-                    unsnapped_rect: placement.bounds.to_f32_px(),
                     common: items::empty_common_item_properties(),
                     image_key: webrender_image.key.unwrap(),
                     stretch_size: placement.tile_size.to_layout(),
@@ -983,7 +982,6 @@ impl Fragment {
                     let item = webrender_api::GradientDisplayItem {
                         gradient,
                         bounds: placement.bounds.to_f32_px(),
-                        unsnapped_rect: placement.bounds.to_f32_px(),
                         common: items::empty_common_item_properties(),
                         tile_size: placement.tile_size.to_layout(),
                         tile_spacing: placement.tile_spacing.to_layout(),
@@ -1008,7 +1006,6 @@ impl Fragment {
                     let item = webrender_api::RadialGradientDisplayItem {
                         gradient,
                         bounds: placement.bounds.to_f32_px(),
-                        unsnapped_rect: placement.bounds.to_f32_px(),
                         common: items::empty_common_item_properties(),
                         tile_size: placement.tile_size.to_layout(),
                         tile_spacing: placement.tile_spacing.to_layout(),
@@ -2133,8 +2130,6 @@ impl Fragment {
                 base.clone(),
                 webrender_api::TextDisplayItem {
                     bounds: stacking_relative_content_box.to_layout(),
-                    // TODO(bryce): Figure out what this actually does and where it should come from
-                    reference_frame_relative_offset: Default::default(),
                     common: items::empty_common_item_properties(),
                     font_key: text_fragment.run.font_key,
                     color: text_color.to_layout(),
