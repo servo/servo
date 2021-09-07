@@ -217,7 +217,7 @@ impl Floats {
                          max_inline_start is {:?}",
                         max_inline_start
                     );
-                }
+                },
                 FloatKind::Right
                     if float_pos.i < min_inline_end &&
                         float_pos.b + float_size.block > block_start &&
@@ -232,7 +232,7 @@ impl Floats {
                          is {:?}",
                         min_inline_end
                     );
-                }
+                },
                 FloatKind::Left | FloatKind::Right => {},
             }
         }

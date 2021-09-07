@@ -695,13 +695,13 @@ impl HTMLInputElement {
                 {
                     let intervals_from_base = ((value - step_base) / allowed_value_step).floor();
                     intervals_from_base * allowed_value_step + step_base
-                }
+                },
                 StepDirection::Up =>
                 // step up a fractional step to be on a step multiple
                 {
                     let intervals_from_base = ((value - step_base) / allowed_value_step).ceil();
                     intervals_from_base * allowed_value_step + step_base
-                }
+                },
             };
         } else {
             value = value +
@@ -2371,7 +2371,7 @@ impl VirtualMethods for HTMLInputElement {
                             {
                                 self.SetValue(DOMString::from(""))
                                     .expect("Failed to set input value on type change to ValueMode::Filename.");
-                            }
+                            },
                             _ => {},
                         }
 

@@ -1037,7 +1037,7 @@ fn process_resolved_style_request_internal<'dom>(
                 .result
                 .map(|r| r.to_css_string())
                 .unwrap_or(String::new())
-        }
+        },
 
         LonghandId::Bottom | LonghandId::Top | LonghandId::Right | LonghandId::Left
             if applies && positioned && style.get_box().display != Display::None =>

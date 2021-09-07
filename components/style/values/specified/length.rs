@@ -1009,7 +1009,7 @@ impl LengthPercentage {
                 return Ok(LengthPercentage::Percentage(computed::Percentage(
                     unit_value,
                 )));
-            }
+            },
             Token::Number { value, .. } if num_context.is_ok(context.parsing_mode, value) => {
                 if value != 0. &&
                     !context.parsing_mode.allows_unitless_lengths() &&

@@ -143,7 +143,7 @@ impl NetworkListener {
                         //
                         // Ideally the Fetch code would handle manual redirects on its own
                         self.initiate_fetch(None);
-                    }
+                    },
                     _ => {
                         // Response should be processed by script thread.
                         self.should_send = true;

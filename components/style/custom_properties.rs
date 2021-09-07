@@ -1016,7 +1016,7 @@ fn substitute_block<'i>(
                     Ok(())
                 })?;
                 set_position_at_next_iteration = true
-            }
+            },
             Token::Function(_) |
             Token::ParenthesisBlock |
             Token::CurlyBracketBlock |

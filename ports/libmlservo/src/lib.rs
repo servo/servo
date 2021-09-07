@@ -249,7 +249,7 @@ pub unsafe extern "C" fn move_servo(servo: *mut ServoInstance, x: f32, y: f32) {
                 if (start - point).square_length() < DRAG_CUTOFF_SQUARED =>
             {
                 return;
-            }
+            },
             ScrollState::TriggerDown(start) => {
                 servo.scroll_state = ScrollState::TriggerDragging(start, point);
                 let _ = call(|s| s.mouse_move(x, y));

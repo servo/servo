@@ -2893,13 +2893,13 @@ impl NodeMethods for Node {
                     if !is_equal_processinginstruction(this, node) =>
                 {
                     return false;
-                }
+                },
                 NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) |
                 NodeTypeId::CharacterData(CharacterDataTypeId::Comment)
                     if !is_equal_characterdata(this, node) =>
                 {
                     return false;
-                }
+                },
                 // Step 4.
                 NodeTypeId::Element(..) if !is_equal_element_attrs(this, node) => return false,
                 NodeTypeId::Attr if !is_equal_attr(this, node) => return false,

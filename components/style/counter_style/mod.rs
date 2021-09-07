@@ -108,7 +108,7 @@ pub fn parse_counter_style_body<'i, 't>(
             Some(ContextualParseError::InvalidCounterStyleWithoutSymbols(
                 system,
             ))
-        }
+        },
         ref system @ System::Alphabetic | ref system @ System::Numeric
             if rule.symbols().unwrap().0.len() < 2 =>
         {
@@ -116,7 +116,7 @@ pub fn parse_counter_style_body<'i, 't>(
             Some(ContextualParseError::InvalidCounterStyleNotEnoughSymbols(
                 system,
             ))
-        }
+        },
         System::Additive if rule.additive_symbols.is_none() => {
             Some(ContextualParseError::InvalidCounterStyleWithoutAdditiveSymbols)
         },

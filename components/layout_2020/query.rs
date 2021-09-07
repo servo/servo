@@ -547,7 +547,7 @@ fn process_offset_parent_query_inner(
                                 Au::from_f32_px(padding_box_corner.y.px()),
                             );
                             Some(padding_box_corner)
-                        }
+                        },
                         Fragment::AbsoluteOrFixedPositioned(_) |
                         Fragment::Box(_) |
                         Fragment::Text(_) |
