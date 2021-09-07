@@ -1,0 +1,26 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebGL OES_draw_buffers_indexed Extension Draft Specification (https://www.khronos.org/registry/webgl/extensions/OES_draw_buffers_indexed/)
+
+[Exposed=(Window,Worker), LegacyNoInterfaceObject]
+interface OES_draw_buffers_indexed {
+  undefined enableiOES(GLenum target, GLuint index);
+
+  undefined disableiOES(GLenum target, GLuint index);
+
+  undefined blendEquationiOES(GLuint buf, GLenum mode);
+
+  undefined blendEquationSeparateiOES(GLuint buf,
+                                 GLenum modeRGB, GLenum modeAlpha);
+
+  undefined blendFunciOES(GLuint buf,
+                     GLenum src, GLenum dst);
+
+  undefined blendFuncSeparateiOES(GLuint buf,
+                             GLenum srcRGB, GLenum dstRGB,
+                             GLenum srcAlpha, GLenum dstAlpha);
+
+  undefined colorMaskiOES(GLuint buf,
+                     GLboolean r, GLboolean g, GLboolean b, GLboolean a);
+};

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Referrers with JSON module requests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script type="module">
+  // "name" parameter is necessary for bypassing the module map.
+  import referrerSame from "./referrer-checker.py?name=sameNoReferrerPolicy" assert { type: "json"};
+  import referrerRemote from "http://{{domains[www1]}}:{{ports[http][0]}}/html/semantics/scripting-1/the-script-element/json-module/referrer-checker.py?name=remoteNoReferrerPolicy" assert { type: "json"};
+
+  const origin = (new URL(location.href)).origin + "/";
+  const originUrl = location.href;
+
+  test(t => {
+    assert_equals(
+        referrerSame.referrer, originUrl,
+        "Referrer URL should be sent for the same-origin top-level script.");
+  }, "Importing a same-origin top-level script with the default referrer policy.");
+
+  test(t => {
+    assert_equals(
+        referrerRemote.referrer, origin,
+        "Referrer origin should be sent for the remote-origin top-level script.");
+  }, "Importing a remote-origin top-level script with the default referrer policy.");
+</script>
+<script type="module" referrerpolicy="origin">
+  import referrerSame from "./referrer-checker.py?name=sameReferrerPolicyOrigin" assert { type: "json"};
+  import referrerRemote from "http://{{domains[www1]}}:{{ports[http][0]}}/html/semantics/scripting-1/the-script-element/json-module/referrer-checker.py?name=remoteReferrerPolicyOrigin" assert { type: "json"};
+
+  const origin = (new URL(location.href)).origin + "/";
+
+  test(t => {
+    assert_equals(
+        referrerSame.referrer, origin,
+        "Referrer origin should be sent for the same-origin top-level script.");
+  }, "Importing a same-origin top-level script with the origin policy.");
+
+  test(t => {
+    assert_equals(
+        referrerRemote.referrer, origin,
+        "Referrer origin should be sent for the remote-origin top-level script.");
+  }, "Importing a remote-origin top-level script with the origin policy.");
+
+</script>
+<script type="module" referrerpolicy="no-referrer">
+  import referrerSame from "./referrer-checker.py?name=sameReferrerPolicyNoReferrer" assert { type: "json"};
+  import referrerRemote from "http://{{domains[www1]}}:{{ports[http][0]}}/html/semantics/scripting-1/the-script-element/json-module/referrer-checker.py?name=remoteReferrerPolicyNoReferrer" assert { type: "json"};
+
+  test(t => {
+    assert_equals(
+        referrerSame.referrer, "",
+        "No referrer should be sent for the same-origin top-level script.");
+  }, "Importing a same-origin top-level script with the no-referrer policy.");
+
+  test(t => {
+    assert_equals(
+        referrerRemote.referrer, "",
+        "No referrer should be sent for the remote-origin top-level script.");
+  }, "Importing a remote-origin top-level script with the no-referrer policy.");
+
+</script>
+<script type="module" referrerpolicy="unsafe-url">
+  import referrerSame from "./referrer-checker.py?name=sameNoReferrerPolicyUnsafeUrl" assert { type: "json"};
+  import referrerRemote from "http://{{domains[www1]}}:{{ports[http][0]}}/html/semantics/scripting-1/the-script-element/json-module/referrer-checker.py?name=remoteNoReferrerPolicyUnsafeUrl" assert { type: "json"};
+
+  const originUrl = location.href;
+
+  test(t => {
+    assert_equals(
+        referrerSame.referrer, originUrl,
+        "Referrer URL should be sent for the same-origin top-level script.");
+  }, "Importing a same-origin top-level script with the unsafe-url referrer policy.");
+
+  test(t => {
+    assert_equals(
+        referrerRemote.referrer, originUrl,
+        "Referrer URL should be sent for the remote-origin top-level script.");
+  }, "Importing a remote-origin top-level script with the unsafe-url referrer policy.");
+</script>
+</body>
+</html>

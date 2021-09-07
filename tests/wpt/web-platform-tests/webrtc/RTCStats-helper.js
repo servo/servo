@@ -207,8 +207,9 @@ function validateCodecStats(statsReport, stats) {
 
   assert_string_field(stats, 'mimeType');
   assert_unsigned_int_field(stats, 'clockRate');
-  assert_unsigned_int_field(stats, 'channels');
-
+  if (stats.kind === 'audio') {
+    assert_unsigned_int_field(stats, 'channels');
+  }
   assert_string_field(stats, 'sdpFmtpLine');
 }
 

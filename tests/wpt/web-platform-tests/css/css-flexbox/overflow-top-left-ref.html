@@ -17,13 +17,15 @@
 }
 
 .column-wrapper > div {
-  margin: 4px;
+  /* This border represents the expected rendering of the testcase's
+     "margin:4px". This border should occupy the same space as that margin
+     would, and it should create the same amount of scrollable overflow.  (We
+     can't just use "margin:4px" here, because this reference case uses block
+     layout, and margins have different behavior with respect to collapsing and
+     scrollable-overflow impact in block vs. flexbox layout.) */
+  border: 4px solid white;
   height: 30px;
   background: #CCC;
-}
-
-.column-wrapper > .h-overflow {
-  margin-top: 8px;  // Compensate for margin collapsing.
 }
 
 .h-overflow {
@@ -31,17 +33,14 @@
 }
 
 .row-wrapper > div {
-  margin: 4px;
+  /* As noted above, this is a mockup for the "margin:4px" in the testcase. */
+  border: 4px solid white;
   width: 30px;
   background: #CCC;
 }
 
 .v-overflow {
   height: 500px;
-}
-
-.row-wrapper > .v-overflow {
-  margin-right: 8px;  // Compensate for margin collapsing.
 }
 
 </style>

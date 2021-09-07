@@ -7,12 +7,14 @@
 test(t => {
   // eslint-disable-next-line no-extend-native, accessor-pairs
   Object.defineProperty(Object.prototype, 'highWaterMark', {
-    set() { throw new Error('highWaterMark setter called'); }
+    set() { throw new Error('highWaterMark setter called'); },
+    configurable: true
   });
 
   // eslint-disable-next-line no-extend-native, accessor-pairs
   Object.defineProperty(Object.prototype, 'size', {
-    set() { throw new Error('size setter called'); }
+    set() { throw new Error('size setter called'); },
+    configurable: true
   });
 
   t.add_cleanup(() => {

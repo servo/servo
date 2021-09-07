@@ -2,8 +2,6 @@ import collections
 import sys
 import time
 
-import six
-
 from webdriver import error
 
 
@@ -140,6 +138,6 @@ class Poll(object):
             message = "Timed out after {} seconds".format(elapsed)
             if self.exc_msg is not None:
                 message = "{} with message: {}".format(message, self.exc_msg)
-            six.reraise(self.exc_cls, self.exc_cls(message=message), tb)
+            raise self.exc_cls(message=message).with_traceback(tb)
         else:
             return rv

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#background-color">
+<iframe id="foo"></iframe>
+<div id="bar"></div>
+
+<script>
+  $ = document.querySelector.bind(document);
+  var target = document.getElementById("bar");
+  target.animate([{"backgroundColor":"blue"},{"backgroundColor":"green"}], {"duration":10});
+  $('iframe').contentDocument.documentElement.appendChild(target);
+  $('#foo').remove();
+</script>

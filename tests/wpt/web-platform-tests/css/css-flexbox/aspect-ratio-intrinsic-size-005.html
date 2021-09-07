@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="This checks that an element with an aspect-ratio transfers its size when it also has stretch alignment.">
+<p>Test passes if there is a filled green square.</p>
+<div id="target" style="height: 50px; width: min-content; background: green;">
+  <div style="display: flex; height: 100%; background: green;">
+    <div style="aspect-ratio: 1/1;"></div>
+  </div>
+</div>
+<script>
+document.body.offsetTop;
+document.getElementById('target').style.height = '100px';
+</script>

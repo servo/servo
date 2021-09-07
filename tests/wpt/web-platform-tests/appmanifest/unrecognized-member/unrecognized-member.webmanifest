@@ -1,0 +1,7 @@
+{
+    "this member name is not expected to be recognized": "ok",
+    "this object is not expected to be recognized": {
+        "this sub-field is not expected to be recognized": []
+    },
+    "short_name": "pass"
+}

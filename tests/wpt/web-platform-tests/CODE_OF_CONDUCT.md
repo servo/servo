@@ -57,11 +57,12 @@ than others.
 
 ## Scope
 
-This Code of Conduct applies within all community spaces, and also applies when
-an individual is officially representing the community in public spaces.
-Examples of representing our community include official IRC channels (#testing
-on irc.w3.org); GitHub repositories under the web-platform-tests organization;
-and the public-test-infra@w3.org mailing list.
+This Code of Conduct applies within all community spaces, and also
+applies when an individual is officially representing the community in
+public spaces.  Examples of representing our community include
+the official Matrix channel (wpt:matrix.org); GitHub repositories under
+the web-platform-tests organization; and the public-test-infra@w3.org
+mailing list.
 
 There may arise situations where both the WPT code of conduct and that of
 another organization (such as the WHATWG or W3C) may apply.

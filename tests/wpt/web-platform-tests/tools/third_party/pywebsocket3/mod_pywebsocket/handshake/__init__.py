@@ -38,9 +38,9 @@ from mod_pywebsocket import common
 from mod_pywebsocket.handshake import hybi
 # Export AbortedByUserException, HandshakeException, and VersionException
 # symbol from this module.
-from mod_pywebsocket.handshake._base import AbortedByUserException
-from mod_pywebsocket.handshake._base import HandshakeException
-from mod_pywebsocket.handshake._base import VersionException
+from mod_pywebsocket.handshake.base import AbortedByUserException
+from mod_pywebsocket.handshake.base import HandshakeException
+from mod_pywebsocket.handshake.base import VersionException
 
 _LOGGER = logging.getLogger(__name__)
 

@@ -11,16 +11,23 @@ from .utils import isomorphic_encode
 
 class ServerDictManager(BaseManager):
     shared_data = {}
+    lock = threading.Lock()
 
 
 def _get_shared():
     return ServerDictManager.shared_data
 
 
+def _get_lock():
+    return ServerDictManager.lock
+
+
 ServerDictManager.register("get_dict",
                            callable=_get_shared,
                            proxytype=DictProxy)
-ServerDictManager.register('Lock', threading.Lock, AcquirerProxy)
+ServerDictManager.register('Lock',
+                           callable=_get_lock,
+                           proxytype=AcquirerProxy)
 
 
 class ClientDictManager(BaseManager):

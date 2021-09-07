@@ -16,12 +16,12 @@ t.step(function() {
 var offscreenCanvas = new OffscreenCanvas(100, 50);
 var ctx = offscreenCanvas.getContext('2d');
 
-_assertSame(ctx.fontKerning, "Auto", "ctx.fontKerning", "\"Auto\"");
-ctx.fontKerning = "Normal";
-_assertSame(ctx.fontKerning, "Normal", "ctx.fontKerning", "\"Normal\"");
+_assertSame(ctx.fontKerning, "auto", "ctx.fontKerning", "\"auto\"");
+ctx.fontKerning = "normal";
+_assertSame(ctx.fontKerning, "normal", "ctx.fontKerning", "\"normal\"");
 width_normal = ctx.measureText("TAWATAVA").width;
-ctx.fontKerning = "None";
-_assertSame(ctx.fontKerning, "None", "ctx.fontKerning", "\"None\"");
+ctx.fontKerning = "none";
+_assertSame(ctx.fontKerning, "none", "ctx.fontKerning", "\"none\"");
 width_none = ctx.measureText("TAWATAVA").width;
 _assert(width_normal < width_none, "width_normal < width_none");
 t.done();

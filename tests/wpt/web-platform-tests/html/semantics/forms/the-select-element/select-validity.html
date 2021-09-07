@@ -92,4 +92,33 @@ test(function() {
   select.appendChild(optgroup);
   assert_true(select.checkValidity(), "If one option within an optgroup or not is selected, the select should be considered valid.");
 }, "Validation on selects with multiple set");
+
+test(function() {
+  var select = document.createElement('select');
+  select.required = true;
+  var option = document.createElement('option');
+  option.value = 'test';
+  option.disabled = true;
+  option.selected = true;
+  select.appendChild(option);
+  assert_true(select.checkValidity(), "When a required select has an option that is selected and disabled, the select should be considered valid.");
+}, "Validation on selects with non-empty disabled option");
+
+test(function() {
+  var select = document.createElement('select');
+  select.required = true;
+  var placeholder = document.createElement('option');
+  select.appendChild(placeholder);
+  var nonPlaceholder = document.createElement('option');
+  nonPlaceholder.textContent = "non-placeholder-option";
+  select.appendChild(nonPlaceholder);
+
+  assert_false(select.checkValidity(), "If the placeholder label option is selected, required select element shouldn't be valid.");
+  placeholder.remove();
+  assert_true(select.checkValidity(), "If the placeholder label option is removed, required select element should become valid.");
+  select.prepend(placeholder);
+  assert_false(select.checkValidity(), "If the placeholder label option is selected, required select element shouldn't be valid.");
+
+}, "Remove and add back the placeholder label option");
+
 </script>

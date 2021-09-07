@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="resources/dialog.css">
+<style>
+.pseudodialog {
+    height: 150px;
+    width: 150px;
+}
+</style>
+</head>
+<body>
+This tests that a top layer element is not rendered if it, or an ancestor, has display: none.
+It passes if you see a green rectangle stacked on top of a blue rectangle, and see no red rectangles.
+
+<div class="pseudodialog" style="top: 50px; background-color: blue"></div>
+<div class="pseudodialog" style="top: 100px; left: 50px; background-color: green"></div>
+</body>
+</html>

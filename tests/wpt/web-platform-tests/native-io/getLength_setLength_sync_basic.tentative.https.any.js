@@ -10,11 +10,11 @@ test(testCase => {
   const file = createFileSync(testCase, 'test_file', [97, 98, 99, 100]);
 
   file.setLength(3);
-  const readBytes = readIoFileSync(file);
+  const readBuffer = readIoFileSync(file);
 
   const remainingBytes = Uint8Array.from([97, 98, 99]);
   assert_array_equals(
-    readBytes, remainingBytes,
+    readBuffer, remainingBytes,
     'NativeIOFileSync.setLength() should remove bytes from the end of ' +
     'a file when decreasing its length.');
 }, 'NativeIOFileSync.setLength shrinks a file and' +
@@ -26,12 +26,12 @@ test(testCase => {
   const file = createFileSync(testCase, 'test_file', [97, 98, 99, 100]);
 
   file.setLength(5);
-  const readBytes = readIoFileSync(file);
+  const readBuffer = readIoFileSync(file);
 
   const expectedBytes = Uint8Array.from([97, 98, 99, 100, 0]);
 
   assert_array_equals(
-    readBytes, expectedBytes,
+    readBuffer, expectedBytes,
     'NativeIOFileSync.setLength() should append zeros when increasing' +
     ' the file size.');
 }, 'NativeIOFileSync.setLength appends zeros to a file and ' +

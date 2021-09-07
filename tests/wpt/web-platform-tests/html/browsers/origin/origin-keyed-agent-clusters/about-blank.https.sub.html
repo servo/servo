@@ -31,8 +31,7 @@ testGetter(0, true, "about:blank");
 testGetter(1, false, "child2");
 
 async function insertAboutBlankIframe() {
-  const iframe = document.createElement("iframe");
-  document.body.append(iframe);
+  const iframe = await createBlankIframe();
 
   // Now create and add the script, but don't navigate anywhere (since we want
   // to stay on the initial about:blank).
@@ -51,5 +50,14 @@ async function insertAboutBlankIframe() {
   });
 
   await setBothDocumentDomains(iframe.contentWindow);
+}
+
+function createBlankIframe() {
+  const iframe = document.createElement("iframe");
+  const promise = new Promise(resolve => {
+    iframe.addEventListener("load", resolve);
+  });
+  document.body.append(iframe);
+  return promise;
 }
 </script>

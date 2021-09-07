@@ -35,7 +35,7 @@ promise_test(async (t) => {
       resolve(e.data);
     };
   });
-  assert_equals(data, "FieldStorage('testinput', 'name', 'foobar')");
+  assert_equals(data, "foobar");
 }, 'Posting a File in a navigation handled by a service worker');
 </script>
 </body>

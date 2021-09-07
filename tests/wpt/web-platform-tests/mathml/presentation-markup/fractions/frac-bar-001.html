@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <title>fractions bar</title>
-    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#fractions-mfrac">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#fractions-mfrac">
     <meta name="assert" content="Verifies painting of the fraction bar">
     <link rel="match" href="frac-bar-001-ref.html">
     <style type="text/css">
@@ -24,8 +24,9 @@
       }
     </style>
     <script src="/common/reftest-wait.js"></script>
+    <script src="/mathml/support/fonts.js"></script>
     <script>
-      window.addEventListener("load", () => { document.fonts.ready.then(adjustPositionOfFraction); });
+      window.addEventListener("load", () => { loadAllFonts().then(adjustPositionOfFraction); });
 
       function adjustPositionOfFraction()
       {

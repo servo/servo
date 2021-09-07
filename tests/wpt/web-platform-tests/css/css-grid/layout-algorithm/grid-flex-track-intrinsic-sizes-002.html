@@ -54,21 +54,16 @@ function checkTrackSizes(trackList, expected) {
 // ├─╫─┼─┼─╢
 // └─╚═╧═╧═╝
 
-// The 1st item has spans less tracks (2) than the 2nd item (3),
-// therefore its contribution (60px) is distributed first.
-// All the 60px go to the 2nd track, since the 1st track is not intrinsic.
-// Then the 2nd item only needs to distribute 150px-60px=90px
-// among the 3rd and 4th tracks.
-checkTrackSizes("minmax(0, 1fr) auto auto auto", "0px 60px 45px 45px");
-
-// The 1st item now spans a flexible track with an intrinsic minimum,
-// therefore its contribution (60px) is distributed last.
+// The 1st item spans a flexible track, therefore its contribution (60px) is distributed last.
 // The 2nd item distributes its contribution (150px) among the 2nd, 3rd and 4th tracks.
 // Then the 1st item only needs to distribute 60px-50px=10px to the 1st track.
 checkTrackSizes("1fr auto auto auto", "10px 50px 50px 50px");
 
-// Now both items span a flexible track with an intrinsic minimum,
-// so their contributions are handled simultaneously,
+// Now the 1st item still spans a flexible track, but it's not intrinsic.
+// Therefore, no track receives its intrinsic contribution.
+checkTrackSizes("minmax(0, 1fr) auto auto auto", "0px 50px 50px 50px");
+
+// Now both items span a flexible track, so their contributions are handled simultaneously,
 // even if the 1st item still spans less tracks than the 2nd one.
 // Therefore the distribution is as follows:
 //  - 1st track: 60px/2 = 30px
@@ -97,7 +92,7 @@ document.getElementById("grid").style.gridTemplateAreas = `
 // Now the 1st item has a span of 1, so usually we would handle its contribution
 // at the very beginning, before items that span multiple tracks.
 // But not if its track is flexible, then it's still handled at the end,
-// simultaneously with other items that span some intrinsic flexible track.
+// simultaneously with other items that span some flexible track.
 //  - 1nd track: max(60px, 150px/3) = 60px
 //  - 2nd track: 150px/3 = 50px
 //  - 3rd track: 150px/3 = 50px

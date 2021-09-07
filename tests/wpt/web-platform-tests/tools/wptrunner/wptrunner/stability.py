@@ -12,8 +12,8 @@ from mozlog.handlers import BaseHandler, StreamHandler, LogLevelFilter
 
 here = os.path.dirname(__file__)
 localpaths = imp.load_source("localpaths", os.path.abspath(os.path.join(here, os.pardir, os.pardir, "localpaths.py")))
-from ci.tc.github_checks_output import get_gh_checks_outputter
-from wpt.markdown import markdown_adjust, table
+from ci.tc.github_checks_output import get_gh_checks_outputter  # type: ignore
+from wpt.markdown import markdown_adjust, table  # type: ignore
 
 
 # If a test takes more than (FLAKY_THRESHOLD*timeout) and does not consistently
@@ -21,7 +21,7 @@ from wpt.markdown import markdown_adjust, table
 FLAKY_THRESHOLD = 0.8
 
 
-class LogActionFilter(BaseHandler):
+class LogActionFilter(BaseHandler):  # type: ignore
 
     """Handler that filters out messages not of a given set of actions.
 
@@ -43,7 +43,7 @@ class LogActionFilter(BaseHandler):
             return self.inner(item)
 
 
-class LogHandler(reader.LogHandler):
+class LogHandler(reader.LogHandler):  # type: ignore
 
     """Handle updating test and subtest status in log.
 

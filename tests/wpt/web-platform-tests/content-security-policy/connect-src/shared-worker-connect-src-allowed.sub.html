@@ -16,7 +16,7 @@
     window.addEventListener('securitypolicyviolation', function(e) {
         log("violated-directive=" + e.violatedDirective);
     });
-    
+
     if(typeof SharedWorker != 'function') {
         t_log.set_status(t_alert.NOTRUN, "No SharedWorker, cannot run test.");
         t_log.phase = t_alert.phases.HAS_RESULT;

@@ -10,7 +10,7 @@
       var win = window.open('/content-security-policy/support/' +
                             'file-prefetch-allowed.html');
       win.addEventListener('load', function () {
-        // Cache control headers are added,since they are needed 
+        // Cache control headers are added,since they are needed
         // to enable prefetching.
         let url = '/content-security-policy/support/pass.png' +
                                   '?pipe=header(Cache-Control, max-age=604800)';

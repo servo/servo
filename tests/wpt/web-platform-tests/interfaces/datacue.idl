@@ -1,0 +1,12 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: DataCue API (https://wicg.github.io/datacue/)
+
+[Exposed=Window]
+interface DataCue : TextTrackCue {
+  constructor(double startTime, unrestricted double endTime,
+              any value, optional DOMString type);
+  attribute any value;
+  readonly attribute DOMString type;
+};

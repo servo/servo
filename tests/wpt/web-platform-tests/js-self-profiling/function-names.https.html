@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+
+  <script src="resources/profile-utils.js"></script>
+</head>
+<body>
+  <script>
+    promise_test(async t => {
+      const f = function namedFunctionExpression(sample) {
+        sample();
+      };
+      await ProfileUtils.testFunction(f, {
+        name: 'namedFunctionExpression',
+      });
+    }, 'function expression names are logged correctly');
+
+    promise_test(async t => {
+      const f = function(sample) {
+        sample();
+      };
+      await ProfileUtils.testFunction(f, {
+        name: '',
+      });
+    }, 'anonymous function expression names are logged correctly');
+
+    promise_test(async t => {
+      function namedFunctionDeclaration(sample) {
+        sample();
+      };
+      await ProfileUtils.testFunction(namedFunctionDeclaration, {
+        name: 'namedFunctionDeclaration',
+      });
+    }, 'function declaration names are logged correctly');
+
+    // Methods should use their label as the function/frame name. Source:
+    // https://www.ecma-international.org/ecma-262/#sec-method-definitions-runtime-semantics-propertydefinitionevaluation
+    promise_test(async t => {
+      class SomeClass {
+        method(sample) {
+          sample();
+        }
+      }
+      let instance = new SomeClass();
+
+      await ProfileUtils.testFunction(instance.method.bind(instance), {
+        name: 'method',
+      });
+    }, 'class method names are logged correctly');
+
+    // Getter methods should use `get ${label}` as the function/frame name. Source:
+    // https://www.ecma-international.org/ecma-262/#sec-method-definitions-runtime-semantics-propertydefinitionevaluation
+    promise_test(t => ProfileUtils.testFunction(sample => {
+        class SomeClass {
+          get someValue() {
+            sample();
+          }
+        }
+        let instance = new SomeClass();
+        instance.someValue;
+      }, {
+        name: 'get someValue',
+      }
+    ), 'class getter names are logged correctly');
+
+    // Setter methods should use `set ${label}` as the function/frame name. Source:
+    // https://www.ecma-international.org/ecma-262/#sec-method-definitions-runtime-semantics-propertydefinitionevaluation
+    promise_test(t => ProfileUtils.testFunction(sample => {
+        class SomeClass {
+          set someValue(_) {
+            sample();
+          }
+        }
+        let instance = new SomeClass();
+        instance.someValue = 5;
+      }, {
+        name: 'set someValue',
+      }
+    ), 'class setter names are logged correctly');
+  </script>
+</body>
+</html>

@@ -18,7 +18,7 @@
 
         // Create the sample buffer and fill the second half with 1
         let buffer = context.createBuffer(1, 2048, context.sampleRate);
-        for(let i = 1024; i < 2048; i++) {
+        for (let i = 1024; i < 2048; i++) {
           buffer.getChannelData(0)[i] = 1;
         }
 
@@ -32,15 +32,17 @@
         source.start(0, 1024 / context.sampleRate, 2048 / context.sampleRate);
         // Expectations
         let expected = new Float32Array(4096);
-        for(let i = 0; i < 2048; i++) {
+        for (let i = 0; i < 2048; i++) {
           expected[i] = 1;
         }
         // Render it!
         context.startRendering()
-          .then(function(audioBuffer) {
-            should(audioBuffer.getChannelData, "audioBuffer.getChannelData").beEqualToArray(expected);
-          })
-          .then(task.done());
+            .then(function(audioBuffer) {
+              should(
+                  audioBuffer.getChannelData(0), 'audioBuffer.getChannelData')
+                  .beEqualToArray(expected);
+            })
+            .then(task.done());
       });
 
       audit.run();

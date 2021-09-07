@@ -12,7 +12,7 @@ idl_test(
   idl_array => {
     idl_array.add_objects({
       Document: ['document'],
-      HTMLIframeElement: ['document.createElement("iframe")'],
+      HTMLIFrameElement: ['document.createElement("iframe")'],
       PermissionsPolicy: ['document.permissionsPolicy'],
       // TODO: PermissionsPolicyViolationReportBody
     });

@@ -1,9 +1,6 @@
-from __future__ import print_function, unicode_literals
-
 import abc
 import argparse
 import ast
-import io
 import json
 import logging
 import multiprocessing
@@ -25,7 +22,6 @@ from ..wpt import testfiles
 from ..manifest.vcs import walk
 
 from ..manifest.sourcefile import SourceFile, js_meta_re, python_meta_re, space_chars, get_any_variants
-from six import ensure_binary, ensure_text
 
 MYPY = False
 if MYPY:
@@ -34,7 +30,6 @@ if MYPY:
     from typing import Callable
     from typing import Dict
     from typing import IO
-    from typing import Iterator
     from typing import Iterable
     from typing import List
     from typing import Optional
@@ -59,17 +54,6 @@ if MYPY:
         from xml.etree import cElementTree as ElementTree
     except ImportError:
         from xml.etree import ElementTree as ElementTree  # type: ignore
-
-
-if sys.version_info >= (3, 7):
-    from contextlib import nullcontext
-else:
-    from contextlib import contextmanager
-
-    @contextmanager
-    def nullcontext(enter_result=None):
-        # type: (Optional[T]) -> Iterator[Optional[T]]
-        yield enter_result
 
 
 logger = None  # type: Optional[logging.Logger]
@@ -117,7 +101,7 @@ you could add the following line to the lint.ignore file.
 def all_filesystem_paths(repo_root, subdir=None):
     # type: (Text, Optional[Text]) -> Iterable[Text]
     path_filter = PathFilter(repo_root.encode("utf8"),
-                             extras=[ensure_binary(".git/")])
+                             extras=[b".git/"])
     if subdir:
         expanded_path = subdir.encode("utf8")
         subdir_str = expanded_path
@@ -129,7 +113,7 @@ def all_filesystem_paths(repo_root, subdir=None):
             if subdir:
                 path = os.path.join(subdir_str, path)
             assert not os.path.isabs(path), path
-            yield ensure_text(path)
+            yield path.decode("utf8")
 
 
 def _all_files_equal(paths):
@@ -393,6 +377,20 @@ def check_unique_testharness_basenames(repo_root, paths):
         context = (', '.join(v),)
         for extension in v:
             errors.append(rules.DuplicateBasenamePath.error(k + extension, context))
+    return errors
+
+
+def check_unique_case_insensitive_paths(repo_root, paths):
+    # type: (Text, List[Text]) -> List[rules.Error]
+    seen = {}  # type: Dict[Text, Text]
+    errors = []
+    for path in paths:
+        lower_path = path.lower()
+        if lower_path in seen:
+            context = (seen[lower_path],)
+            errors.append(rules.DuplicatePathCaseInsensitive.error(path, context))
+        else:
+            seen[lower_path] = path
     return errors
 
 
@@ -696,8 +694,7 @@ ast_checkers = [item() for item in [OpenModeCheck]]
 
 def check_python_ast(repo_root, path, f):
     # type: (Text, Text, IO[bytes]) -> List[rules.Error]
-    # *.quic.py are Python 3 only and cannot be parsed by Python 2.
-    if not path.endswith(".py") or path.endswith(".quic.py"):
+    if not path.endswith(".py"):
         return []
 
     try:
@@ -830,12 +827,13 @@ def check_file_contents(repo_root, path, f=None):
     :param f: a file-like object with the file contents
     :returns: a list of errors found in ``f``
     """
-    with io.open(os.path.join(repo_root, path), 'rb') if f is None else nullcontext(f) as real_f:
-        assert real_f is not None  # Py2: prod mypy -2 into accepting this isn't None
+    if f is None:
+        f = open(os.path.join(repo_root, path), 'rb')
+    with f:
         errors = []
         for file_fn in file_lints:
-            errors.extend(file_fn(repo_root, path, real_f))
-            real_f.seek(0)
+            errors.extend(file_fn(repo_root, path, f))
+            f.seek(0)
         return errors
 
 
@@ -956,25 +954,24 @@ def create_parser():
                         help="Output machine-readable JSON format")
     parser.add_argument("--markdown", action="store_true",
                         help="Output markdown")
-    parser.add_argument("--repo-root", type=ensure_text,
+    parser.add_argument("--repo-root", type=str,
                         help="The WPT directory. Use this "
                         "option if the lint script exists outside the repository")
-    parser.add_argument("--ignore-glob", type=ensure_text, action="append",
+    parser.add_argument("--ignore-glob", type=str, action="append",
                         help="Additional file glob to ignore (repeat to add more). "
                         "Globs are matched against paths relative to REPO_ROOT "
                         "using fnmatch, except that path separators are normalized.")
     parser.add_argument("--all", action="store_true", help="If no paths are passed, try to lint the whole "
                         "working directory, not just files that changed")
-    parser.add_argument("--github-checks-text-file", type=ensure_text,
+    parser.add_argument("--github-checks-text-file", type=str,
                         help="Path to GitHub checks output file for Taskcluster runs")
     parser.add_argument("-j", "--jobs", type=int, default=0,
                         help="Level to parallelism to use (defaults to 0, which detects the number of CPUs)")
     return parser
 
 
-def main(**kwargs_str):
+def main(**kwargs):
     # type: (**Any) -> int
-    kwargs = {ensure_text(key): value for key, value in kwargs_str.items()}
 
     assert logger is not None
     if kwargs.get("json") and kwargs.get("markdown"):
@@ -1013,7 +1010,7 @@ def lint(repo_root, paths, output_format, ignore_glob=None, github_checks_output
     if jobs == 0:
         jobs = multiprocessing.cpu_count()
 
-    with io.open(os.path.join(repo_root, "lint.ignore"), "r") as f:
+    with open(os.path.join(repo_root, "lint.ignore"), "r") as f:
         ignorelist, skipped_files = parse_ignorelist(f)
 
     if ignore_glob:
@@ -1107,7 +1104,8 @@ def lint(repo_root, paths, output_format, ignore_glob=None, github_checks_output
 
 path_lints = [check_file_type, check_path_length, check_worker_collision, check_ahem_copy,
               check_mojom_js, check_tentative_directories, check_gitignore_file]
-all_paths_lints = [check_css_globally_unique, check_unique_testharness_basenames]
+all_paths_lints = [check_css_globally_unique, check_unique_testharness_basenames,
+                   check_unique_case_insensitive_paths]
 file_lints = [check_regexp_line, check_parsed, check_python_ast, check_script_metadata,
               check_ahem_system_font]
 

@@ -29,7 +29,7 @@
 </style>
 
 <div id="box"></div>
-<div id="covered"></div>
+<div id="covered"><p>Covered Contents</p></div>
 
 <script>
   const box = document.getElementById('box');
@@ -43,7 +43,8 @@
   );
 
   const scroller = document.scrollingElement;
-  const timeline = new ScrollTimeline({ scrollSource: scroller, timeRange: 1000, orientation: 'block' });
+  const timeline = new ScrollTimeline(
+      { scrollSource: scroller, orientation: 'block' });
   const animation = new Animation(effect, timeline);
   animation.play();
 

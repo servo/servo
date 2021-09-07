@@ -9,6 +9,13 @@ To add, update or remove a test file, please update the list below.
 Please provide full reference and steps to generate the test file so that
 any people can regenerate or update the file in the future.
 
+## Notes
+* When updating the sample offsets and descriptions for tests using mp4 files, it's easiest to use [mp4box.js](https://gpac.github.io/mp4box.js/test/filereader.html).
+  * Sample offsets can be copied from the "Sample View" tab after unchecking all but offset and size. Use a multi-line edit mode and clang-format to quickly format entries.
+  * Description entries can be found under moov.trak.mdia.minf.stbl.stsd in box view.
+    * avc1.avcC has an offset, size in the same view. Add 8 to offset and subtract 8 from the size to get the values the tests want.
+  * If you use ffprobe -show_packets to get sample offsets, you may need to add 4 to each `pos` value. You can tell if you need to by whether or not tests pass.
+
 ## List of Test Files
 
 ### four-colors.png
@@ -26,6 +33,11 @@ Lossless encoding must be used to ensure colors are perfect.
 ffmpeg -i four-colors.png -lossless 1 -y four-colors.webp
 ```
 
+### four-colors-limited-range-420-8bpc.webp
+```
+ffmpeg -i four-colors.png -pix_fmt yuv420p four-colors-limited-range-420-8bpc.webp
+```
+
 ### four-colors.gif
 High quality encoding must be used to ensure colors are perfect.
 ```
@@ -33,12 +45,102 @@ cp four-colors.png four-colors2.png
 gifski -o four-colors.gif four-colors*.png
 ```
 
+### four-colors-flip.gif
+High quality encoding must be used to ensure colors are perfect.
+```
+ffmpeg -i four-colors.png -vf "rotate=PI" four-colors2.png
+gifski -o four-colors-flip.gif four-colors*.png
+```
+
+### four-colors-flip.avif
+```
+ffmpeg -i four-colors-flip.gif -vcodec libaom-av1 -crf 16 four-colors-flip.mp4
+mp4box -add-image ref:primary:tk=1:samp=1 -ab avis -ab avif -ab miaf -brand avis four-colors-flip.mp4 -out four-colors-flip.avif
+```
+
+### four-colors-limited-range-(420|422|444)-8bpc.avif
+```
+avifenc -r l -d 8 -y 420 -s 0 four-colors.png four-colors-limited-range-420-8bpc.avif
+avifenc -r l -d 8 -y 422 -s 0 four-colors.png four-colors-limited-range-422-8bpc.avif
+avifenc -r l -d 8 -y 444 -s 0 four-colors.png four-colors-limited-range-444-8bpc.avif
+```
+
+### four-colors-full-range-bt2020-pq-444-10bpc.avif
+```
+avifenc -r f -d 10 -y 444 -s 0 --nclx 9/16/9 four-colors.png four-colors-full-range-bt2020-pq-444-10bpc.avif
+```
+
 ### four-colors.jpg
-Used [Sqoosh.app](https://squoosh.app/) with MozJPEG compression then used
-exiftool to add an orientation marker.
+Used [Sqoosh.app](https://squoosh.app/) with MozJPEG compression and RGB
+channels. exiftool was then used to add an orientation marker.
 ```
 exiftool -Orientation=1 -n four-colors.jpg
 ```
 
+### four-colors-limited-range-420-8bpc.jpg
+Used [Sqoosh.app](https://squoosh.app/) with MozJPEG compression and YUV
+channels.
+
 ### four-colors.mp4
 Used a [custom tool](https://storage.googleapis.com/dalecurtis/avif2mp4.html) to convert four-colors.avif into a .mp4 file.
+
+### h264.mp4
+```
+ffmpeg -f lavfi -i testsrc=rate=10:n=1 -t 1 -pix_fmt yuv420p -vcodec h264 -tune zerolatency h264.mp4
+```
+
+### h264.annexb
+```
+ffmpeg -i h264.mp4 -codec copy -bsf:v h264_mp4toannexb -f h264 h264.annexb
+```
+
+### sfx.adts
+```
+sox -n -r 48000 sfx.wav synth 1 sine 480
+ffmpeg -i sfx.wav -frames:a 10 -acodec aac -b:a 96K sfx.adts
+```
+
+### sfx-alaw.wav
+```
+sox -n -r 48000 sfx.wav synth 1 sine 480
+ffmpeg -i sfx.wav -frames:a 10 -acodec pcm_alaw sfx-alaw.wav
+```
+
+### sfx.mp3
+```
+sox -n -r 48000 sfx.wav synth 1 sine 480
+ffmpeg -i sfx.wav -frames:a 10 -acodec libmp3lame -b:a 96K sfx.mp3
+```
+
+### sfx-aac.mp4
+```
+sox -n -r 48000 sfx.wav synth 1 sine 480
+ffmpeg -i sfx.wav -frames:a 10 -acodec aac -b:a 96K sfx-aac.mp4
+```
+
+### sfx-mulaw.wav
+```
+sox -n -r 48000 sfx.wav synth 1 sine 480
+ffmpeg -i sfx.wav -frames:a 10 -acodec pcm_mulaw sfx-mulaw.wav
+```
+
+### sfx-opus.ogg
+```
+sox -n -r 48000 sfx.wav synth 1 sine 480
+ffmpeg -i sfx.wav -frames:a 10 -acodec libopus -b:a 96K sfx-opus.ogg
+```
+
+### av1.mp4
+```
+ffmpeg -f lavfi -i testsrc=rate=10:n=1 -t 1 -pix_fmt yuv420p -vcodec libaom-av1 av1.mp4
+```
+
+### vp8.webm
+```
+ffmpeg -f lavfi -i testsrc=rate=10:n=1 -t 1 -pix_fmt yuv420p -vcodec vp8 vp8.webm
+```
+
+### vp9.mp4
+```
+ffmpeg -f lavfi -i testsrc=rate=10:n=1 -t 1 -pix_fmt yuv420p -vcodec vp9 vp9.mp4
+```

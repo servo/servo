@@ -1,4 +1,4 @@
-# File containing whiteslist for lint errors
+# File containing allowlist for lint errors
 # Format is:
 # ERROR TYPE:file/name/pattern[:line number]
 # e.g.
@@ -12,11 +12,13 @@ INDENT TABS: encoding/legacy*/*
 
 TRAILING WHITESPACE: html/canvas/tools/current-work-canvas.xhtml
 TRAILING WHITESPACE: conformance-checkers/*
-TRAILING WHITESPACE: content-security-policy/*
-TRAILING WHITESPACE: WebIDL/valid/*
+TRAILING WHITESPACE: webidl/valid/*
+TRAILING WHITESPACE: html/syntax/xmldecl/support/no-version-or-space-or-trailing-question-trailing-body-single-quotes-spaces-and-line-breaks-around-equals.htm
+TRAILING WHITESPACE: html/syntax/xmldecl/support/no-version-or-space-or-trailing-question-trailing-body-single-quotes-spaces-and-line-breaks-around-equals-trail.htm
 
 ## File types that should never be checked ##
 
+TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.adts
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.pdf
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.jpg
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.png
@@ -75,7 +77,7 @@ AHEM COPY: fonts/ahem-extra/AHEM_*.TTF
 ## Test exclusions ##
 
 # Intentional use of CRLF
-CR AT EOL: WebIDL/valid/idl/documentation-dos.widl
+CR AT EOL: webidl/valid/idl/documentation-dos.widl
 CR AT EOL: cors/resources/cors-headers.asis
 CR AT EOL: fetch/h1-parsing/resources/blue-with-0x00-in-a-header.asis
 CR AT EOL: html/semantics/forms/the-textarea-element/multiline-placeholder-cr.html
@@ -95,6 +97,7 @@ TRAILING WHITESPACE: server-timing/resources/parsing/*
 TRAILING WHITESPACE: webvtt/parsing/file-parsing/support/*.vtt
 TRAILING WHITESPACE: webvtt/parsing/file-parsing/tests/support/*.vtt
 TRAILING WHITESPACE: xhr/resources/headers-some-are-empty.asis
+TRAILING WHITESPACE: content-security-policy/support/manifest.json
 
 # Intentional use of print statements
 PRINT STATEMENT: dom/nodes/Document-createElement-namespace-tests/generate.py
@@ -148,8 +151,6 @@ SET TIMEOUT: css/selectors/selector-required-type-change-002.html
 SET TIMEOUT: encrypted-media/polyfill/chrome-polyfill.js
 SET TIMEOUT: encrypted-media/polyfill/clearkey-polyfill.js
 SET TIMEOUT: encrypted-media/scripts/playback-temporary-events.js
-SET TIMEOUT: eventsource/eventsource-close.htm
-SET TIMEOUT: eventsource/eventsource-request-cancellation.htm
 SET TIMEOUT: generic-sensor/resources/iframe_sensor_handler.html
 SET TIMEOUT: html/browsers/browsing-the-web/history-traversal/*
 SET TIMEOUT: html/browsers/browsing-the-web/navigating-across-documents/*
@@ -176,6 +177,7 @@ SET TIMEOUT: IndexedDB/*
 SET TIMEOUT: infrastructure/*
 SET TIMEOUT: intersection-observer/resources/*
 SET TIMEOUT: intersection-observer/target-in-different-window.html
+SET TIMEOUT: js-self-profiling/resources/profiling-script.js
 SET TIMEOUT: measure-memory/*
 SET TIMEOUT: media-source/mediasource-util.js
 SET TIMEOUT: media-source/URL-createObjectURL-revoke.html
@@ -187,6 +189,8 @@ SET TIMEOUT: portals/resources/portals-adopt-predecessor-portal.html
 SET TIMEOUT: preload/single-download-preload.html
 SET TIMEOUT: resize-observer/resources/iframe.html
 SET TIMEOUT: resource-timing/resources/nested-contexts.js
+SET TIMEOUT: reporting/resources/first-csp-report.https.sub.html
+SET TIMEOUT: reporting/resources/second-csp-report.https.sub.html
 SET TIMEOUT: secure-contexts/basic-popup-and-iframe-tests.https.js
 SET TIMEOUT: service-workers/cache-storage/script-tests/cache-abort.js
 SET TIMEOUT: service-workers/service-worker/activation.https.html
@@ -312,7 +316,7 @@ SET TIMEOUT: html/browsers/windows/auxiliary-browsing-contexts/resources/close-o
 SET TIMEOUT: html/cross-origin-embedder-policy/resources/reporting-worker.js
 SET TIMEOUT: html/cross-origin-opener-policy/navigate-to-aboutblank.https.html
 SET TIMEOUT: html/cross-origin-opener-policy/navigate-top-to-aboutblank.https.html
-SET TIMEOUT: html/cross-origin-opener-policy/reporting/resources/dispatcher.js
+SET TIMEOUT: html/cross-origin-opener-policy/resources/dispatcher.js
 SET TIMEOUT: html/dom/documents/dom-tree-accessors/Document.currentScript.html
 SET TIMEOUT: html/webappapis/timers/*
 SET TIMEOUT: orientation-event/resources/orientation-event-helpers.js
@@ -331,6 +335,8 @@ SET TIMEOUT: resources/test/tests/unit/exceptional-cases.html
 SET TIMEOUT: resources/test/tests/unit/exceptional-cases-timeouts.html
 SET TIMEOUT: resources/test/tests/unit/promise_setup.html
 SET TIMEOUT: resources/testharness.js
+SET TIMEOUT: scheduler/tentative/current-task-signal-async-abort.any.js
+SET TIMEOUT: scheduler/tentative/current-task-signal-async-priority.any.js
 
 # setTimeout use in reftests
 SET TIMEOUT: acid/acid3/test.html
@@ -484,6 +490,7 @@ SET TIMEOUT: css/CSS2/selectors/dom-hover-002.xht
 SET TIMEOUT: css/CSS2/tables/tables-102.xht
 SET TIMEOUT: css/mediaqueries/min-width-tables-001.html
 SET TIMEOUT: css/css-text/crashtests/rendering-rtl-bidi-override-crash.html
+SET TIMEOUT: resource-timing/resources/run-async-tasks-promise.js
 
 ## Build system stuff
 CSS-COLLIDING-SUPPORT-NAME: css/*/README
@@ -698,6 +705,7 @@ MISSING-LINK: css/cssom-view/scrollIntoView-smooth.html
 MISSING-LINK: css/cssom-view/scrollTop-display-change.html
 
 # TODO https://github.com/web-platform-tests/wpt/issues/5770
+MISSING-LINK: css/css-highlight-api/idlharness.window.js
 MISSING-LINK: css/geometry/*.worker.js
 MISSING-LINK: css/geometry/*.any.js
 MISSING-LINK: css/filter-effects/*.any.js
@@ -725,6 +733,7 @@ WEB-PLATFORM.TEST:web-bundle/subresource-loading/*.html
 # https://github.com/web-platform-tests/wpt/issues/16455
 # Please consult with ecosystem-infra@chromium.org before adding more.
 MISSING DEPENDENCY: credential-management/support/otpcredential-helper.js
+MISSING DEPENDENCY: resources/chromium/content-index-helpers.js
 MISSING DEPENDENCY: resources/chromium/contacts_manager_mock.js
 MISSING DEPENDENCY: resources/chromium/web-bluetooth-test.js
 MISSING DEPENDENCY: resources/chromium/webusb-test.js
@@ -734,19 +743,22 @@ MISSING DEPENDENCY: resources/chromium/mock-barcodedetection.js
 MISSING DEPENDENCY: resources/chromium/mock-facedetection.js
 MISSING DEPENDENCY: resources/chromium/mock-idle-detection.js
 MISSING DEPENDENCY: resources/chromium/mock-imagecapture.js
-MISSING DEPENDENCY: resources/chromium/mock-screenenumeration.js
+MISSING DEPENDENCY: resources/chromium/mock-managed-config.js
 MISSING DEPENDENCY: resources/chromium/mock-textdetection.js
 MISSING DEPENDENCY: resources/chromium/nfc-mock.js
 MISSING DEPENDENCY: resources/chromium/webxr-test.js
 
 # Tests that are false positives for using Ahem as a system font
 AHEM SYSTEM FONT: acid/acid3/test.html
-AHEM SYSTEM FONT: resource-timing/entry-attributes.html
 AHEM SYSTEM FONT: resource-timing/font-timestamps.html
-AHEM SYSTEM FONT: resource-timing/resources/all_resource_types.htm
+AHEM SYSTEM FONT: resource-timing/initiator-type/style.html
 AHEM SYSTEM FONT: resource-timing/resources/iframe-reload-TAO.sub.html
 AHEM SYSTEM FONT: html/canvas/element/drawing-text-to-the-canvas/2d.text.measure.fontBoundingBox.ahem.html
 AHEM SYSTEM FONT: css/css-font-loading/fontface-override-descriptors.html
+AHEM SYSTEM FONT: css/css-font-loading/fontface-size-adjust-descriptor.html
+AHEM SYSTEM FONT: css/css-font-loading/fontface-size-adjust-descriptor-ref.html
+AHEM SYSTEM FONT: css/css-fonts/ascent-descent-override.html
+AHEM SYSTEM FONT: css/css-fonts/line-gap-override.html
 
 # TODO: The following should be deleted along with the Ahem web font cleanup
 # PR (https://github.com/web-platform-tests/wpt/pull/18702)
@@ -803,3 +815,8 @@ DUPLICATE-BASENAME-PATH: dom/nodes/ParentNode-querySelector-All-content.html
 DUPLICATE-BASENAME-PATH: dom/nodes/ParentNode-querySelector-All-content.xht
 DUPLICATE-BASENAME-PATH: svg/struct/reftests/reference/green-100x100.html
 DUPLICATE-BASENAME-PATH: svg/struct/reftests/reference/green-100x100.svg
+
+SET TIMEOUT: mediacapture-insertable-streams/MediaStreamTrackProcessor-video.https.html
+
+CSS-COLLIDING-REF-NAME: css/css-backgrounds/reference/background-image-001-ref.html
+CSS-COLLIDING-REF-NAME: css/css-break/background-image-001-ref.html

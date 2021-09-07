@@ -165,7 +165,7 @@
         assert_equals(touch.clientY, touch.pageY - window.pageYOffset, "touch.clientY is touch.pageY - window.pageYOffset.");
     }
 
-    function run() {
+    async function run() {
         var target0 = document.getElementById("target0");
         var target1 = document.getElementById("target1");
 
@@ -175,10 +175,9 @@
         var test_mousedown = async_test("Interaction with mouse events");
 
         var touchstart_received = 0;
-        var touchmove_received = false;
+        var touchmove_received = 0;
         var touchend_received = false;
         var invalid_touchmove_received = false;
-        var actions_promise;
 
         on_event(target0, "touchstart", function onTouchStart(ev) {
             ev.preventDefault();
@@ -186,7 +185,7 @@
             if(!touchstart_received) {
                 // Check event ordering TA: 1.6.2
                 test_touchstart.step(function() {
-                    assert_false(touchmove_received, "touchstart precedes touchmove");
+                    assert_true(touchmove_received==0, "touchstart precedes touchmove");
                     assert_false(touchend_received, "touchstart precedes touchend");
                 });
                 test_touchstart.done();
@@ -200,17 +199,16 @@
         on_event(target0, "touchmove", function onTouchMove(ev) {
             ev.preventDefault();
 
-            if (touchmove_received)
-              return;
-            touchmove_received = true;
+            if(!touchmove_received) {
+                test_touchmove.step(function() {
+                    assert_true(touchstart_received>0, "touchmove follows touchstart");
+                    assert_false(touchend_received, "touchmove precedes touchend");
+                });
+                test_touchmove.done();
+            }
 
-            test_touchmove.step(function() {
-                assert_true(touchstart_received>0, "touchmove follows touchstart");
-                assert_false(touchend_received, "touchmove precedes touchend");
-            });
-            test_touchmove.done();
-
-            check_TouchEvent(ev);
+            if(++touchmove_received <= 2)
+                check_TouchEvent(ev, touchmove_received);
         });
 
         on_event(target1, "touchmove", function onTouchMove(ev) {
@@ -222,12 +220,12 @@
 
             test_touchend.step(function() {
                 assert_true(touchstart_received>0, "touchend follows touchstart");
-                assert_true(touchmove_received, "touchend follows touchmove");
+                assert_true(touchmove_received>0, "touchend follows touchmove");
                 assert_false(invalid_touchmove_received, "touchmove dispatched to correct target");
             });
             test_touchend.done();
 
-            check_TouchEvent(ev);
+            check_TouchEvent(ev, touchstart_received);
             done();
         });
 
@@ -249,7 +247,7 @@
             }
         });
 
-        actions_promise = new test_driver.Actions()
+        await new test_driver.Actions()
           .addPointer("touchPointer1", "touch")
           .addPointer("touchPointer2", "touch")
           .pointerMove(0, 0, {origin: target0, sourceName: "touchPointer1"})
@@ -257,8 +255,12 @@
           .pointerDown({sourceName: "touchPointer1"})
           .pointerDown({sourceName: "touchPointer2"})
           .pointerMove(0, 10, {origin: target0, sourceName: "touchPointer1"})
+          .pause(10, "pointer", {sourceName: "touchPointer2"})
+          .pause(10, "pointer", {sourceName: "touchPointer1"})
           .pointerMove(3, 10, {origin: target0, sourceName: "touchPointer2"})
           .pointerMove(0, 0, {origin: target1, sourceName: "touchPointer1"})
+          .pause(10, "pointer", {sourceName: "touchPointer2"})
+          .pause(10, "pointer", {sourceName: "touchPointer1"})
           .pointerMove(3, 0, {origin: target1, sourceName: "touchPointer2"})
           .pointerUp({sourceName: "touchPointer1"})
           .pointerUp({sourceName: "touchPointer2"})

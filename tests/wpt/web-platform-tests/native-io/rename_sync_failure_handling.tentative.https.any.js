@@ -21,10 +21,8 @@ test(testCase => {
     file2.close();
   });
 
-  const writtenBytes1 = Uint8Array.from([64, 65, 66, 67]);
-  file1.write(writtenBytes1, 0);
-  const writtenBytes2 = Uint8Array.from([96, 97, 98, 99]);
-  file2.write(writtenBytes2, 0);
+  const {buffer: writeBuffer1} = file1.write(new Uint8Array([64, 65, 66, 67]), 0);
+  const {buffer: writeBuffer2} = file2.write(new Uint8Array([96, 97, 98, 99]), 0);
 
   file1.close();
   file2.close();
@@ -47,15 +45,13 @@ test(testCase => {
     storageFoundation.deleteSync('test_file_1');
     storageFoundation.deleteSync('test_file_2');
   });
-  const readBytes1 = new Uint8Array(writtenBytes1.length);
-  file1_after.read(readBytes1, 0);
+  const {buffer: readBuffer1} = file1_after.read(new Uint8Array(4), 0);
   assert_array_equals(
-    readBytes1, writtenBytes1,
+    readBuffer1, writeBuffer1,
     'the bytes read should match the bytes written');
-  const readBytes2 = new Uint8Array(writtenBytes2.length);
-  file2_after.read(readBytes2, 0);
+  const {buffer: readBuffer2} = file2_after.read(new Uint8Array(4), 0);
   assert_array_equals(
-    readBytes2, writtenBytes2,
+    readBuffer2, writeBuffer2,
     'the bytes read should match the bytes written');
 }, 'storageFoundation.renameSync does not overwrite an existing file.');
 

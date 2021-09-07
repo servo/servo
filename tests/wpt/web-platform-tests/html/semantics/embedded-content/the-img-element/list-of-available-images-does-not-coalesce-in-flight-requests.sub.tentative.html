@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<title>List of available images does not coalesce in-flight requests</title>
+<link rel="author" title="Dom Farolino" href="mailto:dom@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-list-of-available-images">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+const uuid = "{{uuid()}}";
+const path = location.origin + '/html/semantics/embedded-content/the-img-element/resources/image-and-stash.py';
+
+promise_test(async t => {
+  let first_image_promise = new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = resolve;
+    img.onerror = e => { reject(new Error("The img should not fail to load")) };
+    img.src = path + `?increment=${uuid}&pipe=trickle(d1)`;
+  });
+
+  // As of right now, the spec's #updating-the-image-data step 6 [1] does not
+  // place images into the "list of available images" until they are completely
+  // downloaded and the `load` event is fired. The spec also explicitly states
+  // that coalescing in-flight image requests is not what the list of available
+  // images is for. This test asserts this behavior, though since no browsers
+  // follow this behavior (they all allow coalescing in-flight requests for the
+  // same image resource) we've started discussion about this in
+  // https://github.com/whatwg/html/issues/7005. If that issue resolves in
+  // letting in-flight requests into the list of available images, then we
+  // should changes the expectations of this test.
+  //
+  // [1]: https://html.spec.whatwg.org/multipage/images.html#updating-the-image-data
+  let second_image_promise = new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = resolve;
+    img.onerror = e => { reject("The img should not fail to load") };
+    img.src = path + `?increment=${uuid}&pipe=trickle(d1)`;
+  });
+
+  await Promise.all([first_image_promise, second_image_promise]);
+  const response = await fetch(path + `?read=${uuid}`);
+  const request_count = await response.text();
+
+  assert_equals(request_count, "2", "The server should have seen exactly two " +
+                                    "requests, since the second image request " +
+                                    "above did not coalesce with the first " +
+                                    "in-flight one");
+}, 'list of available images does not coalesce in-flight requests');
+</script>

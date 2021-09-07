@@ -7,7 +7,7 @@
 <link rel="help" href="https://drafts.csswg.org/css-text-3/#line-break-property">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<meta name="assert" content="When the language is unkonwn, and line-break:normal, a browser will NOT allow a break before a PR character with East Asian Width of A, F, or W.">
+<meta name="assert" content="When the language is unkonwn, and line-break:normal, a browser will allow a break before a PR character with East Asian Width of A, F, or W.">
 <style type="text/css">
 @font-face {
     font-family: 'mplus-1p-regular';
@@ -40,10 +40,10 @@ for (var i=0;i<lines.length;i++) {
 	var firstSpace = lines[i].indexOf(' ')
 	var hex = lines[i].substr(0,firstSpace)
 	var name = lines[i].substr(firstSpace)
-	// make a test
+	// make a test (ID ÷ PR × ID)
 	out +=  '<div class="wrapper"><div>'+hex+'</div>' +
 	'<div class="test" id="test'+i+'" lang="">文文文文文文&#x'+hex+';字<span id="testSpan'+i+'">字</span></div>' +
-	 '<div class="ref" id="ref'+i+'" lang="">文文文文文<br/>文&#x'+hex+';字<span id="refSpan'+i+'">字</span></div>' +
+	 '<div class="ref" id="ref'+i+'" lang="">文文文文文文<br/>&#x'+hex+';字<span id="refSpan'+i+'">字</span></div>' +
 	 '</div>'
 	}
 function spansNearEnough(counter) {
@@ -60,7 +60,7 @@ function validate() {
   for (i=0;i<lines.length;i++) {
     test(function() {
       assert_true(spansNearEnough(i));
-    }, lines[i]+' may NOT appear at line start if normal');
+    }, lines[i]+' may appear at line start if normal');
     // Hide successful tests.
     if (spansNearEnough(i)) document.getElementById('test'+i).parentNode.style.display = 'none'
   }

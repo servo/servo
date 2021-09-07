@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>mix-blend-mode under rotated clip</title>
+<link rel="help" href="https://drafts.fxtf.org/compositing-1/#mix-blend-mode">
+<link rel="match" href="reference/mix-blend-mode-rotated-clip-ref.html">
+<style>div { width: 100px; height: 100px; }</style>
+<div style="background: lime; overflow: hidden">
+  <div style="transform: rotate(45deg)">
+    <div style="background: lime; overflow: hidden">
+      <div style="background: red; transform: rotate(-45deg); mix-blend-mode: overlay; will-change: transform"></div>
+    </div>
+  </div>
+</div>

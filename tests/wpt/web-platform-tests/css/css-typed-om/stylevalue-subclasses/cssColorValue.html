@@ -1,0 +1,52 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSSColorValue Tests</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#csscolorvalue">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/testhelper.js"></script>
+<script>
+'use strict';
+
+const TEST_COLORS = [
+  {name: "magenta", rgb: [1, 0, 1], hsl: [300, 1, 0.5]},
+  {name: "dark cyan", rgb: [0, 0.545, 0.545], hsl: [180, 1, 0.2725]},
+  {name: "light goldenrod yellow", rgb: [1, 1, 0.82], hsl: [60, 1, 0.91]},
+  {name: "medium purple", rgb: [0.58, 0.44, 0.86], hsl: [260, 0.5977, 0.649]},
+]
+
+for (const color of TEST_COLORS) {
+  const hsl_color_degrees = new CSSHSL(CSS.deg(color.hsl[0]), color.hsl[1], color.hsl[2])
+  const hsl_color_radians = new CSSHSL(CSS.rad(color.hsl[0]/360 * 2 * Math.PI), color.hsl[1], color.hsl[2])
+  const hsl_color_gradiens = new CSSHSL(CSS.grad(color.hsl[0]/360 * 400), color.hsl[1], color.hsl[2])
+
+  const rgb_color = new CSSRGB(color.rgb[0], color.rgb[1], color.rgb[2])
+  test(() => {
+    const hsl_to_rgb = hsl_color_degrees.toRGB();
+    for (const attr of ['r', 'g', 'b', 'alpha']) {
+      assert_color_channel_approx_equals(hsl_to_rgb[attr], rgb_color[attr]);
+    }
+  }, `Converting HSL using degrees to RGB works for ${color.name}.`);
+
+  test(() => {
+    const hsl_to_rgb = hsl_color_radians.toRGB();
+    for (const attr of ['r', 'g', 'b', 'alpha']) {
+      assert_color_channel_approx_equals(hsl_to_rgb[attr], rgb_color[attr]);
+    }
+  }, `Converting HSL using radians to RGB works for ${color.name}.`);
+
+  test(() => {
+    const hsl_to_rgb = hsl_color_gradiens.toRGB();
+    for (const attr of ['r', 'g', 'b', 'alpha']) {
+      assert_color_channel_approx_equals(hsl_to_rgb[attr], rgb_color[attr]);
+    }
+  }, `Converting HSL using gradiens to RGB works for ${color.name}.`);
+
+  test(() => {
+    const rgb_to_hsl = rgb_color.toHSL();
+    for (const attr of ['h', 's', 'l', 'alpha']) {
+      assert_color_channel_approx_equals(hsl_color_degrees[attr], rgb_to_hsl[attr]);
+    }
+  }, `Converting RGB to HSL works for ${color.name}.`);
+}
+</script>

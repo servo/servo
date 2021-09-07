@@ -1,0 +1,47 @@
+<html>
+  <head>
+    <title>Referrer Policy: local scheme workers inherit from creator</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+    <meta name="referrer" content="no-referrer">
+  </head>
+  <script>
+    let cross_origin = get_host_info().REMOTE_ORIGIN;
+
+    let generateFetchString = postmessage => `
+      fetch("${cross_origin}/common/security-features/subresource/xhr.py",
+            {referrer: "${location.href}/custom"})
+          .then(r => r.json())
+          .then(j => ${postmessage}({referrer: j.headers.referer}))
+          .catch(e => ${postmessage}({referrer: "FAILURE"}));`
+
+    async_test(t => {
+      let blob = new Blob([generateFetchString("postMessage")],
+                          {type : 'application/javascript'});
+      let blob_url = URL.createObjectURL(blob);
+      let worker = new Worker(blob_url);
+      worker.onmessage = t.step_func_done(msg => {
+        assert_equals(msg.data.referrer, undefined);
+      });
+    }, "Dedicated worker with local scheme inherits referrer policy " +
+               "from the creating document.");
+
+    async_test(t => {
+      let script = `
+        onconnect = e => {
+          let port = e.ports[0];
+          port.start();
+          ${generateFetchString("port.postMessage")}
+        };`
+      let blob = new Blob([script], {type : 'application/javascript'});
+      let blob_url = URL.createObjectURL(blob);
+      let shared_worker = new SharedWorker(blob_url);
+      shared_worker.port.start();
+      shared_worker.port.onmessage = t.step_func_done(msg => {
+        assert_equals(msg.data.referrer, undefined);
+      });
+    }, "Shared worker with local scheme inherits referrer policy " +
+               "from the creating document.");
+  </script>
+</html>

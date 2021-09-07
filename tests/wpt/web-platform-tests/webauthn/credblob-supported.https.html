@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>credBlob extension tests</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src=helpers.js></script>
+<body></body>
+<script>
+"use strict";
+
+const blobu8 = new Uint8Array(16);
+window.crypto.getRandomValues(blobu8);
+const blob = blobu8.buffer;
+const authenticatorOptions = {
+  protocol: "ctap2_1",
+  extensions: ["credBlob"],
+};
+
+function compareBuffers(a, b) {
+  if (a.byteLength != b.byteLength) {
+    return false;
+  }
+  const a8 = new Uint8Array(a);
+  const b8 = new Uint8Array(b);
+  for (let i = 0; i < a8.length; i++) {
+    if (a8[i] != b8[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+virtualAuthenticatorPromiseTest(async t => {
+  const cred = await createCredential({
+    options: {
+      publicKey: {},
+    },
+  });
+
+  const createExtensions = cred.getClientExtensionResults();
+  assert_not_own_property(createExtensions, "credBlob");
+
+  const assertion = await navigator.credentials.get({publicKey: {
+    challenge: new Uint8Array(),
+    allowCredentials: [{
+      id: cred.rawId,
+      type: "public-key",
+    }],
+    extensions: {
+      getCredBlob: true,
+    },
+  }});
+
+  const getExtensions = assertion.getClientExtensionResults();
+  assert_own_property(getExtensions, "getCredBlob");
+  const emptyBuffer = new Uint8Array();
+  assert_true(compareBuffers(getExtensions.getCredBlob, emptyBuffer));
+}, authenticatorOptions, "assertion without credBlob");
+
+virtualAuthenticatorPromiseTest(async t => {
+  const cred = await createCredential({
+    options: {
+      publicKey: {
+        extensions: {
+          credBlob: blob,
+        },
+      },
+    },
+  });
+
+  const createExtensions = cred.getClientExtensionResults();
+  assert_own_property(createExtensions, "credBlob");
+  assert_equals(createExtensions.credBlob, true, "extension supported at create time");
+
+  const assertion = await navigator.credentials.get({publicKey: {
+    challenge: new Uint8Array(),
+    allowCredentials: [{
+      id: cred.rawId,
+      type: "public-key",
+    }],
+    extensions: {
+      getCredBlob: true,
+    },
+  }});
+
+  const getExtensions = assertion.getClientExtensionResults();
+  assert_own_property(getExtensions, "getCredBlob");
+  assert_true(compareBuffers(getExtensions.getCredBlob, blob));
+}, authenticatorOptions, "assertion with credBlob");
+</script>

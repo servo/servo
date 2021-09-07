@@ -3,7 +3,7 @@
 
 promise_test(async t => {
   await test_driver.set_permission(
-      {name: 'screen-wake-lock'}, 'granted', false);
+      {name: 'screen-wake-lock'}, 'granted');
 
   const lock = await navigator.wakeLock.request();
   t.add_cleanup(() => {

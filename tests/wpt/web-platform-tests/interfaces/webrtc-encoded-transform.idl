@@ -1,0 +1,104 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebRTC Encoded Transform (https://w3c.github.io/webrtc-encoded-transform/)
+
+// New dictionary
+dictionary RTCInsertableStreams {
+    ReadableStream readable;
+    WritableStream writable;
+};
+
+typedef (SFrameTransform or RTCRtpScriptTransform) RTCRtpTransform;
+
+// New methods for RTCRtpSender and RTCRtpReceiver
+partial interface RTCRtpSender {
+    attribute RTCRtpTransform? transform;
+};
+
+partial interface RTCRtpReceiver {
+    attribute RTCRtpTransform? transform;
+};
+
+enum SFrameTransformRole {
+    "encrypt",
+    "decrypt"
+};
+
+dictionary SFrameTransformOptions {
+    SFrameTransformRole role = "encrypt";
+};
+
+typedef [EnforceRange] unsigned long long SmallCryptoKeyID;
+typedef (SmallCryptoKeyID or bigint) CryptoKeyID;
+
+[Exposed=(Window,DedicatedWorker)]
+interface SFrameTransform {
+    constructor(optional SFrameTransformOptions options = {});
+    Promise<undefined> setEncryptionKey(CryptoKey key, optional CryptoKeyID keyID);
+};
+SFrameTransform includes GenericTransformStream;
+
+// New enum for video frame types. Will eventually re-use the equivalent defined
+// by WebCodecs.
+enum RTCEncodedVideoFrameType {
+    "empty",
+    "key",
+    "delta",
+};
+
+dictionary RTCEncodedVideoFrameMetadata {
+    long long frameId;
+    sequence<long long> dependencies;
+    unsigned short width;
+    unsigned short height;
+    long spatialIndex;
+    long temporalIndex;
+    long synchronizationSource;
+    sequence<long> contributingSources;
+};
+
+// New interfaces to define encoded video and audio frames. Will eventually
+// re-use or extend the equivalent defined in WebCodecs.
+[Exposed=(Window,DedicatedWorker)]
+interface RTCEncodedVideoFrame {
+    readonly attribute RTCEncodedVideoFrameType type;
+    readonly attribute unsigned long long timestamp;
+    attribute ArrayBuffer data;
+    RTCEncodedVideoFrameMetadata getMetadata();
+};
+
+dictionary RTCEncodedAudioFrameMetadata {
+    long synchronizationSource;
+    sequence<long> contributingSources;
+};
+
+[Exposed=(Window,DedicatedWorker)]
+interface RTCEncodedAudioFrame {
+    readonly attribute unsigned long long timestamp;
+    attribute ArrayBuffer data;
+    RTCEncodedAudioFrameMetadata getMetadata();
+};
+
+// New interfaces to expose JavaScript-based transforms.
+
+[Exposed=DedicatedWorker]
+interface RTCTransformEvent : Event {
+    readonly attribute RTCRtpScriptTransformer transformer;
+};
+
+partial interface DedicatedWorkerGlobalScope {
+    attribute EventHandler onrtctransform;
+};
+
+[Exposed=DedicatedWorker]
+interface RTCRtpScriptTransformer {
+    readonly attribute ReadableStream readable;
+    readonly attribute WritableStream writable;
+    readonly attribute any options;
+};
+
+[Exposed=Window]
+interface RTCRtpScriptTransform {
+    constructor(Worker worker, optional any options, optional sequence<object> transfer);
+};

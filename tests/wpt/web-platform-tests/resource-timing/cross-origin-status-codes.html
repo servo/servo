@@ -19,7 +19,7 @@
 <script id="script_502"></script>
 <script>
 
-function listenForPerformanceEntries(num_expected) {
+const listenForPerformanceEntries = num_expected => {
   return new Promise(resolve => {
     let results = [];
     new PerformanceObserver(entryList => {

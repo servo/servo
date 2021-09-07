@@ -103,7 +103,6 @@
           assert_session_desc_similar(pc.pendingLocalDescription, pranswer);
           assert_equals(pc.currentLocalDescription, null);
 
-          assert_equals(pc.pendingRemoteDescription, null);
 
           assert_array_equals(states, ['have-remote-offer', 'have-local-pranswer']);
         });

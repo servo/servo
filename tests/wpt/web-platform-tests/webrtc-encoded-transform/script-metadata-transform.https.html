@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <video id="video1" autoplay></video>
+        <script src ="routines.js"></script>
+        <script>
+async function waitForMessage(worker, data)
+{
+    while (true) {
+        const received = await new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+        if (data === received)
+            return;
+    }
+}
+
+async function gatherMetadata(test, audio)
+{
+    worker = new Worker('script-metadata-transform-worker.js');
+    const data = await new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+    assert_equals(data, "registered");
+
+    const localStream = await navigator.mediaDevices.getUserMedia({audio: audio, video: !audio});
+
+    let sender, receiver;
+    const senderTransform = new RTCRtpScriptTransform(worker, {name:'sender'});
+    const receiverTransform = new RTCRtpScriptTransform(worker, {name:'receiver'});
+
+    await new Promise((resolve, reject) => {
+        createConnections(test, (firstConnection) => {
+            pc1 = firstConnection;
+            sender = firstConnection.addTrack(localStream.getTracks()[0], localStream);
+            sender.transform = senderTransform;
+        }, (secondConnection) => {
+            pc2 = secondConnection;
+            secondConnection.ontrack = (trackEvent) => {
+                receiver = trackEvent.receiver;
+                receiver.transform = receiverTransform;
+                resolve(trackEvent.streams[0]);
+            };
+        });
+        test.step_timeout(() => reject("Test timed out"), 5000);
+    });
+
+    return new Promise((resolve, reject) => {
+        let senderMetadata, senderTimestamp;
+        worker.onmessage = (event) => {
+            if (event.data.name === 'sender') {
+                senderMetadata = event.data.metadata;
+                senderTimestamp = event.data.timestamp;
+            } else if (event.data.name === 'receiver')
+               resolve([senderMetadata, senderTimestamp, event.data.metadata, event.data.timestamp]);
+        };
+        test.step_timeout(() => reject("Metadata test timed out"), 5000);
+    });
+}
+
+promise_test(async (test) => {
+    const [senderMetadata, senderTimestamp, receiverMetadata, receiverTimestamp] = await gatherMetadata(test, true);
+
+    assert_equals(senderTimestamp, receiverTimestamp, "timestamp");
+    assert_true(!!senderMetadata.synchronizationSource, "ssrc");
+    assert_equals(senderMetadata.synchronizationSource, receiverMetadata.synchronizationSource, "ssrc");
+    assert_array_equals(senderMetadata.contributingSources, receiverMetadata.contributingSources, "csrc");
+}, "audio exchange with transform");
+
+promise_test(async (test) => {
+    const [senderMetadata, senderTimestamp, receiverMetadata, receiverTimestamp] = await gatherMetadata(test, true);
+
+    assert_equals(senderTimestamp, receiverTimestamp, "timestamp");
+    assert_true(!!senderMetadata.synchronizationSource, "ssrc");
+    assert_equals(senderMetadata.synchronizationSource, receiverMetadata.synchronizationSource, "ssrc");
+    assert_array_equals(senderMetadata.contributingSources, receiverMetadata.contributingSources, "csrc");
+    assert_equals(senderMetadata.height, receiverMetadata.height, "height");
+    assert_equals(senderMetadata.width, receiverMetadata.width, "width");
+    assert_equals(senderMetadata.spatialIndex, receiverMetadata.spatialIndex, "spatialIndex");
+    assert_equals(senderMetadata.temporalIndex, receiverMetadata.temporalIndex, "temporalIndex");
+}, "video exchange with transform");
+        </script>
+    </body>
+</html>

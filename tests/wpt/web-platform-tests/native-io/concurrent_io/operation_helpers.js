@@ -26,16 +26,15 @@ const kOperations = [];
   const kOpRead = {
     name: 'read',
     prepare: () => {
-      const readSharedArrayBuffer = new SharedArrayBuffer(4);
-      const readBytes = new Uint8Array(readSharedArrayBuffer);
-      return readBytes;
+      const readBuffer = new Uint8Array(4);
+      return readBuffer;
     },
-    assertRejection: async (testCase, file, readBytes) => {
+    assertRejection: async (testCase, file, readBuffer) => {
       await promise_rejects_dom(testCase, 'InvalidStateError',
-                                 file.read(readBytes, 4));
+                                 file.read(readBuffer, 4));
     },
-    assertUnchanged: (readBytes) => {
-      assert_array_equals(readBytes, [0, 0, 0, 0]);
+    assertUnchanged: (readBuffer) => {
+      assert_array_equals(readBuffer, [0, 0, 0, 0]);
     },
   };
   kOperations.push(kOpRead);
@@ -43,14 +42,13 @@ const kOperations = [];
   const kOpWrite = {
     name: 'write',
     prepare: () => {
-      const writeSharedArrayBuffer = new SharedArrayBuffer(4);
-      const writtenBytes = new Uint8Array(writeSharedArrayBuffer);
-      writtenBytes.set([96, 97, 98, 99]);
-      return writtenBytes;
+      const writeBuffer = new Uint8Array(4);
+      writeBuffer.set([96, 97, 98, 99]);
+      return writeBuffer;
     },
-    assertRejection: async (testCase, file, writtenBytes) => {
+    assertRejection: async (testCase, file, writeBuffer) => {
       await promise_rejects_dom(testCase, 'InvalidStateError',
-                                 file.write(writtenBytes, 4));
+                                 file.write(writeBuffer, 4));
     },
     assertUnchanged: () => {},
   };
@@ -81,7 +79,7 @@ const kOperations = [];
   const kOpSetLength = {
     name: 'setLength',
     prepare: () => {},
-    assertRejection: async (testCase, file, readBytes) => {
+    assertRejection: async (testCase, file) => {
       await promise_rejects_dom(testCase, 'InvalidStateError',
                                 file.setLength(2));
     },

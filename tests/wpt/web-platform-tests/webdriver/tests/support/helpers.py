@@ -4,8 +4,6 @@ import collections
 import math
 import sys
 
-from six import iteritems
-
 import webdriver
 
 from tests.support import defaults
@@ -114,7 +112,7 @@ def deep_update(source, overrides):
     Update a nested dictionary or similar mapping.
     Modify ``source`` in place.
     """
-    for key, value in iteritems(overrides):
+    for key, value in overrides.items():
         if isinstance(value, collections.Mapping) and value:
             returned = deep_update(source.get(key, {}), value)
             source[key] = returned
@@ -246,3 +244,19 @@ def filter_dict(source, d):
     :param d: dictionary whose keys determine the filtering.
     """
     return {k: source[k] for k in d.keys()}
+
+
+def wait_for_new_handle(session, handles_before):
+    def find_new_handle(session):
+        new_handles = list(set(session.handles) - set(handles_before))
+        if new_handles and len(new_handles) == 1:
+            return new_handles[0]
+        return None
+
+    wait = Poll(
+        session,
+        timeout=5,
+        message="No new window has been opened")
+
+    return wait.until(find_new_handle)
+

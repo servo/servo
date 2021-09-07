@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<head>
+<title>setSinkId and sinkId are SecureContext</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+</head>
+<body>
+<script>
+let audio;
+setup(() => {
+  assert_false(window.isSecureContext,
+               "This test must be run in a non secure context");
+  audio = document.createElement('audio');
+});
+for (const prop of ['sinkId', 'setSinkId']) {
+  test(() => {
+    assert_false(prop in audio);
+  }, `${prop} exposure`);
+}
+</script>
+</body>
+</html>

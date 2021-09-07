@@ -1,0 +1,12 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i"></iframe>
+<script>
+promise_test(async t => {
+  let iframe_constructor = i.contentWindow.DOMException;
+  let i_win = i.contentWindow;
+  i.remove();
+  await promise_rejects_dom(t, 'InvalidStateError', iframe_constructor, i_win.appHistory.navigate("#"));
+}, "navigate() in a detached window");
+</script>

@@ -55,7 +55,7 @@ test(function() {
   assert_equals(pi.contains(document), false, "Processing instruction shouldn't contain document");
   assert_equals(document.contains(pi), false, "Document shouldn't contain newly created processing instruction");
   document.documentElement.appendChild(pi);
-  document.contains(pi, true, "Document should contain processing instruction");
+  assert_equals(document.contains(pi), true, "Document should contain processing instruction");
 }, "contains with a processing instruction");
 
 test(function() {

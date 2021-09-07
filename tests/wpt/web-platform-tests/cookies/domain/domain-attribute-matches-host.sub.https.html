@@ -10,6 +10,10 @@
     //  Set-Cookie: domain-attribute-matches-host=b; Path=/; Domain={{host}}
     //
     const cookieName = "domain-attribute-matches-host";
+    // Clean up cookie at the end to avoid interfering with subsequent tests.
+    add_completion_callback(tests => document.cookie =
+      `${cookieName}=0; Path=/; Domain={{host}}; expires=01-jan-1970 00:00:00 GMT`);
+
     test(t => {
       assert_dom_cookie(cookieName, "b", true);
     }, "Domain={{host}} => available via `document.cookie`");

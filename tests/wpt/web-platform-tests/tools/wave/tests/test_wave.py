@@ -4,11 +4,8 @@ import socket
 import subprocess
 import time
 
-try:
-    from urllib.request import urlopen
-    from urllib.error import URLError
-except ImportError:
-    from urllib2 import urlopen, URLError
+from urllib.request import urlopen
+from urllib.error import URLError
 
 import pytest
 
@@ -18,7 +15,7 @@ def is_port_8000_in_use():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         s.bind(("127.0.0.1", 8000))
-    except socket.error as e:
+    except OSError as e:
         if e.errno == errno.EADDRINUSE:
             return True
         else:

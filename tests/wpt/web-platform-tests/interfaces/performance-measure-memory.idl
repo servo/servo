@@ -26,5 +26,5 @@ dictionary MemoryAttributionContainer {
 };
 
 partial interface Performance {
-  [CrossOriginIsolated] Promise<MemoryMeasurement> measureUserAgentSpecificMemory();
+  [Exposed=(Window,ServiceWorker,SharedWorker), CrossOriginIsolated] Promise<MemoryMeasurement> measureUserAgentSpecificMemory();
 };

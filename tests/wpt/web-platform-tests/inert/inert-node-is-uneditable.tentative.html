@@ -6,6 +6,8 @@
     <link rel="author" title="Alice Boxhall" href="aboxhall@chromium.org">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
   </head>
 <body>
 <span inert id="not-editable" contenteditable>I'm not editable.</span>
@@ -18,26 +20,16 @@ promise_test(async () => {
     notEditable.focus();
     var oldValue = notEditable.textContent;
     assert_equals(oldValue, "I'm not editable.");
-    try {
-      test_driver.keyDown('a');
-      assert_equals(notEditable.textContent, oldValue);
-    } catch (e) {
-      // TODO(crbug.com/828858): Remove this check once bug is resolved.
-      assert_true(false, "send_keys not implemented yet");
-    }
+    await test_driver.send_keys(document.body, 'a');
+    assert_equals(notEditable.textContent, oldValue);
 }, "Can't edit inert contenteditable");
 
-test(() => {
+promise_test(async () => {
     editable.focus();
     var oldValue = editable.textContent;
     assert_equals(oldValue, "I'm editable.");
-    try {
-      test_driver.keyDown('a');
-      assert_not_equals(editable.textContent, oldValue);
-    } catch (e) {
-      // TODO(crbug.com/828858): Remove this check once bug is resolved.
-      assert_true(false, "send_keys not implemented yet");
-    }
+    await test_driver.send_keys(document.body, 'a');
+    assert_not_equals(editable.textContent, oldValue);
 }, "Can edit non-inert contenteditable");
 
 </script>

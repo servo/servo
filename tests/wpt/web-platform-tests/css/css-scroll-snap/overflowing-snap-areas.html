@@ -24,16 +24,16 @@ div {
 }
 .target {
   scroll-snap-align: start;
+  height: 400px;
+  width: 400px;
 }
 .large-x {
   width: 3000px;
-  height: 400px;
   background-color: yellow;
 }
 .large-y {
-  width: 400px;
   height: 2000px;
-  background-color: green;
+  background-color: yellow;
 }
 .small {
   height: 200px;
@@ -72,11 +72,25 @@ div {
   <div class="target large-x" style="top: 200px"></div>
 </div>
 
+<div class="scroller-x" id="overlapping-overflow" style="scroll-snap-type: both mandatory">
+  <div class="space"></div>
+  <div style="left: 200px; top: 200px;">
+    <div class="target small"></div>
+    <div class="target small"></div>
+    <div class="target small"></div>
+    <div class="target large-y large-x"></div>
+    <div class="target small"></div>
+    <div class="target small"></div>
+    <div class="target small"></div>
+  </div>
+</div>
+
 <script>
 var one_target_scroller = document.getElementById("one-target");
 var scroller_x = document.getElementById("x");
 var scroller_y = document.getElementById("y");
 var two_axes_scroller = document.getElementById("two-axes");
+var overlapping_scroller = document.getElementById("overlapping-overflow");
 
 test(() => {
   one_target_scroller.scrollTo(10, 0);
@@ -165,4 +179,19 @@ test(() => {
 }, "Snap to current scroll position on x as the area is covering x axis." +
    "However, we snap to the specified snap position on y as the area is not " +
    "covering y axis.");
+
+test(() => {
+  overlapping_scroller.scrollTo(200, 800);
+  assert_equals(overlapping_scroller.scrollLeft, 200);
+  assert_equals(overlapping_scroller.scrollTop, 800);
+}, "snap to current scroll position on y as the area is covering y axis, " +
+   "even though that area is not the only scroll area at the same position.");
+
+test(() => {
+  overlapping_scroller.scrollTo(800, 200);
+  assert_equals(overlapping_scroller.scrollLeft, 800);
+  assert_equals(overlapping_scroller.scrollTop, 200);
+}, "snap to current scroll position on x as the area is covering x axis, " +
+   "even though that area is not the only scroll area at the same position.");
+</script>
 </script>

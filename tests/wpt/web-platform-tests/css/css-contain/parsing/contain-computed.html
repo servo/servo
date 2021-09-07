@@ -22,10 +22,10 @@ test_computed_value("contain", "style");
 test_computed_value("contain", "paint");
 test_computed_value("contain", "size layout");
 test_computed_value("contain", "style paint");
-test_computed_value("contain", "layout style paint");
-test_computed_value("contain", "size layout style paint");
-test_computed_value("contain", "size layout paint", "strict");
-test_computed_value("contain", "layout paint", "content");
+test_computed_value("contain", "style layout paint", "content");
+test_computed_value("contain", "size style layout paint", "strict");
+test_computed_value("contain", "size layout paint", "size layout paint");
+test_computed_value("contain", "layout paint");
 </script>
 </body>
 </html>

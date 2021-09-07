@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Same-document navigations during same-document traversals</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!--
+  The spec currently says that same-document navigations must stop traverals,
+  but this does not match browsers: https://github.com/whatwg/html/issues/6773.
+  There is a separate interop issue about how the traversal vs. the
+  same-document navigation get ordered. This test assumes a behavior similar to
+  Firefox's, although Firefox is inconsistent and only applies this behavior
+  for fragments, not for pushState().
+-->
+
+<body>
+<script type="module">
+import { createIframe, delay } from "./resources/helpers.mjs";
+
+promise_test(async t => {
+  const iframe = await createIframe(t);
+
+  // Setup
+  iframe.contentWindow.location.hash = "#1";
+  await delay(t, 0);
+  iframe.contentWindow.location.hash = "#2";
+  await delay(t, 0);
+
+  iframe.contentWindow.history.back();
+
+  assert_equals(iframe.contentWindow.location.hash, "#2", "must not go back synchronously");
+
+  iframe.contentWindow.location.hash = "#3";
+  assert_equals(iframe.contentWindow.location.hash, "#3");
+
+  // Eventually ends up on #2
+  await t.step_wait(() => iframe.contentWindow.location.hash === "#2");
+}, "same-document traversals are not canceled by fragment navigations");
+
+promise_test(async t => {
+  const iframe = await createIframe(t);
+
+  // Setup
+  iframe.contentWindow.history.pushState(null, "", "/1");
+  await delay(t, 0);
+  iframe.contentWindow.history.pushState(null, "", "/2");
+  await delay(t, 0);
+
+  iframe.contentWindow.history.back();
+
+  assert_equals(iframe.contentWindow.location.pathname, "/2", "must not go back synchronously");
+
+  iframe.contentWindow.history.pushState(null, "", "/3");
+  assert_equals(iframe.contentWindow.location.pathname, "/3");
+
+  // Eventually ends up on /2
+  await t.step_wait(() => iframe.contentWindow.location.pathname === "/2");
+}, "same-document traversals are not canceled by pushState()");
+</script>

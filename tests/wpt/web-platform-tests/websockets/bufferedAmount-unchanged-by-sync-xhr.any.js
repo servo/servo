@@ -1,9 +1,11 @@
-// META: script=websocket.sub.js
+// META: script=constants.sub.js
 // META: global=window,dedicatedworker,sharedworker
+// META: variant=
+// META: variant=?wss
+// META: variant=?wpt_flags=h2
 
 async_test(t => {
-  const url = 'wss://' + __SERVER__NAME + ':' + __SECURE__PORT + '/echo';
-  const ws = new WebSocket(url);
+  const ws = CreateWebSocket(false, false);
   ws.onopen = t.step_func(() => {
     ws.onclose = ws.onerror = null;
     assert_equals(ws.bufferedAmount, 0);

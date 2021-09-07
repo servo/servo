@@ -20,12 +20,13 @@ for (let op of kOperations) {
 
     assert_equals(await getLengthPromise, 4);
 
-    const readSharedArrayBuffer = new SharedArrayBuffer(4);
-    const readBytes = new Uint8Array(readSharedArrayBuffer);
-    assert_equals(await file.read(readBytes, 0), 4,
+    const {buffer: readBuffer, readBytes} =
+      await file.read(new Uint8Array(4), 0);
+
+    assert_equals(readBytes, 4,
                   `NativeIOFile.read() should not fail after a rejected ` +
                     `${op.name} during getLength()`);
-    assert_array_equals(readBytes, [64, 65, 66, 67],
+    assert_array_equals(readBuffer, [64, 65, 66, 67],
                         `Rejecting ${op.name} during getLength() should not ` +
                           `change the file.`);
     op.assertUnchanged(res);

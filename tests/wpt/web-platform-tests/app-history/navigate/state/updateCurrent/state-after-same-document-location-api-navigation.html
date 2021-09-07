@@ -1,0 +1,40 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async_test(t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  window.onload = () => t.step_timeout(async () => {
+    let entry0 = appHistory.current;
+
+    let navState = { statevar: "state" };
+    appHistory.updateCurrent({ state: navState });
+    assert_equals(appHistory.current, entry0);
+
+    location.href = "#2";
+    let entry1 = appHistory.current;
+
+    assert_equals(appHistory.entries().length, 2);
+    assert_equals(entry0, appHistory.entries()[0]);
+    assert_equals(entry1, appHistory.entries()[1]);
+
+    assert_equals(entry0.getState().statevar, "state");
+    assert_not_equals(entry0.getState(), navState);
+
+    assert_equals(entry1.getState().statevar, "state");
+    assert_not_equals(entry1.getState(), navState);
+    assert_not_equals(entry1.getState(), entry0.getState());
+
+    history.back();
+    window.onpopstate = t.step_func_done(() => {
+      assert_equals(appHistory.entries().length, 2);
+      let back_entry = appHistory.current;
+      assert_equals(back_entry, entry0);
+      let back_state = back_entry.getState();
+      assert_not_equals(back_state, navState);
+      assert_equals(back_state.statevar, "state");
+    });
+  }, 0);
+}, "appHistoryEntry.getState() behavior after navigating away and back via a fragment change");
+</script>

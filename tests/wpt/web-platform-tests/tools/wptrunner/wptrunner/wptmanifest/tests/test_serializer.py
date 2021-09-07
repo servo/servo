@@ -1,7 +1,4 @@
-import sys
 import unittest
-
-import pytest
 
 from .. import parser, serializer
 
@@ -192,7 +189,6 @@ class TokenizerTest(unittest.TestCase):
                      r"""key: "#"
 """)
 
-    @pytest.mark.xfail(sys.maxunicode == 0xFFFF, reason="narrow unicode")
     def test_escape_9(self):
         self.compare(br"""key: \U10FFFFabc""",
                      u"""key: \U0010FFFFabc

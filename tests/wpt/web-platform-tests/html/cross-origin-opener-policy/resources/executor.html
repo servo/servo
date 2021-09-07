@@ -1,0 +1,13 @@
+<script src="./dispatcher.js"></script>
+<script>
+
+const params = new URLSearchParams(window.location.search);
+const uuid = params.get('uuid');
+
+let executeOrders = async function() {
+  while(true)
+    eval(await receive(uuid));
+};
+executeOrders();
+
+</script>

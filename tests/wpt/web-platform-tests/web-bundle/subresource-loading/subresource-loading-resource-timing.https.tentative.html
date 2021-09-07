@@ -1,0 +1,56 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Resource timing entries present for urn:uuid resources</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+promise_test(async t => {
+  const frame_id = 'urn:uuid:429fcc4e-0696-4bad-b099-ee9175f023ae';
+  const script_id = 'urn:uuid:020111b3-437a-4c5c-ae07-adb6bbffb720';
+  const link = document.createElement("link");
+  link.rel = "webbundle";
+  link.href = "../resources/wbn/urn-uuid.wbn";
+  link.resources.add(frame_id, script_id);
+  document.body.appendChild(link);
+  var iframe_entries = 0;
+  var script_entries = 0;
+  // Declare the report_result function as outputting into stderr
+  // because it is used in the WebBundle script to report the script load.
+  window.report_result = console.error;
+  const promise = new Promise(resolve => {
+    new PerformanceObserver(t.step_func(entryList => {
+      var entries = entryList.getEntriesByType("resource");
+      for (var i = 0; i < entries.length; ++i) {
+        // Ignore any entries for the test harness files if present.
+        if (/testharness(report)?\.js/.test(entries[i].name)) {
+          continue;
+        }
+
+        if (entries[i].name === frame_id)
+            ++iframe_entries;
+        if (entries[i].name === script_id)
+            ++script_entries;
+      }
+      if (iframe_entries == 1 && script_entries == 1) {
+        resolve();
+      }
+    })).observe({entryTypes: ["resource"]});
+  });
+  // Add iframe and the script so we get the ResourceTiming
+  const iframe = document.createElement("iframe");
+  iframe.src = frame_id;
+  document.body.appendChild(iframe);
+  const script = document.createElement("script");
+  script.src = script_id;
+  document.body.appendChild(script);
+  return promise;
+}, '"Each urn:uuid resource should have exactly 1 ResourceTiming entry."');
+</script>
+<h1>Resource timing entries present for urn:uuid resources</h1>
+<p>
+This test makes sure that ResourceTiming entries (exactly 1 per resource) are created for urn:uuid resources served from a webbundle.
+</p>
+<div id="log"></div>
+</body>
+

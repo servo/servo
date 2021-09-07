@@ -4,11 +4,7 @@ except ImportError:
     pass
 import json
 import os
-try:
-    # import Queue under its Python 3 name
-    import Queue as queue  # noqa: N813
-except ImportError:
-    import queue
+import queue
 import tempfile
 import threading
 
@@ -29,7 +25,7 @@ class ServerProcSpy(serve.ServerProc):
 
         return result
 
-serve.ServerProc = ServerProcSpy
+serve.ServerProc = ServerProcSpy  # type: ignore
 
 @pytest.fixture()
 def server_subprocesses():
@@ -72,7 +68,7 @@ def test_subprocess_exit(server_subprocesses, tempfile_name):
 
     server_subprocesses.get(True, timeout)
     subprocess = server_subprocesses.get(True, timeout)
-    subprocess.kill()
+    subprocess.stop()
 
     thread.join(timeout)
 

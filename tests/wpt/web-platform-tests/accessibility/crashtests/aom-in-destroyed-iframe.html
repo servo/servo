@@ -1,0 +1,27 @@
+<html class="test-wait">
+<body></body>
+<script>
+  const frameElem = document.createElement('iframe');
+
+  frameElem.srcdoc = '<html><head><title>X</title></head><body><div>-</div></body></html>';
+  frameElem.onload = function() {
+    const frameDoc = frameElem.contentWindow.document;
+
+    const divElem = frameDoc.querySelector('div');
+
+    getComputedAccessibleNode(divElem).then(function(divAccessible) {
+      // Close window.
+      frameElem.remove();
+
+      requestAnimationFrame(() => {
+        // Window removed, but we try to access DOM of non-existent window.
+        const isChecked = divAccessible.checked;
+        // Test is complete.
+        document.documentElement.className = '';
+      });
+    });
+  };
+
+  document.body.appendChild(frameElem);
+</script>
+</html>

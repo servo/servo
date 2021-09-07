@@ -12,7 +12,7 @@
         window.addEventListener('securitypolicyviolation', function(e) {
             log("violated-directive=" + e.violatedDirective);
         });
-        
+
         window.addEventListener("message", function(event) {
             alert_assert(event.data);
         }, false);

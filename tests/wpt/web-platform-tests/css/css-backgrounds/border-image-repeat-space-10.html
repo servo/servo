@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+<title>CSS Border Image: border-image-repeat:space</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<link rel="help" href="https://www.w3.org/TR/css3-background/#the-border-image-repeat">
+<link rel="match" href="border-image-repeat-space-10-ref.html">
+<meta name="assert" content="Check that 'border-image-repeat:space' renders as expected by comparing to something not using 'border-image-repeat:space'.">
+
+<style>
+  div {
+    border: 27px solid;
+    border-image: url("support/border.png") 27 space;
+    border-image-width: auto;
+  }
+</style>
+
+<div style="width: 26px; height: 26px"></div>
+<div style="width: 53px; height: 53px"></div>
+<div style="width: 70px; height: 70px"></div>
+
+</html>

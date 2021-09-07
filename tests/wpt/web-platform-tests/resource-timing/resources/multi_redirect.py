@@ -1,3 +1,4 @@
+import urllib.parse
 from wptserve.utils import isomorphic_encode
 
 def main(request, response):
@@ -37,7 +38,7 @@ def main(request, response):
     redirect_url_path = b"/resource-timing/resources/multi_redirect.py?"
     redirect_url_path += b"page_origin=" + page_origin
     redirect_url_path += b"&cross_origin=" + cross_origin
-    redirect_url_path += b"&final_resource=" + final_resource
+    redirect_url_path += b"&final_resource=" + urllib.parse.quote(final_resource).encode('ascii')
     redirect_url_path += b"&tao_value=" + tao_value
     redirect_url_path += b"&tao_steps=" + isomorphic_encode(str(next_tao_steps))
     redirect_url_path += b"&step="

@@ -1,0 +1,18 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+async_test(t => {
+  window.onload = t.step_func(() => {
+    let key = i.contentWindow.appHistory.current.key;
+    let id = i.contentWindow.appHistory.current.id;
+    i.contentWindow.location.replace("/common/blank.html?query");
+    i.onload = t.step_func_done(() => {
+      assert_equals(key, i.contentWindow.appHistory.current.key);
+      assert_not_equals(id, i.contentWindow.appHistory.current.id);
+      assert_equals(appHistory.entries().length, 1);
+    });
+  });
+}, "AppHistoryEntry.key behavior after location.replace()");
+</script>

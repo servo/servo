@@ -139,23 +139,12 @@ partial interface Range {
 };
 
 partial interface MouseEvent {
-  readonly attribute double screenX;
-  readonly attribute double screenY;
   readonly attribute double pageX;
   readonly attribute double pageY;
-  readonly attribute double clientX;
-  readonly attribute double clientY;
   readonly attribute double x;
   readonly attribute double y;
   readonly attribute double offsetX;
   readonly attribute double offsetY;
-};
-
-partial dictionary MouseEventInit {
-  double screenX = 0.0;
-  double screenY = 0.0;
-  double clientX = 0.0;
-  double clientY = 0.0;
 };
 
 enum CSSBoxType { "margin", "border", "padding", "content" };

@@ -88,6 +88,12 @@ function define_file_picker_error_tests(showPickerMethod) {
 
   promise_test(async t => {
     await promise_rejects_js(t, TypeError, self[showPickerMethod]({
+                               startIn: null,
+                             }));
+  }, showPickerMethod + ': starting directory can\t be null.');
+
+  promise_test(async t => {
+    await promise_rejects_js(t, TypeError, self[showPickerMethod]({
       id: "inv*l:d\\ chara<ters",
     }));
   }, showPickerMethod + ': starting directory ID contains invalid characters.');

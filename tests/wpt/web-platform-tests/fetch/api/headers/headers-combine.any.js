@@ -1,6 +1,8 @@
 // META: title=Headers have combined (and sorted) values
 // META: global=window,worker
 
+"use strict";
+
 var headerSeqCombine = [["single", "singleValue"],
                         ["double", "doubleValue1"],
                         ["double", "doubleValue2"],
@@ -15,13 +17,13 @@ var expectedDict = {"single": "singleValue",
 
 test(function() {
   var headers = new Headers(headerSeqCombine);
-  for (name in expectedDict)
+  for (const name in expectedDict)
     assert_equals(headers.get(name), expectedDict[name]);
 }, "Create headers using same name for different values");
 
 test(function() {
   var headers = new Headers(headerSeqCombine);
-  for (name in expectedDict) {
+  for (const name in expectedDict) {
     assert_true(headers.has(name), "name: " + name + " has value(s)");
     headers.delete(name);
     assert_false(headers.has(name), "name: " + name + " has no value(s) anymore");
@@ -30,7 +32,7 @@ test(function() {
 
 test(function() {
   var headers = new Headers(headerSeqCombine);
-  for (name in expectedDict) {
+  for (const name in expectedDict) {
     headers.set(name,"newSingleValue");
     assert_equals(headers.get(name), "newSingleValue", "name: " + name + " has value: newSingleValue");
   }
@@ -38,7 +40,7 @@ test(function() {
 
 test(function() {
   var headers = new Headers(headerSeqCombine);
-  for (name in expectedDict) {
+  for (const name in expectedDict) {
     var value = headers.get(name);
     headers.append(name,"newSingleValue");
     assert_equals(headers.get(name), (value + ", " + "newSingleValue"));

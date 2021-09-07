@@ -1,15 +1,9 @@
-import base64
+from base64 import decodebytes
 
 import pytest
 
-import six
-
 from tests.support.asserts import assert_error, assert_success
 
-def decodebytes(s):
-    if six.PY3:
-        return base64.decodebytes(six.ensure_binary(s))
-    return base64.decodestring(s)
 
 def do_print(session, options):
     return session.transport.send(
@@ -30,7 +24,7 @@ def test_no_top_browsing_context(session, closed_window):
 def test_no_browsing_context(session, closed_frame):
     response = do_print(session, {})
     value = assert_success(response)
-    pdf = decodebytes(six.ensure_binary(value))
+    pdf = decodebytes(value.encode())
     assert_pdf(pdf)
 
 
@@ -43,8 +37,43 @@ def test_html_document(session, inline):
         "shrinkToFit": False
     })
     value = assert_success(response)
-    pdf = decodebytes(six.ensure_binary(value))
+    pdf = decodebytes(value.encode())
     # TODO: Test that the output is reasonable
+    assert_pdf(pdf)
+
+def test_large_html_document(session, inline):
+    session.url = inline("<canvas id=\"image\"></canvas>")
+
+    session.execute_script(
+        """
+        const width = 700;
+        const height = 900;
+
+        const canvas = document.getElementById("image");
+        const context = canvas.getContext("2d");
+
+        canvas.width = width;
+        canvas.height = height;
+
+        for (let x = 0; x < width; ++x) {
+            for (let y = 0; y < height; ++y) {
+                const colourHex = Math.floor(Math.random() * 0xffffff).toString(16);
+
+                context.fillStyle = `#${colourHex}`;
+                context.fillRect(x, y, 1, 1);
+            }
+        }
+        """
+    )
+
+    response = do_print(session, {})
+    value = assert_success(response)
+    pdf = decodebytes(value.encode())
+
+    # This was added to test the fix for a bug in firefox where a PDF larger
+    # than 500kb would cause an error. If the resulting PDF is smaller than that
+    # it could pass incorrectly.
+    assert len(pdf) > 500000
     assert_pdf(pdf)
 
 

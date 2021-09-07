@@ -14,7 +14,7 @@ def main(request, response):
     <title>This page sets given CSP upon itself.</title>
 </head>
 <body>
-    <script nonce="abc"> 
+    <script nonce="abc">
         var response = {};
         response["id"] = "%s";
         response["loaded"] = true;

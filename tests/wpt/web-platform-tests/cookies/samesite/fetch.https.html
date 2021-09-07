@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8"/>
 <meta name="timeout" content="long">
-<meta name="variant" content="">
-<meta name="variant" content="?legacy-samesite">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/cookies/resources/cookie-helper.sub.js"></script>
@@ -15,7 +13,7 @@
           return credFetch(target + "/cookies/resources/list.py")
 
             .then(r => r.json())
-            .then(cookies => getSameSiteVerifier()(expectedStatus, value, cookies, DomSameSiteStatus.SAME_SITE));
+            .then(cookies => verifySameSiteCookieState(expectedStatus, value, cookies, DomSameSiteStatus.SAME_SITE));
         });
     }, title);
   }

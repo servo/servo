@@ -28,6 +28,7 @@ promise_test(t => {
     assert_false(r.headers.has("downlink-received"), "downlink-received");
     assert_false(r.headers.has("ect-received"), "ect-received");
     assert_false(r.headers.has("lang-received"), "lang-received");
+    assert_false(r.headers.has("prefers-color-scheme-received"), "prefers-color-scheme-received");
   });
 }, "Accept-CH http-equiv test over insecure transport");
 

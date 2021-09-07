@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="match" href="first-line-replaced-001-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-line-styling">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<style>
+.inner {
+  display: inline-block;
+  margin: 10px;
+}
+*::first-line { visibility: visible; }
+</style>
+<body>
+  <div>A<span class=inner></span>C</div>
+</body>

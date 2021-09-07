@@ -4,7 +4,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script type="text/javascript">
 'use strict';
-for (let eventType of ["MouseEvent", "KeyboardEvent", "WheelEvent", "GamepadEvent", "FocusEvent"]) {
+for (let eventType of ["MouseEvent", "KeyboardEvent", "WheelEvent", "FocusEvent"]) {
     test(function() {
         let before = performance.now();
         let e = new window[eventType]('test');

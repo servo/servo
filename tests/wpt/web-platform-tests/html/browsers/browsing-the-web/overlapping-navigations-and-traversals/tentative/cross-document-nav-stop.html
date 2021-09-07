@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Stop during cross-document navigations</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script type="module">
+import { createIframe, waitForPotentialNetworkLoads } from "./resources/helpers.mjs";
+
+promise_test(async t => {
+  const iframe = await createIframe(t);
+
+  iframe.contentWindow.location.search = "?1";
+  iframe.contentWindow.onload = t.unreached_func("load event fired");
+  iframe.contentWindow.stop();
+
+  await waitForPotentialNetworkLoads(t);
+  assert_equals(iframe.contentWindow.location.search, "");
+}, "cross-document navigations are stopped by stop()");
+</script>

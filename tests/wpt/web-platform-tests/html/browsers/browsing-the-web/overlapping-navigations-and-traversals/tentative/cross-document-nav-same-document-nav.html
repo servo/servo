@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Cross-document navigation after a same-document navigation</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!--
+  According to the spec, the "URL and history update steps" (used by
+  pushState()) and the fragment navigation steps, both cancel any ongoing
+  history traversals, but do *not* cancel any ongoing navigations.
+-->
+
+<body>
+<script type="module">
+import { createIframe, waitForLoad } from "./resources/helpers.mjs";
+
+promise_test(async t => {
+  const iframe = await createIframe(t);
+
+  iframe.contentWindow.location.search = "?1";
+  iframe.contentWindow.location.hash = "#2";
+
+  assert_equals(iframe.contentWindow.location.search, "");
+  assert_equals(iframe.contentWindow.location.hash, "#2");
+
+  await waitForLoad(iframe);
+  assert_equals(iframe.contentWindow.location.search, "?1");
+  assert_equals(iframe.contentWindow.location.hash, "");
+}, "cross-document navigation then fragment navigation");
+
+promise_test(async t => {
+  const iframe = await createIframe(t);
+
+  iframe.contentWindow.location.search = "?1";
+  iframe.contentWindow.history.pushState(null, "", "/2");
+
+  assert_equals(iframe.contentWindow.location.search, "");
+  assert_equals(iframe.contentWindow.location.pathname, "/2");
+
+  await waitForLoad(iframe);
+  assert_equals(iframe.contentWindow.location.search, "?1");
+  assert_equals(iframe.contentWindow.location.pathname, "/common/blank.html");
+}, "cross-document navigation then pushState()");
+</script>

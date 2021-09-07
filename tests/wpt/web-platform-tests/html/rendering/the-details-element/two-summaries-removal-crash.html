@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://crbug.com/1216804">
+<meta name="assert" content="The renderer should not crash.">
+
+<details id="details" open>
+  <summary></summary>
+  <summary>
+    <details></details>
+  </summary>
+</details>
+
+<script>
+details.appendChild(document.createElement("frame"));
+details.innerText="";
+</script>

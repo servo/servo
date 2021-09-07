@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <title>Class selectors in an XML namespace</title>
+  <link rel="author" href="mailto:masonf@chromium.org" />
+  <link rel="help" href="https://dom.spec.whatwg.org/#dom-element-classname" />
+  <link rel="help" href="https://crbug.com/649444" />
+  <link rel="match" href="xml-class-selector-ref.xml" />
+  <body>
+    <p>The .class selector should work in any namespace. Both boxes should be green.</p>
+    <Boxes xmlns="http://foo">
+      <box class="green">.classname selector</box>
+      <box class="green2">*[class~="classname"] selector</box>
+    </Boxes>
+
+    <style>
+      box {background:red;}
+      .green {background: green;}
+      *[class~="green2"] {background: green;}
+    </style>
+  </body>
+</html>

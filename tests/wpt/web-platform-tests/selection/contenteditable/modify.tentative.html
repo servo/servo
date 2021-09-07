@@ -5,12 +5,56 @@
 <script src="/resources/testharnessreport.js"></script>
 <div contenteditable id="host">Editable</div>
 <div>Non-editable</div>
+<div id="inlinehosts">
+  Prefix: <span contenteditable title="inline">Editable</span>: Suffix<br>
+  Prefix: <span contenteditable style="display:inline-block;" title="inline-block">Editable</span>: Suffix<br>
+  <span contenteditable title="suffix only">Editable</span>: Suffix<br>
+  Prefix: <span contenteditable title="prefix only">Editable</span><br>
+  <span contenteditable title="standalone">Editable</span><br>
+  Prefix: <span contenteditable title="inline linebreak">Edit<br>able</span>: Suffix<br>
+  Prefix: <span contenteditable style="display:inline-block;" title="inline-block linebreak">Edit<br>able</span>:
+  Suffix<br>
+</div>
 <script>
-const selection = getSelection();
-test(() => {
-  selection.collapse(host);
-  selection.modify('extend', 'forward', 'word');
-  selection.modify('extend', 'forward', 'word');
-  assert_equals(selection.focusNode.parentElement, host);
-}, "Selection.modify() must not select outside of the host");
+  /** @param {Node} parent */
+  function* textNodeEntries(parent) {
+    for (const [i, node] of parent.childNodes.entries()) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        yield [i, node];
+      }
+    }
+  }
+
+  const selection = getSelection();
+  test(() => {
+    selection.collapse(host);
+    selection.modify('extend', 'forward', 'word');
+    selection.modify('extend', 'forward', 'word');
+    assert_equals(selection.focusNode.parentElement, host);
+  }, "Selection.modify() must not select outside of the host");
+
+  /** @type {NodeListOf<HTMLElement>} */
+  const hosts = inlinehosts.querySelectorAll("span[contenteditable]");
+  for (const host of hosts) {
+    test(() => {
+      for (const [i, text] of textNodeEntries(host)) {
+        selection.collapse(text, 1);
+        selection.modify("move", "forward", "lineboundary");
+        if (selection.focusNode === host) {
+          assert_equals(selection.focusOffset, i + 1, "focusOffset should be after the text node");
+        } else {
+          assert_equals(selection.focusNode, text, "focusNode should be the text node");
+          assert_equals(selection.focusOffset, text.textContent.length, "focusOffset should be the length of the text node");
+        }
+      }
+    }, `Selection.modify('move', 'forward', 'lineboundary') must be within the inline editing host: ${host.title}`);
+    test(() => {
+      for (const [i, text] of textNodeEntries(host)) {
+        selection.collapse(text, 1);
+        selection.modify("move", "backward", "lineboundary");
+        assert_equals(selection.focusNode, text, "focusNode should be the text node");
+        assert_equals(selection.focusOffset, 0, "focusOffset should be 0");
+      }
+    }, `Selection.modify('move', 'backward', 'lineboundary') must be within the inline editing host: ${host.title}`);
+  }
 </script>

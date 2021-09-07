@@ -17,6 +17,7 @@ function test_invalid_pad(value) {
 
 test_invalid_pad('10');
 test_invalid_pad('"X"');
+test_valid_pad('0 "X"');
 test_valid_pad('10 "X"');
 test_valid_pad('"X" 10', '10 "X"');
 test_invalid_pad('-1 "X"');

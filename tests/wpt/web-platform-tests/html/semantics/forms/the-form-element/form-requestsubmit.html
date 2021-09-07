@@ -193,4 +193,23 @@ test(() => {
   assert_false(formDataInEvent.has('n2'));
 }, 'The constructed FormData object should not contain an entry for the submit button that was used to submit the form.');
 
+async_test(t => {
+  document.body.insertAdjacentHTML('afterbegin', `<form>
+      <button type="submit" name="n1" value="v1" disabled=""></button>
+      </form>`);
+  let form = document.querySelector('form');
+  let formDataInEvent = null;
+  let submitter = form.querySelector('button[type=submit]');
+
+  form.addEventListener("submit", t.step_func_done(ev => {
+    ev.preventDefault();
+    formDataInEvent = new FormData(ev.target);
+    assert_false(formDataInEvent.has('n1'));
+    assert_equals(ev.target, form);
+  }));
+
+  form.requestSubmit(submitter);
+
+}, "Using requestSubmit on a disabled button (via disabled attribute) should trigger submit but not be visible in FormData");
+
 </script>

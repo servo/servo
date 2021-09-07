@@ -14,7 +14,7 @@
       assert_equals(e.violatedDirective, 'img-src');
       assert_true(e.blockedURI.endsWith('/support/fail.png'));
     }));
-    
+
     function createLink(rel, src) {
         var link = document.createElement('link');
         link.rel = rel;

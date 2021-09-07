@@ -105,13 +105,6 @@ export function testSameAgentCluster(testFrames, testLabelPrefix) {
 
     promise_test(async () => {
       const frameWindow = frames[testFrames[1]];
-      const whatHappened = await sendWasmModule(frameWindow);
-
-      assert_equals(whatHappened, "WebAssembly.Module message received");
-    }, `${prefix}message event must occur`);
-
-    promise_test(async () => {
-      const frameWindow = frames[testFrames[1]];
       const frameElement = document.querySelectorAll("iframe")[testFrames[1]];
 
       // Must not throw
@@ -128,11 +121,6 @@ export function testSameAgentCluster(testFrames, testLabelPrefix) {
   } else {
     // Between the two children at the index given by testFrames[0] and
     // testFrames[1]
-
-    promise_test(async () => {
-      const whatHappened = await sendWasmModuleBetween(testFrames);
-      assert_equals(whatHappened, "WebAssembly.Module message received");
-    }, `${prefix}message event must occur`);
 
     promise_test(async () => {
       const whatHappened1 = await accessDocumentBetween(testFrames);
@@ -164,6 +152,11 @@ export function testDifferentAgentClusters(testFrames, testLabelPrefix) {
     // Between parent and a child at the index given by testFrames[1]
 
     promise_test(async () => {
+      // In general, cross-origin sharing of WebAssembly.Module is prohibited,
+      // so if we're in different agent clusters, it's definitely prohibited.
+      // Basic tests for this cross-origin prohibition are elsewhere; we include
+      // these here as an extra check to make sure there's no weird interactions
+      // with Origin-Agent-Cluster.
       const frameWindow = frames[testFrames[1]];
       const whatHappened = await sendWasmModule(frameWindow);
 

@@ -12,7 +12,7 @@ function splitKey(key) {
 }
 
 function spaceIndexToLength(index) {
-    // See https://mathml-refresh.github.io/mathml-core/#operator-dictionary
+    // See https://w3c.github.io/mathml-core/#operator-dictionary
     return ["0",
             "0.05555555555555555em",
             "0.1111111111111111em",

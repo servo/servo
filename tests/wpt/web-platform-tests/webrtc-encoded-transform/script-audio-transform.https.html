@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <video id="video" autoplay playsInline></video>
+        <script src="routines.js"></script>
+        <script>
+function waitForMessage(test, port, data)
+{
+    let gotMessage;
+    const promise = new Promise((resolve, reject) => {
+        gotMessage = resolve;
+        test.step_timeout(() => { reject("did not get " + data) }, 5000);
+    });
+    port.onmessage = event => {
+       if (event.data === data)
+           gotMessage();
+    };
+    return promise;
+}
+
+promise_test(async (test) => {
+    worker = new Worker("script-audio-transform-worker.js");
+    const data = await new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+    assert_equals(data, "registered");
+
+    const localStream = await navigator.mediaDevices.getUserMedia({audio: true});
+
+    const senderChannel = new MessageChannel;
+    const receiverChannel = new MessageChannel;
+    const senderTransform = new RTCRtpScriptTransform(worker, {name:'MockRTCRtpTransform', mediaType:'audio', side:'sender', port:senderChannel.port2}, [senderChannel.port2]);
+    const receiverTransform = new RTCRtpScriptTransform(worker, {name:'MockRTCRtpTransform', mediaType:'audio', side:'receiver', port:receiverChannel.port2}, [receiverChannel.port2]);
+    senderTransform.port = senderChannel.port1;
+    receiverTransform.port = receiverChannel.port1;
+
+    promise1 = waitForMessage(test, senderTransform.port, "started audio sender");
+    promise2 = waitForMessage(test, receiverTransform.port, "started audio receiver");
+
+    const stream = await new Promise((resolve, reject) => {
+        createConnections(test, (firstConnection) => {
+            sender = firstConnection.addTrack(localStream.getAudioTracks()[0], localStream);
+            sender.transform = senderTransform;
+        }, (secondConnection) => {
+            secondConnection.ontrack = (trackEvent) => {
+                receiver = trackEvent.receiver;
+                receiver.transform = receiverTransform;
+                resolve(trackEvent.streams[0]);
+            };
+        });
+        test.step_timeout(() => reject("Test timed out"), 5000);
+    });
+
+    await promise1;
+    await promise2;
+
+    video.srcObject = stream;
+    return video.play();
+});
+        </script>
+    </body>
+</html>

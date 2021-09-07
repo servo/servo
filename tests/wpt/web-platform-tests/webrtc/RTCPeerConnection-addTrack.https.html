@@ -286,5 +286,55 @@
       5.1. addTrack
         10. Update the negotiation-needed flag for connection.
 
-   */
+  */
+
+  promise_test(async t => {
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+    const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
+
+    const stream = await getNoiseStream({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+    const transceiver = caller.addTransceiver(track);
+    // Note that this test doesn't process canididates.
+    {
+      const offer = await caller.createOffer();
+      await caller.setLocalDescription(offer);
+      await callee.setRemoteDescription(offer);
+      const answer = await callee.createAnswer();
+      await callee.setLocalDescription(answer);
+      await caller.setRemoteDescription(answer);
+    }
+    assert_equals(transceiver.currentDirection, 'sendonly');
+    await waitForIceGatheringState(caller, ['complete']);
+    await waitForIceGatheringState(callee, ['complete']);
+
+    const second_stream = await getNoiseStream({audio: true});
+    t.add_cleanup(() => second_stream.getTracks().forEach(track => track.stop()));
+    // There may be callee candidates in flight. It seems that waiting
+    // for a createOffer() is enough time to let them complete processing.
+    // TODO(https://crbug.com/webrtc/13095): Fix bug and remove.
+    await caller.createOffer();
+
+    const [second_track] = second_stream.getTracks();
+    caller.onicecandidate = t.unreached_func(
+      'No caller candidates should be generated.');
+    callee.onicecandidate = t.unreached_func(
+      'No callee candidates should be generated.');
+    caller.addTrack(second_track);
+    {
+      const offer = await caller.createOffer();
+      await caller.setLocalDescription(offer);
+      await callee.setRemoteDescription(offer);
+      const answer = await callee.createAnswer();
+      await callee.setLocalDescription(answer);
+      await caller.setRemoteDescription(answer);
+    }
+    // Check that we're bundled.
+    const [first_transceiver, second_transceiver] = caller.getTransceivers();
+    assert_equals(first_transceiver.transport, second_transceiver.transport);
+
+  }, 'Adding more tracks does not generate more candidates if bundled');
 </script>

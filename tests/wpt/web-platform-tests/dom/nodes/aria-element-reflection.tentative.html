@@ -147,7 +147,7 @@
   <script>
 
   test(function(t) {
-    assert_equals(passwordField.ariaDetailsElements, null);
+    assert_array_equals(passwordField.ariaDetailsElements, []);
     passwordField.ariaDetailsElements = [ listItem1 ];
     assert_equals(passwordField.getAttribute("aria-details"), "listItem1");
 
@@ -341,7 +341,7 @@
   test(function(t) {
     const billingElement = document.getElementById("billingElement")
     assert_array_equals(input1.ariaLabelledByElements, [billingElement, nameElement], "parsed content attribute sets element references.");
-    assert_equals(input2.ariaLabelledByElements, null, "Testing empty content attribute after parsing.");
+    assert_equals(input2.ariaLabelledByElements, null, "Testing missing content attribute after parsing.");
 
     input2.ariaLabelledByElements = [billingElement, addressElement];
     assert_array_equals(input2.ariaLabelledByElements, [billingElement, addressElement], "Testing IDL setter/getter.");
@@ -351,12 +351,12 @@
     // As it was explicitly set the underlying association will remain intact,
     // but it will be hidden until the element is moved back into a valid scope.
     billingElement.remove();
-    assert_array_equals(input2.ariaLabelledByElements, [addressElement]);
+    assert_array_equals(input2.ariaLabelledByElements, [addressElement], "Computed ariaLabelledByElements shouldn't include billing when out of scope.");
 
     // Insert the billingElement back into the DOM and check that it is visible
     // again, as the underlying association should have been kept intact.
     billingElementContainer.appendChild(billingElement);
-    assert_array_equals(input2.ariaLabelledByElements, [billingElement, addressElement]);
+    assert_array_equals(input2.ariaLabelledByElements, [billingElement, addressElement], "Billing element back in scope.");
 
     input2.ariaLabelledByElements = [];
     assert_array_equals(input2.ariaLabelledByElements, [], "Testing IDL setter/getter for empty array.");
@@ -366,7 +366,8 @@
     assert_equals(input1.ariaLabelledByElements, null);
 
     input1.setAttribute("aria-labelledby", "nameElement addressElement");
-    assert_array_equals(input1.ariaLabelledByElements, [nameElement, addressElement]);
+    assert_array_equals(input1.ariaLabelledByElements, [nameElement, addressElement],
+      "computed value after setting attribute directly");
 
     input1.ariaLabelledByElements = null;
     assert_false(input1.hasAttribute("aria-labelledby", "Nullifying the IDL attribute should remove the content attribute."));
@@ -516,7 +517,7 @@
 
     // The elements in the content attribute are in a "darker" tree - they
     // enter a shadow encapsulation boundary, so not be associated any more.
-    assert_equals(lightDomHeading.ariaFlowToElements, null);
+    assert_array_equals(lightDomHeading.ariaFlowToElements, []);
 
     // These elements are in a shadow including ancestor, i.e "lighter" tree.
     // Valid for the IDL attribute, but content attribute should be null.
@@ -526,7 +527,7 @@
     // These IDs belong to a different scope, so the attr-associated-element
     // cannot be computed.
     shadowChild2.setAttribute("aria-flowto", "lightDomText1 lightDomText2");
-    assert_equals(shadowChild2.ariaFlowToElements, null);
+    assert_array_equals(shadowChild2.ariaFlowToElements, []);
 
     // Elements that cross into shadow DOM are dropped, only reflect the valid
     // elements in IDL and in the content attribute.
@@ -661,8 +662,6 @@
       input.ariaActiveDescendantElement = first;
       first.parentElement.appendChild(first);
 
-      // This behaviour is currently under discussion by WHATWG.
-      // See: https://github.com/whatwg/html/pull/3917#issuecomment-527263562
       assert_equals(input.ariaActiveDescendantElement, first);
     }, "Reparenting.");
   </script>

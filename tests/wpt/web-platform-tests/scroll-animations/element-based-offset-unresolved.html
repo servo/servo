@@ -56,7 +56,6 @@ promise_test(async t => {
     const timeline = createScrollTimeline(t, {
         scrollSource: scroller,
         orientation: 'block',
-        timeRange: 1000,
         scrollOffsets: [{ target: not_a_descendant }, { target: end }]
     });
 
@@ -75,7 +74,6 @@ promise_test(async t => {
     const timeline = createScrollTimeline(t, {
         scrollSource: scroller,
         orientation: 'block',
-        timeRange: 1000,
         scrollOffsets: [{ target: start }, { target: end }]
     });
 

@@ -5,7 +5,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/web-animations/testcommon.js"></script>
-<script src="./resources/scrolltimeline-utils.js"></script>
+<script src="./testcommon.js"></script>
 
 <body></body>
 
@@ -15,206 +15,163 @@
 promise_test(async t => {
   const scrollerOverrides = new Map([['direction', 'rtl']]);
   const scroller = setupScrollTimelineTest(scrollerOverrides);
-
-  // Set the timeRange such that currentTime maps directly to the value
-  // scrolled. The contents and scroller are square, so it suffices to compute
-  // one edge and use it for all the timelines.
   const scrollerSize = scroller.scrollHeight - scroller.clientHeight;
 
   const blockScrollTimeline = new ScrollTimeline(
-      {scrollSource: scroller, timeRange: scrollerSize, orientation: 'block'});
+      {scrollSource: scroller, orientation: 'block'});
   const inlineScrollTimeline = new ScrollTimeline(
-      {scrollSource: scroller, timeRange: scrollerSize, orientation: 'inline'});
-  const horizontalScrollTimeline = new ScrollTimeline({
-    scrollSource: scroller,
-    timeRange: scrollerSize,
-    orientation: 'horizontal'
-  });
-  const verticalScrollTimeline = new ScrollTimeline({
-    scrollSource: scroller,
-    timeRange: scrollerSize,
-    orientation: 'vertical'
-  });
+      {scrollSource: scroller, orientation: 'inline'});
+  const horizontalScrollTimeline = new ScrollTimeline(
+      {scrollSource: scroller, orientation: 'horizontal'});
+  const verticalScrollTimeline = new ScrollTimeline(
+      {scrollSource: scroller, orientation: 'vertical'});
 
   // Unscrolled, all timelines should read a current time of 0 even though the
   // X-axis will have started at the right hand side for rtl.
-  assert_equals(
-      blockScrollTimeline.currentTime, 0, 'Unscrolled block timeline');
-  assert_equals(
-      inlineScrollTimeline.currentTime, 0, 'Unscrolled inline timeline');
-  assert_equals(
-      horizontalScrollTimeline.currentTime, 0,
-      'Unscrolled horizontal timeline');
-  assert_equals(
-      verticalScrollTimeline.currentTime, 0, 'Unscrolled vertical timeline');
+  assert_percents_equal(blockScrollTimeline.currentTime, 0,
+                        'Unscrolled block timeline');
+  assert_percents_equal(inlineScrollTimeline.currentTime, 0,
+                        'Unscrolled inline timeline');
+  assert_percents_equal(horizontalScrollTimeline.currentTime, 0,
+                        'Unscrolled horizontal timeline');
+  assert_percents_equal(verticalScrollTimeline.currentTime, 0,
+                        'Unscrolled vertical timeline');
 
   // The offset in the inline/horizontal direction should be inverted. The
   // block/vertical direction should be unaffected.
-  scroller.scrollTop = 50;
-  scroller.scrollLeft = 75 - scrollerSize;
+  scroller.scrollTop = 0.1 * scrollerSize;
+  scroller.scrollLeft = -0.8 * scrollerSize;
   // Wait for new animation frame  which allows the timeline to compute new
   // current time.
   await waitForNextFrame();
 
-  assert_equals(blockScrollTimeline.currentTime, 50, 'Scrolled block timeline');
-  assert_equals(
-      inlineScrollTimeline.currentTime, scrollerSize - 75,
-      'Scrolled inline timeline');
-  assert_equals(
-      horizontalScrollTimeline.currentTime, scrollerSize - 75,
-      'Scrolled horizontal timeline');
-  assert_equals(
-      verticalScrollTimeline.currentTime, 50, 'Scrolled vertical timeline');
+  assert_percents_equal(blockScrollTimeline.currentTime, 10,
+                        'Scrolled block timeline');
+  assert_percents_equal(inlineScrollTimeline.currentTime, 80,
+                        'Scrolled inline timeline');
+  assert_percents_equal(horizontalScrollTimeline.currentTime, 80,
+                        'Scrolled horizontal timeline');
+  assert_percents_equal(verticalScrollTimeline.currentTime, 10,
+                        'Scrolled vertical timeline');
 }, 'currentTime handles direction: rtl correctly');
 
 promise_test(async t => {
   const scrollerOverrides = new Map([['writing-mode', 'vertical-rl']]);
   const scroller = setupScrollTimelineTest(scrollerOverrides);
-
-  // Set the timeRange such that currentTime maps directly to the value
-  // scrolled. The contents and scroller are square, so it suffices to compute
-  // one edge and use it for all the timelines.
   const scrollerSize = scroller.scrollHeight - scroller.clientHeight;
 
   const blockScrollTimeline = new ScrollTimeline(
-      {scrollSource: scroller, timeRange: scrollerSize, orientation: 'block'});
+      {scrollSource: scroller, orientation: 'block'});
   const inlineScrollTimeline = new ScrollTimeline(
-      {scrollSource: scroller, timeRange: scrollerSize, orientation: 'inline'});
-  const horizontalScrollTimeline = new ScrollTimeline({
-    scrollSource: scroller,
-    timeRange: scrollerSize,
-    orientation: 'horizontal'
-  });
-  const verticalScrollTimeline = new ScrollTimeline({
-    scrollSource: scroller,
-    timeRange: scrollerSize,
-    orientation: 'vertical'
-  });
+      {scrollSource: scroller, orientation: 'inline'});
+  const horizontalScrollTimeline = new ScrollTimeline(
+      {scrollSource: scroller, orientation: 'horizontal'});
+  const verticalScrollTimeline = new ScrollTimeline(
+      {scrollSource: scroller, orientation: 'vertical'});
 
   // Unscrolled, all timelines should read a current time of 0 even though the
   // X-axis will have started at the right hand side for vertical-rl.
-  assert_equals(
-      blockScrollTimeline.currentTime, 0, 'Unscrolled block timeline');
-  assert_equals(
-      inlineScrollTimeline.currentTime, 0, 'Unscrolled inline timeline');
-  assert_equals(
-      horizontalScrollTimeline.currentTime, 0,
-      'Unscrolled horizontal timeline');
-  assert_equals(
-      verticalScrollTimeline.currentTime, 0, 'Unscrolled vertical timeline');
+  assert_percents_equal(blockScrollTimeline.currentTime, 0,
+                        'Unscrolled block timeline');
+  assert_percents_equal(inlineScrollTimeline.currentTime, 0,
+                        'Unscrolled inline timeline');
+  assert_percents_equal(horizontalScrollTimeline.currentTime, 0,
+                        'Unscrolled horizontal timeline');
+  assert_percents_equal(verticalScrollTimeline.currentTime, 0,
+                        'Unscrolled vertical timeline');
 
   // For vertical-rl, the X-axis starts on the right-hand-side and is the block
   // axis. The Y-axis is normal but is the inline axis. For the
   // horizontal/vertical cases, horizontal starts on the right-hand-side and
   // vertical is normal.
-  scroller.scrollTop = 50;
-  scroller.scrollLeft = 75 - scrollerSize;
+  scroller.scrollTop = 0.1 * scrollerSize;
+  scroller.scrollLeft = -0.8 * scrollerSize;
   // Wait for new animation frame  which allows the timeline to compute new
   // current time.
   await waitForNextFrame();
 
-  assert_equals(
-      blockScrollTimeline.currentTime, scrollerSize - 75,
-      'Scrolled block timeline');
-  assert_equals(
-      inlineScrollTimeline.currentTime, 50, 'SCrolled inline timeline');
-  assert_equals(
-      horizontalScrollTimeline.currentTime, scrollerSize - 75,
-      'Scrolled horizontal timeline');
-  assert_equals(
-      verticalScrollTimeline.currentTime, 50, 'Scrolled vertical timeline');
+  assert_percents_equal(blockScrollTimeline.currentTime, 80,
+                        'Scrolled block timeline');
+  assert_percents_equal(inlineScrollTimeline.currentTime, 10,
+                        'Scrolled inline timeline');
+  assert_percents_equal(horizontalScrollTimeline.currentTime, 80,
+                        'Scrolled horizontal timeline');
+  assert_percents_equal(verticalScrollTimeline.currentTime, 10,
+                        'Scrolled vertical timeline');
 }, 'currentTime handles writing-mode: vertical-rl correctly');
 
 promise_test(async t => {
   const scrollerOverrides = new Map([['writing-mode', 'vertical-lr']]);
   const scroller = setupScrollTimelineTest(scrollerOverrides);
-
-  // Set the timeRange such that currentTime maps directly to the value
-  // scrolled. The contents and scroller are square, so it suffices to compute
-  // one edge and use it for all the timelines.
   const scrollerSize = scroller.scrollHeight - scroller.clientHeight;
 
   const blockScrollTimeline = new ScrollTimeline(
-      {scrollSource: scroller, timeRange: scrollerSize, orientation: 'block'});
+      {scrollSource: scroller, orientation: 'block'});
   const inlineScrollTimeline = new ScrollTimeline(
-      {scrollSource: scroller, timeRange: scrollerSize, orientation: 'inline'});
-  const horizontalScrollTimeline = new ScrollTimeline({
-    scrollSource: scroller,
-    timeRange: scrollerSize,
-    orientation: 'horizontal'
-  });
-  const verticalScrollTimeline = new ScrollTimeline({
-    scrollSource: scroller,
-    timeRange: scrollerSize,
-    orientation: 'vertical'
-  });
+      {scrollSource: scroller, orientation: 'inline'});
+  const horizontalScrollTimeline = new ScrollTimeline(
+      {scrollSource: scroller, orientation: 'horizontal'});
+  const verticalScrollTimeline = new ScrollTimeline(
+      {scrollSource: scroller, orientation: 'vertical'});
 
   // Unscrolled, all timelines should read a current time of 0.
-  assert_equals(
-      blockScrollTimeline.currentTime, 0, 'Unscrolled block timeline');
-  assert_equals(
-      inlineScrollTimeline.currentTime, 0, 'Unscrolled inline timeline');
-  assert_equals(
-      horizontalScrollTimeline.currentTime, 0,
-      'Unscrolled horizontal timeline');
-  assert_equals(
-      verticalScrollTimeline.currentTime, 0, 'Unscrolled vertical timeline');
+  assert_percents_equal(blockScrollTimeline.currentTime, 0,
+                        'Unscrolled block timeline');
+  assert_percents_equal(inlineScrollTimeline.currentTime, 0,
+                        'Unscrolled inline timeline');
+  assert_percents_equal(horizontalScrollTimeline.currentTime, 0,
+                        'Unscrolled horizontal timeline');
+  assert_percents_equal(verticalScrollTimeline.currentTime, 0,
+                        'Unscrolled vertical timeline');
 
   // For vertical-lr, both axes start at their 'normal' positions but the X-axis
   // is the block direction and the Y-axis is the inline direction. This does
   // not affect horizontal/vertical.
-  scroller.scrollTop = 50;
-  scroller.scrollLeft = 75;
+  scroller.scrollTop = 0.1 * scrollerSize;
+  scroller.scrollLeft = 0.2 * scrollerSize;
   // Wait for new animation frame  which allows the timeline to compute new
   // current time.
   await waitForNextFrame();
 
-  assert_equals(blockScrollTimeline.currentTime, 75, 'Scrolled block timeline');
-  assert_equals(
-      inlineScrollTimeline.currentTime, 50, 'Scrolled inline timeline');
-  assert_equals(
-      horizontalScrollTimeline.currentTime, 75, 'Scrolled horizontal timeline');
-  assert_equals(
-      verticalScrollTimeline.currentTime, 50, 'Scrolled vertical timeline');
+  assert_percents_equal(blockScrollTimeline.currentTime, 20,
+                        'Scrolled block timeline');
+  assert_percents_equal(inlineScrollTimeline.currentTime, 10,
+                        'Scrolled inline timeline');
+  assert_percents_equal(horizontalScrollTimeline.currentTime, 20,
+                        'Scrolled horizontal timeline');
+  assert_percents_equal(verticalScrollTimeline.currentTime, 10,
+                        'Scrolled vertical timeline');
 }, 'currentTime handles writing-mode: vertical-lr correctly');
 
 promise_test(async t => {
   const scrollerOverrides = new Map([['direction', 'rtl']]);
   const scroller = setupScrollTimelineTest(scrollerOverrides);
-  // Set the timeRange such that currentTime maps directly to the value
-  // scrolled. The contents and scroller are square, so it suffices to compute
-  // one edge and use it for all the timelines.
   const scrollerSize = scroller.scrollHeight - scroller.clientHeight;
 
   const lengthScrollTimeline = new ScrollTimeline({
     scrollSource: scroller,
-    timeRange: scrollerSize,
     orientation: 'horizontal',
     scrollOffsets: [CSS.px(20), 'auto']
   });
   const percentageScrollTimeline = new ScrollTimeline({
     scrollSource: scroller,
-    timeRange: scrollerSize,
     orientation: 'horizontal',
     scrollOffsets: [CSS.percent(20), 'auto']
   });
   const calcScrollTimeline = new ScrollTimeline({
     scrollSource: scroller,
-    timeRange: scrollerSize,
     orientation: 'horizontal',
     scrollOffsets: [CSS.percent(20).sub(CSS.px(5)), 'auto']
   });
 
   // Unscrolled, all timelines should read a current time of 0, since
   // the current offset (0) will be less than the startScrollOffset.
-  assert_equals(
-      lengthScrollTimeline.currentTime, 0,
-      'Unscrolled length-based timeline');
-  assert_equals(
-      percentageScrollTimeline.currentTime, 0,
-      'Unscrolled percentage-based timeline');
-  assert_equals(
-      calcScrollTimeline.currentTime, 0, 'Unscrolled calc-based timeline');
+  assert_percents_equal(lengthScrollTimeline.currentTime, 0,
+                        'Unscrolled length-based timeline');
+  assert_percents_equal(percentageScrollTimeline.currentTime, 0,
+                        'Unscrolled percentage-based timeline');
+  assert_percents_equal(calcScrollTimeline.currentTime, 0,
+                        'Unscrolled calc-based timeline');
 
   // With direction rtl offsets are inverted, such that scrollLeft == 0
   // is the 'zero' point for currentTime. However the
@@ -226,84 +183,71 @@ promise_test(async t => {
   // Wait for new animation frame  which allows the timeline to compute new
   // current time.
   await waitForNextFrame();
-  assert_equals(
-      lengthScrollTimeline.currentTime, 0,
+  assert_percents_equal(lengthScrollTimeline.currentTime, 0,
       'Length-based timeline before the startScrollOffset point');
   scroller.scrollLeft = -20;
   await waitForNextFrame();
-  assert_equals(
-      lengthScrollTimeline.currentTime, 0,
+  assert_percents_equal(lengthScrollTimeline.currentTime, 0,
       'Length-based timeline at the startScrollOffset point');
   scroller.scrollLeft = -50;
   await waitForNextFrame();
-  assert_times_equal(
+  assert_percents_equal(
       lengthScrollTimeline.currentTime,
-      calculateCurrentTime(50, 20, scrollerSize, scrollerSize),
+      calculateCurrentTime(50, 20, scrollerSize),
       'Length-based timeline after the startScrollOffset point');
 
   // Check the percentage-based ScrollTimeline.
   scroller.scrollLeft = -(0.19 * scrollerSize);
   await waitForNextFrame();
-  assert_equals(
-      percentageScrollTimeline.currentTime, 0,
+  assert_percents_equal(percentageScrollTimeline.currentTime, 0,
       'Percentage-based timeline before the startScrollOffset point');
   scroller.scrollLeft = -(0.20 * scrollerSize);
   await waitForNextFrame();
-  assert_equals(
-      percentageScrollTimeline.currentTime, 0,
+  assert_percents_equal(percentageScrollTimeline.currentTime, 0,
       'Percentage-based timeline at the startScrollOffset point');
   scroller.scrollLeft = -(0.4 * scrollerSize);
   await waitForNextFrame();
-  assert_times_equal(
+  assert_percents_equal(
       percentageScrollTimeline.currentTime,
       calculateCurrentTime(
-          0.4 * scrollerSize, 0.2 * scrollerSize, scrollerSize, scrollerSize),
+          0.4 * scrollerSize, 0.2 * scrollerSize, scrollerSize),
       'Percentage-based timeline after the startScrollOffset point');
 
   // Check the calc-based ScrollTimeline.
   scroller.scrollLeft = -(0.2 * scrollerSize - 10);
   await waitForNextFrame();
-  assert_equals(
-      calcScrollTimeline.currentTime, 0,
+  assert_percents_equal(calcScrollTimeline.currentTime, 0,
       'Calc-based timeline before the startScrollOffset point');
   scroller.scrollLeft = -(0.2 * scrollerSize - 5);
   await waitForNextFrame();
-  assert_equals(
-      calcScrollTimeline.currentTime, 0,
+  assert_percents_equal(calcScrollTimeline.currentTime, 0,
       'Calc-based timeline at the startScrollOffset point');
   scroller.scrollLeft = -(0.2 * scrollerSize);
   await waitForNextFrame();
-  assert_times_equal(
+  assert_percents_equal(
       calcScrollTimeline.currentTime,
       calculateCurrentTime(
-          0.2 * scrollerSize, 0.2 * scrollerSize - 5, scrollerSize,
-          scrollerSize),
+          0.2 * scrollerSize, 0.2 * scrollerSize - 5, scrollerSize),
       'Calc-based timeline after the startScrollOffset point');
 }, 'currentTime handles startScrollOffset with direction: rtl correctly');
 
 promise_test(async t => {
   const scrollerOverrides = new Map([['direction', 'rtl']]);
   const scroller = setupScrollTimelineTest(scrollerOverrides);
-  // Set the timeRange such that currentTime maps directly to the value
-  // scrolled. The contents and scroller are square, so it suffices to compute
-  // one edge and use it for all the timelines.
   const scrollerSize = scroller.scrollHeight - scroller.clientHeight;
 
   const lengthScrollTimeline = new ScrollTimeline({
     scrollSource: scroller,
-    timeRange: scrollerSize,
     orientation: 'horizontal',
     scrollOffsets: [CSS.px(scrollerSize - 20)]
   });
   const percentageScrollTimeline = new ScrollTimeline({
     scrollSource: scroller,
-    timeRange: scrollerSize,
     orientation: 'horizontal',
     scrollOffsets: [CSS.percent(80)]
   });
   const calcScrollTimeline = new ScrollTimeline({
     scrollSource: scroller,
-    timeRange: scrollerSize,
     orientation: 'horizontal',
     scrollOffsets: [CSS.percent(80).add(CSS.px(5))]
   });
@@ -318,91 +262,76 @@ promise_test(async t => {
   // Wait for new animation frame  which allows the timeline to compute new
   // current time.
   await waitForNextFrame();
-  assert_equals(
-      lengthScrollTimeline.currentTime, lengthScrollTimeline.timeRange,
+  assert_percents_equal(lengthScrollTimeline.currentTime, 100,
       'Length-based timeline after the endScrollOffset point');
   scroller.scrollLeft = 20 - scrollerSize;
   await waitForNextFrame();
-  assert_equals(
-      lengthScrollTimeline.currentTime, lengthScrollTimeline.timeRange,
+  assert_percents_equal(lengthScrollTimeline.currentTime, 100,
       'Length-based timeline at the endScrollOffset point');
   scroller.scrollLeft = 50 - scrollerSize;
   await waitForNextFrame();
-  assert_times_equal(
+  assert_percents_equal(
       lengthScrollTimeline.currentTime,
       calculateCurrentTime(
-          scrollerSize - 50, 0, scrollerSize - 20, scrollerSize),
+          scrollerSize - 50, 0, scrollerSize - 20),
       'Length-based timeline before the endScrollOffset point');
 
   // Check the percentage-based ScrollTimeline.
   scroller.scrollLeft = 0.19 * scrollerSize - scrollerSize;
   await waitForNextFrame();
-  assert_equals(
-      percentageScrollTimeline.currentTime, percentageScrollTimeline.timeRange,
+  assert_percents_equal(percentageScrollTimeline.currentTime, 100,
       'Percentage-based timeline after the endScrollOffset point');
   scroller.scrollLeft = 0.20 * scrollerSize - scrollerSize;
   await waitForNextFrame();
-  assert_equals(
-      percentageScrollTimeline.currentTime, percentageScrollTimeline.timeRange,
+  assert_percents_equal(percentageScrollTimeline.currentTime, 100,
       'Percentage-based timeline at the endScrollOffset point');
   scroller.scrollLeft = 0.4 * scrollerSize - scrollerSize;
   await waitForNextFrame();
-  assert_times_equal(
+  assert_percents_equal(
       percentageScrollTimeline.currentTime,
-      calculateCurrentTime(
-          0.6 * scrollerSize, 0, 0.8 * scrollerSize, scrollerSize),
+      calculateCurrentTime(0.6 * scrollerSize, 0, 0.8 * scrollerSize),
       'Percentage-based timeline before the endScrollOffset point');
 
   // Check the calc-based ScrollTimeline. 80% + 5px
   scroller.scrollLeft = -0.8 * scrollerSize - 10;
   await waitForNextFrame();
-  assert_equals(
-      calcScrollTimeline.currentTime, calcScrollTimeline.timeRange,
+  assert_percents_equal(calcScrollTimeline.currentTime, 100,
       'Calc-based timeline after the endScrollOffset point');
   scroller.scrollLeft = -0.8 * scrollerSize - 5;
   await waitForNextFrame();
-  assert_equals(
-      calcScrollTimeline.currentTime, calcScrollTimeline.timeRange,
+  assert_percents_equal(calcScrollTimeline.currentTime, 100,
       'Calc-based timeline at the endScrollOffset point');
   scroller.scrollLeft = -0.8 * scrollerSize;
   await waitForNextFrame();
-  assert_times_equal(
+  assert_percents_equal(
       calcScrollTimeline.currentTime,
-      calculateCurrentTime(
-          0.8 * scrollerSize, 0, 0.8 * scrollerSize + 5, scrollerSize),
+      calculateCurrentTime(0.8 * scrollerSize, 0, 0.8 * scrollerSize + 5),
       'Calc-based timeline before the endScrollOffset point');
 }, 'currentTime handles endScrollOffset with direction: rtl correctly');
 
 promise_test(async t => {
   const scrollerOverrides = new Map([['direction', 'rtl']]);
   const scroller = setupScrollTimelineTest(scrollerOverrides);
-  // Set the timeRange such that currentTime maps directly to the value
-  // scrolled. The contents and scroller are square, so it suffices to compute
-  // one edge and use it for all the timelines.
   const scrollerSize = scroller.scrollHeight - scroller.clientHeight;
 
   // When the endScrollOffset is equal to the maximum scroll offset (and there
   // are no fill modes), the endScrollOffset is treated as inclusive.
   const inclusiveAutoScrollTimeline = new ScrollTimeline({
     scrollSource: scroller,
-    timeRange: scrollerSize,
     orientation: 'block',
   });
   const inclusiveLengthScrollTimeline = new ScrollTimeline({
     scrollSource: scroller,
-    timeRange: scrollerSize,
     orientation: 'block',
     scrollOffsets: [CSS.px(scrollerSize)]
   });
   const inclusivePercentageScrollTimeline = new ScrollTimeline({
     scrollSource: scroller,
-    timeRange: scrollerSize,
     orientation: 'block',
     scrollOffsets: [CSS.percent(100)]
   });
   const inclusiveCalcScrollTimeline = new ScrollTimeline({
     scrollSource: scroller,
-    timeRange: scrollerSize,
     orientation: 'block',
     scrollOffsets: [CSS.percent(80).sub(CSS.px(0.2 * scrollerSize))]
   });
@@ -414,22 +343,23 @@ promise_test(async t => {
 
   scroller.scrollLeft = 0;
   let expectedCurrentTime = calculateCurrentTime(
-      scroller.scrollLeft, 0, scrollerSize, scrollerSize);
+      scroller.scrollLeft, 0, scrollerSize);
   // Wait for new animation frame  which allows the timeline to compute new
   // current time.
   await waitForNextFrame();
 
-  assert_times_equal(
-    inclusiveAutoScrollTimeline.currentTime, expectedCurrentTime,
-    'Inclusive auto timeline at the endScrollOffset point');
-  assert_times_equal(
-    inclusiveLengthScrollTimeline.currentTime, expectedCurrentTime,
-    'Inclusive length-based timeline at the endScrollOffset point');
-  assert_times_equal(
-    inclusivePercentageScrollTimeline.currentTime, expectedCurrentTime,
-    'Inclusive percentage-based timeline at the endScrollOffset point');
-  assert_times_equal(
-    inclusiveCalcScrollTimeline.currentTime, expectedCurrentTime,
-    'Inclusive calc-based timeline at the endScrollOffset point');
-}, 'currentTime handles endScrollOffset (inclusive case) with direction: rtl correctly');
+  assert_percents_equal(
+      inclusiveAutoScrollTimeline.currentTime, expectedCurrentTime,
+      'Inclusive auto timeline at the endScrollOffset point');
+  assert_percents_equal(
+      inclusiveLengthScrollTimeline.currentTime, expectedCurrentTime,
+      'Inclusive length-based timeline at the endScrollOffset point');
+  assert_percents_equal(
+      inclusivePercentageScrollTimeline.currentTime, expectedCurrentTime,
+      'Inclusive percentage-based timeline at the endScrollOffset point');
+  assert_percents_equal(
+      inclusiveCalcScrollTimeline.currentTime, expectedCurrentTime,
+      'Inclusive calc-based timeline at the endScrollOffset point');
+}, 'currentTime handles endScrollOffset (inclusive case) with direction: rtl' +
+   ' correctly');
 </script>

@@ -12,6 +12,7 @@
   <meta content="may" name="flags">
   <meta name="assert" content="This test verifies that intercharacter spacing may be part of the overlay area. When intercharacter spacing is part of the overlay area, then it belongs to the innermost element which contains both characters and which contains such spacing when both characters are selected. In this test, the 'c' and the 't' characters and the space between these characters belong to the same element. Therefore, the 'c' character, the 't' character and the space between these characters have the same orange background color painting.">
 
+  <link rel="stylesheet" href="support/highlights.css">
   <style>
   div
     {
@@ -46,4 +47,4 @@
 
   <p>Test passes if the background of characters "c" and "t" is orange (and only those 2 characters) and if the space between those 2 characters is also orange.
 
-  <div id="test">Sele<span>ct</span>ed</div>
+  <div id="test" class="highlight_reftest">Sele<span>ct</span>ed</div>

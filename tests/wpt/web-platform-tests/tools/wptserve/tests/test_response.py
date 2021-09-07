@@ -1,5 +1,5 @@
-import mock
 from io import BytesIO
+from unittest import mock
 
 from wptserve.response import Response
 

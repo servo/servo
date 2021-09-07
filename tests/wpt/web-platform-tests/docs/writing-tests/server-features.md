@@ -22,8 +22,6 @@ precise details of the response:
 
 * *pywebsocket*, an existing websockets server
 
-* *tools/quic*, a custom Python 3 QUIC server using `aioquic`
-
 wptserve is a Python-based web server. By default it serves static
 files in the test suite. For more sophisticated requirements, several
 mechanisms are available to take control of the response. These are
@@ -134,25 +132,14 @@ supported in
 [OpenSSL 1.0.2](https://www.openssl.org/news/openssl-1.0.2-notes.html) and up.
 
 
-### Tests Requiring QUIC
+### Tests Requiring WebTransport over HTTP/3
 
-We do not support loading a test over QUIC yet, but a test can establish a QUIC
-connection to the test server (e.g. for WebTransport, similar to WebSocket).
-Since the QUIC server is not yet enabled by default, tests must explicitly
-declare that they need access to the QUIC server:
+We do not support loading a test over WebTransport over HTTP/3 yet, but a test
+can establish a WebTransport session to the test server.
 
-* For HTML tests (including testharness.js and reference tests), add the
-  following element:
-```html
-<meta name="quic" content="true">
-```
-* For JavaScript tests (auto-generated tests), add the following comment:
-```js
-// META: quic=true
-```
-
-The QUIC server is not yet enabled by default, so QUIC tests will be skipped
-unless `--enable-quic` is specified to `./wpt run`.
+The WebTransport over HTTP/3 server is not yet enabled by default, so
+WebTransport tests will fail unless `--enable-webtransport` is specified to
+ `./wpt run`.
 
 ### Test Features specified as query params
 

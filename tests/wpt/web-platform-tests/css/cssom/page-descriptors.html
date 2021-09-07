@@ -1,0 +1,40 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <link rel="author" title="Mozilla" href="https://mozilla.org">
+  <link rel="help" href="https://drafts.csswg.org/cssom/#the-cssstyledeclaration-interface">
+  <title>Page descriptors shouldn't be exposed to CSS Style declarations</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+'use strict';
+
+let element = document.getElementById("target");
+let computedStyle = window.getComputedStyle(element);
+let style = element.style;
+
+test(t => {
+    assert_equals(computedStyle.size, undefined,
+        "computed style should not have size property");
+    assert_equals(computedStyle.getPropertyValue("size"), "",
+        "computed style getPropertyValue(\"size\") should be empty");
+
+    assert_equals(style.size, undefined,
+        "style should not have size property");
+    assert_equals(style.getPropertyValue("size"), "",
+        "style getPropertyValue(\"size\") should be empty");
+    for(const val of ["initial", "auto", "100px"]){
+        style.setProperty("size", val);
+        assert_false(CSS.supports("size", val));
+        assert_equals(style.size, undefined,
+            "style should not have size property after assigning size=" + val);
+        assert_equals(style.getPropertyValue("size"), "",
+            "style getPropertyValue(\"size\") should be empty after assigning size=" + val);
+    }
+});
+</script>
+</body>
+</html>

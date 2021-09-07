@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <title>Radical parameters</title>
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#radicals-msqrt-mroot">
+<link rel="help" href="https://w3c.github.io/mathml-core/#radicals-msqrt-mroot">
 <meta name="assert" content="Test edge kerning values for radicals.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/mathml/support/feature-detection.js"></script>
+<script src="/mathml/support/fonts.js"></script>
 <style>
   @font-face {
       font-family: radical-negativekernbeforedegree1000-rulethickness1000;
@@ -51,7 +52,7 @@
   }
 
   setup({ explicit_done: true });
-  window.addEventListener("load", () => { document.fonts.ready.then(runTests); });
+  window.addEventListener("load", () => { loadAllFonts().then(runTests); });
 
 </script>
 </head>

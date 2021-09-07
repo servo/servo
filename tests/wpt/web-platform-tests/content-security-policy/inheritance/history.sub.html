@@ -16,36 +16,59 @@
     });
   };
 
-  const function_messageBack_string = `
-      function messageBack(msg) {
-        opener.postMessage(msg ,"*");
-      }
+  const img_url = window.origin + "/content-security-policy/support/fail.png";
+
+  const function_addImage_string = `
+    function addImage() {
+      let img = document.createElement('img');
+      img.src = '${img_url}';
+      img.onload = () => opener.postMessage('img loaded', '*');
+      img.onerror = () => opener.postMessage('img blocked', '*');
+      document.body.appendChild(img);
+    }
   `;
 
-  const img_url = window.origin + "/content-security-policy/support/fail.png";
   const img_tag_string = `
-      <img src="${img_url}"
-           onload="messageBack('img loaded');"
-           onerror="messageBack('img blocked');"
-      >
-   `;
+    <img src="${img_url}"
+         onload="opener.postMessage('img loaded', '*');"
+         onerror="opener.postMessage('img blocked', '*');"
+    >
+  `;
 
   let write_img_to_popup = (popup) => {
-    let script = popup.document.createElement('script');
-    script.innerText = function_messageBack_string;
-    popup.document.head.appendChild(script);
     let div = popup.document.createElement('div');
     div.innerHTML = img_tag_string;
     popup.document.body.appendChild(div);
   };
 
+  // A beforeunload event listener disables bfcache (Firefox only).
+  //
+  // Note: Chrome enables bfcache only on HTTP/HTTPS documents, so a blob will
+  // never be put in the bfcache. Moreover with Chrome, bfcache needs a single
+  // top-level browsing context in the browsing context group. Since we are
+  // using window.open() below, the back-forward cache is not triggered.
+  const disable_bfcache = `
+    window.addEventListener('beforeunload', function(event) {
+      eval('1+1');
+    });
+  `;
+
   const blob_payload = `
-        <!doctype html>
-        <script>${function_messageBack_string}</scr`+`ipt>
-        <div>${img_tag_string}</div>
+    <!doctype html>
+    <script>${function_addImage_string}</scr`+`ipt>
+    <body onpageshow="addImage();"></body>
   `;
   let blob_url = URL.createObjectURL(
     new Blob([blob_payload], { type: 'text/html' }));
+
+  const blob_payload_no_bfcache = `
+    <!doctype html>
+    <script>${disable_bfcache}</scr`+`ipt>
+    <script>${function_addImage_string}</scr`+`ipt>
+    <body onpageshow="addImage();"></body>
+  `;
+  let blob_url_no_bfcache = URL.createObjectURL(
+    new Blob([blob_payload_no_bfcache], { type: 'text/html' }));
 
   let testCases = [
     {
@@ -72,6 +95,18 @@
       other_origin: "http://{{hosts[alt][]}}:{{ports[http][0]}}",
       name: 'blob URL document is navigated back from history cross-origin.',
     },
+    {
+      url: blob_url_no_bfcache,
+      add_img_function: () => {},
+      other_origin: window.origin,
+      name: 'blob URL document is navigated back from history (without bfcache on Firefox) same-origin.',
+    },
+    {
+      url: blob_url_no_bfcache,
+      add_img_function: () => {},
+      other_origin: "http://{{hosts[alt][]}}:{{ports[http][0]}}",
+      name: 'blob URL document is navigated back from history (without bfcache on Firefox) cross-origin.',
+    },
   ];
 
   let async_promise_test = (promise, description) => {
@@ -86,7 +121,10 @@
     async_promise_test(async t => {
       // Create a popup.
       let popup = window.open();
-      t.add_cleanup(popup.close);
+
+      // Closing fails sometimes on Firefox:
+      // https://bugzilla.mozilla.org/show_bug.cgi?id=1698093
+      t.add_cleanup(() => { try { popup.close(); } catch {} });
 
       // Perform a real navigation in the popup. This is needed because the
       // initial empty document is not stored in history (so there is no way of

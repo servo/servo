@@ -1,0 +1,10 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Backgrounds and Borders Test: Do not propagate body background when html root is contained</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds/#special-backgrounds">
+<link rel="match" href="../reference/blank.html">
+<style>
+  html { contain: paint; }
+  body { background: red; }
+</style>
+<body></body>

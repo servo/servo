@@ -13,7 +13,7 @@ bc.onmessage = () => {
   close();
 };
 const id = setInterval(() => {
-  if (win.location.href !== 'about:blank') {
+  if (win.closed || win.location.href !== 'about:blank') {
     clearInterval(id);
     bc.postMessage({name: win.name || null, closed: win.closed});
   }

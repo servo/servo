@@ -8,25 +8,26 @@
 
   <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
 
+  <link rel="stylesheet" href="../support/highlights.css">
   <style>
-  div
+  #ref
     {
       font-size: 60px;
-      line-height: 90px;
-    }
-
-  div#overlapped-line
-    {
+      position: relative;
       color: transparent;
-      margin-bottom: -90px;
     }
 
-  span#single-word
+  #ref > div
+    {
+      position: absolute;
+    }
+
+  #grammar-error > span
     {
       background-color: yellow;
     }
 
-  span#overlapping-line
+  #selection > span
     {
       background-color: rgba(0%, 50%, 100%, 0.5);
       /*
@@ -37,23 +38,6 @@
       color: yellow;
     }
   </style>
-
-  <script>
-  function startTest()
-  {
-  document.getElementById("reference").blur();
-  /*
-  Some browsers, like Chromium 80+, will
-  transfer focus to a selected element
-  like a contenteditable div and
-  therefore style the border of
-  such element. We remove such
-  focus with the blur() method.
-  */
-  }
-  </script>
-
-  <body onload="startTest();">
 
   <p>PREREQUISITE: User agent needs to have an enabled and capable grammar error module. If it does not, then this test does not apply to such user agent.
 
@@ -66,6 +50,8 @@
     <li>if there is no red.
   </ul>
 
-  <div id="overlapped-line">Many <span id="single-word">thing</span> can happen.</div>
-
-  <div contenteditable="true"><span id="overlapping-line">Many thing can happen.</span></div>
+  <div id="ref" class="highlight_reftest">
+    <div id="grammar-error">Many <span>thing</span> can happen.</div>
+    <div id="selection"><span>Many thing can happen.</span></div>
+    Many thing can happen.
+  </div>

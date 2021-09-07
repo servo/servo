@@ -12,10 +12,7 @@ from .request import Authentication
 from .response import MultipartContent
 from .utils import HTTPException
 
-try:
-    from html import escape
-except ImportError:
-    from cgi import escape
+from html import escape
 
 __all__ = ["file_handler", "python_script_handler",
            "FunctionHandler", "handler", "json_handler",

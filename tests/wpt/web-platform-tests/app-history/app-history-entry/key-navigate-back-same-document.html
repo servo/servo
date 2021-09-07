@@ -1,0 +1,24 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async_test(t => {
+  let key = appHistory.current.key;
+  let id = appHistory.current.id;
+  assert_equals(appHistory.entries().length, 1);
+
+  history.pushState("hash", "", "#hash");
+  assert_not_equals(key, appHistory.current.key);
+  assert_not_equals(id, appHistory.current.id);
+  assert_equals(appHistory.entries().length, 2);
+  assert_equals(appHistory.current.index, 1);
+
+  window.onpopstate = t.step_func_done(() => {
+    assert_equals(key, appHistory.current.key);
+    assert_equals(id, appHistory.current.id);
+    assert_equals(appHistory.entries().length, 2);
+    assert_equals(appHistory.current.index, 0);
+  });
+  history.back();
+}, "AppHistoryEntry.key behavior on same-document back navigation");
+</script>

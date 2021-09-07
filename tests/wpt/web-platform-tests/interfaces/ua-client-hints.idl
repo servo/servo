@@ -9,18 +9,29 @@ dictionary NavigatorUABrandVersion {
 };
 
 dictionary UADataValues {
+  sequence<NavigatorUABrandVersion> brands;
+  boolean mobile;
   DOMString platform;
-  DOMString platformVersion;
   DOMString architecture;
+  DOMString bitness;
   DOMString model;
+  DOMString platformVersion;
   DOMString uaFullVersion;
+};
+
+dictionary UALowEntropyJSON {
+  sequence<NavigatorUABrandVersion> brands;
+  boolean mobile;
+  DOMString platform;
 };
 
 [Exposed=(Window,Worker)]
 interface NavigatorUAData {
   readonly attribute FrozenArray<NavigatorUABrandVersion> brands;
   readonly attribute boolean mobile;
+  readonly attribute DOMString platform;
   Promise<UADataValues> getHighEntropyValues(sequence<DOMString> hints);
+  UALowEntropyJSON toJSON();
 };
 
 interface mixin NavigatorUA {

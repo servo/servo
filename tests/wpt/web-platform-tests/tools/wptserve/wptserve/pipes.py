@@ -7,12 +7,9 @@ import re
 import time
 import uuid
 
+from html import escape
 from io import BytesIO
 
-try:
-    from html import escape
-except ImportError:
-    from cgi import escape
 
 def resolve_content(response):
     return b"".join(item for item in response.iter_content(read_file=True))

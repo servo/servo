@@ -1,11 +1,10 @@
 // META: global=window,worker
-// META: script=websocket.sub.js
+// META: script=constants.sub.js
+// META: variant=?wss
+// META: variant=?wpt_flags=h2
 
 async_test(t => {
-  const isSecure = new URL(location.href).scheme === 'https';
-  const scheme = isSecure ? 'wss' : 'ws';
-  const port = isSecure ? __SECURE__PORT : __PORT;
-  const url = scheme + '://' + 'foo:bar@' + __SERVER__NAME + ':' + port + '/basic_auth';
+  const url = __SCHEME + '://' + 'foo:bar@' + __SERVER__NAME + ':' + __PORT + '/basic_auth';
   const ws = new WebSocket(url);
   ws.onopen = () => {
     ws.onclose = ws.onerror = null;

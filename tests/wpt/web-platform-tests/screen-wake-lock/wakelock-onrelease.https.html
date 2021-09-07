@@ -6,7 +6,7 @@
 <script src="/resources/testdriver-vendor.js"></script>
 <script>
 promise_test(async t => {
-  await test_driver.set_permission({name: 'screen-wake-lock'}, 'granted', false);
+  await test_driver.set_permission({name: 'screen-wake-lock'}, 'granted');
 
   const lock = await navigator.wakeLock.request("screen");
   return new Promise(resolve => {
@@ -20,4 +20,20 @@ promise_test(async t => {
     assert_false(ev.cancelable);
   });
 }, "Test onreleased event's basic properties");
+
+promise_test(async t => {
+  await test_driver.set_permission({ name: 'screen-wake-lock' }, 'granted');
+
+  const lock = await navigator.wakeLock.request("screen");
+
+  let releaseFired = false;
+  lock.onrelease = t.step_func(() => {
+    releaseFired = true;
+  });
+
+  const releasePromise = lock.release();
+  assert_true(releaseFired, "The 'release' event fires immediately after release() is called");
+
+  return releasePromise;
+}, "Ensure onreleased is called before WakeLockSentinel.release() resolves");
 </script>

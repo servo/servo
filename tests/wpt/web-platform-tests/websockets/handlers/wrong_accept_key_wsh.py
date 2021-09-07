@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 import sys, urllib, time
-from mod_pywebsocket import common, msgutil, util
 
 
 def web_socket_do_extra_handshake(request):

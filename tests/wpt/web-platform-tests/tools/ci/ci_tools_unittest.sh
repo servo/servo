@@ -19,7 +19,7 @@ run_applicable_tox () {
 }
 
 if ./wpt test-jobs --includes tools_unittest; then
-    pip install --user -U tox codecov
+    pip install --user -U tox
     cd tools
     run_applicable_tox
     cd $WPT_ROOT

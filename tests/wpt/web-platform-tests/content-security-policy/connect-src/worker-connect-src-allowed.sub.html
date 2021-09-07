@@ -17,7 +17,7 @@
         window.addEventListener('securitypolicyviolation', function(e) {
             log('Fail');
         });
-    
+
         try {
             var worker = new Worker('/content-security-policy/connect-src/support/worker-make-xhr.sub.js');
             worker.onmessage = function(event) {

@@ -9,7 +9,7 @@
 #contain-paint {
   contain: paint;
   width: 100px;
-  height: 100px;
+  height: 50px;
   background: red;
 }
 
@@ -19,10 +19,14 @@
   right: 0;
   background: green;
   width: 100px;
-  height: 100px;
+  height: 50px;
 }
 </style>
 <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
 <div id="contain-paint">
   <div id="fixed"></div>
 </div>
+<div id="contain-paint" style="display: inline-block">
+  <div id="fixed"></div>
+</div>
+

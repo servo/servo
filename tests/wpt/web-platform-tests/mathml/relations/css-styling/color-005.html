@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <title>color</title>
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#css-styling">
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
+<link rel="help" href="https://w3c.github.io/mathml-core/#css-styling">
+<link rel="help" href="https://w3c.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
 <link rel="match" href="color-005-ref.html"/>
 <meta name="assert" content="Verify that the color is used for normal, stretchy and large operators.">
 <style>
@@ -75,8 +75,9 @@
       </math>
     </div>
   </div>
+  <script src="/mathml/support/fonts.js"></script>
   <script>
-    window.addEventListener("load", () => document.fonts.ready.then(() => {
+    window.addEventListener("load", () => loadAllFonts().then(() => {
         document.getElementById("dynamic").style.color = "green";
         document.documentElement.classList.remove("reftest-wait");
     }));

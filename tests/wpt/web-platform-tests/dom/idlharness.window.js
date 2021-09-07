@@ -46,6 +46,7 @@ idl_test(
       XPathExpression: ['document.createExpression("//*")'],
       XPathNSResolver: ['document.createNSResolver(document.body)'],
       XPathResult: ['document.evaluate("//*", document.body)'],
+      XSLTProcessor: ['new XSLTProcessor()'],
     });
   }
 );

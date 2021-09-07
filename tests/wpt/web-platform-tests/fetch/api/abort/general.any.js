@@ -211,6 +211,17 @@ for (const bodyMethod of BODY_METHODS) {
   }, `response.${bodyMethod}() rejects if already aborted`);
 }
 
+promise_test(async (t) => {
+  const controller = new AbortController();
+  const signal = controller.signal;
+
+  const res = await fetch('../resources/data.json', { signal });
+  controller.abort();
+
+  await promise_rejects_dom(t, 'AbortError', res.text());
+  await promise_rejects_dom(t, 'AbortError', res.text());
+}, 'Call text() twice on aborted response');
+
 promise_test(async t => {
   await abortRequests();
 

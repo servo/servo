@@ -1,10 +1,8 @@
-import io
 import os
 import sys
 from atomicwrites import atomic_write
 from copy import deepcopy
 from multiprocessing import Pool, cpu_count
-from six import ensure_text
 
 from . import jsonlib
 from . import vcs
@@ -360,7 +358,7 @@ def _load(logger,  # type: Logger
         else:
             logger.debug("Creating new manifest at %s" % manifest)
         try:
-            with io.open(manifest, "r", encoding="utf-8") as f:
+            with open(manifest, "r", encoding="utf-8") as f:
                 rv = Manifest.from_json(tests_root,
                                         jsonlib.load(f),
                                         types=types,
@@ -381,55 +379,19 @@ def _load(logger,  # type: Logger
     return rv
 
 
-def load_and_update(tests_root,  # type: Union[Text, bytes]
-                    manifest_path,  # type: Union[Text, bytes]
+def load_and_update(tests_root,  # type: Text
+                    manifest_path,  # type: Text
                     url_base,  # type: Text
                     update=True,  # type: bool
                     rebuild=False,  # type: bool
-                    metadata_path=None,  # type: Optional[Union[Text, bytes]]
-                    cache_root=None,  # type: Optional[Union[Text, bytes]]
+                    metadata_path=None,  # type: Optional[Text]
+                    cache_root=None,  # type: Optional[Text]
                     working_copy=True,  # type: bool
                     types=None,  # type: Optional[Container[Text]]
                     write_manifest=True,  # type: bool
                     allow_cached=True,  # type: bool
                     parallel=True  # type: bool
                     ):
-    # type: (...) -> Manifest
-
-    # This function is now a facade for the purposes of type conversion, so that
-    # the external API can accept paths as text or (utf8) bytes, but internal
-    # functions always use Text.
-
-    metadata_path_text = ensure_text(metadata_path) if metadata_path is not None else None
-    cache_root_text = ensure_text(cache_root) if cache_root is not None else None
-
-    return _load_and_update(ensure_text(tests_root),
-                            ensure_text(manifest_path),
-                            url_base,
-                            update=update,
-                            rebuild=rebuild,
-                            metadata_path=metadata_path_text,
-                            cache_root=cache_root_text,
-                            working_copy=working_copy,
-                            types=types,
-                            write_manifest=write_manifest,
-                            allow_cached=allow_cached,
-                            parallel=parallel)
-
-
-def _load_and_update(tests_root,  # type: Text
-                     manifest_path,  # type: Text
-                     url_base,  # type: Text
-                     update=True,  # type: bool
-                     rebuild=False,  # type: bool
-                     metadata_path=None,  # type: Optional[Text]
-                     cache_root=None,  # type: Optional[Text]
-                     working_copy=True,  # type: bool
-                     types=None,  # type: Optional[Container[Text]]
-                     write_manifest=True,  # type: bool
-                     allow_cached=True,  # type: bool
-                     parallel=True  # type: bool
-                     ):
     # type: (...) -> Manifest
 
     logger = get_logger()

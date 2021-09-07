@@ -22,19 +22,24 @@ test_valid_value("rotate", "0deg");
 // If a 3d rotation is specified, the property must serialize with an axis specified.
 test_valid_value("rotate", "100 200 300 400grad");
 test_valid_value("rotate", "400grad 100 200 300", "100 200 300 400grad");
+test_valid_value("rotate", "0 0 0 400grad", "0 0 0 400grad");
 
-// If the axis is parallel with the x, y, or z axis, it must serialize as the appropriate keyword.
+// If the axis is parallel with the x or y axis, it must serialize as the appropriate keyword.
 test_valid_value("rotate", "x 400grad");
 test_valid_value("rotate", "400grad x", "x 400grad");
+test_valid_value("rotate", "0.5 0 0 400grad", "x 400grad");
 test_valid_value("rotate", "1 0 0 400grad", "x 400grad");
 
 test_valid_value("rotate", "y 400grad");
 test_valid_value("rotate", "400grad y", "y 400grad");
+test_valid_value("rotate", "0 0.5 0 400grad", "y 400grad");
 test_valid_value("rotate", "0 1 0 400grad", "y 400grad");
 
-test_valid_value("rotate", "z 400grad");
-test_valid_value("rotate", "400grad z", "z 400grad");
-test_valid_value("rotate", "0 0 1 400grad", "z 400grad");
+// If the axis is parallel with the z axis the property must serialize as just an <angle>.
+test_valid_value("rotate", "400grad");
+test_valid_value("rotate", "400grad z", "400grad");
+test_valid_value("rotate", "0 0 0.5 400grad", "400grad");
+test_valid_value("rotate", "0 0 1 400grad", "400grad");
 </script>
 </body>
 </html>

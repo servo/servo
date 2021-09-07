@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox Test: % flex-basis should not cause engines to treat items as percentage sized</title>
+<link rel="author" title="Sergio Villar Senin" href="mailto:svillar@igalia.com">
+<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#flex-basis-property">
+<link href="support/flexbox.css" rel="stylesheet">
+<link rel="match" href="flex-basis-011-ref.html">
+<style>
+.flex-item {
+    flex: 1 0 100%;
+    border: 1px solid blue;
+}
+</style>
+
+<div class="flexbox">
+    <div class="flexbox column">
+        <div class="flex-item">
+            <div>AAA</div>
+        </div>
+        <div class="flex-item">
+            <div>BBB</div>
+        </div>
+    </div>
+</div>

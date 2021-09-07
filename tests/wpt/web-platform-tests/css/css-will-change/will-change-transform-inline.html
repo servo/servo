@@ -1,0 +1,26 @@
+<!doctype html>
+<title>will-change: transform shouldn't create a containing block if the box doesn't support transforms</title>
+<link rel=author href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel=author href="https://mozilla.org" title="Mozilla">
+<link rel=help href="https://bugzilla.mozilla.org/show_bug.cgi?id=1707170">
+<link rel=help href="https://drafts.csswg.org/css-will-change/#will-change">
+<link rel=match href="will-change-transform-inline-ref.html">
+<style>
+  #container {
+    will-change: transform;
+  }
+  #child {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 200px;
+    height: 200px;
+    background-color: blue;
+  }
+</style>
+<div style="height: 200px"></div>
+<span id="container">
+  Child should be positioned relative to the viewport, not relative to me.
+
+  <div id="child"></div>
+</span>

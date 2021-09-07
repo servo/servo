@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel=author href="mailto:masonf@chromium.org">
+
+<div>This is a popup, which should be open upon load</div>
+
+<style>
+  div {
+    /* Per spec: */
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    /* Per settings in test file: */
+    width: fit-content;
+    height: fit-content;
+    border: 1px solid;
+    padding: 1em;
+    background: -internal-light-dark(white, black);
+    color: -internal-light-dark(black, white);
+  }
+</style>

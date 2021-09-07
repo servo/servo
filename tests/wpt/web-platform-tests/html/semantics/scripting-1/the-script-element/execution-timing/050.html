@@ -21,8 +21,28 @@
         var t = async_test()
 
         function test() {
-                assert_array_equals(eventOrder, ['inline script #1', 'end script #1', 'include-5 before removing scripts', 'include-5 after removing scripts', 'external script #1', 'external script #2']),
-                t.done();
+            // Per-spec, non-blocking/async scripts can execute at any time.
+            // Therefore, there are two possibilities for the script order here.
+            // 1. inline script first, followed by include-5 (async), then
+            //    external script #1 (slow async) and finally external #2
+            //    (inline).
+            // 2. inline script, external '2, 'include 5', then include-1.
+            assert_array_equals(eventOrder.slice(0, 2), [
+                'inline script #1', 'end script #1'
+            ]);
+            if (eventOrder[2] == 'include-5 before removing scripts') {
+                assert_array_equals(eventOrder.slice(3), [
+                    'include-5 after removing scripts', 'external script #1',
+                    'external script #2'
+                ]);
+            } else {
+                assert_array_equals(eventOrder.slice(2), ['external script #2',
+                    'include-5 before removing scripts',
+                    'include-5 after removing scripts',
+                    'external script #1'
+                ]);
+            }
+            t.done();
         }
         onload = t.step_func(test)
         </script>

@@ -5,7 +5,7 @@
     <title>&lt;mo&gt; with a single character and children (reference)</title>
     <link rel="stylesheet" type="text/css" href="/fonts/ahem.css"/>
     <style>
-      math { font: 50px/1 Ahem; }
+      math { font: 25px/1 Ahem; }
     </style>
   </head>
   <body>
@@ -20,5 +20,11 @@
 
     <p><math><mn>p</mn><mo stretchy="false" lspace="0" rspace="0">X</mo><mn>p</mn></math></p>
     <p><math><mn>p</mn><mo id="dynamic-remove" stretchy="false" lspace="0" rspace="0"><span></span>X</mo><mn>p</mn></math></p>
+    <p><math><mn>p</mn><mo stretchy="false" lspace="0" rspace="0"><!-- COMMENT -->X</mo><mn>p</mn></math></p>
+
+    <p>There should be 4/18em horizontal gaps around the middle rectangles:</p>
+    <p><math><mn>p</mn><mo lspace="0.2222222222222222em" rspace="0.2222222222222222em">XX</mo><mn>p</mn></math></p>
+    <p><math><mn>p</mn><mo id="dynamic-text-add-2" lspace="0.2222222222222222em" rspace="0.2222222222222222em">XX</mo><mn>p</mn></math></p>
+
   </body>
 </html>

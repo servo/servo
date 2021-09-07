@@ -24,6 +24,11 @@ for (const val of displayValues) {
       if (el instanceof HTMLInputElement && val === 'contents') {
         expectedVal = 'none'; // https://drafts.csswg.org/css-display/#unbox-html
       }
+      if (val == 'flow') {
+        // Use the more backwards-compatible form, `block` is better than `flow`
+        // https://drafts.csswg.org/cssom/#serializing-css-values
+        expectedVal = 'block';
+      }
       assert_equals(getComputedStyle(el).display, expectedVal);
     }, `computed display of ${tag} with display: ${val}`);
   });

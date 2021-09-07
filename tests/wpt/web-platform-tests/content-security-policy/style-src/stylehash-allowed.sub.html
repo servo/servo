@@ -12,7 +12,7 @@
         window.addEventListener('securitypolicyviolation', function(e) {
             alert_assert("Fail");
         });
-    
+
         var t_alert = async_test('Expecting alerts: ["PASS (1/4): The \'#p1\' element\'s text is green, which means the style was correctly applied.","PASS (2/4): The \'#p2\' element\'s text is green, which means the style was correctly applied.","PASS (3/4): The \'#p3\' element\'s text is green, which means the style was correctly applied.","PASS (4/4): The \'#p4\' element\'s text is green, which means the style was correctly applied."]');
         var expected_alerts = ["PASS (1/4): The '#p1' element's text is green, which means the style was correctly applied.", "PASS (2/4): The '#p2' element's text is green, which means the style was correctly applied.", "PASS (3/4): The '#p3' element's text is green, which means the style was correctly applied.", "PASS (4/4): The '#p4' element's text is green, which means the style was correctly applied."];
 

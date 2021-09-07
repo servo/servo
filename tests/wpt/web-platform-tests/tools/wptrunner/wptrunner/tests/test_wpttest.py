@@ -1,5 +1,5 @@
-import mock
 from io import BytesIO
+from unittest import mock
 
 from manifest import manifest as wptmanifest
 from manifest.item import TestharnessTest, RefTest

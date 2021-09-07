@@ -7,12 +7,13 @@
 <head>
   <title>CSS Test: Static position of abspos children in a column flex container, with various "align-self" values</title>
   <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
   <link rel="help" href="https://drafts.csswg.org/css-flexbox/#abspos-items">
-  <link rel="match" href="flex-abspos-staticpos-align-self-005-ref.html">
   <meta charset="utf-8">
   <style>
     .container {
       display: flex;
+      position: relative;
       flex-flow: column;
       padding: 1px 2px;
       border: 1px solid black;
@@ -40,54 +41,57 @@
       width: 8px;
     }
   </style>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/check-layout-th.js"></script>
 </head>
-<body>
+<body onload="checkLayout('.container > div')">
   <div class="big">
     <!-- The various align-self values, from
          https://www.w3.org/TR/css-align-3/#propdef-align-self -->
     <!-- auto | normal | stretch -->
-    <div class="container"><div style="align-self: auto"></div></div>
-    <div class="container"><div style="align-self: normal"></div></div>
-    <div class="container"><div style="align-self: stretch"></div></div>
+    <div class="container"><div style="align-self: auto" data-offset-x="6" data-offset-y="1"></div></div>
+    <div class="container"><div style="align-self: normal" data-offset-x="2" data-offset-y="1"></div></div>
+    <div class="container"><div style="align-self: stretch" data-offset-x="2" data-offset-y="1"></div></div>
     <br>
     <!-- <baseline-position> -->
-    <div class="container"><div style="align-self: baseline"></div></div>
-    <div class="container"><div style="align-self: last baseline"></div></div>
+    <div class="container"><div style="align-self: baseline" data-offset-x="2" data-offset-y="1"></div></div>
+    <div class="container"><div style="align-self: last baseline" data-offset-x="10" data-offset-y="1"></div></div>
     <br>
     <!-- <self-position>, part 1 -->
-    <div class="container"><div style="align-self: center"></div></div>
-    <div class="container"><div style="align-self: start"></div></div>
-    <div class="container"><div style="align-self: end"></div></div>
-    <div class="container"><div style="align-self: self-start"></div></div>
-    <div class="container"><div style="align-self: self-end"></div></div>
+    <div class="container"><div style="align-self: center" data-offset-x="6" data-offset-y="1"></div></div>
+    <div class="container"><div style="align-self: start" data-offset-x="2" data-offset-y="1"></div></div>
+    <div class="container"><div style="align-self: end" data-offset-x="10" data-offset-y="1"></div></div>
+    <div class="container"><div style="align-self: self-start" data-offset-x="2" data-offset-y="1"></div></div>
+    <div class="container"><div style="align-self: self-end" data-offset-x="10" data-offset-y="1"></div></div>
     <br>
     <!-- <self-position>, part 2 -->
-    <div class="container"><div style="align-self: flex-start"></div></div>
-    <div class="container"><div style="align-self: flex-end"></div></div>
+    <div class="container"><div style="align-self: flex-start" data-offset-x="2" data-offset-y="1"></div></div>
+    <div class="container"><div style="align-self: flex-end" data-offset-x="10" data-offset-y="1"></div></div>
     <br>
   </div>
   <div class="small">
     <!-- The various align-self values, from
          https://www.w3.org/TR/css-align-3/#propdef-align-self -->
     <!-- auto | normal | stretch -->
-    <div class="container"><div style="align-self: auto"></div></div>
-    <div class="container"><div style="align-self: normal"></div></div>
-    <div class="container"><div style="align-self: stretch"></div></div>
+    <div class="container"><div style="align-self: auto" data-offset-x="0" data-offset-y="1"></div></div>
+    <div class="container"><div style="align-self: normal" data-offset-x="2" data-offset-y="1"></div></div>
+    <div class="container"><div style="align-self: stretch" data-offset-x="2" data-offset-y="1"></div></div>
     <br>
     <!-- <baseline-position> -->
-    <div class="container"><div style="align-self: baseline"></div></div>
-    <div class="container"><div style="align-self: last baseline"></div></div>
+    <div class="container"><div style="align-self: baseline" data-offset-x="2" data-offset-y="1"></div></div>
+    <div class="container"><div style="align-self: last baseline" data-offset-x="-2" data-offset-y="1"></div></div>
     <br>
     <!-- <self-position>, part 1 -->
-    <div class="container"><div style="align-self: center"></div></div>
-    <div class="container"><div style="align-self: start"></div></div>
-    <div class="container"><div style="align-self: end"></div></div>
-    <div class="container"><div style="align-self: self-start"></div></div>
-    <div class="container"><div style="align-self: self-end"></div></div>
+    <div class="container"><div style="align-self: center" data-offset-x="0" data-offset-y="1"></div></div>
+    <div class="container"><div style="align-self: start" data-offset-x="2" data-offset-y="1"></div></div>
+    <div class="container"><div style="align-self: end" data-offset-x="-2" data-offset-y="1"></div></div>
+    <div class="container"><div style="align-self: self-start" data-offset-x="2" data-offset-y="1"></div></div>
+    <div class="container"><div style="align-self: self-end" data-offset-x="-2" data-offset-y="1"></div></div>
     <br>
     <!-- <self-position>, part 2 -->
-    <div class="container"><div style="align-self: flex-start"></div></div>
-    <div class="container"><div style="align-self: flex-end"></div></div>
+    <div class="container"><div style="align-self: flex-start" data-offset-x="2" data-offset-y="1"></div></div>
+    <div class="container"><div style="align-self: flex-end" data-offset-x="-2" data-offset-y="1"></div></div>
     <br>
   </div>
 </body>

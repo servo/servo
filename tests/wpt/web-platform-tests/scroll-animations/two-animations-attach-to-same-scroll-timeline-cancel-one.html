@@ -37,7 +37,7 @@
 <div id="box"></div>
 <div id="covered"></div>
 <div id="scroller">
-  <div id="contents"></div>
+  <div id="contents"><p>Scrolling Contents</p></div>
 </div>
 
 <script>
@@ -60,7 +60,8 @@
   );
 
   const scroller = document.getElementById('scroller');
-  const timeline = new ScrollTimeline({ scrollSource: scroller, timeRange: 1000, orientation: 'block' });
+  const timeline = new ScrollTimeline(
+      { scrollSource: scroller, orientation: 'block' });
   const animation = new Animation(effect, timeline);
   const temporary_animation = new Animation(temporary_effect, timeline);
   animation.play();
@@ -75,7 +76,7 @@
         scroller.scrollTop = 0.5 * maxScroll;
 
         waitForAnimationFrames(2).then(_ => {
-            takeScreenshot();
+          takeScreenshot();
         });
       });
     });

@@ -34,11 +34,11 @@
         { cssText: "width: var(--prop1, var(--prop2));",    expectedPropertyValue: "var(--prop1, var(--prop2))" },
         { cssText: "width: var(--prop1, var(--prop2, var(--prop3, auto)));", expectedPropertyValue: "var(--prop1, var(--prop2, var(--prop3, auto)))" },
         { cssText: "width: var(--prop1) var(--prop2)",      expectedPropertyValue: "var(--prop1) var(--prop2)" },
+        { cssText: "width: var(--prop,);",                  expectedPropertyValue: "var(--prop,)" },
 
         { cssText: "width: var();",                         expectedPropertyValue: "" },
         { cssText: "width: var(prop);",                     expectedPropertyValue: "" },
         { cssText: "width: var(-prop);",                    expectedPropertyValue: "" },
-        { cssText: "width: var(--prop,);",                  expectedPropertyValue: "" },
         { cssText: "width: var(--prop 20px);",              expectedPropertyValue: "" },
         { cssText: "width: var(--prop, var(prop));",        expectedPropertyValue: "" },
         { cssText: "width: var(--prop, var(-prop));",       expectedPropertyValue: "" },

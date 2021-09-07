@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#bounding-box-assignment">
+<link rel="match" href="table-cell-overflow-auto-scrolled-ref.html">
+<meta name="assert" content="Table cell with overflow:auto and overflowing contents is scrollable">
+<table style="table-layout: fixed; width: 100px; height: 100px; border: solid; border-spacing: 0">
+  <tr>
+    <td id="cell" style="background: green; overflow: auto; vertical-align: top; padding: 0">
+      <div style="width: 200px; height: 50px; background: hotpink; border: 2px solid yellow"></div>
+    </td>
+  </tr>
+</table>
+<script>
+onload = () => {
+  cell.scrollLeft = 120;
+}
+</script>

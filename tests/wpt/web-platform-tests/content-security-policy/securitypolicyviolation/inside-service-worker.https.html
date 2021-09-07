@@ -13,7 +13,7 @@
     .then(r => {
       var sw = r.active || r.installing || r.waiting;
       add_completion_callback(_ => r.unregister());
-            
+
       // Forward 'securitypolicyviolation' events from the document into the
       // worker (we shouldn't actually see any, so the worker will assert that
       // none are fired.

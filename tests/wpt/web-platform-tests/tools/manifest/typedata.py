@@ -256,11 +256,7 @@ class TypeData(TypeDataType):
 
         def safe_sorter(element):
             # type: (Tuple[str,str]) -> Tuple[str,str]
-            """ key function to sort lists with None values.
-
-            Python3 is more strict typewise. Comparing None and str for example is valid
-            in python2 but throws an exception in python3.
-            """
+            """key function to sort lists with None values."""
             if element and not element[0]:
                 return ("", element[1])
             else:

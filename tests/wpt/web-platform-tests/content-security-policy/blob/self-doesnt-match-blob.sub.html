@@ -20,7 +20,7 @@
         window.addEventListener('securitypolicyviolation', function(e) {
             log("violated-directive=" + e.violatedDirective);
         });
-    
+
         try {
             var blob = new Blob([
                 "postMessage('FAIL');" +

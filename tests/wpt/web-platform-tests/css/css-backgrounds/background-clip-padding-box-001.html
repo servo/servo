@@ -1,0 +1,23 @@
+<!doctype html>
+<title>background-clip: padding-box with fractional border-width</title>
+<link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#the-background-clip">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<style>
+#back {
+  width: 100px;
+  background-color: red;
+}
+#target {
+  box-sizing: border-box;
+  width: 100px;
+  height: 100px;
+  border-top: 49.75px solid green;
+  border-bottom: 49.75px solid green;
+  background-color: green;
+  background-clip: padding-box;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="back">
+  <div id="target"></div>
+</div>

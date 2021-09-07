@@ -68,19 +68,19 @@
 
     // id is associated for purposes of CSS
     test(function() {
-        assert_equals(document.defaultView.getComputedStyle(document.getElementById("abcd"), false).zIndex, "1");
+        assert_equals(document.defaultView.getComputedStyle(document.getElementById("abcd")).zIndex, "1");
     }, "User agents must associate the element with an id value for purposes of CSS.");
 
     test(function() {
-        assert_equals(document.defaultView.getComputedStyle(document.getElementById("ABCD"), false).zIndex, "2");
+        assert_equals(document.defaultView.getComputedStyle(document.getElementById("ABCD")).zIndex, "2");
     }, "Association for CSS is exact and therefore case-sensitive.");
 
     test(function() {
-        assert_equals(document.defaultView.getComputedStyle(document.getElementById("a b"), false).zIndex, "3");
+        assert_equals(document.defaultView.getComputedStyle(document.getElementById("a b")).zIndex, "3");
     }, "Spaces are allowed in an id and still make an association.");
 
     test(function() {
-        assert_equals(document.defaultView.getComputedStyle(document.getElementById("åèiöú"), false).zIndex, "6");
+        assert_equals(document.defaultView.getComputedStyle(document.getElementById("åèiöú")).zIndex, "6");
     }, "Non-ASCII is allowed in an id and still make an association for CSS.");
 
 
@@ -105,7 +105,7 @@
     }, "After setting id via id attribute, getElementById doesn't find the element by the old id.");
 
     test(function() {
-        assert_equals(document.defaultView.getComputedStyle(firstSpan, false).zIndex, "4");
+        assert_equals(document.defaultView.getComputedStyle(firstSpan).zIndex, "4");
     }, "After setting id via id attribute, CSS association is via the new ID.");
 
     test(function() {
@@ -122,7 +122,7 @@
     }, "After setting id via setAttribute attribute, getElementById doesn't find the element by the old id.");
 
     test(function() {
-        assert_equals(document.defaultView.getComputedStyle(firstSpan, false).zIndex, "5");
+        assert_equals(document.defaultView.getComputedStyle(firstSpan).zIndex, "5");
     }, "After setting id via setAttribute attribute, CSS association is via the new ID.");
 
 </script>

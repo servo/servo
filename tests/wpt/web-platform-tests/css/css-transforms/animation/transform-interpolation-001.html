@@ -40,42 +40,99 @@
 </body>
 
 <script>
+
+// The default comparison function calls normalizeValue, which rounds
+// everything to two decimal places, which isn't OK for the matrices
+// that result from large perspective values.
+const compareWithPerspective = (actual, expected) => {
+  const matrixRegExp = /^matrix3d\(((?:(?:[-0-9.]+), ){15}(?:[-0-9.]+))\)$/;
+  const actualArray = actual.match(matrixRegExp)[1].split(", ").map(Number);
+  const expectedArray = expected.match(matrixRegExp)[1].split(", ").map(Number);
+  assert_equals(actualArray.length, 16);
+  assert_equals(expectedArray.length, 16);
+
+  for (let i in actualArray) {
+    const error = Math.abs((actualArray[i] - expectedArray[i])) /
+                  Math.max(1e-6,
+                           Math.min(Math.abs(expectedArray[i]),
+                                    Math.abs(actualArray[i])));
+    assert_less_than(error, 1e-5, `comparing (at index ${i} actual value "${actual}" [${actualArray[i]}] and expected value "${expected}" [${expectedArray[i]}]`);
+  }
+};
+
+// The spec at
+// https://drafts.csswg.org/css-transforms-2/#interpolation-of-transform-functions
+// requires that perspective be interpolated by decomposing the matrix
+// (which is trivial for perspective) and then interpolating the pieces.
+// The piece that's interpolated (the z part of the perspective array)
+// contains the negative reciprocal of the argument to perspective().
+const interpolatePerspective = (from, to, progress) => {
+  return 1.0/((1.0 - progress) * (1.0/from) + progress * (1.0/to));
+};
+
 // Perspective
 test_interpolation({
   property: 'transform',
   from: 'perspective(400px)',
-  to: 'perspective(500px)'
+  to: 'perspective(500px)',
+  comparisonFunction: compareWithPerspective
 }, [
-  {at: -1, expect: 'perspective(300px)'},
-  {at: 0, expect: 'perspective(400px)'},
-  {at: 0.25, expect: 'perspective(425px)'},
-  {at: 0.75, expect: 'perspective(475px)'},
-  {at: 1, expect: 'perspective(500px)'},
-  {at: 2, expect: 'perspective(600px)'},
+  {at: -1, expect: `perspective(${interpolatePerspective(400, 500, -1)}px)`},
+  {at: 0, expect: `perspective(${interpolatePerspective(400, 500, 0)}px)`},
+  {at: 0.25, expect: `perspective(${interpolatePerspective(400, 500, 0.25)}px)`},
+  {at: 0.75, expect: `perspective(${interpolatePerspective(400, 500, 0.75)}px)`},
+  {at: 1, expect: `perspective(${interpolatePerspective(400, 500, 1)}px)`},
+  {at: 2, expect: `perspective(${interpolatePerspective(400, 500, 2)}px)`},
 ]);
 test_interpolation({
   property: 'transform',
   from: 'skewX(10rad) perspective(400px)',
-  to: 'skewX(20rad) perspective(500px)'
+  to: 'skewX(20rad) perspective(500px)',
+  comparisonFunction: compareWithPerspective
 }, [
-  {at: -1, expect: 'skewX(0rad) perspective(300px)'},
-  {at: 0, expect: 'skewX(10rad) perspective(400px)'},
-  {at: 0.25, expect: 'skewX(12.5rad) perspective(425px)'},
-  {at: 0.75, expect: 'skewX(17.5rad) perspective(475px)'},
-  {at: 1, expect: 'skewX(20rad) perspective(500px)'},
-  {at: 2, expect: 'skewX(30rad) perspective(600px)'},
+  {at: -1, expect: `skewX(0rad) perspective(${interpolatePerspective(400, 500, -1)}px)`},
+  {at: 0, expect: `skewX(10rad) perspective(${interpolatePerspective(400, 500, 0)}px)`},
+  {at: 0.25, expect: `skewX(12.5rad) perspective(${interpolatePerspective(400, 500, 0.25)}px)`},
+  {at: 0.75, expect: `skewX(17.5rad) perspective(${interpolatePerspective(400, 500, 0.75)}px)`},
+  {at: 1, expect: `skewX(20rad) perspective(${interpolatePerspective(400, 500, 1)}px)`},
+  {at: 2, expect: `skewX(30rad) perspective(${interpolatePerspective(400, 500, 2)}px)`},
 ]);
 test_interpolation({
   property: 'transform',
   from: 'scaleZ(1) perspective(400px)',
-  to: 'scaleZ(2) perspective(500px)'
+  to: 'scaleZ(2) perspective(500px)',
+  comparisonFunction: compareWithPerspective
 }, [
-  {at: -1, expect: 'scaleZ(0) perspective(300px)'},
-  {at: 0, expect: 'scaleZ(1) perspective(400px)'},
-  {at: 0.25, expect: 'scaleZ(1.25) perspective(425px)'},
-  {at: 0.75, expect: 'scaleZ(1.75) perspective(475px)'},
-  {at: 1, expect: 'scaleZ(2) perspective(500px)'},
-  {at: 2, expect: 'scaleZ(3) perspective(600px)'},
+  {at: -1, expect: `scaleZ(0) perspective(${interpolatePerspective(400, 500, -1)}px)`},
+  {at: 0, expect: `scaleZ(1.0) perspective(${interpolatePerspective(400, 500, 0)}px)`},
+  {at: 0.25, expect: `scaleZ(1.25) perspective(${interpolatePerspective(400, 500, 0.25)}px)`},
+  {at: 0.75, expect: `scaleZ(1.75) perspective(${interpolatePerspective(400, 500, 0.75)}px)`},
+  {at: 1, expect: `scaleZ(2) perspective(${interpolatePerspective(400, 500, 1)}px)`},
+  {at: 2, expect: `scaleZ(3) perspective(${interpolatePerspective(400, 500, 2)}px)`},
+]);
+// Test that the transform identity function for perspective is perspective(none)
+test_interpolation({
+  property: 'transform',
+  from: 'scaleZ(2)',
+  to: 'scaleZ(2) perspective(500px)',
+  comparisonFunction: compareWithPerspective
+}, [
+  {at: -1, expect: `scaleZ(2)`},
+  {at: 0, expect: `scaleZ(2)`},
+  {at: 0.5, expect: `scaleZ(2) perspective(1000px)`},
+  {at: 1, expect: `scaleZ(2) perspective(500px)`},
+  {at: 2, expect: `scaleZ(2) perspective(250px)`},
+]);
+test_interpolation({
+  property: 'transform',
+  from: 'perspective(none)',
+  to: 'perspective(500px)',
+}, [
+  {at: -1, expect: `perspective(none)`},
+  {at: 0, expect: `perspective(none)`},
+  {at: 0.5, expect: `perspective(1000px)`},
+  {at: 1, expect: `perspective(500px)`},
+  {at: 2, expect: `perspective(250px)`},
 ]);
 
 // Rotate

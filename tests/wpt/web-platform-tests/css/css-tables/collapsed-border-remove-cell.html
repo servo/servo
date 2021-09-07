@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Collapsed borders track changes caused by removal of cells</title>
+<link rel="help" href="https://drafts.csswg.org/css-tables/#border-collapsing">
+<link rel="match" href="collapsed-border-remove-cell-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+  table {
+    border-collapse: collapse;
+  }
+  td {
+    width: 100px;
+    height: 100px;
+    border: 1px solid black;
+  }
+</style>
+<table>
+  <tr><td></td><td></td></tr>
+  <tr><td></td><td id="target"></tr>
+</table>
+<script>
+  waitForAtLeastOneFrame().then(() => {
+    target.remove();
+    takeScreenshot();
+  });
+</script>

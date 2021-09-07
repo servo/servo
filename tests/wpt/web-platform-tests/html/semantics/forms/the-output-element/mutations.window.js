@@ -15,7 +15,7 @@ test(() => {
   assert_equal_values(output, "x", "after setting textContent");
   output.value = "some";
   assert_values(output, "some", "x", "after setting value");
-  child.textContent = "y";
+  output.textContent = "y";
   assert_values(output, "y", "x", "after setting textContent again");
 }, "Descendant mutations and output.value and .defaultValue");
 

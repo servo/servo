@@ -253,17 +253,6 @@
     @assert imgdata2.height > imgdata1.height;
     t.done();
 
-- name: 2d.imageData.get.tiny
-  desc: getImageData() works for sizes smaller than one pixel
-  testing:
-  - 2d.imageData.one
-  code: |
-    var imgdata = ctx.getImageData(0, 0, 0.0001, 0.0001);
-    @assert imgdata.data.length === imgdata.width*imgdata.height*4;
-    @assert imgdata.width === 1;
-    @assert imgdata.height === 1;
-    t.done();
-
 - name: 2d.imageData.get.nonpremul
   desc: getImageData() returns non-premultiplied colours
   testing:

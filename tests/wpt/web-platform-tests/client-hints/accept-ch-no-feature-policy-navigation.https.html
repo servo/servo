@@ -16,6 +16,18 @@
     "device-memory=true&dpr=true&viewport-width=true&sec-ch-ua=true&sec-ch-ua-mobile=true",
     "",
     "Client hints loaded on same-origin iframe request with no feature policy.");
+
+  let allow = "ch-device-memory *; ch-dpr 'src'; ch-viewport-width 'self'; ch-lang 'none'; ch-prefers-color-scheme 'none'";
+  await test_frame(
+    "HTTPS_REMOTE_ORIGIN",
+    "device-memory=true&dpr=true&viewport-width=false&sec-ch-ua=true&sec-ch-ua-mobile=true",
+    allow,
+    "Client hints loaded on cross-origin iframe request with allow list.");
+  await test_frame(
+    "HTTPS_ORIGIN",
+    "device-memory=true&dpr=true&viewport-width=true&sec-ch-ua=true&sec-ch-ua-mobile=true",
+    allow,
+    "Client hints loaded on same-origin iframe request with allow list.");
 })();
 
 </script>

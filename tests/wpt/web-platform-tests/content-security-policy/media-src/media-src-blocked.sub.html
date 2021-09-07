@@ -27,7 +27,7 @@
           assert_equals(e.violatedDirective, "media-src");
           assert_true(e.blockedURI == a_mediaURL || e.blockedURI == v_mediaURL, "Unexpected blockedURI");
           if (--test_count <= 0) {
-              t_spv.done(); 
+              t_spv.done();
           }
       }));
 

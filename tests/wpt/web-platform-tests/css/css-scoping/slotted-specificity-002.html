@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: slotted selectors are compared correctly for specificity</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#slotted-pseudo">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=229438">
+<link rel="match" href="reference/green-box.html">
+<p>Test passes if you see a single 100px by 100px green box below.</p>
+<div id="host"><div></div></div>
+<script>
+  host.attachShadow({ mode: 'open' }).innerHTML = `
+    <style>
+      :host ::slotted(*) {
+        width: 100px;
+        height: 100px;
+        background: green;
+      }
+      ::slotted(*) {
+        background: red;
+      }
+    </style>
+    <slot></slot>
+  `;
+</script>

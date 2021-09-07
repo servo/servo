@@ -1,11 +1,11 @@
-#! /usr/bin/env python
+#!/usr/bin/env python3
 import argparse
 import subprocess
 import time
 import sys
 
 
-def get_args():
+def get_args() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     parser.add_argument("--delay", action="store", type=float, default=3, help="Initial delay before retry, in seconds")
     parser.add_argument("--count", action="store", type=int, default=5, help="Total number of tries")
@@ -14,19 +14,12 @@ def get_args():
     return parser
 
 
-def iter_range(n):
-    i = 0
-    while i < n:
-        yield i
-        i += 1
-
-
-def log(value):
+def log(value: str) -> None:
     print(value)
     sys.stdout.flush()
 
 
-def main():
+def main() -> None:
     args = get_args().parse_args()
 
     if not args.cmd:
@@ -35,7 +28,7 @@ def main():
 
     retcode = None
 
-    for n in iter_range(args.count):
+    for n in range(args.count):
         try:
             log("Running %s [try %d/%d]" % (" ".join(args.cmd), (n+1), args.count))
             subprocess.check_call(args.cmd)

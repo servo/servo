@@ -10,8 +10,9 @@
   test_valid_value("color-scheme", "dark");
   test_valid_value("color-scheme", "light dark");
   test_valid_value("color-scheme", "dark light");
-  test_valid_value("color-scheme", "only light");
+  test_valid_value("color-scheme", "only light", "light only");
   test_valid_value("color-scheme", "light only");
+  test_valid_value("color-scheme", "light dark only");
   test_valid_value("color-scheme", "light light");
   test_valid_value("color-scheme", "dark dark");
   test_valid_value("color-scheme", "light purple");
@@ -22,10 +23,8 @@
   test_valid_value("color-scheme", "initial");
   test_valid_value("color-scheme", "unset");
   test_valid_value("color-scheme", "revert");
-  test_valid_value("color-scheme", "only");
-  test_valid_value("color-scheme", "only only");
-  test_valid_value("color-scheme", "only light dark");
-  test_valid_value("color-scheme", "only light light");
-  test_valid_value("color-scheme", "only light purple");
-  test_valid_value("color-scheme", "only none");
+  test_valid_value("color-scheme", "only light dark", "light dark only");
+  test_valid_value("color-scheme", "only light light", "light light only");
+  test_valid_value("color-scheme", "only light purple", "light purple only");
+  test_valid_value("color-scheme", "only none", "none only");
 </script>

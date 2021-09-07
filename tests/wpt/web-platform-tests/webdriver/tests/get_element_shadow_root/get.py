@@ -47,7 +47,9 @@ def test_get_shadow_root(session, checkbox_dom):
         "return document.querySelector('custom-checkbox-element').shadowRoot.host")
     custom_element = session.find.css("custom-checkbox-element", all=False)
     response = get_shadow_root(session, custom_element.id)
-    assert_success(response)
+    value = assert_success(response)
+    assert isinstance(value, dict)
+    assert "shadow-6066-11e4-a52e-4f735466cecf" in value
     assert_same_element(session, custom_element, expected)
 
 

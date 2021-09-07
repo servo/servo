@@ -9,6 +9,7 @@ import pytest
 
 config = pytest.importorskip("wptserve.config")
 
+logger = logging.getLogger()
 
 def test_renamed_are_renamed():
     assert len(set(config._renamed_props.keys()) & set(config.ConfigBuilder._default.keys())) == 0
@@ -31,36 +32,24 @@ def test_merge_dict(base, override, expected):
     assert expected == config._merge_dict(base, override)
 
 
-def test_logger_created():
-    with config.ConfigBuilder() as c:
-        assert c.logger is not None
-
-
-def test_logger_preserved():
-    logger = logging.getLogger("test_logger_preserved")
-    logger.setLevel(logging.DEBUG)
-
-    with config.ConfigBuilder(logger=logger) as c:
-        assert c.logger is logger
-
 
 def test_as_dict():
-    with config.ConfigBuilder() as c:
+    with config.ConfigBuilder(logger) as c:
         assert c.as_dict() is not None
 
 
 def test_as_dict_is_json():
-    with config.ConfigBuilder() as c:
+    with config.ConfigBuilder(logger) as c:
         assert json.dumps(c.as_dict()) is not None
 
 
 def test_init_basic_prop():
-    with config.ConfigBuilder(browser_host="foo.bar") as c:
+    with config.ConfigBuilder(logger, browser_host="foo.bar") as c:
         assert c.browser_host == "foo.bar"
 
 
 def test_init_prefixed_prop():
-    with config.ConfigBuilder(doc_root="/") as c:
+    with config.ConfigBuilder(logger, doc_root="/") as c:
         assert c.doc_root == "/"
 
 
@@ -70,8 +59,7 @@ def test_init_renamed_host():
     handler = handlers.BufferingHandler(100)
     logger.addHandler(handler)
 
-    with config.ConfigBuilder(logger=logger, host="foo.bar") as c:
-        assert c.logger is logger
+    with config.ConfigBuilder(logger, host="foo.bar") as c:
         assert len(handler.buffer) == 1
         assert "browser_host" in handler.buffer[0].getMessage()  # check we give the new name in the message
         assert not hasattr(c, "host")
@@ -80,25 +68,25 @@ def test_init_renamed_host():
 
 def test_init_bogus():
     with pytest.raises(TypeError) as e:
-        config.ConfigBuilder(foo=1, bar=2)
+        config.ConfigBuilder(logger, foo=1, bar=2)
     message = e.value.args[0]
     assert "foo" in message
     assert "bar" in message
 
 
 def test_getitem():
-    with config.ConfigBuilder(browser_host="foo.bar") as c:
+    with config.ConfigBuilder(logger, browser_host="foo.bar") as c:
         assert c["browser_host"] == "foo.bar"
 
 
 def test_no_setitem():
-    with config.ConfigBuilder() as c:
-        with pytest.raises(TypeError):
+    with config.ConfigBuilder(logger) as c:
+        with pytest.raises(ValueError):
             c["browser_host"] = "foo.bar"
 
 
 def test_iter():
-    with config.ConfigBuilder() as c:
+    with config.ConfigBuilder(logger) as c:
         s = set(iter(c))
         assert "browser_host" in s
         assert "host" not in s
@@ -107,21 +95,21 @@ def test_iter():
 
 
 def test_assignment():
-    cb = config.ConfigBuilder()
+    cb = config.ConfigBuilder(logger)
     cb.browser_host = "foo.bar"
     with cb as c:
         assert c.browser_host == "foo.bar"
 
 
 def test_update_basic():
-    cb = config.ConfigBuilder()
+    cb = config.ConfigBuilder(logger)
     cb.update({"browser_host": "foo.bar"})
     with cb as c:
         assert c.browser_host == "foo.bar"
 
 
 def test_update_prefixed():
-    cb = config.ConfigBuilder()
+    cb = config.ConfigBuilder(logger)
     cb.update({"doc_root": "/"})
     with cb as c:
         assert c.doc_root == "/"
@@ -133,8 +121,7 @@ def test_update_renamed_host():
     handler = handlers.BufferingHandler(100)
     logger.addHandler(handler)
 
-    cb = config.ConfigBuilder(logger=logger)
-    assert cb.logger is logger
+    cb = config.ConfigBuilder(logger)
     assert len(handler.buffer) == 0
 
     cb.update({"host": "foo.bar"})
@@ -147,13 +134,14 @@ def test_update_renamed_host():
 
 
 def test_update_bogus():
-    cb = config.ConfigBuilder()
+    cb = config.ConfigBuilder(logger)
     with pytest.raises(KeyError):
         cb.update({"foobar": 1})
 
 
 def test_ports_auto():
-    with config.ConfigBuilder(ports={"http": ["auto"]},
+    with config.ConfigBuilder(logger,
+                              ports={"http": ["auto"]},
                               ssl={"type": "none"}) as c:
         ports = c.ports
         assert set(ports.keys()) == {"http"}
@@ -162,7 +150,8 @@ def test_ports_auto():
 
 
 def test_ports_auto_mutate():
-    cb = config.ConfigBuilder(ports={"http": [1001]},
+    cb = config.ConfigBuilder(logger,
+                              ports={"http": [1001]},
                               ssl={"type": "none"})
     cb.ports = {"http": ["auto"]}
     with cb as c:
@@ -173,7 +162,8 @@ def test_ports_auto_mutate():
 
 
 def test_ports_explicit():
-    with config.ConfigBuilder(ports={"http": [1001]},
+    with config.ConfigBuilder(logger,
+                              ports={"http": [1001]},
                               ssl={"type": "none"}) as c:
         ports = c.ports
         assert set(ports.keys()) == {"http"}
@@ -181,7 +171,8 @@ def test_ports_explicit():
 
 
 def test_ports_no_ssl():
-    with config.ConfigBuilder(ports={"http": [1001], "https": [1002], "ws": [1003], "wss": [1004]},
+    with config.ConfigBuilder(logger,
+                              ports={"http": [1001], "https": [1002], "ws": [1003], "wss": [1004]},
                               ssl={"type": "none"}) as c:
         ports = c.ports
         assert set(ports.keys()) == {"http", "ws"}
@@ -192,7 +183,8 @@ def test_ports_no_ssl():
 @pytest.mark.skipif(find_executable("openssl") is None,
                     reason="requires OpenSSL")
 def test_ports_openssl():
-    with config.ConfigBuilder(ports={"http": [1001], "https": [1002], "ws": [1003], "wss": [1004]},
+    with config.ConfigBuilder(logger,
+                              ports={"http": [1001], "https": [1002], "ws": [1003], "wss": [1004]},
                               ssl={"type": "openssl"}) as c:
         ports = c.ports
         assert set(ports.keys()) == {"http", "https", "ws", "wss"}
@@ -203,30 +195,30 @@ def test_ports_openssl():
 
 
 def test_init_doc_root():
-    with config.ConfigBuilder(doc_root="/") as c:
+    with config.ConfigBuilder(logger, doc_root="/") as c:
         assert c.doc_root == "/"
 
 
 def test_set_doc_root():
-    cb = config.ConfigBuilder()
+    cb = config.ConfigBuilder(logger)
     cb.doc_root = "/"
     with cb as c:
         assert c.doc_root == "/"
 
 
 def test_server_host_from_browser_host():
-    with config.ConfigBuilder(browser_host="foo.bar") as c:
+    with config.ConfigBuilder(logger, browser_host="foo.bar") as c:
         assert c.server_host == "foo.bar"
 
 
 def test_init_server_host():
-    with config.ConfigBuilder(server_host="foo.bar") as c:
+    with config.ConfigBuilder(logger, server_host="foo.bar") as c:
         assert c.browser_host == "localhost"  # check this hasn't changed
         assert c.server_host == "foo.bar"
 
 
 def test_set_server_host():
-    cb = config.ConfigBuilder()
+    cb = config.ConfigBuilder(logger)
     cb.server_host = "/"
     with cb as c:
         assert c.browser_host == "localhost"  # check this hasn't changed
@@ -234,7 +226,8 @@ def test_set_server_host():
 
 
 def test_domains():
-    with config.ConfigBuilder(browser_host="foo.bar",
+    with config.ConfigBuilder(logger,
+                              browser_host="foo.bar",
                               alternate_hosts={"alt": "foo2.bar"},
                               subdomains={"a", "b"},
                               not_subdomains={"x", "y"}) as c:
@@ -253,7 +246,8 @@ def test_domains():
 
 
 def test_not_domains():
-    with config.ConfigBuilder(browser_host="foo.bar",
+    with config.ConfigBuilder(logger,
+                              browser_host="foo.bar",
                               alternate_hosts={"alt": "foo2.bar"},
                               subdomains={"a", "b"},
                               not_subdomains={"x", "y"}) as c:
@@ -271,7 +265,8 @@ def test_not_domains():
 
 
 def test_domains_not_domains_intersection():
-    with config.ConfigBuilder(browser_host="foo.bar",
+    with config.ConfigBuilder(logger,
+                              browser_host="foo.bar",
                               alternate_hosts={"alt": "foo2.bar"},
                               subdomains={"a", "b"},
                               not_subdomains={"x", "y"}) as c:
@@ -286,7 +281,8 @@ def test_domains_not_domains_intersection():
 
 
 def test_all_domains():
-    with config.ConfigBuilder(browser_host="foo.bar",
+    with config.ConfigBuilder(logger,
+                              browser_host="foo.bar",
                               alternate_hosts={"alt": "foo2.bar"},
                               subdomains={"a", "b"},
                               not_subdomains={"x", "y"}) as c:
@@ -310,7 +306,8 @@ def test_all_domains():
 
 
 def test_domains_set():
-    with config.ConfigBuilder(browser_host="foo.bar",
+    with config.ConfigBuilder(logger,
+                              browser_host="foo.bar",
                               alternate_hosts={"alt": "foo2.bar"},
                               subdomains={"a", "b"},
                               not_subdomains={"x", "y"}) as c:
@@ -326,7 +323,8 @@ def test_domains_set():
 
 
 def test_not_domains_set():
-    with config.ConfigBuilder(browser_host="foo.bar",
+    with config.ConfigBuilder(logger,
+                              browser_host="foo.bar",
                               alternate_hosts={"alt": "foo2.bar"},
                               subdomains={"a", "b"},
                               not_subdomains={"x", "y"}) as c:
@@ -340,7 +338,8 @@ def test_not_domains_set():
 
 
 def test_all_domains_set():
-    with config.ConfigBuilder(browser_host="foo.bar",
+    with config.ConfigBuilder(logger,
+                              browser_host="foo.bar",
                               alternate_hosts={"alt": "foo2.bar"},
                               subdomains={"a", "b"},
                               not_subdomains={"x", "y"}) as c:
@@ -360,7 +359,7 @@ def test_all_domains_set():
 
 
 def test_ssl_env_none():
-    with config.ConfigBuilder(ssl={"type": "none"}) as c:
+    with config.ConfigBuilder(logger, ssl={"type": "none"}) as c:
         assert c.ssl_config is None
 
 
@@ -375,11 +374,11 @@ def test_ssl_env_openssl():
 
 def test_ssl_env_bogus():
     with pytest.raises(ValueError):
-        with config.ConfigBuilder(ssl={"type": "foobar"}):
+        with config.ConfigBuilder(logger, ssl={"type": "foobar"}):
             pass
 
 
 def test_pickle():
     # Ensure that the config object can be pickled
-    with config.ConfigBuilder() as c:
+    with config.ConfigBuilder(logger) as c:
         pickle.dumps(c)

@@ -9,11 +9,12 @@
 <script src=/resources/testharnessreport.js></script>
 <script src=/common/get-host-info.sub.js></script>
 <script src="/common/utils.js"></script>
-<script src="../resources/dispatcher.js"></script>
-<script src="../resources/try-access.js"></script>
+<script src="/html/cross-origin-opener-policy/resources/common.js"></script>
+<script src="/html/cross-origin-opener-policy/resources/dispatcher.js"></script>
+<script src="/html/cross-origin-opener-policy/reporting/resources/try-access.js"></script>
 <script>
 
-const directory = "/html/cross-origin-opener-policy/reporting";
+const directory = "/html/cross-origin-opener-policy";
 const executor_path = directory + "/resources/executor.html?pipe=";
 const same_origin = get_host_info().HTTPS_ORIGIN;
 const cross_site = get_host_info().HTTPS_NOTSAMESITE_ORIGIN;
@@ -49,14 +50,15 @@ promise_test(async t => {
 
   // 4. The opener tries to access its openee. All reports for blocked access
   //    from the COOP page should notify the ReportingObservers.
-  send(opener_token, `
-    let observer = new ReportingObserver(()=>{});
-    observer.observe();
-    tryAccess(openee);
-    let reports = observer.takeRecords();
-    send("${this_window_token}", JSON.stringify(reports));
-    observer.disconnect();
-  `);
+  send(opener_token, addScriptAndTriggerOnload(
+    directory + "/reporting/resources/try-access.js", `
+      let observer = new ReportingObserver(()=>{});
+      observer.observe();
+      tryAccess(openee);
+      let reports = observer.takeRecords();
+      send("${this_window_token}", JSON.stringify(reports));
+      observer.disconnect();
+    `));
 
   let report_access_from = JSON.parse(await receive(this_window_token));
   assert_equals(report_access_from.length, 1, "No report received.");
@@ -71,14 +73,15 @@ promise_test(async t => {
 
   // 5. The openee tries to access its opener. No reports for blocked access
   //    to the COOP page should be dispatched.
-  send(openee_token, `
-    let observer = new ReportingObserver(()=>{});
-    observer.observe();
-    tryAccess(opener);
-    let reports = observer.takeRecords();
-    send("${this_window_token}", JSON.stringify(reports));
-    observer.disconnect();
-  `);
+  send(openee_token, addScriptAndTriggerOnload(
+    directory + "/reporting/resources/try-access.js", `
+      let observer = new ReportingObserver(()=>{});
+      observer.observe();
+      tryAccess(opener);
+      let reports = observer.takeRecords();
+      send("${this_window_token}", JSON.stringify(reports));
+      observer.disconnect();
+    `));
   let report_access_to = JSON.parse(await receive(this_window_token));
   assert_equals(report_access_to.length, 0, "Unexpected report received.");
 }, "Opener COOP");
@@ -109,14 +112,15 @@ promise_test(async t => {
 
   // 3. The openee tries to access its opener. All reports for blocked access
   //    from the COOP page should notify the ReportingObservers.
-  send(openee_token, `
-    let observer = new ReportingObserver(()=>{});
-    observer.observe();
-    tryAccess(opener);
-    let reports = observer.takeRecords();
-    send("${this_window_token}", JSON.stringify(reports));
-    observer.disconnect();
-  `);
+  send(openee_token, addScriptAndTriggerOnload(
+    directory + "/reporting/resources/try-access.js", `
+      let observer = new ReportingObserver(()=>{});
+      observer.observe();
+      tryAccess(opener);
+      let reports = observer.takeRecords();
+      send("${this_window_token}", JSON.stringify(reports));
+      observer.disconnect();
+    `));
   let report_access_from = JSON.parse(await receive(this_window_token));
   assert_equals(report_access_from.length, 1, "No report received.");
   assert_equals(report_access_from[0].type, "coop-access-violation");
@@ -131,14 +135,15 @@ promise_test(async t => {
 
   // 4. The opener tries to access its openee. No reports for blocked access
   //    to the COOP page should be dispatched.
-  send(opener_token, `
-    let observer = new ReportingObserver(()=>{});
-    observer.observe();
-    tryAccess(openee);
-    let reports = observer.takeRecords();
-    send("${this_window_token}", JSON.stringify(reports));
-    observer.disconnect();
-  `);
+  send(opener_token, addScriptAndTriggerOnload(
+    directory + "/reporting/resources/try-access.js", `
+      let observer = new ReportingObserver(()=>{});
+      observer.observe();
+      tryAccess(openee);
+      let reports = observer.takeRecords();
+      send("${this_window_token}", JSON.stringify(reports));
+      observer.disconnect();
+    `));
   let report_access_to = JSON.parse(await receive(this_window_token));
   assert_equals(report_access_to.length, 0, "Unexpected report received.");
 }, "Openee COOP");
@@ -193,7 +198,8 @@ promise_test(async t => {
   // 4. The opener's iframe tries to access the openee. This is an
   //    "access-from-coop-page" from a same-origin iframe, so the
   //    ReportingObserver(s) are notified.
-  send(opener_iframe_token, `tryAccess(openee);`);
+  send(opener_iframe_token, addScriptAndTriggerOnload(
+    directory + "/reporting/resources/try-access.js", `tryAccess(openee);`));
 
   let reports = await receive(this_window_token);
   reports = JSON.parse(reports);
@@ -260,7 +266,8 @@ promise_test(async t => {
   // 5. The opener's iframe tries to access the openee. This is an
   //    "access-from-coop-page" from a cross-site iframe. The ReportingObservers
   //    from the main document aren't notified.
-  send(opener_iframe_token, `tryAccess(openee);`);
+  send(opener_iframe_token, addScriptAndTriggerOnload(
+    directory + "/reporting/resources/try-access.js", `tryAccess(openee);`));
 
   let reports = await receive(this_window_token, 2000);
   assert_equals(reports, "timeout", "Unexpected report received.");

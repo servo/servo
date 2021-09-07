@@ -46,7 +46,7 @@
     // Use a linewidth of 2. Because the rectangle is drawn at 0,0 with
     // its dimensions being the same as canvas dimensions, linewidth as it
     // is drawn on the canvas will be 1.
-    ctx.lineWidth = "2";
+    ctx.lineWidth = window.devicePixelRatio * 2;
     ctx.strokeStyle = "green";
     ctx.rect(0, 0, snappedSize.inlineSize, snappedSize.blockSize);
     ctx.stroke();

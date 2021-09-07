@@ -21,7 +21,7 @@ interface PerformanceEntry {
 
 callback PerformanceObserverCallback = undefined (PerformanceObserverEntryList entries,
                                              PerformanceObserver observer,
-                                             optional boolean hasDroppedEntry = false);
+                                             optional PerformanceObserverCallbackOptions options = {});
 [Exposed=(Window,Worker)]
 interface PerformanceObserver {
   constructor(PerformanceObserverCallback callback);
@@ -29,6 +29,10 @@ interface PerformanceObserver {
   undefined disconnect ();
   PerformanceEntryList takeRecords();
   [SameObject] static readonly attribute FrozenArray<DOMString> supportedEntryTypes;
+};
+
+dictionary PerformanceObserverCallbackOptions {
+  unsigned long long droppedEntriesCount;
 };
 
 dictionary PerformanceObserverInit {

@@ -1,0 +1,388 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebCodecs (https://w3c.github.io/webcodecs/)
+
+[Exposed=(Window,DedicatedWorker)]
+interface AudioDecoder {
+  constructor(AudioDecoderInit init);
+
+  readonly attribute CodecState state;
+  readonly attribute long decodeQueueSize;
+
+  undefined configure(AudioDecoderConfig config);
+  undefined decode(EncodedAudioChunk chunk);
+  Promise<undefined> flush();
+  undefined reset();
+  undefined close();
+
+  static Promise<AudioDecoderSupport> isConfigSupported(AudioDecoderConfig config);
+};
+
+dictionary AudioDecoderInit {
+  required AudioDataOutputCallback output;
+  required WebCodecsErrorCallback error;
+};
+
+callback AudioDataOutputCallback = undefined(AudioData output);
+
+[Exposed=(Window,DedicatedWorker)]
+interface VideoDecoder {
+  constructor(VideoDecoderInit init);
+
+  readonly attribute CodecState state;
+  readonly attribute long decodeQueueSize;
+
+  undefined configure(VideoDecoderConfig config);
+  undefined decode(EncodedVideoChunk chunk);
+  Promise<undefined> flush();
+  undefined reset();
+  undefined close();
+
+  static Promise<VideoDecoderSupport> isConfigSupported(VideoDecoderConfig config);
+};
+
+dictionary VideoDecoderInit {
+  required VideoFrameOutputCallback output;
+  required WebCodecsErrorCallback error;
+};
+
+callback VideoFrameOutputCallback = undefined(VideoFrame output);
+
+[Exposed=(Window,DedicatedWorker)]
+interface AudioEncoder {
+  constructor(AudioEncoderInit init);
+
+  readonly attribute CodecState state;
+  readonly attribute long encodeQueueSize;
+
+  undefined configure(AudioEncoderConfig config);
+  undefined encode(AudioData data);
+  Promise<undefined> flush();
+  undefined reset();
+  undefined close();
+
+  static Promise<AudioEncoderSupport> isConfigSupported(AudioEncoderConfig config);
+};
+
+dictionary AudioEncoderInit {
+  required EncodedAudioChunkOutputCallback output;
+  required WebCodecsErrorCallback error;
+};
+
+callback EncodedAudioChunkOutputCallback =
+    undefined (EncodedAudioChunk output,
+               optional EncodedAudioChunkMetadata metadata = {});
+
+dictionary EncodedAudioChunkMetadata {
+  AudioDecoderConfig decoderConfig;
+};
+
+[Exposed=(Window,DedicatedWorker)]
+interface VideoEncoder {
+  constructor(VideoEncoderInit init);
+
+  readonly attribute CodecState state;
+  readonly attribute long encodeQueueSize;
+
+  undefined configure(VideoEncoderConfig config);
+  undefined encode(VideoFrame frame, optional VideoEncoderEncodeOptions options = {});
+  Promise<undefined> flush();
+  undefined reset();
+  undefined close();
+
+  static Promise<boolean> isConfigSupported(VideoEncoderConfig config);
+};
+
+dictionary VideoEncoderInit {
+  required EncodedVideoChunkOutputCallback output;
+  required WebCodecsErrorCallback error;
+};
+
+callback EncodedVideoChunkOutputCallback =
+    undefined (EncodedVideoChunk chunk,
+               optional EncodedVideoChunkMetadata metadata = {});
+
+dictionary EncodedVideoChunkMetadata {
+  VideoDecoderConfig decoderConfig;
+  unsigned long temporalLayerId;
+};
+
+dictionary AudioDecoderSupport {
+  boolean supported;
+  AudioDecoderConfig config;
+};
+
+dictionary VideoDecoderSupport {
+  boolean supported;
+  VideoDecoderConfig config;
+};
+
+dictionary AudioEncoderSupport {
+  boolean supported;
+  AudioEncoderConfig config;
+};
+
+dictionary VideoEncoderSupport {
+  boolean supported;
+  VideoEncoderConfig config;
+};
+
+dictionary AudioDecoderConfig {
+  required DOMString codec;
+  [EnforceRange] required unsigned long sampleRate;
+  [EnforceRange] required unsigned long numberOfChannels;
+  BufferSource description;
+};
+
+dictionary VideoDecoderConfig {
+  required DOMString codec;
+  BufferSource description;
+  [EnforceRange] unsigned long codedWidth;
+  [EnforceRange] unsigned long codedHeight;
+  [EnforceRange] unsigned long displayAspectWidth;
+  [EnforceRange] unsigned long displayAspectHeight;
+  HardwareAcceleration hardwareAcceleration = "allow";
+};
+
+dictionary AudioEncoderConfig {
+  required DOMString codec;
+  [EnforceRange] unsigned long sampleRate;
+  [EnforceRange] unsigned long numberOfChannels;
+  [EnforceRange] unsigned long long bitrate;
+};
+
+dictionary VideoEncoderConfig {
+  required DOMString codec;
+  [EnforceRange] unsigned long long bitrate;
+  [EnforceRange] required unsigned long width;
+  [EnforceRange] required unsigned long height;
+  [EnforceRange] unsigned long displayWidth;
+  [EnforceRange] unsigned long displayHeight;
+  HardwareAcceleration hardwareAcceleration = "allow";
+  DOMString scalabilityMode;
+};
+
+enum HardwareAcceleration {
+  "allow",
+  "deny",
+  "require",
+};
+
+dictionary VideoEncoderEncodeOptions {
+  boolean keyFrame = false;
+};
+
+enum CodecState {
+  "unconfigured",
+  "configured",
+  "closed"
+};
+
+callback WebCodecsErrorCallback = undefined(DOMException error);
+
+[Exposed=(Window,DedicatedWorker)]
+interface EncodedAudioChunk {
+  constructor(EncodedAudioChunkInit init);
+  readonly attribute EncodedAudioChunkType type;
+  readonly attribute long long timestamp;    // microseconds
+  readonly attribute unsigned long duration; // microseconds
+  readonly attribute unsigned long byteLength;
+
+  undefined copyTo([AllowShared] BufferSource destination);
+};
+
+dictionary EncodedAudioChunkInit {
+  required EncodedAudioChunkType type;
+  [EnforceRange] required long long timestamp;    // microseconds
+  required BufferSource data;
+};
+
+enum EncodedAudioChunkType {
+    "key",
+    "delta",
+};
+
+[Exposed=(Window,DedicatedWorker)]
+interface EncodedVideoChunk {
+  constructor(EncodedVideoChunkInit init);
+  readonly attribute EncodedVideoChunkType type;
+  readonly attribute long long timestamp;             // microseconds
+  readonly attribute unsigned long long? duration;    // microseconds
+  readonly attribute unsigned long byteLength;
+
+  undefined copyTo([AllowShared] BufferSource destination);
+};
+
+dictionary EncodedVideoChunkInit {
+  required EncodedVideoChunkType type;
+  [EnforceRange] required long long timestamp;        // microseconds
+  [EnforceRange] unsigned long long duration;         // microseconds
+  required BufferSource data;
+};
+
+enum EncodedVideoChunkType {
+    "key",
+    "delta",
+};
+
+[Exposed=(Window,DedicatedWorker)]
+interface AudioData {
+  constructor(AudioDataInit init);
+
+  readonly attribute AudioSampleFormat format;
+  readonly attribute float sampleRate;
+  readonly attribute unsigned long numberOfFrames;
+  readonly attribute unsigned long numberOfChannels;
+  readonly attribute unsigned long long duration;  // microseconds
+  readonly attribute long long timestamp;          // microseconds
+
+  unsigned long allocationSize(AudioDataCopyToOptions options);
+  undefined copyTo([AllowShared] BufferSource destination, AudioDataCopyToOptions options);
+  AudioData clone();
+  undefined close();
+};
+
+dictionary AudioDataInit {
+  required AudioSampleFormat format;
+  [EnforceRange] required float sampleRate;
+  [EnforceRange] required unsigned long numberOfFrames;
+  [EnforceRange] required unsigned long numberOfChannels;
+  [EnforceRange] required long long timestamp;  // microseconds
+  required BufferSource data;
+};
+
+dictionary AudioDataCopyToOptions {
+  required unsigned long planeIndex;
+  unsigned long frameOffset = 0;
+  unsigned long frameCount;
+};
+
+enum AudioSampleFormat {
+  "U8",
+  "S16",
+  "S24",
+  "S32",
+  "FLT",
+  "U8P",
+  "S16P",
+  "S24P",
+  "S32P",
+  "FLTP",
+};
+
+[Exposed=(Window,DedicatedWorker)]
+interface VideoFrame {
+  constructor(CanvasImageSource image, optional VideoFrameInit init = {});
+  constructor(sequence<(Plane or PlaneInit)> planes,
+              VideoFramePlaneInit init);
+
+  readonly attribute PixelFormat format;
+  readonly attribute FrozenArray<Plane>? planes;
+  readonly attribute unsigned long codedWidth;
+  readonly attribute unsigned long codedHeight;
+  readonly attribute unsigned long cropLeft;
+  readonly attribute unsigned long cropTop;
+  readonly attribute unsigned long cropWidth;
+  readonly attribute unsigned long cropHeight;
+  readonly attribute unsigned long displayWidth;
+  readonly attribute unsigned long displayHeight;
+  readonly attribute unsigned long long? duration;  // microseconds
+  readonly attribute long long? timestamp;          // microseconds
+
+  VideoFrame clone();
+  undefined close();
+};
+
+dictionary VideoFrameInit {
+  unsigned long long duration;  // microseconds
+  long long timestamp;          // microseconds
+};
+
+dictionary VideoFramePlaneInit {
+  required PixelFormat format;
+  [EnforceRange] required unsigned long codedWidth;
+  [EnforceRange] required unsigned long codedHeight;
+  [EnforceRange] unsigned long cropLeft;
+  [EnforceRange] unsigned long cropTop;
+  [EnforceRange] unsigned long cropWidth;
+  [EnforceRange] unsigned long cropHeight;
+  [EnforceRange] unsigned long displayWidth;
+  [EnforceRange] unsigned long displayHeight;
+  [EnforceRange] unsigned long long duration;  // microseconds
+  [EnforceRange] long long timestamp;          // microseconds
+};
+
+[Exposed=(Window,DedicatedWorker)]
+interface Plane {
+  readonly attribute unsigned long stride;
+  readonly attribute unsigned long rows;
+  readonly attribute unsigned long length;
+
+  undefined readInto(ArrayBufferView dst);
+};
+
+dictionary PlaneInit {
+  required BufferSource src;
+  [EnforceRange] required unsigned long stride;
+  [EnforceRange] required unsigned long rows;
+};
+
+enum PixelFormat {
+  "I420"
+};
+
+[Exposed=(Window,DedicatedWorker)]
+interface ImageDecoder {
+  constructor(ImageDecoderInit init);
+
+  readonly attribute boolean complete;
+  readonly attribute Promise<undefined> completed;
+  readonly attribute ImageTrackList tracks;
+
+  Promise<ImageDecodeResult> decode(optional ImageDecodeOptions options = {});
+  undefined reset();
+  undefined close();
+
+  static Promise<boolean> isTypeSupported(DOMString type);
+};
+
+typedef (BufferSource or ReadableStream) ImageBufferSource;
+dictionary ImageDecoderInit {
+  required DOMString type;
+  required ImageBufferSource data;
+  PremultiplyAlpha premultiplyAlpha = "default";
+  ColorSpaceConversion colorSpaceConversion = "default";
+  [EnforceRange] unsigned long desiredWidth;
+  [EnforceRange] unsigned long desiredHeight;
+  boolean preferAnimation;
+};
+
+dictionary ImageDecodeOptions {
+  [EnforceRange] unsigned long frameIndex = 0;
+  boolean completeFramesOnly = true;
+};
+
+dictionary ImageDecodeResult {
+  required VideoFrame image;
+  required boolean complete;
+};
+
+[Exposed=(Window,DedicatedWorker)]
+interface ImageTrackList {
+  getter ImageTrack (unsigned long index);
+
+  readonly attribute Promise<undefined> ready;
+  [EnforceRange] readonly attribute unsigned long length;
+  [EnforceRange] readonly attribute long selectedIndex;
+  readonly attribute ImageTrack? selectedTrack;
+};
+
+[Exposed=(Window,DedicatedWorker)]
+interface ImageTrack : EventTarget {
+  readonly attribute boolean animated;
+  [EnforceRange] readonly attribute unsigned long frameCount;
+  [EnforceRange] readonly attribute unrestricted float repetitionCount;
+  attribute EventHandler onchange;
+  attribute boolean selected;
+};

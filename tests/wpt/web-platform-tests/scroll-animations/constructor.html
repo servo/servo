@@ -138,10 +138,10 @@ test(t => {
 
 test(t => {
   let constructorFunc = function() {
-    new ScrollTimeline({timeRange: 100, scrollOffsets: ['auto']})
+    new ScrollTimeline({timeRange: 100, scrollOffsets: [CSS.percent(20), 'auto', CSS.percent(50)]})
   };
   assert_throws_js(TypeError, constructorFunc);
-}, 'Creating a ScrollTimeline with an scrollOffsets value of [\'auto\'] should throw');
+}, 'Creating a ScrollTimeline with an scrollOffsets value of [CSS.percent(20), \'auto\', CSS.percent(50)] should throw');
 
 const gValidScrollOffsetValues = [
   CSS.px(0),

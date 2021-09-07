@@ -1,0 +1,7 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebGL OES_texture_half_float_linear Khronos Ratified Extension Specification (https://www.khronos.org/registry/webgl/extensions/OES_texture_half_float_linear/)
+
+[Exposed=(Window,Worker), LegacyNoInterfaceObject]
+interface OES_texture_half_float_linear { };

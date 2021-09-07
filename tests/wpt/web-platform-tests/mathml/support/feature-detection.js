@@ -116,7 +116,7 @@ var MathMLFeatureDetection = {
     },
 
     "has_mspace": function() {
-        // https://mathml-refresh.github.io/mathml-core/#space-mspace
+        // https://w3c.github.io/mathml-core/#space-mspace
         if (!this.hasOwnProperty("_has_mspace")) {
             document.body.insertAdjacentHTML("beforeend", "<math>\
 <mspace></mspace>\
@@ -288,8 +288,8 @@ var MathMLFeatureDetection = {
     },
 
     "has_operator_spacing": function() {
-        // https://mathml-refresh.github.io/mathml-core/#dfn-lspace
-        // https://mathml-refresh.github.io/mathml-core/#layout-of-mrow
+        // https://w3c.github.io/mathml-core/#dfn-lspace
+        // https://w3c.github.io/mathml-core/#layout-of-mrow
         if (!this.hasOwnProperty("_has_operator_spacing")) {
             document.body.insertAdjacentHTML("beforeend", "<math>\
 <mrow>\

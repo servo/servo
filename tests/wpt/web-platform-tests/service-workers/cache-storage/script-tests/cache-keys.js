@@ -161,23 +161,29 @@ prepopulated_cache_test(simple_entries, function(cache, entries) {
       .then(function(result) {
           assert_request_array_equals(
             result,
-            [
-              entries.a.request,
-              entries.b.request,
-              entries.a_with_query.request,
-              entries.A.request,
-              entries.a_https.request,
-              entries.a_org.request,
-              entries.cat.request,
-              entries.catmandu.request,
-              entries.cat_num_lives.request,
-              entries.cat_in_the_hat.request,
-              entries.non_2xx_response.request,
-              entries.error_response.request
-            ],
+            simple_entries.map(entry => entry.request),
             'Cache.keys without parameters should match all entries.');
         });
   }, 'Cache.keys without parameters');
+
+prepopulated_cache_test(simple_entries, function(cache, entries) {
+    return cache.keys(undefined)
+      .then(function(result) {
+          assert_request_array_equals(
+            result,
+            simple_entries.map(entry => entry.request),
+            'Cache.keys with undefined request should match all entries.');
+        });
+  }, 'Cache.keys with explicitly undefined request');
+
+cache_test(cache => {
+    return cache.keys(undefined, {})
+      .then(requests => {
+          assert_equals(
+            requests.length, 0,
+            'Cache.keys should resolve to an empty array for an empty cache');
+        });
+  }, 'Cache.keys with explicitly undefined request and empty options');
 
 prepopulated_cache_test(vary_entries, function(cache, entries) {
     return cache.keys()

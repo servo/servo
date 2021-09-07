@@ -17,8 +17,6 @@ var unexpected = [
   "PopStateEvent",
   "HashChangeEvent",
   "PageTransitionEvent",
-  // https://streams.spec.whatwg.org/
-  "WritableStreamDefaultController",
   // http://w3c.github.io/IndexedDB/
   "IDBEnvironment",
   // https://www.w3.org/TR/2010/NOTE-webdatabase-20101118/

@@ -8,7 +8,7 @@ dictionary IsInputPendingOptions {
 };
 
 [Exposed=Window] interface Scheduling {
-   boolean isInputPending(optional IsInputPendingOptions isInputPendingOptions);
+   boolean isInputPending(optional IsInputPendingOptions isInputPendingOptions = {});
 };
 
 partial interface Navigator {

@@ -1,20 +1,20 @@
-HTML2MARKDOWN=html2text
-PERL=perl
-PERLFLAGS=
-FMT=fmt
-FMTFLAGS=-80
-EXPAND=expand
-EXPANDFLAGS=
-GIT=git
-GITFLAGS=
-PYTHON=python
-PYTHONFLAGS=
-CURL=curl
-CURLFLAGS=
-JAVA=java
-JAVAFLAGS=
-VNU_TEST_REPO=git@github.com:validator/tests.git
-ITS_REPO=git@github.com:w3c/its-2.0-testsuite-inputdata.git
+HTML2MARKDOWN ?= html2text
+PERL ?= perl
+PERLFLAGS ?=
+FMT ?= fmt
+FMTFLAGS ?= -80
+EXPAND ?= expand
+EXPANDFLAGS ?=
+GIT? = git
+GITFLAGS ?=
+PYTHON ?= python3
+PYTHONFLAGS ?=
+CURL ?= curl
+CURLFLAGS ?=
+JAVA ?= java
+JAVAFLAGS ?=
+VNU_TEST_REPO ?= git@github.com:validator/tests.git
+ITS_REPO ?= git@github.com:w3c/its-2.0-testsuite-inputdata.git
 .PHONY: .FORCE
 
 all: README.md messages.json
@@ -29,7 +29,7 @@ README.md: index.html
 
 messages.json: .FORCE
 	$(CURL) $(CURLFLAGS) -O -L \
-	  https://github.com/validator/validator/releases/download/jar/vnu.jar
+	  https://github.com/validator/validator/releases/download/latest/vnu.jar
 	$(JAVA) $(JAVAFLAGS) -cp vnu.jar nu.validator.client.TestRunner \
 	  --ignore=html-its --write-messages $@
 	$(PYTHON) $(PYTHONFLAGS) -mjson.tool --sort-keys $@ > $@.tmp

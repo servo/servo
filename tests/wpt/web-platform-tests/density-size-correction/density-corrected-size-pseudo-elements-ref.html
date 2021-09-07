@@ -4,15 +4,7 @@
     <link rel="author" title="Noam Rosenthal" href="noam@webkit.org">
 </head>
 <body>
-    <style>
-        body {
-            --lores: url(resources/exif-resolution-valid-lores.jpg);
-            --default: url(resources/exif-resolution-none.jpg);
-        }
-        .lores-after::after {content: var(--lores); width: 200px; height: 100px; }
-        .default-after::after {content: var(--default); }
-    </style>
-    <div class="lores-after box"></div>
-    <div class="default-after box"></div>
+    <div><img src="resources/exif-resolution-valid-lores.jpg" width="200" height="100"></div>
+    <div><img src="resources/exif-resolution-none.jpg"></div>
 </body>
 </html>

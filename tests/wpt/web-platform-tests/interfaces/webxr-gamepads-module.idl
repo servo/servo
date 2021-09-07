@@ -6,9 +6,3 @@
 partial interface XRInputSource {
   [SameObject] readonly attribute Gamepad? gamepad;
 };
-
-enum GamepadMappingType {
-  "",            // Defined in the Gamepad API
-  "standard",    // Defined in the Gamepad API
-  "xr-standard",
-};

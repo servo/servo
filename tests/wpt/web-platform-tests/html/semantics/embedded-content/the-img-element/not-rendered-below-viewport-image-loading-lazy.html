@@ -12,11 +12,11 @@
 <body>
   <!-- These images must not attempt to load when scrolled into the
        viewport -->
-  <img id="display_none" style="display:none;" src="resources/image.png?2" loading="lazy"
+  <img id="display_none" style="display:none;" src="resources/image.png?not-rendered-2" loading="lazy"
        onload="display_none_img.resolve();" onerror="display_none_img.reject();">
-  <img id="attribute_hidden" hidden src="resources/image.png?3" loading="lazy"
+  <img id="attribute_hidden" hidden src="resources/image.png?not-rendered-3" loading="lazy"
        onload="attribute_hidden_img.resolve();" onerror="attribute_hidden_img.reject();">
-  <img id="js_display_none" src="resources/image.png?4" loading="lazy"
+  <img id="js_display_none" src="resources/image.png?not-rendered-4" loading="lazy"
        onload="js_display_none_img.resolve();" onerror="js_display_none_img.reject();">
   <script>
     document.getElementById("js_display_none").style = 'display:none;';

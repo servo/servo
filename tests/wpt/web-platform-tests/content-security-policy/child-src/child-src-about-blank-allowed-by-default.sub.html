@@ -15,12 +15,12 @@
         var t = async_test("Check that frames load without throwing any violation events");
         window.addEventListener("securitypolicyviolation", t.unreached_func("Should not have fired any events"));
     </script>
-   
+
     <iframe src="about:blank"></iframe>
     <object type="text/html" data="about:blank"></object>
 
     <div id="log"></div>
-    
+
     <script>
         t.done();
     </script>

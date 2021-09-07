@@ -8,7 +8,7 @@ test(testCase => {
     storageFoundation.deleteSync('test_file');
   });
   assert_throws_dom('QuotaExceededError', () => {file.setLength(4)});
-}, 'setLength() fails without any capacity request.');
+}, 'NativeIOFileSync.setLength() fails without any capacity request.');
 
 test(testCase => {
   const file = storageFoundation.openSync('test_file');
@@ -18,11 +18,11 @@ test(testCase => {
   testCase.add_cleanup(() => {
     file.close();
     storageFoundation.deleteSync('test_file');
-    storageFoundation.releaseCapacitySync(1);
+    storageFoundation.releaseCapacitySync(granted_capacity);
   });
 
   file.setLength(granted_capacity - 1);
-}, 'setLength() succeeds when given the granted capacity - 1');
+}, 'NativeIOFileSync.setLength() succeeds when given the granted capacity - 1');
 
 test(testCase => {
   const file = storageFoundation.openSync('test_file');
@@ -32,10 +32,11 @@ test(testCase => {
   testCase.add_cleanup(() => {
     file.close();
     storageFoundation.deleteSync('test_file');
+    storageFoundation.releaseCapacitySync(granted_capacity);
   });
 
   file.setLength(granted_capacity);
-}, 'setLength() succeeds when given the granted capacity');
+}, 'NativeIOFileSync.setLength() succeeds when given the granted capacity');
 
 test(testCase => {
   const file = storageFoundation.openSync('test_file');
@@ -50,4 +51,4 @@ test(testCase => {
 
   assert_throws_dom('QuotaExceededError',
                     () => {file.setLength(granted_capacity + 1)});
-}, 'setLength() fails when given the granted capacity + 1');
+}, 'NativeIOFileSync.setLength() fails when given the granted capacity + 1');

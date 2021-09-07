@@ -151,7 +151,7 @@ promise_test(async t => {
   await animation.ready;
 
   assert_false(animation.pending, 'animation should no longer be pending');
-  assert_greater_than(animation.startTime, playTime,
+  assert_time_greater_than_equal(animation.startTime, playTime,
                       'The start time of the playing animation should be set');
 }, 'Playing a canceled animation sets the start time');
 
@@ -169,7 +169,7 @@ promise_test(async t => {
   await animation.ready;
 
   assert_false(animation.pending, 'Animation should no longer be pending');
-  assert_greater_than(animation.startTime, playTime + 100 * MS_PER_SEC,
+  assert_time_greater_than_equal(animation.startTime, playTime + 100 * MS_PER_SEC,
                       'The start time of the playing animation should be set');
 }, 'Playing a canceled animation backwards sets the start time');
 

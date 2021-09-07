@@ -5,6 +5,7 @@ const kBadNativeIoNames = [
   'has.dot',
   'has/slash',
   'x'.repeat(101),
+  '',
 ];
 
 const kDefaultCapacity = 1024 * 1024;
@@ -20,11 +21,10 @@ async function createFile(testCase, fileName, data = [64, 65, 66, 67]) {
     await storageFoundation.delete(fileName);
   });
 
-  const writeSharedArrayBuffer = new SharedArrayBuffer(data.length);
-  const writtenBytes = new Uint8Array(writeSharedArrayBuffer);
-  writtenBytes.set(data);
-  const writeCount = await file.write(writtenBytes, 0);
-  assert_equals(writeCount, data.length,
+  const buffer = Uint8Array.from(data);
+
+  const {writtenBytes} = await file.write(buffer, 0);
+  assert_equals(writtenBytes, data.length,
     'NativeIOFile.write() should resolve with the number of bytes written');
 
   return file;
@@ -40,9 +40,9 @@ function createFileSync(testCase, fileName, data = [64, 65, 66, 67]) {
     storageFoundation.deleteSync(fileName);
   });
 
-  const writtenBytes = Uint8Array.from(data);
-  const writeCount = file.write(writtenBytes, 0);
-  assert_equals(writeCount, data.length,
+  const buffer = Uint8Array.from(data);
+  const {writtenBytes} = file.write(buffer, 0);
+  assert_equals(writtenBytes, data.length,
     'NativeIOFileSync.write() should resolve with the number of bytes written');
 
   return file;
@@ -71,17 +71,15 @@ function createLargeArray(size, seed) {
 // Attempts to read the entire file into a buffer.
 async function readIoFile(file) {
   const length = await file.getLength();
-  const readBuffer = new Uint8Array(new SharedArrayBuffer(length));
-  await file.read(readBuffer, 0);
-  return readBuffer;
+  const {buffer, readBytes} = await file.read(new Uint8Array(length), 0);
+  return buffer;
 }
 
 // Attempts to read the entire file into a buffer.
 function readIoFileSync(file) {
   const length = file.getLength();
-  const readBuffer = new Uint8Array(length);
-  file.read(readBuffer, 0);
-  return readBuffer;
+  const {buffer, readBytes} = file.read(new Uint8Array(length), 0);
+  return buffer;
 }
 
 // Default capacity allocation for non-quota related tests.

@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 STATUS_EVENT = "status"
 RESUME_EVENT = "resume"
 TEST_COMPLETED_EVENT = "test_completed"

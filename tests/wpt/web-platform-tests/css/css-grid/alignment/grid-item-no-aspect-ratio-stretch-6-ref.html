@@ -19,9 +19,8 @@
 
   img {
     display: block;
-    width: 300px;
-    height: 150px;
-    background: blue;
+    width: 0px;
+    height: 0px;
   }
 
   .justify {
@@ -35,17 +34,17 @@
   <img class="align justify">
 </div>
 <div>
-  <img class="align" style="width:0px">
+  <img class="align">
 </div>
 <div>
-  <img class="justify" style="height:20px">
+  <img class="justify">
 </div>
 <div>
-  <img style="width:0px; height:20px">
+  <img>
 </div>
 
 <script>
-var url = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"></svg>'
+var url = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"><circle cx="50%" cy="50%" r="50%" fill="blue"/></svg>'
 var imgs = document.querySelectorAll('img');
 for (var i = 0; i < imgs.length; ++i) {
   var img = imgs[i];

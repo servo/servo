@@ -65,8 +65,8 @@ test_serialization(
 
 test_serialization(
     'calc(min(1%, 2%) + max(3%, 4%) + 10%)',
-    'calc(15%)',
-    '15%',
+    'calc(10% + min(1%, 2%) + max(3%, 4%))',
+    'calc(10% + min(1%, 2%) + max(3%, 4%))',
     '15px');
 
 </script>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/permissions-policy/resources/permissions-policy.js></script>
+  <script>
+    'use strict';
+    var same_origin_src = '/permissions-policy/resources/permissions-policy-payment-extension.html';
+    var cross_origin_src = 'https://{{domains[www]}}:{{ports[https][0]}}' +
+      same_origin_src;
+    var feature_name = 'permissions policy "payment"';
+    var header = 'allow="payment" attribute';
+
+    async_test(t => {
+      test_feature_availability_with_post_message_result(
+          t, cross_origin_src, "NotSupportedError#The 'payment' feature is not " +
+          "enabled in this document. Permissions Policy may be used to " +
+          "delegate Web Payment capabilities to cross-origin child frames.");
+    }, feature_name + ' is not supported in cross-origin iframe without ' + header);
+
+    async_test(t => {
+      test_feature_availability_with_post_message_result(
+          t, cross_origin_src, 'OK', 'payment');
+    }, feature_name + ' can be enabled in cross-origin iframe using ' + header);
+  </script>
+</body>

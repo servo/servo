@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>CSS Reftest Reference</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com" />
+<style>
+body {
+  margin: 0;
+  overflow: clip;
+}
+.test:nth-of-type(even) {
+  color: white;
+}
+.test {
+  position: absolute;
+  width: 0;
+  transform-origin: 0 0;
+  border-right: 25px solid transparent;
+  border-top: calc(25px * var(--scale)) solid currentcolor;
+  transform: scale3d(var(--scale), 1, 1);
+}
+</style>
+<body>
+<script>
+"use strict";
+for (let i = 1; i < 14; ++i) {
+  const test = document.createElement("div");
+  test.className = "test";
+  test.style.setProperty("--scale", i * 4);
+  test.style.setProperty("z-index", -i);
+  document.body.appendChild(test);
+}
+</script>
+</body>

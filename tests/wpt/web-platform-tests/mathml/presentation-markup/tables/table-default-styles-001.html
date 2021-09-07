@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tabular math elements default styles</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://w3c.github.io/mathml-core/#tabular-math">
+<link rel="help" href="https://w3c.github.io/mathml-core/#user-agent-stylesheet">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<meta name="assert" content="Check default styles for mtable, mtr and mtd.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  math {
+      font: 25px/1 Ahem;
+  }
+</style>
+<div id="log"></div>
+<div>
+  <math>
+    <mrow id="reference"><mspace width="20px" height="10px" style="background: lightblue;"></mrow>
+    <mtable id="mtable"><mtr id="mtr"><mtd id="mtd"><mspace width="20px" height="10px" style="background: lightblue;"></mtd></mtr></mtable>
+  </math>
+</div>
+<script>
+  test(() => assert_equals(window.getComputedStyle(mtable).mathStyle, "compact"),
+       "Default math-style value on mtable");
+  test(() => assert_equals(window.getComputedStyle(mtable).display, "inline-table"),
+       "Default display value on mtable");
+  test(() => assert_equals(window.getComputedStyle(mtr).display, "table-row"),
+       "Default display value on mtr");
+  test(() => assert_equals(window.getComputedStyle(mtd).display, "table-cell"),
+       "Default display value on mtd");
+  test(() => assert_equals(window.getComputedStyle(mtd).textAlign, "center"),
+       "Default text-align value on mtd");
+  test(() => assert_equals(window.getComputedStyle(mtd).paddingLeft, "10px"),
+       "Default padding-left value on mtd");
+  test(() => assert_equals(window.getComputedStyle(mtd).paddingRight, "10px"),
+       "Default padding-right value on mtd");
+  test(() => assert_equals(window.getComputedStyle(mtd).paddingTop, "10px"),
+       "Default padding-top value on mtd");
+  test(() => assert_equals(window.getComputedStyle(mtd).paddingBottom, "10px"),
+       "Default padding-bottom value on mtd");
+
+  test(function () {
+      var mtableBox = document.getElementById("mtable").getBoundingClientRect();
+      var referenceBox = document.getElementById("reference").getBoundingClientRect();
+      assert_equals(mtableBox.width, referenceBox.width + 20);
+      assert_equals(mtableBox.height, referenceBox.height + 20);
+  }, "Bounding box is the same as mrow + mtd default padding");
+</script>

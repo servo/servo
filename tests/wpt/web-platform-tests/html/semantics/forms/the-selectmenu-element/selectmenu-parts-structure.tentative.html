@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<title>HTMLSelectMenuElement Test: part structure</title>
+<link rel="author" title="Ionel Popescu" href="mailto:iopopesc@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<selectmenu id="selectMenu0">
+  <popup slot="listbox" part="listbox">
+    <option>one</option>
+    <option id="selectMenu0-child2">two</option>
+    <div part="option" id="selectMenu0-child3">three</div>
+  </popup>
+  <option id="selectMenu0-child4">four</option>
+  <div part="option" id="selectMenu0-child5">five</div>
+</selectmenu>
+
+<selectmenu id="selectMenu1">
+  <popup slot="listbox" part="listbox" id="selectMenu1-popup">
+    <div part="button" id="selectMenu1-button">
+      Custom button
+    </div>
+    <option>one</option>
+    <option id="selectMenu1-child2">two</option>
+  </popup>
+</selectmenu>
+
+<selectmenu id="selectMenu2">
+  <div slot="button" part="button" id="selectMenu2-button">
+    Custom button
+    <popup part="listbox" id="selectMenu2-popup">
+      <option>one</option>
+      <option id="selectMenu2-child2">two</option>
+    </popup>
+  </div>
+  <option>three</option>
+  <div>
+    This is some text.
+    <option id="selectMenu2-child4">four</option>
+    More text.
+  </div>
+</selectmenu>
+
+<selectmenu id="selectMenu3">
+  <div slot="button" id="selectMenu3-button-slot">
+    <div part="button" id="selectMenu3-button0">button0</div>
+  </div>
+  <option>one</option>
+</selectmenu>
+
+<selectmenu id="selectMenu4">
+  <div slot="button" part="button" id="selectMenu4-button0">button0</div>
+  <div slot="listbox" id="selectMenu4-listbox-slot">
+    <popup part="listbox" id="selectMenu4-listbox0">
+      <option>one</option>
+      <option id="selectMenu4-option2">two</option>
+    </popup>
+  </div>
+</selectmenu>
+
+<selectmenu id="selectMenu5">
+  <div slot="button" id="selectMenu5-button-slot">
+    <div part="button" id="selectMenu5-button0">button0</div>
+    <div part="selected-value" id="selectMenu5-selectedValue0"></div>
+  </div>
+  <option>one</option>
+  <option id="selectMenu5-option0">two</option>
+</selectmenu>
+
+<!-- No associated JS test -- just don't crash when parsing! -->
+<selectmenu id="selectMenu6">
+  <div slot="button"></div>
+  <popup slot="listbox" part="listbox"></popup>
+</selectmenu>
+
+<!-- No associated JS test -- just don't crash when parsing! -->
+<selectmenu id="selectMenu7">
+  <div slot="listbox"></div>
+  <div slot="button" part="button"></div>
+</selectmenu>
+
+<!-- No associated JS test -- just don't crash when parsing! -->
+<selectmenu id="selectMenu8">
+  <div slot="listbox"></div>
+  <option>one</option>
+</selectmenu>
+
+<script>
+  function clickOn(element) {
+    const actions = new test_driver.Actions();
+    return actions.pointerMove(0, 0, {origin: element})
+      .pointerDown({button: actions.ButtonType.LEFT})
+      .pointerUp({button: actions.ButtonType.LEFT})
+      .send();
+  }
+
+  promise_test(async () => {
+    const selectMenu0 = document.getElementById("selectMenu0");
+    const selectMenu0Child2 = document.getElementById("selectMenu0-child2");
+    const selectMenu0Child3 = document.getElementById("selectMenu0-child3");
+    const selectMenu0Child4 = document.getElementById("selectMenu0-child4");
+    const selectMenu0Child5 = document.getElementById("selectMenu0-child5");
+    assert_equals(selectMenu0.value, "one");
+    await clickOn(selectMenu0);
+    await clickOn(selectMenu0Child2);
+    assert_equals(selectMenu0.value, "two");
+
+    await clickOn(selectMenu0);
+    await clickOn(selectMenu0Child3);
+    assert_equals(selectMenu0.value, "three");
+
+    await clickOn(selectMenu0);
+    selectMenu0Child4.click();
+    assert_equals(selectMenu0.value, "three", "Clicking an option outside of the popup should not change the value");
+
+    await clickOn(selectMenu0);
+    selectMenu0Child5.click();
+    assert_equals(selectMenu0.value, "three", "Clicking an option part outside of the popup should not change the value");
+  }, "To receive option part controller code, an element labeled as an option must be a descendant of the listbox part in a flat tree traversal");
+
+  promise_test(async () => {
+    const selectMenu1 = document.getElementById("selectMenu1");
+    const selectMenu1Popup = document.getElementById("selectMenu1-popup");
+    const selectMenu1Button = document.getElementById("selectMenu1-button");
+    const selectMenu1Child2 = document.getElementById("selectMenu1-child2");
+    assert_false(selectMenu1Popup.open);
+    selectMenu1Button.click();
+    assert_false(selectMenu1Popup.open, "Clicking a button part that is a descendant of the listbox part should have no effect");
+
+    assert_equals(selectMenu1.value, "one");
+    await clickOn(selectMenu1);
+    assert_true(selectMenu1Popup.open);
+    await clickOn(selectMenu1Child2);
+    assert_equals(selectMenu1.value, "two", "Clicking an <option> should change the value");
+  }, "To receive button part controller code, an element labeled as a button must not be a descendant of the listbox part in a flat tree traversal");
+
+  promise_test(async () => {
+    const selectMenu2 = document.getElementById("selectMenu2");
+    const selectMenu2Popup = document.getElementById("selectMenu2-popup");
+    const selectMenu2Button = document.getElementById("selectMenu2-button");
+    const selectMenu2Child2 = document.getElementById("selectMenu2-child2");
+    const selectMenu2Child4 = document.getElementById("selectMenu2-child4");
+
+    assert_false(selectMenu2Popup.open);
+    await clickOn(selectMenu2Button);
+    assert_false(selectMenu2Popup.open, "Clicking a button part should not show an invalid listbox part");
+
+    assert_equals(selectMenu2.value, "three");
+    await clickOn(selectMenu2Button);
+    await clickOn(selectMenu2Child4);
+    assert_equals(selectMenu2.value, "four", "Clicking an <option> that is a descendant of a valid listbox part should update the value");
+  }, "To receive listbox part controller code, an element labeled as a listbox must not be a descendant of the button part in a flat tree traversal");
+
+  promise_test(async () => {
+    const selectMenu3 = document.getElementById("selectMenu3");
+    const selectMenu3ButtonSlot = document.getElementById("selectMenu3-button-slot");
+    const selectMenu3Button0 = document.getElementById("selectMenu3-button0");
+
+    assert_false(selectMenu3.open);
+
+    let button1 = document.createElement("div");
+    button1.innerText = "button1";
+    button1.setAttribute("part", "button");
+    selectMenu3ButtonSlot.appendChild(button1);
+
+    await clickOn(button1);
+    assert_false(selectMenu3.open, "A button part should only get controller code if it's first in document order, even if added dynamically");
+
+    await clickOn(selectMenu3Button0);
+    assert_true(selectMenu3.open, "A button part should get controller code if it's first in document order");
+  }, "Button controller code should be applied in flat tree traversal order regardless of dynamic insertion order");
+
+  promise_test(async () => {
+    const selectMenu4 = document.getElementById("selectMenu4");
+    const selectMenu4Button0 = document.getElementById("selectMenu4-button0");
+    const selectMenu4ListboxSlot = document.getElementById("selectMenu4-listbox-slot");
+    const selectMenu4Option2 = document.getElementById("selectMenu4-option2");
+
+    assert_false(selectMenu4.open);
+
+    let listbox2 = document.createElement("div");
+    listbox2.innerHTML = `
+      <option>three</option>
+      <option id="selectMenu4-option4">four</option>
+    `;
+    listbox2.setAttribute("part", "listbox");
+    selectMenu4ListboxSlot.appendChild(listbox2);
+
+    await clickOn(selectMenu4Button0);
+    assert_true(selectMenu4.open);
+
+    const selectMenu4Option4 = document.getElementById("selectMenu4-option4");
+    await clickOn(selectMenu4Option4);
+    assert_equals(selectMenu3.value, "one", "An option in a listbox should not get controller code if its listbox isn't first in document order, even if added dynamically");
+
+    await clickOn(selectMenu4Button0);
+    assert_true(selectMenu4.open);
+
+    await clickOn(selectMenu4Option2);
+    assert_equals(selectMenu4.value, "two", "An option in a listbox should get controller code if its listbox is first in document order, even if another listbox was added dynamically");
+}, "Listbox controller code should be applied in flat tree traversal order regardless of dynamic insertion order");
+
+promise_test(async () => {
+    const selectMenu5 = document.getElementById("selectMenu5");
+    const selectMenu5ButtonSlot = document.getElementById("selectMenu5-button-slot");
+    const selectMenu5Button0 = document.getElementById("selectMenu5-button0");
+    const selectMenu5SelectedValue0 = document.getElementById("selectMenu5-selectedValue0");
+
+    assert_false(selectMenu3.open);
+    assert_equals(selectMenu5SelectedValue0.innerText, "one");
+
+    let selectedValue1 = document.createElement("div");
+    selectMenu5ButtonSlot.appendChild(selectedValue1);
+
+    await clickOn(selectMenu5Button0);
+    assert_true(selectMenu5.open);
+
+    await clickOn(document.getElementById("selectMenu5-option0"));
+    assert_false(selectMenu5.open);
+    assert_equals(selectMenu5SelectedValue0.innerText, "two", "first selected-value part in flat tree order should get controller code");
+    assert_equals(selectedValue1.innerText, "", "Dynamically inserted selected-value part shouldn't get controller code if it's not first in flat tree order");
+  }, "selected-value controller code should be applied in flat tree traversal order regardless of dynamic insertion order");
+</script>

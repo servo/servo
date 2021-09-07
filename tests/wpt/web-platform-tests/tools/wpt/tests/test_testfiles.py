@@ -1,5 +1,5 @@
 import os.path
-from mock import patch
+from unittest.mock import patch
 
 from tools.manifest.manifest import Manifest
 from tools.wpt import testfiles
@@ -7,7 +7,7 @@ from tools.wpt import testfiles
 
 def test_getrevish_kwarg():
     assert testfiles.get_revish(revish=u"abcdef") == u"abcdef"
-    assert testfiles.get_revish(revish=b"abcdef") == u"abcdef"
+    assert testfiles.get_revish(revish=u"123456\n") == u"123456"
 
 
 def test_getrevish_implicit():

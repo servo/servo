@@ -1,12 +1,28 @@
-from .base import inherit
-from . import edge
+from .base import NullBrowser  # noqa: F401
+from .edge import (EdgeBrowser,  # noqa: F401
+                   EdgeDriverWdspecExecutor,  # noqa: F401
+                   check_args,  # noqa: F401
+                   browser_kwargs,  # noqa: F401
+                   executor_kwargs,  # noqa: F401
+                   env_extras,  # noqa: F401
+                   env_options,  # noqa: F401
+                   run_info_extras,  # noqa: F401
+                   get_timeout_multiplier)  # noqa: F401
 
 from ..executors.executorwebdriver import (WebDriverTestharnessExecutor,  # noqa: F401
                                            WebDriverRefTestExecutor)  # noqa: F401
 
 
-inherit(edge, globals(), "edge_webdriver")
-
-# __wptrunner__ magically appears from inherit, F821 is undefined name
-__wptrunner__["executor"]["testharness"] = "WebDriverTestharnessExecutor"  # noqa: F821
-__wptrunner__["executor"]["reftest"] = "WebDriverRefTestExecutor"  # noqa: F821
+__wptrunner__ = {"product": "edge_webdriver",
+                 "check_args": "check_args",
+                 "browser": {None: "EdgeBrowser",
+                             "wdspec": "NullBrowser"},
+                 "executor": {"testharness": "WebDriverTestharnessExecutor",
+                              "reftest": "WebDriverRefTestExecutor",
+                              "wdspec": "EdgeDriverWdspecExecutor"},
+                 "browser_kwargs": "browser_kwargs",
+                 "executor_kwargs": "executor_kwargs",
+                 "env_extras": "env_extras",
+                 "env_options": "env_options",
+                 "run_info_extras": "run_info_extras",
+                 "timeout_multiplier": "get_timeout_multiplier"}

@@ -60,9 +60,7 @@ test(function() {
 }, "constructor");
 test(function() {
   var gsp = Object.getPrototypeOf(Object.getPrototypeOf(window));
-  var names = Object.getOwnPropertyNames(gsp);
-  assert_equals(names.filter((name) => name == "baz").length, 1);
-
+  assert_equals(gsp.baz, document.getElementsByTagName("iframe")[1].contentWindow);
 }, "duplicate property names")
 var t = async_test("Dynamic name")
 var t2 = async_test("Ghost name")

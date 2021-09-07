@@ -1,0 +1,167 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Scrollbars: scrollbar-width with vertical text and horizontal scrollbar</title>
+<link rel="author" title="Felipe Erias Morandeira" href="mailto:felipeerias@gmail.com" />
+<link rel="help" href="https://www.w3.org/TR/css-scrollbars-1/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<style>
+  /* Use scrollbar-gutter to reserve space for the scrollbar. */
+  .container {
+    scrollbar-gutter: stable;
+    overflow: auto;
+    height: 200px;
+    width: 200px;
+    margin: 1px;
+    padding: 0px;
+    border: none;
+    background: deepskyblue;
+  }
+
+  .content {
+    height: 100%;
+    width: 300px;
+    background: lightsalmon;
+  }
+
+  /* writing directions */
+  .vertical-lr {
+    writing-mode: vertical-lr;
+  }
+
+  .vertical-rl {
+    writing-mode: vertical-rl;
+  }
+
+  .container.auto {
+    scrollbar-width: auto;
+  }
+
+  .container.thin {
+    scrollbar-width: thin;
+  }
+
+  .container.none {
+    scrollbar-width: none;
+  }
+</style>
+<script type="text/javascript">
+
+  function performTest() {
+    setup({ explicit_done: true });
+
+    // vertical-lr
+
+    test(function () {
+      let container = document.getElementById('container_vlr_auto');
+      let content = document.getElementById('content_vlr_auto');
+      assert_less_than(container.scrollHeight, container.offsetHeight, "vertical-lr auto scrollHeight");
+      assert_less_than(container.clientHeight, container.offsetHeight, "vertical-lr auto clientHeight");
+      assert_equals(container.clientHeight, content.clientHeight, "vertical-lr auto clientHeight");
+      assert_not_equals(container.offsetHeight, content.offsetHeight, "vertical-lr auto offsetHeight");
+    }, "vertical-lr, scrollbar-width auto");
+
+    test(function () {
+      let container = document.getElementById('container_vlr_thin');
+      let content = document.getElementById('content_vlr_thin');
+      assert_less_than(container.scrollHeight, container.offsetHeight, "vertical-lr thin scrollHeight");
+      assert_less_than(container.clientHeight, container.offsetHeight, "vertical-lr thin clientHeight");
+      assert_equals(container.clientHeight, content.clientHeight, "vertical-lr thin clientHeight");
+      assert_not_equals(container.offsetHeight, content.offsetHeight, "vertical-lr thin offsetHeight");
+    }, "vertical-lr, scrollbar-width thin");
+
+    test(function () {
+      let auto_scrollbar_height =
+        document.getElementById('container_vlr_auto').offsetHeight -
+        document.getElementById('container_vlr_auto').clientHeight;
+      let thin_scrollbar_height =
+        document.getElementById('container_vlr_thin').offsetHeight -
+        document.getElementById('container_vlr_thin').clientHeight;
+      assert_less_than_equal(thin_scrollbar_height, auto_scrollbar_height, "vertical-lr, thin <= auto");
+    }, 'vertical-lr, scrollbar-width "thin" is same or thinner than "auto"');
+
+    test(function () {
+      let container = document.getElementById('container_vlr_none');
+      let content = document.getElementById('content_vlr_none');
+      assert_equals(container.scrollHeight, 200, "vertical-lr none scrollHeight");
+      assert_equals(container.clientHeight, 200, "vertical-lr none clientHeight");
+      assert_equals(container.clientHeight, content.clientHeight, "vertical-lr none clientHeight");
+      assert_equals(container.offsetHeight, content.offsetHeight, "vertical-lr none offsetHeight");
+    }, "vertical-lr, scrollbar-width none");
+
+    // vertical-rl
+
+    test(function () {
+      let container = document.getElementById('container_vrl_auto');
+      let content = document.getElementById('content_vrl_auto');
+      assert_less_than(container.scrollHeight, container.offsetHeight, "vertical-rl auto scrollHeight");
+      assert_less_than(container.clientHeight, container.offsetHeight, "vertical-rl auto clientHeight");
+      assert_equals(container.clientHeight, content.clientHeight, "vertical-rl auto clientHeight");
+      assert_not_equals(container.offsetHeight, content.offsetHeight, "vertical-rl auto offsetHeight");
+    }, "vertical-rl, scrollbar-width auto");
+
+    test(function () {
+      let container = document.getElementById('container_vrl_thin');
+      let content = document.getElementById('content_vrl_thin');
+      assert_less_than(container.scrollHeight, container.offsetHeight, "vertical-rl thin scrollHeight");
+      assert_less_than(container.clientHeight, container.offsetHeight, "vertical-rl thin clientHeight");
+      assert_equals(container.clientHeight, content.clientHeight, "vertical-rl thin clientHeight");
+      assert_not_equals(container.offsetHeight, content.offsetHeight, "vertical-rl thin offsetHeight");
+    }, "vertical-rl, scrollbar-width thin");
+
+    test(function () {
+      let auto_scrollbar_height =
+        document.getElementById('container_vrl_auto').offsetHeight -
+        document.getElementById('container_vrl_auto').clientHeight;
+      let thin_scrollbar_height =
+        document.getElementById('container_vrl_thin').offsetHeight -
+        document.getElementById('container_vrl_thin').clientHeight;
+      assert_less_than_equal(thin_scrollbar_height, auto_scrollbar_height, "vertical-rl, thin <= auto");
+    }, 'vertical-rl, scrollbar-width "thin" is same or thinner than "auto"');
+
+    test(function () {
+      let container = document.getElementById('container_vrl_none');
+      let content = document.getElementById('content_vrl_none');
+      assert_equals(container.scrollHeight, 200, "vertical-rl none scrollHeight");
+      assert_equals(container.clientHeight, 200, "vertical-rl none clientHeight");
+      assert_equals(container.clientHeight, content.clientHeight, "vertical-rl none clientHeight");
+      assert_equals(container.offsetHeight, content.offsetHeight, "vertical-rl none offsetHeight");
+    }, "vertical-rl, scrollbar-width none");
+
+    done();
+  }
+
+</script>
+
+<body onload="performTest()">
+
+  Test scrollbar-width: horizontal scrollbar, vertical-lr direction
+
+  <div class="container vertical-lr auto" id="container_vlr_auto">
+    <div class="content" id="content_vlr_auto">auto</div>
+  </div>
+
+  <div class="container vertical-lr thin" id="container_vlr_thin">
+    <div class="content" id="content_vlr_thin">thin</div>
+  </div>
+
+  <div class="container vertical-lr none" id="container_vlr_none">
+    <div class="content" id="content_vlr_none">none</div>
+  </div>
+
+  Test scrollbar-width: horizontal scrollbar, vertical-rl direction
+
+  <div class="container vertical-rl auto" id="container_vrl_auto">
+    <div class="content" id="content_vrl_auto">auto</div>
+  </div>
+
+  <div class="container vertical-rl thin" id="container_vrl_thin">
+    <div class="content" id="content_vrl_thin">thin</div>
+  </div>
+
+  <div class="container vertical-rl none" id="container_vrl_none">
+    <div class="content" id="content_vrl_none">none</div>
+  </div>
+
+</body>

@@ -1,0 +1,93 @@
+<!doctype html>
+<html>
+  <head>
+    <title>progressbar no min or max</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "result",
+                  "atk_value_get_minimum_value()",
+                  "is",
+                  "0"
+               ],
+               [
+                  "result",
+                  "atk_value_get_maximum_value()",
+                  "is",
+                  "100"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXMinValue",
+                  "is",
+                  "0"
+               ],
+               [
+                  "property",
+                  "AXMaxValue",
+                  "is",
+                  "100"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "minimumValue",
+                  "is",
+                  "0"
+               ],
+               [
+                  "property",
+                  "maximumValue",
+                  "is",
+                  "100"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "result",
+                  "RangeValue.Minimum",
+                  "is",
+                  "0"
+               ],
+               [
+                  "result",
+                  "RangeValue.Maximum",
+                  "is",
+                  "100"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "progressbar no min or max"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for progressbar without a min or max.</p>
+  <div role="progressbar" aria-valuenow="20" id="test">content</div>
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>

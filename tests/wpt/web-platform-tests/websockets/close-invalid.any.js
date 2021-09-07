@@ -1,4 +1,7 @@
-// META: script=websocket.sub.js
+// META: script=constants.sub.js
+// META: variant=
+// META: variant=?wss
+// META: variant=?wpt_flags=h2
 
 [
   [0, "0"],
@@ -8,13 +11,11 @@
   [null, "null"],
   [0x10000 + 1000, "2**16+1000"],
 ].forEach(function(t) {
-  [true, false].forEach(function(secure) {
-    test(function() {
-      var ws = CreateWebSocket(secure, false, false);
-      assert_throws_dom("InvalidAccessError", function() {
-        ws.close(t[0]);
-      });
-      wsocket.onerror = this.unreached_func();
-    }, t[1] + " on a " + (secure ? "secure" : "insecure") + " websocket");
-  });
+  test(function() {
+    var ws = CreateWebSocket(false, false);
+    assert_throws_dom("InvalidAccessError", function() {
+      ws.close(t[0]);
+    });
+    ws.onerror = this.unreached_func();
+  }, t[1] + " on a websocket");
 });

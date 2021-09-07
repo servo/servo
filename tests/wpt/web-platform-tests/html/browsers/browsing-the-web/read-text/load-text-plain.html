@@ -13,7 +13,7 @@ var iframe = document.body.appendChild(document.createElement("iframe"));
 iframe.onload = function(e) {
   var doc = iframe.contentDocument;
   t.step(function() {
-    assert_equals(doc.compatMode, "BackCompat");
+    assert_equals(doc.compatMode, "CSS1Compat");
     assert_equals(doc.contentType, "text/plain");
     assert_equals(doc.doctype, null);
     t.done();

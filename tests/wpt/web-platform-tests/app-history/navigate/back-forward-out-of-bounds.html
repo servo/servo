@@ -1,0 +1,13 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  assert_equals(appHistory.entries().length, 1);
+  assert_equals(appHistory.entries()[0], appHistory.current);
+  assert_false(appHistory.canGoBack);
+  assert_false(appHistory.canGoForward);
+  await promise_rejects_dom(t, 'InvalidStateError', appHistory.back());
+  await promise_rejects_dom(t, 'InvalidStateError', appHistory.forward());
+}, "back() and forward() out of bounds");
+</script>

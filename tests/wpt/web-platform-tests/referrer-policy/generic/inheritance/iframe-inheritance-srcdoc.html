@@ -25,8 +25,20 @@
         iframe.srcdoc = createScriptString(get_host_info().REMOTE_ORIGIN,
                                            location.origin + "/custom");
         document.body.appendChild(iframe);
-        assert_equals(await referrer, self.origin + "/");
+        assert_equals(await referrer, self.origin + "/",
+                      "Referrer policy should be inherited from parent.");
+
+        let meta = document.createElement('meta');
+        meta.name = "referrer";
+        meta.content = "unsafe-url";
+        document.head.appendChild(meta);
+        iframe.contentWindow.postMessage('checkReferrer');
+        assert_equals(
+          await reportedReferrer(), self.origin + "/",
+          "Changing parent's referrer policy has no effect on the child.");
+
       }, "Srcdoc iframe inherits referrer policy from parent on creation.");
+
     </script>
     <div id="log"></div>
   </body>

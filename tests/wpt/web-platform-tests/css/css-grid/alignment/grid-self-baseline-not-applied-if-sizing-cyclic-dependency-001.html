@@ -35,6 +35,7 @@
 .max-flex-columns { grid-template-columns: minmax(0px, 1fr); }
 .flex-rows        { grid-template-rows: 1fr; }
 .max-flex-rows    { grid-template-rows: minmax(0px, 1fr); }
+.auto-rows        { grid-template-rows: auto 100px; }
 
 .height25  { height: 25px; }
 .height50  { height: 50px; }
@@ -53,7 +54,6 @@
   setup({ explicit_done: true });
 </script>
 <body onload="document.fonts.ready.then(() => { checkLayout('.inline-grid'); })">
-
 <div style="height: 125px">
     <pre>auto-sized rows - items with relative height</pre>
     <div class="inline-grid alignItemsBaseline columns">
@@ -154,12 +154,12 @@
 </div>
 
 <div style="height: 250px">
-    <pre>flex max-function columns - items with relative width<br>baseline is not applied initially, but orthogonal items force repeating the track sizing and height is not indefinite in that phase.</pre>
+    <pre>flex max-function columns - items with relative width<br>baseline is not applied initially, but orthogonal items in an auto-sized row force repeating the track sizing and height is not indefinite in that phase.</pre>
     <!-- https://github.com/w3c/csswg-drafts/issues/3046 -->
-    <div class="inline-grid justifyItemsBaseline rows max-flex-columns">
-        <div class="firstRowFirstColumn verticalRL width50"          data-offset-x="0"   data-offset-y="0"   data-expected-width="50"  data-expected-height="100"></div>
-        <div class="secondRowFirstColumn verticalRL width200Percent" data-offset-x="-50" data-offset-y="100" data-expected-width="100" data-expected-height="100"></div>
-        <div class="firstRowSpanning2AutoColumn verticalRL width25"  data-offset-x="50"  data-offset-y="0"   data-expected-width="25"  data-expected-height="200"></div>
+    <div class="inline-grid justifyItemsBaseline auto-rows max-flex-columns">
+        <div class="firstRowFirstColumn verticalLR width50 height50"          data-offset-x="0"   data-offset-y="0"   data-expected-width="50"  data-expected-height="50"></div>
+        <div class="secondRowFirstColumn verticalLR width200Percent height50" data-offset-x="0"   data-offset-y="50"  data-expected-width="100" data-expected-height="50"></div>
+        <div class="firstRowSpanning2AutoColumn verticalLR width25"           data-offset-x="50"  data-offset-y="0"   data-expected-width="25"  data-expected-height="150"></div>
     </div>
 </div>
 

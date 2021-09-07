@@ -105,19 +105,19 @@ components:
 
   browser-servo: {}
 
-  tox-python3:
+  tox-python3_6:
     env:
       TOXENV: py36
       PY_COLORS: 0
 
-  tox-python38:
+  tox-python3_9:
     env:
-      TOXENV: py38
+      TOXENV: py39
       PY_COLORS: 0
     install:
-      - python3.8
-      - python3.8-distutils
-      - python3.8-dev
+      - python3.9
+      - python3.9-distutils
+      - python3.9-dev
 
   tests-affected:
     options:
@@ -403,7 +403,7 @@ tasks:
       use:
         - wpt-base
         - trigger-pr
-        - tox-python3
+        - tox-python3_6
       command: ./tools/ci/ci_tools_unittest.sh
       install:
         - python3.6
@@ -414,13 +414,13 @@ tasks:
         run-job:
           - tools_unittest
 
-  - tools/ unittests (Python 3.8):
+  - tools/ unittests (Python 3.9):
       description: >-
-        Unit tests for tools running under Python 3.8, excluding wptrunner
+        Unit tests for tools running under Python 3.9, excluding wptrunner
       use:
         - wpt-base
         - trigger-pr
-        - tox-python38
+        - tox-python3_9
       command: ./tools/ci/ci_tools_unittest.sh
       env:
         HYPOTHESIS_PROFILE: ci
@@ -434,7 +434,7 @@ tasks:
       use:
         - wpt-base
         - trigger-pr
-        - tox-python3
+        - tox-python3_6
       command: ./tools/ci/ci_tools_integration_test.sh
       install:
         - libnss3-tools
@@ -452,13 +452,13 @@ tasks:
         run-job:
           - wpt_integration
 
-  - tools/ integration tests (Python 3.8):
+  - tools/ integration tests (Python 3.9):
       description: >-
-        Integration tests for tools running under Python 3.8
+        Integration tests for tools running under Python 3.9
       use:
         - wpt-base
         - trigger-pr
-        - tox-python38
+        - tox-python3_9
       command: ./tools/ci/ci_tools_integration_test.sh
       install:
         - libnss3-tools
@@ -480,7 +480,7 @@ tasks:
       use:
         - wpt-base
         - trigger-pr
-        - tox-python3
+        - tox-python3_6
       command: ./tools/ci/ci_resources_unittest.sh
       install:
         - libnss3-tools
@@ -495,13 +495,13 @@ tasks:
         run-job:
           - resources_unittest
 
-  - resources/ tests (Python 3.8):
+  - resources/ tests (Python 3.9):
       description: >-
-        Tests for testharness.js and other files in resources/ under Python 3.8
+        Tests for testharness.js and other files in resources/ under Python 3.9
       use:
         - wpt-base
         - trigger-pr
-        - tox-python38
+        - tox-python3_9
       command: ./tools/ci/ci_resources_unittest.sh
       install:
         - libnss3-tools
@@ -514,7 +514,7 @@ tasks:
         run-job:
           - resources_unittest
 
-  - infrastructure/ tests (Python 3):
+  - infrastructure/ tests:
       description: >-
         Smoketests for wptrunner
       vars:

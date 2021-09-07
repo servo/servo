@@ -74,9 +74,9 @@ Some test types support other formats:
   features])
 - [WebDriver specification tests](wdspec) are expressed as Python files
 
-The best way to determine how to format a new test is to look at how similar
-tests have been formatted. You can also ask for advice in [the project's IRC
-room][IRC].
+The best way to determine how to format a new test is to look at how
+similar tests have been formatted. You can also ask for advice in [the
+project's matrix channel][matrix].
 
 
 ### Character Encoding
@@ -216,7 +216,7 @@ for CSS have some additional requirements for:
 [server features]: server-features
 [assumptions]: assumptions
 [ahem]: ahem
-[IRC]: irc://irc.w3.org:6667/testing
+[matrix]: https://app.element.io/#/room/#wpt:matrix.org
 [lint-tool]: lint-tool
 [css-metadata]: css-metadata
 [css-user-styles]: css-user-styles

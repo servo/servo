@@ -1,0 +1,14 @@
+<!DOCTYPE HTML>
+<title>CSS Test (Transforms): Transform and perspective with w negative</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1173218">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#processing-of-perspective-transformed-boxes">
+<meta name="assert" content="This should not crash.">
+
+<style>
+html, body { perspective: 9px }
+body, div { transform: translateZ(14px) }
+div { filter: hue-rotate(6deg) }
+</style>
+<div>x</div>

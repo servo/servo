@@ -3,12 +3,13 @@
 <head>
 <meta charset="utf-8">
 <title>Fraction/Stack parameters (fallback)</title>
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#fractions-mfrac">
+<link rel="help" href="https://w3c.github.io/mathml-core/#fractions-mfrac">
 <meta name="assert" content="Element mfrac correctly uses the fraction fallback parameters.">
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/mathml/support/feature-detection.js"></script>
+<script src="/mathml/support/fonts.js"></script>
 <style>
   /* Testing fallback values is tricky as we don't have a lot of flexibility to
      make sure one parameter is not shadowed by another one. We also use the
@@ -43,7 +44,7 @@
   }
 
   setup({ explicit_done: true });
-  window.addEventListener("load", () => { document.fonts.ready.then(runTests); });
+  window.addEventListener("load", () => { loadAllFonts().then(runTests); });
 
   function runTests() {
       test(function() {

@@ -1,0 +1,46 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+async_test(t => {
+  window.onload = t.step_func(() => {
+    const navState = { key: "value" };
+    i.contentWindow.appHistory.navigate("#1", { state: navState }).then(t.step_func(() => {
+      // Make sure that state setting worked
+      assert_equals(i.contentWindow.appHistory.current.getState().key, "value");
+      assert_not_equals(i.contentWindow.appHistory.current.getState(), navState);
+
+      let start_url = i.contentWindow.location.href;
+      let start_key = i.contentWindow.appHistory.current.key;
+      let start_id = i.contentWindow.appHistory.current.id;
+      let start_state = i.contentWindow.appHistory.current.getState();
+      let onnavigate_called = false;
+      let promise_settled = false;
+      i.contentWindow.appHistory.onnavigate = t.step_func(e => {
+        onnavigate_called = true;
+        assert_equals(e.info, undefined);
+        assert_equals(e.navigationType, "reload");
+        assert_equals(e.destination.getState().key, "value");
+        assert_not_equals(e.destination.getState(), start_state);
+      });
+      i.contentWindow.appHistory.reload().finally(() => {
+        promise_settled = true;
+      });
+      i.onload = t.step_func(() => {
+        assert_true(onnavigate_called);
+        assert_equals(i.contentWindow.location.href, start_url);
+        assert_equals(i.contentWindow.appHistory.current.key, start_key);
+        assert_not_equals(i.contentWindow.appHistory.current.id, start_id);
+        assert_equals(i.contentWindow.appHistory.current.getState().key, "value");
+        assert_not_equals(i.contentWindow.appHistory.current.getState(), start_state);
+        assert_equals(i.contentWindow.appHistory.entries().length, 2);
+
+        t.step_timeout(t.step_func_done(() => {
+          assert_equals(promise_settled, false);
+        }), 0);
+      });
+    }));
+  });
+}, "reload() variant with no state or info");
+</script>

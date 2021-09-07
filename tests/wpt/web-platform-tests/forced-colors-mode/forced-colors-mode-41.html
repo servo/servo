@@ -10,6 +10,9 @@
 <script src="/resources/testharnessreport.js"></script>
 <style>
   div {
+    /* Unlike the other properties listed, accent-color is forced at computed
+    value time. */
+    accent-color: green;
     background-color: green;
     border-color: green;
     caret-color: green;
@@ -21,6 +24,7 @@
 
 <script>
   const properties_to_test = [
+    "accent-color",
     "background-color",
     "border-bottom-color",
     "border-left-color",

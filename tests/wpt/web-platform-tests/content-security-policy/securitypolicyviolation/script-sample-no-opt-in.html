@@ -31,8 +31,8 @@
         .then(t.step_func_done(e => {
           assert_equals(e.blockedURI, "inline");
           assert_equals(e.sample, "");
-        }));     
-      
+        }));
+
       document.body.append(a);
       a.click();
     }, "Inline event handlers should not have a sample.");
@@ -45,8 +45,8 @@
         .then(t.step_func_done(e => {
           assert_equals(e.blockedURI, "inline");
           assert_equals(e.sample, "");
-        }));     
-      
+        }));
+
       document.body.append(i);
     }, "JavaScript URLs in iframes should not have a sample.");
 

@@ -28,6 +28,11 @@
     height: 200px;
     background: radial-gradient(at right 60%, red, yellow, green);
 }
+
+.vertical-rl {
+  writing-mode: vertical-rl;
+}
+
 </style>
 </head>
 <body>
@@ -45,9 +50,17 @@ for (var i = 0; i < results.length; ++i) {
         testContents += "<div class='test-row'>";
 
     var containerClass = 'container ' + results[i];
+
+    // Use vertical-rl here because Firefox and WebKit put vertical scrollbars
+    // on the left in the vertical-rl test cases, and this is the easiest way to
+    // match that.
+    let maybe_vertical = "";
+    if (i > 3 && i < 8)
+      maybe_vertical = " vertical-rl";
+
     testContents +=
         "<div class='" + containerClass + "'>" +
-        "<div class='flexbox'>" +
+        "<div class='flexbox" + maybe_vertical + "'>" +
         "<div></div>" +
         "</div>" +
         "</div>";
@@ -56,6 +69,10 @@ for (var i = 0; i < results.length; ++i) {
 }
 
 document.body.innerHTML += testContents;
+
+Array.prototype.forEach.call(document.querySelectorAll(".left"), function(element) {
+    element.firstChild.scrollLeft = -1000;
+});
 
 Array.prototype.forEach.call(document.querySelectorAll(".right"), function(element) {
     element.firstChild.scrollLeft = 1000;

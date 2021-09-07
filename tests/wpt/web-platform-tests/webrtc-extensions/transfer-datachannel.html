@@ -1,0 +1,163 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <script src="../service-workers/service-worker/resources/test-helpers.sub.js"></script>
+        <script>
+async function createConnections(test, firstConnectionCallback, secondConnectionCallback)
+{
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+
+    test.add_cleanup(() => pc1.close());
+    test.add_cleanup(() => pc2.close());
+
+    pc1.onicecandidate = (e) => pc2.addIceCandidate(e.candidate);
+    pc2.onicecandidate = (e) => pc1.addIceCandidate(e.candidate);
+
+    firstConnectionCallback(pc1);
+
+    const offer = await pc1.createOffer();
+    await pc1.setLocalDescription(offer);
+    await pc2.setRemoteDescription(offer);
+
+    secondConnectionCallback(pc2);
+
+    const answer = await pc2.createAnswer();
+    await pc2.setLocalDescription(answer);
+    await pc1.setRemoteDescription(answer);
+}
+
+async function waitForMessage(receiver, data)
+{
+    while (true) {
+        const received = await new Promise(resolve => receiver.onmessage = (event) => resolve(event.data));
+        if (data === received)
+            return;
+    }
+}
+
+promise_test(async (test) => {
+    let localChannel;
+    let remoteChannel;
+
+    const worker = new Worker('transfer-datachannel-worker.js');
+    let data = new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+    assert_equals(await data, "registered");
+
+    await new Promise((resolve, reject) => {
+        createConnections(test, (firstConnection) => {
+            localChannel = firstConnection.createDataChannel('sendDataChannel');
+            worker.postMessage({channel: localChannel}, [localChannel]);
+
+        }, (secondConnection) => {
+            secondConnection.ondatachannel = (event) => {
+                remoteChannel = event.channel;
+                remoteChannel.onopen = resolve;
+            };
+        });
+    });
+
+    data = new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+    remoteChannel.send("OK");
+    assert_equals(await data, "OK");
+
+    data = new Promise(resolve => remoteChannel.onmessage = (event) => resolve(event.data));
+    worker.postMessage({message: "OK2"});
+    assert_equals(await data, "OK2");
+}, "offerer data channel in workers");
+
+
+promise_test(async (test) => {
+    let localChannel;
+    let remoteChannel;
+
+    const worker = new Worker('transfer-datachannel-worker.js');
+    let data = new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+    assert_equals(await data, "registered");
+
+    data = new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+    await new Promise((resolve, reject) => {
+        createConnections(test, (firstConnection) => {
+            localChannel = firstConnection.createDataChannel('sendDataChannel');
+            localChannel.onopen = resolve;
+        }, (secondConnection) => {
+            secondConnection.ondatachannel = (event) => {
+                remoteChannel = event.channel;
+                worker.postMessage({channel: remoteChannel}, [remoteChannel]);
+            };
+        });
+    });
+    assert_equals(await data, "opened");
+
+    data = new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+    localChannel.send("OK");
+    assert_equals(await data, "OK");
+
+    data = new Promise(resolve => localChannel.onmessage = (event) => resolve(event.data));
+    worker.postMessage({message: "OK2"});
+    assert_equals(await data, "OK2");
+}, "answerer data channel in workers");
+
+promise_test(async (test) => {
+    let localChannel;
+    let remoteChannel;
+
+    const worker = new Worker('transfer-datachannel-worker.js');
+    let data = new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+    assert_equals(await data, "registered");
+
+    data = new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+    await new Promise((resolve, reject) => {
+        createConnections(test, (firstConnection) => {
+            localChannel = firstConnection.createDataChannel('sendDataChannel');
+            worker.postMessage({channel: localChannel}, [localChannel]);
+
+        }, (secondConnection) => {
+            secondConnection.ondatachannel = (event) => {
+                remoteChannel = event.channel;
+                remoteChannel.onopen = resolve;
+            };
+        });
+    });
+    assert_equals(await data, "opened");
+
+    data = new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+    remoteChannel.close();
+    assert_equals(await data, "closed");
+
+}, "data channel close event in worker");
+
+promise_test(async (test) => {
+    let localChannel;
+    let remoteChannel;
+
+    const worker = new Worker('transfer-datachannel-worker.js');
+    let data = new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+    assert_equals(await data, "registered");
+
+    await new Promise((resolve, reject) => {
+        createConnections(test, (firstConnection) => {
+            localChannel = firstConnection.createDataChannel('sendDataChannel');
+        }, (secondConnection) => {
+            secondConnection.ondatachannel = (event) => {
+                remoteChannel = event.channel;
+                test.step_timeout(() => {
+                    try {
+                        worker.postMessage({channel: remoteChannel}, [remoteChannel]);
+                        reject("postMessage ok");
+                    } catch(e) {
+                        resolve();
+                    }
+                }, 0);
+            };
+        });
+    });
+}, "Failing to transfer a data channel");
+        </script>
+    </body>
+</html>

@@ -1,4 +1,4 @@
-let presenter = navigator.ink.requestPresenter('delegated-ink-trail');
+let presenter = navigator.ink.requestPresenter();
 let style = { color: "red", diameter: 3 };
 let evt = new PointerEvent("pointerdown", {clientX: 10, clientY: 10});
 presenter.then( function(p) {

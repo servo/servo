@@ -41,14 +41,20 @@ function invokeScenario(scenario) {
 }
 
 const referrerUrlResolver = {
+  // The spec allows UAs to "enforce arbitrary policy considerations in the
+  // interests of minimizing data leakage"; to start to vaguely approximate
+  // this, we allow stronger policies to be used instead of what's specificed.
   "omitted": function(sourceUrl) {
-    return undefined;
+    return [undefined];
   },
   "origin": function(sourceUrl) {
-    return stripUrlForUseAsReferrer(sourceUrl, true);
+    return [stripUrlForUseAsReferrer(sourceUrl, true),
+            undefined];
   },
   "stripped-referrer": function(sourceUrl) {
-    return stripUrlForUseAsReferrer(sourceUrl, false);
+    return [stripUrlForUseAsReferrer(sourceUrl, false),
+            stripUrlForUseAsReferrer(sourceUrl, true),
+            undefined];
   }
 };
 
@@ -70,18 +76,16 @@ function checkResult(scenario, expectation, result) {
     // external <iframe>.
     referrerSource = location.toString();
   }
-  const expectedReferrerUrl =
+  const possibleReferrerUrls =
     referrerUrlResolver[expectation](referrerSource);
 
   // Check the reported URL.
-  assert_equals(result.referrer,
-                expectedReferrerUrl,
-                "Reported Referrer URL is '" +
-                expectation + "'.");
-  assert_equals(result.headers.referer,
-                expectedReferrerUrl,
-                "Reported Referrer URL from HTTP header is '" +
-                expectedReferrerUrl + "'");
+  assert_in_array(result.referrer,
+                  possibleReferrerUrls,
+                  "document.referrer");
+  assert_in_array(result.headers.referer,
+                  possibleReferrerUrls,
+                  "HTTP Referer header");
 }
 
 function runLengthTest(scenario, urlLength, expectation, testDescription) {

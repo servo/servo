@@ -20,9 +20,7 @@
 # The response has 200 status and content-type: text/plain; charset=<charset>
 import encodings, re
 
-from six import PY3
-
-from six.moves.urllib.parse import parse_qs, quote
+from urllib.parse import parse_qs, quote
 
 from wptserve.utils import isomorphic_decode, isomorphic_encode
 
@@ -38,20 +36,14 @@ CHARSET_OVERRIDES = {
 }
 
 def quote_str(cookie_str):
-  if PY3:
-    return isomorphic_encode(quote(isomorphic_decode(cookie_str), u'', encoding=u'iso-8859-1'))
-  else:
-    return quote(cookie_str, b'')
+  return isomorphic_encode(quote(isomorphic_decode(cookie_str), u'', encoding=u'iso-8859-1'))
 
 def parse_qs_str(query_str):
-  if PY3:
-    args = parse_qs(isomorphic_decode(query_str), keep_blank_values=True, encoding=u'iso-8859-1')
-    binary_args = {}
-    for key, val in args.items():
-        binary_args[isomorphic_encode(key)] = [isomorphic_encode(x) for x in val]
-    return binary_args
-  else:
-    return parse_qs(query_str, keep_blank_values=True)
+  args = parse_qs(isomorphic_decode(query_str), keep_blank_values=True, encoding=u'iso-8859-1')
+  binary_args = {}
+  for key, val in args.items():
+    binary_args[isomorphic_encode(key)] = [isomorphic_encode(x) for x in val]
+  return binary_args
 
 def main(request, response):
   assert request.method in (

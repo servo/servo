@@ -150,4 +150,15 @@ test(() => {
   assert_throws_js(RangeError, () => CSS.number(2).div(CSS.number(0), CSS.number(0)));
 }, 'Can not divide with CSSUnitValue which has zero value and number type');
 
+test(() => {
+  assert_throws_js(TypeError, () => CSS.number(3).add(CSS.px(10) ,CSS.number(0)));
+  assert_throws_js(TypeError, () => CSS.px(2).add(CSS.deg(10)));
+}, 'CSSNumericValue.add should throw TypeError when the types are different.');
+
+test(() => {
+  assert_throws_js(TypeError, () => CSS.number(3).sub(CSS.px(10) ,CSS.number(0)));
+  assert_throws_js(TypeError, () => CSS.px(2).sub(CSS.deg(10)));
+}, 'CSSNumericValue.sub should throw TypeError when the types are different.');
+
+
 </script>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <title>CSS Grid Reference: Subgrid with margin/border/padding and 'overflow' property</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+
+  <style>
+  .grid {
+    display: block;
+    border: 2px solid #f76707;
+    background-color: #fff4e6;
+    width: 150px;
+    height: 150px;
+  }
+  .subgrid {
+    /* Mock subgrid with grid. */
+    display: grid;
+    grid-auto-columns: 1fr;
+    grid-auto-rows: 1fr;
+    box-sizing: border-box;
+    width: 140px;
+    height: 140px;
+    background-color: #ffd8a8;
+    margin: 5px;
+    border: 7px solid #ffa94d;
+    padding: 11px;
+  }
+  .subitem {
+    grid-area: 1 / 1 / span 1 / span 1;
+    background-color: green;
+    width: 30px;
+    height: 30px;
+    border: 5px solid black;
+  }
+  .top { align-self: start; }
+  .bottom { align-self: end; }
+  .left { justify-self: start; }
+  .right { justify-self: end; }
+  </style>
+
+  <p>All the following grid containers should have the same rendering.</p>
+
+  <p>Test 1: Subgrid has overflow:visible</p>
+  <div class="grid">
+    <div class="subgrid">
+      <div class="subitem top left"></div>
+      <div class="subitem top right"></div>
+      <div class="subitem bottom left"></div>
+      <div class="subitem bottom right"></div>
+    </div>
+  </div>
+
+  <p>Test 2: Subgrid has overflow:auto</p>
+  <div class="grid">
+    <div class="subgrid" style="overflow: auto;">
+      <div class="subitem top left"></div>
+      <div class="subitem top right"></div>
+      <div class="subitem bottom left"></div>
+      <div class="subitem bottom right"></div>
+    </div>
+  </div>
+
+  <p>Test 3: Subgrid has overflow:hidden</p>
+  <div class="grid">
+    <div class="subgrid" style="overflow: hidden;">
+      <div class="subitem top left"></div>
+      <div class="subitem top right"></div>
+      <div class="subitem bottom left"></div>
+      <div class="subitem bottom right"></div>
+    </div>
+  </div>
+</html>

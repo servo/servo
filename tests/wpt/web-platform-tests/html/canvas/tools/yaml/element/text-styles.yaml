@@ -26,6 +26,15 @@
     ctx.font = 'small-caps italic 400 12px/2 Unknown Font, sans-serif';
     @assert ctx.font === 'italic small-caps 12px "Unknown Font", sans-serif'; @moz-todo
 
+- name: 2d.text.font.parse.family
+  testing:
+  - 2d.text.font.parse
+  - 2d.text.font.get
+  - 2d.text.font.lineheight
+  code: |
+    ctx.font = '20px cursive,fantasy,monospace,sans-serif,serif,UnquotedFont,"QuotedFont\\\\\\","';
+    @assert ctx.font === '20px cursive, fantasy, monospace, sans-serif, serif, UnquotedFont, "QuotedFont\\\\\\","';
+
   # TODO:
   #   2d.text.font.parse.size.absolute
   #     xx-small x-small small medium large x-large xx-large
@@ -476,3 +485,41 @@
         }), 500);
     });
 
+- name: 2d.text.measure.rtl.text
+  desc: Measurement should follow canvas direction instead text direction
+  testing:
+  - 2d.text.measure.rtl.text
+  fonts:
+  - CanvasTest
+  code: |
+    metrics = ctx.measureText('اَلْعَرَبِيَّةُ');
+    @assert metrics.actualBoundingBoxLeft < metrics.actualBoundingBoxRight;
+
+    metrics = ctx.measureText('hello');
+    @assert metrics.actualBoundingBoxLeft < metrics.actualBoundingBoxRight;
+
+- name: 2d.text.measure.boundingBox.textAlign
+  desc: Measurement should be related to textAlignment
+  testing:
+  - 2d.text.measure.boundingBox.textAlign
+  code: |
+    ctx.textAlign = "right";
+    metrics = ctx.measureText('hello');
+    @assert metrics.actualBoundingBoxLeft > metrics.actualBoundingBoxRight;
+
+    ctx.textAlign = "left"
+    metrics = ctx.measureText('hello');
+    @assert metrics.actualBoundingBoxLeft < metrics.actualBoundingBoxRight;
+
+- name: 2d.text.measure.boundingBox.direction
+  desc: Measurement should follow text direction
+  testing:
+  - 2d.text.measure.boundingBox.direction
+  code: |
+    ctx.direction = "ltr";
+    metrics = ctx.measureText('hello');
+    @assert metrics.actualBoundingBoxLeft < metrics.actualBoundingBoxRight;
+
+    ctx.direction = "rtl";
+    metrics = ctx.measureText('hello');
+    @assert metrics.actualBoundingBoxLeft > metrics.actualBoundingBoxRight;

@@ -2,7 +2,8 @@ import time
 
 def main(request, response):
     headers = [(b'Content-Type', b'application/javascript'),
-               (b'Cache-Control', b'max-age=0')]
+               (b'Cache-Control', b'max-age=0'),
+               (b'Access-Control-Allow-Origin', b'*')]
 
     imported_content_type = b''
     if b'imported' in request.GET:

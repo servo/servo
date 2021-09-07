@@ -14,6 +14,11 @@
 <script>
 test_computed_value('font-size-adjust', 'none');
 test_computed_value('font-size-adjust', '0.5');
+test_computed_value('font-size-adjust', 'ex-height 0.5', '0.5');  // default basis 'ex-height' omitted from serialization
+test_computed_value('font-size-adjust', 'cap-height 0.8');
+test_computed_value('font-size-adjust', 'ch-width 0.4');
+test_computed_value('font-size-adjust', 'ic-width 0.9');
+test_computed_value('font-size-adjust', 'ic-height 1.1');
 </script>
 </body>
 </html>

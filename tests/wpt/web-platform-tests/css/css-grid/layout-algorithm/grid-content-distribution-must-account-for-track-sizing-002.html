@@ -35,7 +35,7 @@
 also consider Content Alignment, so that grid container width is 40px.
 https://github.com/w3c/csswg-drafts/issues/2697 -->
 <body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
-    <div class="grid justifyContentStart alignContentSpaceBetween" data-expected-width="80" data-expected-height="200">
+    <div class="grid justifyContentStart alignContentSpaceBetween" data-expected-width="40" data-expected-height="200">
         <div class="item" data-expected-width="40" data-expected-height="200">XXX XX X XX X XXX</div>
     </div>
 </body>

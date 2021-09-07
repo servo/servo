@@ -1,0 +1,26 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async_test(t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  window.onload = () => t.step_timeout(t.step_func_done(() => {
+    let navState = { statevar: "state" };
+    appHistory.navigate("#foo", { replace: true, state: navState });
+    let target_key = appHistory.current.key;
+    let target_id = appHistory.current.id;
+    appHistory.navigate("#bar");
+    appHistory.onnavigate = t.step_func_done(e => {
+      assert_equals(e.navigationType, "traverse");
+      assert_not_equals(e.destination, null);
+      assert_not_equals(e.destination.getState(), undefined);
+      assert_not_equals(e.destination.getState(), e.destination.getState());
+      assert_equals(e.destination.key, null);
+      assert_equals(e.destination.id, null);
+      assert_equals(e.destination.index, -1);
+    });
+    appHistory.back();
+  }), 0);
+}, "navigate event destination.getState() on back/forward navigation");
+</script>

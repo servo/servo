@@ -3,7 +3,6 @@ from docutils.utils import new_document
 from recommonmark.parser import CommonMarkParser
 import importlib
 import textwrap
-from six import iteritems
 
 class WPTLintRules(Directive):
     """A docutils directive to generate documentation for the
@@ -32,7 +31,7 @@ class WPTLintRules(Directive):
                 """wpt-lint-rules: unable to resolve the module at "{}".""".format(self.module_specifier)
             )
 
-        for binding_name, value in iteritems(module.__dict__):
+        for binding_name, value in module.__dict__.items():
             if hasattr(value, "__abstractmethods__") and len(value.__abstractmethods__):
                 continue
 

@@ -1,0 +1,26 @@
+<!doctype html>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1712724">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<input type=text id=text value=abc>
+<script>
+let text = document.getElementById("text");
+
+document.addEventListener("keyup", function(e) {
+  text.focus();
+});
+
+promise_test(async t => {
+  await test_driver.send_keys(document.body, " ");
+
+  assert_equals(document.activeElement, text, "#text should be focused by our event listener");
+  assert_true(text.matches(":focus"), "#text should match :focus");
+  assert_true(text.matches(":focus-visible"), "#text should match :focus-visible");
+  assert_equals(text.selectionStart, text.selectionEnd, "#text should not be selected");
+  assert_equals(text.value, "abc", "#text should not have changed value");
+});
+</script>

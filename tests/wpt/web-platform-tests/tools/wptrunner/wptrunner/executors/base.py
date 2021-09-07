@@ -9,27 +9,29 @@ import socket
 import sys
 from abc import ABCMeta, abstractmethod
 from http.client import HTTPConnection
+from typing import Any, Callable, ClassVar, Optional, Tuple, Type, TYPE_CHECKING
 from urllib.parse import urljoin, urlsplit, urlunsplit
 
 from .actions import actions
 from .protocol import Protocol, BaseProtocolPart
 
+if TYPE_CHECKING:
+    from ..webdriver_server import WebDriverServer
+
 here = os.path.dirname(__file__)
 
 
-
-def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
-                    **kwargs):
+def executor_kwargs(test_type, test_environment, run_info_data, **kwargs):
     timeout_multiplier = kwargs["timeout_multiplier"]
     if timeout_multiplier is None:
         timeout_multiplier = 1
 
-    executor_kwargs = {"server_config": server_config,
+    executor_kwargs = {"server_config": test_environment.config,
                        "timeout_multiplier": timeout_multiplier,
                        "debug_info": kwargs["debug_info"]}
 
     if test_type in ("reftest", "print-reftest"):
-        executor_kwargs["screenshot_cache"] = cache_manager.dict()
+        executor_kwargs["screenshot_cache"] = test_environment.cache_manager.dict()
 
     if test_type == "wdspec":
         executor_kwargs["binary"] = kwargs.get("binary")
@@ -242,8 +244,14 @@ class TestExecutor(object):
     """
     __metaclass__ = ABCMeta
 
-    test_type = None
-    convert_result = None
+    test_type = None  # type: ClassVar[str]
+    # convert_result is a class variable set to a callable converter
+    # (e.g. reftest_result_converter) converting from an instance of
+    # URLManifestItem (e.g. RefTest) + type-dependent results object +
+    # type-dependent extra data, returning a tuple of Result and list of
+    # SubtestResult. For now, any callable is accepted. TODO: Make this type
+    # stricter when more of the surrounding code is annotated.
+    convert_result = None  # type: ClassVar[Callable[..., Any]]
     supports_testdriver = False
     supports_jsshell = False
     # Extra timeout to use after internal test timeout at which the harness
@@ -423,7 +431,7 @@ class RefTestImplementation(object):
 
         if len(lhs_hashes) != len(rhs_hashes):
             self.logger.info("Got different number of pages")
-            return False
+            return relation == "!=", None
 
         assert len(lhs_screenshots) == len(lhs_hashes) == len(rhs_screenshots) == len(rhs_hashes)
 
@@ -590,7 +598,7 @@ class RefTestImplementation(object):
 
 class WdspecExecutor(TestExecutor):
     convert_result = pytest_result_converter
-    protocol_cls = None
+    protocol_cls = None  # type: ClassVar[Type[Protocol]]
 
     def __init__(self, logger, browser, server_config, webdriver_binary,
                  webdriver_args, timeout_multiplier=1, capabilities=None,
@@ -604,7 +612,12 @@ class WdspecExecutor(TestExecutor):
         self.timeout_multiplier = timeout_multiplier
         self.capabilities = capabilities
         self.environ = environ if environ is not None else {}
-        self.protocol = self.protocol_cls(self, browser)
+        self.output_handler_kwargs = None
+        self.output_handler_start_kwargs = None
+
+    def setup(self, runner):
+        self.protocol = self.protocol_cls(self, self.browser)
+        super().setup(runner)
 
     def is_alive(self):
         return self.protocol.is_alive()
@@ -629,8 +642,7 @@ class WdspecExecutor(TestExecutor):
         return pytestrunner.run(path,
                                 self.server_config,
                                 session_config,
-                                timeout=timeout,
-                                environ=self.environ)
+                                timeout=timeout)
 
     def do_delayed_imports(self):
         global pytestrunner
@@ -708,7 +720,7 @@ class ConnectionlessProtocol(Protocol):
 
 
 class WdspecProtocol(Protocol):
-    server_cls = None
+    server_cls = None  # type: ClassVar[Optional[Type[WebDriverServer]]]
 
     implements = [ConnectionlessBaseProtocolPart]
 
@@ -719,14 +731,21 @@ class WdspecProtocol(Protocol):
         self.capabilities = self.executor.capabilities
         self.session_config = None
         self.server = None
+        self.environ = os.environ.copy()
+        self.environ.update(executor.environ)
+        self.output_handler_kwargs = executor.output_handler_kwargs
+        self.output_handler_start_kwargs = executor.output_handler_start_kwargs
 
     def connect(self):
         """Connect to browser via the HTTP server."""
         self.server = self.server_cls(
             self.logger,
             binary=self.webdriver_binary,
-            args=self.webdriver_args)
-        self.server.start(block=False)
+            args=self.webdriver_args,
+            env=self.environ)
+        self.server.start(block=False,
+                          output_handler_kwargs=self.output_handler_kwargs,
+                          output_handler_start_kwargs=self.output_handler_start_kwargs)
         self.logger.info(
             "WebDriver HTTP server listening at %s" % self.server.url)
         self.session_config = {"host": self.server.host,
@@ -764,7 +783,7 @@ class CallbackHandler(object):
     WebDriver. Things that are more different to WebDriver may need to create a
     fully custom implementation."""
 
-    unimplemented_exc = (NotImplementedError,)
+    unimplemented_exc = (NotImplementedError,)  # type: ClassVar[Tuple[Type[Exception], ...]]
 
     def __init__(self, logger, protocol, test_window):
         self.protocol = protocol
@@ -833,7 +852,7 @@ class ActionContext(object):
 
         self.initial_window = self.protocol.base.current_window
         self.logger.debug("Switching to window %s" % self.context)
-        self.protocol.testdriver.switch_to_window(self.context)
+        self.protocol.testdriver.switch_to_window(self.context, self.initial_window)
 
     def __exit__(self, *args):
         if self.context is None:
@@ -841,5 +860,4 @@ class ActionContext(object):
 
         self.logger.debug("Switching back to initial window")
         self.protocol.base.set_window(self.initial_window)
-        self.protocol.testdriver._switch_to_frame(None)
         self.initial_window = None

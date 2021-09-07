@@ -147,6 +147,15 @@ if (location.search && location.search.indexOf("token=") != -1) {
 
    function loadNext() {
       logToConsole("Loading next test ...");
+      if (window.gc) {
+         // This is using a chromium/v8 feature, enable it by
+         // --js-flags="expose-gc".
+         // TODO: Replace this with TestUtils.gc() once/if that is available
+         // in browsers:
+         // https://jgraham.github.io/browser-test/#the-testutils-object
+         logToConsole("Forcing garbage collection using window.gc()");
+         window.gc();
+      }
       readNextTest(
          __WAVE__TOKEN,
          function (url) {

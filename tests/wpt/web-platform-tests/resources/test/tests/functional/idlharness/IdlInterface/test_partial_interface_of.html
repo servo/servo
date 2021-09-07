@@ -39,7 +39,7 @@
 
         [Exposed=(Worker)]
         partial interface C {};`);
-      idlArray.collapse_partials();
+      idlArray.merge_partials();
     })();
 
     // Invalid exposure
@@ -51,7 +51,7 @@
       idlArray.add_idls(`
         [Exposed=(DedicatedWorker)]
         partial interface D {};`);
-      idlArray.collapse_partials();
+      idlArray.merge_partials();
     })();
 
     // Original is a namespace, not an interface.
@@ -60,14 +60,14 @@
       idlArray.add_idls(`
         partial interface E {};
         namespace E {};`);
-      idlArray.collapse_partials();
+      idlArray.merge_partials();
     })();
 
     (() => {
       const idlArray = new IdlArray();
       idlArray.add_idls(`
         partial interface F {};
-        partial interface mixin G{};
+        partial interface mixin G {};
       `);
       idlArray.add_dependency_idls(`
         interface F {};
@@ -80,17 +80,20 @@
         interface L : F {};
       `);
       test(() => {
+        // Convert idlArray.includes into a Map from name of target interface to
+        // name of included mixin. (This assumes each interface includes at most
+        // one mixin, otherwise later includes would clobber earlier ones.)
+        const includes = new Map(idlArray.includes.map(i => [i.target, i.includes]));
         // F is tested, so H is a dep.
-        assert_true('F' in idlArray.includes, 'Fs includes should be picked up');
-        assert_true(idlArray.includes.F.includes('H'), 'H should be picked up');
+        assert_equals(includes.get('F'), 'H', 'F should be picked up');
         // H is not tested, so I is not a dep.
-        assert_false('I' in idlArray.includes, 'I should be ignored');
+        assert_false(includes.has('I'), 'I should be ignored');
         // G is a dep, so J is a dep.
-        assert_true('J' in idlArray.includes, 'J should be picked up');
-        // But, K isn't a dep just because of J.
+        assert_equals(includes.get('J'), 'G', 'J should be picked up');
+        // K isn't a dep because J isn't defined.
         assert_false('K' in idlArray.members, 'K should be ignored');
-        // L inherits F, so should be picked up.
-        assert_false('L' in idlArray.members, 'L should be picked up');
+        // L isn't a dep because F is untested.
+        assert_false('L' in idlArray.members, 'L should be ignored');
       }, 'partial mixin dep implications');
     })();
 
@@ -100,7 +103,7 @@
       idlArray.add_idls(`
         interface M { attribute any A; };
         partial interface M { attribute any A; };`);
-      idlArray.collapse_partials();
+      idlArray.merge_partials();
     })();
   </script>
   <script type="text/json" id="expected">

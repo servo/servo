@@ -7,12 +7,12 @@ let link_support_table = {};
 // https://html.spec.whatwg.org/multipage/links.html#linkTypes
 link_support_table['link'] = {
   supported : ['modulepreload', 'preload', 'preconnect', 'dns-prefetch',
-               'stylesheet', 'import', 'icon', 'alternate', 'prefetch',
+               'stylesheet', 'icon', 'alternate', 'prefetch',
                'prerender', 'next', 'manifest', 'apple-touch-icon',
                'apple-touch-icon-precomposed', 'canonical'],
-  unsupported : ['author', 'bookmark', 'external', 'help', 'license',
-                 'nofollow', 'pingback', 'prev', 'search', 'tag',
-                 'noreferrer', 'noopener']
+  unsupported : ['author', 'bookmark', 'external', 'help', 'import',
+                 'license', 'nofollow', 'pingback', 'prev', 'search',
+                 'tag', 'noreferrer', 'noopener']
 };
 link_support_table['a'] =  {
   supported : ['noreferrer', 'noopener', 'opener'],

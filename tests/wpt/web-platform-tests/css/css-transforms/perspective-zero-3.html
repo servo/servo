@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset=UTF-8>
+<title>CSS Test: perspective(0)</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#perspective-property">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/413">
+<meta name="assert" content="perspective: 0 should be clamped to 1px">
+<link rel="match" href="reference/green.html">
+<style>
+#outer {
+  width: 100px;
+  height: 100px;
+  background: red;
+  perspective: 0;
+  perspective-origin: top left;
+}
+#inner {
+  width: 50px;
+  height: 50px;
+  background: green;
+  /* perspective: 0 should be treated as perspective(1px), which should
+   * cause this box to be much larger. */
+  transform: translateZ(0.5px);
+}
+</style>
+<p>Pass if there is NO red below:</p>
+<div id="outer"><div id="inner"></div></div>

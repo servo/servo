@@ -40,7 +40,7 @@
 
         [Exposed=(Worker)]
         partial namespace C {};`);
-      idlArray.collapse_partials();
+      idlArray.merge_partials();
     })();
 
     // Invalid exposure
@@ -52,7 +52,7 @@
       idlArray.add_idls(`
         [Exposed=(DedicatedWorker)]
         partial namespace D {};`);
-      idlArray.collapse_partials();
+      idlArray.merge_partials();
     })();
 
     // Original is an interface, not a namespace.
@@ -61,7 +61,7 @@
       idlArray.add_idls(`
         partial namespace E {};
         interface E {};`);
-      idlArray.collapse_partials();
+      idlArray.merge_partials();
     })();
   </script>
   <script type="text/json" id="expected">

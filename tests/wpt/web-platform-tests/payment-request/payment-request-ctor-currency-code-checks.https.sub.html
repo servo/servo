@@ -178,63 +178,6 @@ test(() => {
   }
 }, "Check and canonicalize invalid details.displayItems amount and rethrow RangeError.");
 
-// Process shipping options:
-test(() => {
-  assert_throws_js(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
-  const shippingOptions = [];
-  for (const validCurrency of wellFormedCurrencyCodes) {
-    const shippingOption = {
-      id: `test` + Math.random(),
-      label: "shipping option",
-      amount: { currency: validCurrency, value: "5.00" },
-      selected: !shippingOptions.length,
-    };
-    const details = {
-      total: defaultTotal,
-      shippingOptions: [shippingOption],
-    };
-    try {
-      new PaymentRequest(defaultMethods, details, { requestShipping: true });
-    } catch (err) {
-      assert_unreached(
-        `Unexpected exception with valid shippingOption currency code "${validCurrency}": ${err.message}.`
-      );
-    }
-    shippingOptions.push(shippingOption);
-  }
-  try {
-    const details = Object.assign({}, defaultDetails, { shippingOptions });
-    new PaymentRequest(defaultMethods, details, { requestShipping: true });
-  } catch (err) {
-    assert_unreached(
-      `Unexpected error with multiple valid shppingOptions: ${err.message}.`
-    );
-  }
-}, "Check and canonicalize valid details.shippingOptions amount.");
-
-test(() => {
-  assert_throws_js(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");
-  for (const invalidCurrency of invalidCurrencyCodes) {
-    const shippingOption = {
-      id: "test",
-      label: "shipping option",
-      amount: { currency: invalidCurrency, value: "5.00" },
-      selected: true,
-    };
-    const details = {
-      total: defaultTotal,
-      shippingOptions: [shippingOption],
-    };
-    assert_throws_js(
-      RANGE_ERROR,
-      () => {
-        new PaymentRequest(defaultMethods, details, { requestShipping: true });
-      },
-      `Expected RangeError with invalid shippingOption currency code "${invalidCurrency}".`
-    );
-  }
-}, "Check and canonicalize invalid details.shippingOptions amount and rethrow RangeError.");
-
 // Process payment details modifiers:
 test(() => {
   assert_throws_js(RANGE_ERROR, smokeTest, "Expected smoke test to throw.");

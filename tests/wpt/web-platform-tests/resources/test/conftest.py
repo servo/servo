@@ -4,12 +4,11 @@ import os
 import ssl
 import sys
 import subprocess
+import urllib
 
 import html5lib
 import py
 import pytest
-from six import text_type
-from six.moves import urllib
 
 from wptserver import WPTServer
 
@@ -63,8 +62,6 @@ def pytest_configure(config):
                                       capabilities=capabilities)
     config.add_cleanup(config.driver.end)
 
-    config.server = WPTServer(WPT_ROOT)
-    config.server.start()
     # Although the name of the `_create_unverified_context` method suggests
     # that it is not intended for external consumption, the standard library's
     # documentation explicitly endorses its use:
@@ -75,6 +72,9 @@ def pytest_configure(config):
     #
     # https://docs.python.org/2/library/httplib.html#httplib.HTTPSConnection
     config.ssl_context = ssl._create_unverified_context()
+
+    config.server = WPTServer(WPT_ROOT)
+    config.server.start(config.ssl_context)
     config.add_cleanup(config.server.stop)
 
 
@@ -112,7 +112,7 @@ class HTMLItem(pytest.Item, pytest.Collector):
         includes_variants_script = False
         self.expected = None
 
-        for element in parsed.getiterator():
+        for element in parsed.iter():
             if not name and element.tag == 'title':
                 name = element.text
                 continue
@@ -122,7 +122,7 @@ class HTMLItem(pytest.Item, pytest.Collector):
             if element.tag == 'script':
                 if element.attrib.get('id') == 'expected':
                     try:
-                        self.expected = json.loads(text_type(element.text))
+                        self.expected = json.loads(element.text)
                     except ValueError:
                         print("Failed parsing JSON in %s" % filename)
                         raise

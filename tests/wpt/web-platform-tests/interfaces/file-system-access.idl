@@ -89,6 +89,17 @@ interface FileSystemWritableFileStream : WritableStream {
   Promise<undefined> truncate(unsigned long long size);
 };
 
+enum WellKnownDirectory {
+  "desktop",
+  "documents",
+  "downloads",
+  "music",
+  "pictures",
+  "videos",
+};
+
+typedef (WellKnownDirectory or FileSystemHandle) StartInDirectory;
+
 dictionary FilePickerAcceptType {
     USVString description;
     record<USVString, (USVString or sequence<USVString>)> accept;
@@ -97,6 +108,8 @@ dictionary FilePickerAcceptType {
 dictionary FilePickerOptions {
     sequence<FilePickerAcceptType> types;
     boolean excludeAcceptAllOption = false;
+    DOMString id;
+    StartInDirectory startIn;
 };
 
 dictionary OpenFilePickerOptions : FilePickerOptions {
@@ -104,9 +117,12 @@ dictionary OpenFilePickerOptions : FilePickerOptions {
 };
 
 dictionary SaveFilePickerOptions : FilePickerOptions {
+    USVString? suggestedName;
 };
 
 dictionary DirectoryPickerOptions {
+    DOMString id;
+    StartInDirectory startIn;
 };
 
 [SecureContext]

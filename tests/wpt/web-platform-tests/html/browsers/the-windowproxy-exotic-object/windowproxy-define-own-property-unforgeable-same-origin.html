@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>[[DefineOwnProperty]] on a WindowProxy forwards to OrdinaryDefineOwnProperty for same-origin objects</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/window-object.html#windowproxy-defineownproperty">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+for (const key of ["window", "document", "location", "top"]) {
+    const { get, set } = Object.getOwnPropertyDescriptor(window, key);
+
+    test(() => {
+        Object.defineProperty(window, key, {});
+        assert_true(Reflect.defineProperty(window, key, { configurable: false }), "[[Configurable]]: false");
+        Object.defineProperty(window, key, { enumerable: true });
+
+        assert_true(Reflect.defineProperty(window, key, { get }), "[[Get]]: unchanged");
+        Object.defineProperty(window, key, { set });
+        assert_true(Reflect.defineProperty(window, key, { get, set }), "[[Get]]: unchanged, [[Set]]: unchanged");
+
+        Object.defineProperty(window, key, { get, set, enumerable: true, configurable: false });
+    }, `[[DefineOwnProperty]] success: "${key}"`);
+
+    test(() => {
+        assert_throws_js(TypeError, () => {
+            Object.defineProperty(window, key, { configurable: true });
+        }, "[[Configurable]]: true");
+
+        assert_false(Reflect.defineProperty(window, key, { enumerable: false }), "[[Enumerable]]: false");
+
+        assert_throws_js(TypeError, () => {
+            Object.defineProperty(window, key, { get() {}, set });
+        }, "[[Get]]: changed, [[Set]]: unchanged");
+
+        assert_false(Reflect.defineProperty(window, key, { get, set() {} }), "[[Get]]: unchanged, [[Set]]: changed");
+
+        assert_throws_js(TypeError, () => {
+            Object.defineProperty(window, key, { writable: false, configurable: true });
+        }, "[[Writable]]: false, [[Configurable]]: true");
+
+        assert_false(Reflect.defineProperty(window, key, { value: window[key], enumerable: true }), "[[Value]], [[Enumerable]]: true");
+    }, `[[DefineOwnProperty]] failure: "${key}"`);
+}
+</script>

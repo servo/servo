@@ -1,0 +1,43 @@
+<!doctype html>
+<title>Grid repeat(auto) with max-width shouldn't pay attention only to that</title>
+<link rel=author title="Tab Atkins-Bittner" href="https://www.xanthir.com/contact/">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#auto-repeat">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<!--
+    The auto-repeat section says to calculate how many repetitions fill the grid container's content area
+    when the grid has a definite width or max-width.
+    It does *not* say to *use* the grid container's width/max-width, necessarily;
+    it should still depend on normal layout.
+
+    This test will render correctly if the actual laid-out width of the grid container is used
+    to calculate the number of repetitions
+    (resulting in a single columns),
+    but will fail if the max-width is used
+    (resulting in the grid container assuming that there will be two columns while sizing itself,
+    but then only using one column when actually laying out its contents).
+-->
+<style>
+.wrapper {
+    width: 190px;
+    display: grid;
+    justify-content: start;
+}
+.grid {
+    max-width: 200px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 100px));
+    background: red;
+}
+.item {
+    background: green;
+    width: 100px;
+    height: 50px;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div class=wrapper>
+    <div class=grid>
+        <div class=item></div>
+        <div class=item></div>
+    </div>
+</div>

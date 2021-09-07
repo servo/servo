@@ -84,6 +84,7 @@ def test_maximize_when_resized_to_max_size(session):
     session.end()
     session.window.maximize()
     available = session.window.size
+    session.window.size = (800, 600)
     session.end()
 
     session.window.size = available
@@ -95,4 +96,5 @@ def test_maximize_when_resized_to_max_size(session):
     # its expected dimensions.
     before = session.window.size
     session.window.maximize()
-    assert session.window.size == before
+    after = session.window.size
+    assert after == before

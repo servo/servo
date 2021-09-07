@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import sys, urllib, time
-from mod_pywebsocket import common, msgutil, util
+from mod_pywebsocket import msgutil
 
 def web_socket_do_extra_handshake(request):
     request.connection.write(b'x')

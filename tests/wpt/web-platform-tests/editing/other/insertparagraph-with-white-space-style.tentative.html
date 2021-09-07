@@ -1,0 +1,415 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<meta name="variant" content="?pre">
+<meta name="variant" content="?pre-wrap">
+<meta name="variant" content="?pre-line">
+<meta name="variant" content="?nowrap">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+<link rel=stylesheet href=../include/reset.css>
+<title>insertparagraph in white-space specified element</title>
+<body><div contenteditable></div></body>
+<script>
+/**
+ * The expected behavior is based on Chrome 91.
+ */
+const style = location.search.substr(1);
+const isNewLineSignificant = style == "pre" || style == "pre-wrap" || style == "pre-line";
+const editingHost = document.querySelector("div[contenteditable]");
+for (const defaultParagraphSeparator of ["div", "p"]) {
+  document.execCommand("defaultparagraphseparator", false, defaultParagraphSeparator);
+  for (const display of ["block", "inline", "inline-block"]) {
+    // insertparagraph at direct child of editing host.
+    // XXX Oddly, if the outside display value is "block", `white-space`
+    //     does not affect to the insertparagraph command.
+    test(() => {
+      editingHost.style.whiteSpace = style;
+      editingHost.style.display = display;
+      const utils = new EditorTestUtils(editingHost);
+      utils.setupEditingHost(`abc[]`);
+      editingHost.getBoundingClientRect();
+      document.execCommand("insertparagraph");
+      if (display == "block") {
+        assert_in_array(
+          editingHost.innerHTML,
+          [
+            `abc<${defaultParagraphSeparator}><br></${defaultParagraphSeparator}>`,
+            `<${defaultParagraphSeparator}>abc</${defaultParagraphSeparator}><${defaultParagraphSeparator}><br></${defaultParagraphSeparator}>`,
+          ],
+          "New paragraph should be inserted at end of the editing host"
+        );
+      } else if (isNewLineSignificant) {
+        assert_in_array(
+          editingHost.innerHTML,
+          [
+            `abc\n\n`,
+            `abc\n<br>`,
+          ],
+          "A linefeed should be inserted at end"
+        );
+      } else {
+        assert_equals(
+          editingHost.innerHTML,
+          `abc<br><br>`,
+          "A <br> should be inserted at end"
+        );
+      }
+    }, `<div contenteditable style="white-space:${style}; display:${display}">abc[]</div> (defaultparagraphseparator: ${defaultParagraphSeparator})`);
+
+    test(() => {
+      editingHost.style.whiteSpace = style;
+      editingHost.style.display = display;
+      const utils = new EditorTestUtils(editingHost);
+      utils.setupEditingHost(`[]abc`);
+      editingHost.getBoundingClientRect();
+      document.execCommand("insertparagraph");
+      if (display == "block") {
+        assert_in_array(
+          editingHost.innerHTML,
+          [
+            `<${defaultParagraphSeparator}><br></${defaultParagraphSeparator}>abc`,
+            `<${defaultParagraphSeparator}><br></${defaultParagraphSeparator}><${defaultParagraphSeparator}>abc</${defaultParagraphSeparator}>`,
+          ],
+          "New paragraph should be inserted at start of the editing host"
+        );
+      } else if (isNewLineSignificant) {
+        assert_in_array(
+          editingHost.innerHTML,
+          [
+            `\nabc`,
+            `\nabc<br>`,
+          ],
+          "A linefeed should be inserted at start"
+        );
+      } else {
+        assert_in_array(
+          editingHost.innerHTML,
+          [
+            `<br>abc`,
+            `<br>abc<br>`,
+          ],
+          "A <br> should be inserted at start"
+        );
+      }
+    }, `<div contenteditable style="white-space:${style}; display:${display}">[]abc</div> (defaultparagraphseparator: ${defaultParagraphSeparator})`);
+
+    test(() => {
+      editingHost.style.whiteSpace = style;
+      editingHost.style.display = display;
+      const utils = new EditorTestUtils(editingHost);
+      utils.setupEditingHost(`a[]bc`);
+      editingHost.getBoundingClientRect();
+      document.execCommand("insertparagraph");
+      if (display == "block") {
+        assert_in_array(
+          editingHost.innerHTML,
+          [
+            `a<${defaultParagraphSeparator}>bc</${defaultParagraphSeparator}>`,
+            `<${defaultParagraphSeparator}>a</${defaultParagraphSeparator}><${defaultParagraphSeparator}>bc</${defaultParagraphSeparator}>`,
+          ],
+          "New paragraph should split the text"
+        );
+      } else if (isNewLineSignificant) {
+        assert_in_array(
+          editingHost.innerHTML,
+          [
+            `a\nbc`,
+            `a\nbc<br>`,
+          ],
+          "A linefeed should be inserted"
+        );
+      } else {
+        assert_in_array(
+          editingHost.innerHTML,
+          [
+            `a<br>bc`,
+            `a<br>bc<br>`,
+          ],
+          "A <br> should be inserted"
+        );
+      }
+    }, `<div contenteditable style="white-space:${style}; display:${display}">a[]bc</div> (defaultparagraphseparator: ${defaultParagraphSeparator})`);
+
+    // inline styles should be preserved.
+    test(() => {
+      editingHost.style.whiteSpace = style;
+      editingHost.style.display = display;
+      const utils = new EditorTestUtils(editingHost);
+      utils.setupEditingHost(`abc[]`);
+      editingHost.getBoundingClientRect();
+      document.execCommand("italic");
+      document.execCommand("insertparagraph");
+      document.execCommand("inserttext", false, "def");
+      if (display == "block") {
+        assert_in_array(
+          editingHost.innerHTML,
+          [
+            `abc<${defaultParagraphSeparator}><i>def</i></${defaultParagraphSeparator}>`,
+            `<${defaultParagraphSeparator}>abc</${defaultParagraphSeparator}><${defaultParagraphSeparator}><i>def</i></${defaultParagraphSeparator}>`,
+            `<${defaultParagraphSeparator}>abc</${defaultParagraphSeparator}><${defaultParagraphSeparator}><i>def<br></i></${defaultParagraphSeparator}>`,
+            `<${defaultParagraphSeparator}>abc</${defaultParagraphSeparator}><${defaultParagraphSeparator}><i>def</i><br></${defaultParagraphSeparator}>`,
+          ],
+          "New paragraph should be inserted at end of the editing host whose text should be italic"
+        );
+      } else if (isNewLineSignificant) {
+        assert_in_array(
+          editingHost.innerHTML,
+          [
+            `abc\n<i>def</i>`,
+            `abc\n<i>def\n</i>`,
+            `abc\n<i>def<br></i>`,
+            `abc\n<i>def</i>\n`,
+            `abc\n<i>def</i><br>`,
+          ],
+          "The new line should be italic"
+        );
+      } else {
+        assert_in_array(
+          editingHost.innerHTML,
+          [
+            `abc<br><i>def</i>`,
+            `abc<br><i>def<br></i>`,
+            `abc<br><i>def</i><br>`,
+          ],
+          "The new line should be italic"
+        );
+      }
+    }, `<div contenteditable style="white-space:${style}; display:${display}">abc[]</div> (defaultparagraphseparator: ${defaultParagraphSeparator}) (preserving temporary inline style test)`);
+
+    test(() => {
+      editingHost.style.whiteSpace = style;
+      editingHost.style.display = display;
+      const utils = new EditorTestUtils(editingHost);
+      utils.setupEditingHost(`<b>abc[]</b>`);
+      editingHost.getBoundingClientRect();
+      document.execCommand("insertparagraph");
+      document.execCommand("inserttext", false, "def");
+      if (display == "block") {
+        assert_in_array(
+          editingHost.innerHTML,
+          [
+            `<b>abc</b><${defaultParagraphSeparator}><b>def</b></${defaultParagraphSeparator}>`,
+            `<${defaultParagraphSeparator}><b>abc</b></${defaultParagraphSeparator}><${defaultParagraphSeparator}><b>def</b></${defaultParagraphSeparator}>`,
+            `<${defaultParagraphSeparator}><b>abc</b></${defaultParagraphSeparator}><${defaultParagraphSeparator}><b>def<br></b></${defaultParagraphSeparator}>`,
+            `<${defaultParagraphSeparator}><b>abc</b></${defaultParagraphSeparator}><${defaultParagraphSeparator}><b>def</b><br></${defaultParagraphSeparator}>`,
+          ],
+          "New paragraph should be inserted at end of the editing host whose text should be bold"
+        );
+      } else if (isNewLineSignificant) {
+        assert_in_array(
+          editingHost.innerHTML,
+          [
+            `<b>abc\ndef</b>`,
+            `<b>abc\ndef\n</b>`,
+            `<b>abc\ndef<br></b>`,
+            `<b>abc\ndef</b>\n`,
+            `<b>abc\ndef</b><br>`,
+          ],
+          "The new line should be bold"
+        );
+      } else {
+        assert_in_array(
+          editingHost.innerHTML,
+          [
+            `<b>abc<br>def</b>`,
+            `<b>abc<br>def<br></b>`,
+            `<b>abc<br>def</b><br>`,
+          ],
+          "The new line should be bold"
+        );
+      }
+    }, `<div contenteditable style="white-space:${style}; display:${display}"><b>abc[]</b></div> (defaultparagraphseparator: ${defaultParagraphSeparator}) (preserving inline style test)`);
+
+    for (const paragraph of ["div", "p"]) {
+      // insertparagraph in existing paragraph whose `white-space` is specified.
+      // XXX Oddly, the white-space style of the ancestor block/inline is
+      //     ignored.
+      test(() => {
+        editingHost.style.whiteSpace = "normal";
+        editingHost.style.display = display;
+        const utils = new EditorTestUtils(editingHost);
+        utils.setupEditingHost(`<${paragraph} style="white-space:${style}">abc[]</${paragraph}>`);
+        editingHost.getBoundingClientRect();
+        document.execCommand("insertparagraph");
+        assert_equals(
+          editingHost.innerHTML,
+          `<${paragraph} style="white-space:${style}">abc</${paragraph}><${paragraph} style="white-space:${style}"><br></${paragraph}>`,
+          "New paragraph should be inserted at end of the paragraph"
+        );
+      }, `<div contenteditable style="display:${display}"><${paragraph} style="white-space:${style}">abc[]</${paragraph}></div> (defaultparagraphseparator: ${defaultParagraphSeparator})`);
+
+      test(() => {
+        editingHost.style.whiteSpace = "normal";
+        editingHost.style.display = display;
+        const utils = new EditorTestUtils(editingHost);
+        utils.setupEditingHost(`<${paragraph} style="white-space:${style}">[]abc</${paragraph}>`);
+        editingHost.getBoundingClientRect();
+        document.execCommand("insertparagraph");
+        assert_in_array(
+          editingHost.innerHTML,
+          [
+            `<${paragraph} style="white-space:${style}"><br></${paragraph}><${paragraph} style="white-space:${style}">abc</${paragraph}>`,
+            `<${paragraph} style="white-space:${style}"><br></${paragraph}><${paragraph} style="white-space:${style}">abc<br></${paragraph}>`,
+          ],
+          "New paragraph should be inserted at start of the paragraph"
+        );
+      }, `<div contenteditable style="display:${display}"><${paragraph} style="white-space:${style}">[]abc</${paragraph}></div> (defaultparagraphseparator: ${defaultParagraphSeparator})`);
+
+      test(() => {
+        editingHost.style.whiteSpace = "normal";
+        editingHost.style.display = display;
+        const utils = new EditorTestUtils(editingHost);
+        utils.setupEditingHost(`<${paragraph} style="white-space:${style}">a[]bc</${paragraph}>`);
+        editingHost.getBoundingClientRect();
+        document.execCommand("insertparagraph");
+        assert_in_array(
+          editingHost.innerHTML,
+          [
+            `<${paragraph} style="white-space:${style}">a</${paragraph}><${paragraph} style="white-space:${style}">bc</${paragraph}>`,
+            `<${paragraph} style="white-space:${style}">a</${paragraph}><${paragraph} style="white-space:${style}">bc<br></${paragraph}>`,
+          ],
+          "The paragraph should be split"
+        );
+      }, `<div contenteditable style="display:${display}"><${paragraph} style="white-space:${style}">a[]bc</${paragraph}></div> (defaultparagraphseparator: ${defaultParagraphSeparator})`);
+
+      // insertparagraph in existing paragraph.
+      // XXX Oddly, the white-space style of the ancestor block/inline is
+      //     ignored.
+      test(() => {
+        editingHost.style.whiteSpace = style;
+        editingHost.style.display = display;
+        const utils = new EditorTestUtils(editingHost);
+        utils.setupEditingHost(`<${paragraph}>abc[]</${paragraph}>`);
+        editingHost.getBoundingClientRect();
+        document.execCommand("insertparagraph");
+        assert_equals(
+          editingHost.innerHTML,
+          `<${paragraph}>abc</${paragraph}><${paragraph}><br></${paragraph}>`,
+          "New paragraph should be inserted at end of the paragraph"
+        );
+      }, `<div contenteditable style="display:${display}; white-space:${style}"><${paragraph}>abc[]</${paragraph}></div> (defaultparagraphseparator: ${defaultParagraphSeparator})`);
+
+      test(() => {
+        editingHost.style.whiteSpace = style;
+        editingHost.style.display = display;
+        const utils = new EditorTestUtils(editingHost);
+        utils.setupEditingHost(`<${paragraph}>[]abc</${paragraph}>`);
+        editingHost.getBoundingClientRect();
+        document.execCommand("insertparagraph");
+        assert_in_array(
+          editingHost.innerHTML,
+          [
+            `<${paragraph}><br></${paragraph}><${paragraph}>abc</${paragraph}>`,
+            `<${paragraph}><br></${paragraph}><${paragraph}>abc<br></${paragraph}>`,
+          ],
+          "New paragraph should be inserted at start of the paragraph"
+        );
+      }, `<div contenteditable style="display:${display}; white-space:${style}"><${paragraph}>[]abc</${paragraph}></div> (defaultparagraphseparator: ${defaultParagraphSeparator})`);
+
+      test(() => {
+        editingHost.style.whiteSpace = style;
+        editingHost.style.display = display;
+        const utils = new EditorTestUtils(editingHost);
+        utils.setupEditingHost(`<${paragraph}>a[]bc</${paragraph}>`);
+        editingHost.getBoundingClientRect();
+        document.execCommand("insertparagraph");
+        assert_in_array(
+          editingHost.innerHTML,
+          [
+            `<${paragraph}>a</${paragraph}><${paragraph}>bc</${paragraph}>`,
+            `<${paragraph}>a</${paragraph}><${paragraph}>bc<br></${paragraph}>`,
+          ],
+          "The paragraph should be split"
+        );
+      }, `<div contenteditable style="display:${display}; white-space:${style}"><${paragraph}>a[]bc</${paragraph}></div> (defaultparagraphseparator: ${defaultParagraphSeparator})`);
+
+      // Styling the existing paragraph instead of editing host.
+      // XXX Oddly, new or right paragraph is wrapped by default paragraph
+      //     separator, and even if the default paragraph separator is "p",
+      //     the `<p>` element wraps the new block element!
+      test(() => {
+        editingHost.style.whiteSpace = "normal";
+        editingHost.style.display = "block";
+        const utils = new EditorTestUtils(editingHost);
+        const styleAttr = `style="display:${display}; white-space:${style}"`;
+        utils.setupEditingHost(`<${paragraph} ${styleAttr}>abc[]</${paragraph}>`);
+        editingHost.getBoundingClientRect();
+        document.execCommand("insertparagraph");
+        if (display != "block") {
+          assert_equals(
+            editingHost.innerHTML,
+            `<${paragraph} ${styleAttr}>abc</${paragraph}><${defaultParagraphSeparator}><${paragraph} ${styleAttr}><br></${paragraph}></${defaultParagraphSeparator}>`,
+            "New paragraph should be inserted at end of the paragraph which is wrapped by a default paragraph"
+          );
+        } else {
+          assert_equals(
+            editingHost.innerHTML,
+            `<${paragraph} ${styleAttr}>abc</${paragraph}><${paragraph} ${styleAttr}><br></${paragraph}>`,
+            "New paragraph should be inserted at end of the paragraph"
+          );
+        }
+      }, `<div contenteditable><${paragraph} style="display:${display}; white-space:${style}">abc[]</${paragraph}></div> (defaultparagraphseparator: ${defaultParagraphSeparator})`);
+
+      test(() => {
+        editingHost.style.whiteSpace = "normal";
+        editingHost.style.display = "block";
+        const utils = new EditorTestUtils(editingHost);
+        const styleAttr = `style="display:${display}; white-space:${style}"`;
+        utils.setupEditingHost(`<${paragraph} ${styleAttr}>[]abc</${paragraph}>`);
+        editingHost.getBoundingClientRect();
+        document.execCommand("insertparagraph");
+        if (display != "block") {
+          assert_in_array(
+            editingHost.innerHTML,
+            [
+              `<${defaultParagraphSeparator}><${paragraph} ${styleAttr}><br></${paragraph}></${defaultParagraphSeparator}><${paragraph} ${styleAttr}>abc</${paragraph}>`,
+              `<${defaultParagraphSeparator}><${paragraph} ${styleAttr}><br></${paragraph}></${defaultParagraphSeparator}><${paragraph} ${styleAttr}>abc<br></${paragraph}>`,
+            ],
+            "New paragraph should be inserted at start of the paragraph which is wrapped by a default paragraph"
+          );
+        } else {
+          assert_in_array(
+            editingHost.innerHTML,
+            [
+              `<${paragraph} ${styleAttr}><br></${paragraph}><${paragraph} ${styleAttr}>abc</${paragraph}>`,
+              `<${paragraph} ${styleAttr}><br></${paragraph}><${paragraph} ${styleAttr}>abc<br></${paragraph}>`,
+            ],
+            "New paragraph should be inserted at start of the paragraph"
+          );
+        }
+      }, `<div contenteditable><${paragraph} style="display:${display}; white-space:${style}">[]abc</${paragraph}></div> (defaultparagraphseparator: ${defaultParagraphSeparator})`);
+
+      test(() => {
+        editingHost.style.whiteSpace = "normal";
+        editingHost.style.display = "block";
+        const styleAttr = `style="display:${display}; white-space:${style}"`;
+        const utils = new EditorTestUtils(editingHost);
+        utils.setupEditingHost(`<${paragraph} ${styleAttr}>a[]bc</${paragraph}>`);
+        editingHost.getBoundingClientRect();
+        document.execCommand("insertparagraph");
+        if (display != "block") {
+          assert_in_array(
+            editingHost.innerHTML,
+            [
+              `<${paragraph} ${styleAttr}>a</${paragraph}><${defaultParagraphSeparator}><${paragraph} ${styleAttr}>bc</${paragraph}></${defaultParagraphSeparator}>`,
+              `<${paragraph} ${styleAttr}>a</${paragraph}><${defaultParagraphSeparator}><${paragraph} ${styleAttr}>bc<br></${paragraph}></${defaultParagraphSeparator}>`,
+            ],
+            "The paragraph should be split and the latter one should be wrapped by a default paragraph"
+          );
+        } else {
+          assert_in_array(
+            editingHost.innerHTML,
+            [
+              `<${paragraph} ${styleAttr}>a</${paragraph}><${paragraph} ${styleAttr}>bc</${paragraph}>`,
+              `<${paragraph} ${styleAttr}>a</${paragraph}><${paragraph} ${styleAttr}>bc<br></${paragraph}>`,
+            ],
+            "The paragraph should be split"
+          );
+        }
+      }, `<div contenteditable><${paragraph} style="display:${display}; white-space:${style}">a[]bc</${paragraph}></div> (defaultparagraphseparator: ${defaultParagraphSeparator})`);
+    }
+  }
+}
+</script>

@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+  <head>
+    <title>javascript: aliases security origin</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+      promise_test(t => {
+        let iframe = document.createElement('iframe');
+        document.body.appendChild(iframe);
+        // Should not throw: srcdoc should always be same-origin.
+        iframe.contentDocument;
+
+        iframe.contentWindow.location = 'javascript:"Hello world!"';
+        return new Promise(resolve => {
+          iframe.addEventListener('load', resolve);
+        }).then(() => {
+          // Explicitly set `domain` component of origin: any other same-origin
+          // browsing contexts are now cross-origin unless they also explicitly
+          // set document.domain to the same value.
+          document.domain = document.domain;
+          // Should not throw: the origin should be aliased, so setting
+          // document.domain in one Document should affect both Documents.
+          assert_equals(
+              iframe.contentWindow.document.body.textContent,
+              'Hello world!');
+        });
+      });
+    </script>
+  </body>
+</html>

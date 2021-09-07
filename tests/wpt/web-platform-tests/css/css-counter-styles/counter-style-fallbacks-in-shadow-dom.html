@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<title>Counter style references are tree-scoped, the same name may dereference to different rules</title>
+<link rel="help" href="https://drafts.csswg.org/css-counter-styles-3/#the-counter-style-rule">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#shadow-names">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="match" href="counter-style-fallbacks-in-shadow-dom-ref.html">
+
+<style>
+@counter-style foo {
+  system: cyclic;
+  symbols: A B C;
+}
+
+@counter-style bar {
+  system: fixed 4;
+  symbols: D E F;
+  fallback: foo;
+}
+</style>
+
+<div id="host">
+</div>
+
+<script>
+document.getElementById("host").attachShadow({mode: 'open'}).innerHTML = `
+<style>
+@counter-style foo {
+  system: cyclic;
+  symbols: X Y Z;
+}
+
+@counter-style baz {
+  system: fixed 4;
+  symbols: G H I;
+  fallback: foo;
+}
+</style>
+
+<ol style="list-style-type: bar; list-style-position: inside">
+  <div>This list style should fallback to 'foo' in the parent tree scope</div>
+  <li></li>
+  <li></li>
+  <li></li>
+</ol>
+
+<ol style="list-style-type: baz; list-style-position: inside">
+  <div>This list style should fallback to 'foo' in the shadow tree scope</div>
+  <li></li>
+  <li></li>
+  <li></li>
+</ol>
+`
+</script>

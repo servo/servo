@@ -74,12 +74,11 @@ var inner = document.getElementById("inner");
 var target = document.getElementById("target");
 
 test(() => {
-  assert_equals(window.scrollX, 0);
-  assert_equals(window.scrollY, 0);
-  assert_equals(outer.scrollLeft, 0);
-  assert_equals(outer.scrollTop, 0);
-  assert_equals(inner.scrollLeft, 0);
-  assert_equals(inner.scrollTop, 0);
+  // Initial layout triggers a scroll snap. Reset position before calling
+  // scrollIntoView.
+  window.scrollTo(0, 0);
+  outer.scrollTo(0, 0);
+  inner.scrollTo(0, 0);
 
   target.scrollIntoView({inline: "start", block: "start"});
   // Although the scrollIntoView specified "start" as the alignment, the target

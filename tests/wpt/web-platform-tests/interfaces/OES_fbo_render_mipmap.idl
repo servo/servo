@@ -1,0 +1,8 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebGL OES_fbo_render_mipmap Extension Specification (https://www.khronos.org/registry/webgl/extensions/OES_fbo_render_mipmap/)
+
+[Exposed=(Window,Worker), LegacyNoInterfaceObject]
+interface OES_fbo_render_mipmap {
+};

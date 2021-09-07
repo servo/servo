@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>
+  Flex container fragmentation with break-before: column.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    background: red;
+    column-count: 4;
+    column-gap: 0px;
+    height: 100px;
+    position: relative;
+    width: 100px;
+  }
+  .flex {
+    background: green;
+    display: flex;
+    width: 25px;
+  }
+  .abs {
+    height: 50px;
+    position: absolute;
+    width: 25px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div class="flex" style="height: 50px;"></div>
+  <div class="flex" style="height: 50px; break-before: column;"></div>
+  <div class="flex" style="height: 300px;"></div>
+  <div class="abs" style="background: green; top: 50px; left: 0px;"></div>
+  <div class="abs" style="background: white; top: 0px;"></div>
+</div>

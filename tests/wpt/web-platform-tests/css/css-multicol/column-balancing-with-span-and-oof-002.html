@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-multicol-1/#column-span">
+<link rel="help" href="https://drafts.csswg.org/css-break/#breaking-rules">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<style>
+  #multicol {
+    column-count: 2;
+    column-fill: auto;
+    column-gap: 0px;
+    width: 100px;
+  }
+  #abs {
+    position: absolute;
+    width: 50px;
+    height: 100px;
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="multicol">
+  <div style="position: relative;">
+    <div  style="height: 100px; background: green;"></div>
+    <div id="abs"></div>
+  </div>
+  <div style="column-span: all;"></div>
+  <div style="height: 100px;"></div>
+</div>

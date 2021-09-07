@@ -1,0 +1,18 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  assert_equals(appHistory.entries().length, 1);
+  let current_url = location.href;
+  let current_history_state = history.state;
+  let current_id = appHistory.current.id;
+  let current_state = appHistory.current.getState();
+  await appHistory.goTo(appHistory.current.key);
+  assert_equals(appHistory.entries().length, 1);
+  assert_equals(current_url, location.href);
+  assert_equals(current_history_state, history.state);
+  assert_equals(current_id, appHistory.current.id);
+  assert_equals(current_state, appHistory.current.getState());
+}, "goTo() with current key");
+</script>

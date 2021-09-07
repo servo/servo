@@ -3,13 +3,13 @@
   <h:link rel="help" href="https://svgwg.org/svg2-draft/types.html#__svg__SVGGeometryElement__getPointAtLength"/>
   <h:script src="/resources/testharness.js"/>
   <h:script src="/resources/testharnessreport.js"/>
-  <path id='pathElement1' description='path with display: defualt and an empty path'/>
+  <path id='pathElement1' description='path with display: default and an empty path'/>
   <path id='pathElement2' style='display:none' description='path with display: none and an empty path'/>
-  <rect id='rectElement1' description='rect with display: defualt and an empty path'/>
+  <rect id='rectElement1' description='rect with display: default and an empty path'/>
   <rect id='rectElement2' style='display:none' description='rect with display: none and an empty path'/>
   <circle id='circleElement1' description='circle with display: default and an empty path'/>
   <circle id='circleElement2' style='display:none' description='circle with display: none and an empty path'/>
-  <polygon id='polygonElement1' description='polygon with display: defualt and an empty path'/>
+  <polygon id='polygonElement1' description='polygon with display: default and an empty path'/>
   <polygon id='polygonElement2' style='display:none' description='polygon with display: none and an empty path'/>
   <polyline id='polylineElement1' description='polyline with display: default and an empty path'/>
   <polyline id='polylineElement2' style='display:none' description='polyline with display: none and an empty path'/>

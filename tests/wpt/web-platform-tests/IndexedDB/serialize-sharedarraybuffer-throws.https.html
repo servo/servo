@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>IndexedDB: Attempting to serialize a SharedArrayBuffer should throw</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+<script>
+  async_test(function(t) {
+
+    // The SAB constructor throws if the page is not cross-origin-isolated.
+    assert_true(self.crossOriginIsolated,
+                "The page is served with COOP and COEP, it should be cross-origin-isolated.");
+
+    let open_rq = createdb(t);
+    open_rq.onupgradeneeded = function(e) {
+        let db = e.target.result;
+        let objStore = db.createObjectStore("test", { keyPath:"pKey" });
+
+        let sab = new SharedArrayBuffer(256);
+
+        let rq;
+        assert_throws_dom("DataCloneError", () => {
+            rq = objStore.put({sab: sab}, 'key');
+        });
+        assert_equals(rq, undefined);
+        t.done();
+    };
+  });
+</script>

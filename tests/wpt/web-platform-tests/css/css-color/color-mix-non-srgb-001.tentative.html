@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<!-- Tentative pending potential syntax changes in https://github.com/w3c/csswg-drafts/issues/6066 -->
+<link rel="help" href="https://drafts.csswg.org/css-color-5/#color-mix">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1703356">
+<link rel="author" href="mailto:barret@brennie.ca" title="Barret Rennie">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+div { color: black; }
+</style>
+<div id="test"></div>
+<div id="ref"></div>
+<script>
+const TEST_CASES = [
+    ["red", "green", "xyz", "rgb(188, 92, 0)"],
+    ["red", "green", "lab", "rgb(161, 108, 0)"],
+    ["red", "green", "lch", "rgb(145, 116, 0)"],
+    ["red", "green 90%", "xyz", "rgb(89, 122, 0)"],
+    ["red", "green 90%", "lab", "rgb(65, 126, 0)"],
+    ["red", "green 90%", "lch", "rgb(49, 128, 0)"],
+    ["red 90%", "green", "xyz", "rgb(243, 40, 0)"],
+    ["red 90%", "green", "lab", "rgb(237, 55, 0)"],
+    ["red 90%", "green", "lch", "rgb(235, 59, 0)"],
+];
+
+const testElement = document.getElementById("test");
+const refElement = document.getElementById("ref");
+const testStyle = getComputedStyle(testElement);
+const refStyle = getComputedStyle(refElement);
+
+for (let [from, to, space, expected] of TEST_CASES) {
+    test(function() {
+        const value = `color-mix(in ${space}, ${from}, ${to})`;
+
+        testElement.style.backgroundColor = "";
+        testElement.style.backgroundColor = value;
+        refElement.style.backgroundColor = expected;
+
+        assert_not_equals(testElement.style.backgroundColor, "", `Should parse ${value}`);
+        assert_equals(testStyle.backgroundColor, refStyle.backgroundColor, `Colors should match for ${value}`);
+    }, `From ${from} to ${to} in ${space} color space`);
+}
+</script>

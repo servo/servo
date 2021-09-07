@@ -84,10 +84,6 @@
     total: invalidNegativeTotal,
   });
 
-  // PaymentOptions
-  const validOptions = Object.freeze({
-    requestShipping: true,
-  });
 
   // PaymentItem
   const validPaymentItem = Object.freeze({
@@ -103,24 +99,6 @@
   // PaymentItem
   const validPaymentItems = Object.freeze([validPaymentItem]);
   const invalidPaymentItems = Object.freeze([invalidPaymentItem]);
-
-  // PaymentShippingOption
-  const invalidShippingOption = Object.freeze({
-    id: "abc",
-    label: "Invalid shipping option",
-    amount: invalidAmount,
-    selected: true,
-  });
-
-  // PaymentShippingOptions
-  const validShippingOption = Object.freeze({
-    id: "abc",
-    label: "valid shipping option",
-    amount: validAmount,
-  });
-
-  const validShippingOptions = Object.freeze([validShippingOption]);
-  const invalidShippingOptions = Object.freeze([invalidShippingOption]);
 
   // PaymentDetailsModifier
   const validModifier = Object.freeze({
@@ -166,8 +144,7 @@
     promise_test(async (t) => {
       const request = new PaymentRequest(
         validMethods,
-        validDetails,
-        validOptions
+        validDetails
       );
       await test_driver.bless("Payment request");
       const detailsPromise = Promise.resolve(badDetails);
@@ -213,21 +190,6 @@
   testBadUpdate(
     "Updating with a displayItem with an invalid currency results in RangeError.",
     { ...validDetails, displayItems: invalidPaymentItems },
-    RangeError
-  );
-
-  testBadUpdate(
-    "Updating with duplicate shippingOptions (same IDs) results in a TypeError.",
-    {
-      ...validDetails,
-      shippingOptions: [validShippingOption, validShippingOption],
-    },
-    TypeError
-  );
-
-  testBadUpdate(
-    "Updating with a shippingOption with an invalid currency value results in a RangError.",
-    { ...validDetails, shippingOptions: invalidShippingOptions },
     RangeError
   );
 

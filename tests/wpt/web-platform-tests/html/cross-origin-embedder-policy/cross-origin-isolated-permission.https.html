@@ -130,16 +130,24 @@ function generateDedicatedWorkerTest(scheme, value, expectation) {
   }, `dedicated worker: scheme = ${scheme}, value = ${value}`);
 }
 
-function generateSharedWorkerTest(withCoopCoep) {
+function generateSharedWorkerTestWithCoopCoep() {
   async function run(t) {
     assert_equals(
-      await getCrossOriginIsolatedForSharedWorker(t, withCoopCoep),
-      withCoopCoep);
+      await getCrossOriginIsolatedForSharedWorker(t, true),
+      true);
   }
   // We use async_test, not promise_test here to run tests in parallel.
   async_test((t) => {
     run(t).then(() => t.done(), (e) => t.step(() => {throw e;}));
-  }, `shared worker: withCoopCoep = ${withCoopCoep}`);
+  }, `shared worker: withCoopCoep = true`);
+}
+
+function generateSharedWorkerTestWithoutCoopCoep() {
+  // We use async_test, not promise_test here to run tests in parallel.
+  async_test((t) => {
+    const worker = new SharedWorker(WORKER_URL);
+    worker.addEventListener('error', t.done());
+  }, `shared worker: withCoopCoep = false`);
 }
 
 function generateServiceWorkerTest(withCoopCoep) {
@@ -179,8 +187,8 @@ generateDedicatedWorkerTest('blob', 'self', true);
 // We need the backslash to escape the close parenthesis in a wpt pipe.
 generateDedicatedWorkerTest('blob', '(\\)', false);
 
-generateSharedWorkerTest(false);
-generateSharedWorkerTest(true);
+generateSharedWorkerTestWithoutCoopCoep();
+generateSharedWorkerTestWithCoopCoep();
 
 generateServiceWorkerTest(false);
 generateServiceWorkerTest(true);

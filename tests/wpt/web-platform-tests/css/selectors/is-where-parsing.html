@@ -10,39 +10,44 @@
 </style>
 <script>
   let rule = document.getElementById("test-sheet").sheet.cssRules[0];
-  function assert_valid(expected_valid, pattern, description) {
+  function assert_valid(expected_valid, pattern, expected_pattern, description) {
     test(function() {
       for (let pseudo of ["is", "where"]) {
-        let selector = pattern.replace("{}", ":" + pseudo)
+        let selector = pattern.replace("{}", ":" + pseudo);
+        let expected_selector = selector;
+        if (expected_pattern != null)
+          expected_selector = expected_pattern.replace("{}", ":" + pseudo);
         rule.selectorText = "random-selector";
         rule.selectorText = selector;
         (expected_valid ? assert_equals : assert_not_equals)(
           rule.selectorText,
-          selector,
+          expected_selector,
           `${description}: ${selector}`
         );
       }
     }, description);
   }
 
-  assert_valid(true, "{}(div + bar, div ~ .baz)", "Multiple selectors with combinators");
+  assert_valid(true, "{}(div )", "{}(div)", "Trailing whitespace");
+  assert_valid(true, "{}(div + bar, div ~ .baz)", null, "Multiple selectors with combinators");
 
-  assert_valid(true, "{}(:is(div))", "Nested :is");
-  assert_valid(true, "{}(:where(div))", "Nested :where");
+  assert_valid(true, "{}(:is(div))", null, "Nested :is");
+  assert_valid(true, "{}(:where(div))", null, "Nested :where");
 
-  assert_valid(true, ":host({}(div))", "Nested inside :host, without combinators");
+  assert_valid(true, ":host({}(div))", null, "Nested inside :host, without combinators");
+  assert_valid(true, ":host({}(div ))", ":host({}(div))", "Nested inside :host, with trailing whitespace");
   // See https://github.com/w3c/csswg-drafts/issues/5093
-  assert_valid(false, ":host({}(div .foo))", "Nested inside :host, with combinators");
+  assert_valid(false, ":host({}(div .foo))", null, "Nested inside :host, with combinators");
 
-  assert_valid(true, "{}(:hover, :active)", "Pseudo-classes inside");
-  assert_valid(true, "{}(div):hover", "Pseudo-classes after");
-  assert_valid(true, "{}(div)::before", "Pseudo-elements after");
-  assert_valid(false, "{}(::before)", "Pseudo-elements inside");
+  assert_valid(true, "{}(:hover, :active)", null, "Pseudo-classes inside");
+  assert_valid(true, "{}(div):hover", null, "Pseudo-classes after");
+  assert_valid(true, "{}(div)::before", null, "Pseudo-elements after");
+  assert_valid(false, "{}(::before)", null, "Pseudo-elements inside");
 
-  assert_valid(true, "{}(div) + bar", "Combinators after");
-  assert_valid(true, "::part(foo):is(:hover)", "After part with simple pseudo-class");
-  assert_valid(false, "::part(foo):is([attr='value'])", "After part with invalid selector after");
+  assert_valid(true, "{}(div) + bar", null, "Combinators after");
+  assert_valid(true, "::part(foo):is(:hover)", null, "After part with simple pseudo-class");
+  assert_valid(false, "::part(foo):is([attr='value'])", null, "After part with invalid selector after");
 
-  assert_valid(true, ":not({}(div))", "Nested inside :not, without combinators");
-  assert_valid(true, ":not({}(div .foo))", "Nested inside :not, with combinators");
+  assert_valid(true, ":not({}(div))", null, "Nested inside :not, without combinators");
+  assert_valid(true, ":not({}(div .foo))", null, "Nested inside :not, with combinators");
 </script>

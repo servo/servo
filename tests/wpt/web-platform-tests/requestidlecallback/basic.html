@@ -19,7 +19,7 @@ test(function() {
   assert_equals(typeof window.requestIdleCallback(function() {}), "number");
 }, "window.requestIdleCallback() returns a number");
 
-// The cancelIdleCallback method MUST return void
+// The cancelIdleCallback method MUST return undefined
 test(function() {
   assert_equals(typeof window.cancelIdleCallback(1), "undefined");
 }, "window.cancelIdleCallback() returns undefined");

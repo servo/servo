@@ -44,6 +44,33 @@ promise_test(async t => {
 }, 'Setting the current time of a paused animation to unresolved throws a'
    + ' TypeError');
 
+
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+
+  assert_throws_dom('NotSupportedError', () => {
+    animation.currentTime = CSSNumericValue.parse("30%");
+  });
+  assert_throws_dom('NotSupportedError', () => {
+    animation.currentTime = CSSNumericValue.parse("30deg");
+  });
+
+  animation.currentTime = 2000;
+  assert_equals(animation.currentTime, 2000, "Set current time using double");
+
+  animation.currentTime = CSSNumericValue.parse("3000");
+  assert_equals(animation.currentTime, 3000, "Set current time using " +
+    "CSSNumericValue number value");
+
+  animation.currentTime = CSSNumericValue.parse("4000ms");
+  assert_equals(animation.currentTime, 4000, "Set current time using " +
+    "CSSNumericValue milliseconds value");
+
+  animation.currentTime = CSSNumericValue.parse("50s");
+  assert_equals(animation.currentTime, 50000, "Set current time using " +
+    "CSSNumericValue seconds value");
+}, 'Validate different value types that can be used to set current time');
+
 promise_test(async t => {
   const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
   await anim.ready;

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#background-color">
+<link rel="match" href="background-color-transition-obscured-ref.html">
+<style>
+.parent {
+  width: 100px;
+  height: 100px;
+  background-color: rgb(0, 200, 0);
+  transition: background-color 200000ms steps(2) -99999.9ms;
+}
+.container {
+  width: 100px;
+  height: 100px;
+  background-color: rgb(0, 0, 200);
+  transition: background-color 200000ms steps(2) -99999.9ms;
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<body>
+<div class="parent" id="pa">
+  <div class="container" id="target"></div>
+</div>
+
+<script>
+function startTransition() {
+  requestAnimationFrame(() => {
+    document.getElementById('target').style.backgroundColor = "rgb(200, 0, 0)";
+    document.getElementById('pa').style.backgroundColor = "rgb(200, 0, 0)";
+    const animations = document.getAnimations();
+    Promise.all([animations[0].ready, animations[1].ready]).then(() => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          takeScreenshot();
+        });
+      });
+    });
+  });
+}
+
+requestAnimationFrame(startTransition);
+</script>
+</body>
+</html>

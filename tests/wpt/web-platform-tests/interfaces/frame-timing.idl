@@ -1,0 +1,8 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Frame Timing (https://wicg.github.io/frame-timing/)
+
+[Exposed=Window]
+interface PerformanceFrameTiming : PerformanceEntry {
+};

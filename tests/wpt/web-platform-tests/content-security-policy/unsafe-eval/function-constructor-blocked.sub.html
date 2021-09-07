@@ -16,7 +16,7 @@
         window.addEventListener('securitypolicyviolation', function(e) {
             log("violated-directive=" + e.violatedDirective);
         });
-        
+
         try {
             (new Function("log('FAIL')"))();
         } catch (e) {

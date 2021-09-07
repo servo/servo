@@ -1,0 +1,22 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+async_test(t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  window.onload = () => t.step_timeout(() => {
+    assert_equals(i.contentWindow.appHistory.entries().length, 1);
+    let key = i.contentWindow.appHistory.current.key;
+    i.contentWindow.appHistory.navigate("?1");
+    i.onload = t.step_func(async () => {
+      assert_equals(i.contentWindow.appHistory.entries().length, 2);
+      assert_equals(i.contentWindow.appHistory.current, i.contentWindow.appHistory.entries()[1]);
+      i.contentWindow.appHistory.onnavigate = e => e.preventDefault();
+      await promise_rejects_dom(t, 'AbortError', i.contentWindow.DOMException, i.contentWindow.appHistory.goTo(key));
+      t.done();
+    });
+  }, 0);
+}, "preventDefault on cross-document appHistory.goTo()");
+</script>

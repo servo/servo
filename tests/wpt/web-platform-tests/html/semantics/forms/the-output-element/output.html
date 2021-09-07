@@ -7,8 +7,10 @@
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
 <output id=output></output>
+<output id="defaultValueOutput">abc</output>
 <script>
   var output = document.getElementById("output");
+  var defaultValueOutput = document.getElementById("defaultValueOutput");
 
   test(function(){
     assert_equals(output.type, "output", "type must return the string 'output'");
@@ -35,5 +37,10 @@
     assert_equals(output.value, "20", "defaultValue is set to 15: value remains unchanged");
     assert_equals(output.textContent, "20", "defaultValue is set to 15: textContent remains unchanged");
     assert_equals(output.defaultValue, "15", "defaultValue is set to 15");
+
+    assert_equals(defaultValueOutput.type, "output", "type must return the string 'output'");
+    assert_equals(defaultValueOutput.textContent, "abc", "textContent should be 'abc'");
+    assert_equals(defaultValueOutput.value, "abc", "value should be 'abc'");
+    assert_equals(defaultValueOutput.defaultValue, "abc", "defaultValue should be 'abc'");
   }, "output value and defaultValue");
 </script>

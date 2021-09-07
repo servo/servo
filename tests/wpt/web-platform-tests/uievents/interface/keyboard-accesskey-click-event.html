@@ -7,12 +7,14 @@
 <p>Tests that a keyboard access key to press a button will fire only the click event</p>
 <button id="button" accesskey="g">Click Me with Shift+Alt+g or on Mac with Control+Option+g</button>
 <input id="inputbutton" type="button" accesskey="b" value="Click me with Shift+Alt+b or on Mac with Control+Option+b">
+<label id="label" accesskey="l">Click Me with Shift+Alt+l or on Mac with Control+Option+l</label>
 
 <script>
 let button = document.getElementById("button");
 let inputbutton = document.getElementById("inputbutton");
 let radiobutton = document.getElementById("radiobutton");
-let elementList = [button, inputbutton];
+let label = document.getElementById("label");
+let elementList = [button, inputbutton, label];
 let eventLog = [];
 const eventList = ["pointerdown", "pointerup", "mousedown", "mouseup", "click"];
 elementList.forEach((el)=>{eventList.forEach((ev)=>el.addEventListener(ev, (e)=>{
@@ -24,12 +26,21 @@ elementList.forEach((el)=>{eventList.forEach((ev)=>el.addEventListener(ev, (e)=>
         assert_equals(e.pointerId, 0, "Click's pointerId has default value");
         assert_equals(e.pointerType, "", "Click's pointerType has default value");
       }
+      assert_equals(e.screenX, 0, "Click's screenX has default value");
+      assert_equals(e.screenY, 0, "Click's screenY has default value");
+      assert_equals(e.clientX, 0, "Click's clientX has default value");
+      assert_equals(e.clientY, 0, "Click's clientY has default value");
+      assert_equals(e.pageX, 0, "Click's pageX has default value");
+      assert_equals(e.pageY, 0, "Click's pageY has default value");
+      // https://github.com/w3c/csswg-drafts/issues/1070
+      assert_equals(e.offsetX, 0, "Click's offsetX should have default value");
+      assert_equals(e.offsetY, 0, "Click's offsetY should have default value");
     });
   }
 }));});
 let currentTest;
-let testElements = [button, inputbutton];
-let accesskeyMap = new Map([[button, "g"], [inputbutton, "b"]]);
+let testElements = [button, inputbutton, label];
+let accesskeyMap = new Map([[button, "g"], [inputbutton, "b"], [label, "l"]]);
 testElements.forEach((el)=>promise_test((test)=> new Promise(async (resolve,reject)=>{
   currentTest = test;
   eventLog = [];
@@ -53,18 +64,12 @@ function pressAccessKey(actions, accessKey){
   // There are differences in using accesskey across browsers and OS's.
   // See: // https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/accesskey
   let isMacOSX = navigator.userAgent.indexOf("Mac") != -1;
-  let isFirefox = navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
   // Default OS access keys.
   let osAccessKey = [shiftKey, altKey];
   // Set the OS keys that need to be pressed for a keyboard accessibility click.
   if(isMacOSX){
-    if(isFirefox){
-      // On Firefox on Mac use Shift + Option + accesskey.
-      osAccessKey = [shiftKey, optionKey];
-    }else{
-      // On Mac use Control + Option + accesskey (for button is g).
-      osAccessKey = [controlKey, optionKey];
-    }
+    // On Mac use Control + Option + accesskey (for button is g).
+    osAccessKey = [controlKey, optionKey];
   }
   // Press keys.
   for(key of osAccessKey)

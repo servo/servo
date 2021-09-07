@@ -12,8 +12,6 @@
 
 # TODO: keep comments in the tree
 
-from __future__ import unicode_literals
-
 from io import BytesIO
 
 from .node import (Node, AtomNode, BinaryExpressionNode, BinaryOperatorNode,
@@ -58,7 +56,7 @@ def precedence(operator_node):
 
 
 class TokenTypes(object):
-    def __init__(self):
+    def __init__(self) -> None:
         for type in ["group_start", "group_end", "paren", "list_start", "list_end", "separator", "ident", "string", "number", "atom", "eof"]:
             setattr(self, type, type)
 

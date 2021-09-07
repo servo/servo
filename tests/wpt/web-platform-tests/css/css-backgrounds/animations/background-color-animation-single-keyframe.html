@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#background-color">
+<link rel="match" href="background-color-animation-single-keyframe-ref.html">
+<style>
+.container {
+  width: 100px;
+  height: 100px;
+  background-color: rgb(200, 0, 0);
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<body>
+<div class="container" id="target"></div>
+
+<script>
+document.getElementById("target").animate({backgroundColor: 'rgb(0, 200, 0)'}, 100000000000);
+takeScreenshot();
+</script>
+</body>
+</html>

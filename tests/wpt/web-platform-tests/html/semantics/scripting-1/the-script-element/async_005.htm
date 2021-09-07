@@ -17,7 +17,10 @@
 
         function timeout()
         {
-            t.step(function(){ assert_equals(document.getElementById("testresult").innerHTML, "2134")});
+            t.step(function(){
+                var actual = document.getElementById("testresult").innerHTML;
+                assert_in_array(actual, ["2134", "2341"]);
+            });
             t.done();
         }
 

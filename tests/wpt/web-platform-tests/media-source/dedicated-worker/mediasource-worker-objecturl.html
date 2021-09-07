@@ -3,6 +3,7 @@
 <title>Test MediaSource object and objectUrl creation and revocation, with MediaSource in dedicated worker</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="mediasource-message-util.js"></script>
 <script>
 
 async_test(t => {
@@ -10,15 +11,26 @@ async_test(t => {
   assert_true(MediaSource.hasOwnProperty("canConstructInDedicatedWorker"), "MediaSource hasOwnProperty 'canConstructInDedicatedWorker'");
   assert_true(MediaSource.canConstructInDedicatedWorker, "MediaSource.canConstructInDedicatedWorker");
 
-  let worker = new Worker("mediasource-worker-util.js");
+  let worker = new Worker("mediasource-worker-play.js");
   worker.onmessage = t.step_func(e => {
-    if (e.data.substr(0,6) == "Error:") {
-      assert_unreached("Worker error: " + e.data);
-    } else {
-      const url = e.data;
-      assert_true(url.match(/^blob:.+/) != null);
-      URL.revokeObjectURL(url);
-      t.done();
+    let subject = e.data.subject;
+    assert_true(subject != undefined, "message must have a subject field");
+    switch (subject) {
+      case messageSubject.ERROR:
+        assert_unreached("Worker error: " + e.data.info);
+        break;
+      case messageSubject.OBJECT_URL:
+        const url = e.data.info;
+        assert_true(url.match(/^blob:.+/) != null);
+        URL.revokeObjectURL(url);
+        // TODO(crbug.com/1196040): Revoking MediaSource objectURLs on thread
+        // that didn't create them is at best a no-op. This test case is
+        // possibly obsolete.
+        t.done();
+        break;
+      default:
+        assert_unreached("Unexpected message subject: " + subject);
+
     }
   });
 }, "Test main context revocation of DedicatedWorker MediaSource object URL");

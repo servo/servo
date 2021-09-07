@@ -1,0 +1,9 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  appHistory.onnavigate = t.unreached_func("onnavigate");
+  await promise_rejects_dom(t, "SyntaxError", appHistory.navigate("https://example.com\u0000mozilla.org"));
+}, "navigate() with invalid url");
+</script>

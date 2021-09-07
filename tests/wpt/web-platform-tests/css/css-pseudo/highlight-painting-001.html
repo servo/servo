@@ -7,25 +7,18 @@
 <link rel="match" href="highlight-painting-001-ref.html">
 <meta name="assert" value="::selection overlay is painted in the correct order, including both the element’s shadows and the highlight’s shadows">
 <script src="support/selections.js"></script>
+<link rel="stylesheet" href="support/highlights.css">
 <style>
     p {
         font-size: 7em;
         text-shadow: 0.2500em 0.2500em #C0C000;
-
-        /*
-            https://drafts.csswg.org/css-pseudo-4/#highlight-bounds
-            For text, the corresponding overlay must cover at least
-            the entire em box and may extend further above/below the
-            em box to the line box edges.
-        */
-        line-height: 1;
     }
     p::selection {
         background: #C0C0C0;
         text-shadow: 0.5000em 0.5000em #3838E0;
     }
 </style>
-<p>quick
+<p class="highlight_reftest">quick
 <script>
     const target = document.querySelector("p");
     selectRangeWith(range => {

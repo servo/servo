@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Referrers with CSS module requests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script type="module">
+  // "name" parameter is necessary for bypassing the module map.
+  import referrerSame from "./resources/referrer-checker.py?name=sameNoReferrerPolicy" assert { type: "css"};
+  import referrerRemote from "http://{{domains[www1]}}:{{ports[http][0]}}/html/semantics/scripting-1/the-script-element/css-module/resources/referrer-checker.py?name=remoteNoReferrerPolicy" assert { type: "css"};
+
+  const origin = (new URL(location.href)).origin + "/";
+  const originUrl = location.href;
+
+  test(t => {
+    assert_equals(
+        referrerSame.rules[0].style.content, '"' + originUrl + '"',
+        "Referrer URL should be sent for the same-origin top-level script.");
+  }, "Importing a same-origin top-level script with the default referrer policy.");
+
+  test(t => {
+    assert_equals(
+        referrerRemote.rules[0].style.content, '"' + origin + '"',
+        "Referrer origin should be sent for the remote-origin top-level script.");
+  }, "Importing a remote-origin top-level script with the default referrer policy.");
+</script>
+<script type="module" referrerpolicy="origin">
+  import referrerSame from "./resources/referrer-checker.py?name=sameReferrerPolicyOrigin" assert { type: "css"};
+  import referrerRemote from "http://{{domains[www1]}}:{{ports[http][0]}}/html/semantics/scripting-1/the-script-element/css-module/resources/referrer-checker.py?name=remoteReferrerPolicyOrigin" assert { type: "css"};
+
+  const origin = (new URL(location.href)).origin + "/";
+
+  test(t => {
+    assert_equals(
+        referrerSame.rules[0].style.content, '"' + origin + '"',
+        "Referrer origin should be sent for the same-origin top-level script.");
+  }, "Importing a same-origin top-level script with the origin policy.");
+
+  test(t => {
+    assert_equals(
+        referrerRemote.rules[0].style.content, '"' + origin + '"',
+        "Referrer origin should be sent for the remote-origin top-level script.");
+  }, "Importing a remote-origin top-level script with the origin policy.");
+
+</script>
+<script type="module" referrerpolicy="no-referrer">
+  import referrerSame from "./resources/referrer-checker.py?name=sameReferrerPolicyNoReferrer" assert { type: "css"};
+  import referrerRemote from "http://{{domains[www1]}}:{{ports[http][0]}}/html/semantics/scripting-1/the-script-element/css-module/resources/referrer-checker.py?name=remoteReferrerPolicyNoReferrer" assert { type: "css"};
+
+  test(t => {
+    assert_equals(
+        referrerSame.rules[0].style.content, '""',
+        "No referrer should be sent for the same-origin top-level script.");
+  }, "Importing a same-origin top-level script with the no-referrer policy.");
+
+  test(t => {
+    assert_equals(
+        referrerRemote.rules[0].style.content, '""',
+        "No referrer should be sent for the remote-origin top-level script.");
+  }, "Importing a remote-origin top-level script with the no-referrer policy.");
+
+</script>
+<script type="module" referrerpolicy="unsafe-url">
+  import referrerSame from "./resources/referrer-checker.py?name=sameNoReferrerPolicyUnsafeUrl" assert { type: "css"};
+  import referrerRemote from "http://{{domains[www1]}}:{{ports[http][0]}}/html/semantics/scripting-1/the-script-element/css-module/resources/referrer-checker.py?name=remoteNoReferrerPolicyUnsafeUrl" assert { type: "css"};
+
+  const originUrl = location.href;
+
+  test(t => {
+    assert_equals(
+        referrerSame.rules[0].style.content, '"' + originUrl + '"',
+        "Referrer URL should be sent for the same-origin top-level script.");
+  }, "Importing a same-origin top-level script with the unsafe-url referrer policy.");
+
+  test(t => {
+    assert_equals(
+        referrerRemote.rules[0].style.content, '"' + originUrl + '"',
+        "Referrer URL should be sent for the remote-origin top-level script.");
+  }, "Importing a remote-origin top-level script with the unsafe-url referrer policy.");
+</script>
+</body>
+</html>

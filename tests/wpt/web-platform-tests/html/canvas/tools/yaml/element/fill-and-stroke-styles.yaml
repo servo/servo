@@ -108,6 +108,26 @@
   code: |
     @assert ctx.fillStyle === '#000000';
 
+- name: 2d.fillStyle.toStringFunctionCallback
+  desc: Passing a function in to ctx.fillStyle or ctx.strokeStyle with a toString callback works as specified
+  testing:
+    2d.colours.toStringFunctionCallback
+  code: |
+    ctx.fillStyle = { toString: function() { return "#008000"; } };
+    @assert ctx.fillStyle === "#008000";
+    ctx.fillStyle = {};
+    @assert ctx.fillStyle === "#008000";
+    ctx.fillStyle = 800000;
+    @assert ctx.fillStyle === "#008000";
+    @assert throws TypeError ctx.fillStyle = { toString: function() { throw new TypeError; } };
+    ctx.strokeStyle = { toString: function() { return "#008000"; } };
+    @assert ctx.strokeStyle === "#008000";
+    ctx.strokeStyle = {};
+    @assert ctx.strokeStyle === "#008000";
+    ctx.strokeStyle = 800000;
+    @assert ctx.strokeStyle === "#008000";
+    @assert throws TypeError ctx.strokeStyle = { toString: function() { throw new TypeError; } };
+
 - name: 2d.strokeStyle.default
   testing:
   - 2d.colours.default
@@ -1174,20 +1194,44 @@
     @assert pixel 75,25 == 0,255,0,255;
   expected: green
 
-- name: 2d.gradient.conic
-  desc: Conic gradient function exists
+- name: 2d.gradient.conic.positive.rotation
+  desc: Conic gradient with positive rotation
   code: |
-    const g = ctx.createConicGradient(0, 0, 25);
-    g.addColorStop(0, "#0f0");
-    g.addColorStop(0.5, "#0f0");
-    g.addColorStop(0.51, "#f00");
-    g.addColorStop(1, "#f00");
+    const g = ctx.createConicGradient(3*Math.PI/2, 50, 25);
+    // It's red in the upper right region and green on the lower left region
+    g.addColorStop(0, "#f00");
+    g.addColorStop(0.25, "#0f0");
+    g.addColorStop(0.50, "#0f0");
+    g.addColorStop(0.75, "#f00");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, 100, 50);
-    @assert pixel 25,25 == 0,255,0,255;
-    @assert pixel 50,25 == 0,255,0,255;
-    @assert pixel 75,25 == 0,255,0,255;
+    @assert pixel 25,15 == 255,0,0,255;
+    @assert pixel 75,40 == 0,255,0,255;
   expected: green
+
+- name: 2d.gradient.conic.negative.rotation
+  desc: Conic gradient with negative rotation
+  code: |
+    const g = ctx.createConicGradient(-Math.PI/2, 50, 25);
+    // It's red in the upper right region and green on the lower left region
+    g.addColorStop(0, "#f00");
+    g.addColorStop(0.25, "#0f0");
+    g.addColorStop(0.50, "#0f0");
+    g.addColorStop(0.75, "#f00");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 25,15 == 255,0,0,255;
+    @assert pixel 75,40 == 0,255,0,255;
+  expected: green
+
+- name: 2d.gradient.conic.invalid.inputs
+  desc: Conic gradient function with invalid inputs
+  code: |
+    @nonfinite @assert throws TypeError ctx.createConicGradient(<0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <1 Infinity -Infinity NaN>);
+
+    const g = ctx.createConicGradient(0, 0, 25);
+    @nonfinite @assert throws TypeError g.addColorStop(<Infinity -Infinity NaN>, <'#f00'>);
+    @nonfinite @assert throws SYNTAX_ERR g.addColorStop(<0>, <Infinity -Infinity NaN>);
 
 - name: 2d.pattern.basic.type
   testing:
@@ -2118,6 +2162,75 @@
     }, 250);
   expected: green
 
+- name: 2d.fillStyle.CSSRGB
+  desc: CSSRGB works as color input
+  testing:
+  - 2d.colours.CSSRGB
+  code: |
+    ctx.fillStyle = new CSSRGB(1, 0, 1);
+    @assert ctx.fillStyle === '#ff00ff';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 255,0,255,255;
 
+    const color = new CSSRGB(0, CSS.percent(50), 0);
+    ctx.fillStyle = color;
+    @assert ctx.fillStyle === '#008000';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,128,0,255;
+    color.g = 0;
+    ctx.fillStyle = color;
+    @assert ctx.fillStyle === '#000000';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,0,0,255;
 
+    color.alpha = 0;
+    ctx.fillStyle = color;
+    @assert ctx.fillStyle === 'rgba(0, 0, 0, 0)';
+    ctx.reset();
+    color.alpha = 0.5;
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,0,0,128;
 
+    ctx.fillStyle = new CSSHSL(CSS.deg(0), 1, 1).toRGB();
+    @assert ctx.fillStyle === '#ffffff';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 255,255,255,255;
+
+    color.alpha = 1;
+    color.g = 1;
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, 100, 50);
+  expected: green
+
+- name: 2d.fillStyle.CSSHSL
+  desc: CSSHSL works as color input
+  testing:
+  - 2d.colours.CSSHSL
+  code: |
+    ctx.fillStyle = new CSSHSL(CSS.deg(180), 0.5, 0.5);
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 ==~ 64,191,191,255 +/- 3;
+
+    const color = new CSSHSL(CSS.deg(180), 1, 1);
+    ctx.fillStyle = color;
+    @assert ctx.fillStyle === '#ffffff';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 255,255,255,255;
+    color.l = 0.5;
+    ctx.fillStyle = color;
+    @assert ctx.fillStyle === '#00ffff';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,255,255;
+
+    ctx.fillStyle = new CSSRGB(1, 0, 1).toHSL();
+    @assert ctx.fillStyle === '#ff00ff';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 255,0,255,255;
+
+    color.h = CSS.deg(120);
+    color.s = 1;
+    color.l = 0.5;
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, 100, 50);
+  expected: green

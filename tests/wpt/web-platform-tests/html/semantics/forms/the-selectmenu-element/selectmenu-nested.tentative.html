@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<title>HTMLSelectMenuElement Test: nested selects</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<selectmenu id="selectMenu0">
+  <popup slot="listbox" part="listbox">
+    <selectmenu id="nested0">
+      <option id="child1">one</option>
+      <option id="child2">two</option>
+    </selectmenu>
+    <option id="child3">three</option>
+  </popup>
+</selectmenu>
+
+<selectmenu id="selectMenu1">
+  <popup slot="listbox" part="listbox">
+    <select>
+      <option>one</option>
+      <option>two</option>
+    </select>
+    <option>three</option>
+  </popup>
+</selectmenu>
+
+<selectmenu id="selectMenu2">
+  <div slot="button">
+    <selectmenu id="nested2">
+      <div slot="button" part="button" id="selectMenu2-button0">button0</div>
+      <option id="nested2-option1">one</option>
+    </selectmenu>
+    <div part="button" id="selectMenu2-button1">button1</div>
+  </div>
+  <option>two</option>
+</selectmenu>
+
+<script>
+  function clickOn(element) {
+    const actions = new test_driver.Actions();
+    return actions.pointerMove(0, 0, {origin: element})
+      .pointerDown({button: actions.ButtonType.LEFT})
+      .pointerUp({button: actions.ButtonType.LEFT})
+      .send();
+  }
+
+  promise_test(async () => {
+    const selectMenu0 = document.getElementById("selectMenu0");
+    const nested0 = document.getElementById("nested0");
+    const child2 = document.getElementById("child2");
+    assert_equals(selectMenu0.value, "three", "Options nested in another <selectmenu> should not get controller code from outer <selectmenu>");
+    await clickOn(selectMenu0);
+    assert_true(selectMenu0.open);
+    assert_false(nested0.open);
+
+    await clickOn(nested0);
+    assert_true(nested0.open);
+
+    await clickOn(child2);
+    assert_false(nested0.open);
+    assert_equals(nested0.value, "two");
+    assert_true(selectMenu0.open, "click on option in inner <selectmenu> should not close outer <selectmenu>");
+    assert_equals(selectMenu0.value, "three", "click on option in inner <selectmenu> should not change value of outer <selectmenu>");
+  }, "A <selectmenu> shouldn't apply controller code to parts nested in a <selectmenu> child");
+
+  promise_test(async () => {
+    const selectMenu1 = document.getElementById("selectMenu1");
+    assert_equals(selectMenu0.value, "three");
+  }, "A <selectmenu> shouldn't apply controller code to parts nested in a <select> child");
+
+  promise_test(async () => {
+    const selectMenu2 = document.getElementById("selectMenu2");
+    const nested2 = document.getElementById("nested2");
+    const button0 = document.getElementById("selectMenu2-button0");
+    const button1 = document.getElementById("selectMenu2-button1");
+    const nested2Option1 = document.getElementById("nested2-option1");
+    assert_false(selectMenu2.open);
+    assert_false(nested2.open);
+
+    await clickOn(button0);
+    assert_false(selectMenu2.open, "Clicking the button of a nested <selectmenu> should not open the outer <selectmenu>");
+    assert_true(nested2.open, "Clicking the button of a nested <selectmenu> should open the outer <selectmenu>");
+
+    await clickOn(nested2Option1);
+    assert_false(nested2.open);
+
+    await clickOn(button1);
+    assert_true(selectMenu2.open);
+    assert_false(nested2.open);
+  }, "A nested button part in a nested <selectmenu> shouldn't get controller code even if it comes first in document order");
+</script>

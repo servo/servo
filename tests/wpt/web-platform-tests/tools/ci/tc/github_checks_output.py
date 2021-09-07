@@ -1,10 +1,7 @@
-import io
-from six import ensure_text
-
 MYPY = False
 if MYPY:
     # MYPY is set to True when run under Mypy.
-    from typing import AnyStr, Optional, Text
+    from typing import Optional, Text
 
 
 class GitHubChecksOutputter(object):
@@ -21,15 +18,10 @@ class GitHubChecksOutputter(object):
         self.path = path
 
     def output(self, line):
-        # type: (AnyStr) -> None
-        text = ensure_text(line)
-        # NOTE: mypy types the "text mode" of open() in Python 2 as BinaryIO,
-        # which makes sense as we cannot specify its encoding (it's
-        # platform-dependent), while io.open() is closer to open() in Python 3.
-        # TODO: use the built-in open() when we are Py3-only.
-        with io.open(self.path, mode="a") as f:
-            f.write(text)
-            f.write(u"\n")
+        # type: (Text) -> None
+        with open(self.path, mode="a") as f:
+            f.write(line)
+            f.write("\n")
 
 
 __outputter = None

@@ -1,0 +1,26 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+promise_test(async t => {
+  await new Promise(resolve => window.onload = resolve);
+  let navigate_event_count = 0;
+  i.contentWindow.appHistory.onnavigate = () => navigate_event_count++;
+  i.contentWindow.appHistory.onnavigatesuccess = t.unreached_func('onnavigatesuccess should not be called');
+  i.contentWindow.appHistory.onnavigateerror = t.unreached_func('onnavigateerror should not be called');
+  let onbeforeunload_promise;
+  // The iframe does not have sticky activation, so per
+  // https://html.spec.whatwg.org/#prompt-to-unload-a-document, no prompt is
+  // shown and the navigation will proceed.
+  i.contentWindow.onbeforeunload = t.step_func(() => {
+    onbeforeunload_promise = i.contentWindow.appHistory.navigate("https://example.com\u0000mozilla.org").catch(e => {
+      assert_equals(e.constructor, i.contentWindow.DOMException);
+      assert_equals(e.name, "SyntaxError");
+    });
+  });
+  i.contentWindow.appHistory.navigate("?1");
+  await onbeforeunload_promise;
+  assert_equals(navigate_event_count, 1);
+}, `navigate() with an invalid URL inside onbeforeunload throws "SyntaxError", not "InvalidStateError"`);
+</script>

@@ -1,6 +1,6 @@
 import time
 
-from six.moves.urllib.parse import urlencode, urlparse
+from urllib.parse import urlencode, urlparse
 
 from wptserve.utils import isomorphic_decode, isomorphic_encode
 

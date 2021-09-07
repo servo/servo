@@ -16,6 +16,7 @@
   <meta content="" name="flags">
   <meta name="assert" content="This test is an adaptation (or modified version) of Example 12 (#example-97480f68). In this test, &ltspan&gt; element's ::selection matches the ::selection { background-color: green; } rule and not the div#test::selection rule because '*' is implied when a tag selector is missing.">
 
+  <link rel="stylesheet" href="support/highlights.css">
   <style>
   div
     {
@@ -51,4 +52,4 @@
 
   <p>Test passes if background color of "Text sample" is green and <strong>not red</strong>.
 
-  <div id="test"><span>Text sample</span></div>
+  <div id="test" class="highlight_reftest"><span>Text sample</span></div>

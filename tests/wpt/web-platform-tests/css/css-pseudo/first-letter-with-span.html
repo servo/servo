@@ -1,0 +1,11 @@
+<!DOCTYPE HTML>
+<title>CSS Test: The ::first-letter should work with quote text span element</title>
+<link rel="author" title="Jaeyong Bae" href="jdragon.bae@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#application-in-css">
+<link rel="match" href="first-letter-with-span-ref.html">
+<style>
+  p::first-letter { color: red }
+</style>
+<p>
+  <span>"</span>abc"
+</p>

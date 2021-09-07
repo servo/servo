@@ -1,9 +1,15 @@
 <!doctype html>
 <meta charset=utf-8>
-<meta name=timeout content=long>
+<meta name="timeout" content="long">
+<meta name="variant" content="?0-1">
+<meta name="variant" content="?2-3">
+<meta name="variant" content="?4-5">
+<meta name="variant" content="?6-7">
+<meta name="variant" content="?8-last">
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src="/common/get-host-info.sub.js"></script>
+<script src="/common/subset-tests.js"></script>
 <script src="resources/common.js"></script>
 
 <div id=log></div>
@@ -39,16 +45,21 @@ function coop_redirect_cache_test(t, hostA, hostB, coop, coep, redirectCache, de
 }
 
 function run_redirect_cache_tests(documentCOOPValueTitle, testArray) {
-  for (const test of tests) {
+  testArray.forEach((test, i) => {
+    // Only run specified variants
+    if (!shouldRunSubTest(i)) {
+      return;
+    }
+
     async_test(t => {
       // Use a consistent channel name for deterministic failure output
       let channelName = `${test[0].name}_${test[1].name}${test[2] ? "" : "_not"}_cache_redirect${test[3] ? "" : "_not"}_cache_destination`;
       coop_redirect_cache_test(t, test[0], test[1], "same-origin", "require-corp", test[2], test[3], channelName, test[4]);
     }, `${documentCOOPValueTitle} document opening popup redirect from ${test[0].origin} to ${test[1].origin} with redirectCache ${test[2]} and destCache ${test[3]}`);
-  }
+  });
 }
 
-let tests = [
+const tests = [
   // popup Origin, final Origin, isCacheRedirect, isCacheDestination, hasOpener
   // Origin A->A->B
   [SAME_ORIGIN, CROSS_ORIGIN, true, false, false],

@@ -1,0 +1,28 @@
+<!doctype html>
+<title>Scheduler: postTask in Detached Scheduler</title>
+<link rel="author" title="Nate Chapin" href="mailto:japhet@chromium.org">
+<link rel="help" href="https://github.com/WICG/scheduling-apis">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+'use strict';
+
+async_test(t => {
+  onload = () => {
+    let didRun = false;
+    const frame = document.body.appendChild(document.createElement('iframe'));
+    frame.contentWindow.scheduler.postTask(() => { didRun = true; });
+    document.body.removeChild(frame);
+
+    // We cannot assume anything about ordering between postTask tasks and
+    // non-postTask or postTask tasks from different schedulers, so the best we
+    // can do is give the task time to run.
+    t.step_timeout(() => {
+      assert_false(didRun, 'The task should not have run.');
+      t.done();
+    }, 10);
+  }
+}, 'Test scheduler.postTask() from an iframe that is removed before the task runs');
+
+</script>

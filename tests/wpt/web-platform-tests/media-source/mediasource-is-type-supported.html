@@ -53,6 +53,19 @@
               'video/webm;codecs="mp4a.40.2"',
           ], false, 'Test invalid mismatch between MIME type and codec ID');
 
+          // Note that, though the user agent might support some subset of
+          // these for progressive non-MSE playback, the MSE mpeg audio
+          // bytestream format specification requires there to be no codecs
+          // parameter.
+          test_type_support([
+              'audio/mpeg;codecs="mp3"',
+              'audio/mpeg;codecs="mp4a.69"',
+              'audio/mpeg;codecs="mp4a.6B"',
+              'audio/aac;codecs="aac"',
+              'audio/aac;codecs="adts"',
+              'audio/aac;codecs="mp4a.40"',
+          ], false, 'Test invalid inclusion of codecs parameter for mpeg audio types');
+
           test_type_support([
               'audio/mp4;codecs="mp4a"',
               'audio/mp4;codecs="mp4a.40"',

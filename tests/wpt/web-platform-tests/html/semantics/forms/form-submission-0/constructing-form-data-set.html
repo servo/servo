@@ -115,6 +115,17 @@ t1.step(() => {
 });
 
 test(() => {
+  const form = populateForm('');
+  form.addEventListener('formdata', e => {
+    e.formData.append('a\nb', 'c\rd');
+  });
+  const formData = new FormData(form);
+  const [name, value] = [...formData][0];
+  assert_equals(name, 'a\nb');
+  assert_equals(value, 'c\rd');
+}, 'Entries added to the "formdata" IDL attribute shouldn\'t be newline normalized in the resulting FormData');
+
+test(() => {
   let form = populateForm('<input name=n1 value=v1><button type=submit name=n2 value=v2></button>');
   let formDataInEvent = null;
   let submitter = form.querySelector('button[type=submit]');

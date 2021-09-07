@@ -1,0 +1,13 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Federated Learning of Cohorts (https://wicg.github.io/floc/)
+
+dictionary InterestCohort {
+  DOMString id;
+  DOMString version;
+};
+
+partial interface Document {
+    Promise<InterestCohort> interestCohort();
+};

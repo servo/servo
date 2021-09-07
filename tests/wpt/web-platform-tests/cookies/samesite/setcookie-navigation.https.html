@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="timeout" content="long">
-<meta name="variant" content="">
-<meta name="variant" content="?legacy-samesite">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/cookies/resources/cookie-helper.sub.js"></script>
@@ -64,8 +62,7 @@
       let message = await wait_for_message('FRAME_COOKIES_SET', SECURE_ORIGIN);
       // Check for the proper cookies.
       let samesite_none_cookies = ['samesite_none'];
-      let samesite_cookies = ['samesite_strict', 'samesite_lax'];
-      (isLegacySameSite() ? samesite_none_cookies : samesite_cookies).push('samesite_unspecified');
+      let samesite_cookies = ['samesite_strict', 'samesite_lax', 'samesite_unspecified'];
       assert_cookies_present(message.data.cookies, value, samesite_none_cookies, true);
       assert_cookies_present(message.data.cookies, value, samesite_cookies, !cross_site);
       w.close();

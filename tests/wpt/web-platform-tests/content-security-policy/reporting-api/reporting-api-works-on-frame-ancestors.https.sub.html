@@ -1,0 +1,17 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Test that reports using the report-api service are sent when there's a frame-ancestors violation</title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+  <iframe src="https://{{hosts[alt][]}}:{{ports[https][0]}}/content-security-policy/reporting-api/support/non-embeddable-frame.html?id={{$id:uuid()}}"></iframe>
+
+  <!-- Check that a report is sent to the child's reporting endpoint -->
+  <script async defer src='../support/checkReport.sub.js?reportField=effectiveDirective&reportValue=frame-ancestors%20%27none%27&reportID={{$id}}'></script>
+
+  <!-- Check that no report is sent to the parent's reporting endpoint -->
+  <script async defer src='../support/checkReport.sub.js?reportExists=false&testName=No%20report%20to%20parent.'></script>
+</body>
+</html>

@@ -139,6 +139,11 @@
           expected: "",
           name: "Ignore cookie with no name or value",
         },
+        {
+          cookie: "%74%65%73%74=20",
+          expected: "%74%65%73%74=20",
+          name: "URL-encoded cookie name is not decoded",
+        },
       ];
 
       for (const test of nameTests) {

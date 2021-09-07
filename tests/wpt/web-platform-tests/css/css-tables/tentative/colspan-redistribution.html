@@ -41,7 +41,7 @@
   <li class="error">Red paragraphs are major browser disagreements</li>
 </ol>
 
-<h2>Colspan&gt;1 cell's percentage distribution</h2>
+<h2>Colspan&gt;1 cell's percentage distribution auto tables</h2>
 <p>Rules</p>
 <ul>
   <li>Percentages can only be redistributed to non-percentage cells.</li>
@@ -97,6 +97,87 @@ Percentage is not getting redistributed, because column% > colspan&gt;1%</p>
   </tr>
   <tr>
     <td colspan=2 style="width:19%" data-expected-width="208"><div style="width:208px">208</div></td>
+  </tr>
+</table>
+
+<h2>Colspan&gt;1 cell's percentage distribution fixed tables</h2>
+<p>Colspan cells distribute width over col widths.
+<p>Rules</p>
+<ul>
+  <li>Percentages are not distributed to fixed columns.</li>
+  <li>Percentages are not distributed to percentage columns.</li>
+  <li>Percentages are distributed to auto columns, each column gets distributed%/colspan percent.</li>
+</ul>
+<p class="testdesc">Auto column distribution
+auto colums get percentage widths distributed evenly.
+C0/C1 become 25% columns.
+Assignable table size is 400-4*8=368. Column size is 25% of 368 = 92px</p>
+<p class="error">FF disagrees in how border-spacing is handled and ends up with slightly different cell widths. </p>
+<table style="table-layout:fixed; width: 400px">
+  <col style="width:auto">
+  <col style="width:auto">
+  <tr>
+    <td colspan="2" style="width:50%">50%</td>
+    <td>a</td>
+  </tr>
+  <tr>
+    <td data-expected-width=92>a</td>
+    <td data-expected-width=92>aa</td>
+    <td>a</td>
+  </tr>
+</table>
+
+<p class="testdesc">Fixed column distribution
+fixed columns do not get percentage distribution.</p>
+<table style="table-layout:fixed; width: 400px">
+  <col style="width:50px">
+  <col style="width:50px">
+  <tr>
+    <td colspan="2" style="width:50%">50%</td>
+    <td>a</td>
+  </tr>
+  <tr>
+    <td data-expected-width="50">a</td>
+    <td data-expected-width="50">a</td>
+    <td>a</td>
+  </tr>
+</table>
+
+<p class="testdesc">Percentage column distribution
+percentage columns do not get percentage distribution.</p>
+<table style="table-layout:fixed; width: 400px">
+  <col style="width:12.5%">
+  <col style="width:25%">
+  <tr>
+    <td colspan="2" style="width:50%">50%</td>
+    <td>a</td>
+  </tr>
+  <tr>
+    <td data-expected-width="46">a</td>
+    <td data-expected-width="92">a</td>
+    <td>a</td>
+  </tr>
+</table>
+
+<p class="testdesc">Distribute over percentage/auto/fixed mix cells
+Collspanned TD distributes 50%. Auto TD gets 50%/(colspanned span = 4): 12.5%
+12.5%* 400px is 50.
+</p>
+<table style="table-layout:fixed; width: 400px;border-spacing:0">
+  <col style="width:25%">
+  <col style="width:25px">
+  <col style="width:25px">
+  <col style="width:auto">
+  <tr>
+    <td colspan="4" style="width:50%">50%</td>
+    <td>a</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>a</td>
+    <td>a</td>
+    <td data-expected-width="50" style="background-color:yellow">a</td>
+    <td>a</td>
   </tr>
 </table>
 
@@ -216,28 +297,30 @@ Cells get 98/294, table by rule#1 98px/0.2 + 32 = 522</p>
 </table>
 </div>
 
-<p 12 class="testdesc">Colspan&gt;1:Auto/400 C0:50%/150 C1:30%/150 C2:20/Auto
+<p 12 class="testdesc">Colspan&gt;1:Auto/468 C0:50%/150 C1:30%/150 C2:20/Auto
 This tests conflict resolution where min-width > redistributed min width.
-400-8px distributed max width tries to redistribute as 245|147, but gets constrained to 245|150 in Chrome.
-table width from C0 245/0.5 + 4*8 = 522
-table width from C1 150/0.3 + 4*8 = 532
-C0 = 50% of 500 = 250, C1 = 30% of 500 = 150 , C2 gets the remaining 100</p>
-<p class="error">Chrome/FF/Edge end up with tables of different widths: 532/590/685. Chrome's 2nd span cell seems 'most correct' at its original max width of 150. In FF, extra min-width seems to cause more width to be redistributed. If you hover over 30%/150 cell, its min width will change to 100px, and all browsers will agree.</p>
-<style>
-  .test12:hover {
-    width:100px !important;
-  }
-</style>
-<table data-expected-width="532">
+Colspanned redistribution: distributed 468-8 = 460 over C0/C1
+Colspanned 468px needs to distribute 460px over C0/C1.
+C0 percent size is 50% * 460 = 230
+C1 percent size is 30% * 460 = 138, defaults to min size of 150
+Column 1 size is 230 + 50%/80% * 80 = 280px
+Column 2 size is 150 + 30%/80% * 80 = 180px
+Column 3 remains 20px
+Assignable table inline size
+C1 dominates estimate: 180/30% + 4*8 = 632
+Compute final column widths from assignable table size:
+C0 = 50% of 600 = 300 C1 = 30% of 600 = 180 , C2 gets the remaining 120</p>
+<table data-expected-width="632">
   <tr>
-    <td style="width:50%" data-expected-width="250"><div style="width:150px">50%/150px</div></td>
-    <td style="width:30%" data-expected-width="150"><div class="test12" style="width:150px">30%/150px</div></td>
-    <td style="width:20px" data-expected-width="100">x</td>
+    <td style="width:50%" data-expected-width="300"><div style="width:150px">50%/150px</div></td>
+    <td style="width:30%" data-expected-width="180"><div style="width:150px">30%/150px</div></td>
+    <td style="width:20px" data-expected-width="120">x</td>
   </tr>
   <tr>
-    <td colspan=2 style=""><div style="width:400px">400px min</div></td>
+    <td colspan=2 style=""><div style="width:468px">408px min</div></td>
   </tr>
 </table>
+
 
 <p 13 class="testdesc"> Colspan&gt;1:Auto/400px C0:50%/75px/125px, C1:30%/75px/125px C2:20px/Auto
 Colspan&gt;1 cell distribution over different percentages.
@@ -372,6 +455,58 @@ this is that 40% cell will end up with 0 if no min width.
   </tr>
   <tr>
     <td colspan=2 data-expected-width="208" ><div style="width:208px">208px min</div></td>
+  </tr>
+</table>
+
+<h2>Colspan&gt;1 cell's maximum width distribution</h2>
+<li>Only constrained colspans can distribute max-width over fixed columns</li>
+
+<p class="testdesc">Colspan: constrained. Col: constrained
+Constrained colspan redistributes widths over constrained cols.
+</p>
+<table data-expected-width=216>
+  <col style="width:50px">
+  <col style="width:50px">
+  <tr>
+    <td>50</td>
+    <td>50</td>
+  </tr>
+  <tr>
+    <td colspan=2 style="width:200px" data-expected-width=200>200</td>
+  </tr>
+</table>
+<p class="testdesc">Colspan: unconstrained. Col: constrained
+Colspan max-width does not get redistributed.
+</p>
+<table data-expected-width=124>
+  <col style="width:50px">
+  <col style="width:50px">
+  <tr>
+    <td>50</td>
+    <td>50</td>
+  </tr>
+  <tr>
+    <td colspan=2 data-expected-width=108><div style="width:50px">50</div><div style="width:50px">50</div><div style="width:50px">50</div><div style="width:50px">50</div></td>
+  </tr>
+</table>
+
+<p class="testdesc">Colspan: unconstrained, Col: constrained/%
+Colspanned col distributes width over %ge column.
+max-guess is 50px + 200px*50% = 150px
+distributable_size is 50px
+%ge column gets percentage_size + distributable_size = 150px
+Later, this makes table 300px wide.
+</p>
+<p class="error">FF, Legacy, and TablesNG all disagree about the correct widths. FF feels more like the right answer, but I can't figure out the math behind it.</p>
+<table data-expected-width=308>
+  <col style="width:50px">
+  <col style="width:50%">
+  <tr>
+    <td data-expected-width=142>50</td>
+    <td>50</td>
+  </tr>
+  <tr>
+    <td colspan=2 data-expected-width=292><div style="width:50px">50</div><div style="width:50px">50</div><div style="width:50px">50</div><div style="width:50px">50</div></td>
   </tr>
 </table>
 

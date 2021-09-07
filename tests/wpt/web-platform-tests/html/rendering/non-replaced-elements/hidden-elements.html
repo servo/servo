@@ -1,0 +1,35 @@
+<!doctype html>
+<link rel=help href="https://html.spec.whatwg.org/#hidden-elements">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div hidden></div>
+<script>
+const kNotHiddenElementLocalNames = [
+  "source", "track",
+];
+
+const kHiddenElementLocalNames = [
+  "area", "base", "basefont", "datalist", "head", "link", "meta", "noembed",
+  "noframes", "param", "rp", "script", "style", "template", "title",
+];
+
+for (let name of kNotHiddenElementLocalNames) {
+  test(function() {
+    let element = document.createElement(name);
+    document.body.appendChild(element);
+    assert_equals(getComputedStyle(element).display, "inline");
+  }, `${name} should not be hidden`);
+}
+
+for (let name of kHiddenElementLocalNames) {
+  test(function() {
+    let element = document.createElement(name);
+    document.body.appendChild(element);
+    assert_equals(getComputedStyle(element).display, "none");
+  }, `${name} should be hidden`);
+}
+
+test(function() {
+  assert_equals(getComputedStyle(document.querySelector("[hidden]")).display, "none");
+}, `[hidden] element should be hidden`);
+</script>

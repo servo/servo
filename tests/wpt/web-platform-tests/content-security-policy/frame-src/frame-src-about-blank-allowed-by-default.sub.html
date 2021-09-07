@@ -9,7 +9,7 @@
     <script src="/resources/testharnessreport.js"></script>
     <script src='../support/logTest.sub.js?logs=["PASS"]'></script>
     <script src="../support/alertAssert.sub.js?alerts=[]"></script>
-    
+
     <p>These frames should not be blocked by Content-Security-Policy.
         It&apos;s pointless to block about:blank iframes because
         blocking a frame just results in displaying about:blank anyway!
@@ -18,8 +18,8 @@
         window.addEventListener('securitypolicyviolation', function(e) {
             log("Fail");
         });
-    </script>    
-    
+    </script>
+
     <iframe src="about:blank"></iframe>
     <object type="text/html" data="about:blank"></object>
 

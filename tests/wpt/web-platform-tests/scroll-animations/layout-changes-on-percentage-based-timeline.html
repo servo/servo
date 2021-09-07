@@ -19,6 +19,7 @@ layout changes on percentage-based scroll offset">
     width: 100px;
     height: 100px;
     background-color: red;
+    color: red;
   }
 
   #scroller {
@@ -43,7 +44,7 @@ layout changes on percentage-based scroll offset">
 </style>
 
 <div id="box"></div>
-<div id="covered"></div>
+<div id="covered">Scrolling Test</div>
 <div id="scroller">
   <div id="contents"></div>
   <div id="spacer" class="invisible"></div>
@@ -63,7 +64,6 @@ layout changes on percentage-based scroll offset">
   const scroller = document.getElementById('scroller');
   const timeline = new ScrollTimeline({
     scrollSource: scroller,
-    timeRange: 1000,
     scrollOffsets: [CSS.percent(20), CSS.percent(80)]
   });
   const animation = new Animation(effect, timeline);

@@ -1,0 +1,17 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+async_test(t => {
+  window.onload = t.step_func(() => {
+    let onnavigate_called = false;
+    i.contentWindow.appHistory.onnavigate = () => onnavigate_called = true;
+    // The promise returned by appHistory.navigate() will not resolve on a
+    // cross-document navigation.
+    i.contentWindow.appHistory.navigate("?1")
+        .then(t.unreached_func("fulfilled"), t.unreached_func("rejected"));
+    i.onload = t.step_func(() => t.step_timeout(() => t.done(), 0));
+  });
+}, "navigate() navigates cross-document and fires onnavigate");
+</script>

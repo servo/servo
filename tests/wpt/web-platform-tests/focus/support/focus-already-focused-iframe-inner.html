@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Focus already focused iframe</title>
+<script>
+let haveGottenFocus = false;
+function gotFocus() {
+    if (haveGottenFocus) {
+        parent.postMessage("FAIL", "*");
+    } else {
+        haveGottenFocus = true;
+        parent.postMessage("focus", "*");
+    }
+}
+window.onload = function() {
+    document.getElementsByTagName("input")[0].focus();
+}
+</script>
+<input onfocus="gotFocus();">

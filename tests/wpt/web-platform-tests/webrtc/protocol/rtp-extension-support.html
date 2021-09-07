@@ -1,0 +1,44 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection RTP extensions</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../third_party/sdp/sdp.js"></script>
+<script>
+'use strict';
+
+async function setup() {
+  const pc1 = new RTCPeerConnection();
+  pc1.addTransceiver('audio');
+  pc1.addTransceiver('video');
+  const offer = await pc1.createOffer();
+  pc1.close();
+  return offer.sdp;
+}
+
+// Extensions that MUST be supported
+const mandatoryExtensions = [
+  // Directly referenced in WebRTC RTP usage
+  'urn:ietf:params:rtp-hdrext:ssrc-audio-level', // RFC 8834 5.2.2
+  'urn:ietf:params:rtp-hdrext:sdes:mid',  // RFC 8834 5.2.4
+  'urn:3gpp:video-orientation',  // RFC 8834 5.2.5
+  // Required for support of simulcast with RID
+  'urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id',  // RFC 8852 4.3
+  'urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id',  // RFC 8852 4.4
+];
+
+// For further testing:
+// - Add test for rapid synchronization - RFC 8834 5.2.1
+// - Add test for encrypted header extensions (RFC 6904)
+// - Separate tests for extensions in audio and video sections
+
+for (const extension of mandatoryExtensions) {
+  promise_test(async t => {
+    const sdp = await setup();
+    const extensions = SDPUtils.matchPrefix(sdp, 'a=extmap:')
+          .map(SDPUtils.parseExtmap);
+    assert_true(!!extensions.find(ext => ext.uri === extension));
+  }, `RTP header extension ${extension} is present in offer`);
+}
+
+</script>

@@ -170,7 +170,6 @@ def test_worker():
     for item, url in zip(items, expected_urls):
         assert item.url == url
         assert item.timeout is None
-        assert item.quic is None
 
 
 def test_window():
@@ -196,7 +195,6 @@ def test_window():
     for item, url in zip(items, expected_urls):
         assert item.url == url
         assert item.timeout is None
-        assert item.quic is None
 
 
 def test_worker_long_timeout():
@@ -262,7 +260,6 @@ test()"""
     for item, url in zip(items, expected_urls):
         assert item.url == url
         assert item.timeout is None
-        assert item.quic is None
 
 
 def test_window_with_variants():
@@ -293,7 +290,6 @@ test()"""
     for item, url in zip(items, expected_urls):
         assert item.url == url
         assert item.timeout is None
-        assert item.quic is None
 
 
 def test_python_long_timeout():
@@ -338,7 +334,6 @@ def test_multi_global():
     for item, url in zip(items, expected_urls):
         assert item.url == url
         assert item.timeout is None
-        assert item.quic is None
 
 
 def test_multi_global_long_timeout():
@@ -398,7 +393,6 @@ test()""" % input
         assert item.url == url
         assert item.jsshell is False
         assert item.timeout is None
-        assert item.quic is None
 
 
 def test_multi_global_with_jsshell_globals():
@@ -429,7 +423,6 @@ test()"""
         assert item.url == url
         assert item.jsshell == jsshell
         assert item.timeout is None
-        assert item.quic is None
 
 
 def test_multi_global_with_variants():
@@ -468,7 +461,6 @@ test()"""
     for item, url in zip(items, expected_urls):
         assert item.url == url
         assert item.timeout is None
-        assert item.quic is None
 
 
 @pytest.mark.parametrize("input,expected", [
@@ -675,35 +667,6 @@ def test_relative_testdriver(ext):
     s = create(filename, content)
 
     assert not s.has_testdriver
-
-
-@pytest.mark.parametrize("ext", ["htm", "html"])
-def test_quic_html(ext):
-    filename = "html/test." + ext
-
-    content = b'<meta name="quic" content="true">'
-    s = create(filename, content)
-    assert s.quic
-
-    content = b'<meta name="quic" content="false">'
-    s = create(filename, content)
-    assert s.quic is None
-
-
-def test_quic_js():
-    filename = "html/test.any.js"
-
-    content = b"// META: quic=true"
-    s = create(filename, content)
-    _, items = s.manifest_items()
-    for item in items:
-        assert item.quic
-
-    content = b"// META: quic=false"
-    s = create(filename, content)
-    _, items = s.manifest_items()
-    for item in items:
-        assert item.quic is None
 
 
 @pytest.mark.parametrize("ext", ["htm", "html"])

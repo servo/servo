@@ -7,7 +7,7 @@
 <style>
 li { list-style-type: "ab"; }
 #t1 > li { list-style-type: "ab"; }
-#t2 > li { list-style-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAMCAIAAAD3UuoiAAAAGklEQVQoz2Nk%2BP%2BfgRqAiYFKYNSgUYOGp0EA%2BQMCFrJdTgsAAAAASUVORK5CYII%3D); }
+#t2 > li::before { content: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAMCAIAAAD3UuoiAAAAGklEQVQoz2Nk%2BP%2BfgRqAiYFKYNSgUYOGp0EA%2BQMCFrJdTgsAAAAASUVORK5CYII%3D); margin-left: -24px; }
 li::after {
   content: "d";
 }

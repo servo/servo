@@ -1,0 +1,14 @@
+<!doctype html>
+<html style="display:none">
+<meta charset=utf-8>
+<title>Test that an object in a display:none subtree does not block the load event</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  async_test(t => {
+    window.onload = t.step_func_done();
+    document.documentElement.offsetTop;
+  }, "Load event triggered on window");
+</script>
+<object data="data:text/html,"></object>
+</html>

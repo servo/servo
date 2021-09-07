@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml" width="2000px" height="100px" style="direction: rtl;">
   <g id="testmeta">
     <title>CSS-Writing Modes Test: Principal Writing Mode</title>
-    <html:link rel="author" title="Ting-Yu Lin" href="tlin@mozilla.com"/>
+    <html:link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com"/>
     <html:link rel="author" title="Mozilla" href="https://mozilla.org/"/>
     <html:link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#principal-flow"/>
     <html:link rel="mismatch" href="../reference/blank.html"/>

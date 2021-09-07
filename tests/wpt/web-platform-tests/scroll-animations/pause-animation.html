@@ -23,6 +23,7 @@
 <body>
 <script>
 'use strict';
+
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
   // Wait for new animation frame which allows the timeline to compute new
@@ -34,8 +35,8 @@ promise_test(async t => {
   const startTimeBeforePausing = animation.startTime;
 
   animation.pause();
-  assert_equals(animation.startTime, startTimeBeforePausing,
-                'The start time does not change when pausing-pending');
+  assert_percents_equal(animation.startTime, startTimeBeforePausing,
+                        'The start time does not change when pausing-pending');
 
   await animation.ready;
 
@@ -84,7 +85,7 @@ promise_test(async t => {
   await waitForNextFrame();
   animation.play();
   // Let animation start roughly half-way through
-  animation.currentTime = 500;
+  animation.currentTime = CSSNumericValue.parse("50%");
   await animation.ready;
 
   // Go pause-pending and also set a pending playback rate
@@ -95,7 +96,7 @@ promise_test(async t => {
   // If the current time was updated using the new playback rate it will jump
   // back to 25s but if we correctly used the old playback rate the current time
   // will be >= 50s.
-  assert_greater_than_equal(animation.currentTime, 500);
+  assert_greater_than_equal(animation.currentTime.value, 50);
 }, 'A pause-pending animation maintains the current time when applying a'
    + ' pending playback rate');
 
@@ -119,11 +120,11 @@ promise_test(async t => {
 
   scroller.scrollTop = 0.2 * maxScroll;
   await waitForNextFrame();
-  assert_equals(animation.timeline.currentTime, 200,
-    'Sanity check timeline time changed');
+  assert_percents_equal(animation.timeline.currentTime, 20,
+                        'Sanity check timeline time changed');
 
-  assert_equals(animation.currentTime, currentTimeAfterPausing,
-    'Animation.currentTime is unchanged after pausing');
+  assert_percents_equal(animation.currentTime, currentTimeAfterPausing,
+                        'Animation.currentTime is unchanged after pausing');
 }, 'The animation\'s current time remains fixed after pausing');
 
 promise_test(async t => {
@@ -140,7 +141,7 @@ promise_test(async t => {
 
   const readyPromise = animation.ready;
   assert_not_equals(originalReadyPromise, readyPromise,
-              'Canceling an animation should create a new ready promise');
+                    'Canceling an animation should create a new ready promise');
 
   animation.pause();
   assert_equals(animation.playState, 'paused',
@@ -150,8 +151,8 @@ promise_test(async t => {
   assert_false(animation.pending,
                'animation should no longer be pause-pending');
   assert_equals(animation.startTime, null, 'start time should be unresolved');
-  assert_equals(animation.currentTime, 0, 'current time should be set to zero');
-
+  assert_percents_equal(animation.currentTime, 0,
+                        'current time should be set to zero');
 }, 'Pausing a canceled animation sets the current time');
 
 promise_test(async t => {
@@ -164,19 +165,19 @@ promise_test(async t => {
   // current time.
   await waitForNextFrame();
   assert_equals(animation.timeline.currentTime, null,
-    'Sanity check the timeline is inactive.');
+                'Sanity check the timeline is inactive.');
   // Pause the animation when the timeline is inactive.
   animation.pause();
   assert_equals(animation.currentTime, null,
-    'The current time is null when the timeline is inactive.');
-  assert_equals(animation.startTime, 0,
-    'The start time is zero in Pending state.');
+                'The current time is null when the timeline is inactive.');
+  assert_percents_equal(animation.startTime, 0,
+                        'The start time is zero in Pending state.');
   await waitForNextFrame();
   assert_true(animation.pending,
-    'Animation has pause pending task while the timeline is inactive.');
+      'Animation has pause pending task while the timeline is inactive.');
   assert_equals(animation.playState, 'paused',
-    'State is \'paused\' in Pending state.');
-}, 'Pause pending task doesn\'t run when the timeline is inactive.');
+                `State is 'paused' in Pending state.`);
+}, `Pause pending task doesn't run when the timeline is inactive.`);
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
@@ -190,7 +191,7 @@ promise_test(async t => {
   // current time.
   await waitForNextFrame();
   assert_equals(animation.timeline.currentTime, null,
-    'Sanity check the timeline is inactive.');
+                'Sanity check the timeline is inactive.');
   // Play the animation when the timeline is inactive.
   animation.pause();
 
@@ -198,10 +199,10 @@ promise_test(async t => {
   scroller.style.overflow = 'auto';
   await animation.ready;
   // Ready promise is resolved as a result of the timeline becoming active.
-  assert_equals(animation.currentTime, 200,
-    'Animation current time is resolved when the animation is ready.');
+  assert_percents_equal(animation.currentTime, 20,
+      'Animation current time is resolved when the animation is ready.');
   assert_equals(animation.startTime, null,
-    'Animation start time is unresolved when the animation is ready.');
+      'Animation start time is unresolved when the animation is ready.');
 }, 'Animation start and current times are correct if scroll timeline is ' +
    'activated after animation.pause call.');
 

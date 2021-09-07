@@ -1,0 +1,22 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/get-host-info.js"></script>
+<body>
+<script>
+promise_test(async t => {
+  let i = document.createElement("iframe");
+  document.body.appendChild(i);
+  i.contentWindow.appHistory.onnavigate = t.unreached_func('onnavigate should not be called');
+  i.contentWindow.appHistory.onnavigatesuccess = t.unreached_func('onnavigatesuccess should not be called');
+  i.contentWindow.appHistory.onnavigateerror = t.unreached_func('onnavigateerror should not be called');
+  let promise_settled = false;
+  i.contentWindow.appHistory.navigate(new URL("/common/blank.html?1", location.href).href)
+      .finally(() => promise_settled = true);
+  await new Promise(resolve => i.onload = resolve);
+  await new Promise(resolve => t.step_timeout(resolve, 0));
+  assert_equals(i.contentWindow.location.search, "?1");
+  assert_false(promise_settled);
+}, "navigate in initial about:blank document");
+</script>
+</body>

@@ -177,9 +177,21 @@
     return stream;
   }
 
+  function transferArrayBufferView(view) {
+    const noopByteStream = new ReadableStream({
+      type: 'bytes',
+      pull(c) {
+        c.byobRequest.respond(c.byobRequest.view.byteLength);
+        c.close();
+      }
+    });
+    const reader = noopByteStream.getReader({ mode: 'byob' });
+    return reader.read(view).then((result) => result.value);
+  }
 
   self.RandomPushSource = RandomPushSource;
   self.readableStreamToArray = readableStreamToArray;
   self.sequentialReadableStream = sequentialReadableStream;
+  self.transferArrayBufferView = transferArrayBufferView;
 
 }());

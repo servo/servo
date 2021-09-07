@@ -1,0 +1,10 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<a id="a" href="#1"></a>
+<script>
+async_test(t => {
+  appHistory.onnavigatesuccess = t.step_func_done(() => assert_equals(location.hash, "#1"));
+  a.click();
+}, "navigatesucess fires for a same-document navigation");
+</script>

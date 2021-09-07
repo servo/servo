@@ -27,11 +27,6 @@ def retrieve_from_stash(request, key, timeout, default_value, min_count=None, re
         if retain or not have_sufficient_reports:
           request.server.stash.put(key=key, value=value)
         if have_sufficient_reports:
-          # If the last report received looks like a CSP report-uri report, then
-          # extract it from the list and return it alone. (This is until the CSP
-          # tests are modified to expect a list of reports returned in all cases.)
-          if isinstance(value,list) and 'csp-report' in value[-1]:
-            value = value[-1]
           return json.dumps(value)
 
   return default_value

@@ -11,6 +11,7 @@
 const gInvalidCoordTestCases = [
   { coord: CSS.deg(1), desc: 'an angle CSSUnitValue'},
   { coord: new CSSMathSum(CSS.px(1)), desc: 'a CSSMathValue that doesn\'t match <number>'},
+  { coord: new CSSMathProduct(CSS.px(1), new CSSMathInvert(CSS.px(1))), desc: 'an invalid division by px/px'},
 ];
 
 for (const {coord, desc} of gInvalidCoordTestCases) {

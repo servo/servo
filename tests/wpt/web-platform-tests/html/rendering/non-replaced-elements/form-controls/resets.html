@@ -3,6 +3,7 @@
 <meta name="viewport" content="width=device-width">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/html/rendering/support/test-ua-stylesheet.js"></script>
 <style>
 /* Have some non-initial values on the parent so we can tell the difference whether the UA stylesheet uses 'initial' keyword. */
 #tests, #refs {
@@ -84,48 +85,6 @@ table {
                 'text-indent',
                 'text-shadow',
                 'text-align'];
- const refs = document.getElementById('refs');
- for (const el of document.querySelectorAll('#tests > *')) {
-   const clone = fakeClone(el);
-   refs.append(clone);
- }
- const testsContainer = document.getElementById('tests');
- const testEls = document.querySelectorAll('#tests *');
- const refEls = document.querySelectorAll('#refs *');
- for (let i = 0; i < testEls.length; ++i) {
-   const testEl = testEls[i];
-   const refEl = refEls[i];
-   const testStyle = getComputedStyle(testEl);
-   const refStyle = getComputedStyle(refEl);
-   for (const prop of props) {
-     test(() => {
-       assert_equals(testStyle.getPropertyValue(prop), refStyle.getPropertyValue(prop));
-     }, `${testNameContext(testEl)} - ${prop}`);
-   }
- }
+ runUAStyleTests(props);
 
- function fakeClone(el) {
-   const clone = document.createElementNS('urn:not-html', el.localName);
-   for (const att of el.attributes) {
-     clone.setAttributeNS(att.namespaceURI, att.name, att.value);
-   }
-   // deep clone
-   for (const child of el.children) {
-     clone.append(fakeClone(child));
-   }
-   return clone;
- }
-
- function testNameContext(el) {
-   const outerHTML = el.outerHTML;
-   const startTags = outerHTML.substring(0, outerHTML.indexOf('</')) || outerHTML;
-
-   let ancestors = [];
-   let current = el.parentNode;
-   while (current != testsContainer) {
-     ancestors.unshift(current.localName);
-     current = current.parentNode;
-   }
-   return startTags + (ancestors.length ? ` (in ${ancestors.join(' > ')})` : '');
- }
 </script>

@@ -1,0 +1,123 @@
+<!doctype html>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src="/resources/check-layout-th.js"></script>
+<link rel="author" title="Aleks Totic" href="atotic@chromium.org" />
+<link rel="help" href="https://www.w3.org/TR/css-tables-3/#computing-the-table-width" />
+<style>
+  .t {
+    display: table;
+    border-top-width: 20px;
+    border-bottom-width: 40px;
+    border-left-width: 20px;
+    border-right-width: 40px;
+    border-style: solid;
+    border-color: gray;
+    padding: 10px;
+    border-spacing: 0;
+    width:100px;
+    height: 100px;
+  }
+  .inline {
+    display: inline-table;
+  }
+  .cell {
+    display: table-cell;
+    background: yellow;
+  }
+  main td {
+    padding: 0;
+    background: yellow;
+  }
+</style>
+<main>
+<p>box-sizing: default; border-collapse: separate </p>
+<table class="t" style="border-collapse: separate" data-expected-width="100" data-expected-height="100">
+  <tbody>
+    <td></td>
+  </tbody>
+</table>
+<p>box-sizing: border-box; border-collapse: separate</p>
+<table class="t" style="box-sizing:border-box;border-collapse: separate" data-expected-width="100" data-expected-height="100">
+  <tbody>
+    <td></td>
+  </tbody>
+</table>
+<p>box-sizing: content-box; border-collapse: separate</p>
+<table class="t" style="box-sizing:content-box;border-collapse: separate" data-expected-width="180" data-expected-height="180">
+  <tbody>
+    <td></td>
+  </tbody>
+</table>
+<p>box-sizing: default; border-collapse: collapse </p>
+<table class="t" style="border-collapse: collapse" data-expected-width="100" data-expected-height="100">
+  <tbody>
+    <td></td>
+  </tbody>
+</table>
+<p>box-sizing: border-box; border-collapse: collapse</p>
+<table class="t" style="box-sizing:border-box;border-collapse: collapse" data-expected-width="100" data-expected-height="100">
+  <tbody>
+    <td></td>
+  </tbody>
+</table>
+<p>box-sizing: content-box; border-collapse: collapse</p>
+<table class="t" style="box-sizing:content-box;border-collapse: collapse" data-expected-width="130" data-expected-height="130">
+  <tbody>
+    <td></td>
+  </tbody>
+</table>
+<p>div with display:table; box-sizing: default; border-collapse: separate</p>
+<div class="t" style="border-collapse: separate" data-expected-width="180" data-expected-height="180">
+    <div class="cell"></div>
+</div>
+<p>div with display:table; box-sizing: border-box; border-collapse: separate</p>
+<div class="t" style="box-sizing:border-box;border-collapse: separate" data-expected-width="100" data-expected-height="100">
+    <div class="cell"></div>
+</div>
+<p>div with display:table;box-sizing: content-box; border-collapse: separate</p>
+<div class="t" style="box-sizing:content-box;border-collapse: separate" data-expected-width="180" data-expected-height="180">
+    <div class="cell"></div>
+</div>
+
+<h2>Same tests, but tables are inline.</h2>
+<div>
+<table class="t inline" style="box-sizing:border-box;border-collapse: separate" data-expected-width="100" data-expected-height="100">
+  <tbody>
+    <td></td>
+  </tbody>
+</table>box-sizing: border-box; border-collapse: separate
+
+<div>
+<table class="t inline" style="box-sizing:content-box;border-collapse: separate" data-expected-width="180" data-expected-height="180">
+  <tbody>
+    <td></td>
+  </tbody>
+</table>box-sizing: content-box; border-collapse: separate</div>
+<div>
+<table class="t inline" style="box-sizing:border-box;border-collapse: collapse" data-expected-width="100" data-expected-height="100">
+  <tbody>
+    <td></td>
+  </tbody>
+</table>box-sizing: border-box; border-collapse: collapse</div>
+<div>
+<table class="t inline" style="box-sizing:content-box;border-collapse: collapse" data-expected-width="130" data-expected-height="130">
+  <tbody>
+    <td></td>
+  </tbody>
+</table>box-sizing: content-box; border-collapse: collapse</div>
+<div>
+<div class="t inline" style="box-sizing:border-box;border-collapse: separate" data-expected-width="100" data-expected-height="100">
+    <div class="cell"></div>
+</div>
+div with display:inline-table; box-sizing: border-box;
+</div>
+<div>
+<div class="t inline" style="box-sizing:content-box;border-collapse: separate" data-expected-width="180" data-expected-height="180">
+   <div class="cell"></div>
+</div>
+div with display:inline-table;box-sizing: content-box</div>
+</main>
+<script>
+  checkLayout(".t");
+</script>

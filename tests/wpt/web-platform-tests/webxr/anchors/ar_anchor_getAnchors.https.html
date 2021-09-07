@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_asserts.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+<script src="../resources/webxr_test_constants_fake_world.js"></script>
+
+<script>
+
+// 1m above world origin.
+const VIEWER_ORIGIN_TRANSFORM = {
+  position: [0, 1, 0],
+  orientation: [0, 0, 0, 1],
+};
+
+const fakeDeviceInitParams = {
+  supportedModes: ["immersive-ar"],
+  views: VALID_VIEWS,
+  supportedFeatures: ALL_FEATURES,
+  viewerOrigin: VIEWER_ORIGIN_TRANSFORM,
+};
+
+// Attempts to access XRFrame.trackedAnchors and expects to get empty set
+// since no anchors are being created.
+const testFunction = function(session, fakeDeviceController, t) {
+  const debug = xr_debug.bind(this, 'testGetAnchors');
+
+  let done = false;
+
+  session.requestReferenceSpace('local').then((localRefSpace) => {
+    const onFrame = function(time, frame) {
+      const trackedAnchors = frame.trackedAnchors;
+      t.step(() => {
+        assert_equals(trackedAnchors.size, 0);
+      });
+
+      done = true;
+    };
+
+    session.requestAnimationFrame(onFrame);
+  }); // session.requestReferenceSpace(...)
+
+  return t.step_wait(() => done);
+};  // testFunction
+
+
+xr_session_promise_test("XRFrame's trackedAnchors is empty when the feature was not requested",
+  testFunction,
+  fakeDeviceInitParams,
+  'immersive-ar', { });
+
+xr_session_promise_test("XRFrame's trackedAnchors is empty when the feature was requested",
+  testFunction,
+  fakeDeviceInitParams,
+  'immersive-ar', { 'requiredFeatures': ['anchors'] });
+
+</script>

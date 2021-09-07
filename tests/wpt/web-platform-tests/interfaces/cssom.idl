@@ -1,5 +1,4 @@
 // GENERATED PREAMBLE - DO NOT EDIT
-// This preamble was added by webref for web-platform-tests.
 // CSSOMString is an implementation-defined type of either DOMString or
 // USVString in CSSOM: https://drafts.csswg.org/cssom/#cssomstring-type
 // For web-platform-tests, use DOMString because USVString has additional
@@ -143,6 +142,8 @@ interface mixin ElementCSSInlineStyle {
 HTMLElement includes ElementCSSInlineStyle;
 
 SVGElement includes ElementCSSInlineStyle;
+
+MathMLElement includes ElementCSSInlineStyle;
 
 partial interface Window {
   [NewObject] CSSStyleDeclaration getComputedStyle(Element elt, optional CSSOMString? pseudoElt);

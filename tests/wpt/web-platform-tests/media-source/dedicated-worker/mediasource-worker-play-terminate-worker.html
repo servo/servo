@@ -3,6 +3,7 @@
 <title>MediaSource-in-Worker looped playback test case with worker termination at various places</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="mediasource-message-util.js"></script>
 <body>
 <script>
 
@@ -22,7 +23,7 @@ function startWorkerAndTerminateWorker(test, when_to_start_timeouts, timeouts_to
   assert_true(MediaSource.hasOwnProperty("canConstructInDedicatedWorker"), "MediaSource hasOwnProperty 'canConstructInDedicatedWorker'");
   assert_true(MediaSource.canConstructInDedicatedWorker, "MediaSource.canConstructInDedicatedWorker");
 
-  const worker = new Worker("mediasource-worker-util.js");
+  const worker = new Worker("mediasource-worker-play-terminate-worker.js");
   worker.onerror = test.unreached_func("worker error");
 
   const video = document.createElement("video");
@@ -44,23 +45,30 @@ function startWorkerAndTerminateWorker(test, when_to_start_timeouts, timeouts_to
   }
 
   worker.onmessage = test.step_func(e => {
-    if (e.data.substr(0,6) == "Error:") {
-      assert_unreached("Worker error: " + e.data);
-    } else {
-      const url = e.data
-      assert_true(url.match(/^blob:.+/) != null);
-      video.src = url;
-      if (when_to_start_timeouts == "after setting src") {
-        terminateWorkerAfterMultipleSetTimeouts(test, worker, timeouts_to_await);
-      }
-      video.play().catch(error => {
-        // Only rejections due to MEDIA_ERR_SRC_NOT_SUPPORTED are expected to possibly
-        // occur, except if we expect to reach at least 1 'ended' event.
-        assert_not_equals(when_to_start_timeouts, "after first ended event");
-        assert_true(video.error != null);
-        assert_equals(video.error.code, MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED);
-        // Do not rethrow. Instead, wait for the step_timeouts to finish the test.
-      });
+    let subject = e.data.subject;
+    assert_true(subject != undefined, "message must have a subject field");
+    switch (subject) {
+      case messageSubject.ERROR:
+        assert_unreached("Worker error: " + e.data.info);
+        break;
+      case messageSubject.OBJECT_URL:
+        const url = e.data.info;
+        assert_true(url.match(/^blob:.+/) != null);
+        video.src = url;
+        if (when_to_start_timeouts == "after setting src") {
+          terminateWorkerAfterMultipleSetTimeouts(test, worker, timeouts_to_await);
+        }
+        video.play().catch(error => {
+          // Only rejections due to MEDIA_ERR_SRC_NOT_SUPPORTED are expected to possibly
+          // occur, except if we expect to reach at least 1 'ended' event.
+          assert_not_equals(when_to_start_timeouts, "after first ended event");
+          assert_true(video.error != null);
+          assert_equals(video.error.code, MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED);
+          // Do not rethrow. Instead, wait for the step_timeouts to finish the test.
+        });
+        break;
+      default:
+        assert_unreached("Unexpected message subject: " + subject);
     }
   });
 }

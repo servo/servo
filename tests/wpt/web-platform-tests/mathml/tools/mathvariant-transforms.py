@@ -1,6 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
-from __future__ import print_function
 from lxml import etree
 from utils.misc import downloadWithProgressBar, UnicodeXMLURL
 from utils import mathfont
@@ -96,17 +95,17 @@ for mathvariant in mathvariantTransforms:
         mathAssert = "Verify that a single-char <mtext> with a %s mathvariant is equivalent to an <mtext> with the transformed unicode character." % mathvariant
         mapping = mathvariant
     source ='\
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#css-styling">\n\
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#the-mathvariant-attribute">\n\
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#new-text-transform-values">\n\
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#%s-mappings">\n\
+<link rel="help" href="https://w3c.github.io/mathml-core/#css-styling">\n\
+<link rel="help" href="https://w3c.github.io/mathml-core/#the-mathvariant-attribute">\n\
+<link rel="help" href="https://w3c.github.io/mathml-core/#new-text-transform-values">\n\
+<link rel="help" href="https://w3c.github.io/mathml-core/#%s-mappings">\n\
 <link rel="match" href="mathvariant-%s-ref.html"/>\n\
 <meta name="assert" content="%s">\n'
     reftest.write(source % (mapping, mathvariant, mathAssert))
     source = '\
 <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/3745"/>\n\
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#new-text-transform-values">\n\
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#%s-mappings">\n\
+<link rel="help" href="https://w3c.github.io/mathml-core/#new-text-transform-values">\n\
+<link rel="help" href="https://w3c.github.io/mathml-core/#%s-mappings">\n\
 <link rel="match" href="text-transform-math-%s-001.tentative-ref.html"/>\n\
 <meta name="assert" content="Verify that a character with \'text-transform: math-%s\' renders the same as the transformed unicode character.">\n'
     CSSreftest.write(source % (mapping, mathvariant, mathvariant))

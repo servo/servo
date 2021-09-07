@@ -3,9 +3,10 @@
 <title>WebSockets: bufferedAmount for blob</title>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src=../../../constants.js?pipe=sub></script>
+<script src=../../../constants.sub.js></script>
 <meta name="variant" content="">
 <meta name="variant" content="?wss">
+<meta name="variant" content="?wpt_flags=h2">
 <div id=log></div>
 <script>
 async_test(function(t) {
@@ -22,5 +23,6 @@ async_test(function(t) {
     assert_equals(e.data.size, datasize);
     t.done();
   });
+  ws.onclose = t.unreached_func('close event should not fire');
 });
 </script>

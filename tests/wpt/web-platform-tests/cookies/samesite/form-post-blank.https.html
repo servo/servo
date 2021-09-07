@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8"/>
 <meta name="timeout" content="long">
-<meta name="variant" content="">
-<meta name="variant" content="?legacy-samesite">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/cookies/resources/cookie-helper.sub.js"></script>
@@ -22,7 +20,7 @@
               window.removeEventListener("message", msgHandler);
               e.source.close();
               try {
-                getSameSiteVerifier()(expectedStatus, value, e.data, DomSameSiteStatus.SAME_SITE);
+                verifySameSiteCookieState(expectedStatus, value, e.data, DomSameSiteStatus.SAME_SITE);
                 resolve("Popup received the cookie.");
               } catch (e) {
                 reject(e);

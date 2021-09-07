@@ -1,0 +1,18 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  await promise_rejects_dom(t, 'DataCloneError', appHistory.navigate("#1", { state : new WritableStream()}));
+  assert_equals(appHistory.current.getState(), undefined);
+  assert_equals(location.hash, "");
+}, "navigate() with an unserializable state object (WriteableStream)");
+
+promise_test(async t => {
+  // See https://github.com/whatwg/html/issues/5380 for why not `new SharedArrayBuffer()`
+  const buffer = new WebAssembly.Memory({ shared:true, initial:1, maximum:1 }).buffer;
+  await promise_rejects_dom(t, 'DataCloneError', appHistory.navigate("#1", { state : buffer}));
+  assert_equals(appHistory.current.getState(), undefined);
+  assert_equals(location.hash, "");
+}, "navigate() with an unserializable state object (SharedArrayBuffer)");
+</script>

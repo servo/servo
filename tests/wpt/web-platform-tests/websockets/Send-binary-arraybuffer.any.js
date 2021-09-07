@@ -1,31 +1,33 @@
-// META: script=websocket.sub.js
+// META: script=constants.sub.js
+// META: variant=
+// META: variant=?wpt_flags=h2
+// META: variant=?wss
 
-var testOpen = async_test("Send binary data on a WebSocket - ArrayBuffer - Connection should be opened");
-var testMessage = async_test("Send binary data on a WebSocket - ArrayBuffer - Message should be received");
-var testClose = async_test("Send binary data on a WebSocket - ArrayBuffer - Connection should be closed");
+var test = async_test("Send binary data on a WebSocket - ArrayBuffer - Connection should be closed");
 
 var data = "";
 var datasize = 15;
-var wsocket = CreateWebSocket(false, false, false);
+var wsocket = CreateWebSocket(false, false);
 var isOpenCalled = false;
+var isMessageCalled = false;
 
-wsocket.addEventListener('open', testOpen.step_func(function(evt) {
+wsocket.addEventListener('open', test.step_func(function(evt) {
   wsocket.binaryType = "arraybuffer";
   data = new ArrayBuffer(datasize);
   wsocket.send(data);
   assert_equals(datasize, wsocket.bufferedAmount);
   isOpenCalled = true;
-  testOpen.done();
 }), true);
 
-wsocket.addEventListener('message', testMessage.step_func(function(evt) {
+wsocket.addEventListener('message', test.step_func(function(evt) {
+  isMessageCalled = true;
   assert_equals(evt.data.byteLength, datasize);
   wsocket.close();
-  testMessage.done();
 }), true);
 
-wsocket.addEventListener('close', testClose.step_func(function(evt) {
+wsocket.addEventListener('close', test.step_func(function(evt) {
   assert_true(isOpenCalled, "WebSocket connection should be open");
+  assert_true(isMessageCalled, "message should be received")
   assert_equals(evt.wasClean, true, "wasClean should be true");
-  testClose.done();
+  test.done();
 }), true);

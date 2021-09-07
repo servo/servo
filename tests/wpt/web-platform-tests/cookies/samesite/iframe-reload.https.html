@@ -1,14 +1,19 @@
 <!DOCTYPE html>
 <meta charset="utf-8"/>
 <meta name="timeout" content="long">
-<meta name="variant" content="">
-<meta name="variant" content="?legacy-samesite">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/cookies/resources/cookie-helper.sub.js"></script>
 <!-- We're appending an <iframe> to the document's body, so execute tests after we have a body -->
 <body>
 <script>
+  // This test creates an iframe with postToParent.py on the specified origin,
+  // which sends a postMessage event with the cookies it received back to the
+  // parent (i.e., here). Upon receiving the message, the test verifies that the
+  // correct cookies were sent to the iframe, and posts a message back to the
+  // iframe telling it to reload itself. Upon reload, the iframe sends a
+  // postMessage event back to the test with the cookies it received, which are
+  // again verified.
   function create_test(origin, target, expectedStatus, expectedDomStatus, title) {
     promise_test(t => {
       var value = "" + Math.random();
@@ -21,7 +26,7 @@
             var reloaded = false;
             var msgHandler = e => {
               try {
-                getSameSiteVerifier()(expectedStatus, value, e.data, expectedDomStatus);
+                verifySameSiteCookieState(expectedStatus, value, e.data, expectedDomStatus);
               } catch (e) {
                 reject(e);
               }

@@ -47,20 +47,6 @@ test(() => {
   assert_equals(types2[1], 'not a/real type');
 }, "types() returns correct values");
 
-test(() => {
-  const item = new ClipboardItem({'text/plain': blob});
-  assert_equals(item.raw, false);
-
-  const item2 = new ClipboardItem({'text/plain': blob}, {});
-  assert_equals(item2.raw, false);
-
-  const item3 = new ClipboardItem({'text/plain': blob}, {raw: false});
-  assert_equals(item3.raw, false);
-
-  const item4 = new ClipboardItem({'text/plain': blob}, {raw: true});
-  assert_equals(item4.raw, true);
-}, "raw() returns correct values, defaulting to false");
-
 promise_test(async () => {
   const item =
       new ClipboardItem({'text/plain': blob, 'not a/real type': blob2});

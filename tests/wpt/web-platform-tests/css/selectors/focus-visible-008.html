@@ -10,7 +10,7 @@
   <script src="/resources/testdriver.js"></script>
   <script src="/resources/testdriver-vendor.js"></script>
   <style>
-    @supports not (selector(:focus-visible)) {
+    @supports not selector(:focus-visible) {
       #el:focus {
         outline: red solid 5px;
         background-color: red;
@@ -36,7 +36,7 @@
   </ol>
   <br />
   <button id="button">Tab to me and press ENTER.</button>
-  <div id="el" tabindex="-1">I will be focused programmatically.</el>
+  <div id="el" tabindex="-1">I will be focused programmatically.</div>
   <script>
   if ("async_test" in window) {
     async_test(function(t) {

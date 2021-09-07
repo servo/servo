@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>HTMLSelectMenuElement Test: option arbitrary content displayed</title>
+<link rel="author" title="Ionel Popescu" href="mailto:iopopesc@microsoft.com">
+<link rel=match href="selectmenu-option-arbitrary-content-displayed-ref.tentative.html">
+<!-- Allow some text antiliasing differences -->
+<meta name=fuzzy content="0-128;0-10">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+  selectmenu {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    height: 20px;
+  }
+
+  popup {
+    width: fit-content;
+    height: fit-content;
+    border: 1px solid;
+    padding: 1em;
+    background: white;
+    color: black;
+  }
+
+  option {
+    background-color: white !important;
+    padding: 0px;
+  }
+</style>
+
+<selectmenu id="selectMenu0">
+  <popup slot="listbox" part="listbox">
+    <option>
+      option with image displayed
+      <img src="support/cat.png" alt="Image download support must be enabled" />
+    </option>
+  </popup>
+</selectmenu>
+
+<script>
+  function clickOn(element) {
+    const actions = new test_driver.Actions();
+    return actions.pointerMove(0, 0, {origin: element})
+      .pointerDown({button: actions.ButtonType.LEFT})
+      .pointerUp({button: actions.ButtonType.LEFT})
+      .send();
+  }
+
+  async function test() {
+    const selectMenu0 = document.getElementById("selectMenu0");
+
+    await clickOn(selectMenu0);
+    document.documentElement.classList.remove('reftest-wait');
+  }
+
+  test();
+</script>

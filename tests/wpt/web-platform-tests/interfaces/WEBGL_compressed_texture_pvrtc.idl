@@ -1,0 +1,13 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebGL WEBGL_compressed_texture_pvrtc Extension Specification (https://www.khronos.org/registry/webgl/extensions/WEBGL_compressed_texture_pvrtc/)
+
+[Exposed=(Window,Worker), LegacyNoInterfaceObject]
+interface WEBGL_compressed_texture_pvrtc {
+    /* Compressed Texture Formats */
+    const GLenum COMPRESSED_RGB_PVRTC_4BPPV1_IMG      = 0x8C00;
+    const GLenum COMPRESSED_RGB_PVRTC_2BPPV1_IMG      = 0x8C01;
+    const GLenum COMPRESSED_RGBA_PVRTC_4BPPV1_IMG     = 0x8C02;
+    const GLenum COMPRESSED_RGBA_PVRTC_2BPPV1_IMG     = 0x8C03;
+};

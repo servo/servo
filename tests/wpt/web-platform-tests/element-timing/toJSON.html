@@ -1,4 +1,4 @@
-<!DOCTYPE HTML>
+﻿<!DOCTYPE HTML>
 <meta charset=utf-8>
 <title>Element Timing: toJSON</title>
 <body>
@@ -30,13 +30,13 @@
           'naturalWidth',
           'naturalHeight',
           'id',
-          'element',
           'url',
         ];
         for (const key of keys) {
           assert_equals(json[key], entry[key],
             'PerformanceElementTiming ${key} entry does not match its toJSON value');
         }
+        assert_equals(json['element'], undefined, 'toJSON should not include element');
       })
     );
     observer.observe({type: 'element', buffered: true});

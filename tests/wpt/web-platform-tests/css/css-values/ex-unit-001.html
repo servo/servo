@@ -16,10 +16,8 @@
   @font-face {
     font-family: foo;
     font-weight: 900;
-    /* It doesn't really matter if Arial is not found, as
-       long as we fall-back to a font with different metrics
-       than Ahem */
-    src: local(Arial);
+    /* A font with significantly different ex-height metric than Aham. */
+    src: url('/fonts/noto/noto-sans-v8-latin-regular.woff');
   }
 
   div {

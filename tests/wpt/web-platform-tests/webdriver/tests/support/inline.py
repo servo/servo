@@ -1,6 +1,6 @@
 """Helpers for inlining extracts of documents in tests."""
 
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 
 BOILERPLATES = {

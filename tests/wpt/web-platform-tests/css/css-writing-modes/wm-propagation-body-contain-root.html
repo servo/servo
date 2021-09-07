@@ -1,0 +1,10 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Writing Modes Test: Do not propagate writing-mode from body when html root is contained</title>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes/#principal-flow">
+<link rel="match" href="wm-propagation-body-contain-root-ref.html">
+<style>
+  html { contain: paint; }
+  body { writing-mode: vertical-rl; }
+</style>
+<body>This text should run vertically on the left side</body>

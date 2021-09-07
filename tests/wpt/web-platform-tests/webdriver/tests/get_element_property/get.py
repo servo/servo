@@ -120,3 +120,14 @@ def test_mutated_element(session, inline):
 
     response = get_element_property(session, element.id, "checked")
     assert_success(response, True)
+
+
+@pytest.mark.parametrize("is_relative", [True, False], ids=["relative", "absolute"])
+def test_anchor_href(session, inline, url, is_relative):
+    href = "/foo.html" if is_relative else url("/foo.html")
+
+    session.url = inline("<a href='{}'>foo</a>".format(href))
+    element = session.find.css("a", all=False)
+
+    response = get_element_property(session, element.id, "href")
+    assert_success(response, url("/foo.html"))

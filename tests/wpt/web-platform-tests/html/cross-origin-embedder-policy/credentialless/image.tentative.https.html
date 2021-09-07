@@ -14,23 +14,10 @@ promise_test_parallel(async test => {
   const cookie_same_origin = "same_origin";
   const cookie_cross_origin = "cross_origin";
 
-  // Set cookie on same_origin.
-  document.cookie = `${cookie_key}=${cookie_same_origin}`;
-
-  // Set cookie on cross_origin.
-  {
-    const w_token = token();
-    const w_url = cross_origin + executor_path + `&uuid=${w_token}`;
-    const w = window.open(w_url);
-
-    const reply_token = token();
-    send(w_token, `
-      document.cookie = "${cookie_key}=${cookie_cross_origin}";
-      send("${reply_token}", "done");
-    `);
-    assert_equals(await receive(reply_token), "done");
-    w.close();
-  }
+  await Promise.all([
+    setCookie(same_origin, cookie_key, cookie_same_origin),
+    setCookie(cross_origin, cookie_key, cookie_cross_origin),
+  ]);
 
   // One window with COEP:none. (control)
   const w_control_token = token();

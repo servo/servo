@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 from utils import mathfont
 import fontforge
@@ -56,9 +56,9 @@ mathfont.drawRectangleGlyph(g,
 f[nAryWhiteVerticalBarCodePoint].verticalVariants = "uni2AFF"
 # Part: (glyphName, isExtender, startConnector, endConnector, fullAdvance)
 f[nAryWhiteVerticalBarCodePoint].verticalComponents = \
-  (("uni2AFF.bot", False, 0, mathfont.em / 2, mathfont.em),
-   ("uni2AFF.ext", True, mathfont.em / 2, mathfont.em / 2, 2 * mathfont.em),
-   ("uni2AFF.top", False, mathfont.em / 2, 0, mathfont.em)
+  (("uni2AFF.bot", False, 0, mathfont.em // 2, mathfont.em),
+   ("uni2AFF.ext", True, mathfont.em // 2, mathfont.em // 2, 2 * mathfont.em),
+   ("uni2AFF.top", False, mathfont.em // 2, 0, mathfont.em)
   );
 f[nAryWhiteVerticalBarCodePoint].verticalComponentItalicCorrection = v2
 mathfont.save(f)

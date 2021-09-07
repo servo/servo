@@ -8,8 +8,12 @@
         <link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-ink-property">
         <link rel="mismatch" href="reference/text-decoration-skip-ink-005-notref.html">
         <style>
+         @font-face {
+             font-family: mplus;
+             src: url(/fonts/mplus-1p-regular.woff) format("woff");
+         }
          div{
-             font: 50px sans-serif;
+             font: 50px mplus, sans-serif;
              color: #00008080;
              letter-spacing: 10px;
              /* make sure the underline clashes badly with the glyphs! */

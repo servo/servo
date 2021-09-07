@@ -1,0 +1,76 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Web Animations Level 2 (https://drafts.csswg.org/web-animations-2/)
+
+[Exposed=Window]
+partial interface AnimationTimeline {
+    Animation play (optional AnimationEffect? effect = null);
+};
+
+[Exposed=Window]
+partial interface AnimationEffect {
+    // Timing hierarchy
+    readonly attribute GroupEffect?     parent;
+    readonly attribute AnimationEffect? previousSibling;
+    readonly attribute AnimationEffect? nextSibling;
+
+    undefined before (AnimationEffect... effects);
+    undefined after (AnimationEffect... effects);
+    undefined replace (AnimationEffect... effects);
+    undefined remove ();
+};
+
+partial dictionary EffectTiming {
+    double playbackRate = 1.0;
+};
+
+partial dictionary OptionalEffectTiming {
+    double playbackRate;
+};
+
+partial dictionary ComputedEffectTiming {
+    double startTime;
+};
+
+[Exposed=Window]
+interface GroupEffect {
+  constructor(sequence<AnimationEffect>? children,
+              optional (unrestricted double or EffectTiming) timing = {});
+
+  readonly attribute AnimationNodeList  children;
+  readonly attribute AnimationEffect?   firstChild;
+  readonly attribute AnimationEffect?   lastChild;
+  GroupEffect clone ();
+
+  undefined prepend (AnimationEffect... effects);
+  undefined append (AnimationEffect... effects);
+};
+
+[Exposed=Window]
+interface AnimationNodeList {
+    readonly attribute unsigned long length;
+    getter AnimationEffect? item (unsigned long index);
+};
+
+[Exposed=Window]
+interface SequenceEffect : GroupEffect {
+  constructor(sequence<AnimationEffect>? children,
+              optional (unrestricted double or EffectTiming) timing = {});
+
+  SequenceEffect clone ();
+};
+
+partial interface KeyframeEffect {
+    attribute IterationCompositeOperation    iterationComposite;
+};
+
+partial dictionary KeyframeEffectOptions {
+    IterationCompositeOperation iterationComposite = "replace";
+};
+
+enum IterationCompositeOperation { "replace", "accumulate" };
+
+callback EffectCallback = undefined (double? progress,
+                                (Element or CSSPseudoElement) currentTarget,
+                                Animation animation);

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import datetime
 import json
 import time
@@ -15,6 +14,7 @@ DATEHDRS = set([u'date', u'expires', u'last-modified'])
 def main(request, response):
     dispatch = request.GET.first(b"dispatch", None)
     uuid = request.GET.first(b"uuid", None)
+    response.headers.set(b"Access-Control-Allow-Credentials", b"true")
 
     if request.method == u"OPTIONS":
         return handle_preflight(uuid, request, response)
@@ -32,9 +32,9 @@ def main(request, response):
 
 def handle_preflight(uuid, request, response):
     response.status = (200, b"OK")
-    response.headers.set(b"Access-Control-Allow-Origin", b"*")
+    response.headers.set(b"Access-Control-Allow-Origin", request.headers.get(b"origin") or '*')
     response.headers.set(b"Access-Control-Allow-Methods", b"GET")
-    response.headers.set(b"Access-Control-Allow-Headers", b"*")
+    response.headers.set(b"Access-Control-Allow-Headers", request.headers.get(b"Access-Control-Request-Headers") or "*")
     response.headers.set(b"Access-Control-Max-Age", b"86400")
     return b"Preflight request"
 

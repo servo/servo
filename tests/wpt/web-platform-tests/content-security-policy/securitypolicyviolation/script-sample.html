@@ -31,8 +31,8 @@
         .then(t.step_func_done(e => {
           assert_equals(e.blockedURI, "inline");
           assert_equals(e.sample, "assert_unreached('inline event handler')");
-        }));     
-      
+        }));
+
       document.body.append(a);
       a.click();
     }, "Inline event handlers should have a sample.");
@@ -45,8 +45,8 @@
         .then(t.step_func_done(e => {
           assert_equals(e.blockedURI, "inline");
           assert_equals(e.sample, "javascript:'inline url'");
-        }));     
-      
+        }));
+
       document.body.append(i);
     }, "JavaScript URLs in iframes should have a sample.");
 

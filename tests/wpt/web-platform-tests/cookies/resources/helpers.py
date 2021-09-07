@@ -1,6 +1,4 @@
-from six import integer_types
-
-from six.moves.urllib.parse import parse_qs
+from urllib.parse import parse_qs
 
 from wptserve.utils import isomorphic_encode
 
@@ -25,7 +23,7 @@ def makeCookieHeader(name, value, otherAttrs):
     def makeAV(a, v):
         if None == v or b"" == v:
             return a
-        if isinstance(v, integer_types):
+        if isinstance(v, int):
             return b"%s=%i" % (a, v)
         else:
             return b"%s=%s" % (a, v)

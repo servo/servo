@@ -11,6 +11,34 @@
 <script>
 'use strict';
 
+promise_test(async t => {
+  const animation =
+    new Animation(new KeyframeEffect(createDiv(t), null, 100 * MS_PER_SEC),
+                  null);
+
+  assert_throws_dom('NotSupportedError', () => {
+    animation.startTime = CSSNumericValue.parse("30%");
+  });
+  assert_throws_dom('NotSupportedError', () => {
+    animation.startTime = CSSNumericValue.parse("30deg");
+  });
+
+  animation.startTime = 2000;
+  assert_equals(animation.startTime, 2000, "Set start time using double");
+
+  animation.startTime = CSSNumericValue.parse("3000");
+  assert_equals(animation.startTime, 3000, "Set start time using " +
+    "CSSNumericValue number value");
+
+  animation.startTime = CSSNumericValue.parse("4000ms");
+  assert_equals(animation.startTime, 4000, "Set start time using " +
+    "CSSNumericValue milliseconds value");
+
+  animation.startTime = CSSNumericValue.parse("50s");
+  assert_equals(animation.startTime, 50000, "Set start time using " +
+    "CSSNumericValue seconds value");
+}, 'Validate different value types that can be used to set start time');
+
 test(t => {
   // It should only be possible to set *either* the start time or the current
   // time for an animation that does not have an active timeline.

@@ -43,7 +43,7 @@
 </picture>
 
 <script>
-let t = async_test("source width and height attributes are used to infer aspect-ratio in <picture>");
+let guard = async_test("source width and height attributes are used to infer aspect-ratio in <picture>");
 function assert_ratio(img, expected, description) {
   let epsilon = 0.001;
   assert_approx_equals(parseFloat(getComputedStyle(img).width, 10) / parseFloat(getComputedStyle(img).height, 10),
@@ -138,7 +138,9 @@ test(function() {
   assert_cs(img, "auto");
   assert_equals(getComputedStyle(img).width, "100px");
   assert_equals(getComputedStyle(img).height, "auto");
+}, "If we only have one width attribute, we should get width mapped but no aspect ratio, even if <img> has attributes.");
 
+test(function() {
   img = createPicture(undefined, 100);
   img.parentNode.style.display = "none";
   img.setAttribute("width", "200");
@@ -147,7 +149,7 @@ test(function() {
   assert_cs(img, "auto");
   assert_equals(getComputedStyle(img).width, "auto");
   assert_equals(getComputedStyle(img).height, "100px");
-}, "If we only have one width/height attribute, we should get that attribute mapped but no aspect ratio, even if <img> has attributes.");
+}, "If we only have height attribute, we should get height mapped but no aspect ratio, even if <img> has attributes.");
 
 test(function() {
   img = createPicture(100, 100);
@@ -203,28 +205,38 @@ test(function() {
   assert_equals(getComputedStyle(img).height, "50px");
 }, "Trailing garbage should be ignored but not make the attribute invalid");
 
-onload = t.step_func_done(function() {
+onload = function() {
   let images = document.querySelectorAll("img");
-  var img = images[0];
-  assert_ratio(img, 2.0, "2.0 is the original aspect ratio of green-100x50.png");
-  assert_cs(img, "auto");
-  img.style.display = "none";
-  img.setAttribute("nowidth", "true");
-  assert_equals(getComputedStyle(img).width, "auto");
-  assert_equals(getComputedStyle(img).height, "auto");
-  img = images[1];
-  assert_ratio(img, 2.0, "Loaded image's aspect ratio, at least by default, overrides width / height ratio.");
-  assert_cs(img, "auto 100 / 100");
-  img.style.display = "none";
-  img.setAttribute("nowidth", "true");
-  assert_equals(getComputedStyle(img).width, "100px");
-  assert_equals(getComputedStyle(img).height, "100px");
-  img = images[2];
-  assert_ratio(img, 2.0, "Loaded image's aspect ratio, at least by default, overrides width / height ratio (2).");
-  assert_cs(img, "auto 100 / 100");
-  img.style.display = "none";
-  img.setAttribute("nowidth", "true");
-  assert_equals(getComputedStyle(img).width, "100px");
-  assert_equals(getComputedStyle(img).height, "100px");
-});
+  test(function() {
+    var img = images[0];
+    assert_ratio(img, 2.0, "2.0 is the original aspect ratio of green-100x50.png");
+    assert_cs(img, "auto");
+    img.style.display = "none";
+    img.setAttribute("nowidth", "true");
+    assert_equals(getComputedStyle(img).width, "auto");
+    assert_equals(getComputedStyle(img).height, "auto");
+  }, "Loaded picture test: Both <source> and <img> are without width and height attributes");
+
+  test(function () {
+    img = images[1];
+    assert_ratio(img, 2.0, "Loaded image's aspect ratio, at least by default, overrides width / height ratio.");
+    assert_cs(img, "auto 100 / 100");
+    img.style.display = "none";
+    img.setAttribute("nowidth", "true");
+    assert_equals(getComputedStyle(img).width, "100px");
+    assert_equals(getComputedStyle(img).height, "100px");
+  }, "Loaded picture test: <source> with width and height attributes, <img> without width and height attributes");
+
+  test(function () {
+    img = images[2];
+    assert_ratio(img, 2.0, "Loaded image's aspect ratio, at least by default, overrides width / height ratio (2).");
+    assert_cs(img, "auto 100 / 100");
+    img.style.display = "none";
+    img.setAttribute("nowidth", "true");
+    assert_equals(getComputedStyle(img).width, "100px");
+    assert_equals(getComputedStyle(img).height, "100px");
+  }, "Loaded picture test: Both <source> and <img> are with width and height attributes");
+
+  guard.done();
+};
 </script>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>hasFocus() outer</title>
+<script>
+var w = null;
+var hadInitialFocus = false;
+var hadLostFocus = false;
+window.onmessage = function(e) {
+    if (e.data == "restored") {
+        if (hadInitialFocus && hadLostFocus) {
+            let verdict = document.hasFocus() ? "PASS" : "FAIL: hasFocus false";
+            window.opener.postMessage(verdict, "*");
+        } else {
+            window.opener.postMessage("FAIL: should have failed already", "*");
+        }
+    } else if (e.data == "focused") {
+        w = window.open("hasfocus-other.html");
+    } else if (e.data == "noblur") {
+        window.opener.postMessage("FAIL: no inner blur", "*");
+    } else if (e.data == "opened") {
+        if (document.hasFocus()) {
+            w.close();
+            window.opener.postMessage("FAIL: focus not lost when other window opened", "*");
+        } else {
+            hadLostFocus = true;
+            window.frames[0].postMessage("hasfocus", "*");
+        }
+    } else if (e.data == "close") {
+        w.close();
+    } else if (e.data == "wrongfocus") {
+        w.close();
+        window.opener.postMessage("FAIL: hasFocus was true in iframe", "*");
+    }
+}
+window.onload = function() {
+    if (document.hasFocus()) {
+        hadInitialFocus = true;
+        window.frames[0].postMessage("focus", "*");
+    } else {
+        window.opener.postMessage("FAIL: did not have initial focus", "*");
+    }
+}
+</script>
+</head>
+<body>
+<iframe src="hasfocus-inner.html"></iframe>
+</body>
+</html>

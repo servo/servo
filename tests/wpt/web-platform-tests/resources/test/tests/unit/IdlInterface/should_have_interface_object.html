@@ -14,17 +14,17 @@ test(function() {
 }, "callback interface with a constant");
 
 test(function() {
-    var i = interfaceFrom("callback interface A { void b(); sequence<any> c(); };");
+    var i = interfaceFrom("callback interface A { undefined b(); sequence<any> c(); };");
     assert_false(i.should_have_interface_object());
 }, "callback interface without a constant");
 
 test(function() {
-    var i = interfaceFrom("[NoInterfaceObject] interface A { };");
+    var i = interfaceFrom("[LegacyNoInterfaceObject] interface A { };");
     assert_false(i.should_have_interface_object());
-}, "non-callback interface with [NoInterfaceObject]");
+}, "non-callback interface with [LegacyNoInterfaceObject]");
 
 test(function() {
     var i = interfaceFrom("interface A { };");
     assert_true(i.should_have_interface_object());
-}, "non-callback interface without [NoInterfaceObject]");
+}, "non-callback interface without [LegacyNoInterfaceObject]");
 </script>

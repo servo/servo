@@ -1,0 +1,27 @@
+<!doctype html>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#algo-main-item">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Table's min-height is ignored when calculating flex basis.">
+
+<style>
+#reference-overlapped-red {
+  position: absolute;
+  background-color: red;
+  width: 100px;
+  height: 100px;
+  z-index: -1;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="reference-overlapped-red"></div>
+
+<div style="display: flex; flex-direction: column; height: 200px;">
+  <div style="display: table; min-height: 80px; flex: 1 0 auto; width: 100px; background: green;">
+    <div style="display: table-cell">
+      <div style="height: 1px"></div>
+    </div>
+  </div>
+  <div style="flex: 1 0 1px;"></div>
+</div>

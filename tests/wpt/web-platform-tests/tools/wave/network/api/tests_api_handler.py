@@ -1,10 +1,5 @@
-from __future__ import absolute_import
-from __future__ import unicode_literals
 import json
-try:
-    from urllib.parse import urlunsplit
-except ImportError:
-    from urlparse import urlunsplit
+from urllib.parse import urlunsplit
 
 from .api_handler import ApiHandler
 from ...utils.serializer import serialize_session

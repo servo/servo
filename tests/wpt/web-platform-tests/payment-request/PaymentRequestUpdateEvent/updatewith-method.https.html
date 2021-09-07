@@ -39,9 +39,7 @@ test(() => {
 // Github issue: https://github.com/w3c/browser-payment-api/issues/546
 test(() => {
   const untrustedEvents = [
-    new PaymentRequestUpdateEvent("just a test"),
-    new PaymentRequestUpdateEvent("shippingaddresschange"),
-    new PaymentRequestUpdateEvent("shippingoptionchange"),
+    new PaymentRequestUpdateEvent("just a test")
   ].forEach(ev => {
     assert_throws_dom(
       "InvalidStateError",
@@ -57,9 +55,7 @@ test(() => {
 test(() => {
   const request = new PaymentRequest(defaultMethods, defaultDetails);
   const untrustedEvents = [
-    new PaymentRequestUpdateEvent("just a test"),
-    new PaymentRequestUpdateEvent("shippingaddresschange"),
-    new PaymentRequestUpdateEvent("shippingoptionchange"),
+    new PaymentRequestUpdateEvent("just a test")
   ].map(ev => {
     request.dispatchEvent(ev); // set .target and dispatch flag
     // unstrusted event.

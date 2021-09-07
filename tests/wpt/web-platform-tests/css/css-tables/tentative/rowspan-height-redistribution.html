@@ -1,0 +1,503 @@
+<!doctype html>
+<title>ROWSPAN redistribution</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src="/resources/check-layout-th.js"></script>
+<link rel="stylesheet" type="text/css" href="./support/table-tentative.css">
+<link rel="author" title="Aleks Totic" href="atotic@chromium.org" />
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#row-layout" />
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/4418" />
+<style>
+  main table {
+    margin-top: 8px;
+    border-collapse: collapse;
+    background: rgba(0,0,255,0.1);
+    background-image: linear-gradient(45deg, #DDD 25%, transparent 25%), linear-gradient(-45deg, #DDD 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #DDD 75%), linear-gradient(-45deg, transparent 75%, #DDD 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+  }
+  .sizer {
+    width: 30px;
+    height: 100px;
+  }
+  main tbody tr:nth-child(odd) {
+    background: rgba(255,255,0,1.0);
+  }
+  main tbody tr:nth-child(even) {
+    background: rgba(255,165,0,1.0);
+  }
+  main td div {
+    background: radial-gradient(ellipse at center, rgba(255,255,255,0.5) 0%, rgba(0,255,0,0.7) 100%);
+  }
+  main .td-padding td {
+    padding: 2px;
+  }
+  main .td-padding-xl td {
+    padding: 10px;
+  }
+</style>
+<main>
+<h1>ROWSPAN > 1 to row distribution</h1>
+<p>The algorithm has not been standardized. This is my understanding of how it works.</p>
+<ol>
+  <li>rowspan>1 TDs are sorted:</li>
+    <ol>
+      <li>If TD span the same rows, taller TD is distributed first.</li>
+      <li>If one TD is fully enclosed by another, inner TD is distributed first.</li>
+      <li>Otherwise, higher TD is distributed first.</li>
+    </ol>
+  <li>Each rowspan>1 TD's height is distributed as following</li>
+    <ol>
+      <li>rowspan > 1 TDs have height TDh, span N rows. N rows have total height of Rh. TDh - Rh height, Dh, must be distributed as follows.</li>
+      <li>If percentage resolution size is available (this happens when redistributiong table/section height), percentage rows grow to their percentage size, proportional to (percentage size - current size). Dh shrinks by distributed height. Justification: explicit percentage rows should grow to their percentage.</li>
+      <li>Rows that originate rowspan>1 cells get all the Dh height, distributed evenly. Justification: rowspan>1 rows are likely to need to grow later. If there are multiple rowspan>1 cells, there can be multiple originating rows.</li>
+      <li>Unconstrained non-empty rows grow, proportional to their existing height.</li>
+      <li>If all rows are empty, last row gets all the height. Justification: ???</li>
+      <li>Contstrained rows grow in proportion to current height.</li>
+    </ol>
+  </ol>
+<p class="error">It is unclear what the existing ChromeLegacy/FF algorithms do for distribution over rowspan>1 and empty cells. <a href="https://dxr.mozilla.org/mozilla-central/source/layout/tables/nsTableRowGroupFrame.cpp#509">FF special cases</a> "there is no cell originating in the row with owspan=1 and there are at least 2 cells spanning the row. Chrome Legacy also tries to do something similar, but they disagree on what. TablesNG will try to ship without special cases.</p>
+ <p class="error">Safari fails most of these tests</p>
+<p>Color scheme</p>
+<table>
+  <tr>
+    <td>odd rows are yellow</td>
+  </tr>
+  <tr>
+    <td>even rows are orange</td>
+  </tr>
+  <tr>
+    <td><div style="height:50px">inner divs have a green gradient</div>
+    </td>
+  </tr>
+  <tr>
+    <td>row</td>
+  </tr>
+  <tr>
+    <td>row</td>
+  </tr>
+ <tr>
+    <td>row</td>
+  </tr>
+  <tr>
+    <td>row</td>
+  </tr>
+
+</table>
+<h2>Unconstrained rows</h2>
+ <p>Rows whose height is not fixed or percent are unconstrained.</p>
+<p class="testdesc">Unconstrained rows
+Unconstrained rows are redistributed proportionally. Rows are constrained if their height is fixed, or percent.</p>
+<table>
+  <tbody>
+    <tr data-expected-height="50">
+      <td>0,0</td>
+      <td rowspan="2"><div class="sizer"></div></td>
+    </tr>
+    <tr data-expected-height="50">
+      <td>0,1</td>
+    </tr>
+</table>
+
+<p class="testdesc">Unconstrained rows with zero height do not grow.</p>
+<table>
+  <tbody>
+    <tr data-expected-height="50">
+      <td>0,0</td>
+      <td rowspan="3"><div class="sizer"></div></td>
+    </tr>
+    <tr data-expected-height="0">
+    </tr>
+    <tr data-expected-height="50">
+      <td>0,2</td>
+    </tr>
+</table>
+
+<p class="testdesc">rowspan>1 is zero height, spanned rows have height.</p>
+<table>
+  <tbody>
+    <tr data-expected-height="0">
+      <td></td>
+      <td rowspan="3"><div class="sizer"></div></td>
+      <td></td>
+    </tr>
+    <tr data-expected-height="50">
+      <td>1,0</td>
+      <td></td>
+    </tr>
+    <tr data-expected-height="50">
+      <td>2,0</td>
+      <td></td>
+    </tr>
+</table>
+
+<p class="testdesc">Unconstrained rows are redistributed proportionally to heights</p>
+<table>
+  <tbody>
+    <tr data-expected-height="75">
+      <td><div style="height:45px">0,0</div></td>
+      <td rowspan="2"><div class="sizer"></div></td>
+    </tr>
+    <tr data-expected-height="25">
+      <td><div style="height:15px">0,1</div></td>
+    </tr>
+</table>
+
+<h2>Fixed rows</h2>
+
+<p class="testdesc">Constrained fixed rows
+do not grow if there are unconstrained ones</p>
+<p class="error">Edge grows constrained rows too</p>
+<table>
+  <tbody>
+    <tr style="height: 30px" data-expected-height="30">
+      <td>0,0 30px</td>
+      <td rowspan="2"><div class="sizer"></div></td>
+    </tr>
+    <tr data-expected-height="70">
+      <td>0,1</td>
+    </tr>
+</table>
+
+<p class="testdesc"> Constrained fixed rows
+grow proportionally to their size if there are no unconstrained rows</p>
+<table>
+  <tbody>
+    <tr style="height: 20px" data-expected-height="25">
+      <td>20</div></td>
+      <td rowspan="3"><div class="sizer"></div></td>
+    </tr>
+    <tr style="height: 20px" data-expected-height="25">
+      <td>20</td>
+    </tr>
+    <tr style="height: 40px" data-expected-height="50">
+      <td>40</td>
+    </tr>
+</table>
+
+<h2>Percent rows</h2>
+
+<p class="testdesc">Constrained percent rows
+grow like unconstrained ones when percent resolution size is undefined.</p>
+<p class="error">FF always treats percent rows as constrained. Chrome legacy does resolve percentage against final height of the table. I do not think that can work. Edge follows NG.</p>
+<table>
+  <tbody>
+    <tr style="height: 30%" data-expected-height="50">
+      <td>0,0 30%</td>
+      <td rowspan="2"><div class="sizer"></div></td>
+    </tr>
+    <tr data-expected-height="50">
+      <td>0,1</td>
+    </tr>
+    <tr style="height:100px"><td>100px</td></tr>
+</table>
+
+
+<p class="testdesc">Percent rows with zero height
+do not grow.</p>
+<p class="error">Legacy Chrome has a strange gap between rows</p>
+<table>
+  <tbody>
+    <tr data-expected-height="50">
+      <td>0,0</td>
+      <td rowspan="3"><div class="sizer"></div></td>
+    </tr>
+    <tr style="height:10%;background:red" data-expected-height="0">
+    </tr>
+    <tr data-expected-height="50">
+      <td>2,0</td>
+    </tr>
+</table>
+
+<h2>Order of rowspan distribution</h2>
+
+
+<p class="testdesc">If cells span the same rows, bigger cell is distributed first
+Not sure how to test this, I think it is just an optimization, there is no observable effect.
+<p class="error">FF and Legacy Chrome unexpectedly distribute height evenly between rows in the first test case. Edge and TablesNG do not.</p>
+<table>
+  <tr data-expected-height=0>
+    <td rowspan=3><div style="height:50px"></div></td>
+    <td rowspan=3><div style="height:99px"></div></td>
+  </tr>
+  <tr data-expected-height=0>
+  </tr>
+  <tr data-expected-height=99>
+  </tr>
+  <tr>
+    <td>bottom</td>
+    <td>bottom</td>
+  </tr>
+</table>
+<table>
+  <tr data-expected-height=0>
+    <td rowspan=3><div style="height:50px"></div></td>
+    <td rowspan=3><div style="height:99px"></div></td>
+    <td style="width:20px"></td>
+  </tr>
+  <tr data-expected-height=0>
+    <td></td>
+  </tr>
+  <tr data-expected-height=99>
+    <td></td>
+  </tr>
+  <tr>
+    <td>bottom</td>
+    <td>bottom</td>
+  </tr>
+</table>
+<table>
+  <tr data-expected-height=0>
+    <td rowspan=3><div style="height:99px;width:20px"></div></td>
+  </tr>
+  <tr></tr>
+  <tr data-expected-height=99></tr>
+ <tr>
+    <td>bottom</td>
+    <td>bottom</td>
+  </tr>
+</table>
+
+
+<p class="testdesc">If one cell is fully enclosed by another, inner cell wins.
+<p class="error">Not in Edge</p>
+<table>
+  <tr data-expected-height=0>
+    <td rowspan=4><div style="height:50px;width:20px"></div></td>
+    <td></td>
+  <tr data-expected-height=0>
+    <td></td>
+    <td rowspan=2><div style="height:100px;width:20px"></div></td>
+  </tr>
+  <tr data-expected-height=100></tr>
+  <tr data-expected-height=0></tr>
+</tr>
+</table>
+
+<p class="testdesc">First row wins.
+rowspan-4 distributes 50 to last empty row, row3. rowspan-3 distributes 100px to only nonempty row, row3.
+<p class="error">Edge disagrees here.</p>
+<table>
+  <tr data-expected-height=0>
+    <td rowspan=4><div style="height:50px;width:20px"></div></td>
+    <td></td>
+  <tr data-expected-height=0></tr>
+  <tr data-expected-height=0></tr>
+  <tr data-expected-height=100>
+    <td></td>
+    <td rowspan=3><div style="height:100px;width:20px"></div></td>
+  </tr>
+  <tr data-expected-height=0></tr>
+  <tr data-expected-height=0></tr>
+</tr>
+</table>
+
+<h2>Rowspan distribution over empty rows.</h2>
+
+<p class="testdesc">Rowspans that span non-existent rows
+Span is truncated so only existing rows are spanned.</p>
+<table>
+  <tbody data-expected-height="100">
+    <tr>
+      <td data-expected-height="50">0,0</td>
+      <td data-expected-height="100" rowspan="5"><div style="height:100px;">rowspan 5</div></td>
+    </tr>
+    <tr>
+      <td data-expected-height="50">1,0</td>
+    </tr>
+    <tr data-expected-height="0"></tr>
+  </tbody>
+  <tbody>
+    <tr>
+      <td>body 2</td>
+    </tr>
+  </tbody>
+</table>
+
+<p class="testdesc">Rowspan spans only empty rows
+Last spanned row gets all the height.
+<p class="error">Edge distributes height to all empty rows, not just last.</p>
+<table>
+  <tr>
+    <td>first row</td>
+  </tr>
+  <tr data-expected-height=0>
+    <td></td>
+    <td rowspan=5><div style="height:100px;width:30px;"></div></td>
+  </tr>
+  <tr data-expected-height=0><td></td></tr>
+  <tr data-expected-height=0><td></td></tr>
+  <tr data-expected-height=0><td></td></tr>
+  <tr data-expected-height=100><td></td></tr>
+  <tr>
+    <td>last row</td>
+  </tr>
+</table>
+
+<p class="testdesc">TD is not considered empty if it has padding, but no content
+<table>
+  <tr>
+    <td>first row</td>
+  </tr>
+  <tr data-expected-height=0>
+    <td></td>
+    <td style="height:100px" rowspan=3></td>
+  </tr>
+  <tr data-expected-height=100><td style="padding:2px"></td></tr>
+  <tr data-expected-height=0></tr>
+  <tr>
+    <td>last row</td>
+  </tr>
+</table>
+
+<p class="testdesc">row with an empty tall cell is not considered empty.
+<p class="error">
+<table>
+  <tr>
+    <td rowspan=5><div style="height:100px">rowspan</div></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr data-expected-height=100>
+    <td rowspan=5></td>
+    <td></td>
+  </tr>
+  <tr></tr>
+  <tr></tr>
+  <tr></tr>
+  <tr></tr>
+</table>
+
+<p class="testdesc">Empty rows with border-spacing big enough for rowspan cell
+rows are 0 height, cell spans the entire table.
+<table style="border-spacing:20px;border-collapse:separate " data-expected-height=100>
+  <tr data-expected-height=0>
+    <td rowspan=4><div style="height:60px;width:40px"></div></td>
+  </tr>
+  <tr data-expected-height=0></tr>
+  <tr data-expected-height=0></tr>
+  <tr data-expected-height=0></tr>
+</table>
+
+<p class="testdesc">row with a non-empty rowspan>0 cell is empty.
+Distributes to all rows except start row?
+<p class="error">
+<table>
+  <tr>
+    <td rowspan=5><div style="height:100px">rowspan</div></td>
+    <td></td>
+  </tr>
+  <tr data-expected-height=100>
+    <td rowspan=5><div style="height:100px">rowspan</div></td>
+  </tr>
+  <tr data-expected-height=0></tr>
+  <tr data-expected-height=0></tr>
+  <tr data-expected-height=0></tr>
+  <tr></tr>
+  <tr></tr>
+</table>
+<table>
+  <tr>
+    <td rowspan=5><div style="height:100px">rowspan</div></td>
+    <td></td>
+  </tr>
+  <tr data-expected-height=100>
+    <td>yo</td>
+  </tr>
+  <tr data-expected-height=0></tr>
+  <tr data-expected-height=0></tr>
+  <tr data-expected-height=0></tr>
+</table>
+
+
+<p class="testdesc">Distribution over rowspan > 1 rows
+Distribution over rowspan > 1 rows
+
+<table class="td-padding-xl" data-expected-height=360>
+  <tr>
+    <td rowspan=6><div style="width:50px;height:280px"></div></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td></td>
+  </tr>
+  <tr style="height:30%;background:purple">
+    <td data-expected-height=20></td>
+  </tr>
+  <tr data-expected-height=110>
+    <td rowspan=7 ></td>
+  </tr>
+  <tr data-expected-height=110>
+    <td rowspan=17 ><div style="width:50px;height:40px"></div></td>
+  </tr>
+  <tr>
+    <td></td>
+  </tr>
+  <tr>
+    <td></td>
+  </tr>
+    <tr>
+    <td></td>
+  </tr>
+    <tr>
+    <td></td>
+  </tr>
+</table>
+
+<p class="testdesc">Distribution of table height over rowspan > 1 rows
+If there are any unconstrained non-empty rows, they get it.
+When all rows are empty, last row takes it</p>
+<table class="td-padding-xl" style="height:460px">
+  <tr>
+    <td rowspan=6><div style="width:50px;height:280px" data-expected-height=280></div></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td></td>
+  </tr>
+  <tr style="height:30%;background:purple" data-expected-height=120>
+    <td ></td>
+  </tr>
+  <tr data-expected-height=110>
+    <td rowspan=7 ></td>
+  </tr>
+  <tr data-expected-height=110>
+    <td rowspan=17><div style="width:50px;height:40px"></div></td>
+  </tr>
+  <tr>
+    <td></td>
+  </tr>
+  <tr>
+    <td></td>
+  </tr>
+    <tr>
+    <td></td>
+  </tr>
+    <tr>
+    <td></td>
+  </tr>
+</table>
+
+<p class="testdesc">Distribution of rowspan over percentage rows
+Percentage rows are considered empty if they cannot resolve</p>
+<table>
+  <tbody>
+    <tr style="height:20%">
+      <td rowspan=3><div style="height:100px;width:100px"></div></td>
+      <td></td>
+    </tr>
+    <tr style="height:30%">
+      <td></td>
+    </tr>
+    <tr data-expected-height=100 style="height:50%">
+      <td></td>
+    </tr>
+  </tbody>
+</table>
+
+</main>
+<script>
+  checkLayout("table");
+</script>

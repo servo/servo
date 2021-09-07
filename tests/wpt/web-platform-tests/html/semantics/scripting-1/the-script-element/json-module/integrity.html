@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>&lt;script> integrity=""</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#prepare-a-script">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+window.matchesLog = [];
+window.matchesEvents = [];
+
+window.mismatchesLog = [];
+window.mismatchesEvents = [];
+</script>
+<script type="module" src="integrity-matches.js" integrity="sha384-VmQQfGzBiLKdyzw4FA4kL4ohu4tyujV68ddgW1aN/1v3cBZNNBn2gDFdVQxfL7+a"  onload="window.matchesEvents.push('load');" onerror="window.matchesEvents.push('error')"></script>
+<script type="module" src="integrity-mismatches.js" integrity="sha384-doesnotmatch" onload="window.mismatchesEvents.push('load');" onerror="window.mismatchesEvents.push('error')"></script>
+
+<script type="module">
+test(() => {
+  assert_array_equals(window.matchesLog, ["integrity-matches,json:42"], "The module and its dependency must have executed");
+  assert_array_equals(window.matchesEvents, ["load"], "The load event must have fired");
+}, "The integrity attribute must be verified on the top-level of a module loading a JSON module and allow it to execute when it matches");
+
+test(() => {
+  assert_array_equals(window.mismatchesLog, [], "The module and its dependency must not have executed");
+  assert_array_equals(window.mismatchesEvents, ["error"], "The error event must have fired");
+}, "The integrity attribute must be verified on the top-level of a module loading a JSON module and not allow it to execute when there's a mismatch");
+</script>

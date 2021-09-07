@@ -1,7 +1,7 @@
-from __future__ import print_function
 import time
 import subprocess
 from .base import Browser, ExecutorBrowser, require_arg
+from .base import NullBrowser  # noqa: F401
 from ..webdriver_server import EdgeDriverServer
 from ..executors import executor_kwargs as base_executor_kwargs
 from ..executors.executorselenium import (SeleniumTestharnessExecutor,  # noqa: F401
@@ -10,7 +10,8 @@ from ..executors.executoredge import EdgeDriverWdspecExecutor  # noqa: F401
 
 __wptrunner__ = {"product": "edge",
                  "check_args": "check_args",
-                 "browser": "EdgeBrowser",
+                 "browser": {None: "EdgeBrowser",
+                             "wdspec": "NullBrowser"},
                  "executor": {"testharness": "SeleniumTestharnessExecutor",
                               "reftest": "SeleniumRefTestExecutor",
                               "wdspec": "EdgeDriverWdspecExecutor"},
@@ -42,10 +43,9 @@ def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
                                                          **kwargs)}
 
 
-def executor_kwargs(logger, test_type, server_config, cache_manager, run_info_data,
+def executor_kwargs(logger, test_type, test_environment, run_info_data,
                     **kwargs):
-    executor_kwargs = base_executor_kwargs(test_type, server_config,
-                                           cache_manager, run_info_data, **kwargs)
+    executor_kwargs = base_executor_kwargs(test_type, test_environment, run_info_data, **kwargs)
     executor_kwargs["close_after_done"] = True
     executor_kwargs["timeout_multiplier"] = get_timeout_multiplier(test_type,
                                                                    run_info_data,
@@ -65,7 +65,6 @@ def env_options():
 
 
 class EdgeBrowser(Browser):
-    used_ports = set()
     init_timeout = 60
 
     def __init__(self, logger, webdriver_binary,

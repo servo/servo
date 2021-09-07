@@ -12,6 +12,7 @@
 const gInvalidTestCases = [
   { property: 'lemon', values: ['ade'], desc: 'an unsupported property name' },
   { property: null, values: ['foo'], desc: 'an null property name' },
+  { property: 'src', values: [new CSSUnparsedValue(['foo'])], desc: 'a descriptor' },
   { property: 'width', values: [CSS.deg(0)], desc: 'an invalid CSSStyleValue' },
   { property: 'width', values: ['10s'], desc: 'an invalid String' },
 ];

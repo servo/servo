@@ -243,4 +243,23 @@ promise_test(async t => {
 
 }, 'Removed Frame with pending request');
 
+promise_test(async t => {
+  assert_implements(navigator.locks);
+  const res = uniqueName(t);
+
+  const frame = await iframe('about:blank');
+
+  // Remove a frame while it is in the process of requesting a lock.
+  // The promise returned by `request` will never resolve since its frame no
+  // longer exists, but the lock should still be released.
+  await new Promise(resolve => {
+    frame.contentWindow.navigator.locks.request(res, () => {
+      frame.remove();
+      resolve();
+    });
+  });
+
+  assert_false((await navigator.locks.query()).held.includes(res));
+}, 'Removed Frame as lock is granted');
+
 </script>

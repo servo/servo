@@ -197,7 +197,8 @@
     let element = insertElement();
     insertSheet('#element { animation-timeline: timeline; }');
 
-    await assert_width(element, '0px');
+    // Unknown animation-timeline, current time held at zero.
+    await assert_width(element, '100px');
 
     insertScrollTimeline({source: 'selector(#scroller1)'});
     await assert_width(element, '120px');
@@ -210,7 +211,8 @@
     let element = insertElement();
     insertSheet('#element { animation-timeline: timeline; }');
 
-    await assert_width(element, '0px');
+    // Unknown animation-timeline, current time held at zero.
+    await assert_width(element, '100px');
 
     insertScrollTimeline({timeRange: '1e10s'});
     await assert_width(element, '120px');
@@ -223,7 +225,8 @@
     let element = insertElement();
     insertSheet('#element { animation-timeline: timeline; }');
 
-    await assert_width(element, '0px');
+    // Unknown animation-timeline, current time held at zero.
+    await assert_width(element, '100px');
 
     insertScrollTimeline({start: '0px'});
     await assert_width(element, '120px');
@@ -236,7 +239,8 @@
     let element = insertElement();
     insertSheet('#element { animation-timeline: timeline; }');
 
-    await assert_width(element, '0px');
+    // Unknown animation-timeline, current time held at zero.
+    await assert_width(element, '100px');
 
     insertScrollTimeline({end: '100px'});
     await assert_width(element, '120px');
@@ -250,7 +254,8 @@
     let reverse = insertSheet('#element { animation-direction: reverse; }');
     insertSheet('#element { animation-timeline: timeline; }');
 
-    await assert_width(element, '0px');
+    // Unknown animation-timeline, current time held at zero.
+    await assert_width(element, '200px');
 
     // Note: #scroller1 is at 20%.
     insertScrollTimeline({source: 'selector(#scroller1)'});
@@ -268,7 +273,8 @@
     let element = insertElement();
     insertSheet('#element { animation-timeline: timeline; }');
 
-    await assert_width(element, '0px');
+    // Unknown animation-timeline, current time held at zero.
+    await assert_width(element, '100px');
 
     // Note: #scroller1 is at 20%.
     insertScrollTimeline({source: 'selector(#scroller1)'});

@@ -7,6 +7,7 @@
   <meta charset="utf-8">
   <title>CSS Reference: inline list-item with ::marker</title>
   <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1696712">
 <style>
 html,body {
   color:black; background-color:white; font:16px/1 monospace; padding:0; margin:0;
@@ -22,15 +23,15 @@ ib { display:inline-block; }
 <body>
 
 <div class="wrap">
-<span>1 A A A A A A A A A A A A A A A A A A A A </span><span>2 B</span>
+<span>1 A A A A A A A A A A A A A A A A A A A A </span><span>2&nbsp;B</span>
 
 <ol>
-<span>1 A A A A A A A A A A A A A A A A A A A A </span><span>2 B</span>
+<span>1 A A A A A A A A A A A A A A A A A A A A </span><span>2&nbsp;B</span>
 <span>3 C</span>
 </ol>
 
 <ol style="display:inline">
-<span>1 A A A A A A A A A A A A A A A A A A A A </span><span>2 B</span>
+<span>1 A A A A A A A A A A A A A A A A A A A A </span><span>2&nbsp;B</span>
 <span>3 C</span>
 </ol>
 
@@ -42,7 +43,7 @@ ib { display:inline-block; }
 </ol>
 
 <ul>
-<span>1 A A A A A A A A A A A A A A A A A A A A </span><span>2 B
+<span>1 A A A A A A A A A A A A A A A A A A A A </span><span>2&nbsp;B
 <ol style="display:inline"><span>2.1 a a a a a a a a a a a a a a a a a a a a </span><span>2.2 b</span>
 </ol></span><span>3 C</span>
 </ul>

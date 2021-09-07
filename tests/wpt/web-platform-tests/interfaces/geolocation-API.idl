@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: Geolocation API Specification (https://w3c.github.io/geolocation-api/)
+// Source: Geolocation API (https://w3c.github.io/geolocation-api/)
 
 partial interface Navigator {
   [SameObject] readonly attribute Geolocation geolocation;
@@ -9,20 +9,28 @@ partial interface Navigator {
 
 [Exposed=Window]
 interface Geolocation {
-  undefined getCurrentPosition(PositionCallback successCallback,
-                          optional PositionErrorCallback errorCallback,
-                          optional PositionOptions options = {});
+  undefined getCurrentPosition (
+    PositionCallback successCallback,
+    optional PositionErrorCallback? errorCallback = null,
+    optional PositionOptions options = {}
+  );
 
-  long watchPosition(PositionCallback successCallback,
-                      optional PositionErrorCallback errorCallback,
-                      optional PositionOptions options = {});
+  long watchPosition (
+    PositionCallback successCallback,
+    optional PositionErrorCallback? errorCallback = null,
+    optional PositionOptions options = {}
+  );
 
-  undefined clearWatch(long watchId);
+  undefined clearWatch (long watchId);
 };
 
-callback PositionCallback = undefined (GeolocationPosition position);
+callback PositionCallback = undefined (
+  GeolocationPosition position
+);
 
-callback PositionErrorCallback = undefined (GeolocationPositionError positionError);
+callback PositionErrorCallback = undefined (
+  GeolocationPositionError positionError
+);
 
 dictionary PositionOptions {
   boolean enableHighAccuracy = false;
@@ -38,10 +46,10 @@ interface GeolocationPosition {
 
 [Exposed=Window, SecureContext]
 interface GeolocationCoordinates {
+  readonly attribute double accuracy;
   readonly attribute double latitude;
   readonly attribute double longitude;
   readonly attribute double? altitude;
-  readonly attribute double accuracy;
   readonly attribute double? altitudeAccuracy;
   readonly attribute double? heading;
   readonly attribute double? speed;

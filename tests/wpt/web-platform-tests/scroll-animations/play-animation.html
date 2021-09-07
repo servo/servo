@@ -30,10 +30,10 @@ promise_test(async t => {
   // current time.
   await waitForNextFrame();
   animation.play();
-  animation.currentTime = 100;
-  assert_time_equals_literal(animation.currentTime, 100);
+  animation.currentTime = CSSNumericValue.parse("10%");
+  assert_percents_equal(animation.currentTime, 10);
   animation.play();
-  assert_time_equals_literal(animation.currentTime, 100);
+  assert_percents_equal(animation.currentTime, 10);
 }, 'Playing a running animation leaves the current time unchanged');
 
 promise_test(async t => {
@@ -43,9 +43,9 @@ promise_test(async t => {
   await waitForNextFrame();
   animation.play();
   animation.finish();
-  assert_time_equals_literal(animation.currentTime, 1000);
+  assert_percents_equal(animation.currentTime, 100);
   animation.play();
-  assert_time_equals_literal(animation.currentTime, 0);
+  assert_percents_equal(animation.currentTime, 0);
 }, 'Playing a finished animation seeks back to the start');
 
 promise_test(async t => {
@@ -55,10 +55,10 @@ promise_test(async t => {
   await waitForNextFrame();
   animation.play();
   animation.playbackRate = -1;
-  animation.currentTime = 0;
-  assert_time_equals_literal(animation.currentTime, 0);
+  animation.currentTime = CSSNumericValue.parse("0%");
+  assert_percents_equal(animation.currentTime, 0);
   animation.play();
-  assert_time_equals_literal(animation.currentTime, 1000);
+  assert_percents_equal(animation.currentTime, 100);
 }, 'Playing a finished and reversed animation seeks to end');
 
 promise_test(async t => {
@@ -76,9 +76,9 @@ promise_test(async t => {
   // Wait to return to running state
   await animation.ready;
 
-  assert_equals(animation.currentTime, 0,
-              'After aborting a pause when finished, the current time should'
-              + ' jump back to the start of the animation');
+  assert_percents_equal(animation.currentTime, 0,
+      'After aborting a pause when finished, the current time should jump ' +
+      'back to the start of the animation');
 }, 'Playing a pause-pending but previously finished animation seeks back to'
    + ' to the start');
 
@@ -92,7 +92,7 @@ promise_test(async t => {
   await animation.ready;
 
   animation.play();
-  assert_equals(animation.startTime, 0, 'start time is zero');
+  assert_percents_equal(animation.startTime, 0, 'start time is zero');
 }, 'Playing a finished animation clears the start time');
 
 promise_test(async t => {
@@ -127,7 +127,7 @@ promise_test(async t => {
   // current time.
   await waitForNextFrame();
   animation.play();
-  animation.currentTime = 500;
+  animation.currentTime = CSSNumericValue.parse("50%");
   await animation.ready;
 
   animation.pause();
@@ -138,7 +138,9 @@ promise_test(async t => {
   animation.play();
   await animation.ready;
 
-  assert_equals(animation.startTime, animation.timeline.currentTime - holdTime);
+  assert_percents_equal(
+      animation.startTime,
+      animation.timeline.currentTime.value - holdTime.value);
 }, 'Resuming an animation from paused calculates start time from hold time');
 
 promise_test(async t => {
@@ -158,13 +160,12 @@ promise_test(async t => {
   animation.play();
   assert_true(animation.pending, 'Animation is still pending');
   assert_equals(animation.ready, pauseReadyPromise,
-                'The pause Promise is re-used when playing while waiting'
-                + ' to pause');
+      'The pause Promise is re-used when playing while waiting to pause');
 
   // Sanity check: Animation proceeds to running state
   await animation.ready;
   assert_true(!animation.pending && animation.playState === 'running',
-              'Animation is running after aborting a pause');
+      'Animation is running after aborting a pause');
 }, 'If a pause operation is interrupted, the ready promise is reused');
 
 promise_test(async t => {
@@ -174,7 +175,7 @@ promise_test(async t => {
   // current time.
   await waitForNextFrame();
   animation.play();
-  animation.currentTime = -1000;
+  animation.currentTime = CSSNumericValue.parse("-100%");
   await animation.ready;
 
   // Set pending playback rate to the opposite direction
@@ -185,7 +186,7 @@ promise_test(async t => {
   // When we play, we should seek to the target end, NOT to zero (which
   // is where we would seek to if we used the playbackRate of 1.
   animation.play();
-  assert_time_equals_literal(animation.currentTime, 1000);
+  assert_percents_equal(animation.currentTime, 100);
 }, 'A pending playback rate is used when determining auto-rewind behavior');
 
 promise_test(async t => {
@@ -204,8 +205,8 @@ promise_test(async t => {
   await animation.ready;
 
   assert_false(animation.pending, 'animation should no longer be pending');
-  assert_time_equals_literal(animation.startTime, 0,
-                      'The start time of the playing animation should be zero');
+  assert_percents_equal(animation.startTime, 0,
+      'The start time of the playing animation should be zero');
 }, 'Playing a canceled animation sets the start time');
 
 promise_test(async t => {
@@ -216,18 +217,16 @@ promise_test(async t => {
   animation.play();
   animation.playbackRate = -1;
   animation.cancel();
-  assert_equals(animation.startTime, null,
-                'Start time should be unresolved');
+  assert_equals(animation.startTime, null, 'Start time should be unresolved');
 
-  const playTime = animation.timeline.currentTime;
   animation.play();
   assert_true(animation.pending, 'Animation should be play-pending');
 
   await animation.ready;
 
   assert_false(animation.pending, 'Animation should no longer be pending');
-  assert_times_equal(animation.startTime, 1000,
-                     'The start time of the playing animation should be set');
+  assert_percents_equal(animation.startTime, 100,
+      'The start time of the playing animation should be set');
 }, 'Playing a canceled animation backwards sets the start time');
 
 </script>

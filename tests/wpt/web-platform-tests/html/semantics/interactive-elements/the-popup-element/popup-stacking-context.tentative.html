@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popup.research.explainer">
+<link rel=match href="popup-stacking-context-ref.tentative.html">
+
+<popup>
+  Inside popup
+  <div class=z style="z-index: 2; background:lightgreen">z-index 2
+    <div class=z style="z-index: 3; background:lightblue; left: 20px;">z-index 3</div>
+    <div class=z style="z-index: 1; background:pink; top:-20px; left: 10px;">z-index 1</div>
+  </div>
+  <div class=z style="background:green; top:-100px; left: 250px; width: 100px;">Outside</div>
+  Bottom of popup
+</popup>
+
+<style>
+  popup {
+    width: 200px;
+    height: 230px;
+    border: 1px solid red;
+    padding: 1em;
+    background: white;
+    color: black;
+    top:50px;
+    left:50px;
+  }
+  .z {
+    position: relative;
+    border: 1px solid black;
+    padding: 1em;
+  }
+</style>
+
+<script>
+  document.querySelector('popup').show();
+</script>

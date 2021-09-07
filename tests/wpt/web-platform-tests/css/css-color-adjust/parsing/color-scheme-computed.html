@@ -10,12 +10,11 @@
   test_computed_value("color-scheme", "light dark");
   test_computed_value("color-scheme", "dark light");
   test_computed_value("color-scheme", "light unknown");
-  test_computed_value("color-scheme", "only light");
+  test_computed_value("color-scheme", "only light", "light only");
+  test_computed_value("color-scheme", "only light dark", "light dark only");
   test_computed_value("color-scheme", "light light");
   test_computed_value("color-scheme", "light only");
   test_computed_value("color-scheme", "none");
-  test_computed_value("color-scheme", "only");
-  test_computed_value("color-scheme", "only only");
   // reserved and css-wide keywords.
   test_computed_value("color-scheme", "initial", "normal");
   test_computed_value("color-scheme", "inherit", "normal");

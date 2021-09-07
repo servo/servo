@@ -59,6 +59,9 @@
       { "name": "Wrong and dangerous value of `csp` should not trigger sending Sec-Required-CSP Header - report-to present",
         "csp": "script-src 'unsafe-inline'; report-to resources/dummy-report.php",
         "expected": null },
+      { "name": "Sec-Required-CSP is not sent if `csp` attribute is longer than 4096 bytes",
+        "csp": "style-src " + Array.from(Array(2044).keys()).map(i => 'a').join(' '),
+        "expected":  null },
     ];
 
     tests.forEach(test => {

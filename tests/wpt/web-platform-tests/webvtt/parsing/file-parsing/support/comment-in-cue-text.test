@@ -1,0 +1,28 @@
+comment-in-cue-text
+<link rel="help" href="https://www.w3.org/TR/webvtt1/#introduction-comments">
+
+assert_equals(cues.length, 2);
+
+assert_equals(cues[0].text, 'NOTE text');
+assert_equals(cues[0].startTime, 0);
+assert_equals(cues[0].endTime, 1);
+
+assert_equals(cues[1].text, 'NOTE text\nNOTE text2');
+assert_equals(cues[1].startTime, 1);
+assert_equals(cues[1].endTime, 2);
+
+===
+WEBVTT
+
+NOTE this is real comment that should be ignored
+
+00:00:00.000 --> 00:00:01.000
+NOTE text
+
+NOTE
+this is also a real comment that should be ignored
+this is also a real comment that should be ignored
+
+00:00:01.000 --> 00:00:02.000
+NOTE text
+NOTE text2

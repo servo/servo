@@ -1,0 +1,27 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script>
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+window.onload = () => step_timeout(() => {
+  if (location.search == "?go-back") {
+    assert_equals(appHistory.entries().length, 2);
+    assert_equals(appHistory.current.index, 1);
+    // Step 2: Navigate back.
+    history.back();
+    return;
+  }
+  if (top.start_key) {
+    assert_equals(appHistory.entries().length, 2);
+    assert_equals(appHistory.current.index, 0);
+    // Step 3: Notify parent, which will ensure the same key is used after back navigation.
+    top.finish(appHistory.current.key, appHistory.current.id);
+    return;
+  }
+  // Step 1: Record initial key and navigate.
+  assert_equals(appHistory.entries().length, 1);
+  top.start_key = appHistory.current.key;
+  top.start_id = appHistory.current.id;
+  location.search = "go-back";
+}, 0);
+</script>

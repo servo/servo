@@ -12,9 +12,9 @@
         setup({explicit_timeout: true});
 
         const url = 'https://www.example.com/some/path?some_query#some_fragment';
-        setupManualShareTest({title: 'the title', text: 'the message', url});
-        callWhenButtonClicked(() => navigator.share(
-              {title: 'the title', text: 'the message', url})).then(
+        const data = {title: 'the title', text: 'the message', url, files: []};
+        setupManualShareTest(data);
+        callWhenButtonClicked(() => navigator.share(data)).then(
               result => {
                 // Check that promise resolved with undefined. This is guarded
                 // by an if statement because we do not want it to register as a

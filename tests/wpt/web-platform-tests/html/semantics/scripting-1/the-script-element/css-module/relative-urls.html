@@ -1,0 +1,18 @@
+<!doctype html>
+<head>
+  <title>Test resolution of relative URL in CSS module</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <div id="target"></div>
+  <script type="module">
+    import styleSheet from "./resources/load-relative-url.css" assert { type: "css"};
+    test(() => {
+      const target = document.querySelector("#target");
+      document.adoptedStyleSheets = [ styleSheet ];
+      let backgroundStyle = window.getComputedStyle(target).background;
+      assert_not_equals(backgroundStyle.indexOf("css-module/resources/image.png"), -1);
+    }, "A relative URL in a CSS module should be resolved relative to the CSS file's URL, not the importing document's URL");
+  </script>
+</body>

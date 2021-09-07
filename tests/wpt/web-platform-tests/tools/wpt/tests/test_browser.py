@@ -1,9 +1,10 @@
 import logging
 import inspect
-import mock
-import pytest
 import subprocess
 import sys
+from unittest import mock
+
+import pytest
 
 from tools.wpt import browser
 

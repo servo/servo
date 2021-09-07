@@ -44,6 +44,29 @@ test(function() {
 });
 test(function() {
   "use strict";
+  assert_throws_js(TypeError, () => { window[4294967294] = 1; });
+  assert_false(Reflect.set(window, 4294967294, 2));
+  assert_false(Reflect.defineProperty(window, 4294967294, { value: 3 }));
+  assert_throws_js(TypeError, () => Object.defineProperty(window, 4294967294, { get: () => 4 }));
+  assert_equals(window[4294967294], undefined);
+  assert_false(4294967294 in window);
+  assert_true(delete window[4294967294]);
+}, "Borderline numeric key: 2 ** 32 - 2 is an index (strict mode)");
+test(function() {
+  "use strict";
+  window[4294967295] = 1;
+  assert_equals(window[4294967295], 1);
+  assert_true(Reflect.set(window, 4294967295, 2));
+  assert_equals(window[4294967295], 2);
+  assert_true(Reflect.defineProperty(window, 4294967295, { value: 3 }));
+  assert_equals(window[4294967295], 3);
+  Object.defineProperty(window, 4294967295, { get: () => 4 });
+  assert_equals(window[4294967295], 4);
+  assert_true(delete window[4294967295]);
+  assert_false(4294967295 in window);
+}, "Borderline numeric key: 2 ** 32 - 1 is not an index (strict mode)");
+test(function() {
+  "use strict";
   var proto = Window.prototype;
   [-1, 0, 1].forEach(function(idx) {
     assert_false(idx in proto, idx + " in proto");

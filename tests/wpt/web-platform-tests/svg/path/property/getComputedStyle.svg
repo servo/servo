@@ -29,24 +29,20 @@
   <h:script src="/resources/testharness.js"/>
   <h:script src="/resources/testharnessreport.js"/>
   <script><![CDATA[
-  test(function() {
-    var g0 = document.getElementById('g0');
-    var p1 = document.getElementById('p1');
-    var p2 = document.getElementById('p2');
-    var p3 = document.getElementById('p3');
-    var p4 = document.getElementById('p4');
-    var g5 = document.getElementById('g5');
-    var p6 = document.getElementById('p6');
-    var p7 = document.getElementById('p7');
+  function test_computed_value_of_d(id, expected) {
+    test(function() {
+      let target = document.getElementById(id);
+      assert_equals(getComputedStyle(target).d, expected);
+    }, `d property of ${id} should be ${expected}.`);
+  }
 
-    assert_equals(getComputedStyle(g0).d, 'none');
-    assert_equals(getComputedStyle(p1).d, 'none');
-    assert_equals(getComputedStyle(p2).d, 'path("M 10 2 H 20")');
-    assert_equals(getComputedStyle(p3).d, 'path("M 10 3 H 30")');
-    assert_equals(getComputedStyle(p4).d, 'path("M 10 4 H 40")');
-    assert_equals(getComputedStyle(g5).d, 'path("M 10 5 H 50")');
-    assert_equals(getComputedStyle(p6).d, 'path("M 10 5 H 50")');
-    assert_equals(getComputedStyle(p7).d, 'none');
-  });
+  test_computed_value_of_d('g0', 'none');
+  test_computed_value_of_d('p1', 'none');
+  test_computed_value_of_d('p2', 'path("M 10 2 H 20")');
+  test_computed_value_of_d('p3', 'path("M 10 3 H 30")');
+  test_computed_value_of_d('p4', 'path("M 10 4 H 40")');
+  test_computed_value_of_d('g5', 'path("M 10 5 H 50")');
+  test_computed_value_of_d('p6', 'path("M 10 5 H 50")');
+  test_computed_value_of_d('p7', 'none');
   ]]></script>
 </svg>

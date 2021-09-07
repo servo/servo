@@ -1,6 +1,7 @@
 # Running Tests from the Web
 
-Tests that have been merged on GitHub are mirrored at [http://w3c-test.org/][w3c-test].
+Tests that have been merged on GitHub are mirrored at
+[wpt.live](https://wpt.live) and [w3c-test.org](https://w3c-test.org).
 [On properly-configured systems](from-local-system), local files may also be
 served from the URL [http://web-platform.test](http://web-platform.test).
 
@@ -24,5 +25,3 @@ more than one reference involved.
 
 Because it runs entirely in-browser, this runner cannot deal with
 edge-cases like tests that cause the browser to crash or hang.
-
-[w3c-test]: http://w3c-test.org

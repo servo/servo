@@ -19,7 +19,7 @@
         window.addEventListener('securitypolicyviolation', function(e) {
             log("Fail");
         });
-    
+
         if(!window.webkitRequestFileSystem) {
             t_log.set_status(t_log.NOTRUN, "No filesystem:// support, cannot run test.");
             t_log.phase = t_log.phases.HAS_RESULT;

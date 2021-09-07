@@ -8,6 +8,7 @@
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/web-animations/testcommon.js"></script>
+<script src="./testcommon.js"></script>
 
 <style>
   body {
@@ -23,19 +24,21 @@
 promise_test(async t => {
   const scroller = document.scrollingElement;
   const maxScroll = scroller.scrollHeight - scroller.clientHeight;
-  const timeline = new ScrollTimeline(
-    {scrollSource: scroller, timeRange: maxScroll});
+  const timeline = new ScrollTimeline({scrollSource: scroller});
   scroller.scrollTo(0, 0);
   assert_equals(scroller.scrollTop, 0, "verify test pre-condition");
 
-  scroller.scrollBy({top:100, behavior:'smooth'})
+  scroller.scrollBy({top: 100, behavior: 'smooth'});
   // Wait for the scroll to change.
   const startScroll = scroller.scrollTop;
   do {
     await waitForNextFrame();
   } while(scroller.scrollTop == startScroll);
-  assert_times_equal(timeline.currentTime, scroller.scrollTop,
-    'Scroll timeline current time corresponds to the scroll position.');
-}, 'ScrollTimeline current time is updated after programmatic animated scroll.');
+  assert_percents_equal(
+      timeline.currentTime,
+      (scroller.scrollTop / maxScroll) * 100,
+      'Scroll timeline current time corresponds to the scroll position.');
+}, 'ScrollTimeline current time is updated after programmatic animated ' +
+   'scroll.');
 
 </script>

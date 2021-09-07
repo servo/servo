@@ -13,7 +13,7 @@
 <div id="log"></div>
 <script type="text/javascript">
 
-function doTest(doc, templateInnerHTML, id, tagName, bodiesNum, footerIsNull,
+function doTest(doc, templateInnerHTML, id, tagName, bodiesNum = null, footerIsNull,
         headerIsNull) {
 
     doc.body.innerHTML = '' +
@@ -43,7 +43,7 @@ function doTest(doc, templateInnerHTML, id, tagName, bodiesNum, footerIsNull,
     assert_equals(doc.querySelector('#tbl').caption, null, 'Table should have no caption');
     assert_equals(template.content.querySelector('#' + id).tagName, tagName,
                 'Wrong element in the template content');
-    if (bodiesNum) {
+    if (bodiesNum !== null) {
         assert_equals(table.tBodies.length, bodiesNum, 'Table should have '
                 + bodiesNum + ' body');
     }

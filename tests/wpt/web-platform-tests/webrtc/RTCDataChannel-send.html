@@ -35,8 +35,10 @@
 
 // Simple ASCII encoded string
 const helloString = 'hello';
+const emptyString = '';
 // ASCII encoded buffer representation of the string
 const helloBuffer = Uint8Array.of(0x68, 0x65, 0x6c, 0x6c, 0x6f);
+const emptyBuffer = new Uint8Array();
 const helloBlob = new Blob([helloBuffer]);
 
 // Unicode string with multiple code units
@@ -112,6 +114,20 @@ for (const options of [{}, {negotiated: true, id: 0}]) {
       assert_equals(message, helloString);
     });
   }, `${mode} should ignore binaryType and always receive string message as string`);
+  promise_test(t => {
+    return createDataChannelPair(t, options)
+    .then(([channel1, channel2]) => {
+      channel1.send(emptyString);
+      // Send a non-empty string in case the implementation ignores empty messages
+      channel1.send(helloString);
+      return awaitMessage(channel2)
+    }).then(message => {
+      assert_equals(typeof message, 'string',
+        'Expect message to be a string');
+
+      assert_equals(message, emptyString);
+    });
+  }, `${mode} should be able to send an empty string and receive an empty string`);
 
   /*
     6.2. send()
@@ -169,6 +185,22 @@ for (const options of [{}, {negotiated: true, id: 0}]) {
       assert_equals_typed_array(messageBuffer, helloBuffer.buffer);
     });
   }, `${mode} should be able to send ArrayBuffer message and receive as ArrayBuffer`);
+
+  promise_test(t => {
+    return createDataChannelPair(t, options)
+    .then(([channel1, channel2]) => {
+      channel2.binaryType = 'arraybuffer';
+      channel1.send(emptyBuffer.buffer);
+      // Send a non-empty buffer in case the implementation ignores empty messages
+      channel1.send(helloBuffer.buffer);
+      return awaitMessage(channel2)
+    }).then(messageBuffer => {
+      assert_true(messageBuffer instanceof ArrayBuffer,
+        'Expect messageBuffer to be an ArrayBuffer');
+
+      assert_equals_typed_array(messageBuffer, emptyBuffer.buffer);
+    });
+  }, `${mode} should be able to send an empty ArrayBuffer message and receive as ArrayBuffer`);
 
   /*
     6.2. send()

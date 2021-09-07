@@ -1,0 +1,30 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i"></iframe>
+<body>
+<script>
+async_test(t => {
+  let starting_history_length = history.length;
+  let iframe_url = (new URL("/common/blank.html", location.href)).href;
+  i.src = iframe_url;
+
+  history.pushState("a", "", "#a");
+  assert_equals(starting_history_length + 1, history.length);
+
+  i.onload = t.step_func(() => {
+    assert_equals(starting_history_length + 1, history.length);
+    assert_equals(i.contentWindow.location.href, iframe_url);
+    assert_equals(location.hash, "#a");
+    history.back();
+    // Wait a while for a back navigation. Since all of the possible outcomes
+    // are either same-document or navigating to about:blank, this doesn't need
+    // to wait terribly long.
+    t.step_timeout(t.step_func_done(() => {
+      assert_equals(location.hash, "", "top frame should have navigated back");
+      assert_equals(i.contentWindow.location.href, iframe_url, "iframe should not have navigated");
+    }), 100);
+  });
+}, "pushState() in parent while child is doing initial navigation, then go back");
+</script>
+</body>

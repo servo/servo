@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<title>HTMLSelectMenuElement Test: option arbitrary content not displayed</title>
+<link rel="author" title="Ionel Popescu" href="mailto:iopopesc@microsoft.com">
+<link rel=match href="selectmenu-option-arbitrary-content-not-displayed-ref.tentative.html">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<option>
+  option with image not displayed
+  <img src="support/cat.png" alt="Image download support must be enabled" />
+</option>
+
+<selectmenu id="selectMenu0">
+  <option id="selectMenu0-option">
+    option with image not displayed
+    <img src="support/cat.png" alt="Image download support must be enabled" />
+  </option>
+</selectmenu>
+
+<script>
+  const selectMenu0Option = document.getElementById("selectMenu0-option");
+
+  // removing an option from <selectmenu> should revert back to its original display behavior
+  selectMenu0Option.remove();
+  document.body.append(selectMenu0Option);
+</script>

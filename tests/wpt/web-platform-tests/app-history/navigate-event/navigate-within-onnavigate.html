@@ -1,0 +1,16 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<form id="form" action=""></form>
+<script>
+promise_test(async t => {
+  appHistory.onnavigate = t.step_func(e => {
+    if (e.info == 1) {
+      appHistory.navigate("#2", { info: 2 });
+      assert_true(e.defaultPrevented);
+    }
+  });
+  await promise_rejects_dom(t, 'AbortError', appHistory.navigate("#1", { info: 1 }));
+  assert_equals(location.hash, "#2");
+}, "if navigate() is called inside onnavigate, the previous navigation and navigate event are cancelled");
+</script>

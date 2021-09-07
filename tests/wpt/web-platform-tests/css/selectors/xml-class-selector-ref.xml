@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <title>Class selectors in an XML namespace</title>
+  <link rel="author" href="mailto:masonf@chromium.org" />
+  <body>
+    <p>The .class selector should work in any namespace. Both boxes should be green.</p>
+    <Boxes xmlns="http://foo">
+      <box>.classname selector</box>
+      <box>*[class~="classname"] selector</box>
+    </Boxes>
+
+    <style>
+      box {background:green;}
+    </style>
+  </body>
+</html>

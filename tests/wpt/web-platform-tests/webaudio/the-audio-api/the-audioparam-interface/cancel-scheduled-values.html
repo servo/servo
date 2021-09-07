@@ -17,6 +17,38 @@
       let audit = Audit.createTaskRunner();
 
       audit.define(
+          {label: 'cancel-time', description: 'handle cancelTime values'},
+          (task, should) => {
+            let context = new OfflineAudioContext({
+              numberOfChannels: 1,
+              length: renderFrames,
+              sampleRate: sampleRate
+            });
+
+            let src = new ConstantSourceNode(context);
+            src.connect(context.destination);
+
+            should(
+                () => src.offset.cancelScheduledValues(-1),
+                'cancelScheduledValues(-1)')
+                .throw(RangeError);
+
+            // These are TypeErrors because |cancelTime| is a
+            // double, not unrestricted double.
+            should(
+                () => src.offset.cancelScheduledValues(NaN),
+                'cancelScheduledValues(NaN)')
+                .throw(TypeError);
+
+            should(
+                () => src.offset.cancelScheduledValues(Infinity),
+                'cancelScheduledValues(Infinity)')
+                .throw(TypeError);
+
+            task.done();
+          });
+
+      audit.define(
           {label: 'cancel1', description: 'cancel setValueCurve'},
           (task, should) => {
             let context = new OfflineAudioContext({

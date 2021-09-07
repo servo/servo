@@ -3,10 +3,11 @@
 <head>
 <meta charset="utf-8">
 <title>mo axis height</title>
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
+<link rel="help" href="https://w3c.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
 <meta name="assert" content="Element mo correctly uses the axis height parameter from the MATH table.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/fonts.js"></script>
 <style>
   math, mspace {
     font-size: 10px;
@@ -25,7 +26,7 @@
   }
 
   setup({ explicit_done: true });
-  window.addEventListener("load", () => { document.fonts.ready.then(runTests); });
+  window.addEventListener("load", () => { loadAllFonts().then(runTests); });
 
   function runTests() {
     test(function() {

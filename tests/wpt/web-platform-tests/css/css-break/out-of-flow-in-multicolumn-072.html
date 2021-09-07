@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>
+  Nested out-of-flow positioned element affects column balancing.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#abspos-breaking">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    column-count: 4;
+    column-gap: 0px;
+    width: 100px;
+  }
+  .abs {
+    position: absolute;
+    background-color: green;
+  }
+  #target {
+    background-color: red;
+    position: relative;
+    height: 100px;
+    width: 100px;
+    top: -100px;
+    z-index: -1;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div style="position: relative;">
+    <div class="abs">
+      <div class="abs" style="height: 400px; width: 25px;"></div>
+    </div>
+  </div>
+</div>
+<div id="target"></div>

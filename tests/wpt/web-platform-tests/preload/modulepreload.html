@@ -220,9 +220,17 @@ promise_test(function(t) {
     var link = document.createElement('link');
     link.rel = 'modulepreload';
     link.href = 'resources/module1.js?integrity-match';
-    link.integrity = 'sha256-ZPBZ+J9CiHzZXaBBluSeCpjzuTUkT+rSWIdXUV3AtVo='
+    link.integrity = 'sha256-dOxReWMnMSPfUvxEbBqIrjNh8ZN8n05j7h3JmhF8gQc=%'
     return attachAndWaitForLoad(link);
 }, 'link rel=modulepreload with integrity match');
+
+promise_test(function(t) {
+    var link = document.createElement('link');
+    link.rel = 'modulepreload';
+    link.href = 'resources/module1.mjs?integrity-match';
+    link.integrity = 'sha256-dOxReWMnMSPfUvxEbBqIrjNh8ZN8n05j7h3JmhF8gQc=%'
+    return attachAndWaitForLoad(link);
+}, 'link rel=modulepreload with integrity match2');
 
 promise_test(function(t) {
     var link = document.createElement('link');

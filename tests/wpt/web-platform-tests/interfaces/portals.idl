@@ -1,0 +1,50 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Portals (https://wicg.github.io/portals/)
+
+[Exposed=Window]
+interface HTMLPortalElement : HTMLElement {
+    [HTMLConstructor] constructor();
+
+    [CEReactions] attribute USVString src;
+    [CEReactions] attribute DOMString referrerPolicy;
+
+    [NewObject] Promise<undefined> activate(optional PortalActivateOptions options = {});
+    undefined postMessage(any message, optional PostMessageOptions options = {});
+
+    attribute EventHandler onmessage;
+    attribute EventHandler onmessageerror;
+};
+
+dictionary PortalActivateOptions : PostMessageOptions {
+    any data;
+};
+
+partial interface Window {
+    readonly attribute PortalHost? portalHost;
+};
+
+[Exposed=Window]
+interface PortalHost : EventTarget {
+    undefined postMessage(any message, optional PostMessageOptions options = {});
+
+    attribute EventHandler onmessage;
+    attribute EventHandler onmessageerror;
+};
+
+[Exposed=Window]
+interface PortalActivateEvent : Event {
+    constructor(DOMString type, optional PortalActivateEventInit eventInitDict = {});
+
+    readonly attribute any data;
+    HTMLPortalElement adoptPredecessor();
+};
+
+dictionary PortalActivateEventInit : EventInit {
+    any data = null;
+};
+
+partial interface mixin WindowEventHandlers {
+    attribute EventHandler onportalactivate;
+};

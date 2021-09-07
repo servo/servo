@@ -1,6 +1,5 @@
 #!/usr/bin/python
 
-import six
 import time
 
 # The amount of internal buffering a WebSocket connection has is not
@@ -36,5 +35,5 @@ def web_socket_transfer_data(request):
         request.ws_stream.send_message(b' ' * MESSAGE_SIZE, binary=True)
 
     # Report the time taken to send the large message.
-    request.ws_stream.send_message(six.text_type(time.time() - start_time),
+    request.ws_stream.send_message(str(time.time() - start_time),
                                    binary=False)

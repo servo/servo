@@ -1,0 +1,10 @@
+<!doctype html>
+<title>line-height has no effect on placeholder</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1714631">
+<link rel="match" href="input-placeholder-line-height-ref.html">
+<style>
+  input::placeholder {
+    line-height: 0;
+  }
+</style>
+<input placeholder=Foo>

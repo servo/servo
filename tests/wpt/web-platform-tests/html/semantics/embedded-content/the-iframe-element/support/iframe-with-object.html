@@ -1,0 +1,10 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Display:none iframe with object tag</title>
+<script>
+  // If this document is loaded as a display:none iframe, forcing an update here
+  // means we do not need a style or layout update after the object is inserted
+  // below because we are not being rendered.
+  document.documentElement.offsetTop;
+</script>
+<object data="data:text/html,frame"></object>

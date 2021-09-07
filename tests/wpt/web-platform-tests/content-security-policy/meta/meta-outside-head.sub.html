@@ -18,7 +18,7 @@ script-src 'self' 'unsafe-inline' 'nonce-abc'; connect-src 'self';
         window.addEventListener('securitypolicyviolation', function(e) {
             alert_assert("Fail");
         });
-    </script>    
+    </script>
 
     <meta http-equiv="Content-Security-Policy" content="script-src 'self'">
     <p>This test checks that Content Security Policy delivered via a meta element is not enforced if the element is outside the document&apos;s head.</p>

@@ -5,8 +5,7 @@
   SecureContext
 ] interface Sanitizer {
   constructor(optional SanitizerConfig sanitizerConfig = {});
-  DocumentFragment sanitize((DOMString or DocumentFragment or Document) input);
-  DOMString sanitizeToString((DOMString or DocumentFragment or Document) input);
+  DocumentFragment sanitize((DocumentFragment or Document) input);
 };
 
 dictionary SanitizerConfig {

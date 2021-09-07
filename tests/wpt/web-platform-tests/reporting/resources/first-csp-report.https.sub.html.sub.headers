@@ -1,0 +1,2 @@
+Reporting-Endpoints: csp="/reporting/resources/report.py?pipe=trickle(d1)&endpoint=csp1"
+Content-Security-Policy: img-src 'none'; report-to csp

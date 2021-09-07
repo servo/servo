@@ -1,6 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
-from __future__ import print_function
 import fontforge
 
 font = fontforge.font()
@@ -39,18 +38,18 @@ pen.lineTo(1000, -1000)
 pen.closePath();
 
 font.os2_typoascent_add = False
-font.os2_typoascent = lineHeight / 2
+font.os2_typoascent = lineHeight // 2
 font.os2_typodescent_add = False
-font.os2_typodescent = -lineHeight / 2
+font.os2_typodescent = -lineHeight // 2
 font.os2_typolinegap = 0
-font.hhea_ascent = lineHeight / 2
+font.hhea_ascent = lineHeight // 2
 font.hhea_ascent_add = False
-font.hhea_descent = -lineHeight / 2
+font.hhea_descent = -lineHeight // 2
 font.hhea_descent_add = False
 font.hhea_linegap = 0
-font.os2_winascent = lineHeight / 2
+font.os2_winascent = lineHeight // 2
 font.os2_winascent_add = False
-font.os2_windescent = lineHeight / 2
+font.os2_windescent = lineHeight // 2
 font.os2_windescent_add = False
 
 font.os2_use_typo_metrics = True

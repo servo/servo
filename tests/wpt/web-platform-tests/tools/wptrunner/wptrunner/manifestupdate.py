@@ -1,8 +1,8 @@
-from __future__ import print_function
 import os
 from urllib.parse import urljoin, urlsplit
 from collections import namedtuple, defaultdict, deque
 from math import ceil
+from typing import Any, Callable, ClassVar, Dict, List
 
 from .wptmanifest import serialize
 from .wptmanifest.node import (DataNode, ConditionalNode, BinaryExpressionNode,
@@ -320,10 +320,13 @@ def build_unconditional_tree(_, run_info_properties, results):
 
 
 class PropertyUpdate(object):
-    property_name = None
-    cls_default_value = None
-    value_type = None
-    property_builder = None
+    property_name = None  # type: ClassVar[str]
+    cls_default_value = None  # type: ClassVar[Any]
+    value_type = None  # type: ClassVar[type]
+    # property_builder is a class variable set to either build_conditional_tree
+    # or build_unconditional_tree. TODO: Make this type stricter when those
+    # methods are annotated.
+    property_builder = None  # type: ClassVar[Callable[..., Any]]
 
     def __init__(self, node):
         self.node = node
@@ -613,7 +616,8 @@ class PropertyUpdate(object):
                     except ConditionError:
                         expr = make_expr(prop_set, value)
                         error = ConditionError(expr)
-                    expr = make_expr(prop_set, value)
+                    else:
+                        expr = make_expr(prop_set, value)
                 else:
                     # The root node needs special handling
                     expr = None
@@ -764,7 +768,7 @@ class MinAssertsUpdate(PropertyUpdate):
 
 
 class AppendOnlyListUpdate(PropertyUpdate):
-    cls_default_value = []
+    cls_default_value = []  # type: ClassVar[List[str]]
     property_builder = build_unconditional_tree
 
     def updated_value(self, current, new):
@@ -817,7 +821,7 @@ class LeakObjectUpdate(AppendOnlyListUpdate):
 
 class LeakThresholdUpdate(PropertyUpdate):
     property_name = "leak-threshold"
-    cls_default_value = {}
+    cls_default_value = {}  # type: ClassVar[Dict[str, int]]
     property_builder = build_unconditional_tree
 
     def from_result_value(self, result):
@@ -918,7 +922,7 @@ def make_value_node(value):
     elif hasattr(value, "__iter__"):
         node = ListNode()
         for item in value:
-            node.append(make_node(item))
+            node.append(make_value_node(item))
     else:
         raise ValueError("Don't know how to convert %s into node" % type(value))
     return node

@@ -1,11 +1,15 @@
+// META: variant=
+// META: variant=?wss
+// META: variant=?wpt_flags=h2
+
 importScripts("/resources/testharness.js");
-importScripts('websocket.sub.js')
+importScripts('constants.sub.js')
 
 var data = "test data";
 
 async_test(function(t) {
 
-    var wsocket = CreateWebSocket(false, false, false);
+    var wsocket = CreateWebSocket(false, false);
 
     wsocket.addEventListener('open', function (e) {
         wsocket.send(data)
@@ -13,9 +17,10 @@ async_test(function(t) {
 
     wsocket.addEventListener('message', t.step_func_done(function(e) {
             assert_equals(e.data, data);
-            done();
     }), true);
+
+    wsocket.addEventListener('close', t.unreached_func('the close event should not fire'), true);
 
 }, "Send data on a WebSocket in a Worker")
 
-
+done();

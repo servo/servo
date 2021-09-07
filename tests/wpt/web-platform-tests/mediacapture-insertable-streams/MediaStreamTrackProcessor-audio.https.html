@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+<head>
+  <title>MediaStreamTrackProcessor</title>
+  <link rel="help" href="https://w3c.github.io/mediacapture-insertable-streams">
+</head>
+<body>
+<p class="instructions">When prompted, use the accept button to give permission to use your audio and video devices.</p>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks that MediaStreamTrackProcessor works as expected on audio MediaStreamTracks.</p>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+  const track = stream.getTracks()[0];
+  const processor = new MediaStreamTrackProcessor({track: track});
+  const reader = processor.readable.getReader();
+  const readResult = await reader.read();
+  assert_false(readResult.done)
+  assert_true(readResult.value instanceof AudioData);
+  readResult.value.close();
+  track.stop();
+  return reader.closed;
+}, "Tests that the reader of an audio MediaStreamTrackProcessor produces AudioData objects and is closed on track stop");
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+  const track = stream.getTracks()[0];
+  const processor = new MediaStreamTrackProcessor({track: track});
+  const worker = new Worker('MediaStreamTrackProcessor-worker.js');
+  const promise = new Promise(resolve => {
+    worker.onmessage = t.step_func(msg => {
+      if (msg.data instanceof AudioData) {
+        msg.data.close();
+        track.stop();
+      } else if (msg.data == 'closed') {
+        resolve();
+      } else {
+        assert_unreached();
+      }
+    })
+  });
+  worker.postMessage({readable: processor.readable},
+                     [processor.readable]);
+  return promise;
+}, "Tests that the reader of an audio MediaStreamTrackProcessor produces AudioData objects and is closed on track stop while running on a worker");
+</script>
+</body>
+</html>

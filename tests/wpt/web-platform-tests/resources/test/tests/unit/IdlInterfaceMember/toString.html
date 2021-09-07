@@ -27,7 +27,7 @@ const tests = [
 ];
 for (const [input, output] of tests) {
     test(function() {
-        var m = memberFrom(`void foo(${input})`);
+        var m = memberFrom(`undefined foo(${input})`);
         assert_equals(m.toString(), `foo(${output})`);
     }, `toString for ${input}`);
 }

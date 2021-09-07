@@ -30,7 +30,7 @@
       for (const crossorigin_attribute_value of [
         undefined,   // crossorigin attribute is not set
         "anonymous",
-        "use-credential",
+        "use-credentials",
       ]) {
         const link = await addLinkAndWaitForLoad(
           prefix + "cross-origin.wbn",

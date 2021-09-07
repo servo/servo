@@ -15,16 +15,10 @@
 
 runPropertyTests('scrollbar-gutter', [
     { syntax: 'auto' },
-    { syntax: 'stable' },
-    { syntax: 'always' },
+    { syntax: 'stable' }
 ]);
 runUnsupportedPropertyTests('scrollbar-gutter', [
-    'stable both',
-    'stable force',
-    'stable both force',
-    'always both',
-    'always force',
-    'always both force'
+  'stable both-edges'
 ]);
 
 </script>

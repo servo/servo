@@ -1,65 +1,33 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <title>Test cross-origin fetch redirects have the right values.</title>
+<link rel="author" title="Google" href="http://www.google.com/" />
+<link rel="help" href="https://www.w3.org/TR/resource-timing-2/#sec-performanceresourcetiming"/>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
+<script src="resources/entry-invariants.js"></script>
+<script src="resources/resource-loaders.js"></script>
 <script>
-const run_test = async (t, url, cross_origin) => {
-  // Set up PerformanceObserver
-  const href = new URL(url).href;
-  const setPerformanceObserver = new Promise(resolve => {
-    const po = new PerformanceObserver(resolve);
-    po.observe({type: "resource"});
-  });
-
-  // Fetch the resource
-  await fetch(href, {mode: "no-cors", credentials: "include" });
-
-  // Wait for an entry
-  const timeout = new Promise(resolve => t.step_timeout(resolve, 1000));
-  const list = await Promise.race([setPerformanceObserver, timeout]);
-  assert_equals(typeof(list), "object", "No iframe entry was fired");
-  const entries = list.getEntriesByName(url);
-  assert_equals(entries.length, 1);
-
-  // Test entry values
-  const entry = entries[0];
-  if (cross_origin) {
-    assert_equals(entry.redirectStart, 0, "redirectStart should be 0 in cross-origin redirect.");
-    assert_equals(entry.redirectEnd, 0, "redirectEnd should be 0 in cross-origin redirect.");
-    assert_equals(entry.domainLookupStart, 0, "domainLookupStart should be 0 in cross-origin redirect.");
-    assert_equals(entry.domainLookupEnd, 0, "domainLookupEnd should be 0 in cross-origin redirect.");
-    assert_equals(entry.connectStart, 0, "connectStart should be 0 in cross-origin redirect.");
-    assert_equals(entry.connectEnd, 0, "connectEnd should be 0 in cross-origin redirect.");
-    assert_equals(entry.requestStart, 0, "requestStart should be 0 in cross-origin redirect.");
-    assert_equals(entry.responseStart, 0, "responseStart should be 0 in cross-origin redirect.");
-    assert_equals(entry.secureConnectionStart, 0, "secureConnectionStart should be 0 in cross-origin redirect.");
-  } else {
-    assert_greater_than(entry.redirectStart, 0, "redirectStart should be more than 0 in same-origin redirect.");
-    assert_greater_than(entry.redirectEnd, 0, "redirectEnd should be more than 0 in same-origin redirect.");
-    assert_greater_than(entry.domainLookupStart, 0, "domainLookupStart should be more than 0 in same-origin redirect.");
-    assert_greater_than(entry.domainLookupEnd, 0, "domainLookupEnd should be more than 0 in same-origin redirect.");
-    assert_greater_than(entry.connectStart, 0, "connectStart should be more than 0 in same-origin redirect.");
-    assert_greater_than(entry.connectEnd, 0, "connectEnd should be more than 0 in same-origin redirect.");
-    assert_greater_than(entry.requestStart, 0, "requestStart should be more than 0 in same-origin redirect.");
-    assert_greater_than(entry.responseStart, 0, "responseStart should be more than 0 in same-origin redirect.");
-    assert_greater_than(entry.secureConnectionStart, 0, "secureConnectionStart should be more than 0 in same-origin redirect.");
-  }
-  assert_greater_than(entry.fetchStart, 0, "fetchStart should be greater than 0 in redirects.");
-  assert_greater_than(entry.responseEnd, 0, "responseEnd should be greater than 0 in redirects.");
-  assert_greater_than(entry.duration, 0, "duration should be greater than 0 in redirects.");
-  assert_greater_than(entry.responseEnd, entry.fetchStart, "responseEnd should be greater than fetchStart in redirects.");
-}
 
 const {REMOTE_ORIGIN, ORIGIN} = get_host_info();
-const redirect = "/common/redirect.py?location=" + "/resource-timing/resources/blank_page_green.htm";
+const redirect = "/common/redirect.py?" +
+                 "location=/resource-timing/resources/green.html";
 const cross_origin_redirect = REMOTE_ORIGIN + redirect;
 const same_origin_redirect = ORIGIN + redirect;
-promise_test(t => {
-  return run_test(t, cross_origin_redirect, true);
-}, "Test fetch for a cross-origin redirect URL");
-promise_test(t => {
-  return run_test(t, same_origin_redirect, false);
-}, "Test fetch for a same-origin redirect URL");
+
+attribute_test(
+  url => fetch(url, {mode: "no-cors", credentials: "include"}),
+  new URL(cross_origin_redirect).href,
+  invariants.assert_cross_origin_redirected_resource,
+  "Test fetching through a cross-origin redirect URL"
+);
+
+attribute_test(
+  url => fetch(url, {mode: "no-cors", credentials: "include"}),
+  new URL(same_origin_redirect).href,
+  invariants.assert_same_origin_redirected_resource,
+  "Test fetching through a same-origin redirect URL"
+);
+
 </script>

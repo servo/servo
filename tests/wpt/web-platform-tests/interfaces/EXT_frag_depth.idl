@@ -1,0 +1,8 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebGL EXT_frag_depth Khronos Ratified Extension Specification (https://www.khronos.org/registry/webgl/extensions/EXT_frag_depth/)
+
+[Exposed=(Window,Worker), LegacyNoInterfaceObject]
+interface EXT_frag_depth {
+};

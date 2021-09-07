@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<title>Counter style rules in shadow DOM can override rules in ancestor scopes</title>
+<link rel="help" href="https://drafts.csswg.org/css-counter-styles-3/#the-counter-style-rule">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#shadow-names">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="match" href="counter-styles-override-in-shadow-dom-ref.html">
+
+<style>
+@counter-style foo {
+  system: fixed;
+  symbols: A B C;
+}
+</style>
+
+<ol style="list-style-type: foo; list-style-position: inside">
+  <li></li>
+  <li></li>
+  <li></li>
+</ol>
+
+<div id="host1"></div>
+<div id="host2"></div>
+
+<script>
+document.getElementById("host1").attachShadow({mode: 'open'}).innerHTML = `
+<style>
+@counter-style foo {
+  system: fixed;
+  symbols: D E F;
+}
+</style>
+<ol style="list-style-type: foo; list-style-position: inside">
+  <li></li>
+  <li></li>
+  <li></li>
+</ol>
+`;
+
+document.getElementById("host2").attachShadow({mode: 'open'}).innerHTML = `
+<style>
+@counter-style foo {
+  system: fixed;
+  symbols: G H I;
+}
+</style>
+<ol style="list-style-type: foo; list-style-position: inside">
+  <li></li>
+  <li></li>
+  <li></li>
+</ol>
+`;
+</script>

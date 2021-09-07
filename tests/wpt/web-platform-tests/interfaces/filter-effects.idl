@@ -3,6 +3,7 @@
 // (https://github.com/w3c/webref)
 // Source: Filter Effects Module Level 1 (https://drafts.fxtf.org/filter-effects-1/)
 
+[Exposed=Window]
 interface SVGFilterElement : SVGElement {
   readonly attribute SVGAnimatedEnumeration filterUnits;
   readonly attribute SVGAnimatedEnumeration primitiveUnits;
@@ -22,6 +23,7 @@ interface mixin SVGFilterPrimitiveStandardAttributes {
   readonly attribute SVGAnimatedString result;
 };
 
+[Exposed=Window]
 interface SVGFEBlendElement : SVGElement {
 
   // Blend Mode Types
@@ -50,6 +52,7 @@ interface SVGFEBlendElement : SVGElement {
 
 SVGFEBlendElement includes SVGFilterPrimitiveStandardAttributes;
 
+[Exposed=Window]
 interface SVGFEColorMatrixElement : SVGElement {
 
   // Color Matrix Types
@@ -66,12 +69,14 @@ interface SVGFEColorMatrixElement : SVGElement {
 
 SVGFEColorMatrixElement includes SVGFilterPrimitiveStandardAttributes;
 
+[Exposed=Window]
 interface SVGFEComponentTransferElement : SVGElement {
   readonly attribute SVGAnimatedString in1;
 };
 
 SVGFEComponentTransferElement includes SVGFilterPrimitiveStandardAttributes;
 
+[Exposed=Window]
 interface SVGComponentTransferFunctionElement : SVGElement {
 
   // Component Transfer Types
@@ -91,18 +96,23 @@ interface SVGComponentTransferFunctionElement : SVGElement {
   readonly attribute SVGAnimatedNumber offset;
 };
 
+[Exposed=Window]
 interface SVGFEFuncRElement : SVGComponentTransferFunctionElement {
 };
 
+[Exposed=Window]
 interface SVGFEFuncGElement : SVGComponentTransferFunctionElement {
 };
 
+[Exposed=Window]
 interface SVGFEFuncBElement : SVGComponentTransferFunctionElement {
 };
 
+[Exposed=Window]
 interface SVGFEFuncAElement : SVGComponentTransferFunctionElement {
 };
 
+[Exposed=Window]
 interface SVGFECompositeElement : SVGElement {
 
   // Composite Operators
@@ -125,6 +135,7 @@ interface SVGFECompositeElement : SVGElement {
 
 SVGFECompositeElement includes SVGFilterPrimitiveStandardAttributes;
 
+[Exposed=Window]
 interface SVGFEConvolveMatrixElement : SVGElement {
 
   // Edge Mode Values
@@ -149,6 +160,7 @@ interface SVGFEConvolveMatrixElement : SVGElement {
 
 SVGFEConvolveMatrixElement includes SVGFilterPrimitiveStandardAttributes;
 
+[Exposed=Window]
 interface SVGFEDiffuseLightingElement : SVGElement {
   readonly attribute SVGAnimatedString in1;
   readonly attribute SVGAnimatedNumber surfaceScale;
@@ -159,17 +171,20 @@ interface SVGFEDiffuseLightingElement : SVGElement {
 
 SVGFEDiffuseLightingElement includes SVGFilterPrimitiveStandardAttributes;
 
+[Exposed=Window]
 interface SVGFEDistantLightElement : SVGElement {
   readonly attribute SVGAnimatedNumber azimuth;
   readonly attribute SVGAnimatedNumber elevation;
 };
 
+[Exposed=Window]
 interface SVGFEPointLightElement : SVGElement {
   readonly attribute SVGAnimatedNumber x;
   readonly attribute SVGAnimatedNumber y;
   readonly attribute SVGAnimatedNumber z;
 };
 
+[Exposed=Window]
 interface SVGFESpotLightElement : SVGElement {
   readonly attribute SVGAnimatedNumber x;
   readonly attribute SVGAnimatedNumber y;
@@ -181,6 +196,7 @@ interface SVGFESpotLightElement : SVGElement {
   readonly attribute SVGAnimatedNumber limitingConeAngle;
 };
 
+[Exposed=Window]
 interface SVGFEDisplacementMapElement : SVGElement {
 
   // Channel Selectors
@@ -199,6 +215,7 @@ interface SVGFEDisplacementMapElement : SVGElement {
 
 SVGFEDisplacementMapElement includes SVGFilterPrimitiveStandardAttributes;
 
+[Exposed=Window]
 interface SVGFEDropShadowElement : SVGElement {
   readonly attribute SVGAnimatedString in1;
   readonly attribute SVGAnimatedNumber dx;
@@ -206,16 +223,18 @@ interface SVGFEDropShadowElement : SVGElement {
   readonly attribute SVGAnimatedNumber stdDeviationX;
   readonly attribute SVGAnimatedNumber stdDeviationY;
 
-  void setStdDeviation(float stdDeviationX, float stdDeviationY);
+  undefined setStdDeviation(float stdDeviationX, float stdDeviationY);
 };
 
 SVGFEDropShadowElement includes SVGFilterPrimitiveStandardAttributes;
 
+[Exposed=Window]
 interface SVGFEFloodElement : SVGElement {
 };
 
 SVGFEFloodElement includes SVGFilterPrimitiveStandardAttributes;
 
+[Exposed=Window]
 interface SVGFEGaussianBlurElement : SVGElement {
 
   // Edge Mode Values
@@ -229,11 +248,12 @@ interface SVGFEGaussianBlurElement : SVGElement {
   readonly attribute SVGAnimatedNumber stdDeviationY;
   readonly attribute SVGAnimatedEnumeration edgeMode;
 
-  void setStdDeviation(float stdDeviationX, float stdDeviationY);
+  undefined setStdDeviation(float stdDeviationX, float stdDeviationY);
 };
 
 SVGFEGaussianBlurElement includes SVGFilterPrimitiveStandardAttributes;
 
+[Exposed=Window]
 interface SVGFEImageElement : SVGElement {
   readonly attribute SVGAnimatedPreserveAspectRatio preserveAspectRatio;
   readonly attribute SVGAnimatedString crossOrigin;
@@ -242,15 +262,18 @@ interface SVGFEImageElement : SVGElement {
 SVGFEImageElement includes SVGFilterPrimitiveStandardAttributes;
 SVGFEImageElement includes SVGURIReference;
 
+[Exposed=Window]
 interface SVGFEMergeElement : SVGElement {
 };
 
 SVGFEMergeElement includes SVGFilterPrimitiveStandardAttributes;
 
+[Exposed=Window]
 interface SVGFEMergeNodeElement : SVGElement {
   readonly attribute SVGAnimatedString in1;
 };
 
+[Exposed=Window]
 interface SVGFEMorphologyElement : SVGElement {
 
   // Morphology Operators
@@ -266,6 +289,7 @@ interface SVGFEMorphologyElement : SVGElement {
 
 SVGFEMorphologyElement includes SVGFilterPrimitiveStandardAttributes;
 
+[Exposed=Window]
 interface SVGFEOffsetElement : SVGElement {
   readonly attribute SVGAnimatedString in1;
   readonly attribute SVGAnimatedNumber dx;
@@ -274,6 +298,7 @@ interface SVGFEOffsetElement : SVGElement {
 
 SVGFEOffsetElement includes SVGFilterPrimitiveStandardAttributes;
 
+[Exposed=Window]
 interface SVGFESpecularLightingElement : SVGElement {
   readonly attribute SVGAnimatedString in1;
   readonly attribute SVGAnimatedNumber surfaceScale;
@@ -285,12 +310,14 @@ interface SVGFESpecularLightingElement : SVGElement {
 
 SVGFESpecularLightingElement includes SVGFilterPrimitiveStandardAttributes;
 
+[Exposed=Window]
 interface SVGFETileElement : SVGElement {
   readonly attribute SVGAnimatedString in1;
 };
 
 SVGFETileElement includes SVGFilterPrimitiveStandardAttributes;
 
+[Exposed=Window]
 interface SVGFETurbulenceElement : SVGElement {
 
   // Turbulence Types

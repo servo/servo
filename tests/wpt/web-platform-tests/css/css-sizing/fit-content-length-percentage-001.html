@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>CSS fit-content(): <length-percentage> between min-content and max-content</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#valdef-width-fit-content-length-percentage">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div style="width: fit-content(100px); height: 100px; background: green;">
+  <div style="display: inline-block; width: 60px;"></div>
+  <div style="display: inline-block; width: 60px;"></div>
+</div>

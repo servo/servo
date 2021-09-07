@@ -1,1 +1,1 @@
-ua-parser==0.8.0
+ua-parser==0.10.0

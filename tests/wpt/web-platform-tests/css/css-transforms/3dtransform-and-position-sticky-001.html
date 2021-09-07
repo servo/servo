@@ -1,0 +1,52 @@
+<!DOCTYPE HTML>
+<title>CSS Test (Transforms): position:sticky on an element in a preserve-3d scene</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://www.w3.org/TR/css-transforms-2/#3d-transform-rendering">
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#stickypos-insets">
+<meta name="assert" content="3D scene intersection is done correctly in the presence of position: sticky.">
+<link rel="match" href="3dtransform-and-position-sticky-ref.html">
+
+<style>
+
+div, img {
+  height: 100px;
+  width: 100px;
+}
+
+#outer {
+  transform-style: preserve-3d;
+  perspective: 300px;
+}
+
+#middle {
+  transform-style: preserve-3d;
+  position: relative;
+}
+
+#inner1 {
+  background: aqua;
+  /* isn't really sticky because of the containing block established by transform and by transform-style */
+  position: sticky;
+  top: 0;
+  transform: translateZ(0);
+}
+
+#inner2 {
+  background: olive;
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: rotateX(30deg);
+}
+
+</style>
+
+<div id="outer">
+  <div id="middle">
+    <div id="inner1">
+    </div>
+    <div id="inner2">
+    </div>
+  </div>
+</div>

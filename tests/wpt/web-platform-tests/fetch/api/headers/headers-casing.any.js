@@ -1,6 +1,8 @@
 // META: title=Headers case management
 // META: global=window,worker
 
+"use strict";
+
 var headerDictCase = {"UPPERCASE": "value1",
                       "lowercase": "value2",
                       "mixedCase": "value3",
@@ -21,13 +23,13 @@ function checkHeadersCase(originalName, headersToCheck, expectedDict) {
 
 test(function() {
   var headers = new Headers(headerDictCase);
-  for (name in headerDictCase)
+  for (const name in headerDictCase)
     checkHeadersCase(name, headers, headerDictCase)
 }, "Create headers, names use characters with different case");
 
 test(function() {
   var headers = new Headers();
-  for (name in headerDictCase) {
+  for (const name in headerDictCase) {
     headers.append(name, headerDictCase[name]);
     checkHeadersCase(name, headers, headerDictCase);
   }
@@ -35,7 +37,7 @@ test(function() {
 
 test(function() {
   var headers = new Headers();
-  for (name in headerDictCase) {
+  for (const name in headerDictCase) {
     headers.set(name, headerDictCase[name]);
     checkHeadersCase(name, headers, headerDictCase);
   }
@@ -43,10 +45,10 @@ test(function() {
 
 test(function() {
   var headers = new Headers();
-  for (name in headerDictCase)
+  for (const name in headerDictCase)
     headers.set(name, headerDictCase[name]);
-  for (name in headerDictCase)
+  for (const name in headerDictCase)
     headers.delete(name.toLowerCase());
-  for (name in headerDictCase)
+  for (const name in headerDictCase)
     assert_false(headers.has(name), "header " + name + " should have been deleted");
 }, "Check delete method, names use characters with different case");

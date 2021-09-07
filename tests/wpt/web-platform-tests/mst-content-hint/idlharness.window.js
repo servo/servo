@@ -6,7 +6,7 @@
 
 idl_test(
   ['mst-content-hint'],
-  ['mediacapture-streams', 'dom'],
+  ['mediacapture-streams', 'webrtc', 'dom'],
   async idl_array => {
     idl_array.add_objects({
       MediaStreamTrack: ['audioTrack', 'videoTrack'],

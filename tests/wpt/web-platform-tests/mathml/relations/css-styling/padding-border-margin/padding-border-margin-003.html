@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>Padding/border/margin on an operator, stretchy along the block axis</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#layout-algorithms">
+<link rel="help" href="https://w3c.github.io/mathml-core/#dfn-algorithm-for-stretching-operators-along-the-block-axis">
+<link rel="help" href="https://w3c.github.io/mathml-core/#layout-of-operators">
+<link rel="match" href="padding-border-margin-003-ref.html"/>
+<meta name="assert" content="Verify visual rendering of padding/border/margin on an operator, stretchy along the block axis.">
+<style>
+  @font-face {
+    font-family: TestFont;
+    src: url("/fonts/math/stretchy.woff");
+  }
+  math  {
+    font-family: TestFont;
+    font-size: 300px;
+  }
+</style>
+<body>
+  <p>This test passes if you see a cyan rectangle of width 300px and
+    height 1500px, surrounded by a 10px blue padding, surrounded by a 10px
+    blue/yellow dashed border, itself
+    surrounded by a 10px pink margin.</p>
+  <div style="background: pink; position: absolute; left: 10px; top: 4em;">
+    <math>
+      <mspace height="750px" depth="750px"/>
+      <mo lspace="0" rspace="0" style="background: blue; border: 10px dashed yellow; padding: 10px; margin: 10px; color: cyan;">⥜</mo>
+    </math>
+  </div>
+</body>
+</html>

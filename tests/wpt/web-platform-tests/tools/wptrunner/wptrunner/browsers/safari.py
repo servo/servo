@@ -5,6 +5,7 @@ from distutils.spawn import find_executable
 import psutil
 
 from .base import Browser, ExecutorBrowser, require_arg
+from .base import NullBrowser  # noqa: F401
 from .base import get_timeout_multiplier   # noqa: F401
 from ..webdriver_server import SafariDriverServer
 from ..executors import executor_kwargs as base_executor_kwargs
@@ -16,7 +17,8 @@ from ..executors.executorsafari import SafariDriverWdspecExecutor  # noqa: F401
 
 __wptrunner__ = {"product": "safari",
                  "check_args": "check_args",
-                 "browser": "SafariBrowser",
+                 "browser": {None: "SafariBrowser",
+                             "wdspec": "NullBrowser"},
                  "executor": {"testharness": "WebDriverTestharnessExecutor",
                               "reftest": "WebDriverRefTestExecutor",
                               "wdspec": "SafariDriverWdspecExecutor",
@@ -38,10 +40,8 @@ def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
             "kill_safari": kwargs.get("kill_safari", False)}
 
 
-def executor_kwargs(logger, test_type, server_config, cache_manager, run_info_data,
-                    **kwargs):
-    executor_kwargs = base_executor_kwargs(test_type, server_config,
-                                           cache_manager, run_info_data, **kwargs)
+def executor_kwargs(logger, test_type, test_environment, run_info_data, **kwargs):
+    executor_kwargs = base_executor_kwargs(test_type, test_environment, run_info_data, **kwargs)
     executor_kwargs["close_after_done"] = True
     executor_kwargs["capabilities"] = {}
     if test_type == "testharness":

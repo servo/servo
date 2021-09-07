@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Highlight API Test: </title>
+<link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/">
+<link rel="match" href="custom-highlight-painting-below-target-text-ref.html">
+<meta name="assert" value="Style properties defined in a ::highlight shouldn't be overriden by default values if there's another pseudo overlay painted on top of it (::target-text in this case) which doesn't specify a value for that property (color in this case)">
+<style>
+  ::highlight(foo) {
+    color:limegreen;
+    background-color:yellow;
+  }
+  ::target-text {
+    background-color:orange;
+  }
+</style>
+<body>Some text
+<script>
+  let r = new Range();
+  r.setStart(document.body.firstChild, 0);
+  r.setEnd(document.body.firstChild, 7);
+  CSS.highlights.set("foo", new Highlight(r));
+  window.location.href = `custom-highlight-painting-below-target-text.html#:~:text=text`;
+</script>

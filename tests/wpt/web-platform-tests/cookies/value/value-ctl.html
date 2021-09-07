@@ -7,6 +7,8 @@
     <meta name="timeout" content="long">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
     <script src="/cookies/resources/cookie-test.js"></script>
   </head>
   <body>
@@ -15,9 +17,6 @@
       // Tests for control characters (CTLs) in a cookie's value.
       // CTLs are defined by RFC 5234 to be %x00-1F / %x7F.
       const {TERMINATING_CTLS, CTLS} = getCtlCharacters();
-
-      // Start with a clean slate.
-      dropAllDomCookies();
 
       // Test that terminating CTLs truncate the cookie string.
       for (const ctl of TERMINATING_CTLS) {

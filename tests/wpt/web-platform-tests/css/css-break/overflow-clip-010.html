@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#fragmentation-model">
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#overflow-properties">
+<meta name="assert" content="The spec says that when breakable content would overflow a fragmentainer in the block dimension, it breaks into the next container in its fragmentation context. If a container has clipped overflow, and the container ends before the fragmentation line, though, breakable content inside it can never overflow the fragmentainer, and as such, no additional fragmentainers should be generated.">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:5; column-gap:20px; column-rule:20px solid green; column-fill:auto; width:180px; height:100px;">
+  <div style="overflow:clip; background:red;">
+    <div style="columns:1; column-gap:0px; column-fill:auto; max-height:300px;">
+      <div style="height:300px; background:green;"></div>
+      <div style="height:200px; background:red;"></div>
+      <div style="break-before:column; height:10px; background:red;"></div>
+    </div>
+  </div>
+</div>

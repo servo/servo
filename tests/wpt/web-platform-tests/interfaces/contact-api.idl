@@ -1,0 +1,32 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Contact Picker API (https://wicg.github.io/contact-api/spec/)
+
+[Exposed=Window]
+partial interface Navigator {
+  [SecureContext, SameObject] readonly attribute ContactsManager contacts;
+};
+
+enum ContactProperty { "address", "email", "icon", "name", "tel" };
+
+[Exposed=Window]
+interface ContactAddress : PaymentAddress {};
+
+dictionary ContactInfo {
+    sequence<ContactAddress> address;
+    sequence<DOMString> email;
+    sequence<Blob> icon;
+    sequence<DOMString> name;
+    sequence<DOMString> tel;
+};
+
+dictionary ContactsSelectOptions {
+    boolean multiple = false;
+};
+
+[Exposed=(Window,SecureContext)]
+interface ContactsManager {
+    Promise<sequence<ContactProperty>> getProperties();
+    Promise<sequence<ContactInfo>> select(sequence<ContactProperty> properties, optional ContactsSelectOptions options = {});
+};

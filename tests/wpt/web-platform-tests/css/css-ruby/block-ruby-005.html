@@ -3,7 +3,7 @@
      Any copyright is dedicated to the Public Domain.
      http://creativecommons.org/publicdomain/zero/1.0/
   -->
-<html lang="ja">
+<html>
 <meta charset="utf-8">
 <title>CSS Ruby Test: DIV append in 'display:ruby/block ruby'.</title>
 <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
@@ -12,11 +12,11 @@
 <link rel="help" href="https://drafts.csswg.org/css-display-3/#inlinify">
 <link rel="match" href="block-ruby-005-ref.html">
 <style>
-html,body {
-  color:black; background-color:white; font:10px/1 monospace; padding:0; margin:0;
+body {
+  font:10px/1 monospace;
 }
 
-rbb, ruby { background:lightblue; text-overflow:ellipses; overflow:hidden; width:3em; }
+rbb, ruby { background:lightblue; overflow:hidden; width:3em; }
 ruby { display: ruby; }
 rbb { display: block ruby; }
 grid { display: grid; }

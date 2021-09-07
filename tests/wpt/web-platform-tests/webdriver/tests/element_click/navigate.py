@@ -3,9 +3,8 @@ import pytest
 from webdriver.error import NoSuchElementException
 
 from tests.support.asserts import assert_success
+from tests.support.helpers import wait_for_new_handle
 from tests.support.sync import Poll
-
-from . import wait_for_new_handle
 
 
 def element_click(session, element):
@@ -164,6 +163,25 @@ def test_link_from_nested_context_with_target(session, inline, iframe, target):
         ignored_exceptions=NoSuchElementException,
         message="Expected element has not been found")
     wait.until(lambda s: s.find.css("#foo"))
+
+
+# Capability needed as long as no valid certificate is available:
+#   https://github.com/web-platform-tests/wpt/issues/28847
+@pytest.mark.capabilities({"acceptInsecureCerts": True})
+def test_link_cross_origin(session, inline, url):
+    base_path = ("/webdriver/tests/support/html/subframe.html" +
+                 "?pipe=header(Cross-Origin-Opener-Policy,same-origin")
+    target_page = url(base_path, protocol="https", domain="alt")
+
+    session.url = inline("<a href='{}'>click me</a>".format(target_page), protocol="https")
+    link = session.find.css("a", all=False)
+
+    response = element_click(session, link)
+    assert_success(response)
+
+    assert session.url == target_page
+
+    session.find.css("#delete", all=False)
 
 
 def test_link_closes_window(session, inline):

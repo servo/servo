@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import argparse
 import bz2
 import gzip
@@ -158,7 +156,7 @@ def download_manifest(
             fileobj = io.BytesIO(resp.read())
             try:
                 with gzip.GzipFile(fileobj=fileobj) as gzf:
-                    data = read_gzf(gzf)  # type: ignore
+                    data = gzf.read()
                     decompressed = data
             except IOError:
                 logger.warning("Failed to decompress downloaded file")
@@ -178,12 +176,6 @@ def download_manifest(
         return False
     logger.info("Manifest downloaded")
     return True
-
-
-def read_gzf(gzf):  # type: ignore
-    # This is working around a mypy problem in Python 2:
-    # "Call to untyped function "read" in typed context"
-    return gzf.read()
 
 
 def create_parser():

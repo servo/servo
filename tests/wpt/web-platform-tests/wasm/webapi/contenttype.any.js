@@ -1,6 +1,16 @@
 // META: global=window,worker
 // META: script=/wasm/jsapi/assertions.js
 
+promise_test(t => {
+  const response = fetch("/wasm/incrementer.wasm").then(res => new Response(res.body));
+  return promise_rejects_js(t, TypeError, WebAssembly.compileStreaming(response));
+}, "Response with no Content-Type: compileStreaming");
+
+promise_test(t => {
+  const response = fetch("/wasm/incrementer.wasm").then(res => new Response(res.body));
+  return promise_rejects_js(t, TypeError, WebAssembly.instantiateStreaming(response));
+}, "Response with no Content-Type: instantiateStreaming");
+
 const invalidContentTypes = [
   "",
   "application/javascript",

@@ -1,0 +1,70 @@
+<!doctype HTML>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>CSS Content Visibility: element reslotting</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="container-ref.html">
+<meta name="assert" content="element is correctly removed when slot assignment takes it into a skipped slot">
+
+<script src="/common/reftest-wait.js"></script>
+
+<script>
+window.customElements.define("my-element", class extends HTMLElement {
+  connectedCallback() {
+      if (this.shadowRoot) {
+        this.computeEdges_();
+        return;
+      }
+
+      this.attachShadow({ mode: 'open' }).innerHTML = `
+        <style>
+          #locked {
+            display: block;
+            content-visibility: hidden;
+          }
+        </style>
+        <slot name=unlocked></slot>
+        <div id=locked>
+          <slot name=locked></slot>
+        </div>
+      `;
+  }
+});
+</script>
+
+<style>
+#container {
+  width: 150px;
+  height: 150px;
+  background: lightblue;
+}
+
+div {
+  width: 50px;
+  height: 50px;
+}
+.composited { will-change: transform; }
+#one { background: green; }
+#two { background: red; }
+</style>
+
+<div id=container>
+  <my-element>
+    <div id=one slot=unlocked>hello</div>
+    <div id=two slot=locked>world</div>
+  </my-element>
+</div>
+
+<script>
+// Ensure everything is loaded and rendered.
+onload = () =>
+  requestAnimationFrame(() =>
+  requestAnimationFrame(() =>
+  requestAnimationFrame(() => {
+    // Reslot the element and composite the other one.
+    one.slot = "locked";
+    two.classList.add("composited");
+    requestAnimationFrame(takeScreenshot);
+})));
+</script>

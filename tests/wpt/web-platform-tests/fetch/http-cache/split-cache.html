@@ -26,20 +26,35 @@ function performFullTest(is_cross_site_test, load_resource_in_iframe, name) {
   const popupBaseURL = POPUP_HTTP_ORIGIN + window.location.pathname.replace(/\/[^\/]*$/, '/') ;
   const localBaseURL = LOCAL_HTTP_ORIGIN + window.location.pathname.replace(/\/[^\/]*$/, '/') ;
 
+  // Note: Navigation requests are requested with credentials. Make sure the
+  // fetch requests are also requested with credentials. This ensures passing
+  // this test is not simply the consequence of discriminating anonymous and
+  // credentialled request in the HTTP cache.
+  //
+  // See https://github.com/whatwg/fetch/issues/1253
   var test = {
     requests: [
       {
         response_headers: [
-              ["Expires", (30 * 24 * 60 * 60)]
-            ],
-        base_url: localBaseURL
+          ["Expires", (30 * 24 * 60 * 60)],
+          ["Access-Control-Allow-Origin", POPUP_HTTP_ORIGIN],
+        ],
+        base_url: localBaseURL,
+        credentials: "include",
       },
       {
-        base_url: localBaseURL
+        response_headers: [
+          ["Access-Control-Allow-Origin", POPUP_HTTP_ORIGIN],
+        ],
+        base_url: localBaseURL,
+        credentials: "include",
       },
       {
         request_headers: [
           ["Cache-Control", "no-cache"]
+        ],
+        response_headers: [
+          ["Access-Control-Allow-Origin", POPUP_HTTP_ORIGIN],
         ],
         // If the popup's request was a cache hit, we would only expect 2
         // requests to the server. If it was a cache miss, we would expect 3.
@@ -49,7 +64,8 @@ function performFullTest(is_cross_site_test, load_resource_in_iframe, name) {
         expected_response_headers: [
           ["server-request-count", is_cross_site_test ? "3" : "2"]
         ],
-        base_url: localBaseURL
+        base_url: localBaseURL,
+        credentials: "include",
       }
     ]
   }

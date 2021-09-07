@@ -20,7 +20,6 @@
       let audit = Audit.createTaskRunner();
 
       audit.define('setValueCurve', (task, should) => {
-        let success = true;
         let context =
             new OfflineAudioContext(1, testDurationFrames, sampleRate);
         let g = context.createGain();
@@ -75,6 +74,37 @@
             },
             'setValueAtTime(1, ' + (curveStartTime + 1.1 * duration) + ')')
             .notThrow();
+
+        task.done();
+      });
+
+      audit.define('value setter', (task, should) => {
+        let context =
+            new OfflineAudioContext(1, testDurationFrames, sampleRate);
+        let g = context.createGain();
+        let curve = new Float32Array(2);
+
+        // Start time and duration for setValueCurveAtTime
+        let curveStartTime = 0.;
+        let duration = 0.2 * testDurationSec;
+
+        // Some time that is known to be during the setValueCurveTime interval.
+        let automationTime = 0.;
+
+        should(
+            () => {
+              g.gain.setValueCurveAtTime(curve, curveStartTime, duration);
+            },
+            'setValueCurveAtTime(curve, ' + curveStartTime + ', ' + duration +
+                ')')
+            .notThrow();
+
+        should(
+            function() {
+              g.gain.value = 0.;
+            },
+            'value setter')
+            .throw(DOMException, 'NotSupportedError');
 
         task.done();
       });
@@ -175,7 +205,6 @@
       audit.define('catch-exception', (task, should) => {
         // Verify that the curve isn't inserted into the time line even if we
         // catch the exception.
-        let success = true;
         let context =
             new OfflineAudioContext(1, testDurationFrames, sampleRate);
         let gain = context.createGain();

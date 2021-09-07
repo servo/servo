@@ -99,19 +99,21 @@
         })
       }
 
-      async function checkCanvasImage(src, contextType, srcRect, reference) {
-        const data = await createCanvasWithImage(src, contextType, srcRect)
-        assert_array_approx_equals(data.data, reference.data, 32)
+      let reference = null;
+      function checkCanvasImage(src, contextType, srcRect) {
+        promise_test(async function() {
+          if (!reference)
+            reference = await createCanvasWithImage('resources/exif-resolution-none.jpg', '2d', [40, 5, 20, 5]);
+          const data = await createCanvasWithImage(src, contextType, srcRect)
+          assert_array_approx_equals(data.data, reference.data, 32)
+        }, `${src}: ${contextType}`);
       }
 
-      promise_test(async () => {
-        const reference = await createCanvasWithImage('resources/exif-resolution-none.jpg', '2d', [40, 5, 20, 5]);
-        await checkCanvasImage("resources/exif-resolution-valid-hires.jpg", '2d', [20, 5, 10, 1], reference)
-        await checkCanvasImage("resources/exif-resolution-valid-lores.jpg", '2d', [80, 5, 40, 10], reference)
-        await checkCanvasImage("resources/exif-resolution-none.jpg", 'webgl', [40, 5, 20, 5], reference)
-        await checkCanvasImage("resources/exif-resolution-valid-hires.jpg", 'webgl', [20, 5, 10, 1], reference)
-        await checkCanvasImage("resources/exif-resolution-valid-lores.jpg", 'webgl', [80, 5, 40, 1], reference)
-      })
+      checkCanvasImage("resources/exif-resolution-valid-hires.jpg", '2d', [20, 5, 10, 1])
+      checkCanvasImage("resources/exif-resolution-valid-lores.jpg", '2d', [80, 5, 40, 10])
+      checkCanvasImage("resources/exif-resolution-none.jpg", 'webgl', [40, 5, 20, 5]);
+      checkCanvasImage("resources/exif-resolution-valid-hires.jpg", 'webgl', [20, 5, 10, 1]);
+      checkCanvasImage("resources/exif-resolution-valid-lores.jpg", 'webgl', [80, 5, 40, 1]);
     </script>
   </body>
 </html>

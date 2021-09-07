@@ -5,7 +5,7 @@
 <link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
 <link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
 <link rel="match" href="spacer-and-container-scrolled-ref.html">
-<meta name="assert" content="anchor link scroll is not prevented when the target is hidden">
+<meta name="assert" content="anchor link scroll not prevented when the target is hidden and activatable">
 
 <script src="/common/reftest-wait.js"></script>
 
@@ -19,12 +19,12 @@
   width: 150px;
   height: 150px;
   background: lightgreen;
-  content-visibility: hidden;
+  content-visibility: auto;
 }
+
 #target {
   width: 100px;
   height: 100px;
-  background: green;
 }
 </style>
 

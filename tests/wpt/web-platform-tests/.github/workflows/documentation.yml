@@ -14,18 +14,21 @@ on:
       - 'tools/**'
 jobs:
   build-and-publish:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+    - name: Set up Virtualenv
+      run: pip install virtualenv
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
       with:
         fetch-depth: 50
     - name: Run website_build.sh
       # Use a conditional step instead of a conditional job to work around #20700.
       if: github.repository == 'web-platform-tests/wpt'
-      uses: ./tools/docker/documentation
+      run: ./tools/ci/website_build.sh
       env:
         DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
-      with:
-        entrypoint: /bin/bash
-        args: tools/ci/website_build.sh

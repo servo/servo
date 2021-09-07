@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>CSS Animation using progress based timeline</title>
+<link rel="help" src="https://drafts.csswg.org/css-animations-2/#animation-timeline">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+  #scrollers {
+    overflow: hidden;
+    height: 0px;
+  }
+  #scrollers > div {
+    overflow: scroll;
+    width: 100px;
+    height: 100px;
+  }
+  #scrollers > div > div {
+    height: 200px;
+  }
+
+  @keyframes top {
+    from { top: 100px; }
+    to { top: 200px; }
+  }
+
+  @scroll-timeline top_timeline {
+    source: selector(#scroller1);
+    start: 0px;
+    end: 100px;
+  }
+
+  #element {
+    animation-name: top;
+    animation-duration: 10s;
+    animation-timing-function: linear;
+    animation-timeline: top_timeline;
+  }
+  /* Ensure stable expectations if feature is not supported */
+  @supports not (animation-timeline:foo) {
+    #element { animation-play-state: paused; }
+  }
+</style>
+<div id=scrollers>
+  <div id=scroller1><div></div></div>
+</div>
+<div id=element></div>
+<script>
+  // Force layout of scrollers.
+  scroller1.offsetTop;
+
+  scroller1.scrollTop = 20;
+
+  promise_test(async (t) => {
+    await waitForNextFrame();
+    assert_equals(getComputedStyle(element).top, '120px');
+  }, 'progress based animation timeline works');
+
+</script>

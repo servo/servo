@@ -14,9 +14,9 @@ promise_test(async testCase => {
   const file = await createFile(testCase, 'test_file', longArray);
 
   await file.flush();
-  const readBytes = await readIoFile(file);
+  const readBuffer = await readIoFile(file);
 
-  assert_array_equals(readBytes, longArray,
+  assert_array_equals(readBuffer, longArray,
                       'the bytes read should match the bytes written');
 }, 'NativeIOFile.read returns bytes written by NativeIOFile.write' +
      ' after NativeIOFile.flush');

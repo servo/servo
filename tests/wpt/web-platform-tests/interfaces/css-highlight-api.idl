@@ -1,0 +1,20 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: CSS Custom Highlight API Module Level 1 (https://drafts.csswg.org/css-highlight-api-1/)
+
+[Exposed=Window]
+interface Highlight {
+  constructor(AbstractRange... initialRanges);
+  setlike<AbstractRange>;
+  attribute long priority;
+};
+
+partial namespace CSS {
+  readonly attribute HighlightRegistry highlights;
+};
+
+[Exposed=Window]
+interface HighlightRegistry {
+  maplike<DOMString, Highlight>;
+};

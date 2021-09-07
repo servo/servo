@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Cross-document navigations during same-document traversals</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!--
+  The spec currently says that cross-document navigations cancel traversals
+  only once they mature. So the traversal and navigation both go through.
+  We use slow.py to ensure the traversal finishes first (although it'd be pretty
+  likely even with /common/blank.html, since same-document traverals should be
+  fast).
+-->
+
+<body>
+<script type="module">
+import { createIframe, delay } from "./resources/helpers.mjs";
+
+promise_test(async t => {
+  const iframe = await createIframe(t);
+  const slowURL = (new URL("resources/slow.py", location.href)).href;
+
+  // Setup
+  iframe.contentWindow.location.hash = "#1";
+  await delay(t, 0);
+  iframe.contentWindow.location.hash = "#2";
+  await delay(t, 0);
+
+  iframe.contentWindow.history.back();
+
+  assert_equals(iframe.contentWindow.location.hash, "#2", "must not go back synchronously");
+
+  iframe.contentWindow.location.href = slowURL;
+  assert_equals(iframe.contentWindow.location.search, "", "must not navigate synchronously (search)");
+  assert_equals(iframe.contentWindow.location.hash, "#2", "must not navigate synchronously (hash)");
+
+  // Eventually ends up on #2
+  await t.step_wait(() => iframe.contentWindow.location.hash === "#2", "traversal");
+
+  // And then slow.py
+  await t.step_wait(() => iframe.contentWindow.location.href === slowURL, "navigation");
+}, "same-document traversals are not canceled by cross-document navigations");
+</script>

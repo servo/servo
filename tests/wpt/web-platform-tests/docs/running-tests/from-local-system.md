@@ -152,7 +152,7 @@ customising the test run:
     ./wpt run --help
 
 [A complete listing of the command-line arguments is available
-here](command-line-arguments.md).
+here](command-line-arguments.html#run).
 
 ```eval_rst
 .. toctree::
@@ -161,7 +161,7 @@ here](command-line-arguments.md).
    command-line-arguments
 ```
 
-Additional browser-specific documentation:
+### Browser-specific instructions
 
 ```eval_rst
 .. toctree::
@@ -172,6 +172,35 @@ Additional browser-specific documentation:
   safari
   webkitgtk_minibrowser
 ```
+
+### Running in parallel
+
+To speed up the testing process, use the `--processes` option to run multiple
+browser instances in parallel. For example, to run the tests in dom/ with six
+Firefox instances in parallel:
+
+    ./wpt run --processes=6 firefox dom/
+
+But note that behaviour in this mode is necessarily less deterministic than with
+a single process (the default), so there may be more noise in the test results.
+
+### Output formats
+
+By default, `./wpt run` outputs test results and a summary in a human readable
+format. For debugging, `--log-mach` can give more verbose output. For example:
+
+    ./wpt run --log-mach=- --log-mach-level=info firefox dom/
+
+A machine readable JSON report can be produced using `--log-wptreport`. This
+together with `--log-wptscreenshot` is what is used to produce results for
+[wpt.fyi](https://wpt.fyi). For example:
+
+    ./wpt run --log-wptreport=report.json --log-wptscreenshot=screenshots.txt firefox css/css-grid/
+
+(See [wpt.fyi documentation](https://github.com/web-platform-tests/wpt.fyi/blob/main/api/README.md#results-creation)
+for how results are uploaded.)
+
+### Expectation data
 
 For use in continuous integration systems, and other scenarios where regression
 tracking is required, the command-line interface supports storing and loading

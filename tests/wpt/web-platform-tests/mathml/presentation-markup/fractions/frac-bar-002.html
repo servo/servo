@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <title>fractions bar</title>
-    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#fractions-mfrac">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#fractions-mfrac">
     <meta name="assert" content="Verify painting of the fraction bar when margin/padding/border are involved.">
     <link rel="match" href="frac-bar-002-ref.html">
     <style type="text/css">
@@ -30,9 +30,10 @@
           height: 148px;
       }
     </style>
+    <script src="/mathml/support/fonts.js"></script>
     <script src="/common/reftest-wait.js"></script>
     <script>
-      window.addEventListener("load", () => { document.fonts.ready.then(adjustPositionOfFraction); });
+      window.addEventListener("load", () => { loadAllFonts().then(adjustPositionOfFraction); });
 
       function adjustPositionOfFraction()
       {

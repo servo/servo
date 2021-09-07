@@ -3,11 +3,12 @@
   <h:link rel="help" href="https://svgwg.org/svg2-draft/types.html#__svg__SVGGeometryElement__getPointAtLength"/>
   <h:script src="/resources/testharness.js"/>
   <h:script src="/resources/testharnessreport.js"/>
-  <path id='pathElement1' d='M0,0L100,0L100,100' description='path with display: defualt'/>
+  <path id='pathElement1' d='M0,0L100,0L100,100' description='path with display: default'/>
   <path id='pathElement2' style='display:none' d='M0,0L100,0L100,100' description='path with display: none'/>
+  <path id='pathElement3' style='display:none; d:path("M0,0L100,0L100,100");' description='path with display: none and inline style'/>
   <rect id='rectElement1' x='0' y='0' width='50' height='50' description='rect with display: default'/>
   <rect id='rectElement2' style='display:none' x='0' y='0' width='50' height='50' description='rect with display: none'/>
-  <circle id='circleElement1' cx='0' cy='0' r='50' description='circle with display: defualt'/>
+  <circle id='circleElement1' cx='0' cy='0' r='50' description='circle with display: default'/>
   <circle id='circleElement2' style='display:none' cx='0' cy='0' r='50' description='circle with display: none'/>
   <polygon id='polygonElement1' points="0,0 50,0 50,50 0,50" description='polygon with display: default'/>
   <polygon id='polygonElement2' style='display:none' points="0,0 50,0 50,50 0,50" description='polygon with display: none'/>
@@ -16,7 +17,7 @@
   <ellipse id='ellipseElement1' cx='0' cy='0' rx='50' ry='50' description='ellipse with display: default'/>
   <ellipse id='ellipseElement2' style='display:none' cx='0' cy='0' rx='50' ry='50' description='ellipse with display: none'/>
   <script>
-['pathElement1', 'pathElement2'].forEach(elementId => {
+['pathElement1', 'pathElement2', 'pathElement3'].forEach(elementId => {
   test(function() {
     let element = document.getElementById(elementId);
     var point = element.getPointAtLength(50);

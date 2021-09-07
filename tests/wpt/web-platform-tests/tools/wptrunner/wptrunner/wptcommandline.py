@@ -1,11 +1,9 @@
-from __future__ import absolute_import, print_function
 import argparse
 import os
 import sys
 from collections import OrderedDict
 from distutils.spawn import find_executable
 from datetime import timedelta
-from six import ensure_text
 
 from . import config
 from . import wpttest
@@ -72,6 +70,10 @@ scheme host and port.""")
                         default=True,
                         dest="fail_on_unexpected",
                         help="Exit with status code 0 when test expectations are violated")
+    parser.add_argument("--no-fail-on-unexpected-pass", action="store_false",
+                        default=True,
+                        dest="fail_on_unexpected_pass",
+                        help="Exit with status code 0 when all unexpected results are PASS")
 
     mode_group = parser.add_argument_group("Mode")
     mode_group.add_argument("--list-test-groups", action="store_true",
@@ -145,10 +147,11 @@ scheme host and port.""")
                                       action="append",
                                       choices=["not-implementing", "backlog", "implementing"],
                                       help="Skip tests that have the given implementation status")
-    # TODO: Remove this when QUIC is enabled by default.
-    test_selection_group.add_argument("--enable-quic", action="store_true", default=False,
-                                      help="Enable tests that require QUIC server (default: false)")
-
+    # TODO(bashi): Remove this when WebTransport over HTTP/3 server is enabled by default.
+    test_selection_group.add_argument("--enable-webtransport-h3",
+                                      action="store_true",
+                                      default=False,
+                                      help="Enable tests that require WebTransport over HTTP/3 server (default: false)")
     test_selection_group.add_argument("--tag", action="append", dest="tags",
                                       help="Labels applied to tests to include in the run. "
                                            "Labels starting dir: are equivalent to top-level directories.")
@@ -185,10 +188,6 @@ scheme host and port.""")
                                  help="Path or url to symbols file used to analyse crash minidumps.")
     debugging_group.add_argument("--stackwalk-binary", action="store", type=abs_path,
                                  help="Path to stackwalker program used to analyse minidumps.")
-    debugging_group.add_argument("--output-directory", action="store",
-                                 help="Path to chromium output directory.")
-    debugging_group.add_argument("--stackparser-script", action="store", type=abs_path,
-                                 help="Path to stack parser script used to analyse tombstones.")
     debugging_group.add_argument("--pdb", action="store_true",
                                  help="Drop into pdb on python exception")
 
@@ -323,14 +322,17 @@ scheme host and port.""")
                              default=[], action="append", dest="user_stylesheets",
                              help="Inject a user CSS stylesheet into every test.")
 
-    servo_group = parser.add_argument_group("Chrome-specific")
-    servo_group.add_argument("--enable-mojojs", action="store_true", default=False,
+    chrome_group = parser.add_argument_group("Chrome-specific")
+    chrome_group.add_argument("--enable-mojojs", action="store_true", default=False,
                              help="Enable MojoJS for testing. Note that this flag is usally "
                              "enabled automatically by `wpt run`, if it succeeds in downloading "
                              "the right version of mojojs.zip or if --mojojs-path is specified.")
-    servo_group.add_argument("--mojojs-path",
+    chrome_group.add_argument("--mojojs-path",
                              help="Path to mojojs gen/ directory. If it is not specified, `wpt run` "
                              "will download and extract mojojs.zip into _venv2/mojojs/gen.")
+    chrome_group.add_argument("--enable-swiftshader", action="store_true", default=False,
+                             help="Enable SwiftShader for CPU-based 3D graphics. This can be used "
+                             "in environments with no hardware GPU available.")
 
     sauce_group = parser.add_argument_group("Sauce Labs-specific")
     sauce_group.add_argument("--sauce-browser", dest="sauce_browser",
@@ -365,7 +367,7 @@ scheme host and port.""")
 
     taskcluster_group = parser.add_argument_group("Taskcluster-specific")
     taskcluster_group.add_argument("--github-checks-text-file",
-                                   type=ensure_text,
+                                   type=str,
                                    help="Path to GitHub checks output file")
 
     webkit_group = parser.add_argument_group("WebKit-specific")

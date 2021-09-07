@@ -1,0 +1,34 @@
+<!doctype html>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo" />
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1711057">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<div id="one" tabindex="1">One</div>
+<div id="two" tabindex="1">Two</div>
+
+<script>
+let one = document.getElementById("one");
+let two = document.getElementById("two");
+
+document.addEventListener("keydown", function(e) {
+  two.focus();
+});
+
+promise_test(async t => {
+  await test_driver.click(one);
+  assert_equals(document.activeElement, one, "#one should be focused by mouse");
+  assert_true(one.matches(":focus"), "#one should match :focus");
+  assert_true(!one.matches(":focus-visible"), "#one should not match :focus-visible");
+
+  await test_driver.send_keys(document.body, " ");
+
+  assert_equals(document.activeElement, two, "#two should be focused by our event listener");
+  assert_true(two.matches(":focus"), "#two should match :focus");
+  assert_true(two.matches(":focus-visible"), "#two should match :focus-visible");
+});
+</script>

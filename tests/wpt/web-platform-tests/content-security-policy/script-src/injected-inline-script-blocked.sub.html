@@ -7,7 +7,7 @@
     <title>injected-inline-script-blocked</title>
     <script nonce='abc' src="/resources/testharness.js"></script>
     <script nonce='abc' src="/resources/testharnessreport.js"></script>
-    <script nonce='abc' src='../support/logTest.sub.js?logs=["violated-directive=script-src-elem",]'></script>
+    <script nonce='abc' src='../support/logTest.sub.js?logs=["violated-directive=script-src-elem","blocked-uri=inline"]'></script>
     <script nonce='abc' src='../support/alertAssert.sub.js?alerts=[]'></script>
 </head>
 
@@ -15,6 +15,7 @@
     <script nonce='abc'>
        window.addEventListener('securitypolicyviolation', function(e) {
             log("violated-directive=" + e.violatedDirective);
+            log("blocked-uri=" + e.blockedURI);
         });
     </script>
     <script src="support/inject-script.js"></script>

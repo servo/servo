@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Fetcher</title>
+<script>
+  window.addEventListener("message", function (event) {
+    fetch(event.data)
+        .then(response => { parent.postMessage(response.ok, "*") })
+        .catch(error => { parent.postMessage(error.toString(), "*") });
+  });
+</script>

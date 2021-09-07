@@ -14,7 +14,6 @@ async_test(t => {
     assert_equals(data.name.length, 0);
     assert_false(data.opener);
     assert_true(furtherPopup.closed);
-    assert_equals(furtherPopup.document.URL, "about:blank");
   });
 
   const blobContents = `<script>

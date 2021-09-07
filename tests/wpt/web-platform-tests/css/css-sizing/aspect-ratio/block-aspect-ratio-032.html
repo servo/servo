@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: div inline size with height and {min|max}-height</title>
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio-size-transfers">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+<meta name="assert" content="A {min|max}-height constraint should be transferred through the aspect-ratio to apply to the inline size">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="background: green; aspect-ratio: 4/1; height: 300px; max-height: 25px;"></div>
+<div style="background: green; aspect-ratio: 4/1; height: 10px; min-height: 25px;"></div>
+
+<div style="background: green; aspect-ratio: 4/1; width: min-content; height: 300px; max-height: 25px;"></div>
+<div style="background: green; aspect-ratio: 4/1; width: min-content; height: 10px; min-height: 25px;"></div>

@@ -415,6 +415,101 @@ promise_test(async (t) => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Delete at "<p>abc[]   </p><pre>   def</pre>"');
 
+promise_test(async (t) => {
+  initializeTest('<p style="white-space:pre-line">abc\ndef</p>');
+  const p = gEditor.firstChild;
+  const text = p.firstChild;
+  gSelection.collapse(text, "abc".length);
+  await sendDeleteKey();
+  checkEditorContentResultAsSubTest(
+    '<p style="white-space:pre-line">abcdef</p>',
+    t.name
+  );
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: text,
+    startOffset: "abc".length,
+    endContainer: text,
+    endOffset: "abc\n".length,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, 'Delete at "<p style="white-space:pre-line">abc[]\\ndef</p>"');
+
+promise_test(async (t) => {
+  initializeTest('<p style="white-space:pre-line">abc\n def</p>');
+  const p = gEditor.firstChild;
+  const text = p.firstChild;
+  gSelection.collapse(text, "abc".length);
+  await sendDeleteKey();
+  checkEditorContentResultAsSubTest(
+    '<p style="white-space:pre-line">abcdef</p>',
+    t.name
+  );
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: text,
+    startOffset: "abc".length,
+    endContainer: text,
+    endOffset: "abc\n ".length,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, 'Delete at "<p style="white-space:pre-line">abc[]\\n def</p>"');
+
+promise_test(async (t) => {
+  initializeTest('<p style="white-space:pre-line">abc \ndef</p>');
+  const p = gEditor.firstChild;
+  const text = p.firstChild;
+  gSelection.collapse(text, "abc".length);
+  await sendDeleteKey();
+  checkEditorContentResultAsSubTest(
+    '<p style="white-space:pre-line">abcdef</p>',
+    t.name
+  );
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: text,
+    startOffset: "abc".length,
+    endContainer: text,
+    endOffset: "abc \n ".length,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, 'Delete at "<p style="white-space:pre-line">abc[] \\ndef</p>"');
+
+promise_test(async (t) => {
+  initializeTest('<p style="white-space:pre-line">abc \n def</p>');
+  const p = gEditor.firstChild;
+  const text = p.firstChild;
+  gSelection.collapse(text, "abc".length);
+  await sendDeleteKey();
+  checkEditorContentResultAsSubTest(
+    '<p style="white-space:pre-line">abcdef</p>',
+    t.name
+  );
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: text,
+    startOffset: "abc".length,
+    endContainer: text,
+    endOffset: "abc \n ".length,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, 'Delete at "<p style="white-space:pre-line">abc[] \\n def</p>"');
+
+promise_test(async (t) => {
+  initializeTest('<p style="white-space:pre-line">abc \n \n def</p>');
+  const p = gEditor.firstChild;
+  const text = p.firstChild;
+  gSelection.collapse(text, "abc".length);
+  await sendDeleteKey();
+  checkEditorContentResultAsSubTest(
+    '<p style="white-space:pre-line">abc\n def</p>',
+    t.name
+  );
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: text,
+    startOffset: "abc".length,
+    endContainer: text,
+    endOffset: "abc \n \n ".length,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, 'Delete at "<p style="white-space:pre-line">abc[] \\n \\n def</p>"');
+
 // Deleting from before invisible trailing `<br>` element of a block
 // should delete the `<br>` element and join the blocks.  Therefore,
 // the target range should contain the `<br>` element and block boundaries.

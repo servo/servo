@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-from __future__ import unicode_literals
 from ..testing.test_loader import MANUAL, AUTOMATIC
 
 PAUSED = "paused"

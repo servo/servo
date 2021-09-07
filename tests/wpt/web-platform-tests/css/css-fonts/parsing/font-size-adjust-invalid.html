@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>CSS Fonts Module Level 3: parsing font-size-adjust with invalid values</title>
 <link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-size-adjust-prop">
-<meta name="assert" content="font-size-adjust supports only the grammar 'none | <number>'.">
+<meta name="assert" content="font-size-adjust supports only the grammar 'none | [basis] <number>'.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
@@ -13,6 +13,10 @@
 <script>
 test_invalid_value('font-size-adjust', 'auto');
 test_invalid_value('font-size-adjust', '-10');
+test_invalid_value('font-size-adjust', '0.5 ex-height');
+test_invalid_value('font-size-adjust', 'em 1.0');
+test_invalid_value('font-size-adjust', 'ch 0.5');  // it's 'ch-width', not 'ch'
+test_invalid_value('font-size-adjust', 'ic 1.0');  // it's 'ic-width' or 'ic-height', not 'ic'
 </script>
 </body>
 </html>

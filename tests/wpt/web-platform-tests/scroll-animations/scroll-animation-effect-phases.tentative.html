@@ -21,11 +21,17 @@
 <script>
   'use strict';
 
+  // TODO(crbug.com/1216655): Remove time range. Once time range is removed, all
+  // functions that include ...WithTimeRange() should be replaced with the same
+  // function but without that ending. For example:
+  //
+  // createScrollLinkedAnimationWithTimeRange() => createScrollLinkedAnimation()
+
   // Test cases are included where effect delay causes the effect iteration to
   // overlap with the timeline start time and also the timeline end time.
   //                  Timeline
   //   BEFORE   +-----------------+     AFTER
-  //   time:    0                 timeRange
+  //   time:    0                 timeline.duration
   //   1)       +--------+
   //   2)            +-------+
   //   3)                      +------+
@@ -92,7 +98,7 @@
   function create_scroll_timeline_fill_test(delay, scroll_percentage, expected){
     return async t => {
       const target = createDiv(t);
-      const timeline = createScrollTimelineWithOffsets(t, CSS.percent(20), CSS.percent(80));
+      const timeline = createScrollTimelineWithOffsetsWithTimeRange(t, CSS.percent(20), CSS.percent(80));
       const effect = new KeyframeEffect(
         target,
         {
@@ -190,7 +196,7 @@
   promise_test(async t => {
     const animation = new Animation(
       createKeyframeEffectOpacity(t),
-      createScrollTimelineWithOffsets(t, CSS.percent(20), CSS.percent(80))
+      createScrollTimelineWithOffsetsWithTimeRange(t, CSS.percent(20), CSS.percent(80))
     );
 
     const scroller = animation.timeline.scrollSource;
@@ -218,7 +224,7 @@
   promise_test(async t => {
     const animation = new Animation(
       createKeyframeEffectOpacity(t),
-      createScrollTimelineWithOffsets(t, CSS.percent(20), CSS.percent(80))
+      createScrollTimelineWithOffsetsWithTimeRange(t, CSS.percent(20), CSS.percent(80))
     );
 
     const scroller = animation.timeline.scrollSource;
@@ -259,7 +265,7 @@
 promise_test(async t => {
   const animation = new Animation(
     createKeyframeEffectOpacity(t),
-    createScrollTimelineWithOffsets(t, CSS.percent(20), CSS.percent(80))
+    createScrollTimelineWithOffsetsWithTimeRange(t, CSS.percent(20), CSS.percent(80))
   );
   const scroller = animation.timeline.scrollSource;
   const maxScroll = scroller.scrollHeight - scroller.clientHeight;
@@ -317,7 +323,7 @@ promise_test(async t => {
 promise_test(async t => {
   const animation = new Animation(
     createKeyframeEffectOpacity(t),
-    createScrollTimelineWithOffsets(t, CSS.percent(20), CSS.percent(80))
+    createScrollTimelineWithOffsetsWithTimeRange(t, CSS.percent(20), CSS.percent(80))
   );
   const scroller = animation.timeline.scrollSource;
   const maxScroll = scroller.scrollHeight - scroller.clientHeight;

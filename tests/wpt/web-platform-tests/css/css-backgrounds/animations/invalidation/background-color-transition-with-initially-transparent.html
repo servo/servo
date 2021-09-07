@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#background-color">
+<link rel="match" href="background-color-transition-with-initially-transparent-ref.html">
+<style>
+.container {
+  width: 100px;
+  height: 100px;
+  transition: background-color 200000ms steps(2) -99999.9ms;
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<body>
+<div class="container" id="target"></div>
+
+<script>
+function startTransition() {
+  requestAnimationFrame(() => {
+    document.getElementById('target').style.backgroundColor = "rgb(200, 0, 0, 0.8)";
+    document.getAnimations()[0].ready.then(() => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          takeScreenshot();
+        });
+      });
+    });
+  });
+}
+
+requestAnimationFrame(startTransition);
+</script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="windows-1250">
+<title>JSON modules: UTF-8 decoding</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script type="module">
+  import json from "../serve-with-content-type.py?fn=json-module/utf-8.json" assert { type: "json"};
+  test(() => {
+    assert_equals(json.data, "śćążź");
+  }, "JSON module should be loaded as utf-8 even though document's encoding is windows-1250");
+</script>
+<script type="module">
+  import json from "../serve-with-content-type.py?fn=json-module/windows-1250.json&ct=text/json%3Bcharset=windows-1250" assert { type: "json"};
+  test(() => {
+    assert_not_equals(json.data, "śćążź",
+                    'Should be decoded as UTF-8');
+  }, "JSON module should be loaded as utf-8 even if it is encoded in windows-1250 and served with a windows-1250 charset response header, and this document's encoding is windows-1250");
+</script>

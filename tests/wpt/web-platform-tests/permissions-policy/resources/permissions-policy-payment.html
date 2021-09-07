@@ -6,11 +6,12 @@ window.onload = function() {
   var details = {
       total: { label: 'Test', amount: { currency: 'USD', value: '5.00' } }
   };
+  let enabled = true;
   try {
     new PaymentRequest(supportedInstruments, details);
-    parent.postMessage({ enabled: true }, '*');
   } catch (e) {
-    parent.postMessage({ enabled: false }, '*');
+    enabled = false;
   }
+  parent.postMessage({ type: 'availability-result', enabled }, '*');
 }
 </script>
