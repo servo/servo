@@ -49,7 +49,3 @@ servo-media-player = { git = "https://github.com/Bryce-MW/media", branch = "eucl
 servo-media-streams = { git = "https://github.com/Bryce-MW/media", branch = "euclid-update" }
 servo-media-traits = { git = "https://github.com/Bryce-MW/media", branch = "euclid-update" }
 servo-media-webrtc = { git = "https://github.com/Bryce-MW/media", branch = "euclid-update" }
-
-[patch."https://github.com/servo/webrender"]
-"webrender" = { path = "/Users/bryce/randomProj/webrender/webrender" }
-"webrender_api" = { path = "/Users/bryce/randomProj/webrender/webrender_api" }

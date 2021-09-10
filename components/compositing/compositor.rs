@@ -615,6 +615,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 size2,
                 items_data,
                 cache_data,
+                spatial_tree,
                 descriptor,
             )) => {
                 self.waiting_on_pending_frame = true;
@@ -625,7 +626,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     size2,
                     (
                         pipeline,
-                        webrender_api::BuiltDisplayList::from_data(DisplayListPayload {items_data, cache_data}, descriptor),
+                        webrender_api::BuiltDisplayList::from_data(DisplayListPayload {items_data, cache_data, spatial_tree}, descriptor),
                     ),
                     true,
                 );
