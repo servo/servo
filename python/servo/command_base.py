@@ -373,7 +373,12 @@ class CommandBase(object):
             base_path = path.join(base_path, target)
 
         if simpleservo:
-            binary_name = "simpleservo.dll" if sys.platform == "win32" else "libsimpleservo.so"
+            if sys.platform == "win32":
+                binary_name = "simpleservo.dll"
+            elif sys.platform == "darwin":
+                binary_name = "libsimpleservo.dylib"
+            else:
+                binary_name = "libsimpleservo.so"
 
         release_path = path.join(base_path, "release", binary_name)
         dev_path = path.join(base_path, "debug", binary_name)
