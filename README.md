@@ -36,7 +36,7 @@ curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain none
 ```
 
 See also [Other installation methods](
-https://github.com/rust-lang-nursery/rustup.rs/#other-installation-methods)
+https://rust-lang.github.io/rustup/installation/other.html)
 
 ### Other dependencies
 
@@ -197,7 +197,7 @@ The `/m` will set it system-wide for all future command windows.
 
 2. Install virtualenv.
 
- In a normal Windows Shell (cmd.exe or "Command Prompt" from the start menu), do:
+ In a normal Windows Shell (cmd), do:
  ```
 pip install virtualenv
 ```
@@ -208,24 +208,20 @@ pip install virtualenv
 - [gstreamer-1.0-msvc-x86_64-1.16.0.msi](https://gstreamer.freedesktop.org/data/pkg/windows/1.16.0/gstreamer-1.0-msvc-x86_64-1.16.0.msi)
 - [gstreamer-1.0-devel-msvc-x86_64-1.16.0.msi](https://gstreamer.freedesktop.org/data/pkg/windows/1.16.0/gstreamer-1.0-devel-msvc-x86_64-1.16.0.msi)
 
-Note that the MinGW binaries will not work, so make sure that you install the MSVC the ones.
+Note that the MinGW binaries will not work, so make sure that you install the MSVC ones.
 
 Note that you should ensure that _all_ components are installed from gstreamer, as we require many of the optional libraries that are not installed by default.
 
 4. Install Git for Windows (https://git-scm.com/download/win). DO allow it to add git.exe to the PATH (default
 settings for the installer are fine).
 
-5. Install Visual Studio Community 2017 (https://www.visualstudio.com/vs/community/). You MUST add "Visual C++" to the
-list of installed components as well as the "Windows Universal C runtime." They are not on by default. Visual Studio 2017 MUST installed to the default location or mach.bat will not find it.
-
-Note that version is hard to download online and is easier to install via [Chocolatey](https://chocolatey.org/install#installing-chocolatey) with:
+5. Install Visual Studio Build Tools 2019 (https://visualstudio.microsoft.com/de/downloads/#build-tools-for-visual-studio-2019). It is easiest to install via [Chocolatey](https://chocolatey.org/install#installing-chocolatey) with:
 ```
-choco install -y visualstudio2017community --package-parameters="'--add Microsoft.VisualStudio.Component.Git'"
-Update-SessionEnvironment #refreshing env due to Git install
-
-#--- UWP Workload and installing Windows Template Studio ---
-choco install -y visualstudio2017-workload-nativedesktop
+choco install -y visualstudio2019buildtools --package-parameters="--add Microsoft.VisualStudio.Component.Roslyn.Compiler --add Microsoft.Component.MSBuild --add Microsoft.VisualStudio.Component.CoreBuildTools --add Microsoft.VisualStudio.Workload.MSBuildTools --add Microsoft.VisualStudio.Component.Windows10SDK --add Microsoft.VisualStudio.Component.VC.CoreBuildTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.VC.Redist.14.Latest --add Microsoft.VisualStudio.Component.VC.ATL --add Microsoft.VisualStudio.Component.VC.ATLMFC --add Microsoft.VisualStudio.Component.TextTemplating --add Microsoft.VisualStudio.Component.VC.CoreIde --add Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Core --add Microsoft.VisualStudio.Workload.VCTools"
 ```
+If you really need to use the Visual Studio Installer (UI), choose "Desktop development with C++" and add the optional "MSVC", "C++-ATL" and "C++-MFC" (latest).
+
+The Visual Studio 2019 Build Tools MUST be installed to the default location or mach.bat will not find them.
 
 ##### [Optional] Install LLVM for faster link times
 
@@ -242,13 +238,8 @@ linker = "lld-link.exe"
 
 ##### Troubleshooting a Windows environment
 
-> If you encountered errors with the environment above, do the following for a workaround:
-> 1.  Download and install [Build Tools for Visual Studio 2017](https://www.visualstudio.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=15)
-> 2.  Install `python3.9 x86-x64` and `virtualenv`
-> 3.  Run `mach.bat build -d`.
-
 >If you have troubles with `x64 type` prompt as `mach.bat` set by default:
-> 1. You may need to choose and launch the type manually, such as `x86_x64 Cross Tools Command Prompt for VS 2017` in the Windows menu.)
+> 1. You may need to choose and launch the type manually, such as `x86_x64 Cross Tools Command Prompt for VS 2019` in the Windows menu.)
 > 2. `cd to/the/path/servo`
 > 3. `python mach build -d`
 
@@ -270,38 +261,48 @@ linker = "lld-link.exe"
 Run `./mach bootstrap-android --build` to get Android-specific tools. See wiki for
 [details](https://github.com/servo/servo/wiki/Building-for-Android).
 
-## The Rust compiler
+### Cloning the Repo
+Your CARGO_HOME needs to point to (or be in) the same drive as your Servo repository (See [#28530](https://github.com/servo/servo/issues/28530)).
+``` sh
+git clone https://github.com/servo/servo
+cd servo
+```
+
+## Building
+
+Servo is built with [Cargo](https://crates.io/), the Rust package manager.
+We also use Mozilla's Mach tools to orchestrate the build and other tasks.
+You can call Mach like this:
+
+On Unix sytems:
+```
+./mach [command] [arguments]
+```
+On Windows Commandline:
+```
+mach.bat [command] [arguments]
+```
+The examples below will use Unix, but the same applies to Windows.
+
+### The Rust compiler
 
 Servo's build system uses rustup.rs to automatically download a Rust compiler.
 This is a specific version of Rust Nightly determined by the
 [`rust-toolchain`](https://github.com/servo/servo/blob/master/rust-toolchain) file.
 
-## Building
-
-Servo is built with [Cargo](https://crates.io/), the Rust package manager. We also use Mozilla's
-Mach tools to orchestrate the build and other tasks.
-
 ### Normal build
 
-To build Servo in development mode.  This is useful for development, but
-the resulting binary is very slow.
+To build Servo in development mode.
+This is useful for development, but the resulting binary is very slow:
 
 ``` sh
-git clone https://github.com/servo/servo
-cd servo
 ./mach build --dev
 ./mach run tests/html/about-mozilla.html
 ```
 
-Or on Windows MSVC, in a normal Command Prompt (cmd.exe):
-``` cmd
-git clone https://github.com/servo/servo
-cd servo
-mach.bat build --dev
-```
-
-For benchmarking, performance testing, or
-real-world use, add the `--release` flag to create an optimized build:
+### Release build
+For benchmarking, performance testing, or real-world use.
+Add the `--release` flag to create an optimized build:
 
 ``` sh
 ./mach build --release
