@@ -259,7 +259,6 @@ jobs:
     needs:
       - "build-win"
       - "build-uwp-x64"
-      - "build-uwp-arm64"
       - "build-linux"
       - "build-mac"
       - "linux-wpt"
