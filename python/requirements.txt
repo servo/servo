@@ -1,7 +1,7 @@
 # Ensure all versions are pinned for repeatability,
 # since `--system-site-packages` is enabled
 
-blessings == 1.6
+blessings == 1.7
 distro == 1.4
 mach == 1.0.0
 mozdebug == 0.3
