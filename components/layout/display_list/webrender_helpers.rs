@@ -11,7 +11,7 @@ use crate::display_list::items::{BaseDisplayItem, ClipScrollNode, ClipScrollNode
 use crate::display_list::items::{DisplayItem, DisplayList, StackingContextType};
 use msg::constellation_msg::PipelineId;
 use webrender_api::units::LayoutPoint;
-use webrender_api::{self, ClipId, CommonItemProperties, DisplayItem as WrDisplayItem, DisplayListBuilder, PrimitiveFlags, PropertyBinding, PushStackingContextDisplayItem, RasterSpace, ReferenceFrameKind, SpaceAndClipInfo, SpatialId, StackingContext, DisplayListCapacity, SpatialTreeItemKey};
+use webrender_api::{self, ClipId, CommonItemProperties, DisplayItem as WrDisplayItem, DisplayListBuilder, PrimitiveFlags, PropertyBinding, PushStackingContextDisplayItem, RasterSpace, ReferenceFrameKind, SpaceAndClipInfo, SpatialId, StackingContext, DisplayListCapacity};
 
 struct ClipScrollState {
     clip_ids: Vec<Option<ClipId>>,
@@ -219,7 +219,6 @@ impl DisplayItem {
                             stacking_context.transform_style,
                             PropertyBinding::Value(transform),
                             ref_frame,
-                            SpatialTreeItemKey::new(0, 2)
                         );
 
                         state.spatial_ids[frame_index.to_index()] = Some(spatial_id);
@@ -299,8 +298,7 @@ impl DisplayItem {
                             node.content_rect,
                             node.clip.main,
                             scroll_sensitivity,
-                            webrender_api::units::LayoutVector2D::zero(),
-                            SpatialTreeItemKey::new(0, 0)
+                            webrender_api::units::LayoutVector2D::zero()
                         );
 
                         // TODO(bryce): Figure out what to do here
@@ -317,7 +315,6 @@ impl DisplayItem {
                             sticky_data.vertical_offset_bounds,
                             sticky_data.horizontal_offset_bounds,
                             webrender_api::units::LayoutVector2D::zero(),
-                            SpatialTreeItemKey::new(0, 1)
                         );
 
                         state.spatial_ids[item.node_index.to_index()] = Some(id);
