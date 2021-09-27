@@ -11,7 +11,11 @@ use crate::display_list::items::{BaseDisplayItem, ClipScrollNode, ClipScrollNode
 use crate::display_list::items::{DisplayItem, DisplayList, StackingContextType};
 use msg::constellation_msg::PipelineId;
 use webrender_api::units::LayoutPoint;
-use webrender_api::{self, ClipId, CommonItemProperties, DisplayItem as WrDisplayItem, DisplayListBuilder, PrimitiveFlags, PropertyBinding, PushStackingContextDisplayItem, RasterSpace, ReferenceFrameKind, SpaceAndClipInfo, SpatialId, StackingContext, DisplayListCapacity};
+use webrender_api::{
+    self, ClipId, CommonItemProperties, DisplayItem as WrDisplayItem, DisplayListBuilder,
+    DisplayListCapacity, PrimitiveFlags, PropertyBinding, PushStackingContextDisplayItem,
+    RasterSpace, ReferenceFrameKind, SpaceAndClipInfo, SpatialId, StackingContext,
+};
 
 struct ClipScrollState {
     clip_ids: Vec<Option<ClipId>>,
@@ -200,10 +204,13 @@ impl DisplayItem {
                                         scrolling_relative_to: None,
                                     },
                                 ),
-                                (Some(t), None) => (t, ReferenceFrameKind::Transform {
-                                    is_2d_scale_translation: false,
-                                    should_snap: false,
-                                }),
+                                (Some(t), None) => (
+                                    t,
+                                    ReferenceFrameKind::Transform {
+                                        is_2d_scale_translation: false,
+                                        should_snap: false,
+                                    },
+                                ),
                                 (Some(t), Some(p)) => (
                                     p.then(&t),
                                     ReferenceFrameKind::Perspective {
@@ -298,13 +305,12 @@ impl DisplayItem {
                             node.content_rect,
                             node.clip.main,
                             scroll_sensitivity,
-                            webrender_api::units::LayoutVector2D::zero()
+                            webrender_api::units::LayoutVector2D::zero(),
                         );
 
                         // TODO(bryce): Figure out what to do here
                         //  state.clip_ids[item.node_index.to_index()] = Some(space_clip_info.clip_id);
-                        state.spatial_ids[item.node_index.to_index()] =
-                            Some(space_clip_info);
+                        state.spatial_ids[item.node_index.to_index()] = Some(space_clip_info);
                     },
                     ClipScrollNodeType::StickyFrame(ref sticky_data) => {
                         // TODO: Add define_sticky_frame_with_parent to WebRender.

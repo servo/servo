@@ -20,11 +20,11 @@ use surfman::SurfaceTexture;
 use surfman_chains::SwapChains;
 use surfman_chains_api::SwapChainAPI;
 use surfman_chains_api::SwapChainsAPI;
+use webrender::render_api;
 use webrender_surfman::WebrenderSurfman;
 use webrender_traits::{
     WebrenderExternalImageApi, WebrenderExternalImageRegistry, WebrenderImageSource,
 };
-use webrender::render_api;
 use webxr::SurfmanGL as WebXRSurfman;
 use webxr_api::LayerGrandManager as WebXRLayerGrandManager;
 

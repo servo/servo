@@ -86,7 +86,10 @@ impl ToWebRender for PhysicalSize<Length> {
 impl ToWebRender for PhysicalRect<Length> {
     type Type = webrender_api::units::LayoutRect;
     fn to_webrender(&self) -> Self::Type {
-        webrender_api::units::LayoutRect::from_origin_and_size(self.origin.to_webrender(), self.size.to_webrender())
+        webrender_api::units::LayoutRect::from_origin_and_size(
+            self.origin.to_webrender(),
+            self.size.to_webrender(),
+        )
     }
 }
 

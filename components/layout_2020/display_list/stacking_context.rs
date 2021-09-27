@@ -26,7 +26,7 @@ use style::values::generics::transform;
 use style::values::specified::box_::DisplayOutside;
 use webrender_api as wr;
 use webrender_api::units::{LayoutPoint, LayoutTransform, LayoutVector2D};
-use webrender_api::{SpaceAndClipInfo};
+use webrender_api::SpaceAndClipInfo;
 
 #[derive(Clone)]
 pub(crate) struct ContainingBlock {
@@ -617,7 +617,7 @@ impl BoxFragment {
                 builder.current_space_and_clip.spatial_id,
                 self.style.get_box().transform_style.to_webrender(),
                 wr::PropertyBinding::Value(reference_frame_data.transform),
-                reference_frame_data.kind
+                reference_frame_data.kind,
             );
             builder.nearest_reference_frame = builder.current_space_and_clip.spatial_id;
         }
@@ -770,13 +770,13 @@ impl BoxFragment {
                 spatial_id: builder.wr.define_scroll_frame(
                     original_scroll_and_clip_info.spatial_id,
                     external_id,
-                    self.scrollable_overflow( & containing_block_info.rect)
+                    self.scrollable_overflow(&containing_block_info.rect)
                         .to_webrender(),
                     padding_rect,
                     sensitivity,
-                    LayoutVector2D::zero()
+                    LayoutVector2D::zero(),
                 ),
-                clip_id: original_scroll_and_clip_info.clip_id
+                clip_id: original_scroll_and_clip_info.clip_id,
             }
         }
     }
@@ -805,10 +805,13 @@ impl BoxFragment {
                     scrolling_relative_to: None,
                 },
             ),
-            (Some(transform), None) => (transform, wr::ReferenceFrameKind::Transform {
-                is_2d_scale_translation: false,
-                should_snap: false,
-            }),
+            (Some(transform), None) => (
+                transform,
+                wr::ReferenceFrameKind::Transform {
+                    is_2d_scale_translation: false,
+                    should_snap: false,
+                },
+            ),
             (Some(transform), Some(perspective)) => (
                 perspective.then(&transform),
                 wr::ReferenceFrameKind::Perspective {
@@ -869,11 +872,7 @@ impl BoxFragment {
             -transform_origin_z,
         );
 
-        Some(
-            post_transform
-                .then(&transform)
-                .then(&pre_transform),
-        )
+        Some(post_transform.then(&transform).then(&pre_transform))
     }
 
     /// Returns the 4D matrix representing this fragment's perspective.
@@ -895,16 +894,10 @@ impl BoxFragment {
                         .px(),
                 );
 
-                let pre_transform = LayoutTransform::translation(
-                    perspective_origin.x,
-                    perspective_origin.y,
-                    0.0,
-                );
-                let post_transform = LayoutTransform::translation(
-                    -perspective_origin.x,
-                    -perspective_origin.y,
-                    0.0,
-                );
+                let pre_transform =
+                    LayoutTransform::translation(perspective_origin.x, perspective_origin.y, 0.0);
+                let post_transform =
+                    LayoutTransform::translation(-perspective_origin.x, -perspective_origin.y, 0.0);
 
                 let perspective_matrix = LayoutTransform::from_untyped(
                     &transform::create_perspective_matrix(length.px()),

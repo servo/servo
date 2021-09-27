@@ -27,11 +27,11 @@ use std::rc::Rc;
 use std::slice;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
+use webrender::render_api;
 use webrender_traits::{
     WebrenderExternalImageApi, WebrenderExternalImageRegistry, WebrenderImageHandlerType,
     WebrenderImageSource,
 };
-use webrender::render_api;
 use wgpu::{
     binding_model::{BindGroupDescriptor, BindGroupLayoutDescriptor, PipelineLayoutDescriptor},
     command::{

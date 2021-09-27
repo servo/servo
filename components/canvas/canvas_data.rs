@@ -1213,7 +1213,10 @@ impl<'a> CanvasData<'a> {
             ),
             self.drawtarget.get_format(),
         );
-        let matrix = self.state.transform.then_translate(-source_rect.origin.to_vector().cast::<f32>());
+        let matrix = self
+            .state
+            .transform
+            .then_translate(-source_rect.origin.to_vector().cast::<f32>());
         draw_target.set_transform(&matrix);
         draw_target
     }

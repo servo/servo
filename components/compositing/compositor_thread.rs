@@ -21,10 +21,10 @@ use std::fmt::{Debug, Error, Formatter};
 use std::rc::Rc;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::CSSPixel;
+use webrender::render_api;
 use webrender_api;
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use webrender_surfman::WebrenderSurfman;
-use webrender::render_api;
 
 /// Sends messages to the compositor.
 pub struct CompositorProxy {

@@ -119,6 +119,7 @@ use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
 use encoding_rs::{Encoding, UTF_8};
 use euclid::default::{Point2D, Rect, Size2D};
+use euclid::Box2D;
 use html5ever::{LocalName, Namespace, QualName};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
@@ -174,7 +175,6 @@ use style::stylesheets::{Origin, OriginSet, Stylesheet};
 use url::Host;
 use uuid::Uuid;
 use webrender_api::units::DeviceIntRect;
-use euclid::Box2D;
 
 /// The number of times we are allowed to see spurious `requestAnimationFrame()` calls before
 /// falling back to fake ones.
@@ -1121,8 +1121,10 @@ impl Document {
                 let rect = elem.upcast::<Node>().bounding_content_box_or_zero();
                 let rect = Box2D::new(
                     Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
-                    Point2D::new(rect.origin.x.to_px() + rect.size.width.to_px(),
-                                 rect.origin.y.to_px() + rect.size.height.to_px()),
+                    Point2D::new(
+                        rect.origin.x.to_px() + rect.size.width.to_px(),
+                        rect.origin.y.to_px() + rect.size.height.to_px(),
+                    ),
                 );
                 let (text, multiline) = if let Some(input) = elem.downcast::<HTMLInputElement>() {
                     (

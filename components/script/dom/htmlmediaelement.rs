@@ -95,8 +95,8 @@ use std::mem;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use time::{self, Duration, Timespec};
-use webrender_api::{ImageKey, ImageBufferKind};
 use webrender_api::{ExternalImageData, ExternalImageId, ExternalImageType};
+use webrender_api::{ImageBufferKind, ImageKey};
 use webrender_api::{ImageData, ImageDescriptor, ImageDescriptorFlags, ImageFormat};
 
 #[derive(PartialEq)]

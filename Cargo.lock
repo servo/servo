@@ -577,7 +577,7 @@ dependencies = [
  "surfman-chains-api",
  "time",
  "webrender",
- "webrender_api 0.61.0 (git+https://github.com/servo/webrender?rev=5b704d12)",
+ "webrender_api",
  "webrender_surfman",
  "webrender_traits",
  "webxr",
@@ -602,7 +602,7 @@ dependencies = [
  "sparkle",
  "style",
  "time",
- "webrender_api 0.61.0 (git+https://github.com/servo/webrender?rev=5b704d12)",
+ "webrender_api",
  "webxr-api",
 ]
 
@@ -867,7 +867,7 @@ dependencies = [
  "time",
  "toml",
  "webrender",
- "webrender_api 0.61.0 (git+https://github.com/servo/webrender?rev=5b704d12)",
+ "webrender_api",
  "webrender_surfman",
  "webxr",
 ]
@@ -920,7 +920,7 @@ dependencies = [
  "style_traits",
  "webgpu",
  "webrender",
- "webrender_api 0.61.0 (git+https://github.com/servo/webrender?rev=5b704d12)",
+ "webrender_api",
  "webrender_traits",
  "webxr-api",
 ]
@@ -1555,7 +1555,7 @@ dependencies = [
  "num-traits",
  "serde",
  "servo_url",
- "webrender_api 0.61.0 (git+https://github.com/servo/webrender?rev=5b704d12)",
+ "webrender_api",
  "webxr-api",
 ]
 
@@ -2039,7 +2039,7 @@ dependencies = [
  "ucd",
  "unicode-bidi",
  "unicode-script",
- "webrender_api 0.61.0 (git+https://github.com/servo/webrender?rev=5b704d12)",
+ "webrender_api",
  "xi-unicode",
  "xml-rs",
 ]
@@ -2197,7 +2197,7 @@ dependencies = [
  "malloc_size_of_derive",
  "range",
  "serde",
- "webrender_api 0.61.0 (git+https://github.com/servo/webrender?rev=5b704d12)",
+ "webrender_api",
 ]
 
 [[package]]
@@ -3106,7 +3106,7 @@ dependencies = [
  "style_traits",
  "unicode-bidi",
  "unicode-script",
- "webrender_api 0.61.0 (git+https://github.com/servo/webrender?rev=5b704d12)",
+ "webrender_api",
  "xi-unicode",
 ]
 
@@ -3146,7 +3146,7 @@ dependencies = [
  "style",
  "style_traits",
  "unicode-script",
- "webrender_api 0.61.0 (git+https://github.com/servo/webrender?rev=5b704d12)",
+ "webrender_api",
 ]
 
 [[package]]
@@ -3191,7 +3191,7 @@ dependencies = [
  "style",
  "style_traits",
  "time",
- "webrender_api 0.61.0 (git+https://github.com/servo/webrender?rev=5b704d12)",
+ "webrender_api",
 ]
 
 [[package]]
@@ -3232,7 +3232,7 @@ dependencies = [
  "servo_url",
  "style",
  "style_traits",
- "webrender_api 0.61.0 (git+https://github.com/servo/webrender?rev=5b704d12)",
+ "webrender_api",
 ]
 
 [[package]]
@@ -3248,7 +3248,7 @@ dependencies = [
  "profile_traits",
  "script_traits",
  "servo_url",
- "webrender_api 0.61.0 (git+https://github.com/servo/webrender?rev=5b704d12)",
+ "webrender_api",
 ]
 
 [[package]]
@@ -3398,7 +3398,7 @@ dependencies = [
  "webdriver_server",
  "webgpu",
  "webrender",
- "webrender_api 0.61.0 (git+https://github.com/servo/webrender?rev=5b704d12)",
+ "webrender_api",
  "webrender_surfman",
  "webrender_traits",
  "webxr",
@@ -3537,7 +3537,7 @@ dependencies = [
  "url",
  "uuid",
  "void",
- "webrender_api 0.61.0 (git+https://github.com/servo/webrender?rev=5b704d12)",
+ "webrender_api",
  "xml5ever",
 ]
 
@@ -3598,7 +3598,7 @@ dependencies = [
  "serde",
  "servo-media",
  "servo_config",
- "webrender_api 0.61.0 (git+https://github.com/servo/webrender?rev=5b704d12)",
+ "webrender_api",
  "webrender_traits",
 ]
 
@@ -3859,7 +3859,7 @@ dependencies = [
  "parking_lot 0.10.2",
  "serde",
  "size_of_test",
- "webrender_api 0.61.0 (git+https://github.com/servo/webrender?rev=d34005e2)",
+ "webrender_api",
 ]
 
 [[package]]
@@ -3998,7 +3998,7 @@ dependencies = [
  "tungstenite",
  "url",
  "uuid",
- "webrender_api 0.61.0 (git+https://github.com/servo/webrender?rev=5b704d12)",
+ "webrender_api",
 ]
 
 [[package]]
@@ -4042,7 +4042,7 @@ dependencies = [
  "time",
  "url",
  "uuid",
- "webrender_api 0.61.0 (git+https://github.com/servo/webrender?rev=5b704d12)",
+ "webrender_api",
 ]
 
 [[package]]
@@ -4482,34 +4482,13 @@ version = "0.2.0"
 source = "git+https://github.com/servo/webrender?rev=5b704d12#5b704d126a07c632c87b8d213591458b86197253"
 dependencies = [
  "euclid 0.22.6",
- "peek-poke-derive 0.2.1 (git+https://github.com/servo/webrender?rev=5b704d12)",
-]
-
-[[package]]
-name = "peek-poke"
-version = "0.2.0"
-source = "git+https://github.com/servo/webrender?rev=d34005e2#d34005e22ad51b1f16484f1b5a2f1b7c61c40165"
-dependencies = [
- "euclid 0.22.6",
- "peek-poke-derive 0.2.1 (git+https://github.com/servo/webrender?rev=d34005e2)",
+ "peek-poke-derive",
 ]
 
 [[package]]
 name = "peek-poke-derive"
 version = "0.2.1"
 source = "git+https://github.com/servo/webrender?rev=5b704d12#5b704d126a07c632c87b8d213591458b86197253"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
- "synstructure",
- "unicode-xid",
-]
-
-[[package]]
-name = "peek-poke-derive"
-version = "0.2.1"
-source = "git+https://github.com/servo/webrender?rev=d34005e2#d34005e22ad51b1f16484f1b5a2f1b7c61c40165"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5205,7 +5184,7 @@ dependencies = [
  "uuid",
  "webdriver",
  "webgpu",
- "webrender_api 0.61.0 (git+https://github.com/servo/webrender?rev=5b704d12)",
+ "webrender_api",
  "webxr-api",
  "xml5ever",
 ]
@@ -5239,7 +5218,7 @@ dependencies = [
  "servo_url",
  "style",
  "style_traits",
- "webrender_api 0.61.0 (git+https://github.com/servo/webrender?rev=5b704d12)",
+ "webrender_api",
 ]
 
 [[package]]
@@ -5299,7 +5278,7 @@ dependencies = [
  "uuid",
  "webdriver",
  "webgpu",
- "webrender_api 0.61.0 (git+https://github.com/servo/webrender?rev=5b704d12)",
+ "webrender_api",
  "webxr-api",
 ]
 
@@ -5732,7 +5711,7 @@ dependencies = [
  "euclid 0.22.6",
  "malloc_size_of",
  "malloc_size_of_derive",
- "webrender_api 0.61.0 (git+https://github.com/servo/webrender?rev=5b704d12)",
+ "webrender_api",
 ]
 
 [[package]]
@@ -6169,7 +6148,7 @@ dependencies = [
  "servo_url",
  "to_shmem",
  "to_shmem_derive",
- "webrender_api 0.61.0 (git+https://github.com/servo/webrender?rev=5b704d12)",
+ "webrender_api",
 ]
 
 [[package]]
@@ -7187,7 +7166,7 @@ dependencies = [
  "servo_config",
  "smallvec 0.6.13",
  "webrender",
- "webrender_api 0.61.0 (git+https://github.com/servo/webrender?rev=5b704d12)",
+ "webrender_api",
  "webrender_traits",
  "wgpu-core",
  "wgpu-types",
@@ -7228,9 +7207,9 @@ dependencies = [
  "svg_fmt",
  "time",
  "tracy-rs",
- "webrender_api 0.61.0 (git+https://github.com/servo/webrender?rev=5b704d12)",
+ "webrender_api",
  "webrender_build",
- "wr_malloc_size_of 0.0.1 (git+https://github.com/servo/webrender?rev=5b704d12)",
+ "wr_malloc_size_of",
 ]
 
 [[package]]
@@ -7247,34 +7226,12 @@ dependencies = [
  "derive_more",
  "euclid 0.22.6",
  "malloc_size_of_derive",
- "peek-poke 0.2.0 (git+https://github.com/servo/webrender?rev=5b704d12)",
+ "peek-poke",
  "serde",
  "serde_bytes",
  "serde_derive",
  "time",
- "wr_malloc_size_of 0.0.1 (git+https://github.com/servo/webrender?rev=5b704d12)",
-]
-
-[[package]]
-name = "webrender_api"
-version = "0.61.0"
-source = "git+https://github.com/servo/webrender?rev=d34005e2#d34005e22ad51b1f16484f1b5a2f1b7c61c40165"
-dependencies = [
- "app_units",
- "bitflags",
- "byteorder",
- "core-foundation 0.9.1",
- "core-graphics 0.22.0",
- "crossbeam-channel 0.5.0",
- "derive_more",
- "euclid 0.22.6",
- "malloc_size_of_derive",
- "peek-poke 0.2.0 (git+https://github.com/servo/webrender?rev=d34005e2)",
- "serde",
- "serde_bytes",
- "serde_derive",
- "time",
- "wr_malloc_size_of 0.0.1 (git+https://github.com/servo/webrender?rev=d34005e2)",
+ "wr_malloc_size_of",
 ]
 
 [[package]]
@@ -7300,7 +7257,7 @@ name = "webrender_traits"
 version = "0.0.1"
 dependencies = [
  "euclid 0.22.6",
- "webrender_api 0.61.0 (git+https://github.com/servo/webrender?rev=5b704d12)",
+ "webrender_api",
 ]
 
 [[package]]
@@ -7474,15 +7431,6 @@ dependencies = [
 name = "wr_malloc_size_of"
 version = "0.0.1"
 source = "git+https://github.com/servo/webrender?rev=5b704d12#5b704d126a07c632c87b8d213591458b86197253"
-dependencies = [
- "app_units",
- "euclid 0.22.6",
-]
-
-[[package]]
-name = "wr_malloc_size_of"
-version = "0.0.1"
-source = "git+https://github.com/servo/webrender?rev=d34005e2#d34005e22ad51b1f16484f1b5a2f1b7c61c40165"
 dependencies = [
  "app_units",
  "euclid 0.22.6",

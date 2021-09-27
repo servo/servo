@@ -3216,9 +3216,7 @@ impl Fragment {
             -transform_origin_z,
         );
 
-        Some(
-            post_transform.then(&transform).then(&pre_transform)
-        )
+        Some(post_transform.then(&transform).then(&pre_transform))
     }
 
     /// Returns the 4D matrix representing this fragment's perspective.
@@ -3239,23 +3237,19 @@ impl Fragment {
                 )
                 .to_layout();
 
-                let pre_transform = LayoutTransform::translation(
-                    perspective_origin.x,
-                    perspective_origin.y,
-                    0.0,
-                );
-                let post_transform = LayoutTransform::translation(
-                    -perspective_origin.x,
-                    -perspective_origin.y,
-                    0.0,
-                );
+                let pre_transform =
+                    LayoutTransform::translation(perspective_origin.x, perspective_origin.y, 0.0);
+                let post_transform =
+                    LayoutTransform::translation(-perspective_origin.x, -perspective_origin.y, 0.0);
 
                 let perspective_matrix = LayoutTransform::from_untyped(
                     &transform::create_perspective_matrix(length.px()),
                 );
 
                 Some(
-                    post_transform.then(&perspective_matrix).then(&pre_transform)
+                    post_transform
+                        .then(&perspective_matrix)
+                        .then(&pre_transform),
                 )
             },
             Perspective::None => None,

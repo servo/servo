@@ -46,10 +46,12 @@ use std::rc::Rc;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use time::{now, precise_time_ns, precise_time_s};
-use webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePoint, LayoutVector2D};
-use webrender_api::{self, HitTestResult, ScrollLocation, ExternalScrollId, ScrollClamping, DisplayListPayload};
-use webrender_surfman::WebrenderSurfman;
 use webrender::render_api;
+use webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePoint, LayoutVector2D};
+use webrender_api::{
+    self, DisplayListPayload, ExternalScrollId, HitTestResult, ScrollClamping, ScrollLocation,
+};
+use webrender_surfman::WebrenderSurfman;
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -625,7 +627,13 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     size2,
                     (
                         pipeline,
-                        webrender_api::BuiltDisplayList::from_data(DisplayListPayload {items_data, cache_data}, descriptor),
+                        webrender_api::BuiltDisplayList::from_data(
+                            DisplayListPayload {
+                                items_data,
+                                cache_data,
+                            },
+                            descriptor,
+                        ),
                     ),
                     true,
                 );
@@ -634,14 +642,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     .send_transaction(self.webrender_document, txn);
             },
 
-            WebrenderMsg::Layout(script_traits::WebrenderMsg::HitTest(
-                pipeline,
-                point,
-                sender,
-            )) => {
-                let result =
-                    self.webrender_api
-                        .hit_test(self.webrender_document, pipeline, point);
+            WebrenderMsg::Layout(script_traits::WebrenderMsg::HitTest(pipeline, point, sender)) => {
+                let result = self
+                    .webrender_api
+                    .hit_test(self.webrender_document, pipeline, point);
                 let _ = sender.send(result);
             },
 
@@ -812,10 +816,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         let dppx: Scale<f32, CSSPixel, DevicePixel> = self.page_zoom * Scale::identity();
 
         let mut txn = render_api::Transaction::new();
-        txn.set_document_view(
-            self.embedder_coordinates.get_flipped_viewport()
-        );
-        self.webrender_api.send_transaction(self.webrender_document, txn);
+        txn.set_document_view(self.embedder_coordinates.get_flipped_viewport());
+        self.webrender_api
+            .send_transaction(self.webrender_document, txn);
 
         let initial_viewport = self.embedder_coordinates.viewport.size().to_f32() / dppx;
 
@@ -909,11 +912,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         let scaled_point = (point / dppx).to_untyped();
 
         let world_cursor = webrender_api::units::WorldPoint::from_untyped(scaled_point);
-        self.webrender_api.hit_test(
-            self.webrender_document,
-            None,
-            world_cursor
-        )
+        self.webrender_api
+            .hit_test(self.webrender_document, None, world_cursor)
     }
 
     pub fn on_mouse_window_move_event_class(&mut self, cursor: DevicePoint) {
@@ -1143,15 +1143,17 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             let cursor = webrender_api::units::WorldPoint::from_untyped(cursor);
             let mut txn = render_api::Transaction::new();
 
-            let hit = self.webrender_api.hit_test(self.webrender_document, None, cursor);
+            let hit = self
+                .webrender_api
+                .hit_test(self.webrender_document, None, cursor);
             // TODO(bryce): Find the right item (don't just pick the first like I did) and
             //  actually do this correctly. Note that the results are from front to back
             if let Some(item) = hit.items.first() {
                 let new_point = match scroll_location {
-                    ScrollLocation::Delta(delta) => {delta},
+                    ScrollLocation::Delta(delta) => delta,
                     // TODO(bryce): I have no idea what to do here
-                    ScrollLocation::Start => {LayoutVector2D::new(0f32, 0f32)},
-                    ScrollLocation::End => {LayoutVector2D::new(1000f32, 1000f32)},
+                    ScrollLocation::Start => LayoutVector2D::new(0f32, 0f32),
+                    ScrollLocation::End => LayoutVector2D::new(1000f32, 1000f32),
                 };
                 // TODO(bryce): Figure this out. I think the pre-scrolled location in the display
                 //  list needs to be modified but I don't know how to do that yet
@@ -1162,7 +1164,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 txn.scroll_node_with_id(
                     new_point.to_point(),
                     ExternalScrollId(0, item.pipeline),
-                    ScrollClamping::NoClamping // TODO(bryce): This should probably be ToContentBounds
+                    ScrollClamping::NoClamping, // TODO(bryce): This should probably be ToContentBounds
                 );
             }
             if combined_event.magnification != 1.0 {

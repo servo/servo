@@ -182,8 +182,8 @@ use std::thread;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::CSSPixel;
 use webgpu::{self, WebGPU, WebGPURequest};
-use webrender_traits::WebrenderExternalImageRegistry;
 use webrender::render_api;
+use webrender_traits::WebrenderExternalImageRegistry;
 
 type PendingApprovalNavigations = HashMap<PipelineId, (LoadData, HistoryEntryReplacement)>;
 

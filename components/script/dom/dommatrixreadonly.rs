@@ -289,24 +289,21 @@ impl DOMMatrixReadOnly {
         if rotZ != 0.0 {
             // Step 5.
             // Beware: pass negated value until https://github.com/servo/euclid/issues/354
-            let rotation =
-                Transform3D::rotation(0.0, 0.0, -1.0, Angle::radians(rotZ.to_radians()));
+            let rotation = Transform3D::rotation(0.0, 0.0, -1.0, Angle::radians(rotZ.to_radians()));
             let mut matrix = self.matrix.borrow_mut();
             *matrix = rotation.then(&matrix);
         }
         if rotY != 0.0 {
             // Step 6.
             // Beware: pass negated value until https://github.com/servo/euclid/issues/354
-            let rotation =
-                Transform3D::rotation(0.0, -1.0, 0.0, Angle::radians(rotY.to_radians()));
+            let rotation = Transform3D::rotation(0.0, -1.0, 0.0, Angle::radians(rotY.to_radians()));
             let mut matrix = self.matrix.borrow_mut();
             *matrix = rotation.then(&matrix);
         }
         if rotX != 0.0 {
             // Step 7.
             // Beware: pass negated value until https://github.com/servo/euclid/issues/354
-            let rotation =
-                Transform3D::rotation(-1.0, 0.0, 0.0, Angle::radians(rotX.to_radians()));
+            let rotation = Transform3D::rotation(-1.0, 0.0, 0.0, Angle::radians(rotX.to_radians()));
             let mut matrix = self.matrix.borrow_mut();
             *matrix = rotation.then(&matrix);
         }

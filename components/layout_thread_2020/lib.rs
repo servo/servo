@@ -1219,10 +1219,9 @@ impl LayoutThread {
                 &QueryMsg::NodesFromPointQuery(client_point, ref reflow_goal) => {
                     let client_point = webrender_api::units::WorldPoint::from_untyped(client_point);
                     // TODO(bryce): The client_point may have to be transformed
-                    let results = self.webrender_api.hit_test(
-                        Some(self.id.to_webrender()),
-                        client_point,
-                    );
+                    let results = self
+                        .webrender_api
+                        .hit_test(Some(self.id.to_webrender()), client_point);
 
                     rw_data.nodes_from_point_response = results
                         .items

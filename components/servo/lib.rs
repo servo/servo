@@ -49,10 +49,10 @@ pub use servo_url;
 pub use style;
 pub use style_traits;
 pub use webgpu;
+pub use webrender::render_api;
 pub use webrender_api;
 pub use webrender_surfman;
 pub use webrender_traits;
-pub use webrender::render_api;
 
 #[cfg(feature = "webdriver")]
 fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
@@ -126,12 +126,12 @@ use webrender_traits::WebrenderExternalImageHandlers;
 use webrender_traits::WebrenderExternalImageRegistry;
 use webrender_traits::WebrenderImageHandlerType;
 
+use crate::webrender_api::ColorF;
 pub use gleam::gl;
 pub use keyboard_types;
 pub use msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
 pub use servo_config as config;
 pub use servo_url as url;
-use crate::webrender_api::ColorF;
 
 #[cfg(feature = "media-gstreamer")]
 mod media_platform {
@@ -396,14 +396,13 @@ where
                     clear_color: ColorF::new(1.0, 1.0, 1.0, 1.0),
                     ..Default::default()
                 },
-                None
+                None,
             )
             .expect("Unable to initialize webrender!")
         };
 
         let webrender_api = webrender_api_sender.create_api();
-        let webrender_document =
-            webrender_api.add_document(coordinates.framebuffer);
+        let webrender_document = webrender_api.add_document(coordinates.framebuffer);
 
         // Important that this call is done in a single-threaded fashion, we
         // can't defer it after `create_constellation` has started.
