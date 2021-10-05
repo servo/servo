@@ -49,7 +49,7 @@ WEB_PLATFORM_TESTS_PATH = os.path.join("tests", "wpt", "web-platform-tests")
 SERVO_TESTS_PATH = os.path.join("tests", "wpt", "mozilla", "tests")
 
 CLANGFMT_CPP_DIRS = ["support/hololens/"]
-CLANGFMT_VERSION = "11"
+CLANGFMT_VERSION = "12"
 
 TEST_SUITES = OrderedDict([
     ("tidy", {"kwargs": {"all_files": False, "no_progress": False, "self_test": False,
