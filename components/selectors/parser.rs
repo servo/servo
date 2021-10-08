@@ -262,6 +262,9 @@ pub trait Parser<'i> {
         false
     }
 
+    /// Parses non-tree-structural pseudo-classes. Tree structural pseudo-classes,
+    /// like `:first-child`, are built into this library.
+    ///
     /// This function can return an "Err" pseudo-element in order to support CSS2.1
     /// pseudo-elements.
     fn parse_non_ts_pseudo_class(
