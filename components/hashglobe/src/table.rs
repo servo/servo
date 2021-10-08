@@ -836,7 +836,9 @@ impl<K, V> RawTable<K, V> {
     pub fn new(capacity: usize) -> Result<RawTable<K, V>, FailedAllocationError> {
         unsafe {
             let ret = RawTable::try_new_uninitialized(capacity)?;
-            ptr::write_bytes(ret.hashes.ptr(), 0, capacity);
+            if capacity > 0 {
+                ptr::write_bytes(ret.hashes.ptr(), 0, capacity);
+            }
             Ok(ret)
         }
     }
