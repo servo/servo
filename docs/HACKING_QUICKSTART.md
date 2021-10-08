@@ -286,7 +286,7 @@ See the [debugging guide](./debugging.md) to get started in how to debug Servo.
 - Servo's directory structure: [ORGANIZATION.md](./ORGANIZATION.md)
 - https://doc.servo.org/servo/index.html
 - https://github.com/servo/servo/wiki
-- https://rustbyexample.com
+- https://doc.rust-lang.org/rust-by-example/
 - https://doc.rust-lang.org
 - Cargo & crates: https://doc.crates.io/guide.html
 - mach help: `./mach --help`
