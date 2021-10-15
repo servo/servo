@@ -32,7 +32,7 @@ clangStdenv.mkDerivation rec {
 
   shellHook = ''
     # Fix missing libraries errors (those libraries aren't linked against, so we need to dynamically supply them)
-    export LD_LIBRARY_PATH=${lib.makeLibraryPath [ xorg.libXcursor xorg.libXrandr xorg.libXi ]}
+    export LD_LIBRARY_PATH=${lib.makeLibraryPath [ xorg.libXcursor xorg.libXrandr xorg.libXi libxkbcommon ]}
     # Fix invalid option errors during linking
     # https://github.com/mozilla/nixpkgs-mozilla/commit/c72ff151a3e25f14182569679ed4cd22ef352328
     unset AS
