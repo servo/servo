@@ -306,7 +306,7 @@ pub fn init(
     SERVO.with(|s| {
         let mut servo_glue = ServoGlue {
             webrender_surfman,
-            servo,
+            servo: servo.servo,
             batch_mode: false,
             callbacks: window_callbacks,
             browser_id: None,
@@ -314,8 +314,7 @@ pub fn init(
             events: vec![],
             context_menu_sender: None,
         };
-        let browser_id = BrowserId::new();
-        let _ = servo_glue.process_event(WindowEvent::NewBrowser(url, browser_id));
+        let _ = servo_glue.process_event(WindowEvent::NewBrowser(url, servo.browser_id));
         *s.borrow_mut() = Some(servo_glue);
     });
 
