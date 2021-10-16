@@ -6,6 +6,7 @@ use crate::AnimationState;
 use crate::AuxiliaryBrowsingContextLoadInfo;
 use crate::BroadcastMsg;
 use crate::DocumentState;
+use crate::FocusSequenceNumber;
 use crate::IFrameLoadInfoWithData;
 use crate::LayoutControlMsg;
 use crate::LoadData;
@@ -179,8 +180,21 @@ pub enum ScriptMsg {
         UntypedSize2D<u64>,
         IpcSender<(IpcSender<CanvasMsg>, CanvasId)>,
     ),
-    /// Notifies the constellation that this frame has received focus.
-    Focus,
+    /// Notifies the constellation that this pipeline is requesting focus.
+    ///
+    /// When this message is sent, the sender pipeline has already its local
+    /// focus state updated. The constellation, after receiving this message,
+    /// will broadcast messages to other pipelines that are affected by this
+    /// focus operation.
+    ///
+    /// The first field contains the browsing context ID of the container
+    /// element if one was focused.
+    ///
+    /// The second field is a sequence number that the constellation should use
+    /// when sending a focus-related message to the sender pipeline next time.
+    Focus(Option<BrowsingContextId>, FocusSequenceNumber),
+    /// Requests the constellation to focus the specified browsing context.
+    FocusRemoteDocument(BrowsingContextId),
     /// Get the top-level browsing context info for a given browsing context.
     GetTopForBrowsingContext(
         BrowsingContextId,
@@ -309,7 +323,8 @@ impl fmt::Debug for ScriptMsg {
             BroadcastStorageEvent(..) => "BroadcastStorageEvent",
             ChangeRunningAnimationsState(..) => "ChangeRunningAnimationsState",
             CreateCanvasPaintThread(..) => "CreateCanvasPaintThread",
-            Focus => "Focus",
+            Focus(..) => "Focus",
+            FocusRemoteDocument(..) => "FocusRemoteDocument",
             GetBrowsingContextInfo(..) => "GetBrowsingContextInfo",
             GetTopForBrowsingContext(..) => "GetParentBrowsingContext",
             GetChildBrowsingContextId(..) => "GetChildBrowsingContextId",

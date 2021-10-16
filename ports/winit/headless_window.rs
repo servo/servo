@@ -5,9 +5,9 @@
 //! A headless window implementation.
 
 use crate::events_loop::ServoEvent;
-use crate::window_trait::WindowPortsMethods;
+use crate::window_trait::{WindowEvent, WindowPortsMethods};
 use euclid::{Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
-use servo::compositing::windowing::{AnimationState, WindowEvent};
+use servo::compositing::windowing::AnimationState;
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
@@ -104,7 +104,7 @@ impl WindowPortsMethods for Window {
 
     fn new_glwindow(
         &self,
-        _events_loop: &winit::event_loop::EventLoopWindowTarget<ServoEvent>
+        _events_loop: &winit::event_loop::EventLoopWindowTarget<ServoEvent>,
     ) -> Box<dyn webxr::glwindow::GlWindow> {
         unimplemented!()
     }

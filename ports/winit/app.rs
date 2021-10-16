@@ -7,11 +7,9 @@
 use crate::browser::Browser;
 use crate::embedder::EmbedderCallbacks;
 use crate::events_loop::{EventsLoop, ServoEvent};
-use crate::window_trait::WindowPortsMethods;
+use crate::window_trait::{WindowEvent, WindowPortsMethods};
 use crate::{headed_window, headless_window};
-use winit::window::WindowId;
-use winit::event_loop::EventLoopWindowTarget;
-use servo::compositing::windowing::WindowEvent;
+use servo::compositing::windowing::WindowEvent as ServoWindowEvent;
 use servo::config::opts::{self, parse_url_or_filename};
 use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
@@ -22,6 +20,8 @@ use std::env;
 use std::mem;
 use std::rc::Rc;
 use webxr::glwindow::GlWindowDiscovery;
+use winit::event_loop::EventLoopWindowTarget;
+use winit::window::WindowId;
 
 thread_local! {
     pub static WINDOWS: RefCell<HashMap<WindowId, Rc<dyn WindowPortsMethods>>> = RefCell::new(HashMap::new());
@@ -69,7 +69,7 @@ impl App {
             if let winit::event::Event::NewEvents(winit::event::StartCause::Init) = e {
                 let surfman = window.webrender_surfman();
 
-                let xr_discovery = if pref!(dom.webxr.glwindow.enabled) && ! opts::get().headless {
+                let xr_discovery = if pref!(dom.webxr.glwindow.enabled) && !opts::get().headless {
                     let window = window.clone();
                     // This should be safe because run_forever does, in fact,
                     // run forever. The event loop window target doesn't get
@@ -79,7 +79,7 @@ impl App {
                     let w = unsafe {
                         std::mem::transmute::<
                             &EventLoopWindowTarget<ServoEvent>,
-                            &'static EventLoopWindowTarget<ServoEvent>
+                            &'static EventLoopWindowTarget<ServoEvent>,
                         >(w.unwrap())
                     };
                     let factory = Box::new(move || Ok(window.new_glwindow(w)));
@@ -95,14 +95,14 @@ impl App {
 
                 let window = window.clone();
                 // Implements embedder methods, used by libservo and constellation.
-                let embedder = Box::new(EmbedderCallbacks::new(
-                    ev_waker.clone(),
-                    xr_discovery,
-                ));
+                let embedder = Box::new(EmbedderCallbacks::new(ev_waker.clone(), xr_discovery));
 
                 let mut servo = Servo::new(embedder, window.clone(), user_agent.clone());
                 let browser_id = BrowserId::new();
-                servo.handle_events(vec![WindowEvent::NewBrowser(get_default_url(), browser_id)]);
+                servo.handle_events(vec![ServoWindowEvent::NewBrowser(
+                    get_default_url(),
+                    browser_id,
+                )]);
                 servo.setup_logging();
 
                 register_window(window.clone());
@@ -153,30 +153,34 @@ impl App {
             },
             winit::event::Event::Resumed => {
                 self.suspended.set(false);
-                self.event_queue.borrow_mut().push(WindowEvent::Idle);
+                self.event_queue
+                    .borrow_mut()
+                    .push(ServoWindowEvent::Idle.into());
             },
             winit::event::Event::UserEvent(_) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Idle);
+                self.event_queue
+                    .borrow_mut()
+                    .push(ServoWindowEvent::Idle.into());
             },
             winit::event::Event::DeviceEvent { .. } => {},
 
             winit::event::Event::RedrawRequested(_) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Idle);
+                self.event_queue
+                    .borrow_mut()
+                    .push(ServoWindowEvent::Idle.into());
             },
 
             // Window level events
             winit::event::Event::WindowEvent {
                 window_id, event, ..
             } => {
-                return WINDOWS.with(|windows| {
-                    match windows.borrow().get(&window_id) {
-                        None => {
-                            warn!("Got an event from unknown window");
-                        },
-                        Some(window) => {
-                            window.winit_event_to_servo_event(event);
-                        },
-                    }
+                return WINDOWS.with(|windows| match windows.borrow().get(&window_id) {
+                    None => {
+                        warn!("Got an event from unknown window");
+                    },
+                    Some(window) => {
+                        window.winit_event_to_servo_event(event);
+                    },
                 });
             },
 
@@ -210,7 +214,11 @@ impl App {
         let mut need_resize = false;
         loop {
             browser.handle_servo_events(servo_events);
-            need_resize |= self.servo.as_mut().unwrap().handle_events(browser.get_events());
+            need_resize |= self
+                .servo
+                .as_mut()
+                .unwrap()
+                .handle_events(browser.get_events());
             if browser.shutdown_requested() {
                 return true;
             }

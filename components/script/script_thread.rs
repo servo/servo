@@ -39,7 +39,7 @@ use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReactionStack,
 };
 use crate::dom::document::{
-    Document, DocumentSource, FocusType, HasBrowsingContext, IsHTMLDocument, TouchEventResult,
+    Document, DocumentSource, FocusInitiator, HasBrowsingContext, IsHTMLDocument, TouchEventResult,
 };
 use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
@@ -133,12 +133,12 @@ use script_traits::CompositorEvent::{
 };
 use script_traits::{
     AnimationTickType, CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext,
-    DocumentActivity, EventResult, HistoryEntryReplacement, InitialScriptState, JsEvalResult,
-    LayoutMsg, LoadData, LoadOrigin, MediaSessionActionType, MouseButton, MouseEventType,
-    NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptMsg, ScriptThreadFactory,
-    ScriptToConstellationChan, StructuredSerializedData, TimerSchedulerMsg, TouchEventType,
-    TouchId, UntrustedNodeAddress, UpdatePipelineIdReason, WebrenderIpcSender, WheelDelta,
-    WindowSizeData, WindowSizeType,
+    DocumentActivity, EventResult, FocusSequenceNumber, HistoryEntryReplacement,
+    InitialScriptState, JsEvalResult, LayoutMsg, LoadData, LoadOrigin, MediaSessionActionType,
+    MouseButton, MouseEventType, NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptMsg,
+    ScriptThreadFactory, ScriptToConstellationChan, StructuredSerializedData, TimerSchedulerMsg,
+    TouchEventType, TouchId, UntrustedNodeAddress, UpdatePipelineIdReason, WebrenderIpcSender,
+    WheelDelta, WindowSizeData, WindowSizeType,
 };
 use servo_atoms::Atom;
 use servo_config::opts;
@@ -1800,6 +1800,8 @@ impl ScriptThread {
                 UpdateHistoryState(id, ..) => Some(id),
                 RemoveHistoryStates(id, ..) => Some(id),
                 FocusIFrame(id, ..) => Some(id),
+                FocusDocument(id, ..) => Some(id),
+                Unfocus(id, ..) => Some(id),
                 WebDriverScriptCommand(id, ..) => Some(id),
                 TickAllAnimations(id, ..) => Some(id),
                 WebFontLoaded(id) => Some(id),
@@ -1815,6 +1817,7 @@ impl ScriptThread {
                 ExitFullScreen(id, ..) => Some(id),
                 MediaSessionAction(..) => None,
                 SetWebGPUPort(..) => None,
+                SystemFocus(id, ..) => Some(id),
             },
             MixedMessage::FromDevtools(_) => None,
             MixedMessage::FromScript(ref inner_msg) => match *inner_msg {
@@ -1995,8 +1998,14 @@ impl ScriptThread {
             ConstellationControlMsg::RemoveHistoryStates(pipeline_id, history_states) => {
                 self.handle_remove_history_states(pipeline_id, history_states)
             },
-            ConstellationControlMsg::FocusIFrame(parent_pipeline_id, frame_id) => {
-                self.handle_focus_iframe_msg(parent_pipeline_id, frame_id)
+            ConstellationControlMsg::FocusIFrame(parent_pipeline_id, frame_id, sequence) => {
+                self.handle_focus_iframe_msg(parent_pipeline_id, frame_id, sequence)
+            },
+            ConstellationControlMsg::FocusDocument(pipeline_id, sequence) => {
+                self.handle_focus_document_msg(pipeline_id, sequence)
+            },
+            ConstellationControlMsg::Unfocus(pipeline_id, sequence) => {
+                self.handle_unfocus_msg(pipeline_id, sequence)
             },
             ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, msg) => {
                 self.handle_webdriver_msg(pipeline_id, msg)
@@ -2040,6 +2049,9 @@ impl ScriptThread {
                     let p = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(port);
                     *self.webgpu_port.borrow_mut() = Some(p);
                 }
+            },
+            ConstellationControlMsg::SystemFocus(pipeline_id, new_system_focus_state) => {
+                self.handle_system_focus(pipeline_id, new_system_focus_state)
             },
             msg @ ConstellationControlMsg::AttachLayout(..) |
             msg @ ConstellationControlMsg::Viewport(..) |
@@ -2619,6 +2631,7 @@ impl ScriptThread {
         &self,
         parent_pipeline_id: PipelineId,
         browsing_context_id: BrowsingContextId,
+        sequence: FocusSequenceNumber,
     ) {
         let doc = self
             .documents
@@ -2627,9 +2640,47 @@ impl ScriptThread {
             .unwrap();
         let frame_element = doc.find_iframe(browsing_context_id);
 
-        if let Some(ref frame_element) = frame_element {
-            doc.request_focus(Some(frame_element.upcast()), FocusType::Parent);
+        if doc.get_focus_sequence() > sequence {
+            debug!(
+                "Disregarding the FocusIFrame message because the contained sequence number is \
+                too old ({:?} < {:?})",
+                sequence,
+                doc.get_focus_sequence()
+            );
+            return;
         }
+
+        if let Some(ref frame_element) = frame_element {
+            doc.request_focus(Some(frame_element.upcast()), FocusInitiator::Remote);
+        }
+    }
+
+    fn handle_focus_document_msg(&self, pipeline_id: PipelineId, sequence: FocusSequenceNumber) {
+        let doc = self.documents.borrow().find_document(pipeline_id).unwrap();
+        if doc.get_focus_sequence() > sequence {
+            debug!(
+                "Disregarding the FocusDocument message because the contained sequence number is \
+                too old ({:?} < {:?})",
+                sequence,
+                doc.get_focus_sequence()
+            );
+            return;
+        }
+        doc.request_focus(None, FocusInitiator::Remote);
+    }
+
+    fn handle_unfocus_msg(&self, pipeline_id: PipelineId, sequence: FocusSequenceNumber) {
+        let doc = self.documents.borrow().find_document(pipeline_id).unwrap();
+        if doc.get_focus_sequence() > sequence {
+            debug!(
+                "Disregarding the Unfocus message because the contained sequence number is \
+                too old ({:?} < {:?})",
+                sequence,
+                doc.get_focus_sequence()
+            );
+            return;
+        }
+        doc.handle_container_unfocus();
     }
 
     fn handle_post_message_msg(
@@ -3986,6 +4037,13 @@ impl ScriptThread {
         } else {
             warn!("No MediaSession for this pipeline ID");
         };
+    }
+
+    fn handle_system_focus(&self, pipeline_id: PipelineId, new_system_focus_state: bool) {
+        let document = self.documents.borrow().find_document(pipeline_id);
+        if let Some(document) = document {
+            document.set_has_system_focus(new_system_focus_state);
+        }
     }
 
     pub fn enqueue_microtask(job: Microtask) {

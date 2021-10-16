@@ -648,6 +648,13 @@ where
                 self.compositor.maybe_start_shutting_down();
             },
 
+            WindowEvent::Focus(top_level_browsing_context_id, new_focus_state) => {
+                let msg = ConstellationMsg::Focus(top_level_browsing_context_id, new_focus_state);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending Focus message to constellation failed ({:?}).", e);
+                }
+            },
+
             WindowEvent::ExitFullScreen(top_level_browsing_context_id) => {
                 let msg = ConstellationMsg::ExitFullScreen(top_level_browsing_context_id);
                 if let Err(e) = self.constellation_chan.send(msg) {

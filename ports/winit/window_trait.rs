@@ -6,7 +6,7 @@
 //! Implemented by headless and headed windows.
 
 use crate::events_loop::ServoEvent;
-use servo::compositing::windowing::{WindowEvent, WindowMethods};
+use servo::compositing::windowing::{WindowEvent as ServoWindowEvent, WindowMethods};
 use servo::embedder_traits::Cursor;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use winit;
@@ -29,6 +29,20 @@ pub trait WindowPortsMethods: WindowMethods {
     fn set_cursor(&self, _cursor: Cursor) {}
     fn new_glwindow(
         &self,
-        events_loop: &winit::event_loop::EventLoopWindowTarget<ServoEvent>
+        events_loop: &winit::event_loop::EventLoopWindowTarget<ServoEvent>,
     ) -> Box<dyn webxr::glwindow::GlWindow>;
+}
+
+pub enum WindowEvent {
+    /// [`servo::compositing::windowing::WindowEvent`]
+    Servo(ServoWindowEvent),
+    /// A change in the system focus state, which must be dispatched to the
+    /// currently visible browser.
+    Focus(bool),
+}
+
+impl From<ServoWindowEvent> for WindowEvent {
+    fn from(x: ServoWindowEvent) -> Self {
+        Self::Servo(x)
+    }
 }

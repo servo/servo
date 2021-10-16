@@ -111,9 +111,9 @@ use script_layout_interface::StyleAndOpaqueLayoutData;
 use script_traits::serializable::BlobImpl;
 use script_traits::transferable::MessagePortImpl;
 use script_traits::{
-    DocumentActivity, DrawAPaintImageResult, MediaSessionActionType, ScriptToConstellationChan,
-    TimerEventId, TimerSource, UntrustedNodeAddress, WebrenderIpcSender, WindowSizeData,
-    WindowSizeType,
+    DocumentActivity, DrawAPaintImageResult, FocusSequenceNumber, MediaSessionActionType,
+    ScriptToConstellationChan, TimerEventId, TimerSource, UntrustedNodeAddress, WebrenderIpcSender,
+    WindowSizeData, WindowSizeType,
 };
 use selectors::matching::ElementSelectorFlags;
 use serde::{Deserialize, Serialize};
@@ -547,6 +547,7 @@ unsafe_no_jsmanaged_fields!(
 unsafe_no_jsmanaged_fields!(TimerEventId, TimerSource);
 unsafe_no_jsmanaged_fields!(TimelineMarkerType);
 unsafe_no_jsmanaged_fields!(WorkerId);
+unsafe_no_jsmanaged_fields!(FocusSequenceNumber);
 unsafe_no_jsmanaged_fields!(BufferQueue, QuirksMode, StrTendril);
 unsafe_no_jsmanaged_fields!(Runtime);
 unsafe_no_jsmanaged_fields!(ContextForRequestInterrupt);
