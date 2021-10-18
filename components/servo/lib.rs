@@ -273,6 +273,11 @@ impl webrender_api::RenderNotifier for RenderNotifier {
     }
 }
 
+pub struct InitializedServo<Window: WindowMethods + 'static + ?Sized> {
+    pub servo: Servo<Window>,
+    pub browser_id: BrowserId,
+}
+
 impl<Window> Servo<Window>
 where
     Window: WindowMethods + 'static + ?Sized,
@@ -281,7 +286,7 @@ where
         mut embedder: Box<dyn EmbedderMethods>,
         window: Rc<Window>,
         user_agent: Option<String>,
-    ) -> Servo<Window> {
+    ) -> InitializedServo<Window> {
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
 
@@ -336,8 +341,9 @@ where
             .unwrap_or(0);
         webrender_gl.bind_framebuffer(gleam::gl::FRAMEBUFFER, framebuffer_object);
 
-        // Reserving a namespace to create TopLevelBrowserContextId.
+        // Reserving a namespace to create TopLevelBrowsingContextId.
         PipelineNamespace::install(PipelineNamespaceId(0));
+        let browser_id = BrowserId::new();
 
         // Get both endpoints of a special channel for communication between
         // the client window and the compositor. This channel is unique because
@@ -537,16 +543,18 @@ where
             opts.is_running_problem_test,
             opts.exit_after_load,
             opts.convert_mouse_to_touch,
+            browser_id,
         );
 
-        Servo {
+        let servo = Servo {
             compositor: compositor,
             constellation_chan: constellation_chan,
             embedder_receiver: embedder_receiver,
             embedder_events: Vec::new(),
             profiler_enabled: false,
             _js_engine_setup: js_engine_setup,
-        }
+        };
+        InitializedServo { servo, browser_id }
     }
 
     fn handle_window_event(&mut self, event: WindowEvent) -> bool {

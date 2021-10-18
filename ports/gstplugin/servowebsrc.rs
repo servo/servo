@@ -217,9 +217,10 @@ impl ServoThread {
             .swap_chain()
             .expect("Failed to get webrender swap chain")
             .clone();
-        let mut servo = Servo::new(embedder, window, None);
+        let servo = Servo::new(embedder, window, None);
+        let id = servo.top_level_browsing_context_id;
+        let mut servo = servo.servo;
 
-        let id = TopLevelBrowsingContextId::new();
         servo.handle_events(vec![WindowEvent::NewBrowser(url, id)]);
 
         let swap_chain = match webxr_mode {

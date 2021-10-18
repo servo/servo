@@ -100,9 +100,9 @@ impl App {
                     xr_discovery,
                 ));
 
-                let mut servo = Servo::new(embedder, window.clone(), user_agent.clone());
-                let browser_id = BrowserId::new();
-                servo.handle_events(vec![WindowEvent::NewBrowser(get_default_url(), browser_id)]);
+                let servo_data = Servo::new(embedder, window.clone(), user_agent.clone());
+                let mut servo = servo_data.servo;
+                servo.handle_events(vec![WindowEvent::NewBrowser(get_default_url(), servo_data.browser_id)]);
                 servo.setup_logging();
 
                 register_window(window.clone());
