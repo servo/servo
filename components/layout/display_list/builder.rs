@@ -1787,7 +1787,7 @@ impl Fragment {
                         clip,
                     );
                 }
-            }
+            },
             SpecificFragmentInfo::ScannedText(ref text_fragment) => {
                 // Create the main text display item.
                 self.build_display_list_for_text_fragment(

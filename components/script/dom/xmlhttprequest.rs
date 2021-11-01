@@ -1412,7 +1412,7 @@ impl XMLHttpRequest {
                 if has_no_child_nodes {
                     return None;
                 }
-            }
+            },
             // Step 3
             _ => {
                 return None;

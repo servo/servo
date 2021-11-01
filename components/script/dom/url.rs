@@ -92,7 +92,7 @@ impl URL {
                         return Err(Error::Type(format!("could not parse base: {}", error)));
                     },
                 }
-            }
+            },
         };
         // Step 3.
         let parsed_url = match ServoUrl::parse_with_base(parsed_base.as_ref(), &url.0) {

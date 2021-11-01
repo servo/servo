@@ -187,7 +187,7 @@ impl TreeWalkerMethods for TreeWalker {
                 // outside of the tree rooted at the original root.
                 {
                     return Ok(None);
-                }
+                },
                 Some(n) => node = n,
             }
             // "5. Filter node and if the return value is FILTER_ACCEPT, then
@@ -319,7 +319,7 @@ impl TreeWalker {
                                 if self.is_root_node(&parent) || self.is_current_node(&parent) =>
                             {
                                 return Ok(None);
-                            }
+                            },
                             // "5. Otherwise, set node to parent."
                             Some(parent) => node = parent,
                         }
@@ -467,7 +467,7 @@ impl<'a> Iterator for &'a TreeWalker {
             // which cannot produce an Err result.
             {
                 unreachable!()
-            }
+            },
         }
     }
 }

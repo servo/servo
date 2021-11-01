@@ -209,7 +209,7 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                 if let Some(old_image_key) = self.old_frame.take() {
                     updates.push(ImageUpdate::DeleteImage(old_image_key));
                 }
-            }
+            },
             Some((ref mut image_key, ref mut width, ref mut height)) => {
                 self.old_frame = Some(*image_key);
 

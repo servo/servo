@@ -356,7 +356,7 @@ impl<'a> WebGLValidator for TexImage2DValidator<'a> {
             {
                 context.webgl_error(InvalidOperation);
                 return Err(TexImageValidationError::InvalidTypeForFormat);
-            }
+            },
             TexDataType::UnsignedShort565 if format != TexFormat::RGB => {
                 context.webgl_error(InvalidOperation);
                 return Err(TexImageValidationError::InvalidTypeForFormat);

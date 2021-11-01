@@ -347,7 +347,7 @@ pub fn main_fetch(
                         .iter()
                         .map(|(name, _)| name.as_str().to_owned())
                         .collect();
-                }
+                },
                 // Subsubstep 3.
                 Some(list) => {
                     response.cors_exposed_header_name_list =

@@ -427,7 +427,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
                 if url.host().is_none() || url.cannot_be_a_base() || url.scheme() == "file" =>
             {
                 return;
-            }
+            },
             None => return,
             // Step 4.
             Some(url) => {
