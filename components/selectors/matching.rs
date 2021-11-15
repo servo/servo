@@ -467,9 +467,10 @@ where
     E: Element,
     F: FnMut(&E, ElementSelectorFlags),
 {
-    debug!(
+    trace!(
         "Matching complex selector {:?} for {:?}",
-        selector_iter, element
+        selector_iter,
+        element
     );
 
     let matches_compound_selector = matches_compound_selector(
