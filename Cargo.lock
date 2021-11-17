@@ -4018,6 +4018,7 @@ version = "0.0.1"
 dependencies = [
  "content-security-policy",
  "cookie",
+ "data-url",
  "embedder_traits",
  "headers",
  "http 0.1.21",
@@ -5135,7 +5136,6 @@ dependencies = [
  "cookie",
  "crossbeam-channel 0.4.4",
  "cssparser",
- "data-url",
  "deny_public_fields",
  "devtools_traits",
  "dom_struct",
@@ -5170,6 +5170,7 @@ dependencies = [
  "mozangle",
  "mozjs",
  "msg",
+ "net",
  "net_traits",
  "num-traits",
  "parking_lot 0.10.2",

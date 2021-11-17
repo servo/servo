@@ -4,9 +4,9 @@
 
 //! The [Response](https://fetch.spec.whatwg.org/#responses) object
 //! resulting from a [fetch operation](https://fetch.spec.whatwg.org/#concept-fetch)
+use crate::header::extract_mime_type_as_mime;
 use crate::{FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
 use crate::{ResourceFetchTiming, ResourceTimingType};
-use headers::{ContentType, HeaderMapExt};
 use http::{HeaderMap, StatusCode};
 use hyper_serde::Serde;
 use servo_arc::Arc;
@@ -297,13 +297,7 @@ impl Response {
     pub fn metadata(&self) -> Result<FetchMetadata, NetworkError> {
         fn init_metadata(response: &Response, url: &ServoUrl) -> Metadata {
             let mut metadata = Metadata::default(url.clone());
-            metadata.set_content_type(
-                response
-                    .headers
-                    .typed_get::<ContentType>()
-                    .map(|v| v.into())
-                    .as_ref(),
-            );
+            metadata.set_content_type(extract_mime_type_as_mime(&response.headers).as_ref());
             metadata.location_url = response.location_url.clone();
             metadata.headers = Some(Serde(response.headers.clone()));
             metadata.status = response.raw_status.clone();

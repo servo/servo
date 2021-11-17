@@ -30,6 +30,7 @@ use net_traits::{
 };
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use parking_lot::RwLock;
+use selectors::context::QuirksMode::Quirks;
 use servo_arc::Arc;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
@@ -128,10 +129,22 @@ impl FetchResponseListener for StylesheetContext {
                 Some(meta) => meta,
                 None => return,
             };
-            let is_css = metadata.content_type.map_or(false, |ct| {
+
+            let mut is_css = metadata.content_type.map_or(false, |ct| {
                 let mime: Mime = ct.into_inner().into();
                 mime.type_() == mime::TEXT && mime.subtype() == mime::CSS
             });
+
+            /*
+             * Quirk: If the document has been set to quirks mode, has the same origin as the URL
+             * of the external resource, and the Content-Type metadata of the external resource is
+             * not a supported style sheet type, the user agent must instead assume it to be
+             * text/css.
+             */
+            // TODO check if "has the same origin as the URL of the external resource"
+            if document.quirks_mode() == Quirks {
+                is_css = true;
+            }
 
             let data = if is_css {
                 mem::replace(&mut self.data, vec![])
