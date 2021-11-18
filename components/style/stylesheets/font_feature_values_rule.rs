@@ -18,7 +18,7 @@ use crate::stylesheets::CssRuleType;
 use crate::values::computed::font::FamilyName;
 use crate::values::serialize_atom_identifier;
 use crate::Atom;
-use cssparser::{AtRuleParser, AtRuleType, BasicParseErrorKind, CowRcStr};
+use cssparser::{AtRuleParser, BasicParseErrorKind, CowRcStr};
 use cssparser::{DeclarationListParser, DeclarationParser, Parser};
 use cssparser::{ParserState, QualifiedRuleParser, RuleListParser, SourceLocation, Token};
 use std::fmt::{self, Write};
@@ -188,8 +188,7 @@ struct FFVDeclarationsParser<'a, 'b: 'a, T: 'a> {
 
 /// Default methods reject all at rules.
 impl<'a, 'b, 'i, T> AtRuleParser<'i> for FFVDeclarationsParser<'a, 'b, T> {
-    type PreludeNoBlock = ();
-    type PreludeBlock = ();
+    type Prelude = ();
     type AtRule = ();
     type Error = StyleParseErrorKind<'i>;
 }
@@ -393,18 +392,17 @@ macro_rules! font_feature_values_blocks {
         }
 
         impl<'a, 'i> AtRuleParser<'i> for FontFeatureValuesRuleParser<'a> {
-            type PreludeNoBlock = ();
-            type PreludeBlock = BlockType;
+            type Prelude = BlockType;
             type AtRule = ();
             type Error = StyleParseErrorKind<'i>;
 
             fn parse_prelude<'t>(&mut self,
                                  name: CowRcStr<'i>,
                                  input: &mut Parser<'i, 't>)
-                                 -> Result<AtRuleType<(), BlockType>, ParseError<'i>> {
+                                 -> Result<Self::Prelude, ParseError<'i>> {
                 match_ignore_ascii_case! { &*name,
                     $(
-                        $name => Ok(AtRuleType::WithBlock(BlockType::$ident_camel)),
+                        $name => Ok(Self::Prelude::$ident_camel),
                     )*
                     _ => Err(input.new_error(BasicParseErrorKind::AtRuleBodyInvalid)),
                 }

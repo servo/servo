@@ -44,7 +44,6 @@ impl AnimationDeclarations {
     }
 }
 
-
 /// An enum describes how a declaration should update
 /// the declaration block.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -838,7 +837,7 @@ impl PropertyDeclarationBlock {
                         custom_properties.as_ref(),
                         QuirksMode::NoQuirks,
                         device,
-                        &mut Default::default()
+                        &mut Default::default(),
                     )
                     .to_css(dest)
             },
@@ -884,10 +883,7 @@ impl PropertyDeclarationBlock {
         &self,
         context: &Context,
     ) -> Option<Arc<crate::custom_properties::CustomPropertiesMap>> {
-        self.cascade_custom_properties(
-            context.style().custom_properties(),
-            context.device(),
-        )
+        self.cascade_custom_properties(context.style().custom_properties(), context.device())
     }
 
     /// Returns a custom properties map which is the result of cascading custom
@@ -1080,9 +1076,15 @@ impl PropertyDeclarationBlock {
                 // AppendableValue::Css.
                 let mut v = CssString::new();
                 let value = match appendable_value {
-                    AppendableValue::Css { css, with_variables } => {
+                    AppendableValue::Css {
+                        css,
+                        with_variables,
+                    } => {
                         debug_assert!(!css.is_empty());
-                        AppendableValue::Css { css, with_variables }
+                        AppendableValue::Css {
+                            css,
+                            with_variables,
+                        }
                     },
                     other => {
                         append_declaration_value(&mut v, other)?;
@@ -1354,8 +1356,7 @@ struct PropertyDeclarationParser<'a, 'b: 'a> {
 
 /// Default methods reject all at rules.
 impl<'a, 'b, 'i> AtRuleParser<'i> for PropertyDeclarationParser<'a, 'b> {
-    type PreludeNoBlock = ();
-    type PreludeBlock = ();
+    type Prelude = ();
     type AtRule = Importance;
     type Error = StyleParseErrorKind<'i>;
 }

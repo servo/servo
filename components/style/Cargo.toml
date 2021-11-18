@@ -35,7 +35,7 @@ arrayvec = "0.5"
 atomic_refcell = "0.1"
 bitflags = "1.0"
 byteorder = "1.0"
-cssparser = "0.28"
+cssparser = "0.29"
 derive_more = "0.99"
 encoding_rs = { version = "0.8", optional = true }
 euclid = "0.20"

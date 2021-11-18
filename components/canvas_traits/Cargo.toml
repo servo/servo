@@ -16,7 +16,7 @@ xr-profile = ["webxr-api/profile", "time"]
 
 [dependencies]
 crossbeam-channel = "0.4"
-cssparser = "0.28"
+cssparser = "0.29"
 euclid = "0.20"
 ipc-channel = "0.14"
 lazy_static = "1"
