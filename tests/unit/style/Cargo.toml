@@ -11,7 +11,7 @@ doctest = false
 
 [dependencies]
 app_units = "0.7"
-cssparser = "0.28"
+cssparser = "0.29"
 euclid = "0.20"
 html5ever = "0.25"
 rayon = "1"

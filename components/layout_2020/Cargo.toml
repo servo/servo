@@ -16,7 +16,7 @@ doctest = false
 app_units = "0.7"
 atomic_refcell = "0.1.6"
 canvas_traits = { path = "../canvas_traits" }
-cssparser = "0.28"
+cssparser = "0.29"
 embedder_traits = { path = "../embedder_traits" }
 euclid = "0.20"
 fnv = "1.0"
