@@ -20,7 +20,7 @@ bitflags = "1.0"
 byteorder = "1"
 canvas_traits = { path = "../canvas_traits" }
 crossbeam-channel = "0.4"
-cssparser = "0.28"
+cssparser = "0.29"
 euclid = "0.20"
 font-kit = "0.10"
 fnv = "1.0"

@@ -505,8 +505,7 @@ pub fn parse_keyframe_list(
 }
 
 impl<'a, 'i> AtRuleParser<'i> for KeyframeListParser<'a> {
-    type PreludeNoBlock = ();
-    type PreludeBlock = ();
+    type Prelude = ();
     type AtRule = Arc<Locked<Keyframe>>;
     type Error = StyleParseErrorKind<'i>;
 }
@@ -580,8 +579,7 @@ struct KeyframeDeclarationParser<'a, 'b: 'a> {
 
 /// Default methods reject all at rules.
 impl<'a, 'b, 'i> AtRuleParser<'i> for KeyframeDeclarationParser<'a, 'b> {
-    type PreludeNoBlock = ();
-    type PreludeBlock = ();
+    type Prelude = ();
     type AtRule = ();
     type Error = StyleParseErrorKind<'i>;
 }

@@ -31,7 +31,7 @@ accountable-refcell = { version = "0.2.0", optional = true }
 app_units = "0.7"
 content-security-policy = { version = "0.4.0", features = ["serde"], optional = true }
 crossbeam-channel = { version = "0.4", optional = true }
-cssparser = "0.28"
+cssparser = "0.29"
 euclid = "0.20"
 hashglobe = { path = "../hashglobe" }
 hyper = { version = "0.12", optional = true }

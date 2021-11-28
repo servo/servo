@@ -19,7 +19,7 @@ bench = []
 
 [dependencies]
 bitflags = "1.0"
-cssparser = "0.28"
+cssparser = "0.29"
 derive_more = "0.99"
 fxhash = "0.2"
 log = "0.4"
