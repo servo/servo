@@ -844,8 +844,15 @@ pub fn http_fetch(
                     .ok()
             });
 
-        // Substep 4.
-        response.actual_response_mut().location_url = location;
+        // Substep 4.               
+        response.actual_response_mut().location_url = location.map(|res| res.map(|mut url| {
+            let current_url = request.current_url();
+            let current_fragment = current_url.fragment();
+            if url.fragment().is_none() && current_fragment.is_some() {
+                url.set_fragment(current_fragment);
+            }
+            url
+        }));
 
         // Substep 5.
         response = match request.redirect_mode {
