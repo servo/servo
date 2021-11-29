@@ -847,11 +847,10 @@ pub fn http_fetch(
         // Substep 4.               
         response.actual_response_mut().location_url = location.map(|res| res.map(|mut url| {
             let current_url = request.current_url();
-            let current_fragment = current_url.fragment();
-            if url.fragment().is_none() && current_fragment.is_some() {
-                url.set_fragment(current_fragment);
+            match (current_url.fragment(), url.fragment()) {
+                (fragment @ Some(..), None) => { url.set_fragment(fragment); url },
+                _                           => url
             }
-            url
         }));
 
         // Substep 5.
