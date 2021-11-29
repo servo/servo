@@ -844,13 +844,11 @@ pub fn http_fetch(
                     .ok()
             });
 
-        // Substep 4.               
-        if let Some(ref mut location) = location {
-            if let Ok(ref mut location) = location {
-                if location.fragment().is_none() {
-                    let current_url = request.current_url();
-                    location.set_fragment(current_url.fragment());
-                }
+        // Substep 4.
+        if let Some(Ok(ref mut location)) = location {
+            if location.fragment().is_none() {
+                let current_url = request.current_url();
+                location.set_fragment(current_url.fragment());
             }
         }
         response.actual_response_mut().location_url = location;
