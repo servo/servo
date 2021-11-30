@@ -134,7 +134,7 @@ impl BlockContainer {
             ),
         }
     }
-    
+
     pub(super) fn inline_content_sizes(
         &self,
         layout_context: &LayoutContext,
