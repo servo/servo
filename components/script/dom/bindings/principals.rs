@@ -138,7 +138,7 @@ pub unsafe extern "C" fn subsumes(obj: *mut JSPrincipals, other: *mut JSPrincipa
         let other_origin = other.origin();
         obj_origin.same_origin_domain(&other_origin)
     } else {
-        warn!("Received null JSPrincipals asrgument.")
+        warn!("Received null JSPrincipals asrgument.");
         false
     }
 }
