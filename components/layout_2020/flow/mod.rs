@@ -152,9 +152,10 @@ impl BlockContainer {
                 .iter()
                 .map(|box_| {
                     box_.borrow_mut()
-                        .inline_content_sizes(layout_context, writing_mode)                    
+                        .inline_content_sizes(layout_context, writing_mode)
                 })
-                .reduce(ContentSizes::max).unwrap_or_else(ContentSizes::zero),
+                .reduce(ContentSizes::max)
+                .unwrap_or_else(ContentSizes::zero),
             Self::InlineFormattingContext(context) => {
                 context.inline_content_sizes(layout_context, writing_mode)
             },
