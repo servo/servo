@@ -141,13 +141,21 @@ impl BlockContainer {
         writing_mode: WritingMode,
     ) -> ContentSizes {
         match &self {
-            Self::BlockLevelBoxes(boxes) => boxes
+            Self::BlockLevelBoxes(boxes) if layout_context.use_rayon => boxes
                 .par_iter()
                 .map(|box_| {
                     box_.borrow_mut()
                         .inline_content_sizes(layout_context, writing_mode)
                 })
                 .reduce(ContentSizes::zero, ContentSizes::max),
+            Self::BlockLevelBoxes(boxes) => boxes
+                .iter()
+                .map(|box_| {
+                    box_.borrow_mut()
+                        .inline_content_sizes(layout_context, writing_mode)
+                })
+                .reduce(ContentSizes::max)
+                .unwrap_or_else(ContentSizes::zero),
             Self::InlineFormattingContext(context) => {
                 context.inline_content_sizes(layout_context, writing_mode)
             },
