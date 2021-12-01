@@ -831,7 +831,7 @@ pub fn http_fetch(
         }
 
         // Substep 2-3.
-        let location = response
+        let mut location = response
             .actual_response()
             .headers
             .get(header::LOCATION)
@@ -845,6 +845,12 @@ pub fn http_fetch(
             });
 
         // Substep 4.
+        if let Some(Ok(ref mut location)) = location {
+            if location.fragment().is_none() {
+                let current_url = request.current_url();
+                location.set_fragment(current_url.fragment());
+            }
+        }
         response.actual_response_mut().location_url = location;
 
         // Substep 5.
