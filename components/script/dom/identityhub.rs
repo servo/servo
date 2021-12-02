@@ -54,7 +54,7 @@ impl IdentityHub {
 
 #[derive(Debug)]
 pub struct Identities {
-    surface: IdentityManager,
+    _surface: IdentityManager,
     #[cfg(any(target_os = "linux", target_os = "windows"))]
     vk_hub: IdentityHub,
     #[cfg(target_os = "windows")]
@@ -69,7 +69,7 @@ pub struct Identities {
 impl Identities {
     pub fn new() -> Self {
         Identities {
-            surface: IdentityManager::default(),
+            _surface: IdentityManager::default(),
             #[cfg(any(target_os = "linux", target_os = "windows"))]
             vk_hub: IdentityHub::new(),
             #[cfg(target_os = "windows")]
