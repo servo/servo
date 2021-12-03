@@ -15,7 +15,7 @@ use servo::compositing::windowing::WindowEvent;
 use servo::config::opts::{self, parse_url_or_filename};
 use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
-use servo::{BrowserId, Servo};
+use servo::Servo;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::env;

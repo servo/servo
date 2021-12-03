@@ -233,7 +233,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
     /// must be #[unrooted_must_root_lint::must_root] themselves
     fn check_variant(&mut self, cx: &LateContext, var: &hir::Variant) {
         let ref map = cx.tcx.hir();
-        let parent_item = map.expect_item(map.get_parent_item(var.id));
+        let parent_item = map.expect_item(map.get_parent_item(var.id).expect_owner());
         let attrs = cx.tcx.hir().attrs(parent_item.hir_id());
         if !has_lint_attr(&self.symbols, &attrs, self.symbols.must_root) {
             match var.data {
