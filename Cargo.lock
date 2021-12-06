@@ -170,6 +170,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "async-recursion"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d7d78656ba01f1b93024b7c3a0467f1608e4be67d725749fdcd7d2c7678fd7a2"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "async-tungstenite"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1909,6 +1920,7 @@ version = "0.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d304cff4a7b99cfb7986f7d43fbe93d175e72e704a8860787cc95e9ffd85cbd2"
 dependencies = [
+ "futures 0.1.31",
  "futures-channel",
  "futures-core",
  "futures-io",
@@ -3534,6 +3546,7 @@ dependencies = [
  "string_cache",
  "thin-slice",
  "time",
+ "tokio 0.2.21",
  "url",
  "uuid",
  "void",
@@ -3949,6 +3962,7 @@ checksum = "c44922cb3dbb1c70b5e5f443d63b64363a898564d739ba5198e3a9138442868d"
 name = "net"
 version = "0.0.1"
 dependencies = [
+ "async-recursion",
  "async-tungstenite",
  "base64 0.10.1",
  "brotli",
@@ -3962,6 +3976,7 @@ dependencies = [
  "flate2",
  "futures 0.1.31",
  "futures 0.3.5",
+ "futures-util",
  "headers",
  "http 0.1.21",
  "hyper",
@@ -3994,7 +4009,9 @@ dependencies = [
  "time",
  "tokio 0.1.22",
  "tokio 0.2.21",
+ "tokio-compat",
  "tokio-openssl 0.3.0",
+ "tokio-test",
  "tungstenite",
  "url",
  "uuid",
@@ -6479,11 +6496,13 @@ checksum = "d099fa27b9702bed751524694adbe393e18b36b204da91eb1cbbbbb4a5ee2d58"
 dependencies = [
  "bytes 0.5.5",
  "fnv",
+ "futures-core",
  "iovec",
  "lazy_static",
  "mio",
  "num_cpus",
  "pin-project-lite",
+ "slab",
  "tokio-macros",
 ]
 
@@ -6507,6 +6526,23 @@ dependencies = [
  "bytes 0.4.12",
  "futures 0.1.31",
  "tokio-io",
+]
+
+[[package]]
+name = "tokio-compat"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "107b625135aa7b9297dd2d99ccd6ca6ab124a5d1230778e159b9095adca4c722"
+dependencies = [
+ "futures 0.1.31",
+ "futures-core",
+ "futures-util",
+ "pin-project-lite",
+ "tokio 0.2.21",
+ "tokio-current-thread",
+ "tokio-executor",
+ "tokio-reactor",
+ "tokio-timer",
 ]
 
 [[package]]
@@ -6624,6 +6660,17 @@ dependencies = [
  "mio",
  "tokio-io",
  "tokio-reactor",
+]
+
+[[package]]
+name = "tokio-test"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed0049c119b6d505c4447f5c64873636c7af6c75ab0d45fd9f618d82acb8016d"
+dependencies = [
+ "bytes 0.5.5",
+ "futures-core",
+ "tokio 0.2.21",
 ]
 
 [[package]]

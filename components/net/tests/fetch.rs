@@ -48,6 +48,7 @@ use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, Weak};
 use std::time::{Duration, SystemTime};
+use tokio_test::block_on;
 use uuid::Uuid;
 
 // TODO write a struct that impls Handler for storing test values
@@ -191,9 +192,12 @@ fn test_fetch_blob() {
     let origin = ServoUrl::parse("http://www.example.org/").unwrap();
 
     let id = Uuid::new_v4();
-    context
-        .filemanager
-        .promote_memory(id.clone(), blob_buf, true, "http://www.example.org".into());
+    context.filemanager.lock().unwrap().promote_memory(
+        id.clone(),
+        blob_buf,
+        true,
+        "http://www.example.org".into(),
+    );
     let url = ServoUrl::parse(&format!("blob:{}{}", origin.as_str(), id.to_simple())).unwrap();
 
     let mut request = Request::new(
@@ -212,7 +216,7 @@ fn test_fetch_blob() {
         expected: bytes.to_vec(),
     };
 
-    methods::fetch(&mut request, &mut target, &context);
+    block_on(methods::fetch(&mut request, &mut target, &context));
 
     let fetch_response = receiver.recv().unwrap();
     assert!(!fetch_response.is_network_error());
@@ -772,7 +776,10 @@ fn test_fetch_with_hsts() {
         state: Arc::new(HttpState::new(tls_config)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
-        filemanager: FileManager::new(create_embedder_proxy(), Weak::new()),
+        filemanager: Arc::new(Mutex::new(FileManager::new(
+            create_embedder_proxy(),
+            Weak::new(),
+        ))),
         file_token: FileTokenCheck::NotRequired,
         cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(None))),
         timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
@@ -835,7 +842,10 @@ fn test_load_adds_host_to_hsts_list_when_url_is_https() {
         state: Arc::new(HttpState::new(tls_config)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
-        filemanager: FileManager::new(create_embedder_proxy(), Weak::new()),
+        filemanager: Arc::new(Mutex::new(FileManager::new(
+            create_embedder_proxy(),
+            Weak::new(),
+        ))),
         file_token: FileTokenCheck::NotRequired,
         cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(None))),
         timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
@@ -900,7 +910,10 @@ fn test_fetch_self_signed() {
         state: Arc::new(HttpState::new(tls_config)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
-        filemanager: FileManager::new(create_embedder_proxy(), Weak::new()),
+        filemanager: Arc::new(Mutex::new(FileManager::new(
+            create_embedder_proxy(),
+            Weak::new(),
+        ))),
         file_token: FileTokenCheck::NotRequired,
         cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(None))),
         timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(

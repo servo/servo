@@ -13,6 +13,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use mime::Mime;
 use msg::constellation_msg::PipelineId;
 use servo_url::{ImmutableOrigin, ServoUrl};
+use std::sync::{Arc, Mutex};
 
 /// An [initiator](https://fetch.spec.whatwg.org/#concept-request-initiator)
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
@@ -163,7 +164,7 @@ pub enum BodyChunkRequest {
 pub struct RequestBody {
     /// Net's channel to communicate with script re this body.
     #[ignore_malloc_size_of = "Channels are hard"]
-    chan: IpcSender<BodyChunkRequest>,
+    chan: Arc<Mutex<IpcSender<BodyChunkRequest>>>,
     /// <https://fetch.spec.whatwg.org/#concept-body-source>
     source: BodySource,
     /// <https://fetch.spec.whatwg.org/#concept-body-total-bytes>
@@ -177,7 +178,7 @@ impl RequestBody {
         total_bytes: Option<usize>,
     ) -> Self {
         RequestBody {
-            chan,
+            chan: Arc::new(Mutex::new(chan)),
             source,
             total_bytes,
         }
@@ -189,13 +190,14 @@ impl RequestBody {
             BodySource::Null => panic!("Null sources should never be re-directed."),
             BodySource::Object => {
                 let (chan, port) = ipc::channel().unwrap();
-                let _ = self.chan.send(BodyChunkRequest::Extract(port));
-                self.chan = chan.clone();
+                let mut selfchan = self.chan.lock().unwrap();
+                let _ = selfchan.send(BodyChunkRequest::Extract(port));
+                *selfchan = chan;
             },
         }
     }
 
-    pub fn take_stream(&self) -> IpcSender<BodyChunkRequest> {
+    pub fn take_stream(&self) -> Arc<Mutex<IpcSender<BodyChunkRequest>>> {
         self.chan.clone()
     }
 

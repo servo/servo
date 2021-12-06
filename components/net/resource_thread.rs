@@ -680,44 +680,58 @@ impl CoreResourceManager {
             _ => (FileTokenCheck::NotRequired, None),
         };
 
-        self.thread_pool.spawn(move || {
-            // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
-            // todo load context / mimesniff in fetch
-            // todo referrer policy?
-            // todo service worker stuff
-            let context = FetchContext {
-                state: http_state,
-                user_agent: ua,
-                devtools_chan: dc,
-                filemanager: filemanager,
-                file_token,
-                cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(cancel_chan))),
-                timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(request.timing_type()))),
-            };
+        HANDLE
+            .lock()
+            .unwrap()
+            .as_ref()
+            .unwrap()
+            .spawn_std(async move {
+                // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
+                // todo load context / mimesniff in fetch
+                // todo referrer policy?
+                // todo service worker stuff
+                let context = FetchContext {
+                    state: http_state,
+                    user_agent: ua,
+                    devtools_chan: dc.map(|dc| Arc::new(Mutex::new(dc))),
+                    filemanager: Arc::new(Mutex::new(filemanager)),
+                    file_token,
+                    cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(
+                        cancel_chan,
+                    ))),
+                    timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
+                        request.timing_type(),
+                    ))),
+                };
 
-            match res_init_ {
-                Some(res_init) => {
-                    let response = Response::from_init(res_init, timing_type);
-                    http_redirect_fetch(
-                        &mut request,
-                        &mut CorsCache::new(),
-                        response,
-                        true,
-                        &mut sender,
-                        &mut None,
-                        &context,
-                    );
-                },
-                None => fetch(&mut request, &mut sender, &context),
-            };
+                match res_init_ {
+                    Some(res_init) => {
+                        let response = Response::from_init(res_init, timing_type);
+                        http_redirect_fetch(
+                            &mut request,
+                            &mut CorsCache::new(),
+                            response,
+                            true,
+                            &mut sender,
+                            &mut None,
+                            &context,
+                        )
+                        .await;
+                    },
+                    None => {
+                        fetch(&mut request, &mut sender, &context).await;
+                    },
+                };
 
-            // Remove token after fetch.
-            if let Some(id) = blob_url_file_id.as_ref() {
-                context
-                    .filemanager
-                    .invalidate_token(&context.file_token, id);
-            }
-        });
+                // Remove token after fetch.
+                if let Some(id) = blob_url_file_id.as_ref() {
+                    context
+                        .filemanager
+                        .lock()
+                        .unwrap()
+                        .invalidate_token(&context.file_token, id);
+                }
+            });
     }
 
     fn websocket_connect(
