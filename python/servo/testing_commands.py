@@ -787,7 +787,7 @@ def setup_clangfmt(env):
     try:
         version = check_output([cmd, "--version"], env=env, universal_newlines=True).rstrip()
         print(version)
-        if not version.startswith("clang-format version {}.".format(CLANGFMT_VERSION)):
+        if version.find("clang-format version {}.".format(CLANGFMT_VERSION)) == -1:
             print("clang-format: wrong version (v{} required). Skipping CPP formatting.".format(CLANGFMT_VERSION))
             return False, None, None
     except OSError:

@@ -374,7 +374,7 @@ def get_linux_distribution():
             raise Exception('unsupported version of %s: %s' % (distrib, version))
         distrib, version = 'Ubuntu', base_version
     elif distrib.lower() == 'ubuntu':
-        if version > '21.04':
+        if version > '21.10':
             raise Exception('unsupported version of %s: %s' % (distrib, version))
     # Fixme: we should allow checked/supported versions only
     elif distrib.lower() not in [
