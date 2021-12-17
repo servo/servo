@@ -330,8 +330,8 @@ impl ResponseMethods for Response {
 
         // Step 2
         let new_response = Response::new(&self.global());
-        new_response.Headers().set_guard(self.Headers().get_guard());
         new_response.Headers().copy_from_headers(self.Headers())?;
+        new_response.Headers().set_guard(self.Headers().get_guard());
 
         // https://fetch.spec.whatwg.org/#concept-response-clone
         // Instead of storing a net_traits::Response internally, we
