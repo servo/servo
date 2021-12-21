@@ -14,6 +14,7 @@ from tempfile import TemporaryFile
 
 SEARCH_PATHS = [
     os.path.join("python", "tidy"),
+    os.path.join("python", "mach"),
 ]
 
 # Individual files providing mach commands.
