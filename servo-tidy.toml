@@ -144,6 +144,7 @@ directories = [
   "./components/script/dom/bindings/codegen/parser",
   "./components/script/dom/bindings/codegen/ply",
   "./python/_virtualenv*",
+  "./python/mach",
   "./components/hashglobe/src",
   # Generated and upstream code combined with our own. Could use cleanup
   "./target",
