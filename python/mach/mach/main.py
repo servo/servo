@@ -16,7 +16,7 @@ import os
 import sys
 import traceback
 import uuid
-from collections import Iterable
+from collections.abc import Iterable
 
 from six import string_types
 
