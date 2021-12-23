@@ -34,7 +34,7 @@ use embedder_traits::EventLoopWaker;
 use euclid::{default::Point2D, Length, Rect, Scale, Size2D, UnknownUnit, Vector2D};
 use gfx_traits::Epoch;
 use http::HeaderMap;
-use hyper::Method;
+use http::Method;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::Error as IpcError;
 use keyboard_types::webdriver::Event as WebDriverInputEvent;

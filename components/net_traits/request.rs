@@ -8,7 +8,7 @@ use crate::ResourceTimingType;
 use content_security_policy::{self as csp, CspList};
 use http::header::{HeaderName, AUTHORIZATION};
 use http::HeaderMap;
-use hyper::Method;
+use http::Method;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use mime::Mime;
 use msg::constellation_msg::PipelineId;

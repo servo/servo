@@ -16,7 +16,8 @@ compositing = { path = "../compositing" }
 cookie = "0.11"
 crossbeam-channel = "0.4"
 euclid = "0.20"
-hyper = "0.12"
+headers = "0.3"
+http = "0.2"
 image = "0.23"
 ipc-channel = "0.14"
 keyboard-types = "0.5"
@@ -31,4 +32,4 @@ servo_config = { path = "../config" }
 servo_url = { path = "../url" }
 style_traits = { path = "../style_traits" }
 uuid = { version = "0.8", features = ["v4"] }
-webdriver = "0.40"
+webdriver = "0.44"

@@ -159,14 +159,14 @@ impl CookieStorage {
     // http://tools.ietf.org/html/rfc6265#section-5.4
     pub fn cookies_for_url(&mut self, url: &ServoUrl, source: CookieSource) -> Option<String> {
         let filterer = |c: &&mut Cookie| -> bool {
-            info!(
+            debug!(
                 " === SENT COOKIE : {} {} {:?} {:?}",
                 c.cookie.name(),
                 c.cookie.value(),
                 c.cookie.domain(),
                 c.cookie.path()
             );
-            info!(
+            debug!(
                 " === SENT COOKIE RESULT {}",
                 c.appropriate_for_url(url, source)
             );

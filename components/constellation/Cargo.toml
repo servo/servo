@@ -22,7 +22,8 @@ embedder_traits = { path = "../embedder_traits" }
 euclid = "0.20"
 gfx = { path = "../gfx" }
 gfx_traits = { path = "../gfx_traits" }
-http = "0.1"
+http = "0.2"
+headers = "0.3"
 ipc-channel = "0.14"
 keyboard-types = "0.5"
 layout_traits = { path = "../layout_traits" }

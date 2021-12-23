@@ -14,8 +14,8 @@ use crossbeam_channel::Sender;
 use devtools_traits::DevtoolsControlMsg;
 use headers::{AccessControlExposeHeaders, ContentType, HeaderMapExt, Range};
 use http::header::{self, HeaderMap, HeaderName};
-use hyper::Method;
-use hyper::StatusCode;
+use http::Method;
+use http::StatusCode;
 use ipc_channel::ipc::{self, IpcReceiver};
 use mime::{self, Mime};
 use net_traits::blob_url_store::{parse_blob_url, BlobURLStoreError};
@@ -40,7 +40,7 @@ use std::ops::Bound;
 use std::str;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
-use tokio2::sync::mpsc::{
+use tokio::sync::mpsc::{
     unbounded_channel, UnboundedReceiver as TokioReceiver, UnboundedSender as TokioSender,
 };
 
@@ -522,7 +522,9 @@ async fn wait_for_response(
                 Some(Data::Payload(vec)) => {
                     target.process_response_chunk(vec);
                 },
-                Some(Data::Done) => break,
+                Some(Data::Done) => {
+                    break;
+                },
                 Some(Data::Cancelled) => {
                     response.aborted.store(true, Ordering::Release);
                     break;

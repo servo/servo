@@ -18,8 +18,8 @@ extern crate malloc_size_of_derive;
 #[macro_use]
 extern crate serde;
 
-use http::method::Method;
 use http::HeaderMap;
+use http::Method;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use servo_url::ServoUrl;

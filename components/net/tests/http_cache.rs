@@ -10,7 +10,7 @@ use net_traits::request::{Origin, Referrer, Request};
 use net_traits::response::{HttpsState, Response, ResponseBody};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use servo_url::ServoUrl;
-use tokio2::sync::mpsc::unbounded_channel as unbounded;
+use tokio::sync::mpsc::unbounded_channel as unbounded;
 
 #[test]
 fn test_refreshing_resource_sets_done_chan_the_appropriate_value() {
