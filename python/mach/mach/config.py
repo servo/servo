@@ -144,7 +144,7 @@ def reraise_attribute_error(func):
     return _
 
 
-class ConfigSettings(collections.Mapping):
+class ConfigSettings(collections.abc.Mapping):
     """Interface for configuration settings.
 
     This is the main interface to the configuration.
@@ -190,7 +190,7 @@ class ConfigSettings(collections.Mapping):
     will result in exceptions being raised.
     """
 
-    class ConfigSection(collections.MutableMapping, object):
+    class ConfigSection(collections.abc.MutableMapping, object):
         """Represents an individual config section."""
         def __init__(self, config, name, settings):
             object.__setattr__(self, '_config', config)

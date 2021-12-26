@@ -152,7 +152,7 @@ def CommandProvider(cls):
               'Conditions argument must take a list ' + \
               'of functions. Found %s instead.'
 
-        if not isinstance(command.conditions, collections.Iterable):
+        if not isinstance(command.conditions, collections.abc.Iterable):
             msg = msg % (command.name, type(command.conditions))
             raise MachError(msg)
 
