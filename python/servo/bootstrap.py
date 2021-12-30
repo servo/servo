@@ -355,7 +355,9 @@ def get_linux_distribution():
         else:
             major = version
 
-        if major == '20':
+        if major == '21':
+            base_version = '21.04'
+        elif major == '20':
             base_version = '20.04'
         elif major == '19':
             base_version = '18.04'
