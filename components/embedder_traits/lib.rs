@@ -123,6 +123,8 @@ pub enum PromptDefinition {
     YesNo(String, IpcSender<PromptResult>),
     /// Ask the user to enter text.
     Input(String, String, IpcSender<Option<String>>),
+    /// Ask for a username and password.
+    UserAndPass(String, IpcSender<(Option<String>, Option<String>)>),
 }
 
 #[derive(Deserialize, PartialEq, Serialize)]
