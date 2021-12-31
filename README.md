@@ -42,7 +42,7 @@ https://rust-lang.github.io/rustup/installation/other.html)
 
 Please select your operating system:
 * [macOS](#macos)
-* [Debian-based Linuxes](#on-debian-based-linuxes)
+* [Debian-based distros](#on-debian-based-distros)
 * [Fedora](#on-fedora)
 * [Arch Linux](#on-arch-linux)
 * [openSUSE](#on-opensuse-linux)
@@ -65,7 +65,7 @@ brew bundle install --file=etc/taskcluster/macos/Brewfile-build
 pip install virtualenv
 ```
 
-#### On Debian-based Linuxes
+#### On Debian-based distros
 
 ``` sh
 sudo apt install python3-virtualenv python3-pip
@@ -89,9 +89,9 @@ Additionally, you'll need a local copy of GStreamer with a version later than 16
 sudo apt install gstreamer1.0-nice gstreamer1.0-plugins-bad
 ```
 
-If you are using **Ubuntu 16.04** or **Linux Mint 18.&#42;** run `export HARFBUZZ_SYS_NO_PKG_CONFIG=1` before building to avoid an error with harfbuzz.
+If you are using **Ubuntu 16.04** or **Linux Mint 18**, run `export HARFBUZZ_SYS_NO_PKG_CONFIG=1` before building to avoid an error with harfbuzz.
 
-If you get an undefined symbol error on `gst_player_get_config` try removing `gir1.2-gst-plugins-bad-1.0` and all old versions of clang, see [#22016](https://github.com/servo/servo/issues/22016)
+If you get an undefined symbol error on `gst_player_get_config` try removing `gir1.2-gst-plugins-bad-1.0` and all old versions of clang, see [#22016](https://github.com/servo/servo/issues/22016).
 
 #### On Fedora
 
@@ -143,7 +143,7 @@ export CMAKE=cmake3
 export LIBCLANG_PATH=/opt/rh/llvm-toolset-7/root/usr/lib64
 ```
 
-#### On openSUSE Linux
+#### On openSUSE
 
 ``` sh
 sudo zypper install libX11-devel libexpat-devel Mesa-libEGL-devel Mesa-libGL-devel cabextract cmake \
