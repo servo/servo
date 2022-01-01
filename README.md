@@ -371,6 +371,14 @@ Run Servo with the command:
 - `Alt`+`right arrow` goes forwards in the history (`Cmd`+`right arrow` on Mac)
 - `Esc` or `Ctrl`+`Q` exits Servo (`Cmd`+`Q` on Mac)
 
+### Runtime dependencies
+
+#### Linux
+
+* `GStreamer` >=1.16
+* `gst-plugins-bad` >=1.16
+
+
 ## Developing
 
 There are lots of mach commands you can use. You can list them with `./mach
