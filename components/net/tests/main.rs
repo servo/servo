@@ -50,6 +50,7 @@ use tokio::net::TcpListener;
 use tokio::reactor::Handle;
 use tokio::runtime::Runtime;
 use tokio_openssl::SslAcceptorExt;
+use tokio_test::block_on;
 
 lazy_static! {
     pub static ref HANDLE: Mutex<Runtime> = Mutex::new(Runtime::new().unwrap());
@@ -103,8 +104,11 @@ fn new_fetch_context(
     FetchContext {
         state: Arc::new(HttpState::new(tls_config)),
         user_agent: DEFAULT_USER_AGENT.into(),
-        devtools_chan: dc,
-        filemanager: FileManager::new(sender, pool_handle.unwrap_or_else(|| Weak::new())),
+        devtools_chan: dc.map(|dc| Arc::new(Mutex::new(dc))),
+        filemanager: Arc::new(Mutex::new(FileManager::new(
+            sender,
+            pool_handle.unwrap_or_else(|| Weak::new()),
+        ))),
         file_token: FileTokenCheck::NotRequired,
         cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(None))),
         timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
@@ -131,7 +135,7 @@ fn fetch_with_context(request: &mut Request, mut context: &mut FetchContext) -> 
     let (sender, receiver) = unbounded();
     let mut target = FetchResponseCollector { sender: sender };
 
-    methods::fetch(request, &mut target, &mut context);
+    block_on(methods::fetch(request, &mut target, &mut context));
 
     receiver.recv().unwrap()
 }
@@ -140,12 +144,12 @@ fn fetch_with_cors_cache(request: &mut Request, cache: &mut CorsCache) -> Respon
     let (sender, receiver) = unbounded();
     let mut target = FetchResponseCollector { sender: sender };
 
-    methods::fetch_with_cors_cache(
+    block_on(methods::fetch_with_cors_cache(
         request,
         cache,
         &mut target,
         &mut new_fetch_context(None, None, None),
-    );
+    ));
 
     receiver.recv().unwrap()
 }

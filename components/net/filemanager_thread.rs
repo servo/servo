@@ -4,7 +4,6 @@
 
 use crate::fetch::methods::{CancellationListener, Data, RangeRequestBounds};
 use crate::resource_thread::CoreResourceThreadPool;
-use crossbeam_channel::Sender;
 use embedder_traits::{EmbedderMsg, EmbedderProxy, FilterPattern};
 use headers::{ContentLength, ContentType, HeaderMap, HeaderMapExt};
 use http::header::{self, HeaderValue};
@@ -28,6 +27,7 @@ use std::ops::Index;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{self, AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, RwLock, Weak};
+use tokio2::sync::mpsc::UnboundedSender as TokioSender;
 use url::Url;
 use uuid::Uuid;
 
@@ -127,7 +127,7 @@ impl FileManager {
     // in a separate thread.
     pub fn fetch_file(
         &self,
-        done_sender: &Sender<Data>,
+        done_sender: &mut TokioSender<Data>,
         cancellation_listener: Arc<Mutex<CancellationListener>>,
         id: Uuid,
         file_token: &FileTokenCheck,
@@ -210,12 +210,13 @@ impl FileManager {
 
     pub fn fetch_file_in_chunks(
         &self,
-        done_sender: Sender<Data>,
+        done_sender: &mut TokioSender<Data>,
         mut reader: BufReader<File>,
         res_body: ServoArc<Mutex<ResponseBody>>,
         cancellation_listener: Arc<Mutex<CancellationListener>>,
         range: RelativePos,
     ) {
+        let done_sender = done_sender.clone();
         self.thread_pool
             .upgrade()
             .and_then(|pool| {
@@ -282,7 +283,7 @@ impl FileManager {
 
     fn fetch_blob_buf(
         &self,
-        done_sender: &Sender<Data>,
+        done_sender: &mut TokioSender<Data>,
         cancellation_listener: Arc<Mutex<CancellationListener>>,
         id: &Uuid,
         file_token: &FileTokenCheck,
@@ -358,7 +359,7 @@ impl FileManager {
                 );
 
                 self.fetch_file_in_chunks(
-                    done_sender.clone(),
+                    &mut done_sender.clone(),
                     reader,
                     response.body.clone(),
                     cancellation_listener,

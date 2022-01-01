@@ -8,7 +8,6 @@
 //! and <http://tools.ietf.org/html/rfc7232>.
 
 use crate::fetch::methods::{Data, DoneChannel};
-use crossbeam_channel::{unbounded, Sender};
 use headers::{
     CacheControl, ContentRange, Expires, HeaderMapExt, LastModified, Pragma, Range, Vary,
 };
@@ -30,6 +29,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::SystemTime;
 use time::{Duration, Timespec, Tm};
+use tokio2::sync::mpsc::{unbounded_channel as unbounded, UnboundedSender as TokioSender};
 
 /// The key used to differentiate requests in the cache.
 #[derive(Clone, Eq, Hash, MallocSizeOf, PartialEq)]
@@ -58,7 +58,7 @@ struct CachedResource {
     request_headers: Arc<Mutex<HeaderMap>>,
     body: Arc<Mutex<ResponseBody>>,
     aborted: Arc<AtomicBool>,
-    awaiting_body: Arc<Mutex<Vec<Sender<Data>>>>,
+    awaiting_body: Arc<Mutex<Vec<TokioSender<Data>>>>,
     data: Measurable<MeasurableCachedResource>,
 }
 

@@ -950,6 +950,13 @@ impl<T> MallocSizeOf for crossbeam_channel::Sender<T> {
 }
 
 #[cfg(feature = "servo")]
+impl<T> MallocSizeOf for tokio::sync::mpsc::UnboundedSender<T> {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        0
+    }
+}
+
+#[cfg(feature = "servo")]
 impl MallocSizeOf for hyper::StatusCode {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
         0
