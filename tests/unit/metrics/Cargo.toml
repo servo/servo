@@ -17,4 +17,4 @@ metrics = {path = "../../../components/metrics"}
 msg = {path = "../../../components/msg"}
 profile_traits = {path = "../../../components/profile_traits"}
 servo_url = {path = "../../../components/url"}
-time = "0.1.12"
+time = "0.2.25"
