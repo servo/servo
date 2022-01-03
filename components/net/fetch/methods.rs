@@ -12,8 +12,6 @@ use crate::subresource_integrity::is_response_integrity_valid;
 use content_security_policy as csp;
 use crossbeam_channel::Sender;
 use devtools_traits::DevtoolsControlMsg;
-use futures_util::compat::*;
-use futures_util::StreamExt;
 use headers::{AccessControlExposeHeaders, ContentType, HeaderMapExt, Range};
 use http::header::{self, HeaderMap, HeaderName};
 use hyper::Method;

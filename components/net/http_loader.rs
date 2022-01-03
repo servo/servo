@@ -523,7 +523,7 @@ async fn obtain_response(
             .replace("}", "%7D");
 
         let request = if let Some(chunk_requester) = body {
-            let (mut sink, stream) = if source_is_null {
+            let (sink, stream) = if source_is_null {
                 // Step 4.2 of https://fetch.spec.whatwg.org/#concept-http-network-fetch
                 // TODO: this should not be set for HTTP/2(currently not supported?).
                 headers.insert(TRANSFER_ENCODING, HeaderValue::from_static("chunked"));

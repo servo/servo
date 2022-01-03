@@ -16,7 +16,7 @@ doctest = false
 
 [dependencies]
 async-recursion = "0.3.2"
-async-tungstenite = { version = "0.7.1", features = ["tokio-openssl"] }
+async-tungstenite = { version = "0.9", features = ["tokio-openssl"] }
 base64 = "0.10.1"
 brotli = "3"
 bytes = "0.4"
@@ -60,7 +60,7 @@ servo_config = { path = "../config" }
 servo_url = { path = "../url" }
 time = "0.1.41"
 tokio = "0.1"
-tokio2 = { version = "0.2", package = "tokio", features = ["sync", "macros", "rt-threaded"] }
+tokio2 = { version = "0.2", package = "tokio", features = ["sync", "macros", "rt-threaded", "tcp"] }
 tokio-compat = "0.1"
 tungstenite = "0.11"
 url = "2.0"
