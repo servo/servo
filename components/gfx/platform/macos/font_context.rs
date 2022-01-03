@@ -6,13 +6,13 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 
 #[derive(Clone, Debug)]
 pub struct FontContextHandle {
-    ctx: (),
+    _ctx: (),
 }
 
 impl FontContextHandle {
     // this is a placeholder until NSFontManager or whatever is bound in here.
     pub fn new() -> FontContextHandle {
-        FontContextHandle { ctx: () }
+        FontContextHandle { _ctx: () }
     }
 }
 
