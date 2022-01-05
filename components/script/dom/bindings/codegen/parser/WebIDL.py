@@ -7564,7 +7564,7 @@ class Parser(Tokenizer):
 
     def parse(self, t, filename=None):
         self._filename = filename
-        self.lexer.input(t)
+        self.lexer.input(t.decode(encoding = 'utf-8'))
 
         # for tok in iter(self.lexer.token, None):
         #    print tok
