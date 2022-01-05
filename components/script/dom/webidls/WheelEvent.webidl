@@ -26,7 +26,7 @@ dictionary WheelEventInit : MouseEventInit {
 // https://w3c.github.io/uievents/#idl-interface-WheelEvent-initializers
 partial interface WheelEvent {
     // Deprecated in DOM Level 3
-    void initWheelEvent (DOMString typeArg, boolean bubblesArg, boolean cancelableArg,
+    undefined initWheelEvent (DOMString typeArg, boolean bubblesArg, boolean cancelableArg,
                          Window? viewArg, long detailArg,
                          double deltaX, double deltaY,
                          double deltaZ, unsigned long deltaMode);

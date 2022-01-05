@@ -35,7 +35,7 @@ interface HTMLButtonElement : HTMLElement {
   readonly attribute DOMString validationMessage;
   boolean checkValidity();
   boolean reportValidity();
-  void setCustomValidity(DOMString error);
+  undefined setCustomValidity(DOMString error);
 
   readonly attribute NodeList labels;
 };

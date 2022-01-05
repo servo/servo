@@ -5,7 +5,7 @@
 // https://drafts.css-houdini.org/worklets/#worklet
 [Pref="dom.worklet.enabled", Exposed=(Window)]
 interface Worklet {
-    [NewObject] Promise<void> addModule(USVString moduleURL, optional WorkletOptions options = {});
+    [NewObject] Promise<undefined> addModule(USVString moduleURL, optional WorkletOptions options = {});
 };
 
 dictionary WorkletOptions {

@@ -71,7 +71,7 @@ def WebIDLTest(parser, harness):
             "c"
           };
           interface TestInterface {
-            void foo(optional Enum e = "d");
+            undefined foo(optional Enum e = "d");
           };
         """)
         results = parser.finish()

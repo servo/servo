@@ -10,14 +10,14 @@ typedef (sequence<sequence<ByteString>> or record<ByteString, ByteString>) Heade
 interface Headers {
   [Throws] constructor(optional HeadersInit init);
   [Throws]
-  void append(ByteString name, ByteString value);
+  undefined append(ByteString name, ByteString value);
   [Throws]
-  void delete(ByteString name);
+  undefined delete(ByteString name);
   [Throws]
   ByteString? get(ByteString name);
   [Throws]
   boolean has(ByteString name);
   [Throws]
-  void set(ByteString name, ByteString value);
+  undefined set(ByteString name, ByteString value);
   iterable<ByteString, ByteString>;
 };

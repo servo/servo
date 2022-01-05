@@ -17,6 +17,6 @@ enum GPUErrorFilter {
 };
 
 partial interface GPUDevice {
-    void pushErrorScope(GPUErrorFilter filter);
+    undefined pushErrorScope(GPUErrorFilter filter);
     Promise<GPUError?> popErrorScope();
 };

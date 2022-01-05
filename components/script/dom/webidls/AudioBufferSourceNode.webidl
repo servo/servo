@@ -24,7 +24,7 @@ interface AudioBufferSourceNode : AudioScheduledSourceNode {
   attribute boolean loop;
   attribute double loopStart;
   attribute double loopEnd;
-  [Throws] void start(optional double when = 0,
+  [Throws] undefined start(optional double when = 0,
                       optional double offset,
                       optional double duration);
 };

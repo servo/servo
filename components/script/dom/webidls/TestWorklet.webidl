@@ -8,6 +8,6 @@
 [Pref="dom.worklet.testing.enabled", Exposed=(Window)]
 interface TestWorklet {
    [Throws] constructor();
-   [NewObject] Promise<void> addModule(USVString moduleURL, optional WorkletOptions options = {});
+   [NewObject] Promise<undefined> addModule(USVString moduleURL, optional WorkletOptions options = {});
    DOMString? lookup(DOMString key);
 };

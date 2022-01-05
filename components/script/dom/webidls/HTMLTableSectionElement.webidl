@@ -11,7 +11,7 @@ interface HTMLTableSectionElement : HTMLElement {
   [Throws]
   HTMLElement insertRow(optional long index = -1);
   [CEReactions, Throws]
-  void deleteRow(long index);
+  undefined deleteRow(long index);
 
   // also has obsolete members
 };

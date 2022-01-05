@@ -12,7 +12,7 @@ interface MessageEvent : Event {
   readonly attribute MessageEventSource? source;
   readonly attribute /*FrozenArray<MessagePort>*/any ports;
 
-  void initMessageEvent(
+  undefined initMessageEvent(
     DOMString type,
     optional boolean bubbles = false,
     optional boolean cancelable = false,

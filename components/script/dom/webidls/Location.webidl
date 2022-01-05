@@ -15,10 +15,10 @@
   [Throws]          attribute USVString search;
   [Throws]          attribute USVString hash;
 
-  [Throws] void assign(USVString url);
+  [Throws] undefined assign(USVString url);
   [Throws, CrossOriginCallable]
-           void replace(USVString url);
-  [Throws] void reload();
+           undefined replace(USVString url);
+  [Throws] undefined reload();
 
   //[SameObject] readonly attribute USVString[] ancestorOrigins;
 };

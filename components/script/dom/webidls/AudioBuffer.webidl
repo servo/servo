@@ -20,10 +20,10 @@ interface AudioBuffer {
   readonly attribute double duration;
   readonly attribute unsigned long numberOfChannels;
   [Throws] Float32Array getChannelData(unsigned long channel);
-  [Throws] void copyFromChannel(Float32Array destination,
+  [Throws] undefined copyFromChannel(Float32Array destination,
                                 unsigned long channelNumber,
                                 optional unsigned long startInChannel = 0);
-  [Throws] void copyToChannel(Float32Array source,
+  [Throws] undefined copyToChannel(Float32Array source,
                               unsigned long channelNumber,
                               optional unsigned long startInChannel = 0);
 };

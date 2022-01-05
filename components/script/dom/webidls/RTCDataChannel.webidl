@@ -21,13 +21,13 @@ interface RTCDataChannel : EventTarget {
   attribute EventHandler onerror;
   attribute EventHandler onclosing;
   attribute EventHandler onclose;
-  void close();
+  undefined close();
   attribute EventHandler onmessage;
   [SetterThrows] attribute DOMString binaryType;
-  [Throws] void send(USVString data);
-  [Throws] void send(Blob data);
-  [Throws] void send(ArrayBuffer data);
-  [Throws] void send(ArrayBufferView data);
+  [Throws] undefined send(USVString data);
+  [Throws] undefined send(Blob data);
+  [Throws] undefined send(ArrayBuffer data);
+  [Throws] undefined send(ArrayBufferView data);
 };
 
 // https://www.w3.org/TR/webrtc/#dom-rtcdatachannelinit

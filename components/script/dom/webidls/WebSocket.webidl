@@ -24,13 +24,13 @@ interface WebSocket : EventTarget {
     attribute EventHandler onclose;
     //readonly attribute DOMString extensions;
     readonly attribute DOMString protocol;
-    [Throws] void close(optional [Clamp] unsigned short code, optional USVString reason);
+    [Throws] undefined close(optional [Clamp] unsigned short code, optional USVString reason);
 
     //messaging
     attribute EventHandler onmessage;
     attribute BinaryType binaryType;
-    [Throws] void send(USVString data);
-    [Throws] void send(Blob data);
-    [Throws] void send(ArrayBuffer data);
-    [Throws] void send(ArrayBufferView data);
+    [Throws] undefined send(USVString data);
+    [Throws] undefined send(Blob data);
+    [Throws] undefined send(ArrayBuffer data);
+    [Throws] undefined send(ArrayBufferView data);
 };

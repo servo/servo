@@ -44,7 +44,7 @@ dictionary MouseEventInit : EventModifierInit {
 // https://w3c.github.io/uievents/#idl-interface-MouseEvent-initializers
 partial interface MouseEvent {
     // Deprecated in DOM Level 3
-    void initMouseEvent (DOMString typeArg, boolean bubblesArg, boolean cancelableArg,
+    undefined initMouseEvent (DOMString typeArg, boolean bubblesArg, boolean cancelableArg,
                          Window? viewArg, long detailArg,
                          long screenXArg, long screenYArg,
                          long clientXArg, long clientYArg,

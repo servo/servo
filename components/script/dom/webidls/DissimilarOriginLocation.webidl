@@ -17,9 +17,9 @@
 [Exposed=(Window,DissimilarOriginWindow), Unforgeable, NoInterfaceObject]
 interface DissimilarOriginLocation {
   [Throws] attribute USVString href;
-  [Throws] void assign(USVString url);
-  [Throws] void replace(USVString url);
-  [Throws] void reload();
+  [Throws] undefined assign(USVString url);
+  [Throws] undefined replace(USVString url);
+  [Throws] undefined reload();
   [Throws] stringifier;
 
   // TODO: finish this interface

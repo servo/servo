@@ -14,13 +14,13 @@ interface History {
   [Throws]
   readonly attribute any state;
   [Throws]
-  void go(optional long delta = 0);
+  undefined go(optional long delta = 0);
   [Throws]
-  void back();
+  undefined back();
   [Throws]
-  void forward();
+  undefined forward();
   [Throws]
-  void pushState(any data, DOMString title, optional USVString? url = null);
+  undefined pushState(any data, DOMString title, optional USVString? url = null);
   [Throws]
-  void replaceState(any data, DOMString title, optional USVString? url = null);
+  undefined replaceState(any data, DOMString title, optional USVString? url = null);
 };

@@ -22,9 +22,9 @@ interface TextTrack : EventTarget {
   readonly attribute TextTrackCueList? activeCues;
 
   [Throws]
-  void addCue(TextTrackCue cue);
+  undefined addCue(TextTrackCue cue);
   [Throws]
-  void removeCue(TextTrackCue cue);
+  undefined removeCue(TextTrackCue cue);
 
   attribute EventHandler oncuechange;
 };

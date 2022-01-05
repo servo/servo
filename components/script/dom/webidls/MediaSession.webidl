@@ -48,7 +48,7 @@ dictionary MediaPositionState {
   double position;
 };
 
-callback MediaSessionActionHandler = void(/*MediaSessionActionDetails details*/);
+callback MediaSessionActionHandler = undefined(/*MediaSessionActionDetails details*/);
 
 [Exposed=Window]
 interface MediaSession {
@@ -56,7 +56,7 @@ interface MediaSession {
 
   attribute MediaSessionPlaybackState playbackState;
 
-  void setActionHandler(MediaSessionAction action, MediaSessionActionHandler? handler);
+  undefined setActionHandler(MediaSessionAction action, MediaSessionActionHandler? handler);
 
-  [Throws] void setPositionState(optional MediaPositionState state = {});
+  [Throws] undefined setPositionState(optional MediaPositionState state = {});
 };

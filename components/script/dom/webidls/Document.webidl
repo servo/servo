@@ -126,11 +126,11 @@ partial /*sealed*/ interface Document {
   [CEReactions, Throws]
   WindowProxy? open(USVString url, DOMString name, DOMString features);
   [CEReactions, Throws]
-  void close();
+  undefined close();
   [CEReactions, Throws]
-  void write(DOMString... text);
+  undefined write(DOMString... text);
   [CEReactions, Throws]
-  void writeln(DOMString... text);
+  undefined writeln(DOMString... text);
 
   // user interaction
   readonly attribute Window?/*Proxy?*/ defaultView;
@@ -179,9 +179,9 @@ partial interface Document {
   [SameObject]
   readonly attribute HTMLCollection applets;
 
-  void clear();
-  void captureEvents();
-  void releaseEvents();
+  undefined clear();
+  undefined captureEvents();
+  undefined releaseEvents();
 
   // Tracking issue for document.all: https://github.com/servo/servo/issues/7396
   // readonly attribute HTMLAllCollection all;
@@ -193,7 +193,7 @@ partial interface Document {
   [LenientSetter] readonly attribute Element? fullscreenElement;
   [LenientSetter] readonly attribute boolean fullscreen; // historical
 
-  Promise<void> exitFullscreen();
+  Promise<undefined> exitFullscreen();
 
   attribute EventHandler onfullscreenchange;
   attribute EventHandler onfullscreenerror;

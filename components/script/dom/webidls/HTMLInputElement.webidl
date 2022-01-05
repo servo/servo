@@ -79,19 +79,19 @@ interface HTMLInputElement : HTMLElement {
   // [CEReactions]
   //          attribute unsigned long width;
 
-  [Throws] void stepUp(optional long n = 1);
-  [Throws] void stepDown(optional long n = 1);
+  [Throws] undefined stepUp(optional long n = 1);
+  [Throws] undefined stepDown(optional long n = 1);
 
   readonly attribute boolean willValidate;
   readonly attribute ValidityState validity;
   readonly attribute DOMString validationMessage;
   boolean checkValidity();
   boolean reportValidity();
-  void setCustomValidity(DOMString error);
+  undefined setCustomValidity(DOMString error);
 
   readonly attribute NodeList? labels;
 
-  void select();
+  undefined select();
   [SetterThrows]
            attribute unsigned long? selectionStart;
   [SetterThrows]
@@ -99,18 +99,18 @@ interface HTMLInputElement : HTMLElement {
   [SetterThrows]
            attribute DOMString? selectionDirection;
   [Throws]
-           void setRangeText(DOMString replacement);
+           undefined setRangeText(DOMString replacement);
   [Throws]
-           void setRangeText(DOMString replacement, unsigned long start, unsigned long end,
+           undefined setRangeText(DOMString replacement, unsigned long start, unsigned long end,
                              optional SelectionMode selectionMode = "preserve");
   [Throws]
-           void setSelectionRange(unsigned long start, unsigned long end, optional DOMString direction);
+           undefined setSelectionRange(unsigned long start, unsigned long end, optional DOMString direction);
 
   // also has obsolete members
 
   // Select with file-system paths for testing purpose
   [Pref="dom.testing.htmlinputelement.select_files.enabled"]
-  void selectFiles(sequence<DOMString> path);
+  undefined selectFiles(sequence<DOMString> path);
 };
 
 // https://html.spec.whatwg.org/multipage/#HTMLInputElement-partial

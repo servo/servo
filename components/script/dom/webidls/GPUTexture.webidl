@@ -7,7 +7,7 @@
 interface GPUTexture {
     GPUTextureView createView(optional GPUTextureViewDescriptor descriptor = {});
 
-    void destroy();
+    undefined destroy();
 };
 GPUTexture includes GPUObjectBase;
 

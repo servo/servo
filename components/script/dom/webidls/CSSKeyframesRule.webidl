@@ -9,7 +9,7 @@ interface CSSKeyframesRule : CSSRule {
            attribute DOMString   name;
   readonly attribute CSSRuleList cssRules;
 
-  void            appendRule(DOMString rule);
-  void            deleteRule(DOMString select);
+  undefined            appendRule(DOMString rule);
+  undefined            deleteRule(DOMString select);
   CSSKeyframeRule? findRule(DOMString select);
 };

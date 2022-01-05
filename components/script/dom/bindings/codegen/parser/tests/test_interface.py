@@ -32,7 +32,7 @@ def WebIDLTest(parser, harness):
 
         interface QNameDerived : QNameBase {
           attribute long long foo;
-          attribute byte bar;          
+          attribute byte bar;
         };
     """)
     results = parser.finish()
@@ -99,11 +99,11 @@ def WebIDLTest(parser, harness):
             constructor();
             constructor(long arg);
             readonly attribute boolean x;
-            void foo();
+            undefined foo();
         };
         partial interface A {
             readonly attribute boolean y;
-            void foo(long arg);
+            undefined foo(long arg);
         };
     """);
     results = parser.finish();
@@ -127,13 +127,13 @@ def WebIDLTest(parser, harness):
     parser.parse("""
         partial interface A {
             readonly attribute boolean y;
-            void foo(long arg);
+            undefined foo(long arg);
         };
         interface A {
             constructor();
             constructor(long arg);
             readonly attribute boolean x;
-            void foo();
+            undefined foo();
         };
     """);
     results = parser.finish();

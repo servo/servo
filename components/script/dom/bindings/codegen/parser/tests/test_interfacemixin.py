@@ -30,11 +30,11 @@ def WebIDLTest(parser, harness):
     parser.parse("""
         interface mixin A {
             readonly attribute boolean x;
-            void foo();
+            undefined foo();
         };
         partial interface mixin A {
             readonly attribute boolean y;
-            void foo(long arg);
+            undefined foo(long arg);
         };
     """)
     results = parser.finish()
@@ -56,11 +56,11 @@ def WebIDLTest(parser, harness):
     parser.parse("""
         partial interface mixin A {
             readonly attribute boolean y;
-            void foo(long arg);
+            undefined foo(long arg);
         };
         interface mixin A {
             readonly attribute boolean x;
-            void foo();
+            undefined foo();
         };
     """)
     results = parser.finish()
@@ -212,7 +212,7 @@ def WebIDLTest(parser, harness):
     try:
         parser.parse("""
             interface mixin A {
-                setter void (DOMString propertyName, double propertyValue);
+                setter undefined (DOMString propertyName, double propertyValue);
             };
         """)
         results = parser.finish()
@@ -226,7 +226,7 @@ def WebIDLTest(parser, harness):
     try:
         parser.parse("""
             interface mixin A {
-                deleter void (DOMString propertyName);
+                deleter undefined (DOMString propertyName);
             };
         """)
         results = parser.finish()

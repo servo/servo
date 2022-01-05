@@ -7,8 +7,8 @@
 interface ServiceWorker : EventTarget {
   readonly attribute USVString scriptURL;
   readonly attribute ServiceWorkerState state;
-  [Throws] void postMessage(any message, sequence<object> transfer);
-  [Throws] void postMessage(any message, optional PostMessageOptions options = {});
+  [Throws] undefined postMessage(any message, sequence<object> transfer);
+  [Throws] undefined postMessage(any message, optional PostMessageOptions options = {});
 
   // event
   attribute EventHandler onstatechange;

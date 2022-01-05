@@ -1,7 +1,7 @@
 def WebIDLTest(parser, harness):
     parser.parse("""
     interface Foo {
-      void foo(object constructor);
+      undefined foo(object constructor);
     };
     """)
 

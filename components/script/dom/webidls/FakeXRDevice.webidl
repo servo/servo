@@ -8,27 +8,27 @@
 interface FakeXRDevice {
   // Sets the values to be used for subsequent
   // requestAnimationFrame() callbacks.
-  [Throws] void setViews(sequence<FakeXRViewInit> views);
+  [Throws] undefined setViews(sequence<FakeXRViewInit> views);
 
-  [Throws] void setViewerOrigin(FakeXRRigidTransformInit origin, optional boolean emulatedPosition = false);
-  void clearViewerOrigin();
+  [Throws] undefined setViewerOrigin(FakeXRRigidTransformInit origin, optional boolean emulatedPosition = false);
+  undefined clearViewerOrigin();
 
-  [Throws] void setFloorOrigin(FakeXRRigidTransformInit origin);
-  void clearFloorOrigin();
+  [Throws] undefined setFloorOrigin(FakeXRRigidTransformInit origin);
+  undefined clearFloorOrigin();
 
   // // Simulates devices focusing and blurring sessions.
-  void simulateVisibilityChange(XRVisibilityState state);
+  undefined simulateVisibilityChange(XRVisibilityState state);
 
   // void setBoundsGeometry(sequence<FakeXRBoundsPoint> boundsCoodinates);
 
   [Throws] FakeXRInputController simulateInputSourceConnection(FakeXRInputSourceInit init);
 
   // behaves as if device was disconnected
-  Promise<void> disconnect();
+  Promise<undefined> disconnect();
 
   // Hit test extensions:
-  [Throws] void setWorld(FakeXRWorldInit world);
-  void clearWorld();
+  [Throws] undefined setWorld(FakeXRWorldInit world);
+  undefined clearWorld();
 };
 
 // https://immersive-web.github.io/webxr/#dom-xrwebgllayer-getviewport

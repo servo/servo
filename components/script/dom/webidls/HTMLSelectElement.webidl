@@ -30,12 +30,12 @@ interface HTMLSelectElement : HTMLElement {
   HTMLOptionElement? namedItem(DOMString name);
 
   [CEReactions, Throws]
-  void add((HTMLOptionElement or HTMLOptGroupElement) element, optional (HTMLElement or long)? before = null);
+  undefined add((HTMLOptionElement or HTMLOptGroupElement) element, optional (HTMLElement or long)? before = null);
   [CEReactions]
-  void remove(); // ChildNode overload
+  undefined remove(); // ChildNode overload
   [CEReactions]
-  void remove(long index);
-  [CEReactions, Throws] setter void (unsigned long index, HTMLOptionElement? option);
+  undefined remove(long index);
+  [CEReactions, Throws] setter undefined (unsigned long index, HTMLOptionElement? option);
 
   // readonly attribute HTMLCollection selectedOptions;
   attribute long selectedIndex;
@@ -46,7 +46,7 @@ interface HTMLSelectElement : HTMLElement {
   readonly attribute DOMString validationMessage;
   boolean checkValidity();
   boolean reportValidity();
-  void setCustomValidity(DOMString error);
+  undefined setCustomValidity(DOMString error);
 
   readonly attribute NodeList labels;
 };

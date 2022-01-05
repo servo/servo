@@ -39,7 +39,7 @@ interface RTCRtpSender {
   //readonly attribute MediaStreamTrack? track;
   //readonly attribute RTCDtlsTransport? transport;
   //static RTCRtpCapabilities? getCapabilities(DOMString kind);
-  Promise<void> setParameters(RTCRtpSendParameters parameters);
+  Promise<undefined> setParameters(RTCRtpSendParameters parameters);
   RTCRtpSendParameters getParameters();
   //Promise<void> replaceTrack(MediaStreamTrack? withTrack);
   //void setStreams(MediaStream... streams);

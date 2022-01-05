@@ -21,16 +21,16 @@ interface Event {
   const unsigned short BUBBLING_PHASE = 3;
   readonly attribute unsigned short eventPhase;
 
-  void stopPropagation();
+  undefined stopPropagation();
   attribute boolean cancelBubble;
-  void stopImmediatePropagation();
+  undefined stopImmediatePropagation();
 
   [Pure]
   readonly attribute boolean bubbles;
   [Pure]
   readonly attribute boolean cancelable;
   attribute boolean returnValue;  // historical
-  void preventDefault();
+  undefined preventDefault();
   [Pure]
   readonly attribute boolean defaultPrevented;
 
@@ -39,7 +39,7 @@ interface Event {
   [Constant]
   readonly attribute DOMHighResTimeStamp timeStamp;
 
-  void initEvent(DOMString type, optional boolean bubbles = false, optional boolean cancelable = false);
+  undefined initEvent(DOMString type, optional boolean bubbles = false, optional boolean cancelable = false);
 };
 
 dictionary EventInit {

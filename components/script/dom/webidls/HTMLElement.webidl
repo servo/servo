@@ -32,11 +32,11 @@ interface HTMLElement : Element {
   // user interaction
   [CEReactions]
            attribute boolean hidden;
-  void click();
+  undefined click();
   // [CEReactions]
   //         attribute long tabIndex;
-  void focus();
-  void blur();
+  undefined focus();
+  undefined blur();
   // [CEReactions]
   //         attribute DOMString accessKey;
   //readonly attribute DOMString accessKeyLabel;

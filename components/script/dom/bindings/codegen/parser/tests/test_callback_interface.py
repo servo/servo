@@ -48,31 +48,31 @@ def WebIDLTest(parser, harness):
     parser = parser.reset()
     parser.parse("""
         callback interface TestCallbackInterface1 {
-          void foo();
+          undefined foo();
         };
         callback interface TestCallbackInterface2 {
-          void foo(DOMString arg);
-          void foo(TestCallbackInterface1 arg);
+          undefined foo(DOMString arg);
+          undefined foo(TestCallbackInterface1 arg);
         };
         callback interface TestCallbackInterface3 {
-          void foo(DOMString arg);
-          void foo(TestCallbackInterface1 arg);
-          static void bar();
+          undefined foo(DOMString arg);
+          undefined foo(TestCallbackInterface1 arg);
+          static undefined bar();
         };
         callback interface TestCallbackInterface4 {
-          void foo(DOMString arg);
-          void foo(TestCallbackInterface1 arg);
-          static void bar();
+          undefined foo(DOMString arg);
+          undefined foo(TestCallbackInterface1 arg);
+          static undefined bar();
           const long baz = 5;
         };
         callback interface TestCallbackInterface5 {
           static attribute boolean bool;
-          void foo();
+          undefined foo();
         };
         callback interface TestCallbackInterface6 {
-          void foo(DOMString arg);
-          void foo(TestCallbackInterface1 arg);
-          void bar();
+          undefined foo(DOMString arg);
+          undefined foo(TestCallbackInterface1 arg);
+          undefined bar();
         };
         callback interface TestCallbackInterface7 {
           static attribute boolean bool;
@@ -81,10 +81,10 @@ def WebIDLTest(parser, harness):
           attribute boolean bool;
         };
         callback interface TestCallbackInterface9 : TestCallbackInterface1 {
-          void foo();
+          undefined foo();
         };
         callback interface TestCallbackInterface10 : TestCallbackInterface1 {
-          void bar();
+          undefined bar();
         };
     """)
     results = parser.finish()

@@ -14,23 +14,23 @@ def WebIDLTest(parser, harness):
           [LenientFloat]
           attribute double ld;
 
-          void m1(float arg1, double arg2, float? arg3, double? arg4,
+          undefined m1(float arg1, double arg2, float? arg3, double? arg4,
                   myFloat arg5, unrestricted float arg6,
                   unrestricted double arg7, unrestricted float? arg8,
                   unrestricted double? arg9, myUnrestrictedFloat arg10);
           [LenientFloat]
-          void m2(float arg1, double arg2, float? arg3, double? arg4,
+          undefined m2(float arg1, double arg2, float? arg3, double? arg4,
                   myFloat arg5, unrestricted float arg6,
                   unrestricted double arg7, unrestricted float? arg8,
                   unrestricted double? arg9, myUnrestrictedFloat arg10);
           [LenientFloat]
-          void m3(float arg);
+          undefined m3(float arg);
           [LenientFloat]
-          void m4(double arg);
+          undefined m4(double arg);
           [LenientFloat]
-          void m5((float or FloatTypes) arg);
+          undefined m5((float or FloatTypes) arg);
           [LenientFloat]
-          void m6(sequence<float> arg);
+          undefined m6(sequence<float> arg);
         };
     """)
 
@@ -70,7 +70,7 @@ def WebIDLTest(parser, harness):
         """)
     except Exception as x:
         threw = True
-    harness.ok(threw, "[LenientFloat] only allowed on void methods")
+    harness.ok(threw, "[LenientFloat] only allowed on undefined-retuning methods")
 
     parser = parser.reset()
     threw = False
@@ -78,7 +78,7 @@ def WebIDLTest(parser, harness):
         parser.parse("""
             interface FloatTypes {
               [LenientFloat]
-              void m(unrestricted float arg);
+              undefined m(unrestricted float arg);
             };
         """)
     except Exception as x:
@@ -91,7 +91,7 @@ def WebIDLTest(parser, harness):
         parser.parse("""
             interface FloatTypes {
               [LenientFloat]
-              void m(sequence<unrestricted float> arg);
+              undefined m(sequence<unrestricted float> arg);
             };
         """)
     except Exception as x:
@@ -104,7 +104,7 @@ def WebIDLTest(parser, harness):
         parser.parse("""
             interface FloatTypes {
               [LenientFloat]
-              void m((unrestricted float or FloatTypes) arg);
+              undefined m((unrestricted float or FloatTypes) arg);
             };
         """)
     except Exception as x:

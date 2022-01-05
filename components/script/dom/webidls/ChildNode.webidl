@@ -8,13 +8,13 @@
 
 interface mixin ChildNode {
   [Throws, CEReactions, Unscopable]
-  void before((Node or DOMString)... nodes);
+  undefined before((Node or DOMString)... nodes);
   [Throws, CEReactions, Unscopable]
-  void after((Node or DOMString)... nodes);
+  undefined after((Node or DOMString)... nodes);
   [Throws, CEReactions, Unscopable]
-  void replaceWith((Node or DOMString)... nodes);
+  undefined replaceWith((Node or DOMString)... nodes);
   [CEReactions, Unscopable]
-  void remove();
+  undefined remove();
 };
 
 interface mixin NonDocumentTypeChildNode {

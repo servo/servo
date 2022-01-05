@@ -5,7 +5,7 @@
 // https://html.spec.whatwg.org/multipage/#pluginarray
 [LegacyUnenumerableNamedProperties, Exposed=Window]
 interface PluginArray {
-  void refresh(optional boolean reload = false);
+  undefined refresh(optional boolean reload = false);
   readonly attribute unsigned long length;
   getter Plugin? item(unsigned long index);
   getter Plugin? namedItem(DOMString name);

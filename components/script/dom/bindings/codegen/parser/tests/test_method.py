@@ -3,17 +3,17 @@ import WebIDL
 def WebIDLTest(parser, harness):
     parser.parse("""
         interface TestMethods {
-          void basic();
-          static void basicStatic();
-          void basicWithSimpleArgs(boolean arg1, byte arg2, unsigned long arg3);
+          undefined basic();
+          static undefined basicStatic();
+          undefined basicWithSimpleArgs(boolean arg1, byte arg2, unsigned long arg3);
           boolean basicBoolean();
           static boolean basicStaticBoolean();
           boolean basicBooleanWithSimpleArgs(boolean arg1, byte arg2, unsigned long arg3);
-          void optionalArg(optional byte? arg1, optional sequence<byte> arg2);
-          void variadicArg(byte?... arg1);
+          undefined optionalArg(optional byte? arg1, optional sequence<byte> arg2);
+          undefined variadicArg(byte?... arg1);
           object getObject();
-          void setObject(object arg1);
-          void setAny(any arg1);
+          undefined setObject(object arg1);
+          undefined setAny(any arg1);
           float doFloats(float arg1);
         };
     """)
@@ -70,12 +70,12 @@ def WebIDLTest(parser, harness):
                 (QName, name, type, optional, variadic) = expectedArgs[i]
                 checkArgument(gotArgs[i], QName, name, type, optional, variadic)
 
-    checkMethod(methods[0], "::TestMethods::basic", "basic", [("Void", [])])
+    checkMethod(methods[0], "::TestMethods::basic", "basic", [("Undefined", [])])
     checkMethod(methods[1], "::TestMethods::basicStatic", "basicStatic",
-                [("Void", [])], static=True)
+                [("Undefined", [])], static=True)
     checkMethod(methods[2], "::TestMethods::basicWithSimpleArgs",
                 "basicWithSimpleArgs",
-       [("Void",
+       [("Undefined",
         [("::TestMethods::basicWithSimpleArgs::arg1", "arg1", "Boolean", False, False),
          ("::TestMethods::basicWithSimpleArgs::arg2", "arg2", "Byte", False, False),
          ("::TestMethods::basicWithSimpleArgs::arg3", "arg3", "UnsignedLong", False, False)])])
@@ -89,22 +89,22 @@ def WebIDLTest(parser, harness):
          ("::TestMethods::basicBooleanWithSimpleArgs::arg3", "arg3", "UnsignedLong", False, False)])])
     checkMethod(methods[6], "::TestMethods::optionalArg",
                 "optionalArg",
-       [("Void",
+       [("Undefined",
         [("::TestMethods::optionalArg::arg1", "arg1", "ByteOrNull", True, False),
          ("::TestMethods::optionalArg::arg2", "arg2", "ByteSequence", True, False)])])
     checkMethod(methods[7], "::TestMethods::variadicArg",
                 "variadicArg",
-       [("Void",
+       [("Undefined",
         [("::TestMethods::variadicArg::arg1", "arg1", "ByteOrNull", True, True)])])
     checkMethod(methods[8], "::TestMethods::getObject",
                 "getObject", [("Object", [])])
     checkMethod(methods[9], "::TestMethods::setObject",
                 "setObject",
-       [("Void",
+       [("Undefined",
         [("::TestMethods::setObject::arg1", "arg1", "Object", False, False)])])
     checkMethod(methods[10], "::TestMethods::setAny",
                 "setAny",
-       [("Void",
+       [("Undefined",
         [("::TestMethods::setAny::arg1", "arg1", "Any", False, False)])])
     checkMethod(methods[11], "::TestMethods::doFloats",
                 "doFloats",
@@ -116,7 +116,7 @@ def WebIDLTest(parser, harness):
     try:
         parser.parse("""
           interface A {
-            void foo(optional float bar = 1);
+            undefined foo(optional float bar = 1);
           };
         """)
         results = parser.finish()
@@ -129,7 +129,7 @@ def WebIDLTest(parser, harness):
     try:
         parser.parse("""
           interface A {
-            [GetterThrows] void foo();
+            [GetterThrows] undefined foo();
           };
         """)
         results = parser.finish()
@@ -142,7 +142,7 @@ def WebIDLTest(parser, harness):
     try:
         parser.parse("""
           interface A {
-            [SetterThrows] void foo();
+            [SetterThrows] undefined foo();
           };
         """)
         results = parser.finish()
@@ -155,7 +155,7 @@ def WebIDLTest(parser, harness):
     try:
         parser.parse("""
           interface A {
-            [Throw] void foo();
+            [Throw] undefined foo();
           };
         """)
         results = parser.finish()
@@ -168,7 +168,7 @@ def WebIDLTest(parser, harness):
     try:
         parser.parse("""
           interface A {
-            void __noSuchMethod__();
+            undefined __noSuchMethod__();
           };
         """)
         results = parser.finish()
@@ -182,9 +182,9 @@ def WebIDLTest(parser, harness):
         parser.parse("""
           interface A {
             [Throws, LenientFloat]
-            void foo(float myFloat);
+            undefined foo(float myFloat);
             [Throws]
-            void foo();
+            undefined foo();
           };
         """)
         results = parser.finish()
@@ -196,9 +196,9 @@ def WebIDLTest(parser, harness):
     parser.parse("""
       interface A {
         [Throws]
-        void foo();
+        undefined foo();
         [Throws, LenientFloat]
-        void foo(float myFloat);
+        undefined foo(float myFloat);
       };
     """)
     results = parser.finish()
@@ -213,9 +213,9 @@ def WebIDLTest(parser, harness):
         parser.parse("""
           interface A {
             [Throws, LenientFloat]
-            void foo(float myFloat);
+            undefined foo(float myFloat);
             [Throws]
-            void foo(float myFloat, float yourFloat);
+            undefined foo(float myFloat, float yourFloat);
           };
         """)
         results = parser.finish()
@@ -229,9 +229,9 @@ def WebIDLTest(parser, harness):
         parser.parse("""
           interface A {
             [Throws]
-            void foo(float myFloat, float yourFloat);
+            undefined foo(float myFloat, float yourFloat);
             [Throws, LenientFloat]
-            void foo(float myFloat);
+            undefined foo(float myFloat);
           };
         """)
         results = parser.finish()
@@ -245,9 +245,9 @@ def WebIDLTest(parser, harness):
         parser.parse("""
           interface A {
             [Throws, LenientFloat]
-            void foo(float myFloat);
+            undefined foo(float myFloat);
             [Throws, LenientFloat]
-            void foo(short myShort);
+            undefined foo(short myShort);
           };
         """)
         results = parser.finish()

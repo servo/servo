@@ -9,10 +9,10 @@ interface HTMLOptionsCollection : HTMLCollection {
   [CEReactions]
   attribute unsigned long length; // shadows inherited length
   [CEReactions, Throws]
-  setter void (unsigned long index, HTMLOptionElement? option);
+  setter undefined (unsigned long index, HTMLOptionElement? option);
   [CEReactions, Throws]
-  void add((HTMLOptionElement or HTMLOptGroupElement) element, optional (HTMLElement or long)? before = null);
+  undefined add((HTMLOptionElement or HTMLOptGroupElement) element, optional (HTMLElement or long)? before = null);
   [CEReactions]
-  void remove(long index);
+  undefined remove(long index);
   attribute long selectedIndex;
 };

@@ -16,12 +16,12 @@ interface mixin WindowOrWorkerGlobalScope {
 
   // timers
   long setTimeout(TimerHandler handler, optional long timeout = 0, any... arguments);
-  void clearTimeout(optional long handle = 0);
+  undefined clearTimeout(optional long handle = 0);
   long setInterval(TimerHandler handler, optional long timeout = 0, any... arguments);
-  void clearInterval(optional long handle = 0);
+  undefined clearInterval(optional long handle = 0);
 
   // microtask queuing
-  void queueMicrotask(VoidFunction callback);
+  undefined queueMicrotask(VoidFunction callback);
 
   // ImageBitmap
   [Pref="dom.imagebitmap.enabled"]

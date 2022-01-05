@@ -18,5 +18,5 @@ dictionary XRHitTestOptionsInit {
 
 [SecureContext, Exposed=Window]
 interface XRHitTestSource {
-  void cancel();
+  undefined cancel();
 };

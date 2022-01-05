@@ -22,7 +22,7 @@ interface EventSource : EventTarget {
   attribute EventHandler onopen;
   attribute EventHandler onmessage;
   attribute EventHandler onerror;
-  void close();
+  undefined close();
 };
 
 dictionary EventSourceInit {

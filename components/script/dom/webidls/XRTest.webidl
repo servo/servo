@@ -13,10 +13,10 @@ interface XRTest {
   // // Simulates a user activation (aka user gesture) for the current scope.
   // // The activation is only guaranteed to be valid in the provided function and only applies to WebXR
   // // Device API methods.
-  void simulateUserActivation(Function f);
+  undefined simulateUserActivation(Function f);
 
   // // Disconnect all fake devices
-  Promise<void> disconnectAllDevices();
+  Promise<undefined> disconnectAllDevices();
 };
 
 dictionary FakeXRDeviceInit {

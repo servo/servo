@@ -8,6 +8,6 @@
 [Pref="dom.testbinding.enabled", Exposed=(Window,Worker)]
 interface TestBindingPairIterable {
   [Throws] constructor();
-  void add(DOMString key, unsigned long value);
+  undefined add(DOMString key, unsigned long value);
   iterable<DOMString, unsigned long>;
 };

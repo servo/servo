@@ -9,15 +9,15 @@ interface RTCPeerConnection : EventTarget {
     [Throws] constructor(optional RTCConfiguration configuration = {});
     Promise<RTCSessionDescriptionInit> createOffer(optional RTCOfferOptions options = {});
     Promise<RTCSessionDescriptionInit> createAnswer(optional RTCAnswerOptions options = {});
-    Promise<void>                      setLocalDescription(RTCSessionDescriptionInit description);
+    Promise<undefined>                      setLocalDescription(RTCSessionDescriptionInit description);
     readonly attribute RTCSessionDescription? localDescription;
     // readonly attribute RTCSessionDescription? currentLocalDescription;
     // readonly attribute RTCSessionDescription? pendingLocalDescription;
-    Promise<void>                      setRemoteDescription(RTCSessionDescriptionInit description);
+    Promise<undefined>                      setRemoteDescription(RTCSessionDescriptionInit description);
     readonly attribute RTCSessionDescription? remoteDescription;
     // readonly attribute RTCSessionDescription? currentRemoteDescription;
     // readonly attribute RTCSessionDescription? pendingRemoteDescription;
-    Promise<void>                      addIceCandidate(optional RTCIceCandidateInit candidate = {});
+    Promise<undefined>                      addIceCandidate(optional RTCIceCandidateInit candidate = {});
     readonly attribute RTCSignalingState      signalingState;
     readonly attribute RTCIceGatheringState   iceGatheringState;
     readonly attribute RTCIceConnectionState  iceConnectionState;
@@ -26,7 +26,7 @@ interface RTCPeerConnection : EventTarget {
     // static sequence<RTCIceServer>      getDefaultIceServers();
     // RTCConfiguration                   getConfiguration();
     // void                               setConfiguration(RTCConfiguration configuration);
-    void                               close();
+    undefined                               close();
              attribute EventHandler           onnegotiationneeded;
              attribute EventHandler           onicecandidate;
     //          attribute EventHandler           onicecandidateerror;
@@ -36,7 +36,7 @@ interface RTCPeerConnection : EventTarget {
     //          attribute EventHandler           onconnectionstatechange;
 
     // removed from spec, but still shipped by browsers
-    void addStream (MediaStream stream);
+    undefined addStream (MediaStream stream);
 };
 
 dictionary RTCConfiguration {

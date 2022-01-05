@@ -7,7 +7,7 @@
 interface CanvasGradient {
   // opaque object
   [Throws]
-  void addColorStop(double offset, DOMString color);
+  undefined addColorStop(double offset, DOMString color);
 };
 
 

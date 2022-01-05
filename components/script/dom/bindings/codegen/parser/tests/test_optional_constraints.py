@@ -3,7 +3,7 @@ def WebIDLTest(parser, harness):
     try:
         parser.parse("""
             interface OptionalConstraints1 {
-              void foo(optional byte arg1, byte arg2);
+              undefined foo(optional byte arg1, byte arg2);
             };
         """)
 
@@ -18,7 +18,7 @@ def WebIDLTest(parser, harness):
     parser = parser.reset()
     parser.parse("""
         interface OptionalConstraints2 {
-          void foo(optional byte arg1 = 1, optional byte arg2 = 2,
+          undefined foo(optional byte arg1 = 1, optional byte arg2 = 2,
                    optional byte arg3, optional byte arg4 = 4,
                    optional byte arg5, optional byte arg6 = 9);
         };
