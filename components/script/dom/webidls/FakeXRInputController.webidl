@@ -11,7 +11,10 @@ interface FakeXRInputController {
   undefined setProfiles(sequence<DOMString> profiles);
   [Throws] undefined setGripOrigin(FakeXRRigidTransformInit gripOrigin, optional boolean emulatedPosition = false);
   undefined clearGripOrigin();
-  [Throws] undefined setPointerOrigin(FakeXRRigidTransformInit pointerOrigin, optional boolean emulatedPosition = false);
+  [Throws] undefined setPointerOrigin(
+    FakeXRRigidTransformInit pointerOrigin,
+    optional boolean emulatedPosition = false
+  );
 
   undefined disconnect();
   undefined reconnect();

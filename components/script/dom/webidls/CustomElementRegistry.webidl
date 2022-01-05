@@ -6,7 +6,11 @@
 [Exposed=Window, Pref="dom.custom_elements.enabled"]
 interface CustomElementRegistry {
   [Throws, CEReactions]
-  undefined define(DOMString name, CustomElementConstructor constructor_, optional ElementDefinitionOptions options = {});
+  undefined define(
+    DOMString name,
+    CustomElementConstructor constructor_,
+    optional ElementDefinitionOptions options = {}
+  );
 
   any get(DOMString name);
 
