@@ -1,6 +1,6 @@
 # Building the binary .tgz for magicleap gstreamer
 
-`mach` downloads prebuilt gstreamer libaries, which are built using this script.
+`mach` downloads prebuilt gstreamer libraries, which are built using this script.
 
 # Requirements
 - Magic Leap SDK >= 0.22.0 for MacOSX

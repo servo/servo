@@ -274,7 +274,7 @@ Servo is built with [Cargo](https://crates.io/), the Rust package manager.
 We also use Mozilla's Mach tools to orchestrate the build and other tasks.
 You can call Mach like this:
 
-On Unix sytems:
+On Unix systems:
 ```
 ./mach [command] [arguments]
 ```
