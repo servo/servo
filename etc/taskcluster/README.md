@@ -11,7 +11,7 @@ For some things however that is not practical,
 or some deployment step that mutates global state is required.
 That configuration is split between the [mozilla/community-tc-config] and
 [servo/taskcluster-config] repositories,
-managed by the Taskcluster team and the Servo team repsectively.
+managed by the Taskcluster team and the Servo team respectively.
 
 [mozilla/community-tc-config]: https://github.com/mozilla/community-tc-config/blob/master/config/projects.yml
 [servo/taskcluster-config]: https://github.com/servo/taskcluster-config/tree/master/config
@@ -148,7 +148,7 @@ which is visible on the [credentials] page
 (reachable from clicking on one’s own name on the top-right of any page).
 
 A running task has a set of scopes allowing it access to various functionality and APIs.
-It can grant those scopes (and at most only thoses) to sub-tasks that it schedules
+It can grant those scopes (and at most only those) to sub-tasks that it schedules
 (if it has the scope allowing it to schedule new tasks in the first place).
 
 [Roles] represent each a set of scopes.
@@ -192,7 +192,7 @@ to those roles from the [servo/taskcluster-config] repository.
 The [`project-servo/daily`] hook in Taskcluster’s [Hooks service]
 is used to run some tasks automatically ever 24 hours.
 In this case as well we use a decision task.
-The `decision_task.py` script can differenciate this from a GitHub push
+The `decision_task.py` script can differentiate this from a GitHub push
 based on the `$TASK_FOR` environment variable.
 Daily tasks can also be triggered manually.
 

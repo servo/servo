@@ -50,7 +50,7 @@ Running the tests without mach
 
 When avoiding `mach` for some reason, one can run `run.py`
 directly. However, this requires that all the dependencies for
-`wptrunner` are avaliable in the current python environment.
+`wptrunner` are available in the current python environment.
 
 Running the tests manually
 --------------------------
