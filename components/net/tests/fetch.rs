@@ -20,7 +20,7 @@ use headers::{AccessControlAllowMethods, AccessControlMaxAge, HeaderMapExt};
 use headers::{CacheControl, ContentLength, ContentType, Expires, LastModified, Pragma, UserAgent};
 use http::header::{self, HeaderMap, HeaderName, HeaderValue};
 use http::{Method, StatusCode};
-use hyper::body::Body;
+use hyper::Body;
 use hyper::{Request as HyperRequest, Response as HyperResponse};
 use mime::{self, Mime};
 use msg::constellation_msg::TEST_PIPELINE_ID;

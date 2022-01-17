@@ -15,7 +15,6 @@ use devtools_traits::HttpResponse as DevtoolsHttpResponse;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
 use flate2::write::{DeflateEncoder, GzEncoder};
 use flate2::Compression;
-use futures::{self, Future, Stream};
 use headers::authorization::Basic;
 use headers::{
     Authorization, ContentLength, Date, HeaderMapExt, Host, StrictTransportSecurity, UserAgent,
@@ -23,7 +22,7 @@ use headers::{
 use http::header::{self, HeaderMap, HeaderValue};
 use http::uri::Authority;
 use http::{Method, StatusCode};
-use hyper::body::Body;
+use hyper::Body;
 use hyper::{Request as HyperRequest, Response as HyperResponse};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
@@ -49,13 +48,6 @@ use std::time::Duration;
 
 fn mock_origin() -> ImmutableOrigin {
     ServoUrl::parse("http://servo.org").unwrap().origin()
-}
-
-fn read_response(req: HyperRequest<Body>) -> impl Future<Item = String, Error = ()> {
-    req.into_body()
-        .concat2()
-        .and_then(|body| futures::future::ok(str::from_utf8(&body).unwrap().to_owned()))
-        .map_err(|_| ())
 }
 
 fn assert_cookie_for_domain(
@@ -521,28 +513,18 @@ fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_conte
 
 #[test]
 fn test_load_doesnt_send_request_body_on_any_redirect() {
+    use hyper::body::HttpBody;
+
     let post_handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
         assert_eq!(request.method(), Method::GET);
-        read_response(request)
-            .and_then(|data| {
-                assert_eq!(data, "");
-                futures::future::ok(())
-            })
-            .poll()
-            .unwrap();
+        assert_eq!(request.size_hint().exact(), Some(0));
         *response.body_mut() = b"Yay!".to_vec().into();
     };
     let (post_server, post_url) = make_server(post_handler);
 
     let post_redirect_url = post_url.clone();
     let pre_handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
-        read_response(request)
-            .and_then(|data| {
-                assert_eq!(data, "Body on POST");
-                futures::future::ok(())
-            })
-            .poll()
-            .unwrap();
+        assert_eq!(request.size_hint().exact(), Some(13));
         response.headers_mut().insert(
             header::LOCATION,
             HeaderValue::from_str(&post_redirect_url.to_string()).unwrap(),

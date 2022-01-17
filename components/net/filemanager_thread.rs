@@ -27,7 +27,7 @@ use std::ops::Index;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{self, AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, RwLock, Weak};
-use tokio2::sync::mpsc::UnboundedSender as TokioSender;
+use tokio::sync::mpsc::UnboundedSender as TokioSender;
 use url::Url;
 use uuid::Uuid;
 

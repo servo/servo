@@ -45,7 +45,7 @@ use headers::{ContentLength, ContentType, HeaderMapExt};
 use html5ever::serialize;
 use html5ever::serialize::SerializeOpts;
 use http::header::{self, HeaderMap, HeaderName, HeaderValue};
-use hyper::Method;
+use http::Method;
 use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;

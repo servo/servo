@@ -12,8 +12,7 @@ use crate::StreamId;
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
 use headers::{ContentType, Cookie, HeaderMapExt};
-use http::{header, HeaderMap};
-use hyper::{Method, StatusCode};
+use http::{header, HeaderMap, Method, StatusCode};
 use serde_json::{Map, Value};
 use std::net::TcpStream;
 use time::Tm;
@@ -343,6 +342,7 @@ impl NetworkEventActor {
 
     pub fn add_request(&mut self, request: DevtoolsHttpRequest) {
         self.request.url = request.url.as_str().to_owned();
+
         self.request.method = request.method.clone();
         self.request.headers = request.headers.clone();
         self.request.body = request.body;

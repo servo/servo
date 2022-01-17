@@ -12,8 +12,7 @@ use headers::{
     CacheControl, ContentRange, Expires, HeaderMapExt, LastModified, Pragma, Range, Vary,
 };
 use http::header::HeaderValue;
-use http::{header, HeaderMap};
-use hyper::{Method, StatusCode};
+use http::{header, HeaderMap, Method, StatusCode};
 use malloc_size_of::Measurable;
 use malloc_size_of::{
     MallocSizeOf, MallocSizeOfOps, MallocUnconditionalShallowSizeOf, MallocUnconditionalSizeOf,
@@ -29,7 +28,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::SystemTime;
 use time::{Duration, Timespec, Tm};
-use tokio2::sync::mpsc::{unbounded_channel as unbounded, UnboundedSender as TokioSender};
+use tokio::sync::mpsc::{unbounded_channel as unbounded, UnboundedSender as TokioSender};
 
 /// The key used to differentiate requests in the cache.
 #[derive(Clone, Eq, Hash, MallocSizeOf, PartialEq)]

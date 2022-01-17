@@ -16,10 +16,10 @@ doctest = false
 content-security-policy = { version = "0.4.0", features = ["serde"] }
 cookie = "0.11"
 embedder_traits = { path = "../embedder_traits" }
-headers = "0.2"
-http = "0.1"
-hyper = "0.12"
-hyper_serde = "0.11"
+headers = "0.3"
+http = "0.2"
+hyper = "0.14"
+hyper_serde = "0.12"
 ipc-channel = "0.14"
 lazy_static = "1"
 log = "0.4"

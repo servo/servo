@@ -24,7 +24,7 @@ use crate::script_runtime::JSContext as SafeJSContext;
 use crate::script_runtime::StreamConsumer;
 use dom_struct::dom_struct;
 use http::header::HeaderMap as HyperHeaders;
-use hyper::StatusCode;
+use http::StatusCode;
 use hyper_serde::Serde;
 use js::jsapi::JSObject;
 use servo_url::ServoUrl;

@@ -16,7 +16,7 @@ use crate::hsts::HstsList;
 use crate::http_cache::HttpCache;
 use crate::http_loader::{http_redirect_fetch, HttpState, HANDLE};
 use crate::storage_thread::StorageThreadFactory;
-use crate::websocket_loader::{self, HANDLE as WS_HANDLE};
+use crate::websocket_loader;
 use crossbeam_channel::Sender;
 use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::resources::{self, Resource};
@@ -155,15 +155,12 @@ fn create_http_states(
         history_states: RwLock::new(HashMap::new()),
         http_cache: RwLock::new(http_cache),
         http_cache_state: Mutex::new(HashMap::new()),
-        client: create_http_client(
-            create_tls_config(
-                &certs,
-                ALPN_H2_H1,
-                extra_certs.clone(),
-                connection_certs.clone(),
-            ),
-            HANDLE.lock().unwrap().as_ref().unwrap().executor(),
-        ),
+        client: create_http_client(create_tls_config(
+            &certs,
+            ALPN_H2_H1,
+            extra_certs.clone(),
+            connection_certs.clone(),
+        )),
         extra_certs,
         connection_certs,
     };
@@ -178,15 +175,12 @@ fn create_http_states(
         history_states: RwLock::new(HashMap::new()),
         http_cache: RwLock::new(HttpCache::new()),
         http_cache_state: Mutex::new(HashMap::new()),
-        client: create_http_client(
-            create_tls_config(
-                &certs,
-                ALPN_H2_H1,
-                extra_certs.clone(),
-                connection_certs.clone(),
-            ),
-            HANDLE.lock().unwrap().as_ref().unwrap().executor(),
-        ),
+        client: create_http_client(create_tls_config(
+            &certs,
+            ALPN_H2_H1,
+            extra_certs.clone(),
+            connection_certs.clone(),
+        )),
         extra_certs,
         connection_certs,
     };
@@ -616,12 +610,6 @@ impl CoreResourceManager {
         // or a short timeout has been reached.
         self.thread_pool.exit();
 
-        // Shut-down the async runtime used by fetch workers.
-        drop(HANDLE.lock().unwrap().take());
-
-        // Shut-down the async runtime used by websocket workers.
-        drop(WS_HANDLE.lock().unwrap().take());
-
         debug!("Exited CoreResourceManager");
     }
 
@@ -680,58 +668,49 @@ impl CoreResourceManager {
             _ => (FileTokenCheck::NotRequired, None),
         };
 
-        HANDLE
-            .lock()
-            .unwrap()
-            .as_ref()
-            .unwrap()
-            .spawn_std(async move {
-                // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
-                // todo load context / mimesniff in fetch
-                // todo referrer policy?
-                // todo service worker stuff
-                let context = FetchContext {
-                    state: http_state,
-                    user_agent: ua,
-                    devtools_chan: dc.map(|dc| Arc::new(Mutex::new(dc))),
-                    filemanager: Arc::new(Mutex::new(filemanager)),
-                    file_token,
-                    cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(
-                        cancel_chan,
-                    ))),
-                    timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
-                        request.timing_type(),
-                    ))),
-                };
+        HANDLE.lock().unwrap().as_ref().unwrap().spawn(async move {
+            // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
+            // todo load context / mimesniff in fetch
+            // todo referrer policy?
+            // todo service worker stuff
+            let context = FetchContext {
+                state: http_state,
+                user_agent: ua,
+                devtools_chan: dc.map(|dc| Arc::new(Mutex::new(dc))),
+                filemanager: Arc::new(Mutex::new(filemanager)),
+                file_token,
+                cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(cancel_chan))),
+                timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(request.timing_type()))),
+            };
 
-                match res_init_ {
-                    Some(res_init) => {
-                        let response = Response::from_init(res_init, timing_type);
-                        http_redirect_fetch(
-                            &mut request,
-                            &mut CorsCache::new(),
-                            response,
-                            true,
-                            &mut sender,
-                            &mut None,
-                            &context,
-                        )
-                        .await;
-                    },
-                    None => {
-                        fetch(&mut request, &mut sender, &context).await;
-                    },
-                };
+            match res_init_ {
+                Some(res_init) => {
+                    let response = Response::from_init(res_init, timing_type);
+                    http_redirect_fetch(
+                        &mut request,
+                        &mut CorsCache::new(),
+                        response,
+                        true,
+                        &mut sender,
+                        &mut None,
+                        &context,
+                    )
+                    .await;
+                },
+                None => {
+                    fetch(&mut request, &mut sender, &context).await;
+                },
+            };
 
-                // Remove token after fetch.
-                if let Some(id) = blob_url_file_id.as_ref() {
-                    context
-                        .filemanager
-                        .lock()
-                        .unwrap()
-                        .invalidate_token(&context.file_token, id);
-                }
-            });
+            // Remove token after fetch.
+            if let Some(id) = blob_url_file_id.as_ref() {
+                context
+                    .filemanager
+                    .lock()
+                    .unwrap()
+                    .invalidate_token(&context.file_token, id);
+            }
+        });
     }
 
     fn websocket_connect(

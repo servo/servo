@@ -22,7 +22,7 @@ use capabilities::ServoCapabilities;
 use compositing::ConstellationMsg;
 use crossbeam_channel::{after, unbounded, Receiver, Sender};
 use euclid::{Rect, Size2D};
-use hyper::Method;
+use http::method::Method;
 use image::{DynamicImage, ImageFormat, RgbImage};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -70,7 +70,7 @@ use webdriver::httpapi::WebDriverExtensionRoute;
 use webdriver::response::{CookieResponse, CookiesResponse};
 use webdriver::response::{ElementRectResponse, NewSessionResponse, ValueResponse};
 use webdriver::response::{TimeoutsResponse, WebDriverResponse, WindowRectResponse};
-use webdriver::server::{self, Session, WebDriverHandler};
+use webdriver::server::{self, Session, SessionTeardownKind, WebDriverHandler};
 
 fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
     return vec![
@@ -103,6 +103,7 @@ fn cookie_msg_to_cookie(cookie: cookie::Cookie) -> Cookie {
             .map(|time| Date(time.to_timespec().sec as u64)),
         secure: cookie.secure().unwrap_or(false),
         http_only: cookie.http_only().unwrap_or(false),
+        same_site: cookie.same_site().map(|s| s.to_string()),
     }
 }
 
@@ -112,7 +113,12 @@ pub fn start_server(port: u16, constellation_chan: Sender<ConstellationMsg>) {
         .name("WebDriverHttpServer".to_owned())
         .spawn(move || {
             let address = SocketAddrV4::new("0.0.0.0".parse().unwrap(), port);
-            match server::start(SocketAddr::V4(address), handler, extension_routes()) {
+            match server::start(
+                "localhost".to_owned(),
+                SocketAddr::V4(address),
+                handler,
+                extension_routes(),
+            ) {
                 Ok(listening) => info!("WebDriver server listening on {}", listening.socket),
                 Err(_) => panic!("Unable to start WebDriver HTTPD server"),
             }
@@ -1780,7 +1786,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
         }
     }
 
-    fn delete_session(&mut self, _session: &Option<Session>) {
+    fn teardown_session(&mut self, _session: SessionTeardownKind) {
         self.session = None;
     }
 }

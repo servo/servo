@@ -10,7 +10,7 @@
 //! with CORSRequest being expanded into FetchRequest (etc)
 
 use http::header::HeaderName;
-use hyper::Method;
+use http::Method;
 use net_traits::request::{CredentialsMode, Origin, Request};
 use servo_url::ServoUrl;
 use time::{self, Timespec};

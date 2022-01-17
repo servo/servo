@@ -3,10 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::hosts::replace_host;
-use hyper::client::connect::{Connect, Destination};
+use crate::http_loader::HANDLE;
+use futures::{task::Context, task::Poll, Future};
+use http::uri::{Authority, Uri as Destination};
 use hyper::client::HttpConnector as HyperHttpConnector;
-use hyper::rt::Future;
-use hyper::{Body, Client};
+use hyper::rt::Executor;
+use hyper::{service::Service, Body, Client};
 use hyper_openssl::HttpsConnector;
 use openssl::ex_data::Index;
 use openssl::ssl::{
@@ -15,7 +17,6 @@ use openssl::ssl::{
 use openssl::x509::{self, X509StoreContext};
 use std::collections::hash_map::{Entry, HashMap};
 use std::sync::{Arc, Mutex};
-use tokio::prelude::future::Executor;
 
 pub const BUF_SIZE: usize = 32768;
 pub const ALPN_H2_H1: &'static [u8] = b"\x02h2\x08http/1.1";
@@ -67,30 +68,53 @@ impl ConnectionCerts {
     }
 }
 
+#[derive(Clone)]
 pub struct HttpConnector {
     inner: HyperHttpConnector,
 }
 
 impl HttpConnector {
     fn new() -> HttpConnector {
-        let mut inner = HyperHttpConnector::new(4);
+        let mut inner = HyperHttpConnector::new();
         inner.enforce_http(false);
         inner.set_happy_eyeballs_timeout(None);
         HttpConnector { inner }
     }
 }
 
-impl Connect for HttpConnector {
-    type Transport = <HyperHttpConnector as Connect>::Transport;
-    type Error = <HyperHttpConnector as Connect>::Error;
-    type Future = <HyperHttpConnector as Connect>::Future;
+impl Service<Destination> for HttpConnector {
+    type Response = <HyperHttpConnector as Service<Destination>>::Response;
+    type Error = <HyperHttpConnector as Service<Destination>>::Error;
+    type Future = <HyperHttpConnector as Service<Destination>>::Future;
 
-    fn connect(&self, dest: Destination) -> Self::Future {
+    fn call(&mut self, dest: Destination) -> Self::Future {
         // Perform host replacement when making the actual TCP connection.
         let mut new_dest = dest.clone();
-        let addr = replace_host(dest.host());
-        new_dest.set_host(&*addr).unwrap();
-        self.inner.connect(new_dest)
+        let mut parts = dest.into_parts();
+
+        if let Some(auth) = parts.authority {
+            let host = auth.host();
+            let host = replace_host(host);
+
+            let authority = if let Some(port) = auth.port() {
+                format!("{}:{}", host, port.as_str())
+            } else {
+                format!("{}", &*host)
+            };
+
+            if let Ok(authority) = Authority::from_maybe_shared(authority) {
+                parts.authority = Some(authority);
+                if let Ok(dest) = Destination::from_parts(parts) {
+                    new_dest = dest
+                }
+            }
+        }
+
+        self.inner.call(new_dest)
+    }
+
+    fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        Ok(()).into()
     }
 }
 
@@ -209,18 +233,28 @@ pub fn create_tls_config(
     cfg
 }
 
-pub fn create_http_client<E>(tls_config: TlsConfig, executor: E) -> Client<Connector, Body>
+struct TokioExecutor {}
+
+impl<F> Executor<F> for TokioExecutor
 where
-    E: Executor<Box<dyn Future<Error = (), Item = ()> + Send + 'static>> + Sync + Send + 'static,
+    F: Future<Output = ()> + 'static + std::marker::Send,
 {
+    fn execute(&self, fut: F) {
+        HANDLE.lock().unwrap().as_ref().unwrap().spawn(fut);
+    }
+}
+
+pub fn create_http_client(tls_config: TlsConfig) -> Client<Connector, Body> {
     let mut connector = HttpsConnector::with_connector(HttpConnector::new(), tls_config).unwrap();
     connector.set_callback(|configuration, destination| {
-        configuration.set_ex_data(*HOST_INDEX, Host(destination.host().to_owned()));
+        if let Some(host) = destination.host() {
+            configuration.set_ex_data(*HOST_INDEX, Host(host.to_owned()));
+        }
         Ok(())
     });
 
     Client::builder()
         .http1_title_case_headers(true)
-        .executor(executor)
+        .executor(TokioExecutor {})
         .build(connector)
 }
