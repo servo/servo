@@ -50,7 +50,7 @@ backtrace = "0.3"
 clipboard = "0.5"
 euclid = "0.20"
 getopts = "0.2.11"
-keyboard-types = "0.5"
+keyboard-types = "0.6"
 lazy_static = "1"
 libc = "0.2"
 libservo = { path = "../../components/servo" }
