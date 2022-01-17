@@ -59,7 +59,7 @@ interface Node : EventTarget {
   [CEReactions, Pure]
            attribute DOMString? textContent;
   [CEReactions]
-  void normalize();
+  undefined normalize();
 
   [CEReactions, Throws]
   Node cloneNode(optional boolean deep = false);

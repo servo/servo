@@ -24,7 +24,7 @@ interface URL {
   // https://w3c.github.io/FileAPI/#creating-revoking
   static DOMString createObjectURL(Blob blob);
   // static DOMString createFor(Blob blob);
-  static void revokeObjectURL(DOMString url);
+  static undefined revokeObjectURL(DOMString url);
 
   USVString toJSON();
 };

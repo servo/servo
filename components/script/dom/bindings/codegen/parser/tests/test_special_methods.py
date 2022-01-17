@@ -61,7 +61,7 @@ def WebIDLTest(parser, harness):
         parser.parse(
             """
             interface IndexedDeleter {
-              deleter void(unsigned long index);
+              deleter undefined(unsigned long index);
             };
             """)
         parser.finish()
@@ -69,5 +69,5 @@ def WebIDLTest(parser, harness):
         threw = True
 
     harness.ok(threw, "There are no indexed deleters")
-        
-        
+
+

@@ -8,7 +8,7 @@
 interface MediaQueryList : EventTarget {
   readonly attribute DOMString media;
   readonly attribute boolean matches;
-  void addListener(EventListener? listener);
-  void removeListener(EventListener? listener);
+  undefined addListener(EventListener? listener);
+  undefined removeListener(EventListener? listener);
            attribute EventHandler onchange;
 };

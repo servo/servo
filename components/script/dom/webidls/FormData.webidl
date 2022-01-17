@@ -11,13 +11,13 @@ typedef (File or USVString) FormDataEntryValue;
 [Exposed=(Window,Worker)]
 interface FormData {
   [Throws] constructor(optional HTMLFormElement form);
-  void append(USVString name, USVString value);
-  void append(USVString name, Blob value, optional USVString filename);
-  void delete(USVString name);
+  undefined append(USVString name, USVString value);
+  undefined append(USVString name, Blob value, optional USVString filename);
+  undefined delete(USVString name);
   FormDataEntryValue? get(USVString name);
   sequence<FormDataEntryValue> getAll(USVString name);
   boolean has(USVString name);
-  void set(USVString name, USVString value);
-  void set(USVString name, Blob value, optional USVString filename);
+  undefined set(USVString name, USVString value);
+  undefined set(USVString name, Blob value, optional USVString filename);
   iterable<USVString, FormDataEntryValue>;
 };

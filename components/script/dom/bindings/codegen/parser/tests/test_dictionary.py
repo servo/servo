@@ -158,7 +158,7 @@ def WebIDLTest(parser, harness):
             dictionary A {
             };
             interface X {
-              void doFoo(A arg);
+              undefined doFoo(A arg);
             };
         """)
         results = parser.finish()
@@ -174,7 +174,7 @@ def WebIDLTest(parser, harness):
             dictionary A {
             };
             interface X {
-              void doFoo(optional A arg);
+              undefined doFoo(optional A arg);
             };
         """)
         results = parser.finish()
@@ -190,7 +190,7 @@ def WebIDLTest(parser, harness):
             dictionary A {
             };
             interface X {
-              void doFoo((A or DOMString) arg);
+              undefined doFoo((A or DOMString) arg);
             };
         """)
         results = parser.finish()
@@ -207,7 +207,7 @@ def WebIDLTest(parser, harness):
             dictionary A {
             };
             interface X {
-              void doFoo(optional (A or DOMString) arg);
+              undefined doFoo(optional (A or DOMString) arg);
             };
         """)
         results = parser.finish()
@@ -224,7 +224,7 @@ def WebIDLTest(parser, harness):
             dictionary A {
             };
             interface X {
-              void doFoo(A arg1, optional long arg2);
+              undefined doFoo(A arg1, optional long arg2);
             };
         """)
         results = parser.finish()
@@ -240,7 +240,7 @@ def WebIDLTest(parser, harness):
             dictionary A {
             };
             interface X {
-              void doFoo(optional A arg1, optional long arg2);
+              undefined doFoo(optional A arg1, optional long arg2);
             };
         """)
         results = parser.finish()
@@ -256,7 +256,7 @@ def WebIDLTest(parser, harness):
             dictionary A {
             };
             interface X {
-              void doFoo(A arg1, optional long arg2, long arg3);
+              undefined doFoo(A arg1, optional long arg2, long arg3);
             };
         """)
         results = parser.finish()
@@ -273,7 +273,7 @@ def WebIDLTest(parser, harness):
             dictionary A {
             };
             interface X {
-              void doFoo((A or DOMString) arg1, optional long arg2);
+              undefined doFoo((A or DOMString) arg1, optional long arg2);
             };
         """)
         results = parser.finish()
@@ -291,7 +291,7 @@ def WebIDLTest(parser, harness):
             dictionary A {
             };
             interface X {
-              void doFoo(optional (A or DOMString) arg1, optional long arg2);
+              undefined doFoo(optional (A or DOMString) arg1, optional long arg2);
             };
         """)
         results = parser.finish()
@@ -307,7 +307,7 @@ def WebIDLTest(parser, harness):
             dictionary A {
             };
             interface X {
-              void doFoo(A arg1, long arg2);
+              undefined doFoo(A arg1, long arg2);
             };
         """)
     results = parser.finish()
@@ -320,7 +320,7 @@ def WebIDLTest(parser, harness):
             dictionary A {
             };
             interface X {
-              void doFoo(optional A? arg1 = {});
+              undefined doFoo(optional A? arg1 = {});
             };
         """)
         results = parser.finish()
@@ -339,7 +339,7 @@ def WebIDLTest(parser, harness):
               required long x;
             };
             interface X {
-              void doFoo(A? arg1);
+              undefined doFoo(A? arg1);
             };
         """)
         results = parser.finish()
@@ -358,7 +358,7 @@ def WebIDLTest(parser, harness):
             dictionary A {
             };
             interface X {
-              void doFoo(optional (A or long)? arg1 = {});
+              undefined doFoo(optional (A or long)? arg1 = {});
             };
         """)
         results = parser.finish()
@@ -378,7 +378,7 @@ def WebIDLTest(parser, harness):
               required long x;
             };
             interface X {
-              void doFoo((A or long)? arg1);
+              undefined doFoo((A or long)? arg1);
             };
         """)
         results = parser.finish()
@@ -397,7 +397,7 @@ def WebIDLTest(parser, harness):
             dictionary A {
             };
             interface X {
-              void doFoo(sequence<A?> arg1);
+              undefined doFoo(sequence<A?> arg1);
             };
         """)
         results = parser.finish()
@@ -414,7 +414,7 @@ def WebIDLTest(parser, harness):
             dictionary A {
             };
             interface X {
-              void doFoo(optional (A or long?) arg1);
+              undefined doFoo(optional (A or long?) arg1);
             };
         """)
         results = parser.finish()
@@ -430,7 +430,7 @@ def WebIDLTest(parser, harness):
             dictionary A {
             };
             interface X {
-              void doFoo(optional (long? or A) arg1);
+              undefined doFoo(optional (long? or A) arg1);
             };
         """)
         results = parser.finish()
@@ -455,7 +455,7 @@ def WebIDLTest(parser, harness):
         dictionary A {
         };
         interface X {
-          void doFoo(optional A arg = {});
+          undefined doFoo(optional A arg = {});
         };
     """)
     results = parser.finish()
@@ -466,7 +466,7 @@ def WebIDLTest(parser, harness):
         dictionary A {
         };
         interface X {
-          void doFoo(optional (A or DOMString) arg = {});
+          undefined doFoo(optional (A or DOMString) arg = {});
         };
     """)
     results = parser.finish()
@@ -477,7 +477,7 @@ def WebIDLTest(parser, harness):
         dictionary A {
         };
         interface X {
-          void doFoo(optional (A or DOMString) arg = "abc");
+          undefined doFoo(optional (A or DOMString) arg = "abc");
         };
     """)
     results = parser.finish()

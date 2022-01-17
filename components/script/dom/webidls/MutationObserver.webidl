@@ -11,12 +11,12 @@
 interface MutationObserver {
     [Throws] constructor(MutationCallback callback);
     [Throws]
-    void observe(Node target, optional MutationObserverInit options = {});
-    void disconnect();
+    undefined observe(Node target, optional MutationObserverInit options = {});
+    undefined disconnect();
     sequence<MutationRecord> takeRecords();
 };
 
-callback MutationCallback = void (sequence<MutationRecord> mutations, MutationObserver observer);
+callback MutationCallback = undefined (sequence<MutationRecord> mutations, MutationObserver observer);
 
 dictionary MutationObserverInit {
     boolean childList = false;

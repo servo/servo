@@ -12,8 +12,8 @@ enum AudioContextState {
   "closed"
 };
 
-callback DecodeErrorCallback = void (DOMException error);
-callback DecodeSuccessCallback = void (AudioBuffer decodedData);
+callback DecodeErrorCallback = undefined (DOMException error);
+callback DecodeSuccessCallback = undefined (AudioBuffer decodedData);
 
 [Exposed=Window]
 interface BaseAudioContext : EventTarget {
@@ -22,7 +22,7 @@ interface BaseAudioContext : EventTarget {
   readonly attribute double currentTime;
   readonly attribute AudioListener listener;
   readonly attribute AudioContextState  state;
-  Promise<void> resume();
+  Promise<undefined> resume();
   attribute EventHandler onstatechange;
   [Throws] AudioBuffer createBuffer(unsigned long numberOfChannels,
                                     unsigned long length,

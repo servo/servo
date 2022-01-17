@@ -3,16 +3,16 @@ import WebIDL
 def WebIDLTest(parser, harness):
     parser.parse("""
         interface TestOverloads {
-          void basic();
-          void basic(long arg1);
+          undefined basic();
+          undefined basic(long arg1);
           boolean abitharder(TestOverloads foo);
           boolean abitharder(boolean foo);
-          void abitharder(ArrayBuffer? foo);
-          void withVariadics(long... numbers);
-          void withVariadics(TestOverloads iface);
-          void withVariadics(long num, TestOverloads iface);
-          void optionalTest();
-          void optionalTest(optional long num1, long num2);
+          undefined abitharder(ArrayBuffer? foo);
+          undefined withVariadics(long... numbers);
+          undefined withVariadics(TestOverloads iface);
+          undefined withVariadics(long num, TestOverloads iface);
+          undefined optionalTest();
+          undefined optionalTest(optional long num1, long num2);
         };
     """)
 
@@ -37,11 +37,11 @@ def WebIDLTest(parser, harness):
 
     (retval, argumentSet) = signatures[0]
 
-    harness.check(str(retval), "Void", "Expect a void retval")
+    harness.check(str(retval), "Undefined", "Expect a undefined retval")
     harness.check(len(argumentSet), 0, "Expect an empty argument set")
 
     (retval, argumentSet) = signatures[1]
-    harness.check(str(retval), "Void", "Expect a void retval")
+    harness.check(str(retval), "Undefined", "Expect a undefined retval")
     harness.check(len(argumentSet), 1, "Expect an argument set with one argument")
 
     argument = argumentSet[0]

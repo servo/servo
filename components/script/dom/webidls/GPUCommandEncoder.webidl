@@ -8,24 +8,24 @@ interface GPUCommandEncoder {
     GPURenderPassEncoder beginRenderPass(GPURenderPassDescriptor descriptor);
     GPUComputePassEncoder beginComputePass(optional GPUComputePassDescriptor descriptor = {});
 
-    void copyBufferToBuffer(
+    undefined copyBufferToBuffer(
         GPUBuffer source,
         GPUSize64 sourceOffset,
         GPUBuffer destination,
         GPUSize64 destinationOffset,
         GPUSize64 size);
 
-    void copyBufferToTexture(
+    undefined copyBufferToTexture(
         GPUBufferCopyView source,
         GPUTextureCopyView destination,
         GPUExtent3D copySize);
 
-    void copyTextureToBuffer(
+    undefined copyTextureToBuffer(
         GPUTextureCopyView source,
         GPUBufferCopyView destination,
         GPUExtent3D copySize);
 
-    void copyTextureToTexture(
+    undefined copyTextureToTexture(
         GPUTextureCopyView source,
         GPUTextureCopyView destination,
         GPUExtent3D copySize);

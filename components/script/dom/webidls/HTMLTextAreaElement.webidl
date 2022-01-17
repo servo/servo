@@ -48,11 +48,11 @@ interface HTMLTextAreaElement : HTMLElement {
   readonly attribute DOMString validationMessage;
   boolean checkValidity();
   boolean reportValidity();
-  void setCustomValidity(DOMString error);
+  undefined setCustomValidity(DOMString error);
 
   readonly attribute NodeList labels;
 
-  void select();
+  undefined select();
   [SetterThrows]
            attribute unsigned long? selectionStart;
   [SetterThrows]
@@ -60,10 +60,10 @@ interface HTMLTextAreaElement : HTMLElement {
   [SetterThrows]
            attribute DOMString? selectionDirection;
   [Throws]
-           void setRangeText(DOMString replacement);
+           undefined setRangeText(DOMString replacement);
   [Throws]
-           void setRangeText(DOMString replacement, unsigned long start, unsigned long end,
+           undefined setRangeText(DOMString replacement, unsigned long start, unsigned long end,
                              optional SelectionMode selectionMode = "preserve");
   [Throws]
-           void setSelectionRange(unsigned long start, unsigned long end, optional DOMString direction);
+           undefined setSelectionRange(unsigned long start, unsigned long end, optional DOMString direction);
 };

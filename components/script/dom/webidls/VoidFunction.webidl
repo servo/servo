@@ -10,4 +10,4 @@
  * and create derivative works of this document.
  */
 
-callback VoidFunction = void ();
+callback VoidFunction = undefined ();

@@ -6,19 +6,22 @@
 
 [Exposed=Window, Pref="dom.webxr.test"]
 interface FakeXRInputController {
-  void setHandedness(XRHandedness handedness);
-  void setTargetRayMode(XRTargetRayMode targetRayMode);
-  void setProfiles(sequence<DOMString> profiles);
-  [Throws] void setGripOrigin(FakeXRRigidTransformInit gripOrigin, optional boolean emulatedPosition = false);
-  void clearGripOrigin();
-  [Throws] void setPointerOrigin(FakeXRRigidTransformInit pointerOrigin, optional boolean emulatedPosition = false);
+  undefined setHandedness(XRHandedness handedness);
+  undefined setTargetRayMode(XRTargetRayMode targetRayMode);
+  undefined setProfiles(sequence<DOMString> profiles);
+  [Throws] undefined setGripOrigin(FakeXRRigidTransformInit gripOrigin, optional boolean emulatedPosition = false);
+  undefined clearGripOrigin();
+  [Throws] undefined setPointerOrigin(
+    FakeXRRigidTransformInit pointerOrigin,
+    optional boolean emulatedPosition = false
+  );
 
-  void disconnect();
-  void reconnect();
+  undefined disconnect();
+  undefined reconnect();
 
-  void startSelection();
-  void endSelection();
-  void simulateSelect();
+  undefined startSelection();
+  undefined endSelection();
+  undefined simulateSelect();
 
   // void setSupportedButtons(sequence<FakeXRButtonStateInit> supportedButtons);
   // void updateButtonState(FakeXRButtonStateInit buttonState);

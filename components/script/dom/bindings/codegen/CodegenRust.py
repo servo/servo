@@ -1188,7 +1188,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
         return handleOptional(template, declType, handleDefault(empty))
 
-    if type.isVoid():
+    if type.isUndefined():
         # This one only happens for return values, and its easy: Just
         # ignore the jsval.
         return JSToNativeConversionInfo("", None, None)
@@ -1439,7 +1439,7 @@ def getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs):
 
 # Returns a CGThing containing the type of the return value.
 def getRetvalDeclarationForType(returnType, descriptorProvider):
-    if returnType is None or returnType.isVoid():
+    if returnType is None or returnType.isUndefined():
         # Nothing to declare
         return CGGeneric("()")
     if returnType.isPrimitive() and returnType.tag() in builtinNames:
@@ -4338,7 +4338,7 @@ class CGMemberJITInfo(CGThing):
                 result += self.defineJitInfo(setterinfo, setter, "Setter",
                                              False, False, "AliasEverything",
                                              False, False, "0",
-                                             [BuiltinTypes[IDLBuiltinType.Types.void]],
+                                             [BuiltinTypes[IDLBuiltinType.Types.undefined]],
                                              None)
             return result
         if self.member.isMethod():
@@ -4426,7 +4426,7 @@ class CGMemberJITInfo(CGThing):
         if t.nullable():
             # Sometimes it might return null, sometimes not
             return "JSVAL_TYPE_UNKNOWN"
-        if t.isVoid():
+        if t.isUndefined():
             # No return, every time
             return "JSVAL_TYPE_UNDEFINED"
         if t.isSequence():
@@ -4500,7 +4500,7 @@ class CGMemberJITInfo(CGThing):
 
     @staticmethod
     def getJSArgType(t):
-        assert not t.isVoid()
+        assert not t.isUndefined()
         if t.nullable():
             # Sometimes it might return null, sometimes not
             return "JSJitInfo_ArgType::Null as i32 | %s" % CGMemberJITInfo.getJSArgType(t.inner)
@@ -7336,7 +7336,7 @@ class CGNativeMember(ClassMethod):
                              # Mark our getters, which are attrs that
                              # have a non-void return type, as const.
                              const=(not member.isStatic() and member.isAttr()
-                                    and not signature[0].isVoid()),
+                                    and not signature[0].isUndefined()),
                              breakAfterSelf=breakAfterSelf,
                              unsafe=unsafe,
                              visibility=visibility)
@@ -7608,7 +7608,7 @@ class CallbackMember(CGNativeMember):
         convertType = instantiateJSToNativeConversionTemplate(
             template, replacements, declType, "rvalDecl")
 
-        if self.retvalType is None or self.retvalType.isVoid():
+        if self.retvalType is None or self.retvalType.isUndefined():
             retval = "()"
         elif self.retvalType.isAny():
             retval = "rvalDecl.get()"

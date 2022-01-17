@@ -12,14 +12,14 @@ dictionary PerformanceObserverInit {
   boolean buffered;
 };
 
-callback PerformanceObserverCallback = void (PerformanceObserverEntryList entries, PerformanceObserver observer);
+callback PerformanceObserverCallback = undefined (PerformanceObserverEntryList entries, PerformanceObserver observer);
 
 [Exposed=(Window,Worker)]
 interface PerformanceObserver {
   [Throws] constructor(PerformanceObserverCallback callback);
   [Throws]
-  void observe(optional PerformanceObserverInit options = {});
-  void disconnect();
+  undefined observe(optional PerformanceObserverInit options = {});
+  undefined disconnect();
   PerformanceEntryList takeRecords();
   // codegen doesn't like SameObject+static and doesn't know FrozenArray
   /*[SameObject]*/ static readonly attribute /*FrozenArray<DOMString>*/ any supportedEntryTypes;

@@ -24,7 +24,7 @@ interface HTMLMediaElement : HTMLElement {
   readonly attribute unsigned short networkState;
   [CEReactions] attribute DOMString preload;
   readonly attribute TimeRanges buffered;
-  void load();
+  undefined load();
   CanPlayTypeResult canPlayType(DOMString type);
 
   // ready state
@@ -38,7 +38,7 @@ interface HTMLMediaElement : HTMLElement {
 
   // playback state
   attribute double currentTime;
-  void fastSeek(double time);
+  undefined fastSeek(double time);
   readonly attribute unrestricted double duration;
   // Date getStartDate();
   readonly attribute boolean paused;
@@ -49,8 +49,8 @@ interface HTMLMediaElement : HTMLElement {
   readonly attribute boolean ended;
   [CEReactions] attribute boolean autoplay;
   [CEReactions] attribute boolean loop;
-  Promise<void> play();
-  void pause();
+  Promise<undefined> play();
+  undefined pause();
 
   // controls
   [CEReactions] attribute boolean controls;

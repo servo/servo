@@ -16,7 +16,7 @@ enum XRVisibilityState {
   "hidden",
 };
 
-callback XRFrameRequestCallback = void (DOMHighResTimeStamp time, XRFrame frame);
+callback XRFrameRequestCallback = undefined (DOMHighResTimeStamp time, XRFrame frame);
 
 [SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
 interface XRSession : EventTarget {
@@ -28,13 +28,13 @@ interface XRSession : EventTarget {
   [SameObject] readonly attribute XRInputSourceArray inputSources;
 
   // // Methods
-  [Throws] void updateRenderState(optional XRRenderStateInit state = {});
+  [Throws] undefined updateRenderState(optional XRRenderStateInit state = {});
   Promise<XRReferenceSpace> requestReferenceSpace(XRReferenceSpaceType type);
 
   long requestAnimationFrame(XRFrameRequestCallback callback);
-  void cancelAnimationFrame(long handle);
+  undefined cancelAnimationFrame(long handle);
 
-  Promise<void> end();
+  Promise<undefined> end();
 
   // hit test module
   Promise<XRHitTestSource> requestHitTestSource(XRHitTestOptionsInit options);

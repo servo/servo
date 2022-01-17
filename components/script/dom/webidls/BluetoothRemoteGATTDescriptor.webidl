@@ -12,5 +12,5 @@ interface BluetoothRemoteGATTDescriptor {
   readonly attribute ByteString? value;
   Promise<ByteString> readValue();
   //Promise<DataView> readValue();
-  Promise<void> writeValue(BufferSource value);
+  Promise<undefined> writeValue(BufferSource value);
 };

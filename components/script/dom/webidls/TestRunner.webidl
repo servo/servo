@@ -9,7 +9,7 @@
 [Pref="dom.bluetooth.testing.enabled", Exposed=Window]
 interface TestRunner {
   [Throws]
-  void setBluetoothMockDataSet(DOMString dataSetName);
+  undefined setBluetoothMockDataSet(DOMString dataSetName);
   // void setBluetoothManualChooser();
   // void getBluetoothManualChooserEvents(BluetoothManualChooserEventsCallback callback);
   // void sendBluetoothManualChooserEvent(DOMString event, DOMString argument);

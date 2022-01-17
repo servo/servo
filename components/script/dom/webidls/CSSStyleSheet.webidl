@@ -8,5 +8,5 @@ interface CSSStyleSheet : StyleSheet {
   // readonly attribute CSSRule? ownerRule;
   [Throws, SameObject] readonly attribute CSSRuleList cssRules;
   [Throws] unsigned long insertRule(DOMString rule, optional unsigned long index = 0);
-  [Throws] void deleteRule(unsigned long index);
+  [Throws] undefined deleteRule(unsigned long index);
 };

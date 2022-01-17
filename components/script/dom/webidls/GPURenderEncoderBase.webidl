@@ -5,20 +5,25 @@
 // https://gpuweb.github.io/gpuweb/#gpurenderencoderbase
 [Exposed=(Window, DedicatedWorker)]
 interface mixin GPURenderEncoderBase {
-    void setPipeline(GPURenderPipeline pipeline);
+    undefined setPipeline(GPURenderPipeline pipeline);
 
-    void setIndexBuffer(GPUBuffer buffer, optional GPUSize64 offset = 0, optional GPUSize64 size = 0);
-    void setVertexBuffer(GPUIndex32 slot, GPUBuffer buffer, optional GPUSize64 offset = 0, optional GPUSize64 size = 0);
+    undefined setIndexBuffer(GPUBuffer buffer, optional GPUSize64 offset = 0, optional GPUSize64 size = 0);
+    undefined setVertexBuffer(
+        GPUIndex32 slot,
+        GPUBuffer buffer,
+        optional GPUSize64 offset = 0,
+        optional GPUSize64 size = 0
+    );
 
-    void draw(GPUSize32 vertexCount, optional GPUSize32 instanceCount = 1,
+    undefined draw(GPUSize32 vertexCount, optional GPUSize32 instanceCount = 1,
               optional GPUSize32 firstVertex = 0, optional GPUSize32 firstInstance = 0);
-    void drawIndexed(GPUSize32 indexCount, optional GPUSize32 instanceCount = 1,
+    undefined drawIndexed(GPUSize32 indexCount, optional GPUSize32 instanceCount = 1,
                      optional GPUSize32 firstIndex = 0,
                      optional GPUSignedOffset32 baseVertex = 0,
                      optional GPUSize32 firstInstance = 0);
 
-    void drawIndirect(GPUBuffer indirectBuffer, GPUSize64 indirectOffset);
-    void drawIndexedIndirect(GPUBuffer indirectBuffer, GPUSize64 indirectOffset);
+    undefined drawIndirect(GPUBuffer indirectBuffer, GPUSize64 indirectOffset);
+    undefined drawIndexedIndirect(GPUBuffer indirectBuffer, GPUSize64 indirectOffset);
 };
 
 typedef [EnforceRange] long GPUSignedOffset32;

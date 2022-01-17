@@ -4,37 +4,37 @@ def WebIDLTest(parser, harness):
     parser.parse("""
         interface TestArrayBuffer {
           attribute ArrayBuffer bufferAttr;
-          void bufferMethod(ArrayBuffer arg1, ArrayBuffer? arg2, sequence<ArrayBuffer> arg3);
+          undefined bufferMethod(ArrayBuffer arg1, ArrayBuffer? arg2, sequence<ArrayBuffer> arg3);
 
           attribute ArrayBufferView viewAttr;
-          void viewMethod(ArrayBufferView arg1, ArrayBufferView? arg2, sequence<ArrayBufferView> arg3);
+          undefined viewMethod(ArrayBufferView arg1, ArrayBufferView? arg2, sequence<ArrayBufferView> arg3);
 
           attribute Int8Array int8ArrayAttr;
-          void int8ArrayMethod(Int8Array arg1, Int8Array? arg2, sequence<Int8Array> arg3);
+          undefined int8ArrayMethod(Int8Array arg1, Int8Array? arg2, sequence<Int8Array> arg3);
 
           attribute Uint8Array uint8ArrayAttr;
-          void uint8ArrayMethod(Uint8Array arg1, Uint8Array? arg2, sequence<Uint8Array> arg3);
+          undefined uint8ArrayMethod(Uint8Array arg1, Uint8Array? arg2, sequence<Uint8Array> arg3);
 
           attribute Uint8ClampedArray uint8ClampedArrayAttr;
-          void uint8ClampedArrayMethod(Uint8ClampedArray arg1, Uint8ClampedArray? arg2, sequence<Uint8ClampedArray> arg3);
+          undefined uint8ClampedArrayMethod(Uint8ClampedArray arg1, Uint8ClampedArray? arg2, sequence<Uint8ClampedArray> arg3);
 
           attribute Int16Array int16ArrayAttr;
-          void int16ArrayMethod(Int16Array arg1, Int16Array? arg2, sequence<Int16Array> arg3);
+          undefined int16ArrayMethod(Int16Array arg1, Int16Array? arg2, sequence<Int16Array> arg3);
 
           attribute Uint16Array uint16ArrayAttr;
-          void uint16ArrayMethod(Uint16Array arg1, Uint16Array? arg2, sequence<Uint16Array> arg3);
+          undefined uint16ArrayMethod(Uint16Array arg1, Uint16Array? arg2, sequence<Uint16Array> arg3);
 
           attribute Int32Array int32ArrayAttr;
-          void int32ArrayMethod(Int32Array arg1, Int32Array? arg2, sequence<Int32Array> arg3);
+          undefined int32ArrayMethod(Int32Array arg1, Int32Array? arg2, sequence<Int32Array> arg3);
 
           attribute Uint32Array uint32ArrayAttr;
-          void uint32ArrayMethod(Uint32Array arg1, Uint32Array? arg2, sequence<Uint32Array> arg3);
+          undefined uint32ArrayMethod(Uint32Array arg1, Uint32Array? arg2, sequence<Uint32Array> arg3);
 
           attribute Float32Array float32ArrayAttr;
-          void float32ArrayMethod(Float32Array arg1, Float32Array? arg2, sequence<Float32Array> arg3);
+          undefined float32ArrayMethod(Float32Array arg1, Float32Array? arg2, sequence<Float32Array> arg3);
 
           attribute Float64Array float64ArrayAttr;
-          void float64ArrayMethod(Float64Array arg1, Float64Array? arg2, sequence<Float64Array> arg3);
+          undefined float64ArrayMethod(Float64Array arg1, Float64Array? arg2, sequence<Float64Array> arg3);
         };
     """)
 
@@ -55,7 +55,7 @@ def WebIDLTest(parser, harness):
         harness.ok(attr.type.isSpiderMonkeyInterface(), "Should test as a js interface")
 
         (retType, arguments) = method.signatures()[0]
-        harness.ok(retType.isVoid(), "Should have a void return type")
+        harness.ok(retType.isUndefined(), "Should have a undefined return type")
         harness.check(len(arguments), 3, "Expect 3 arguments")
 
         harness.check(str(arguments[0].type), t,  "Expect an ArrayBuffer type")

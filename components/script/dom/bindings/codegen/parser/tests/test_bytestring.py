@@ -60,8 +60,8 @@ def WebIDLTest(parser, harness):
     try:
         parser.parse("""
             interface OptionalByteString {
-              void passByteString(optional ByteString arg = "hello");
-              };
+              undefined passByteString(optional ByteString arg = "hello");
+            };
         """)
         results2 = parser.finish();
     except WebIDL.WebIDLError as e:

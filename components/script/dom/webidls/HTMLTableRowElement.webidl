@@ -13,7 +13,7 @@ interface HTMLTableRowElement : HTMLElement {
   [Throws]
   HTMLElement insertCell(optional long index = -1);
   [CEReactions, Throws]
-  void deleteCell(long index);
+  undefined deleteCell(long index);
 
   // also has obsolete members
 };

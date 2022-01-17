@@ -8,7 +8,7 @@
 [Pref="dom.testbinding.enabled", Exposed=(Window,Worker)]
 interface TestBindingIterable {
   [Throws] constructor();
-  void add(DOMString arg);
+  undefined add(DOMString arg);
   readonly attribute unsigned long length;
   getter DOMString getItem(unsigned long index);
   iterable<DOMString>;

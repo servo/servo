@@ -47,7 +47,7 @@ def WebIDLTest(parser, harness):
     parser = parser.reset();
     parser.parse("""
             interface Child : Parent {
-              static void foo();
+              static undefined foo();
             };
             interface Parent {
               [Unforgeable] readonly attribute long foo;
@@ -65,7 +65,7 @@ def WebIDLTest(parser, harness):
     try:
         parser.parse("""
             interface Child : Parent {
-              void foo();
+              undefined foo();
             };
             interface Parent {
               [Unforgeable] readonly attribute long foo;
@@ -84,10 +84,10 @@ def WebIDLTest(parser, harness):
     try:
         parser.parse("""
             interface Child : Parent {
-              void foo();
+              undefined foo();
             };
             interface Parent {
-              [Unforgeable] void foo();
+              [Unforgeable] undefined foo();
             };
         """)
 
@@ -125,7 +125,7 @@ def WebIDLTest(parser, harness):
               attribute short foo;
             };
             interface Parent {
-              [Unforgeable] void foo();
+              [Unforgeable] undefined foo();
             };
         """)
 
@@ -157,7 +157,7 @@ def WebIDLTest(parser, harness):
     try:
         parser.parse("""
             interface Child : Parent {
-              void foo();
+              undefined foo();
             };
             interface Parent {};
             interface mixin Mixin {
@@ -187,7 +187,7 @@ def WebIDLTest(parser, harness):
             };
             GrandParent includes Mixin;
             interface mixin ChildMixin {
-              void foo();
+              undefined foo();
             };
             Child includes ChildMixin;
         """)
@@ -209,11 +209,11 @@ def WebIDLTest(parser, harness):
             interface Parent : GrandParent {};
             interface GrandParent {};
             interface mixin Mixin {
-              [Unforgeable] void foo();
+              [Unforgeable] undefined foo();
             };
             GrandParent includes Mixin;
             interface mixin ChildMixin {
-              void foo();
+              undefined foo();
             };
             Child includes ChildMixin;
         """)

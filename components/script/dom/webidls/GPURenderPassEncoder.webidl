@@ -5,15 +5,15 @@
 // https://gpuweb.github.io/gpuweb/#gpurenderpassencoder
 [Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPURenderPassEncoder {
-    void setViewport(float x, float y,
+    undefined setViewport(float x, float y,
                      float width, float height,
                      float minDepth, float maxDepth);
 
-    void setScissorRect(GPUIntegerCoordinate x, GPUIntegerCoordinate y,
+    undefined setScissorRect(GPUIntegerCoordinate x, GPUIntegerCoordinate y,
                         GPUIntegerCoordinate width, GPUIntegerCoordinate height);
 
-    void setBlendColor(GPUColor color);
-    void setStencilReference(GPUStencilValue reference);
+    undefined setBlendColor(GPUColor color);
+    undefined setStencilReference(GPUStencilValue reference);
 
     //void beginOcclusionQuery(GPUSize32 queryIndex);
     //void endOcclusionQuery();
@@ -23,8 +23,8 @@ interface GPURenderPassEncoder {
 
     //void writeTimestamp(GPUQuerySet querySet, GPUSize32 queryIndex);
 
-    void executeBundles(sequence<GPURenderBundle> bundles);
-    void endPass();
+    undefined executeBundles(sequence<GPURenderBundle> bundles);
+    undefined endPass();
 };
 GPURenderPassEncoder includes GPUObjectBase;
 GPURenderPassEncoder includes GPUProgrammablePassEncoder;

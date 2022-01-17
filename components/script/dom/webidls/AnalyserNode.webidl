@@ -16,10 +16,10 @@ dictionary AnalyserOptions : AudioNodeOptions {
 [Exposed=Window]
 interface AnalyserNode : AudioNode {
   [Throws] constructor(BaseAudioContext context, optional AnalyserOptions options = {});
-  void getFloatFrequencyData (Float32Array array);
-  void getByteFrequencyData (Uint8Array array);
-  void getFloatTimeDomainData (Float32Array array);
-  void getByteTimeDomainData (Uint8Array array);
+  undefined getFloatFrequencyData (Float32Array array);
+  undefined getByteFrequencyData (Uint8Array array);
+  undefined getFloatTimeDomainData (Float32Array array);
+  undefined getByteTimeDomainData (Uint8Array array);
   [SetterThrows] attribute unsigned long fftSize;
   readonly attribute unsigned long frequencyBinCount;
   [SetterThrows] attribute double minDecibels;

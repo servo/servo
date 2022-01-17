@@ -15,13 +15,13 @@ interface CharacterData : Node {
   [Pure] readonly attribute unsigned long length;
   [Pure, Throws]
   DOMString substringData(unsigned long offset, unsigned long count);
-  void appendData(DOMString data);
+  undefined appendData(DOMString data);
   [Throws]
-  void insertData(unsigned long offset, DOMString data);
+  undefined insertData(unsigned long offset, DOMString data);
   [Throws]
-  void deleteData(unsigned long offset, unsigned long count);
+  undefined deleteData(unsigned long offset, unsigned long count);
   [Throws]
-  void replaceData(unsigned long offset, unsigned long count, DOMString data);
+  undefined replaceData(unsigned long offset, unsigned long count, DOMString data);
 };
 
 CharacterData includes ChildNode;

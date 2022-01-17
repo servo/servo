@@ -7,5 +7,5 @@
 
 [Global=(Worklet,TestWorklet), Pref="dom.worklet.enabled", Exposed=TestWorklet]
 interface TestWorkletGlobalScope : WorkletGlobalScope {
-    void registerKeyValue(DOMString key, DOMString value);
+    undefined registerKeyValue(DOMString key, DOMString value);
 };

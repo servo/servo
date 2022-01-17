@@ -22,7 +22,7 @@ def WebIDLTest(parser, harness):
           [Global, Exposed=Foo]
           interface Foo {
             getter any(DOMString name);
-            setter void(DOMString name, any arg);
+            setter undefined(DOMString name, any arg);
           };
         """)
         results = parser.finish()
@@ -40,7 +40,7 @@ def WebIDLTest(parser, harness):
           [Global, Exposed=Foo]
           interface Foo {
             getter any(DOMString name);
-            deleter void(DOMString name);
+            deleter undefined(DOMString name);
           };
         """)
         results = parser.finish()

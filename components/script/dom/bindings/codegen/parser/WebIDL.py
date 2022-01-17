@@ -2093,7 +2093,7 @@ class IDLType(IDLObject):
         'utf8string',
         'jsstring',
         'object',
-        'void',
+        'undefined',
         # Funny stuff
         'interface',
         'dictionary',
@@ -2168,8 +2168,8 @@ class IDLType(IDLObject):
     def isJSString(self):
         return False
 
-    def isVoid(self):
-        return self.name == "Void"
+    def isUndefined(self):
+        return self.name == "Undefined"
 
     def isSequence(self):
         return False
@@ -2355,7 +2355,7 @@ class IDLParametrizedType(IDLType):
 
 class IDLNullableType(IDLParametrizedType):
     def __init__(self, location, innerType):
-        assert not innerType.isVoid()
+        assert not innerType.isUndefined()
         assert not innerType == BuiltinTypes[IDLBuiltinType.Types.any]
 
         IDLParametrizedType.__init__(self, location, None, innerType)
@@ -2414,7 +2414,7 @@ class IDLNullableType(IDLParametrizedType):
     def isInteger(self):
         return self.inner.isInteger()
 
-    def isVoid(self):
+    def isUndefined(self):
         return False
 
     def isSequence(self):
@@ -2517,7 +2517,7 @@ class IDLNullableType(IDLParametrizedType):
 
 class IDLSequenceType(IDLParametrizedType):
     def __init__(self, location, parameterType):
-        assert not parameterType.isVoid()
+        assert not parameterType.isUndefined()
 
         IDLParametrizedType.__init__(self, location, parameterType.name, parameterType)
         # Need to set self.name up front if our inner type is already complete,
@@ -2561,7 +2561,7 @@ class IDLSequenceType(IDLParametrizedType):
     def isJSString(self):
         return False
 
-    def isVoid(self):
+    def isUndefined(self):
         return False
 
     def isSequence(self):
@@ -2602,7 +2602,7 @@ class IDLRecordType(IDLParametrizedType):
     def __init__(self, location, keyType, valueType):
         assert keyType.isString()
         assert keyType.isComplete()
-        assert not valueType.isVoid()
+        assert not valueType.isUndefined()
 
         IDLParametrizedType.__init__(self, location, valueType.name, valueType)
         self.keyType = keyType
@@ -2673,7 +2673,7 @@ class IDLUnionType(IDLType):
     def prettyName(self):
         return "(" + " or ".join(m.prettyName() for m in self.memberTypes) + ")"
 
-    def isVoid(self):
+    def isUndefined(self):
         return False
 
     def isUnion(self):
@@ -2836,8 +2836,8 @@ class IDLTypedefType(IDLType):
     def isJSString(self):
         return self.inner.isJSString()
 
-    def isVoid(self):
-        return self.inner.isVoid()
+    def isUndefined(self):
+        return self.inner.isUndefined()
 
     def isJSONType(self):
         return self.inner.isJSONType()
@@ -2972,7 +2972,7 @@ class IDLWrapperType(IDLType):
     def isJSString(self):
         return False
 
-    def isVoid(self):
+    def isUndefined(self):
         return False
 
     def isSequence(self):
@@ -3178,7 +3178,7 @@ class IDLBuiltinType(IDLType):
         'utf8string',
         'jsstring',
         'object',
-        'void',
+        'undefined',
         # Funny stuff
         'ArrayBuffer',
         'ArrayBufferView',
@@ -3215,7 +3215,7 @@ class IDLBuiltinType(IDLType):
         Types.utf8string: IDLType.Tags.utf8string,
         Types.jsstring: IDLType.Tags.jsstring,
         Types.object: IDLType.Tags.object,
-        Types.void: IDLType.Tags.void,
+        Types.undefined: IDLType.Tags.undefined,
         Types.ArrayBuffer: IDLType.Tags.interface,
         Types.ArrayBufferView: IDLType.Tags.interface,
         Types.Int8Array: IDLType.Tags.interface,
@@ -3251,7 +3251,7 @@ class IDLBuiltinType(IDLType):
         Types.utf8string: "USVString", # That's what it is in spec terms
         Types.jsstring: "USVString", # Again, that's what it is in spec terms
         Types.object: "object",
-        Types.void: "void",
+        Types.undefined: "undefined",
         Types.ArrayBuffer: "ArrayBuffer",
         Types.ArrayBufferView: "ArrayBufferView",
         Types.Int8Array: "Int8Array",
@@ -3456,8 +3456,8 @@ class IDLBuiltinType(IDLType):
             return False
         if self.isObject():
             return other.isPrimitive() or other.isString() or other.isEnum()
-        if self.isVoid():
-            return not other.isVoid()
+        if self.isUndefined():
+            return not other.isUndefined()
         # Not much else we could be!
         assert self.isSpiderMonkeyInterface()
         # Like interfaces, but we know we're not a callback
@@ -3591,9 +3591,9 @@ BuiltinTypes = {
     IDLBuiltinType.Types.object:
         IDLBuiltinType(BuiltinLocation("<builtin type>"), "Object",
                        IDLBuiltinType.Types.object),
-    IDLBuiltinType.Types.void:
-        IDLBuiltinType(BuiltinLocation("<builtin type>"), "Void",
-                       IDLBuiltinType.Types.void),
+    IDLBuiltinType.Types.undefined:
+        IDLBuiltinType(BuiltinLocation("<builtin type>"), "Undefined",
+                       IDLBuiltinType.Types.undefined),
     IDLBuiltinType.Types.ArrayBuffer:
         IDLBuiltinType(BuiltinLocation("<builtin type>"), "ArrayBuffer",
                        IDLBuiltinType.Types.ArrayBuffer),
@@ -4196,9 +4196,9 @@ class IDLIterable(IDLMaplikeOrSetlikeOrIterableBase):
         self.addMethod("values", members, False, self.iteratorType,
                        affectsNothing=True, newObject=True)
 
-        # void forEach(callback(valueType, keyType), optional any thisArg)
+        # undefined forEach(callback(valueType, keyType), optional any thisArg)
         self.addMethod("forEach", members, False,
-                       BuiltinTypes[IDLBuiltinType.Types.void],
+                       BuiltinTypes[IDLBuiltinType.Types.undefined],
                        self.getForEachArguments())
 
     def isValueIterator(self):
@@ -4256,8 +4256,8 @@ class IDLMaplikeOrSetlike(IDLMaplikeOrSetlikeOrIterableBase):
         self.addMethod("values", members, False, BuiltinTypes[IDLBuiltinType.Types.object],
                        affectsNothing=True, isIteratorAlias=self.isSetlike())
 
-        # void forEach(callback(valueType, keyType), thisVal)
-        self.addMethod("forEach", members, False, BuiltinTypes[IDLBuiltinType.Types.void],
+        # undefined forEach(callback(valueType, keyType), thisVal)
+        self.addMethod("forEach", members, False, BuiltinTypes[IDLBuiltinType.Types.undefined],
                        self.getForEachArguments())
 
         def getKeyArg():
@@ -4270,8 +4270,8 @@ class IDLMaplikeOrSetlike(IDLMaplikeOrSetlikeOrIterableBase):
                        [getKeyArg()], isPure=True)
 
         if not self.readonly:
-            # void clear()
-            self.addMethod("clear", members, True, BuiltinTypes[IDLBuiltinType.Types.void],
+            # undefined clear()
+            self.addMethod("clear", members, True, BuiltinTypes[IDLBuiltinType.Types.undefined],
                            [])
             # boolean delete(keyType key)
             self.addMethod("delete", members, True,
@@ -4280,8 +4280,8 @@ class IDLMaplikeOrSetlike(IDLMaplikeOrSetlikeOrIterableBase):
         # Always generate underscored functions (e.g. __add, __clear) for js
         # implemented interfaces as convenience functions.
         if isJSImplemented:
-            # void clear()
-            self.addMethod("clear", members, True, BuiltinTypes[IDLBuiltinType.Types.void],
+            # undefined clear()
+            self.addMethod("clear", members, True, BuiltinTypes[IDLBuiltinType.Types.undefined],
                            [], chromeOnly=True)
             # boolean delete(keyType key)
             self.addMethod("delete", members, True,
@@ -5119,7 +5119,7 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
             assert (arguments[0].type == BuiltinTypes[IDLBuiltinType.Types.domstring] or
                     arguments[0].type == BuiltinTypes[IDLBuiltinType.Types.unsigned_long])
             assert not arguments[0].optional and not arguments[0].variadic
-            assert not self._getter or not overload.returnType.isVoid()
+            assert not self._getter or not overload.returnType.isUndefined()
 
         if self._setter:
             assert len(self._overloads) == 1
@@ -5480,8 +5480,8 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
             # This is called before we've done overload resolution
             overloads = self._overloads
             assert len(overloads) == 1
-            if not overloads[0].returnType.isVoid():
-                raise WebIDLError("[LenientFloat] used on a non-void method",
+            if not overloads[0].returnType.isUndefined():
+                raise WebIDLError("[LenientFloat] used on a non-undefined returning method",
                                   [attr.location, self.location])
             if not overloads[0].includesRestrictedFloatArgument():
                 raise WebIDLError("[LenientFloat] used on an operation with no "
@@ -5837,7 +5837,7 @@ class Tokenizer(object):
         "record": "RECORD",
         "short": "SHORT",
         "unsigned": "UNSIGNED",
-        "void": "VOID",
+        "undefined": "UNDEFINED",
         ":": "COLON",
         ";": "SEMICOLON",
         "{": "LBRACE",
@@ -6722,8 +6722,8 @@ class Parser(Tokenizer):
                                    "optional" if arguments[0].optional else "variadic"),
                                   [arguments[0].location])
         if getter:
-            if returnType.isVoid():
-                raise WebIDLError("getter cannot have void return type",
+            if returnType.isUndefined():
+                raise WebIDLError("getter cannot have undefined return type",
                                   [self.getLocation(p, 2)])
         if setter:
             if len(arguments) != 2:
@@ -7103,7 +7103,7 @@ class Parser(Tokenizer):
                   | SYMBOL
                   | TRUE
                   | UNSIGNED
-                  | VOID
+                  | UNDEFINED
                   | ArgumentNameKeyword
         """
         pass
@@ -7145,7 +7145,7 @@ class Parser(Tokenizer):
         """
         p[0] = BuiltinTypes[IDLBuiltinType.Types.any]
 
-    # Note: Promise<void> is allowed, so we want to parametrize on ReturnType,
+    # Note: Promise<undefined> is allowed, so we want to parametrize on ReturnType,
     # not Type.  Promise types can't be null, hence no "Null" in there.
     def p_SingleTypePromiseType(self, p):
         """
@@ -7413,11 +7413,11 @@ class Parser(Tokenizer):
         """
         p[0] = p[1]
 
-    def p_ReturnTypeVoid(self, p):
+    def p_ReturnTypeUndefined(self, p):
         """
-            ReturnType : VOID
+            ReturnType : UNDEFINED
         """
-        p[0] = BuiltinTypes[IDLBuiltinType.Types.void]
+        p[0] = BuiltinTypes[IDLBuiltinType.Types.undefined]
 
     def p_ScopedName(self, p):
         """

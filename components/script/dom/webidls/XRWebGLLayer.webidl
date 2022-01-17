@@ -37,5 +37,5 @@ interface XRWebGLLayer: XRLayer {
 };
 
 partial interface WebGLRenderingContext {
-    [Pref="dom.webxr.enabled"] Promise<void> makeXRCompatible();
+    [Pref="dom.webxr.enabled"] Promise<undefined> makeXRCompatible();
 };

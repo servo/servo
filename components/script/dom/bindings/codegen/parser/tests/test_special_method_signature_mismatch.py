@@ -17,7 +17,7 @@ def WebIDLTest(parser, harness):
     try:
         parser.parse("""
             interface SpecialMethodSignatureMismatch2 {
-              getter void foo(unsigned long index);
+              getter undefined foo(unsigned long index);
             };
         """)
 

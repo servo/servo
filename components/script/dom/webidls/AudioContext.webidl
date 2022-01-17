@@ -30,8 +30,8 @@ interface AudioContext : BaseAudioContext {
 
   AudioTimestamp getOutputTimestamp();
 
-  Promise<void> suspend();
-  Promise<void> close();
+  Promise<undefined> suspend();
+  Promise<undefined> close();
 
   [Throws] MediaElementAudioSourceNode createMediaElementSource(HTMLMediaElement mediaElement);
   [Throws] MediaStreamAudioSourceNode createMediaStreamSource(MediaStream mediaStream);

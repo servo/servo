@@ -9,7 +9,7 @@
 interface ExtendableEvent : Event {
   [Throws] constructor(DOMString type,
  optional ExtendableEventInit eventInitDict = {});
-  [Throws] void waitUntil(/*Promise<*/any/*>*/ f);
+  [Throws] undefined waitUntil(/*Promise<*/any/*>*/ f);
 };
 
 dictionary ExtendableEventInit : EventInit {

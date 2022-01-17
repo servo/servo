@@ -2,8 +2,8 @@ def WebIDLTest(parser, harness):
     threw = False
     try:
         parser.parse("""
-            interface VoidArgument1 {
-              void foo(void arg2);
+            interface UndefinedArgument1 {
+              undefined foo(undefined arg2);
             };
         """)
 

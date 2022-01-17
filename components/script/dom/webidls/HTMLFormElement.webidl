@@ -34,10 +34,10 @@ interface HTMLFormElement : HTMLElement {
   getter Element? (unsigned long index);
   getter (RadioNodeList or Element) (DOMString name);
 
-  void submit();
-  [Throws] void requestSubmit(optional HTMLElement? submitter = null);
+  undefined submit();
+  [Throws] undefined requestSubmit(optional HTMLElement? submitter = null);
   [CEReactions]
-  void reset();
+  undefined reset();
   boolean checkValidity();
   boolean reportValidity();
 };

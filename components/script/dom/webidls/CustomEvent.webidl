@@ -18,7 +18,7 @@ interface CustomEvent : Event {
   [Throws] constructor(DOMString type, optional CustomEventInit eventInitDict = {});
   readonly attribute any detail;
 
-  void initCustomEvent(DOMString type, boolean bubbles, boolean cancelable, any detail);
+  undefined initCustomEvent(DOMString type, boolean bubbles, boolean cancelable, any detail);
 };
 
 dictionary CustomEventInit : EventInit {

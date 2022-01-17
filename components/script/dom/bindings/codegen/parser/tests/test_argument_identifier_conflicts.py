@@ -3,7 +3,7 @@ def WebIDLTest(parser, harness):
     try:
         parser.parse("""
             interface ArgumentIdentifierConflict {
-              void foo(boolean arg1, boolean arg1);
+              undefined foo(boolean arg1, boolean arg1);
             };
         """)
 

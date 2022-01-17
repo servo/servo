@@ -8,8 +8,8 @@
 [Exposed=(Window,Worker)]
 interface mixin ActivatableElement {
   [Throws, Pref="dom.testing.element.activation.enabled"]
-  void enterFormalActivationState();
+  undefined enterFormalActivationState();
 
   [Throws, Pref="dom.testing.element.activation.enabled"]
-  void exitFormalActivationState();
+  undefined exitFormalActivationState();
 };

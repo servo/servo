@@ -21,5 +21,11 @@ dictionary UIEventInit : EventInit {
 // https://w3c.github.io/uievents/#idl-interface-UIEvent-initializers
 partial interface UIEvent {
     // Deprecated in DOM Level 3
-    void initUIEvent (DOMString typeArg, boolean bubblesArg, boolean cancelableArg, Window? viewArg, long detailArg);
+    undefined initUIEvent (
+      DOMString typeArg,
+      boolean bubblesArg,
+      boolean cancelableArg,
+      Window? viewArg,
+      long detailArg
+    );
 };

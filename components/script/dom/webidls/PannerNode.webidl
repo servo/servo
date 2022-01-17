@@ -51,6 +51,6 @@ interface PannerNode : AudioNode {
   attribute double coneInnerAngle;
   attribute double coneOuterAngle;
   [SetterThrows] attribute double coneOuterGain;
-  void setPosition (float x, float y, float z);
-  void setOrientation (float x, float y, float z);
+  undefined setPosition (float x, float y, float z);
+  undefined setOrientation (float x, float y, float z);
 };

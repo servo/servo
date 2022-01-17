@@ -12,10 +12,10 @@ interface mixin AbstractWorker {
 [Exposed=(Window,Worker)]
 interface Worker : EventTarget {
   [Throws] constructor(USVString scriptURL, optional WorkerOptions options = {});
-  void terminate();
+  undefined terminate();
 
-  [Throws] void postMessage(any message, sequence<object> transfer);
-  [Throws] void postMessage(any message, optional PostMessageOptions options = {});
+  [Throws] undefined postMessage(any message, sequence<object> transfer);
+  [Throws] undefined postMessage(any message, optional PostMessageOptions options = {});
   attribute EventHandler onmessage;
   attribute EventHandler onmessageerror;
 };

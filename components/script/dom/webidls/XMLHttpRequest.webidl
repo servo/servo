@@ -43,22 +43,22 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
 
   // request
   [Throws]
-  void open(ByteString method, USVString url);
+  undefined open(ByteString method, USVString url);
   [Throws]
-  void open(ByteString method, USVString url, boolean async,
+  undefined open(ByteString method, USVString url, boolean async,
             optional USVString? username = null,
             optional USVString? password = null);
 
   [Throws]
-  void setRequestHeader(ByteString name, ByteString value);
+  undefined setRequestHeader(ByteString name, ByteString value);
   [SetterThrows]
            attribute unsigned long timeout;
   [SetterThrows]
            attribute boolean withCredentials;
   readonly attribute XMLHttpRequestUpload upload;
   [Throws]
-  void send(optional (Document or XMLHttpRequestBodyInit)? data = null);
-  void abort();
+  undefined send(optional (Document or XMLHttpRequestBodyInit)? data = null);
+  undefined abort();
 
   // response
   readonly attribute USVString responseURL;
@@ -67,7 +67,7 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
   ByteString? getResponseHeader(ByteString name);
   ByteString getAllResponseHeaders();
   [Throws]
-  void overrideMimeType(DOMString mime);
+  undefined overrideMimeType(DOMString mime);
   [SetterThrows]
            attribute XMLHttpRequestResponseType responseType;
   readonly attribute any response;

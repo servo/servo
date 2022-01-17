@@ -29,17 +29,17 @@ partial interface Performance {
 [Exposed=(Window,Worker)]
 partial interface Performance {
   [Throws]
-  void mark(DOMString markName);
-  void clearMarks(optional DOMString markName);
+  undefined mark(DOMString markName);
+  undefined clearMarks(optional DOMString markName);
   [Throws]
-  void measure(DOMString measureName, optional DOMString startMark, optional DOMString endMark);
-  void clearMeasures(optional DOMString measureName);
+  undefined measure(DOMString measureName, optional DOMString startMark, optional DOMString endMark);
+  undefined clearMeasures(optional DOMString measureName);
 };
 
 //https://w3c.github.io/resource-timing/#sec-extensions-performance-interface
 partial interface Performance {
-  void clearResourceTimings ();
-  void setResourceTimingBufferSize (unsigned long maxSize);
+  undefined clearResourceTimings ();
+  undefined setResourceTimingBufferSize (unsigned long maxSize);
               attribute EventHandler onresourcetimingbufferfull;
 };
 

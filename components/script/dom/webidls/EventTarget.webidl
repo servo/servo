@@ -8,13 +8,13 @@
 [Exposed=(Window,Worker,Worklet,DissimilarOriginWindow)]
 interface EventTarget {
   [Throws] constructor();
-  void addEventListener(
+  undefined addEventListener(
     DOMString type,
     EventListener? callback,
     optional (AddEventListenerOptions or boolean) options = {}
   );
 
-  void removeEventListener(
+  undefined removeEventListener(
     DOMString type,
     EventListener? callback,
     optional (EventListenerOptions or boolean) options = {}
