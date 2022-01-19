@@ -59,12 +59,4 @@ Note that for this to work you need to have `rr` in your `PATH`.
 Also, note that this might generate a lot of traces, so you might want to delete
 them when you're done. They're under `$HOME/.local/share/rr`.
 
-### Known gotchas
-
-If you use a Haswell processor that supports Hardware Lock Ellision, rr might
-not work for you. There's a `rr` [bug][rr-bug] open about this. Until that gets
-fixed, you can ensure that the `parking_lot` dependency isn't built with the
-`nightly` feature, which as of this writing is the only dependency that uses it.
-
 [rr]: http://rr-project.org/
-[rr-bug]: https://github.com/mozilla/rr/issues/1883
